@@ -2089,7 +2089,12 @@ isAndroid = navigator.userAgent.indexOf('Android') != -1;
 module.exports = RTCBrowserType;
 },{}],18:[function(require,module,exports){
 (function (__filename){
-/* global config, require, attachMediaStream, getUserMedia */
+/* global config, require, attachMediaStream, getUserMedia,
+   RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, MediaStreamTrack,
+   mozRTCPeerConnection, mozRTCSessionDescription, mozRTCIceCandidate,
+   webkitRTCPeerConnection, webkitMediaStream, webkitURL
+*/
+/* jshint -W101 */
 
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
@@ -2106,7 +2111,7 @@ var eventEmitter = new EventEmitter();
 var devices = {
     audio: true,
     video: true
-}
+};
 
 var rtcReady = false;
 
@@ -2286,7 +2291,7 @@ function onReady (options, GUM) {
     rtcReady = true;
     eventEmitter.emit(RTCEvents.RTC_READY, true);
     screenObtainer.init(eventEmitter, options, GUM);
-};
+}
 
 /**
  * Apply function with arguments if function exists.
@@ -2414,8 +2419,8 @@ function enumerateDevicesThroughMediaStreamTrack (callback) {
 }
 
 function obtainDevices(options) {
-    if(!options.devices || options.devices.length === 0) {
-        return options.successCallback(streams);
+    if (!options.devices || options.devices.length === 0) {
+        return options.successCallback(options.streams);
     }
 
     var device = options.devices.splice(0, 1);
@@ -2455,8 +2460,8 @@ function handleLocalStream(streams, resolution) {
             var videoTracks = audioVideo.getVideoTracks();
             if(videoTracks.length) {
                 videoStream = new webkitMediaStream();
-                for (i = 0; i < videoTracks.length; i++) {
-                    videoStream.addTrack(videoTracks[i]);
+                for (var j = 0; j < videoTracks.length; j++) {
+                    videoStream.addTrack(videoTracks[j]);
                 }
             }
         }
@@ -2595,7 +2600,7 @@ var RTCUtils = {
 
                 //AdapterJS.WebRTCPlugin.setLogLevel(
                 //    AdapterJS.WebRTCPlugin.PLUGIN_LOG_LEVELS.VERBOSE);
-
+                var self = this;
                 AdapterJS.webRTCReady(function (isPlugin) {
 
                     self.peerconnection = RTCPeerConnection;
@@ -2653,7 +2658,7 @@ var RTCUtils = {
 
             // Call onReady() if Temasys plugin is not used
             if (!RTCBrowserType.isTemasysPluginUsed()) {
-                onReady(options, self.getUserMediaWithConstraints);
+                onReady(options, this.getUserMediaWithConstraints);
                 resolve();
             }
         }.bind(this));
@@ -2672,9 +2677,8 @@ var RTCUtils = {
     **/
     getUserMediaWithConstraints: function ( um, success_callback, failure_callback, options) {
         options = options || {};
-        resolution = options.resolution;
-        var constraints = getConstraints(
-            um, options);
+        var resolution = options.resolution;
+        var constraints = getConstraints(um, options);
 
         logger.info("Get media constraints", constraints);
 
@@ -2731,12 +2735,12 @@ var RTCUtils = {
                 RTCBrowserType.isTemasysPluginUsed()) {
                 var GUM = function (device, s, e) {
                     this.getUserMediaWithConstraints(device, s, e, options);
-                }
+                };
                 var deviceGUM = {
                     "audio": GUM.bind(self, ["audio"]),
                     "video": GUM.bind(self, ["video"]),
                     "desktop": screenObtainer.obtainStream
-                }
+                };
                 // With FF/IE we can't split the stream into audio and video because FF
                 // doesn't support media stream constructors. So, we need to get the
                 // audio stream separately from the video stream using two distinct GUM
@@ -2747,13 +2751,14 @@ var RTCUtils = {
                 // the successCallback method.
                 obtainDevices({
                     devices: options.devices,
+                    streams: [],
                     successCallback: successCallback,
                     errorCallback: reject,
                     deviceGUM: deviceGUM
                 });
             } else {
-                var hasDesktop = false;
-                if(hasDesktop = options.devices.indexOf("desktop") !== -1) {
+                var hasDesktop = options.devices.indexOf('desktop') > -1;
+                if (hasDesktop) {
                     options.devices.splice(options.devices.indexOf("desktop"), 1);
                 }
                 options.resolution = options.resolution || '360';
