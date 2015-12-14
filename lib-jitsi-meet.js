@@ -8,6 +8,7 @@ var XMPPEvents = require("./service/xmpp/XMPPEvents");
 var RTCEvents = require("./service/RTC/RTCEvents");
 var EventEmitter = require("events");
 var JitsiConferenceEvents = require("./JitsiConferenceEvents");
+var JitsiConferenceErrors = require("./JitsiConferenceErrors");
 var JitsiParticipant = require("./JitsiParticipant");
 var Statistics = require("./modules/statistics/statistics");
 var JitsiDTMFManager = require('./modules/DTMF/JitsiDTMFManager');
@@ -247,6 +248,36 @@ JitsiConference.prototype.isModerator = function () {
 };
 
 /**
+ * Set password for the room.
+ * @param {string} password new password for the room.
+ * @returns {Promise}
+ */
+JitsiConference.prototype.lock = function (password) {
+  if (!this.isModerator()) {
+    return Promise.reject();
+  }
+
+  var conference = this;
+  return new Promise(function (resolve, reject) {
+    conference.xmpp.lockRoom(password, function () {
+      resolve();
+    }, function (err) {
+      reject(err);
+    }, function () {
+      reject(JitsiConferenceErrors.PASSWORD_REQUIRED);
+    });
+  });
+};
+
+/**
+ * Remove password from the room.
+ * @returns {Promise}
+ */
+JitsiConference.prototype.unlock = function () {
+  return this.lock(undefined);
+};
+
+/**
  * Elects the participant with the given id to be the selected participant or the speaker.
  * @param id the identifier of the participant
  */
@@ -287,10 +318,13 @@ JitsiConference.prototype.getParticipantById = function(id) {
 
 JitsiConference.prototype.onMemberJoined = function (jid, email, nick) {
     var id = Strophe.getResourceFromJid(jid);
+    if (id === 'focus') {
+       return;
+    }
     var participant = new JitsiParticipant(id, this, nick);
-    this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED, id);
     this.participants[id] = participant;
-    this.connection.xmpp.connection.disco.info(
+    this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED, id, participant);
+    this.xmpp.connection.disco.info(
         jid, "node", function(iq) {
             participant._supportsDTMF = $(iq).find(
                 '>query>feature[var="urn:xmpp:jingle:dtmf:0"]').length > 0;
@@ -301,8 +335,9 @@ JitsiConference.prototype.onMemberJoined = function (jid, email, nick) {
 
 JitsiConference.prototype.onMemberLeft = function (jid) {
     var id = Strophe.getResourceFromJid(jid);
+    var participant = this.participants[id];
     delete this.participants[id];
-    this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id);
+    this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant);
 };
 
 JitsiConference.prototype.onUserRoleChanged = function (jid, role) {
@@ -398,7 +433,7 @@ JitsiConference.prototype.myUserId = function () {
 
 JitsiConference.prototype.sendTones = function (tones, duration, pause) {
     if (!this.dtmfManager) {
-        var connection = this.connection.xmpp.connection.jingle.activecall.peerconnection;
+        var connection = this.xmpp.connection.jingle.activecall.peerconnection;
         if (!connection) {
             logger.warn("cannot sendTones: no conneciton");
             return;
@@ -482,6 +517,9 @@ function setupListeners(conference) {
             conference.eventEmitter.emit(JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED,
                 lastNEndpoints, endpointsEnteringLastN);
         });
+    conference.xmpp.addListener(XMPPEvents.PASSWORD_REQUIRED, function () {
+        conference.eventEmitter.emit(JitsiConferenceErrors.PASSWORD_REQUIRED);
+    });
 
     if(conference.statistics) {
         //FIXME: Maybe remove event should not be associated with the conference.
@@ -508,7 +546,7 @@ function setupListeners(conference) {
 module.exports = JitsiConference;
 
 }).call(this,"/JitsiConference.js")
-},{"./JitsiConferenceEvents":3,"./JitsiParticipant":8,"./JitsiTrackEvents":10,"./modules/DTMF/JitsiDTMFManager":11,"./modules/RTC/RTC":16,"./modules/statistics/statistics":24,"./service/RTC/RTCEvents":79,"./service/xmpp/XMPPEvents":85,"events":43,"jitsi-meet-logger":47}],2:[function(require,module,exports){
+},{"./JitsiConferenceErrors":2,"./JitsiConferenceEvents":3,"./JitsiParticipant":8,"./JitsiTrackEvents":10,"./modules/DTMF/JitsiDTMFManager":11,"./modules/RTC/RTC":16,"./modules/statistics/statistics":24,"./service/RTC/RTCEvents":79,"./service/xmpp/XMPPEvents":85,"events":43,"jitsi-meet-logger":47}],2:[function(require,module,exports){
 /**
  * Enumeration with the errors for the conference.
  * @type {{string: string}}
@@ -518,6 +556,10 @@ var JitsiConferenceErrors = {
      * Indicates that a password is required in order to join the conference.
      */
     PASSWORD_REQUIRED: "conference.passwordRequired",
+    /**
+     * Indicates that password cannot be set for this conference.
+     */
+    PASSWORD_NOT_SUPPORTED: "conference.passwordNotSupported",
     /**
      * Indicates that a connection error occurred when trying to join a
      * conference.
@@ -2333,7 +2375,9 @@ function getConstraints(um, options) {
     // this later can be a problem with some of the tests
     if(RTCBrowserType.isFirefox() && options.firefox_fake_device)
     {
-        constraints.audio = true;
+        // seems to be fixed now, removing this experimental fix, as having
+        // multiple audio tracks brake the tests
+        //constraints.audio = true;
         constraints.fake = true;
     }
 
@@ -2486,12 +2530,13 @@ function enumerateDevicesThroughMediaStreamTrack (callback) {
 }
 
 function obtainDevices(options) {
-    if (!options.devices || options.devices.length === 0) {
-        return options.successCallback(options.streams);
+    if(!options.devices || options.devices.length === 0) {
+        return options.successCallback(options.streams || {});
     }
 
     var device = options.devices.splice(0, 1);
     options.deviceGUM[device](function (stream) {
+            options.streams = options.streams || {};
             options.streams[device] = stream;
             obtainDevices(options);
         },
@@ -5535,7 +5580,24 @@ Statistics.prototype.stopRemote = function () {
         this.eventEmitter.emit(StatisticsEvents.STOP);
         this.rtpStats = null;
     }
-}
+};
+
+/**
+ * Obtains audio level reported in the stats for specified peer.
+ * @param peerJid full MUC jid of the user for whom we want to obtain last
+ *        audio level.
+ * @param ssrc the SSRC of audio stream for which we want to obtain audio
+ *        level.
+ * @returns {*} a float form 0 to 1 that represents current audio level or
+ *              <tt>null</tt> if for any reason the value is not available
+ *              at this time.
+ */
+Statistics.prototype.getPeerSSRCAudioLevel = function (peerJid, ssrc) {
+
+    var peerStats = this.rtpStats.jid2stats[peerJid];
+
+    return peerStats ? peerStats.ssrc2AudioLevel[ssrc] : null;
+};
 
 Statistics.LOCAL_JID = require("../../service/statistics/constants").LOCAL_JID;
 
@@ -6509,7 +6571,11 @@ function JingleSessionPC(me, sid, connection, service) {
     this.addingStreams = false;
 
     this.wait = true;
-    this.localStreamsSSRC = null;
+    /**
+     * A map that stores SSRCs of local streams
+     * @type {{}} maps media type('audio' or 'video') to SSRC number
+     */
+    this.localStreamsSSRC = {};
     this.ssrcOwners = {};
     this.ssrcVideoTypes = {};
 
@@ -6725,8 +6791,7 @@ JingleSessionPC.prototype.accept = function () {
     // FIXME why do we generate session-accept in 3 different places ?
     prsdp.toJingle(
         accept,
-        this.initiator == this.me ? 'initiator' : 'responder',
-        this.localStreamsSSRC);
+        this.initiator == this.me ? 'initiator' : 'responder');
     var sdp = this.peerconnection.localDescription.sdp;
     while (SDPUtil.find_line(sdp, 'a=inactive')) {
         // FIXME: change any inactive to sendrecv or whatever they were originally
@@ -6953,8 +7018,7 @@ JingleSessionPC.prototype.createdOffer = function (sdp) {
                 sid: this.sid});
         self.localSDP.toJingle(
             init,
-            this.initiator == this.me ? 'initiator' : 'responder',
-            this.localStreamsSSRC);
+            this.initiator == this.me ? 'initiator' : 'responder');
 
         SSRCReplacement.processSessionInit(init);
 
@@ -7018,6 +7082,15 @@ JingleSessionPC.prototype.readSsrcInfo = function (contents) {
             );
         });
     });
+};
+
+/**
+ * Returns the SSRC of local audio stream.
+ * @param mediaType 'audio' or 'video' media type
+ * @returns {*} the SSRC number of local audio or video stream.
+ */
+JingleSessionPC.prototype.getLocalSSRC = function (mediaType) {
+    return this.localStreamsSSRC[mediaType];
 };
 
 JingleSessionPC.prototype.getSsrcOwner = function (ssrc) {
@@ -7975,13 +8048,8 @@ JingleSessionPC.prototype.setLocalDescription = function () {
                     'ssrc': ssrc.id,
                     'type': media.type
                 });
-            });
-        }
-        else if(self.localStreamsSSRC && self.localStreamsSSRC[media.type])
-        {
-            newssrcs.push({
-                'ssrc': self.localStreamsSSRC[media.type],
-                'type': media.type
+                // FIXME allows for only one SSRC per media type
+                self.localStreamsSSRC[media.type] = ssrc.id;
             });
         }
 
@@ -8511,7 +8579,7 @@ SDP.prototype.removeMediaLines = function(mediaindex, prefix) {
 }
 
 // add content's to a jingle element
-SDP.prototype.toJingle = function (elem, thecreator, ssrcs) {
+SDP.prototype.toJingle = function (elem, thecreator) {
 //    logger.log("SSRC" + ssrcs["audio"] + " - " + ssrcs["video"]);
     var self = this;
     var i, j, k, mline, ssrc, rtpmap, tmp, lines;
@@ -8539,11 +8607,7 @@ SDP.prototype.toJingle = function (elem, thecreator, ssrcs) {
         if (SDPUtil.find_line(this.media[i], 'a=ssrc:')) {
             ssrc = SDPUtil.find_line(this.media[i], 'a=ssrc:').substring(7).split(' ')[0]; // take the first
         } else {
-            if(ssrcs && ssrcs[mline.media]) {
-                ssrc = ssrcs[mline.media];
-            } else {
-                ssrc = false;
-            }
+            ssrc = false;
         }
 
         elem.c('content', {creator: thecreator, name: mline.media});
@@ -10154,6 +10218,13 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: this.xmppService.options.hosts.bridge
             }).up();
     }
+    if (this.xmppService.options.enforcedBridge !== undefined) {
+        elem.c(
+            'property', {
+                name: 'enforcedBridge',
+                value: this.xmppService.options.enforcedBridge
+            }).up();
+    }
     // Tell the focus we have Jigasi configured
     if (this.xmppService.options.hosts.call_control !== undefined) {
         elem.c(
@@ -11445,6 +11516,21 @@ XMPP.prototype.disconnect = function () {
     this.connection.disconnect();
 };
 
+/**
+ * Gets the SSRC of local media stream.
+ * @param mediaType the media type that tells whether we want to get
+ *        the SSRC of local audio or video stream.
+ * @returns {*} the SSRC number for local media stream or <tt>null</tt> if
+ *              not available.
+ */
+XMPP.prototype.getLocalSSRC = function (mediaType) {
+    if (this.connection.jingle.activecall &&
+        this.connection.jingle.activecall.peerconnection) {
+        return this.connection.jingle.activecall.getLocalSSRC(mediaType);
+    } else {
+        return null;
+    }
+};
 
 module.exports = XMPP;
 
