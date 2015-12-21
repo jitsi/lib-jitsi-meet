@@ -499,6 +499,16 @@ JitsiConference.prototype.sendTones = function (tones, duration, pause) {
 };
 
 /**
+ * Returns the connection state for the current room. Its ice connection state
+ * for its session.
+ */
+JitsiConference.prototype.getConnectionState = function () {
+    if(this.room)
+        return this.room.getConnectionState();
+    return null;
+}
+
+/**
  * Setups the listeners needed for the conference.
  * @param conference the conference
  */
@@ -6501,6 +6511,15 @@ ChatRoom.prototype.getJidBySSRC = function (ssrc) {
     return this.session.getSsrcOwner(ssrc);
 };
 
+/**
+ * Returns the connection state for the current session.
+ */
+ChatRoom.prototype.getConnectionState = function () {
+    if(!this.session)
+        return null;
+    return this.session.getIceConnectionState();
+}
+
 module.exports = ChatRoom;
 
 }).call(this,"/modules/xmpp/ChatRoom.js")
@@ -8270,6 +8289,14 @@ JingleSessionPC.prototype.remoteStreamAdded = function (data, times) {
     }
 }
 
+/**
+ * Returns the ice connection state for the peer connection.
+ * @returns the ice connection state for the peer connection.
+ */
+JingleSessionPC.prototype.getIceConnectionState = function () {
+    return this.peerconnection.iceConnectionState;
+}
+
 module.exports = JingleSessionPC;
 
 }).call(this,"/modules/xmpp/JingleSessionPC.js")
@@ -8332,7 +8359,7 @@ var localVideoSSRC;
  * This is in order to tell Chrome what SSRC should be used in RTCP requests
  * instead of 1.
  */
-var localRecvOnlySSRC, localRecvOnlyMSID, localRecvOnlyMSLabel, localRecvOnlyLabel;
+var localRecvOnlySSRC;
 
 /**
  * cname for <tt>localRecvOnlySSRC</tt>
@@ -8405,31 +8432,17 @@ var storeLocalVideoSSRC = function (jingleIq) {
 };
 
 /**
- * Generates new label/mslabel attribute
- * @returns {string} label/mslabel attribute
- */
-function generateLabel() {
-    return RandomUtil.randomHexString(8) + "-" + RandomUtil.randomHexString(4) +
-        "-" + RandomUtil.randomHexString(4) + "-" +
-        RandomUtil.randomHexString(4) + "-" + RandomUtil.randomHexString(12);
-}
-
-/**
  * Generates new SSRC for local video recvonly stream.
  * FIXME what about eventual SSRC collision ?
  */
 function generateRecvonlySSRC() {
 
-    localVideoSSRC = localRecvOnlySSRC =
+    localRecvOnlySSRC =
         localVideoSSRC ?
             localVideoSSRC : Math.random().toString(10).substring(2, 11);
 
     localRecvOnlyCName =
         Math.random().toString(36).substring(2);
-
-    localRecvOnlyMSLabel = generateLabel();
-    localRecvOnlyLabel = generateLabel();
-    localRecvOnlyMSID = localRecvOnlyMSLabel + " " + localRecvOnlyLabel;
 
     logger.info(
         "Generated local recvonly SSRC: " + localRecvOnlySSRC +
@@ -8505,13 +8518,7 @@ var LocalSSRCReplacement = {
                          ' - adding SSRC: ' + localRecvOnlySSRC);
 
             sdp.media[1] += 'a=ssrc:' + localRecvOnlySSRC +
-                            ' cname:' + localRecvOnlyCName + '\r\n' +
-                            'a=ssrc:' + localRecvOnlySSRC +
-                            ' msid:' + localRecvOnlyMSID + '\r\n' +
-                            'a=ssrc:' + localRecvOnlySSRC +
-                            ' mslabel:' + localRecvOnlyMSLabel + '\r\n' +
-                            'a=ssrc:' + localRecvOnlySSRC +
-                            ' label:' + localRecvOnlyLabel + '\r\n';
+                            ' cname:' + localRecvOnlyCName + '\r\n';
 
             localDescription.sdp = sdp.session + sdp.media.join('');
         }
