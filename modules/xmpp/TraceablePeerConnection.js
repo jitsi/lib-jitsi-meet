@@ -505,7 +505,7 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
         if(!errback)
             errback = function () {};
         this.peerconnection.getStats(null, callback, errback);
-    } else {
+    } else if(!RTCBrowserType.isTemasysPluginUsed()){
         this.peerconnection.getStats(callback);
     }
 };
