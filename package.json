@@ -24,7 +24,10 @@
     "retry": "0.6.1",
     "jssha": "1.5.0",
     "es6-promise": "*",
-    "jitsi-meet-logger": "jitsi/jitsi-meet-logger"
+    "jitsi-meet-logger": "jitsi/jitsi-meet-logger",
+    "strophe": "^1.2.2",
+    "strophejs-plugins": "^0.0.6",
+    "socket.io-client": "1.3.6"
   },
   "devDependencies": {
     "browserify": "11.1.x",
@@ -34,7 +37,16 @@
     "uglify-js": "2.4.24"
   },
   "scripts": {
-    "lint": "./node_modules/.bin/jshint .",
+    "install": "npm run browserify && npm run version && npm run uglifyjs",
+    "postinstall": "npm run deploy",
+
+    "browserify": "browserify -d JitsiMeetJS.js -s JitsiMeetJS | exorcist lib-jitsi-meet.js.map > lib-jitsi-meet.js ",
+    "version": "VERSION=`./get-version.sh` && sed -i '' s/{#COMMIT_HASH#}/${VERSION}/g lib-jitsi-meet.js",
+    "uglifyjs": "uglifyjs -p relative lib-jitsi-meet.js -o lib-jitsi-meet.min.js --source-map lib-jitsi-meet.min.map --in-source-map lib-jitsi-meet.js.map",
+
+    "deploy": "DEPLOY_DIR='../../libs' && [ -d $DEPLOY_DIR ] && cp lib-jitsi-meet.* $DEPLOY_DIR",
+
+    "lint": "jshint .",
     "validate": "npm ls"
   },
   "pre-commit": [

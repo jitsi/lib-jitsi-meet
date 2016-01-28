@@ -5,3 +5,4 @@ node_modules
 .*.tmp
 deploy-local.sh
 .remote-sync.json
+lib-jitsi-meet.*

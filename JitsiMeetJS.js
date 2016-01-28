@@ -32,6 +32,8 @@ function getLowerResolution(resolution) {
  */
 var LibJitsiMeet = {
 
+    version: '{#COMMIT_HASH#}',
+
     JitsiConnection: JitsiConnection,
     events: {
         conference: JitsiConferenceEvents,
