@@ -44,7 +44,7 @@
     "version": "VERSION=`./get-version.sh` && sed -i -e s/{#COMMIT_HASH#}/${VERSION}/g lib-jitsi-meet.js",
     "uglifyjs": "uglifyjs -p relative lib-jitsi-meet.js -o lib-jitsi-meet.min.js --source-map lib-jitsi-meet.min.map --in-source-map lib-jitsi-meet.js.map",
 
-    "deploy": "DEPLOY_DIR='../../libs' && [ -d $DEPLOY_DIR ] && cp lib-jitsi-meet.* $DEPLOY_DIR",
+    "deploy": "(DEPLOY_DIR='../../libs' && [ -d $DEPLOY_DIR ] && cp lib-jitsi-meet.* $DEPLOY_DIR) || true",
 
     "lint": "jshint .",
     "validate": "npm ls"
