@@ -46,6 +46,7 @@ The ```options``` parameter is JS object with the following properties:
     7. desktopSharingFirefoxMaxVersionExtRequired - The maximum version of Firefox which requires a jidesha extension. Example: if set to 41, we will require the extension for Firefox versions up to and including 41. On Firefox 42 and higher, we will run without the extension. If set to -1, an extension will be required for all versions of Firefox.
     8. desktopSharingFirefoxExtensionURL - The URL to the Firefox extension for desktop sharing. "null" if no extension is required.
     9. disableAudioLevels - boolean property. Enables/disables audio levels.
+    10. disableSimulcast - boolean property. Enables/disables simulcast.
 
 * ```JitsiMeetJS.JitsiConnection``` - the ```JitsiConnection``` constructor. You can use that to create new server connection.
 
