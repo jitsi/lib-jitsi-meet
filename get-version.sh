@@ -2,7 +2,8 @@
 
 if [[ -z "$LIB_JITSI_MEET_REPO" ]];
 then
-    LIB_JITSI_MEET_REPO="."
+    echo "development";
+    exit 0;
 fi
 
 COMMIT_HASH=$(cd $LIB_JITSI_MEET_REPO && git rev-parse --short HEAD)
