@@ -500,12 +500,12 @@ TraceablePeerConnection.prototype.addIceCandidate
 
 TraceablePeerConnection.prototype.getStats = function(callback, errback) {
     // TODO: Is this the correct way to handle Opera, Temasys?
-    if (RTCBrowserType.isFirefox()) {
+    if (RTCBrowserType.isFirefox() || RTCBrowserType.isTemasysPluginUsed()) {
         // ignore for now...
         if(!errback)
             errback = function () {};
         this.peerconnection.getStats(null, callback, errback);
-    } else if(!RTCBrowserType.isTemasysPluginUsed()){
+    } else {
         this.peerconnection.getStats(callback);
     }
 };
