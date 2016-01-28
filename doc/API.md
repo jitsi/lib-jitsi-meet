@@ -284,7 +284,11 @@ The object represents a conference. We have the following methods to control the
 
 28. isStartVideoMuted() - check if video is muted on join
 
-29. setSubject(subject) - change subject of the conference
+29. sendFeedback(overallFeedback, detailedFeedback) - Sends the given feedback through CallStats if enabled.
+    - overallFeedback an integer between 1 and 5 indicating the user feedback
+    - detailedFeedback detailed feedback from the user. Not yet used
+
+30. setSubject(subject) - change subject of the conference
     - subject - string new subject
 
     Note: available only for moderator
