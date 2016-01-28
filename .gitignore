@@ -1,0 +1,6 @@
+node_modules
+*.swp
+.idea/
+*.iml
+.*.tmp
+deploy-local.sh
