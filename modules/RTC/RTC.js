@@ -63,6 +63,12 @@ function RTC(room, options) {
                 .setMute(values.value == "true");
         }
     });
+    room.addPresenceListener("videoType", function(data, from) {
+        if(!self.remoteStreams[from] ||
+            (!self.remoteStreams[from][JitsiTrack.VIDEO]))
+            return;
+        self.remoteStreams[from][JitsiTrack.VIDEO]._setVideoType(data.value);
+    });
 }
 
 /**

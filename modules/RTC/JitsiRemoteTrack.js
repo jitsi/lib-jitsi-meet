@@ -71,6 +71,17 @@ JitsiRemoteTrack.prototype.isLocal = function () {
     return false;
 };
 
+/**
+ * Changes the video type of the track
+ * @param type the new video type("camera", "desktop")
+ */
+JitsiRemoteTrack.prototype._setVideoType = function (type) {
+    if(this.videoType === type)
+        return;
+    this.videoType = type;
+    this.eventEmitter.emit(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, type);
+}
+
 delete JitsiRemoteTrack.prototype.stop;
 
 module.exports = JitsiRemoteTrack;

@@ -276,6 +276,15 @@ JitsiConference.prototype.setSubject = function (subject) {
  * @param track the JitsiLocalTrack object.
  */
 JitsiConference.prototype.addTrack = function (track) {
+    if (track.isVideoTrack()) {
+        this.removeCommand("videoType");
+        this.sendCommand("videoType", {
+            value: track.videoType,
+            attributes: {
+                xmlns: 'http://jitsi.org/jitmeet/video'
+            }
+        });
+    }
     this.room.addStream(track.getOriginalStream(), function () {
         this.rtc.addLocalStream(track);
         if (track.startMuted) {
