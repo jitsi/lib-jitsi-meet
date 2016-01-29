@@ -356,6 +356,9 @@ function doGetStreamFromExtension(options, streamCallback, failCallback) {
  */
 function initInlineInstalls(options)
 {
+    if($("link[rel=chrome-webstore-item]").length === 0) {
+        $("head").append("<link rel=\"chrome-webstore-item\">");
+    }
     $("link[rel=chrome-webstore-item]").attr("href",
         getWebStoreInstallUrl(options));
 }
