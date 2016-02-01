@@ -98,8 +98,9 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
 
                     for(var i = 0; i < self.containers.length; i++)
                     {
-                        RTCUtils.attachMediaStream(
-                            self.containers[i], self.stream);
+                        self.containers[i]
+                            = RTCUtils.attachMediaStream(
+                                    self.containers[i], self.stream);
                     }
 
                     self.rtc.room.addStream(stream.stream,

@@ -149,35 +149,47 @@ JitsiTrack.prototype.unmute = function () {
 }
 
 /**
- * Attaches the MediaStream of this track to an HTML container (?).
+ * Attaches the MediaStream of this track to an HTML container.
  * Adds the container to the list of containers that are displaying the track.
- * @param container the HTML container
+ * Note that Temasys plugin will replace original audio/video element with
+ * 'object' when stream is being attached to the container for the first time.
+ *
+ * @param container the HTML container which can be 'video' or 'audio' element.
+ *        It can also be 'object' element if Temasys plugin is in use and this
+ *        method has been called previously on video or audio HTML element.
+ *
+ * @returns potentially new instance of container if it was replaced by the
+ *          library. That's the case when Temasys plugin is in use.
  */
 JitsiTrack.prototype.attach = function (container) {
     if(this.stream)
-        require("./RTCUtils").attachMediaStream(container, this.stream);
+        container = require("./RTCUtils").attachMediaStream(container, this.stream);
     this.containers.push(container);
+    return container;
 }
 
 /**
  * Removes the track from the passed HTML container.
  * @param container the HTML container. If <tt>null</tt> all containers are removed.
+ *        A container can be 'video', 'audio' or 'object' HTML element instance
+ *        to which this JitsiTrack is currently attached to.
  */
 JitsiTrack.prototype.detach = function (container) {
     for(var i = 0; i < this.containers.length; i++)
     {
-        if(this.containers[i].is(container))
+        if(!container)
+        {
+            require("./RTCUtils").setVideoSrc(this.containers[i], null);
+        }
+        if(!container || $(this.containers[i]).is($(container)))
         {
             this.containers.splice(i,1);
         }
-        if(!container)
-        {
-            this.containers[i].find(">video").remove();
-        }
     }
-    if(container)
-        $(container).find(">video").remove();
 
+    if(container) {
+        require("./RTCUtils").setVideoSrc(container, null);
+    }
 }
 
 /**

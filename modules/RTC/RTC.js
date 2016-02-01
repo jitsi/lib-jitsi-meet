@@ -188,7 +188,7 @@ RTC.getPCConstraints = function () {
 };
 
 RTC.attachMediaStream =  function (elSelector, stream) {
-    RTCUtils.attachMediaStream(elSelector, stream);
+    return RTCUtils.attachMediaStream(elSelector, stream);
 };
 
 RTC.getStreamID = function (stream) {

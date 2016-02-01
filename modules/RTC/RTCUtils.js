@@ -440,10 +440,12 @@ var RTCUtils = {
                     //
                     // https://groups.google.com/forum/#!topic/mozilla.dev.media/pKOiioXonJg
                     // https://github.com/webrtc/samples/issues/302
-                    if (!element[0])
+                    if (!element)
                         return;
-                    element[0].mozSrcObject = stream;
-                    element[0].play();
+                    element.mozSrcObject = stream;
+                    element.play();
+
+                    return element;
                 };
                 this.getStreamID = function (stream) {
                     var id = stream.id;
@@ -488,7 +490,9 @@ var RTCUtils = {
                             = webkitURL.createObjectURL(stream);
                     }
 
-                    element.attr('src', stream.jitsiObjectURL);
+                    element.src = stream.jitsiObjectURL;
+
+                    return element;
                 };
                 this.getStreamID = function (stream) {
                     // streams from FF endpoints have the characters '{' and '}'
@@ -537,18 +541,18 @@ var RTCUtils = {
                     self.peerconnection = RTCPeerConnection;
                     self.getUserMedia = window.getUserMedia;
                     self.enumerateDevices = enumerateDevicesThroughMediaStreamTrack;
-                    self.attachMediaStream = function (elSel, stream) {
+                    self.attachMediaStream = function (element, stream) {
 
                         if (stream.id === "dummyAudio" || stream.id === "dummyVideo") {
                             return;
                         }
 
                         var isVideoStream = !!stream.getVideoTracks().length;
-                        if (isVideoStream && !elSel.is(':visible')) {
+                        if (isVideoStream && !$(element).is(':visible')) {
                             throw new Error('video element must be visible to attach video stream');
                         }
 
-                        attachMediaStream(elSel[0], stream);
+                        return attachMediaStream(element, stream);
                     };
                     self.getStreamID = function (stream) {
                         var id = SDPUtil.filter_special_chars(stream.label);
@@ -571,13 +575,15 @@ var RTCUtils = {
                     self.setVideoSrc = function (element, src) {
                         //logger.info("Set video src: ", element, src);
                         if (!src) {
-                            logger.warn("Not attaching video stream, 'src' is null");
-                            return;
+                            attachMediaStream(element, null);
+                        } else {
+                            AdapterJS.WebRTCPlugin.WaitForPluginReady();
+                            var stream
+                                = AdapterJS.WebRTCPlugin.plugin
+                                    .getStreamWithId(
+                                        AdapterJS.WebRTCPlugin.pageId, src);
+                            attachMediaStream(element, stream);
                         }
-                        AdapterJS.WebRTCPlugin.WaitForPluginReady();
-                        var stream = AdapterJS.WebRTCPlugin.plugin
-                            .getStreamWithId(AdapterJS.WebRTCPlugin.pageId, src);
-                        attachMediaStream(element, stream);
                     };
 
                     onReady(options, self.getUserMediaWithConstraints);
