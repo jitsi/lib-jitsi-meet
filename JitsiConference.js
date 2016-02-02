@@ -42,7 +42,7 @@ function JitsiConference(options) {
     this.statistics = new Statistics(this.xmpp, {
         callStatsID: this.options.config.callStatsID,
         callStatsSecret: this.options.config.callStatsSecret,
-        disableThirdPartyRequests: this.options.config.disableThirdPartyRequests,
+        disableThirdPartyRequests: this.options.config.disableThirdPartyRequests
     });
     setupListeners(this);
     JitsiMeetJS._gumFailedHandler.push(function(error) {
@@ -1051,12 +1051,13 @@ function setupListeners(conference) {
 
             var id2resolution = {};
 
-            // preprocess resolutions: group by user id, skip incorrect resolutions etc.
+            // preprocess resolutions: group by user id, skip incorrect
+            // resolutions etc.
             Object.keys(ssrc2resolution).forEach(function (ssrc) {
                 var resolution = ssrc2resolution[ssrc];
 
                 if (!resolution.width || !resolution.height ||
-                    resolution.width == -1 || resolution.height == -1) { // it also may be "-1"
+                    resolution.width == -1 || resolution.height == -1) {
                     return;
                 }
 
@@ -1085,7 +1086,8 @@ function setupListeners(conference) {
 
             stats.resolution = id2resolution;
 
-            conference.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_STATS, stats);
+            conference.eventEmitter.emit(
+                JitsiConferenceEvents.CONNECTION_STATS, stats);
         });
         conference.xmpp.addListener(XMPPEvents.DISPOSE_CONFERENCE,
             function () {
