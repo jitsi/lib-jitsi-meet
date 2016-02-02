@@ -1,4 +1,4 @@
-/* global require, APP */
+/* global require */
 var LocalStats = require("./LocalStatsCollector.js");
 var RTPStats = require("./RTPStatsCollector.js");
 var EventEmitter = require("events");
@@ -22,11 +22,18 @@ function loadCallStatsAPI() {
     // have loaded by the time we needed it (i.e. CallStats.init is invoked).
 }
 
+
+/**
+ * Log stats via the focus once every this many milliseconds.
+ */
+var LOG_INTERVAL = 60000;
+
 var eventEmitter = new EventEmitter();
 
-function Statistics(options) {
+function Statistics(xmpp, options) {
     this.rtpStats = null;
     this.eventEmitter = new EventEmitter();
+    this.xmpp = xmpp;
     this.options = options || {};
     this.callStatsIntegrationEnabled
         = this.options.callStatsID && this.options.callStatsSecret
@@ -37,6 +44,12 @@ function Statistics(options) {
     if(this.callStatsIntegrationEnabled)
         loadCallStatsAPI();
     this.callStats = null;
+
+    /**
+     * Send the stats already saved in rtpStats to be logged via
+     * the focus.
+     */
+    this.logStatsIntervalId = null;
 }
 Statistics.audioLevelsEnabled = false;
 
@@ -44,13 +57,18 @@ Statistics.prototype.startRemoteStats = function (peerconnection) {
     if(!Statistics.audioLevelsEnabled)
         return;
 
-    if (this.rtpStats) {
-        this.rtpStats.stop();
-    }
+    this.stopRemoteStats();
 
     this.rtpStats = new RTPStats(peerconnection, 200, 2000, this.eventEmitter);
     this.rtpStats.start();
-}
+
+    this.logStatsIntervalId = setInterval(function () {
+        var stats = this.rtpStats.getCollectedStats();
+        if (this.xmpp.sendLogs(stats)) {
+            this.rtpStats.clearCollectedStats();
+        }
+    }.bind(this), LOG_INTERVAL);
+};
 
 Statistics.localStats = [];
 
@@ -60,26 +78,34 @@ Statistics.startLocalStats = function (stream, callback) {
     var localStats = new LocalStats(stream, 200, callback);
     this.localStats.push(localStats);
     localStats.start();
-}
+};
 
 Statistics.prototype.addAudioLevelListener = function(listener)
 {
     if(!Statistics.audioLevelsEnabled)
         return;
     this.eventEmitter.on(StatisticsEvents.AUDIO_LEVEL, listener);
-}
+};
 
 Statistics.prototype.removeAudioLevelListener = function(listener)
 {
     if(!Statistics.audioLevelsEnabled)
         return;
     this.eventEmitter.removeListener(StatisticsEvents.AUDIO_LEVEL, listener);
-}
+};
+
+Statistics.prototype.addConnectionStatsListener = function (listener) {
+    this.eventEmitter.on(StatisticsEvents.CONNECTION_STATS, listener);
+};
+
+Statistics.prototype.removeConnectionStatsListener = function (listener) {
+    this.eventEmitter.removeListener(StatisticsEvents.CONNECTION_STATS, listener);
+};
 
 Statistics.prototype.dispose = function () {
     if(Statistics.audioLevelsEnabled) {
         Statistics.stopAllLocalStats();
-        this.stopRemote();
+        this.stopRemoteStats();
         if(this.eventEmitter)
             this.eventEmitter.removeAllListeners();
 
@@ -92,7 +118,7 @@ Statistics.prototype.dispose = function () {
         this.callstats.sendTerminateEvent();
         this.callstats = null;
     }
-}
+};
 
 
 Statistics.stopAllLocalStats = function () {
@@ -102,7 +128,7 @@ Statistics.stopAllLocalStats = function () {
     for(var i = 0; i < this.localStats.length; i++)
         this.localStats[i].stop();
     this.localStats = [];
-}
+};
 
 Statistics.stopLocalStats = function (stream) {
     if(!Statistics.audioLevelsEnabled)
@@ -114,13 +140,19 @@ Statistics.stopLocalStats = function (stream) {
             localStats.stop();
             break;
         }
-}
+};
 
-Statistics.prototype.stopRemote = function () {
-    if (this.rtpStats && Statistics.audioLevelsEnabled) {
-        this.rtpStats.stop();
-        this.eventEmitter.emit(StatisticsEvents.STOP);
-        this.rtpStats = null;
+Statistics.prototype.stopRemoteStats = function () {
+    if (!Statistics.audioLevelsEnabled || !this.rtpStats) {
+        return;
+    }
+
+    this.rtpStats.stop();
+    this.rtpStats = null;
+
+    if (this.logStatsIntervalId) {
+        clearInterval(this.logStatsIntervalId);
+        this.logStatsIntervalId = null;
     }
 };
 
@@ -137,6 +169,7 @@ Statistics.prototype.stopRemote = function () {
 Statistics.prototype.getPeerSSRCAudioLevel = function (peerJid, ssrc) {
     if(!Statistics.audioLevelsEnabled)
         return;
+    // FIXME: not used, unknown property jid2stats
     var peerStats = this.rtpStats.jid2stats[peerJid];
 
     return peerStats ? peerStats.ssrc2AudioLevel[ssrc] : null;
@@ -155,7 +188,7 @@ Statistics.prototype.startCallStats = function (session, settings) {
     if(this.callStatsIntegrationEnabled && !this.callstats) {
         this.callstats = new CallStats(session, settings, this.options);
     }
-}
+};
 
 /**
  * Returns true if the callstats integration is enabled, otherwise returns
@@ -166,7 +199,7 @@ Statistics.prototype.startCallStats = function (session, settings) {
  */
 Statistics.prototype.isCallstatsEnabled = function () {
     return this.callStatsIntegrationEnabled;
-}
+};
 
 /**
  * Notifies CallStats for connection setup errors
@@ -174,7 +207,7 @@ Statistics.prototype.isCallstatsEnabled = function () {
 Statistics.prototype.sendSetupFailedEvent = function () {
     if(this.callStatsIntegrationEnabled && this.callstats)
         this.callstats.sendSetupFailedEvent();
-}
+};
 
 /**
  * Notifies CallStats for mute events
@@ -184,7 +217,7 @@ Statistics.prototype.sendSetupFailedEvent = function () {
 Statistics.prototype.sendMuteEvent = function (muted, type) {
     if(this.callStatsIntegrationEnabled)
         CallStats.sendMuteEvent(muted, type, this.callstats);
-}
+};
 
 /**
  * Notifies CallStats that getUserMedia failed.
@@ -236,7 +269,7 @@ Statistics.prototype.sendCreateAnswerFailed = function (e, pc) {
 Statistics.prototype.sendSetLocalDescFailed = function (e, pc) {
     if(this.callStatsIntegrationEnabled)
         CallStats.sendSetLocalDescFailed(e, pc, this.callstats);
-}
+};
 
 /**
  * Notifies CallStats that peer connection failed to set remote description.
@@ -247,7 +280,7 @@ Statistics.prototype.sendSetLocalDescFailed = function (e, pc) {
 Statistics.prototype.sendSetRemoteDescFailed = function (e, pc) {
     if(this.callStatsIntegrationEnabled)
         CallStats.sendSetRemoteDescFailed(e, pc, this.callstats);
-}
+};
 
 /**
  * Notifies CallStats that peer connection failed to add ICE candidate.
@@ -258,7 +291,7 @@ Statistics.prototype.sendSetRemoteDescFailed = function (e, pc) {
 Statistics.prototype.sendAddIceCandidateFailed = function (e, pc) {
     if(this.callStatsIntegrationEnabled)
         CallStats.sendAddIceCandidateFailed(e, pc, this.callstats);
-}
+};
 
 /**
  * Sends the given feedback through CallStats.
@@ -271,7 +304,7 @@ Statistics.prototype.sendFeedback =
 function(overallFeedback, detailedFeedback){
     if(this.callStatsIntegrationEnabled && this.callstats)
         this.callstats.sendFeedback(overallFeedback, detailedFeedback);
-}
+};
 
 Statistics.LOCAL_JID = require("../../service/statistics/constants").LOCAL_JID;
 

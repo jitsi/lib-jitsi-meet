@@ -48,9 +48,9 @@ var JitsiConferenceEvents = {
      */
     AVATAR_CHANGED: "conference.avatarChanged",
     /**
-     * New connection statistics are received.
+     * New local connection statistics are received.
      */
-    CONNECTION_STATS_RECEIVED: "conference.connectionStatsReceived",
+    CONNECTION_STATS: "conference.connectionStats",
     /**
      * The Last N set is changed.
      */
