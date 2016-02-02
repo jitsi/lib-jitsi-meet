@@ -7,8 +7,4 @@ module.exports = {
      * FIXME: needs documentation.
      */
     AUDIO_LEVEL: "statistics.audioLevel",
-    /**
-     * FIXME: needs documentation.
-     */
-    STOP: "statistics.stop"
 };

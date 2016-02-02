@@ -39,10 +39,10 @@ function JitsiConference(options) {
         this.settings);
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
     this.rtc = new RTC(this.room, options);
-    this.statistics = new Statistics({
+    this.statistics = new Statistics(this.xmpp, {
         callStatsID: this.options.config.callStatsID,
         callStatsSecret: this.options.config.callStatsSecret,
-        disableThirdPartyRequests: this.options.config.disableThirdPartyRequests
+        disableThirdPartyRequests: this.options.config.disableThirdPartyRequests,
     });
     setupListeners(this);
     JitsiMeetJS._gumFailedHandler.push(function(error) {
@@ -1045,6 +1045,47 @@ function setupListeners(conference) {
                 return;
 
             conference.rtc.setAudioLevel(jid, level);
+        });
+        conference.statistics.addConnectionStatsListener(function (stats) {
+            var ssrc2resolution = stats.resolution;
+
+            var id2resolution = {};
+
+            // preprocess resolutions: group by user id, skip incorrect resolutions etc.
+            Object.keys(ssrc2resolution).forEach(function (ssrc) {
+                var resolution = ssrc2resolution[ssrc];
+
+                if (!resolution.width || !resolution.height ||
+                    resolution.width == -1 || resolution.height == -1) { // it also may be "-1"
+                    return;
+                }
+
+                var jid = conference.room.getJidBySSRC(ssrc);
+                if (!jid) {
+                    return;
+                }
+
+                var id;
+                if (jid === conference.room.session.me) {
+                    id = conference.myUserId();
+                } else {
+                    id = Strophe.getResourceFromJid(jid);
+                }
+
+                if (!id) {
+                    return;
+                }
+
+                // ssrc to resolution map for user id
+                var idResolutions = id2resolution[id] || {};
+                idResolutions[ssrc] = resolution;
+
+                id2resolution[id] = idResolutions;
+            });
+
+            stats.resolution = id2resolution;
+
+            conference.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_STATS, stats);
         });
         conference.xmpp.addListener(XMPPEvents.DISPOSE_CONFERENCE,
             function () {
