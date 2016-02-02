@@ -7,6 +7,7 @@ var JitsiTrackEvents = require("./JitsiTrackEvents");
 var JitsiTrackErrors = require("./JitsiTrackErrors");
 var Logger = require("jitsi-meet-logger");
 var RTC = require("./modules/RTC/RTC");
+var RTCUIHelper = require("./modules/RTC/RTCUIHelper");
 var Statistics = require("./modules/statistics/statistics");
 var Resolutions = require("./service/RTC/Resolutions");
 var ScriptUtil = require("./modules/util/ScriptUtil");
@@ -139,7 +140,8 @@ var LibJitsiMeet = {
      */
     util: {
         ScriptUtil: ScriptUtil,
-    },
+        RTCUIHelper: RTCUIHelper
+    }
 };
 
 //Setups the promise object.

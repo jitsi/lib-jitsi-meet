@@ -241,10 +241,6 @@ RTC.stopMediaStream = function (mediaStream) {
  */
 RTC.isDesktopSharingEnabled = function () {
     return RTCUtils.isDesktopSharingEnabled();
-}
-
-RTC.prototype.getVideoElementName = function () {
-    return RTCBrowserType.isTemasysPluginUsed() ? 'object' : 'video';
 };
 
 RTC.prototype.dispose = function() {
@@ -267,5 +263,6 @@ RTC.prototype.setAudioLevel = function (jid, audioLevel) {
     var resource = Strophe.getResourceFromJid(jid);
     if(this.remoteStreams[resource] && this.remoteStreams[resource][JitsiTrack.AUDIO])
         this.remoteStreams[resource][JitsiTrack.AUDIO].setAudioLevel(audioLevel);
-}
+};
+
 module.exports = RTC;
