@@ -156,26 +156,6 @@ Statistics.prototype.stopRemoteStats = function () {
     }
 };
 
-/**
- * Obtains audio level reported in the stats for specified peer.
- * @param peerJid full MUC jid of the user for whom we want to obtain last
- *        audio level.
- * @param ssrc the SSRC of audio stream for which we want to obtain audio
- *        level.
- * @returns {*} a float form 0 to 1 that represents current audio level or
- *              <tt>null</tt> if for any reason the value is not available
- *              at this time.
- */
-Statistics.prototype.getPeerSSRCAudioLevel = function (peerJid, ssrc) {
-    if(!Statistics.audioLevelsEnabled)
-        return;
-    // FIXME: not used, unknown property jid2stats
-    var peerStats = this.rtpStats.jid2stats[peerJid];
-
-    return peerStats ? peerStats.ssrc2AudioLevel[ssrc] : null;
-};
-
-
 //CALSTATS METHODS
 
 /**
