@@ -44,6 +44,28 @@ var RTCUIHelper = {
             }
         }
         return undefined;
+    },
+    /**
+     * Sets 'volume' property of given HTML element displaying RTC audio or
+     * video stream.
+     * @param streamElement HTML element to which the RTC stream is attached to.
+     * @param volume the volume value to be set.
+     */
+    setVolume: function (streamElement, volume) {
+        if (!RTCBrowserType.isIExplorer()) {
+            streamElement.volume = volume;
+        }
+    },
+    /**
+     * Sets 'autoplay' property of given HTML element displaying RTC audio or
+     * video stream.
+     * @param streamElement HTML element to which the RTC stream is attached to.
+     * @param autoPlay 'true' or 'false'
+     */
+    setAutoPlay: function (streamElement, autoPlay) {
+        if (!RTCBrowserType.isIExplorer()) {
+            streamElement.autoplay = true;
+        }
     }
 };
 
