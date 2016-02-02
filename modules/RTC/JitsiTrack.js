@@ -1,3 +1,4 @@
+var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
 var JitsiTrackEvents = require("../../JitsiTrackEvents");
 var EventEmitter = require("events");
@@ -154,6 +155,9 @@ JitsiTrack.prototype.unmute = function () {
  * Note that Temasys plugin will replace original audio/video element with
  * 'object' when stream is being attached to the container for the first time.
  *
+ * * NOTE * if given container element is not visible when the stream is being
+ * attached it will be shown back given that Temasys plugin is currently in use.
+ *
  * @param container the HTML container which can be 'video' or 'audio' element.
  *        It can also be 'object' element if Temasys plugin is in use and this
  *        method has been called previously on video or audio HTML element.
@@ -162,8 +166,17 @@ JitsiTrack.prototype.unmute = function () {
  *          library. That's the case when Temasys plugin is in use.
  */
 JitsiTrack.prototype.attach = function (container) {
-    if(this.stream)
-        container = require("./RTCUtils").attachMediaStream(container, this.stream);
+    if(this.stream) {
+        // The container must be visible in order to play or attach the stream
+        // when Temasys plugin is in use
+        var containerSel = $(container);
+        if (RTCBrowserType.isTemasysPluginUsed() &&
+            !containerSel.is(':visible')) {
+            containerSel.show();
+        }
+        container
+            = require("./RTCUtils").attachMediaStream(container, this.stream);
+    }
     this.containers.push(container);
     return container;
 }
