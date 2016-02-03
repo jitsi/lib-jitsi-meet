@@ -313,7 +313,7 @@ Moderator.prototype.allocateConferenceFocus =  function (callback) {
                 var toDomain
                     = Strophe.getDomainFromJid(error.getAttribute('to'));
                 if (toDomain !==
-                    this.xmppService.options.hosts.anonymousdomain) {
+                    self.xmppService.options.hosts.anonymousdomain) {
                     //FIXME:  "is external" should come either from
                     // the focus or config.js
                     self.externalAuthEnabled = true;
