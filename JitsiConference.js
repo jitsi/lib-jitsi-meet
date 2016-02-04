@@ -274,6 +274,7 @@ JitsiConference.prototype.setSubject = function (subject) {
 /**
  * Adds JitsiLocalTrack object to the conference.
  * @param track the JitsiLocalTrack object.
+ * @returns {Promise<JitsiLocalTrack>}
  */
 JitsiConference.prototype.addTrack = function (track) {
     if (track.isVideoTrack()) {
@@ -285,21 +286,24 @@ JitsiConference.prototype.addTrack = function (track) {
             }
         });
     }
-    this.room.addStream(track.getOriginalStream(), function () {
-        this.rtc.addLocalStream(track);
-        if (track.startMuted) {
-            track.mute();
-        }
-        track.muteHandler = this._fireMuteChangeEvent.bind(this, track);
-        track.stopHandler = this.removeTrack.bind(this, track);
-        track.audioLevelHandler = this._fireAudioLevelChangeEvent.bind(this);
-        track.addEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED,
-            track.muteHandler);
-        track.addEventListener(JitsiTrackEvents.TRACK_STOPPED,
-            track.stopHandler);
-        track.addEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
-            track.audioLevelHandler);
-        this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+    return new Promise(function (resolve) {
+        this.room.addStream(track.getOriginalStream(), function () {
+            this.rtc.addLocalStream(track);
+            if (track.startMuted) {
+                track.mute();
+            }
+            track.muteHandler = this._fireMuteChangeEvent.bind(this, track);
+            track.stopHandler = this.removeTrack.bind(this, track);
+            track.audioLevelHandler = this._fireAudioLevelChangeEvent.bind(this);
+            track.addEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED,
+                                   track.muteHandler);
+            track.addEventListener(JitsiTrackEvents.TRACK_STOPPED,
+                                   track.stopHandler);
+            track.addEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
+                                   track.audioLevelHandler);
+            this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+            resolve(track);
+        }.bind(this));
     }.bind(this));
 };
 
@@ -330,19 +334,23 @@ JitsiConference.prototype._fireMuteChangeEvent = function (track) {
 /**
  * Removes JitsiLocalTrack object to the conference.
  * @param track the JitsiLocalTrack object.
+ * @returns {Promise}
  */
 JitsiConference.prototype.removeTrack = function (track) {
     if(!this.room){
         if(this.rtc)
             this.rtc.removeLocalStream(track);
-        return;
+        return Promise.resolve();
     }
-    this.room.removeStream(track.getOriginalStream(), function(){
-        this.rtc.removeLocalStream(track);
-        track.removeEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED, track.muteHandler);
-        track.removeEventListener(JitsiTrackEvents.TRACK_STOPPED, track.stopHandler);
-        track.removeEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED, track.audioLevelHandler);
-        this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+    return new Promise(function (resolve) {
+        this.room.removeStream(track.getOriginalStream(), function(){
+            this.rtc.removeLocalStream(track);
+            track.removeEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED, track.muteHandler);
+            track.removeEventListener(JitsiTrackEvents.TRACK_STOPPED, track.stopHandler);
+            track.removeEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED, track.audioLevelHandler);
+            this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+            resolve();
+        }.bind(this));
     }.bind(this));
 };
 
