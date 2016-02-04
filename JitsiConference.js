@@ -333,8 +333,10 @@ JitsiConference.prototype._fireMuteChangeEvent = function (track) {
  */
 JitsiConference.prototype.removeTrack = function (track) {
     if(!this.room){
-        if(this.rtc)
+        if(this.rtc) {
             this.rtc.removeLocalStream(track);
+            this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+        }
         return;
     }
     this.room.removeStream(track.getOriginalStream(), function(){

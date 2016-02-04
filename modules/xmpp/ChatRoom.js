@@ -563,8 +563,10 @@ ChatRoom.prototype.setJingleSession = function(session){
 
 
 ChatRoom.prototype.removeStream = function (stream, callback) {
-    if(!this.session)
+    if(!this.session) {
+        callback();
         return;
+    }
     this.session.removeStream(stream, callback);
 };
 
