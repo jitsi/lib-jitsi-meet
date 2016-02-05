@@ -856,6 +856,9 @@ function setupListeners(conference) {
     conference.room.addListener(XMPPEvents.FOCUS_DISCONNECTED, function (focus, retrySec) {
         conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.FOCUS_DISCONNECTED, focus, retrySec);
     });
+    conference.room.addListener(XMPPEvents.FOCUS_LEFT, function () {
+        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.FOCUS_LEFT);
+    });
 //    FIXME
 //    conference.room.addListener(XMPPEvents.MUC_JOINED, function () {
 //        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_LEFT);
@@ -933,9 +936,6 @@ function setupListeners(conference) {
             conference.eventEmitter.emit(JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED,
                 lastNEndpoints, endpointsEnteringLastN);
         });
-    conference.xmpp.addListener(XMPPEvents.PASSWORD_REQUIRED, function () {
-        conference.eventEmitter.emit(JitsiConferenceErrors.PASSWORD_REQUIRED);
-    });
 
     conference.xmpp.addListener(XMPPEvents.START_MUTED_FROM_FOCUS,
         function (audioMuted, videoMuted) {

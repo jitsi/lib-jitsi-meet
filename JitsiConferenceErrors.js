@@ -51,7 +51,11 @@ var JitsiConferenceErrors = {
     /**
      * Indicates that focus error happened.
      */
-    FOCUS_DISCONNECTED: "conference.focusDisconnected"
+    FOCUS_DISCONNECTED: "conference.focusDisconnected",
+    /**
+     * Indicates that focus left the conference.
+     */
+    FOCUS_LEFT: "conference.focusLeft"
     /**
      * Many more errors TBD here.
      */

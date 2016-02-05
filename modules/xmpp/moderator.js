@@ -75,9 +75,6 @@ Moderator.prototype.onMucMemberLeft =  function (jid) {
     if (resource === 'focus' && !this.xmppService.sessionTerminated) {
         logger.info(
             "Focus has left the room - leaving conference");
-        //hangUp();
-        // We'd rather reload to have everything re-initialized
-        //FIXME: show some message before reload
         this.eventEmitter.emit(XMPPEvents.FOCUS_LEFT);
     }
 };
