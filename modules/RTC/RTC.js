@@ -175,11 +175,11 @@ RTC.prototype.createRemoteStream = function (data, sid, thessrc) {
     var remoteStream = new JitsiRemoteTrack(this, data, sid, thessrc);
     if(!data.peerjid)
         return;
-    var jid = Strophe.getResourceFromJid(data.peerjid);
-    if(!this.remoteStreams[jid]) {
-        this.remoteStreams[jid] = {};
+    var resource = Strophe.getResourceFromJid(data.peerjid);
+    if(!this.remoteStreams[resource]) {
+        this.remoteStreams[resource] = {};
     }
-    this.remoteStreams[jid][remoteStream.type]= remoteStream;
+    this.remoteStreams[resource][remoteStream.type]= remoteStream;
     return remoteStream;
 };
 
