@@ -262,12 +262,34 @@ RTC.prototype.switchVideoStreams = function (newStream) {
     this.localStreams.push(this.localVideo);
 };
 
-RTC.prototype.setAudioLevel = function (jid, audioLevel) {
-    if(!jid)
+RTC.prototype.setAudioLevel = function (resource, audioLevel) {
+    if(!resource)
         return;
-    var resource = Strophe.getResourceFromJid(jid);
     if(this.remoteStreams[resource] && this.remoteStreams[resource][JitsiTrack.AUDIO])
         this.remoteStreams[resource][JitsiTrack.AUDIO].setAudioLevel(audioLevel);
+};
+
+/**
+ * Searches in localStreams(session stores ssrc for audio and video) and
+ * remoteStreams for the ssrc and returns the corresponding resource.
+ * @param ssrc the ssrc to check.
+ */
+RTC.prototype.getResourceBySSRC = function (ssrc) {
+    if(ssrc == this.room.session.localStreamsSSRC.video
+        || ssrc == this.room.session.localStreamsSSRC.audio) {
+        return Strophe.getResourceFromJid(this.room.myroomjid);
+    }
+
+    var resultResource = null;
+    $.each(this.remoteStreams, function (resource, remoteTracks) {
+        if((remoteTracks[JitsiTrack.AUDIO]
+                && remoteTracks[JitsiTrack.AUDIO].getSSRC() == ssrc)
+            || (remoteTracks[JitsiTrack.VIDEO]
+                && remoteTracks[JitsiTrack.AUDIO].getSSRC() == ssrc))
+            resultResource = resource;
+    });
+
+    return resultResource;
 };
 
 module.exports = RTC;

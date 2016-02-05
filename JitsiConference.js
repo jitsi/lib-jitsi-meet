@@ -1053,11 +1053,12 @@ function setupListeners(conference) {
         //FIXME: Maybe remove event should not be associated with the conference.
         conference.statistics.addAudioLevelListener(function (ssrc, level) {
             var userId = null;
-            var jid = conference.room.getJidBySSRC(ssrc);
-            if (!jid)
+
+            var resource = conference.rtc.getResourceBySSRC(ssrc);
+            if (!resource)
                 return;
 
-            conference.rtc.setAudioLevel(jid, level);
+            conference.rtc.setAudioLevel(resource, level);
         });
         conference.statistics.addConnectionStatsListener(function (stats) {
             var ssrc2resolution = stats.resolution;
@@ -1074,18 +1075,7 @@ function setupListeners(conference) {
                     return;
                 }
 
-                var jid = conference.room.getJidBySSRC(ssrc);
-                if (!jid) {
-                    return;
-                }
-
-                var id;
-                if (jid === conference.room.session.me) {
-                    id = conference.myUserId();
-                } else {
-                    id = Strophe.getResourceFromJid(jid);
-                }
-
+                var id = conference.rtc.getResourceBySSRC(ssrc);
                 if (!id) {
                     return;
                 }

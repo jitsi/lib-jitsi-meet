@@ -72,6 +72,13 @@ JitsiRemoteTrack.prototype.isLocal = function () {
 };
 
 /**
+ * Return false;
+ */
+JitsiRemoteTrack.prototype.getSSRC = function () {
+    return this.ssrc;
+};
+
+/**
  * Changes the video type of the track
  * @param type the new video type("camera", "desktop")
  */

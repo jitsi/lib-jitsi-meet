@@ -661,12 +661,6 @@ ChatRoom.prototype.remoteStreamAdded = function(data, sid, thessrc) {
     this.eventEmitter.emit(XMPPEvents.REMOTE_STREAM_RECEIVED, data, sid, thessrc);
 };
 
-ChatRoom.prototype.getJidBySSRC = function (ssrc) {
-    if (!this.session)
-        return null;
-    return this.session.getSsrcOwner(ssrc);
-};
-
 /**
  * Returns true if the recording is supproted and false if not.
  */

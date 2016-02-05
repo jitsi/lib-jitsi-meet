@@ -40,14 +40,20 @@ function JingleSessionPC(me, sid, connection, service) {
     this.switchstreams = false;
     this.addingStreams = false;
 
-    this.wait = true;
     /**
      * A map that stores SSRCs of local streams
      * @type {{}} maps media type('audio' or 'video') to SSRC number
      */
     this.localStreamsSSRC = {};
+    /**
+     * A map that stores SSRCs of remote streams. And is used only locally
+     * We store the mapping when jingle is received, and later is used
+     * onaddstream webrtc event where we have only the ssrc
+     * FIXME: This map got filled and never cleaned and can grow durring long
+     * conference
+     * @type {{}} maps SSRC number to jid
+     */
     this.ssrcOwners = {};
-    this.ssrcVideoTypes = {};
 
     this.webrtcIceUdpDisable = !!this.service.options.webrtcIceUdpDisable;
     this.webrtcIceTcpDisable = !!this.service.options.webrtcIceTcpDisable;
@@ -555,10 +561,6 @@ JingleSessionPC.prototype.readSsrcInfo = function (contents) {
  */
 JingleSessionPC.prototype.getLocalSSRC = function (mediaType) {
     return this.localStreamsSSRC[mediaType];
-};
-
-JingleSessionPC.prototype.getSsrcOwner = function (ssrc) {
-    return this.ssrcOwners[ssrc];
 };
 
 JingleSessionPC.prototype.setRemoteDescription = function (elem, desctype) {
@@ -1463,17 +1465,6 @@ JingleSessionPC.prototype.setLocalDescription = function () {
         }
 
     });
-
-    logger.log('new ssrcs', newssrcs);
-
-    // Bind us as local SSRCs owner
-    if (newssrcs.length > 0) {
-        for (i = 0; i < newssrcs.length; i++) {
-            var ssrc = newssrcs[i].ssrc;
-            var myJid = self.me;
-            self.ssrcOwners[ssrc] = myJid;
-        }
-    }
 }
 
 // an attempt to work around https://github.com/jitsi/jitmeet/issues/32
