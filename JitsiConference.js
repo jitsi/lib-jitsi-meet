@@ -490,6 +490,9 @@ JitsiConference.prototype.onMemberLeft = function (jid) {
     }
     var participant = this.participants[id];
     delete this.participants[id];
+
+    this.rtc.removeRemoteStream(id);
+
     this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant);
 };
 

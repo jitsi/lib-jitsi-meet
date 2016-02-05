@@ -30,7 +30,6 @@ function createLocalTracks(streams, options) {
 function RTC(room, options) {
     this.room = room;
     this.localStreams = [];
-    //FIXME: we should start removing those streams.
     //FIXME: We should support multiple streams per jid.
     this.remoteStreams = {};
     this.localAudio = null;
@@ -181,6 +180,12 @@ RTC.prototype.createRemoteStream = function (data, sid, thessrc) {
     }
     this.remoteStreams[resource][remoteStream.type]= remoteStream;
     return remoteStream;
+};
+
+RTC.prototype.removeRemoteStream = function (resource) {
+    if(this.remoteStreams[resource]) {
+        delete this.remoteStreams[resource];
+    }
 };
 
 RTC.getPCConstraints = function () {
