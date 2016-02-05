@@ -332,7 +332,7 @@ function doGetStreamFromExtension(options, streamCallback, failCallback) {
                 failCallback(chrome.runtime.lastError);
                 return;
             }
-            logger.log("Response from extension: " + response);
+            logger.log("Response from extension: ", response);
             if (response.streamId) {
                 GUM(
                     ['desktop'],
