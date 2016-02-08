@@ -123,6 +123,7 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - CONFERENCE_DESTROYED - conference has been destroyed
         - CHAT_ERROR - chat error happened
         - FOCUS_DISCONNECTED - focus error happened
+        - FOCUS_DISCONNECTED - focus left the conference
     2. connection
         - PASSWORD_REQUIRED - passed when the connection to the server failed. You should try to authenticate with password.
         - CONNECTION_ERROR - indicates connection failures.
