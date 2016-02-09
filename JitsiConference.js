@@ -292,6 +292,14 @@ JitsiConference.prototype.addTrack = function (track) {
             if (track.startMuted) {
                 track.mute();
             }
+
+            // ensure that we're sharing proper "is muted" state
+            if (track.isAudioTrack()) {
+                this.room.setAudioMute(track.isMuted());
+            } else {
+                this.room.setVideoMute(track.isMuted());
+            }
+
             track.muteHandler = this._fireMuteChangeEvent.bind(this, track);
             track.stopHandler = this.removeTrack.bind(this, track);
             track.audioLevelHandler = this._fireAudioLevelChangeEvent.bind(this);
