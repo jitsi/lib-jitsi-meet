@@ -285,7 +285,7 @@ RTC.prototype.getResourceBySSRC = function (ssrc) {
         if((remoteTracks[JitsiTrack.AUDIO]
                 && remoteTracks[JitsiTrack.AUDIO].getSSRC() == ssrc)
             || (remoteTracks[JitsiTrack.VIDEO]
-                && remoteTracks[JitsiTrack.AUDIO].getSSRC() == ssrc))
+                && remoteTracks[JitsiTrack.VIDEO].getSSRC() == ssrc))
             resultResource = resource;
     });
 
