@@ -192,7 +192,7 @@ JitsiTrack.prototype.detach = function (container) {
     {
         if(!container)
         {
-            require("./RTCUtils").setVideoSrc(this.containers[i], null);
+            require("./RTCUtils").setVideoSrc(this.containers[i], '');
         }
         if(!container || $(this.containers[i]).is($(container)))
         {
@@ -201,7 +201,7 @@ JitsiTrack.prototype.detach = function (container) {
     }
 
     if(container) {
-        require("./RTCUtils").setVideoSrc(container, null);
+        require("./RTCUtils").setVideoSrc(container, '');
     }
 }
 
