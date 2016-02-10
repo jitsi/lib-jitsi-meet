@@ -295,7 +295,7 @@ function wrapEnumerateDevices(enumerateDevices) {
                 console.error('cannot enumerate devices: ', err);
 
                 // return only auto devices
-                callback([createAutoDeviceInfo('audioInput'),
+                callback([createAutoDeviceInfo('audioinput'),
                           createAutoDeviceInfo('videoinput')]);
             });
         });
