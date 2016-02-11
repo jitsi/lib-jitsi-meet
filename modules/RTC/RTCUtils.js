@@ -35,7 +35,7 @@ function setResolutionConstraints(constraints, resolution) {
         // FIXME can't remember if the purpose of this was to always request
         //       low resolution on Android ? if yes it should be moved up front
         constraints.video.mandatory.minWidth = 320;
-        constraints.video.mandatory.minHeight = 240;
+        constraints.video.mandatory.minHeight = 180;
         constraints.video.mandatory.maxFrameRate = 15;
     }
 
@@ -778,7 +778,8 @@ var RTCUtils = {
      * @returns {boolean} true if available, false otherwise.
      */
     isDeviceListAvailable: function () {
-        var isEnumerateDevicesAvailable = navigator.mediaDevices && navigator.mediaDevices.enumerateDevices;
+        var isEnumerateDevicesAvailable
+            = navigator.mediaDevices && navigator.mediaDevices.enumerateDevices;
         if (isEnumerateDevicesAvailable) {
             return true;
         }

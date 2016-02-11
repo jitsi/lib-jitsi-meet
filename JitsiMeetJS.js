@@ -1,3 +1,4 @@
+var logger = require("jitsi-meet-logger").getLogger(__filename);
 var JitsiConnection = require("./JitsiConnection");
 var JitsiConferenceEvents = require("./JitsiConferenceEvents");
 var JitsiConnectionEvents = require("./JitsiConnectionEvents");
@@ -110,6 +111,8 @@ var LibJitsiMeet = {
                     if(newResolution === null)
                         return Promise.reject(error);
                     options.resolution = newResolution;
+                    logger.debug("Retry createLocalTracks with resolution",
+                                newResolution);
                     return LibJitsiMeet.createLocalTracks(options);
                 }
                 return Promise.reject(error);
