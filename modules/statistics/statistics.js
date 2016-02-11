@@ -200,6 +200,25 @@ Statistics.prototype.sendMuteEvent = function (muted, type) {
 };
 
 /**
+ * Lets the underlying statistics module know where is given SSRC rendered by
+ * providing renderer tag ID.
+ * @param ssrc {number} the SSRC of the stream
+ * @param isLocal {boolean} <tt>true<tt> if this stream is local or
+ *        <tt>false</tt> otherwise.
+ * @param usageLabel {string} meaningful usage label of this stream like
+ *        'microphone', 'camera' or 'screen'.
+ * @param containerId {string} the id of media 'audio' or 'video' tag which
+ *        renders the stream.
+ */
+Statistics.prototype.associateStreamWithVideoTag =
+function (ssrc, isLocal, usageLabel, containerId) {
+    if(this.callStatsIntegrationEnabled && this.callstats) {
+        this.callstats.associateStreamWithVideoTag(
+            ssrc, isLocal, usageLabel, containerId);
+    }
+};
+
+/**
  * Notifies CallStats that getUserMedia failed.
  *
  * @param {Error} e error to send

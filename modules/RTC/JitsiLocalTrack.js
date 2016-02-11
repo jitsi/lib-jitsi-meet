@@ -164,6 +164,22 @@ JitsiLocalTrack.prototype._setRTC = function (rtc) {
 };
 
 /**
+ * Gets the SSRC of this local track if it's available already or <tt>null</tt>
+ * otherwise. That's because we don't know the SSRC until local description is
+ * created.
+ * @returns {string} or {null}
+ */
+JitsiLocalTrack.prototype.getSSRC = function () {
+    if (!this.rtc.room.session)
+        return null;
+    if (this.isAudioTrack()) {
+        return this.rtc.room.session.localStreamsSSRC.audio;
+    } else {
+        return this.rtc.room.session.localStreamsSSRC.video;
+    }
+};
+
+/**
  * Return true;
  */
 JitsiLocalTrack.prototype.isLocal = function () {

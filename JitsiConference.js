@@ -1116,6 +1116,17 @@ function setupListeners(conference) {
                 conference.statistics.sendSetupFailedEvent();
             });
 
+        conference.rtc.addListener(RTCEvents.TRACK_ATTACHED,
+            function(track, container) {
+                var ssrc = track.getSSRC();
+                if (!container.id || !ssrc) {
+                    return;
+                }
+                conference.statistics.associateStreamWithVideoTag(
+                    ssrc, track.isLocal(), track.getUsageLabel(), container.id);
+
+            });
+
         conference.on(JitsiConferenceEvents.TRACK_MUTE_CHANGED,
             function (track) {
                 if(!track.isLocal())

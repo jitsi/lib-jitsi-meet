@@ -1,5 +1,6 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
+var RTCEvents = require("../../service/RTC/RTCEvents");
 var JitsiTrackEvents = require("../../JitsiTrackEvents");
 var EventEmitter = require("events");
 var RTC = require("./RTCUtils");
@@ -136,6 +137,19 @@ JitsiTrack.prototype.getOriginalStream = function() {
 }
 
 /**
+ * Return meaningful usage label for this track depending on it's media and
+ * eventual video type.
+ * @returns {string}
+ */
+JitsiTrack.prototype.getUsageLabel = function () {
+    if (this.type == JitsiTrack.AUDIO) {
+        return "mic";
+    } else {
+        return this.videoType ? this.videoType : "default";
+    }
+};
+
+/**
  * Mutes the track.
  */
 JitsiTrack.prototype.mute = function () {
@@ -178,6 +192,9 @@ JitsiTrack.prototype.attach = function (container) {
             = require("./RTCUtils").attachMediaStream(container, this.stream);
     }
     this.containers.push(container);
+
+    this.rtc.eventEmitter.emit(RTCEvents.TRACK_ATTACHED, this, container);
+
     return container;
 }
 

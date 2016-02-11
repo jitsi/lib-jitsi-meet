@@ -148,6 +148,49 @@ CallStats.prototype.pcCallback = _try_catch(function (err, msg) {
 });
 
 /**
+ * Lets CallStats module know where is given SSRC rendered by providing renderer
+ * tag ID.
+ * @param ssrc {number} the SSRC of the stream
+ * @param isLocal {boolean} <tt>true<tt> if this stream is local or
+ *        <tt>false</tt> otherwise.
+ * @param usageLabel {string} meaningful usage label of this stream like
+ *        'microphone', 'camera' or 'screen'.
+ * @param containerId {string} the id of media 'audio' or 'video' tag which
+ *        renders the stream.
+ */
+CallStats.prototype.associateStreamWithVideoTag =
+function (ssrc, isLocal, usageLabel, containerId) {
+    if(!callStats) {
+        return;
+    }
+    // 'focus' is default remote user ID for now
+    var callStatsId = 'focus';
+    if (isLocal) {
+        callStatsId = this.userID;
+    }
+
+    _try_catch(function() {
+        logger.debug(
+            "Calling callStats.associateMstWithUserID with:",
+            this.peerconnection,
+            callStatsId,
+            this.confID,
+            ssrc,
+            usageLabel,
+            containerId
+        );
+        callStats.associateMstWithUserID(
+            this.peerconnection,
+            callStatsId,
+            this.confID,
+            ssrc,
+            usageLabel,
+            containerId
+        );
+    }).bind(this)();
+};
+
+/**
  * Notifies CallStats for mute events
  * @param mute {boolean} true for muted and false for not muted
  * @param type {String} "audio"/"video"
