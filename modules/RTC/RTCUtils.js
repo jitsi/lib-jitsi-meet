@@ -505,6 +505,9 @@ var RTCUtils = {
                     return element.getAttribute("src");
                 };
                 this.setVideoSrc = function (element, src) {
+                    if (!src) {
+                        src = '';
+                    }
                     if (element)
                         element.setAttribute("src", src);
                 };
