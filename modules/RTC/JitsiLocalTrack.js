@@ -15,7 +15,9 @@ function JitsiLocalTrack(stream, videoType,
     this.resolution = resolution;
     this.deviceId = deviceId;
     this.startMuted = false;
-    var self = this;
+    this.ssrc = null;
+    //FIXME: This dependacy is not necessary.
+    this.conference = null;
     JitsiTrack.call(this, null, stream,
         function () {
             if(!this.dontFireRemoveEvent)
@@ -23,7 +25,6 @@ function JitsiLocalTrack(stream, videoType,
                     JitsiTrackEvents.TRACK_STOPPED);
             this.dontFireRemoveEvent = false;
         }.bind(this));
-
 }
 
 JitsiLocalTrack.prototype = Object.create(JitsiTrack.prototype);
@@ -61,7 +62,8 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
     } else {
         if (mute) {
             this.dontFireRemoveEvent = true;
-            this.rtc.room.removeStream(this.stream, function () {});
+            this.rtc.room.removeStream(this.stream, function () {},
+                {mtype: this.type, type: "mute", ssrc: this.ssrc});
             RTCUtils.stopMediaStream(this.stream);
             if(isAudio)
                 this.rtc.room.setAudioMute(mute);
@@ -103,7 +105,7 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
                                     self.containers[i], self.stream);
                     }
 
-                    self.rtc.room.addStream(stream.stream,
+                    self.rtc.room.addStream(self.stream,
                         function () {
                             if(isAudio)
                                 self.rtc.room.setAudioMute(mute);
@@ -111,7 +113,11 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
                                 self.rtc.room.setVideoMute(mute);
                             self.eventEmitter.emit(
                                 JitsiTrackEvents.TRACK_MUTE_CHANGED);
-                        });
+                        }, {
+                            mtype: self.type,
+                            type: "unmute",
+                            ssrc: self.ssrc,
+                            msid: self.getMSID()});
                 });
         }
     }
@@ -122,10 +128,11 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
  * NOTE: Works for local tracks only.
  */
 JitsiLocalTrack.prototype.stop = function () {
+    if(this.conference){
+        this.conference.removeTrack(this);
+    }
     if(!this.stream)
         return;
-    if(this.rtc)
-        this.rtc.room.removeStream(this.stream, function () {});
     RTCUtils.stopMediaStream(this.stream);
     this.detach();
 }
@@ -162,6 +169,25 @@ JitsiLocalTrack.prototype.isMuted = function () {
 JitsiLocalTrack.prototype._setRTC = function (rtc) {
     this.rtc = rtc;
 };
+
+/**
+ * Updates the SSRC associated with the MediaStream in JitsiLocalTrack object.
+ * @ssrc the new ssrc
+ */
+JitsiLocalTrack.prototype._setSSRC = function (ssrc) {
+    this.ssrc = ssrc;
+}
+
+
+//FIXME: This dependacy is not necessary. This is quick fix.
+/**
+ * Sets the JitsiConference object associated with the track. This is temp
+ * solution.
+ * @param conference the JitsiConference object
+ */
+JitsiLocalTrack.prototype._setConference = function(conference) {
+    this.conference = conference;
+}
 
 /**
  * Gets the SSRC of this local track if it's available already or <tt>null</tt>

@@ -77,23 +77,24 @@ function JitsiTrack(rtc, stream, streamInactiveHandler, jitsiTrackType)
     this.stream = stream;
     this.eventEmitter = new EventEmitter();
     this.audioLevel = -1;
-    this.type = jitsiTrackType || (this.stream.getVideoTracks().length > 0)?
-        JitsiTrack.VIDEO : JitsiTrack.AUDIO;
+    this.type = jitsiTrackType || ((this.stream.getVideoTracks().length > 0)?
+        JitsiTrack.VIDEO : JitsiTrack.AUDIO);
     if(this.type == JitsiTrack.AUDIO) {
         this._getTracks = function () {
-            return this.stream.getAudioTracks();
+            return this.stream? this.stream.getAudioTracks() : [];
         }.bind(this);
     } else {
         this._getTracks = function () {
-            return this.stream.getVideoTracks();
+            return this.stream? this.stream.getVideoTracks() : [];
         }.bind(this);
     }
-    if (RTCBrowserType.isFirefox() && this.stream) {
-        implementOnEndedHandling(this);
-    }
 
-    if(stream)
+    if(stream) {
+        if (RTCBrowserType.isFirefox()) {
+            implementOnEndedHandling(this);
+        }
         addMediaStreamInactiveHandler(stream, streamInactiveHandler);
+    }
 }
 
 /**
@@ -309,5 +310,16 @@ JitsiTrack.prototype.setAudioLevel = function (audioLevel) {
         this.audioLevel = audioLevel;
     }
  }
+
+/**
+ * Returns the msid of the stream attached to the JitsiTrack object or null if
+ * no stream is attached.
+ */
+JitsiTrack.prototype.getMSID = function () {
+    var tracks, track;
+    return (!this.stream || !this.stream.id || !(tracks = this._getTracks()) ||
+        !tracks.length || !(track = tracks[0]) || !track.id)?
+            null : this.stream.id + " " + track.id;
+}
 
 module.exports = JitsiTrack;

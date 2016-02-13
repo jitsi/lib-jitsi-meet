@@ -112,6 +112,10 @@ var XMPPEvents = {
     /**
      * Indicates error while adding ice candidate.
      */
-    ADD_ICE_CANDIDATE_FAILED: "xmpp.add_ice_candidate_failed"
+    ADD_ICE_CANDIDATE_FAILED: "xmpp.add_ice_candidate_failed",
+    /**
+     * Indicates that the local sendrecv streams in local SDP are changed.
+     */
+    SENDRECV_STREAMS_CHANGED: "xmpp.sendrecv_streams_changed"
 };
 module.exports = XMPPEvents;

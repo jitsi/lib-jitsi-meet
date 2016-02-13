@@ -33,24 +33,6 @@ function initStrophePlugins(XMPP) {
     require("./strophe.logger")();
 }
 
-//!!!!!!!!!! FIXME: ...
-///**
-// * If given <tt>localStream</tt> is video one this method will advertise it's
-// * video type in MUC presence.
-// * @param localStream new or modified <tt>LocalStream</tt>.
-// */
-//function broadcastLocalVideoType(localStream) {
-//    if (localStream.videoType)
-//        XMPP.addToPresence('videoType', localStream.videoType);
-//}
-//
-//function registerListeners() {
-//    RTC.addStreamListener(
-//        broadcastLocalVideoType,
-//        StreamEventTypes.EVENT_TYPE_LOCAL_CHANGED
-//    );
-//}
-
 function XMPP(options) {
     this.eventEmitter = new EventEmitter();
     this.connection = null;
@@ -59,7 +41,6 @@ function XMPP(options) {
     this.forceMuted = false;
     this.options = options;
     initStrophePlugins(this);
-//    registerListeners();
 
     this.connection = createConnection(options.bosh);
 

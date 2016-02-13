@@ -286,6 +286,17 @@ JitsiConference.prototype.addTrack = function (track) {
             }
         });
     }
+
+    track.ssrcHandler = function (conference, ssrcMap) {
+        if(ssrcMap[this.getMSID()]){
+            this._setSSRC(ssrcMap[this.getMSID()]);
+            conference.room.removeListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+                this.ssrcHandler);
+        }
+    }.bind(track, this);
+    this.room.addListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+        track.ssrcHandler);
+
     return new Promise(function (resolve) {
         this.room.addStream(track.getOriginalStream(), function () {
             this.rtc.addLocalStream(track);
@@ -309,6 +320,8 @@ JitsiConference.prototype.addTrack = function (track) {
                                    track.stopHandler);
             track.addEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
                                    track.audioLevelHandler);
+            //FIXME: This dependacy is not necessary. This is quick fix.
+            track._setConference(this);
             this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
             resolve(track);
         }.bind(this));
@@ -354,13 +367,24 @@ JitsiConference.prototype.removeTrack = function (track) {
     }
     return new Promise(function (resolve) {
         this.room.removeStream(track.getOriginalStream(), function(){
+            track._setSSRC(null);
+            //FIXME: This dependacy is not necessary. This is quick fix.
+            track._setConference(this);
             this.rtc.removeLocalStream(track);
-            track.removeEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED, track.muteHandler);
-            track.removeEventListener(JitsiTrackEvents.TRACK_STOPPED, track.stopHandler);
-            track.removeEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED, track.audioLevelHandler);
+            track.removeEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED,
+                track.muteHandler);
+            track.removeEventListener(JitsiTrackEvents.TRACK_STOPPED,
+                track.stopHandler);
+            track.removeEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
+                track.audioLevelHandler);
+            this.room.removeListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+                track.ssrcHandler);
             this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
             resolve();
-        }.bind(this));
+        }.bind(this), {
+            mtype: track.getType(),
+            type: "remove",
+            ssrc: track.ssrc});
     }.bind(this));
 };
 
@@ -1053,7 +1077,9 @@ function setupListeners(conference) {
         }
 
         if (updated) {
-            conference.eventEmitter.emit(JitsiConferenceEvents.AVAILABLE_DEVICES_CHANGED, from, availableDevices);
+            conference.eventEmitter.emit(
+                JitsiConferenceEvents.AVAILABLE_DEVICES_CHANGED,
+                from, availableDevices);
         }
     });
 

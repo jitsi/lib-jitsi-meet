@@ -3,10 +3,15 @@ var RTC = require('../RTC/RTC');
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("../RTC/RTCBrowserType.js");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
+var transform = require('sdp-transform');
 
 function TraceablePeerConnection(ice_config, constraints, session) {
     var self = this;
     this.session = session;
+    this.replaceSSRCs = {
+        "audio": [],
+        "video": []
+    };
     this.recvOnlySSRCs = {};
     var RTCPeerConnectionType = null;
     if (RTCBrowserType.isFirefox()) {
@@ -144,14 +149,13 @@ var dumpSDP = function(description) {
  * @param desc the SDP that will be modified.
  * @returns the modified SDP.
  */
-TraceablePeerConnection.prototype.insertRecvOnlySSRC = function (desc) {
+TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
     if (typeof desc !== 'object' || desc === null ||
         typeof desc.sdp !== 'string') {
         console.warn('An empty description was passed as an argument.');
         return desc;
     }
 
-    var transform = require('sdp-transform');
     var RandomUtil = require('../util/RandomUtil');
 
     var session = transform.parse(desc.sdp);
@@ -162,12 +166,107 @@ TraceablePeerConnection.prototype.insertRecvOnlySSRC = function (desc) {
 
     var modded = false;
     session.media.forEach(function (bLine) {
-        if (bLine.direction != 'recvonly')
-        {
+        if(!this.replaceSSRCs[bLine.type])
             return;
-        }
 
         modded = true;
+        var SSRCs = this.replaceSSRCs[bLine.type].splice(0,1);
+        //FIXME: The code expects that we have only SIM group or we
+        // don't have any groups and we have only one SSRC per
+        // stream. If we add another groups (FID, etc) this code
+        // must be changed.
+        while(SSRCs &&
+            SSRCs.length){
+            var ssrcOperation = SSRCs[0];
+            switch(ssrcOperation.type) {
+                case "mute":
+                //FIXME: If we want to support multiple streams we have to add
+                // recv-only ssrcs for the
+                // muted streams on every change until the stream is unmuted
+                // or removed. Otherwise the recv-only streams won't be included
+                // in the SDP
+                    if(!bLine.ssrcs)
+                        bLine.ssrcs = [];
+                    var groups = ssrcOperation.ssrc.groups;
+                    var ssrc = null;
+                    if(groups && groups.length) {
+                        ssrc = groups[0].primarySSRC;
+                    } else if(ssrcOperation.ssrc.ssrcs &&
+                        ssrcOperation.ssrc.ssrcs.length) {
+                        ssrc = ssrcOperation.ssrc.ssrcs[0];
+                    } else {
+                        logger.error("SSRC replacement error!");
+                        break;
+                    }
+                    bLine.ssrcs.push({
+                        id: ssrc,
+                        attribute: 'cname',
+                        value: ['recvonly-', ssrc].join('')
+                    })
+                    break;
+                case "unmute":
+                    if(!ssrcOperation.ssrc || !ssrcOperation.ssrc.ssrcs ||
+                        !ssrcOperation.ssrc.ssrcs.length)
+                        break;
+                    var ssrcMap = {};
+                    var ssrcLastIdx = ssrcOperation.ssrc.ssrcs.length - 1;
+                    for(var i = 0; i < bLine.ssrcs.length; i++) {
+                        var ssrc = bLine.ssrcs[i];
+                        if (ssrc.attribute !== 'msid' &&
+                            ssrc.value !== ssrcOperation.msid) {
+                            continue;
+                        }
+                        ssrcMap[ssrc.id] =
+                            ssrcOperation.ssrc.ssrcs[ssrcLastIdx];
+                        ssrcLastIdx--;
+                        if(ssrcLastIdx < 0)
+                            break;
+                    }
+                    var groups = ssrcOperation.ssrc.groups;
+                    if (typeof bLine.ssrcGroups !== 'undefined' &&
+                        Array.isArray(bLine.ssrcGroups) && groups &&
+                        groups.length) {
+                        bLine.ssrcGroups.forEach(function (group) {
+                            if(!group.ssrcs)
+                                return;
+                            var currentSSRCs = group.ssrcs.split(" ");
+                            var newGroup = null;
+                            for(var i = 0; i < groups.length; i++) {
+                                newGroup = groups[i].group;
+                                var newSSRCs = newGroup.ssrcs.split(" ");
+                                if(newGroup.semantics !== group.semantics)
+                                    continue;
+                                var wrongGroup = false;
+                                for(var j = 0; j < currentSSRCs.length; j++) {
+                                    if(newGroup.ssrcs.indexOf(
+                                        ssrcMap[currentSSRCs[j]]) === -1){
+                                        wrongGroup = true;
+                                        break;
+                                    }
+                                }
+                                if(!wrongGroup) {
+                                    for(j = 0; j < newSSRCs.length; j++) {
+                                        ssrcMap[currentSSRCs[j]] = newSSRCs[j];
+                                    }
+                                    break;
+                                }
+                            }
+
+                            group.ssrcs = newGroup.ssrcs;
+                        });
+                    }
+                    bLine.ssrcs.forEach(function (ssrc) {
+                        if(ssrcMap[ssrc.id]) {
+                            ssrc.id = ssrcMap[ssrc.id];
+                        }
+                    });
+                    break;
+                default:
+                break;
+            }
+            SSRCs = this.replaceSSRCs[bLine.type].splice(0,1);
+        }
+
         if (!Array.isArray(bLine.ssrcs) || bLine.ssrcs.length === 0)
         {
             var ssrc = this.recvOnlySSRCs[bLine.type]
@@ -188,6 +287,60 @@ TraceablePeerConnection.prototype.insertRecvOnlySSRC = function (desc) {
 };
 
 /**
+ * Returns map with keys msid and values ssrc.
+ * @param desc the SDP that will be modified.
+ */
+function extractSSRCMap(desc) {
+    if (typeof desc !== 'object' || desc === null ||
+        typeof desc.sdp !== 'string') {
+        console.warn('An empty description was passed as an argument.');
+        return desc;
+    }
+
+    var ssrcList = {};
+    var ssrcGroups = {};
+    var session = transform.parse(desc.sdp);
+    if (!Array.isArray(session.media))
+    {
+        return;
+    }
+
+    session.media.forEach(function (bLine) {
+        if (!Array.isArray(bLine.ssrcs))
+        {
+            return;
+        }
+
+        if (typeof bLine.ssrcGroups !== 'undefined' &&
+            Array.isArray(bLine.ssrcGroups)) {
+            bLine.ssrcGroups.forEach(function (group) {
+                if (typeof group.semantics !== 'undefined' &&
+                    typeof group.ssrcs !== 'undefined') {
+                    var primarySSRC = Number(group.ssrcs.split(' ')[0]);
+                    ssrcGroups[primarySSRC] = ssrcGroups[primarySSRC] || [];
+                    ssrcGroups[primarySSRC].push(group);
+                }
+            });
+        }
+        bLine.ssrcs.forEach(function (ssrc) {
+            if(ssrc.attribute !== 'msid')
+                return;
+            ssrcList[ssrc.value] = ssrcList[ssrc.value] ||
+                {groups: [], ssrcs: []};
+            ssrcList[ssrc.value].ssrcs.push(ssrc.id);
+            if(ssrcGroups[ssrc.id]){
+                ssrcGroups[ssrc.id].forEach(function (group) {
+                    ssrcList[ssrc.value].groups.push(
+                        {primarySSRC: ssrc.id, group: group});
+                });
+            }
+        });
+    });
+
+    return ssrcList;
+}
+
+/**
  * Takes a SessionDescription object and returns a "normalized" version.
  * Currently it only takes care of ordering the a=ssrc lines.
  */
@@ -201,8 +354,8 @@ var normalizePlanB = function(desc) {
     var transform = require('sdp-transform');
     var session = transform.parse(desc.sdp);
 
-    if (typeof session !== 'undefined' && typeof session.media !== 'undefined' &&
-        Array.isArray(session.media)) {
+    if (typeof session !== 'undefined' &&
+        typeof session.media !== 'undefined' && Array.isArray(session.media)) {
         session.media.forEach(function (mLine) {
 
             // Chrome appears to be picky about the order in which a=ssrc lines
@@ -215,7 +368,8 @@ var normalizePlanB = function(desc) {
             var firstSsrcs = [];
             var newSsrcLines = [];
 
-            if (typeof mLine.ssrcGroups !== 'undefined' && Array.isArray(mLine.ssrcGroups)) {
+            if (typeof mLine.ssrcGroups !== 'undefined' &&
+                Array.isArray(mLine.ssrcGroups)) {
                 mLine.ssrcGroups.forEach(function (group) {
                     if (typeof group.semantics !== 'undefined' &&
                         group.semantics === 'FID') {
@@ -296,11 +450,13 @@ Object.keys(getters).forEach(function (prop) {
     );
 });
 
-TraceablePeerConnection.prototype.addStream = function (stream) {
+TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
     this.trace('addStream', stream.id);
     try
     {
         this.peerconnection.addStream(stream);
+        if(ssrcInfo && this.replaceSSRCs[ssrcInfo.mtype])
+            this.replaceSSRCs[ssrcInfo.mtype].push(ssrcInfo);
     }
     catch (e)
     {
@@ -308,7 +464,8 @@ TraceablePeerConnection.prototype.addStream = function (stream) {
     }
 };
 
-TraceablePeerConnection.prototype.removeStream = function (stream, stopStreams) {
+TraceablePeerConnection.prototype.removeStream = function (stream, stopStreams,
+ssrcInfo) {
     this.trace('removeStream', stream.id);
     if(stopStreams) {
         RTC.stopMediaStream(stream);
@@ -316,8 +473,11 @@ TraceablePeerConnection.prototype.removeStream = function (stream, stopStreams) 
 
     try {
         // FF doesn't support this yet.
-        if (this.peerconnection.removeStream)
+        if (this.peerconnection.removeStream) {
             this.peerconnection.removeStream(stream);
+            if(ssrcInfo && this.replaceSSRCs[ssrcInfo.mtype])
+                this.replaceSSRCs[ssrcInfo.mtype].push(ssrcInfo);
+        }
     } catch (e) {
         logger.error(e);
     }
@@ -399,47 +559,6 @@ TraceablePeerConnection.prototype.close = function () {
     this.peerconnection.close();
 };
 
-TraceablePeerConnection.prototype.createOffer
-        = function (successCallback, failureCallback, constraints) {
-    var self = this;
-    this.trace('createOffer', JSON.stringify(constraints, null, ' '));
-    this.peerconnection.createOffer(
-        function (offer) {
-            self.trace('createOfferOnSuccess::preTransform', dumpSDP(offer));
-            // NOTE this is not tested because in meet the focus generates the
-            // offer.
-
-            // if we're running on FF, transform to Plan B first.
-            if (RTCBrowserType.usesUnifiedPlan()) {
-                offer = self.interop.toPlanB(offer);
-                self.trace('createOfferOnSuccess::postTransform (Plan B)', dumpSDP(offer));
-            }
-
-            if (RTCBrowserType.isChrome())
-            {
-                offer = self.insertRecvOnlySSRC(offer);
-                self.trace('createAnswerOnSuccess::mungeLocalVideoSSRC',
-                    dumpSDP(offer));
-            }
-
-            if (!self.session.room.options.disableSimulcast
-                 && self.simulcast.isSupported()) {
-                offer = self.simulcast.mungeLocalDescription(offer);
-                self.trace('createOfferOnSuccess::postTransform (simulcast)',
-                    dumpSDP(offer));
-            }
-            successCallback(offer);
-        },
-        function(err) {
-            self.trace('createOfferOnFailure', err);
-            self.eventEmitter.emit(XMPPEvents.CREATE_OFFER_FAILED, err,
-                self.peerconnection);
-            failureCallback(err);
-        },
-        constraints
-    );
-};
-
 TraceablePeerConnection.prototype.createAnswer
         = function (successCallback, failureCallback, constraints) {
     var self = this;
@@ -454,19 +573,23 @@ TraceablePeerConnection.prototype.createAnswer
                     dumpSDP(answer));
             }
 
-            if (RTCBrowserType.isChrome())
-            {
-                answer = self.insertRecvOnlySSRC(answer);
-                self.trace('createAnswerOnSuccess::mungeLocalVideoSSRC',
-                    dumpSDP(answer));
-            }
-
             if (!self.session.room.options.disableSimulcast
                 && self.simulcast.isSupported()) {
                 answer = self.simulcast.mungeLocalDescription(answer);
                 self.trace('createAnswerOnSuccess::postTransform (simulcast)',
                     dumpSDP(answer));
             }
+
+            if (!RTCBrowserType.isFirefox())
+            {
+                answer = self.ssrcReplacement(answer);
+                self.trace('createAnswerOnSuccess::mungeLocalVideoSSRC',
+                    dumpSDP(answer));
+            }
+
+            self.eventEmitter.emit(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+                extractSSRCMap(answer));
+
             successCallback(answer);
         },
         function(err) {

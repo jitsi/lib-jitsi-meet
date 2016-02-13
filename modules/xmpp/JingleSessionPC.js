@@ -21,7 +21,6 @@ function JingleSessionPC(me, sid, connection, service) {
     this.state = null;
     this.localSDP = null;
     this.remoteSDP = null;
-    this.relayedStreams = [];
 
     this.usetrickle = true;
     this.usepranswer = false; // early transport warmup -- mind you, this might fail. depends on webrtc issue 1718
@@ -37,8 +36,8 @@ function JingleSessionPC(me, sid, connection, service) {
     this.addssrc = [];
     this.removessrc = [];
     this.pendingop = null;
-    this.switchstreams = false;
-    this.addingStreams = false;
+    this.modifyingLocalStreams = false;
+    this.modifiedSSRCs = {};
 
     /**
      * A map that stores SSRCs of local streams
@@ -182,10 +181,6 @@ JingleSessionPC.prototype.doInitialize = function () {
     this.peerconnection.onnegotiationneeded = function (event) {
         self.room.eventEmitter.emit(XMPPEvents.PEERCONNECTION_READY, self);
     };
-
-    this.relayedStreams.forEach(function(stream) {
-        self.peerconnection.addStream(stream);
-    });
 };
 
 function onIceConnectionStateChange(sid, session) {
@@ -459,81 +454,6 @@ JingleSessionPC.prototype.sendIceCandidates = function (candidates) {
             JingleSessionPC.onJingleError(this.sid, error);
         },
         10000);
-};
-
-
-JingleSessionPC.prototype.sendOffer = function () {
-    //logger.log('sendOffer...');
-    var self = this;
-    this.peerconnection.createOffer(function (sdp) {
-            self.createdOffer(sdp);
-        },
-        function (e) {
-            logger.error('createOffer failed', e);
-        },
-        this.media_constraints
-    );
-};
-
-// FIXME createdOffer is never used in jitsi-meet
-JingleSessionPC.prototype.createdOffer = function (sdp) {
-    //logger.log('createdOffer', sdp);
-    var self = this;
-    this.localSDP = new SDP(sdp.sdp);
-    //this.localSDP.mangle();
-    var sendJingle = function () {
-        var init = $iq({to: this.peerjid,
-            type: 'set'})
-            .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
-                action: 'session-initiate',
-                initiator: this.initiator,
-                sid: this.sid});
-        self.localSDP.toJingle(
-            init,
-            this.initiator == this.me ? 'initiator' : 'responder');
-
-        self.connection.sendIQ(init,
-            function () {
-                var ack = {};
-                ack.source = 'offer';
-                $(document).trigger('ack.jingle', [self.sid, ack]);
-            },
-            function (stanza) {
-                self.state = 'error';
-                self.peerconnection.close();
-                var error = ($(stanza).find('error').length) ? {
-                    code: $(stanza).find('error').attr('code'),
-                    reason: $(stanza).find('error :first')[0].tagName,
-                }:{};
-                error.source = 'offer';
-                JingleSessionPC.onJingleError(self.sid, error);
-            },
-            10000);
-    }
-    sdp.sdp = this.localSDP.raw;
-    this.peerconnection.setLocalDescription(sdp,
-        function () {
-            if(self.usetrickle)
-            {
-                sendJingle();
-            }
-            self.setLocalDescription();
-            //logger.log('setLocalDescription success');
-        },
-        function (e) {
-            logger.error('setLocalDescription failed', e);
-            self.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED);
-        }
-    );
-    var cands = SDPUtil.find_lines(this.localSDP.raw, 'a=candidate:');
-    for (var i = 0; i < cands.length; i++) {
-        var cand = SDPUtil.parse_icecandidate(cands[i]);
-        if (cand.type == 'srflx') {
-            this.hadstuncandidate = true;
-        } else if (cand.type == 'relay') {
-            this.hadturncandidate = true;
-        }
-    }
 };
 
 JingleSessionPC.prototype.readSsrcInfo = function (contents) {
@@ -1032,7 +952,7 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
 
     if (this.peerconnection.signalingState == 'closed') return;
     if (!(this.addssrc.length || this.removessrc.length || this.pendingop !== null
-        || this.switchstreams || this.addingStreams)){
+        || this.modifyingLocalStreams)){
         // There is nothing to do since scheduled job might have been executed by another succeeding call
         this.setLocalDescription();
         if(successCallback){
@@ -1043,8 +963,7 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
     }
 
     // Reset switch streams flags
-    this.switchstreams = false;
-    this.addingStreams = false;
+    this.modifyingLocalStreams = false;
 
     var sdp = new SDP(this.peerconnection.remoteDescription.sdp);
 
@@ -1128,91 +1047,12 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
     );
 };
 
-
-/**
- * Switches video streams.
- * @param newStream new stream that will be used as video of this session.
- * @param oldStream old video stream of this session.
- * @param successCallback callback executed after successful stream switch.
- * @param isAudio whether the streams are audio (if true) or video (if false).
- */
-JingleSessionPC.prototype.switchStreams =
-    function (newStream, oldStream, successCallback, isAudio) {
-    var self = this;
-    var sender, newTrack;
-    var senderKind = isAudio ? 'audio' : 'video';
-    // Remember SDP to figure out added/removed SSRCs
-    var oldSdp = null;
-
-    if (self.peerconnection) {
-        if (self.peerconnection.localDescription) {
-            oldSdp = new SDP(self.peerconnection.localDescription.sdp);
-        }
-        if (RTCBrowserType.getBrowserType() ===
-                RTCBrowserType.RTC_BROWSER_FIREFOX) {
-            // On Firefox we don't replace MediaStreams as this messes up the
-            // m-lines (which can't be removed in Plan Unified) and brings a lot
-            // of complications. Instead, we use the RTPSender and replace just
-            // the track.
-
-            // Find the right sender (for audio or video)
-            self.peerconnection.peerconnection.getSenders().some(function (s) {
-                if (s.track && s.track.kind === senderKind) {
-                    sender = s;
-                    return true;
-                }
-            });
-
-            if (sender) {
-                // We assume that our streams have a single track, either audio
-                // or video.
-                newTrack = isAudio ? newStream.getAudioTracks()[0] :
-                    newStream.getVideoTracks()[0];
-                sender.replaceTrack(newTrack)
-                    .then(function() {
-                        console.log("Replaced a track, isAudio=" + isAudio);
-                    })
-                    .catch(function(err) {
-                        console.log("Failed to replace a track: " + err);
-                    });
-            } else {
-                console.log("Cannot switch tracks: no RTPSender.");
-            }
-        } else {
-            self.peerconnection.removeStream(oldStream, true);
-            if (newStream) {
-                self.peerconnection.addStream(newStream);
-            }
-        }
-    }
-
-    // Conference is not active
-    if (!oldSdp) {
-        successCallback();
-        return;
-    }
-
-    self.switchstreams = true;
-    self.modifySourcesQueue.push(function() {
-        logger.log('modify sources done');
-
-        successCallback();
-
-        var newSdp = new SDP(self.peerconnection.localDescription.sdp);
-        logger.log("SDPs", oldSdp, newSdp);
-        self.notifyMySSRCUpdate(oldSdp, newSdp);
-    });
-};
-
 /**
  * Adds streams.
  * @param stream new stream that will be added.
  * @param success_callback callback executed after successful stream addition.
  */
-JingleSessionPC.prototype.addStream = function (stream, callback) {
-
-    var self = this;
-
+JingleSessionPC.prototype.addStream = function (stream, callback, ssrcInfo) {
     // Remember SDP to figure out added/removed SSRCs
     var oldSdp = null;
     if(this.peerconnection) {
@@ -1220,7 +1060,7 @@ JingleSessionPC.prototype.addStream = function (stream, callback) {
             oldSdp = new SDP(this.peerconnection.localDescription.sdp);
         }
         if(stream)
-            this.peerconnection.addStream(stream);
+            this.peerconnection.addStream(stream, ssrcInfo);
     }
 
     // Conference is not active
@@ -1229,12 +1069,17 @@ JingleSessionPC.prototype.addStream = function (stream, callback) {
         return;
     }
 
-    this.addingStreams = true;
+    this.modifyingLocalStreams = true;
+    var self = this;
     this.modifySourcesQueue.push(function() {
         logger.log('modify sources done');
 
         callback();
-
+        if(ssrcInfo) { //available only on video unmute
+            self.modifiedSSRCs[ssrcInfo.type] =
+                self.modifiedSSRCs[ssrcInfo.type] || [];
+            self.modifiedSSRCs[ssrcInfo.type].push(ssrcInfo);
+        }
         var newSdp = new SDP(self.peerconnection.localDescription.sdp);
         logger.log("SDPs", oldSdp, newSdp);
         self.notifyMySSRCUpdate(oldSdp, newSdp);
@@ -1246,10 +1091,7 @@ JingleSessionPC.prototype.addStream = function (stream, callback) {
  * @param stream stream that will be removed.
  * @param success_callback callback executed after successful stream addition.
  */
-JingleSessionPC.prototype.removeStream = function (stream, callback) {
-
-    var self = this;
-
+JingleSessionPC.prototype.removeStream = function (stream, callback, ssrcInfo) {
     // Remember SDP to figure out added/removed SSRCs
     var oldSdp = null;
     if(this.peerconnection) {
@@ -1258,10 +1100,12 @@ JingleSessionPC.prototype.removeStream = function (stream, callback) {
         }
         if (RTCBrowserType.getBrowserType() ===
                 RTCBrowserType.RTC_BROWSER_FIREFOX) {
+            if(!stream)//There is nothing to be changed
+                return;
             var sender = null;
             // On Firefox we don't replace MediaStreams as this messes up the
             // m-lines (which can't be removed in Plan Unified) and brings a lot
-            // of complications. Instead, we use the RTPSender and replace just
+            // of complications. Instead, we use the RTPSender and remove just
             // the track.
             var track = null;
             if(stream.getAudioTracks() && stream.getAudioTracks().length) {
@@ -1272,7 +1116,7 @@ JingleSessionPC.prototype.removeStream = function (stream, callback) {
             }
 
             if(!track) {
-                console.log("Cannot switch tracks: no tracks.");
+                logger.log("Cannot remove tracks: no tracks.");
                 return;
             }
 
@@ -1286,17 +1130,15 @@ JingleSessionPC.prototype.removeStream = function (stream, callback) {
 
             if (sender) {
                 self.peerconnection.peerconnection.removeTrack(sender);
-                    // .then(function() {
-                    //     console.log("Replaced a track, isAudio=" + isAudio);
-                    // })
-                    // .catch(function(err) {
-                    //     console.log("Failed to replace a track: " + err);
-                    // });
             } else {
-                console.log("Cannot switch tracks: no RTPSender.");
+                logger.log("Cannot remove tracks: no RTPSender.");
             }
         } else if(stream)
-            this.peerconnection.removeStream(stream);
+            this.peerconnection.removeStream(stream, false, ssrcInfo);
+        // else
+        // NOTE: If there is no stream and the browser is not FF we still need to do
+        // some transformation in order to send remove-source for the muted
+        // streams. That's why we aren't calling return here.
     }
 
     // Conference is not active
@@ -1305,13 +1147,19 @@ JingleSessionPC.prototype.removeStream = function (stream, callback) {
         return;
     }
 
-    this.addingStreams = true;
+    this.modifyingLocalStreams = true;
+    var self = this;
     this.modifySourcesQueue.push(function() {
         logger.log('modify sources done');
 
         callback();
 
         var newSdp = new SDP(self.peerconnection.localDescription.sdp);
+        if(ssrcInfo) {
+            self.modifiedSSRCs[ssrcInfo.type] =
+                self.modifiedSSRCs[ssrcInfo.type] || [];
+            self.modifiedSSRCs[ssrcInfo.type].push(ssrcInfo);
+        }
         logger.log("SDPs", oldSdp, newSdp);
         self.notifyMySSRCUpdate(oldSdp, newSdp);
     });
@@ -1340,7 +1188,8 @@ JingleSessionPC.prototype.notifyMySSRCUpdate = function (old_sdp, new_sdp) {
             sid: this.sid
         }
     );
-    var removed = sdpDiffer.toJingle(remove);
+    sdpDiffer.toJingle(remove);
+    var removed = this.fixJingle(remove);
 
     if (removed && remove) {
         logger.info("Sending source-remove", remove);
@@ -1366,7 +1215,9 @@ JingleSessionPC.prototype.notifyMySSRCUpdate = function (old_sdp, new_sdp) {
             sid: this.sid
         }
     );
-    var added = sdpDiffer.toJingle(add);
+
+    sdpDiffer.toJingle(add);
+    var added = this.fixJingle(add);
 
     if (added && add) {
         logger.info("Sending source-add", add);
@@ -1561,6 +1412,134 @@ JingleSessionPC.prototype.remoteStreamAdded = function (data, times) {
  */
 JingleSessionPC.prototype.getIceConnectionState = function () {
     return this.peerconnection.iceConnectionState;
+}
+
+
+/**
+ * Fixes the outgoing jingle packets by removing the nodes related to the
+ * muted/unmuted streams, handles removing of muted stream, etc.
+ * @param jingle the jingle packet that is going to be sent
+ * @returns {boolean} true if the jingle has to be sent and false otherwise.
+ */
+JingleSessionPC.prototype.fixJingle = function(jingle) {
+    var action = $(jingle.nodeTree).find("jingle").attr("action");
+    switch (action) {
+        case "source-add":
+            this.fixSourceAddJingle(jingle);
+            break;
+        case "source-remove":
+            this.fixSourceRemoveJingle(jingle);
+            break;
+        default:
+            logger.error("Unknown jingle action!");
+            return false;
+    }
+
+    var sources = $(jingle.tree()).find(">jingle>content>description>source");
+    return sources && sources.length > 0;
+}
+
+/**
+ * Fixes the outgoing jingle packets with action source-add by removing the
+ * nodes related to the unmuted streams
+ * @param jingle the jingle packet that is going to be sent
+ * @returns {boolean} true if the jingle has to be sent and false otherwise.
+ */
+JingleSessionPC.prototype.fixSourceAddJingle = function (jingle) {
+    var ssrcs = this.modifiedSSRCs["unmute"];
+    this.modifiedSSRCs["unmute"] = [];
+    if(ssrcs && ssrcs.length) {
+        ssrcs.forEach(function (ssrcObj) {
+            var desc = $(jingle.tree()).find(">jingle>content[name=\"" +
+                ssrcObj.mtype + "\"]>description");
+            if(!desc || !desc.length)
+                return;
+            ssrcObj.ssrc.ssrcs.forEach(function (ssrc) {
+                var sourceNode = desc.find(">source[ssrc=\"" +
+                    ssrc + "\"]");
+                sourceNode.remove();
+            });
+            ssrcObj.ssrc.groups.forEach(function (group) {
+                var groupNode = desc.find(">ssrc-group[semantics=\"" +
+                    group.group.semantics + "\"]:has(source[ssrc=\"" +
+                    group.primarySSRC +
+                     "\"])");
+                groupNode.remove();
+            });
+        });
+    }
+}
+
+/**
+ * Fixes the outgoing jingle packets with action source-remove by removing the
+ * nodes related to the muted streams, handles removing of muted stream
+ * @param jingle the jingle packet that is going to be sent
+ * @returns {boolean} true if the jingle has to be sent and false otherwise.
+ */
+JingleSessionPC.prototype.fixSourceRemoveJingle = function(jingle) {
+    var ssrcs = this.modifiedSSRCs["mute"];
+    this.modifiedSSRCs["mute"] = [];
+    if(ssrcs && ssrcs.length)
+        ssrcs.forEach(function (ssrcObj) {
+            ssrcObj.ssrc.ssrcs.forEach(function (ssrc) {
+                var sourceNode = $(jingle.tree()).find(">jingle>content[name=\"" +
+                    ssrcObj.mtype + "\"]>description>source[ssrc=\"" +
+                    ssrc + "\"]");
+                sourceNode.remove();
+            });
+            ssrcObj.ssrc.groups.forEach(function (group) {
+                var groupNode = $(jingle.tree()).find(">jingle>content[name=\"" +
+                    ssrcObj.mtype + "\"]>description>ssrc-group[semantics=\"" +
+                    group.group.semantics + "\"]:has(source[ssrc=\"" + group.primarySSRC +
+                     "\"])");
+                groupNode.remove();
+            });
+        });
+
+    ssrcs = this.modifiedSSRCs["remove"];
+    this.modifiedSSRCs["remove"] = [];
+    if(ssrcs && ssrcs.length)
+        ssrcs.forEach(function (ssrcObj) {
+            var content = $(jingle.tree()).find(">jingle>content[name=\"" +
+                ssrcObj.mtype + "\"]");
+
+            if(!content || !content.length) {
+                $(jingle.tree()).find(">jingle").append(
+                    "<content name=\"" + ssrcObj.mtype + "\"></content>");
+                content = $(jingle.tree()).find(">jingle>content[name=\"" +
+                    ssrcObj.mtype + "\"]");
+            }
+
+            var desc = content.find(">description");
+            if(!desc || !desc.length) {
+                content.append("<description " +
+                    "xmlns=\"urn:xmpp:jingle:apps:rtp:1\" media=\"" +
+                    ssrcObj.mtype + "\"></description>");
+                desc = content.find(">description");
+            }
+
+            ssrcObj.ssrc.ssrcs.forEach(function (ssrc) {
+                var sourceNode = desc.find(">source[ssrc=\"" +ssrc + "\"]");
+                if(!sourceNode || !sourceNode.length) {
+                    //Maybe we have to include cname, msid, etc here?
+                    desc.append("<source " +
+                        "xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\" ssrc=\"" +
+                        ssrc + "\"></source>");
+                }
+            });
+            ssrcObj.ssrc.groups.forEach(function (group) {
+                var groupNode = desc.find(">ssrc-group[semantics=\"" +
+                    group.group.semantics + "\"]:has(source[ssrc=\"" + group.primarySSRC +
+                     "\"])");
+                if(!groupNode || !groupNode.length) {
+                    desc.append("<ssrc-group semantics=\"" +
+                        group.group.semantics +
+                        "\" xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\"><source ssrc=\"" +
+                        group.group.ssrcs.split(" ").join("\"/><source ssrc=\"") + "\"/>" +
+                        "</ssrc-group>");
+                }
+            });
+        });
 }
 
 module.exports = JingleSessionPC;

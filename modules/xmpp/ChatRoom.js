@@ -562,29 +562,18 @@ ChatRoom.prototype.setJingleSession = function(session){
 };
 
 
-ChatRoom.prototype.removeStream = function (stream, callback) {
+ChatRoom.prototype.removeStream = function (stream, callback, ssrcInfo) {
     if(!this.session) {
         callback();
         return;
     }
-    this.session.removeStream(stream, callback);
+    this.session.removeStream(stream, callback, ssrcInfo);
 };
 
-ChatRoom.prototype.switchStreams = function (stream, oldStream, callback, isAudio) {
+ChatRoom.prototype.addStream = function (stream, callback, ssrcInfo) {
     if(this.session) {
         // FIXME: will block switchInProgress on true value in case of exception
-        this.session.switchStreams(stream, oldStream, callback, isAudio);
-    } else {
-        // We are done immediately
-        logger.warn("No conference handler or conference not started yet");
-        callback();
-    }
-};
-
-ChatRoom.prototype.addStream = function (stream, callback) {
-    if(this.session) {
-        // FIXME: will block switchInProgress on true value in case of exception
-        this.session.addStream(stream, callback);
+        this.session.addStream(stream, callback, ssrcInfo);
     } else {
         // We are done immediately
         logger.warn("No conference handler or conference not started yet");
