@@ -247,10 +247,10 @@ The object represents a conference. We have the following methods to control the
 16. removeCommandListener(command) - removes the listeners for the specified command
     - command - the name of the command
 
-17. addTrack(track) - Adds JitsiLocalTrack object to the conference.
+17. addTrack(track) - Adds JitsiLocalTrack object to the conference. Throws an error if adding second video stream. Returns Promise.
     - track - the JitsiLocalTrack
 
-18. removeTrack(track) - Removes JitsiLocalTrack object to the conference.
+18. removeTrack(track) - Removes JitsiLocalTrack object to the conference. Returns Promise.
     - track - the JitsiLocalTrack
 
 19. isDTMFSupported() - Check if at least one user supports DTMF.
@@ -319,7 +319,7 @@ We have the following methods for controling the tracks:
 
 6. detach(container) - removes the track from the container.
 
-7. stop() - stop sending the track to the other participants in the conference.
+7. stop() - stop sending the track to the other participants in the conference. Returns Promise.
 
    Note: This method is implemented only for the local tracks.
 

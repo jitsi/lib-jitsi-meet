@@ -1,3 +1,4 @@
+/* global Promise */
 var JitsiTrack = require("./JitsiTrack");
 var RTCBrowserType = require("./RTCBrowserType");
 var JitsiTrackEvents = require('../../JitsiTrackEvents');
@@ -126,16 +127,22 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
 /**
  * Stops sending the media track. And removes it from the HTML.
  * NOTE: Works for local tracks only.
+ * @returns {Promise}
  */
 JitsiLocalTrack.prototype.stop = function () {
-    if(this.conference){
-        this.conference.removeTrack(this);
+    var promise = Promise.resolve();
+
+    if (this.conference){
+        promise = this.conference.removeTrack(this);
     }
-    if(!this.stream)
-        return;
-    RTCUtils.stopMediaStream(this.stream);
-    this.detach();
-}
+
+    if (this.stream) {
+        RTCUtils.stopMediaStream(this.stream);
+        this.detach();
+    }
+
+    return promise;
+};
 
 /**
  * Returns <tt>true</tt> - if the stream is muted

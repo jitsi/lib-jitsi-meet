@@ -142,11 +142,19 @@ RTC.prototype.addLocalStream = function (stream) {
     this.localStreams.push(stream);
     stream._setRTC(this);
 
-    if (stream.type == "audio") {
+    if (stream.isAudioTrack()) {
         this.localAudio = stream;
     } else {
         this.localVideo = stream;
     }
+};
+
+/**
+ * Get local video track.
+ * @returns {JitsiLocalTrack}
+ */
+RTC.prototype.getLocalVideoStream = function () {
+    return this.localVideo;
 };
 
 /**
@@ -163,10 +171,18 @@ RTC.prototype.setAudioMute = function (value) {
     }
 }
 
-RTC.prototype.removeLocalStream = function (track) {
-    var pos = this.localStreams.indexOf(track);
-    if (pos > -1) {
-        this.localStreams.splice(pos, 1);
+RTC.prototype.removeLocalStream = function (stream) {
+    var pos = this.localStreams.indexOf(stream);
+    if (pos === -1) {
+        return;
+    }
+
+    this.localStreams.splice(pos, 1);
+
+    if (stream.isAudioTrack()) {
+        this.localAudio = null;
+    } else {
+        this.localVideo = null;
     }
 };
 

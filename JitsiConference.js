@@ -275,9 +275,14 @@ JitsiConference.prototype.setSubject = function (subject) {
  * Adds JitsiLocalTrack object to the conference.
  * @param track the JitsiLocalTrack object.
  * @returns {Promise<JitsiLocalTrack>}
+ * @throws will throw and error if track is video track
+ * and there is already another video track in the conference.
  */
 JitsiConference.prototype.addTrack = function (track) {
     if (track.isVideoTrack()) {
+        if (this.rtc.getLocalVideoStream()) {
+            throw new Error("cannot add second video track to the conference");
+        }
         this.removeCommand("videoType");
         this.sendCommand("videoType", {
             value: track.videoType,
