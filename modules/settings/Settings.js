@@ -32,8 +32,7 @@ function Settings(conferenceID) {
             this.confSettings = JSON.parse(window.localStorage.getItem(conferenceID));
         if(!this.confSettings.jitsiMeetId) {
             this.confSettings.jitsiMeetId = generateUniqueId();
-            logger.log("generated id",
-                this.confSettings.jitsiMeetId);
+            logger.log("generated id", this.confSettings.jitsiMeetId);
             this.save();
         }
         if (!this.confSettings.callStatsUserName) {
@@ -55,9 +54,12 @@ function Settings(conferenceID) {
 }
 
 Settings.prototype.save = function () {
-    if(!supportsLocalStorage())
-        window.localStorage.setItem(this.conferenceID, JSON.stringify(this.confSettings));
-}
+    if (supportsLocalStorage()) {
+        window.localStorage.setItem(
+            this.conferenceID, JSON.stringify(this.confSettings)
+        );
+    }
+};
 
 Settings.prototype.setDisplayName = function (newDisplayName) {
     this.displayName = newDisplayName;
