@@ -55,7 +55,7 @@ function Settings(conferenceID) {
 }
 
 Settings.prototype.save = function () {
-    if(!supportsLocalStorage())
+    if(supportsLocalStorage())
         window.localStorage.setItem(this.conferenceID, JSON.stringify(this.confSettings));
 }
 
