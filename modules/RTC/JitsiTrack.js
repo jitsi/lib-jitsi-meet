@@ -151,6 +151,18 @@ JitsiTrack.prototype.getUsageLabel = function () {
 };
 
 /**
+ * Eventually will trigger RTCEvents.TRACK_ATTACHED event.
+ * @param container the video/audio container to which this stream is attached
+ *        and for which event will be fired.
+ * @private
+ */
+JitsiTrack.prototype._maybeFireTrackAttached = function (container) {
+    if (this.rtc && container) {
+        this.rtc.eventEmitter.emit(RTCEvents.TRACK_ATTACHED, this, container);
+    }
+};
+
+/**
  * Mutes the track.
  */
 JitsiTrack.prototype.mute = function () {
@@ -194,10 +206,10 @@ JitsiTrack.prototype.attach = function (container) {
     }
     this.containers.push(container);
 
-    this.rtc.eventEmitter.emit(RTCEvents.TRACK_ATTACHED, this, container);
+    this._maybeFireTrackAttached(container);
 
     return container;
-}
+};
 
 /**
  * Removes the track from the passed HTML container.

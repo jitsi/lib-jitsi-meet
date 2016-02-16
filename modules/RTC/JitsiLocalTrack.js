@@ -175,6 +175,14 @@ JitsiLocalTrack.prototype.isMuted = function () {
  */
 JitsiLocalTrack.prototype._setRTC = function (rtc) {
     this.rtc = rtc;
+    // We want to keep up with postponed events which should have been fired
+    // on "attach" call, but for local track we not always have the conference
+    // before attaching. However this may result in duplicated events if they
+    // have been triggered on "attach" already.
+    for(var i = 0; i < this.containers.length; i++)
+    {
+        this._maybeFireTrackAttached(this.containers[i]);
+    }
 };
 
 /**
