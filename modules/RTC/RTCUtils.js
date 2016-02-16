@@ -67,6 +67,9 @@ function getConstraints(um, options) {
         constraints.video = { mandatory: {}, optional: [] };
 
         if (options.cameraDeviceId) {
+            // new style of settings device id (FF only)
+            constraints.video.deviceId = options.cameraDeviceId;
+            // old style
             constraints.video.optional.push({
                 sourceId: options.cameraDeviceId
             });
@@ -81,6 +84,9 @@ function getConstraints(um, options) {
             // same behaviour as true
             constraints.audio = { mandatory: {}, optional: []};
             if (options.micDeviceId) {
+                // new style of settings device id (FF only)
+                constraints.audio.deviceId = options.micDeviceId;
+                // old style
                 constraints.audio.optional.push({
                     sourceId: options.micDeviceId
                 });
@@ -99,8 +105,9 @@ function getConstraints(um, options) {
             if (options.micDeviceId) {
                 constraints.audio = {
                     mandatory: {},
+                    deviceId: options.micDeviceId, // new style
                     optional: [{
-                        sourceId: options.micDeviceId
+                        sourceId: options.micDeviceId // old style
                     }]};
             } else {
                 constraints.audio = true;
@@ -255,7 +262,7 @@ function createAutoDeviceInfo(kind) {
         label: 'Auto',
         kind: kind,
         deviceId: '',
-        groupId: null
+        groupId: ''
     };
 }
 
@@ -790,10 +797,10 @@ var RTCUtils = {
      * false if not.
      */
     isDeviceChangeAvailable: function () {
-        if(RTCBrowserType.isChrome() || RTCBrowserType.isOpera() ||
-            RTCBrowserType.isTemasysPluginUsed())
-            return true;
-        return false;
+        return RTCBrowserType.isChrome() ||
+            RTCBrowserType.isFirefox() ||
+            RTCBrowserType.isOpera() ||
+            RTCBrowserType.isTemasysPluginUsed();
     },
     /**
      * A method to handle stopping of the stream.

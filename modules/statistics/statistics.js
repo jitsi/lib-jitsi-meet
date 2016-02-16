@@ -137,7 +137,7 @@ Statistics.stopLocalStats = function (stream) {
     for(var i = 0; i < Statistics.localStats.length; i++)
         if(Statistics.localStats[i].stream === stream){
             var localStats = Statistics.localStats.splice(i, 1);
-            localStats.stop();
+            localStats[0].stop();
             break;
         }
 };
