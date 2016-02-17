@@ -1,12 +1,10 @@
 var options = {
     hosts: {
-        call_control: "callcontrol.chaos.hipchat.me",
-        focus: "focus.chaos.hipchat.me",
-        domain: 'chaos.hipchat.me',
-        muc: 'conference.chaos.hipchat.me', // FIXME: use XEP-0030
-        bridge: 'jitsi-videobridge.chaos.hipchat.me', // FIXME: use XEP-0030
+        domain: 'jitsi-meet.example.com',
+        muc: 'conference.jitsi-meet.example.com', // FIXME: use XEP-0030
+        bridge: 'jitsi-videobridge.jitsi-meet.example.com', // FIXME: use XEP-0030
     },
-    bosh: '//chaos.hipchat.me/http-bind', // FIXME: use xep-0156 for that
+    bosh: '//jitsi-meet.example.com/http-bind', // FIXME: use xep-0156 for that
     clientNode: 'http://jitsi.org/jitsimeet', // The name of client node advertised in XEP-0115 'c' stanza
 }
 
@@ -40,10 +38,10 @@ function onLocalTracks(tracks)
             });
         if(localTracks[i].getType() == "video") {
             $("body").append("<video autoplay='1' id='localVideo" + i + "' />");
-            localTracks[i].attach($("#localVideo" + i ));
+            localTracks[i].attach($("#localVideo" + i)[0]);
         } else {
             $("body").append("<audio autoplay='1' muted='true' id='localAudio" + i + "' />");
-            localTracks[i].attach($("#localAudio" + i ));
+            localTracks[i].attach($("#localAudio" + i)[0]);
         }
         if(isJoined)
             room.addTrack(localTracks[i]);
@@ -79,7 +77,7 @@ function onRemoteTrack(track) {
     } else {
         $("body").append("<audio autoplay='1' id='" + participant + "audio" + idx + "' />");
     }
-    track.attach($("#" + id));
+    track.attach($("#" + id)[0]);
 }
 
 /**
@@ -105,7 +103,7 @@ function onUserLeft(id) {
  * That function is called when connection is established successfully
  */
 function onConnectionSuccess(){
-    room = connection.initJitsiConference("conference11", confOptions);
+    room = connection.initJitsiConference("conference", confOptions);
     room.on(JitsiMeetJS.events.conference.TRACK_ADDED, onRemoteTrack);
     room.on(JitsiMeetJS.events.conference.TRACK_REMOVED, function (track) {
         console.log("track removed!!!" + track);
@@ -175,7 +173,7 @@ function switchVideo() {
                 function () {
                     console.log("local track stoped");
                 });
-            localTracks[1].attach($("#localVideo1"));
+            localTracks[1].attach($("#localVideo1")[0]);
             room.addTrack(localTracks[1]);
         }).catch(function (error) {
             console.log(error);
@@ -224,7 +222,7 @@ JitsiMeetJS.init(initOptions).then(function(){
     connection.connect();
     JitsiMeetJS.createLocalTracks({devices: ["audio", "video"]}).
         then(onLocalTracks).catch(function (error) {
-            console.log(error);
+            throw error;
         });
 }).catch(function (error) {
     console.log(error);
