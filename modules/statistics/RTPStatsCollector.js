@@ -495,7 +495,8 @@ StatsCollector.prototype.processStatsReport = function () {
         var isDownloadStream = true;
         var key = 'packetsReceived';
         var packetsNow = getStatValue(now, key);
-        if (typeof packetsNow === 'undefined' || packetsNow === null) {
+        if (typeof packetsNow === 'undefined'
+            || packetsNow === null || packetsNow === "") {
             isDownloadStream = false;
             key = 'packetsSent';
             packetsNow = getStatValue(now, key);
@@ -603,7 +604,7 @@ StatsCollector.prototype.processStatsReport = function () {
             var ssrc2Loss = ssrcStats.ssrc2Loss;
             var type = ssrc2Loss.isDownloadStream ? "download" : "upload";
             totalPackets[type] += ssrc2Loss.packetsTotal;
-            lostPackets[type] += ssrc2Loss.packetLost;
+            lostPackets[type] += ssrc2Loss.packetsLost;
 
             // process bitrate stats
             var ssrc2bitrate = ssrcStats.ssrc2bitrate;
