@@ -291,8 +291,8 @@ RTC.prototype.setAudioLevel = function (resource, audioLevel) {
  * @param ssrc the ssrc to check.
  */
 RTC.prototype.getResourceBySSRC = function (ssrc) {
-    if(ssrc == this.room.session.localStreamsSSRC.video
-        || ssrc == this.room.session.localStreamsSSRC.audio) {
+    if(ssrc == this.localVideo.getSSRC()
+        || ssrc == this.localAudio.getSSRC()) {
         return Strophe.getResourceFromJid(this.room.myroomjid);
     }
 

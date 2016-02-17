@@ -7,7 +7,6 @@ var SDPDiffer = require("./SDPDiffer");
 var SDPUtil = require("./SDPUtil");
 var SDP = require("./SDP");
 var async = require("async");
-var transform = require("sdp-transform");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var RTCBrowserType = require("../RTC/RTCBrowserType");
 var RTC = require("../RTC/RTC");
@@ -39,11 +38,6 @@ function JingleSessionPC(me, sid, connection, service) {
     this.modifyingLocalStreams = false;
     this.modifiedSSRCs = {};
 
-    /**
-     * A map that stores SSRCs of local streams
-     * @type {{}} maps media type('audio' or 'video') to SSRC number
-     */
-    this.localStreamsSSRC = {};
     /**
      * A map that stores SSRCs of remote streams. And is used only locally
      * We store the mapping when jingle is received, and later is used
@@ -271,9 +265,6 @@ JingleSessionPC.prototype.accept = function () {
     var self = this;
     this.peerconnection.setLocalDescription(new RTCSessionDescription({type: 'answer', sdp: sdp}),
         function () {
-            //logger.log('setLocalDescription success');
-            self.setLocalDescription();
-
             self.connection.sendIQ(accept,
                 function () {
                     var ack = {};
@@ -472,15 +463,6 @@ JingleSessionPC.prototype.readSsrcInfo = function (contents) {
             );
         });
     });
-};
-
-/**
- * Returns the SSRC of local audio stream.
- * @param mediaType 'audio' or 'video' media type
- * @returns {*} the SSRC number of local audio or video stream.
- */
-JingleSessionPC.prototype.getLocalSSRC = function (mediaType) {
-    return this.localStreamsSSRC[mediaType];
 };
 
 JingleSessionPC.prototype.setRemoteDescription = function (elem, desctype) {
@@ -732,7 +714,6 @@ JingleSessionPC.prototype.createdAnswer = function (sdp, provisional) {
             if (self.usetrickle && !self.usepranswer) {
                 sendJingle();
             }
-            self.setLocalDescription();
         },
         function (e) {
             logger.error('setLocalDescription failed', e);
@@ -953,8 +934,8 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
     if (this.peerconnection.signalingState == 'closed') return;
     if (!(this.addssrc.length || this.removessrc.length || this.pendingop !== null
         || this.modifyingLocalStreams)){
-        // There is nothing to do since scheduled job might have been executed by another succeeding call
-        this.setLocalDescription();
+        // There is nothing to do since scheduled job might have been
+        // executed by another succeeding call
         if(successCallback){
             successCallback();
         }
@@ -1021,8 +1002,6 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
                     //modifiedAnswer.sdp = modifiedAnswer.sdp.replace(/a=setup:active/g, 'a=setup:actpass');
                     self.peerconnection.setLocalDescription(modifiedAnswer,
                         function() {
-                            //logger.log('modified setLocalDescription ok');
-                            self.setLocalDescription();
                             if(successCallback){
                                 successCallback();
                             }
@@ -1289,33 +1268,6 @@ JingleSessionPC.onJingleFatalError = function (session, error)
 {
     this.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED);
     this.room.eventEmitter.emit(XMPPEvents.JINGLE_FATAL_ERROR, session, error);
-}
-
-JingleSessionPC.prototype.setLocalDescription = function () {
-    var self = this;
-    var newssrcs = [];
-    if(!this.peerconnection.localDescription)
-        return;
-    var session = transform.parse(this.peerconnection.localDescription.sdp);
-    var i;
-    session.media.forEach(function (media) {
-
-        if (media.ssrcs && media.ssrcs.length > 0) {
-            // TODO(gp) maybe exclude FID streams?
-            media.ssrcs.forEach(function (ssrc) {
-                if (ssrc.attribute !== 'cname') {
-                    return;
-                }
-                newssrcs.push({
-                    'ssrc': ssrc.id,
-                    'type': media.type
-                });
-                // FIXME allows for only one SSRC per media type
-                self.localStreamsSSRC[media.type] = ssrc.id;
-            });
-        }
-
-    });
 }
 
 // an attempt to work around https://github.com/jitsi/jitmeet/issues/32

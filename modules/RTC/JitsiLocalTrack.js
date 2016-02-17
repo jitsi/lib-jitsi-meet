@@ -208,16 +208,16 @@ JitsiLocalTrack.prototype._setConference = function(conference) {
  * Gets the SSRC of this local track if it's available already or <tt>null</tt>
  * otherwise. That's because we don't know the SSRC until local description is
  * created.
+ * In case of video and simulcast returns the the primarySSRC.
  * @returns {string} or {null}
  */
 JitsiLocalTrack.prototype.getSSRC = function () {
-    if (!this.rtc.room.session)
+    if(this.ssrc && this.ssrc.groups && this.ssrc.groups.length)
+        return this.ssrc.groups[0].primarySSRC;
+    else if(this.ssrc && this.ssrc.ssrcs && this.ssrc.ssrcs.length)
+        return this.ssrc.ssrcs[0];
+    else
         return null;
-    if (this.isAudioTrack()) {
-        return this.rtc.room.session.localStreamsSSRC.audio;
-    } else {
-        return this.rtc.room.session.localStreamsSSRC.video;
-    }
 };
 
 /**
