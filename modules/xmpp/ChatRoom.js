@@ -581,6 +581,20 @@ ChatRoom.prototype.addStream = function (stream, callback, ssrcInfo) {
     }
 };
 
+/**
+ * Generate ssrc info object for a stream with the following properties:
+ * - ssrcs - Array of the ssrcs associated with the stream.
+ * - groups - Array of the groups associated with the stream.
+ */
+ChatRoom.prototype.generateNewStreamSSRCInfo = function () {
+    if(!this.session) {
+        logger.warn("The call haven't been started. " +
+            "Cannot generate ssrc info at the moment!");
+        return null;
+    }
+    return this.session.generateNewStreamSSRCInfo();
+};
+
 ChatRoom.prototype.setVideoMute = function (mute, callback, options) {
     var self = this;
     this.sendVideoInfoPresence(mute);

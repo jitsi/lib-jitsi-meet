@@ -91,11 +91,39 @@ RTC.obtainAudioAndVideoPermissions = function (options) {
 
 RTC.prototype.onIncommingCall = function(event) {
     if(this.options.config.openSctp)
-        this.dataChannels = new DataChannels(event.peerconnection, this.eventEmitter);
+        this.dataChannels = new DataChannels(event.peerconnection,
+            this.eventEmitter);
     for(var i = 0; i < this.localStreams.length; i++)
         if(this.localStreams[i])
         {
-            this.room.addStream(this.localStreams[i].getOriginalStream(), function () {});
+            var ssrcInfo = null;
+            if(this.localStreams[i].isMuted() &&
+                this.localStreams[i].getType() === "video") {
+                /**
+                 * Handles issues when the stream is added before the peerconnection is created.
+                 * The peerconnection is created when second participant enters the call. In
+                 * that use case the track doesn't have information about it's ssrcs and no
+                 * jingle packets are sent. That can cause inconsistant behavior later.
+                 *
+                 * For example:
+                 * If we mute the stream and than second participant enter it's remote SDP won't
+                 * include that track. On unmute we are not sending any jingle packets which
+                 * will brake the unmute.
+                 *
+                 * In order to solve issues like the above one here we have to generate the ssrc
+                 * information for the track .
+                 */
+                this.localStreams[i]._setSSRC(
+                    this.room.generateNewStreamSSRCInfo());
+                ssrcInfo = {
+                    mtype: this.localStreams[i].getType(),
+                    type: "addMuted",
+                    ssrc: this.localStreams[i].ssrc,
+                    msid: this.localStreams[i].initialMSID
+                }
+            }
+            this.room.addStream(this.localStreams[i].getOriginalStream(),
+                function () {}, ssrcInfo);
         }
 }
 

@@ -1038,7 +1038,9 @@ JingleSessionPC.prototype.addStream = function (stream, callback, ssrcInfo) {
         if(this.peerconnection.localDescription) {
             oldSdp = new SDP(this.peerconnection.localDescription.sdp);
         }
-        if(stream)
+        //when adding muted stream we have to pass the ssrcInfo but we don't
+        //have a stream
+        if(stream || ssrcInfo)
             this.peerconnection.addStream(stream, ssrcInfo);
     }
 
@@ -1054,7 +1056,8 @@ JingleSessionPC.prototype.addStream = function (stream, callback, ssrcInfo) {
         logger.log('modify sources done');
 
         callback();
-        if(ssrcInfo) { //available only on video unmute
+        if(ssrcInfo) {
+            //available only on video unmute or when adding muted stream
             self.modifiedSSRCs[ssrcInfo.type] =
                 self.modifiedSSRCs[ssrcInfo.type] || [];
             self.modifiedSSRCs[ssrcInfo.type].push(ssrcInfo);
@@ -1064,6 +1067,15 @@ JingleSessionPC.prototype.addStream = function (stream, callback, ssrcInfo) {
         self.notifyMySSRCUpdate(oldSdp, newSdp);
     });
 }
+
+/**
+ * Generate ssrc info object for a stream with the following properties:
+ * - ssrcs - Array of the ssrcs associated with the stream.
+ * - groups - Array of the groups associated with the stream.
+ */
+JingleSessionPC.prototype.generateNewStreamSSRCInfo = function () {
+    return this.peerconnection.generateNewStreamSSRCInfo();
+};
 
 /**
  * Remove streams.
@@ -1420,6 +1432,38 @@ JingleSessionPC.prototype.fixSourceAddJingle = function (jingle) {
             });
         });
     }
+
+    ssrcs = this.modifiedSSRCs["addMuted"];
+    this.modifiedSSRCs["addMuted"] = [];
+    if(ssrcs && ssrcs.length) {
+        ssrcs.forEach(function (ssrcObj) {
+            var desc = createDescriptionNode(jingle, ssrcObj.mtype);
+            var cname = Math.random().toString(36).substring(2);
+            ssrcObj.ssrc.ssrcs.forEach(function (ssrc) {
+                var sourceNode = desc.find(">source[ssrc=\"" +ssrc + "\"]");
+                sourceNode.remove();
+                var sourceXML = "<source " +
+                    "xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\" ssrc=\"" +
+                    ssrc + "\">" +
+                    "<parameter xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\"" +
+                    " value=\"" + ssrcObj.msid + "\" name=\"msid\"/>" +
+                    "<parameter xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\"" +
+                    " value=\"" + cname + "\" name=\"cname\" />" + "</source>";
+                desc.append(sourceXML);
+            });
+            ssrcObj.ssrc.groups.forEach(function (group) {
+                var groupNode = desc.find(">ssrc-group[semantics=\"" +
+                    group.group.semantics + "\"]:has(source[ssrc=\"" + group.primarySSRC +
+                    "\"])");
+                groupNode.remove();
+                desc.append("<ssrc-group semantics=\"" +
+                    group.group.semantics +
+                    "\" xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\"><source ssrc=\"" +
+                    group.group.ssrcs.split(" ").join("\"/><source ssrc=\"") + "\"/>" +
+                    "</ssrc-group>");
+            });
+        });
+    }
 }
 
 /**
@@ -1452,24 +1496,7 @@ JingleSessionPC.prototype.fixSourceRemoveJingle = function(jingle) {
     this.modifiedSSRCs["remove"] = [];
     if(ssrcs && ssrcs.length)
         ssrcs.forEach(function (ssrcObj) {
-            var content = $(jingle.tree()).find(">jingle>content[name=\"" +
-                ssrcObj.mtype + "\"]");
-
-            if(!content || !content.length) {
-                $(jingle.tree()).find(">jingle").append(
-                    "<content name=\"" + ssrcObj.mtype + "\"></content>");
-                content = $(jingle.tree()).find(">jingle>content[name=\"" +
-                    ssrcObj.mtype + "\"]");
-            }
-
-            var desc = content.find(">description");
-            if(!desc || !desc.length) {
-                content.append("<description " +
-                    "xmlns=\"urn:xmpp:jingle:apps:rtp:1\" media=\"" +
-                    ssrcObj.mtype + "\"></description>");
-                desc = content.find(">description");
-            }
-
+            var desc = createDescriptionNode(jingle, ssrcObj.mtype);
             ssrcObj.ssrc.ssrcs.forEach(function (ssrc) {
                 var sourceNode = desc.find(">source[ssrc=\"" +ssrc + "\"]");
                 if(!sourceNode || !sourceNode.length) {
@@ -1492,6 +1519,33 @@ JingleSessionPC.prototype.fixSourceRemoveJingle = function(jingle) {
                 }
             });
         });
+}
+
+/**
+ * Returns the description node related to the passed content type. If the node
+ * doesn't exists it will be created.
+ * @param jingle - the jingle packet
+ * @param mtype - the content type(audio, video, etc.)
+ */
+function createDescriptionNode(jingle, mtype) {
+    var content = $(jingle.tree()).find(">jingle>content[name=\"" +
+        mtype + "\"]");
+
+    if(!content || !content.length) {
+        $(jingle.tree()).find(">jingle").append(
+            "<content name=\"" + mtype + "\"></content>");
+        content = $(jingle.tree()).find(">jingle>content[name=\"" +
+            mtype + "\"]");
+    }
+
+    var desc = content.find(">description");
+    if(!desc || !desc.length) {
+        content.append("<description " +
+            "xmlns=\"urn:xmpp:jingle:apps:rtp:1\" media=\"" +
+            mtype + "\"></description>");
+        desc = content.find(">description");
+    }
+    return desc;
 }
 
 module.exports = JingleSessionPC;

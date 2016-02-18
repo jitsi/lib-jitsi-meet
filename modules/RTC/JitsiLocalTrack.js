@@ -26,6 +26,7 @@ function JitsiLocalTrack(stream, videoType,
                     JitsiTrackEvents.TRACK_STOPPED);
             this.dontFireRemoveEvent = false;
         }.bind(this));
+    this.initialMSID = this.getMSID();
 }
 
 JitsiLocalTrack.prototype = Object.create(JitsiTrack.prototype);

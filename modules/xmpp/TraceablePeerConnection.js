@@ -4,6 +4,9 @@ var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("../RTC/RTCBrowserType.js");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var transform = require('sdp-transform');
+var RandomUtil = require('../util/RandomUtil');
+
+var SIMULCAST_LAYERS = 3;
 
 function TraceablePeerConnection(ice_config, constraints, session) {
     var self = this;
@@ -29,7 +32,7 @@ function TraceablePeerConnection(ice_config, constraints, session) {
     var Interop = require('sdp-interop').Interop;
     this.interop = new Interop();
     var Simulcast = require('sdp-simulcast');
-    this.simulcast = new Simulcast({numOfLayers: 3,
+    this.simulcast = new Simulcast({numOfLayers: SIMULCAST_LAYERS,
         explodeRemoteSimulcast: false});
     this.eventEmitter = this.session.room.eventEmitter;
 
@@ -156,8 +159,6 @@ TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
         return desc;
     }
 
-    var RandomUtil = require('../util/RandomUtil');
-
     var session = transform.parse(desc.sdp);
     if (!Array.isArray(session.media))
     {
@@ -180,6 +181,7 @@ TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
             var ssrcOperation = SSRCs[0];
             switch(ssrcOperation.type) {
                 case "mute":
+                case "addMuted":
                 //FIXME: If we want to support multiple streams we have to add
                 // recv-only ssrcs for the
                 // muted streams on every change until the stream is unmuted
@@ -202,7 +204,12 @@ TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
                         id: ssrc,
                         attribute: 'cname',
                         value: ['recvonly-', ssrc].join('')
-                    })
+                    });
+                    // If this is executed for another reason we are going to
+                    // include that ssrc as receive only again instead of
+                    // generating new one. Here we are assuming that we have
+                    // only 1 video stream that is muted.
+                    this.recvOnlySSRCs[bLine.type] = ssrc;
                     break;
                 case "unmute":
                     if(!ssrcOperation.ssrc || !ssrcOperation.ssrc.ssrcs ||
@@ -451,10 +458,11 @@ Object.keys(getters).forEach(function (prop) {
 });
 
 TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
-    this.trace('addStream', stream.id);
+    this.trace('addStream', stream? stream.id : "null");
     try
     {
-        this.peerconnection.addStream(stream);
+        if(stream)
+            this.peerconnection.addStream(stream);
         if(ssrcInfo && this.replaceSSRCs[ssrcInfo.mtype])
             this.replaceSSRCs[ssrcInfo.mtype].push(ssrcInfo);
     }
@@ -630,6 +638,26 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
         this.peerconnection.getStats(null, callback, errback);
     } else {
         this.peerconnection.getStats(callback);
+    }
+};
+
+/**
+ * Generate ssrc info object for a stream with the following properties:
+ * - ssrcs - Array of the ssrcs associated with the stream.
+ * - groups - Array of the groups associated with the stream.
+ */
+TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
+    if (!this.session.room.options.disableSimulcast
+        && this.simulcast.isSupported()) {
+        var ssrcInfo = {ssrcs: [], groups: []};
+        for(var i = 0; i < SIMULCAST_LAYERS; i++)
+            ssrcInfo.ssrcs.push(RandomUtil.randomInt(1, 0xffffffff));
+        ssrcInfo.groups.push({
+            primarySSRC: ssrcInfo.ssrcs[0],
+            group: {ssrcs: ssrcInfo.ssrcs.join(" "), semantics: "SIM"}});
+        return ssrcInfo;
+    } else {
+        return {ssrcs: [RandomUtil.randomInt(1, 0xffffffff)], groups: []};
     }
 };
 
