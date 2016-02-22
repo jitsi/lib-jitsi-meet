@@ -82,11 +82,30 @@ JitsiConference.prototype.isJoined = function () {
 
 /**
  * Leaves the conference.
+ * @returns {Promise}
  */
 JitsiConference.prototype.leave = function () {
-    if(this.xmpp && this.room)
-        this.xmpp.leaveRoom(this.room.roomjid);
-    this.room = null;
+    var conference = this;
+
+    // leave the conference
+    if (conference.xmpp && conference.room) {
+        conference.xmpp.leaveRoom(conference.room.roomjid);
+    }
+
+    conference.room = null;
+
+    // remove local tracks
+    return Promise.all(
+        conference.getLocalTracks().map(function (track) {
+            return conference.removeTrack(track);
+        })
+    ).then(function () {
+
+        // remove all participants
+        conference.getParticipants().forEach(function (participant) {
+            conference.onMemberLeft(participant.getJid());
+        });
+    });
 };
 
 /**
