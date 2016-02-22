@@ -1112,7 +1112,7 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, ssrcInfo) {
             }
 
             // Find the right sender (for audio or video)
-            self.peerconnection.peerconnection.getSenders().some(function (s) {
+            this.peerconnection.peerconnection.getSenders().some(function (s) {
                 if (s.track === track) {
                     sender = s;
                     return true;
@@ -1120,7 +1120,7 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, ssrcInfo) {
             });
 
             if (sender) {
-                self.peerconnection.peerconnection.removeTrack(sender);
+                this.peerconnection.peerconnection.removeTrack(sender);
             } else {
                 logger.log("Cannot remove tracks: no RTPSender.");
             }
