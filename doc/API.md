@@ -187,7 +187,7 @@ The object represents a conference. We have the following methods to control the
 1. join(password) - Joins the conference
     - password - string of the password. This parameter is not mandatory.
 
-2. leave() - leaves the conference
+2. leave() - leaves the conference. Returns Promise.
 
 4. getLocalTracks() - Returns array with JitsiTrack objects for the local streams.
 
