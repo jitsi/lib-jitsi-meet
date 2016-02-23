@@ -172,6 +172,10 @@ TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
 
         modded = true;
         var SSRCs = this.replaceSSRCs[bLine.type].splice(0,1);
+        // Stores all SSRCs that should be used on other SRD/SDL operations.
+        // For every stream that is unmuted we need to replace it SSRC
+        // otherwise we are going to send jingle packet.
+        var permSSRCs = [];
         //FIXME: The code expects that we have only SIM group or we
         // don't have any groups and we have only one SSRC per
         // stream. If we add another groups (FID, etc) this code
@@ -267,12 +271,16 @@ TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
                             ssrc.id = ssrcMap[ssrc.id];
                         }
                     });
+                    // Storing the unmuted SSRCs.
+                    permSSRCs.push(ssrcOperation);
                     break;
                 default:
                 break;
             }
             SSRCs = this.replaceSSRCs[bLine.type].splice(0,1);
         }
+        // Restoring the unmuted SSRCs.
+        this.replaceSSRCs[bLine.type] = permSSRCs;
 
         if (!Array.isArray(bLine.ssrcs) || bLine.ssrcs.length === 0)
         {
@@ -483,8 +491,20 @@ ssrcInfo) {
         // FF doesn't support this yet.
         if (this.peerconnection.removeStream) {
             this.peerconnection.removeStream(stream);
-            if(ssrcInfo && this.replaceSSRCs[ssrcInfo.mtype])
+            // Removing all cached ssrcs for the streams that are removed or
+            // muted.
+            if(ssrcInfo && this.replaceSSRCs[ssrcInfo.mtype]) {
+                for(i = 0; i < this.replaceSSRCs[ssrcInfo.mtype].length; i++) {
+                    var op = this.replaceSSRCs[ssrcInfo.mtype][i];
+                    if(op.type === "unmute" &&
+                        op.ssrc.ssrcs.join("_") ===
+                        ssrcInfo.ssrc.ssrcs.join("_")) {
+                        this.replaceSSRCs[ssrcInfo.mtype].splice(i, 1);
+                        break;
+                    }
+                }
                 this.replaceSSRCs[ssrcInfo.mtype].push(ssrcInfo);
+            }
         }
     } catch (e) {
         logger.error(e);

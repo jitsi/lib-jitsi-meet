@@ -361,7 +361,6 @@ JingleSessionPC.prototype.sendIceCandidate = function (candidate) {
                     init,
                     self.initiator == self.me ? 'initiator' : 'responder',
                     ssrc);
-
                 self.connection.sendIQ(init,
                     function () {
                         //logger.log('session initiate ack');
@@ -689,7 +688,7 @@ JingleSessionPC.prototype.createdAnswer = function (sdp, provisional) {
                     accept,
                     self.initiator == self.me ? 'initiator' : 'responder',
                     ssrcs);
-
+                self.fixJingle(accept);
                 self.connection.sendIQ(accept,
                     function () {
                         var ack = {};
@@ -1027,11 +1026,16 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
 };
 
 /**
- * Adds streams.
+ * Adds stream.
  * @param stream new stream that will be added.
  * @param success_callback callback executed after successful stream addition.
+ * @param ssrcInfo object with information about the SSRCs associated with the
+ * stream.
+ * @param dontModifySources {boolean} if true _modifySources won't be called.
+ * Used for streams added before the call start.
  */
-JingleSessionPC.prototype.addStream = function (stream, callback, ssrcInfo) {
+JingleSessionPC.prototype.addStream = function (stream, callback, ssrcInfo,
+    dontModifySources) {
     // Remember SDP to figure out added/removed SSRCs
     var oldSdp = null;
     if(this.peerconnection) {
@@ -1045,7 +1049,13 @@ JingleSessionPC.prototype.addStream = function (stream, callback, ssrcInfo) {
     }
 
     // Conference is not active
-    if(!oldSdp || !this.peerconnection) {
+    if(!oldSdp || !this.peerconnection || dontModifySources) {
+        if(ssrcInfo) {
+            //available only on video unmute or when adding muted stream
+            this.modifiedSSRCs[ssrcInfo.type] =
+                this.modifiedSSRCs[ssrcInfo.type] || [];
+            this.modifiedSSRCs[ssrcInfo.type].push(ssrcInfo);
+        }
         callback();
         return;
     }
@@ -1054,14 +1064,13 @@ JingleSessionPC.prototype.addStream = function (stream, callback, ssrcInfo) {
     var self = this;
     this.modifySourcesQueue.push(function() {
         logger.log('modify sources done');
-
-        callback();
         if(ssrcInfo) {
             //available only on video unmute or when adding muted stream
             self.modifiedSSRCs[ssrcInfo.type] =
                 self.modifiedSSRCs[ssrcInfo.type] || [];
             self.modifiedSSRCs[ssrcInfo.type].push(ssrcInfo);
         }
+        callback();
         var newSdp = new SDP(self.peerconnection.localDescription.sdp);
         logger.log("SDPs", oldSdp, newSdp);
         self.notifyMySSRCUpdate(oldSdp, newSdp);
@@ -1081,6 +1090,8 @@ JingleSessionPC.prototype.generateNewStreamSSRCInfo = function () {
  * Remove streams.
  * @param stream stream that will be removed.
  * @param success_callback callback executed after successful stream addition.
+ * @param ssrcInfo object with information about the SSRCs associated with the
+ * stream.
  */
 JingleSessionPC.prototype.removeStream = function (stream, callback, ssrcInfo) {
     // Remember SDP to figure out added/removed SSRCs
@@ -1183,7 +1194,7 @@ JingleSessionPC.prototype.notifyMySSRCUpdate = function (old_sdp, new_sdp) {
     var removed = this.fixJingle(remove);
 
     if (removed && remove) {
-        logger.info("Sending source-remove", remove);
+        logger.info("Sending source-remove", remove.tree());
         this.connection.sendIQ(remove,
             function (res) {
                 logger.info('got remove result', res);
@@ -1211,7 +1222,7 @@ JingleSessionPC.prototype.notifyMySSRCUpdate = function (old_sdp, new_sdp) {
     var added = this.fixJingle(add);
 
     if (added && add) {
-        logger.info("Sending source-add", add);
+        logger.info("Sending source-add", add.tree());
         this.connection.sendIQ(add,
             function (res) {
                 logger.info('got add result', res);
@@ -1389,6 +1400,7 @@ JingleSessionPC.prototype.fixJingle = function(jingle) {
     var action = $(jingle.nodeTree).find("jingle").attr("action");
     switch (action) {
         case "source-add":
+        case "session-accept":
             this.fixSourceAddJingle(jingle);
             break;
         case "source-remove":

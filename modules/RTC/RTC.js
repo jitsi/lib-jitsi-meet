@@ -123,7 +123,7 @@ RTC.prototype.onIncommingCall = function(event) {
                 }
             }
             this.room.addStream(this.localStreams[i].getOriginalStream(),
-                function () {}, ssrcInfo);
+                function () {}, ssrcInfo, true);
         }
 }
 
