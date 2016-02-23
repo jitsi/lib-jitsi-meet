@@ -570,10 +570,20 @@ ChatRoom.prototype.removeStream = function (stream, callback, ssrcInfo) {
     this.session.removeStream(stream, callback, ssrcInfo);
 };
 
-ChatRoom.prototype.addStream = function (stream, callback, ssrcInfo) {
+/**
+ * Adds stream.
+ * @param stream new stream that will be added.
+ * @param callback callback executed after successful stream addition.
+ * @param ssrcInfo object with information about the SSRCs associated with the
+ * stream.
+ * @param dontModifySources {boolean} if true _modifySources won't be called.
+ * Used for streams added before the call start.
+ */
+ChatRoom.prototype.addStream = function (stream, callback, ssrcInfo,
+    dontModifySources) {
     if(this.session) {
         // FIXME: will block switchInProgress on true value in case of exception
-        this.session.addStream(stream, callback, ssrcInfo);
+        this.session.addStream(stream, callback, ssrcInfo, dontModifySources);
     } else {
         // We are done immediately
         logger.warn("No conference handler or conference not started yet");
