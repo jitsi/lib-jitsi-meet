@@ -583,17 +583,6 @@ JitsiConference.prototype.onTrackAdded = function (track) {
 
     var emitter = this.eventEmitter;
     track.addEventListener(
-        JitsiTrackEvents.TRACK_STOPPED,
-        function () {
-            // remove track from JitsiParticipant
-            var pos = participant._tracks.indexOf(track);
-            if (pos > -1) {
-                participant._tracks.splice(pos, 1);
-            }
-            emitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
-        }
-    );
-    track.addEventListener(
         JitsiTrackEvents.TRACK_MUTE_CHANGED,
         function () {
             emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track);
@@ -867,6 +856,24 @@ function setupListeners(conference) {
             var track = conference.rtc.createRemoteStream(data, sid, thessrc);
             if (track) {
                 conference.onTrackAdded(track);
+            }
+        }
+    );
+    conference.room.addListener(XMPPEvents.REMOTE_STREAM_REMOVED,
+        function (streamId) {
+            var participants = conference.getParticipants();
+            for(var j = 0; j < participants.length; j++) {
+                var participant = participants[j];
+                var tracks = participant.getTracks();
+                for(var i = 0; i < tracks.length; i++) {
+                    if(tracks[i] && tracks[i].stream &&
+                        RTC.getStreamID(tracks[i].stream) == streamId){
+                        var track = participant._tracks.splice(i, 1);
+                        conference.eventEmitter.emit(
+                            JitsiConferenceEvents.TRACK_REMOVED, track);
+                        return;
+                    }
+                }
             }
         }
     );
