@@ -970,6 +970,7 @@ function setupListeners(conference) {
     conference.room.addListener(AuthenticationEvents.IDENTITY_UPDATED, function (authEnabled, authIdentity) {
         conference.authEnabled = authEnabled;
         conference.authIdentity = authIdentity;
+        conference.eventEmitter.emit(JitsiConferenceEvents.AUTH_STATUS_CHANGED, authEnabled, authIdentity);
     });
 
     conference.room.addListener(XMPPEvents.MESSAGE_RECEIVED, function (jid, displayName, txt, myJid, ts) {
