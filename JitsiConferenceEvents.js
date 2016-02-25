@@ -119,7 +119,11 @@ var JitsiConferenceEvents = {
     /**
      * Indicates that available devices changed.
      */
-    AVAILABLE_DEVICES_CHANGED: "conference.availableDevicesChanged"
+    AVAILABLE_DEVICES_CHANGED: "conference.availableDevicesChanged",
+    /**
+     * Indicates that authentication status changed.
+     */
+    AUTH_STATUS_CHANGED: "conference.auth_status_changed"
 };
 
 module.exports = JitsiConferenceEvents;

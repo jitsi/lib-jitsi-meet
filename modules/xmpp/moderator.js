@@ -48,7 +48,7 @@ function Moderator(roomName, xmpp, emitter, settings) {
                     event.origin);
                 return;
             }
-            localStorage.setItem('sessionId', event.data.sessionId);
+            settings.setSessionId(event.data.sessionId);
             // After popup is closed we will authenticate
         }
     }
@@ -107,8 +107,8 @@ Moderator.prototype.createConferenceIq =  function () {
     var elem = $iq({to: this.getFocusComponent(), type: 'set'});
 
     // Session Id used for authentication
-    var sessionId = localStorage.getItem('sessionId');
-    var machineUID = this.settings.getSettings().uid;
+    var sessionId = this.settings.getSessionId();
+    var machineUID = this.settings.getUserId();
 
     logger.info(
             "Session ID: " + sessionId + " machine UID: " + machineUID);
@@ -202,7 +202,7 @@ Moderator.prototype.parseSessionId =  function (resultIq) {
     var sessionId = $(resultIq).find('conference').attr('session-id');
     if (sessionId) {
         logger.info('Received sessionId:  ' + sessionId);
-        localStorage.setItem('sessionId', sessionId);
+        this.settings.setSessionId(sessionId);
     }
 };
 
@@ -285,7 +285,7 @@ Moderator.prototype.allocateConferenceFocus =  function (callback) {
                 = $(error).find('>error>session-invalid').length;
             if (invalidSession) {
                 logger.info("Session expired! - removing");
-                localStorage.removeItem("sessionId");
+                self.settings.clearSessionId();
             }
             if ($(error).find('>error>graceful-shutdown').length) {
                 self.eventEmitter.emit(XMPPEvents.GRACEFUL_SHUTDOWN);
@@ -366,7 +366,7 @@ Moderator.prototype.getLoginUrl =  function (urlCallback, failureCallback) {
     iq.c('login-url', {
         xmlns: 'http://jitsi.org/protocol/focus',
         room: this.roomName,
-        'machine-uid': this.settings.getSettings().uid
+        'machine-uid': this.settings.getUserId()
     });
     this.connection.sendIQ(
         iq,
@@ -394,7 +394,7 @@ Moderator.prototype.getPopupLoginUrl = function (urlCallback, failureCallback) {
     iq.c('login-url', {
         xmlns: 'http://jitsi.org/protocol/focus',
         room: this.roomName,
-        'machine-uid': this.settings.getSettings().uid,
+        'machine-uid': this.settings.getUserId(),
         popup: true
     });
     this.connection.sendIQ(
@@ -420,7 +420,7 @@ Moderator.prototype.getPopupLoginUrl = function (urlCallback, failureCallback) {
 
 Moderator.prototype.logout =  function (callback) {
     var iq = $iq({to: this.getFocusComponent(), type: 'set'});
-    var sessionId = localStorage.getItem('sessionId');
+    var sessionId = this.settings.getSessionId();
     if (!sessionId) {
         callback();
         return;
@@ -437,9 +437,9 @@ Moderator.prototype.logout =  function (callback) {
                 logoutUrl = decodeURIComponent(logoutUrl);
             }
             logger.info("Log out OK, url: " + logoutUrl, result);
-            localStorage.removeItem('sessionId');
+            this.settings.clearSessionId();
             callback(logoutUrl);
-        },
+        }.bind(this),
         function (error) {
             logger.error("Logout error", error);
         }
