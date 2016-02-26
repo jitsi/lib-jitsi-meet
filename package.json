@@ -6,6 +6,7 @@
     "type": "git",
     "url": "git://github.com/jitsi/jitsi-meet"
   },
+  "registry": "npm",
   "keywords": [
     "jingle",
     "webrtc",
@@ -14,6 +15,7 @@
   ],
   "author": "",
   "readmeFilename": "README.md",
+  "main": "JitsiMeetJS.js",
   "dependencies": {
     "events": "*",
     "pako": "*",
@@ -37,7 +39,7 @@
     "uglify-js": "2.4.24"
   },
   "scripts": {
-    "install": "npm run browserify && npm run version && npm run uglifyjs",
+    "install": "npm update && npm run browserify && npm run version && npm run uglifyjs",
 
     "browserify": "browserify -d JitsiMeetJS.js -s JitsiMeetJS | exorcist lib-jitsi-meet.js.map > lib-jitsi-meet.js ",
     "version": "VERSION=`./get-version.sh` && sed -i'' -e s/{#COMMIT_HASH#}/${VERSION}/g lib-jitsi-meet.js",
