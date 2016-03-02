@@ -942,6 +942,8 @@ function setupListeners(conference) {
 
     conference.room.addListener(XMPPEvents.LOCAL_ROLE_CHANGED, function (role) {
         conference.eventEmitter.emit(JitsiConferenceEvents.USER_ROLE_CHANGED, conference.myUserId(), role);
+        // if local user became moderator then he should share startMutedPolicy with others
+        conference.setStartMutedPolicy(conference.startMutedPolicy);
     });
     conference.room.addListener(XMPPEvents.MUC_ROLE_CHANGED, conference.onUserRoleChanged.bind(conference));
 
