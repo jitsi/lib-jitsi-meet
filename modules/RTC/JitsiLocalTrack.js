@@ -17,13 +17,14 @@ function JitsiLocalTrack(stream, videoType,
     this.deviceId = deviceId;
     this.startMuted = false;
     this.ssrc = null;
+    this.disposed = false;
     //FIXME: This dependacy is not necessary.
     this.conference = null;
     JitsiTrack.call(this, null, stream,
         function () {
             if(!this.dontFireRemoveEvent)
                 this.eventEmitter.emit(
-                    JitsiTrackEvents.TRACK_STOPPED);
+                    JitsiTrackEvents.LOCAL_TRACK_STOPPED);
             this.dontFireRemoveEvent = false;
         }.bind(this));
     this.initialMSID = this.getMSID();
@@ -130,7 +131,7 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
  * NOTE: Works for local tracks only.
  * @returns {Promise}
  */
-JitsiLocalTrack.prototype.stop = function () {
+JitsiLocalTrack.prototype.dispose = function () {
     var promise = Promise.resolve();
 
     if (this.conference){
@@ -141,6 +142,7 @@ JitsiLocalTrack.prototype.stop = function () {
         RTCUtils.stopMediaStream(this.stream);
         this.detach();
     }
+    this.disposed = true;
 
     return promise;
 };

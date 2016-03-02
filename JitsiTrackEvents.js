@@ -10,7 +10,7 @@ var JitsiTrackEvents = {
     /**
      * The media track was removed to the conference.
      */
-    TRACK_STOPPED: "track.stopped",
+    LOCAL_TRACK_STOPPED: "track.stopped",
     /**
      * The video type("camera" or "desktop") of the track was changed.
      */

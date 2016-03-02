@@ -106,6 +106,10 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - CONNECTION_DISCONNECTED - indicates that we are disconnected.
         - WRONG_STATE - indicates that the user has performed action that can't be executed because the connection is in wrong state.
 
+    3. tracks
+        - LOCAL_TRACK_STOPPED - indicates that a local track was stopped. This
+        event can be fired when ```dispose()``` method is called or for other reasons.
+
 * ```JitsiMeetJS.errors``` - JS object that contains all errors used by the API. You can use that object to check the reported errors from the API
     We have two error types - connection and conference. You can access the events with the following code ```JitsiMeetJS.errors.<error_type>.<error_name>```.
     For example if you want to use the conference event that is fired when somebody leave conference you can use the following code - ```JitsiMeetJS.errors.conference.PASSWORD_REQUIRED```.
@@ -319,7 +323,7 @@ We have the following methods for controling the tracks:
 
 6. detach(container) - removes the track from the container.
 
-7. stop() - stop sending the track to the other participants in the conference. Returns Promise.
+7. dispose() - disposes the track. If the track is added to a conference the track will be removed. Returns Promise.
 
    Note: This method is implemented only for the local tracks.
 

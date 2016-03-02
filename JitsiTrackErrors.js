@@ -23,5 +23,6 @@ module.exports = {
     },
     UNSUPPORTED_RESOLUTION: "gum.unsupported_resolution",
     FIREFOX_EXTENSION_NEEDED: "gum.firefox_extension_needed",
-    GENERAL: "gum.general"
+    GENERAL: "gum.general",
+    TRACK_IS_DISPOSED: "track.track_is_disposed"
 };
