@@ -1131,11 +1131,16 @@ function setupListeners(conference) {
         conference.statistics.addAudioLevelListener(function (ssrc, level) {
             var userId = null;
 
-            var resource = conference.rtc.getResourceBySSRC(ssrc);
-            if (!resource)
+            var id = conference.rtc.getResourceBySSRC(ssrc);
+            if (!id) {
                 return;
+            }
 
-            conference.rtc.setAudioLevel(resource, level);
+            if (conference.myUserId() === id) {
+                conference.rtc.setLocalAudioLevel(level);
+            } else {
+                conference.rtc.setAudioLevel(id, level);
+            }
         });
         conference.statistics.addConnectionStatsListener(function (stats) {
             var ssrc2resolution = stats.resolution;

@@ -311,11 +311,26 @@ RTC.prototype.switchVideoStreams = function (newStream) {
     this.localStreams.push(this.localVideo);
 };
 
+/**
+ * Set audio level for the remote audio stream.
+ * @param {string} resource id of the remote participant
+ * @param {number} audioLevel
+ */
 RTC.prototype.setAudioLevel = function (resource, audioLevel) {
     if(!resource)
         return;
     if(this.remoteStreams[resource] && this.remoteStreams[resource][JitsiTrack.AUDIO])
         this.remoteStreams[resource][JitsiTrack.AUDIO].setAudioLevel(audioLevel);
+};
+
+/**
+ * Set audio level for the local audio stream.
+ * @param {number} audioLevel
+ */
+RTC.prototype.setLocalAudioLevel = function (audioLevel) {
+    if (this.localAudio) {
+        this.localAudio.setAudioLevel(audioLevel);
+    }
 };
 
 /**
