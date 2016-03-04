@@ -35,7 +35,7 @@ function JitsiConference(options) {
     this.xmpp = this.connection.xmpp;
     this.eventEmitter = new EventEmitter();
     var confID = this.options.name  + '@' + this.xmpp.options.hosts.muc;
-    this.settings = new Settings(confID);
+    this.settings = new Settings();
     this.room = this.xmpp.createRoom(this.options.name, this.options.config,
         this.settings);
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
@@ -981,6 +981,7 @@ function setupListeners(conference) {
     conference.room.addListener(AuthenticationEvents.IDENTITY_UPDATED, function (authEnabled, authIdentity) {
         conference.authEnabled = authEnabled;
         conference.authIdentity = authIdentity;
+        conference.eventEmitter.emit(JitsiConferenceEvents.AUTH_STATUS_CHANGED, authEnabled, authIdentity);
     });
 
     conference.room.addListener(XMPPEvents.MESSAGE_RECEIVED, function (jid, displayName, txt, myJid, ts) {

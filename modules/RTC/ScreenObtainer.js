@@ -192,23 +192,31 @@ var ScreenObtainer = {
                     'Changes will take effect after next Chrome restart.');
             }
 
-            chrome.webstore.install(
-                getWebStoreInstallUrl(this.options),
-                function (arg) {
-                    logger.log("Extension installed successfully", arg);
-                    chromeExtInstalled = true;
-                    // We need to give a moment for the endpoint to become
-                    // available
-                    window.setTimeout(function () {
-                        doGetStreamFromExtension(self.options, streamCallback,
-                            failCallback);
-                    }, 500);
-                },
-                function (arg) {
-                    logger.log("Failed to install the extension", arg);
-                    failCallback(arg);
-                }
-            );
+            try {
+                chrome.webstore.install(
+                    getWebStoreInstallUrl(this.options),
+                    function (arg) {
+                        logger.log("Extension installed successfully", arg);
+                        chromeExtInstalled = true;
+                        // We need to give a moment for the endpoint to become
+                        // available
+                        window.setTimeout(function () {
+                            doGetStreamFromExtension(self.options,
+                                streamCallback, failCallback);
+                        }, 500);
+                    },
+                    function (arg) {
+                        logger.log("Failed to install the extension", arg);
+                        failCallback(arg);
+                    }
+                );
+            } catch(e) {
+                failCallback({
+                    type: "jitsiError",
+                    errorObject:
+                        JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR
+                });
+            }
         }
     }
 };
