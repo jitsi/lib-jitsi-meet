@@ -13,6 +13,7 @@ var Statistics = require("./modules/statistics/statistics");
 var JitsiDTMFManager = require('./modules/DTMF/JitsiDTMFManager');
 var JitsiTrackEvents = require("./JitsiTrackEvents");
 var Settings = require("./modules/settings/Settings");
+var ComponentsVersions = require("./modules/version/ComponentsVersions");
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -37,6 +38,7 @@ function JitsiConference(options) {
     this.settings = new Settings();
     this.room = this.xmpp.createRoom(this.options.name, this.options.config,
         this.settings);
+    this.componentsVersions = new ComponentsVersions(this.room);
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
     this.rtc = new RTC(this.room, options);
     this.statistics = new Statistics(this.xmpp, {

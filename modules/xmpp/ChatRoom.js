@@ -349,7 +349,8 @@ ChatRoom.prototype.onPresence = function (pres) {
 
 ChatRoom.prototype.processNode = function (node, from) {
     if(this.presHandlers[node.tagName])
-        this.presHandlers[node.tagName](node, Strophe.getResourceFromJid(from));
+        this.presHandlers[node.tagName](
+                node, Strophe.getResourceFromJid(from), from);
 };
 
 ChatRoom.prototype.sendMessage = function (body, nickname) {
@@ -543,6 +544,21 @@ ChatRoom.prototype.addPresenceListener = function (name, handler) {
 
 ChatRoom.prototype.removePresenceListener = function (name) {
     delete this.presHandlers[name];
+};
+
+/**
+ * Checks if the user identified by given <tt>mucJid</tt> is the conference
+ * focus.
+ * @param mucJid the full MUC address of the user to be checked.
+ * @returns {boolean} <tt>true</tt> if MUC user is the conference focus.
+ */
+ChatRoom.prototype.isFocus = function (mucJid) {
+    var member = this.members[mucJid];
+    if (member) {
+        return member.isFocus;
+    } else {
+        return null;
+    }
 };
 
 ChatRoom.prototype.isModerator = function () {
