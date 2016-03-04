@@ -23,5 +23,7 @@ module.exports = {
     },
     UNSUPPORTED_RESOLUTION: "gum.unsupported_resolution",
     FIREFOX_EXTENSION_NEEDED: "gum.firefox_extension_needed",
+    CHROME_EXTENSION_INSTALLATION_ERROR:
+        "gum.chrome_extension_installation_error",
     GENERAL: "gum.general"
 };
