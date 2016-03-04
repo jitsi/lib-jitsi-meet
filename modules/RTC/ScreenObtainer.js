@@ -206,11 +206,18 @@ var ScreenObtainer = {
                         }, 500);
                     },
                     function (arg) {
-                        logger.log("Failed to install the extension", arg);
-                        failCallback(arg);
+                        logger.log("Failed to install the extension from:"
+                            + getWebStoreInstallUrl(self.options), arg);
+                        failCallback({
+                            type: "jitsiError",
+                            errorObject: JitsiTrackErrors
+                                .CHROME_EXTENSION_INSTALLATION_ERROR
+                        });
                     }
                 );
             } catch(e) {
+                logger.log("Failed to install the extension from:"
+                    + self.getWebStoreInstallUrl(this.options), arg);
                 failCallback({
                     type: "jitsiError",
                     errorObject:
