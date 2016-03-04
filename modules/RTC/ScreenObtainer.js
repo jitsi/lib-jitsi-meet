@@ -357,6 +357,19 @@ function doGetStreamFromExtension(options, streamCallback, failCallback) {
                     failCallback,
                     {desktopStream: response.streamId});
             } else {
+                // As noted in Chrome Desktop Capture API:
+                // If user didn't select any source (i.e. canceled the prompt)
+                // then the callback is called with an empty streamId.
+                if(response.streamId === "")
+                {
+                    failCallback({
+                        type: "jitsiError",
+                        errorObject:
+                            JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED
+                    });
+                    return;
+                }
+
                 failCallback("Extension failed to get the stream");
             }
         }
