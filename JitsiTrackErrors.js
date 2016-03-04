@@ -22,6 +22,10 @@ module.exports = {
         }
     },
     UNSUPPORTED_RESOLUTION: "gum.unsupported_resolution",
+    /**
+     * An event which indicates that the jidesha extension for Firefox is
+     * needed to proceed with screen sharing, and that it is not installed.
+     */
     FIREFOX_EXTENSION_NEEDED: "gum.firefox_extension_needed",
     CHROME_EXTENSION_INSTALLATION_ERROR:
         "gum.chrome_extension_installation_error",

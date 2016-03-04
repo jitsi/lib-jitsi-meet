@@ -3,8 +3,6 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
 var AdapterJS = require("./adapter.screenshare");
-var DesktopSharingEventTypes
-    = require("../../service/desktopsharing/DesktopSharingEventTypes");
 var JitsiTrackErrors = require("../../JitsiTrackErrors");
 
 /**
