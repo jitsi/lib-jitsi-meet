@@ -12,9 +12,7 @@ var JitsiTrackEvents = require("../../JitsiTrackEvents");
  */
 function JitsiRemoteTrack(RTC, data, sid, ssrc) {
     JitsiTrack.call(this, RTC, data.stream,
-        function () {
-            this.eventEmitter.emit(JitsiTrackEvents.TRACK_STOPPED);
-        }.bind(this), data.jitsiTrackType);
+        function () {}, data.jitsiTrackType);
     this.rtc = RTC;
     this.sid = sid;
     this.stream = data.stream;
@@ -89,6 +87,6 @@ JitsiRemoteTrack.prototype._setVideoType = function (type) {
     this.eventEmitter.emit(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, type);
 }
 
-delete JitsiRemoteTrack.prototype.stop;
+delete JitsiRemoteTrack.prototype.dispose;
 
 module.exports = JitsiRemoteTrack;

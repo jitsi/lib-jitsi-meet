@@ -92,7 +92,7 @@ var LibJitsiMeet = {
                             Statistics.startLocalStats(mStream,
                                 track.setAudioLevel.bind(track));
                             track.addEventListener(
-                                JitsiTrackEvents.TRACK_STOPPED,
+                                JitsiTrackEvents.LOCAL_TRACK_STOPPED,
                                 function(){
                                     Statistics.stopLocalStats(mStream);
                                 });

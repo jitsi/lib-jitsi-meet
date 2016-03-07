@@ -31,5 +31,6 @@ module.exports = {
         "gum.chrome_extension_installation_error",
     CHROME_EXTENSION_USER_CANCELED:
         "gum.chrome_extension_user_canceled",
-    GENERAL: "gum.general"
+    GENERAL: "gum.general",
+    TRACK_IS_DISPOSED: "track.track_is_disposed"
 };

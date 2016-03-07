@@ -220,10 +220,10 @@ JitsiTrack.prototype.detach = function (container) {
 }
 
 /**
- * Stops sending the media track. And removes it from the HTML.
+ * Dispose sending the media track. And removes it from the HTML.
  * NOTE: Works for local tracks only.
  */
-JitsiTrack.prototype.stop = function () {
+JitsiTrack.prototype.dispose = function () {
 }
 
 /**

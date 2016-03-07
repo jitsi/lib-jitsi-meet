@@ -86,6 +86,10 @@ var XMPPEvents = {
     FOCUS_LEFT: "xmpp.focus_left",
     REMOTE_STREAM_RECEIVED: "xmpp.remote_stream_received",
     /**
+     * Indicates that remote stream has been removed from the conference.
+     */
+    REMOTE_STREAM_REMOVED: "xmpp.remote_stream_removed",
+    /**
      * Indicates that recording state changed.
      */
     RECORDING_STATE_CHANGED: "xmpp.recordingStateChanged",

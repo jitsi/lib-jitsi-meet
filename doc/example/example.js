@@ -32,7 +32,7 @@ function onLocalTracks(tracks)
             function () {
                 console.log("local track muted");
             });
-        localTracks[i].addEventListener(JitsiMeetJS.events.track.TRACK_STOPPED,
+        localTracks[i].addEventListener(JitsiMeetJS.events.track.LOCAL_TRACK_STOPPED,
             function () {
                 console.log("local track stoped");
             });
@@ -67,7 +67,7 @@ function onRemoteTrack(track) {
         function () {
             console.log("remote track muted");
         });
-    track.addEventListener(JitsiMeetJS.events.track.TRACK_STOPPED,
+    track.addEventListener(JitsiMeetJS.events.track.LOCAL_TRACK_STOPPED,
         function () {
             console.log("remote track stoped");
         });
@@ -159,7 +159,7 @@ var isVideo = true;
 function switchVideo() {
     isVideo = !isVideo;
     if(localTracks[1]) {
-        localTracks[1].stop();
+        localTracks[1].dispose();
         localTracks.pop();
     }
     JitsiMeetJS.createLocalTracks({devices: isVideo? ["video"] : ["desktop"]}).
@@ -169,7 +169,7 @@ function switchVideo() {
                 function () {
                     console.log("local track muted");
                 });
-            localTracks[1].addEventListener(JitsiMeetJS.events.track.TRACK_STOPPED,
+            localTracks[1].addEventListener(JitsiMeetJS.events.track.LOCAL_TRACK_STOPPED,
                 function () {
                     console.log("local track stoped");
                 });
