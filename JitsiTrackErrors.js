@@ -25,5 +25,6 @@ module.exports = {
     FIREFOX_EXTENSION_NEEDED: "gum.firefox_extension_needed",
     CHROME_EXTENSION_INSTALLATION_ERROR:
         "gum.chrome_extension_installation_error",
-    GENERAL: "gum.general"
+    GENERAL: "gum.general",
+    TRACK_IS_DISPOSED: "track.track_is_disposed"
 };

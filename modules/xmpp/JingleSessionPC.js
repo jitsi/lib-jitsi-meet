@@ -128,9 +128,16 @@ JingleSessionPC.prototype.doInitialize = function () {
     };
     this.peerconnection.onremovestream = function (event) {
         // Remove the stream from remoteStreams
-        // FIXME: remotestreamremoved.jingle not defined anywhere(unused)
-
-        $(document).trigger('remotestreamremoved.jingle', [event, self.sid]);
+        if (event.stream.id !== 'default') {
+            logger.log("REMOTE STREAM REMOVED: ", event.stream , event.stream.id);
+            self.remoteStreamRemoved(event);
+        } else {
+            // This is a recvonly stream. Clients that implement Unified Plan,
+            // such as Firefox use recvonly "streams/channels/tracks" for
+            // receiving remote stream/tracks, as opposed to Plan B where there
+            // are only 3 channels: audio, video and data.
+            logger.log("RECVONLY REMOTE STREAM IGNORED: " + event.stream + " - " + event.stream.id);
+        }
     };
     this.peerconnection.onsignalingstatechange = function (event) {
         if (!(self && self.peerconnection)) return;
@@ -1378,6 +1385,20 @@ JingleSessionPC.prototype.remoteStreamAdded = function (data, times) {
         window.setTimeout(function () {
             self.sendKeyframe();
         }, 3000);
+    }
+}
+
+/**
+ * Handles remote stream removal.
+ * @param event The event object associated with the removal.
+ */
+JingleSessionPC.prototype.remoteStreamRemoved = function (event) {
+    var thessrc;
+    var streamId = RTC.getStreamID(event.stream);
+    if (!streamId) {
+        logger.error("No stream ID for", event.stream);
+    } else if (streamId && streamId.indexOf('mixedmslabel') === -1) {
+        this.room.eventEmitter.emit(XMPPEvents.REMOTE_STREAM_REMOVED, streamId);
     }
 }
 

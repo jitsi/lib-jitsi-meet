@@ -12,6 +12,7 @@ var JitsiParticipant = require("./JitsiParticipant");
 var Statistics = require("./modules/statistics/statistics");
 var JitsiDTMFManager = require('./modules/DTMF/JitsiDTMFManager');
 var JitsiTrackEvents = require("./JitsiTrackEvents");
+var JitsiTrackErrors = require("./JitsiTrackErrors");
 var Settings = require("./modules/settings/Settings");
 
 /**
@@ -298,6 +299,10 @@ JitsiConference.prototype.setSubject = function (subject) {
  * and there is already another video track in the conference.
  */
 JitsiConference.prototype.addTrack = function (track) {
+    if(track.disposed)
+    {
+        throw new Error(JitsiTrackErrors.TRACK_IS_DISPOSED);
+    }
     if (track.isVideoTrack()) {
         if (this.rtc.getLocalVideoStream()) {
             throw new Error("cannot add second video track to the conference");
@@ -336,12 +341,9 @@ JitsiConference.prototype.addTrack = function (track) {
             }
 
             track.muteHandler = this._fireMuteChangeEvent.bind(this, track);
-            track.stopHandler = this.removeTrack.bind(this, track);
             track.audioLevelHandler = this._fireAudioLevelChangeEvent.bind(this);
             track.addEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED,
                                    track.muteHandler);
-            track.addEventListener(JitsiTrackEvents.TRACK_STOPPED,
-                                   track.stopHandler);
             track.addEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
                                    track.audioLevelHandler);
             //FIXME: This dependacy is not necessary. This is quick fix.
@@ -382,6 +384,10 @@ JitsiConference.prototype._fireMuteChangeEvent = function (track) {
  * @returns {Promise}
  */
 JitsiConference.prototype.removeTrack = function (track) {
+    if(track.disposed)
+    {
+        throw new Error(JitsiTrackErrors.TRACK_IS_DISPOSED);
+    }
     if(!this.room){
         if(this.rtc) {
             this.rtc.removeLocalStream(track);
@@ -397,8 +403,6 @@ JitsiConference.prototype.removeTrack = function (track) {
             this.rtc.removeLocalStream(track);
             track.removeEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED,
                 track.muteHandler);
-            track.removeEventListener(JitsiTrackEvents.TRACK_STOPPED,
-                track.stopHandler);
             track.removeEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
                 track.audioLevelHandler);
             this.room.removeListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
@@ -582,17 +586,6 @@ JitsiConference.prototype.onTrackAdded = function (track) {
     participant._tracks.push(track);
 
     var emitter = this.eventEmitter;
-    track.addEventListener(
-        JitsiTrackEvents.TRACK_STOPPED,
-        function () {
-            // remove track from JitsiParticipant
-            var pos = participant._tracks.indexOf(track);
-            if (pos > -1) {
-                participant._tracks.splice(pos, 1);
-            }
-            emitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
-        }
-    );
     track.addEventListener(
         JitsiTrackEvents.TRACK_MUTE_CHANGED,
         function () {
@@ -867,6 +860,24 @@ function setupListeners(conference) {
             var track = conference.rtc.createRemoteStream(data, sid, thessrc);
             if (track) {
                 conference.onTrackAdded(track);
+            }
+        }
+    );
+    conference.room.addListener(XMPPEvents.REMOTE_STREAM_REMOVED,
+        function (streamId) {
+            var participants = conference.getParticipants();
+            for(var j = 0; j < participants.length; j++) {
+                var participant = participants[j];
+                var tracks = participant.getTracks();
+                for(var i = 0; i < tracks.length; i++) {
+                    if(tracks[i] && tracks[i].stream &&
+                        RTC.getStreamID(tracks[i].stream) == streamId){
+                        var track = participant._tracks.splice(i, 1)[0];
+                        conference.eventEmitter.emit(
+                            JitsiConferenceEvents.TRACK_REMOVED, track);
+                        return;
+                    }
+                }
             }
         }
     );
