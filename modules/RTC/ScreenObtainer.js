@@ -3,8 +3,6 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
 var AdapterJS = require("./adapter.screenshare");
-var DesktopSharingEventTypes
-    = require("../../service/desktopsharing/DesktopSharingEventTypes");
 var JitsiTrackErrors = require("../../JitsiTrackErrors");
 
 /**
@@ -206,11 +204,18 @@ var ScreenObtainer = {
                         }, 500);
                     },
                     function (arg) {
-                        logger.log("Failed to install the extension", arg);
-                        failCallback(arg);
+                        logger.log("Failed to install the extension from:"
+                            + getWebStoreInstallUrl(self.options), arg);
+                        failCallback({
+                            type: "jitsiError",
+                            errorObject: JitsiTrackErrors
+                                .CHROME_EXTENSION_INSTALLATION_ERROR
+                        });
                     }
                 );
             } catch(e) {
+                logger.log("Failed to install the extension from:"
+                    + self.getWebStoreInstallUrl(this.options), arg);
                 failCallback({
                     type: "jitsiError",
                     errorObject:
@@ -350,6 +355,19 @@ function doGetStreamFromExtension(options, streamCallback, failCallback) {
                     failCallback,
                     {desktopStream: response.streamId});
             } else {
+                // As noted in Chrome Desktop Capture API:
+                // If user didn't select any source (i.e. canceled the prompt)
+                // then the callback is called with an empty streamId.
+                if(response.streamId === "")
+                {
+                    failCallback({
+                        type: "jitsiError",
+                        errorObject:
+                            JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED
+                    });
+                    return;
+                }
+
                 failCallback("Extension failed to get the stream");
             }
         }
