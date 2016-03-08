@@ -32,5 +32,6 @@ module.exports = {
     CHROME_EXTENSION_USER_CANCELED:
         "gum.chrome_extension_user_canceled",
     GENERAL: "gum.general",
-    TRACK_IS_DISPOSED: "track.track_is_disposed"
+    TRACK_IS_DISPOSED: "track.track_is_disposed",
+    TRACK_MUTE_UNMUTE_IN_PROGRESS: "track.mute_unmute_inprogress"
 };

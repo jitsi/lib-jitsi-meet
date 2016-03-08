@@ -147,20 +147,6 @@ JitsiTrack.prototype._maybeFireTrackAttached = function (container) {
 };
 
 /**
- * Mutes the track.
- */
-JitsiTrack.prototype.mute = function () {
-    this._setMute(true);
-}
-
-/**
- * Unmutes the stream.
- */
-JitsiTrack.prototype.unmute = function () {
-    this._setMute(false);
-}
-
-/**
  * Attaches the MediaStream of this track to an HTML container.
  * Adds the container to the list of containers that are displaying the track.
  * Note that Temasys plugin will replace original audio/video element with

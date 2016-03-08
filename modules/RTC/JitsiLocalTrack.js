@@ -2,6 +2,7 @@
 var JitsiTrack = require("./JitsiTrack");
 var RTCBrowserType = require("./RTCBrowserType");
 var JitsiTrackEvents = require('../../JitsiTrackEvents');
+var JitsiTrackErrors = require("../../JitsiTrackErrors");
 var RTCUtils = require("./RTCUtils");
 
 /**
@@ -28,25 +29,91 @@ function JitsiLocalTrack(stream, videoType,
             this.dontFireRemoveEvent = false;
         }.bind(this));
     this.initialMSID = this.getMSID();
+    this.inMuteOrUnmuteProcess = false;
 }
 
 JitsiLocalTrack.prototype = Object.create(JitsiTrack.prototype);
 JitsiLocalTrack.prototype.constructor = JitsiLocalTrack;
 
 /**
+ * Mutes the track. Will reject the Promise if there is mute/unmute operation
+ * in progress.
+ * @returns {Promise}
+ */
+JitsiLocalTrack.prototype.mute = function () {
+    return new Promise(function (resolve, reject) {
+
+        if(this.inMuteOrUnmuteProcess) {
+            reject(new Error(JitsiTrackErrors.TRACK_MUTE_UNMUTE_IN_PROGRESS));
+            return;
+        }
+        this.inMuteOrUnmuteProcess = true;
+
+        this._setMute(true,
+            function(){
+                this.inMuteOrUnmuteProcess = false;
+                resolve();
+            }.bind(this),
+            function(status){
+                this.inMuteOrUnmuteProcess = false;
+                reject(status);
+            }.bind(this));
+    }.bind(this));
+}
+
+/**
+ * Unmutes the stream. Will reject the Promise if there is mute/unmute operation
+ * in progress.
+ * @returns {Promise}
+ */
+JitsiLocalTrack.prototype.unmute = function () {
+    return new Promise(function (resolve, reject) {
+
+        if(this.inMuteOrUnmuteProcess) {
+            reject(new Error(JitsiTrackErrors.TRACK_MUTE_UNMUTE_IN_PROGRESS));
+            return;
+        }
+        this.inMuteOrUnmuteProcess = true;
+
+        this._setMute(false,
+            function(){
+                this.inMuteOrUnmuteProcess = false;
+                resolve();
+            }.bind(this),
+            function(status){
+                this.inMuteOrUnmuteProcess = false;
+                reject(status);
+            }.bind(this));
+    }.bind(this));
+}
+
+/**
  * Mutes / unmutes the track.
  * @param mute {boolean} if true the track will be muted. Otherwise the track will be unmuted.
  */
-JitsiLocalTrack.prototype._setMute = function (mute) {
+JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
     if (this.isMuted() === mute) {
+        resolve();
         return;
     }
     if(!this.rtc) {
         this.startMuted = mute;
+        resolve();
         return;
     }
     var isAudio = this.type === JitsiTrack.AUDIO;
     this.dontFireRemoveEvent = false;
+
+    var setStreamToNull = false;
+    // the callback that will notify that operation had finished
+    var callbackFunction = function() {
+
+        if(setStreamToNull)
+            this.stream = null;
+        this.eventEmitter.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED);
+
+        resolve();
+    }.bind(this);
 
     if ((window.location.protocol != "https:") ||
         (isAudio) || this.videoType === "desktop" ||
@@ -58,22 +125,20 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
             tracks[idx].enabled = !mute;
         }
         if(isAudio)
-            this.rtc.room.setAudioMute(mute);
+            this.rtc.room.setAudioMute(mute, callbackFunction);
         else
-            this.rtc.room.setVideoMute(mute);
-        this.eventEmitter.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED);
+            this.rtc.room.setVideoMute(mute, callbackFunction);
     } else {
         if (mute) {
             this.dontFireRemoveEvent = true;
             this.rtc.room.removeStream(this.stream, function () {},
                 {mtype: this.type, type: "mute", ssrc: this.ssrc});
             RTCUtils.stopMediaStream(this.stream);
+            setStreamToNull = true;
             if(isAudio)
-                this.rtc.room.setAudioMute(mute);
+                this.rtc.room.setAudioMute(mute, callbackFunction);
             else
-                this.rtc.room.setVideoMute(mute);
-            this.stream = null;
-            this.eventEmitter.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED);
+                this.rtc.room.setVideoMute(mute, callbackFunction);
             //FIXME: Maybe here we should set the SRC for the containers to something
         } else {
             var self = this;
@@ -98,8 +163,10 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
                         }
                     }
 
-                    if(!stream)
+                    if(!stream) {
+                        reject(new Error('track.no_stream_found'));
                         return;
+                    }
 
                     for(var i = 0; i < self.containers.length; i++)
                     {
@@ -111,11 +178,11 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
                     self.rtc.room.addStream(self.stream,
                         function () {
                             if(isAudio)
-                                self.rtc.room.setAudioMute(mute);
+                                self.rtc.room.setAudioMute(
+                                    mute, callbackFunction);
                             else
-                                self.rtc.room.setVideoMute(mute);
-                            self.eventEmitter.emit(
-                                JitsiTrackEvents.TRACK_MUTE_CHANGED);
+                                self.rtc.room.setVideoMute(
+                                    mute, callbackFunction);
                         }, {
                             mtype: self.type,
                             type: "unmute",

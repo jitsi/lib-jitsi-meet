@@ -309,12 +309,11 @@ We have the following methods for controling the tracks:
 1. getType() - returns string with the type of the track( "video" for the video tracks and "audio" for the audio tracks)
 
 
-2. mute() - mutes the track.
+2. mute() - mutes the track. Returns Promise.
 
    Note: This method is implemented only for the local tracks.
 
-
-3. unmute() - unmutes the track.
+3. unmute() - unmutes the track. Returns Promise.
 
    Note: This method is implemented only for the local tracks.
 
