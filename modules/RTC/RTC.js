@@ -198,7 +198,7 @@ RTC.prototype.setAudioMute = function (value) {
             continue;
         }
         // this is a Promise
-        mutePromises.push(stream.mute(value));
+        mutePromises.push(value ? stream.mute() : stream.unmute());
     }
     // we return a Promise from all Promises so we can wait for their execution
     return Promise.all(mutePromises);
