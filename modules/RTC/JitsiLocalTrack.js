@@ -181,6 +181,8 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                             type: "unmute",
                             ssrc: self.ssrc,
                             msid: self.getMSID()});
+                }).catch(function (error) {
+                    reject(error);
                 });
         }
     }
