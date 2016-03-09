@@ -41,24 +41,7 @@ JitsiLocalTrack.prototype.constructor = JitsiLocalTrack;
  * @returns {Promise}
  */
 JitsiLocalTrack.prototype.mute = function () {
-    return new Promise(function (resolve, reject) {
-
-        if(this.inMuteOrUnmuteProcess) {
-            reject(new Error(JitsiTrackErrors.TRACK_MUTE_UNMUTE_IN_PROGRESS));
-            return;
-        }
-        this.inMuteOrUnmuteProcess = true;
-
-        this._setMute(true,
-            function(){
-                this.inMuteOrUnmuteProcess = false;
-                resolve();
-            }.bind(this),
-            function(status){
-                this.inMuteOrUnmuteProcess = false;
-                reject(status);
-            }.bind(this));
-    }.bind(this));
+    return createMuteUnmutePromise(this, true);
 }
 
 /**
@@ -67,6 +50,16 @@ JitsiLocalTrack.prototype.mute = function () {
  * @returns {Promise}
  */
 JitsiLocalTrack.prototype.unmute = function () {
+    return createMuteUnmutePromise(this, false);
+}
+
+/**
+ * Creates Promise for mute/unmute operation.
+ * @param track the track that will be muted/unmuted
+ * @param mute whether to mute or unmute the track
+ */
+function createMuteUnmutePromise(track, mute)
+{
     return new Promise(function (resolve, reject) {
 
         if(this.inMuteOrUnmuteProcess) {
@@ -75,7 +68,7 @@ JitsiLocalTrack.prototype.unmute = function () {
         }
         this.inMuteOrUnmuteProcess = true;
 
-        this._setMute(false,
+        this._setMute(mute,
             function(){
                 this.inMuteOrUnmuteProcess = false;
                 resolve();
@@ -84,7 +77,7 @@ JitsiLocalTrack.prototype.unmute = function () {
                 this.inMuteOrUnmuteProcess = false;
                 reject(status);
             }.bind(this));
-    }.bind(this));
+    }.bind(track));
 }
 
 /**
