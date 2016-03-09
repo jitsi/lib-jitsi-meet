@@ -191,17 +191,17 @@ RTC.prototype.getLocalVideoStream = function () {
  * @returns {Promise}
  */
 RTC.prototype.setAudioMute = function (value) {
-    var mutes = [];
+    var mutePromises = [];
     for(var i = 0; i < this.localStreams.length; i++) {
         var stream = this.localStreams[i];
         if(stream.getType() !== "audio") {
             continue;
         }
         // this is a Promise
-        mutes.push(stream.mute(value));
+        mutePromises.push(stream.mute(value));
     }
     // we return a Promise from all Promises so we can wait for their execution
-    return Promise.all(mutes);
+    return Promise.all(mutePromises);
 }
 
 RTC.prototype.removeLocalStream = function (stream) {

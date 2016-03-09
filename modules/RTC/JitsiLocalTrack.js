@@ -29,7 +29,7 @@ function JitsiLocalTrack(stream, videoType,
             this.dontFireRemoveEvent = false;
         }.bind(this));
     this.initialMSID = this.getMSID();
-    this.inMuteOrUnmuteProcess = false;
+    this.inMuteOrUnmuteProgress = false;
 }
 
 JitsiLocalTrack.prototype = Object.create(JitsiTrack.prototype);
@@ -62,19 +62,19 @@ function createMuteUnmutePromise(track, mute)
 {
     return new Promise(function (resolve, reject) {
 
-        if(this.inMuteOrUnmuteProcess) {
+        if(this.inMuteOrUnmuteProgress) {
             reject(new Error(JitsiTrackErrors.TRACK_MUTE_UNMUTE_IN_PROGRESS));
             return;
         }
-        this.inMuteOrUnmuteProcess = true;
+        this.inMuteOrUnmuteProgress = true;
 
         this._setMute(mute,
             function(){
-                this.inMuteOrUnmuteProcess = false;
+                this.inMuteOrUnmuteProgress = false;
                 resolve();
             }.bind(this),
             function(status){
-                this.inMuteOrUnmuteProcess = false;
+                this.inMuteOrUnmuteProgress = false;
                 reject(status);
             }.bind(this));
     }.bind(track));
