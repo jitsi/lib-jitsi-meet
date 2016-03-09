@@ -215,7 +215,7 @@ var ScreenObtainer = {
                 );
             } catch(e) {
                 logger.log("Failed to install the extension from:"
-                    + self.getWebStoreInstallUrl(this.options), arg);
+                    + self.getWebStoreInstallUrl(this.options), e);
                 failCallback({
                     type: "jitsiError",
                     errorObject:
