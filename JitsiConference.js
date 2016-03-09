@@ -889,8 +889,15 @@ function setupListeners(conference) {
 
     conference.room.addListener(XMPPEvents.AUDIO_MUTED_BY_FOCUS,
         function (value) {
-            conference.rtc.setAudioMute(value);
-            conference.isMutedByFocus = true;
+            // set isMutedByFocus when setAudioMute Promise ends
+            conference.rtc.setAudioMute(value).then(
+                function() {
+                    conference.isMutedByFocus = true;
+                },
+                function() {
+                    logger.warn(
+                        "Error while audio muting due to focus request");
+                });
         }
     );
 
