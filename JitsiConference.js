@@ -206,8 +206,8 @@ JitsiConference.prototype.addEventListener = JitsiConference.prototype.on;
 JitsiConference.prototype.removeEventListener = JitsiConference.prototype.off;
 
 /**
- * Receives notifications from another participants for commands / custom events
- * (send by sendPresenceCommand method).
+ * Receives notifications from other participants about commands / custom events
+ * (sent by sendCommand or sendCommandOnce methods).
  * @param command {String} the name of the command
  * @param handler {Function} handler for the command
  */
@@ -218,7 +218,7 @@ JitsiConference.prototype.removeEventListener = JitsiConference.prototype.off;
 
 /**
   * Removes command  listener
-  * @param command {String}  the name of the command
+  * @param command {String} the name of the command
   */
  JitsiConference.prototype.removeCommandListener = function (command) {
     if(this.room)
@@ -236,8 +236,8 @@ JitsiConference.prototype.sendTextMessage = function (message) {
 
 /**
  * Send presence command.
- * @param name the name of the command.
- * @param values Object with keys and values that will be send.
+ * @param name {String} the name of the command.
+ * @param values {Object} with keys and values that will be sent.
  **/
 JitsiConference.prototype.sendCommand = function (name, values) {
     if(this.room) {
@@ -248,8 +248,8 @@ JitsiConference.prototype.sendCommand = function (name, values) {
 
 /**
  * Send presence command one time.
- * @param name the name of the command.
- * @param values Object with keys and values that will be send.
+ * @param name {String} the name of the command.
+ * @param values {Object} with keys and values that will be sent.
  **/
 JitsiConference.prototype.sendCommandOnce = function (name, values) {
     this.sendCommand(name, values);
@@ -257,10 +257,8 @@ JitsiConference.prototype.sendCommandOnce = function (name, values) {
 };
 
 /**
- * Send presence command.
- * @param name the name of the command.
- * @param values Object with keys and values that will be send.
- * @param persistent if false the command will be sent only one time
+ * Removes presence command.
+ * @param name {String} the name of the command.
  **/
 JitsiConference.prototype.removeCommand = function (name) {
     if(this.room)
