@@ -1,4 +1,3 @@
-
 var currentBrowser;
 
 var browserVersion;
@@ -16,6 +15,8 @@ var RTCBrowserType = {
     RTC_BROWSER_IEXPLORER: "rtc_browser.iexplorer",
 
     RTC_BROWSER_SAFARI: "rtc_browser.safari",
+
+    RTC_BROWSER_NWJS: "rtc_browser.nwjs",
 
     getBrowserType: function () {
         return currentBrowser;
@@ -38,6 +39,9 @@ var RTCBrowserType = {
 
     isSafari: function () {
         return currentBrowser === RTCBrowserType.RTC_BROWSER_SAFARI;
+    },
+    isNWJS: function () {
+        return currentBrowser === RTCBrowserType.RTC_BROWSER_NWJS;
     },
     isTemasysPluginUsed: function () {
         return RTCBrowserType.isIExplorer() || RTCBrowserType.isSafari();
@@ -146,9 +150,21 @@ function detectIE() {
     return version;
 }
 
+function detectNWJS (){
+    var userAgent = navigator.userAgent;
+    if (userAgent.match(/JitsiMeetNW/)) {
+        currentBrowser = RTCBrowserType.RTC_BROWSER_NWJS;
+        var version = userAgent.match(/JitsiMeetNW\/([\d.]+)/)[1];
+        console.info("This appears to be JitsiMeetNW, ver: " + version);
+        return version;
+    }
+    return null;
+}
+
 function detectBrowser() {
     var version;
     var detectors = [
+        detectNWJS,
         detectOpera,
         detectChrome,
         detectFirefox,

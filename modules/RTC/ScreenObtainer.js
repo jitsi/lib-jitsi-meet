@@ -63,7 +63,11 @@ var ScreenObtainer = {
         var chromeMethod =
             (options.desktopSharingChromeMethod || options.desktopSharing);
 
-        if (RTCBrowserType.isTemasysPluginUsed()) {
+        if (RTCBrowserType.isNWJS()) {
+            obtainDesktopStream = function (onSuccess, onFailure) {
+                window.JitsiMeetNW.obtainDesktopStream (onSuccess, onFailure);
+            };
+        } else if (RTCBrowserType.isTemasysPluginUsed()) {
             if (!AdapterJS.WebRTCPlugin.plugin.HasScreensharingFeature) {
                 logger.info("Screensharing not supported by this plugin " +
                     "version");
