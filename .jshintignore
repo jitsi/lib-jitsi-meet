@@ -21,7 +21,6 @@ modules/statistics/LocalStatsCollector.js
 modules/connectionquality/connectionquality.js
 modules/RTC/adapter.screenshare.js
 modules/statistics/statistics.js
-modules/RTC/RTC.js
 modules/RTC/RTCUtils.js
 modules/RTC/DataChannels.js
 modules/RTC/JitsiLocalTrack.js

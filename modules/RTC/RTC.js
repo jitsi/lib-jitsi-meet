@@ -1,4 +1,3 @@
-/* global APP */
 var EventEmitter = require("events");
 var RTCBrowserType = require("./RTCBrowserType");
 var RTCUtils = require("./RTCUtils.js");
@@ -10,7 +9,7 @@ var MediaStreamType = require("../../service/RTC/MediaStreamTypes");
 var RTCEvents = require("../../service/RTC/RTCEvents.js");
 
 function createLocalTracks(streams, options) {
-    var newStreams = []
+    var newStreams = [];
     var deviceId = null;
     for (var i = 0; i < streams.length; i++) {
         if (streams[i].type === 'audio') {
@@ -75,19 +74,25 @@ function RTC(room, options) {
  * @param {Object} [options] optional parameters
  * @param {Array} options.devices the devices that will be requested
  * @param {string} options.resolution resolution constraints
- * @param {bool} options.dontCreateJitsiTrack if <tt>true</tt> objects with the following structure {stream: the Media Stream,
- * type: "audio" or "video", videoType: "camera" or "desktop"}
- * will be returned trough the Promise, otherwise JitsiTrack objects will be returned.
+ * @param {bool} options.dontCreateJitsiTrack if <tt>true</tt> objects
+ * with the following structure
+ * { stream: the Media Stream,
+ *   type: "audio" or "video",
+ *   videoType: "camera" or "desktop" }
+ * will be returned trough the Promise,
+ * otherwise JitsiTrack objects will be returned.
  * @param {string} options.cameraDeviceId
  * @param {string} options.micDeviceId
  * @returns {*} Promise object that will receive the new JitsiTracks
  */
 
 RTC.obtainAudioAndVideoPermissions = function (options) {
-    return RTCUtils.obtainAudioAndVideoPermissions(options).then(function (streams) {
+    return RTCUtils.obtainAudioAndVideoPermissions(
+        options
+    ).then(function (streams) {
         return createLocalTracks(streams, options);
     });
-}
+};
 
 RTC.prototype.onIncommingCall = function(event) {
     if(this.options.config.openSctp)
@@ -100,18 +105,19 @@ RTC.prototype.onIncommingCall = function(event) {
             if(this.localStreams[i].isMuted() &&
                 this.localStreams[i].getType() === "video") {
                 /**
-                 * Handles issues when the stream is added before the peerconnection is created.
-                 * The peerconnection is created when second participant enters the call. In
-                 * that use case the track doesn't have information about it's ssrcs and no
-                 * jingle packets are sent. That can cause inconsistant behavior later.
+                 * Handles issues when the stream is added before the
+                 * peerconnection is created.The peerconnection is created when
+                 * second participant enters the call. In that use case the
+                 * track doesn't have information about it's ssrcs and no jingle
+                 * packets are sent. That can cause inconsistant behavior later.
                  *
                  * For example:
-                 * If we mute the stream and than second participant enter it's remote SDP won't
-                 * include that track. On unmute we are not sending any jingle packets which
-                 * will brake the unmute.
+                 * If we mute the stream and than second participant enter it's
+                 * remote SDP won't include that track. On unmute we are not
+                 * sending any jingle packets which will brake the unmute.
                  *
-                 * In order to solve issues like the above one here we have to generate the ssrc
-                 * information for the track .
+                 * In order to solve issues like the above one here we have
+                 * to generate the ssrc information for the track.
                  */
                 this.localStreams[i]._setSSRC(
                     this.room.generateNewStreamSSRCInfo());
@@ -120,22 +126,22 @@ RTC.prototype.onIncommingCall = function(event) {
                     type: "addMuted",
                     ssrc: this.localStreams[i].ssrc,
                     msid: this.localStreams[i].initialMSID
-                }
+                };
             }
             this.room.addStream(this.localStreams[i].getOriginalStream(),
                 function () {}, ssrcInfo, true);
         }
-}
+};
 
 RTC.prototype.selectedEndpoint = function (id) {
     if(this.dataChannels)
         this.dataChannels.handleSelectedEndpointEvent(id);
-}
+};
 
 RTC.prototype.pinEndpoint = function (id) {
     if(this.dataChannels)
         this.dataChannels.handlePinnedEndpointEvent(id);
-}
+};
 
 RTC.prototype.addListener = function (type, listener) {
     this.eventEmitter.on(type, listener);
@@ -147,24 +153,24 @@ RTC.prototype.removeListener = function (eventType, listener) {
 
 RTC.addListener = function (eventType, listener) {
     RTCUtils.addListener(eventType, listener);
-}
+};
 
 RTC.removeListener = function (eventType, listener) {
-    RTCUtils.removeListener(eventType, listener)
-}
+    RTCUtils.removeListener(eventType, listener);
+};
 
 RTC.isRTCReady = function () {
     return RTCUtils.isRTCReady();
-}
+};
 
 RTC.init = function (options) {
     this.options = options || {};
     return RTCUtils.init(this.options);
-}
+};
 
 RTC.getDeviceAvailability = function () {
     return RTCUtils.getDeviceAvailability();
-}
+};
 
 RTC.prototype.addLocalStream = function (stream) {
     this.localStreams.push(stream);
@@ -202,7 +208,7 @@ RTC.prototype.setAudioMute = function (value) {
     }
     // we return a Promise from all Promises so we can wait for their execution
     return Promise.all(mutePromises);
-}
+};
 
 RTC.prototype.removeLocalStream = function (stream) {
     var pos = this.localStreams.indexOf(stream);
@@ -267,7 +273,7 @@ RTC.isDeviceListAvailable = function () {
  */
 RTC.isDeviceChangeAvailable = function () {
     return RTCUtils.isDeviceChangeAvailable();
-}
+};
 /**
  * Allows to receive list of available cameras/microphones.
  * @param {function} callback would receive array of devices as an argument
@@ -312,10 +318,13 @@ RTC.prototype.switchVideoStreams = function (newStream) {
 };
 
 RTC.prototype.setAudioLevel = function (resource, audioLevel) {
-    if(!resource)
+    if (!resource || !this.remoteStreams[resource]) {
         return;
-    if(this.remoteStreams[resource] && this.remoteStreams[resource][JitsiTrack.AUDIO])
-        this.remoteStreams[resource][JitsiTrack.AUDIO].setAudioLevel(audioLevel);
+    }
+    var audioTrack = this.remoteStreams[resource][JitsiTrack.AUDIO];
+    if (audioTrack) {
+        audioTrack.setAudioLevel(audioLevel);
+    }
 };
 
 /**
