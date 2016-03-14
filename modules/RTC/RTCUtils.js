@@ -476,7 +476,7 @@ var RTCUtils = {
                 };
                 RTCSessionDescription = mozRTCSessionDescription;
                 RTCIceCandidate = mozRTCIceCandidate;
-            } else if (RTCBrowserType.isChrome() || RTCBrowserType.isOpera()) {
+            } else if (RTCBrowserType.isChrome() || RTCBrowserType.isOpera() || RTCBrowserType.isNWJS()) {
                 this.peerconnection = webkitRTCPeerConnection;
                 var getUserMedia = navigator.webkitGetUserMedia.bind(navigator);
                 if (navigator.mediaDevices) {
