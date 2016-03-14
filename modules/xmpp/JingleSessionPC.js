@@ -419,8 +419,9 @@ JingleSessionPC.prototype.sendIceCandidates = function (candidates) {
                 cand.c('candidate', SDPUtil.candidateToJingle(cands[i].candidate)).up();
             }
             // add fingerprint
-            if (SDPUtil.find_line(this.localSDP.media[mid], 'a=fingerprint:', this.localSDP.session)) {
-                var tmp = SDPUtil.parse_fingerprint(SDPUtil.find_line(this.localSDP.media[mid], 'a=fingerprint:', this.localSDP.session));
+            var fingerprint_line = SDPUtil.find_line(this.localSDP.media[mid], 'a=fingerprint:', this.localSDP.session);
+            if (fingerprint_line) {
+                var tmp = SDPUtil.parse_fingerprint(fingerprint_line);
                 tmp.required = true;
                 cand.c(
                     'fingerprint',
@@ -483,20 +484,23 @@ JingleSessionPC.prototype.setRemoteDescription = function (elem, desctype) {
 
     this.remoteSDP.fromJingle(elem);
     this.readSsrcInfo($(elem).find(">content"));
-    if (this.peerconnection.remoteDescription) {
-        logger.log('setRemoteDescription when remote description is not null, should be pranswer', this.peerconnection.remoteDescription);
-        if (this.peerconnection.remoteDescription.type == 'pranswer') {
-            var pranswer = new SDP(this.peerconnection.remoteDescription.sdp);
+    var pcremotedesc = this.peerconnection.remoteDescription;
+    if (pcremotedesc) {
+        logger.log('setRemoteDescription when remote description is not null, should be pranswer', pcremotedesc);
+        if (pcremotedesc.type == 'pranswer') {
+            var pranswer = new SDP(pcremotedesc.sdp);
             for (var i = 0; i < pranswer.media.length; i++) {
                 // make sure we have ice ufrag and pwd
                 if (!SDPUtil.find_line(this.remoteSDP.media[i], 'a=ice-ufrag:', this.remoteSDP.session)) {
-                    if (SDPUtil.find_line(pranswer.media[i], 'a=ice-ufrag:', pranswer.session)) {
-                        this.remoteSDP.media[i] += SDPUtil.find_line(pranswer.media[i], 'a=ice-ufrag:', pranswer.session) + '\r\n';
+                    var ice_ufrag_line = SDPUtil.find_line(pranswer.media[i], 'a=ice-ufrag:', pranswer.session);
+                    if (ice_ufrag_line) {
+                        this.remoteSDP.media[i] += ice_ufrag_line + '\r\n';
                     } else {
                         logger.warn('no ice ufrag?');
                     }
-                    if (SDPUtil.find_line(pranswer.media[i], 'a=ice-pwd:', pranswer.session)) {
-                        this.remoteSDP.media[i] += SDPUtil.find_line(pranswer.media[i], 'a=ice-pwd:', pranswer.session) + '\r\n';
+                    var ice_pwd_line = SDPUtil.find_line(pranswer.media[i], 'a=ice-pwd:', pranswer.session);
+                    if (ice_pwd_line) {
+                        this.remoteSDP.media[i] += ice_pwd_line + '\r\n';
                     } else {
                         logger.warn('no ice pwd?');
                     }
@@ -544,8 +548,9 @@ JingleSessionPC.prototype.addIceCandidate = function (elem) {
             for (var i = 0; i < this.localSDP.media.length; i++) {
                 cobbled += SDPUtil.find_line(this.localSDP.media[i], 'm=') + '\r\n';
                 cobbled += SDPUtil.find_lines(this.localSDP.media[i], 'a=rtpmap:').join('\r\n') + '\r\n';
-                if (SDPUtil.find_line(this.localSDP.media[i], 'a=mid:')) {
-                    cobbled += SDPUtil.find_line(this.localSDP.media[i], 'a=mid:') + '\r\n';
+                var mid_line = SDPUtil.find_line(this.localSDP.media[i], 'a=mid:');
+                if (mid_line) {
+                    cobbled += mid_line + '\r\n';
                 }
                 cobbled += 'a=inactive\r\n';
             }
