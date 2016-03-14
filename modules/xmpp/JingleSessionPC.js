@@ -340,7 +340,7 @@ JingleSessionPC.prototype.sendIceCandidate = function (candidate) {
                 this.drip_container.push(candidate);
                 return;
             } else {
-                self.sendIceCandidate([candidate]);
+                self.sendIceCandidates([candidate]);
             }
         }
     } else {
