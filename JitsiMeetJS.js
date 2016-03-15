@@ -1,5 +1,6 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var JitsiConnection = require("./JitsiConnection");
+var JitsiLibraryEvents = require("./JitsiLibraryEvents");
 var JitsiConferenceEvents = require("./JitsiConferenceEvents");
 var JitsiConnectionEvents = require("./JitsiConnectionEvents");
 var JitsiConnectionErrors = require("./JitsiConnectionErrors");
@@ -12,6 +13,10 @@ var RTCUIHelper = require("./modules/RTC/RTCUIHelper");
 var Statistics = require("./modules/statistics/statistics");
 var Resolutions = require("./service/RTC/Resolutions");
 var ScriptUtil = require("./modules/util/ScriptUtil");
+var RTCEvents = require("./service/RTC/RTCEvents");
+var EventEmitter = require("events");
+
+var eventEmitter = new EventEmitter();
 
 function getLowerResolution(resolution) {
     if(!Resolutions[resolution])
@@ -38,6 +43,7 @@ var LibJitsiMeet = {
 
     JitsiConnection: JitsiConnection,
     events: {
+        library: JitsiLibraryEvents,
         conference: JitsiConferenceEvents,
         connection: JitsiConnectionEvents,
         track: JitsiTrackEvents
@@ -54,7 +60,11 @@ var LibJitsiMeet = {
     _gumFailedHandler: [],
     init: function (options) {
         Statistics.audioLevelsEnabled = !options.disableAudioLevels || true;
-        return RTC.init(options || {});
+        return RTC.init(options || {}).then(function () {
+            RTC.addListener(RTCEvents.DEVICES_LIST_CHANGED, function () {
+                eventEmitter.emit(JitsiLibraryEvents.DEVICES_LIST_CHANGED);
+            });
+        });
     },
     /**
      * Returns whether the desktop sharing is enabled or not.
@@ -118,23 +128,31 @@ var LibJitsiMeet = {
                 return Promise.reject(error);
             }.bind(this));
     },
+
     /**
-     * Checks if its possible to enumerate available cameras/micropones.
-     * @returns {boolean} true if available, false otherwise.
+     * Get list of physical audio and video devices.
+     * @returns {{audio: [], video: []}}
      */
-    isDeviceListAvailable: function () {
-        return RTC.isDeviceListAvailable();
+    getDevicesList: function () {
+        return RTC.getDevicesList();
     },
+
     /**
-     * Returns true if changing the camera / microphone device is supported and
-     * false if not.
-     * @returns {boolean} true if available, false otherwise.
+     * Subscribe for library events described in JitsiLibraryEvents.
+     * @param {string} event event id
+     * @param {function} handler event handler
      */
-    isDeviceChangeAvailable: function () {
-        return RTC.isDeviceChangeAvailable();
+    on: function (event, handler) {
+        eventEmitter.addListener(event, handler);
     },
-    enumerateDevices: function (callback) {
-        RTC.enumerateDevices(callback);
+
+    /**
+     * Remove event handler.
+     * @param {string} event event id
+     * @param {function} handler event handler
+     */
+    off: function (event, handler) {
+        eventEmitter.removeListener(event, handler);
     },
 
     /**
