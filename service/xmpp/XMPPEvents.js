@@ -120,6 +120,10 @@ var XMPPEvents = {
     /**
      * Indicates that the local sendrecv streams in local SDP are changed.
      */
-    SENDRECV_STREAMS_CHANGED: "xmpp.sendrecv_streams_changed"
+    SENDRECV_STREAMS_CHANGED: "xmpp.sendrecv_streams_changed",
+    /**
+     * Indicates that max users limit have been reached.
+     */
+    ROOM_MAX_USERS_ERROR: "xmpp.room_max_users_error"
 };
 module.exports = XMPPEvents;

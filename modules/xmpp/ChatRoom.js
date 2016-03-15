@@ -481,6 +481,10 @@ ChatRoom.prototype.onPresenceError = function (pres, from) {
             logger.warn('onPresError ', pres);
             this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_ERROR, pres);
         }
+    } else if($(pres).find('>error>service-unavailable').length) {
+        logger.warn('Maximum users limit for the room is already reached',
+            pres);
+        this.eventEmitter.emit(XMPPEvents.ROOM_MAX_USERS_ERROR, pres);
     } else {
         logger.warn('onPresError ', pres);
         this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_ERROR, pres);
