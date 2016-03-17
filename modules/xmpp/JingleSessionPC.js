@@ -102,17 +102,31 @@ JingleSessionPC.prototype.doInitialize = function () {
             RTC.getPCConstraints(),
             this);
 
-    this.peerconnection.onicecandidate = function (event) {
-        var protocol;
-        if (event && event.candidate) {
-            protocol = (typeof event.candidate.protocol === 'string')
-                ? event.candidate.protocol.toLowerCase() : '';
-            if ((self.webrtcIceTcpDisable && protocol == 'tcp') ||
-                (self.webrtcIceUdpDisable && protocol == 'udp')) {
-                return;
+    this.peerconnection.onicecandidate = function (ev) {
+        if (!ev) {
+            // There was an incomplete check for ev before which left the last
+            // line of the function unprotected from a potential throw of an
+            // exception. Consequently, it may be argued that the check is
+            // unnecessary. Anyway, I'm leaving it and making the check
+            // complete.
+            return;
+        }
+        var candidate = ev.candidate;
+        if (candidate) {
+            // Discard candidates of disabled protocols.
+            var protocol = candidate.protocol;
+            if (typeof protocol === 'string') {
+                protocol = protocol.toLowerCase();
+                if (protocol == 'tcp') {
+                    if (self.webrtcIceTcpDisable)
+                        return;
+                } else if (protocol == 'udp') {
+                    if (self.webrtcIceUdpDisable)
+                        return;
+                }
             }
         }
-        self.sendIceCandidate(event.candidate);
+        self.sendIceCandidate(candidate);
     };
     this.peerconnection.onaddstream = function (event) {
         if (event.stream.id !== 'default') {
