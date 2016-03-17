@@ -49,13 +49,6 @@ function JingleSessionPC(me, sid, connection, service) {
     this.webrtcIceUdpDisable = !!this.service.options.webrtcIceUdpDisable;
     this.webrtcIceTcpDisable = !!this.service.options.webrtcIceTcpDisable;
 
-    /**
-     * The indicator which determines whether the (local) video has been muted
-     * in response to a user command in contrast to an automatic decision made
-     * by the application logic.
-     */
-    this.videoMuteByUser = false;
-
     this.modifySourcesQueue = async.queue(this._modifySources.bind(this), 1);
     // We start with the queue paused. We resume it when the signaling state is
     // stable and the ice connection state is connected.
