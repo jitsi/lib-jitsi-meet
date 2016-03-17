@@ -902,17 +902,25 @@ function setupListeners(conference) {
     );
 
     conference.room.addListener(XMPPEvents.SUBJECT_CHANGED, function (subject) {
-        conference.eventEmitter.emit(JitsiConferenceEvents.SUBJECT_CHANGED, subject);
+        conference.eventEmitter.emit(JitsiConferenceEvents.SUBJECT_CHANGED,
+            subject);
     });
 
     conference.room.addListener(XMPPEvents.MUC_JOINED, function () {
         conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_JOINED);
     });
     conference.room.addListener(XMPPEvents.ROOM_JOIN_ERROR, function (pres) {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.CONNECTION_ERROR, pres);
+        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+            JitsiConferenceErrors.CONNECTION_ERROR, pres);
     });
     conference.room.addListener(XMPPEvents.ROOM_CONNECT_ERROR, function (pres) {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.CONNECTION_ERROR, pres);
+        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+            JitsiConferenceErrors.CONNECTION_ERROR, pres);
+    });
+    conference.room.addListener(XMPPEvents.ROOM_MAX_USERS_ERROR,
+    function (pres) {
+        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+            JitsiConferenceErrors.CONFERENCE_MAX_USERS, pres);
     });
     conference.room.addListener(XMPPEvents.PASSWORD_REQUIRED, function (pres) {
         conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.PASSWORD_REQUIRED, pres);
