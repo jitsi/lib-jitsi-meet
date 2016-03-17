@@ -57,7 +57,7 @@ var JitsiConferenceErrors = {
      */
     FOCUS_LEFT: "conference.focusLeft",
     /**
-     * Indicates that max users limit have been reached.
+     * Indicates that max users limit has been reached.
      */
     CONFERENCE_MAX_USERS: "conference.max_users"
     /**

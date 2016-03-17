@@ -129,7 +129,7 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - CHAT_ERROR - chat error happened
         - FOCUS_DISCONNECTED - focus error happened
         - FOCUS_DISCONNECTED - focus left the conference
-        - CONFERENCE_MAX_USERS - The maximum users limit is already reached
+        - CONFERENCE_MAX_USERS - The maximum users limit has been reached
     2. connection
         - PASSWORD_REQUIRED - passed when the connection to the server failed. You should try to authenticate with password.
         - CONNECTION_ERROR - indicates connection failures.
