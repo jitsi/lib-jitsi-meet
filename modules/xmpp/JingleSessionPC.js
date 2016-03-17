@@ -355,6 +355,9 @@ JingleSessionPC.prototype.sendIceCandidate = function (candidate) {
                 return;
             } else {
                 self.sendIceCandidates([candidate]);
+                // FIXME this.lasticecandidate is going to be set to true
+                // bellow and that seems wrong. The execution doesn't come here
+                // with the default values at the time of this writing.
             }
         }
     } else {
