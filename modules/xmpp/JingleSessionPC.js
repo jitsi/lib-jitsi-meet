@@ -28,8 +28,6 @@ function JingleSessionPC(me, sid, connection, service) {
     this.hadturncandidate = false;
     this.lasticecandidate = false;
 
-    this.statsinterval = null;
-
     this.reason = null;
 
     this.addssrc = [];
@@ -313,10 +311,6 @@ JingleSessionPC.prototype.terminate = function (reason) {
     this.state = 'ended';
     this.reason = reason;
     this.peerconnection.close();
-    if (this.statsinterval !== null) {
-        window.clearInterval(this.statsinterval);
-        this.statsinterval = null;
-    }
 };
 
 JingleSessionPC.prototype.active = function () {
@@ -791,10 +785,6 @@ JingleSessionPC.prototype.sendTerminate = function (reason, text) {
             $(document).trigger('ack.jingle', [self.sid, error]);
         },
         10000);
-    if (this.statsinterval !== null) {
-        window.clearInterval(this.statsinterval);
-        this.statsinterval = null;
-    }
 };
 
 /**
@@ -1263,52 +1253,6 @@ JingleSessionPC.prototype.notifyMySSRCUpdate = function (old_sdp, new_sdp) {
     } else {
         logger.log('addition not necessary');
     }
-};
-
-JingleSessionPC.prototype.getStats = function (interval) {
-    var self = this;
-    var recv = {audio: 0, video: 0};
-    var lost = {audio: 0, video: 0};
-    var lastrecv = {audio: 0, video: 0};
-    var lastlost = {audio: 0, video: 0};
-    var loss = {audio: 0, video: 0};
-    var delta = {audio: 0, video: 0};
-    this.statsinterval = window.setInterval(function () {
-        if (self && self.peerconnection && self.peerconnection.getStats) {
-            self.peerconnection.getStats(function (stats) {
-                var results = stats.result();
-                // TODO: there are so much statistics you can get from this..
-                for (var i = 0; i < results.length; ++i) {
-                    if (results[i].type == 'ssrc') {
-                        var packetsrecv = results[i].stat('packetsReceived');
-                        var packetslost = results[i].stat('packetsLost');
-                        if (packetsrecv && packetslost) {
-                            packetsrecv = parseInt(packetsrecv, 10);
-                            packetslost = parseInt(packetslost, 10);
-
-                            if (results[i].stat('googFrameRateReceived')) {
-                                lastlost.video = lost.video;
-                                lastrecv.video = recv.video;
-                                recv.video = packetsrecv;
-                                lost.video = packetslost;
-                            } else {
-                                lastlost.audio = lost.audio;
-                                lastrecv.audio = recv.audio;
-                                recv.audio = packetsrecv;
-                                lost.audio = packetslost;
-                            }
-                        }
-                    }
-                }
-                delta.audio = recv.audio - lastrecv.audio;
-                delta.video = recv.video - lastrecv.video;
-                loss.audio = (delta.audio > 0) ? Math.ceil(100 * (lost.audio - lastlost.audio) / delta.audio) : 0;
-                loss.video = (delta.video > 0) ? Math.ceil(100 * (lost.video - lastlost.video) / delta.video) : 0;
-                $(document).trigger('packetloss.jingle', [self.sid, loss]);
-            });
-        }
-    }, interval || 3000);
-    return this.statsinterval;
 };
 
 JingleSessionPC.onJingleError = function (session, error)
