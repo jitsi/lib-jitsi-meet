@@ -1215,42 +1215,6 @@ JingleSessionPC.onJingleFatalError = function (session, error)
     this.room.eventEmitter.emit(XMPPEvents.JINGLE_FATAL_ERROR, session, error);
 }
 
-// an attempt to work around https://github.com/jitsi/jitmeet/issues/32
-JingleSessionPC.prototype.sendKeyframe = function () {
-    var pc = this.peerconnection;
-    logger.log('sendkeyframe', pc.iceConnectionState);
-    if (pc.iceConnectionState !== 'connected') return; // safe...
-    var self = this;
-    pc.setRemoteDescription(
-        pc.remoteDescription,
-        function () {
-            pc.createAnswer(
-                function (modifiedAnswer) {
-                    pc.setLocalDescription(
-                        modifiedAnswer,
-                        function () {
-                            // noop
-                        },
-                        function (error) {
-                            logger.log('triggerKeyframe setLocalDescription failed', error);
-                            self.room.eventEmitter.emit(XMPPEvents.SET_LOCAL_DESCRIPTION_ERROR);
-                        }
-                    );
-                },
-                function (error) {
-                    logger.log('triggerKeyframe createAnswer failed', error);
-                    self.room.eventEmitter.emit(XMPPEvents.CREATE_ANSWER_ERROR);
-                }
-            );
-        },
-        function (error) {
-            logger.log('triggerKeyframe setRemoteDescription failed', error);
-            eventEmitter.emit(XMPPEvents.SET_REMOTE_DESCRIPTION_ERROR);
-        }
-    );
-}
-
-
 JingleSessionPC.prototype.remoteStreamAdded = function (data, times) {
     var self = this;
     var thessrc;
@@ -1290,17 +1254,6 @@ JingleSessionPC.prototype.remoteStreamAdded = function (data, times) {
     }
 
     this.room.remoteStreamAdded(data, this.sid, thessrc);
-
-    var isVideo = data.stream.getVideoTracks().length > 0;
-    // an attempt to work around https://github.com/jitsi/jitmeet/issues/32
-    if (isVideo &&
-        data.peerjid && this.peerjid === data.peerjid &&
-        data.stream.getVideoTracks().length === 0 &&
-        RTC.localVideo.getTracks().length > 0) {
-        window.setTimeout(function () {
-            self.sendKeyframe();
-        }, 3000);
-    }
 }
 
 /**
