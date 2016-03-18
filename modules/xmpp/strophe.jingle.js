@@ -91,8 +91,6 @@ module.exports = function(XMPP, eventEmitter) {
                 this.connection.send(ack);
                 return true;
             }
-            // FIXME: check for a defined action
-            this.connection.send(ack);
             // see http://xmpp.org/extensions/xep-0166.html#concepts-session
             switch (action) {
                 case 'session-initiate':
@@ -116,7 +114,19 @@ module.exports = function(XMPP, eventEmitter) {
                     this.jid2session[sess.peerjid] = sess;
 
                     var jingleOffer = $(iq).find('>jingle');
+                    // FIXME there's no nice way with event to get the reason
+                    // why the call was rejected
                     eventEmitter.emit(XMPPEvents.CALL_INCOMING, sess, jingleOffer);
+                    if (!sess.active())
+                    {
+                        // Call not accepted
+                        ack.attrs({ type: 'error' });
+                        ack.c('error', {type: 'cancel'})
+                           .c('bad-request',
+                            { xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas' })
+                            .up();
+                        this.terminate(sess.sid);
+                    }
                     break;
                 case 'session-terminate':
                     logger.log('terminating...', sess.sid);
@@ -139,8 +149,14 @@ module.exports = function(XMPP, eventEmitter) {
                     break;
                 default:
                     logger.warn('jingle action not implemented', action);
+                    ack.attrs({ type: 'error' });
+                    ack.c('error', {type: 'cancel'})
+                        .c('bad-request',
+                            { xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas' })
+                        .up();
                     break;
             }
+            this.connection.send(ack);
             return true;
         },
         terminate: function (sid, reasonCondition, reasonText) {

@@ -420,7 +420,8 @@ JingleSessionPC.prototype.onTerminated = function (reasonCondition,
     //this.reasonText = reasonText;
     logger.info("Session terminated", this, reasonCondition, reasonText);
 
-    this.peerconnection.close();
+    if (this.peerconnection)
+        this.peerconnection.close();
 };
 
 /**

@@ -870,7 +870,6 @@ function setupListeners(conference) {
             logger.error(
                 "Rejecting session-initiate from non focus user: "
                         + jingleSession.peerjid);
-            jingleSession.terminate('not-authorized');
         }
     });
 
