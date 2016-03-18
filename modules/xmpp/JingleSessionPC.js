@@ -11,6 +11,13 @@ var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var RTCBrowserType = require("../RTC/RTCBrowserType");
 var RTC = require("../RTC/RTC");
 
+/**
+ * Constant tells how long we're going to wait for IQ response, before timeout
+ * error is  triggered.
+ * @type {number}
+ */
+const IQ_TIMEOUT = 10000;
+
 // Jingle stuff
 function JingleSessionPC(me, sid, connection, service) {
     JingleSession.call(this, me, sid, connection, service);
@@ -238,15 +245,8 @@ JingleSessionPC.prototype.accept = function () {
                     ack.source = 'answer';
                     $(document).trigger('ack.jingle', [self.sid, ack]);
                 },
-                function (stanza) {
-                    var error = ($(stanza).find('error').length) ? {
-                        code: $(stanza).find('error').attr('code'),
-                        reason: $(stanza).find('error :first')[0].tagName
-                    }:{};
-                    error.source = 'answer';
-                    JingleSessionPC.onJingleError(self.sid, error);
-                },
-                10000);
+                self.newJingleErrorHandler(accept),
+                IQ_TIMEOUT);
         },
         function (e) {
             logger.error('setLocalDescription failed', e);
@@ -323,24 +323,12 @@ JingleSessionPC.prototype.sendIceCandidate = function (candidate) {
                     init,
                     self.initiator == self.me ? 'initiator' : 'responder',
                     ssrc);
-                self.connection.sendIQ(init,
-                    function () {
-                        //logger.log('session initiate ack');
-                        var ack = {};
-                        ack.source = 'offer';
-                        $(document).trigger('ack.jingle', [self.sid, ack]);
-                    },
-                    function (stanza) {
+                self.connection.sendIQ(init, null,
+                    self.newJingleErrorHandler(init, function (error) {
                         self.state = 'error';
                         self.peerconnection.close();
-                        var error = ($(stanza).find('error').length) ? {
-                            code: $(stanza).find('error').attr('code'),
-                            reason: $(stanza).find('error :first')[0].tagName,
-                        }:{};
-                        error.source = 'offer';
-                        JingleSessionPC.onJingleError(self.sid, error);
-                    },
-                    10000);
+                    }),
+                    IQ_TIMEOUT);
             };
             sendJingle();
         }
@@ -392,21 +380,8 @@ JingleSessionPC.prototype.sendIceCandidates = function (candidates) {
     }
     // might merge last-candidate notification into this, but it is called alot later. See webrtc issue #2340
     //logger.log('was this the last candidate', this.lasticecandidate);
-    this.connection.sendIQ(cand,
-        function () {
-            var ack = {};
-            ack.source = 'transportinfo';
-            $(document).trigger('ack.jingle', [this.sid, ack]);
-        },
-        function (stanza) {
-            var error = ($(stanza).find('error').length) ? {
-                code: $(stanza).find('error').attr('code'),
-                reason: $(stanza).find('error :first')[0].tagName,
-            }:{};
-            error.source = 'transportinfo';
-            JingleSessionPC.onJingleError(this.sid, error);
-        },
-        10000);
+    this.connection.sendIQ(
+        cand, null, this.newJingleErrorHandler(cand), IQ_TIMEOUT);
 };
 
 JingleSessionPC.prototype.readSsrcInfo = function (contents) {
@@ -477,8 +452,8 @@ JingleSessionPC.prototype.setRemoteDescription = function (elem, desctype) {
         },
         function (e) {
             logger.error('setRemoteDescription error', e);
-            JingleSessionPC.onJingleFatalError(self, e);
-        }
+            JingleSessionPC.onJingleFatalError(this, e);
+        }.bind(this)
     );
 };
 
@@ -635,7 +610,6 @@ JingleSessionPC.prototype.createdAnswer = function (sdp, provisional) {
             this.localSDP.raw = this.localSDP.session + '\r\n' + this.localSDP.media.join('');
         }
     }
-    var self = this;
     var sendJingle = function (ssrcs) {
                 // FIXME why do we generate session-accept in 3 different places ?
                 var accept = $iq({to: self.peerjid,
@@ -657,21 +631,10 @@ JingleSessionPC.prototype.createdAnswer = function (sdp, provisional) {
                     ssrcs);
                 self.fixJingle(accept);
                 self.connection.sendIQ(accept,
-                    function () {
-                        var ack = {};
-                        ack.source = 'answer';
-                        $(document).trigger('ack.jingle', [self.sid, ack]);
-                    },
-                    function (stanza) {
-                        var error = ($(stanza).find('error').length) ? {
-                            code: $(stanza).find('error').attr('code'),
-                            reason: $(stanza).find('error :first')[0].tagName,
-                        }:{};
-                        error.source = 'answer';
-                        JingleSessionPC.onJingleError(self.sid, error);
-                    },
-                    10000);
-    }
+                    null,
+                    self.newJingleErrorHandler(accept),
+                    IQ_TIMEOUT);
+    };
     sdp.sdp = this.localSDP.raw;
     this.peerconnection.setLocalDescription(sdp,
         function () {
@@ -717,18 +680,9 @@ JingleSessionPC.prototype.sendTerminate = function (reason, text) {
             self.peerconnection.close();
             self.peerconnection = null;
             self.terminate();
-            var ack = {};
-            ack.source = 'terminate';
-            $(document).trigger('ack.jingle', [self.sid, ack]);
         },
-        function (stanza) {
-            var error = ($(stanza).find('error').length) ? {
-                code: $(stanza).find('error').attr('code'),
-                reason: $(stanza).find('error :first')[0].tagName,
-            }:{};
-            $(document).trigger('ack.jingle', [self.sid, error]);
-        },
-        10000);
+        this.newJingleErrorHandler(term),
+        IQ_TIMEOUT);
 };
 
 /**
@@ -1158,14 +1112,8 @@ JingleSessionPC.prototype.notifyMySSRCUpdate = function (old_sdp, new_sdp) {
 
     if (removed && remove) {
         logger.info("Sending source-remove", remove.tree());
-        this.connection.sendIQ(remove,
-            function (res) {
-                logger.info('got remove result', res);
-            },
-            function (err) {
-                logger.error('got remove error', err);
-            }
-        );
+        this.connection.sendIQ(
+            remove, null, this.newJingleErrorHandler(remove), IQ_TIMEOUT);
     } else {
         logger.log('removal not necessary');
     }
@@ -1186,29 +1134,45 @@ JingleSessionPC.prototype.notifyMySSRCUpdate = function (old_sdp, new_sdp) {
 
     if (added && add) {
         logger.info("Sending source-add", add.tree());
-        this.connection.sendIQ(add,
-            function (res) {
-                logger.info('got add result', res);
-            },
-            function (err) {
-                logger.error('got add error', err);
-            }
-        );
+        this.connection.sendIQ(
+            add, null, this.newJingleErrorHandler(add), IQ_TIMEOUT);
     } else {
         logger.log('addition not necessary');
     }
 };
 
-JingleSessionPC.onJingleError = function (session, error)
-{
-    logger.error("Jingle error", error);
-}
+JingleSessionPC.prototype.newJingleErrorHandler = function(request, failureCb) {
+    return function (errResponse) {
+
+        var error = { };
+
+        // Get XMPP error code and condition(reason)
+        const errorElSel = $(errResponse).find('error');
+        if (errorElSel.length) {
+            error.code = errorElSel.attr('code');
+            const errorReasonSel = $(errResponse).find('error :first');
+            if (errorReasonSel.length)
+                error.reason = errorReasonSel[0].tagName;
+        }
+
+        error.source = request ? request.tree() : null;
+        error.session = this;
+
+        logger.error("Jingle error", error);
+        if (failureCb) {
+            failureCb(error);
+        }
+
+        this.room.eventEmitter.emit(XMPPEvents.JINGLE_ERROR, error);
+
+    }.bind(this);
+};
 
 JingleSessionPC.onJingleFatalError = function (session, error)
 {
     this.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED);
     this.room.eventEmitter.emit(XMPPEvents.JINGLE_FATAL_ERROR, session, error);
-}
+};
 
 JingleSessionPC.prototype.remoteStreamAdded = function (data, times) {
     var self = this;
@@ -1249,7 +1213,7 @@ JingleSessionPC.prototype.remoteStreamAdded = function (data, times) {
     }
 
     this.room.remoteStreamAdded(data, this.sid, thessrc);
-}
+};
 
 /**
  * Handles remote stream removal.
@@ -1263,7 +1227,7 @@ JingleSessionPC.prototype.remoteStreamRemoved = function (event) {
     } else if (streamId && streamId.indexOf('mixedmslabel') === -1) {
         this.room.eventEmitter.emit(XMPPEvents.REMOTE_STREAM_REMOVED, streamId);
     }
-}
+};
 
 /**
  * Returns the ice connection state for the peer connection.
@@ -1271,7 +1235,7 @@ JingleSessionPC.prototype.remoteStreamRemoved = function (event) {
  */
 JingleSessionPC.prototype.getIceConnectionState = function () {
     return this.peerconnection.iceConnectionState;
-}
+};
 
 
 /**
@@ -1297,7 +1261,7 @@ JingleSessionPC.prototype.fixJingle = function(jingle) {
 
     var sources = $(jingle.tree()).find(">jingle>content>description>source");
     return sources && sources.length > 0;
-}
+};
 
 /**
  * Fixes the outgoing jingle packets with action source-add by removing the
@@ -1360,7 +1324,7 @@ JingleSessionPC.prototype.fixSourceAddJingle = function (jingle) {
             });
         });
     }
-}
+};
 
 /**
  * Fixes the outgoing jingle packets with action source-remove by removing the
@@ -1415,7 +1379,7 @@ JingleSessionPC.prototype.fixSourceRemoveJingle = function(jingle) {
                 }
             });
         });
-}
+};
 
 /**
  * Returns the description node related to the passed content type. If the node
