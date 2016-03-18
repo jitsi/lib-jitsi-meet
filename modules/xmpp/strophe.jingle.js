@@ -61,18 +61,20 @@ module.exports = function(XMPP, eventEmitter) {
             logger.log('on jingle ' + action + ' from ' + fromJid, iq);
             var sess = this.sessions[sid];
             if ('session-initiate' != action) {
-                if (sess === null) {
-                    ack.type = 'error';
+                if (!sess) {
+                    ack.attrs({ type: 'error' });
                     ack.c('error', {type: 'cancel'})
                         .c('item-not-found', {xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas'}).up()
                         .c('unknown-session', {xmlns: 'urn:xmpp:jingle:errors:1'});
+                    logger.warn('invalid session id', iq);
                     this.connection.send(ack);
                     return true;
                 }
                 // local jid is not checked
                 if (fromJid != sess.peerjid) {
-                    logger.warn('jid mismatch for session id', sid, fromJid, sess.peerjid);
-                    ack.type = 'error';
+                    logger.warn(
+                        'jid mismatch for session id', sid, sess.peerjid, iq);
+                    ack.attrs({ type: 'error' });
                     ack.c('error', {type: 'cancel'})
                         .c('item-not-found', {xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas'}).up()
                         .c('unknown-session', {xmlns: 'urn:xmpp:jingle:errors:1'});
@@ -82,10 +84,10 @@ module.exports = function(XMPP, eventEmitter) {
             } else if (sess !== undefined) {
                 // existing session with same session id
                 // this might be out-of-order if the sess.peerjid is the same as from
-                ack.type = 'error';
+                ack.attrs({ type: 'error' });
                 ack.c('error', {type: 'cancel'})
                     .c('service-unavailable', {xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas'}).up();
-                logger.warn('duplicate session id', sid);
+                logger.warn('duplicate session id', sid, iq);
                 this.connection.send(ack);
                 return true;
             }
