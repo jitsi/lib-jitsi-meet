@@ -182,55 +182,11 @@ JingleSessionPC.prototype.doInitialize = function () {
                 self.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED);
                 break;
         }
-        onIceConnectionStateChange(self.sid, self);
     };
     this.peerconnection.onnegotiationneeded = function (event) {
         self.room.eventEmitter.emit(XMPPEvents.PEERCONNECTION_READY, self);
     };
 };
-
-function onIceConnectionStateChange(sid, session) {
-    switch (session.peerconnection.iceConnectionState) {
-        case 'checking':
-            session.timeChecking = (new Date()).getTime();
-            session.firstconnect = true;
-            break;
-        case 'completed': // on caller side
-        case 'connected':
-            if (session.firstconnect) {
-                session.firstconnect = false;
-                var metadata = {};
-                metadata.setupTime
-                    = (new Date()).getTime() - session.timeChecking;
-                session.peerconnection.getStats(function (res) {
-                    if(res && res.result) {
-                        res.result().forEach(function (report) {
-                            if (report.type == 'googCandidatePair' &&
-                                report.stat('googActiveConnection') == 'true') {
-                                metadata.localCandidateType
-                                    = report.stat('googLocalCandidateType');
-                                metadata.remoteCandidateType
-                                    = report.stat('googRemoteCandidateType');
-
-                                // log pair as well so we can get nice pie
-                                // charts
-                                metadata.candidatePair
-                                    = report.stat('googLocalCandidateType') +
-                                        ';' +
-                                        report.stat('googRemoteCandidateType');
-
-                                if (report.stat('googRemoteAddress').indexOf('[') === 0)
-                                {
-                                    metadata.ipv6 = true;
-                                }
-                            }
-                        });
-                    }
-                });
-            }
-            break;
-    }
-}
 
 JingleSessionPC.prototype.accept = function () {
     this.state = 'active';
