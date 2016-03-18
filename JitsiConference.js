@@ -850,9 +850,28 @@ JitsiConference.prototype.isCallstatsEnabled = function () {
  * @param conference the conference
  */
 function setupListeners(conference) {
-    conference.xmpp.addListener(XMPPEvents.CALL_INCOMING, function (event) {
-        conference.rtc.onIncommingCall(event);
-        conference.statistics.startRemoteStats(event.peerconnection);
+    conference.xmpp.addListener(
+        XMPPEvents.CALL_INCOMING, function (jingleSession, jingleOffer) {
+
+        if (conference.room.isFocus(jingleSession.peerjid)) {
+            // Accept incoming call
+            conference.room.setJingleSession(jingleSession);
+            conference.rtc.onIncommingCall(jingleSession);
+            jingleSession.acceptOffer(jingleOffer, null,
+                function (error) {
+                    console.error(
+                        "Failed to accept incoming Jingle session", error);
+                }
+            );
+            conference.statistics.startRemoteStats(
+                    jingleSession.peerconnection);
+        } else {
+            // Error cause this should never happen unless something is wrong !
+            logger.error(
+                "Rejecting session-initiate from non focus user: "
+                        + jingleSession.peerjid);
+            jingleSession.terminate('not-authorized');
+        }
     });
 
     conference.room.addListener(XMPPEvents.REMOTE_STREAM_RECEIVED,

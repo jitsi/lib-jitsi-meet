@@ -578,7 +578,7 @@ ChatRoom.prototype.getMemberRole = function (peerJid) {
 
 ChatRoom.prototype.setJingleSession = function(session){
     this.session = session;
-    this.session.room = this;
+    this.session.initialize(false /* initiator */, this /* room */);
 };
 
 
