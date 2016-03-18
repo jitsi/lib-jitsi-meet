@@ -240,11 +240,7 @@ JingleSessionPC.prototype.accept = function () {
     this.peerconnection.setLocalDescription(new RTCSessionDescription({type: 'answer', sdp: sdp}),
         function () {
             self.connection.sendIQ(accept,
-                function () {
-                    var ack = {};
-                    ack.source = 'answer';
-                    $(document).trigger('ack.jingle', [self.sid, ack]);
-                },
+                null,
                 self.newJingleErrorHandler(accept),
                 IQ_TIMEOUT);
         },
@@ -335,10 +331,6 @@ JingleSessionPC.prototype.sendIceCandidate = function (candidate) {
         this.lasticecandidate = true;
         logger.log('Have we encountered any srflx candidates? ' + this.hadstuncandidate);
         logger.log('Have we encountered any relay candidates? ' + this.hadturncandidate);
-
-        if (!(this.hadstuncandidate || this.hadturncandidate) && this.peerconnection.signalingState != 'closed') {
-            $(document).trigger('nostuncandidates.jingle', [this.sid]);
-        }
     }
 };
 
