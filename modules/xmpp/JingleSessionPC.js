@@ -17,7 +17,6 @@ function JingleSessionPC(me, sid, connection, service) {
     this.initiator = null;
     this.responder = null;
     this.peerjid = null;
-    this.state = null;
     this.localSDP = null;
     this.remoteSDP = null;
 
@@ -260,10 +259,6 @@ JingleSessionPC.prototype.terminate = function (reason) {
     this.state = 'ended';
     this.reason = reason;
     this.peerconnection.close();
-};
-
-JingleSessionPC.prototype.active = function () {
-    return this.state == 'active';
 };
 
 JingleSessionPC.prototype.sendIceCandidate = function (candidate) {

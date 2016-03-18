@@ -51,6 +51,9 @@ function JingleSession(me, sid, connection, service, eventEmitter) {
 
     // The chat room instance associated with the session.
     this.room = null;
+
+    // Jingle session state - uninitialized until 'initialize' is called
+    this.state = null;
 }
 
 /**
@@ -88,6 +91,16 @@ JingleSession.prototype.doInitialize = function() {};
  * Note: currently only used on transport-info
  */
 JingleSession.prototype.addIceCandidates = function(contents) {};
+
+/**
+ * Checks if this JingleSession is in 'active' state which means that the call
+ * is in progress.
+ * @returns {boolean} <tt>true</tt> if this JingleSession is in 'active' state
+ *          or <tt>false</tt> otherwise.
+ */
+JingleSession.prototype.active = function () {
+    return this.state === 'active';
+};
 
 /**
  * Handles an 'add-source' event.
