@@ -856,6 +856,7 @@ function setupListeners(conference) {
         if (conference.room.isFocus(jingleSession.peerjid)) {
             // Accept incoming call
             conference.room.setJingleSession(jingleSession);
+            jingleSession.initialize(false /* initiator */, conference.room);
             conference.rtc.onIncommingCall(jingleSession);
             jingleSession.acceptOffer(jingleOffer, null,
                 function (error) {
