@@ -11,26 +11,24 @@ var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var RTCBrowserType = require("../RTC/RTCBrowserType");
 var RTC = require("../RTC/RTC");
 
+/**
+ * Constant tells how long we're going to wait for IQ response, before timeout
+ * error is  triggered.
+ * @type {number}
+ */
+var IQ_TIMEOUT = 10000;
+
 // Jingle stuff
-function JingleSessionPC(me, sid, connection, service) {
-    JingleSession.call(this, me, sid, connection, service);
-    this.initiator = null;
-    this.responder = null;
-    this.peerjid = null;
-    this.state = null;
+function JingleSessionPC(me, sid, peerjid, connection,
+                         media_constraints, ice_config, service, eventEmitter) {
+    JingleSession.call(this, me, sid, peerjid, connection,
+                       media_constraints, ice_config, service, eventEmitter);
     this.localSDP = null;
     this.remoteSDP = null;
-
-    this.usetrickle = true;
-    this.usepranswer = false; // early transport warmup -- mind you, this might fail. depends on webrtc issue 1718
 
     this.hadstuncandidate = false;
     this.hadturncandidate = false;
     this.lasticecandidate = false;
-
-    this.statsinterval = null;
-
-    this.reason = null;
 
     this.addssrc = [];
     this.removessrc = [];
@@ -51,13 +49,6 @@ function JingleSessionPC(me, sid, connection, service) {
     this.webrtcIceUdpDisable = !!this.service.options.webrtcIceUdpDisable;
     this.webrtcIceTcpDisable = !!this.service.options.webrtcIceTcpDisable;
 
-    /**
-     * The indicator which determines whether the (local) video has been muted
-     * in response to a user command in contrast to an automatic decision made
-     * by the application logic.
-     */
-    this.videoMuteByUser = false;
-
     this.modifySourcesQueue = async.queue(this._modifySources.bind(this), 1);
     // We start with the queue paused. We resume it when the signaling state is
     // stable and the ice connection state is connected.
@@ -67,14 +58,6 @@ function JingleSessionPC(me, sid, connection, service) {
 JingleSessionPC.prototype = JingleSession.prototype;
 JingleSessionPC.prototype.constructor = JingleSessionPC;
 
-
-JingleSessionPC.prototype.setOffer = function(offer) {
-    this.setRemoteDescription(offer, 'offer');
-};
-
-JingleSessionPC.prototype.setAnswer = function(answer) {
-    this.setRemoteDescription(answer, 'answer');
-};
 
 JingleSessionPC.prototype.updateModifySourcesQueue = function() {
     var signalingState = this.peerconnection.signalingState;
@@ -191,136 +174,10 @@ JingleSessionPC.prototype.doInitialize = function () {
                 self.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED);
                 break;
         }
-        onIceConnectionStateChange(self.sid, self);
     };
     this.peerconnection.onnegotiationneeded = function (event) {
         self.room.eventEmitter.emit(XMPPEvents.PEERCONNECTION_READY, self);
     };
-};
-
-function onIceConnectionStateChange(sid, session) {
-    switch (session.peerconnection.iceConnectionState) {
-        case 'checking':
-            session.timeChecking = (new Date()).getTime();
-            session.firstconnect = true;
-            break;
-        case 'completed': // on caller side
-        case 'connected':
-            if (session.firstconnect) {
-                session.firstconnect = false;
-                var metadata = {};
-                metadata.setupTime
-                    = (new Date()).getTime() - session.timeChecking;
-                session.peerconnection.getStats(function (res) {
-                    if(res && res.result) {
-                        res.result().forEach(function (report) {
-                            if (report.type == 'googCandidatePair' &&
-                                report.stat('googActiveConnection') == 'true') {
-                                metadata.localCandidateType
-                                    = report.stat('googLocalCandidateType');
-                                metadata.remoteCandidateType
-                                    = report.stat('googRemoteCandidateType');
-
-                                // log pair as well so we can get nice pie
-                                // charts
-                                metadata.candidatePair
-                                    = report.stat('googLocalCandidateType') +
-                                        ';' +
-                                        report.stat('googRemoteCandidateType');
-
-                                if (report.stat('googRemoteAddress').indexOf('[') === 0)
-                                {
-                                    metadata.ipv6 = true;
-                                }
-                            }
-                        });
-                    }
-                });
-            }
-            break;
-    }
-}
-
-JingleSessionPC.prototype.accept = function () {
-    this.state = 'active';
-
-    var pranswer = this.peerconnection.localDescription;
-    if (!pranswer || pranswer.type != 'pranswer') {
-        return;
-    }
-    logger.log('going from pranswer to answer');
-    if (this.usetrickle) {
-        // remove candidates already sent from session-accept
-        var lines = SDPUtil.find_lines(pranswer.sdp, 'a=candidate:');
-        for (var i = 0; i < lines.length; i++) {
-            pranswer.sdp = pranswer.sdp.replace(lines[i] + '\r\n', '');
-        }
-    }
-    while (SDPUtil.find_line(pranswer.sdp, 'a=inactive')) {
-        // FIXME: change any inactive to sendrecv or whatever they were originally
-        pranswer.sdp = pranswer.sdp.replace('a=inactive', 'a=sendrecv');
-    }
-    var prsdp = new SDP(pranswer.sdp);
-    if (this.webrtcIceTcpDisable) {
-        prsdp.removeTcpCandidates = true;
-    }
-    if (this.webrtcIceUdpDisable) {
-        prsdp.removeUdpCandidates = true;
-    }
-    var accept = $iq({to: this.peerjid,
-        type: 'set'})
-        .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
-            action: 'session-accept',
-            initiator: this.initiator,
-            responder: this.responder,
-            sid: this.sid });
-    // FIXME why do we generate session-accept in 3 different places ?
-    prsdp.toJingle(
-        accept,
-        this.initiator == this.me ? 'initiator' : 'responder');
-    var sdp = this.peerconnection.localDescription.sdp;
-    while (SDPUtil.find_line(sdp, 'a=inactive')) {
-        // FIXME: change any inactive to sendrecv or whatever they were originally
-        sdp = sdp.replace('a=inactive', 'a=sendrecv');
-    }
-    var self = this;
-    this.peerconnection.setLocalDescription(new RTCSessionDescription({type: 'answer', sdp: sdp}),
-        function () {
-            self.connection.sendIQ(accept,
-                function () {
-                    var ack = {};
-                    ack.source = 'answer';
-                    $(document).trigger('ack.jingle', [self.sid, ack]);
-                },
-                function (stanza) {
-                    var error = ($(stanza).find('error').length) ? {
-                        code: $(stanza).find('error').attr('code'),
-                        reason: $(stanza).find('error :first')[0].tagName
-                    }:{};
-                    error.source = 'answer';
-                    JingleSessionPC.onJingleError(self.sid, error);
-                },
-                10000);
-        },
-        function (e) {
-            logger.error('setLocalDescription failed', e);
-            self.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED);
-        }
-    );
-};
-
-JingleSessionPC.prototype.terminate = function (reason) {
-    this.state = 'ended';
-    this.reason = reason;
-    this.peerconnection.close();
-    if (this.statsinterval !== null) {
-        window.clearInterval(this.statsinterval);
-        this.statsinterval = null;
-    }
-};
-
-JingleSessionPC.prototype.active = function () {
-    return this.state == 'active';
 };
 
 JingleSessionPC.prototype.sendIceCandidate = function (candidate) {
@@ -340,79 +197,25 @@ JingleSessionPC.prototype.sendIceCandidate = function (candidate) {
             this.hadturncandidate = true;
         }
 
-        if (this.usetrickle) {
-            if (this.usedrip) {
-                if (this.drip_container.length === 0) {
-                    // start 20ms callout
-                    window.setTimeout(function () {
-                        if (self.drip_container.length === 0) return;
-                        self.sendIceCandidates(self.drip_container);
-                        self.drip_container = [];
-                    }, 20);
-
-                }
-                this.drip_container.push(candidate);
-                return;
-            } else {
-                self.sendIceCandidates([candidate]);
-                // FIXME this.lasticecandidate is going to be set to true
-                // bellow and that seems wrong. The execution doesn't come here
-                // with the default values at the time of this writing.
+        if (this.usedrip) {
+            if (this.drip_container.length === 0) {
+                // start 20ms callout
+                window.setTimeout(function () {
+                    if (self.drip_container.length === 0) return;
+                    self.sendIceCandidates(self.drip_container);
+                    self.drip_container = [];
+                }, 20);
             }
+            this.drip_container.push(candidate);
+        } else {
+            self.sendIceCandidates([candidate]);
         }
     } else {
-        //logger.log('sendIceCandidate: last candidate.');
-        if (!this.usetrickle) {
-            //logger.log('should send full offer now...');
-            //FIXME why do we generate session-accept in 3 different places ?
-            var init = $iq({to: this.peerjid,
-                type: 'set'})
-                .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
-                    action: this.peerconnection.localDescription.type == 'offer' ? 'session-initiate' : 'session-accept',
-                    initiator: this.initiator,
-                    sid: this.sid});
-            this.localSDP = new SDP(this.peerconnection.localDescription.sdp);
-            if (self.webrtcIceTcpDisable) {
-                this.localSDP.removeTcpCandidates = true;
-            }
-            if (self.webrtcIceUdpDisable) {
-                this.localSDP.removeUdpCandidates = true;
-            }
-            var sendJingle = function (ssrc) {
-                if(!ssrc)
-                    ssrc = {};
-                self.localSDP.toJingle(
-                    init,
-                    self.initiator == self.me ? 'initiator' : 'responder',
-                    ssrc);
-                self.connection.sendIQ(init,
-                    function () {
-                        //logger.log('session initiate ack');
-                        var ack = {};
-                        ack.source = 'offer';
-                        $(document).trigger('ack.jingle', [self.sid, ack]);
-                    },
-                    function (stanza) {
-                        self.state = 'error';
-                        self.peerconnection.close();
-                        var error = ($(stanza).find('error').length) ? {
-                            code: $(stanza).find('error').attr('code'),
-                            reason: $(stanza).find('error :first')[0].tagName,
-                        }:{};
-                        error.source = 'offer';
-                        JingleSessionPC.onJingleError(self.sid, error);
-                    },
-                    10000);
-            };
-            sendJingle();
-        }
+        logger.log('sendIceCandidate: last candidate.');
+        // FIXME: remember to re-think in ICE-restart
         this.lasticecandidate = true;
         logger.log('Have we encountered any srflx candidates? ' + this.hadstuncandidate);
         logger.log('Have we encountered any relay candidates? ' + this.hadturncandidate);
-
-        if (!(this.hadstuncandidate || this.hadturncandidate) && this.peerconnection.signalingState != 'closed') {
-            $(document).trigger('nostuncandidates.jingle', [this.sid]);
-        }
     }
 };
 
@@ -454,21 +257,8 @@ JingleSessionPC.prototype.sendIceCandidates = function (candidates) {
     }
     // might merge last-candidate notification into this, but it is called alot later. See webrtc issue #2340
     //logger.log('was this the last candidate', this.lasticecandidate);
-    this.connection.sendIQ(cand,
-        function () {
-            var ack = {};
-            ack.source = 'transportinfo';
-            $(document).trigger('ack.jingle', [this.sid, ack]);
-        },
-        function (stanza) {
-            var error = ($(stanza).find('error').length) ? {
-                code: $(stanza).find('error').attr('code'),
-                reason: $(stanza).find('error :first')[0].tagName,
-            }:{};
-            error.source = 'transportinfo';
-            JingleSessionPC.onJingleError(this.sid, error);
-        },
-        10000);
+    this.connection.sendIQ(
+        cand, null, this.newJingleErrorHandler(cand), IQ_TIMEOUT);
 };
 
 JingleSessionPC.prototype.readSsrcInfo = function (contents) {
@@ -489,7 +279,18 @@ JingleSessionPC.prototype.readSsrcInfo = function (contents) {
     });
 };
 
-JingleSessionPC.prototype.setRemoteDescription = function (elem, desctype) {
+JingleSessionPC.prototype.acceptOffer = function(jingleOffer,
+                                                 success, failure) {
+    this.state = 'active';
+    this.setRemoteDescription(jingleOffer, 'offer',
+        function() {
+            this.sendAnswer(success, failure);
+        }.bind(this),
+        failure);
+};
+
+JingleSessionPC.prototype.setRemoteDescription = function (elem, desctype,
+                                                           success, failure) {
     //logger.log('setting remote description... ', desctype);
     this.remoteSDP = new SDP('');
     if (this.webrtcIceTcpDisable) {
@@ -501,205 +302,46 @@ JingleSessionPC.prototype.setRemoteDescription = function (elem, desctype) {
 
     this.remoteSDP.fromJingle(elem);
     this.readSsrcInfo($(elem).find(">content"));
-    var pcremotedesc = this.peerconnection.remoteDescription;
-    if (pcremotedesc) {
-        logger.log('setRemoteDescription when remote description is not null, should be pranswer', pcremotedesc);
-        if (pcremotedesc.type == 'pranswer') {
-            var pranswer = new SDP(pcremotedesc.sdp);
-            for (var i = 0; i < pranswer.media.length; i++) {
-                // make sure we have ice ufrag and pwd
-                if (!SDPUtil.find_line(this.remoteSDP.media[i], 'a=ice-ufrag:', this.remoteSDP.session)) {
-                    var ice_ufrag_line = SDPUtil.find_line(pranswer.media[i], 'a=ice-ufrag:', pranswer.session);
-                    if (ice_ufrag_line) {
-                        this.remoteSDP.media[i] += ice_ufrag_line + '\r\n';
-                    } else {
-                        logger.warn('no ice ufrag?');
-                    }
-                    var ice_pwd_line = SDPUtil.find_line(pranswer.media[i], 'a=ice-pwd:', pranswer.session);
-                    if (ice_pwd_line) {
-                        this.remoteSDP.media[i] += ice_pwd_line + '\r\n';
-                    } else {
-                        logger.warn('no ice pwd?');
-                    }
-                }
-                // copy over candidates
-                var lines = SDPUtil.find_lines(pranswer.media[i], 'a=candidate:');
-                for (var j = 0; j < lines.length; j++) {
-                    this.remoteSDP.media[i] += lines[j] + '\r\n';
-                }
-            }
-            this.remoteSDP.raw = this.remoteSDP.session + this.remoteSDP.media.join('');
-        }
-    }
     var remotedesc = new RTCSessionDescription({type: desctype, sdp: this.remoteSDP.raw});
 
     this.peerconnection.setRemoteDescription(remotedesc,
         function () {
             //logger.log('setRemoteDescription success');
+            if (success) {
+                success();
+            }
         },
         function (e) {
             logger.error('setRemoteDescription error', e);
-            JingleSessionPC.onJingleFatalError(self, e);
-        }
+            if (failure)
+                failure(e);
+            JingleSessionPC.onJingleFatalError(this, e);
+        }.bind(this)
     );
 };
 
-/**
- * Adds remote ICE candidates to this Jingle session.
- * @param elem An array of Jingle "content" elements?
- */
-JingleSessionPC.prototype.addIceCandidate = function (elem) {
-    var self = this;
-    if (this.peerconnection.signalingState == 'closed') {
-        return;
-    }
-    if (!this.peerconnection.remoteDescription && this.peerconnection.signalingState == 'have-local-offer') {
-        logger.log('trickle ice candidate arriving before session accept...');
-        // create a PRANSWER for setRemoteDescription
-        if (!this.remoteSDP) {
-            var cobbled = 'v=0\r\n' +
-                'o=- 1923518516 2 IN IP4 0.0.0.0\r\n' +// FIXME
-                's=-\r\n' +
-                't=0 0\r\n';
-            // first, take some things from the local description
-            for (var i = 0; i < this.localSDP.media.length; i++) {
-                cobbled += SDPUtil.find_line(this.localSDP.media[i], 'm=') + '\r\n';
-                cobbled += SDPUtil.find_lines(this.localSDP.media[i], 'a=rtpmap:').join('\r\n') + '\r\n';
-                var mid_line = SDPUtil.find_line(this.localSDP.media[i], 'a=mid:');
-                if (mid_line) {
-                    cobbled += mid_line + '\r\n';
-                }
-                cobbled += 'a=inactive\r\n';
-            }
-            this.remoteSDP = new SDP(cobbled);
-        }
-        // then add things like ice and dtls from remote candidate
-        elem.each(function () {
-            for (var i = 0; i < self.remoteSDP.media.length; i++) {
-                if (SDPUtil.find_line(self.remoteSDP.media[i], 'a=mid:' + $(this).attr('name')) ||
-                    self.remoteSDP.media[i].indexOf('m=' + $(this).attr('name')) === 0) {
-                    if (!SDPUtil.find_line(self.remoteSDP.media[i], 'a=ice-ufrag:')) {
-                        var tmp = $(this).find('transport');
-                        self.remoteSDP.media[i] += 'a=ice-ufrag:' + tmp.attr('ufrag') + '\r\n';
-                        self.remoteSDP.media[i] += 'a=ice-pwd:' + tmp.attr('pwd') + '\r\n';
-                        tmp = $(this).find('transport>fingerprint');
-                        if (tmp.length) {
-                            self.remoteSDP.media[i] += 'a=fingerprint:' + tmp.attr('hash') + ' ' + tmp.text() + '\r\n';
-                        } else {
-                            logger.log('no dtls fingerprint (webrtc issue #1718?)');
-                            self.remoteSDP.media[i] += 'a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:BAADBAADBAADBAADBAADBAADBAADBAADBAADBAAD\r\n';
-                        }
-                        break;
-                    }
-                }
-            }
-        });
-        this.remoteSDP.raw = this.remoteSDP.session + this.remoteSDP.media.join('');
-
-        // we need a complete SDP with ice-ufrag/ice-pwd in all parts
-        // this makes the assumption that the PRANSWER is constructed such that the ice-ufrag is in all mediaparts
-        // but it could be in the session part as well. since the code above constructs this sdp this can't happen however
-        var iscomplete = this.remoteSDP.media.filter(function (mediapart) {
-            return SDPUtil.find_line(mediapart, 'a=ice-ufrag:');
-        }).length == this.remoteSDP.media.length;
-
-        if (iscomplete) {
-            logger.log('setting pranswer');
-            try {
-                this.peerconnection.setRemoteDescription(new RTCSessionDescription({type: 'pranswer', sdp: this.remoteSDP.raw }),
-                    function() {
-                    },
-                    function(e) {
-                        logger.log('setRemoteDescription pranswer failed', e.toString());
-                    });
-            } catch (e) {
-                logger.error('setting pranswer failed', e);
-            }
-        } else {
-            //logger.log('not yet setting pranswer');
-        }
-    }
-    // operate on each content element
-    elem.each(function () {
-        // would love to deactivate this, but firefox still requires it
-        var idx = -1;
-        var i;
-        for (i = 0; i < self.remoteSDP.media.length; i++) {
-            if (SDPUtil.find_line(self.remoteSDP.media[i], 'a=mid:' + $(this).attr('name')) ||
-                self.remoteSDP.media[i].indexOf('m=' + $(this).attr('name')) === 0) {
-                idx = i;
-                break;
-            }
-        }
-        if (idx == -1) { // fall back to localdescription
-            for (i = 0; i < self.localSDP.media.length; i++) {
-                if (SDPUtil.find_line(self.localSDP.media[i], 'a=mid:' + $(this).attr('name')) ||
-                    self.localSDP.media[i].indexOf('m=' + $(this).attr('name')) === 0) {
-                    idx = i;
-                    break;
-                }
-            }
-        }
-        var name = $(this).attr('name');
-        // TODO: check ice-pwd and ice-ufrag?
-        $(this).find('transport>candidate').each(function () {
-            var line, candidate;
-            var protocol = this.getAttribute('protocol');
-            protocol =
-                (typeof protocol === 'string') ? protocol.toLowerCase() : '';
-            if ((self.webrtcIceTcpDisable && protocol == 'tcp') ||
-                (self.webrtcIceUdpDisable && protocol == 'udp')) {
-                return;
-            }
-
-            line = SDPUtil.candidateFromJingle(this);
-            candidate = new RTCIceCandidate({sdpMLineIndex: idx,
-                sdpMid: name,
-                candidate: line});
-            try {
-                self.peerconnection.addIceCandidate(candidate);
-            } catch (e) {
-                logger.error('addIceCandidate failed', e.toString(), line);
-                self.room.eventEmitter.emit(XMPPEvents.ADD_ICE_CANDIDATE_FAILED,
-                    err, self.peerconnection);
-            }
-        });
-    });
-};
-
-JingleSessionPC.prototype.sendAnswer = function (provisional) {
-    //logger.log('createAnswer', provisional);
-    var self = this;
+JingleSessionPC.prototype.sendAnswer = function (success, failure) {
+    //logger.log('createAnswer');
     this.peerconnection.createAnswer(
         function (sdp) {
-            self.createdAnswer(sdp, provisional);
-        },
-        function (e) {
-            logger.error('createAnswer failed', e);
-            self.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED);
-        },
+            this.createdAnswer(sdp, success, failure);
+        }.bind(this),
+        function (error) {
+            logger.error("createAnswer failed", error);
+            if (failure)
+                failure(error);
+            this.room.eventEmitter.emit(
+                    XMPPEvents.CONFERENCE_SETUP_FAILED, error);
+        }.bind(this),
         this.media_constraints
     );
 };
 
-JingleSessionPC.prototype.createdAnswer = function (sdp, provisional) {
+JingleSessionPC.prototype.createdAnswer = function (sdp, success, failure) {
     //logger.log('createAnswer callback');
     var self = this;
     this.localSDP = new SDP(sdp.sdp);
-    //this.localSDP.mangle();
-    this.usepranswer = provisional === true;
-    if (this.usetrickle) {
-        if (this.usepranswer) {
-            sdp.type = 'pranswer';
-            for (var i = 0; i < this.localSDP.media.length; i++) {
-                this.localSDP.media[i] = this.localSDP.media[i].replace('a=sendrecv\r\n', 'a=inactive\r\n');
-            }
-            this.localSDP.raw = this.localSDP.session + '\r\n' + this.localSDP.media.join('');
-        }
-    }
-    var self = this;
     var sendJingle = function (ssrcs) {
-                // FIXME why do we generate session-accept in 3 different places ?
                 var accept = $iq({to: self.peerjid,
                     type: 'set'})
                     .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
@@ -719,32 +361,20 @@ JingleSessionPC.prototype.createdAnswer = function (sdp, provisional) {
                     ssrcs);
                 self.fixJingle(accept);
                 self.connection.sendIQ(accept,
-                    function () {
-                        var ack = {};
-                        ack.source = 'answer';
-                        $(document).trigger('ack.jingle', [self.sid, ack]);
-                    },
-                    function (stanza) {
-                        var error = ($(stanza).find('error').length) ? {
-                            code: $(stanza).find('error').attr('code'),
-                            reason: $(stanza).find('error :first')[0].tagName,
-                        }:{};
-                        error.source = 'answer';
-                        JingleSessionPC.onJingleError(self.sid, error);
-                    },
-                    10000);
-    }
+                    success,
+                    self.newJingleErrorHandler(accept, failure),
+                    IQ_TIMEOUT);
+    };
     sdp.sdp = this.localSDP.raw;
     this.peerconnection.setLocalDescription(sdp,
         function () {
-
             //logger.log('setLocalDescription success');
-            if (self.usetrickle && !self.usepranswer) {
-                sendJingle();
-            }
+            sendJingle(success, failure);
         },
-        function (e) {
-            logger.error('setLocalDescription failed', e);
+        function (error) {
+            logger.error('setLocalDescription failed', error);
+            if (failure)
+                failure(error);
             self.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED);
         }
     );
@@ -759,42 +389,39 @@ JingleSessionPC.prototype.createdAnswer = function (sdp, provisional) {
     }
 };
 
-JingleSessionPC.prototype.sendTerminate = function (reason, text) {
-    var self = this,
-        term = $iq({to: this.peerjid,
-            type: 'set'})
-            .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
-                action: 'session-terminate',
-                initiator: this.initiator,
-                sid: this.sid})
-            .c('reason')
-            .c(reason || 'success');
+JingleSessionPC.prototype.terminate = function (reason,  text,
+                                                success, failure) {
+    var term = $iq({to: this.peerjid,
+        type: 'set'})
+        .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
+            action: 'session-terminate',
+            initiator: this.initiator,
+            sid: this.sid})
+        .c('reason')
+        .c(reason || 'success');
 
     if (text) {
         term.up().c('text').t(text);
     }
 
-    this.connection.sendIQ(term,
-        function () {
-            self.peerconnection.close();
-            self.peerconnection = null;
-            self.terminate();
-            var ack = {};
-            ack.source = 'terminate';
-            $(document).trigger('ack.jingle', [self.sid, ack]);
-        },
-        function (stanza) {
-            var error = ($(stanza).find('error').length) ? {
-                code: $(stanza).find('error').attr('code'),
-                reason: $(stanza).find('error :first')[0].tagName,
-            }:{};
-            $(document).trigger('ack.jingle', [self.sid, error]);
-        },
-        10000);
-    if (this.statsinterval !== null) {
-        window.clearInterval(this.statsinterval);
-        this.statsinterval = null;
-    }
+    this.connection.sendIQ(
+        term, success, this.newJingleErrorHandler(term, failure), IQ_TIMEOUT);
+
+    // this should result in 'onTerminated' being called by strope.jingle.js
+    this.connection.jingle.terminate(this.sid);
+};
+
+JingleSessionPC.prototype.onTerminated = function (reasonCondition,
+                                                   reasonText) {
+    this.state = 'ended';
+
+    // Do something with reason and reasonCondition when we start to care
+    //this.reasonCondition = reasonCondition;
+    //this.reasonText = reasonText;
+    logger.info("Session terminated", this, reasonCondition, reasonText);
+
+    if (this.peerconnection)
+        this.peerconnection.close();
 };
 
 /**
@@ -1224,14 +851,8 @@ JingleSessionPC.prototype.notifyMySSRCUpdate = function (old_sdp, new_sdp) {
 
     if (removed && remove) {
         logger.info("Sending source-remove", remove.tree());
-        this.connection.sendIQ(remove,
-            function (res) {
-                logger.info('got remove result', res);
-            },
-            function (err) {
-                logger.error('got remove error', err);
-            }
-        );
+        this.connection.sendIQ(
+            remove, null, this.newJingleErrorHandler(remove), IQ_TIMEOUT);
     } else {
         logger.log('removal not necessary');
     }
@@ -1252,111 +873,71 @@ JingleSessionPC.prototype.notifyMySSRCUpdate = function (old_sdp, new_sdp) {
 
     if (added && add) {
         logger.info("Sending source-add", add.tree());
-        this.connection.sendIQ(add,
-            function (res) {
-                logger.info('got add result', res);
-            },
-            function (err) {
-                logger.error('got add error', err);
-            }
-        );
+        this.connection.sendIQ(
+            add, null, this.newJingleErrorHandler(add), IQ_TIMEOUT);
     } else {
         logger.log('addition not necessary');
     }
 };
 
-JingleSessionPC.prototype.getStats = function (interval) {
-    var self = this;
-    var recv = {audio: 0, video: 0};
-    var lost = {audio: 0, video: 0};
-    var lastrecv = {audio: 0, video: 0};
-    var lastlost = {audio: 0, video: 0};
-    var loss = {audio: 0, video: 0};
-    var delta = {audio: 0, video: 0};
-    this.statsinterval = window.setInterval(function () {
-        if (self && self.peerconnection && self.peerconnection.getStats) {
-            self.peerconnection.getStats(function (stats) {
-                var results = stats.result();
-                // TODO: there are so much statistics you can get from this..
-                for (var i = 0; i < results.length; ++i) {
-                    if (results[i].type == 'ssrc') {
-                        var packetsrecv = results[i].stat('packetsReceived');
-                        var packetslost = results[i].stat('packetsLost');
-                        if (packetsrecv && packetslost) {
-                            packetsrecv = parseInt(packetsrecv, 10);
-                            packetslost = parseInt(packetslost, 10);
+/**
+ * Method returns function(errorResponse) which is a callback to be passed to
+ * Strophe connection.sendIQ method. An 'error' structure is created that is
+ * passed as 1st argument to given <tt>failureCb</tt>. The format of this
+ * structure is as follows:
+ * {
+ *  code: {XMPP error response code}
+ *  reason: {the name of XMPP error reason element or 'timeout' if the request
+ *           has timed out within <tt>IQ_TIMEOUT</tt> milliseconds}
+ *  source: {request.tree() that provides original request}
+ *  session: {JingleSessionPC instance on which the error occurred}
+ * }
+ * @param request Strophe IQ instance which is the request to be dumped into
+ *        the error structure
+ * @param failureCb function(error) called when error response was returned or
+ *        when a timeout has occurred.
+ * @returns {function(this:JingleSessionPC)}
+ */
+JingleSessionPC.prototype.newJingleErrorHandler = function(request, failureCb) {
+    return function (errResponse) {
 
-                            if (results[i].stat('googFrameRateReceived')) {
-                                lastlost.video = lost.video;
-                                lastrecv.video = recv.video;
-                                recv.video = packetsrecv;
-                                lost.video = packetslost;
-                            } else {
-                                lastlost.audio = lost.audio;
-                                lastrecv.audio = recv.audio;
-                                recv.audio = packetsrecv;
-                                lost.audio = packetslost;
-                            }
-                        }
-                    }
-                }
-                delta.audio = recv.audio - lastrecv.audio;
-                delta.video = recv.video - lastrecv.video;
-                loss.audio = (delta.audio > 0) ? Math.ceil(100 * (lost.audio - lastlost.audio) / delta.audio) : 0;
-                loss.video = (delta.video > 0) ? Math.ceil(100 * (lost.video - lastlost.video) / delta.video) : 0;
-                $(document).trigger('packetloss.jingle', [self.sid, loss]);
-            });
+        var error = { };
+
+        // Get XMPP error code and condition(reason)
+        var errorElSel = $(errResponse).find('error');
+        if (errorElSel.length) {
+            error.code = errorElSel.attr('code');
+            var errorReasonSel = $(errResponse).find('error :first');
+            if (errorReasonSel.length)
+                error.reason = errorReasonSel[0].tagName;
         }
-    }, interval || 3000);
-    return this.statsinterval;
-};
 
-JingleSessionPC.onJingleError = function (session, error)
-{
-    logger.error("Jingle error", error);
-}
+        if (!errResponse) {
+            error.reason = 'timeout';
+        }
+
+        error.source = null;
+        if (request && "function" == typeof request.tree) {
+            error.source = request.tree();
+        }
+
+        error.session = this;
+
+        logger.error("Jingle error", error);
+        if (failureCb) {
+            failureCb(error);
+        }
+
+        this.room.eventEmitter.emit(XMPPEvents.JINGLE_ERROR, error);
+
+    }.bind(this);
+};
 
 JingleSessionPC.onJingleFatalError = function (session, error)
 {
     this.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED);
     this.room.eventEmitter.emit(XMPPEvents.JINGLE_FATAL_ERROR, session, error);
-}
-
-// an attempt to work around https://github.com/jitsi/jitmeet/issues/32
-JingleSessionPC.prototype.sendKeyframe = function () {
-    var pc = this.peerconnection;
-    logger.log('sendkeyframe', pc.iceConnectionState);
-    if (pc.iceConnectionState !== 'connected') return; // safe...
-    var self = this;
-    pc.setRemoteDescription(
-        pc.remoteDescription,
-        function () {
-            pc.createAnswer(
-                function (modifiedAnswer) {
-                    pc.setLocalDescription(
-                        modifiedAnswer,
-                        function () {
-                            // noop
-                        },
-                        function (error) {
-                            logger.log('triggerKeyframe setLocalDescription failed', error);
-                            self.room.eventEmitter.emit(XMPPEvents.SET_LOCAL_DESCRIPTION_ERROR);
-                        }
-                    );
-                },
-                function (error) {
-                    logger.log('triggerKeyframe createAnswer failed', error);
-                    self.room.eventEmitter.emit(XMPPEvents.CREATE_ANSWER_ERROR);
-                }
-            );
-        },
-        function (error) {
-            logger.log('triggerKeyframe setRemoteDescription failed', error);
-            eventEmitter.emit(XMPPEvents.SET_REMOTE_DESCRIPTION_ERROR);
-        }
-    );
-}
-
+};
 
 JingleSessionPC.prototype.remoteStreamAdded = function (data, times) {
     var self = this;
@@ -1397,18 +978,7 @@ JingleSessionPC.prototype.remoteStreamAdded = function (data, times) {
     }
 
     this.room.remoteStreamAdded(data, this.sid, thessrc);
-
-    var isVideo = data.stream.getVideoTracks().length > 0;
-    // an attempt to work around https://github.com/jitsi/jitmeet/issues/32
-    if (isVideo &&
-        data.peerjid && this.peerjid === data.peerjid &&
-        data.stream.getVideoTracks().length === 0 &&
-        RTC.localVideo.getTracks().length > 0) {
-        window.setTimeout(function () {
-            self.sendKeyframe();
-        }, 3000);
-    }
-}
+};
 
 /**
  * Handles remote stream removal.
@@ -1422,7 +992,7 @@ JingleSessionPC.prototype.remoteStreamRemoved = function (event) {
     } else if (streamId && streamId.indexOf('mixedmslabel') === -1) {
         this.room.eventEmitter.emit(XMPPEvents.REMOTE_STREAM_REMOVED, streamId);
     }
-}
+};
 
 /**
  * Returns the ice connection state for the peer connection.
@@ -1430,7 +1000,7 @@ JingleSessionPC.prototype.remoteStreamRemoved = function (event) {
  */
 JingleSessionPC.prototype.getIceConnectionState = function () {
     return this.peerconnection.iceConnectionState;
-}
+};
 
 
 /**
@@ -1456,7 +1026,7 @@ JingleSessionPC.prototype.fixJingle = function(jingle) {
 
     var sources = $(jingle.tree()).find(">jingle>content>description>source");
     return sources && sources.length > 0;
-}
+};
 
 /**
  * Fixes the outgoing jingle packets with action source-add by removing the
@@ -1519,7 +1089,7 @@ JingleSessionPC.prototype.fixSourceAddJingle = function (jingle) {
             });
         });
     }
-}
+};
 
 /**
  * Fixes the outgoing jingle packets with action source-remove by removing the
@@ -1574,7 +1144,7 @@ JingleSessionPC.prototype.fixSourceRemoveJingle = function(jingle) {
                 }
             });
         });
-}
+};
 
 /**
  * Returns the description node related to the passed content type. If the node

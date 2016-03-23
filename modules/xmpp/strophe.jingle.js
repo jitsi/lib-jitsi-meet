@@ -61,18 +61,20 @@ module.exports = function(XMPP, eventEmitter) {
             logger.log('on jingle ' + action + ' from ' + fromJid, iq);
             var sess = this.sessions[sid];
             if ('session-initiate' != action) {
-                if (sess === null) {
-                    ack.type = 'error';
+                if (!sess) {
+                    ack.attrs({ type: 'error' });
                     ack.c('error', {type: 'cancel'})
                         .c('item-not-found', {xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas'}).up()
                         .c('unknown-session', {xmlns: 'urn:xmpp:jingle:errors:1'});
+                    logger.warn('invalid session id', iq);
                     this.connection.send(ack);
                     return true;
                 }
                 // local jid is not checked
                 if (fromJid != sess.peerjid) {
-                    logger.warn('jid mismatch for session id', sid, fromJid, sess.peerjid);
-                    ack.type = 'error';
+                    logger.warn(
+                        'jid mismatch for session id', sid, sess.peerjid, iq);
+                    ack.attrs({ type: 'error' });
                     ack.c('error', {type: 'cancel'})
                         .c('item-not-found', {xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas'}).up()
                         .c('unknown-session', {xmlns: 'urn:xmpp:jingle:errors:1'});
@@ -82,15 +84,13 @@ module.exports = function(XMPP, eventEmitter) {
             } else if (sess !== undefined) {
                 // existing session with same session id
                 // this might be out-of-order if the sess.peerjid is the same as from
-                ack.type = 'error';
+                ack.attrs({ type: 'error' });
                 ack.c('error', {type: 'cancel'})
                     .c('service-unavailable', {xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas'}).up();
-                logger.warn('duplicate session id', sid);
+                logger.warn('duplicate session id', sid, iq);
                 this.connection.send(ack);
                 return true;
             }
-            // FIXME: check for a defined action
-            this.connection.send(ack);
             // see http://xmpp.org/extensions/xep-0166.html#concepts-session
             switch (action) {
                 case 'session-initiate':
@@ -104,73 +104,40 @@ module.exports = function(XMPP, eventEmitter) {
                                 audioMuted === "true", videoMuted === "true");
                     }
                     sess = new JingleSession(
-                        $(iq).attr('to'), $(iq).find('jingle').attr('sid'),
-                        this.connection, XMPP);
-                    // configure session
-
-                    var fromBareJid = Strophe.getBareJidFromJid(fromJid);
-                    this.connection.emuc.setJingleSession(fromBareJid, sess);
-
-                    sess.media_constraints = this.media_constraints;
-                    sess.ice_config = this.ice_config;
-
-                    sess.initialize(fromJid, false);
-                    eventEmitter.emit(XMPPEvents.CALL_INCOMING, sess);
-                    // FIXME: setRemoteDescription should only be done when this call is to be accepted
-                    sess.setOffer($(iq).find('>jingle'));
+                            $(iq).attr('to'), $(iq).find('jingle').attr('sid'),
+                            fromJid,
+                            this.connection,
+                            this.media_constraints,
+                            this.ice_config, XMPP);
 
                     this.sessions[sess.sid] = sess;
                     this.jid2session[sess.peerjid] = sess;
 
-                    // the callback should either
-                    // .sendAnswer and .accept
-                    // or .sendTerminate -- not necessarily synchronous
-
-                    sess.sendAnswer();
-                    sess.accept();
-                    break;
-                case 'session-accept':
-                    sess.setAnswer($(iq).find('>jingle'));
-                    sess.accept();
+                    var jingleOffer = $(iq).find('>jingle');
+                    // FIXME there's no nice way with event to get the reason
+                    // why the call was rejected
+                    eventEmitter.emit(XMPPEvents.CALL_INCOMING, sess, jingleOffer);
+                    if (!sess.active())
+                    {
+                        // Call not accepted
+                        ack.attrs({ type: 'error' });
+                        ack.c('error', {type: 'cancel'})
+                           .c('bad-request',
+                            { xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas' })
+                            .up();
+                        this.terminate(sess.sid);
+                    }
                     break;
                 case 'session-terminate':
-                    // If this is not the focus sending the terminate, we have
-                    // nothing more to do here.
-                    if (Object.keys(this.sessions).length < 1
-                        || !(this.sessions[Object.keys(this.sessions)[0]]
-                            instanceof JingleSession))
-                    {
-                        break;
-                    }
                     logger.log('terminating...', sess.sid);
-                    sess.terminate();
-                    this.terminate(sess.sid);
+                    var reasonCondition = null;
+                    var reasonText = null;
                     if ($(iq).find('>jingle>reason').length) {
-                        $(document).trigger('callterminated.jingle', [
-                            sess.sid,
-                            sess.peerjid,
-                            $(iq).find('>jingle>reason>:first')[0].tagName,
-                            $(iq).find('>jingle>reason>text').text()
-                        ]);
-                    } else {
-                        $(document).trigger('callterminated.jingle',
-                            [sess.sid, sess.peerjid]);
+                        reasonCondition
+                            = $(iq).find('>jingle>reason>:first')[0].tagName;
+                        reasonText = $(iq).find('>jingle>reason>text').text();
                     }
-                    break;
-                case 'transport-info':
-                    sess.addIceCandidate($(iq).find('>jingle>content'));
-                    break;
-                case 'session-info':
-                    var affected;
-                    if ($(iq).find('>jingle>ringing[xmlns="urn:xmpp:jingle:apps:rtp:info:1"]').length) {
-                        $(document).trigger('ringing.jingle', [sess.sid]);
-                    } else if ($(iq).find('>jingle>mute[xmlns="urn:xmpp:jingle:apps:rtp:info:1"]').length) {
-                        affected = $(iq).find('>jingle>mute[xmlns="urn:xmpp:jingle:apps:rtp:info:1"]').attr('name');
-                        $(document).trigger('mute.jingle', [sess.sid, affected]);
-                    } else if ($(iq).find('>jingle>unmute[xmlns="urn:xmpp:jingle:apps:rtp:info:1"]').length) {
-                        affected = $(iq).find('>jingle>unmute[xmlns="urn:xmpp:jingle:apps:rtp:info:1"]').attr('name');
-                        $(document).trigger('unmute.jingle', [sess.sid, affected]);
-                    }
+                    this.terminate(sess.sid, reasonCondition, reasonText);
                     break;
                 case 'addsource': // FIXME: proprietary, un-jingleish
                 case 'source-add': // FIXME: proprietary
@@ -182,24 +149,20 @@ module.exports = function(XMPP, eventEmitter) {
                     break;
                 default:
                     logger.warn('jingle action not implemented', action);
+                    ack.attrs({ type: 'error' });
+                    ack.c('error', {type: 'cancel'})
+                        .c('bad-request',
+                            { xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas' })
+                        .up();
                     break;
             }
+            this.connection.send(ack);
             return true;
         },
-        terminate: function (sid, reason, text) { // terminate by sessionid (or all sessions)
-            if (sid === null || sid === undefined) {
-                for (sid in this.sessions) {
-                    if (this.sessions[sid].state != 'ended') {
-                        this.sessions[sid].sendTerminate(reason || (!this.sessions[sid].active()) ? 'cancel' : null, text);
-                        this.sessions[sid].terminate();
-                    }
-                    delete this.jid2session[this.sessions[sid].peerjid];
-                    delete this.sessions[sid];
-                }
-            } else if (this.sessions.hasOwnProperty(sid)) {
+        terminate: function (sid, reasonCondition, reasonText) {
+            if (this.sessions.hasOwnProperty(sid)) {
                 if (this.sessions[sid].state != 'ended') {
-                    this.sessions[sid].sendTerminate(reason || (!this.sessions[sid].active()) ? 'cancel' : null, text);
-                    this.sessions[sid].terminate();
+                    this.sessions[sid].onTerminated(reasonCondition, reasonText);
                 }
                 delete this.jid2session[this.sessions[sid].peerjid];
                 delete this.sessions[sid];
