@@ -16,7 +16,7 @@ var RTC = require("../RTC/RTC");
  * error is  triggered.
  * @type {number}
  */
-const IQ_TIMEOUT = 10000;
+var IQ_TIMEOUT = 10000;
 
 // Jingle stuff
 function JingleSessionPC(me, sid, peerjid, connection,
@@ -339,7 +339,7 @@ JingleSessionPC.prototype.sendAnswer = function (success, failure) {
 
 JingleSessionPC.prototype.createdAnswer = function (sdp, success, failure) {
     //logger.log('createAnswer callback');
-    const self = this;
+    var self = this;
     this.localSDP = new SDP(sdp.sdp);
     var sendJingle = function (ssrcs) {
                 var accept = $iq({to: self.peerjid,
@@ -886,10 +886,10 @@ JingleSessionPC.prototype.newJingleErrorHandler = function(request, failureCb) {
         var error = { };
 
         // Get XMPP error code and condition(reason)
-        const errorElSel = $(errResponse).find('error');
+        var errorElSel = $(errResponse).find('error');
         if (errorElSel.length) {
             error.code = errorElSel.attr('code');
-            const errorReasonSel = $(errResponse).find('error :first');
+            var errorReasonSel = $(errResponse).find('error :first');
             if (errorReasonSel.length)
                 error.reason = errorReasonSel[0].tagName;
         }
