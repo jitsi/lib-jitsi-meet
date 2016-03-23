@@ -880,6 +880,24 @@ JingleSessionPC.prototype.notifyMySSRCUpdate = function (old_sdp, new_sdp) {
     }
 };
 
+/**
+ * Method returns function(errorResponse) which is a callback to be passed to
+ * Strophe connection.sendIQ method. An 'error' structure is created that is
+ * passed as 1st argument to given <tt>failureCb</tt>. The format of this
+ * structure is as follows:
+ * {
+ *  code: {XMPP error response code}
+ *  reason: {the name of XMPP error reason element or 'timeout' if the request
+ *           has timed out within <tt>IQ_TIMEOUT</tt> milliseconds}
+ *  source: {request.tree() that provides original request}
+ *  session: {JingleSessionPC instance on which the error occurred}
+ * }
+ * @param request Strophe IQ instance which is the request to be dumped into
+ *        the error structure
+ * @param failureCb function(error) called when error response was returned or
+ *        when a timeout has occurred.
+ * @returns {function(this:JingleSessionPC)}
+ */
 JingleSessionPC.prototype.newJingleErrorHandler = function(request, failureCb) {
     return function (errResponse) {
 
@@ -894,7 +912,15 @@ JingleSessionPC.prototype.newJingleErrorHandler = function(request, failureCb) {
                 error.reason = errorReasonSel[0].tagName;
         }
 
-        error.source = request ? request.tree() : null;
+        if (!errResponse) {
+            error.reason = 'timeout';
+        }
+
+        error.source = null;
+        if (request && "function" == typeof request.tree) {
+            error.source = request.tree();
+        }
+
         error.session = this;
 
         logger.error("Jingle error", error);
