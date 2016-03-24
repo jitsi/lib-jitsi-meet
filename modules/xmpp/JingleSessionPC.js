@@ -426,6 +426,26 @@ JingleSessionPC.prototype.setLocalDescription = function (sdp, success,
 };
 
 /**
+ * Although it states "replace transport" it does accept full Jingle offer
+ * which should contain new ICE transport details.
+ * @param jingleOfferElem an element Jingle IQ that contains new offer and
+ *        transport info.
+ * @param success callback called when we succeed to accept new offer.
+ * @param failure function(error) called when we fail to accept new offer.
+ */
+JingleSessionPC.prototype.replaceTransport = function (jingleOfferElem,
+                                                       success,
+                                                       failure) {
+    // Set offer as RD
+    this.setOfferCycle(jingleOfferElem,
+        function () {
+            // Set local description OK, now localSDP up to date
+            this.sendTransportAccept(this.localSDP, success, failure);
+        }.bind(this),
+        failure);
+};
+
+/**
  * Sends Jingle 'session-accept' message.
  * @param localSDP the 'SDP' object with local session description
  * @param success callback called when we recive 'RESULT' packet for
@@ -461,6 +481,71 @@ JingleSessionPC.prototype.sendSessionAccept = function (localSDP,
     this.connection.sendIQ(accept,
         success,
         this.newJingleErrorHandler(accept, failure),
+        IQ_TIMEOUT);
+};
+
+/**
+ * Sends Jingle 'transport-accept' message which is a response to
+ * 'transport-replace'.
+ * @param localSDP the 'SDP' object with local session description
+ * @param success callback called when we receive 'RESULT' packet for
+ *        'transport-replace'
+ * @param failure function(error) called when we receive an error response or
+ *        when the request has timed out.
+ */
+JingleSessionPC.prototype.sendTransportAccept = function(localSDP, success,
+                                                         failure) {
+    var self = this;
+    var tAccept = $iq({to: this.peerjid, type: 'set'})
+        .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
+            action: 'transport-accept',
+            initiator: this.initiator,
+            sid: this.sid});
+
+    localSDP.media.forEach(function(medialines, idx){
+        var mline = SDPUtil.parse_mline(medialines.split('\r\n')[0]);
+        tAccept.c('content',
+            { creator: self.initiator == self.me ? 'initiator' : 'responder',
+              name: mline.media
+            }
+        );
+        localSDP.transportToJingle(idx, tAccept);
+        tAccept.up();
+    });
+
+    // Calling tree() to print something useful to the logger
+    tAccept = tAccept.tree();
+    console.info("Sending transport-accept: ", tAccept);
+
+    self.connection.sendIQ(tAccept,
+        success,
+        self.newJingleErrorHandler(tAccept, failure),
+        IQ_TIMEOUT);
+};
+
+/**
+ * Sends Jingle 'transport-reject' message which is a response to
+ * 'transport-replace'.
+ * @param success callback called when we receive 'RESULT' packet for
+ *        'transport-replace'
+ * @param failure function(error) called when we receive an error response or
+ *        when the request has timed out.
+ */
+JingleSessionPC.prototype.sendTransportReject = function(success, failure) {
+    // Send 'transport-reject', so that the focus will
+    // know that we've failed
+    var tReject = $iq({to: this.peerjid, type: 'set'})
+        .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
+            action: 'transport-reject',
+            initiator: this.initiator,
+            sid: this.sid});
+
+    tReject = tReject.tree();
+    logger.info("Sending 'transport-reject", tReject);
+
+    this.connection.sendIQ(tReject,
+        success,
+        this.newJingleErrorHandler(tReject, failure),
         IQ_TIMEOUT);
 };
 
