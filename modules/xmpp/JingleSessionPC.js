@@ -366,28 +366,28 @@ JingleSessionPC.prototype.createdAnswer = function (sdp, success, failure) {
     var self = this;
     this.localSDP = new SDP(sdp.sdp);
     var sendJingle = function (ssrcs) {
-                var accept = $iq({to: self.peerjid,
-                    type: 'set'})
-                    .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
-                        action: 'session-accept',
-                        initiator: self.initiator,
-                        responder: self.responder,
-                        sid: self.sid });
-                if (self.webrtcIceTcpDisable) {
-                    self.localSDP.removeTcpCandidates = true;
-                }
-                if (self.webrtcIceUdpDisable) {
-                    self.localSDP.removeUdpCandidates = true;
-                }
-                self.localSDP.toJingle(
-                    accept,
-                    self.initiator == self.me ? 'initiator' : 'responder',
-                    ssrcs);
-                self.fixJingle(accept);
-                self.connection.sendIQ(accept,
-                    success,
-                    self.newJingleErrorHandler(accept, failure),
-                    IQ_TIMEOUT);
+        var accept
+            = $iq({ to: self.peerjid, type: 'set' })
+                .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
+                               action: 'session-accept',
+                               initiator: self.initiator,
+                               responder: self.responder,
+                               sid: self.sid });
+        if (self.webrtcIceTcpDisable) {
+            self.localSDP.removeTcpCandidates = true;
+        }
+        if (self.webrtcIceUdpDisable) {
+            self.localSDP.removeUdpCandidates = true;
+        }
+        self.localSDP.toJingle(
+                accept,
+                self.initiator == self.me ? 'initiator' : 'responder',
+                ssrcs);
+        self.fixJingle(accept);
+        self.connection.sendIQ(accept,
+                success,
+                self.newJingleErrorHandler(accept, failure),
+                IQ_TIMEOUT);
     };
     sdp.sdp = this.localSDP.raw;
     this.peerconnection.setLocalDescription(sdp,
