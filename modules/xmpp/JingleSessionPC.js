@@ -339,6 +339,30 @@ JingleSessionPC.prototype.sendAnswer = function (success, failure) {
 
 JingleSessionPC.prototype.createdAnswer = function (sdp, success, failure) {
     //logger.log('createAnswer callback');
+
+    // XXX Videobridge is the (SDP) offerer and WebRTC (e.g. Chrome) is the
+    // answerer (as orchestrated by Jicofo). In accord with
+    // http://tools.ietf.org/html/rfc5245#section-5.2 and because both peers
+    // are ICE FULL agents, Videobridge will take on the controlling role and
+    // WebRTC will take on the controlled role. In accord with
+    // https://tools.ietf.org/html/rfc5763#section-5, Videobridge will use the
+    // setup attribute value of setup:actpass and WebRTC will be allowed to
+    // choose either the setup attribute value of setup:active or
+    // setup:passive. Chrome will by default choose setup:active because it is
+    // RECOMMENDED by the respective RFC since setup:passive adds additional
+    // latency. The case of setup:active allows WebRTC to send a DTLS
+    // ClientHello as soon as an ICE connectivity check of its succeeds.
+    // Unfortunately, Videobridge will be unable to respond immediately because
+    // may not have WebRTC's answer or may have not completed the ICE
+    // connectivity establishment. Even more unfortunate is that in the
+    // described scenario Chrome's DTLS implementation will insist on
+    // retransmitting its ClientHello after a second (the time is in accord
+    // with the respective RFC) and will thus cause the whole connection
+    // establishment to exceed at least 1 second. To work around Chrome's
+    // idiosyncracy, don't allow it to send a ClientHello i.e. change its
+    // default choice of setup:active to setup:passive.
+    sdp.sdp = sdp.sdp.replace(/a=setup:active/g, 'a=setup:passive');
+
     var self = this;
     this.localSDP = new SDP(sdp.sdp);
     var sendJingle = function (ssrcs) {
