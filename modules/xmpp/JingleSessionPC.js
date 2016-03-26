@@ -388,6 +388,10 @@ JingleSessionPC.prototype.createdAnswer = function (sdp, success, failure) {
                 success,
                 self.newJingleErrorHandler(accept, failure),
                 IQ_TIMEOUT);
+        // XXX Videobridge needs WebRTC's answer (ICE ufrag and pwd, DTLS
+        // fingerprint and setup) ASAP in order to start the connection
+        // establishment.
+        self.connection.flush();
     };
     sdp.sdp = this.localSDP.raw;
     this.peerconnection.setLocalDescription(sdp,
