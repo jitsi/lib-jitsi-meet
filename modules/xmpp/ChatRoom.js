@@ -117,10 +117,8 @@ ChatRoom.prototype.join = function (password) {
     if(password)
         this.password = password;
     var self = this;
-    this.moderator.allocateConferenceFocus(function()
-    {
-        self.sendPresence(true);
-    }.bind(this));
+    this.moderator.allocateConferenceFocus(function () {});
+    self.sendPresence(true);
 };
 
 ChatRoom.prototype.sendPresence = function (fromJoin) {
