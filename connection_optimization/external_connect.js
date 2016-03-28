@@ -27,11 +27,13 @@ function createConnectionExternally(webserviceUrl, success_callback,
         return;
     }
 
+    var HTTP_STATUS_OK = 200;
+
     var xhttp = new XMLHttpRequest();
 
     xhttp.onreadystatechange = function() {
-        if (xhttp.readyState == 4) {
-            if (xhttp.status == 200) {
+        if (xhttp.readyState == xhttp.DONE) {
+            if (xhttp.status == HTTP_STATUS_OK) {
                 try {
                     var data = JSON.parse(xhttp.responseText);
                     success_callback(data);
