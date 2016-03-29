@@ -673,7 +673,7 @@ JitsiConference.prototype.isRecordingSupported = function () {
 JitsiConference.prototype.getRecordingState = function () {
     if(this.room)
         return this.room.getRecordingState();
-    return "off";
+    return Recording.status.OFF;
 }
 
 /**
@@ -692,10 +692,10 @@ JitsiConference.prototype.toggleRecording = function (options) {
     if(this.room)
         return this.room.toggleRecording(options, function (status, error) {
             this.eventEmitter.emit(
-                JitsiConferenceEvents.RECORDING_STATE_CHANGED, status, error);
+                JitsiConferenceEvents.RECORDER_STATE_CHANGED, status, error);
         }.bind(this));
     this.eventEmitter.emit(
-        JitsiConferenceEvents.RECORDING_STATE_CHANGED, "error",
+        JitsiConferenceEvents.RECORDER_STATE_CHANGED, "error",
         new Error("The conference is not created yet!"));
 }
 
@@ -994,10 +994,10 @@ function setupListeners(conference) {
         conference.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_INTERRUPTED);
     });
 
-    conference.room.addListener(XMPPEvents.RECORDING_STATE_CHANGED,
-        function () {
+    conference.room.addListener(XMPPEvents.RECORDER_STATE_CHANGED,
+        function (state) {
             conference.eventEmitter.emit(
-                JitsiConferenceEvents.RECORDING_STATE_CHANGED);
+                JitsiConferenceEvents.RECORDER_STATE_CHANGED, state);
         });
 
     conference.room.addListener(XMPPEvents.PHONE_NUMBER_CHANGED, function () {
