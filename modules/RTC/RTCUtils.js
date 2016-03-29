@@ -3,7 +3,7 @@
    mozRTCPeerConnection, mozRTCSessionDescription, mozRTCIceCandidate,
    webkitRTCPeerConnection, webkitMediaStream, webkitURL
 */
-/* jshint -W101 */
+/* jshint -W101, -W020 */
 
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
@@ -20,6 +20,15 @@ var eventEmitter = new EventEmitter();
 var devices = {
     audio: true,
     video: true
+};
+
+/**
+ * Registry of physical audio and video devices.
+ */
+var enumeratedDevices = {
+    audio: [],
+    video: [],
+    audiooutput: []
 };
 
 var rtcReady = false;
@@ -223,90 +232,31 @@ function maybeApply(fn, args) {
   }
 }
 
-var getUserMediaStatus = {
-  initialized: false,
-  callbacks: []
-};
+/**
+ * Indicates support of "mediaDevices.enumerateDevices" feature.
+ */
+var isEnumerateDevicesAvailable = navigator.mediaDevices && navigator.mediaDevices.enumerateDevices;
+/**
+ * Indicates support of "MediaStreamTrack.getSources" feature.
+ */
+var isGetSourcesAvailable = MediaStreamTrack && MediaStreamTrack.getSources;
+/**
+ * Indicates support of "mediaDevices.ondevicechange" event.
+ */
+var isDeviceChangeEventAvailable = false; // FIXME noone support it
+
 
 /**
- * Wrap `getUserMedia` to allow others to know if it was executed at least
- * once or not. Wrapper function uses `getUserMediaStatus` object.
- * @param {Function} getUserMedia native function
- * @returns {Function} wrapped function
+ * Get list of devices using "mediaDevices.enumerateDevices".
+ * @param {function(devices)} callback
  */
-function wrapGetUserMedia(getUserMedia) {
-  return function (constraints, successCallback, errorCallback) {
-    getUserMedia(constraints, function (stream) {
-      maybeApply(successCallback, [stream]);
-      if (!getUserMediaStatus.initialized) {
-        getUserMediaStatus.initialized = true;
-        getUserMediaStatus.callbacks.forEach(function (callback) {
-          callback();
-        });
-        getUserMediaStatus.callbacks.length = 0;
-      }
-    }, function (error) {
-      maybeApply(errorCallback, [error]);
+function enumerateDevices (callback) {
+    navigator.mediaDevices.enumerateDevices().then(function (devices) {
+        callback(devices);
+    }, function (err) {
+        logger.error('cannot enumerate devices: ', err);
+        callback([]);
     });
-  };
-}
-
-/**
- * Create stub device which equals to auto selected device.
- * @param {string} kind if that should be `audio` or `video` device
- * @returns {Object} stub device description in `enumerateDevices` format
- */
-function createAutoDeviceInfo(kind) {
-    return {
-        facing: null,
-        label: 'Auto',
-        kind: kind,
-        deviceId: '',
-        groupId: ''
-    };
-}
-
-
-/**
- * Execute function after getUserMedia was executed at least once.
- * @param {Function} callback function to execute after getUserMedia
- */
-function afterUserMediaInitialized(callback) {
-    if (getUserMediaStatus.initialized) {
-        callback();
-    } else {
-        getUserMediaStatus.callbacks.push(callback);
-    }
-}
-
-/**
- * Wrapper function which makes enumerateDevices to wait
- * until someone executes getUserMedia first time.
- * @param {Function} enumerateDevices native function
- * @returns {Funtion} wrapped function
- */
-function wrapEnumerateDevices(enumerateDevices) {
-    return function (callback) {
-        // enumerate devices only after initial getUserMedia
-        afterUserMediaInitialized(function () {
-
-            enumerateDevices().then(function (devices) {
-                //add auto devices
-                devices.unshift(
-                    createAutoDeviceInfo('audioinput'),
-                    createAutoDeviceInfo('videoinput')
-                );
-
-                callback(devices);
-            }, function (err) {
-                console.error('cannot enumerate devices: ', err);
-
-                // return only auto devices
-                callback([createAutoDeviceInfo('audioinput'),
-                          createAutoDeviceInfo('videoinput')]);
-            });
-        });
-    };
 }
 
 /**
@@ -327,12 +277,106 @@ function enumerateDevicesThroughMediaStreamTrack (callback) {
             };
         });
 
-        //add auto devices
-        devices.unshift(
-            createAutoDeviceInfo('audioinput'),
-            createAutoDeviceInfo('videoinput')
-        );
         callback(devices);
+    });
+}
+
+/**
+ * @const Device info properties which should be used to compare devices.
+ */
+var COMPARABLE_DEVICE_PROPERTIES = [
+    'kind', 'deviceId', 'groupId', 'label', 'facing'
+];
+
+/**
+ * Compare 2 devices infos and check if they are equal.
+ * @param {object} deviceA
+ * @param {object} deviceB
+ * @returns {boolean} true if deviceA and deviceB describe same device.
+ */
+function isSameDevice (deviceA, deviceB) {
+    for (var i = 0; i < COMPARABLE_DEVICE_PROPERTIES.length; i += 1) {
+        var prop = COMPARABLE_DEVICE_PROPERTIES[i];
+
+        if (deviceA[prop] !== deviceB[prop]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Compare 2 arrays with device infos and check if they are equal.
+ * @param {object[]} arrA
+ * @param {object[]} arrB
+ * @returns {boolean} true if arrays are equal.
+ */
+function isSameDevicesArray (arrA, arrB) {
+    if (arrA.length !== arrB.length) {
+        return false;
+    }
+
+    for (var i = 0; i < arrA.length; i += 1) {
+        if (!isSameDevice(arrA[i], arrB[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * @const How often we should check if devices list changes.
+ */
+var DEVICES_POLL_INTERVAL_MS = 3000;
+
+/**
+ * Read list of available physical devices and compare it with previous one.
+ * If list changed emit RTCEvents.DEVICES_LIST_CHANGED event.
+ */
+function updateAvailableDevices () {
+    var getDevices;
+    if (isEnumerateDevicesAvailable) {
+        getDevices = enumerateDevices;
+    } else if (isGetSourcesAvailable) {
+        getDevices = enumerateDevicesThroughMediaStreamTrack;
+    }
+
+    if (!getDevices) {
+        return;
+    }
+
+    getDevices(function (devices) {
+        var updated = false;
+
+        var newAudioDevices = devices.filter(function (device) {
+            return device.kind === 'audioinput';
+        });
+        if (!isSameDevicesArray(enumeratedDevices.audio, newAudioDevices)) {
+            enumeratedDevices.audio = newAudioDevices;
+            updated = true;
+        }
+
+        var newVideoDevices = devices.filter(function (device) {
+            return device.kind === 'videoinput';
+        });
+        if (!isSameDevicesArray(enumeratedDevices.video, newVideoDevices)) {
+            enumeratedDevices.video = newVideoDevices;
+            updated = true;
+        }
+
+        var newAudioOutputDevices = devices.filter(function (device) {
+            return device.kind === 'audiooutput';
+        });
+        if (!isSameDevicesArray(enumeratedDevices.audiooutput, newAudioOutputDevices)) {
+            enumeratedDevices.audiooutput = newAudioOutputDevices;
+            updated = true;
+        }
+
+        if (updated) {
+            eventEmitter.emit(RTCEvents.DEVICES_LIST_CHANGED);
+        }
     });
 }
 
@@ -434,10 +478,7 @@ var RTCUtils = {
                     return;
                 }
                 this.peerconnection = mozRTCPeerConnection;
-                this.getUserMedia = wrapGetUserMedia(navigator.mozGetUserMedia.bind(navigator));
-                this.enumerateDevices = wrapEnumerateDevices(
-                    navigator.mediaDevices.enumerateDevices.bind(navigator.mediaDevices)
-                );
+                this.getUserMedia = navigator.mozGetUserMedia.bind(navigator);
                 this.pc_constraints = {};
                 this.attachMediaStream = function (element, stream) {
                     //  srcObject is being standardized and FF will eventually
@@ -478,16 +519,8 @@ var RTCUtils = {
                 RTCIceCandidate = mozRTCIceCandidate;
             } else if (RTCBrowserType.isChrome() || RTCBrowserType.isOpera() || RTCBrowserType.isNWJS()) {
                 this.peerconnection = webkitRTCPeerConnection;
-                var getUserMedia = navigator.webkitGetUserMedia.bind(navigator);
-                if (navigator.mediaDevices) {
-                    this.getUserMedia = wrapGetUserMedia(getUserMedia);
-                    this.enumerateDevices = wrapEnumerateDevices(
-                        navigator.mediaDevices.enumerateDevices.bind(navigator.mediaDevices)
-                    );
-                } else {
-                    this.getUserMedia = getUserMedia;
-                    this.enumerateDevices = enumerateDevicesThroughMediaStreamTrack;
-                }
+                this.getUserMedia = navigator.webkitGetUserMedia.bind(navigator);
+
                 this.attachMediaStream = function (element, stream) {
 
                     // saves the created url for the stream, so we can reuse it
@@ -550,7 +583,6 @@ var RTCUtils = {
 
                     self.peerconnection = RTCPeerConnection;
                     self.getUserMedia = window.getUserMedia;
-                    self.enumerateDevices = enumerateDevicesThroughMediaStreamTrack;
                     self.attachMediaStream = function (element, stream) {
 
                         if (stream.id === "dummyAudio" || stream.id === "dummyVideo") {
@@ -613,6 +645,44 @@ var RTCUtils = {
                 onReady(options, this.getUserMediaWithConstraints);
                 resolve();
             }
+        }.bind(this)).then(function () {
+            // monitor list of available physical devices
+            // if that's possible
+
+            if (isEnumerateDevicesAvailable) {
+
+                // wrap getUserMedia so we can start monitoring available
+                // devices after first getUserMedia call
+                var getUserMedia = RTCUtils.getUserMedia;
+                var initialized = false;
+                this.getUserMedia = function (constraints, success, error) {
+                    getUserMedia(constraints, function (stream) {
+                        if (!initialized) {
+                            initialized = true;
+
+                            // update available devices
+                            updateAvailableDevices();
+
+                            // and monitor devices list changes
+                            if (isDeviceChangeEventAvailable) {
+                                navigator.mediaDevices.ondevicechange = updateAvailableDevices;
+                            } else {
+                                window.setInterval(updateAvailableDevices, DEVICES_POLL_INTERVAL_MS);
+                            }
+                        }
+
+                        success(stream);
+                    }, function (e) {
+                        maybeApply(error, [e]);
+                    });
+                };
+
+            } else if (isGetSourcesAvailable) {
+                updateAvailableDevices();
+                window.setInterval(updateAvailableDevices, DEVICES_POLL_INTERVAL_MS);
+            } else {
+                logger.info("Cannot retrieve list of devices");
+            }
         }.bind(this));
     },
     /**
@@ -638,22 +708,19 @@ var RTCUtils = {
             this.getUserMedia(constraints,
                 function (stream) {
                     logger.log('onUserMediaSuccess');
+
                     setAvailableDevices(um, true);
                     success_callback(stream);
                 },
                 function (error) {
+                    logger.warn('Failed to get access to local media. Error ', error, constraints);
+
                     setAvailableDevices(um, false);
-                    logger.warn('Failed to get access to local media. Error ',
-                        error, constraints);
-                    if (failure_callback) {
-                        failure_callback(error, resolution);
-                    }
+                    maybeApply(failure_callback, [error, resolution]);
                 });
         } catch (e) {
             logger.error('GUM failed: ', e);
-            if (failure_callback) {
-                failure_callback(e);
-            }
+            maybeApply(failure_callback, [e]);
         }
     },
 
@@ -695,8 +762,7 @@ var RTCUtils = {
                 };
 
                 if(screenObtainer.isSupported()){
-                    deviceGUM["desktop"] = screenObtainer.obtainStream.bind(
-                        screenObtainer);
+                    deviceGUM.desktop = screenObtainer.obtainStream.bind(screenObtainer);
                 }
                 // With FF/IE we can't split the stream into audio and video because FF
                 // doesn't support media stream constructors. So, we need to get the
@@ -781,28 +847,6 @@ var RTCUtils = {
         return rtcReady;
     },
     /**
-     * Checks if its possible to enumerate available cameras/micropones.
-     * @returns {boolean} true if available, false otherwise.
-     */
-    isDeviceListAvailable: function () {
-        var isEnumerateDevicesAvailable
-            = navigator.mediaDevices && navigator.mediaDevices.enumerateDevices;
-        if (isEnumerateDevicesAvailable) {
-            return true;
-        }
-        return (MediaStreamTrack && MediaStreamTrack.getSources)? true : false;
-    },
-    /**
-     * Returns true if changing the camera / microphone device is supported and
-     * false if not.
-     */
-    isDeviceChangeAvailable: function () {
-        return RTCBrowserType.isChrome() ||
-            RTCBrowserType.isFirefox() ||
-            RTCBrowserType.isOpera() ||
-            RTCBrowserType.isTemasysPluginUsed();
-    },
-    /**
      * A method to handle stopping of the stream.
      * One point to handle the differences in various implementations.
      * @param mediaStream MediaStream object to stop.
@@ -831,8 +875,11 @@ var RTCUtils = {
      */
     isDesktopSharingEnabled: function () {
         return screenObtainer.isSupported();
-    }
+    },
 
+    getDevicesList: function () {
+        return enumeratedDevices;
+    }
 };
 
 module.exports = RTCUtils;

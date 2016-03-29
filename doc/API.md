@@ -62,20 +62,29 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         3. cameraDeviceId - the deviceID for the video device that is going to be used
         4. micDeviceId - the deviceID for the audio device that is going to be used
 
-* ```JitsiMeetJS.enumerateDevices(callback)``` - returns list of the available devices as a parameter to the callback function. Every device is a object with the following format:
+* ```JitsiMeetJS.isDesktopSharingEnabled()``` - returns true if desktop sharing is supported and false otherwise. NOTE: that method can be used after ```JitsiMeetJS.init(options)``` is completed otherwise the result will be always null.
+
+* ```JitsiMeetJS.getDevicesList()``` - returns object `{ audio: [], video: [] }` with available audio and video devices. Every device is a object with the following format:
     - label - the name of the device
     - kind - "audioinput" or "videoinput"
     - deviceId - the id of the device.
 
-* ```JitsiMeetJS.isDeviceListAvailable()```- returns true if retrieving the device list is support and false - otherwise.
+* ```JitsiMeetJS.on(event, listener)``` - Subscribes the passed listener to the event.
+    - event - one of the events from ```JitsiMeetJS.events.library``` object.
+    - listener - handler for the event.
 
-* ```JitsiMeetJS.isDesktopSharingEnabled()``` - returns true if desktop sharing is supported and false otherwise. NOTE: that method can be used after ```JitsiMeetJS.init(options)``` is completed otherwise the result will be always null.
+* ```JitsiMeetJS.off(event, listener)``` - Removes event listener.
+    - event - the event
+    - listener - the listener that will be removed.
 
 * ```JitsiMeetJS.events``` - JS object that contains all events used by the API. You will need that JS object when you try to subscribe for connection or conference events.
     We have two event types - connection and conference. You can access the events with the following code ```JitsiMeetJS.events.<event_type>.<event_name>```.
     For example if you want to use the conference event that is fired when somebody leave conference you can use the following code - ```JitsiMeetJS.events.conference.USER_LEFT```.
     We support the following events:
-    1. conference
+    1. library
+        - DEVICES_LIST_CHANGED - notifies that list of available physical audio or video devices changed
+
+    2. conference
         - TRACK_ADDED - stream received. (parameters - JitsiTrack)
         - TRACK_REMOVED - stream removed. (parameters - JitsiTrack)
         - TRACK_MUTE_CHANGED - JitsiTrack was muted or unmuted. (parameters - JitsiTrack)
@@ -101,13 +110,13 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - CONNECTION_STATS - New local connection statistics are received. (parameters - stats(object))
         - AUTH_STATUS_CHANGED - notifies that authentication is enabled or disabled, or local user authenticated (logged in). (parameters - isAuthEnabled(boolean), authIdentity(string))
 
-    2. connection
+    3. connection
         - CONNECTION_FAILED - indicates that the server connection failed.
         - CONNECTION_ESTABLISHED - indicates that we have successfully established server connection.
         - CONNECTION_DISCONNECTED - indicates that we are disconnected.
         - WRONG_STATE - indicates that the user has performed action that can't be executed because the connection is in wrong state.
 
-    3. tracks
+    4. tracks
         - LOCAL_TRACK_STOPPED - indicates that a local track was stopped. This
         event can be fired when ```dispose()``` method is called or for other reasons.
 

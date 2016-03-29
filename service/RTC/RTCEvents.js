@@ -5,6 +5,7 @@ var RTCEvents = {
     DOMINANTSPEAKER_CHANGED: "rtc.dominantspeaker_changed",
     LASTN_ENDPOINT_CHANGED: "rtc.lastn_endpoint_changed",
     AVAILABLE_DEVICES_CHANGED: "rtc.available_devices_changed",
+    DEVICES_LIST_CHANGED: "rtc.devices_list_changed",
     FAKE_VIDEO_TRACK_CREATED: "rtc.fake_video_track_created",
     TRACK_ATTACHED: "rtc.track_attached"
 };
