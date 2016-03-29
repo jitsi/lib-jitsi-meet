@@ -95,7 +95,7 @@ var XMPPEvents = {
     /**
      * Indicates that recording state changed.
      */
-    RECORDING_STATE_CHANGED: "xmpp.recordingStateChanged",
+    RECORDER_STATE_CHANGED: "xmpp.recorderStateChanged",
     // Designates an event indicating that we received statistics from a
     // participant in the MUC.
     REMOTE_STATS: "xmpp.remote_stats",

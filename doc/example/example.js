@@ -121,7 +121,7 @@ function onConnectionSuccess(){
       function(userID, audioLevel){
           console.log(userID + " - " + audioLevel);
       });
-    room.on(JitsiMeetJS.events.conference.RECORDING_STATE_CHANGED, function () {
+    room.on(JitsiMeetJS.events.conference.RECORDER_STATE_CHANGED, function () {
         console.log(room.isRecordingSupported() + " - " +
             room.getRecordingState() + " - " +
             room.getRecordingURL());
