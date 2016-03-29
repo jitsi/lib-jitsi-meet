@@ -8,11 +8,12 @@ SDPUtil = {
     },
     iceparams: function (mediadesc, sessiondesc) {
         var data = null;
-        if (SDPUtil.find_line(mediadesc, 'a=ice-ufrag:', sessiondesc) &&
-            SDPUtil.find_line(mediadesc, 'a=ice-pwd:', sessiondesc)) {
+        var ufrag, pwd;
+        if ((ufrag = SDPUtil.find_line(mediadesc, 'a=ice-ufrag:', sessiondesc))
+                && (pwd = SDPUtil.find_line(mediadesc, 'a=ice-pwd:', sessiondesc))) {
             data = {
-                ufrag: SDPUtil.parse_iceufrag(SDPUtil.find_line(mediadesc, 'a=ice-ufrag:', sessiondesc)),
-                pwd: SDPUtil.parse_icepwd(SDPUtil.find_line(mediadesc, 'a=ice-pwd:', sessiondesc))
+                ufrag: SDPUtil.parse_iceufrag(ufrag),
+                pwd: SDPUtil.parse_icepwd(pwd)
             };
         }
         return data;
