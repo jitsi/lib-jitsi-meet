@@ -146,7 +146,8 @@ SDP.prototype.toJingle = function (elem, thecreator) {
     var self = this;
     var i, j, k, mline, ssrc, rtpmap, tmp, lines;
     // new bundle plan
-    if ((lines = SDPUtil.find_lines(this.session, 'a=group:')).length) {
+    lines = SDPUtil.find_lines(this.session, 'a=group:');
+    if (lines.length) {
         for (i = 0; i < lines.length; i++) {
             tmp = lines[i].split(' ');
             var semantics = tmp.shift().substr(8);
@@ -165,16 +166,18 @@ SDP.prototype.toJingle = function (elem, thecreator) {
         {
             continue;
         }
-        if ((tmp = SDPUtil.find_line(this.media[i], 'a=ssrc:'))) {
-            ssrc = tmp.substring(7).split(' ')[0]; // take the first
+        var assrcline = SDPUtil.find_line(this.media[i], 'a=ssrc:');
+        if (assrcline) {
+            ssrc = assrcline.substring(7).split(' ')[0]; // take the first
         } else {
             ssrc = false;
         }
 
         elem.c('content', {creator: thecreator, name: mline.media});
-        if ((tmp = SDPUtil.find_line(this.media[i], 'a=mid:'))) {
+        var amidline = SDPUtil.find_line(this.media[i], 'a=mid:');
+        if (amidline) {
             // prefer identifier from a=mid if present
-            var mid = SDPUtil.parse_mid(tmp);
+            var mid = SDPUtil.parse_mid(amidline);
             elem.attrs({ name: mid });
         }
 
@@ -189,8 +192,9 @@ SDP.prototype.toJingle = function (elem, thecreator) {
                 rtpmap = SDPUtil.find_line(this.media[i], 'a=rtpmap:' + mline.fmt[j]);
                 elem.c('payload-type', SDPUtil.parse_rtpmap(rtpmap));
                 // put any 'a=fmtp:' + mline.fmt[j] lines into <param name=foo value=bar/>
-                if ((tmp = SDPUtil.find_line(this.media[i], 'a=fmtp:' + mline.fmt[j]))) {
-                    tmp = SDPUtil.parse_fmtp(tmp);
+                var afmtpline = SDPUtil.find_line(this.media[i], 'a=fmtp:' + mline.fmt[j]);
+                if (afmtpline) {
+                    tmp = SDPUtil.parse_fmtp(afmtpline);
                     for (k = 0; k < tmp.length; k++) {
                         elem.c('parameter', tmp[k]).up();
                     }
@@ -292,7 +296,8 @@ SDP.prototype.toJingle = function (elem, thecreator) {
             this.rtcpFbToJingle(i, elem, '*');
 
             // XEP-0294
-            if ((lines = SDPUtil.find_lines(this.media[i], 'a=extmap:')).length) {
+            lines = SDPUtil.find_lines(this.media[i], 'a=extmap:');
+            if (lines.length) {
                 for (j = 0; j < lines.length; j++) {
                     tmp = SDPUtil.parse_extmap(lines[j]);
                     elem.c('rtp-hdrext', { xmlns: 'urn:xmpp:jingle:apps:rtp:rtp-hdrext:0',
