@@ -40,7 +40,7 @@
     "install": "npm run browserify && npm run version && npm run uglifyjs",
 
     "browserify": "browserify -d JitsiMeetJS.js -s JitsiMeetJS | exorcist lib-jitsi-meet.js.map > lib-jitsi-meet.js ",
-    "version": "VERSION=`./get-version.sh` && sed -i'' -e s/{#COMMIT_HASH#}/${VERSION}/g lib-jitsi-meet.js",
+    "version": "VERSION=`./get-version.sh` && echo lib-jitsi-meet version is:${VERSION} && sed -i'' -e s/{#COMMIT_HASH#}/${VERSION}/g lib-jitsi-meet.js",
     "uglifyjs": "uglifyjs -p relative lib-jitsi-meet.js -o lib-jitsi-meet.min.js --source-map lib-jitsi-meet.min.map --in-source-map lib-jitsi-meet.js.map",
 
     "lint": "jshint .",
