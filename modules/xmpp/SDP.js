@@ -107,13 +107,10 @@ SDP.prototype.mangle = function () {
                 if (rtpmap.name == 'CN' || rtpmap.name == 'ISAC')
                     continue;
                 mline.fmt.push(rtpmap.id);
-                newdesc += lines[j] + '\r\n';
-            } else {
-                newdesc += lines[j] + '\r\n';
             }
+            newdesc += lines[j] + '\r\n';
         }
-        this.media[i] = SDPUtil.build_mline(mline) + '\r\n';
-        this.media[i] += newdesc;
+        this.media[i] = SDPUtil.build_mline(mline) + '\r\n' + newdesc;
     }
     this.raw = this.session + this.media.join('');
 };
@@ -492,11 +489,9 @@ SDP.prototype.jingle2media = function (content) {
         // estos hack to reject an m-line.
         tmp.port = '0';
     }
-    if (content.find('>transport>fingerprint').length || desc.find('encryption').length) {
-        if (sctp.length)
-            tmp.proto = 'DTLS/SCTP';
-        else
-            tmp.proto = 'RTP/SAVPF';
+    if (content.find('>transport>fingerprint').length
+            || desc.find('encryption').length) {
+        tmp.proto = sctp.length ? 'DTLS/SCTP' : 'RTP/SAVPF';
     } else {
         tmp.proto = 'RTP/AVPF';
     }
