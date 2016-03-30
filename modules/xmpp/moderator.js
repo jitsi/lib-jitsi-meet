@@ -267,6 +267,11 @@ Moderator.prototype.allocateConferenceFocus =  function (callback) {
         function (error) {
             self._allocateConferenceFocusError(error);
         });
+    // XXX We're pressed for time here because we're beginning a complex and/or
+    // lengthy conference-establishment process which supposedly involves
+    // multiple RTTs. We don't have the time to wait for Strophe to decide to
+    // send our IQ.
+    this.connection.flush();
 };
 
 /**
