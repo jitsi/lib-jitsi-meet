@@ -214,17 +214,16 @@ ChatRoom.prototype.onPresence = function (pres) {
     var member = {};
     member.show = $(pres).find('>show').text();
     member.status = $(pres).find('>status').text();
-    var tmp = $(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>item');
-    member.affiliation = tmp.attr('affiliation');
-    member.role = tmp.attr('role');
+    var mucUserItem
+        = $(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>item');
+    member.affiliation = mucUserItem.attr('affiliation');
+    member.role = mucUserItem.attr('role');
 
     // Focus recognition
-    member.jid = tmp.attr('jid');
-    member.isFocus = false;
-    if (member.jid
-        && member.jid.indexOf(this.moderator.getFocusUserJid() + "/") === 0) {
-        member.isFocus = true;
-    }
+    var jid = mucUserItem.attr('jid');
+    member.jid = jid;
+    member.isFocus
+        = !!jid && jid.indexOf(this.moderator.getFocusUserJid() + "/") === 0;
 
     $(pres).find(">x").remove();
     var nodes = [];
