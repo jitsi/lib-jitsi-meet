@@ -57,7 +57,7 @@ SDP.prototype.getMediaSsrcMap = function() {
             media.ssrcs[linessrc].lines.push(line);
         });
         tmp = SDPUtil.find_lines(self.media[mediaindex], 'a=ssrc-group:');
-        tmp.forEach(function(line){
+        tmp.forEach(function(line) {
             var idx = line.indexOf(' ');
             var semantics = line.substr(0, idx).substr(13);
             var ssrcs = line.substr(14 + semantics.length).split(' ');
@@ -162,8 +162,7 @@ SDP.prototype.toJingle = function (elem, thecreator) {
         mline = SDPUtil.parse_mline(this.media[i].split('\r\n')[0]);
         if (!(mline.media === 'audio' ||
               mline.media === 'video' ||
-              mline.media === 'application'))
-        {
+              mline.media === 'application')) {
             continue;
         }
         var assrcline = SDPUtil.find_line(this.media[i], 'a=ssrc:');
@@ -247,16 +246,12 @@ SDP.prototype.toJingle = function (elem, thecreator) {
                     elem.attrs({name: "cname", value:Math.random().toString(36).substring(7)});
                     elem.up();
                     var msid = null;
-                    if(mline.media == "audio")
-                    {
+                    if(mline.media == "audio") {
                         msid = APP.RTC.localAudio._getId();
-                    }
-                    else
-                    {
+                    } else {
                         msid = APP.RTC.localVideo._getId();
                     }
-                    if(msid != null)
-                    {
+                    if(msid != null) {
                         msid = SDPUtil.filter_special_chars(msid);
                         elem.c('parameter');
                         elem.attrs({name: "msid", value:msid});
