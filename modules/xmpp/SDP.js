@@ -5,28 +5,32 @@ var SDPUtil = require("./SDPUtil");
 
 // SDP STUFF
 function SDP(sdp) {
-    /**
-     * Whether or not to remove TCP ice candidates when translating from/to jingle.
-     * @type {boolean}
-     */
-    this.removeTcpCandidates = false;
-
-    /**
-     * Whether or not to remove UDP ice candidates when translating from/to jingle.
-     * @type {boolean}
-     */
-    this.removeUdpCandidates = false;
-
-    this.media = sdp.split('\r\nm=');
-    for (var i = 1; i < this.media.length; i++) {
-        this.media[i] = 'm=' + this.media[i];
-        if (i != this.media.length - 1) {
-            this.media[i] += '\r\n';
+    var media = sdp.split('\r\nm=');
+    for (var i = 1, length = media.length; i < length; i++) {
+        var media_i = 'm=' + media[i];
+        if (i != length - 1) {
+            media_i += '\r\n';
         }
+        media[i] = media_i;
     }
-    this.session = this.media.shift() + '\r\n';
-    this.raw = this.session + this.media.join('');
+    var session = media.shift() + '\r\n';
+
+    this.media = media;
+    this.raw = session + media.join('');
+    this.session = session;
 }
+
+/**
+ * Whether or not to remove TCP ice candidates when translating from/to jingle.
+ * @type {boolean}
+ */
+SDP.prototype.removeTcpCandidates = false;
+
+/**
+ * Whether or not to remove UDP ice candidates when translating from/to jingle.
+ * @type {boolean}
+ */
+SDP.prototype.removeUdpCandidates = false;
 
 /**
  * Returns map of MediaChannel mapped per channel idx.
@@ -57,7 +61,7 @@ SDP.prototype.getMediaSsrcMap = function() {
             media.ssrcs[linessrc].lines.push(line);
         });
         tmp = SDPUtil.find_lines(self.media[mediaindex], 'a=ssrc-group:');
-        tmp.forEach(function(line){
+        tmp.forEach(function(line) {
             var idx = line.indexOf(' ');
             var semantics = line.substr(0, idx).substr(13);
             var ssrcs = line.substr(14 + semantics.length).split(' ');
@@ -107,13 +111,10 @@ SDP.prototype.mangle = function () {
                 if (rtpmap.name == 'CN' || rtpmap.name == 'ISAC')
                     continue;
                 mline.fmt.push(rtpmap.id);
-                newdesc += lines[j] + '\r\n';
-            } else {
-                newdesc += lines[j] + '\r\n';
             }
+            newdesc += lines[j] + '\r\n';
         }
-        this.media[i] = SDPUtil.build_mline(mline) + '\r\n';
-        this.media[i] += newdesc;
+        this.media[i] = SDPUtil.build_mline(mline) + '\r\n' + newdesc;
     }
     this.raw = this.session + this.media.join('');
 };
@@ -162,8 +163,7 @@ SDP.prototype.toJingle = function (elem, thecreator) {
         mline = SDPUtil.parse_mline(this.media[i].split('\r\n')[0]);
         if (!(mline.media === 'audio' ||
               mline.media === 'video' ||
-              mline.media === 'application'))
-        {
+              mline.media === 'application')) {
             continue;
         }
         var assrcline = SDPUtil.find_line(this.media[i], 'a=ssrc:');
@@ -247,16 +247,12 @@ SDP.prototype.toJingle = function (elem, thecreator) {
                     elem.attrs({name: "cname", value:Math.random().toString(36).substring(7)});
                     elem.up();
                     var msid = null;
-                    if(mline.media == "audio")
-                    {
+                    if(mline.media == "audio") {
                         msid = APP.RTC.localAudio._getId();
-                    }
-                    else
-                    {
+                    } else {
                         msid = APP.RTC.localVideo._getId();
                     }
-                    if(msid != null)
-                    {
+                    if(msid != null) {
                         msid = SDPUtil.filter_special_chars(msid);
                         elem.c('parameter');
                         elem.attrs({name: "msid", value:msid});
@@ -497,11 +493,9 @@ SDP.prototype.jingle2media = function (content) {
         // estos hack to reject an m-line.
         tmp.port = '0';
     }
-    if (content.find('>transport>fingerprint').length || desc.find('encryption').length) {
-        if (sctp.length)
-            tmp.proto = 'DTLS/SCTP';
-        else
-            tmp.proto = 'RTP/SAVPF';
+    if (content.find('>transport>fingerprint').length
+            || desc.find('encryption').length) {
+        tmp.proto = sctp.length ? 'DTLS/SCTP' : 'RTP/SAVPF';
     } else {
         tmp.proto = 'RTP/AVPF';
     }

@@ -246,103 +246,138 @@ Moderator.prototype.parseConfigOptions =  function (resultIq) {
     logger.info("Sip gateway enabled:  " + this.sipGatewayEnabled);
 };
 
-// FIXME =  we need to show the fact that we're waiting for the focus
-// to the user(or that focus is not available)
+// FIXME We need to show the fact that we're waiting for the focus to the user
+// (or that the focus is not available)
+/**
+ * Allocates the conference focus.
+ *
+ * @param {Function} callback - the function to be called back upon the
+ * successful allocation of the conference focus
+ */
 Moderator.prototype.allocateConferenceFocus =  function (callback) {
     // Try to use focus user JID from the config
     this.setFocusUserJid(this.xmppService.options.focusUserJid);
     // Send create conference IQ
-    var iq = this.createConferenceIq();
     var self = this;
     this.connection.sendIQ(
-        iq,
+        this.createConferenceIq(),
         function (result) {
-
-            // Setup config options
-            self.parseConfigOptions(result);
-
-            if ('true' === $(result).find('conference').attr('ready')) {
-                // Reset both timers
-                self.getNextTimeout(true);
-                self.getNextErrorTimeout(true);
-                // Exec callback
-                callback();
-            } else {
-                var waitMs = self.getNextTimeout();
-                logger.info("Waiting for the focus... " + waitMs);
-                // Reset error timeout
-                self.getNextErrorTimeout(true);
-                window.setTimeout(
-                    function () {
-                        self.allocateConferenceFocus(callback);
-                    }, waitMs);
-            }
+            self._allocateConferenceFocusSuccess(result, callback);
         },
         function (error) {
-            // Invalid session ? remove and try again
-            // without session ID to get a new one
-            var invalidSession
-                = $(error).find('>error>session-invalid').length;
-            if (invalidSession) {
-                logger.info("Session expired! - removing");
-                self.settings.clearSessionId();
-            }
-            if ($(error).find('>error>graceful-shutdown').length) {
-                self.eventEmitter.emit(XMPPEvents.GRACEFUL_SHUTDOWN);
-                return;
-            }
-            // Check for error returned by the reservation system
-            var reservationErr = $(error).find('>error>reservation-error');
-            if (reservationErr.length) {
-                // Trigger error event
-                var errorCode = reservationErr.attr('error-code');
-                var errorMsg;
-                if ($(error).find('>error>text')) {
-                    errorMsg = $(error).find('>error>text').text();
-                }
-                self.eventEmitter.emit(
-                    XMPPEvents.RESERVATION_ERROR, errorCode, errorMsg);
-                return;
-            }
-            // Not authorized to create new room
-            if ($(error).find('>error>not-authorized').length) {
-                logger.warn("Unauthorized to start the conference", error);
-                var toDomain
-                    = Strophe.getDomainFromJid(error.getAttribute('to'));
-                if (toDomain !==
-                    self.xmppService.options.hosts.anonymousdomain) {
-                    //FIXME:  "is external" should come either from
-                    // the focus or config.js
-                    self.externalAuthEnabled = true;
-                }
-                self.eventEmitter.emit(
-                    XMPPEvents.AUTHENTICATION_REQUIRED,
-                    function () {
-                        self.allocateConferenceFocus(
-                            callback);
-                    });
-                return;
-            }
-            var waitMs = self.getNextErrorTimeout();
-            logger.error("Focus error, retry after " + waitMs, error);
-            // Show message
-            var focusComponent = self.getFocusComponent();
-            var retrySec = waitMs / 1000;
-            //FIXME:  message is duplicated ?
-            // Do not show in case of session invalid
-            // which means just a retry
-            if (!invalidSession) {
-                self.eventEmitter.emit(XMPPEvents.FOCUS_DISCONNECTED,
-                    focusComponent, retrySec);
-            }
-            // Reset response timeout
-            self.getNextTimeout(true);
-            window.setTimeout(
+            self._allocateConferenceFocusError(error);
+        });
+    // XXX We're pressed for time here because we're beginning a complex and/or
+    // lengthy conference-establishment process which supposedly involves
+    // multiple RTTs. We don't have the time to wait for Strophe to decide to
+    // send our IQ.
+    this.connection.flush();
+};
+
+/**
+ * Invoked by {@link #allocateConferenceFocus} upon its request receiving an
+ * error result.
+ *
+ * @param error - the error result of the request that
+ * {@link #allocateConferenceFocus} sent
+ * @param {Function} callback - the function to be called back upon the
+ * successful allocation of the conference focus
+ */
+Moderator.prototype._allocateConferenceFocusError = function (error, callback) {
+    var self = this;
+
+    // If the session is invalid, remove and try again without session ID to get
+    // a new one
+    var invalidSession = $(error).find('>error>session-invalid').length;
+    if (invalidSession) {
+        logger.info("Session expired! - removing");
+        self.settings.clearSessionId();
+    }
+    if ($(error).find('>error>graceful-shutdown').length) {
+        self.eventEmitter.emit(XMPPEvents.GRACEFUL_SHUTDOWN);
+        return;
+    }
+    // Check for error returned by the reservation system
+    var reservationErr = $(error).find('>error>reservation-error');
+    if (reservationErr.length) {
+        // Trigger error event
+        var errorCode = reservationErr.attr('error-code');
+        var errorTextNode = $(error).find('>error>text');
+        var errorMsg;
+        if (errorTextNode) {
+            errorMsg = errorTextNode.text();
+        }
+        self.eventEmitter.emit(
+                XMPPEvents.RESERVATION_ERROR, errorCode, errorMsg);
+        return;
+    }
+    // Not authorized to create new room
+    if ($(error).find('>error>not-authorized').length) {
+        logger.warn("Unauthorized to start the conference", error);
+        var toDomain = Strophe.getDomainFromJid(error.getAttribute('to'));
+        if (toDomain !== self.xmppService.options.hosts.anonymousdomain) {
+            //FIXME "is external" should come either from the focus or config.js
+            self.externalAuthEnabled = true;
+        }
+        self.eventEmitter.emit(
+                XMPPEvents.AUTHENTICATION_REQUIRED,
                 function () {
                     self.allocateConferenceFocus(callback);
-                }, waitMs);
-        }
-    );
+                });
+        return;
+    }
+    var waitMs = self.getNextErrorTimeout();
+    logger.error("Focus error, retry after " + waitMs, error);
+    // Show message
+    var focusComponent = self.getFocusComponent();
+    var retrySec = waitMs / 1000;
+    //FIXME: message is duplicated ? Do not show in case of session invalid
+    // which means just a retry
+    if (!invalidSession) {
+        self.eventEmitter.emit(
+                XMPPEvents.FOCUS_DISCONNECTED, focusComponent, retrySec);
+    }
+    // Reset response timeout
+    self.getNextTimeout(true);
+    window.setTimeout(
+            function () {
+                self.allocateConferenceFocus(callback);
+            },
+            waitMs);
+};
+
+/**
+ * Invoked by {@link #allocateConferenceFocus} upon its request receiving a
+ * success (i.e. non-error) result.
+ *
+ * @param result - the success (i.e. non-error) result of the request that
+ * {@link #allocateConferenceFocus} sent
+ * @param {Function} callback - the function to be called back upon the
+ * successful allocation of the conference focus
+ */
+Moderator.prototype._allocateConferenceFocusSuccess = function (
+        result,
+        callback) {
+    // Setup config options
+    this.parseConfigOptions(result);
+
+    // Reset the error timeout (because we haven't failed here).
+    this.getNextErrorTimeout(true);
+    if ('true' === $(result).find('conference').attr('ready')) {
+        // Reset the non-error timeout (because we've succeeded here).
+        this.getNextTimeout(true);
+        // Exec callback
+        callback();
+    } else {
+        var waitMs = this.getNextTimeout();
+        logger.info("Waiting for the focus... " + waitMs);
+        var self = this;
+        window.setTimeout(
+                function () {
+                    self.allocateConferenceFocus(callback);
+                },
+                waitMs);
+    }
 };
 
 Moderator.prototype.authenticate = function () {
