@@ -47,6 +47,8 @@ function createConnectionExternally(webserviceUrl, success_callback,
         }
     };
 
+    xhttp.timeout = 3000;
+
     xhttp.open("GET", webserviceUrl, true);
     xhttp.send();
 }
