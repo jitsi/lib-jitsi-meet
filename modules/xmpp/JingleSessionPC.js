@@ -411,6 +411,16 @@ JingleSessionPC.prototype.createdAnswer = function (sdp, success, failure) {
  * @private
  */
 JingleSessionPC.prototype._fixAnswerRFC4145Setup = function (offer, answer) {
+    if (!RTCBrowserType.isChrome()) {
+        // It looks like Firefox doesn't agree with the fix (at least in its
+        // current implementation) because it effectively remains active even
+        // after we tell it to become passive. Apart from Firefox which I tested
+        // after the fix was deployed, I tested Chrome only. In order to prevent
+        // issues with other browsers, limit the fix to Chrome for the time
+        // being.
+        return;
+    }
+
     // XXX Videobridge is the (SDP) offerer and WebRTC (e.g. Chrome) is the
     // answerer (as orchestrated by Jicofo). In accord with
     // http://tools.ietf.org/html/rfc5245#section-5.2 and because both peers
