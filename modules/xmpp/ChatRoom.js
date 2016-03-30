@@ -247,11 +247,9 @@ ChatRoom.prototype.onPresence = function (pres) {
     }
 
     if (from == this.myroomjid) {
-        if (member.affiliation == 'owner'
-            &&  this.role !== member.role) {
-                this.role = member.role;
-                this.eventEmitter.emit(
-                    XMPPEvents.LOCAL_ROLE_CHANGED, this.role);
+        if (member.affiliation == 'owner' && this.role !== member.role) {
+            this.role = member.role;
+            this.eventEmitter.emit(XMPPEvents.LOCAL_ROLE_CHANGED, this.role);
         }
         if (!this.joined) {
             this.joined = true;
@@ -342,7 +340,6 @@ ChatRoom.prototype.onPresence = function (pres) {
         if(this.recording)
             this.recording.handleJibriPresence(jibri);
     }
-
 };
 
 ChatRoom.prototype.processNode = function (node, from) {
