@@ -269,7 +269,7 @@ ChatRoom.prototype.onPresence = function (pres) {
                 if(this.lastJibri)
                     this.recording.handleJibriPresence(this.lastJibri);
             }
-            logger.info("Ignore focus: " + from + ", real JID: " + member.jid);
+            logger.info("Ignore focus: " + from + ", real JID: " + jid);
         }
         else {
             this.eventEmitter.emit(
@@ -278,15 +278,16 @@ ChatRoom.prototype.onPresence = function (pres) {
     } else {
         // Presence update for existing participant
         // Watch role change:
-        if (this.members[from].role != member.role) {
-            this.members[from].role = member.role;
+        var memberOfThis = this.members[from];
+        if (memberOfThis.role != member.role) {
+            memberOfThis.role = member.role;
             this.eventEmitter.emit(
                 XMPPEvents.MUC_ROLE_CHANGED, from, member.role);
         }
 
         // store the new display name
         if(member.displayName)
-            this.members[from].displayName = member.displayName;
+            memberOfThis.displayName = member.displayName;
     }
 
     // after we had fired member or room joined events, lets fire events
