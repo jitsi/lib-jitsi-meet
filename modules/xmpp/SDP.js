@@ -5,28 +5,32 @@ var SDPUtil = require("./SDPUtil");
 
 // SDP STUFF
 function SDP(sdp) {
-    /**
-     * Whether or not to remove TCP ice candidates when translating from/to jingle.
-     * @type {boolean}
-     */
-    this.removeTcpCandidates = false;
-
-    /**
-     * Whether or not to remove UDP ice candidates when translating from/to jingle.
-     * @type {boolean}
-     */
-    this.removeUdpCandidates = false;
-
-    this.media = sdp.split('\r\nm=');
-    for (var i = 1; i < this.media.length; i++) {
-        this.media[i] = 'm=' + this.media[i];
-        if (i != this.media.length - 1) {
-            this.media[i] += '\r\n';
+    var media = sdp.split('\r\nm=');
+    for (var i = 1, length = media.length; i < length; i++) {
+        var media_i = 'm=' + media[i];
+        if (i != length - 1) {
+            media_i += '\r\n';
         }
+        media[i] = media_i;
     }
-    this.session = this.media.shift() + '\r\n';
-    this.raw = this.session + this.media.join('');
+    var session = media.shift() + '\r\n';
+
+    this.media = media;
+    this.raw = session + media.join('');
+    this.session = session;
 }
+
+/**
+ * Whether or not to remove TCP ice candidates when translating from/to jingle.
+ * @type {boolean}
+ */
+SDP.prototype.removeTcpCandidates = false;
+
+/**
+ * Whether or not to remove UDP ice candidates when translating from/to jingle.
+ * @type {boolean}
+ */
+SDP.prototype.removeUdpCandidates = false;
 
 /**
  * Returns map of MediaChannel mapped per channel idx.
