@@ -167,7 +167,7 @@ XMPP.prototype._connect = function (jid, password) {
  * @param options {object} connecting options - rid, sid, jid and password.
  */
  XMPP.prototype.attach = function (options) {
-    logger.log("(TIME) Strophe attaching\t:" + window.performance.now(),options, options.jid);
+    logger.log("(TIME) Strophe Attaching\t:" + window.performance.now());
     this.connection.attach(options.jid, options.sid, parseInt(options.rid,10)+1,
         this.connectionHandler.bind(this, options.password));
 }
