@@ -354,9 +354,16 @@ ChatRoom.prototype.onPresence = function (pres) {
 };
 
 ChatRoom.prototype.processNode = function (node, from) {
-    if(this.presHandlers[node.tagName])
-        this.presHandlers[node.tagName](
+    // make sure we catch all errors coming from any handler
+    // otherwise we can remove the presence handler from strophe
+    try {
+        if(this.presHandlers[node.tagName])
+            this.presHandlers[node.tagName](
                 node, Strophe.getResourceFromJid(from), from);
+    } catch (e) {
+        logger.error('Error processing:' + node.tagName
+            + ' node.', e);
+    }
 };
 
 ChatRoom.prototype.sendMessage = function (body, nickname) {
