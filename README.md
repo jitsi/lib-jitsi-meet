@@ -21,5 +21,11 @@ To build the Lib Jitsi Meet, just type
 npm install
 ```
 
+For development, use watch to recompile your browserify bundle on file changes:
+
+```
+npm run watch
+```
+
 ## Discuss
 Please use the [Jitsi dev mailing list](http://lists.jitsi.org/pipermail/dev/) to discuss feature requests before opening an issue on Github. 
