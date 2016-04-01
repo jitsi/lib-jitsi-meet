@@ -823,6 +823,13 @@ JitsiConference.prototype.getLogs = function () {
 };
 
 /**
+ * Returns measured performanceTimes.
+ */
+JitsiConference.prototype.getPerformanceTimes = function () {
+    return this.room.performanceTimes;
+};
+
+/**
  * Sends the given feedback through CallStats if enabled.
  *
  * @param overallFeedback an integer between 1 and 5 indicating the
@@ -851,11 +858,12 @@ JitsiConference.prototype.isCallstatsEnabled = function () {
  */
 function setupListeners(conference) {
     conference.xmpp.addListener(
-        XMPPEvents.CALL_INCOMING, function (jingleSession, jingleOffer) {
+        XMPPEvents.CALL_INCOMING, function (jingleSession, jingleOffer, now) {
 
         if (conference.room.isFocus(jingleSession.peerjid)) {
             // Accept incoming call
             conference.room.setJingleSession(jingleSession);
+            conference.room.performanceTimes["session.initiate"] = now;
             jingleSession.initialize(false /* initiator */, conference.room);
             conference.rtc.onIncommingCall(jingleSession);
             jingleSession.acceptOffer(jingleOffer, null,
