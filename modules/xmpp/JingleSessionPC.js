@@ -152,8 +152,13 @@ JingleSessionPC.prototype.doInitialize = function () {
      */
     this.peerconnection.oniceconnectionstatechange = function (event) {
         if (!(self && self.peerconnection)) return;
+        self.room.performanceTimes["ice.state"] =
+            self.room.performanceTimes["ice.state"] || [];
+        var now = window.performance.now();
+        self.room.performanceTimes["ice.state"].push(
+            {state: self.peerconnection.iceConnectionState, time: now});
         logger.log("(TIME) ICE " + self.peerconnection.iceConnectionState +
-                    ":\t", window.performance.now());
+                    ":\t", now);
         self.updateModifySourcesQueue();
         switch (self.peerconnection.iceConnectionState) {
             case 'connected':
@@ -383,7 +388,14 @@ JingleSessionPC.prototype.createAnswer = function (success, failure) {
     //logger.log('createAnswer');
     var self = this;
     this.peerconnection.createAnswer(
-        success,
+        function (answer) {
+            var modifiedAnswer = new SDP(answer.sdp);
+            JingleSessionPC._fixAnswerRFC4145Setup(
+                /* offer */ self.remoteSDP,
+                /* answer */ modifiedAnswer);
+            answer.sdp = modifiedAnswer.raw;
+            success(answer);
+        },
         function (error) {
             logger.error("createAnswer failed", error);
             if (failure)
@@ -422,6 +434,65 @@ JingleSessionPC.prototype.setLocalDescription = function (sdp, success,
         } else if (cand.type == 'relay') {
             this.hadturncandidate = true;
         }
+    }
+};
+
+/**
+ * Modifies the values of the setup attributes (defined by
+ * {@link http://tools.ietf.org/html/rfc4145#section-4}) of a specific SDP
+ * answer in order to overcome a delay of 1 second in the connection
+ * establishment between Chrome and Videobridge.
+ *
+ * @param {SDP} offer - the SDP offer to which the specified SDP answer is
+ * being prepared to respond
+ * @param {SDP} answer - the SDP to modify
+ * @private
+ */
+JingleSessionPC._fixAnswerRFC4145Setup = function (offer, answer) {
+    if (!RTCBrowserType.isChrome()) {
+        // It looks like Firefox doesn't agree with the fix (at least in its
+        // current implementation) because it effectively remains active even
+        // after we tell it to become passive. Apart from Firefox which I tested
+        // after the fix was deployed, I tested Chrome only. In order to prevent
+        // issues with other browsers, limit the fix to Chrome for the time
+        // being.
+        return;
+    }
+
+    // XXX Videobridge is the (SDP) offerer and WebRTC (e.g. Chrome) is the
+    // answerer (as orchestrated by Jicofo). In accord with
+    // http://tools.ietf.org/html/rfc5245#section-5.2 and because both peers
+    // are ICE FULL agents, Videobridge will take on the controlling role and
+    // WebRTC will take on the controlled role. In accord with
+    // https://tools.ietf.org/html/rfc5763#section-5, Videobridge will use the
+    // setup attribute value of setup:actpass and WebRTC will be allowed to
+    // choose either the setup attribute value of setup:active or
+    // setup:passive. Chrome will by default choose setup:active because it is
+    // RECOMMENDED by the respective RFC since setup:passive adds additional
+    // latency. The case of setup:active allows WebRTC to send a DTLS
+    // ClientHello as soon as an ICE connectivity check of its succeeds.
+    // Unfortunately, Videobridge will be unable to respond immediately because
+    // may not have WebRTC's answer or may have not completed the ICE
+    // connectivity establishment. Even more unfortunate is that in the
+    // described scenario Chrome's DTLS implementation will insist on
+    // retransmitting its ClientHello after a second (the time is in accord
+    // with the respective RFC) and will thus cause the whole connection
+    // establishment to exceed at least 1 second. To work around Chrome's
+    // idiosyncracy, don't allow it to send a ClientHello i.e. change its
+    // default choice of setup:active to setup:passive.
+    if (offer && answer
+            && offer.media && answer.media
+            && offer.media.length == answer.media.length) {
+        answer.media.forEach(function (a, i) {
+            if (SDPUtil.find_line(
+                    offer.media[i],
+                    'a=setup:actpass',
+                    offer.session)) {
+                answer.media[i]
+                    = a.replace(/a=setup:active/g, 'a=setup:passive');
+            }
+        });
+        answer.raw = answer.session + answer.media.join('');
     }
 };
 
@@ -482,6 +553,10 @@ JingleSessionPC.prototype.sendSessionAccept = function (localSDP,
         success,
         this.newJingleErrorHandler(accept, failure),
         IQ_TIMEOUT);
+    // XXX Videobridge needs WebRTC's answer (ICE ufrag and pwd, DTLS
+    // fingerprint and setup) ASAP in order to start the connection
+    // establishment.
+    this.connection.flush();
 };
 
 /**

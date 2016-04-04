@@ -83,6 +83,7 @@ function ChatRoom(connection, jid, password, XMPP, options, settings) {
     this.lastPresences = {};
     this.phoneNumber = null;
     this.phonePin = null;
+    this.performanceTimes = {};
 }
 
 ChatRoom.prototype.initPresenceMap = function () {
@@ -117,19 +118,19 @@ ChatRoom.prototype.join = function (password) {
     if(password)
         this.password = password;
     var self = this;
-    this.moderator.allocateConferenceFocus(function()
-    {
+    this.moderator.allocateConferenceFocus(function () {
         self.sendPresence(true);
-    }.bind(this));
+    });
 };
 
 ChatRoom.prototype.sendPresence = function (fromJoin) {
-    if (!this.presMap['to'] || (!this.joined && !fromJoin)) {
+    var to = this.presMap['to'];
+    if (!to || (!this.joined && !fromJoin)) {
         // Too early to send presence - not initialized
         return;
     }
 
-    var pres = $pres({to: this.presMap['to'] });
+    var pres = $pres({to: to });
     pres.c('x', {xmlns: this.presMap['xns']});
 
     if (this.password) {
@@ -139,13 +140,22 @@ ChatRoom.prototype.sendPresence = function (fromJoin) {
     pres.up();
 
     // Send XEP-0115 'c' stanza that contains our capabilities info
-    if (this.connection.caps) {
-        this.connection.caps.node = this.xmpp.options.clientNode;
-        pres.c('c', this.connection.caps.generateCapsAttrs()).up();
+    var connection = this.connection;
+    var caps = connection.caps;
+    if (caps) {
+        caps.node = this.xmpp.options.clientNode;
+        pres.c('c', caps.generateCapsAttrs()).up();
     }
 
     parser.JSON2packet(this.presMap.nodes, pres);
-    this.connection.send(pres);
+    connection.send(pres);
+    if (fromJoin) {
+        // XXX We're pressed for time here because we're beginning a complex
+        // and/or lengthy conference-establishment process which supposedly
+        // involves multiple RTTs. We don't have the time to wait for Strophe to
+        // decide to send our IQ.
+        connection.flush();
+    }
 };
 
 
@@ -215,17 +225,16 @@ ChatRoom.prototype.onPresence = function (pres) {
     var member = {};
     member.show = $(pres).find('>show').text();
     member.status = $(pres).find('>status').text();
-    var tmp = $(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>item');
-    member.affiliation = tmp.attr('affiliation');
-    member.role = tmp.attr('role');
+    var mucUserItem
+        = $(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>item');
+    member.affiliation = mucUserItem.attr('affiliation');
+    member.role = mucUserItem.attr('role');
 
     // Focus recognition
-    member.jid = tmp.attr('jid');
-    member.isFocus = false;
-    if (member.jid
-        && member.jid.indexOf(this.moderator.getFocusUserJid() + "/") === 0) {
-        member.isFocus = true;
-    }
+    var jid = mucUserItem.attr('jid');
+    member.jid = jid;
+    member.isFocus
+        = !!jid && jid.indexOf(this.moderator.getFocusUserJid() + "/") === 0;
 
     $(pres).find(">x").remove();
     var nodes = [];
@@ -249,15 +258,15 @@ ChatRoom.prototype.onPresence = function (pres) {
     }
 
     if (from == this.myroomjid) {
-        if (member.affiliation == 'owner'
-            &&  this.role !== member.role) {
-                this.role = member.role;
-                this.eventEmitter.emit(
-                    XMPPEvents.LOCAL_ROLE_CHANGED, this.role);
+        if (member.affiliation == 'owner' && this.role !== member.role) {
+            this.role = member.role;
+            this.eventEmitter.emit(XMPPEvents.LOCAL_ROLE_CHANGED, this.role);
         }
         if (!this.joined) {
             this.joined = true;
-            console.log("(TIME) MUC joined:\t", window.performance.now());
+            var now = this.performanceTimes["muc.joined"] =
+                window.performance.now();
+            console.log("(TIME) MUC joined:\t", now);
             this.eventEmitter.emit(XMPPEvents.MUC_JOINED);
         }
     } else if (this.members[from] === undefined) {
@@ -273,7 +282,7 @@ ChatRoom.prototype.onPresence = function (pres) {
                 if(this.lastJibri)
                     this.recording.handleJibriPresence(this.lastJibri);
             }
-            logger.info("Ignore focus: " + from + ", real JID: " + member.jid);
+            logger.info("Ignore focus: " + from + ", real JID: " + jid);
         }
         else {
             this.eventEmitter.emit(
@@ -282,15 +291,16 @@ ChatRoom.prototype.onPresence = function (pres) {
     } else {
         // Presence update for existing participant
         // Watch role change:
-        if (this.members[from].role != member.role) {
-            this.members[from].role = member.role;
+        var memberOfThis = this.members[from];
+        if (memberOfThis.role != member.role) {
+            memberOfThis.role = member.role;
             this.eventEmitter.emit(
                 XMPPEvents.MUC_ROLE_CHANGED, from, member.role);
         }
 
         // store the new display name
         if(member.displayName)
-            this.members[from].displayName = member.displayName;
+            memberOfThis.displayName = member.displayName;
     }
 
     // after we had fired member or room joined events, lets fire events
@@ -344,13 +354,19 @@ ChatRoom.prototype.onPresence = function (pres) {
         if(this.recording)
             this.recording.handleJibriPresence(jibri);
     }
-
 };
 
 ChatRoom.prototype.processNode = function (node, from) {
-    if(this.presHandlers[node.tagName])
-        this.presHandlers[node.tagName](
+    // make sure we catch all errors coming from any handler
+    // otherwise we can remove the presence handler from strophe
+    try {
+        if(this.presHandlers[node.tagName])
+            this.presHandlers[node.tagName](
                 node, Strophe.getResourceFromJid(from), from);
+    } catch (e) {
+        logger.error('Error processing:' + node.tagName
+            + ' node.', e);
+    }
 };
 
 ChatRoom.prototype.sendMessage = function (body, nickname) {

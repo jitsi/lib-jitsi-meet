@@ -94,8 +94,8 @@ module.exports = function(XMPP, eventEmitter) {
             // see http://xmpp.org/extensions/xep-0166.html#concepts-session
             switch (action) {
                 case 'session-initiate':
-                    console.log("(TIME) received session-initiate:\t",
-                                window.performance.now());
+                    var now = window.performance.now();
+                    console.log("(TIME) received session-initiate:\t", now);
                     var startMuted = $(iq).find('jingle>startmuted');
                     if (startMuted && startMuted.length > 0) {
                         var audioMuted = startMuted.attr("audio");
@@ -116,7 +116,7 @@ module.exports = function(XMPP, eventEmitter) {
                     var jingleOffer = $(iq).find('>jingle');
                     // FIXME there's no nice way with event to get the reason
                     // why the call was rejected
-                    eventEmitter.emit(XMPPEvents.CALL_INCOMING, sess, jingleOffer);
+                    eventEmitter.emit(XMPPEvents.CALL_INCOMING, sess, jingleOffer, now);
                     if (!sess.active())
                     {
                         // Call not accepted
@@ -267,4 +267,3 @@ module.exports = function(XMPP, eventEmitter) {
         }
     });
 };
-

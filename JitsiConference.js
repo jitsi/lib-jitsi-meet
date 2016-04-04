@@ -673,7 +673,7 @@ JitsiConference.prototype.isRecordingSupported = function () {
 JitsiConference.prototype.getRecordingState = function () {
     if(this.room)
         return this.room.getRecordingState();
-    return "off";
+    return Recording.status.OFF;
 }
 
 /**
@@ -692,10 +692,10 @@ JitsiConference.prototype.toggleRecording = function (options) {
     if(this.room)
         return this.room.toggleRecording(options, function (status, error) {
             this.eventEmitter.emit(
-                JitsiConferenceEvents.RECORDING_STATE_CHANGED, status, error);
+                JitsiConferenceEvents.RECORDER_STATE_CHANGED, status, error);
         }.bind(this));
     this.eventEmitter.emit(
-        JitsiConferenceEvents.RECORDING_STATE_CHANGED, "error",
+        JitsiConferenceEvents.RECORDER_STATE_CHANGED, "error",
         new Error("The conference is not created yet!"));
 }
 
@@ -823,6 +823,13 @@ JitsiConference.prototype.getLogs = function () {
 };
 
 /**
+ * Returns measured performanceTimes.
+ */
+JitsiConference.prototype.getPerformanceTimes = function () {
+    return this.room.performanceTimes;
+};
+
+/**
  * Sends the given feedback through CallStats if enabled.
  *
  * @param overallFeedback an integer between 1 and 5 indicating the
@@ -851,11 +858,12 @@ JitsiConference.prototype.isCallstatsEnabled = function () {
  */
 function setupListeners(conference) {
     conference.xmpp.addListener(
-        XMPPEvents.CALL_INCOMING, function (jingleSession, jingleOffer) {
+        XMPPEvents.CALL_INCOMING, function (jingleSession, jingleOffer, now) {
 
         if (conference.room.isFocus(jingleSession.peerjid)) {
             // Accept incoming call
             conference.room.setJingleSession(jingleSession);
+            conference.room.performanceTimes["session.initiate"] = now;
             jingleSession.initialize(false /* initiator */, conference.room);
             conference.rtc.onIncommingCall(jingleSession);
             jingleSession.acceptOffer(jingleOffer, null,
@@ -994,10 +1002,10 @@ function setupListeners(conference) {
         conference.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_INTERRUPTED);
     });
 
-    conference.room.addListener(XMPPEvents.RECORDING_STATE_CHANGED,
-        function () {
+    conference.room.addListener(XMPPEvents.RECORDER_STATE_CHANGED,
+        function (state) {
             conference.eventEmitter.emit(
-                JitsiConferenceEvents.RECORDING_STATE_CHANGED);
+                JitsiConferenceEvents.RECORDER_STATE_CHANGED, state);
         });
 
     conference.room.addListener(XMPPEvents.PHONE_NUMBER_CHANGED, function () {

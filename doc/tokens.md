@@ -61,7 +61,7 @@ just install 'jitsi-meet-tokens' on top of it. In order to have it configured au
 jitsi-meet is required which comes with special Prosody config template.
 
 ```
-apt-get install jitsi-meet-token
+apt-get install jitsi-meet-tokens
 ```
 
 Proceed to "Patching Prosody" section to finish configuration.

@@ -111,7 +111,7 @@ var JitsiConferenceEvents = {
     /**
      * Indicates that recording state changed.
      */
-    RECORDING_STATE_CHANGED: "conference.recordingStateChanged",
+    RECORDER_STATE_CHANGED: "conference.recorderStateChanged",
     /**
      * Indicates that phone number changed.
      */
