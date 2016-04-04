@@ -160,11 +160,15 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: options.adaptiveLastN
             }).up();
     }
-    if (options.adaptiveSimulcast !== undefined) {
+    if (options.disableAdaptiveSimulcast !== undefined ||
+        options.disableSimulcast) {
+        // disableSimulcast implies disableAdaptiveSimulcast.
+        var value = options.disableSimulcast ? true :
+            options.disableAdaptiveSimulcast;
         elem.c(
             'property', {
-                name: 'adaptiveSimulcast',
-                value: options.adaptiveSimulcast
+                name: 'disableAdaptiveSimulcast',
+                value: value
             }).up();
     }
     if (options.openSctp !== undefined) {
