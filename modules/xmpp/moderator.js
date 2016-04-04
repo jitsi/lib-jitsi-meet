@@ -109,6 +109,7 @@ Moderator.prototype.createConferenceIq =  function () {
     // Session Id used for authentication
     var sessionId = this.settings.getSessionId();
     var machineUID = this.settings.getUserId();
+    var options = this.xmppService.options;
 
     logger.info(
             "Session ID: " + sessionId + " machine UID: " + machineUID);
@@ -122,72 +123,74 @@ Moderator.prototype.createConferenceIq =  function () {
     if (sessionId) {
         elem.attrs({ 'session-id': sessionId});
     }
-    if (this.xmppService.options.hosts.bridge !== undefined) {
+    if (options.hosts !== undefined && options.hosts.bridge !== undefined) {
         elem.c(
             'property', {
                 name: 'bridge',
-                value: this.xmppService.options.hosts.bridge
+                value: options.hosts.bridge
             }).up();
     }
-    if (this.xmppService.options.enforcedBridge !== undefined) {
+    if (options.enforcedBridge !== undefined) {
         elem.c(
             'property', {
                 name: 'enforcedBridge',
-                value: this.xmppService.options.enforcedBridge
+                value: options.enforcedBridge
             }).up();
     }
     // Tell the focus we have Jigasi configured
-    if (this.xmppService.options.hosts.call_control !== undefined) {
+    if (options.hosts !== undefined &&
+        options.hosts.call_control !== undefined) {
         elem.c(
             'property', {
                 name: 'call_control',
-                value:  this.xmppService.options.hosts.call_control
+                value: options.hosts.call_control
             }).up();
     }
-    if (this.xmppService.options.channelLastN !== undefined) {
+    if (options.channelLastN !== undefined) {
         elem.c(
             'property', {
                 name: 'channelLastN',
-                value: this.xmppService.options.channelLastN
+                value: options.channelLastN
             }).up();
     }
-    if (this.xmppService.options.adaptiveLastN !== undefined) {
+    if (options.adaptiveLastN !== undefined) {
         elem.c(
             'property', {
                 name: 'adaptiveLastN',
-                value: this.xmppService.options.adaptiveLastN
+                value: options.adaptiveLastN
             }).up();
     }
-    if (this.xmppService.options.adaptiveSimulcast !== undefined) {
+    if (options.adaptiveSimulcast !== undefined) {
         elem.c(
             'property', {
                 name: 'adaptiveSimulcast',
-                value: this.xmppService.options.adaptiveSimulcast
+                value: options.adaptiveSimulcast
             }).up();
     }
-    if (this.xmppService.options.openSctp !== undefined) {
+    if (options.openSctp !== undefined) {
         elem.c(
             'property', {
                 name: 'openSctp',
-                value: this.xmppService.options.openSctp
+                value: options.openSctp
             }).up();
     }
-    if (this.xmppService.options.startAudioMuted !== undefined)
+    if (options.startAudioMuted !== undefined)
     {
         elem.c(
             'property', {
                 name: 'startAudioMuted',
-                value: this.xmppService.options.startAudioMuted
+                value: options.startAudioMuted
             }).up();
     }
-    if (this.xmppService.options.startVideoMuted !== undefined)
+    if (options.startVideoMuted !== undefined)
     {
         elem.c(
             'property', {
                 name: 'startVideoMuted',
-                value: this.xmppService.options.startVideoMuted
+                value: options.startVideoMuted
             }).up();
     }
+
     elem.c(
         'property', {
             name: 'simulcastMode',
