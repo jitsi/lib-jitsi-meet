@@ -14,7 +14,8 @@ var wrtcFuncNames = {
     setLocalDescription:  "setLocalDescription",
     setRemoteDescription: "setRemoteDescription",
     addIceCandidate:      "addIceCandidate",
-    getUserMedia:         "getUserMedia"
+    getUserMedia:         "getUserMedia",
+    signallingError:      "signallingError"
 };
 
 /**
@@ -353,6 +354,17 @@ CallStats.sendSetRemoteDescFailed = _try_catch(function (e, pc, cs) {
  */
 CallStats.sendAddIceCandidateFailed = _try_catch(function (e, pc, cs) {
     CallStats._reportError.call(cs, wrtcFuncNames.addIceCandidate, e, pc);
+});
+
+/**
+ * Notifies CallStats that there is an unhandled error on the page.
+ *
+ * @param {Error} e error to send
+ * @param {RTCPeerConnection} pc connection on which failure occured.
+ * @param {CallStats} cs callstats instance related to the error (optional)
+ */
+CallStats.sendUnhandledError = _try_catch(function (e, cs) {
+    CallStats._reportError.call(cs, wrtcFuncNames.signallingError, e, null);
 });
 
 module.exports = CallStats;
