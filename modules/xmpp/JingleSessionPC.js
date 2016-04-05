@@ -284,19 +284,69 @@ JingleSessionPC.prototype.readSsrcInfo = function (contents) {
     });
 };
 
+/**
+ * Does accept incoming Jingle 'session-initiate' and should send
+ * 'session-accept' in result.
+ * @param jingleOffer jQuery selector pointing to the jingle element of
+ *        the offer IQ
+ * @param success callback called when we accept incoming session successfully
+ *        and receive RESULT packet to 'session-accept' sent.
+ * @param failure function(error) called if for any reason we fail to accept
+ *        the incoming offer. 'error' argument can be used to log some details
+ *        about the error.
+ */
 JingleSessionPC.prototype.acceptOffer = function(jingleOffer,
                                                  success, failure) {
     this.state = 'active';
-    this.setRemoteDescription(jingleOffer, 'offer',
+    this.setOfferCycle(jingleOffer,
         function() {
-            this.sendAnswer(success, failure);
+            // setOfferCycle succeeded, now we have self.localSDP up to date
+            // Let's send an answer !
+            // FIXME we may not care about RESULT packet for session-accept
+            // then we should either call 'success' here immediately or
+            // modify sendSessionAccept method to do that
+            this.sendSessionAccept(this.localSDP, success, failure);
         }.bind(this),
         failure);
 };
 
-JingleSessionPC.prototype.setRemoteDescription = function (elem, desctype,
-                                                           success, failure) {
-    //logger.log('setting remote description... ', desctype);
+/**
+ * This is a setRemoteDescription/setLocalDescription cycle which starts at
+ * converting Strophe Jingle IQ into remote offer SDP. Once converted
+ * setRemoteDescription, createAnswer and setLocalDescription calls follow.
+ * @param jingleOfferIq jQuery selector pointing to the jingle element of
+ *        the offer IQ
+ * @param success callback called when sRD/sLD cycle finishes successfully.
+ * @param failure callback called with an error object as an argument if we fail
+ *        at any point during setRD, createAnswer, setLD.
+ */
+JingleSessionPC.prototype.setOfferCycle = function (jingleOfferIq,
+                                                          success,
+                                                          failure) {
+    // Set Jingle offer as RD
+    this.setOffer(jingleOfferIq,
+        function() {
+            // Set offer OK, now let's try create an answer
+            this.createAnswer(function(answer) {
+                    // Create answer OK, set it as local SDP
+                    this.setLocalDescription(answer, success, failure);
+                }.bind(this),
+                failure);
+        }.bind(this),
+        failure);
+};
+
+/**
+ * Sets remote offer on PeerConnection by converting given Jingle offer IQ into
+ * SDP and setting it as remote description.
+ * @param jingleOfferIq  jQuery selector pointing to the jingle element of
+ *        the offer IQ
+ * @param success callback called when setRemoteDescription on PeerConnection
+ *        succeeds
+ * @param failure callback called with an error argument when
+ *        setRemoteDescription fails.
+ */
+JingleSessionPC.prototype.setOffer = function (jingleOfferIq, success, failure) {
     this.remoteSDP = new SDP('');
     if (this.webrtcIceTcpDisable) {
         this.remoteSDP.removeTcpCandidates = true;
@@ -305,9 +355,10 @@ JingleSessionPC.prototype.setRemoteDescription = function (elem, desctype,
         this.remoteSDP.removeUdpCandidates = true;
     }
 
-    this.remoteSDP.fromJingle(elem);
-    this.readSsrcInfo($(elem).find(">content"));
-    var remotedesc = new RTCSessionDescription({type: desctype, sdp: this.remoteSDP.raw});
+    this.remoteSDP.fromJingle(jingleOfferIq);
+    this.readSsrcInfo($(jingleOfferIq).find(">content"));
+    var remotedesc
+        = new RTCSessionDescription({type: 'offer', sdp: this.remoteSDP.raw});
 
     this.peerconnection.setRemoteDescription(remotedesc,
         function () {
@@ -325,66 +376,46 @@ JingleSessionPC.prototype.setRemoteDescription = function (elem, desctype,
     );
 };
 
-JingleSessionPC.prototype.sendAnswer = function (success, failure) {
+/**
+ * This is a wrapper to PeerConnection.createAnswer in order to generate failure
+ * event when error occurs. It also includes "media_constraints" if any are set
+ * on this JingleSessionPC instance.
+ * @param success callback called when PC.createAnswer succeeds, SDP will be
+ *        the first argument
+ * @param failure callback called with error argument when setAnswer fails
+ */
+JingleSessionPC.prototype.createAnswer = function (success, failure) {
     //logger.log('createAnswer');
+    var self = this;
     this.peerconnection.createAnswer(
-        function (sdp) {
-            this.createdAnswer(sdp, success, failure);
-        }.bind(this),
+        function (answer) {
+            var modifiedAnswer = new SDP(answer.sdp);
+            JingleSessionPC._fixAnswerRFC4145Setup(
+                /* offer */ self.remoteSDP,
+                /* answer */ modifiedAnswer);
+            answer.sdp = modifiedAnswer.raw;
+            success(answer);
+        },
         function (error) {
             logger.error("createAnswer failed", error);
             if (failure)
                 failure(error);
-            this.room.eventEmitter.emit(
+            self.room.eventEmitter.emit(
                     XMPPEvents.CONFERENCE_SETUP_FAILED, error);
-        }.bind(this),
+        },
         this.media_constraints
     );
 };
 
-JingleSessionPC.prototype.createdAnswer = function (sdp, success, failure) {
-    //logger.log('createAnswer callback');
-
+JingleSessionPC.prototype.setLocalDescription = function (sdp, success,
+                                                               failure) {
     var self = this;
     this.localSDP = new SDP(sdp.sdp);
-
-    this._fixAnswerRFC4145Setup(
-            /* offer */ this.remoteSDP,
-            /* answer */ this.localSDP);
-
-    var sendJingle = function (ssrcs) {
-        var accept
-            = $iq({ to: self.peerjid, type: 'set' })
-                .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
-                               action: 'session-accept',
-                               initiator: self.initiator,
-                               responder: self.responder,
-                               sid: self.sid });
-        if (self.webrtcIceTcpDisable) {
-            self.localSDP.removeTcpCandidates = true;
-        }
-        if (self.webrtcIceUdpDisable) {
-            self.localSDP.removeUdpCandidates = true;
-        }
-        self.localSDP.toJingle(
-                accept,
-                self.initiator == self.me ? 'initiator' : 'responder',
-                ssrcs);
-        self.fixJingle(accept);
-        self.connection.sendIQ(accept,
-                success,
-                self.newJingleErrorHandler(accept, failure),
-                IQ_TIMEOUT);
-        // XXX Videobridge needs WebRTC's answer (ICE ufrag and pwd, DTLS
-        // fingerprint and setup) ASAP in order to start the connection
-        // establishment.
-        self.connection.flush();
-    };
     sdp.sdp = this.localSDP.raw;
     this.peerconnection.setLocalDescription(sdp,
         function () {
-            //logger.log('setLocalDescription success');
-            sendJingle(success, failure);
+            if (success)
+                success();
         },
         function (error) {
             logger.error('setLocalDescription failed', error);
@@ -393,6 +424,8 @@ JingleSessionPC.prototype.createdAnswer = function (sdp, success, failure) {
             self.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED);
         }
     );
+    // Some checks for STUN and TURN candiates present in local SDP
+    // Eventually could be removed as we don't really care
     var cands = SDPUtil.find_lines(this.localSDP.raw, 'a=candidate:');
     for (var j = 0; j < cands.length; j++) {
         var cand = SDPUtil.parse_icecandidate(cands[j]);
@@ -415,7 +448,7 @@ JingleSessionPC.prototype.createdAnswer = function (sdp, success, failure) {
  * @param {SDP} answer - the SDP to modify
  * @private
  */
-JingleSessionPC.prototype._fixAnswerRFC4145Setup = function (offer, answer) {
+JingleSessionPC._fixAnswerRFC4145Setup = function (offer, answer) {
     if (!RTCBrowserType.isChrome()) {
         // It looks like Firefox doesn't agree with the fix (at least in its
         // current implementation) because it effectively remains active even
@@ -461,7 +494,135 @@ JingleSessionPC.prototype._fixAnswerRFC4145Setup = function (offer, answer) {
         });
         answer.raw = answer.session + answer.media.join('');
     }
-}
+};
+
+/**
+ * Although it states "replace transport" it does accept full Jingle offer
+ * which should contain new ICE transport details.
+ * @param jingleOfferElem an element Jingle IQ that contains new offer and
+ *        transport info.
+ * @param success callback called when we succeed to accept new offer.
+ * @param failure function(error) called when we fail to accept new offer.
+ */
+JingleSessionPC.prototype.replaceTransport = function (jingleOfferElem,
+                                                       success,
+                                                       failure) {
+    // Set offer as RD
+    this.setOfferCycle(jingleOfferElem,
+        function () {
+            // Set local description OK, now localSDP up to date
+            this.sendTransportAccept(this.localSDP, success, failure);
+        }.bind(this),
+        failure);
+};
+
+/**
+ * Sends Jingle 'session-accept' message.
+ * @param localSDP the 'SDP' object with local session description
+ * @param success callback called when we recive 'RESULT' packet for
+ *        'session-accept'
+ * @param failure function(error) called when we receive an error response or
+ *        when the request has timed out.
+ */
+JingleSessionPC.prototype.sendSessionAccept = function (localSDP,
+                                                        success, failure) {
+    var accept = $iq({to: this.peerjid,
+        type: 'set'})
+        .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
+            action: 'session-accept',
+            initiator: this.initiator,
+            responder: this.responder,
+            sid: this.sid });
+    if (this.webrtcIceTcpDisable) {
+        localSDP.removeTcpCandidates = true;
+    }
+    if (this.webrtcIceUdpDisable) {
+        localSDP.removeUdpCandidates = true;
+    }
+    localSDP.toJingle(
+        accept,
+        this.initiator == this.me ? 'initiator' : 'responder',
+        null);
+    this.fixJingle(accept);
+
+    // Calling tree() to print something useful
+    accept = accept.tree();
+    logger.info("Sending session-accept", accept);
+
+    this.connection.sendIQ(accept,
+        success,
+        this.newJingleErrorHandler(accept, failure),
+        IQ_TIMEOUT);
+    // XXX Videobridge needs WebRTC's answer (ICE ufrag and pwd, DTLS
+    // fingerprint and setup) ASAP in order to start the connection
+    // establishment.
+    this.connection.flush();
+};
+
+/**
+ * Sends Jingle 'transport-accept' message which is a response to
+ * 'transport-replace'.
+ * @param localSDP the 'SDP' object with local session description
+ * @param success callback called when we receive 'RESULT' packet for
+ *        'transport-replace'
+ * @param failure function(error) called when we receive an error response or
+ *        when the request has timed out.
+ */
+JingleSessionPC.prototype.sendTransportAccept = function(localSDP, success,
+                                                         failure) {
+    var self = this;
+    var tAccept = $iq({to: this.peerjid, type: 'set'})
+        .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
+            action: 'transport-accept',
+            initiator: this.initiator,
+            sid: this.sid});
+
+    localSDP.media.forEach(function(medialines, idx){
+        var mline = SDPUtil.parse_mline(medialines.split('\r\n')[0]);
+        tAccept.c('content',
+            { creator: self.initiator == self.me ? 'initiator' : 'responder',
+              name: mline.media
+            }
+        );
+        localSDP.transportToJingle(idx, tAccept);
+        tAccept.up();
+    });
+
+    // Calling tree() to print something useful to the logger
+    tAccept = tAccept.tree();
+    console.info("Sending transport-accept: ", tAccept);
+
+    self.connection.sendIQ(tAccept,
+        success,
+        self.newJingleErrorHandler(tAccept, failure),
+        IQ_TIMEOUT);
+};
+
+/**
+ * Sends Jingle 'transport-reject' message which is a response to
+ * 'transport-replace'.
+ * @param success callback called when we receive 'RESULT' packet for
+ *        'transport-replace'
+ * @param failure function(error) called when we receive an error response or
+ *        when the request has timed out.
+ */
+JingleSessionPC.prototype.sendTransportReject = function(success, failure) {
+    // Send 'transport-reject', so that the focus will
+    // know that we've failed
+    var tReject = $iq({to: this.peerjid, type: 'set'})
+        .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
+            action: 'transport-reject',
+            initiator: this.initiator,
+            sid: this.sid});
+
+    tReject = tReject.tree();
+    logger.info("Sending 'transport-reject", tReject);
+
+    this.connection.sendIQ(tReject,
+        success,
+        this.newJingleErrorHandler(tReject, failure),
+        IQ_TIMEOUT);
+};
 
 JingleSessionPC.prototype.terminate = function (reason,  text,
                                                 success, failure) {
@@ -477,6 +638,10 @@ JingleSessionPC.prototype.terminate = function (reason,  text,
     if (text) {
         term.up().c('text').t(text);
     }
+
+    // Calling tree() to print something useful
+    term = term.tree();
+    logger.info("Sending session-terminate", term);
 
     this.connection.sendIQ(
         term, success, this.newJingleErrorHandler(term, failure), IQ_TIMEOUT);

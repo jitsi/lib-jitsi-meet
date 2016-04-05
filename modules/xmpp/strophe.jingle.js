@@ -139,6 +139,20 @@ module.exports = function(XMPP, eventEmitter) {
                     }
                     this.terminate(sess.sid, reasonCondition, reasonText);
                     break;
+                case 'transport-replace':
+                    logger.info("(TIME) Start transport replace",
+                                window.performance.now());
+                    sess.replaceTransport($(iq).find('>jingle'),
+                        function () {
+                            logger.info(
+                                "(TIME) Transport replace success!",
+                                window.performance.now());
+                        },
+                        function(error) {
+                            logger.error('Transport replace failed', error);
+                            sess.sendTransportReject();
+                        });
+                    break;
                 case 'addsource': // FIXME: proprietary, un-jingleish
                 case 'source-add': // FIXME: proprietary
                     sess.addSource($(iq).find('>jingle>content'));
