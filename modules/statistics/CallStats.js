@@ -31,7 +31,9 @@ var fabricEvent = {
     videoResume:"videoResume",
     fabricUsageEvent:"fabricUsageEvent",
     fabricStats:"fabricStats",
-    fabricTerminated:"fabricTerminated"
+    fabricTerminated:"fabricTerminated",
+    screenShareStart:"screenShareStart",
+    screenShareStop:"screenShareStop"
 };
 
 var callStats = null;
@@ -206,6 +208,17 @@ CallStats.sendMuteEvent = _try_catch(function (mute, type, cs) {
     }
 
     CallStats._reportEvent.call(cs, event);
+});
+
+/**
+ * Notifies CallStats for screen sharing events
+ * @param start {boolean} true for starting screen sharing and
+ * false for not stopping
+ */
+CallStats.sendScreenSharingEvent = _try_catch(function (start, cs) {
+
+    CallStats._reportEvent.call(cs,
+        start? fabricEvent.screenShareStart : fabricEvent.screenShareStop);
 });
 
 /**
