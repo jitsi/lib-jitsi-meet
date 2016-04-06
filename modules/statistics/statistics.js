@@ -112,12 +112,6 @@ Statistics.prototype.dispose = function () {
         if(eventEmitter)
             eventEmitter.removeAllListeners();
     }
-
-    if(this.callstats)
-    {
-        this.callstats.sendTerminateEvent();
-        this.callstats = null;
-    }
 };
 
 
