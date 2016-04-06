@@ -55,8 +55,18 @@ var LibJitsiMeet = {
     init: function (options) {
         Statistics.audioLevelsEnabled = !options.disableAudioLevels || true;
 
-        if (options.enableWindowOnErrorHandler)
-            window.onerror = JitsiMeetJS.getGlobalOnErrorHandler;
+        if (options.enableWindowOnErrorHandler) {
+            // if an old handler exists also fire its events
+            var oldOnErrorHandler = window.onerror;
+            window.onerror = function (message, source, lineno, colno, error) {
+
+                JitsiMeetJS.getGlobalOnErrorHandler(
+                    message, source, lineno, colno, error);
+
+                if(oldOnErrorHandler)
+                    oldOnErrorHandler(message, source, lineno, colno, error);
+            }
+        }
 
         return RTC.init(options || {});
     },
