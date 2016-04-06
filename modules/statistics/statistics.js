@@ -293,6 +293,26 @@ Statistics.prototype.sendAddIceCandidateFailed = function (e, pc) {
 };
 
 /**
+ * Notifies CallStats that there is an unhandled error on the page.
+ *
+ * @param {Error} e error to send
+ * @param {RTCPeerConnection} pc connection on which failure occured.
+ */
+Statistics.prototype.sendUnhandledError = function (e) {
+    if(this.callStatsIntegrationEnabled)
+        CallStats.sendUnhandledError(e, this.callstats);
+};
+
+/**
+ * Notifies CallStats that there is unhandled exception.
+ *
+ * @param {Error} e error to send
+ */
+Statistics.sendUnhandledError = function (e) {
+    CallStats.sendUnhandledError(e, null);
+};
+
+/**
  * Sends the given feedback through CallStats.
  *
  * @param overallFeedback an integer between 1 and 5 indicating the

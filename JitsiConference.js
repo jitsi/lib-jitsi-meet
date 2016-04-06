@@ -51,6 +51,9 @@ function JitsiConference(options) {
     JitsiMeetJS._gumFailedHandler.push(function(error) {
         this.statistics.sendGetUserMediaFailed(error);
     }.bind(this));
+    JitsiMeetJS._globalOnErrorHandler.push(function(error) {
+        this.statistics.sendUnhandledError(error);
+    }.bind(this));
     this.participants = {};
     this.lastDominantSpeaker = null;
     this.dtmfManager = null;

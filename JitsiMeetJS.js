@@ -54,6 +54,20 @@ var LibJitsiMeet = {
     _gumFailedHandler: [],
     init: function (options) {
         Statistics.audioLevelsEnabled = !options.disableAudioLevels || true;
+
+        if (options.enableWindowOnErrorHandler) {
+            // if an old handler exists also fire its events
+            var oldOnErrorHandler = window.onerror;
+            window.onerror = function (message, source, lineno, colno, error) {
+
+                JitsiMeetJS.getGlobalOnErrorHandler(
+                    message, source, lineno, colno, error);
+
+                if(oldOnErrorHandler)
+                    oldOnErrorHandler(message, source, lineno, colno, error);
+            }
+        }
+
         return RTC.init(options || {});
     },
     /**
@@ -135,6 +149,31 @@ var LibJitsiMeet = {
     },
     enumerateDevices: function (callback) {
         RTC.enumerateDevices(callback);
+    },
+    /**
+     * Array of functions that will receive the unhandled errors.
+     */
+    _globalOnErrorHandler: [],
+    /**
+     * @returns function that can be used to be attached to window.onerror and
+     * if options.enableWindowOnErrorHandler is enabled returns
+     * the function used by the lib.
+     * (function(message, source, lineno, colno, error)).
+     */
+    getGlobalOnErrorHandler: function (message, source, lineno, colno, error) {
+        console.error(
+            'UnhandledError: ' + message,
+            'Script: ' + source,
+            'Line: ' + lineno,
+            'Column: ' + colno,
+            'StackTrace: ', error);
+
+        JitsiMeetJS._globalOnErrorHandler.forEach(function (handler) {
+            handler(error);
+        });
+        if(!JitsiMeetJS._globalOnErrorHandler.length){
+            Statistics.sendUnhandledError(error);
+        }
     },
 
     /**
