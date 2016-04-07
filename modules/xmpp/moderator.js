@@ -171,13 +171,15 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: value
             }).up();
     }
-    if (options.disableRtx !== undefined) {
+    // TODO: re-enable once rtx is stable
+    //if (options.disableRtx !== undefined) {
         elem.c(
             'property', {
                 name: 'disableRtx',
-                value: options.disableRtx
+                //value: options.disableRtx
+                value: true
             }).up();
-    }
+    //}
     if (options.openSctp !== undefined) {
         elem.c(
             'property', {
