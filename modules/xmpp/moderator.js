@@ -171,6 +171,13 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: value
             }).up();
     }
+    if (options.disableRtx !== undefined) {
+        elem.c(
+            'property', {
+                name: 'disableRtx',
+                value: options.disableRtx
+            }).up();
+    }
     if (options.openSctp !== undefined) {
         elem.c(
             'property', {
