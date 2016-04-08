@@ -61,6 +61,8 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         2. resolution - the prefered resolution for the local video.
         3. cameraDeviceId - the deviceID for the video device that is going to be used
         4. micDeviceId - the deviceID for the audio device that is going to be used
+        5. minFps - the minimum frame rate for the video stream (passed to GUM)
+        6. maxFps - the maximum frame rate for the video stream (passed to GUM)
 
 * ```JitsiMeetJS.enumerateDevices(callback)``` - returns list of the available devices as a parameter to the callback function. Every device is a object with the following format:
     - label - the name of the device
