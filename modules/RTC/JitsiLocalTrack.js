@@ -6,12 +6,32 @@ var JitsiTrackErrors = require("../../JitsiTrackErrors");
 var RTCUtils = require("./RTCUtils");
 
 /**
+ * Animates audio level change
+ * @param newLevel the new audio level
+ * @param lastLevel the last audio level
+ * @returns {Number} the audio level to be set
+ */
+function animateLevel(newLevel, lastLevel) {
+    var value = 0;
+    var diff = lastLevel - newLevel;
+    if(diff > 0.2) {
+        value = lastLevel - 0.2;
+    }
+    else if(diff < -0.4) {
+        value = lastLevel + 0.4;
+    }
+    else {
+        value = newLevel;
+    }
+
+    return parseFloat(value.toFixed(3));
+}
+
+/**
  * Represents a single media track (either audio or video).
  * @constructor
  */
-function JitsiLocalTrack(stream, videoType,
-  resolution, deviceId)
-{
+function JitsiLocalTrack(stream, videoType, resolution, deviceId) {
     this.videoType = videoType;
     this.dontFireRemoveEvent = false;
     this.resolution = resolution;
@@ -82,7 +102,8 @@ function createMuteUnmutePromise(track, mute)
 
 /**
  * Mutes / unmutes the track.
- * @param mute {boolean} if true the track will be muted. Otherwise the track will be unmuted.
+ * @param mute {boolean} if true the track will be muted.
+ * Otherwise the track will be unmuted.
  */
 JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
     if (this.isMuted() === mute) {
@@ -132,7 +153,8 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                 this.rtc.room.setAudioMute(mute, callbackFunction);
             else
                 this.rtc.room.setVideoMute(mute, callbackFunction);
-            //FIXME: Maybe here we should set the SRC for the containers to something
+            //FIXME: Maybe here we should set the SRC for the containers
+            // to something
         } else {
             var self = this;
             var streamOptions = {
@@ -140,9 +162,9 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                 resolution: self.resolution
             };
             if (isAudio) {
-              streamOptions['micDeviceId'] = self.deviceId;
+              streamOptions.micDeviceId = self.deviceId;
           } else if(self.videoType === 'camera') {
-              streamOptions['cameraDeviceId'] = self.deviceId;
+              streamOptions.cameraDeviceId = self.deviceId;
             }
             RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
                 .then(function (streams) {
@@ -161,7 +183,7 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                         return;
                     }
 
-                    for(var i = 0; i < self.containers.length; i++)
+                    for(i = 0; i < self.containers.length; i++)
                     {
                         self.containers[i]
                             = RTCUtils.attachMediaStream(
@@ -186,7 +208,7 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                 });
         }
     }
-}
+};
 
 /**
  * Stops sending the media track. And removes it from the HTML.
@@ -256,7 +278,7 @@ JitsiLocalTrack.prototype._setRTC = function (rtc) {
  */
 JitsiLocalTrack.prototype._setSSRC = function (ssrc) {
     this.ssrc = ssrc;
-}
+};
 
 
 //FIXME: This dependacy is not necessary. This is quick fix.
@@ -267,7 +289,7 @@ JitsiLocalTrack.prototype._setSSRC = function (ssrc) {
  */
 JitsiLocalTrack.prototype._setConference = function(conference) {
     this.conference = conference;
-}
+};
 
 /**
  * Gets the SSRC of this local track if it's available already or <tt>null</tt>
@@ -290,6 +312,16 @@ JitsiLocalTrack.prototype.getSSRC = function () {
  */
 JitsiLocalTrack.prototype.isLocal = function () {
     return true;
-}
+};
+
+/**
+ * Sets and animates the audio level for the local stream.
+ * @param audioLevel the new audio level
+ */
+JitsiLocalTrack.prototype.setAudioLevel = function (audioLevel) {
+    JitsiTrack.prototype.setAudioLevel.call(
+        this, animateLevel(audioLevel)
+    );
+};
 
 module.exports = JitsiLocalTrack;

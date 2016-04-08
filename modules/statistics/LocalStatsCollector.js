@@ -1,8 +1,6 @@
-/* global config */
 /**
  * Provides statistics for the local stream.
  */
-
 var RTCBrowserType = require('../RTC/RTCBrowserType');
 
 /**
@@ -21,8 +19,8 @@ window.AudioContext = window.AudioContext || window.webkitAudioContext;
 
 var context = null;
 
-if(window.AudioContext) {
-    context = new AudioContext();
+if (window.AudioContext) {
+    context = new window.AudioContext();
 }
 
 /**
@@ -45,29 +43,6 @@ function timeDomainDataToAudioLevel(samples) {
 }
 
 /**
- * Animates audio level change
- * @param newLevel the new audio level
- * @param lastLevel the last audio level
- * @returns {Number} the audio level to be set
- */
-function animateLevel(newLevel, lastLevel) {
-    var value = 0;
-    var diff = lastLevel - newLevel;
-    if(diff > 0.2) {
-        value = lastLevel - 0.2;
-    }
-    else if(diff < -0.4) {
-        value = lastLevel + 0.4;
-    }
-    else {
-        value = newLevel;
-    }
-
-    return parseFloat(value.toFixed(3));
-}
-
-
-/**
  * <tt>LocalStatsCollector</tt> calculates statistics for the local stream.
  *
  * @param stream the local stream
@@ -79,7 +54,6 @@ function LocalStatsCollector(stream, interval, callback) {
     this.stream = stream;
     this.intervalId = null;
     this.intervalMilis = interval;
-    this.audioLevel = 0;
     this.callback = callback;
 }
 
@@ -98,7 +72,6 @@ LocalStatsCollector.prototype.start = function () {
     var source = context.createMediaStreamSource(this.stream);
     source.connect(analyser);
 
-
     var self = this;
 
     this.intervalId = setInterval(
@@ -106,10 +79,7 @@ LocalStatsCollector.prototype.start = function () {
             var array = new Uint8Array(analyser.frequencyBinCount);
             analyser.getByteTimeDomainData(array);
             var audioLevel = timeDomainDataToAudioLevel(array);
-            if (audioLevel != self.audioLevel) {
-                self.audioLevel = animateLevel(audioLevel, self.audioLevel);
-                self.callback(self.audioLevel);
-            }
+            self.callback(audioLevel);
         },
         this.intervalMilis
     );

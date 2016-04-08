@@ -653,8 +653,14 @@ StatsCollector.prototype.processAudioLevelReport = function () {
     for (var idx in this.currentAudioLevelsReport) {
         var now = this.currentAudioLevelsReport[idx];
 
-        //if we don't have "packetsReceived" this is local stream
-        if (now.type != 'ssrc' || !getStatValue(now, 'packetsReceived')) {
+        if (now.type !== 'ssrc') {
+            continue;
+        }
+
+        // if we don't have "packetsReceived" this is local stream
+        // and we should process audio level only if we use Temasys plugin
+        var isLocalStream = !getStatValue(now, 'packetsReceived');
+        if (isLocalStream && !RTCBrowserType.isTemasysPluginUsed()) {
             continue;
         }
 
