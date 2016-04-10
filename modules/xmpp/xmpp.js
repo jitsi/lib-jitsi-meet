@@ -37,7 +37,7 @@ function XMPP(options, token) {
     this.eventEmitter = new EventEmitter();
     this.connection = null;
     this.disconnectInProgress = false;
-    this.performanceTimes = {status: []};
+    this.performanceTimes = {};
     this.forceMuted = false;
     this.options = options;
     initStrophePlugins(this);
@@ -62,9 +62,7 @@ XMPP.prototype.getConnection = function () { return this.connection; };
  */
 XMPP.prototype.connectionHandler = function (password, status, msg) {
     var now = window.performance.now();
-    this.performanceTimes["status"].push(
-        {state: Strophe.getStatusString(status),
-        time: now});
+    this.performanceTimes[Strophe.getStatusString(status).toLowerCase()] = now;
     logger.log("(TIME) Strophe " + Strophe.getStatusString(status) +
         (msg ? "[" + msg + "]" : "") + ":\t", now);
     if (status === Strophe.Status.CONNECTED ||

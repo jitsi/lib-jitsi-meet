@@ -266,7 +266,7 @@ ChatRoom.prototype.onPresence = function (pres) {
             this.joined = true;
             var now = this.performanceTimes["muc.joined"] =
                 window.performance.now();
-            console.log("(TIME) MUC joined:\t", now);
+            logger.log("(TIME) MUC joined:\t", now);
             this.eventEmitter.emit(XMPPEvents.MUC_JOINED);
         }
     } else if (this.members[from] === undefined) {
