@@ -153,7 +153,7 @@ JingleSessionPC.prototype.doInitialize = function () {
     this.peerconnection.oniceconnectionstatechange = function (event) {
         if (!(self && self.peerconnection)) return;
         var now = window.performance.now();
-        self.room.performanceTimes["ice.state." +
+        self.room.connectionTimes["ice.state." +
             self.peerconnection.iceConnectionState] = now;
         logger.log("(TIME) ICE " + self.peerconnection.iceConnectionState +
                     ":\t", now);

@@ -826,10 +826,10 @@ JitsiConference.prototype.getLogs = function () {
 };
 
 /**
- * Returns measured performanceTimes.
+ * Returns measured connectionTimes.
  */
-JitsiConference.prototype.getPerformanceTimes = function () {
-    return this.room.performanceTimes;
+JitsiConference.prototype.getConnectionTimes = function () {
+    return this.room.connectionTimes;
 };
 
 /**
@@ -866,7 +866,7 @@ function setupListeners(conference) {
         if (conference.room.isFocus(jingleSession.peerjid)) {
             // Accept incoming call
             conference.room.setJingleSession(jingleSession);
-            conference.room.performanceTimes["session.initiate"] = now;
+            conference.room.connectionTimes["session.initiate"] = now;
             jingleSession.initialize(false /* initiator */, conference.room);
             conference.rtc.onIncommingCall(jingleSession);
             jingleSession.acceptOffer(jingleOffer, null,
