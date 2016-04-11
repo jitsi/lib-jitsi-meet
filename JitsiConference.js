@@ -575,6 +575,10 @@ JitsiConference.prototype.onDisplayNameChanged = function (jid, displayName) {
     if (!participant) {
         return;
     }
+
+    if (participant._displayName === displayName)
+        return;
+
     participant._displayName = displayName;
     this.eventEmitter.emit(JitsiConferenceEvents.DISPLAY_NAME_CHANGED, id, displayName);
 };
