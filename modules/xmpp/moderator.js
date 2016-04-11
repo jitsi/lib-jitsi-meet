@@ -180,6 +180,13 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: true
             }).up();
     //}
+    if (options.enableFec !== false) {
+        elem.c(
+            'property', {
+                name: 'enableFec',
+                value: true
+            }).up();
+    }
     if (options.openSctp !== undefined) {
         elem.c(
             'property', {
