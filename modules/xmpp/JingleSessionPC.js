@@ -152,11 +152,9 @@ JingleSessionPC.prototype.doInitialize = function () {
      */
     this.peerconnection.oniceconnectionstatechange = function (event) {
         if (!(self && self.peerconnection)) return;
-        self.room.performanceTimes["ice.state"] =
-            self.room.performanceTimes["ice.state"] || [];
         var now = window.performance.now();
-        self.room.performanceTimes["ice.state"].push(
-            {state: self.peerconnection.iceConnectionState, time: now});
+        self.room.connectionTimes["ice.state." +
+            self.peerconnection.iceConnectionState] = now;
         logger.log("(TIME) ICE " + self.peerconnection.iceConnectionState +
                     ":\t", now);
         self.updateModifySourcesQueue();

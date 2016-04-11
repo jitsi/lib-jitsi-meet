@@ -83,7 +83,7 @@ function ChatRoom(connection, jid, password, XMPP, options, settings) {
     this.lastPresences = {};
     this.phoneNumber = null;
     this.phonePin = null;
-    this.performanceTimes = {};
+    this.connectionTimes = {};
 }
 
 ChatRoom.prototype.initPresenceMap = function () {
@@ -264,9 +264,9 @@ ChatRoom.prototype.onPresence = function (pres) {
         }
         if (!this.joined) {
             this.joined = true;
-            var now = this.performanceTimes["muc.joined"] =
+            var now = this.connectionTimes["muc.joined"] =
                 window.performance.now();
-            console.log("(TIME) MUC joined:\t", now);
+            logger.log("(TIME) MUC joined:\t", now);
             this.eventEmitter.emit(XMPPEvents.MUC_JOINED);
         }
     } else if (this.members[from] === undefined) {
