@@ -281,7 +281,7 @@ Moderator.prototype.allocateConferenceFocus =  function (callback) {
             self._allocateConferenceFocusSuccess(result, callback);
         },
         function (error) {
-            self._allocateConferenceFocusError(error);
+            self._allocateConferenceFocusError(error, callback);
         });
     // XXX We're pressed for time here because we're beginning a complex and/or
     // lengthy conference-establishment process which supposedly involves
