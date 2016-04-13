@@ -182,6 +182,20 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: true
             }).up();
     //}
+    if (options.startBitrate) {
+        elem.c(
+            'property', {
+                name: 'startBitrate',
+                value: options.startBitrate
+            }).up();
+    }
+    if (options.minBitrate) {
+        elem.c(
+            'property', {
+                name: 'minBitrate',
+                value: options.minBitrate
+            }).up();
+    }
     if (this.options.conference.openSctp !== undefined) {
         elem.c(
             'property', {
