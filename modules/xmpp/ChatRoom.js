@@ -655,7 +655,7 @@ ChatRoom.prototype.addAudioInfoToPresence = function (mute) {
     this.removeFromPresence("audiomuted");
     this.addToPresence("audiomuted",
         {attributes:
-        {"audions": "http://jitsi.org/jitmeet/audio"},
+        {"xmlns": "http://jitsi.org/jitmeet/audio"},
             value: mute.toString()});
 };
 
@@ -672,7 +672,7 @@ ChatRoom.prototype.addVideoInfoToPresence = function (mute) {
     this.removeFromPresence("videomuted");
     this.addToPresence("videomuted",
         {attributes:
-        {"videons": "http://jitsi.org/jitmeet/video"},
+        {"xmlns": "http://jitsi.org/jitmeet/video"},
             value: mute.toString()});
 };
 
