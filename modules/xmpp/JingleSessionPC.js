@@ -802,6 +802,12 @@ JingleSessionPC.prototype.removeSource = function (elem) {
                 var ssrcLines = SDPUtil.find_lines(media, 'a=ssrc:' + ssrc);
                 if (ssrcLines.length)
                     self.removessrc[idx] += ssrcLines.join("\r\n")+"\r\n";
+                // Clear any pending 'source-add' for this SSRC 
+                if (self.addssrc[idx]) {
+                    self.addssrc[idx]
+                        = self.addssrc[idx].replace(
+                            new RegExp('^a=ssrc:'+ssrc+' .*\r\n', 'gm'), '');
+                }
             });
             self.removessrc[idx] += lines;
         });
