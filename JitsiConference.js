@@ -1070,6 +1070,12 @@ function setupListeners(conference) {
         }
     });
 
+    conference.rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, function () {
+        var now = window.performance.now();
+        logger.log("(TIME) data channel opened ", now);
+        conference.room.connectionTimes["session.initiate"] = now;
+    });
+
     conference.rtc.addListener(RTCEvents.LASTN_CHANGED, function (oldValue, newValue) {
         conference.eventEmitter.emit(JitsiConferenceEvents.IN_LAST_N_CHANGED, oldValue, newValue);
     });
