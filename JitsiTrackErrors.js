@@ -12,7 +12,9 @@ module.exports = {
             (error.constraintName == "minWidth" ||
             error.constraintName == "maxWidth" ||
             error.constraintName == "minHeight" ||
-            error.constraintName == "maxHeight") &&
+            error.constraintName == "maxHeight" ||
+            error.constraintName == "width" ||
+            error.constraintName == "height") &&
             devices.indexOf("video") !== -1) {
                 return this.UNSUPPORTED_RESOLUTION;
         } else if(typeof error === "object" && error.type === "jitsiError") {
