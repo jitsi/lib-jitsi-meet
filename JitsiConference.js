@@ -351,6 +351,13 @@ JitsiConference.prototype.addTrack = function (track) {
                                    track.audioLevelHandler);
             //FIXME: This dependacy is not necessary. This is quick fix.
             track._setConference(this);
+
+            // send event for starting screen sharing
+            // FIXME: we assume we have only one screen sharing track
+            // if we change this we need to fix this check
+            if (track.isVideoTrack() && track.videoType === "desktop")
+                this.statistics.sendScreenSharingEvent(true);
+
             this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
             resolve(track);
         }.bind(this));
@@ -391,6 +398,7 @@ JitsiConference.prototype.removeTrack = function (track) {
     {
         throw new Error(JitsiTrackErrors.TRACK_IS_DISPOSED);
     }
+
     if(!this.room){
         if(this.rtc) {
             this.rtc.removeLocalStream(track);
@@ -410,6 +418,13 @@ JitsiConference.prototype.removeTrack = function (track) {
                 track.audioLevelHandler);
             this.room.removeListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
                 track.ssrcHandler);
+
+            // send event for stopping screen sharing
+            // FIXME: we assume we have only one screen sharing track
+            // if we change this we need to fix this check
+            if (track.isVideoTrack() && track.videoType === "desktop")
+                this.statistics.sendScreenSharingEvent(false);
+
             this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
             resolve();
         }.bind(this), {
@@ -575,6 +590,10 @@ JitsiConference.prototype.onDisplayNameChanged = function (jid, displayName) {
     if (!participant) {
         return;
     }
+
+    if (participant._displayName === displayName)
+        return;
+
     participant._displayName = displayName;
     this.eventEmitter.emit(JitsiConferenceEvents.DISPLAY_NAME_CHANGED, id, displayName);
 };
@@ -826,10 +845,10 @@ JitsiConference.prototype.getLogs = function () {
 };
 
 /**
- * Returns measured performanceTimes.
+ * Returns measured connectionTimes.
  */
-JitsiConference.prototype.getPerformanceTimes = function () {
-    return this.room.performanceTimes;
+JitsiConference.prototype.getConnectionTimes = function () {
+    return this.room.connectionTimes;
 };
 
 /**
@@ -866,7 +885,7 @@ function setupListeners(conference) {
         if (conference.room.isFocus(jingleSession.peerjid)) {
             // Accept incoming call
             conference.room.setJingleSession(jingleSession);
-            conference.room.performanceTimes["session.initiate"] = now;
+            conference.room.connectionTimes["session.initiate"] = now;
             jingleSession.initialize(false /* initiator */, conference.room);
             conference.rtc.onIncommingCall(jingleSession);
             jingleSession.acceptOffer(jingleOffer, null,

@@ -76,14 +76,14 @@ function ChatRoom(connection, jid, password, XMPP, options, settings) {
     this.bridgeIsDown = false;
     this.options = options || {};
     this.moderator = new Moderator(this.roomjid, this.xmpp, this.eventEmitter,
-        settings);
+        settings, {connection: this.xmpp.options, conference: this.options});
     this.initPresenceMap();
     this.session = null;
     var self = this;
     this.lastPresences = {};
     this.phoneNumber = null;
     this.phonePin = null;
-    this.performanceTimes = {};
+    this.connectionTimes = {};
 }
 
 ChatRoom.prototype.initPresenceMap = function () {
@@ -264,9 +264,9 @@ ChatRoom.prototype.onPresence = function (pres) {
         }
         if (!this.joined) {
             this.joined = true;
-            var now = this.performanceTimes["muc.joined"] =
+            var now = this.connectionTimes["muc.joined"] =
                 window.performance.now();
-            console.log("(TIME) MUC joined:\t", now);
+            logger.log("(TIME) MUC joined:\t", now);
             this.eventEmitter.emit(XMPPEvents.MUC_JOINED);
         }
     } else if (this.members[from] === undefined) {
@@ -655,7 +655,7 @@ ChatRoom.prototype.addAudioInfoToPresence = function (mute) {
     this.removeFromPresence("audiomuted");
     this.addToPresence("audiomuted",
         {attributes:
-        {"audions": "http://jitsi.org/jitmeet/audio"},
+        {"xmlns": "http://jitsi.org/jitmeet/audio"},
             value: mute.toString()});
 };
 
@@ -672,7 +672,7 @@ ChatRoom.prototype.addVideoInfoToPresence = function (mute) {
     this.removeFromPresence("videomuted");
     this.addToPresence("videomuted",
         {attributes:
-        {"videons": "http://jitsi.org/jitmeet/video"},
+        {"xmlns": "http://jitsi.org/jitmeet/video"},
             value: mute.toString()});
 };
 

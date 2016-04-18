@@ -194,6 +194,16 @@ Statistics.prototype.sendMuteEvent = function (muted, type) {
 };
 
 /**
+ * Notifies CallStats for screen sharing events
+ * @param start {boolean} true for starting screen sharing and
+ * false for not stopping
+ */
+Statistics.prototype.sendScreenSharingEvent = function (start) {
+    if(this.callStatsIntegrationEnabled)
+        CallStats.sendScreenSharingEvent(start, this.callstats);
+};
+
+/**
  * Lets the underlying statistics module know where is given SSRC rendered by
  * providing renderer tag ID.
  * @param ssrc {number} the SSRC of the stream

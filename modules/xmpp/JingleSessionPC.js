@@ -152,11 +152,9 @@ JingleSessionPC.prototype.doInitialize = function () {
      */
     this.peerconnection.oniceconnectionstatechange = function (event) {
         if (!(self && self.peerconnection)) return;
-        self.room.performanceTimes["ice.state"] =
-            self.room.performanceTimes["ice.state"] || [];
         var now = window.performance.now();
-        self.room.performanceTimes["ice.state"].push(
-            {state: self.peerconnection.iceConnectionState, time: now});
+        self.room.connectionTimes["ice.state." +
+            self.peerconnection.iceConnectionState] = now;
         logger.log("(TIME) ICE " + self.peerconnection.iceConnectionState +
                     ":\t", now);
         self.updateModifySourcesQueue();
@@ -785,6 +783,7 @@ JingleSessionPC.prototype.removeSource = function (elem) {
                 lines += 'a=ssrc-group:' + semantics + ' ' + ssrcs.join(' ') + '\r\n';
             }
         });
+        var ssrcs = [];
         var tmp = $(content).find('source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]'); // can handle both >source and >description>source
         tmp.each(function () {
             var ssrc = $(this).attr('ssrc');
@@ -793,18 +792,23 @@ JingleSessionPC.prototype.removeSource = function (elem) {
                 logger.error("Got remove stream request for my own ssrc: "+ssrc);
                 return;
             }
-            $(this).find('>parameter').each(function () {
-                lines += 'a=ssrc:' + ssrc + ' ' + $(this).attr('name');
-                if ($(this).attr('value') && $(this).attr('value').length)
-                    lines += ':' + $(this).attr('value');
-                lines += '\r\n';
-            });
+            ssrcs.push(ssrc);
         });
         sdp.media.forEach(function(media, idx) {
             if (!SDPUtil.find_line(media, 'a=mid:' + name))
                 return;
-            sdp.media[idx] += lines;
             if (!self.removessrc[idx]) self.removessrc[idx] = '';
+            ssrcs.forEach(function(ssrc) {
+                var ssrcLines = SDPUtil.find_lines(media, 'a=ssrc:' + ssrc);
+                if (ssrcLines.length)
+                    self.removessrc[idx] += ssrcLines.join("\r\n")+"\r\n";
+                // Clear any pending 'source-add' for this SSRC 
+                if (self.addssrc[idx]) {
+                    self.addssrc[idx]
+                        = self.addssrc[idx].replace(
+                            new RegExp('^a=ssrc:'+ssrc+' .*\r\n', 'gm'), '');
+                }
+            });
             self.removessrc[idx] += lines;
         });
         sdp.raw = sdp.session + sdp.media.join('');

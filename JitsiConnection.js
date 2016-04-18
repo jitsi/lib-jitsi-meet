@@ -94,10 +94,10 @@ JitsiConnection.prototype.removeEventListener = function (event, listener) {
 }
 
 /**
- * Returns measured performanceTimes.
+ * Returns measured connectionTimes.
  */
-JitsiConnection.prototype.getPerformanceTimes = function () {
-    return this.xmpp.performanceTimes;
+JitsiConnection.prototype.getConnectionTimes = function () {
+    return this.xmpp.connectionTimes;
 };
 
 module.exports = JitsiConnection;

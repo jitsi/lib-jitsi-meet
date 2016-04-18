@@ -21,7 +21,7 @@ function createExpBackoffTimer(step) {
     };
 }
 
-function Moderator(roomName, xmpp, emitter, settings) {
+function Moderator(roomName, xmpp, emitter, settings, options) {
     this.roomName = roomName;
     this.xmppService = xmpp;
     this.getNextTimeout = createExpBackoffTimer(1000);
@@ -29,11 +29,13 @@ function Moderator(roomName, xmpp, emitter, settings) {
     // External authentication stuff
     this.externalAuthEnabled = false;
     this.settings = settings;
+    this.options = options;
+
     // Sip gateway can be enabled by configuring Jigasi host in config.js or
     // it will be enabled automatically if focus detects the component through
     // service discovery.
-    this.sipGatewayEnabled = this.xmppService.options.hosts &&
-        this.xmppService.options.hosts.call_control !== undefined;
+    this.sipGatewayEnabled = this.options.connection.hosts &&
+        this.options.connection.hosts.call_control !== undefined;
 
     this.eventEmitter = emitter;
 
@@ -94,10 +96,10 @@ Moderator.prototype.getFocusUserJid =  function () {
 
 Moderator.prototype.getFocusComponent =  function () {
     // Get focus component address
-    var focusComponent = this.xmppService.options.hosts.focus;
+    var focusComponent = this.options.connection.hosts.focus;
     // If not specified use default:  'focus.domain'
     if (!focusComponent) {
-        focusComponent = 'focus.' + this.xmppService.options.hosts.domain;
+        focusComponent = 'focus.' + this.options.connection.hosts.domain;
     }
     return focusComponent;
 };
@@ -109,7 +111,6 @@ Moderator.prototype.createConferenceIq =  function () {
     // Session Id used for authentication
     var sessionId = this.settings.getSessionId();
     var machineUID = this.settings.getUserId();
-    var options = this.xmppService.options;
 
     logger.info(
             "Session ID: " + sessionId + " machine UID: " + machineUID);
@@ -123,75 +124,85 @@ Moderator.prototype.createConferenceIq =  function () {
     if (sessionId) {
         elem.attrs({ 'session-id': sessionId});
     }
-    if (options.hosts !== undefined && options.hosts.bridge !== undefined) {
+    if (this.options.connection.hosts !== undefined
+        && this.options.connection.hosts.bridge !== undefined) {
         elem.c(
             'property', {
                 name: 'bridge',
-                value: options.hosts.bridge
+                value: this.options.connection.hosts.bridge
             }).up();
     }
-    if (options.enforcedBridge !== undefined) {
+    if (this.options.connection.enforcedBridge !== undefined) {
         elem.c(
             'property', {
                 name: 'enforcedBridge',
-                value: options.enforcedBridge
+                value: this.options.connection.enforcedBridge
             }).up();
     }
     // Tell the focus we have Jigasi configured
-    if (options.hosts !== undefined &&
-        options.hosts.call_control !== undefined) {
+    if (this.options.connection.hosts !== undefined &&
+        this.options.connection.hosts.call_control !== undefined) {
         elem.c(
             'property', {
                 name: 'call_control',
-                value: options.hosts.call_control
+                value: this.options.connection.hosts.call_control
             }).up();
     }
-    if (options.channelLastN !== undefined) {
+    if (this.options.conference.channelLastN !== undefined) {
         elem.c(
             'property', {
                 name: 'channelLastN',
-                value: options.channelLastN
+                value: this.options.conference.channelLastN
             }).up();
     }
-    if (options.adaptiveLastN !== undefined) {
+    if (this.options.conference.adaptiveLastN !== undefined) {
         elem.c(
             'property', {
                 name: 'adaptiveLastN',
-                value: options.adaptiveLastN
+                value: this.options.conference.adaptiveLastN
             }).up();
     }
-    if (options.disableAdaptiveSimulcast !== undefined ||
-        options.disableSimulcast) {
+    if (this.options.conference.disableAdaptiveSimulcast !== undefined ||
+        this.options.conference.disableSimulcast) {
         // disableSimulcast implies disableAdaptiveSimulcast.
-        var value = options.disableSimulcast ? true :
-            options.disableAdaptiveSimulcast;
+        var value = this.options.conference.disableSimulcast ? true :
+            this.options.conference.disableAdaptiveSimulcast;
         elem.c(
             'property', {
                 name: 'disableAdaptiveSimulcast',
                 value: value
             }).up();
     }
-    if (options.openSctp !== undefined) {
+    // TODO: re-enable once rtx is stable
+    //if (this.options.conference.disableRtx !== undefined) {
+        elem.c(
+            'property', {
+                name: 'disableRtx',
+                //value: this.options.conference.disableRtx
+                value: true
+            }).up();
+    //}
+    if (this.options.conference.openSctp !== undefined) {
         elem.c(
             'property', {
                 name: 'openSctp',
-                value: options.openSctp
+                value: this.options.conference.openSctp
             }).up();
     }
-    if (options.startAudioMuted !== undefined)
+    if (this.options.conference.startAudioMuted !== undefined)
     {
         elem.c(
             'property', {
                 name: 'startAudioMuted',
-                value: options.startAudioMuted
+                value: this.options.conference.startAudioMuted
             }).up();
     }
-    if (options.startVideoMuted !== undefined)
+    if (this.options.conference.startVideoMuted !== undefined)
     {
         elem.c(
             'property', {
                 name: 'startVideoMuted',
-                value: options.startVideoMuted
+                value: this.options.conference.startVideoMuted
             }).up();
     }
 
@@ -263,7 +274,7 @@ Moderator.prototype.parseConfigOptions =  function (resultIq) {
  */
 Moderator.prototype.allocateConferenceFocus =  function (callback) {
     // Try to use focus user JID from the config
-    this.setFocusUserJid(this.xmppService.options.focusUserJid);
+    this.setFocusUserJid(this.options.connection.focusUserJid);
     // Send create conference IQ
     var self = this;
     this.connection.sendIQ(
@@ -272,7 +283,7 @@ Moderator.prototype.allocateConferenceFocus =  function (callback) {
             self._allocateConferenceFocusSuccess(result, callback);
         },
         function (error) {
-            self._allocateConferenceFocusError(error);
+            self._allocateConferenceFocusError(error, callback);
         });
     // XXX We're pressed for time here because we're beginning a complex and/or
     // lengthy conference-establishment process which supposedly involves
@@ -322,7 +333,7 @@ Moderator.prototype._allocateConferenceFocusError = function (error, callback) {
     if ($(error).find('>error>not-authorized').length) {
         logger.warn("Unauthorized to start the conference", error);
         var toDomain = Strophe.getDomainFromJid(error.getAttribute('to'));
-        if (toDomain !== self.xmppService.options.hosts.anonymousdomain) {
+        if (toDomain !== self.options.connection.hosts.anonymousdomain) {
             //FIXME "is external" should come either from the focus or config.js
             self.externalAuthEnabled = true;
         }

@@ -33,7 +33,7 @@ function createConnectionExternally(webserviceUrl, success_callback,
 
     xhttp.onreadystatechange = function() {
         if (xhttp.readyState == xhttp.DONE) {
-            var now = window.performanceTimes["external_connect.done"] =
+            var now = window.connectionTimes["external_connect.done"] =
                 window.performance.now();
             console.log("(TIME) external connect XHR done:\t", now);
             if (xhttp.status == HTTP_STATUS_OK) {
@@ -53,8 +53,8 @@ function createConnectionExternally(webserviceUrl, success_callback,
     xhttp.timeout = 3000;
 
     xhttp.open("GET", webserviceUrl, true);
-    window.performanceTimes = {};
-    var now = window.performanceTimes["external_connect.sending"] =
+    window.connectionTimes = {};
+    var now = window.connectionTimes["external_connect.sending"] =
         window.performance.now();
     console.log("(TIME) Sending external connect XHR:\t", now);
     xhttp.send();
