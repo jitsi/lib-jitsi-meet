@@ -35,7 +35,6 @@ module.exports = function(XMPP) {
             return this.rooms[roomJid];
         },
         doLeave: function (jid) {
-            this.rooms[jid].doLeave();
             delete this.rooms[jid];
         },
         onPresence: function (pres) {

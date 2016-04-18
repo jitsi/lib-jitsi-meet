@@ -93,20 +93,17 @@ JitsiConference.prototype.isJoined = function () {
 JitsiConference.prototype.leave = function () {
     var conference = this;
 
-    // leave the conference
-    if (conference.xmpp && conference.room) {
-        conference.xmpp.leaveRoom(conference.room.roomjid);
-    }
-
-    conference.room = null;
-
-    // remove local tracks
     return Promise.all(
         conference.getLocalTracks().map(function (track) {
             return conference.removeTrack(track);
         })
     ).then(function () {
+        // leave the conference
+        if (conference.room) {
+            conference.room.leave();
+        }
 
+        conference.room = null;
         // remove all participants
         conference.getParticipants().forEach(function (participant) {
             conference.onMemberLeft(participant.getJid());
@@ -1024,6 +1021,10 @@ function setupListeners(conference) {
         conference.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_INTERRUPTED);
     });
 
+    conference.room.addListener(XMPPEvents.CONNECTION_CLOSED, function () {
+        conference.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_CLOSED);
+    });
+
     conference.room.addListener(XMPPEvents.RECORDER_STATE_CHANGED,
         function (state) {
             conference.eventEmitter.emit(
@@ -1226,7 +1227,7 @@ function setupListeners(conference) {
             conference.eventEmitter.emit(
                 JitsiConferenceEvents.CONNECTION_STATS, stats);
         });
-        conference.xmpp.addListener(XMPPEvents.DISPOSE_CONFERENCE,
+        conference.room.addListener(XMPPEvents.DISPOSE_CONFERENCE,
             function () {
                 conference.statistics.dispose();
             });

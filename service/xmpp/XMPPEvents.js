@@ -13,6 +13,11 @@ var XMPPEvents = {
     CALL_INCOMING: "xmpp.callincoming.jingle",
     CHAT_ERROR_RECEIVED: "xmpp.chat_error_received",
     CONFERENCE_SETUP_FAILED: "xmpp.conference_setup_failed",
+    /**
+     * Indicates that the connection to the conference has been closed.
+     * (PeerConnection.close() has been called)
+     */
+    CONNECTION_CLOSED: "conference.connectionClosed",
     // Designates an event indicating that the connection to the XMPP server
     // failed.
     CONNECTION_FAILED: "xmpp.connection.failed",
