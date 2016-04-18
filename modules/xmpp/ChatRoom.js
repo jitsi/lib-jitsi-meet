@@ -76,7 +76,7 @@ function ChatRoom(connection, jid, password, XMPP, options, settings) {
     this.bridgeIsDown = false;
     this.options = options || {};
     this.moderator = new Moderator(this.roomjid, this.xmpp, this.eventEmitter,
-        settings);
+        settings, {connection: this.xmpp.options, conference: this.options});
     this.initPresenceMap();
     this.session = null;
     var self = this;
