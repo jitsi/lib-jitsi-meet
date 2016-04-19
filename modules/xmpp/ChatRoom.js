@@ -847,6 +847,7 @@ ChatRoom.prototype.leave = function () {
         this.session.close();
     }
     this.eventEmitter.emit(XMPPEvents.DISPOSE_CONFERENCE);
+    this.doLeave();
     this.connection.emuc.doLeave(this.roomjid);
 };
 
