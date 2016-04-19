@@ -197,11 +197,13 @@ DataChannels.prototype._onXXXEndpointChanged = function (xxx, userResource) {
             jsonObject.colibriClass = (upper + 'EndpointChangedEvent');
             jsonObject[lower + "Endpoint"]
                 = (userResource ? userResource : null);
-            //Tries to fix errors on peer connection close.
             try {
                 dataChannel.send(JSON.stringify(jsonObject));
             } catch (e) {
-                // FIXME: Handle properly
+                // FIXME: Maybe we should check if the conference is left
+                // before calling _onXXXEndpointChanged method.
+                // FIXME: We should check if we are disposing correctly the
+                // data channels.
                 logger.warn(e);
             }
 
