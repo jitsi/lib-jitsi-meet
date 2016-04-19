@@ -73,11 +73,6 @@ var JitsiConferenceEvents = {
      */
     CONNECTION_INTERRUPTED: "conference.connectionInterrupted",
     /**
-     * Indicates that the connection to the conference has been closed.
-     * (PeerConnection.close() has been called)
-     */
-    CONNECTION_CLOSED: "conference.connectionClosed",
-    /**
      * Indicates that the connection to the conference has been restored.
      */
     CONNECTION_RESTORED: "conference.connectionRestored",

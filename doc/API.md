@@ -102,7 +102,6 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - AVAILABLE_DEVICES_CHANGED - notifies that available participant devices changed (camera or microphone was added or removed) (parameters - id(string), devices(JS object with 2 properties - audio(boolean), video(boolean)))
         - CONNECTION_STATS - New local connection statistics are received. (parameters - stats(object))
         - AUTH_STATUS_CHANGED - notifies that authentication is enabled or disabled, or local user authenticated (logged in). (parameters - isAuthEnabled(boolean), authIdentity(string))
-        - CONNECTION_CLOSED - Indicates that the connection to the conference has been closed. (Should be received after JitsiConference.leave())
 
     2. connection
         - CONNECTION_FAILED - indicates that the server connection failed.

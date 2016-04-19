@@ -1021,10 +1021,6 @@ function setupListeners(conference) {
         conference.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_INTERRUPTED);
     });
 
-    conference.room.addListener(XMPPEvents.CONNECTION_CLOSED, function () {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_CLOSED);
-    });
-
     conference.room.addListener(XMPPEvents.RECORDER_STATE_CHANGED,
         function (state) {
             conference.eventEmitter.emit(

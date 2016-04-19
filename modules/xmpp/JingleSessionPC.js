@@ -170,10 +170,7 @@ JingleSessionPC.prototype.doInitialize = function () {
                 break;
             case 'disconnected':
                 if(self.closed)
-                {
-                    self.room.eventEmitter.emit(XMPPEvents.CONNECTION_CLOSED);
                     break;
-                }
                 self.isreconnect = true;
                 // Informs interested parties that the connection has been interrupted.
                 if (self.wasstable)
@@ -807,7 +804,7 @@ JingleSessionPC.prototype.removeSource = function (elem) {
                 var ssrcLines = SDPUtil.find_lines(media, 'a=ssrc:' + ssrc);
                 if (ssrcLines.length)
                     self.removessrc[idx] += ssrcLines.join("\r\n")+"\r\n";
-                // Clear any pending 'source-add' for this SSRC 
+                // Clear any pending 'source-add' for this SSRC
                 if (self.addssrc[idx]) {
                     self.addssrc[idx]
                         = self.addssrc[idx].replace(
