@@ -217,26 +217,6 @@ XMPP.prototype.removeListener = function (type, listener) {
     this.eventEmitter.removeListener(type, listener);
 };
 
-//FIXME: this should work with the room
-XMPP.prototype.leaveRoom = function (jid) {
-    var handler = this.connection.jingle.jid2session[jid];
-    if (handler && handler.peerconnection) {
-        // FIXME: probably removing streams is not required and close() should
-        // be enough
-        if (RTC.localAudio) {
-            handler.peerconnection.removeStream(
-                RTC.localAudio.getOriginalStream(), true);
-        }
-        if (RTC.localVideo) {
-            handler.peerconnection.removeStream(
-                RTC.localVideo.getOriginalStream(), true);
-        }
-        handler.peerconnection.close();
-    }
-    this.eventEmitter.emit(XMPPEvents.DISPOSE_CONFERENCE);
-    this.connection.emuc.doLeave(jid);
-};
-
 /**
  * Sends 'data' as a log message to the focus. Returns true iff a message
  * was sent.

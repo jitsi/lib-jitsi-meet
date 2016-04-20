@@ -29,6 +29,7 @@ function JingleSessionPC(me, sid, peerjid, connection,
     this.hadstuncandidate = false;
     this.hadturncandidate = false;
     this.lasticecandidate = false;
+    this.closed = false;
 
     this.addssrc = [];
     this.removessrc = [];
@@ -168,6 +169,8 @@ JingleSessionPC.prototype.doInitialize = function () {
 
                 break;
             case 'disconnected':
+                if(self.closed)
+                    break;
                 self.isreconnect = true;
                 // Informs interested parties that the connection has been interrupted.
                 if (self.wasstable)
@@ -657,8 +660,7 @@ JingleSessionPC.prototype.onTerminated = function (reasonCondition,
     //this.reasonText = reasonText;
     logger.info("Session terminated", this, reasonCondition, reasonText);
 
-    if (this.peerconnection)
-        this.peerconnection.close();
+    this.close();
 };
 
 /**
@@ -802,7 +804,7 @@ JingleSessionPC.prototype.removeSource = function (elem) {
                 var ssrcLines = SDPUtil.find_lines(media, 'a=ssrc:' + ssrc);
                 if (ssrcLines.length)
                     self.removessrc[idx] += ssrcLines.join("\r\n")+"\r\n";
-                // Clear any pending 'source-add' for this SSRC 
+                // Clear any pending 'source-add' for this SSRC
                 if (self.addssrc[idx]) {
                     self.addssrc[idx]
                         = self.addssrc[idx].replace(
@@ -1244,6 +1246,14 @@ JingleSessionPC.prototype.remoteStreamRemoved = function (event) {
 JingleSessionPC.prototype.getIceConnectionState = function () {
     return this.peerconnection.iceConnectionState;
 };
+
+/**
+ * Closes the peerconnection.
+ */
+JingleSessionPC.prototype.close = function () {
+    this.closed = true;
+    this.peerconnection && this.peerconnection.close();
+}
 
 
 /**

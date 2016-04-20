@@ -11,7 +11,6 @@ module.exports = function(XMPP, eventEmitter) {
     Strophe.addConnectionPlugin('jingle', {
         connection: null,
         sessions: {},
-        jid2session: {},
         ice_config: {iceServers: []},
         media_constraints: {
             mandatory: {
@@ -111,7 +110,6 @@ module.exports = function(XMPP, eventEmitter) {
                             this.ice_config, XMPP);
 
                     this.sessions[sess.sid] = sess;
-                    this.jid2session[sess.peerjid] = sess;
 
                     var jingleOffer = $(iq).find('>jingle');
                     // FIXME there's no nice way with event to get the reason
@@ -178,7 +176,6 @@ module.exports = function(XMPP, eventEmitter) {
                 if (this.sessions[sid].state != 'ended') {
                     this.sessions[sid].onTerminated(reasonCondition, reasonText);
                 }
-                delete this.jid2session[this.sessions[sid].peerjid];
                 delete this.sessions[sid];
             }
         },
