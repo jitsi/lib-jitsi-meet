@@ -29,7 +29,7 @@ JitsiParticipant.prototype.getConference = function() {
  * @returns {Array.<JitsiTrack>} The list of media tracks for this participant.
  */
 JitsiParticipant.prototype.getTracks = function() {
-    return this._tracks;
+    return this._tracks.slice();
 };
 
 /**
