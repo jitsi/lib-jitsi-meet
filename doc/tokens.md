@@ -15,7 +15,7 @@ JWT token authentication currently works only with BOSH connections.
 ### Token structure
 
 The following JWT claims are used in authentication token:
-- 'issuer' specifies *application ID* which identifies the client app connecting to the server
+- 'iss' specifies *application ID* which identifies the client app connecting to the server
 - 'room' contains the name of the room for which the token has been allocated. This is *NOT* full MUC room address. Example assuming that we have full MUC 'conference1@muc.server.net' then 'conference1' should be used here.
 - 'exp' token expiration timstamp as defined in the RFC
 
