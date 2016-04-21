@@ -171,7 +171,7 @@ JitsiConference.prototype.getExternalAuthUrl = function (urlForPopup) {
  */
 JitsiConference.prototype.getLocalTracks = function () {
     if (this.rtc) {
-        return this.rtc.localStreams;
+        return this.rtc.localStreams.slice();
     } else {
         return [];
     }
