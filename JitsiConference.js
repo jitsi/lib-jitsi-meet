@@ -1073,7 +1073,7 @@ function setupListeners(conference) {
     conference.rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, function () {
         var now = window.performance.now();
         logger.log("(TIME) data channel opened ", now);
-        conference.room.connectionTimes["session.initiate"] = now;
+        conference.room.connectionTimes["data.channel.opened"] = now;
     });
 
     conference.rtc.addListener(RTCEvents.LASTN_CHANGED, function (oldValue, newValue) {
