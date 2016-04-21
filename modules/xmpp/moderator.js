@@ -182,18 +182,18 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: true
             }).up();
     //}
-    if (options.startBitrate) {
+    if (this.options.conference.startBitrate) {
         elem.c(
             'property', {
                 name: 'startBitrate',
-                value: options.startBitrate
+                value: this.options.conference.startBitrate
             }).up();
     }
-    if (options.minBitrate) {
+    if (this.options.conference.minBitrate) {
         elem.c(
             'property', {
                 name: 'minBitrate',
-                value: options.minBitrate
+                value: this.options.conference.minBitrate
             }).up();
     }
     if (this.options.conference.openSctp !== undefined) {
