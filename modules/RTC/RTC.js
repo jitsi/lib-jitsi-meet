@@ -73,9 +73,11 @@ function RTC(room, options) {
  * @param {Object} [options] optional parameters
  * @param {Array} options.devices the devices that will be requested
  * @param {string} options.resolution resolution constraints
- * @param {bool} options.dontCreateJitsiTrack if <tt>true</tt> objects with the following structure {stream: the Media Stream,
+ * @param {bool} options.dontCreateJitsiTrack if <tt>true</tt> objects with the
+ * following structure {stream: the Media Stream,
  * type: "audio" or "video", videoType: "camera" or "desktop"}
- * will be returned trough the Promise, otherwise JitsiTrack objects will be returned.
+ * will be returned trough the Promise, otherwise JitsiTrack objects will be
+ * returned.
  * @param {string} options.cameraDeviceId
  * @param {string} options.micDeviceId
  * @returns {*} Promise object that will receive the new JitsiTracks
@@ -85,7 +87,7 @@ RTC.obtainAudioAndVideoPermissions = function (options) {
     return RTCUtils.obtainAudioAndVideoPermissions(options).then(function (streams) {
         return createLocalTracks(streams, options);
     });
-}
+};
 
 RTC.prototype.onIncommingCall = function(event) {
     if(this.options.config.openSctp)
@@ -123,17 +125,17 @@ RTC.prototype.onIncommingCall = function(event) {
             this.room.addStream(this.localStreams[i].getOriginalStream(),
                 function () {}, ssrcInfo, true);
         }
-}
+};
 
 RTC.prototype.selectedEndpoint = function (id) {
     if(this.dataChannels)
         this.dataChannels.handleSelectedEndpointEvent(id);
-}
+};
 
 RTC.prototype.pinEndpoint = function (id) {
     if(this.dataChannels)
         this.dataChannels.handlePinnedEndpointEvent(id);
-}
+};
 
 RTC.prototype.addListener = function (type, listener) {
     this.eventEmitter.on(type, listener);
@@ -145,24 +147,24 @@ RTC.prototype.removeListener = function (eventType, listener) {
 
 RTC.addListener = function (eventType, listener) {
     RTCUtils.addListener(eventType, listener);
-}
+};
 
 RTC.removeListener = function (eventType, listener) {
     RTCUtils.removeListener(eventType, listener)
-}
+};
 
 RTC.isRTCReady = function () {
     return RTCUtils.isRTCReady();
-}
+};
 
 RTC.init = function (options) {
     this.options = options || {};
     return RTCUtils.init(this.options);
-}
+};
 
 RTC.getDeviceAvailability = function () {
     return RTCUtils.getDeviceAvailability();
-}
+};
 
 RTC.prototype.addLocalStream = function (stream) {
     this.localStreams.push(stream);
@@ -200,7 +202,7 @@ RTC.prototype.setAudioMute = function (value) {
     }
     // we return a Promise from all Promises so we can wait for their execution
     return Promise.all(mutePromises);
-}
+};
 
 RTC.prototype.removeLocalStream = function (stream) {
     var pos = this.localStreams.indexOf(stream);
@@ -265,7 +267,7 @@ RTC.isDeviceListAvailable = function () {
  */
 RTC.isDeviceChangeAvailable = function () {
     return RTCUtils.isDeviceChangeAvailable();
-}
+};
 /**
  * Allows to receive list of available cameras/microphones.
  * @param {function} callback would receive array of devices as an argument

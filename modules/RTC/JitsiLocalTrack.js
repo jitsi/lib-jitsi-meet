@@ -42,7 +42,7 @@ JitsiLocalTrack.prototype.constructor = JitsiLocalTrack;
  */
 JitsiLocalTrack.prototype.mute = function () {
     return createMuteUnmutePromise(this, true);
-}
+};
 
 /**
  * Unmutes the stream. Will reject the Promise if there is mute/unmute operation
@@ -51,7 +51,7 @@ JitsiLocalTrack.prototype.mute = function () {
  */
 JitsiLocalTrack.prototype.unmute = function () {
     return createMuteUnmutePromise(this, false);
-}
+};
 
 /**
  * Creates Promise for mute/unmute operation.
@@ -82,7 +82,8 @@ function createMuteUnmutePromise(track, mute)
 
 /**
  * Mutes / unmutes the track.
- * @param mute {boolean} if true the track will be muted. Otherwise the track will be unmuted.
+ * @param mute {boolean} if true the track will be muted. Otherwise the track
+ * will be unmuted.
  */
 JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
     if (this.isMuted() === mute) {
@@ -186,7 +187,7 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                 });
         }
     }
-}
+};
 
 /**
  * Stops sending the media track. And removes it from the HTML.
@@ -256,7 +257,7 @@ JitsiLocalTrack.prototype._setRTC = function (rtc) {
  */
 JitsiLocalTrack.prototype._setSSRC = function (ssrc) {
     this.ssrc = ssrc;
-}
+};
 
 
 //FIXME: This dependacy is not necessary. This is quick fix.
@@ -267,7 +268,7 @@ JitsiLocalTrack.prototype._setSSRC = function (ssrc) {
  */
 JitsiLocalTrack.prototype._setConference = function(conference) {
     this.conference = conference;
-}
+};
 
 /**
  * Gets the SSRC of this local track if it's available already or <tt>null</tt>
@@ -290,6 +291,6 @@ JitsiLocalTrack.prototype.getSSRC = function () {
  */
 JitsiLocalTrack.prototype.isLocal = function () {
     return true;
-}
+};
 
 module.exports = JitsiLocalTrack;

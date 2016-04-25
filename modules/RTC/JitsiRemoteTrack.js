@@ -48,7 +48,8 @@ JitsiRemoteTrack.prototype.setMute = function (value) {
 
 /**
  * Returns the current muted status of the track.
- * @returns {boolean|*|JitsiRemoteTrack.muted} <tt>true</tt> if the track is muted and <tt>false</tt> otherwise.
+ * @returns {boolean|*|JitsiRemoteTrack.muted} <tt>true</tt> if the track is
+ * muted and <tt>false</tt> otherwise.
  */
 JitsiRemoteTrack.prototype.isMuted = function () {
     return this.muted;
@@ -85,7 +86,7 @@ JitsiRemoteTrack.prototype._setVideoType = function (type) {
         return;
     this.videoType = type;
     this.eventEmitter.emit(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, type);
-}
+};
 
 delete JitsiRemoteTrack.prototype.dispose;
 

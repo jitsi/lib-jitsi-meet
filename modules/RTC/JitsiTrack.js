@@ -119,7 +119,7 @@ JitsiTrack.prototype.isVideoTrack = function () {
  */
 JitsiTrack.prototype.getOriginalStream = function() {
     return this.stream;
-}
+};
 
 /**
  * Return meaningful usage label for this track depending on it's media and
@@ -203,14 +203,14 @@ JitsiTrack.prototype.detach = function (container) {
     if(container) {
         require("./RTCUtils").setVideoSrc(container, null);
     }
-}
+};
 
 /**
  * Dispose sending the media track. And removes it from the HTML.
  * NOTE: Works for local tracks only.
  */
 JitsiTrack.prototype.dispose = function () {
-}
+};
 
 /**
  * Returns true if this is a video track and the source of the video is a
@@ -218,11 +218,11 @@ JitsiTrack.prototype.dispose = function () {
  */
 JitsiTrack.prototype.isScreenSharing = function(){
 
-}
+};
 
 /**
  * Returns id of the track.
- * @returns {string} id of the track or null if this is fake track.
+ * @returns {string|null} id of the track or null if this is fake track.
  */
 JitsiTrack.prototype._getId = function () {
     var tracks = this.stream.getTracks();
@@ -233,7 +233,7 @@ JitsiTrack.prototype._getId = function () {
 
 /**
  * Returns id of the track.
- * @returns {string} id of the track or null if this is fake track.
+ * @returns {string|null} id of the track or null if this is fake track.
  */
 JitsiTrack.prototype.getId = function () {
     if(this.stream)
@@ -264,7 +264,7 @@ JitsiTrack.prototype.isActive = function () {
 JitsiTrack.prototype.on = function (eventId, handler) {
     if(this.eventEmitter)
         this.eventEmitter.on(eventId, handler);
-}
+};
 
 /**
  * Removes event listener
@@ -274,7 +274,7 @@ JitsiTrack.prototype.on = function (eventId, handler) {
 JitsiTrack.prototype.off = function (eventId, handler) {
     if(this.eventEmitter)
         this.eventEmitter.removeListener(eventId, handler);
-}
+};
 
 // Common aliases for event emitter
 JitsiTrack.prototype.addEventListener = JitsiTrack.prototype.on;
@@ -291,7 +291,7 @@ JitsiTrack.prototype.setAudioLevel = function (audioLevel) {
             audioLevel);
         this.audioLevel = audioLevel;
     }
- }
+ };
 
 /**
  * Returns the msid of the stream attached to the JitsiTrack object or null if
@@ -302,6 +302,6 @@ JitsiTrack.prototype.getMSID = function () {
     return (!this.stream || !this.stream.id || !(tracks = this._getTracks()) ||
         !tracks.length || !(track = tracks[0]) || !track.id)?
             null : this.stream.id + " " + track.id;
-}
+};
 
 module.exports = JitsiTrack;

@@ -641,7 +641,6 @@ ChatRoom.prototype.generateNewStreamSSRCInfo = function () {
 };
 
 ChatRoom.prototype.setVideoMute = function (mute, callback, options) {
-    var self = this;
     this.sendVideoInfoPresence(mute);
     if(callback)
         callback(mute);
@@ -726,7 +725,7 @@ ChatRoom.prototype.getRecordingState = function () {
     if(this.recording)
         return this.recording.getState();
     return "off";
-}
+};
 
 /**
  * Returns the url of the recorded video.
@@ -735,7 +734,7 @@ ChatRoom.prototype.getRecordingURL = function () {
     if(this.recording)
         return this.recording.getURL();
     return null;
-}
+};
 
 /**
  * Starts/stops the recording
@@ -748,7 +747,7 @@ ChatRoom.prototype.toggleRecording = function (options, statusChangeHandler) {
 
     return statusChangeHandler("error",
         new Error("The conference is not created yet!"));
-}
+};
 
 /**
  * Returns true if the SIP calls are supported and false otherwise
@@ -757,7 +756,7 @@ ChatRoom.prototype.isSIPCallingSupported = function () {
     if(this.moderator)
         return this.moderator.isSipGatewayEnabled();
     return false;
-}
+};
 
 /**
  * Dials a number.
@@ -767,28 +766,28 @@ ChatRoom.prototype.dial = function (number) {
     return this.connection.rayo.dial(number, "fromnumber",
         Strophe.getNodeFromJid(this.myroomjid), this.password,
         this.focusMucJid);
-}
+};
 
 /**
  * Hangup an existing call
  */
 ChatRoom.prototype.hangup = function () {
     return this.connection.rayo.hangup();
-}
+};
 
 /**
  * Returns the phone number for joining the conference.
  */
 ChatRoom.prototype.getPhoneNumber = function () {
     return this.phoneNumber;
-}
+};
 
 /**
  * Returns the pin for joining the conference with phone.
  */
 ChatRoom.prototype.getPhonePin = function () {
     return this.phonePin;
-}
+};
 
 /**
  * Returns the connection state for the current session.
@@ -797,7 +796,7 @@ ChatRoom.prototype.getConnectionState = function () {
     if(!this.session)
         return null;
     return this.session.getIceConnectionState();
-}
+};
 
 /**
  * Mutes remote participant.
@@ -823,7 +822,7 @@ ChatRoom.prototype.muteParticipant = function (jid, mute) {
         function (error) {
             logger.log('set mute error', error);
         });
-}
+};
 
 ChatRoom.prototype.onMute = function (iq) {
     var from = iq.getAttribute('from');
@@ -837,7 +836,7 @@ ChatRoom.prototype.onMute = function (iq) {
         this.eventEmitter.emit(XMPPEvents.AUDIO_MUTED_BY_FOCUS, doMuteAudio);
     }
     return true;
-}
+};
 
 /**
  * Leaves the room. Closes the jingle session.

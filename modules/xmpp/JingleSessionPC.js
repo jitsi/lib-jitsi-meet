@@ -1253,7 +1253,7 @@ JingleSessionPC.prototype.getIceConnectionState = function () {
 JingleSessionPC.prototype.close = function () {
     this.closed = true;
     this.peerconnection && this.peerconnection.close();
-}
+};
 
 
 /**
