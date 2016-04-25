@@ -1,9 +1,10 @@
+/* global __filename, module */
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
 var RTCEvents = require("../../service/RTC/RTCEvents");
+var RTCUtils = require("./RTCUtils");
 var JitsiTrackEvents = require("../../JitsiTrackEvents");
 var EventEmitter = require("events");
-var RTC = require("./RTCUtils");
 
 /**
  * This implements 'onended' callback normally fired by WebRTC after the stream
@@ -172,7 +173,7 @@ JitsiTrack.prototype.attach = function (container) {
             containerSel.show();
         }
         container
-            = require("./RTCUtils").attachMediaStream(container, this.stream);
+            = RTCUtils.attachMediaStream(container, this.stream);
     }
     this.containers.push(container);
 
@@ -192,7 +193,7 @@ JitsiTrack.prototype.detach = function (container) {
     {
         if(!container)
         {
-            require("./RTCUtils").setVideoSrc(this.containers[i], null);
+            RTCUtils.setVideoSrc(this.containers[i], null);
         }
         if(!container || $(this.containers[i]).is($(container)))
         {
@@ -201,7 +202,7 @@ JitsiTrack.prototype.detach = function (container) {
     }
 
     if(container) {
-        require("./RTCUtils").setVideoSrc(container, null);
+        RTCUtils.setVideoSrc(container, null);
     }
 };
 
@@ -237,7 +238,7 @@ JitsiTrack.prototype._getId = function () {
  */
 JitsiTrack.prototype.getId = function () {
     if(this.stream)
-        return RTC.getStreamID(this.stream);
+        return RTCUtils.getStreamID(this.stream);
     else
         return null;
 };
