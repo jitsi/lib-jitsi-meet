@@ -95,7 +95,7 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
         resolve();
         return;
     }
-    var isAudio = this.type === JitsiTrack.AUDIO;
+    var isAudio = this.isAudioTrack();
     this.dontFireRemoveEvent = false;
 
     var setStreamToNull = false;
@@ -220,7 +220,7 @@ JitsiLocalTrack.prototype.isMuted = function () {
     if (!this.stream)
         return true;
     var tracks = [];
-    var isAudio = this.type === JitsiTrack.AUDIO;
+    var isAudio = this.isAudioTrack();
     if (isAudio) {
         tracks = this.stream.getAudioTracks();
     } else {

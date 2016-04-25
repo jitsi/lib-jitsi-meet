@@ -20,8 +20,8 @@ function JitsiRemoteTrack(RTC, data, sid, ssrc) {
     this.videoType = data.videoType;
     this.ssrc = ssrc;
     this.muted = false;
-    if((this.type === JitsiTrack.AUDIO && data.audiomuted)
-      || (this.type === JitsiTrack.VIDEO && data.videomuted)) {
+    if((this.isAudioTrack() && data.audiomuted)
+      || (this.isVideoTrack() && data.videomuted)) {
         this.muted = true;
     }
 }

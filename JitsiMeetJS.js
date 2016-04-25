@@ -7,6 +7,7 @@ var JitsiConferenceErrors = require("./JitsiConferenceErrors");
 var JitsiTrackEvents = require("./JitsiTrackEvents");
 var JitsiTrackErrors = require("./JitsiTrackErrors");
 var Logger = require("jitsi-meet-logger");
+var MediaType = require("./service/RTC/MediaType");
 var RTC = require("./modules/RTC/RTC");
 var RTCUIHelper = require("./modules/RTC/RTCUIHelper");
 var Statistics = require("./modules/statistics/statistics");
@@ -102,7 +103,7 @@ var LibJitsiMeet = {
                     for(var i = 0; i < tracks.length; i++) {
                         var track = tracks[i];
                         var mStream = track.getOriginalStream();
-                        if(track.getType() === "audio"){
+                        if(track.getType() === MediaType.AUDIO){
                             Statistics.startLocalStats(mStream,
                                 track.setAudioLevel.bind(track));
                             track.addEventListener(

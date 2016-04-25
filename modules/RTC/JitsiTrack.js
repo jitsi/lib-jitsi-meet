@@ -5,6 +5,7 @@ var RTCEvents = require("../../service/RTC/RTCEvents");
 var RTCUtils = require("./RTCUtils");
 var JitsiTrackEvents = require("../../JitsiTrackEvents");
 var EventEmitter = require("events");
+var MediaType = require("../../service/RTC/MediaType");
 
 /**
  * This implements 'onended' callback normally fired by WebRTC after the stream
@@ -63,8 +64,8 @@ function JitsiTrack(rtc, stream, streamInactiveHandler, jitsiTrackType)
     this.eventEmitter = new EventEmitter();
     this.audioLevel = -1;
     this.type = jitsiTrackType || ((this.stream.getVideoTracks().length > 0)?
-        JitsiTrack.VIDEO : JitsiTrack.AUDIO);
-    if(this.type == JitsiTrack.AUDIO) {
+        MediaType.VIDEO : MediaType.AUDIO);
+    if(this.isAudioTrack()) {
         this._getTracks = function () {
             return this.stream? this.stream.getAudioTracks() : [];
         }.bind(this);
@@ -83,18 +84,6 @@ function JitsiTrack(rtc, stream, streamInactiveHandler, jitsiTrackType)
 }
 
 /**
- * JitsiTrack video type.
- * @type {string}
- */
-JitsiTrack.VIDEO = "video";
-
-/**
- * JitsiTrack audio type.
- * @type {string}
- */
-JitsiTrack.AUDIO = "audio";
-
-/**
  * Returns the type (audio or video) of this track.
  */
 JitsiTrack.prototype.getType = function() {
@@ -105,14 +94,14 @@ JitsiTrack.prototype.getType = function() {
  * Check if this is audiotrack.
  */
 JitsiTrack.prototype.isAudioTrack = function () {
-    return this.getType() === JitsiTrack.AUDIO;
+    return this.getType() === MediaType.AUDIO;
 };
 
 /**
  * Check if this is videotrack.
  */
 JitsiTrack.prototype.isVideoTrack = function () {
-    return this.getType() === JitsiTrack.VIDEO;
+    return this.getType() === MediaType.VIDEO;
 };
 
 /**
@@ -128,7 +117,7 @@ JitsiTrack.prototype.getOriginalStream = function() {
  * @returns {string}
  */
 JitsiTrack.prototype.getUsageLabel = function () {
-    if (this.type == JitsiTrack.AUDIO) {
+    if (this.isAudioTrack()) {
         return "mic";
     } else {
         return this.videoType ? this.videoType : "default";

@@ -14,6 +14,7 @@ var SDPUtil = require("../xmpp/SDPUtil");
 var EventEmitter = require("events");
 var screenObtainer = require("./ScreenObtainer");
 var JitsiTrackErrors = require("../../JitsiTrackErrors");
+var MediaType = require("../../service/RTC/MediaType");
 
 var eventEmitter = new EventEmitter();
 
@@ -407,13 +408,13 @@ function handleLocalStream(streams, resolution) {
 
     if (desktopStream)
         res.push({stream: desktopStream,
-            type: "video", videoType: "desktop"});
+            type: MediaType.VIDEO, videoType: "desktop"});
 
     if(audioStream)
-        res.push({stream: audioStream, type: "audio", videoType: null});
+        res.push({stream: audioStream, type: MediaType.AUDIO, videoType: null});
 
     if(videoStream)
-        res.push({stream: videoStream, type: "video", videoType: "camera",
+        res.push({stream: videoStream, type: MediaType.VIDEO, videoType: "camera",
             resolution: resolution});
 
     return res;
