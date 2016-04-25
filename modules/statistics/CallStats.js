@@ -15,7 +15,7 @@ var wrtcFuncNames = {
     setRemoteDescription: "setRemoteDescription",
     addIceCandidate:      "addIceCandidate",
     getUserMedia:         "getUserMedia",
-    signallingError:      "signallingError"
+    signalingError:       "signalingError"
 };
 
 /**
@@ -377,7 +377,7 @@ CallStats.sendAddIceCandidateFailed = _try_catch(function (e, pc, cs) {
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
 CallStats.sendUnhandledError = _try_catch(function (e, cs) {
-    CallStats._reportError.call(cs, wrtcFuncNames.signallingError, e, null);
+    CallStats._reportError.call(cs, wrtcFuncNames.signalingError, e, null);
 });
 
 module.exports = CallStats;
