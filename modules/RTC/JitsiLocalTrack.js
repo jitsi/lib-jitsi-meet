@@ -4,6 +4,7 @@ var RTCBrowserType = require("./RTCBrowserType");
 var JitsiTrackEvents = require('../../JitsiTrackEvents');
 var JitsiTrackErrors = require("../../JitsiTrackErrors");
 var RTCUtils = require("./RTCUtils");
+var VideoType = require('../../service/RTC/VideoType');
 
 /**
  * Represents a single media track (either audio or video).
@@ -110,7 +111,7 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
     }.bind(this);
 
     if ((window.location.protocol != "https:") ||
-        (isAudio) || this.videoType === "desktop" ||
+        (isAudio) || this.videoType === VideoType.DESKTOP ||
         // FIXME FF does not support 'removeStream' method used to mute
         RTCBrowserType.isFirefox()) {
 
@@ -141,9 +142,9 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                 resolution: self.resolution
             };
             if (isAudio) {
-              streamOptions['micDeviceId'] = self.deviceId;
-          } else if(self.videoType === 'camera') {
-              streamOptions['cameraDeviceId'] = self.deviceId;
+                streamOptions['micDeviceId'] = self.deviceId;
+            } else if(self.videoType === VideoType.CAMERA) {
+                streamOptions['cameraDeviceId'] = self.deviceId;
             }
             RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
                 .then(function (streams) {

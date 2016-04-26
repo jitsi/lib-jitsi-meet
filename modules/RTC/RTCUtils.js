@@ -15,6 +15,7 @@ var EventEmitter = require("events");
 var screenObtainer = require("./ScreenObtainer");
 var JitsiTrackErrors = require("../../JitsiTrackErrors");
 var MediaType = require("../../service/RTC/MediaType");
+var VideoType = require("../../service/RTC/VideoType");
 
 var eventEmitter = new EventEmitter();
 
@@ -407,15 +408,26 @@ function handleLocalStream(streams, resolution) {
     }
 
     if (desktopStream)
-        res.push({stream: desktopStream,
-            type: MediaType.VIDEO, videoType: "desktop"});
+        res.push({
+            stream: desktopStream,
+            type: MediaType.VIDEO,
+            videoType: VideoType.DESKTOP
+        });
 
     if(audioStream)
-        res.push({stream: audioStream, type: MediaType.AUDIO, videoType: null});
+        res.push({
+            stream: audioStream,
+            type: MediaType.AUDIO,
+            videoType: null
+        });
 
     if(videoStream)
-        res.push({stream: videoStream, type: MediaType.VIDEO, videoType: "camera",
-            resolution: resolution});
+        res.push({
+            stream: videoStream,
+            type: MediaType.VIDEO,
+            videoType: VideoType.CAMERA,
+            resolution: resolution
+        });
 
     return res;
 }

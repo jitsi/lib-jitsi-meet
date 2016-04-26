@@ -1,13 +1,14 @@
-/* global APP */
+/* global APP, module */
 var EventEmitter = require("events");
 var RTCBrowserType = require("./RTCBrowserType");
+var RTCEvents = require("../../service/RTC/RTCEvents.js");
 var RTCUtils = require("./RTCUtils.js");
 var JitsiTrack = require("./JitsiTrack");
 var JitsiLocalTrack = require("./JitsiLocalTrack.js");
 var DataChannels = require("./DataChannels");
 var JitsiRemoteTrack = require("./JitsiRemoteTrack.js");
 var MediaType = require("../../service/RTC/MediaType");
-var RTCEvents = require("../../service/RTC/RTCEvents.js");
+var VideoType = require("../../service/RTC/VideoType");
 
 function createLocalTracks(streams, options) {
     var newStreams = []
@@ -15,7 +16,7 @@ function createLocalTracks(streams, options) {
     for (var i = 0; i < streams.length; i++) {
         if (streams[i].type === MediaType.AUDIO) {
           deviceId = options.micDeviceId;
-        } else if (streams[i].videoType === 'camera'){
+        } else if (streams[i].videoType === VideoType.CAMERA){
           deviceId = options.cameraDeviceId;
         }
         var localStream = new JitsiLocalTrack(streams[i].stream,
@@ -43,7 +44,7 @@ function RTC(room, options) {
             if(!self.remoteStreams[from][MediaType.VIDEO]) {
                 var track = self.createRemoteStream(
                     {peerjid:room.roomjid + "/" + from,
-                     videoType:"camera",
+                     videoType: VideoType.CAMERA,
                      jitsiTrackType: MediaType.VIDEO},
                     null, null);
                 self.eventEmitter
