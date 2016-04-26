@@ -387,7 +387,10 @@ CallStats.sendAddIceCandidateFailed = _try_catch(function (e, pc, cs) {
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
 CallStats.sendUnhandledError = _try_catch(function (e, cs) {
-    CallStats._reportError.call(cs, wrtcFuncNames.signalingError, e, null);
+    // for now send the stack property of errors, which is has the form:
+    // name: message <newline> stack(multiline)
+    CallStats._reportError
+        .call(cs, wrtcFuncNames.signalingError, e.stack, null);
 });
 
 module.exports = CallStats;
