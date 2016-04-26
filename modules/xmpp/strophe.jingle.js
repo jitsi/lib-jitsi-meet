@@ -32,6 +32,12 @@ module.exports = function(XMPP, eventEmitter) {
                 this.connection.disco.addFeature('urn:xmpp:jingle:apps:rtp:audio');
                 this.connection.disco.addFeature('urn:xmpp:jingle:apps:rtp:video');
 
+                // Lipsync
+                if (RTCBrowserType.isChrome()) {
+                    this.connection.disco.addFeature(
+                        'http://jitsi.org/meet/lipsync');
+                }
+
                 if (RTCBrowserType.isChrome() || RTCBrowserType.isOpera()
                     || RTCBrowserType.isTemasysPluginUsed()) {
                     this.connection.disco.addFeature('urn:ietf:rfc:4588');
