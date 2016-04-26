@@ -95,38 +95,37 @@ RTC.prototype.onIncommingCall = function(event) {
     if(this.options.config.openSctp)
         this.dataChannels = new DataChannels(event.peerconnection,
             this.eventEmitter);
-    for(var i = 0; i < this.localTracks.length; i++)
-        if(this.localTracks[i])
-        {
-            var ssrcInfo = null;
-            if(this.localTracks[i].isMuted() &&
-                this.localTracks[i].getType() === MediaType.VIDEO) {
-                /**
-                 * Handles issues when the stream is added before the peerconnection is created.
-                 * The peerconnection is created when second participant enters the call. In
-                 * that use case the track doesn't have information about it's ssrcs and no
-                 * jingle packets are sent. That can cause inconsistant behavior later.
-                 *
-                 * For example:
-                 * If we mute the stream and than second participant enter it's remote SDP won't
-                 * include that track. On unmute we are not sending any jingle packets which
-                 * will brake the unmute.
-                 *
-                 * In order to solve issues like the above one here we have to generate the ssrc
-                 * information for the track .
-                 */
-                this.localTracks[i]._setSSRC(
-                    this.room.generateNewStreamSSRCInfo());
-                ssrcInfo = {
-                    mtype: this.localTracks[i].getType(),
-                    type: "addMuted",
-                    ssrc: this.localTracks[i].ssrc,
-                    msid: this.localTracks[i].initialMSID
-                }
-            }
-            this.room.addStream(this.localTracks[i].getOriginalStream(),
-                function () {}, ssrcInfo, true);
+    // Add local Tracks to the ChatRoom
+    this.localTracks.forEach(function(localTrack) {
+        var ssrcInfo = null;
+        if(localTrack.isVideoTrack() && localTrack.isMuted()) {
+            /**
+             * Handles issues when the stream is added before the peerconnection
+             * is created. The peerconnection is created when second participant
+             * enters the call. In that use case the track doesn't have
+             * information about it's ssrcs and no jingle packets are sent. That
+             * can cause inconsistent behavior later.
+             *
+             * For example:
+             * If we mute the stream and than second participant enter it's
+             * remote SDP won't include that track. On unmute we are not sending
+             * any jingle packets which will brake the unmute.
+             *
+             * In order to solve issues like the above one here we have to
+             * generate the ssrc information for the track .
+             */
+            localTrack._setSSRC(
+                this.room.generateNewStreamSSRCInfo());
+            ssrcInfo = {
+                mtype: localTrack.getType(),
+                type: "addMuted",
+                ssrc: localTrack.ssrc,
+                msid: localTrack.initialMSID
+            };
         }
+        this.room.addStream(
+            localTrack.getOriginalStream(), function () {}, ssrcInfo, true);
+    }.bind(this));
 };
 
 RTC.prototype.selectedEndpoint = function (id) {
@@ -169,6 +168,9 @@ RTC.getDeviceAvailability = function () {
 };
 
 RTC.prototype.addLocalTrack = function (track) {
+    if (!track)
+        throw new Error('track must not be null nor undefined');
+
     this.localTracks.push(track);
     track._setRTC(this);
 
