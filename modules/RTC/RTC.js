@@ -264,8 +264,13 @@ RTC.prototype.createRemoteTrack = function (data, sid, thessrc) {
     return remoteTrack;
 };
 
-RTC.prototype.removeRemoteTrack = function (resource) {
-    // FIXME this clears both audio and video tracks!
+/**
+ * Removes all JitsiRemoteTracks associated with given MUC nickname (resource
+ * part of the JID).
+ * @param resource the resource part of the MUC JID
+ * @returns {JitsiRemoteTrack|null}
+ */
+RTC.prototype.removeRemoteTracks = function (resource) {
     if(this.remoteTracks[resource]) {
         delete this.remoteTracks[resource];
     }
