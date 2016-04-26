@@ -21,8 +21,6 @@ function createLocalTracks(streams, options) {
         var localStream = new JitsiLocalTrack(streams[i].stream,
             streams[i].videoType, streams[i].resolution, deviceId);
         newStreams.push(localStream);
-        if (streams[i].isMuted === true)
-            localStream.setMute(true);
     }
     return newStreams;
 }
