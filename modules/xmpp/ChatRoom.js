@@ -96,7 +96,9 @@ ChatRoom.prototype.initPresenceMap = function () {
         "value": navigator.userAgent,
         "attributes": {xmlns: 'http://jitsi.org/jitmeet/user-agent'}
     });
-
+    // We need to broadcast 'videomuted' status from the beginning, cause Jicofo
+    // makes decisions based on that. Initialize it with 'false' here.
+    this.addVideoInfoToPresence(false);
 };
 
 ChatRoom.prototype.updateDeviceAvailability = function (devices) {
