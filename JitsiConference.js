@@ -171,7 +171,7 @@ JitsiConference.prototype.getExternalAuthUrl = function (urlForPopup) {
  */
 JitsiConference.prototype.getLocalTracks = function () {
     if (this.rtc) {
-        return this.rtc.localStreams.slice();
+        return this.rtc.localTracks.slice();
     } else {
         return [];
     }
@@ -304,7 +304,7 @@ JitsiConference.prototype.addTrack = function (track) {
         throw new Error(JitsiTrackErrors.TRACK_IS_DISPOSED);
     }
     if (track.isVideoTrack()) {
-        if (this.rtc.getLocalVideoStream()) {
+        if (this.rtc.getLocalVideoTrack()) {
             throw new Error("cannot add second video track to the conference");
         }
         this.removeCommand("videoType");
@@ -328,7 +328,7 @@ JitsiConference.prototype.addTrack = function (track) {
 
     return new Promise(function (resolve) {
         this.room.addStream(track.getOriginalStream(), function () {
-            this.rtc.addLocalStream(track);
+            this.rtc.addLocalTrack(track);
             if (track.startMuted) {
                 track.mute();
             }
@@ -398,7 +398,7 @@ JitsiConference.prototype.removeTrack = function (track) {
 
     if(!this.room){
         if(this.rtc) {
-            this.rtc.removeLocalStream(track);
+            this.rtc.removeLocalTrack(track);
             this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
         }
         return Promise.resolve();
@@ -408,7 +408,7 @@ JitsiConference.prototype.removeTrack = function (track) {
             track._setSSRC(null);
             //FIXME: This dependacy is not necessary. This is quick fix.
             track._setConference(this);
-            this.rtc.removeLocalStream(track);
+            this.rtc.removeLocalTrack(track);
             track.removeEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED,
                 track.muteHandler);
             track.removeEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
@@ -566,7 +566,7 @@ JitsiConference.prototype.onMemberLeft = function (jid) {
     var participant = this.participants[id];
     delete this.participants[id];
 
-    this.rtc.removeRemoteStream(id);
+    this.rtc.removeRemoteTrack(id);
 
     this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant);
 };
@@ -901,19 +901,17 @@ function setupListeners(conference) {
         }
     });
 
-    conference.room.addListener(XMPPEvents.REMOTE_STREAM_RECEIVED,
+    conference.room.addListener(XMPPEvents.REMOTE_TRACK_ADDED,
         function (data, sid, thessrc) {
-            var track = conference.rtc.createRemoteStream(data, sid, thessrc);
+            var track = conference.rtc.createRemoteTrack(data, sid, thessrc);
             if (track) {
                 conference.onTrackAdded(track);
             }
         }
     );
-    conference.room.addListener(XMPPEvents.REMOTE_STREAM_REMOVED,
+    conference.room.addListener(XMPPEvents.REMOTE_TRACK_REMOVED,
         function (streamId) {
-            var participants = conference.getParticipants();
-            for(var j = 0; j < participants.length; j++) {
-                var participant = participants[j];
+            conference.getParticipants().forEach(function(participant) {
                 var tracks = participant.getTracks();
                 for(var i = 0; i < tracks.length; i++) {
                     if(tracks[i] && tracks[i].stream &&
@@ -924,7 +922,7 @@ function setupListeners(conference) {
                         return;
                     }
                 }
-            }
+            });
         }
     );
     conference.rtc.addListener(RTCEvents.FAKE_VIDEO_TRACK_CREATED,

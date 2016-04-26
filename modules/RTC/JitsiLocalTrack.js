@@ -47,7 +47,7 @@ JitsiLocalTrack.prototype.mute = function () {
 };
 
 /**
- * Unmutes the stream. Will reject the Promise if there is mute/unmute operation
+ * Unmutes the track. Will reject the Promise if there is mute/unmute operation
  * in progress.
  * @returns {Promise}
  */
@@ -229,6 +229,7 @@ JitsiLocalTrack.prototype.dispose = function () {
  * and <tt>false</tt> otherwise.
  */
 JitsiLocalTrack.prototype.isMuted = function () {
+    // this.stream will be null when we mute local video on Chrome
     if (!this.stream)
         return true;
     var tracks = [];

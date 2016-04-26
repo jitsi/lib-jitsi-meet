@@ -705,7 +705,7 @@ ChatRoom.prototype.remoteStreamAdded = function(data, sid, thessrc) {
             && audiomuted[0]["value"] === "true")? true : false);
     }
 
-    this.eventEmitter.emit(XMPPEvents.REMOTE_STREAM_RECEIVED, data, sid, thessrc);
+    this.eventEmitter.emit(XMPPEvents.REMOTE_TRACK_ADDED, data, sid, thessrc);
 };
 
 /**

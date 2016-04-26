@@ -99,11 +99,11 @@ var XMPPEvents = {
     // Designates an event indicating that we received statistics from a
     // participant in the MUC.
     REMOTE_STATS: "xmpp.remote_stats",
-    REMOTE_STREAM_RECEIVED: "xmpp.remote_stream_received",
+    REMOTE_TRACK_ADDED: "xmpp.remote_track_added",
     /**
-     * Indicates that remote stream has been removed from the conference.
+     * Indicates that the remote track has been removed from the conference.
      */
-    REMOTE_STREAM_REMOVED: "xmpp.remote_stream_removed",
+    REMOTE_TRACK_REMOVED: "xmpp.remote_track_removed",
     RESERVATION_ERROR: "xmpp.room_reservation_error",
     ROOM_CONNECT_ERROR: 'xmpp.room_connect_error',
     ROOM_JOIN_ERROR: 'xmpp.room_join_error',

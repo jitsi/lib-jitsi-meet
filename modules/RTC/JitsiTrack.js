@@ -105,7 +105,7 @@ JitsiTrack.prototype.isVideoTrack = function () {
 };
 
 /**
- * Returns the RTCMediaStream from the browser (?).
+ * Returns the WebRTC MediaStream instance.
  */
 JitsiTrack.prototype.getOriginalStream = function() {
     return this.stream;
