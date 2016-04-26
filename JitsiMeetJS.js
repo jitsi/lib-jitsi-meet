@@ -66,6 +66,17 @@ var LibJitsiMeet = {
                 if (oldOnErrorHandler)
                     oldOnErrorHandler(message, source, lineno, colno, error);
             }
+
+            // if an old handler exists also fire its events
+            var oldOnUnhandledRejection = window.onunhandledrejection;
+            window.onunhandledrejection = function(event) {
+
+                JitsiMeetJS.getGlobalOnErrorHandler(
+                    null, null, null, null, event.reason);
+
+                if(oldOnUnhandledRejection)
+                    oldOnUnhandledRejection(event);
+            };
         }
 
         return RTC.init(options || {});
