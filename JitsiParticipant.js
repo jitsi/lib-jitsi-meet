@@ -2,8 +2,12 @@
 
 /**
  * Represents a participant in (a member of) a conference.
+ * @param jid the conference XMPP jid
+ * @param conference
+ * @param displayName
+ * @param isHidden indicates if this participant is a hidden participant
  */
-function JitsiParticipant(jid, conference, displayName){
+function JitsiParticipant(jid, conference, displayName, isHidden){
     this._jid = jid;
     this._id = Strophe.getResourceFromJid(jid);
     this._conference = conference;
@@ -16,6 +20,7 @@ function JitsiParticipant(jid, conference, displayName){
         audio: undefined,
         video: undefined
     };
+    this._isHidden = isHidden;
 }
 
 /**
@@ -65,6 +70,15 @@ JitsiParticipant.prototype.getStatus = function () {
  */
 JitsiParticipant.prototype.isModerator = function() {
     return this._role === 'moderator';
+};
+
+/**
+ * @returns {Boolean} Whether this participant is a hidden participant. Some
+ * special system participants may want to join hidden (like for example the
+ * recorder).
+ */
+JitsiParticipant.prototype.isHidden = function() {
+    return this._isHidden;
 };
 
 // Gets a link to an etherpad instance advertised by the participant?

@@ -540,12 +540,22 @@ JitsiConference.prototype.muteParticipant = function (id) {
     this.room.muteParticipant(participant.getJid(), true);
 };
 
-JitsiConference.prototype.onMemberJoined = function (jid, nick, role) {
+/**
+ * Indicates that a participant has joined the conference.
+ *
+ * @param jid the jid of the participant in the MUC
+ * @param nick the display name of the participant
+ * @param role the role of the participant in the MUC
+ * @param isHidden indicates if this is a hidden participant (sysem participant,
+ * for example a recorder).
+ */
+JitsiConference.prototype.onMemberJoined
+    = function (jid, nick, role, isHidden) {
     var id = Strophe.getResourceFromJid(jid);
     if (id === 'focus' || this.myUserId() === id) {
        return;
     }
-    var participant = new JitsiParticipant(jid, this, nick);
+    var participant = new JitsiParticipant(jid, this, nick, isHidden);
     participant._role = role;
     this.participants[id] = participant;
     this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED, id, participant);
