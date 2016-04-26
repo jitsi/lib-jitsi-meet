@@ -1065,6 +1065,10 @@ function setupListeners(conference) {
             conference.lastDominantSpeaker = id;
             conference.eventEmitter.emit(JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED, id);
         }
+        if (conference.statistics && conference.myUserId() === id) {
+            // We are the new dominant speaker.
+            conference.statistics.sendDominantSpeakerEvent();
+        }
     });
 
     conference.rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, function () {

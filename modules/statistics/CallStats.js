@@ -34,7 +34,8 @@ var fabricEvent = {
     fabricStats:"fabricStats",
     fabricTerminated:"fabricTerminated",
     screenShareStart:"screenShareStart",
-    screenShareStop:"screenShareStop"
+    screenShareStop:"screenShareStop",
+    dominantSpeaker:"dominantSpeaker"
 };
 
 var callStats = null;
@@ -220,6 +221,15 @@ CallStats.sendScreenSharingEvent = _try_catch(function (start, cs) {
 
     CallStats._reportEvent.call(cs,
         start? fabricEvent.screenShareStart : fabricEvent.screenShareStop);
+});
+
+/**
+ * Notifies CallStats that we are the new dominant speaker in the conference.
+ */
+CallStats.sendDominantSpeakerEvent = _try_catch(function (cs) {
+
+    CallStats._reportEvent.call(cs,
+        fabricEvent.dominantSpeaker);
 });
 
 /**

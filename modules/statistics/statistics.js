@@ -204,6 +204,15 @@ Statistics.prototype.sendScreenSharingEvent = function (start) {
 };
 
 /**
+ * Notifies the statistics module that we are now the dominant speaker of the
+ * conference.
+ */
+Statistics.prototype.sendDominantSpeakerEvent = function () {
+    if(this.callStatsIntegrationEnabled)
+        CallStats.sendDominantSpeakerEvent(this.callstats);
+};
+
+/**
  * Lets the underlying statistics module know where is given SSRC rendered by
  * providing renderer tag ID.
  * @param ssrc {number} the SSRC of the stream
