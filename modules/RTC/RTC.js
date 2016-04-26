@@ -341,6 +341,14 @@ RTC.isDesktopSharingEnabled = function () {
 RTC.prototype.dispose = function() {
 };
 
+/*
+ //FIXME Never used, but probably *should* be used for switching
+ //      between camera and screen, but has to be adjusted to work with tracks.
+ //      Current when switching to desktop we can see recv-only being advertised
+ //      because we do remove and add.
+ //
+ //      Leaving it commented out, in order to not forget about FF specific
+ //      thing
 RTC.prototype.switchVideoTracks = function (newStream) {
     this.localVideo.stream = newStream;
 
@@ -350,7 +358,7 @@ RTC.prototype.switchVideoTracks = function (newStream) {
     if (this.localAudio.getOriginalStream() != newStream)
         this.localTracks.push(this.localAudio);
     this.localTracks.push(this.localVideo);
-};
+};*/
 
 RTC.prototype.setAudioLevel = function (resource, audioLevel) {
     if(!resource)
