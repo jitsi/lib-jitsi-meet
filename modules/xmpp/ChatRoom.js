@@ -2,6 +2,7 @@
 /* jshint -W101,-W069 */
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
+var MediaType = require("../../service/RTC/MediaType");
 var Moderator = require("./moderator");
 var EventEmitter = require("events");
 var Recorder = require("./recording");
@@ -691,21 +692,28 @@ ChatRoom.prototype.removeListener = function (type, listener) {
     this.eventEmitter.removeListener(type, listener);
 };
 
-ChatRoom.prototype.remoteStreamAdded = function(data, sid, thessrc) {
-    if(this.lastPresences[data.peerjid])
-    {
-        var pres = this.lastPresences[data.peerjid];
-        var audiomuted = filterNodeFromPresenceJSON(pres, "audiomuted");
-        var videomuted = filterNodeFromPresenceJSON(pres, "videomuted");
-        data.videomuted = ((videomuted.length > 0
-            && videomuted[0]
-            && videomuted[0]["value"] === "true")? true : false);
-        data.audiomuted = ((audiomuted.length > 0
-            && audiomuted[0]
-            && audiomuted[0]["value"] === "true")? true : false);
+ChatRoom.prototype.remoteTrackAdded = function(data) {
+    // Will figure out current muted status by looking up owner's presence
+    var pres = this.lastPresences[data.owner];
+    var mediaType = data.mediaType;
+    if(pres) {
+        var mutedNode = null;
+        if (mediaType === MediaType.AUDIO) {
+            mutedNode = filterNodeFromPresenceJSON(pres, "audiomuted");
+        } else if (mediaType === MediaType.VIDEO) {
+            mutedNode = filterNodeFromPresenceJSON(pres, "videomuted");
+        } else {
+            logger.warn("Unsupported media type: " + mediaType);
+            data.muted= null;
+        }
+
+        if (mutedNode) {
+            data.muted = !!(mutedNode.length > 0 &&
+                            mutedNode[0] && mutedNode[0]["value"] === "true");
+        }
     }
 
-    this.eventEmitter.emit(XMPPEvents.REMOTE_TRACK_ADDED, data, sid, thessrc);
+    this.eventEmitter.emit(XMPPEvents.REMOTE_TRACK_ADDED, data);
 };
 
 /**

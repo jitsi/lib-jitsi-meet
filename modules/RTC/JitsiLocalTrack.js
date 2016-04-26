@@ -8,28 +8,34 @@ var RTCUtils = require("./RTCUtils");
 var VideoType = require('../../service/RTC/VideoType');
 
 /**
- * Represents a single media track (either audio or video).
+ * Represents a single media track(either audio or video).
+ * One <tt>JitsiLocalTrack</tt> corresponds to one WebRTC MediaStreamTrack.
+ * @param stream WebRTC MediaStream, parent of the track
+ * @param track underlying WebRTC MediaStreamTrack for new JitsiRemoteTrack
+ * @param mediaType the MediaType of the JitsiRemoteTrack
+ * @param videoType the VideoType of the JitsiRemoteTrack
+ * @param resolution the video resoultion if it's a video track
+ * @param deviceId the ID of the local device for this track
  * @constructor
  */
-function JitsiLocalTrack(stream, videoType,
-  resolution, deviceId)
-{
-    this.videoType = videoType;
-    this.dontFireRemoveEvent = false;
-    this.resolution = resolution;
-    this.deviceId = deviceId;
-    this.startMuted = false;
-    this.ssrc = null;
-    this.disposed = false;
-    //FIXME: This dependacy is not necessary.
-    this.conference = null;
-    JitsiTrack.call(this, null, stream,
+function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
+                         deviceId) {
+    JitsiTrack.call(this,
+        null /* RTC */, stream, track,
         function () {
             if(!this.dontFireRemoveEvent)
                 this.eventEmitter.emit(
                     JitsiTrackEvents.LOCAL_TRACK_STOPPED);
             this.dontFireRemoveEvent = false;
-        }.bind(this));
+        }.bind(this) /* inactiveHandler */,
+        mediaType, videoType, null /* ssrc */);
+    this.dontFireRemoveEvent = false;
+    this.resolution = resolution;
+    this.deviceId = deviceId;
+    this.startMuted = false;
+    this.disposed = false;
+    //FIXME: This dependacy is not necessary.
+    this.conference = null;
     this.initialMSID = this.getMSID();
     this.inMuteOrUnmuteProgress = false;
 }
@@ -116,10 +122,8 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
         // FIXME FF does not support 'removeStream' method used to mute
         RTCBrowserType.isFirefox()) {
 
-        var tracks = this._getTracks();
-        for (var idx = 0; idx < tracks.length; idx++) {
-            tracks[idx].enabled = !mute;
-        }
+        if (this.track)
+            this.track.enabled = !mute;
         if(isAudio)
             this.rtc.room.setAudioMute(mute, callbackFunction);
         else
@@ -154,9 +158,10 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                 .then(function (streamsInfo) {
                     var streamInfo = null;
                     for(var i = 0; i < streamsInfo.length; i++) {
-                        if(streamsInfo[i].type === self.type) {
+                        if(streamsInfo[i].mediaType === self.getType()) {
                             streamInfo = streamsInfo[i];
                             self.stream = streamInfo.stream;
+                            self.track = streamInfo.track;
                             // This is not good when video type changes after
                             // unmute, but let's not crash here
                             if (self.videoType != streamInfo.videoType) {
@@ -232,20 +237,11 @@ JitsiLocalTrack.prototype.isMuted = function () {
     // this.stream will be null when we mute local video on Chrome
     if (!this.stream)
         return true;
-    var tracks = [];
-    var isAudio = this.isAudioTrack();
-    if (isAudio) {
-        tracks = this.stream.getAudioTracks();
+    if (this.isVideoTrack() && !this.isActive()) {
+        return true;
     } else {
-        if (!this.isActive())
-            return true;
-        tracks = this.stream.getVideoTracks();
+        return !this.track || !this.track.enabled;
     }
-    for (var idx = 0; idx < tracks.length; idx++) {
-        if(tracks[idx].enabled)
-            return false;
-    }
-    return true;
 };
 
 /**

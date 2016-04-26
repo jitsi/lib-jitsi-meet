@@ -902,20 +902,21 @@ function setupListeners(conference) {
     });
 
     conference.room.addListener(XMPPEvents.REMOTE_TRACK_ADDED,
-        function (data, sid, thessrc) {
-            var track = conference.rtc.createRemoteTrack(data, sid, thessrc);
+        function (data) {
+            var track = conference.rtc.createRemoteTrack(data);
             if (track) {
                 conference.onTrackAdded(track);
             }
         }
     );
     conference.room.addListener(XMPPEvents.REMOTE_TRACK_REMOVED,
-        function (streamId) {
+        function (streamId, trackId) {
             conference.getParticipants().forEach(function(participant) {
                 var tracks = participant.getTracks();
                 for(var i = 0; i < tracks.length; i++) {
-                    if(tracks[i] && tracks[i].stream &&
-                        RTC.getStreamID(tracks[i].stream) == streamId){
+                    if(tracks[i]
+                        && tracks[i].getStreamId() == streamId
+                        && tracks[i].getTrackId() == trackId) {
                         var track = participant._tracks.splice(i, 1)[0];
                         conference.eventEmitter.emit(
                             JitsiConferenceEvents.TRACK_REMOVED, track);

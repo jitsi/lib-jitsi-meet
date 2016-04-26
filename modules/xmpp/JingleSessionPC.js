@@ -3,6 +3,7 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var JingleSession = require("./JingleSession");
 var TraceablePeerConnection = require("./TraceablePeerConnection");
+var MediaType = require("../../service/RTC/MediaType");
 var SDPDiffer = require("./SDPDiffer");
 var SDPUtil = require("./SDPUtil");
 var SDP = require("./SDP");
@@ -113,29 +114,10 @@ JingleSessionPC.prototype.doInitialize = function () {
         self.sendIceCandidate(candidate);
     };
     this.peerconnection.onaddstream = function (event) {
-        if (event.stream.id !== 'default') {
-            logger.log("REMOTE STREAM ADDED: ", event.stream , event.stream.id);
-            self.remoteStreamAdded(event);
-        } else {
-            // This is a recvonly stream. Clients that implement Unified Plan,
-            // such as Firefox use recvonly "streams/channels/tracks" for
-            // receiving remote stream/tracks, as opposed to Plan B where there
-            // are only 3 channels: audio, video and data.
-            logger.log("RECVONLY REMOTE STREAM IGNORED: " + event.stream + " - " + event.stream.id);
-        }
+        self.remoteStreamAdded(event.stream);
     };
     this.peerconnection.onremovestream = function (event) {
-        // Remove the stream from remoteStreams
-        if (event.stream.id !== 'default') {
-            logger.log("REMOTE STREAM REMOVED: ", event.stream , event.stream.id);
-            self.remoteStreamRemoved(event);
-        } else {
-            // This is a recvonly stream. Clients that implement Unified Plan,
-            // such as Firefox use recvonly "streams/channels/tracks" for
-            // receiving remote stream/tracks, as opposed to Plan B where there
-            // are only 3 channels: audio, video and data.
-            logger.log("RECVONLY REMOTE STREAM IGNORED: " + event.stream + " - " + event.stream.id);
-        }
+        self.remoteStreamRemoved(event.stream);
     };
     this.peerconnection.onsignalingstatechange = function (event) {
         if (!(self && self.peerconnection)) return;
@@ -1184,58 +1166,138 @@ JingleSessionPC.onJingleFatalError = function (session, error)
     this.room.eventEmitter.emit(XMPPEvents.JINGLE_FATAL_ERROR, session, error);
 };
 
-JingleSessionPC.prototype.remoteStreamAdded = function (data, times) {
+/**
+ * Called when new remote MediaStream is added to the PeerConnection.
+ * @param stream the WebRTC MediaStream for remote participant
+ */
+JingleSessionPC.prototype.remoteStreamAdded = function (stream) {
     var self = this;
-    var thessrc;
-    var streamId = RTC.getStreamID(data.stream);
+    if (!RTC.isUserStream(stream)) {
+        logger.info(
+            "Ignored remote 'stream added' event for non-user stream", stream);
+        return;
+    }
+    // Bind 'addtrack'/'removetrack' event handlers
+    if (RTCBrowserType.isChrome()) {
+        stream.onaddtrack = function (event) {
+            self.remoteTrackAdded(event.target, event.track);
+        };
+        stream.onremovetrack = function (event) {
+            self.remoteTrackRemoved(event.target, event.track);
+        };
+    }
+    // Call remoteTrackAdded for each track in the stream
+    stream.getAudioTracks().forEach(function (track) {
+        self.remoteTrackAdded(stream, track);
+    });
+    stream.getVideoTracks().forEach(function (track) {
+        self.remoteTrackAdded(stream, track);
+    });
+};
+
+/**
+ * Called on "track added" and "stream added" PeerConnection events(cause we
+ * handle streams on per track basis). Does find the owner and the SSRC for
+ * the track and passes that to ChatRoom for further processing.
+ * @param stream WebRTC MediaStream instance which is the parent of the track
+ * @param track the WebRTC MediaStreamTrack added for remote participant
+ */
+JingleSessionPC.prototype.remoteTrackAdded = function (stream, track) {
+    logger.info("Remote track added", stream, track);
+    var streamId = RTC.getStreamID(stream);
+    var mediaType = track.kind;
+
+    // This is our event structure which will be passed by the ChatRoom as
+    // XMPPEvents.REMOTE_TRACK_ADDED data
+    var jitsiTrackAddedEvent = {
+        stream: stream,
+        track: track,
+        mediaType: track.kind, /* 'audio' or 'video' */
+        owner: undefined, /* to be determined below */
+        muted: null /* will be set in the ChatRoom */
+    };
 
     // look up an associated JID for a stream id
-    if (!streamId) {
-        logger.error("No stream ID for", data.stream);
-    } else if (streamId && streamId.indexOf('mixedmslabel') === -1) {
-        // look only at a=ssrc: and _not_ at a=ssrc-group: lines
-
-        var ssrclines = this.peerconnection.remoteDescription?
-            SDPUtil.find_lines(this.peerconnection.remoteDescription.sdp, 'a=ssrc:') : [];
-        ssrclines = ssrclines.filter(function (line) {
-            // NOTE(gp) previously we filtered on the mslabel, but that property
-            // is not always present.
-            // return line.indexOf('mslabel:' + data.stream.label) !== -1;
-
-            if (RTCBrowserType.isTemasysPluginUsed()) {
-                return ((line.indexOf('mslabel:' + streamId) !== -1));
-            } else {
-                return ((line.indexOf('msid:' + streamId) !== -1));
-            }
-        });
-        if (ssrclines.length) {
-            thessrc = ssrclines[0].substring(7).split(' ')[0];
-
-            if (!self.ssrcOwners[thessrc]) {
-                logger.error("No SSRC owner known for: " + thessrc);
-                return;
-            }
-            data.peerjid = self.ssrcOwners[thessrc];
-            logger.log('associated jid', self.ssrcOwners[thessrc]);
-        } else {
-            logger.error("No SSRC lines for ", streamId);
-        }
+    if (!mediaType) {
+        logger.error("MediaType undefined", track);
+        return;
     }
 
-    this.room.remoteStreamAdded(data, this.sid, thessrc);
+    var remoteSDP = new SDP(this.peerconnection.remoteDescription.sdp);
+    var medialines = remoteSDP.media.filter(function (mediaLines){
+        return mediaLines.startsWith("m=" + mediaType);
+    });
+
+    if (!medialines.length) {
+        logger.error("No media for type " + mediaType + " found in remote SDP");
+        return;
+    }
+
+    var ssrclines = SDPUtil.find_lines(medialines[0], 'a=ssrc:');
+    ssrclines = ssrclines.filter(function (line) {
+        if (RTCBrowserType.isTemasysPluginUsed()) {
+            return ((line.indexOf('mslabel:' + streamId) !== -1));
+        } else {
+            return ((line.indexOf('msid:' + streamId) !== -1));
+        }
+    });
+
+    var thessrc;
+    if (ssrclines.length) {
+        thessrc = ssrclines[0].substring(7).split(' ')[0];
+        if (!this.ssrcOwners[thessrc]) {
+            logger.error("No SSRC owner known for: " + thessrc);
+            return;
+        }
+        jitsiTrackAddedEvent.owner = this.ssrcOwners[thessrc];
+        logger.log('associated jid', this.ssrcOwners[thessrc], thessrc);
+    } else {
+        logger.error("No SSRC lines for ", streamId);
+        return;
+    }
+    jitsiTrackAddedEvent.ssrc = thessrc;
+
+    this.room.remoteTrackAdded(jitsiTrackAddedEvent);
 };
 
 /**
  * Handles remote stream removal.
- * @param event The event object associated with the removal.
+ * @param stream the WebRTC MediaStream object which is being removed from the
+ * PeerConnection
  */
-JingleSessionPC.prototype.remoteStreamRemoved = function (event) {
-    var thessrc;
-    var streamId = RTC.getStreamID(event.stream);
+JingleSessionPC.prototype.remoteStreamRemoved = function (stream) {
+    var self = this;
+    if (!RTC.isUserStream(stream)) {
+        logger.info(
+            "Ignored remote 'stream removed' event for non-user stream", stream);
+        return;
+    }
+    // Call remoteTrackRemoved for each track in the stream
+    stream.getVideoTracks().forEach(function(track){
+        self.remoteTrackRemoved(stream, track);
+    });
+    stream.getAudioTracks().forEach(function(track) {
+       self.remoteTrackRemoved(stream, track);
+    });
+};
+
+/**
+ * Handles remote media track removal.
+ * @param stream WebRTC MediaStream instance which is the parent of the track
+ * @param track the WebRTC MediaStreamTrack which has been removed from
+ * the PeerConnection.
+ */
+JingleSessionPC.prototype.remoteTrackRemoved = function (stream, track) {
+    logger.info("Remote track removed", stream, track);
+    var streamId = RTC.getStreamID(stream);
+    var trackId = track && track.id;
     if (!streamId) {
-        logger.error("No stream ID for", event.stream);
-    } else if (streamId && streamId.indexOf('mixedmslabel') === -1) {
-        this.room.eventEmitter.emit(XMPPEvents.REMOTE_STREAM_REMOVED, streamId);
+        logger.error("No stream ID for", stream);
+    } else if (!trackId) {
+        logger.error("No track ID for", track);
+    } else {
+        this.room.eventEmitter.emit(
+            XMPPEvents.REMOTE_TRACK_REMOVED, streamId, trackId);
     }
 };
 

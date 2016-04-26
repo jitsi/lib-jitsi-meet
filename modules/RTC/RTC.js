@@ -15,13 +15,17 @@ function createLocalTracks(tracksInfo, options) {
     var newTracks = [];
     var deviceId = null;
     tracksInfo.forEach(function(trackInfo){
-        if (trackInfo.type === MediaType.AUDIO) {
+        if (trackInfo.mediaType === MediaType.AUDIO) {
           deviceId = options.micDeviceId;
         } else if (trackInfo.videoType === VideoType.CAMERA){
           deviceId = options.cameraDeviceId;
         }
-        var localTrack = new JitsiLocalTrack(trackInfo.stream,
-            trackInfo.videoType, trackInfo.resolution, deviceId);
+        var localTrack
+            = new JitsiLocalTrack(
+                trackInfo.stream,
+                trackInfo.track,
+                trackInfo.mediaType,
+                trackInfo.videoType, trackInfo.resolution, deviceId);
         newTracks.push(localTrack);
     });
     return newTracks;
@@ -43,11 +47,10 @@ function RTC(room, options) {
         // we need to create a dummy track which we will mute, so we can
         // notify interested about the muting
         if (!videoTrack) {
-            videoTrack = self.createRemoteTrack(
-                {
-                    peerjid: room.roomjid + "/" + from,
+            videoTrack = self.createRemoteTrack({
+                    owner: room.roomjid + "/" + from,
                     videoType: VideoType.CAMERA,
-                    jitsiTrackType: MediaType.VIDEO
+                    mediaType: MediaType.VIDEO
                 },
                 null, null);
             self.eventEmitter
@@ -249,11 +252,12 @@ RTC.prototype.removeLocalTrack = function (track) {
     }
 };
 
-RTC.prototype.createRemoteTrack = function (data, sid, thessrc) {
-    var remoteTrack = new JitsiRemoteTrack(this, data, sid, thessrc);
-    if(!data.peerjid)
-        return;
-    var resource = Strophe.getResourceFromJid(data.peerjid);
+RTC.prototype.createRemoteTrack = function (event) {
+    var ownerJid = event.owner;
+    var remoteTrack = new JitsiRemoteTrack(
+        this,  ownerJid, event.stream,    event.track,
+        event.mediaType, event.videoType, event.ssrc, event.muted);
+    var resource = Strophe.getResourceFromJid(ownerJid);
     if(!this.remoteTracks[resource]) {
         this.remoteTracks[resource] = {};
     }
@@ -309,6 +313,24 @@ RTC.isDeviceListAvailable = function () {
 RTC.isDeviceChangeAvailable = function () {
     return RTCUtils.isDeviceChangeAvailable();
 };
+
+/**
+ * Returns <tt>true<tt/> if given WebRTC MediaStream is considered a valid
+ * "user" stream which means that it's not a "receive only" stream nor a "mixed"
+ * JVB stream.
+ * 
+ * Clients that implement Unified Plan, such as Firefox use recvonly
+ * "streams/channels/tracks" for receiving remote stream/tracks, as opposed to
+ * Plan B where there are only 3 channels: audio, video and data.
+ * 
+ * @param stream WebRTC MediaStream instance
+ * @returns {boolean}
+ */
+RTC.isUserStream = function (stream) {
+    var streamId = RTCUtils.getStreamID(stream);
+    return streamId && streamId !== "mixedmslabel" && streamId !== "default";
+};
+
 /**
  * Allows to receive list of available cameras/microphones.
  * @param {function} callback would receive array of devices as an argument

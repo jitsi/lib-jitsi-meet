@@ -410,21 +410,24 @@ function handleLocalStream(streams, resolution) {
     if (desktopStream)
         res.push({
             stream: desktopStream,
-            type: MediaType.VIDEO,
+            track: desktopStream.getVideoTracks()[0],
+            mediaType: MediaType.VIDEO,
             videoType: VideoType.DESKTOP
         });
 
     if(audioStream)
         res.push({
             stream: audioStream,
-            type: MediaType.AUDIO,
+            track: audioStream.getAudioTracks()[0],
+            mediaType: MediaType.AUDIO,
             videoType: null
         });
 
     if(videoStream)
         res.push({
             stream: videoStream,
-            type: MediaType.VIDEO,
+            track: videoStream.getVideoTracks()[0],
+            mediaType: MediaType.VIDEO,
             videoType: VideoType.CAMERA,
             resolution: resolution
         });

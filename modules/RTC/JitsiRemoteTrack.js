@@ -4,26 +4,22 @@ var JitsiTrackEvents = require("../../JitsiTrackEvents");
 /**
  * Represents a single media track (either audio or video).
  * @param RTC the rtc instance.
- * @param data object with the stream and some details about it(participant id, video type, etc.)
- * @param sid sid for the Media Stream
- * @param ssrc ssrc for the Media Stream
- * @param eventEmitter the event emitter
+ * @param ownerJid the MUC JID of the track owner
+ * @param stream WebRTC MediaStream, parent of the track
+ * @param track underlying WebRTC MediaStreamTrack for new JitsiRemoteTrack
+ * @param mediaType the MediaType of the JitsiRemoteTrack
+ * @param videoType the VideoType of the JitsiRemoteTrack
+ * @param ssrc the SSRC number of the Media Stream
+ * @param muted intial muted state of the JitsiRemoteTrack
  * @constructor
  */
-function JitsiRemoteTrack(RTC, data, sid, ssrc) {
-    JitsiTrack.call(this, RTC, data.stream,
-        function () {}, data.jitsiTrackType);
+function JitsiRemoteTrack(RTC, ownerJid, stream, track, mediaType, videoType,
+                          ssrc, muted) {    
+    JitsiTrack.call(
+        this, RTC, stream, track, function () {}, mediaType, videoType, ssrc);
     this.rtc = RTC;
-    this.sid = sid;
-    this.stream = data.stream;
-    this.peerjid = data.peerjid;
-    this.videoType = data.videoType;
-    this.ssrc = ssrc;
-    this.muted = false;
-    if((this.isAudioTrack() && data.audiomuted)
-      || (this.isVideoTrack() && data.videomuted)) {
-        this.muted = true;
-    }
+    this.peerjid = ownerJid;
+    this.muted = muted;
 }
 
 JitsiRemoteTrack.prototype = Object.create(JitsiTrack.prototype);
