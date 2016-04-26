@@ -1,4 +1,5 @@
-/* global Promise */
+/* global __filename, Promise */
+var logger = require("jitsi-meet-logger").getLogger(__filename);
 var JitsiTrack = require("./JitsiTrack");
 var RTCBrowserType = require("./RTCBrowserType");
 var JitsiTrackEvents = require('../../JitsiTrackEvents');
@@ -137,6 +138,9 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
             //FIXME: Maybe here we should set the SRC for the containers to something
         } else {
             var self = this;
+            // FIXME why are we doing all this audio type checks and
+            // convoluted scenarios if we're going this way only
+            // for VIDEO media and CAMERA type of video ?
             var streamOptions = {
                 devices: (isAudio ? ["audio"] : ["video"]),
                 resolution: self.resolution
@@ -147,18 +151,25 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                 streamOptions['cameraDeviceId'] = self.deviceId;
             }
             RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
-                .then(function (streams) {
-                    var stream = null;
-                    for(var i = 0; i < streams.length; i++) {
-                        stream = streams[i];
-                        if(stream.type === self.type) {
-                            self.stream = stream.stream;
-                            self.videoType = stream.videoType;
+                .then(function (streamsInfo) {
+                    var streamInfo = null;
+                    for(var i = 0; i < streamsInfo.length; i++) {
+                        if(streamsInfo[i].type === self.type) {
+                            streamInfo = streamsInfo[i];
+                            self.stream = streamInfo.stream;
+                            // This is not good when video type changes after
+                            // unmute, but let's not crash here
+                            if (self.videoType != streamInfo.videoType) {
+                                logger.error(
+                                    "Video type has changed after unmute!",
+                                    self.videoType, streamInfo.videoType);
+                                self.videoType = streamInfo.videoType;
+                            }
                             break;
                         }
                     }
 
-                    if(!stream) {
+                    if(!streamInfo) {
                         reject(new Error('track.no_stream_found'));
                         return;
                     }
