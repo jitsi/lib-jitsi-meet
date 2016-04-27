@@ -404,12 +404,13 @@ RTC.prototype.getResourceBySSRC = function (ssrc) {
 
     var self = this;
     var resultResource = null;
-    Object.keys(this.remoteTracks).forEach(function (resource) {
+    Object.keys(this.remoteTracks).some(function (resource) {
         var audioTrack = self.getRemoteAudioTrack(resource);
         var videoTrack = self.getRemoteVideoTrack(resource);
         if((audioTrack && audioTrack.getSSRC() == ssrc) ||
             (videoTrack && videoTrack.getSSRC() == ssrc)) {
             resultResource = resource;
+            return true;
         }
     });
 
