@@ -248,6 +248,7 @@ SDP.prototype.toJingle = function (elem, thecreator) {
                     elem.up();
                     var msid = null;
                     if(mline.media == "audio") {
+                        // FIXME what is this ? global APP.RTC in SDP ?
                         msid = APP.RTC.localAudio._getId();
                     } else {
                         msid = APP.RTC.localVideo._getId();

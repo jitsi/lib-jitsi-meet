@@ -1,33 +1,41 @@
-/* global Promise */
+/* global __filename, Promise */
+var logger = require("jitsi-meet-logger").getLogger(__filename);
 var JitsiTrack = require("./JitsiTrack");
 var RTCBrowserType = require("./RTCBrowserType");
 var JitsiTrackEvents = require('../../JitsiTrackEvents');
 var JitsiTrackErrors = require("../../JitsiTrackErrors");
 var RTCUtils = require("./RTCUtils");
+var VideoType = require('../../service/RTC/VideoType');
 
 /**
- * Represents a single media track (either audio or video).
+ * Represents a single media track(either audio or video).
+ * One <tt>JitsiLocalTrack</tt> corresponds to one WebRTC MediaStreamTrack.
+ * @param stream WebRTC MediaStream, parent of the track
+ * @param track underlying WebRTC MediaStreamTrack for new JitsiRemoteTrack
+ * @param mediaType the MediaType of the JitsiRemoteTrack
+ * @param videoType the VideoType of the JitsiRemoteTrack
+ * @param resolution the video resoultion if it's a video track
+ * @param deviceId the ID of the local device for this track
  * @constructor
  */
-function JitsiLocalTrack(stream, videoType,
-  resolution, deviceId)
-{
-    this.videoType = videoType;
-    this.dontFireRemoveEvent = false;
-    this.resolution = resolution;
-    this.deviceId = deviceId;
-    this.startMuted = false;
-    this.ssrc = null;
-    this.disposed = false;
-    //FIXME: This dependacy is not necessary.
-    this.conference = null;
-    JitsiTrack.call(this, null, stream,
+function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
+                         deviceId) {
+    JitsiTrack.call(this,
+        null /* RTC */, stream, track,
         function () {
             if(!this.dontFireRemoveEvent)
                 this.eventEmitter.emit(
                     JitsiTrackEvents.LOCAL_TRACK_STOPPED);
             this.dontFireRemoveEvent = false;
-        }.bind(this));
+        }.bind(this) /* inactiveHandler */,
+        mediaType, videoType, null /* ssrc */);
+    this.dontFireRemoveEvent = false;
+    this.resolution = resolution;
+    this.deviceId = deviceId;
+    this.startMuted = false;
+    this.disposed = false;
+    //FIXME: This dependacy is not necessary.
+    this.conference = null;
     this.initialMSID = this.getMSID();
     this.inMuteOrUnmuteProgress = false;
 }
@@ -42,16 +50,16 @@ JitsiLocalTrack.prototype.constructor = JitsiLocalTrack;
  */
 JitsiLocalTrack.prototype.mute = function () {
     return createMuteUnmutePromise(this, true);
-}
+};
 
 /**
- * Unmutes the stream. Will reject the Promise if there is mute/unmute operation
+ * Unmutes the track. Will reject the Promise if there is mute/unmute operation
  * in progress.
  * @returns {Promise}
  */
 JitsiLocalTrack.prototype.unmute = function () {
     return createMuteUnmutePromise(this, false);
-}
+};
 
 /**
  * Creates Promise for mute/unmute operation.
@@ -82,7 +90,8 @@ function createMuteUnmutePromise(track, mute)
 
 /**
  * Mutes / unmutes the track.
- * @param mute {boolean} if true the track will be muted. Otherwise the track will be unmuted.
+ * @param mute {boolean} if true the track will be muted. Otherwise the track
+ * will be unmuted.
  */
 JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
     if (this.isMuted() === mute) {
@@ -94,7 +103,7 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
         resolve();
         return;
     }
-    var isAudio = this.type === JitsiTrack.AUDIO;
+    var isAudio = this.isAudioTrack();
     this.dontFireRemoveEvent = false;
 
     var setStreamToNull = false;
@@ -109,14 +118,12 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
     }.bind(this);
 
     if ((window.location.protocol != "https:") ||
-        (isAudio) || this.videoType === "desktop" ||
+        (isAudio) || this.videoType === VideoType.DESKTOP ||
         // FIXME FF does not support 'removeStream' method used to mute
         RTCBrowserType.isFirefox()) {
 
-        var tracks = this._getTracks();
-        for (var idx = 0; idx < tracks.length; idx++) {
-            tracks[idx].enabled = !mute;
-        }
+        if (this.track)
+            this.track.enabled = !mute;
         if(isAudio)
             this.rtc.room.setAudioMute(mute, callbackFunction);
         else
@@ -135,28 +142,39 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
             //FIXME: Maybe here we should set the SRC for the containers to something
         } else {
             var self = this;
+            // FIXME why are we doing all this audio type checks and
+            // convoluted scenarios if we're going this way only
+            // for VIDEO media and CAMERA type of video ?
             var streamOptions = {
                 devices: (isAudio ? ["audio"] : ["video"]),
                 resolution: self.resolution
             };
             if (isAudio) {
-              streamOptions['micDeviceId'] = self.deviceId;
-          } else if(self.videoType === 'camera') {
-              streamOptions['cameraDeviceId'] = self.deviceId;
+                streamOptions['micDeviceId'] = self.deviceId;
+            } else if(self.videoType === VideoType.CAMERA) {
+                streamOptions['cameraDeviceId'] = self.deviceId;
             }
             RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
-                .then(function (streams) {
-                    var stream = null;
-                    for(var i = 0; i < streams.length; i++) {
-                        stream = streams[i];
-                        if(stream.type === self.type) {
-                            self.stream = stream.stream;
-                            self.videoType = stream.videoType;
+                .then(function (streamsInfo) {
+                    var streamInfo = null;
+                    for(var i = 0; i < streamsInfo.length; i++) {
+                        if(streamsInfo[i].mediaType === self.getType()) {
+                            streamInfo = streamsInfo[i];
+                            self.stream = streamInfo.stream;
+                            self.track = streamInfo.track;
+                            // This is not good when video type changes after
+                            // unmute, but let's not crash here
+                            if (self.videoType != streamInfo.videoType) {
+                                logger.error(
+                                    "Video type has changed after unmute!",
+                                    self.videoType, streamInfo.videoType);
+                                self.videoType = streamInfo.videoType;
+                            }
                             break;
                         }
                     }
 
-                    if(!stream) {
+                    if(!streamInfo) {
                         reject(new Error('track.no_stream_found'));
                         return;
                     }
@@ -186,7 +204,7 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                 });
         }
     }
-}
+};
 
 /**
  * Stops sending the media track. And removes it from the HTML.
@@ -216,22 +234,14 @@ JitsiLocalTrack.prototype.dispose = function () {
  * and <tt>false</tt> otherwise.
  */
 JitsiLocalTrack.prototype.isMuted = function () {
+    // this.stream will be null when we mute local video on Chrome
     if (!this.stream)
         return true;
-    var tracks = [];
-    var isAudio = this.type === JitsiTrack.AUDIO;
-    if (isAudio) {
-        tracks = this.stream.getAudioTracks();
+    if (this.isVideoTrack() && !this.isActive()) {
+        return true;
     } else {
-        if (!this.isActive())
-            return true;
-        tracks = this.stream.getVideoTracks();
+        return !this.track || !this.track.enabled;
     }
-    for (var idx = 0; idx < tracks.length; idx++) {
-        if(tracks[idx].enabled)
-            return false;
-    }
-    return true;
 };
 
 /**
@@ -256,7 +266,7 @@ JitsiLocalTrack.prototype._setRTC = function (rtc) {
  */
 JitsiLocalTrack.prototype._setSSRC = function (ssrc) {
     this.ssrc = ssrc;
-}
+};
 
 
 //FIXME: This dependacy is not necessary. This is quick fix.
@@ -267,7 +277,7 @@ JitsiLocalTrack.prototype._setSSRC = function (ssrc) {
  */
 JitsiLocalTrack.prototype._setConference = function(conference) {
     this.conference = conference;
-}
+};
 
 /**
  * Gets the SSRC of this local track if it's available already or <tt>null</tt>
@@ -290,6 +300,6 @@ JitsiLocalTrack.prototype.getSSRC = function () {
  */
 JitsiLocalTrack.prototype.isLocal = function () {
     return true;
-}
+};
 
 module.exports = JitsiLocalTrack;

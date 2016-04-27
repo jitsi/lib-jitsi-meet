@@ -99,11 +99,25 @@ var XMPPEvents = {
     // Designates an event indicating that we received statistics from a
     // participant in the MUC.
     REMOTE_STATS: "xmpp.remote_stats",
-    REMOTE_STREAM_RECEIVED: "xmpp.remote_stream_received",
     /**
-     * Indicates that remote stream has been removed from the conference.
+     * Event fired when we remote track is added to the conference.
+     * The following structure is passed as an argument:
+     * {
+     *   stream: the WebRTC MediaStream instance 
+     *   track: the WebRTC MediaStreamTrack
+     *   mediaType: the MediaType instance
+     *   owner: the MUC JID of the stream owner
+     *   muted: a boolean indicating initial 'muted' status of the track or
+      *         'null' if unknown
+     **/
+    REMOTE_TRACK_ADDED: "xmpp.remote_track_added",
+    /**
+     * Indicates that the remote track has been removed from the conference.
+     * 1st event argument is the ID of the parent WebRTC stream to which 
+     * the track being removed belongs to.
+     * 2nd event argument is the ID of the removed track.
      */
-    REMOTE_STREAM_REMOVED: "xmpp.remote_stream_removed",
+    REMOTE_TRACK_REMOVED: "xmpp.remote_track_removed",
     RESERVATION_ERROR: "xmpp.room_reservation_error",
     ROOM_CONNECT_ERROR: 'xmpp.room_connect_error',
     ROOM_JOIN_ERROR: 'xmpp.room_join_error',

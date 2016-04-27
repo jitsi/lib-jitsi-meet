@@ -1,4 +1,5 @@
-/* global $ */
+/* global $, __filename */
+var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
 var RTC = require('./RTC');
 
@@ -27,21 +28,13 @@ var RTCUIHelper = {
         } else {
             var matching = $(containerElement).find(
                 ' ' + videoElemName + '>param[value="video"]');
-            if (matching.length < 2) {
-                return matching.parent()[0];
-            } else {
-                // there are 2 video objects from FF
-                // object with id which ends with '_default'
-                // (like 'remoteVideo_default')
-                // doesn't contain video, so we ignore it
-                for (var i = 0; i < matching.length; i += 1) {
-                    var el = matching[i].parentNode;
-
-                    // check id suffix
-                    if (el.id.substr(-8) !== '_default') {
-                        return el;
-                    }
+            if (matching.length) {
+                if (matching.length > 1) {
+                    logger.warn(
+                        "Container with more than one video elements: ",
+                        containerElement);
                 }
+                return matching.parent()[0];
             }
         }
         return undefined;
