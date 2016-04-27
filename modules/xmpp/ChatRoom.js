@@ -706,12 +706,13 @@ ChatRoom.prototype.remoteTrackAdded = function(data) {
             mutedNode = filterNodeFromPresenceJSON(pres, "videomuted");
         } else {
             logger.warn("Unsupported media type: " + mediaType);
-            data.muted= null;
+            data.muted = null;
         }
 
         if (mutedNode) {
-            data.muted = !!(mutedNode.length > 0 &&
-                            mutedNode[0] && mutedNode[0]["value"] === "true");
+            data.muted = mutedNode.length > 0 &&
+                         mutedNode[0] &&
+                         mutedNode[0]["value"] === "true";
         }
     }
 
