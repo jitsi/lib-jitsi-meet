@@ -37,7 +37,6 @@ var LibJitsiMeet = {
 
     version: '{#COMMIT_HASH#}',
 
-    JitsiConnection: JitsiConnection,
     events: {
         conference: JitsiConferenceEvents,
         connection: JitsiConnectionEvents,
@@ -61,10 +60,10 @@ var LibJitsiMeet = {
             var oldOnErrorHandler = window.onerror;
             window.onerror = function (message, source, lineno, colno, error) {
 
-                JitsiMeetJS.getGlobalOnErrorHandler(
+                this.getGlobalOnErrorHandler(
                     message, source, lineno, colno, error);
 
-                if(oldOnErrorHandler)
+                if (oldOnErrorHandler)
                     oldOnErrorHandler(message, source, lineno, colno, error);
             }
         }
@@ -168,11 +167,12 @@ var LibJitsiMeet = {
             'Line: ' + lineno,
             'Column: ' + colno,
             'StackTrace: ', error);
-
-        JitsiMeetJS._globalOnErrorHandler.forEach(function (handler) {
-            handler(error);
-        });
-        if(!JitsiMeetJS._globalOnErrorHandler.length){
+        var globalOnErrorHandler = this._globalOnErrorHandler;
+        if (globalOnErrorHandler.length) {
+          globalOnErrorHandler.forEach(function (handler) {
+              handler(error);
+          });
+        } else {
             Statistics.sendUnhandledError(error);
         }
     },
@@ -186,6 +186,15 @@ var LibJitsiMeet = {
         RTCUIHelper: RTCUIHelper
     }
 };
+
+// XXX JitsiConnection or the instances it initializes and is associated with
+// (e.g. JitsiConference) may need a reference to LibJitsiMeet (aka
+// JitsiMeetJS). An approach could be to declare LibJitsiMeet global (which is
+// what we do in Jitsi Meet) but that could be seen as not such a cool decision
+// certainly looks even worse within the lib-jitsi-meet library itself. That's
+// why the decision is to provide LibJitsiMeet as a parameter of
+// JitsiConnection.
+LibJitsiMeet.JitsiConnection = JitsiConnection.bind(null, LibJitsiMeet);
 
 //Setups the promise object.
 window.Promise = window.Promise || require("es6-promise").Promise;
