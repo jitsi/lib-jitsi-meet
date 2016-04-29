@@ -156,7 +156,7 @@ XMPP.prototype._connect = function (jid, password) {
 
     this.anonymousConnectionFailed = false;
     this.connectionFailed = false;
-    this.lastErrorMsg;
+    this.lastErrorMsg = undefined;
     this.connection.connect(jid, password,
         this.connectionHandler.bind(this, password));
 }
