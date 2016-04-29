@@ -85,7 +85,8 @@ var JitsiConferenceEvents = {
      */
     CONFERENCE_ERROR: "conference.error",
     /**
-     * Indicates that conference has been joined.
+     * Indicates that conference has been joined. The event does NOT provide any
+     * parameters to its listeners.
      */
     CONFERENCE_JOINED: "conference.joined",
     /**
