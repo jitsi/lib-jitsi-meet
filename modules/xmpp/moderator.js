@@ -203,20 +203,25 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: this.options.conference.openSctp
             }).up();
     }
-    if (this.options.conference.startAudioMuted !== undefined)
-    {
+    if (this.options.conference.startAudioMuted !== undefined) {
         elem.c(
             'property', {
                 name: 'startAudioMuted',
                 value: this.options.conference.startAudioMuted
             }).up();
     }
-    if (this.options.conference.startVideoMuted !== undefined)
-    {
+    if (this.options.conference.startVideoMuted !== undefined) {
         elem.c(
             'property', {
                 name: 'startVideoMuted',
                 value: this.options.conference.startVideoMuted
+            }).up();
+    }
+    if (this.options.conference.stereo !== undefined) {
+        elem.c(
+            'property', {
+                name: 'stereo',
+                value: this.options.conference.stereo
             }).up();
     }
 
