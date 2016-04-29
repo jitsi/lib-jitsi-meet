@@ -62,17 +62,29 @@ module.exports = function (XMPP, eventEmitter) {
          * <tt>true</tt> if XEP-0199 ping is supported by given <tt>jid</tt>
          */
         hasPingSupport: function (jid, callback) {
-            this.connection.disco.info(
-                jid, null,
-                function (result) {
-                    var ping = $(result).find('>>feature[var="urn:xmpp:ping"]');
-                    callback(ping.length > 0);
-                },
-                function (error) {
-                    logger.error("Ping feature discovery error", error);
-                    callback(false);
-                }
-            );
+            var disco = this.connection.disco;
+            // XXX The following disco.info was observed to throw a "TypeError:
+            // Cannot read property 'info' of undefined" during porting to React
+            // Native. Since disco is checked in multiple places (e.g.
+            // strophe.jingle.js, strophe.rayo.js), check it here as well.
+            if (disco) {
+                disco.info(
+                    jid,
+                    null,
+                    function (result) {
+                        var ping
+                            = $(result).find('>>feature[var="urn:xmpp:ping"]');
+                        callback(ping.length > 0);
+                    },
+                    function (error) {
+                        logger.error("Ping feature discovery error", error);
+                        callback(false);
+                    }
+                );
+            } else {
+              // FIXME Should callback be invoked here? Maybe with false as an
+              // argument?
+            }
         },
 
         /**
