@@ -588,8 +588,7 @@ var RTCUtils = {
                         return attachMediaStream(element, stream);
                     };
                     self.getStreamID = function (stream) {
-                        var id = SDPUtil.filter_special_chars(stream.label);
-                        return id;
+                        return SDPUtil.filter_special_chars(stream.label);
                     };
                     self.getVideoSrc = function (element) {
                         if (!element) {

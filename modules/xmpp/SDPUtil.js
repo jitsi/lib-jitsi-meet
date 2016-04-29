@@ -4,7 +4,9 @@ var RTCBrowserType = require("../RTC/RTCBrowserType");
 
 SDPUtil = {
     filter_special_chars: function (text) {
-        return text.replace(/[\\\/\{,\}\+]/g, "");
+        // XXX Neither one of the falsy values (e.g. null, undefined, false,
+        // "", etc.) "contain" special chars.
+        return text ? text.replace(/[\\\/\{,\}\+]/g, "") : text;
     },
     iceparams: function (mediadesc, sessiondesc) {
         var data = null;
