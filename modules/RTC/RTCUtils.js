@@ -122,7 +122,11 @@ function getConstraints(um, options) {
         setResolutionConstraints(constraints, options.resolution);
     }
     if (um.indexOf('audio') >= 0) {
-        if (!RTCBrowserType.isFirefox()) {
+        if (RTCBrowserType.isReactNative()) {
+            // The react-native-webrtc project that we're currently using
+            // expects the audio constraint to be a boolean.
+            constraints.audio = true;
+        } else if (!RTCBrowserType.isFirefox()) {
             // same behaviour as true
             constraints.audio = { mandatory: {}, optional: []};
             if (options.micDeviceId) {
@@ -640,7 +644,10 @@ var RTCUtils = {
                 };
                 RTCSessionDescription = mozRTCSessionDescription;
                 RTCIceCandidate = mozRTCIceCandidate;
-            } else if (RTCBrowserType.isChrome() || RTCBrowserType.isOpera() || RTCBrowserType.isNWJS()) {
+            } else if (RTCBrowserType.isChrome() ||
+                    RTCBrowserType.isOpera() ||
+                    RTCBrowserType.isNWJS() ||
+                    RTCBrowserType.isReactNative()) {
                 this.peerconnection = webkitRTCPeerConnection;
                 var getUserMedia = navigator.webkitGetUserMedia.bind(navigator);
                 if (navigator.mediaDevices) {
