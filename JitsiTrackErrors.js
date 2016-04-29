@@ -1,3 +1,5 @@
+var logger = require("jitsi-meet-logger").getLogger(__filename);
+
 module.exports = {
     /**
      * Returns JitsiTrackErrors based on the error object passed by GUM
@@ -5,23 +7,31 @@ module.exports = {
      * @param {Array} devices Array with the requested devices
      */
     parseError: function (error, devices) {
-        devices = devices || [];
-        if (typeof error == "object" && error.constraintName && error.name
-            && (error.name == "ConstraintNotSatisfiedError" ||
-            error.name == "OverconstrainedError") &&
-            (error.constraintName == "minWidth" ||
-            error.constraintName == "maxWidth" ||
-            error.constraintName == "minHeight" ||
-            error.constraintName == "maxHeight" ||
-            error.constraintName == "width" ||
-            error.constraintName == "height") &&
-            devices.indexOf("video") !== -1) {
-                return this.UNSUPPORTED_RESOLUTION;
-        } else if(typeof error === "object" && error.type === "jitsiError") {
-            return error.errorObject;
-        } else {
-            return this.GENERAL;
+        if (typeof error === "object") {
+          var constraintName = error.constraintName;
+          var name;
+          if (constraintName
+                  && (name = error.name)
+                  && (name == "ConstraintNotSatisfiedError"
+                      || name == "OverconstrainedError")
+                  && (constraintName == "minWidth"
+                      || constraintName == "maxWidth"
+                      || constraintName == "minHeight"
+                      || constraintName == "maxHeight"
+                      || constraintName == "width"
+                      || constraintName == "height")
+                  && (devices || []).indexOf("video") !== -1) {
+              return this.UNSUPPORTED_RESOLUTION;
+          }
+          if (error.type === "jitsiError") {
+              return error.errorObject;
+          }
         }
+        // XXX We're about to lose the details represented by error and devices
+        // (because we're about to generalize them to GENERAL). At the very
+        // least log the details.
+        logger.error('Parsing error into ' + this.GENERAL + ': ' + error);
+        return this.GENERAL;
     },
     UNSUPPORTED_RESOLUTION: "gum.unsupported_resolution",
     /**
