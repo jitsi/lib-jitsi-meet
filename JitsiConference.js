@@ -560,13 +560,22 @@ JitsiConference.prototype.onMemberJoined
     participant._role = role;
     this.participants[id] = participant;
     this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED, id, participant);
-    this.xmpp.connection.disco.info(
-        jid, "node", function(iq) {
-            participant._supportsDTMF = $(iq).find(
-                '>query>feature[var="urn:xmpp:jingle:dtmf:0"]').length > 0;
-            this.updateDTMFSupport();
-        }.bind(this)
-    );
+    // XXX Since disco is checked in multiple places (e.g.
+    // modules/xmpp/strophe.jingle.js, modules/xmpp/strophe.rayo.js), check it
+    // here as well.
+    var disco = this.xmpp.connection.disco;
+    if (disco) {
+        disco.info(
+            jid, "node", function(iq) {
+                participant._supportsDTMF = $(iq).find(
+                    '>query>feature[var="urn:xmpp:jingle:dtmf:0"]').length > 0;
+                this.updateDTMFSupport();
+            }.bind(this)
+        );
+    } else {
+      // FIXME Should participant._supportsDTMF be assigned false here (and
+      // this.updateDTMFSupport invoked)?
+    }
 };
 
 JitsiConference.prototype.onMemberLeft = function (jid) {

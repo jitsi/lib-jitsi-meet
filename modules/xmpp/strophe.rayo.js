@@ -8,8 +8,9 @@ module.exports = function() {
             connection: null,
             init: function (conn) {
                 this.connection = conn;
-                if (this.connection.disco) {
-                    this.connection.disco.addFeature('urn:xmpp:rayo:client:1');
+                var disco = conn.disco;
+                if (disco) {
+                    disco.addFeature('urn:xmpp:rayo:client:1');
                 }
 
                 this.connection.addHandler(

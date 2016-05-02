@@ -383,7 +383,7 @@ function handleLocalStream(streams, resolution) {
         var audioVideo = streams.audioVideo;
         if (audioVideo) {
             var audioTracks = audioVideo.getAudioTracks();
-            if(audioTracks.length) {
+            if (audioTracks.length) {
                 audioStream = new webkitMediaStream();
                 for (var i = 0; i < audioTracks.length; i++) {
                     audioStream.addTrack(audioTracks[i]);
@@ -391,7 +391,7 @@ function handleLocalStream(streams, resolution) {
             }
 
             var videoTracks = audioVideo.getVideoTracks();
-            if(videoTracks.length) {
+            if (videoTracks.length) {
                 videoStream = new webkitMediaStream();
                 for (var j = 0; j < videoTracks.length; j++) {
                     videoStream.addTrack(videoTracks[j]);
@@ -399,19 +399,18 @@ function handleLocalStream(streams, resolution) {
             }
         }
 
-        if (streams && streams.desktopStream)
+        // FIXME Checking streams here is unnecessary because there's
+        // streams.audioVideo above.
+        if (streams)
             desktopStream = streams.desktopStream;
 
     }
     else if (RTCBrowserType.isFirefox() || RTCBrowserType.isTemasysPluginUsed()) {   // Firefox and Temasys plugin
-        if (streams && streams.audio)
+        if (streams) {
             audioStream = streams.audio;
-
-        if (streams && streams.video)
             videoStream = streams.video;
-
-        if(streams && streams.desktop)
             desktopStream = streams.desktop;
+        }
     }
 
     if (desktopStream)
@@ -588,8 +587,7 @@ var RTCUtils = {
                         return attachMediaStream(element, stream);
                     };
                     self.getStreamID = function (stream) {
-                        var id = SDPUtil.filter_special_chars(stream.label);
-                        return id;
+                        return SDPUtil.filter_special_chars(stream.label);
                     };
                     self.getVideoSrc = function (element) {
                         if (!element) {
@@ -756,7 +754,7 @@ var RTCUtils = {
                                     new Error("Unable to get the audio and " +
                                         "video tracks."),
                                     options.devices));
-                                    return;
+                                return;
                             }
                             if(hasDesktop) {
                                 screenObtainer.obtainStream(
