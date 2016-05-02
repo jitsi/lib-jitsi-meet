@@ -235,9 +235,11 @@ ChatRoom.prototype.onPresence = function (pres) {
     member.jid = jid;
     member.isFocus
         = !!jid && jid.indexOf(this.moderator.getFocusUserJid() + "/") === 0;
+
     member.isHiddenDomain
         = !!jid && jid.indexOf("@") > 0
-            && this.options.hosts.hidden
+            && this.options.hiddenDomain
+            && this.options.hiddenDomain
                 === jid.substring(jid.indexOf("@") + 1, jid.indexOf("/"))
 
     $(pres).find(">x").remove();
