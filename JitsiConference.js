@@ -48,6 +48,7 @@ function JitsiConference(options) {
         disableThirdPartyRequests: this.options.config.disableThirdPartyRequests
     });
     setupListeners(this);
+    var JitsiMeetJS = this.connection.JitsiMeetJS;
     JitsiMeetJS._gumFailedHandler.push(function(error) {
         this.statistics.sendGetUserMediaFailed(error);
     }.bind(this));
