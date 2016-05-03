@@ -16,10 +16,9 @@ function Recording(type, eventEmitter, connection, focusMucJid, jirecon,
     this.type = type;
     this._isSupported
         = ( type === Recording.types.JIRECON && !this.jirecon
-            || type === Recording.types.JIBRI && !this._isServiceAvailable)
+            || (type !== Recording.types.JIBRI
+                && type !== Recording.types.COLIBRI))
             ? false : true;
-
-    this._isServiceAvailable = false;
 
     /**
      * The ID of the jirecon recording session. Jirecon generates it when we
@@ -52,25 +51,20 @@ Recording.prototype.handleJibriPresence = function (jibri) {
         return;
 
     var newState = attributes.status;
-    console.log("handle jibri presence : ", newState);
-    var oldIsAvailable = this._isServiceAvailable;
-    // The service is available if the statu isn't undefined.
-    this._isServiceAvailable =
-        (newState && newState !== "undefined");
+    logger.log("Handle jibri presence : ", newState);
 
-    if (newState === "undefined"
-        || oldIsAvailable != this._isServiceAvailable
-        // If we receive an OFF state without any recording in progress we
-        // consider this to be an initial available state.
-        || (this.state === Recording.status.AVAILABLE
-            && newState === Recording.status.OFF))
-        this.state = (newState === "undefined")
-                        ? Recording.status.UNAVAILABLE
-                        : Recording.status.AVAILABLE;
-    else
-        this.state = attributes.status;
+    if (newState === this.state)
+        return;
 
-    logger.log("Handle Jibri presence: ", this.state);
+    if (newState === "undefined") {
+        this.state = Recording.status.UNAVAILABLE;
+    }
+    else if (newState === "off") {
+        this.state = Recording.status.AVAILABLE;
+    }
+    else {
+        this.state = newState;
+    }
 
     this.eventEmitter.emit(XMPPEvents.RECORDER_STATE_CHANGED, this.state);
 };
@@ -132,7 +126,7 @@ Recording.prototype.setRecordingJirecon =
             // TODO wait for an IQ with the real status, since this is
             // provisional?
             self.jireconRid = $(result).find('recording').attr('rid');
-            console.log('Recording ' +
+            logger.log('Recording ' +
                 ((state === Recording.status.ON) ? 'started' : 'stopped') +
                 '(jirecon)' + result);
             self.state = state;
@@ -143,7 +137,7 @@ Recording.prototype.setRecordingJirecon =
             callback(state);
         },
         function (error) {
-            console.log('Failed to start recording, error: ', error);
+            logger.log('Failed to start recording, error: ', error);
             errCallback(error);
         });
 };
@@ -162,7 +156,7 @@ function (state, callback, errCallback, options) {
     var self = this;
     this.connection.sendIQ(elem,
         function (result) {
-            console.log('Set recording "', state, '". Result:', result);
+            logger.log('Set recording "', state, '". Result:', result);
             var recordingElem = $(result).find('>conference>recording');
             var newState = recordingElem.attr('state');
 
@@ -180,7 +174,7 @@ function (state, callback, errCallback, options) {
             }
         },
         function (error) {
-            console.warn(error);
+            logger.warn(error);
             errCallback(error);
         }
     );
@@ -199,7 +193,7 @@ function (state, callback, errCallback, options) {
             this.setRecordingJibri(state, callback, errCallback, options);
             break;
         default:
-            console.error("Unknown recording type!");
+            logger.error("Unknown recording type!");
             return;
     }
 };
