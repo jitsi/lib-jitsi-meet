@@ -49,6 +49,9 @@ KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_IEXPLORER] =
     KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
 KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_SAFARI] =
     KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
+KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_REACT_NATIVE] =
+    KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
+
 /**
  * Calculates packet lost percent using the number of lost packets and the
  * number of all packet.
@@ -465,6 +468,23 @@ StatsCollector.prototype._defineGetStatValueMethod = function (keys) {
         // likely that whoever defined it wanted you to call it in order to
         // retrieve the value associated with a specific key.
         itemStatByKey = function (item, key) { return item.stat(key) };
+        break;
+    case RTCBrowserType.RTC_BROWSER_REACT_NATIVE:
+        // The implementation provided by react-native-webrtc follows the
+        // Objective-C WebRTC API: RTCStatsReport has a values property of type
+        // Array in which each element is a key-value pair.
+        itemStatByKey = function (item, key) {
+            var value;
+            item.values.some(function (pair) {
+                if (pair.hasOwnProperty(key)) {
+                    value = pair[key];
+                    return true;
+                } else {
+                    return false;
+                }
+            });
+            return value;
+        };
         break;
     default:
         itemStatByKey = function (item, key) { return item[key] };
