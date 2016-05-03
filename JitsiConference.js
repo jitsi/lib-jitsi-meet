@@ -710,18 +710,14 @@ JitsiConference.prototype.isRecordingSupported = function () {
  * and "off" if the recording is not started.
  */
 JitsiConference.prototype.getRecordingState = function () {
-    if(this.room)
-        return this.room.getRecordingState();
-    return Recording.status.OFF;
+    return (this.room) ? this.room.getRecordingState() : undefined;
 }
 
 /**
  * Returns the url of the recorded video.
  */
 JitsiConference.prototype.getRecordingURL = function () {
-    if(this.room)
-        return this.room.getRecordingURL();
-    return null;
+    return (this.room) ? this.room.getRecordingURL() : null;
 }
 
 /**

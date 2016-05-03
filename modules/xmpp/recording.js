@@ -16,10 +16,9 @@ function Recording(type, eventEmitter, connection, focusMucJid, jirecon,
     this.type = type;
     this._isSupported
         = ( type === Recording.types.JIRECON && !this.jirecon
-            || type === Recording.types.JIBRI && !this._isServiceAvailable)
+            || (type !== Recording.types.JIBRI
+                && type !== Recording.types.COLIBRI))
             ? false : true;
-
-    this._isServiceAvailable = false;
 
     /**
      * The ID of the jirecon recording session. Jirecon generates it when we
@@ -52,25 +51,20 @@ Recording.prototype.handleJibriPresence = function (jibri) {
         return;
 
     var newState = attributes.status;
-    console.log("handle jibri presence : ", newState);
-    var oldIsAvailable = this._isServiceAvailable;
-    // The service is available if the statu isn't undefined.
-    this._isServiceAvailable =
-        (newState && newState !== "undefined");
+    console.log("Handle jibri presence : ", newState);
 
-    if (newState === "undefined"
-        || oldIsAvailable != this._isServiceAvailable
-        // If we receive an OFF state without any recording in progress we
-        // consider this to be an initial available state.
-        || (this.state === Recording.status.AVAILABLE
-            && newState === Recording.status.OFF))
-        this.state = (newState === "undefined")
-                        ? Recording.status.UNAVAILABLE
-                        : Recording.status.AVAILABLE;
-    else
-        this.state = attributes.status;
+    if (newState === this.state)
+        return;
 
-    logger.log("Handle Jibri presence: ", this.state);
+    if (newState === "undefined") {
+        this.state = Recording.status.UNAVAILABLE;
+    }
+    else if (newState === "off") {
+        this.state = Recording.status.AVAILABLE;
+    }
+    else {
+        this.state = newState;
+    }
 
     this.eventEmitter.emit(XMPPEvents.RECORDER_STATE_CHANGED, this.state);
 };
@@ -255,6 +249,7 @@ Recording.prototype.toggleRecording = function (options, statusChangeHandler) {
  * Returns true if the recording is supproted and false if not.
  */
 Recording.prototype.isSupported = function () {
+    console.log("IS SUPPORTED", this._isSupported);
     return this._isSupported;
 };
 

@@ -740,19 +740,15 @@ ChatRoom.prototype.isRecordingSupported = function () {
  * and "off" if the recording is not started.
  */
 ChatRoom.prototype.getRecordingState = function () {
-    if(this.recording)
-        return this.recording.getState();
-    return "off";
-};
+    return (this.recording) ? this.recording.getState() : undefined;
+}
 
 /**
  * Returns the url of the recorded video.
  */
 ChatRoom.prototype.getRecordingURL = function () {
-    if(this.recording)
-        return this.recording.getURL();
-    return null;
-};
+    return (this.recording) ? this.recording.getURL() : null;
+}
 
 /**
  * Starts/stops the recording
