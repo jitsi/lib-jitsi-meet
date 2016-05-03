@@ -51,7 +51,7 @@ Recording.prototype.handleJibriPresence = function (jibri) {
         return;
 
     var newState = attributes.status;
-    console.log("Handle jibri presence : ", newState);
+    logger.log("Handle jibri presence : ", newState);
 
     if (newState === this.state)
         return;
@@ -126,7 +126,7 @@ Recording.prototype.setRecordingJirecon =
             // TODO wait for an IQ with the real status, since this is
             // provisional?
             self.jireconRid = $(result).find('recording').attr('rid');
-            console.log('Recording ' +
+            logger.log('Recording ' +
                 ((state === Recording.status.ON) ? 'started' : 'stopped') +
                 '(jirecon)' + result);
             self.state = state;
@@ -137,7 +137,7 @@ Recording.prototype.setRecordingJirecon =
             callback(state);
         },
         function (error) {
-            console.log('Failed to start recording, error: ', error);
+            logger.log('Failed to start recording, error: ', error);
             errCallback(error);
         });
 };
@@ -156,7 +156,7 @@ function (state, callback, errCallback, options) {
     var self = this;
     this.connection.sendIQ(elem,
         function (result) {
-            console.log('Set recording "', state, '". Result:', result);
+            logger.log('Set recording "', state, '". Result:', result);
             var recordingElem = $(result).find('>conference>recording');
             var newState = recordingElem.attr('state');
 
@@ -174,7 +174,7 @@ function (state, callback, errCallback, options) {
             }
         },
         function (error) {
-            console.warn(error);
+            logger.warn(error);
             errCallback(error);
         }
     );
@@ -193,7 +193,7 @@ function (state, callback, errCallback, options) {
             this.setRecordingJibri(state, callback, errCallback, options);
             break;
         default:
-            console.error("Unknown recording type!");
+            logger.error("Unknown recording type!");
             return;
     }
 };
