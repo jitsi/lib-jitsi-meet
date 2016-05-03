@@ -249,7 +249,6 @@ Recording.prototype.toggleRecording = function (options, statusChangeHandler) {
  * Returns true if the recording is supproted and false if not.
  */
 Recording.prototype.isSupported = function () {
-    console.log("IS SUPPORTED", this._isSupported);
     return this._isSupported;
 };
 
