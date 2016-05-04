@@ -34,7 +34,8 @@ module.exports = function(XMPP, eventEmitter) {
                 disco.addFeature('urn:xmpp:jingle:apps:rtp:video');
 
                 // Lipsync
-                if (RTCBrowserType.isChrome()) {
+                if (this.options.enableLipSync && RTCBrowserType.isChrome()) {
+                    logger.info("Lip-sync enabled !");
                     this.connection.disco.addFeature(
                         'http://jitsi.org/meet/lipsync');
                 }
