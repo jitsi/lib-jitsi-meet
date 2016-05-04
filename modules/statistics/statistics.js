@@ -43,6 +43,10 @@ function Statistics(xmpp, options) {
         loadCallStatsAPI();
     this.callStats = null;
 
+    // audioLevelsInterval = 200 unless overridden in the config
+    this.audioLevelsInterval
+        = typeof this.options.audioLevelsInterval !== 'undefined'
+                ? this.options.audioLevelsInterval : 200;
     /**
      * Send the stats already saved in rtpStats to be logged via the focus.
      */
@@ -58,7 +62,8 @@ Statistics.prototype.startRemoteStats = function (peerconnection) {
 
     try {
         this.rtpStats
-            = new RTPStats(peerconnection, 200, 2000, this.eventEmitter);
+            = new RTPStats(peerconnection, 
+                    this.audioLevelsInterval, 2000, this.eventEmitter);
         this.rtpStats.start();
     } catch (e) {
         this.rtpStats = null;
@@ -79,7 +84,7 @@ Statistics.localStats = [];
 Statistics.startLocalStats = function (stream, callback) {
     if(!Statistics.audioLevelsEnabled)
         return;
-    var localStats = new LocalStats(stream, 200, callback);
+    var localStats = new LocalStats(stream, this.audioLevelsInterval, callback);
     this.localStats.push(localStats);
     localStats.start();
 };
