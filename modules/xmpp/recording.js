@@ -40,9 +40,12 @@ Recording.status = {
     OFF: "off",
     AVAILABLE: "available",
     UNAVAILABLE: "unavailable",
-    START: "start",
-    STOP: "stop",
     PENDING: "pending"
+};
+
+Recording.action = {
+    START: "start",
+    STOP: "stop"
 };
 
 Recording.prototype.handleJibriPresence = function (jibri) {
@@ -60,7 +63,12 @@ Recording.prototype.handleJibriPresence = function (jibri) {
         this.state = Recording.status.UNAVAILABLE;
     }
     else if (newState === "off") {
-        this.state = Recording.status.AVAILABLE;
+        if (!this.state
+            || this.state === "undefined"
+            || this.state === Recording.status.UNAVAILABLE)
+            this.state = Recording.status.AVAILABLE;
+        else
+            this.state = Recording.status.OFF;
     }
     else {
         this.state = newState;
@@ -81,8 +89,8 @@ Recording.prototype.setRecordingJibri = function (state, callback, errCallback,
         .c('jibri', {
         "xmlns": 'http://jitsi.org/protocol/jibri',
         "action": (state === Recording.status.ON)
-                    ? Recording.status.START
-                    : Recording.status.STOP,
+                    ? Recording.action.START
+                    : Recording.action.STOP,
         "streamid": options.streamId,
         }).up();
 
@@ -111,8 +119,8 @@ Recording.prototype.setRecordingJirecon =
     var iq = $iq({to: this.jirecon, type: 'set'})
         .c('recording', {xmlns: 'http://jitsi.org/protocol/jirecon',
             action: (state === Recording.status.ON)
-                ? Recording.status.START
-                : Recording.status.STOP,
+                ? Recording.action.START
+                : Recording.action.STOP,
             mucjid: this.roomjid});
     if (state === 'off'){
         iq.attrs({rid: this.jireconRid});
