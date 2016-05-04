@@ -673,9 +673,20 @@ var RTCUtils = {
                     return element;
                 });
                 this.getStreamID = function (stream) {
-                    // Streams from FF endpoints have the characters '{' and '}'
-                    // that make jQuery choke.
-                    return SDPUtil.filter_special_chars(stream.id);
+                    // A. MediaStreams from FF endpoints have the characters '{'
+                    // and '}' that make jQuery choke.
+                    // B. The react-native-webrtc implementation that we use on
+                    // React Native at the time of this writing returns a number
+                    // for the id of MediaStream. Let's just say that a number
+                    // contains no special characters.
+                    var id = stream.id;
+                    // XXX The return statement is affected by automatic
+                    // semicolon insertion (ASI). No line terminator is allowed
+                    // between the return keyword and the expression.
+                    return (
+                        (typeof id === 'number')
+                            ? id
+                            : SDPUtil.filter_special_chars(id));
                 };
                 this.getVideoSrc = function (element) {
                     return element ? element.getAttribute("src") : null;
@@ -852,8 +863,15 @@ var RTCUtils = {
                 && options.devices.indexOf("desktop") !== -1){
                 reject(new Error("Desktop sharing is not supported!"));
             }
-            if (RTCBrowserType.isFirefox() ||
-                RTCBrowserType.isTemasysPluginUsed()) {
+            if (RTCBrowserType.isFirefox()
+                    // XXX The react-native-webrtc implementation that we
+                    // utilize on React Native at the time of this writing does
+                    // not support the MediaStream constructors defined by
+                    // https://www.w3.org/TR/mediacapture-streams/#constructors
+                    // and instead has a single constructor which expects (an
+                    // NSNumber as) a MediaStream ID.
+                    || RTCBrowserType.isReactNative()
+                    || RTCBrowserType.isTemasysPluginUsed()) {
                 var GUM = function (device, s, e) {
                     this.getUserMediaWithConstraints(device, s, e, options);
                 };
