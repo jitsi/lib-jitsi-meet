@@ -467,9 +467,17 @@ function obtainDevices(options) {
  */
 function handleLocalStream(streams, resolution) {
     var audioStream, videoStream, desktopStream, res = [];
-    // If this is FF, the stream parameter is *not* a MediaStream object, it's
-    // an object with two properties: audioStream, videoStream.
-    if (window.webkitMediaStream) {
+
+    // XXX The function obtainAudioAndVideoPermissions has examined the type of
+    // the browser, its capabilities, etc. and has taken the decision whether to
+    // invoke getUserMedia per device (e.g. Firefox) or once for both audio and
+    // video (e.g. Chrome). In order to not duplicate the logic here, examine
+    // the specified streams and figure out what we've received based on
+    // obtainAudioAndVideoPermissions' decision.
+    if (streams) {
+        // As mentioned above, certian types of browser (e.g. Chrome) support
+        // (with a result which meets our requirements expressed bellow) calling
+        // getUserMedia once for both audio and video.
         var audioVideo = streams.audioVideo;
         if (audioVideo) {
             var audioTracks = audioVideo.getAudioTracks();
@@ -487,39 +495,34 @@ function handleLocalStream(streams, resolution) {
                     videoStream.addTrack(videoTracks[j]);
                 }
             }
+        } else {
+          // On other types of browser (e.g. Firefox) we choose (namely,
+          // obtainAudioAndVideoPermissions) to call getUsermedia per device
+          // (type).
+          audioStream = streams.audio;
+          videoStream = streams.video;
         }
-
-        // FIXME Checking streams here is unnecessary because there's
-        // streams.audioVideo above.
-        if (streams)
-            desktopStream = streams.desktopStream;
-
-    }
-    else if (RTCBrowserType.isFirefox() || RTCBrowserType.isTemasysPluginUsed()) {   // Firefox and Temasys plugin
-        if (streams) {
-            audioStream = streams.audio;
-            videoStream = streams.video;
-            desktopStream = streams.desktop;
-        }
+        // Again, different choices on different types of browser.
+        desktopStream = streams.desktopStream || streams.desktop;
     }
 
-    if (desktopStream)
+    if (desktopStream) {
         res.push({
             stream: desktopStream,
             track: desktopStream.getVideoTracks()[0],
             mediaType: MediaType.VIDEO,
             videoType: VideoType.DESKTOP
         });
-
-    if(audioStream)
+    }
+    if (audioStream) {
         res.push({
             stream: audioStream,
             track: audioStream.getAudioTracks()[0],
             mediaType: MediaType.AUDIO,
             videoType: null
         });
-
-    if(videoStream)
+    }
+    if (videoStream) {
         res.push({
             stream: videoStream,
             track: videoStream.getVideoTracks()[0],
@@ -527,6 +530,7 @@ function handleLocalStream(streams, resolution) {
             videoType: VideoType.CAMERA,
             resolution: resolution
         });
+    }
 
     return res;
 }
