@@ -88,6 +88,21 @@ JitsiConference.prototype.isJoined = function () {
 };
 
 /**
+ * Leaves the conference and calls onMemberLeft for every participant.
+ */
+JitsiConference.prototype._leaveRoomAndRemoveParticipants = function () {
+    // leave the conference
+    if (this.room) {
+        this.room.leave();
+    }
+
+    this.room = null;
+    // remove all participants
+    this.getParticipants().forEach(function (participant) {
+        this.onMemberLeft(participant.getJid());
+    }.bind(this));
+}
+/**
  * Leaves the conference.
  * @returns {Promise}
  */
@@ -98,18 +113,14 @@ JitsiConference.prototype.leave = function () {
         conference.getLocalTracks().map(function (track) {
             return conference.removeTrack(track);
         })
-    ).then(function () {
-        // leave the conference
-        if (conference.room) {
-            conference.room.leave();
-        }
-
-        conference.room = null;
-        // remove all participants
-        conference.getParticipants().forEach(function (participant) {
-            conference.onMemberLeft(participant.getJid());
-        });
-    });
+    ).then(this._leaveRoomAndRemoveParticipants.bind(this))
+    .catch(function (error) {
+        logger.error(error);
+        // We are proceeding with leaving the conference because room.leave may
+        // succeed.
+        this._leaveRoomAndRemoveParticipants();
+        return Promise.resolve();
+    }.bind(this));
 };
 
 /**
@@ -304,17 +315,9 @@ JitsiConference.prototype.addTrack = function (track) {
     {
         throw new Error(JitsiTrackErrors.TRACK_IS_DISPOSED);
     }
-    if (track.isVideoTrack()) {
-        if (this.rtc.getLocalVideoTrack()) {
-            throw new Error("cannot add second video track to the conference");
-        }
-        this.removeCommand("videoType");
-        this.sendCommand("videoType", {
-            value: track.videoType,
-            attributes: {
-                xmlns: 'http://jitsi.org/jitmeet/video'
-            }
-        });
+    
+    if (track.isVideoTrack() && this.rtc.getLocalVideoTrack()) {
+        throw new Error("cannot add second video track to the conference");
     }
 
     track.ssrcHandler = function (conference, ssrcMap) {
@@ -329,6 +332,15 @@ JitsiConference.prototype.addTrack = function (track) {
 
     return new Promise(function (resolve) {
         this.room.addStream(track.getOriginalStream(), function () {
+            if (track.isVideoTrack()) {
+                this.removeCommand("videoType");
+                this.sendCommand("videoType", {
+                    value: track.videoType,
+                    attributes: {
+                        xmlns: 'http://jitsi.org/jitmeet/video'
+                    }
+                });
+            }
             this.rtc.addLocalTrack(track);
             if (track.startMuted) {
                 track.mute();
