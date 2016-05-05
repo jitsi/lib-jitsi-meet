@@ -88,6 +88,21 @@ JitsiConference.prototype.isJoined = function () {
 };
 
 /**
+ * Leaves the conference and calls onMemberLeft for every participant.
+ */
+JitsiConference.prototype._leaveRoomAndRemoveParticipants = function () {
+    // leave the conference
+    if (this.room) {
+        this.room.leave();
+    }
+
+    this.room = null;
+    // remove all participants
+    this.getParticipants().forEach(function (participant) {
+        this.onMemberLeft(participant.getJid());
+    }.bind(this));
+}
+/**
  * Leaves the conference.
  * @returns {Promise}
  */
@@ -98,18 +113,14 @@ JitsiConference.prototype.leave = function () {
         conference.getLocalTracks().map(function (track) {
             return conference.removeTrack(track);
         })
-    ).then(function () {
-        // leave the conference
-        if (conference.room) {
-            conference.room.leave();
-        }
-
-        conference.room = null;
-        // remove all participants
-        conference.getParticipants().forEach(function (participant) {
-            conference.onMemberLeft(participant.getJid());
-        });
-    });
+    ).then(this._leaveRoomAndRemoveParticipants.bind(this))
+    .catch(function (error) {
+        logger.error(error);
+        // We are proceeding with leaving the conference because room.leave may
+        // succeed.
+        this._leaveRoomAndRemoveParticipants();
+        return Promise.resolve();
+    }.bind(this));
 };
 
 /**

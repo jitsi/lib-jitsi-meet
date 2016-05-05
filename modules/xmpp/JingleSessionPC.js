@@ -943,6 +943,11 @@ JingleSessionPC.prototype.addStream = function (stream, callback, ssrcInfo,
         return;
     }
 
+    if(this.modifySourcesQueue.paused) {
+        throw new Error("modifySourcesQueue paused");
+        return;
+    }
+
     this.modifyingLocalStreams = true;
     var self = this;
     this.modifySourcesQueue.push(function() {
@@ -985,8 +990,10 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, ssrcInfo) {
         }
         if (RTCBrowserType.getBrowserType() ===
                 RTCBrowserType.RTC_BROWSER_FIREFOX) {
-            if(!stream)//There is nothing to be changed
+            if(!stream) {//There is nothing to be changed
+                callback();
                 return;
+            }
             var sender = null;
             // On Firefox we don't replace MediaStreams as this messes up the
             // m-lines (which can't be removed in Plan Unified) and brings a lot
@@ -1002,6 +1009,7 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, ssrcInfo) {
 
             if(!track) {
                 logger.log("Cannot remove tracks: no tracks.");
+                callback();
                 return;
             }
 
@@ -1029,6 +1037,11 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, ssrcInfo) {
     // Conference is not active
     if(!oldSdp || !this.peerconnection) {
         callback();
+        return;
+    }
+
+    if(this.modifySourcesQueue.paused) {
+        throw new Error("modifySourcesQueue paused");
         return;
     }
 
