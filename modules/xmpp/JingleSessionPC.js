@@ -921,18 +921,16 @@ JingleSessionPC.prototype.addStream = function (stream, callback, ssrcInfo,
     dontModifySources) {
     // Remember SDP to figure out added/removed SSRCs
     var oldSdp = null;
-    if(this.peerconnection) {
-        if(this.peerconnection.localDescription) {
-            oldSdp = new SDP(this.peerconnection.localDescription.sdp);
-        }
-        //when adding muted stream we have to pass the ssrcInfo but we don't
-        //have a stream
-        if(stream || ssrcInfo)
-            this.peerconnection.addStream(stream, ssrcInfo);
+    if(this.peerconnection && this.peerconnection.localDescription) {
+        oldSdp = new SDP(this.peerconnection.localDescription.sdp);
     }
 
     // Conference is not active
     if(!oldSdp || !this.peerconnection || dontModifySources) {
+        //when adding muted stream we have to pass the ssrcInfo but we don't
+        //have a stream
+        if(this.peerconnection && (stream || ssrcInfo))
+            this.peerconnection.addStream(stream, ssrcInfo);
         if(ssrcInfo) {
             //available only on video unmute or when adding muted stream
             this.modifiedSSRCs[ssrcInfo.type] =
@@ -944,9 +942,15 @@ JingleSessionPC.prototype.addStream = function (stream, callback, ssrcInfo,
     }
 
     if(this.modifySourcesQueue.paused) {
+        // if this.modifySourcesQueue.paused, modifySources won't be called and
+        // the SDPs won't be updated. Basically removeStream will fail. That's
+        // why we are throwing the error to inform the callers of the method.
         throw new Error("modifySourcesQueue paused");
         return;
     }
+
+    if(stream || ssrcInfo)
+        this.peerconnection.addStream(stream, ssrcInfo);
 
     this.modifyingLocalStreams = true;
     var self = this;
@@ -982,68 +986,75 @@ JingleSessionPC.prototype.generateNewStreamSSRCInfo = function () {
  * stream.
  */
 JingleSessionPC.prototype.removeStream = function (stream, callback, ssrcInfo) {
-    // Remember SDP to figure out added/removed SSRCs
-    var oldSdp = null;
-    if(this.peerconnection) {
-        if(this.peerconnection.localDescription) {
-            oldSdp = new SDP(this.peerconnection.localDescription.sdp);
-        }
-        if (RTCBrowserType.getBrowserType() ===
-                RTCBrowserType.RTC_BROWSER_FIREFOX) {
-            if(!stream) {//There is nothing to be changed
-                callback();
-                return;
-            }
-            var sender = null;
-            // On Firefox we don't replace MediaStreams as this messes up the
-            // m-lines (which can't be removed in Plan Unified) and brings a lot
-            // of complications. Instead, we use the RTPSender and remove just
-            // the track.
-            var track = null;
-            if(stream.getAudioTracks() && stream.getAudioTracks().length) {
-                track = stream.getAudioTracks()[0];
-            } else if(stream.getVideoTracks() && stream.getVideoTracks().length)
-            {
-                track = stream.getVideoTracks()[0];
-            }
-
-            if(!track) {
-                logger.log("Cannot remove tracks: no tracks.");
-                callback();
-                return;
-            }
-
-            // Find the right sender (for audio or video)
-            this.peerconnection.peerconnection.getSenders().some(function (s) {
-                if (s.track === track) {
-                    sender = s;
-                    return true;
-                }
-            });
-
-            if (sender) {
-                this.peerconnection.peerconnection.removeTrack(sender);
-            } else {
-                logger.log("Cannot remove tracks: no RTPSender.");
-            }
-        } else if(stream)
-            this.peerconnection.removeStream(stream, false, ssrcInfo);
-        // else
-        // NOTE: If there is no stream and the browser is not FF we still need to do
-        // some transformation in order to send remove-source for the muted
-        // streams. That's why we aren't calling return here.
+    // Conference is not active
+    if(!this.peerconnection) {
+        callback();
+        return;
     }
 
-    // Conference is not active
-    if(!oldSdp || !this.peerconnection) {
+    // Remember SDP to figure out added/removed SSRCs
+    var oldSdp = null;
+
+    if(this.peerconnection.localDescription) {
+        oldSdp = new SDP(this.peerconnection.localDescription.sdp);
+    }
+
+    if(!oldSdp) {
         callback();
         return;
     }
 
     if(this.modifySourcesQueue.paused) {
+        // if this.modifySourcesQueue.paused, modifySources won't be called and
+        // the SDPs won't be updated. Basically removeStream will fail. That's
+        // why we are throwing the error to inform the callers of the method.
         throw new Error("modifySourcesQueue paused");
         return;
     }
+    if (RTCBrowserType.getBrowserType() ===
+            RTCBrowserType.RTC_BROWSER_FIREFOX) {
+        if(!stream) {//There is nothing to be changed
+            callback();
+            return;
+        }
+        var sender = null;
+        // On Firefox we don't replace MediaStreams as this messes up the
+        // m-lines (which can't be removed in Plan Unified) and brings a lot
+        // of complications. Instead, we use the RTPSender and remove just
+        // the track.
+        var track = null;
+        if(stream.getAudioTracks() && stream.getAudioTracks().length) {
+            track = stream.getAudioTracks()[0];
+        } else if(stream.getVideoTracks() && stream.getVideoTracks().length)
+        {
+            track = stream.getVideoTracks()[0];
+        }
+
+        if(!track) {
+            logger.log("Cannot remove tracks: no tracks.");
+            callback();
+            return;
+        }
+
+        // Find the right sender (for audio or video)
+        this.peerconnection.peerconnection.getSenders().some(function (s) {
+            if (s.track === track) {
+                sender = s;
+                return true;
+            }
+        });
+
+        if (sender) {
+            this.peerconnection.peerconnection.removeTrack(sender);
+        } else {
+            logger.log("Cannot remove tracks: no RTPSender.");
+        }
+    } else if(stream)
+        this.peerconnection.removeStream(stream, false, ssrcInfo);
+    // else
+    // NOTE: If there is no stream and the browser is not FF we still need to do
+    // some transformation in order to send remove-source for the muted
+    // streams. That's why we aren't calling return here.
 
     this.modifyingLocalStreams = true;
     var self = this;

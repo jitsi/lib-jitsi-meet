@@ -315,17 +315,9 @@ JitsiConference.prototype.addTrack = function (track) {
     {
         throw new Error(JitsiTrackErrors.TRACK_IS_DISPOSED);
     }
-    if (track.isVideoTrack()) {
-        if (this.rtc.getLocalVideoTrack()) {
-            throw new Error("cannot add second video track to the conference");
-        }
-        this.removeCommand("videoType");
-        this.sendCommand("videoType", {
-            value: track.videoType,
-            attributes: {
-                xmlns: 'http://jitsi.org/jitmeet/video'
-            }
-        });
+    
+    if (track.isVideoTrack() && this.rtc.getLocalVideoTrack()) {
+        throw new Error("cannot add second video track to the conference");
     }
 
     track.ssrcHandler = function (conference, ssrcMap) {
@@ -340,6 +332,15 @@ JitsiConference.prototype.addTrack = function (track) {
 
     return new Promise(function (resolve) {
         this.room.addStream(track.getOriginalStream(), function () {
+            if (track.isVideoTrack()) {
+                this.removeCommand("videoType");
+                this.sendCommand("videoType", {
+                    value: track.videoType,
+                    attributes: {
+                        xmlns: 'http://jitsi.org/jitmeet/video'
+                    }
+                });
+            }
             this.rtc.addLocalTrack(track);
             if (track.startMuted) {
                 track.mute();
