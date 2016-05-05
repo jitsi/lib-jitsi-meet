@@ -916,6 +916,7 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
  * stream.
  * @param dontModifySources {boolean} if true _modifySources won't be called.
  * Used for streams added before the call start.
+ * @throws error if modifySourcesQueue is paused.
  */
 JingleSessionPC.prototype.addStream = function (stream, callback, ssrcInfo,
     dontModifySources) {
@@ -984,6 +985,7 @@ JingleSessionPC.prototype.generateNewStreamSSRCInfo = function () {
  * @param success_callback callback executed after successful stream addition.
  * @param ssrcInfo object with information about the SSRCs associated with the
  * stream.
+ * @throws error if modifySourcesQueue is paused.
  */
 JingleSessionPC.prototype.removeStream = function (stream, callback, ssrcInfo) {
     // Conference is not active
@@ -1004,13 +1006,6 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, ssrcInfo) {
         return;
     }
 
-    if(this.modifySourcesQueue.paused) {
-        // if this.modifySourcesQueue.paused, modifySources won't be called and
-        // the SDPs won't be updated. Basically removeStream will fail. That's
-        // why we are throwing the error to inform the callers of the method.
-        throw new Error("modifySourcesQueue paused");
-        return;
-    }
     if (RTCBrowserType.getBrowserType() ===
             RTCBrowserType.RTC_BROWSER_FIREFOX) {
         if(!stream) {//There is nothing to be changed
@@ -1025,14 +1020,21 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, ssrcInfo) {
         var track = null;
         if(stream.getAudioTracks() && stream.getAudioTracks().length) {
             track = stream.getAudioTracks()[0];
-        } else if(stream.getVideoTracks() && stream.getVideoTracks().length)
-        {
+        } else if(stream.getVideoTracks() && stream.getVideoTracks().length) {
             track = stream.getVideoTracks()[0];
         }
 
         if(!track) {
             logger.log("Cannot remove tracks: no tracks.");
             callback();
+            return;
+        }
+
+        if(this.modifySourcesQueue.paused) {
+            // if this.modifySourcesQueue.paused, modifySources won't be called and
+            // the SDPs won't be updated. Basically removeStream will fail. That's
+            // why we are throwing the error to inform the callers of the method.
+            throw new Error("modifySourcesQueue paused");
             return;
         }
 
@@ -1049,6 +1051,12 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, ssrcInfo) {
         } else {
             logger.log("Cannot remove tracks: no RTPSender.");
         }
+    } else if(this.modifySourcesQueue.paused) {
+        // if this.modifySourcesQueue.paused, modifySources won't be called and
+        // the SDPs won't be updated. Basically removeStream will fail. That's
+        // why we are throwing the error to inform the callers of the method.
+        throw new Error("modifySourcesQueue paused");
+        return;
     } else if(stream)
         this.peerconnection.removeStream(stream, false, ssrcInfo);
     // else
