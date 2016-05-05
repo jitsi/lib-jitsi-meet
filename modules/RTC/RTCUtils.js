@@ -330,7 +330,9 @@ function enumerateDevicesThroughMediaStreamTrack (callback) {
             return {
                 facing: source.facing || null,
                 label: source.label,
-                kind: kind ? kind + 'input': null,
+                // theoretically deprecated MediaStreamTrack.getSources should not return 'audiooutput' devices but
+                // let's handle it in any case
+                kind: kind ? (kind === 'audiooutput' ? kind : kind + 'input') : null,
                 deviceId: source.id,
                 groupId: source.groupId || null
             };

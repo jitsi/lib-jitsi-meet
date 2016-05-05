@@ -190,6 +190,36 @@ JitsiTrack.prototype.attach = function (container) {
     return container;
 };
 
+JitsiTrack.prototype.changeAudioOutput = function (audioOutputDeviceId) {
+    return Promise.all(this.containers.map(function(element) {
+        if (typeof element.setSinkId !== 'undefined') {
+            try {
+                return element.setSinkId(audioOutputDeviceId)
+                    .then(function () {
+                        console.log('Audio output device changed on element ' + element);
+                    })
+                    .catch(function (error) {
+                        var errorMessage = error;
+
+                        if (error.name === 'SecurityError') {
+                            errorMessage = 'You need to use HTTPS for selecting audio output device: ' + error;
+                        }
+
+                        console.error('Failed to change audio output device on element ' + element + ': ' + errorMessage);
+
+                        return Promise.resolve();
+                    });
+            } catch(ex) {
+                console.error(ex);
+                return Promise.resolve();
+            }
+        } else {
+            console.warn('Browser does not support output device selection.');
+            return Promise.resolve();
+        }
+    }));
+};
+
 /**
  * Removes the track from the passed HTML container.
  * @param container the HTML container. If <tt>null</tt> all containers are removed.
