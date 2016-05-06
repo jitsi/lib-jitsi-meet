@@ -24,6 +24,10 @@ var devices = {
     video: true
 };
 
+var audioOuputDeviceId = ''; // default device
+
+var featureDetectionVideoEl = document.createElement('video');
+
 var rtcReady = false;
 
 function setResolutionConstraints(constraints, resolution) {
@@ -303,7 +307,8 @@ function wrapEnumerateDevices(enumerateDevices) {
                 //add auto devices
                 devices.unshift(
                     createAutoDeviceInfo('audioinput'),
-                    createAutoDeviceInfo('videoinput')
+                    createAutoDeviceInfo('videoinput'),
+                    createAutoDeviceInfo('audiooutput')
                 );
 
                 callback(devices);
@@ -311,8 +316,11 @@ function wrapEnumerateDevices(enumerateDevices) {
                 console.error('cannot enumerate devices: ', err);
 
                 // return only auto devices
-                callback([createAutoDeviceInfo('audioinput'),
-                          createAutoDeviceInfo('videoinput')]);
+                callback([
+                    createAutoDeviceInfo('audioinput'),
+                    createAutoDeviceInfo('videoinput'),
+                    createAutoDeviceInfo('audiooutput')
+                ]);
             });
         });
     };
@@ -341,7 +349,8 @@ function enumerateDevicesThroughMediaStreamTrack (callback) {
         //add auto devices
         devices.unshift(
             createAutoDeviceInfo('audioinput'),
-            createAutoDeviceInfo('videoinput')
+            createAutoDeviceInfo('videoinput'),
+            createAutoDeviceInfo('audiooutput')
         );
         callback(devices);
     });
@@ -443,6 +452,28 @@ function handleLocalStream(streams, resolution) {
     return res;
 }
 
+/**
+ * Wraps original attachMediaStream function to set current audio output device
+ * if this is supported.
+ * @param {Function} origAttachMediaStream
+ * @returns {Function}
+ */
+function wrapAttachMediaStream(origAttachMediaStream) {
+    return function(element, stream) {
+        var res = origAttachMediaStream.apply(RTCUtils, arguments);
+
+        if (RTCUtils.isAudioOutputDeviceChangeAvailable()) {
+            element.setSinkId(RTCUtils.getAudioOutputDevice())
+                .catch(function (ex) {
+                    console.error('Failed to set audio output on element',
+                        element, ex);
+                });
+        }
+
+        return res;
+    }
+}
+
 //Options parameter is to pass config options. Currently uses only "useIPv6".
 var RTCUtils = {
     init: function (options) {
@@ -463,7 +494,7 @@ var RTCUtils = {
                     navigator.mediaDevices.enumerateDevices.bind(navigator.mediaDevices)
                 );
                 this.pc_constraints = {};
-                this.attachMediaStream = function (element, stream) {
+                this.attachMediaStream = wrapAttachMediaStream(function (element, stream) {
                     //  srcObject is being standardized and FF will eventually
                     //  support that unprefixed. FF also supports the
                     //  "element.src = URL.createObjectURL(...)" combo, but that
@@ -477,7 +508,7 @@ var RTCUtils = {
                     element.play();
 
                     return element;
-                };
+                });
                 this.getStreamID = function (stream) {
                     var id = stream.id;
                     if (!id) {
@@ -512,7 +543,7 @@ var RTCUtils = {
                     this.getUserMedia = getUserMedia;
                     this.enumerateDevices = enumerateDevicesThroughMediaStreamTrack;
                 }
-                this.attachMediaStream = function (element, stream) {
+                this.attachMediaStream = wrapAttachMediaStream(function (element, stream) {
 
                     // saves the created url for the stream, so we can reuse it
                     // and not keep creating urls
@@ -524,7 +555,7 @@ var RTCUtils = {
                     element.src = stream.jitsiObjectURL;
 
                     return element;
-                };
+                });
                 this.getStreamID = function (stream) {
                     // streams from FF endpoints have the characters '{' and '}'
                     // that make jQuery choke.
@@ -575,7 +606,7 @@ var RTCUtils = {
                     self.peerconnection = RTCPeerConnection;
                     self.getUserMedia = window.getUserMedia;
                     self.enumerateDevices = enumerateDevicesThroughMediaStreamTrack;
-                    self.attachMediaStream = function (element, stream) {
+                    self.attachMediaStream = wrapAttachMediaStream(function (element, stream) {
 
                         if (stream.id === "dummyAudio" || stream.id === "dummyVideo") {
                             return;
@@ -587,7 +618,7 @@ var RTCUtils = {
                         }
 
                         return attachMediaStream(element, stream);
-                    };
+                    });
                     self.getStreamID = function (stream) {
                         return SDPUtil.filter_special_chars(stream.label);
                     };
@@ -826,6 +857,13 @@ var RTCUtils = {
             RTCBrowserType.isTemasysPluginUsed();
     },
     /**
+     * Returns true if changing the audio output of media elements is supported
+     * and false if not.
+     */
+    isAudioOutputDeviceChangeAvailable: function () {
+        return typeof featureDetectionVideoEl.setSinkId !== 'undefined';
+    },
+    /**
      * A method to handle stopping of the stream.
      * One point to handle the differences in various implementations.
      * @param mediaStream MediaStream object to stop.
@@ -854,8 +892,36 @@ var RTCUtils = {
      */
     isDesktopSharingEnabled: function () {
         return screenObtainer.isSupported();
-    }
+    },
+    /**
+     * Sets current audio output device.
+     * @param {string} deviceId - id of 'audiooutput' device from
+     *      navigator.mediaDevices.enumerateDevices()
+     * @returns {Promise} - resolves when audio output is changed, is rejected
+     *      otherwise
+     */
+    setAudioOutputDevice: function (deviceId) {
+        if (!this.isAudioOutputDeviceChangeAvailable()) {
+            Promise.reject(
+                new Error('Audio output device change is not supported'));
+        }
+        
+        return featureDetectionVideoEl.setSinkId(deviceId)
+            .then(function() {
+                audioOuputDeviceId = deviceId;
 
+                eventEmitter.emit(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
+                    deviceId);
+            });
+    },
+    /**
+     * Returns currently used audio output device id, '' stands for default
+     * device
+     * @returns {string}
+     */
+    getAudioOutputDevice: function () {
+        return audioOuputDeviceId;
+    }
 };
 
 module.exports = RTCUtils;

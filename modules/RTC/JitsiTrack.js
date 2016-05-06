@@ -76,6 +76,8 @@ function JitsiTrack(rtc, stream, track, streamInactiveHandler, trackMediaType,
         }
         addMediaStreamInactiveHandler(stream, streamInactiveHandler);
     }
+
+    RTCUtils.addListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED, this.setAudioOutput.bind(this));
 }
 
 /**
@@ -188,36 +190,6 @@ JitsiTrack.prototype.attach = function (container) {
     this._maybeFireTrackAttached(container);
 
     return container;
-};
-
-JitsiTrack.prototype.changeAudioOutput = function (audioOutputDeviceId) {
-    return Promise.all(this.containers.map(function(element) {
-        if (typeof element.setSinkId !== 'undefined') {
-            try {
-                return element.setSinkId(audioOutputDeviceId)
-                    .then(function () {
-                        console.log('Audio output device changed on element ' + element);
-                    })
-                    .catch(function (error) {
-                        var errorMessage = error;
-
-                        if (error.name === 'SecurityError') {
-                            errorMessage = 'You need to use HTTPS for selecting audio output device: ' + error;
-                        }
-
-                        console.error('Failed to change audio output device on element ' + element + ': ' + errorMessage);
-
-                        return Promise.resolve();
-                    });
-            } catch(ex) {
-                console.error(ex);
-                return Promise.resolve();
-            }
-        } else {
-            console.warn('Browser does not support output device selection.');
-            return Promise.resolve();
-        }
-    }));
 };
 
 /**
@@ -338,6 +310,48 @@ JitsiTrack.prototype.getMSID = function () {
     var streamId = this.getStreamId();
     var trackId = this.getTrackId();
     return (streamId && trackId) ? (streamId + " " + trackId) : null;
+};
+
+/**
+ * Set new audio output device for track's DOM elements.
+ * @param {string} audioOutputDeviceId - id of 'audiooutput' device from
+ *      navigator.mediaDevices.enumerateDevices()
+ * @emits JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED
+ * @returns {Promise}
+ */
+JitsiTrack.prototype.setAudioOutput = function (audioOutputDeviceId) {
+    var self = this;
+
+    if (!RTCUtils.isAudioOutputDeviceChangeAvailable()) {
+        return Promise.reject(
+            new Error('Audio output device change is not supported'));
+    }
+
+    return Promise.all(this.containers.map(function(element) {
+        return element.setSinkId(audioOutputDeviceId)
+            .catch(function (error) {
+                console.error('Failed to change audio output device on element',
+                    element, error);
+
+                // TODO: for some reason 'AbortError' is raised on video
+                // elements with local track blobs. Maybe this is something
+                // similar to https://goo.gl/TKLiqx. Ignoring this error for
+                // now. Spec says that "If the device identified by the given
+                // sinkId cannot be used due to a unspecified error, throw a
+                // DOMException whose name is AbortError."
+                // In any case, all audio communication is done via separate
+                // audio elements, so maybe it doesn't make sense to change
+                // sinkId for <video> elements at all.
+                if (!(self.isVideoTrack() && self.isLocal && self.isLocal() &&
+                    error.name === 'AbortError')) {
+                    throw error;
+                }
+            });
+    }))
+    .then(function () {
+        self.eventEmitter.emit(JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED,
+            audioOutputDeviceId);
+    });
 };
 
 module.exports = JitsiTrack;

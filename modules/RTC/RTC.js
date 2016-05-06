@@ -315,6 +315,34 @@ RTC.isDeviceChangeAvailable = function () {
 };
 
 /**
+ * Returns true if changing the audio output of media elements is supported
+ * and false if not.
+ */
+RTC.isAudioOutputDeviceChangeAvailable = function () {
+    return RTCUtils.isAudioOutputDeviceChangeAvailable();
+};
+
+/**
+ * Returns currently used audio output device id, '' stands for default
+ * device
+ * @returns {string}
+ */
+RTC.getAudioOutputDevice = function () {
+    return RTCUtils.getAudioOutputDevice();
+};
+
+/**
+ * Sets current audio output device.
+ * @param {string} deviceId - id of 'audiooutput' device from
+ *      navigator.mediaDevices.enumerateDevices()
+ * @returns {Promise} - resolves when audio output is changed, is rejected
+ *      otherwise
+ */
+RTC.setAudioOutputDevice = function (deviceId) {
+    return RTCUtils.setAudioOutputDevice(deviceId);
+};
+
+/**
  * Returns <tt>true<tt/> if given WebRTC MediaStream is considered a valid
  * "user" stream which means that it's not a "receive only" stream nor a "mixed"
  * JVB stream.
