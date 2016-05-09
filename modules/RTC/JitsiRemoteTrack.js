@@ -30,7 +30,6 @@ JitsiRemoteTrack.prototype.constructor = JitsiRemoteTrack;
  * @param value the muted status.
  */
 JitsiRemoteTrack.prototype.setMute = function (value) {
-
     if(this.muted === value)
         return;
 

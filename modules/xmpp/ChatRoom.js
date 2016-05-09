@@ -704,8 +704,8 @@ ChatRoom.prototype.removeListener = function (type, listener) {
 ChatRoom.prototype.remoteTrackAdded = function(data) {
     // Will figure out current muted status by looking up owner's presence
     var pres = this.lastPresences[data.owner];
-    var mediaType = data.mediaType;
     if(pres) {
+        var mediaType = data.mediaType;
         var mutedNode = null;
         if (mediaType === MediaType.AUDIO) {
             mutedNode = filterNodeFromPresenceJSON(pres, "audiomuted");
