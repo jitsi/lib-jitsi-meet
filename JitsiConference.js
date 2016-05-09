@@ -45,7 +45,9 @@ function JitsiConference(options) {
     this.statistics = new Statistics(this.xmpp, {
         callStatsID: this.options.config.callStatsID,
         callStatsSecret: this.options.config.callStatsSecret,
-        disableThirdPartyRequests: this.options.config.disableThirdPartyRequests
+        disableThirdPartyRequests:
+            this.options.config.disableThirdPartyRequests,
+        roomName: this.options.name
     });
     setupListeners(this);
     var JitsiMeetJS = this.connection.JitsiMeetJS;
@@ -315,7 +317,7 @@ JitsiConference.prototype.addTrack = function (track) {
     {
         throw new Error(JitsiTrackErrors.TRACK_IS_DISPOSED);
     }
-    
+
     if (track.isVideoTrack() && this.rtc.getLocalVideoTrack()) {
         throw new Error("cannot add second video track to the conference");
     }

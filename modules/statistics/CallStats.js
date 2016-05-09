@@ -106,9 +106,9 @@ var CallStats = _try_catch(function(jingleSession, Settings, options) {
 
         this.userID = Settings.getCallStatsUserName();
 
-    //FIXME:  change it to something else (maybe roomName)
         var location = window.location;
-        this.confID = location.hostname + location.pathname;
+        // The confID is case sensitive!!!
+        this.confID = location.hostname + "/" + options.roomName;
 
         //userID is generated or given by the origin server
         callStats.initialize(options.callStatsID,
