@@ -296,7 +296,8 @@ JitsiLocalTrack.prototype.getSSRC = function () {
 };
 
 /**
- * Return true;
+ * Returns <tt>true</tt>.
+ * @returns {boolean} <tt>true</tt>
  */
 JitsiLocalTrack.prototype.isLocal = function () {
     return true;

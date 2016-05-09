@@ -637,7 +637,7 @@ var RTCUtils = {
                     return element;
                 });
                 this.getStreamID = function (stream) {
-                    // streams from FF endpoints have the characters '{' and '}'
+                    // Streams from FF endpoints have the characters '{' and '}'
                     // that make jQuery choke.
                     return SDPUtil.filter_special_chars(stream.id);
                 };

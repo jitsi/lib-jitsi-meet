@@ -67,7 +67,8 @@ JitsiRemoteTrack.prototype.isLocal = function () {
 };
 
 /**
- * Return false;
+ * Returns the synchronization source identifier (SSRC) of this remote track.
+ * @returns {string} the SSRC of this remote track
  */
 JitsiRemoteTrack.prototype.getSSRC = function () {
     return this.ssrc;
