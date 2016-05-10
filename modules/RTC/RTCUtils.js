@@ -821,7 +821,8 @@ var RTCUtils = {
         return RTCBrowserType.isChrome() ||
             RTCBrowserType.isFirefox() ||
             RTCBrowserType.isOpera() ||
-            RTCBrowserType.isTemasysPluginUsed();
+            RTCBrowserType.isTemasysPluginUsed() ||
+            RTCBrowserType.isNWJS();
     },
     /**
      * A method to handle stopping of the stream.
