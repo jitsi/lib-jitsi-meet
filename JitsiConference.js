@@ -1273,9 +1273,11 @@ function setupListeners(conference) {
                     session, conference.settings);
             });
 
-        conference.room.addListener(XMPPEvents.CONFERENCE_SETUP_FAILED,
-            function () {
-                conference.statistics.sendSetupFailedEvent();
+        conference.room.addListener(XMPPEvents.CONNECTION_ICE_FAILED,
+            function (pc) {
+                conference.statistics.sendIceConnectionFailedEvent(pc);
+                conference.room.eventEmitter.emit(
+                    XMPPEvents.CONFERENCE_SETUP_FAILED);
             });
 
         conference.rtc.addListener(RTCEvents.TRACK_ATTACHED,

@@ -15,6 +15,7 @@ var wrtcFuncNames = {
     setRemoteDescription: "setRemoteDescription",
     addIceCandidate:      "addIceCandidate",
     getUserMedia:         "getUserMedia",
+    iceConnectionFailure: "iceConnectionFailure",
     signalingError:       "signalingError"
 };
 
@@ -23,7 +24,6 @@ var wrtcFuncNames = {
  * @see http://www.callstats.io/api/#enumeration-of-fabricevent
  */
 var fabricEvent = {
-    fabricSetupFailed:"fabricSetupFailed",
     fabricHold:"fabricHold",
     fabricResume:"fabricResume",
     audioMute:"audioMute",
@@ -263,14 +263,13 @@ CallStats.prototype.sendTerminateEvent = _try_catch(function () {
 });
 
 /**
- * Notifies CallStats for connection setup errors
+ * Notifies CallStats for ice connection failed
+ * @param {RTCPeerConnection} pc connection on which failure occured.
+ * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.prototype.sendSetupFailedEvent = _try_catch(function () {
-    if(!callStats) {
-        return;
-    }
-    callStats.sendFabricEvent(this.peerconnection,
-        callStats.fabricEvent.fabricSetupFailed, this.confID);
+CallStats.prototype.sendIceConnectionFailedEvent = _try_catch(function (pc, cs){
+    CallStats._reportError.call(
+        cs, wrtcFuncNames.iceConnectionFailure, null, pc);
 });
 
 /**

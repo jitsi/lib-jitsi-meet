@@ -159,7 +159,8 @@ JingleSessionPC.prototype.doInitialize = function () {
                     self.room.eventEmitter.emit(XMPPEvents.CONNECTION_INTERRUPTED);
                 break;
             case 'failed':
-                self.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED);
+                self.room.eventEmitter.emit(XMPPEvents.CONNECTION_ICE_FAILED,
+                    self.peerconnection);
                 break;
         }
     };

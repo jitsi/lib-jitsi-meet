@@ -176,11 +176,12 @@ Statistics.prototype.isCallstatsEnabled = function () {
 };
 
 /**
- * Notifies CallStats for connection setup errors
+ * Notifies CallStats for ice connection failed
+ * @param {RTCPeerConnection} pc connection on which failure occured.
  */
-Statistics.prototype.sendSetupFailedEvent = function () {
+Statistics.prototype.sendIceConnectionFailedEvent = function (pc) {
     if(this.callStatsIntegrationEnabled && this.callstats)
-        this.callstats.sendSetupFailedEvent();
+        this.callstats.sendIceConnectionFailedEvent(pc, this.callstats);
 };
 
 /**
