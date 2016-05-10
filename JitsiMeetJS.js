@@ -151,12 +151,32 @@ var LibJitsiMeet = {
         return RTC.isDeviceListAvailable();
     },
     /**
-     * Returns true if changing the camera / microphone device is supported and
-     * false if not.
+     * Returns true if changing the input (camera / microphone) or output
+     * (audio) device is supported and false if not.
+     * @params {string} [deviceType] - type of device to change. Default is
+     *      undefined or 'input', 'output' - for audio output device change.
      * @returns {boolean} true if available, false otherwise.
      */
-    isDeviceChangeAvailable: function () {
-        return RTC.isDeviceChangeAvailable();
+    isDeviceChangeAvailable: function (deviceType) {
+        return RTC.isDeviceChangeAvailable(deviceType);
+    },
+    /**
+     * Returns currently used audio output device id, '' stands for default
+     * device
+     * @returns {string}
+     */
+    getAudioOutputDevice: function () {
+        return RTC.getAudioOutputDevice();
+    },
+    /**
+     * Sets current audio output device.
+     * @param {string} deviceId - id of 'audiooutput' device from
+     *      navigator.mediaDevices.enumerateDevices(), '' is for default device
+     * @returns {Promise} - resolves when audio output is changed, is rejected
+     *      otherwise
+     */
+    setAudioOutputDevice: function (deviceId) {
+        return RTC.setAudioOutputDevice(deviceId);
     },
     enumerateDevices: function (callback) {
         RTC.enumerateDevices(callback);

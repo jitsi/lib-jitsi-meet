@@ -307,22 +307,45 @@ RTC.isDeviceListAvailable = function () {
 };
 
 /**
- * Returns true if changing the camera / microphone device is supported and
- * false if not.
+ * Returns true if changing the input (camera / microphone) or output
+ * (audio) device is supported and false if not.
+ * @params {string} [deviceType] - type of device to change. Default is
+ *      undefined or 'input', 'output' - for audio output device change.
+ * @returns {boolean} true if available, false otherwise.
  */
-RTC.isDeviceChangeAvailable = function () {
-    return RTCUtils.isDeviceChangeAvailable();
+RTC.isDeviceChangeAvailable = function (deviceType) {
+    return RTCUtils.isDeviceChangeAvailable(deviceType);
+};
+
+/**
+ * Returns currently used audio output device id, '' stands for default
+ * device
+ * @returns {string}
+ */
+RTC.getAudioOutputDevice = function () {
+    return RTCUtils.getAudioOutputDevice();
+};
+
+/**
+ * Sets current audio output device.
+ * @param {string} deviceId - id of 'audiooutput' device from
+ *      navigator.mediaDevices.enumerateDevices()
+ * @returns {Promise} - resolves when audio output is changed, is rejected
+ *      otherwise
+ */
+RTC.setAudioOutputDevice = function (deviceId) {
+    return RTCUtils.setAudioOutputDevice(deviceId);
 };
 
 /**
  * Returns <tt>true<tt/> if given WebRTC MediaStream is considered a valid
  * "user" stream which means that it's not a "receive only" stream nor a "mixed"
  * JVB stream.
- * 
+ *
  * Clients that implement Unified Plan, such as Firefox use recvonly
  * "streams/channels/tracks" for receiving remote stream/tracks, as opposed to
  * Plan B where there are only 3 channels: audio, video and data.
- * 
+ *
  * @param stream WebRTC MediaStream instance
  * @returns {boolean}
  */
