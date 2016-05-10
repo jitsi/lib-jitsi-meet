@@ -76,6 +76,8 @@ function JitsiTrack(rtc, stream, track, streamInactiveHandler, trackMediaType,
         }
         addMediaStreamInactiveHandler(stream, streamInactiveHandler);
     }
+
+    RTCUtils.addListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED, this.setAudioOutput.bind(this));
 }
 
 /**
@@ -308,6 +310,43 @@ JitsiTrack.prototype.getMSID = function () {
     var streamId = this.getStreamId();
     var trackId = this.getTrackId();
     return (streamId && trackId) ? (streamId + " " + trackId) : null;
+};
+
+/**
+ * Sets new audio output device for track's DOM elements. Video tracks are
+ * ignored.
+ * @param {string} audioOutputDeviceId - id of 'audiooutput' device from
+ *      navigator.mediaDevices.enumerateDevices(), '' for default device
+ * @emits JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED
+ * @returns {Promise}
+ */
+JitsiTrack.prototype.setAudioOutput = function (audioOutputDeviceId) {
+    var self = this;
+
+    if (!RTCUtils.isDeviceChangeAvailable('output')) {
+        return Promise.reject(
+            new Error('Audio output device change is not supported'));
+    }
+
+    // All audio communication is done through audio tracks, so ignore changing
+    // audio output for video tracks at all.
+    if (this.isVideoTrack()) {
+        return Promise.resolve();
+    }
+
+    return Promise.all(this.containers.map(function(element) {
+        return element.setSinkId(audioOutputDeviceId)
+            .catch(function (error) {
+                logger.error('Failed to change audio output device on element',
+                    element, error);
+
+                    throw error;
+            });
+    }))
+    .then(function () {
+        self.eventEmitter.emit(JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED,
+            audioOutputDeviceId);
+    });
 };
 
 module.exports = JitsiTrack;

@@ -70,10 +70,14 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
     - kind - "audioinput" or "videoinput"
     - deviceId - the id of the device.
 
-* ```JitsiMeetJS.isDeviceListAvailable()```- returns true if retrieving the device list is support and false - otherwise.
-
+* ```JitsiMeetJS.isDeviceListAvailable()``` - returns true if retrieving the device list is support and false - otherwise.
+* ```JitsiMeetJS.isDeviceChangeAvailable(deviceType)``` - returns true if changing the input (camera / microphone) or output (audio) device is supported and false if not. ```deviceType``` is a type of device to change. Undefined or 'input' stands for input devices, 'output' - for audio output devices.
+* ```JitsiMeetJS.setAudioOutputDevice(deviceId)``` - sets current audio output device. ```deviceId``` - id of 'audiooutput' device from ```JitsiMeetJS.enumerateDevices()```, '' is for default device.
+* ```JitsiMeetJS.getAudioOutputDevice()``` - returns currently used audio output device id, '' stands for default device.
 * ```JitsiMeetJS.isDesktopSharingEnabled()``` - returns true if desktop sharing is supported and false otherwise. NOTE: that method can be used after ```JitsiMeetJS.init(options)``` is completed otherwise the result will be always null.
 * ```JitsiMeetJS.getGlobalOnErrorHandler()``` - returns function that can be used to be attached to window.onerror and if options.enableWindowOnErrorHandler is enabled returns the function used by the lib. (function(message, source, lineno, colno, error)).
+
+
 
 * ```JitsiMeetJS.events``` - JS object that contains all events used by the API. You will need that JS object when you try to subscribe for connection or conference events.
     We have two event types - connection and conference. You can access the events with the following code ```JitsiMeetJS.events.<event_type>.<event_name>```.
@@ -114,6 +118,8 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
     3. tracks
         - LOCAL_TRACK_STOPPED - indicates that a local track was stopped. This
         event can be fired when ```dispose()``` method is called or for other reasons.
+        - TRACK_AUDIO_OUTPUT_CHANGED - indicates that audio output device for track was changed (parameters - deviceId (string) - new audio output device ID).
+        
 
 * ```JitsiMeetJS.errors``` - JS object that contains all errors used by the API. You can use that object to check the reported errors from the API
     We have two error types - connection and conference. You can access the events with the following code ```JitsiMeetJS.errors.<error_type>.<error_name>```.
@@ -337,6 +343,8 @@ We have the following methods for controling the tracks:
 9. getParticipantId() - returns id(string) of the track owner
 
    Note: This method is implemented only for the remote tracks.
+   
+10. setAudioOutput(audioOutputDeviceId) - sets new audio output device for track's DOM elements. Video tracks are ignored.
 
 
 Getting Started

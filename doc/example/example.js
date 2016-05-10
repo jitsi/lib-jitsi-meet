@@ -36,6 +36,10 @@ function onLocalTracks(tracks)
             function () {
                 console.log("local track stoped");
             });
+        localTracks[i].addEventListener(JitsiMeetJS.events.track.TRACK_AUDIO_OUTPUT_CHANGED,
+            function (deviceId) {
+                console.log("track audio output device was changed to " + deviceId);
+            });
         if(localTracks[i].getType() == "video") {
             $("body").append("<video autoplay='1' id='localVideo" + i + "' />");
             localTracks[i].attach($("#localVideo" + i)[0]);
@@ -70,6 +74,10 @@ function onRemoteTrack(track) {
     track.addEventListener(JitsiMeetJS.events.track.LOCAL_TRACK_STOPPED,
         function () {
             console.log("remote track stoped");
+        });
+    track.addEventListener(JitsiMeetJS.events.track.TRACK_AUDIO_OUTPUT_CHANGED,
+        function (deviceId) {
+            console.log("track audio output device was changed to " + deviceId);
         });
     var id = participant + track.getType() + idx;
     if(track.getType() == "video") {
@@ -180,6 +188,10 @@ function switchVideo() {
         });
 }
 
+function changeAudioOutput(selected) {
+    JitsiMeetJS.setAudioOutputDevice(selected.value);
+}
+
 $(window).bind('beforeunload', unload);
 $(window).bind('unload', unload);
 
@@ -227,6 +239,23 @@ JitsiMeetJS.init(initOptions).then(function(){
 }).catch(function (error) {
     console.log(error);
 });
+
+
+if (JitsiMeetJS.isDeviceChangeAvailable('output')) {
+    JitsiMeetJS.enumerateDevices(function(devices) {
+        var audioOutputDevices = devices.filter(function(d) { return d.kind === 'audiooutput'; });
+
+        if (audioOutputDevices.length > 1) {
+            $('#audioOutputSelect').html(
+                audioOutputDevices.map(function (d) {
+                    return '<option value="' + d.deviceId + '">' + d.label + '</option>';
+                }).join('\n')
+            );
+
+            $('#audioOutputSelectWrapper').show();
+        }
+    })
+}
 
 var connection = null;
 var room = null;
