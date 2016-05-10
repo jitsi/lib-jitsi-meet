@@ -313,39 +313,34 @@ JitsiTrack.prototype.getMSID = function () {
 };
 
 /**
- * Set new audio output device for track's DOM elements.
+ * Sets new audio output device for track's DOM elements. Video tracks are
+ * ignored.
  * @param {string} audioOutputDeviceId - id of 'audiooutput' device from
- *      navigator.mediaDevices.enumerateDevices()
+ *      navigator.mediaDevices.enumerateDevices(), '' for default device
  * @emits JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED
  * @returns {Promise}
  */
 JitsiTrack.prototype.setAudioOutput = function (audioOutputDeviceId) {
     var self = this;
 
-    if (!RTCUtils.isAudioOutputDeviceChangeAvailable()) {
+    if (!RTCUtils.isDeviceChangeAvailable('output')) {
         return Promise.reject(
             new Error('Audio output device change is not supported'));
+    }
+
+    // All audio communication is done through audio tracks, so ignore changing
+    // audio output for video tracks at all.
+    if (this.isVideoTrack()) {
+        return Promise.resolve();
     }
 
     return Promise.all(this.containers.map(function(element) {
         return element.setSinkId(audioOutputDeviceId)
             .catch(function (error) {
-                console.error('Failed to change audio output device on element',
+                logger.error('Failed to change audio output device on element',
                     element, error);
 
-                // TODO: for some reason 'AbortError' is raised on video
-                // elements with local track blobs. Maybe this is something
-                // similar to https://goo.gl/TKLiqx. Ignoring this error for
-                // now. Spec says that "If the device identified by the given
-                // sinkId cannot be used due to a unspecified error, throw a
-                // DOMException whose name is AbortError."
-                // In any case, all audio communication is done via separate
-                // audio elements, so maybe it doesn't make sense to change
-                // sinkId for <video> elements at all.
-                if (!(self.isVideoTrack() && self.isLocal && self.isLocal() &&
-                    error.name === 'AbortError')) {
                     throw error;
-                }
             });
     }))
     .then(function () {

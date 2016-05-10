@@ -241,7 +241,7 @@ JitsiMeetJS.init(initOptions).then(function(){
 });
 
 
-if (JitsiMeetJS.isAudioOutputDeviceChangeAvailable()) {
+if (JitsiMeetJS.isDeviceChangeAvailable('output')) {
     JitsiMeetJS.enumerateDevices(function(devices) {
         var audioOutputDevices = devices.filter(function(d) { return d.kind === 'audiooutput'; });
 

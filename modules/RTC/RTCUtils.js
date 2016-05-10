@@ -26,7 +26,9 @@ var devices = {
 
 var audioOuputDeviceId = ''; // default device
 
-var featureDetectionVideoEl = document.createElement('video');
+var featureDetectionAudioEl = document.createElement('audio');
+var isAudioOutputDeviceChangeAvailable =
+    typeof featureDetectionAudioEl.setSinkId !== 'undefined';
 
 var rtcReady = false;
 
@@ -338,9 +340,12 @@ function enumerateDevicesThroughMediaStreamTrack (callback) {
             return {
                 facing: source.facing || null,
                 label: source.label,
-                // theoretically deprecated MediaStreamTrack.getSources should not return 'audiooutput' devices but
-                // let's handle it in any case
-                kind: kind ? (kind === 'audiooutput' ? kind : kind + 'input') : null,
+                // theoretically deprecated MediaStreamTrack.getSources should
+                // not return 'audiooutput' devices but let's handle it in any
+                // case
+                kind: kind
+                    ? (kind === 'audiooutput' ? kind : kind + 'input')
+                    : null,
                 deviceId: source.id,
                 groupId: source.groupId || null
             };
@@ -462,10 +467,11 @@ function wrapAttachMediaStream(origAttachMediaStream) {
     return function(element, stream) {
         var res = origAttachMediaStream.apply(RTCUtils, arguments);
 
-        if (RTCUtils.isAudioOutputDeviceChangeAvailable()) {
+        if (RTCUtils.isDeviceChangeAvailable('output') &&
+            stream.getAudioTracks && stream.getAudioTracks().length) {
             element.setSinkId(RTCUtils.getAudioOutputDevice())
                 .catch(function (ex) {
-                    console.error('Failed to set audio output on element',
+                    logger.error('Failed to set audio output on element',
                         element, ex);
                 });
         }
@@ -847,21 +853,19 @@ var RTCUtils = {
         return (MediaStreamTrack && MediaStreamTrack.getSources)? true : false;
     },
     /**
-     * Returns true if changing the camera / microphone device is supported and
-     * false if not.
+     * Returns true if changing the input (camera / microphone) or output
+     * (audio) device is supported and false if not.
+     * @params {string} [deviceType] - type of device to change. Default is
+     *      undefined or 'input', 'output' - for audio output device change.
+     * @returns {boolean} true if available, false otherwise.
      */
-    isDeviceChangeAvailable: function () {
-        return RTCBrowserType.isChrome() ||
-            RTCBrowserType.isFirefox() ||
-            RTCBrowserType.isOpera() ||
-            RTCBrowserType.isTemasysPluginUsed();
-    },
-    /**
-     * Returns true if changing the audio output of media elements is supported
-     * and false if not.
-     */
-    isAudioOutputDeviceChangeAvailable: function () {
-        return typeof featureDetectionVideoEl.setSinkId !== 'undefined';
+    isDeviceChangeAvailable: function (deviceType) {
+        return deviceType === 'output' || deviceType === 'audiooutput'
+            ? isAudioOutputDeviceChangeAvailable
+            : RTCBrowserType.isChrome() ||
+                RTCBrowserType.isFirefox() ||
+                RTCBrowserType.isOpera() ||
+                RTCBrowserType.isTemasysPluginUsed();
     },
     /**
      * A method to handle stopping of the stream.
@@ -896,19 +900,21 @@ var RTCUtils = {
     /**
      * Sets current audio output device.
      * @param {string} deviceId - id of 'audiooutput' device from
-     *      navigator.mediaDevices.enumerateDevices()
+     *      navigator.mediaDevices.enumerateDevices(), '' for default device
      * @returns {Promise} - resolves when audio output is changed, is rejected
      *      otherwise
      */
     setAudioOutputDevice: function (deviceId) {
-        if (!this.isAudioOutputDeviceChangeAvailable()) {
+        if (!this.isDeviceChangeAvailable('output')) {
             Promise.reject(
                 new Error('Audio output device change is not supported'));
         }
-        
-        return featureDetectionVideoEl.setSinkId(deviceId)
+
+        return featureDetectionAudioEl.setSinkId(deviceId)
             .then(function() {
                 audioOuputDeviceId = deviceId;
+
+                logger.log('Audio output device set to ' + deviceId);
 
                 eventEmitter.emit(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
                     deviceId);
