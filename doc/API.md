@@ -343,6 +343,8 @@ We have the following methods for controling the tracks:
 9. getParticipantId() - returns id(string) of the track owner
 
    Note: This method is implemented only for the remote tracks.
+   
+10. setAudioOutput(audioOutputDeviceId) - sets new audio output device for track's DOM elements. Video tracks are ignored.
 
 
 Getting Started
