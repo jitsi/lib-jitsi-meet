@@ -22,6 +22,9 @@ var XMPPEvents = {
     // Designates an event indicating that the media (ICE) connection was
     // restored. This should go to the RTC module.
     CONNECTION_RESTORED: "xmpp.connection.restored",
+    // Designates an event indicating that the media (ICE) connection failed.
+    // This should go to the RTC module.
+    CONNECTION_ICE_FAILED: "xmpp.connection.ice.failed",
     // TODO: only used in a hack, should probably be removed.
     CREATE_ANSWER_ERROR: 'xmpp.create_answer_error',
     /**
@@ -103,7 +106,7 @@ var XMPPEvents = {
      * Event fired when we remote track is added to the conference.
      * The following structure is passed as an argument:
      * {
-     *   stream: the WebRTC MediaStream instance 
+     *   stream: the WebRTC MediaStream instance
      *   track: the WebRTC MediaStreamTrack
      *   mediaType: the MediaType instance
      *   owner: the MUC JID of the stream owner
@@ -113,7 +116,7 @@ var XMPPEvents = {
     REMOTE_TRACK_ADDED: "xmpp.remote_track_added",
     /**
      * Indicates that the remote track has been removed from the conference.
-     * 1st event argument is the ID of the parent WebRTC stream to which 
+     * 1st event argument is the ID of the parent WebRTC stream to which
      * the track being removed belongs to.
      * 2nd event argument is the ID of the removed track.
      */
