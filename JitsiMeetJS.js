@@ -1,7 +1,9 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var JitsiConnection = require("./JitsiConnection");
+var JitsiMediaDevices = require("./JitsiMediaDevices");
 var JitsiConferenceEvents = require("./JitsiConferenceEvents");
 var JitsiConnectionEvents = require("./JitsiConnectionEvents");
+var JitsiMediaDevicesEvents = require('./JitsiMediaDevicesEvents');
 var JitsiConnectionErrors = require("./JitsiConnectionErrors");
 var JitsiConferenceErrors = require("./JitsiConferenceErrors");
 var JitsiTrackEvents = require("./JitsiTrackEvents");
@@ -40,7 +42,8 @@ var LibJitsiMeet = {
     events: {
         conference: JitsiConferenceEvents,
         connection: JitsiConnectionEvents,
-        track: JitsiTrackEvents
+        track: JitsiTrackEvents,
+        mediaDevices: JitsiMediaDevicesEvents
     },
     errors: {
         conference: JitsiConferenceErrors,
@@ -48,6 +51,7 @@ var LibJitsiMeet = {
         track: JitsiTrackErrors
     },
     logLevels: Logger.levels,
+    mediaDevices: JitsiMediaDevices,
     /**
      * Array of functions that will receive the GUM error.
      */
@@ -146,9 +150,12 @@ var LibJitsiMeet = {
     /**
      * Checks if its possible to enumerate available cameras/micropones.
      * @returns {boolean} true if available, false otherwise.
+     * @deprecated use JitsiMeetJS.mediaDevices.isDeviceListAvailable instead
      */
     isDeviceListAvailable: function () {
-        return RTC.isDeviceListAvailable();
+        logger.warn('This method is deprecated, use ' +
+            'JitsiMeetJS.mediaDevices.isDeviceListAvailable instead');
+        return this.mediaDevices.isDeviceListAvailable();
     },
     /**
      * Returns true if changing the input (camera / microphone) or output
@@ -156,30 +163,22 @@ var LibJitsiMeet = {
      * @params {string} [deviceType] - type of device to change. Default is
      *      undefined or 'input', 'output' - for audio output device change.
      * @returns {boolean} true if available, false otherwise.
+     * @deprecated use JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead
      */
     isDeviceChangeAvailable: function (deviceType) {
-        return RTC.isDeviceChangeAvailable(deviceType);
+        logger.warn('This method is deprecated, use ' +
+            'JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead');
+        return this.mediaDevices.isDeviceChangeAvailable(deviceType);
     },
     /**
-     * Returns currently used audio output device id, '' stands for default
-     * device
-     * @returns {string}
+     * Executes callback with list of media devices connected.
+     * @param {function} callback
+     * @deprecated use JitsiMeetJS.mediaDevices.enumerateDevices instead
      */
-    getAudioOutputDevice: function () {
-        return RTC.getAudioOutputDevice();
-    },
-    /**
-     * Sets current audio output device.
-     * @param {string} deviceId - id of 'audiooutput' device from
-     *      navigator.mediaDevices.enumerateDevices(), '' is for default device
-     * @returns {Promise} - resolves when audio output is changed, is rejected
-     *      otherwise
-     */
-    setAudioOutputDevice: function (deviceId) {
-        return RTC.setAudioOutputDevice(deviceId);
-    },
     enumerateDevices: function (callback) {
-        RTC.enumerateDevices(callback);
+        logger.warn('This method is deprecated, use ' +
+            'JitsiMeetJS.mediaDevices.enumerateDevices instead');
+        this.mediaDevices.enumerateDevices(callback);
     },
     /**
      * Array of functions that will receive the unhandled errors.

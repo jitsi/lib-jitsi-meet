@@ -148,6 +148,13 @@ function onConnectionSuccess(){
 function onConnectionFailed(){console.error("Connection Failed!")};
 
 /**
+ * This function is called when the connection fail.
+ */
+function onDeviceListChanged(devices) {
+    console.info('current devices', devices);
+}
+
+/**
  * This function is called when we disconnect.
  */
 function disconnect(){
@@ -189,7 +196,7 @@ function switchVideo() {
 }
 
 function changeAudioOutput(selected) {
-    JitsiMeetJS.setAudioOutputDevice(selected.value);
+    JitsiMeetJS.mediaDevices.setAudioOutputDevice(selected.value);
 }
 
 $(window).bind('beforeunload', unload);
@@ -231,6 +238,8 @@ JitsiMeetJS.init(initOptions).then(function(){
     connection.addEventListener(JitsiMeetJS.events.connection.CONNECTION_FAILED, onConnectionFailed);
     connection.addEventListener(JitsiMeetJS.events.connection.CONNECTION_DISCONNECTED, disconnect);
 
+    JitsiMeetJS.mediaDevices.addEventListener(JitsiMeetJS.events.mediaDevices.DEVICE_LIST_CHANGED, onDeviceListChanged);
+
     connection.connect();
     JitsiMeetJS.createLocalTracks({devices: ["audio", "video"]}).
         then(onLocalTracks).catch(function (error) {
@@ -241,8 +250,8 @@ JitsiMeetJS.init(initOptions).then(function(){
 });
 
 
-if (JitsiMeetJS.isDeviceChangeAvailable('output')) {
-    JitsiMeetJS.enumerateDevices(function(devices) {
+if (JitsiMeetJS.mediaDevices.isDeviceChangeAvailable('output')) {
+    JitsiMeetJS.mediaDevices.enumerateDevices(function(devices) {
         var audioOutputDevices = devices.filter(function(d) { return d.kind === 'audiooutput'; });
 
         if (audioOutputDevices.length > 1) {

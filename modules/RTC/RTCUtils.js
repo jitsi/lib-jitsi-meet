@@ -19,6 +19,8 @@ var VideoType = require("../../service/RTC/VideoType");
 
 var eventEmitter = new EventEmitter();
 
+var AVAILABLE_DEVICES_POLL_INTERVAL_TIME = 3000; // ms
+
 var devices = {
     audio: true,
     video: true
@@ -29,6 +31,19 @@ var audioOuputDeviceId = ''; // default device
 var featureDetectionAudioEl = document.createElement('audio');
 var isAudioOutputDeviceChangeAvailable =
     typeof featureDetectionAudioEl.setSinkId !== 'undefined';
+
+var currentlyAvailableMediaDevices = [];
+
+// TODO: currently no browser supports 'devicechange' event even in nightly
+// builds so no feature/browser detection is used at all. However in future this
+// should be changed to some expression. Progress on 'devicechange' event
+// implementation for Chrome/Opera/NWJS can be tracked at
+// https://bugs.chromium.org/p/chromium/issues/detail?id=388648, for Firefox -
+// at https://bugzilla.mozilla.org/show_bug.cgi?id=1152383. More information on
+// 'devicechange' event can be found in spec -
+// http://w3c.github.io/mediacapture-main/#event-mediadevices-devicechange
+// TODO: check MS Edge
+var isDeviceChangeEventSupported = false;
 
 var rtcReady = false;
 
@@ -217,6 +232,57 @@ function setAvailableDevices(um, available) {
     eventEmitter.emit(RTCEvents.AVAILABLE_DEVICES_CHANGED, devices);
 }
 
+/**
+ * Checks if new list of available media devices differs from previous one.
+ * @param {MediaDeviceInfo[]} newDevices - list of new devices.
+ * @returns {boolean} - true if list is different, false otherwise.
+ */
+function compareAvailableMediaDevices(newDevices) {
+    if (newDevices.length !== currentlyAvailableMediaDevices.length) {
+        return true;
+    }
+
+    return newDevices.map(mediaDeviceInfoToJSON).sort().join('') !==
+        currentlyAvailableMediaDevices.map(mediaDeviceInfoToJSON).sort().join('');
+
+    function mediaDeviceInfoToJSON(info) {
+        return JSON.stringify({
+            kind: info.kind,
+            deviceId: info.deviceId,
+            groupId: info.groupId,
+            label: info.label,
+            facing: info.facing
+        });
+    }
+}
+
+/**
+ * Periodically polls enumerateDevices() method to check if list of media
+ * devices has changed. This is temporary workaround until 'devicechange' event
+ * will be supported by browsers.
+ */
+function pollForAvailableMediaDevices() {
+    RTCUtils.enumerateDevices(function (devices) {
+        if (compareAvailableMediaDevices(devices)) {
+            onMediaDevicesListChanged(devices);
+        }
+
+        window.setTimeout(pollForAvailableMediaDevices,
+            AVAILABLE_DEVICES_POLL_INTERVAL_TIME);
+    });
+}
+
+/**
+ * Event handler for the 'devicechange' event.
+ * @param {MediaDeviceInfo[]} devices - list of media devices.
+ * @emits RTCEvents.DEVICE_LIST_CHANGED
+ */
+function onMediaDevicesListChanged(devices) {
+    currentlyAvailableMediaDevices = devices;
+    eventEmitter.emit(RTCEvents.DEVICE_LIST_CHANGED, devices);
+    logger.info('list of media devices has changed:', devices);
+}
+
 // In case of IE we continue from 'onReady' callback
 // passed to RTCUtils constructor. It will be invoked by Temasys plugin
 // once it is initialized.
@@ -224,6 +290,14 @@ function onReady (options, GUM) {
     rtcReady = true;
     eventEmitter.emit(RTCEvents.RTC_READY, true);
     screenObtainer.init(options, GUM);
+
+    if (isDeviceChangeEventSupported && RTCUtils.isDeviceListAvailable()) {
+        navigator.mediaDevices.addEventListener('devicechange', function () {
+            RTCUtils.enumerateDevices(onMediaDevicesListChanged);
+        });
+    } else if (RTCUtils.isDeviceListAvailable()) {
+        pollForAvailableMediaDevices();
+    }
 }
 
 /**
