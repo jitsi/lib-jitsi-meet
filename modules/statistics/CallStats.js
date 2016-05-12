@@ -389,7 +389,7 @@ CallStats.sendUnhandledError = _try_catch(function (e, cs) {
     // for now send the stack property of errors, which is has the form:
     // name: message <newline> stack(multiline)
     CallStats._reportError
-        .call(cs, wrtcFuncNames.signalingError, e.stack, null);
+        .call(cs, wrtcFuncNames.signalingError, e, null);
 });
 
 module.exports = CallStats;
