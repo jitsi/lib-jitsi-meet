@@ -81,6 +81,7 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - groupId - group identifier, two devices have the same group identifier if they belong to the same physical device; for example a monitor with both a built-in camera and microphone
     - ```setAudioOutputDevice(deviceId)``` - sets current audio output device. ```deviceId``` - id of 'audiooutput' device from ```JitsiMeetJS.enumerateDevices()```, '' is for default device.
     - ```getAudioOutputDevice()``` - returns currently used audio output device id, '' stands for default device.
+    - ```isDevicePermissionGranted(type)``` - returns true if user granted permission to media devices. ```type``` - 'audio', 'video' or ```undefined```. In case of ```undefined``` will check if both audio and video permissions were granted.
     - ```addEventListener(event, handler)``` - attaches an event handler.
     - ```removeEventListener(event, handler)``` - removes an event handler.
 
@@ -354,6 +355,10 @@ We have the following methods for controling the tracks:
    Note: This method is implemented only for the remote tracks.
    
 10. setAudioOutput(audioOutputDeviceId) - sets new audio output device for track's DOM elements. Video tracks are ignored.
+
+11. getDeviceId() - returns device ID associated with track (for local tracks only)
+
+12. isEnded() - returns true if track is ended
 
 
 Getting Started

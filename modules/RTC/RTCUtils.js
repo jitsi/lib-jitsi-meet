@@ -22,17 +22,34 @@ var eventEmitter = new EventEmitter();
 var AVAILABLE_DEVICES_POLL_INTERVAL_TIME = 3000; // ms
 
 var devices = {
-    audio: true,
-    video: true
+    audio: false,
+    video: false
 };
 
-var audioOuputDeviceId = ''; // default device
+// Currently audio output device change is supported only in Chrome and
+// default output always has 'default' device ID
+var audioOutputDeviceId = 'default'; // default device
 
 var featureDetectionAudioEl = document.createElement('audio');
 var isAudioOutputDeviceChangeAvailable =
     typeof featureDetectionAudioEl.setSinkId !== 'undefined';
 
 var currentlyAvailableMediaDevices = [];
+
+var rawEnumerateDevicesWithCallback = navigator.mediaDevices
+    && navigator.mediaDevices.enumerateDevices
+        ? function(callback) {
+            navigator.mediaDevices.enumerateDevices().then(callback, function () {
+                callback([]);
+            });
+        }
+        : (MediaStreamTrack && MediaStreamTrack.getSources)
+            ? function (callback) {
+                MediaStreamTrack.getSources(function (sources) {
+                    callback(sources.map(convertMediaStreamTrackSource));
+                });
+            }
+            : undefined;
 
 // TODO: currently no browser supports 'devicechange' event even in nightly
 // builds so no feature/browser detection is used at all. However in future this
@@ -262,14 +279,20 @@ function compareAvailableMediaDevices(newDevices) {
  * will be supported by browsers.
  */
 function pollForAvailableMediaDevices() {
-    RTCUtils.enumerateDevices(function (devices) {
-        if (compareAvailableMediaDevices(devices)) {
-            onMediaDevicesListChanged(devices);
-        }
+    // Here we use plain navigator.mediaDevices.enumerateDevices instead of
+    // wrapped because we just need to know the fact the devices changed, labels
+    // do not matter. This fixes situation when we have no devices initially,
+    // and then plug in a new one.
+    if (rawEnumerateDevicesWithCallback) {
+        rawEnumerateDevicesWithCallback(function (devices) {
+            if (compareAvailableMediaDevices(devices)) {
+                onMediaDevicesListChanged(devices);
+            }
 
-        window.setTimeout(pollForAvailableMediaDevices,
-            AVAILABLE_DEVICES_POLL_INTERVAL_TIME);
-    });
+            window.setTimeout(pollForAvailableMediaDevices,
+                AVAILABLE_DEVICES_POLL_INTERVAL_TIME);
+        });
+    }
 }
 
 /**
@@ -278,9 +301,35 @@ function pollForAvailableMediaDevices() {
  * @emits RTCEvents.DEVICE_LIST_CHANGED
  */
 function onMediaDevicesListChanged(devices) {
-    currentlyAvailableMediaDevices = devices;
+    currentlyAvailableMediaDevices = devices.slice(0);
+    logger.info('list of media devices has changed:', currentlyAvailableMediaDevices);
+
+    var videoInputDevices = currentlyAvailableMediaDevices.filter(function (d) {
+            return d.kind === 'videoinput';
+        }),
+        audioInputDevices = currentlyAvailableMediaDevices.filter(function (d) {
+            return d.kind === 'audioinput';
+        }),
+        videoInputDevicesWithEmptyLabels = videoInputDevices.filter(
+            function (d) {
+                return d.label === '';
+            }),
+        audioInputDevicesWithEmptyLabels = audioInputDevices.filter(
+            function (d) {
+                return d.label === '';
+            });
+
+    if (videoInputDevices.length &&
+        videoInputDevices.length === videoInputDevicesWithEmptyLabels.length) {
+        setAvailableDevices(['video'], false);
+    }
+
+    if (audioInputDevices.length &&
+        audioInputDevices.length === audioInputDevicesWithEmptyLabels.length) {
+        setAvailableDevices(['audio'], false);
+    }
+
     eventEmitter.emit(RTCEvents.DEVICE_LIST_CHANGED, devices);
-    logger.info('list of media devices has changed:', devices);
 }
 
 // In case of IE we continue from 'onReady' callback
@@ -341,22 +390,6 @@ function wrapGetUserMedia(getUserMedia) {
 }
 
 /**
- * Create stub device which equals to auto selected device.
- * @param {string} kind if that should be `audio` or `video` device
- * @returns {Object} stub device description in `enumerateDevices` format
- */
-function createAutoDeviceInfo(kind) {
-    return {
-        facing: null,
-        label: 'Auto',
-        kind: kind,
-        deviceId: '',
-        groupId: ''
-    };
-}
-
-
-/**
  * Execute function after getUserMedia was executed at least once.
  * @param {Function} callback function to execute after getUserMedia
  */
@@ -379,24 +412,10 @@ function wrapEnumerateDevices(enumerateDevices) {
         // enumerate devices only after initial getUserMedia
         afterUserMediaInitialized(function () {
 
-            enumerateDevices().then(function (devices) {
-                //add auto devices
-                devices.unshift(
-                    createAutoDeviceInfo('audioinput'),
-                    createAutoDeviceInfo('videoinput'),
-                    createAutoDeviceInfo('audiooutput')
-                );
-
-                callback(devices);
-            }, function (err) {
+            enumerateDevices().then(callback, function (err) {
                 console.error('cannot enumerate devices: ', err);
 
-                // return only auto devices
-                callback([
-                    createAutoDeviceInfo('audioinput'),
-                    createAutoDeviceInfo('videoinput'),
-                    createAutoDeviceInfo('audiooutput')
-                ]);
+                callback([]);
             });
         });
     };
@@ -409,30 +428,29 @@ function wrapEnumerateDevices(enumerateDevices) {
  */
 function enumerateDevicesThroughMediaStreamTrack (callback) {
     MediaStreamTrack.getSources(function (sources) {
-        var devices = sources.map(function (source) {
-            var kind = (source.kind || '').toLowerCase();
-            return {
-                facing: source.facing || null,
-                label: source.label,
-                // theoretically deprecated MediaStreamTrack.getSources should
-                // not return 'audiooutput' devices but let's handle it in any
-                // case
-                kind: kind
-                    ? (kind === 'audiooutput' ? kind : kind + 'input')
-                    : null,
-                deviceId: source.id,
-                groupId: source.groupId || null
-            };
-        });
-
-        //add auto devices
-        devices.unshift(
-            createAutoDeviceInfo('audioinput'),
-            createAutoDeviceInfo('videoinput'),
-            createAutoDeviceInfo('audiooutput')
-        );
-        callback(devices);
+        callback(sources.map(convertMediaStreamTrackSource));
     });
+}
+
+/**
+ * Converts MediaStreamTrack Source to enumerateDevices format.
+ * @param {Object} source
+ */
+function convertMediaStreamTrackSource(source) {
+    var kind = (source.kind || '').toLowerCase();
+
+    return {
+        facing: source.facing || null,
+        label: source.label,
+        // theoretically deprecated MediaStreamTrack.getSources should
+        // not return 'audiooutput' devices but let's handle it in any
+        // case
+        kind: kind
+            ? (kind === 'audiooutput' ? kind : kind + 'input')
+            : null,
+        deviceId: source.id,
+        groupId: source.groupId || null
+    };
 }
 
 function obtainDevices(options) {
@@ -975,7 +993,8 @@ var RTCUtils = {
     /**
      * Sets current audio output device.
      * @param {string} deviceId - id of 'audiooutput' device from
-     *      navigator.mediaDevices.enumerateDevices(), '' for default device
+     *      navigator.mediaDevices.enumerateDevices(), 'default' for default
+     *      device
      * @returns {Promise} - resolves when audio output is changed, is rejected
      *      otherwise
      */
@@ -987,7 +1006,7 @@ var RTCUtils = {
 
         return featureDetectionAudioEl.setSinkId(deviceId)
             .then(function() {
-                audioOuputDeviceId = deviceId;
+                audioOutputDeviceId = deviceId;
 
                 logger.log('Audio output device set to ' + deviceId);
 
@@ -1001,7 +1020,7 @@ var RTCUtils = {
      * @returns {string}
      */
     getAudioOutputDevice: function () {
-        return audioOuputDeviceId;
+        return audioOutputDeviceId;
     }
 };
 

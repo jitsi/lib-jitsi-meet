@@ -4,6 +4,7 @@ var JitsiTrack = require("./JitsiTrack");
 var RTCBrowserType = require("./RTCBrowserType");
 var JitsiTrackEvents = require('../../JitsiTrackEvents');
 var JitsiTrackErrors = require("../../JitsiTrackErrors");
+var RTCEvents = require("../../service/RTC/RTCEvents");
 var RTCUtils = require("./RTCUtils");
 var VideoType = require('../../service/RTC/VideoType');
 
@@ -20,6 +21,8 @@ var VideoType = require('../../service/RTC/VideoType');
  */
 function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
                          deviceId) {
+    var self = this;
+
     JitsiTrack.call(this,
         null /* RTC */, stream, track,
         function () {
@@ -33,15 +36,71 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
     this.resolution = resolution;
     this.deviceId = deviceId;
     this.startMuted = false;
-    this.disposed = false;
     //FIXME: This dependacy is not necessary.
     this.conference = null;
     this.initialMSID = this.getMSID();
     this.inMuteOrUnmuteProgress = false;
+
+    // Currently there is no way to know the MediaStreamTrack ended due to to
+    // device disconnect in Firefox through e.g. "readyState" property. Instead
+    // we will compare current track's label with device labels from
+    // enumerateDevices() list.
+    this._trackEnded = false;
+
+    // Currently there is no way to determine with what device track was
+    // created (until getConstraints() support), however we can associate tracks
+    // with real devices obtained from enumerateDevices() call as soon as it's
+    // called.
+    this._realDeviceId = this.deviceId === '' ? undefined : this.deviceId;
+
+    this._onDeviceListChanged = function (devices) {
+        self._setRealDeviceIdFromDeviceList(devices);
+
+        // Mark track as ended for those browsers that do not support
+        // "readyState" property. We do not touch tracks created with default
+        // device ID "".
+        if (typeof self.getTrack().readyState === 'undefined'
+            && typeof self._realDeviceId !== 'undefined'
+            && !devices.find(function (d) {
+                return d.deviceId === self._realDeviceId;
+            })) {
+            self._trackEnded = true;
+        }
+    };
+
+
+    RTCUtils.addListener(RTCEvents.DEVICE_LIST_CHANGED,
+        this._onDeviceListChanged);
 }
 
 JitsiLocalTrack.prototype = Object.create(JitsiTrack.prototype);
 JitsiLocalTrack.prototype.constructor = JitsiLocalTrack;
+
+/**
+ * Returns if associated MediaStreamTrack is in the 'ended' state
+ * @returns {boolean}
+ */
+JitsiLocalTrack.prototype.isEnded = function () {
+    return  this.getTrack().readyState === 'ended' || this._trackEnded;
+};
+
+/**
+ * Sets real device ID by comparing track information with device information.
+ * This is temporary solution until getConstraints() method will be implemented
+ * in browsers.
+ * @param {MediaDeviceInfo[]} devices - list of devices obtained from
+ *  enumerateDevices() call
+ */
+JitsiLocalTrack.prototype._setRealDeviceIdFromDeviceList = function (devices) {
+    var track = this.getTrack(),
+        device = devices.find(function (d) {
+            return d.kind === track.kind + 'input' && d.label === track.label;
+        });
+
+    if (device) {
+        this._realDeviceId = device.deviceId;
+    }
+};
 
 /**
  * Mutes the track. Will reject the Promise if there is mute/unmute operation
@@ -150,9 +209,9 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                 resolution: self.resolution
             };
             if (isAudio) {
-                streamOptions['micDeviceId'] = self.deviceId;
+                streamOptions['micDeviceId'] = self.getDeviceId();
             } else if(self.videoType === VideoType.CAMERA) {
-                streamOptions['cameraDeviceId'] = self.deviceId;
+                streamOptions['cameraDeviceId'] = self.getDeviceId();
             }
             RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
                 .then(function (streamsInfo) {
@@ -222,7 +281,11 @@ JitsiLocalTrack.prototype.dispose = function () {
         RTCUtils.stopMediaStream(this.stream);
         this.detach();
     }
-    this.disposed = true;
+
+    JitsiTrack.prototype.dispose.call(this);
+
+    RTCUtils.removeListener(RTCEvents.DEVICE_LIST_CHANGED,
+        this._onDeviceListChanged);
 
     return promise;
 };
@@ -300,6 +363,14 @@ JitsiLocalTrack.prototype.getSSRC = function () {
  */
 JitsiLocalTrack.prototype.isLocal = function () {
     return true;
+};
+
+/**
+ * Returns device id associated with track.
+ * @returns {string}
+ */
+JitsiLocalTrack.prototype.getDeviceId = function () {
+    return this._realDeviceId || this.deviceId;
 };
 
 module.exports = JitsiLocalTrack;
