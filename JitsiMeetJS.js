@@ -57,7 +57,7 @@ var LibJitsiMeet = {
      */
     _gumFailedHandler: [],
     init: function (options) {
-        Statistics.audioLevelsEnabled = !options.disableAudioLevels || true;
+        Statistics.audioLevelsEnabled = !options.disableAudioLevels;
 
         if (options.enableWindowOnErrorHandler) {
             // if an old handler exists also fire its events
