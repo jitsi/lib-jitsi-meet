@@ -277,7 +277,11 @@ RTC.prototype.createRemoteTrack = function (event) {
  * @returns {JitsiRemoteTrack|null}
  */
 RTC.prototype.removeRemoteTracks = function (resource) {
-    if(this.remoteTracks[resource]) {
+    var remoteTracks = this.remoteTracks[resource];
+
+    if(remoteTracks) {
+        remoteTracks['audio'] && remoteTracks['audio'].dispose();
+        remoteTracks['video'] && remoteTracks['video'].dispose();
         delete this.remoteTracks[resource];
     }
 };
