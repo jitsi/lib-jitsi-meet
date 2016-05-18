@@ -389,7 +389,7 @@ function wrapEnumerateDevices(enumerateDevices) {
 
                 callback(devices);
             }, function (err) {
-                console.error('cannot enumerate devices: ', err);
+                logger.error('cannot enumerate devices: ', err);
 
                 // return only auto devices
                 callback([

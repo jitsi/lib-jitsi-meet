@@ -191,7 +191,7 @@ var LibJitsiMeet = {
      * (function(message, source, lineno, colno, error)).
      */
     getGlobalOnErrorHandler: function (message, source, lineno, colno, error) {
-        console.error(
+        logger.error(
             'UnhandledError: ' + message,
             'Script: ' + source,
             'Line: ' + lineno,

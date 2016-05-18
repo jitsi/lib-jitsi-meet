@@ -259,7 +259,7 @@ Moderator.prototype.parseConfigOptions =  function (resultIq) {
             '>conference>property' +
             '[name=\'externalAuth\'][value=\'true\']').length > 0;
 
-    console.info(
+    logger.info(
         'External authentication enabled: ' + this.externalAuthEnabled);
 
     if (!this.externalAuthEnabled) {

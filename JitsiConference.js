@@ -917,7 +917,7 @@ function setupListeners(conference) {
             conference.rtc.onIncommingCall(jingleSession);
             jingleSession.acceptOffer(jingleOffer, null,
                 function (error) {
-                    console.error(
+                    logger.error(
                         "Failed to accept incoming Jingle session", error);
                 }
             );

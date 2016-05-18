@@ -155,7 +155,7 @@ var dumpSDP = function(description) {
 TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
     if (typeof desc !== 'object' || desc === null ||
         typeof desc.sdp !== 'string') {
-        console.warn('An empty description was passed as an argument.');
+        logger.warn('An empty description was passed as an argument.');
         return desc;
     }
 
@@ -308,7 +308,7 @@ TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
 function extractSSRCMap(desc) {
     if (typeof desc !== 'object' || desc === null ||
         typeof desc.sdp !== 'string') {
-        console.warn('An empty description was passed as an argument.');
+        logger.warn('An empty description was passed as an argument.');
         return desc;
     }
 
