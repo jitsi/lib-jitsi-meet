@@ -14,7 +14,7 @@ var JitsiTrackEvents = require("../../JitsiTrackEvents");
  * @constructor
  */
 function JitsiRemoteTrack(RTC, ownerJid, stream, track, mediaType, videoType,
-                          ssrc, muted) {    
+                          ssrc, muted) {
     JitsiTrack.call(
         this, RTC, stream, track, function () {}, mediaType, videoType, ssrc);
     this.rtc = RTC;
@@ -83,7 +83,5 @@ JitsiRemoteTrack.prototype._setVideoType = function (type) {
     this.videoType = type;
     this.eventEmitter.emit(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, type);
 };
-
-delete JitsiRemoteTrack.prototype.dispose;
 
 module.exports = JitsiRemoteTrack;

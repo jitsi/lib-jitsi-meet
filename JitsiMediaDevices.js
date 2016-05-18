@@ -1,6 +1,7 @@
 var EventEmitter = require("events");
 var RTCEvents = require('./service/RTC/RTCEvents');
 var RTC = require("./modules/RTC/RTC");
+var MediaType = require('./service/RTC/MediaType');
 var JitsiMediaDevicesEvents = require('./JitsiMediaDevicesEvents');
 
 var eventEmitter = new EventEmitter();
@@ -28,7 +29,7 @@ var JitsiMediaDevices = {
     /**
      * Returns true if changing the input (camera / microphone) or output
      * (audio) device is supported and false if not.
-     * @params {string} [deviceType] - type of device to change. Default is
+     * @param {string} [deviceType] - type of device to change. Default is
      *      undefined or 'input', 'output' - for audio output device change.
      * @returns {boolean} true if available, false otherwise.
      */
@@ -36,8 +37,26 @@ var JitsiMediaDevices = {
         return RTC.isDeviceChangeAvailable(deviceType);
     },
     /**
-     * Returns currently used audio output device id, '' stands for default
-     * device
+     * Returns true if user granted permission to media devices.
+     * @param {'audio'|'video'} [type] - type of devices to check,
+     *      undefined stands for both 'audio' and 'video' together
+     * @returns {boolean}
+     */
+    isDevicePermissionGranted: function (type) {
+        var permissions = RTC.getDeviceAvailability();
+
+        switch(type) {
+            case MediaType.VIDEO:
+                return permissions.video === true;
+            case MediaType.AUDIO:
+                return permissions.audio === true;
+            default:
+                return permissions.video === true && permissions.audio === true;
+        }
+    },
+    /**
+     * Returns currently used audio output device id, 'default' stands
+     * for default device
      * @returns {string}
      */
     getAudioOutputDevice: function () {
@@ -46,7 +65,8 @@ var JitsiMediaDevices = {
     /**
      * Sets current audio output device.
      * @param {string} deviceId - id of 'audiooutput' device from
-     *      navigator.mediaDevices.enumerateDevices(), '' is for default device
+     *      navigator.mediaDevices.enumerateDevices(), 'default' is for
+     *      default device
      * @returns {Promise} - resolves when audio output is changed, is rejected
      *      otherwise
      */
