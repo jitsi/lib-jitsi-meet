@@ -184,10 +184,10 @@ DataChannels.prototype._onXXXEndpointChanged = function (xxx, userResource) {
     var upper = head.toUpperCase() + tail;
 
     // Notify Videobridge about the specified endpoint change.
-    console.log(lower + ' endpoint changed: ', userResource);
+    logger.log(lower + ' endpoint changed: ', userResource);
     this._some(function (dataChannel) {
         if (dataChannel.readyState == 'open') {
-            console.log(
+            logger.log(
                     'sending ' + lower
                         + ' endpoint changed notification to the bridge: ',
                     userResource);

@@ -1,3 +1,5 @@
+var logger = require("jitsi-meet-logger").getLogger(__filename);
+
 var currentBrowser;
 
 var browserVersion;
@@ -82,7 +84,7 @@ function detectChrome() {
         // We can assume that user agent is chrome, because it's
         // enforced when 'ext' streaming method is set
         var ver = parseInt(userAgent.match(/chrome\/(\d+)\./)[1], 10);
-        console.log("This appears to be Chrome, ver: " + ver);
+        logger.log("This appears to be Chrome, ver: " + ver);
         return ver;
     }
     return null;
@@ -93,7 +95,7 @@ function detectOpera() {
     if (userAgent.match(/Opera|OPR/)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_OPERA;
         var version = userAgent.match(/(Opera|OPR) ?\/?(\d+)\.?/)[2];
-        console.info("This appears to be Opera, ver: " + version);
+        logger.info("This appears to be Opera, ver: " + version);
         return version;
     }
     return null;
@@ -104,7 +106,7 @@ function detectFirefox() {
         currentBrowser = RTCBrowserType.RTC_BROWSER_FIREFOX;
         var version = parseInt(
             navigator.userAgent.match(/Firefox\/([0-9]+)\./)[1], 10);
-        console.log('This appears to be Firefox, ver: ' + version);
+        logger.log('This appears to be Firefox, ver: ' + version);
         return version;
     }
     return null;
@@ -113,7 +115,7 @@ function detectFirefox() {
 function detectSafari() {
     if ((/^((?!chrome).)*safari/i.test(navigator.userAgent))) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_SAFARI;
-        console.info("This appears to be Safari");
+        logger.info("This appears to be Safari");
         // FIXME detect Safari version when needed
         return 1;
     }
@@ -145,7 +147,7 @@ function detectIE() {
 
     if (version) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_IEXPLORER;
-        console.info("This appears to be IExplorer, ver: " + version);
+        logger.info("This appears to be IExplorer, ver: " + version);
     }
     return version;
 }
@@ -155,7 +157,7 @@ function detectNWJS (){
     if (userAgent.match(/JitsiMeetNW/)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_NWJS;
         var version = userAgent.match(/JitsiMeetNW\/([\d.]+)/)[1];
-        console.info("This appears to be JitsiMeetNW, ver: " + version);
+        logger.info("This appears to be JitsiMeetNW, ver: " + version);
         return version;
     }
     return null;
@@ -177,7 +179,7 @@ function detectBrowser() {
         if (version)
             return version;
     }
-    console.warn("Browser type defaults to Safari ver 1");
+    logger.warn("Browser type defaults to Safari ver 1");
     currentBrowser = RTCBrowserType.RTC_BROWSER_SAFARI;
     return 1;
 }

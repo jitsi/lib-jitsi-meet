@@ -411,10 +411,8 @@ function wrapEnumerateDevices(enumerateDevices) {
     return function (callback) {
         // enumerate devices only after initial getUserMedia
         afterUserMediaInitialized(function () {
-
             enumerateDevices().then(callback, function (err) {
-                console.error('cannot enumerate devices: ', err);
-
+                logger.error('cannot enumerate devices: ', err);
                 callback([]);
             });
         });

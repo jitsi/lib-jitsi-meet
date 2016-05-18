@@ -501,7 +501,7 @@ StatsCollector.prototype.processStatsReport = function () {
             key = 'packetsSent';
             packetsNow = getStatValue(now, key);
             if (typeof packetsNow === 'undefined' || packetsNow === null) {
-                console.warn("No packetsReceived nor packetsSent stat found");
+                logger.warn("No packetsReceived nor packetsSent stat found");
                 continue;
             }
         }
