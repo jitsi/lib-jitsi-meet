@@ -2,9 +2,9 @@
 
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
-
 var AuthenticationEvents
     = require("../../service/authentication/AuthenticationEvents");
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 function createExpBackoffTimer(step) {
     var count = 1;
@@ -356,6 +356,8 @@ Moderator.prototype._allocateConferenceFocusError = function (error, callback) {
         return;
     }
     var waitMs = self.getNextErrorTimeout();
+    GlobalOnErrorHandler.callErrorHandler(
+        new Error("Focus error, retry after "+ waitMs));
     logger.error("Focus error, retry after " + waitMs, error);
     // Show message
     var focusComponent = self.getFocusComponent();
@@ -441,12 +443,16 @@ Moderator.prototype.getLoginUrl =  function (urlCallback, failureCallback) {
                 logger.info("Got auth url: " + url);
                 urlCallback(url);
             } else {
+                GlobalOnErrorHandler.callErrorHandler(
+                    new Error("Failed to get auth url from the focus"));
                 logger.error(
                     "Failed to get auth url from the focus", result);
                 failureCallback(result);
             }
         },
         function (error) {
+            GlobalOnErrorHandler.callErrorHandler(
+                new Error("Get auth url error"));
             logger.error("Get auth url error", error);
             failureCallback(error);
         }
@@ -470,12 +476,16 @@ Moderator.prototype.getPopupLoginUrl = function (urlCallback, failureCallback) {
                 logger.info("Got POPUP auth url:  " + url);
                 urlCallback(url);
             } else {
+                GlobalOnErrorHandler.callErrorHandler(
+                    new Error("Failed to get POPUP auth url from the focus"));
                 logger.error(
                     "Failed to get POPUP auth url from the focus", result);
                failureCallback(result);
             }
         },
         function (error) {
+            GlobalOnErrorHandler.callErrorHandler(
+                new Error("Get POPUP auth url error"));
             logger.error('Get POPUP auth url error', error);
             failureCallback(error);
         }
@@ -505,6 +515,7 @@ Moderator.prototype.logout =  function (callback) {
             callback(logoutUrl);
         }.bind(this),
         function (error) {
+            GlobalOnErrorHandler.callErrorHandler(new Error("Logout error"));
             logger.error("Logout error", error);
         }
     );

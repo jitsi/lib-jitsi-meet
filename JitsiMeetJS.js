@@ -15,6 +15,7 @@ var RTCUIHelper = require("./modules/RTC/RTCUIHelper");
 var Statistics = require("./modules/statistics/statistics");
 var Resolutions = require("./service/RTC/Resolutions");
 var ScriptUtil = require("./modules/util/ScriptUtil");
+var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 
 function getLowerResolution(resolution) {
     if(!Resolutions[resolution])
@@ -58,29 +59,10 @@ var LibJitsiMeet = {
     _gumFailedHandler: [],
     init: function (options) {
         Statistics.audioLevelsEnabled = !options.disableAudioLevels;
-
+        
         if (options.enableWindowOnErrorHandler) {
-            // if an old handler exists also fire its events
-            var oldOnErrorHandler = window.onerror;
-            window.onerror = function (message, source, lineno, colno, error) {
-
-                this.getGlobalOnErrorHandler(
-                    message, source, lineno, colno, error);
-
-                if (oldOnErrorHandler)
-                    oldOnErrorHandler(message, source, lineno, colno, error);
-            }.bind(this);
-
-            // if an old handler exists also fire its events
-            var oldOnUnhandledRejection = window.onunhandledrejection;
-            window.onunhandledrejection = function(event) {
-
-                this.getGlobalOnErrorHandler(
-                    null, null, null, null, event.reason);
-
-                if(oldOnUnhandledRejection)
-                    oldOnUnhandledRejection(event);
-            }.bind(this);
+            GlobalOnErrorHandler.addHandler(
+                this.getGlobalOnErrorHandler.bind(this));
         }
 
         return RTC.init(options || {});

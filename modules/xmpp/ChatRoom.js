@@ -6,6 +6,8 @@ var MediaType = require("../../service/RTC/MediaType");
 var Moderator = require("./moderator");
 var EventEmitter = require("events");
 var Recorder = require("./recording");
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
+
 var JIBRI_XMLNS = 'http://jitsi.org/protocol/jibri';
 
 var parser = {
@@ -198,8 +200,9 @@ ChatRoom.prototype.createNonAnonymousRoom = function () {
         if (!$(form).find(
                 '>query>x[xmlns="jabber:x:data"]' +
                 '>field[var="muc#roomconfig_whois"]').length) {
-
-            logger.error('non-anonymous rooms not supported');
+            GlobalOnErrorHandler.callErrorHandler(
+                new Error("non-anonymous rooms not supported"));
+            logger.error("non-anonymous rooms not supported");
             return;
         }
 
@@ -218,6 +221,7 @@ ChatRoom.prototype.createNonAnonymousRoom = function () {
         self.connection.sendIQ(formSubmit);
 
     }, function (error) {
+        GlobalOnErrorHandler.callErrorHandler(error);
         logger.error("Error getting room configuration form");
     });
 };
@@ -374,6 +378,7 @@ ChatRoom.prototype.processNode = function (node, from) {
             this.presHandlers[node.tagName](
                 node, Strophe.getResourceFromJid(from), from);
     } catch (e) {
+        GlobalOnErrorHandler.callErrorHandler(e);
         logger.error('Error processing:' + node.tagName
             + ' node.', e);
     }

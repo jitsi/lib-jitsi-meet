@@ -4,6 +4,7 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("../RTC/RTCBrowserType");
 var StatisticsEvents = require("../../service/statistics/Events");
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 /* Whether we support the browser we are running into for logging statistics */
 var browserSupported = RTCBrowserType.isChrome() ||
@@ -300,6 +301,7 @@ StatsCollector.prototype.stop = function () {
  * @param error an error that occurred on <tt>getStats</tt> call.
  */
 StatsCollector.prototype.errorCallback = function (error) {
+    GlobalOnErrorHandler.callErrorHandler(error);
     logger.error("Get stats error", error);
     this.stop();
 };
@@ -322,7 +324,6 @@ StatsCollector.prototype.start = function () {
                     else {
                         results = report.result();
                     }
-                    //logger.error("Got interval report", results);
                     self.currentAudioLevelsReport = results;
                     self.processAudioLevelReport();
                     self.baselineAudioLevelsReport =
@@ -350,12 +351,12 @@ StatsCollector.prototype.start = function () {
                             //chrome
                             results = report.result();
                         }
-                        //logger.error("Got interval report", results);
                         self.currentStatsReport = results;
                         try {
                             self.processStatsReport();
                         }
                         catch (e) {
+                            GlobalOnErrorHandler.callErrorHandler(e);
                             logger.error("Unsupported key:" + e, e);
                         }
 

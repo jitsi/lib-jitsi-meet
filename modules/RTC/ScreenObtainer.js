@@ -4,6 +4,7 @@ var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
 var AdapterJS = require("./adapter.screenshare");
 var JitsiTrackErrors = require("../../JitsiTrackErrors");
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 /**
  * Indicates whether the Chrome desktop sharing extension is installed.
@@ -295,6 +296,7 @@ function isUpdateRequired(minVersion, extVersion) {
         return false;
     }
     catch (e) {
+        GlobalOnErrorHandler.callErrorHandler(e);
         logger.error("Failed to parse extension version", e);
         return true;
     }
