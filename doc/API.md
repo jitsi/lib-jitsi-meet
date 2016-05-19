@@ -175,7 +175,6 @@ This objects represents the server connection. You can create new ```JitsiConnec
         2. hosts - JS Object
             - domain
             - muc
-            - bridge
             - anonymousdomain
         3. useStunTurn -
 
