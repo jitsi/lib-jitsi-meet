@@ -124,14 +124,6 @@ Moderator.prototype.createConferenceIq =  function () {
     if (sessionId) {
         elem.attrs({ 'session-id': sessionId});
     }
-    if (this.options.connection.hosts !== undefined
-        && this.options.connection.hosts.bridge !== undefined) {
-        elem.c(
-            'property', {
-                name: 'bridge',
-                value: this.options.connection.hosts.bridge
-            }).up();
-    }
     if (this.options.connection.enforcedBridge !== undefined) {
         elem.c(
             'property', {
