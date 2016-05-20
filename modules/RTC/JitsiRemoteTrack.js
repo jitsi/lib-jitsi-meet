@@ -11,15 +11,17 @@ var JitsiTrackEvents = require("../../JitsiTrackEvents");
  * @param videoType the VideoType of the JitsiRemoteTrack
  * @param ssrc the SSRC number of the Media Stream
  * @param muted intial muted state of the JitsiRemoteTrack
+ * @param isFake true if the track is not associated with Media Stream.
  * @constructor
  */
 function JitsiRemoteTrack(RTC, ownerJid, stream, track, mediaType, videoType,
-                          ssrc, muted) {
+                          ssrc, muted, isFake) {
     JitsiTrack.call(
         this, RTC, stream, track, function () {}, mediaType, videoType, ssrc);
     this.rtc = RTC;
     this.peerjid = ownerJid;
     this.muted = muted;
+    this.isFake = isFake? isFake : false;
 }
 
 JitsiRemoteTrack.prototype = Object.create(JitsiTrack.prototype);

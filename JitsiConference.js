@@ -635,6 +635,16 @@ JitsiConference.prototype.onTrackAdded = function (track) {
     if (!participant) {
         return;
     }
+
+    //FIXME: This is temporary fix
+    //Make sure that no fake tracks are left.
+    if(track.isVideoTrack() && !track.isFake) {
+        //Remove the fake video track
+        participant._tracks = participant._tracks.filter(function (track) {
+            return !track.isFake;
+        });
+    }
+
     // add track to JitsiParticipant
     participant._tracks.push(track);
 
