@@ -636,18 +636,13 @@ JitsiConference.prototype.onTrackAdded = function (track) {
         return;
     }
 
+    //FIXME: This is temporary fix
     //Make sure that no fake tracks are left.
     if(track.isVideoTrack() && !track.isFake) {
-        //Remove all other video tracks
-        var tracks = participant.getTracks();
-        for(var i = 0; i < tracks.length; i++) {
-            if(tracks[i]
-                && tracks[i].isVideoTrack()
-                && tracks[i].isFake) {
-                participant._tracks.splice(i, 1)[0];
-                break;//we can have max 1 fake track
-            }
-        }
+        //Remove the fake video track
+        participant._tracks = participant._tracks.filter(function (track) {
+            return !track.isFake;
+        });
     }
 
     // add track to JitsiParticipant
