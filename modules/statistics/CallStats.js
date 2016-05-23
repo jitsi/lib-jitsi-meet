@@ -303,6 +303,7 @@ function(overallFeedback, detailedFeedback) {
  */
 CallStats._reportError = function (type, e, pc) {
     if(!e) {
+        logger.warn("No error is passed!");
         e = new Error("Unknown error");
     }
     if (callStats) {
