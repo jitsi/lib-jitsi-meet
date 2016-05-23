@@ -1257,7 +1257,7 @@ JingleSessionPC.prototype.remoteTrackAdded = function (stream, track) {
     }
 
     var remoteSDP = new SDP(this.peerconnection.remoteDescription.sdp);
-    var medialines = remoteSDP.media.filter(function (mediaLines){
+    var medialines = remoteSDP.media.filter(function (mediaLines) {
         return mediaLines.startsWith("m=" + mediaType);
     });
 
@@ -1268,11 +1268,8 @@ JingleSessionPC.prototype.remoteTrackAdded = function (stream, track) {
 
     var ssrclines = SDPUtil.find_lines(medialines[0], 'a=ssrc:');
     ssrclines = ssrclines.filter(function (line) {
-        if (RTCBrowserType.isTemasysPluginUsed()) {
-            return ((line.indexOf('mslabel:' + streamId) !== -1));
-        } else {
-            return ((line.indexOf('msid:' + streamId) !== -1));
-        }
+        var msid = RTCBrowserType.isTemasysPluginUsed() ? 'mslabel' : 'msid';
+        return line.indexOf(msid + ':' + streamId) !== -1;
     });
 
     var thessrc;
