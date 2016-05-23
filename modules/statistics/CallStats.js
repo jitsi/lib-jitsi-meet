@@ -241,10 +241,6 @@ CallStats.sendDominantSpeakerEvent = _try_catch(function (cs) {
  * @private
  */
 CallStats._reportEvent = function (event) {
-    if(!event) {
-        logger.warn("No event is passed!");
-        return;
-    }
     if (callStats) {
         callStats.sendFabricEvent(this.peerconnection, event, this.confID);
     } else {
@@ -306,11 +302,9 @@ function(overallFeedback, detailedFeedback) {
  * @private
  */
 CallStats._reportError = function (type, e, pc) {
-    if(!e) {//nothing to report
-        logger.warn("No error is passed!");
-        return;
+    if(!e) {
+        e = new Error("Unknown error");
     }
-
     if (callStats) {
         callStats.reportError(pc, this.confID, type, e);
     } else {
