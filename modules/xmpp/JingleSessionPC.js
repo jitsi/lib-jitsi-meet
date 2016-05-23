@@ -491,13 +491,29 @@ JingleSessionPC._fixAnswerRFC4145Setup = function (offer, answer) {
 JingleSessionPC.prototype.replaceTransport = function (jingleOfferElem,
                                                        success,
                                                        failure) {
-    // Set offer as RD
-    this.setOfferCycle(jingleOfferElem,
-        function () {
-            // Set local description OK, now localSDP up to date
-            this.sendTransportAccept(this.localSDP, success, failure);
-        }.bind(this),
-        failure);
+    
+    // We need to first set an offer without the 'data' section to have the SCTP
+    // stack cleaned up. After that the original offer is set to have the SCTP
+    // connection established with the new bridge.
+    this.room.eventEmitter.emit(XMPPEvents.ICE_RESTARTING);
+    var originalOffer = jingleOfferElem.clone();
+    jingleOfferElem.find(">content[name='data']").remove();
+
+    var self = this;
+    // First set an offer without the 'data' section
+    this.setOfferCycle(
+        jingleOfferElem,
+        function() {
+            // Now set the original offer(with the 'data' section)
+            self.setOfferCycle(originalOffer,
+                function () {
+                    // Set local description OK, now localSDP up to date
+                    self.sendTransportAccept(self.localSDP, success, failure);
+                },
+                failure);
+        },
+        failure
+    );
 };
 
 /**

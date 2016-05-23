@@ -43,6 +43,11 @@ var XMPPEvents = {
     FOCUS_DISCONNECTED: 'xmpp.focus_disconnected',
     FOCUS_LEFT: "xmpp.focus_left",
     GRACEFUL_SHUTDOWN: "xmpp.graceful_shutdown",
+    /**
+     * Event fired when 'transport-replace' Jingle message has been received,
+     * before the new offer is set on the PeerConnection.
+     */
+    ICE_RESTARTING: "rtc.ice_restarting",
     /* Event fired when XMPP error is returned to any request, it is meant to be
      * used to report 'signaling' errors to CallStats
      *
