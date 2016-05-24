@@ -11,6 +11,11 @@ var SIMULCAST_LAYERS = 3;
 function TraceablePeerConnection(ice_config, constraints, session) {
     var self = this;
     this.session = session;
+
+    if (session.room.options.debug) {
+        this.history = [];
+    }
+
     this.replaceSSRCs = {
         "audio": [],
         "video": []
@@ -518,12 +523,34 @@ TraceablePeerConnection.prototype.createDataChannel = function (label, opts) {
 
 TraceablePeerConnection.prototype.setLocalDescription
         = function (description, successCallback, failureCallback) {
-    this.trace('setLocalDescription::preTransform', dumpSDP(description));
+
+    if (this.history) {
+        // Add a point in history.
+        var point = {
+            action: 'setLocalDescription',
+            transformations: []
+        };
+
+        // Add a transformation in the point.
+        point.transformations.push({
+            name: 'setLocalDescription',
+            sessionDescription: description
+        });
+
+        this.history.push(point);
+    }
+
     // if we're running on FF, transform to Plan A first.
     if (RTCBrowserType.usesUnifiedPlan()) {
         description = this.interop.toUnifiedPlan(description);
-        this.trace('setLocalDescription::postTransform (Plan A)',
-            dumpSDP(description));
+
+        if (this.history) {
+            var point = this.history[this.history.length - 1];
+            point.transformations.push({
+                name: 'unifiedPlan',
+                sessionDescription: description
+            });
+        }
     }
 
     var self = this;
@@ -543,19 +570,57 @@ TraceablePeerConnection.prototype.setLocalDescription
 
 TraceablePeerConnection.prototype.setRemoteDescription
         = function (description, successCallback, failureCallback) {
-    this.trace('setRemoteDescription::preTransform', dumpSDP(description));
+
+    if (this.history) {
+        // Add a point in history.
+        var point = {
+            action: 'setRemoteDescription',
+            transformations: []
+        };
+
+        // Add a transformation in the point.
+        point.transformations.push({
+            name: 'setRemoteDescription',
+            sessionDescription: description
+        });
+
+        this.history.push(point);
+    }
+
     // TODO the focus should squeze or explode the remote simulcast
     description = this.simulcast.mungeRemoteDescription(description);
-    this.trace('setRemoteDescription::postTransform (simulcast)', dumpSDP(description));
+
+    if (this.history) {
+        var point = this.history[this.history.length - 1];
+        point.transformations.push({
+            name: 'simulcast',
+            sessionDescription: description
+        });
+    }
 
     // if we're running on FF, transform to Plan A first.
     if (RTCBrowserType.usesUnifiedPlan()) {
         description = this.interop.toUnifiedPlan(description);
-        this.trace('setRemoteDescription::postTransform (Plan A)', dumpSDP(description));
+
+        if (this.history) {
+            var point = this.history[this.history.length - 1];
+            point.transformations.push({
+                name: 'unifiedPlan',
+                sessionDescription: description
+            });
+        }
     }
 
     if (RTCBrowserType.usesPlanB()) {
         description = normalizePlanB(description);
+
+        if (this.history) {
+            var point = this.history[this.history.length - 1];
+            point.transformations.push({
+                name: 'normalizePlanB',
+                sessionDescription: description
+            });
+        }
     }
 
     var self = this;
@@ -593,26 +658,62 @@ TraceablePeerConnection.prototype.createAnswer
     this.trace('createAnswer', JSON.stringify(constraints, null, ' '));
     this.peerconnection.createAnswer(
         function (answer) {
-            self.trace('createAnswerOnSuccess::preTransform', dumpSDP(answer));
+
+            if (self.history) {
+                // Add a point in history.
+                var point = {
+                    action: 'createAnswer',
+                    transformations: []
+                };
+
+                // Add a transformation in the point.
+                point.transformations.push({
+                    name: 'createAnswer',
+                    sessionDescription: answer
+                });
+
+                self.history.push(point);
+            }
+
             // if we're running on FF, transform to Plan A first.
             if (RTCBrowserType.usesUnifiedPlan()) {
                 answer = self.interop.toPlanB(answer);
-                self.trace('createAnswerOnSuccess::postTransform (Plan B)',
-                    dumpSDP(answer));
+
+                if (self.history) {
+                    // Add a transformation in the point.
+                    var point = self.history[self.history.length - 1];
+                    point.transformations.push({
+                        name: 'toPlanB',
+                        sessionDescription: answer
+                    });
+                }
             }
 
-            if (!self.session.room.options.disableSimulcast
+            if (self.numOfSimulcastLayers > 1
                 && self.simulcast.isSupported()) {
                 answer = self.simulcast.mungeLocalDescription(answer);
-                self.trace('createAnswerOnSuccess::postTransform (simulcast)',
-                    dumpSDP(answer));
+
+                if (self.history) {
+                    // Add a transformation in the point.
+                    var point = self.history[self.history.length - 1];
+                    point.transformations.push({
+                        name: 'simulcast',
+                        sessionDescription: answer
+                    });
+                }
             }
 
             if (!RTCBrowserType.isFirefox())
             {
                 answer = self.ssrcReplacement(answer);
-                self.trace('createAnswerOnSuccess::mungeLocalVideoSSRC',
-                    dumpSDP(answer));
+
+                if (self.history) {
+                    // Add a transformation in the point.
+                    point.transformations.push({
+                        name: 'ssrcReplacement',
+                        sessionDescription: answer
+                    });
+                }
             }
 
             self.eventEmitter.emit(XMPPEvents.SENDRECV_STREAMS_CHANGED,
