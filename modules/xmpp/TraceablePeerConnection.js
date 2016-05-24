@@ -6,7 +6,7 @@ var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var transform = require('sdp-transform');
 var RandomUtil = require('../util/RandomUtil');
 
-var SIMULCAST_LAYERS = 3;
+var DEFAULT_NUM_OF_SIMULCAST_LAYERS = 3;
 
 function TraceablePeerConnection(ice_config, constraints, session) {
     var self = this;
@@ -14,6 +14,18 @@ function TraceablePeerConnection(ice_config, constraints, session) {
 
     if (session.room.options.debug) {
         this.history = [];
+    }
+
+    if (session.room.options.numOfSimulcastLayers)
+    {
+        // New option takes precedence.
+        this.numOfSimulcastLayers = session.room.options.numOfSimulcastLayers;
+    }
+    else
+    {
+        // Backwards compatibility.
+        this.numOfSimulcastLayers = session.room.options.disableSimulcast
+            ? 1 : DEFAULT_NUM_OF_SIMULCAST_LAYERS;
     }
 
     this.replaceSSRCs = {
@@ -37,7 +49,7 @@ function TraceablePeerConnection(ice_config, constraints, session) {
     var Interop = require('sdp-interop').Interop;
     this.interop = new Interop();
     var Simulcast = require('sdp-simulcast');
-    this.simulcast = new Simulcast({numOfLayers: SIMULCAST_LAYERS,
+    this.simulcast = new Simulcast({numOfLayers: this.numOfSimulcastLayers,
         explodeRemoteSimulcast: false});
     this.eventEmitter = this.session.room.eventEmitter;
 
@@ -768,10 +780,10 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
  * - groups - Array of the groups associated with the stream.
  */
 TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
-    if (!this.session.room.options.disableSimulcast
+    if (this.numOfSimulcastLayers > 1
         && this.simulcast.isSupported()) {
         var ssrcInfo = {ssrcs: [], groups: []};
-        for(var i = 0; i < SIMULCAST_LAYERS; i++)
+        for(var i = 0; i < this.numOfSimulcastLayers; i++)
             ssrcInfo.ssrcs.push(RandomUtil.randomInt(1, 0xffffffff));
         ssrcInfo.groups.push({
             primarySSRC: ssrcInfo.ssrcs[0],
