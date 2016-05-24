@@ -636,15 +636,6 @@ JitsiConference.prototype.onTrackAdded = function (track) {
         return;
     }
 
-    //FIXME: This is temporary fix
-    //Make sure that no fake tracks are left.
-    if(track.isVideoTrack() && !track.isFake) {
-        //Remove the fake video track
-        participant._tracks = participant._tracks.filter(function (track) {
-            return !track.isFake;
-        });
-    }
-
     // add track to JitsiParticipant
     participant._tracks.push(track);
 
@@ -964,11 +955,6 @@ function setupListeners(conference) {
                     }
                 }
             });
-        }
-    );
-    conference.rtc.addListener(RTCEvents.FAKE_VIDEO_TRACK_CREATED,
-        function (track) {
-            conference.onTrackAdded(track);
         }
     );
 

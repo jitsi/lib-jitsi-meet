@@ -42,21 +42,9 @@ function RTC(room, options) {
     var self = this;
     this.options = options || {};
     room.addPresenceListener("videomuted", function (values, from) {
-        if(!self.remoteTracks[from])
-            return;
         var videoTrack = self.getRemoteVideoTrack(from);
-        // If there is no video track, but we receive it is muted,
-        // we need to create a dummy track which we will mute, so we can
-        // notify interested about the muting
         if (!videoTrack) {
-            videoTrack = self.createRemoteTrack({
-                    owner: room.roomjid + "/" + from,
-                    videoType: VideoType.CAMERA,
-                    mediaType: MediaType.VIDEO,
-                    isFake: true
-                });
-            self.eventEmitter
-                .emit(RTCEvents.FAKE_VIDEO_TRACK_CREATED, videoTrack);
+            return;
         }
         videoTrack.setMute(values.value == "true");
     });
@@ -258,7 +246,7 @@ RTC.prototype.createRemoteTrack = function (event) {
     var ownerJid = event.owner;
     var remoteTrack = new JitsiRemoteTrack(
         this,  ownerJid, event.stream,    event.track,
-        event.mediaType, event.videoType, event.ssrc, event.muted, event.isFake);
+        event.mediaType, event.videoType, event.ssrc, event.muted);
     var resource = Strophe.getResourceFromJid(ownerJid);
     if(!this.remoteTracks[resource]) {
         this.remoteTracks[resource] = {};
