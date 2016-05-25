@@ -16,6 +16,8 @@ var RTCBrowserType = {
 
     RTC_BROWSER_IEXPLORER: "rtc_browser.iexplorer",
 
+    RTC_BROWSER_EDGE: "rtc_browser.edge",
+
     RTC_BROWSER_SAFARI: "rtc_browser.safari",
 
     RTC_BROWSER_NWJS: "rtc_browser.nwjs",
@@ -38,7 +40,9 @@ var RTCBrowserType = {
     isIExplorer: function () {
         return currentBrowser === RTCBrowserType.RTC_BROWSER_IEXPLORER;
     },
-
+    isEdge: function () {
+        return currentBrowser === RTCBrowserType.RTC_BROWSER_EDGE;
+    },
     isSafari: function () {
         return currentBrowser === RTCBrowserType.RTC_BROWSER_SAFARI;
     },
@@ -63,6 +67,10 @@ var RTCBrowserType = {
 
     usesUnifiedPlan: function() {
         return RTCBrowserType.isFirefox();
+    },
+
+    usesORTC: function () {
+        return RTCBrowserType.isEdge();
     },
 
     /**
@@ -152,6 +160,18 @@ function detectIE() {
     return version;
 }
 
+function detectEdge() {
+    var ua = navigator.userAgent;
+    var idx = ua.indexOf('Edge/');
+    if (idx >= 0) {
+        currentBrowser = RTCBrowserType.RTC_BROWSER_EDGE;
+        var version = parseInt(ua.substring(idx + 5, ua.indexOf('.', idx)), 10);
+        logger.log('This appears to be Edge, ver: ' + version);
+        return version;
+    }
+    return null;
+}
+
 function detectNWJS (){
     var userAgent = navigator.userAgent;
     if (userAgent.match(/JitsiMeetNW/)) {
@@ -170,6 +190,7 @@ function detectBrowser() {
         detectOpera,
         detectChrome,
         detectFirefox,
+        detectEdge,
         detectIE,
         detectSafari
     ];

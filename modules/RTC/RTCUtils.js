@@ -61,6 +61,9 @@ var rawEnumerateDevicesWithCallback = navigator.mediaDevices
 // http://w3c.github.io/mediacapture-main/#event-mediadevices-devicechange
 // TODO: check MS Edge
 var isDeviceChangeEventSupported = false;
+if (RTCBrowserType.isEdge()) {
+    isDeviceChangeEventSupported = true;
+}
 
 var rtcReady = false;
 
@@ -389,6 +392,23 @@ function wrapGetUserMedia(getUserMedia) {
   };
 }
 
+function wrapGetUserMediaPromise(getUserMedia) {
+    return function (constraints, successCallback, errorCallback) {
+        getUserMedia(constraints).then(function (stream) {
+            maybeApply(successCallback, [stream]);
+            if (!getUserMediaStatus.initialized) {
+                getUserMediaStatus.initialized = true;
+                getUserMediaStatus.callbacks.forEach(function (callback) {
+                    callback();
+                });
+                getUserMediaStatus.callbacks.length = 0;
+            }
+        }).catch(function (error) {
+            maybeApply(errorCallback, [error]);
+        });
+    };
+}
+
 /**
  * Execute function after getUserMedia was executed at least once.
  * @param {Function} callback function to execute after getUserMedia
@@ -495,10 +515,11 @@ function handleLocalStream(streams, resolution) {
         // (with a result which meets our requirements expressed bellow) calling
         // getUserMedia once for both audio and video.
         var audioVideo = streams.audioVideo;
+        var MediaStreamClass = window.webkitMediaStream || MediaStream;
         if (audioVideo) {
             var audioTracks = audioVideo.getAudioTracks();
             if (audioTracks.length) {
-                audioStream = new webkitMediaStream();
+                audioStream = new MediaStreamClass();
                 for (var i = 0; i < audioTracks.length; i++) {
                     audioStream.addTrack(audioTracks[i]);
                 }
@@ -506,7 +527,7 @@ function handleLocalStream(streams, resolution) {
 
             var videoTracks = audioVideo.getVideoTracks();
             if (videoTracks.length) {
-                videoStream = new webkitMediaStream();
+                videoStream = new MediaStreamClass();
                 for (var j = 0; j < videoTracks.length; j++) {
                     videoStream.addTrack(videoTracks[j]);
                 }
@@ -689,6 +710,48 @@ var RTCUtils = {
                         return this.audioTracks;
                     };
                 }
+            }
+            else if (RTCBrowserType.isEdge()) {
+                var self = this;
+                var devices = navigator.mediaDevices;
+
+                this.getUserMedia = wrapGetUserMediaPromise(
+                    devices.getUserMedia.bind(devices)
+                );
+                this.attachMediaStream = wrapAttachMediaStream(function (element, stream) {
+                    if (!element) {
+                        return;
+                    }
+                    element.srcObject = stream;
+                    element.play();
+
+                    return element;
+                });
+                this.enumerateDevices = wrapEnumerateDevices(
+                    devices.enumerateDevices.bind(devices)
+                );
+                this.getStreamID = function (stream) {
+                    var id = stream.id;
+                    if (!id) {
+                        var tracks = stream.getVideoTracks();
+                        if (!tracks || tracks.length === 0) {
+                            tracks = stream.getAudioTracks();
+                        }
+                        id = tracks[0].id;
+                    }
+                    return SDPUtil.filter_special_chars(id);
+                };
+                this.getVideoSrc = function (element) {
+                    if (!element) {
+                        return null;
+                    }
+                    return element.srcObject;
+                };
+                this.setVideoSrc = function (element, src) {
+                    if (element) {
+                        element.srcObject = src;
+                    }
+                };
             }
             // Detect IE/Safari
             else if (RTCBrowserType.isTemasysPluginUsed()) {
@@ -954,6 +1017,7 @@ var RTCUtils = {
             : RTCBrowserType.isChrome() ||
                 RTCBrowserType.isFirefox() ||
                 RTCBrowserType.isOpera() ||
+                RTCBrowserType.isEdge() ||
                 RTCBrowserType.isTemasysPluginUsed()||
                 RTCBrowserType.isNWJS();
     },
