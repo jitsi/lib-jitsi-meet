@@ -106,8 +106,7 @@ function acceptReport(id, type) {
  * Peer statistics data holder.
  * @constructor
  */
-function PeerStats()
-{
+function PeerStats() {
     this.ssrc2Loss = {};
     this.ssrc2AudioLevel = {};
     this.ssrc2bitrate = {
@@ -167,7 +166,6 @@ PeerStats.prototype.setSsrcAudioLevel = function (audioLevel) {
 
 function ConferenceStats() {
 
-
     /**
      * The bandwidth
      * @type {{}}
@@ -185,7 +183,6 @@ function ConferenceStats() {
      * @type {{}}
      */
     this.packetLoss = null;
-
 
     /**
      * Array with the transport information.
@@ -233,8 +230,7 @@ function StatsCollector(peerconnection, audioLevelsInterval, statsInterval, even
     /**
      * Stores the statistics which will be send to the focus to be logged.
      */
-    this.statsToBeLogged =
-    {
+    this.statsToBeLogged = {
         timestamps: [],
         stats: {}
     };
@@ -259,14 +255,12 @@ StatsCollector.prototype.stop = function () {
         this.audioLevelsIntervalId = null;
     }
 
-    if (this.statsIntervalId)
-    {
+    if (this.statsIntervalId) {
         clearInterval(this.statsIntervalId);
         this.statsIntervalId = null;
     }
 
-    if(this.gatherStatsIntervalId)
-    {
+    if (this.gatherStatsIntervalId) {
         clearInterval(this.gatherStatsIntervalId);
         this.gatherStatsIntervalId = null;
     }
@@ -276,8 +270,7 @@ StatsCollector.prototype.stop = function () {
  * Callback passed to <tt>getStats</tt> method.
  * @param error an error that occurred on <tt>getStats</tt> call.
  */
-StatsCollector.prototype.errorCallback = function (error)
-{
+StatsCollector.prototype.errorCallback = function (error) {
     logger.error("Get stats error", error);
     this.stop();
 };
@@ -285,8 +278,7 @@ StatsCollector.prototype.errorCallback = function (error)
 /**
  * Starts stats updates.
  */
-StatsCollector.prototype.start = function ()
-{
+StatsCollector.prototype.start = function () {
     var self = this;
     this.audioLevelsIntervalId = setInterval(
         function () {
@@ -458,16 +450,17 @@ StatsCollector.prototype.processStatsReport = function () {
             continue;
         }
 
-        if(now.type == "candidatepair")
-        {
+        if(now.type == "candidatepair") {
             if(now.state == "succeeded")
                 continue;
 
             var local = this.currentStatsReport[now.localCandidateId];
             var remote = this.currentStatsReport[now.remoteCandidateId];
-            this.conferenceStats.transport.push({localip: local.ipAddress + ":" + local.portNumber,
-                ip: remote.ipAddress + ":" + remote.portNumber, type: local.transport});
-
+            this.conferenceStats.transport.push({
+                localip: local.ipAddress + ":" + local.portNumber,
+                ip: remote.ipAddress + ":" + remote.portNumber,
+                type: local.transport
+            });
         }
 
         if (now.type != 'ssrc' && now.type != "outboundrtp" &&
@@ -619,7 +612,8 @@ StatsCollector.prototype.processStatsReport = function () {
         this
     );
 
-    this.conferenceStats.bitrate = {"upload": bitrateUpload, "download": bitrateDownload};
+    this.conferenceStats.bitrate
+      = {"upload": bitrateUpload, "download": bitrateDownload};
 
     this.conferenceStats.packetLoss = {
         total:
@@ -630,8 +624,7 @@ StatsCollector.prototype.processStatsReport = function () {
         upload:
             calculatePacketLoss(lostPackets.upload, totalPackets.upload)
     };
-    this.eventEmitter.emit(StatisticsEvents.CONNECTION_STATS,
-        {
+    this.eventEmitter.emit(StatisticsEvents.CONNECTION_STATS, {
             "bitrate": this.conferenceStats.bitrate,
             "packetLoss": this.conferenceStats.packetLoss,
             "bandwidth": this.conferenceStats.bandwidth,
@@ -639,7 +632,6 @@ StatsCollector.prototype.processStatsReport = function () {
             "transport": this.conferenceStats.transport
         });
     this.conferenceStats.transport = [];
-
 };
 
 /**
@@ -666,7 +658,7 @@ StatsCollector.prototype.processAudioLevelReport = function () {
 
         var ssrc = getStatValue(now, 'ssrc');
         if (!ssrc) {
-            if((Date.now() - now.timestamp) < 3000)
+            if ((Date.now() - now.timestamp) < 3000)
                 logger.warn("No ssrc: ");
             continue;
         }

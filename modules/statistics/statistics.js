@@ -6,13 +6,13 @@ var StatisticsEvents = require("../../service/statistics/Events");
 var CallStats = require("./CallStats");
 var ScriptUtil = require('../util/ScriptUtil');
 
-// Since callstats.io is a third party, we cannot guarantee the quality of
-// their service. More specifically, their server may take noticeably long
-// time to respond. Consequently, it is in our best interest (in the sense
-// that the intergration of callstats.io is pretty important to us but not
-// enough to allow it to prevent people from joining a conference) to (1)
-// start downloading their API as soon as possible and (2) do the
-// downloading asynchronously.
+// Since callstats.io is a third party, we cannot guarantee the quality of their
+// service. More specifically, their server may take noticeably long time to
+// respond. Consequently, it is in our best interest (in the sense that the
+// intergration of callstats.io is pretty important to us but not enough to
+// allow it to prevent people from joining a conference) to (1) start
+// downloading their API as soon as possible and (2) do the downloading
+// asynchronously.
 function loadCallStatsAPI() {
     ScriptUtil.loadScript(
             'https://api.callstats.io/static/callstats.min.js',
@@ -21,7 +21,6 @@ function loadCallStatsAPI() {
     // FIXME At the time of this writing, we hope that the callstats.io API will
     // have loaded by the time we needed it (i.e. CallStats.init is invoked).
 }
-
 
 /**
  * Log stats via the focus once every this many milliseconds.
@@ -37,17 +36,16 @@ function Statistics(xmpp, options) {
     this.options = options || {};
     this.callStatsIntegrationEnabled
         = this.options.callStatsID && this.options.callStatsSecret
-        // Even though AppID and AppSecret may be specified, the integration of
-        // callstats.io may be disabled because of globally-disallowed requests
-        // to any third parties.
-        && (this.options.disableThirdPartyRequests !== true);
+            // Even though AppID and AppSecret may be specified, the integration
+            // of callstats.io may be disabled because of globally-disallowed
+            // requests to any third parties.
+            && (this.options.disableThirdPartyRequests !== true);
     if(this.callStatsIntegrationEnabled)
         loadCallStatsAPI();
     this.callStats = null;
 
     /**
-     * Send the stats already saved in rtpStats to be logged via
-     * the focus.
+     * Send the stats already saved in rtpStats to be logged via the focus.
      */
     this.logStatsIntervalId = null;
 }
@@ -80,15 +78,13 @@ Statistics.startLocalStats = function (stream, callback) {
     localStats.start();
 };
 
-Statistics.prototype.addAudioLevelListener = function(listener)
-{
+Statistics.prototype.addAudioLevelListener = function(listener) {
     if(!Statistics.audioLevelsEnabled)
         return;
     this.eventEmitter.on(StatisticsEvents.AUDIO_LEVEL, listener);
 };
 
-Statistics.prototype.removeAudioLevelListener = function(listener)
-{
+Statistics.prototype.removeAudioLevelListener = function(listener) {
     if(!Statistics.audioLevelsEnabled)
         return;
     this.eventEmitter.removeListener(StatisticsEvents.AUDIO_LEVEL, listener);
@@ -113,7 +109,6 @@ Statistics.prototype.dispose = function () {
             eventEmitter.removeAllListeners();
     }
 };
-
 
 Statistics.stopAllLocalStats = function () {
     if(!Statistics.audioLevelsEnabled)
