@@ -13,6 +13,7 @@ var Statistics = require("./modules/statistics/statistics");
 var JitsiDTMFManager = require('./modules/DTMF/JitsiDTMFManager');
 var JitsiTrackEvents = require("./JitsiTrackEvents");
 var JitsiTrackErrors = require("./JitsiTrackErrors");
+var JitsiTrackError = require("./JitsiTrackError");
 var Settings = require("./modules/settings/Settings");
 var ComponentsVersions = require("./modules/version/ComponentsVersions");
 
@@ -315,7 +316,7 @@ JitsiConference.prototype.setSubject = function (subject) {
 JitsiConference.prototype.addTrack = function (track) {
     if(track.disposed)
     {
-        throw new Error(JitsiTrackErrors.TRACK_IS_DISPOSED);
+        throw new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED);
     }
 
     if (track.isVideoTrack() && this.rtc.getLocalVideoTrack()) {
