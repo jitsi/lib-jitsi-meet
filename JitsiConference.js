@@ -629,6 +629,13 @@ JitsiConference.prototype.onDisplayNameChanged = function (jid, displayName) {
     this.eventEmitter.emit(JitsiConferenceEvents.DISPLAY_NAME_CHANGED, id, displayName);
 };
 
+/**
+ * Notifies this JitsiConference that a JitsiRemoteTrack was added (into the
+ * ChatRoom of this JitsiConference).
+ *
+ * @param {JitsiRemoteTrack} track the JitsiRemoteTrack which was added to this
+ * JitsiConference
+ */
 JitsiConference.prototype.onTrackAdded = function (track) {
     var id = track.getParticipantId();
     var participant = this.getParticipantById(id);
@@ -636,16 +643,7 @@ JitsiConference.prototype.onTrackAdded = function (track) {
         return;
     }
 
-    //FIXME: This is temporary fix
-    //Make sure that no fake tracks are left.
-    if(track.isVideoTrack() && !track.isFake) {
-        //Remove the fake video track
-        participant._tracks = participant._tracks.filter(function (track) {
-            return !track.isFake;
-        });
-    }
-
-    // add track to JitsiParticipant
+    // Add track to JitsiParticipant.
     participant._tracks.push(track);
 
     var emitter = this.eventEmitter;
@@ -658,11 +656,14 @@ JitsiConference.prototype.onTrackAdded = function (track) {
     track.addEventListener(
         JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
         function (audioLevel) {
-            emitter.emit(JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED, id, audioLevel);
+            emitter.emit(
+                JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED,
+                id,
+                audioLevel);
         }
     );
 
-    this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+    emitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
 };
 
 JitsiConference.prototype.updateDTMFSupport = function () {
@@ -964,11 +965,6 @@ function setupListeners(conference) {
                     }
                 }
             });
-        }
-    );
-    conference.rtc.addListener(RTCEvents.FAKE_VIDEO_TRACK_CREATED,
-        function (track) {
-            conference.onTrackAdded(track);
         }
     );
 
