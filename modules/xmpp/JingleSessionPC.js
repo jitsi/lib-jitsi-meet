@@ -1,6 +1,7 @@
 /* jshint -W117 */
 
 var logger = require("jitsi-meet-logger").getLogger(__filename);
+var util = require("util");
 var JingleSession = require("./JingleSession");
 var TraceablePeerConnection = require("./TraceablePeerConnection");
 var MediaType = require("../../service/RTC/MediaType");
@@ -56,9 +57,8 @@ function JingleSessionPC(me, sid, peerjid, connection,
     // stable and the ice connection state is connected.
     this.modifySourcesQueue.pause();
 }
-//XXX this is badly broken...
-JingleSessionPC.prototype = JingleSession.prototype;
-JingleSessionPC.prototype.constructor = JingleSessionPC;
+
+util.inherits(JingleSessionPC, JingleSession);
 
 
 JingleSessionPC.prototype.updateModifySourcesQueue = function() {
