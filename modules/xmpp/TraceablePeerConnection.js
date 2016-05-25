@@ -451,24 +451,66 @@ var getters = {
     localDescription:  function() {
         var desc = this.peerconnection.localDescription;
 
-        this.trace('getLocalDescription::preTransform', dumpSDP(desc));
+        if (this.history) {
+            // Add a point in history.
+            var point = {
+                name: 'getLocalDescription',
+                transformations: []
+            };
+
+            // Add a transformation in the point.
+            point.transformations.push({
+                name: 'getLocalDescription',
+                sessionDescription: desc
+            });
+
+            this.history.push(point);
+        }
 
         // if we're running on FF, transform to Plan B first.
         if (RTCBrowserType.usesUnifiedPlan()) {
             desc = this.interop.toPlanB(desc);
-            this.trace('getLocalDescription::postTransform (Plan B)',
-                dumpSDP(desc));
+
+            if (this.history) {
+                var point = this.history[this.history.length - 1];
+                point.transformations.push({
+                    name: 'interop.toPlanB',
+                    sessionDescription: desc
+                });
+            }
         }
         return desc;
     },
     remoteDescription:  function() {
         var desc = this.peerconnection.remoteDescription;
-        this.trace('getRemoteDescription::preTransform', dumpSDP(desc));
+
+        if (this.history) {
+            // Add a point in history.
+            var point = {
+                name: 'getRemoteDescription',
+                transformations: []
+            };
+
+            // Add a transformation in the point.
+            point.transformations.push({
+                name: 'getRemoteDescription',
+                sessionDescription: desc
+            });
+
+            this.history.push(point);
+        }
 
         // if we're running on FF, transform to Plan B first.
         if (RTCBrowserType.usesUnifiedPlan()) {
             desc = this.interop.toPlanB(desc);
-            this.trace('getRemoteDescription::postTransform (Plan B)', dumpSDP(desc));
+            if (this.history) {
+                var point = this.history[this.history.length - 1];
+                point.transformations.push({
+                    name: 'interop.toPlanB',
+                    sessionDescription: desc
+                });
+            }
+
         }
         return desc;
     }
@@ -539,7 +581,7 @@ TraceablePeerConnection.prototype.setLocalDescription
     if (this.history) {
         // Add a point in history.
         var point = {
-            action: 'setLocalDescription',
+            name: 'setLocalDescription',
             transformations: []
         };
 
@@ -559,7 +601,7 @@ TraceablePeerConnection.prototype.setLocalDescription
         if (this.history) {
             var point = this.history[this.history.length - 1];
             point.transformations.push({
-                name: 'unifiedPlan',
+                name: 'interop.toUnifiedPlan',
                 sessionDescription: description
             });
         }
@@ -586,7 +628,7 @@ TraceablePeerConnection.prototype.setRemoteDescription
     if (this.history) {
         // Add a point in history.
         var point = {
-            action: 'setRemoteDescription',
+            name: 'setRemoteDescription',
             transformations: []
         };
 
@@ -605,7 +647,7 @@ TraceablePeerConnection.prototype.setRemoteDescription
     if (this.history) {
         var point = this.history[this.history.length - 1];
         point.transformations.push({
-            name: 'simulcast',
+            name: 'simulcast.mungeRemoteDescription',
             sessionDescription: description
         });
     }
@@ -617,7 +659,7 @@ TraceablePeerConnection.prototype.setRemoteDescription
         if (this.history) {
             var point = this.history[this.history.length - 1];
             point.transformations.push({
-                name: 'unifiedPlan',
+                name: 'interop.toUnifiedPlan',
                 sessionDescription: description
             });
         }
@@ -674,7 +716,7 @@ TraceablePeerConnection.prototype.createAnswer
             if (self.history) {
                 // Add a point in history.
                 var point = {
-                    action: 'createAnswer',
+                    name: 'createAnswer',
                     transformations: []
                 };
 
@@ -695,7 +737,7 @@ TraceablePeerConnection.prototype.createAnswer
                     // Add a transformation in the point.
                     var point = self.history[self.history.length - 1];
                     point.transformations.push({
-                        name: 'toPlanB',
+                        name: 'interop.toPlanB',
                         sessionDescription: answer
                     });
                 }
@@ -709,7 +751,7 @@ TraceablePeerConnection.prototype.createAnswer
                     // Add a transformation in the point.
                     var point = self.history[self.history.length - 1];
                     point.transformations.push({
-                        name: 'simulcast',
+                        name: 'simulcast.mungeLocalDescription',
                         sessionDescription: answer
                     });
                 }
@@ -721,6 +763,7 @@ TraceablePeerConnection.prototype.createAnswer
 
                 if (self.history) {
                     // Add a transformation in the point.
+                    var point = self.history[self.history.length - 1];
                     point.transformations.push({
                         name: 'ssrcReplacement',
                         sessionDescription: answer
