@@ -170,7 +170,7 @@ Statistics.prototype.isCallstatsEnabled = function () {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
 Statistics.prototype.sendIceConnectionFailedEvent = function (pc) {
-    if(this.callStatsIntegrationEnabled && this.callstats)
+    if(this.callstats)
         this.callstats.sendIceConnectionFailedEvent(pc, this.callstats);
 };
 
@@ -180,7 +180,7 @@ Statistics.prototype.sendIceConnectionFailedEvent = function (pc) {
  * @param type {String} "audio"/"video"
  */
 Statistics.prototype.sendMuteEvent = function (muted, type) {
-    if(this.callStatsIntegrationEnabled)
+    if(this.callstats)
         CallStats.sendMuteEvent(muted, type, this.callstats);
 };
 
@@ -190,7 +190,7 @@ Statistics.prototype.sendMuteEvent = function (muted, type) {
  * false for not stopping
  */
 Statistics.prototype.sendScreenSharingEvent = function (start) {
-    if(this.callStatsIntegrationEnabled)
+    if(this.callstats)
         CallStats.sendScreenSharingEvent(start, this.callstats);
 };
 
@@ -199,7 +199,7 @@ Statistics.prototype.sendScreenSharingEvent = function (start) {
  * conference.
  */
 Statistics.prototype.sendDominantSpeakerEvent = function () {
-    if(this.callStatsIntegrationEnabled)
+    if(this.callstats)
         CallStats.sendDominantSpeakerEvent(this.callstats);
 };
 
@@ -216,7 +216,7 @@ Statistics.prototype.sendDominantSpeakerEvent = function () {
  */
 Statistics.prototype.associateStreamWithVideoTag =
 function (ssrc, isLocal, usageLabel, containerId) {
-    if(this.callStatsIntegrationEnabled && this.callstats) {
+    if(this.callstats) {
         this.callstats.associateStreamWithVideoTag(
             ssrc, isLocal, usageLabel, containerId);
     }
@@ -228,7 +228,7 @@ function (ssrc, isLocal, usageLabel, containerId) {
  * @param {Error} e error to send
  */
 Statistics.prototype.sendGetUserMediaFailed = function (e) {
-    if(this.callStatsIntegrationEnabled)
+    if(this.callstats)
         CallStats.sendGetUserMediaFailed(e, this.callstats);
 };
 
@@ -248,7 +248,7 @@ Statistics.sendGetUserMediaFailed = function (e) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
 Statistics.prototype.sendCreateOfferFailed = function (e, pc) {
-    if(this.callStatsIntegrationEnabled)
+    if(this.callstats)
         CallStats.sendCreateOfferFailed(e, pc, this.callstats);
 };
 
@@ -259,7 +259,7 @@ Statistics.prototype.sendCreateOfferFailed = function (e, pc) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
 Statistics.prototype.sendCreateAnswerFailed = function (e, pc) {
-    if(this.callStatsIntegrationEnabled)
+    if(this.callstats)
         CallStats.sendCreateAnswerFailed(e, pc, this.callstats);
 };
 
@@ -270,7 +270,7 @@ Statistics.prototype.sendCreateAnswerFailed = function (e, pc) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
 Statistics.prototype.sendSetLocalDescFailed = function (e, pc) {
-    if(this.callStatsIntegrationEnabled)
+    if(this.callstats)
         CallStats.sendSetLocalDescFailed(e, pc, this.callstats);
 };
 
@@ -281,7 +281,7 @@ Statistics.prototype.sendSetLocalDescFailed = function (e, pc) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
 Statistics.prototype.sendSetRemoteDescFailed = function (e, pc) {
-    if(this.callStatsIntegrationEnabled)
+    if(this.callstats)
         CallStats.sendSetRemoteDescFailed(e, pc, this.callstats);
 };
 
@@ -292,7 +292,7 @@ Statistics.prototype.sendSetRemoteDescFailed = function (e, pc) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
 Statistics.prototype.sendAddIceCandidateFailed = function (e, pc) {
-    if(this.callStatsIntegrationEnabled)
+    if(this.callstats)
         CallStats.sendAddIceCandidateFailed(e, pc, this.callstats);
 };
 
@@ -303,7 +303,7 @@ Statistics.prototype.sendAddIceCandidateFailed = function (e, pc) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
 Statistics.prototype.sendUnhandledError = function (e) {
-    if(this.callStatsIntegrationEnabled)
+    if(this.callstats)
         CallStats.sendUnhandledError(e, this.callstats);
 };
 
@@ -319,14 +319,12 @@ Statistics.sendUnhandledError = function (e) {
 /**
  * Sends the given feedback through CallStats.
  *
- * @param overallFeedback an integer between 1 and 5 indicating the
- * user feedback
- * @param detailedFeedback detailed feedback from the user. Not yet used
+ * @param overall an integer between 1 and 5 indicating the user feedback
+ * @param detailed detailed feedback from the user. Not yet used
  */
-Statistics.prototype.sendFeedback =
-function(overallFeedback, detailedFeedback){
-    if(this.callStatsIntegrationEnabled && this.callstats)
-        this.callstats.sendFeedback(overallFeedback, detailedFeedback);
+Statistics.prototype.sendFeedback = function(overall, detailed) {
+    if(this.callstats)
+        this.callstats.sendFeedback(overall, detailed);
 };
 
 Statistics.LOCAL_JID = require("../../service/statistics/constants").LOCAL_JID;
