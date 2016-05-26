@@ -503,29 +503,24 @@ StatsCollector.prototype.processStatsReport = function () {
 
         if(now.type == 'googCandidatePair')
         {
-            var ip, type, localIP, active;
+            var ip, type, localip, active;
             try {
                 ip = getStatValue(now, 'remoteAddress');
                 type = getStatValue(now, "transportType");
-                localIP = getStatValue(now, "localAddress");
+                localip = getStatValue(now, "localAddress");
                 active = getStatValue(now, "activeConnection");
             }
             catch(e){/*not supported*/}
-            if(!ip || !type || !localIP || active != "true")
+            if(!ip || !type || !localip || active != "true")
                 continue;
-            var addressSaved = false;
-            for(var i = 0; i < this.conferenceStats.transport.length; i++)
-            {
-                if(this.conferenceStats.transport[i].ip == ip &&
-                    this.conferenceStats.transport[i].type == type &&
-                    this.conferenceStats.transport[i].localip == localIP)
-                {
-                    addressSaved = true;
-                }
+            // Save the address unless it has been saved already.
+            var conferenceStatsTransport = this.conferenceStats.transport;
+            if(!conferenceStatsTransport.some(function (t) { return (
+                        t.ip == ip && t.type == type && t.localip == localip
+                    )})) {
+                conferenceStatsTransport.push(
+                    {ip: ip, type: type, localip: localip});
             }
-            if(addressSaved)
-                continue;
-            this.conferenceStats.transport.push({localip: localIP, ip: ip, type: type});
             continue;
         }
 
@@ -536,9 +531,9 @@ StatsCollector.prototype.processStatsReport = function () {
             var local = this.currentStatsReport[now.localCandidateId];
             var remote = this.currentStatsReport[now.remoteCandidateId];
             this.conferenceStats.transport.push({
-                localip: local.ipAddress + ":" + local.portNumber,
                 ip: remote.ipAddress + ":" + remote.portNumber,
-                type: local.transport
+                type: local.transport,
+                localip: local.ipAddress + ":" + local.portNumber
             });
         }
 
