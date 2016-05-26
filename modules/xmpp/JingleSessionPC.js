@@ -1,7 +1,6 @@
 /* jshint -W117 */
 
 var logger = require("jitsi-meet-logger").getLogger(__filename);
-var util = require("util");
 var JingleSession = require("./JingleSession");
 var TraceablePeerConnection = require("./TraceablePeerConnection");
 var MediaType = require("../../service/RTC/MediaType");
@@ -58,7 +57,8 @@ function JingleSessionPC(me, sid, peerjid, connection,
     this.modifySourcesQueue.pause();
 }
 
-util.inherits(JingleSessionPC, JingleSession);
+JingleSessionPC.prototype = Object.create(JingleSession.prototype);
+JingleSessionPC.prototype.constructor = JingleSessionPC;
 
 
 JingleSessionPC.prototype.updateModifySourcesQueue = function() {
