@@ -27,8 +27,6 @@ function loadCallStatsAPI() {
  */
 var LOG_INTERVAL = 60000;
 
-var eventEmitter = new EventEmitter();
-
 function Statistics(xmpp, options) {
     this.rtpStats = null;
     this.eventEmitter = new EventEmitter();
@@ -104,9 +102,6 @@ Statistics.prototype.dispose = function () {
         this.stopRemoteStats();
         if(this.eventEmitter)
             this.eventEmitter.removeAllListeners();
-
-        if(eventEmitter)
-            eventEmitter.removeAllListeners();
     }
 };
 
