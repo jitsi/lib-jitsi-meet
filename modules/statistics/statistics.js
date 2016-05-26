@@ -1,5 +1,6 @@
 /* global require */
 var LocalStats = require("./LocalStatsCollector.js");
+var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTPStats = require("./RTPStatsCollector.js");
 var EventEmitter = require("events");
 var StatisticsEvents = require("../../service/statistics/Events");
@@ -55,15 +56,22 @@ Statistics.prototype.startRemoteStats = function (peerconnection) {
 
     this.stopRemoteStats();
 
-    this.rtpStats = new RTPStats(peerconnection, 200, 2000, this.eventEmitter);
-    this.rtpStats.start();
-
-    this.logStatsIntervalId = setInterval(function () {
-        var stats = this.rtpStats.getCollectedStats();
-        if (this.xmpp.sendLogs(stats)) {
-            this.rtpStats.clearCollectedStats();
-        }
-    }.bind(this), LOG_INTERVAL);
+    try {
+        this.rtpStats
+            = new RTPStats(peerconnection, 200, 2000, this.eventEmitter);
+        this.rtpStats.start();
+    } catch (e) {
+        this.rtpStats = null;
+        logger.error('Failed to start collecting remote statistics: ' + e);
+    }
+    if (this.rtpStats) {
+        this.logStatsIntervalId = setInterval(function () {
+            var stats = this.rtpStats.getCollectedStats();
+            if (this.xmpp.sendLogs(stats)) {
+                this.rtpStats.clearCollectedStats();
+            }
+        }.bind(this), LOG_INTERVAL);
+    }
 };
 
 Statistics.localStats = [];

@@ -9,8 +9,12 @@ var StatisticsEvents = require("../../service/statistics/Events");
 var browserSupported = RTCBrowserType.isChrome() ||
         RTCBrowserType.isOpera() || RTCBrowserType.isFirefox();
 
-var keyMap = {};
-keyMap[RTCBrowserType.RTC_BROWSER_FIREFOX] = {
+/**
+ * The LibJitsiMeet browser-agnostic names of the browser-specific keys reported
+ * by RTCPeerConnection#getStats mapped by RTCBrowserType.
+ */
+var KEYS_BY_BROWSER_TYPE = {};
+KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_FIREFOX] = {
     "ssrc": "ssrc",
     "packetsReceived": "packetsReceived",
     "packetsLost": "packetsLost",
@@ -18,7 +22,7 @@ keyMap[RTCBrowserType.RTC_BROWSER_FIREFOX] = {
     "bytesReceived": "bytesReceived",
     "bytesSent": "bytesSent"
 };
-keyMap[RTCBrowserType.RTC_BROWSER_CHROME] = {
+KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME] = {
     "receiveBandwidth": "googAvailableReceiveBandwidth",
     "sendBandwidth": "googAvailableSendBandwidth",
     "remoteAddress": "googRemoteAddress",
@@ -38,12 +42,12 @@ keyMap[RTCBrowserType.RTC_BROWSER_CHROME] = {
     "audioInputLevel": "audioInputLevel",
     "audioOutputLevel": "audioOutputLevel"
 };
-keyMap[RTCBrowserType.RTC_BROWSER_OPERA] =
-    keyMap[RTCBrowserType.RTC_BROWSER_CHROME];
-keyMap[RTCBrowserType.RTC_BROWSER_IEXPLORER] =
-    keyMap[RTCBrowserType.RTC_BROWSER_CHROME];
-keyMap[RTCBrowserType.RTC_BROWSER_SAFARI] =
-    keyMap[RTCBrowserType.RTC_BROWSER_CHROME];
+KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_OPERA] =
+    KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
+KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_IEXPLORER] =
+    KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
+KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_SAFARI] =
+    KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
 /**
  * Calculates packet lost percent using the number of lost packets and the
  * number of all packet.
@@ -55,15 +59,6 @@ function calculatePacketLoss(lostPackets, totalPackets) {
     if(!totalPackets || totalPackets <= 0 || !lostPackets || lostPackets <= 0)
         return 0;
     return Math.round((lostPackets/totalPackets)*100);
-}
-
-function getStatValue(item, name) {
-    var browserType = RTCBrowserType.getBrowserType();
-    if (!keyMap[browserType][name])
-        throw "The property isn't supported!";
-    var key = keyMap[browserType][name];
-    return (RTCBrowserType.isChrome() || RTCBrowserType.isOpera()) ?
-        item.stat(key) : item[key];
 }
 
 function formatAudioLevel(audioLevel) {
@@ -198,15 +193,48 @@ function ConferenceStats() {
  * is done <tt>audioLevelsUpdateCallback</tt> is called with <tt>this</tt>
  * instance as an event source.
  *
- * @param peerconnection webRTC peer connection object.
- * @param interval stats refresh interval given in ms.
- * @param {function(StatsCollector)} audioLevelsUpdateCallback the callback
- * called on stats update.
- * @param config {object} supports the following properties - disableAudioLevels, disableStats, logStats
+ * @param peerconnection WebRTC PeerConnection object.
+ * @param audioLevelsInterval
+ * @param statsInterval stats refresh interval given in ms.
+ * @param eventEmitter
+ * @param config {object} supports the following properties: disableAudioLevels,
+ * disableStats, logStats
  * @constructor
  */
-function StatsCollector(peerconnection, audioLevelsInterval, statsInterval, eventEmitter, config)
-{
+function StatsCollector(
+        peerconnection,
+        audioLevelsInterval,
+        statsInterval,
+        eventEmitter,
+        config) {
+    // StatsCollector depends entirely on the format of the reports returned by
+    // RTCPeerConnection#getStats. Given that the value of
+    // RTCBrowserType#getBrowserType() is very unlikely to change at runtime, it
+    // makes sense to discover whether StatsCollector supports the executing
+    // browser as soon as possible. Otherwise, (1) getStatValue would have to
+    // needlessly check a "static" condition multiple times very very often and
+    // (2) the lack of support for the executing browser would be discovered and
+    // reported multiple times very very often too late in the execution in some
+    // totally unrelated callback.
+    /**
+     * The RTCBrowserType supported by this StatsCollector. In other words, the
+     * RTCBrowserType of the browser which initialized this StatsCollector
+     * instance.
+     * @private
+     */
+    this._browserType = RTCBrowserType.getBrowserType();
+    var keys = KEYS_BY_BROWSER_TYPE[this._browserType];
+    if (!keys)
+        throw "The browser type '" + this._browserType + "' isn't supported!";
+    /**
+     * The function which is to be used to retrieve the value associated in a
+     * report returned by RTCPeerConnection#getStats with a LibJitsiMeet
+     * browser-agnostic name/key.
+     * @function
+     * @private
+     */
+    this._getStatValue = this._defineGetStatValueMethod(keys);
+
     this.peerconnection = peerconnection;
     this.baselineAudioLevelsReport = null;
     this.currentAudioLevelsReport = null;
@@ -339,8 +367,10 @@ StatsCollector.prototype.start = function () {
         );
     }
 
-    // logging statistics does not support firefox
-    if (this.config.logStats && (browserSupported && !RTCBrowserType.isFirefox())) {
+    if (this.config.logStats
+            && browserSupported
+            // logging statistics does not support firefox
+            && this._browserType !== RTCBrowserType.RTC_BROWSER_FIREFOX) {
         this.gatherStatsIntervalId = setInterval(
             function () {
                 self.peerconnection.getStats(
@@ -398,6 +428,53 @@ StatsCollector.prototype.clearCollectedStats = function () {
    this.statsToBeLogged.timestamps = [];
 };
 
+/**
+ * Defines a function which (1) is to be used as a StatsCollector method and (2)
+ * gets the value from a specific report returned by RTCPeerConnection#getStats
+ * associated with a LibJitsiMeet browser-agnostic name.
+ *
+ * @param {Object.<string,string>} keys the map of LibJitsi browser-agnostic
+ * names to RTCPeerConnection#getStats browser-specific keys
+ */
+StatsCollector.prototype._defineGetStatValueMethod = function (keys) {
+    // Define the function which converts a LibJitsiMeet browser-asnostic name
+    // to a browser-specific key of a report returned by
+    // RTCPeerConnection#getStats.
+    var keyFromName = function (name) {
+        var key = keys[name];
+        if (key)
+            return key;
+        else
+            throw "The property '" + name + "' isn't supported!";
+    };
+
+    // Define the function which retrieves the value from a specific report
+    // returned by RTCPeerConnection#getStats associated with a given
+    // browser-specific key.
+    var itemStatByKey;
+    switch (this._browserType) {
+    case RTCBrowserType.RTC_BROWSER_CHROME:
+    case RTCBrowserType.RTC_BROWSER_OPERA:
+        // TODO What about other types of browser which are based on Chrome such
+        // as NW.js? Every time we want to support a new type browser we have to
+        // go and add more conditions (here and in multiple other places).
+        // Cannot we do a feature detection instead of a browser type check? For
+        // example, if item has a stat property of type function, then it's very
+        // likely that whoever defined it wanted you to call it in order to
+        // retrieve the value associated with a specific key.
+        itemStatByKey = function (item, key) { return item.stat(key) };
+        break;
+    default:
+        itemStatByKey = function (item, key) { return item[key] };
+    }
+
+    // Compose the 2 functions defined above to get a function which retrieves
+    // the value from a specific report returned by RTCPeerConnection#getStats
+    // associated with a specific LibJitsiMeet browser-agnostic name.
+    return function (item, name) {
+        return itemStatByKey(item, keyFromName(name))
+    };
+};
 
 /**
  * Stats processing logic.
@@ -406,6 +483,8 @@ StatsCollector.prototype.processStatsReport = function () {
     if (!this.baselineStatsReport) {
         return;
     }
+
+    var getStatValue = this._getStatValue;
 
     for (var idx in this.currentStatsReport) {
         var now = this.currentStatsReport[idx];
@@ -641,6 +720,8 @@ StatsCollector.prototype.processAudioLevelReport = function () {
     if (!this.baselineAudioLevelsReport) {
         return;
     }
+
+    var getStatValue = this._getStatValue;
 
     for (var idx in this.currentAudioLevelsReport) {
         var now = this.currentAudioLevelsReport[idx];
