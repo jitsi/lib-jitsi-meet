@@ -132,18 +132,27 @@ var LibJitsiMeet = {
                 this._gumFailedHandler.forEach(function (handler) {
                     handler(error);
                 });
-                if(!this._gumFailedHandler.length)
+
+                if(!this._gumFailedHandler.length) {
                     Statistics.sendGetUserMediaFailed(error);
-                if(error === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
-                    var oldResolution = options.resolution || '360';
-                    var newResolution = getLowerResolution(oldResolution);
-                    if(newResolution === null)
+                }
+
+                if(error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
+                    var oldResolution = options.resolution || '360',
+                        newResolution = getLowerResolution(oldResolution);
+
+                    if (newResolution === null) {
                         return Promise.reject(error);
+                    }
+
                     options.resolution = newResolution;
+
                     logger.debug("Retry createLocalTracks with resolution",
                                 newResolution);
+
                     return LibJitsiMeet.createLocalTracks(options);
                 }
+
                 return Promise.reject(error);
             }.bind(this));
     },
