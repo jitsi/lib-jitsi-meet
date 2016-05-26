@@ -120,7 +120,8 @@ JitsiConference.prototype.leave = function () {
     ).then(this._leaveRoomAndRemoveParticipants.bind(this))
     .catch(function (error) {
         logger.error(error);
-        GlobalOnErrorHandler.callUnhandlerRejectionHandler({promise: this, reason: error});
+        GlobalOnErrorHandler.callUnhandledRejectionHandler(
+            {promise: this, reason: error});
         // We are proceeding with leaving the conference because room.leave may
         // succeed.
         this._leaveRoomAndRemoveParticipants();

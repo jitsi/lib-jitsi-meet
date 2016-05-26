@@ -34,7 +34,7 @@ var oldOnUnhandledRejection = window.onunhandledrejection;
  * all handlers that were previously added. This handler handles rejected
  * Promises.
  */
-function JitsiGlobalUnhandlerRejection(event) {
+function JitsiGlobalUnhandledRejection(event) {
     handlers.forEach(function (handler) {
         handler(null, null, null, null, event.reason);
     });
@@ -44,7 +44,7 @@ function JitsiGlobalUnhandlerRejection(event) {
 
 //Setting the custom error handlers.
 window.onerror = JitsiGlobalErrorHandler;
-window.onunhandledrejection = JitsiGlobalUnhandlerRejection;
+window.onunhandledrejection = JitsiGlobalUnhandledRejection;
 
 
 var GlobalOnErrorHandler = {
@@ -70,7 +70,7 @@ var GlobalOnErrorHandler = {
      * @param error the error that is going to be passed to the rejection
      * handler.
      */
-    callUnhandlerRejectionHandler: function (error) {
+    callUnhandledRejectionHandler: function (error) {
         var errHandler = window.onunhandledrejection;
         if(!errHandler)
             return;

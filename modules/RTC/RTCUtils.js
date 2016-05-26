@@ -569,7 +569,7 @@ function wrapAttachMediaStream(origAttachMediaStream) {
             stream.getAudioTracks && stream.getAudioTracks().length) {
             element.setSinkId(RTCUtils.getAudioOutputDevice())
                 .catch(function (ex) {
-                    GlobalOnErrorHandler.callUnhandlerRejectionHandler(
+                    GlobalOnErrorHandler.callUnhandledRejectionHandler(
                         {promise: this, reason: ex});
                     logger.error('Failed to set audio output on element',
                         element, ex);
