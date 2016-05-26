@@ -490,13 +490,12 @@ StatsCollector.prototype.processStatsReport = function () {
     for (var idx in this.currentStatsReport) {
         var now = this.currentStatsReport[idx];
         try {
-            if (getStatValue(now, 'receiveBandwidth') ||
-                getStatValue(now, 'sendBandwidth')) {
+            var receiveBandwidth = getStatValue(now, 'receiveBandwidth');
+            var sendBandwidth = getStatValue(now, 'sendBandwidth');
+            if (receiveBandwidth || sendBandwidth) {
                 this.conferenceStats.bandwidth = {
-                    "download": Math.round(
-                            (getStatValue(now, 'receiveBandwidth')) / 1000),
-                    "upload": Math.round(
-                            (getStatValue(now, 'sendBandwidth')) / 1000)
+                    "download": Math.round(receiveBandwidth / 1000),
+                    "upload": Math.round(sendBandwidth / 1000)
                 };
             }
         }
@@ -549,21 +548,17 @@ StatsCollector.prototype.processStatsReport = function () {
         }
 
         var before = this.baselineStatsReport[idx];
+        var ssrc = getStatValue(now, 'ssrc');
         if (!before) {
-            logger.warn(getStatValue(now, 'ssrc') + ' not enough data');
+            logger.warn(ssrc + ' not enough data');
             continue;
         }
 
-        var ssrc = getStatValue(now, 'ssrc');
         if(!ssrc)
             continue;
 
-        var ssrcStats = this.ssrc2stats[ssrc];
-        if (!ssrcStats) {
-            ssrcStats = new PeerStats();
-            this.ssrc2stats[ssrc] = ssrcStats;
-        }
-
+        var ssrcStats
+          = this.ssrc2stats[ssrc] || (this.ssrc2stats[ssrc] = new PeerStats());
 
         var isDownloadStream = true;
         var key = 'packetsReceived';
@@ -604,16 +599,15 @@ StatsCollector.prototype.processStatsReport = function () {
             isDownloadStream: isDownloadStream
         });
 
-
         var bytesReceived = 0, bytesSent = 0;
-        if(getStatValue(now, "bytesReceived")) {
-            bytesReceived = getStatValue(now, "bytesReceived") -
-                getStatValue(before, "bytesReceived");
+        var nowBytesTransmitted = getStatValue(now, "bytesReceived");
+        if(nowBytesTransmitted) {
+            bytesReceived
+                = nowBytesTransmitted - getStatValue(before, "bytesReceived");
         }
-
-        if (getStatValue(now, "bytesSent")) {
-            bytesSent = getStatValue(now, "bytesSent") -
-                getStatValue(before, "bytesSent");
+        nowBytesTransmitted = getStatValue(now, "bytesSent");
+        if (nowBytesTransmitted) {
+            bytesSent = nowBytesTransmitted - getStatValue(before, "bytesSent");
         }
 
         var time = Math.round((now.timestamp - before.timestamp) / 1000);
@@ -636,16 +630,16 @@ StatsCollector.prototype.processStatsReport = function () {
 
         var resolution = {height: null, width: null};
         try {
-            if (getStatValue(now, "googFrameHeightReceived") &&
-                getStatValue(now, "googFrameWidthReceived")) {
-                resolution.height =
-                    getStatValue(now, "googFrameHeightReceived");
-                resolution.width = getStatValue(now, "googFrameWidthReceived");
+            var height, width;
+            if ((height = getStatValue(now, "googFrameHeightReceived")) &&
+                (width = getStatValue(now, "googFrameWidthReceived"))) {
+                resolution.height = height;
+                resolution.width = width;
             }
-            else if (getStatValue(now, "googFrameHeightSent") &&
-                getStatValue(now, "googFrameWidthSent")) {
-                resolution.height = getStatValue(now, "googFrameHeightSent");
-                resolution.width = getStatValue(now, "googFrameWidthSent");
+            else if ((height = getStatValue(now, "googFrameHeightSent")) &&
+                (width = getStatValue(now, "googFrameWidthSent"))) {
+                resolution.height = height;
+                resolution.width = width;
             }
         }
         catch(e){/*not supported*/}
@@ -733,31 +727,27 @@ StatsCollector.prototype.processAudioLevelReport = function () {
         }
 
         var before = this.baselineAudioLevelsReport[idx];
+        var ssrc = getStatValue(now, 'ssrc');
         if (!before) {
-            logger.warn(getStatValue(now, 'ssrc') + ' not enough data');
+            logger.warn(ssrc + ' not enough data');
             continue;
         }
 
-        var ssrc = getStatValue(now, 'ssrc');
         if (!ssrc) {
             if ((Date.now() - now.timestamp) < 3000)
                 logger.warn("No ssrc: ");
             continue;
         }
 
-        var ssrcStats = this.ssrc2stats[ssrc];
-        if (!ssrcStats) {
-            ssrcStats = new PeerStats();
-            this.ssrc2stats[ssrc] = ssrcStats;
-        }
+        var ssrcStats
+            = this.ssrc2stats[ssrc]
+                || (this.ssrc2stats[ssrc] = new PeerStats());
 
         // Audio level
-        var audioLevel = null;
-
         try {
-            audioLevel = getStatValue(now, 'audioInputLevel');
-            if (!audioLevel)
-                audioLevel = getStatValue(now, 'audioOutputLevel');
+            var audioLevel
+                = getStatValue(now, 'audioInputLevel')
+                    || getStatValue(now, 'audioOutputLevel');
         }
         catch(e) {/*not supported*/
             logger.warn("Audio Levels are not available in the statistics.");
