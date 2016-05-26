@@ -27,6 +27,8 @@ Jitsi Meet API has the following components:
 
 * JitsiTrack
 
+* JitsiTrackError
+
 Usage
 ======
 JitsiMeetJS
@@ -56,7 +58,7 @@ The ```options``` parameter is JS object with the following properties:
 JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
 ```
 
-* ```JitsiMeetJS.createLocalTracks(options)``` - Creates the media tracks and returns them trough ```Promise``` object.
+* ```JitsiMeetJS.createLocalTracks(options)``` - Creates the media tracks and returns them trough ```Promise``` object. If rejected, passes ```JitsiTrackError``` instance to catch block.
     - options - JS object with configuration options for the local media tracks. You can change the following properties there:
         1. devices - array with the devices - "desktop", "video" and "audio" that will be passed to GUM. If that property is not set GUM will try to get all available devices.
         2. resolution - the prefered resolution for the local video.
@@ -132,7 +134,7 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         
 
 * ```JitsiMeetJS.errors``` - JS object that contains all errors used by the API. You can use that object to check the reported errors from the API
-    We have two error types - connection and conference. You can access the events with the following code ```JitsiMeetJS.errors.<error_type>.<error_name>```.
+    We have three error types - connection, conference and track. You can access the events with the following code ```JitsiMeetJS.errors.<error_type>.<error_name>```.
     For example if you want to use the conference event that is fired when somebody leave conference you can use the following code - ```JitsiMeetJS.errors.conference.PASSWORD_REQUIRED```.
     We support the following errors:
     1. conference
@@ -154,6 +156,19 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - PASSWORD_REQUIRED - passed when the connection to the server failed. You should try to authenticate with password.
         - CONNECTION_ERROR - indicates connection failures.
         - OTHER_ERROR - all other errors
+    3. track
+        - GENERAL - generic getUserMedia-related error.
+        - UNSUPPORTED_RESOLUTION - getUserMedia-related error, indicates that requested video resolution is not supported by camera.
+        - PERMISSION_DENIED - getUserMedia-related error, indicates that user denied permission to share requested device.
+        - NOT_FOUND - getUserMedia-related error, indicates that requested device was not found.
+        - CONSTRAINT_FAILED - getUserMedia-related error, indicates that some of requested constraints in getUserMedia call were not satisfied.
+        - TRACK_IS_DISPOSED - an error which indicates that track has been already disposed and cannot be longer used.
+        - TRACK_MUTE_UNMUTE_IN_PROGRESS - an error which indicates that track is currently in progress of muting or unmuting itself.
+        - CHROME_EXTENSION_GENERIC_ERROR - generic error for jidesha extension for Chrome.
+        - CHROME_EXTENSION_USER_CANCELED - an error which indicates that user canceled screen sharing window selection dialog in jidesha extension for Chrome.
+        - CHROME_EXTENSION_INSTALLATION_ERROR - an error which indicates that the jidesha extension for Chrome is failed to install.
+        - FIREFOX_EXTENSION_NEEDED - An error which indicates that the jidesha extension for Firefox is needed to proceed with screen sharing, and that it is not installed.
+        
 * ```JitsiMeetJS.logLevels``` - object with the log levels:
     1. TRACE
     2. DEBUG
@@ -359,6 +374,14 @@ We have the following methods for controling the tracks:
 
 12. isEnded() - returns true if track is ended
 
+JitsiTrackError
+======
+The object represents error that happened to a JitsiTrack. Is inherited from JavaScript base ```Error``` object, 
+so ```"name"```, ```"message"``` and ```"stack"``` properties are available. For GUM-related errors,
+exposes additional ```"gum"``` property, which is an object with following properties:
+ - error - original GUM error
+ - constraints - GUM constraints object used for the call
+ - devices - array of devices requested in GUM call (possible values - "audio", "video", "screen", "desktop")
 
 Getting Started
 ==============
