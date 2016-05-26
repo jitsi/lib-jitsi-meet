@@ -944,8 +944,12 @@ function setupListeners(conference) {
                         "Failed to accept incoming Jingle session", error);
                 }
             );
-            conference.statistics.startRemoteStats(
-                    jingleSession.peerconnection);
+            // Start callstats as soon as peerconnection is initialized,
+            // do not wait for XMPPEvents.PEERCONNECTION_READY, as it may never
+            // happen in case if user doesn't have or denied permission to
+            // both camera and microphone.
+            conference.statistics.startCallStats(jingleSession, conference.settings);
+            conference.statistics.startRemoteStats(jingleSession.peerconnection);
         } else {
             // Error cause this should never happen unless something is wrong!
             var errmsg
@@ -1294,12 +1298,6 @@ function setupListeners(conference) {
         conference.room.addListener(XMPPEvents.DISPOSE_CONFERENCE,
             function () {
                 conference.statistics.dispose();
-            });
-
-        conference.room.addListener(XMPPEvents.PEERCONNECTION_READY,
-            function (session) {
-                conference.statistics.startCallStats(
-                    session, conference.settings);
             });
 
         conference.room.addListener(XMPPEvents.CONNECTION_ICE_FAILED,
