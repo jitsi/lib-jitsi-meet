@@ -69,10 +69,11 @@ function formatAudioLevel(audioLevel) {
  * Checks whether a certain record should be included in the logged statistics.
  */
 function acceptStat(reportId, reportType, statName) {
-    if (reportType == "googCandidatePair" && statName == "googChannelId")
-        return false;
+    if (reportType == "googCandidatePair") {
+        if (statName == "googChannelId")
+            return false;
 
-    if (reportType == "ssrc") {
+    } else if (reportType == "ssrc") {
         if (statName == "googTrackId" ||
             statName == "transportId" ||
             statName == "ssrc")
@@ -86,12 +87,12 @@ function acceptStat(reportId, reportType, statName) {
  * Checks whether a certain record should be included in the logged statistics.
  */
 function acceptReport(id, type) {
+    if (type == "googComponent")
+        return false;
+
     if (id.substring(0, 15) == "googCertificate" ||
         id.substring(0, 9) == "googTrack" ||
         id.substring(0, 20) == "googLibjingleSession")
-        return false;
-
-    if (type == "googComponent")
         return false;
 
     return true;
