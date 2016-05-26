@@ -159,8 +159,12 @@ Statistics.prototype.stopRemoteStats = function () {
  * /modules/settings/Settings.js
  */
 Statistics.prototype.startCallStats = function (session, settings) {
-    if(this.callStatsIntegrationEnabled && !this.callstats) {
-        this.callstats = new CallStats(session, settings, this.options);
+    if(this.callStatsIntegrationEnabled) {
+        if (!this.callstats) {
+            this.callstats = new CallStats(session, settings, this.options);
+        } else {
+            this.callstats.setSession(session);
+        }
     }
 };
 

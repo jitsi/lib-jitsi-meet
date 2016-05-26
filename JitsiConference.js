@@ -1047,7 +1047,19 @@ function setupListeners(conference) {
         conference.eventEmitter.emit(JitsiConferenceEvents.KICKED);
     });
 
-    conference.room.addListener(XMPPEvents.MUC_MEMBER_JOINED, conference.onMemberJoined.bind(conference));
+    var isFirstMemberJoined = false;
+
+    conference.room.addListener(XMPPEvents.MUC_MEMBER_JOINED, function () {
+        // We may start callStats as soon as another member has joined our
+        // conference, but JingleSession might not be available at this point.
+        if (!isFirstMemberJoined && conference.statistics) {
+            conference.statistics.startCallStats(null, conference.settings);
+            isFirstMemberJoined = true;
+        }
+
+        conference.onMemberJoined.apply(conference, arguments);
+    });
+
     conference.room.addListener(XMPPEvents.MUC_MEMBER_LEFT, conference.onMemberLeft.bind(conference));
 
     conference.room.addListener(XMPPEvents.DISPLAY_NAME_CHANGED, conference.onDisplayNameChanged.bind(conference));
