@@ -806,7 +806,8 @@ var RTCUtils = {
                         error, constraints);
 
                     if (failure_callback) {
-                        failure_callback(new JitsiTrackError(error, constraints));
+                        failure_callback(
+                            new JitsiTrackError(error, constraints, um));
                     }
                 });
         } catch (e) {
@@ -890,11 +891,27 @@ var RTCUtils = {
                             {
                                 self.stopMediaStream(stream);
 
-                                reject(
-                                    new JitsiTrackError({
-                                        name: JitsiTrackErrors.NOT_FOUND
-                                    }),
-                                    getConstraints(options.devices, options)
+                                // We are getting here in case if we requested
+                                // 'audio' or 'video' devices or both, but
+                                // didn't get corresponding MediaStreamTrack in
+                                // response stream. We don't know the reason why
+                                // this happened, so reject with general error.
+                                var devices = [];
+
+                                if (options.devices.indexOf("audio") !== -1 &&
+                                    !stream.getAudioTracks().length) {
+                                    devices.push("audio");
+                                }
+
+                                if (options.devices.indexOf("video") !== -1 &&
+                                    !stream.getVideoTracks().length) {
+                                    devices.push("video");
+                                }
+
+                                reject(new JitsiTrackError(
+                                    { name: "UnknownError" },
+                                    getConstraints(options.devices, options),
+                                    devices)
                                 );
                                 return;
                             }
@@ -907,7 +924,6 @@ var RTCUtils = {
                                         self.stopMediaStream(stream);
 
                                         reject(error);
-
                                     });
                             } else {
                                 successCallback({audioVideo: stream});

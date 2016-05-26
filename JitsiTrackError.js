@@ -33,17 +33,26 @@ TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_MUTE_UNMUTE_IN_PROGRESS]
  * @param {Object|string} error - error object or error name
  * @param {Object|string} (options) - getUserMedia constraints object or error
  *      message
+ * @param {('audio'|'video'|'desktop'|'screen')[]} (devices) - list of
+ *      getUserMedia requested devices
  */
-function JitsiTrackError(error, options) {
+function JitsiTrackError(error, options, devices) {
     if (typeof error === "object" && typeof error.name !== "undefined") {
         /**
          * Additional information about original getUserMedia error
          * and constraints.
-         * @type {{error: Object, constraints: Object }}
+         * @type {{
+         *          error: Object,
+         *          constraints: Object,
+         *          devices: Array.<'audio'|'video'|'desktop'|'screen'>
+         *      }}
          */
         this.gum = {
             error: error,
-            constraints: options
+            constraints: options,
+            devices: devices && Array.isArray(devices)
+                ? devices.slice(0)
+                : undefined
         };
 
         switch (error.name) {
@@ -70,6 +79,7 @@ function JitsiTrackError(error, options) {
                 var constraintName = error.constraintName;
 
                 if (options && options.video
+                    && (devices || []).indexOf('video') > -1
                     &&
                     (constraintName === "minWidth" ||
                         constraintName === "maxWidth" ||

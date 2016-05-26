@@ -69,8 +69,8 @@ var ScreenObtainer = {
             obtainDesktopStream = function (onSuccess, onFailure) {
                 window.JitsiMeetNW.obtainDesktopStream (
                     onSuccess, function (error, constraints) {
-                        onFailure && onFailure(
-                            new JitsiTrackError(error, constraints));
+                        onFailure && onFailure(new JitsiTrackError(
+                            error, constraints, ["desktop"]));
                     });
             };
         } else if (RTCBrowserType.isTemasysPluginUsed()) {
