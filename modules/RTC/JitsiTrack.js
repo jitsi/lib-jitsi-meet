@@ -70,20 +70,12 @@ function JitsiTrack(rtc, stream, track, streamInactiveHandler, trackMediaType,
     this.type = trackMediaType;
     this.track = track;
     this.videoType = videoType;
-    this.disposed = false;
 
     if(stream) {
         if (RTCBrowserType.isFirefox()) {
             implementOnEndedHandling(this);
         }
         addMediaStreamInactiveHandler(stream, streamInactiveHandler);
-    }
-
-    this._onAudioOutputDeviceChanged = this.setAudioOutput.bind(this);
-
-    if (this.isAudioTrack()) {
-        RTCUtils.addListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
-            this._onAudioOutputDeviceChanged);
     }
 }
 
@@ -225,12 +217,9 @@ JitsiTrack.prototype.detach = function (container) {
 
 /**
  * Dispose sending the media track. And removes it from the HTML.
+ * NOTE: Works for local tracks only.
  */
 JitsiTrack.prototype.dispose = function () {
-    RTCUtils.removeListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
-        this._onAudioOutputDeviceChanged);
-
-    this.disposed = true;
 };
 
 /**

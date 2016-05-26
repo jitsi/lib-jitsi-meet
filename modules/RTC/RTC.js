@@ -59,6 +59,23 @@ function RTC(room, options) {
             videoTrack._setVideoType(data.value);
         }
     });
+
+    // switch audio output device on all local and remote audio tracks
+    RTCUtils.addListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
+        function (deviceId) {
+            if (RTCUtils.isDeviceChangeAvailable('output')) {
+                if (self.localAudio) {
+                    self.localAudio.setAudioOutput(deviceId);
+                }
+
+                for (var key in self.remoteTracks) {
+                    if (self.remoteTracks.hasOwnProperty(key)
+                        && self.remoteTracks[key].audio) {
+                        self.remoteTracks[key].audio.setAudioOutput(deviceId);
+                    }
+                }
+            }
+        });
 }
 
 /**

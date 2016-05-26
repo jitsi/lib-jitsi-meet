@@ -84,4 +84,6 @@ JitsiRemoteTrack.prototype._setVideoType = function (type) {
     this.eventEmitter.emit(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, type);
 };
 
+delete JitsiRemoteTrack.prototype.dispose;
+
 module.exports = JitsiRemoteTrack;

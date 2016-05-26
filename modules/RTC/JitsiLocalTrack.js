@@ -36,6 +36,7 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
     this.resolution = resolution;
     this.deviceId = deviceId;
     this.startMuted = false;
+    this.disposed = false;
     //FIXME: This dependacy is not necessary.
     this.conference = null;
     this.initialMSID = this.getMSID();
@@ -282,7 +283,7 @@ JitsiLocalTrack.prototype.dispose = function () {
         this.detach();
     }
 
-    JitsiTrack.prototype.dispose.call(this);
+    this.disposed = true;
 
     RTCUtils.removeListener(RTCEvents.DEVICE_LIST_CHANGED,
         this._onDeviceListChanged);
