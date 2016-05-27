@@ -48,13 +48,7 @@ function initCallback (err, msg) {
         return;
 
     // notify callstats about failures if there were any
-    processReportsQueue.call(this);
-}
-
-function processReportsQueue() {
     if (CallStats.reportsQueue.length) {
-        var leaveInQueue = [];
-
         CallStats.reportsQueue.forEach(function (report) {
             if (report.type === reportType.ERROR)
             {
@@ -64,19 +58,12 @@ function processReportsQueue() {
             }
             else if (report.type === reportType.EVENT)
             {
-                if (this.peerconnection) {
-                    var data = report.data;
-                    callStats.sendFabricEvent(
-                        this.peerconnection, data.event, this.confID);
-                } else {
-                    // peer connection might not be established at this point,
-                    // so put report back to queue
-                    leaveInQueue.push(report);
-                }
+                var data = report.data;
+                callStats.sendFabricEvent(
+                    this.peerconnection, data.event, this.confID);
             }
         }, this);
-
-        CallStats.reportsQueue = leaveInQueue;
+        CallStats.reportsQueue.length = 0;
     }
 }
 
@@ -100,7 +87,7 @@ function _try_catch (f) {
 
 /**
  * Creates new CallStats instance that handles all callstats API calls.
- * @param [peerConnection] {JingleSessionPC} the session object
+ * @param peerConnection {JingleSessionPC} the session object
  * @param Settings {Settings} the settings instance. Declared in
  * /modules/settings/Settings.js
  * @param options {object} credentials for callstats.
@@ -114,10 +101,8 @@ var CallStats = _try_catch(function(jingleSession, Settings, options) {
             return;
         }
 
-        if (jingleSession) {
-            this.session = jingleSession;
-            this.peerconnection = jingleSession.peerconnection.peerconnection;
-        }
+        this.session = jingleSession;
+        this.peerconnection = jingleSession.peerconnection.peerconnection;
 
         this.userID = Settings.getCallStatsUserName();
 
@@ -131,13 +116,11 @@ var CallStats = _try_catch(function(jingleSession, Settings, options) {
             this.userID,
             initCallback.bind(this));
 
-        if (this.peerconnection) {
-            callStats.addNewFabric(this.peerconnection,
-                Strophe.getResourceFromJid(jingleSession.peerjid),
-                callStats.fabricUsage.multiplex,
-                this.confID,
-                this.pcCallback.bind(this));
-        }
+        callStats.addNewFabric(this.peerconnection,
+            Strophe.getResourceFromJid(jingleSession.peerjid),
+            callStats.fabricUsage.multiplex,
+            this.confID,
+            this.pcCallback.bind(this));
     } catch (e) {
         // The callstats.io API failed to initialize (e.g. because its
         // download failed to succeed in general or on time). Further
@@ -146,29 +129,6 @@ var CallStats = _try_catch(function(jingleSession, Settings, options) {
         logger.error(e);
     }
 });
-
-/**
- * In some cases we might initialize session before we have peer connection and
- * thus do not have a session object. This method allows us to set session
- * later.
- * @param {JingleSessionPC} jingleSession - session object.
- */
-CallStats.prototype.setSession = function (jingleSession) {
-    if (this.session || !callStats) {
-        return;
-    }
-
-    this.session = jingleSession;
-    this.peerconnection = jingleSession.peerconnection.peerconnection;
-
-    processReportsQueue.call(this);
-
-    callStats.addNewFabric(this.peerconnection,
-        Strophe.getResourceFromJid(jingleSession.peerjid),
-        callStats.fabricUsage.multiplex,
-        this.confID,
-        this.pcCallback.bind(this));
-};
 
 // some errors/events may happen before CallStats init
 // in this case we accumulate them in this array

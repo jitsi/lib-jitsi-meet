@@ -61,17 +61,13 @@ function JitsiTrackError(error, options, devices) {
                 this.name = JitsiTrackErrors.PERMISSION_DENIED;
                 this.message = TRACK_ERROR_TO_MESSAGE_MAP[
                         JitsiTrackErrors.PERMISSION_DENIED]
-                        + Object.keys(options || {}).filter(function (k) {
-                            return !!options[k];
-                        }).join(", ");
+                        + (this.gum.devices || []).join(", ");
                 break;
             case "NotFoundError":
                 this.name = JitsiTrackErrors.NOT_FOUND;
                 this.message = TRACK_ERROR_TO_MESSAGE_MAP[
                         JitsiTrackErrors.NOT_FOUND]
-                        + Object.keys(options || {}).filter(function (k) {
-                            return !!options[k];
-                        }).join(", ");
+                        + (this.gum.devices || []).join(", ");
                 break;
             case "ConstraintNotSatisfiedError":
             case "OverconstrainedError":

@@ -8,6 +8,7 @@ var JitsiConnectionErrors = require("./JitsiConnectionErrors");
 var JitsiConferenceErrors = require("./JitsiConferenceErrors");
 var JitsiTrackEvents = require("./JitsiTrackEvents");
 var JitsiTrackErrors = require("./JitsiTrackErrors");
+var JitsiTrackError = require("./JitsiTrackError");
 var Logger = require("jitsi-meet-logger");
 var MediaType = require("./service/RTC/MediaType");
 var RTC = require("./modules/RTC/RTC");
@@ -234,6 +235,10 @@ var LibJitsiMeet = {
 // why the decision is to provide LibJitsiMeet as a parameter of
 // JitsiConnection.
 LibJitsiMeet.JitsiConnection = JitsiConnection.bind(null, LibJitsiMeet);
+
+// expose JitsiTrackError this way to give library consumers to do checks like
+// if (error instanceof JitsiMeetJS.JitsiTrackError) { }
+LibJitsiMeet.JitsiTrackError = JitsiTrackError;
 
 //Setups the promise object.
 window.Promise = window.Promise || require("es6-promise").Promise;
