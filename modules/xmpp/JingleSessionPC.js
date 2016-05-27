@@ -56,8 +56,8 @@ function JingleSessionPC(me, sid, peerjid, connection,
     // stable and the ice connection state is connected.
     this.modifySourcesQueue.pause();
 }
-//XXX this is badly broken...
-JingleSessionPC.prototype = JingleSession.prototype;
+
+JingleSessionPC.prototype = Object.create(JingleSession.prototype);
 JingleSessionPC.prototype.constructor = JingleSessionPC;
 
 
