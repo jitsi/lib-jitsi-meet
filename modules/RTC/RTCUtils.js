@@ -804,8 +804,9 @@ var RTCUtils = {
                 });
         } catch (e) {
             logger.error('GUM failed: ', e);
+
             if (failure_callback) {
-                failure_callback(e);
+                failure_callback(new JitsiTrackError(e, constraints, um));
             }
         }
     },
