@@ -859,14 +859,30 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
     this.removessrc = [];
 
     sdp.raw = sdp.session + sdp.media.join('');
-    this.peerconnection.setRemoteDescription(new RTCSessionDescription({type: 'offer', sdp: sdp.raw}),
+    /**
+     * Implements a failure callback which reports an error message and an
+     * optional error through (1) logger, (2) GlobalOnErrorHandler, and (3)
+     * queueCallback.
+     *
+     * @param {string} errmsg the error messsage to report
+     * @param {*} error an optional error to report in addition to errmsg
+     */
+    function reportError(errmsg, err) {
+        if (err) {
+           errmsg = errmsg + ': ' + err; // for logger and GlobalOnErrorHandler
+           logger.error(errmsg, err);
+        } else {
+           logger.error(errmsg);
+           err = errmsg; // for queueCallback
+        }
+        GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+        queueCallback(err);
+    };
+    this.peerconnection.setRemoteDescription(
+        new RTCSessionDescription({type: 'offer', sdp: sdp.raw}),
         function() {
-
             if(self.signalingState == 'closed') {
-                var errmsg = "createAnswer attempt on closed state";
-                logger.error(errmsg);
-                GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
-                queueCallback(errmsg);
+                reportError("createAnswer attempt on closed state");
                 return;
             }
 
@@ -898,36 +914,18 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
                     //modifiedAnswer.sdp = modifiedAnswer.sdp.replace(/a=setup:active/g, 'a=setup:actpass');
                     self.peerconnection.setLocalDescription(modifiedAnswer,
                         function() {
-                            if(successCallback){
-                                successCallback();
-                            }
+                            successCallback && successCallback();
                             queueCallback();
                         },
-                        function(error) {
-                            var errmsg = "modified setLocalDescription failed";
-                            GlobalOnErrorHandler.callErrorHandler(new Error(
-                                errmsg + ": " + error));
-                            logger.error(errmsg, error);
-                            queueCallback(error);
-                        }
+                        reportError.bind(
+                            undefined,
+                            "modified setLocalDescription failed")
                     );
                 },
-                function(error) {
-                    var errmsg = "modified answer failed";
-                    GlobalOnErrorHandler.callErrorHandler(new Error(
-                        errmsg + ": " + error));
-                    logger.error(errmsg, error);
-                    queueCallback(error);
-                }
+                reportError.bind(undefined, "modified answer failed")
             );
         },
-        function(error) {
-            var errmsg = 'modify failed';
-            GlobalOnErrorHandler.callErrorHandler(new Error(
-                errmsg + ": " + error));
-            logger.error(errmsg, error);
-            queueCallback(error);
-        }
+        reportError.bind(undefined, 'modify failed')
     );
 };
 
