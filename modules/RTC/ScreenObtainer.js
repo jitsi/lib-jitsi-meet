@@ -210,30 +210,23 @@ var ScreenObtainer = {
                                 streamCallback, failCallback);
                         }, 500);
                     },
-                    function (arg) {
-                        var msg = "Failed to install the extension from "
-                            + getWebStoreInstallUrl(self.options);
-
-                        logger.log(msg, arg);
-
-                        failCallback(new JitsiTrackError(
-                            JitsiTrackErrors
-                                .CHROME_EXTENSION_INSTALLATION_ERROR,
-                            msg
-                        ));
-                    }
+                    handleExtensionInstallationError
                 );
             } catch(e) {
-                var msg = "Failed to install the extension from "
-                    + getWebStoreInstallUrl(self.options);
-
-                logger.log(msg, e);
-
-                failCallback(new JitsiTrackError(
-                    JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR,
-                    msg
-                ));
+                handleExtensionInstallationError(e);
             }
+        }
+
+        function handleExtensionInstallationError(e) {
+            var msg = "Failed to install the extension from "
+                + getWebStoreInstallUrl(self.options);
+
+            logger.log(msg, e);
+
+            failCallback(new JitsiTrackError(
+                JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR,
+                msg
+            ));
         }
     }
 };

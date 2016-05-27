@@ -877,10 +877,13 @@ var RTCUtils = {
                     this.getUserMediaWithConstraints(
                         options.devices,
                         function (stream) {
-                            if((options.devices.indexOf("audio") !== -1 &&
-                                !stream.getAudioTracks().length) ||
-                                (options.devices.indexOf("video") !== -1 &&
-                                !stream.getVideoTracks().length))
+                            var audioDeviceRequested = options.devices.indexOf("audio") !== -1;
+                            var videoDeviceRequested = options.devices.indexOf("video") !== -1;
+                            var audioTracksReceived = !!stream.getAudioTracks().length;
+                            var videoTracksReceived = !!stream.getVideoTracks().length;
+
+                            if((audioDeviceRequested && !audioTracksReceived) ||
+                                (videoDeviceRequested && !videoTracksReceived))
                             {
                                 self.stopMediaStream(stream);
 
@@ -891,13 +894,11 @@ var RTCUtils = {
                                 // this happened, so reject with general error.
                                 var devices = [];
 
-                                if (options.devices.indexOf("audio") !== -1 &&
-                                    !stream.getAudioTracks().length) {
+                                if (audioDeviceRequested && !audioTracksReceived) {
                                     devices.push("audio");
                                 }
 
-                                if (options.devices.indexOf("video") !== -1 &&
-                                    !stream.getVideoTracks().length) {
+                                if (videoDeviceRequested && !videoTracksReceived) {
                                     devices.push("video");
                                 }
 
