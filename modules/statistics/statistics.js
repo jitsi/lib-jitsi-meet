@@ -6,6 +6,7 @@ var EventEmitter = require("events");
 var StatisticsEvents = require("../../service/statistics/Events");
 var CallStats = require("./CallStats");
 var ScriptUtil = require('../util/ScriptUtil');
+var JitsiTrackError = require("../../JitsiTrackError");
 
 // Since callstats.io is a third party, we cannot guarantee the quality of their
 // service. More specifically, their server may take noticeably long time to
@@ -265,8 +266,13 @@ function (ssrc, isLocal, usageLabel, containerId) {
  * @param {Error} e error to send
  */
 Statistics.prototype.sendGetUserMediaFailed = function (e) {
-    if(this.callstats)
-        CallStats.sendGetUserMediaFailed(e, this.callstats);
+    if(this.callstats) {
+        CallStats.sendGetUserMediaFailed(
+            e instanceof JitsiTrackError
+                ? formatJitsiTrackErrorForCallStats(e)
+                : e,
+            this.callstats);
+    }
 };
 
 /**
@@ -275,7 +281,11 @@ Statistics.prototype.sendGetUserMediaFailed = function (e) {
  * @param {Error} e error to send
  */
 Statistics.sendGetUserMediaFailed = function (e) {
-    CallStats.sendGetUserMediaFailed(e, null);
+    CallStats.sendGetUserMediaFailed(
+        e instanceof JitsiTrackError
+            ? formatJitsiTrackErrorForCallStats(e)
+            : e,
+        null);
 };
 
 /**

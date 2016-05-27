@@ -59,8 +59,7 @@ function JitsiTrackError(error, options, devices) {
             case "PermissionDeniedError":
             case "SecurityError":
                 this.name = JitsiTrackErrors.PERMISSION_DENIED;
-                this.message = error.message
-                    || TRACK_ERROR_TO_MESSAGE_MAP[
+                this.message = TRACK_ERROR_TO_MESSAGE_MAP[
                         JitsiTrackErrors.PERMISSION_DENIED]
                         + (this.gum.devices || []).join(", ");
                 break;
@@ -84,15 +83,13 @@ function JitsiTrackError(error, options, devices) {
                         constraintName === "width" ||
                         constraintName === "height")) {
                     this.name = JitsiTrackErrors.UNSUPPORTED_RESOLUTION;
-                    this.message = error.message ||
-                        TRACK_ERROR_TO_MESSAGE_MAP[
+                    this.message = TRACK_ERROR_TO_MESSAGE_MAP[
                             JitsiTrackErrors.UNSUPPORTED_RESOLUTION] +
                         getResolutionFromFailedConstraint(constraintName,
                             options);
                 } else {
                     this.name = JitsiTrackErrors.CONSTRAINT_FAILED;
-                    this.message = error.message ||
-                        TRACK_ERROR_TO_MESSAGE_MAP[
+                    this.message = TRACK_ERROR_TO_MESSAGE_MAP[
                             JitsiTrackErrors.CONSTRAINT_FAILED] +
                         error.constraintName;
                 }
