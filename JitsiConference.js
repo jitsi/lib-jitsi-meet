@@ -1083,8 +1083,10 @@ function setupListeners(conference) {
     conference.room.addListener(XMPPEvents.CONNECTION_RESTORED, function () {
         conference.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_RESTORED);
     });
-    conference.room.addListener(XMPPEvents.CONFERENCE_SETUP_FAILED, function () {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.SETUP_FAILED);
+    conference.room.addListener(XMPPEvents.CONFERENCE_SETUP_FAILED,
+    function (error) {
+        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+            JitsiConferenceErrors.SETUP_FAILED, error);
     });
 
     conference.room.addListener(AuthenticationEvents.IDENTITY_UPDATED, function (authEnabled, authIdentity) {
@@ -1296,7 +1298,8 @@ function setupListeners(conference) {
             function (pc) {
                 conference.statistics.sendIceConnectionFailedEvent(pc);
                 conference.room.eventEmitter.emit(
-                    XMPPEvents.CONFERENCE_SETUP_FAILED);
+                    XMPPEvents.CONFERENCE_SETUP_FAILED,
+                    new Error("ICE fail")); 
             });
 
         conference.rtc.addListener(RTCEvents.TRACK_ATTACHED,

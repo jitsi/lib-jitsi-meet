@@ -1218,7 +1218,7 @@ JingleSessionPC.prototype.newJingleErrorHandler = function(request, failureCb) {
 
 JingleSessionPC.onJingleFatalError = function (session, error)
 {
-    this.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED);
+    this.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED, error);
     this.room.eventEmitter.emit(XMPPEvents.JINGLE_FATAL_ERROR, session, error);
 };
 

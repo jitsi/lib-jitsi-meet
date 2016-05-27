@@ -62,7 +62,7 @@ var GlobalOnErrorHandler = {
         var errHandler = window.onerror;
         if(!errHandler)
             return;
-        errHandler.call(null, null, null, null, null, error);
+        errHandler(null, null, null, null, error);
     },
     /**
      * Calls the global rejection handler if there is one.
@@ -72,7 +72,7 @@ var GlobalOnErrorHandler = {
         var errHandler = window.onunhandledrejection;
         if(!errHandler)
             return;
-        errHandler.call(null, error);
+        errHandler(error);
     }
 };
 
