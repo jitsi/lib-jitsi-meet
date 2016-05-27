@@ -69,11 +69,11 @@ function JingleSession(me, sid, peerjid, connection,
  */
 JingleSession.prototype.initialize = function(isInitiator, room) {
     if (this.state !== null) {
-
-        logger.error('attempt to initiate on session ' + this.sid +
-        'in state ' + this.state);
-        throw new Error('attempt to initiate on session ' + this.sid +
-            'in state ' + this.state);
+        var errmsg
+            = 'attempt to initiate on session ' + this.sid + 'in state '
+                + this.state;
+        logger.error(errmsg);
+        throw new Error(errmsg);
     }
     this.room = room;
     this.state = 'pending';

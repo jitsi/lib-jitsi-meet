@@ -28,10 +28,11 @@ var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
  */
 function JitsiConference(options) {
     if(!options.name || options.name.toLowerCase() !== options.name) {
-        logger.error("Invalid conference name (no conference name passed or it"
-            + "contains invalid characters like capital letters)!");
-        throw new Error("Invalid conference name (no conference name passed or "
-            + "it contains invalid characters like capital letters)!");
+        var errmsg
+            = "Invalid conference name (no conference name passed or it "
+                + "contains invalid characters like capital letters)!";
+        logger.error(errmsg);
+        throw new Error(errmsg);
     }
     this.options = options;
     this.connection = this.options.connection;
@@ -945,13 +946,12 @@ function setupListeners(conference) {
             conference.statistics.startRemoteStats(
                     jingleSession.peerconnection);
         } else {
-            // Error cause this should never happen unless something is wrong !
-            GlobalOnErrorHandler.callErrorHandler(new Error(
-                "Rejecting session-initiate from non focus user: "
-                    + jingleSession.peerjid));
-            logger.error(
-                "Rejecting session-initiate from non focus user: "
-                        + jingleSession.peerjid);
+            // Error cause this should never happen unless something is wrong!
+            var errmsg
+                = "Rejecting session-initiate from non-focus user: "
+                    + jingleSession.peerjid;
+            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+            logger.error(errmsg);
         }
     });
 

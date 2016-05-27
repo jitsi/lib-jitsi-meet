@@ -1,6 +1,6 @@
 /**
- * This utility class defines custom onerror and onunhandledrejection functions
- * The custom error handlers are respecting the previous defined error handlers
+ * This utility class defines custom onerror and onunhandledrejection functions.
+ * The custom error handlers respect the previously-defined error handlers.
  * GlobalOnErrorHandler class provides utilities to add many custom error
  * handlers and to execute the error handlers directly.
  */
@@ -11,7 +11,7 @@
  */
 var handlers = [];
 
-// if an old handler exists also fire its events
+// If an old handler exists, also fire its events.
 var oldOnErrorHandler = window.onerror;
 
 /**
@@ -26,13 +26,12 @@ function JitsiGlobalErrorHandler(message, source, lineno, colno, error) {
         oldOnErrorHandler(message, source, lineno, colno, error);
 }
 
-// if an old handler exists also fire its events
+// If an old handler exists, also fire its events.
 var oldOnUnhandledRejection = window.onunhandledrejection;
 
 /**
- * Custom handler that calls the old global handler and executes
- * all handlers that were previously added. This handler handles rejected
- * Promises.
+ * Custom handler that calls the old global handler and executes all handlers
+ * that were previously added. This handler handles rejected Promises.
  */
 function JitsiGlobalUnhandledRejection(event) {
     handlers.forEach(function (handler) {
@@ -42,7 +41,7 @@ function JitsiGlobalUnhandledRejection(event) {
         oldOnUnhandledRejection(event);
 }
 
-//Setting the custom error handlers.
+// Setting the custom error handlers.
 window.onerror = JitsiGlobalErrorHandler;
 window.onunhandledrejection = JitsiGlobalUnhandledRejection;
 
@@ -57,7 +56,7 @@ var GlobalOnErrorHandler = {
     },
     /**
      * Calls the global error handler if there is one.
-     * @param error the error that is going to be passed to the error handler
+     * @param error the error to pass to the error handler
      */
     callErrorHandler: function (error) {
         var errHandler = window.onerror;
@@ -67,8 +66,7 @@ var GlobalOnErrorHandler = {
     },
     /**
      * Calls the global rejection handler if there is one.
-     * @param error the error that is going to be passed to the rejection
-     * handler.
+     * @param error the error to pass to the rejection handler.
      */
     callUnhandledRejectionHandler: function (error) {
         var errHandler = window.onunhandledrejection;

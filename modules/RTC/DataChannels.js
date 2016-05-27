@@ -90,7 +90,8 @@ DataChannels.prototype.onDataChannel = function (event) {
             logger.error(
                 "Failed to parse data channel message as JSON: ",
                 data,
-                dataChannel, e);
+                dataChannel,
+                e);
         }
         if (('undefined' !== typeof(obj)) && (null !== obj)) {
             var colibriClass = obj.colibriClass;

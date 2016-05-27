@@ -182,12 +182,11 @@ function getConstraints(um, options) {
             };
 
         } else {
-            GlobalOnErrorHandler.callErrorHandler(new Error(
-                "'screen' WebRTC media source is supported only in Chrome" +
-                " and with Temasys plugin"));
-            logger.error(
-                "'screen' WebRTC media source is supported only in Chrome" +
-                " and with Temasys plugin");
+            var errmsg
+                = "'screen' WebRTC media source is supported only in Chrome"
+                    + " and with Temasys plugin";
+            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+            logger.error(errmsg);
         }
     }
     if (um.indexOf('desktop') >= 0) {
@@ -755,13 +754,12 @@ var RTCUtils = {
                     resolve();
                 });
             } else {
+                var errmsg = 'Browser does not appear to be WebRTC-capable';
                 try {
-                    logger.error(
-                        'Browser does not appear to be WebRTC-capable');
+                    logger.error(errmsg);
                 } catch (e) {
                 }
-                reject(
-                    new Error('Browser does not appear to be WebRTC-capable'));
+                reject(new Error(errmsg));
                 return;
             }
 

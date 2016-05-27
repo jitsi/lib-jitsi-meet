@@ -200,9 +200,9 @@ ChatRoom.prototype.createNonAnonymousRoom = function () {
         if (!$(form).find(
                 '>query>x[xmlns="jabber:x:data"]' +
                 '>field[var="muc#roomconfig_whois"]').length) {
-            GlobalOnErrorHandler.callErrorHandler(
-                new Error("non-anonymous rooms not supported"));
-            logger.error("non-anonymous rooms not supported");
+            var errmsg = "non-anonymous rooms not supported";
+            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+            logger.error(errmsg);
             return;
         }
 
@@ -222,7 +222,7 @@ ChatRoom.prototype.createNonAnonymousRoom = function () {
 
     }, function (error) {
         GlobalOnErrorHandler.callErrorHandler(error);
-        logger.error("Error getting room configuration form");
+        logger.error("Error getting room configuration form: ", error);
     });
 };
 
@@ -374,13 +374,12 @@ ChatRoom.prototype.processNode = function (node, from) {
     // make sure we catch all errors coming from any handler
     // otherwise we can remove the presence handler from strophe
     try {
-        if(this.presHandlers[node.tagName])
-            this.presHandlers[node.tagName](
-                node, Strophe.getResourceFromJid(from), from);
+        var tagHandler = this.presHandlers[node.tagName];
+        if(tagHandler)
+            tagHandler(node, Strophe.getResourceFromJid(from), from);
     } catch (e) {
         GlobalOnErrorHandler.callErrorHandler(e);
-        logger.error('Error processing:' + node.tagName
-            + ' node.', e);
+        logger.error('Error processing:' + node.tagName + ' node.', e);
     }
 };
 

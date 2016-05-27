@@ -59,7 +59,7 @@ var LibJitsiMeet = {
     _gumFailedHandler: [],
     init: function (options) {
         Statistics.audioLevelsEnabled = !options.disableAudioLevels;
-        
+
         if (options.enableWindowOnErrorHandler) {
             GlobalOnErrorHandler.addHandler(
                 this.getGlobalOnErrorHandler.bind(this));

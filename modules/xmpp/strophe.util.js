@@ -14,9 +14,9 @@ module.exports = function () {
                 break;
             case Strophe.LogLevel.ERROR:
             case Strophe.LogLevel.FATAL:
-                GlobalOnErrorHandler.callErrorHandler(
-                    new Error("Strophe: " + msg));
-                logger.error("Strophe: " + msg);
+                msg = "Strophe: " + msg;
+                GlobalOnErrorHandler.callErrorHandler(new Error(msg));
+                logger.error(msg);
                 break;
         }
     };

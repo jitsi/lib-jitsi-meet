@@ -176,10 +176,9 @@ JingleSessionPC.prototype.sendIceCandidate = function (candidate) {
         var ice = SDPUtil.iceparams(this.localSDP.media[candidate.sdpMLineIndex], this.localSDP.session);
         var jcand = SDPUtil.candidateToJingle(candidate.candidate);
         if (!(ice && jcand)) {
-            //FIxed
-            GlobalOnErrorHandler.callErrorHandler(
-                new Error("failed to get ice && jcand"));
-            logger.error("failed to get ice && jcand");
+            var errorMesssage = "failed to get ice && jcand";
+            GlobalOnErrorHandler.callErrorHandler(new Error(errorMesssage));
+            logger.error(errorMesssage);
             return;
         }
         ice.xmlns = 'urn:xmpp:jingle:transports:ice-udp:1';
@@ -412,8 +411,8 @@ JingleSessionPC.prototype.setLocalDescription = function (sdp, success,
             logger.error('setLocalDescription failed', error);
             if (failure)
                 failure(error);
-            self.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED,
-                error);
+            self.room.eventEmitter.emit(
+                    XMPPEvents.CONFERENCE_SETUP_FAILED, error);
         }
     );
     // Some checks for STUN and TURN candiates present in local SDP
@@ -783,11 +782,10 @@ JingleSessionPC.prototype.removeSource = function (elem) {
             var ssrc = $(this).attr('ssrc');
             // This should never happen, but can be useful for bug detection
             if(mySdp.containsSSRC(ssrc)){
-                GlobalOnErrorHandler.callErrorHandler(
-                    new Error("Got remove stream request for my own ssrc: " +
-                    ssrc));
-                logger.error("Got remove stream request for my own ssrc: " +
-                    ssrc);
+                var errmsg
+                    = "Got remove stream request for my own ssrc: " + ssrc;
+                GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+                logger.error(errmsg);
                 return;
             }
             ssrcs.push(ssrc);
@@ -865,10 +863,10 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
         function() {
 
             if(self.signalingState == 'closed') {
-                logger.error("createAnswer attempt on closed state");
-                GlobalOnErrorHandler.callErrorHandler(
-                    new Error("createAnswer attempt on closed state"));
-                queueCallback("createAnswer attempt on closed state");
+                var errmsg = "createAnswer attempt on closed state";
+                logger.error(errmsg);
+                GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+                queueCallback(errmsg);
                 return;
             }
 
@@ -906,27 +904,28 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
                             queueCallback();
                         },
                         function(error) {
+                            var errmsg = "modified setLocalDescription failed";
                             GlobalOnErrorHandler.callErrorHandler(new Error(
-                                "modified setLocalDescription failed" +
-                                error));
-                            logger.error("modified setLocalDescription failed",
-                                error);
+                                errmsg + ": " + error));
+                            logger.error(errmsg, error);
                             queueCallback(error);
                         }
                     );
                 },
                 function(error) {
+                    var errmsg = "modified answer failed";
                     GlobalOnErrorHandler.callErrorHandler(new Error(
-                        "modified answer failed" + error));
-                    logger.error('modified answer failed', error);
+                        errmsg + ": " + error));
+                    logger.error(errmsg, error);
                     queueCallback(error);
                 }
             );
         },
         function(error) {
+            var errmsg = 'modify failed';
             GlobalOnErrorHandler.callErrorHandler(new Error(
-                'modify failed' + error));
-            logger.error('modify failed', error);
+                errmsg + ": " + error));
+            logger.error(errmsg, error);
             queueCallback(error);
         }
     );
@@ -1404,8 +1403,9 @@ JingleSessionPC.prototype.fixJingle = function(jingle) {
             this.fixSourceRemoveJingle(jingle);
             break;
         default:
-            GlobalOnErrorHandler.callErrorHandler("Unknown jingle action!");
-            logger.error("Unknown jingle action!");
+            var errmsg = "Unknown jingle action!";
+            GlobalOnErrorHandler.callErrorHandler(errmsg);
+            logger.error(errmsg);
             return false;
     }
 

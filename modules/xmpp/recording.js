@@ -202,9 +202,9 @@ function (state, callback, errCallback, options) {
             this.setRecordingJibri(state, callback, errCallback, options);
             break;
         default:
-            GlobalOnErrorHandler.callErrorHandler(
-                new Error("Unknown recording type!"));
-            logger.error("Unknown recording type!");
+            var errmsg = "Unknown recording type!";
+            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+            logger.error(errmsg);
             return;
     }
 };

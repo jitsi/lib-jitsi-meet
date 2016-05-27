@@ -356,9 +356,9 @@ Moderator.prototype._allocateConferenceFocusError = function (error, callback) {
         return;
     }
     var waitMs = self.getNextErrorTimeout();
-    GlobalOnErrorHandler.callErrorHandler(
-        new Error("Focus error, retry after "+ waitMs));
-    logger.error("Focus error, retry after " + waitMs, error);
+    var errmsg = "Focus error, retry after "+ waitMs;
+    GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+    logger.error(errmsg, error);
     // Show message
     var focusComponent = self.getFocusComponent();
     var retrySec = waitMs / 1000;
@@ -443,17 +443,16 @@ Moderator.prototype.getLoginUrl =  function (urlCallback, failureCallback) {
                 logger.info("Got auth url: " + url);
                 urlCallback(url);
             } else {
-                GlobalOnErrorHandler.callErrorHandler(
-                    new Error("Failed to get auth url from the focus"));
-                logger.error(
-                    "Failed to get auth url from the focus", result);
+                var errmsg = "Failed to get auth url from the focus";
+                GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+                logger.error(errmsg, result);
                 failureCallback(result);
             }
         },
         function (error) {
-            GlobalOnErrorHandler.callErrorHandler(
-                new Error("Get auth url error"));
-            logger.error("Get auth url error", error);
+            var errmsg = "Get auth url error";
+            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+            logger.error(errmsg, error);
             failureCallback(error);
         }
     );
@@ -476,17 +475,16 @@ Moderator.prototype.getPopupLoginUrl = function (urlCallback, failureCallback) {
                 logger.info("Got POPUP auth url:  " + url);
                 urlCallback(url);
             } else {
-                GlobalOnErrorHandler.callErrorHandler(
-                    new Error("Failed to get POPUP auth url from the focus"));
-                logger.error(
-                    "Failed to get POPUP auth url from the focus", result);
-               failureCallback(result);
+                var errmsg = "Failed to get POPUP auth url from the focus";
+                GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+                logger.error(errmsg, result);
+                failureCallback(result);
             }
         },
         function (error) {
-            GlobalOnErrorHandler.callErrorHandler(
-                new Error("Get POPUP auth url error"));
-            logger.error('Get POPUP auth url error', error);
+            var errmsg = "Get POPUP auth url error";
+            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+            logger.error(errmsg, error);
             failureCallback(error);
         }
     );
@@ -515,8 +513,9 @@ Moderator.prototype.logout =  function (callback) {
             callback(logoutUrl);
         }.bind(this),
         function (error) {
-            GlobalOnErrorHandler.callErrorHandler(new Error("Logout error"));
-            logger.error("Logout error", error);
+            var errmsg = "Logout error";
+            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+            logger.error(errmsg, error);
         }
     );
 };

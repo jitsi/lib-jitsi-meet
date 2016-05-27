@@ -77,9 +77,10 @@ module.exports = function (XMPP, eventEmitter) {
                         callback(ping.length > 0);
                     },
                     function (error) {
-                        GlobalOnErrorHandler.callErrorHandler(
-                            new Error("Ping feature discovery error" + error));
-                        logger.error("Ping feature discovery error", error);
+                        var errmsg = "Ping feature discovery error";
+                        GlobalOnErrorHandler.callErrorHandler(new Error(
+                            errmsg + ": " + error));
+                        logger.error(errmsg, error);
                         callback(false);
                     }
                 );
@@ -98,9 +99,9 @@ module.exports = function (XMPP, eventEmitter) {
          */
         startInterval: function (remoteJid, interval) {
             if (this.intervalId) {
-                GlobalOnErrorHandler.callErrorHandler(
-                    new Error("Ping task scheduled already"));
-                logger.error("Ping task scheduled already");
+                var errmsg = "Ping task scheduled already";
+                GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+                logger.error(errmsg);
                 return;
             }
             if (!interval)
@@ -114,10 +115,9 @@ module.exports = function (XMPP, eventEmitter) {
                 },
                 function (error) {
                     self.failedPings += 1;
-                    GlobalOnErrorHandler.callErrorHandler(
-                        new Error("Ping " + (error ? "error" : "timeout")));
-                    logger.error(
-                        "Ping " + (error ? "error" : "timeout"), error);
+                    var errmsg = "Ping " + (error ? "error" : "timeout");
+                    GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+                    logger.error(errmsg, error);
                     if (self.failedPings >= PING_THRESHOLD) {
                         self.connection.disconnect();
                     }
