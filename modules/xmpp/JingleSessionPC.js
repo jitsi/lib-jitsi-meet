@@ -25,16 +25,12 @@ function JingleSessionPC(me, sid, peerjid, connection,
     JingleSession.call(this, me, sid, peerjid, connection,
                        media_constraints, ice_config, service, eventEmitter);
     this.localSDP = null;
-    this.remoteSDP = null;
 
-    this.hadstuncandidate = false;
-    this.hadturncandidate = false;
     this.lasticecandidate = false;
     this.closed = false;
 
     this.addssrc = [];
     this.removessrc = [];
-    this.pendingop = null;
     this.modifyingLocalStreams = false;
     this.modifiedSSRCs = {};
 
@@ -48,34 +44,19 @@ function JingleSessionPC(me, sid, peerjid, connection,
      */
     this.ssrcOwners = {};
 
+    this.jingleOfferIq = null;
     this.webrtcIceUdpDisable = !!this.service.options.webrtcIceUdpDisable;
     this.webrtcIceTcpDisable = !!this.service.options.webrtcIceTcpDisable;
 
     this.modifySourcesQueue = async.queue(this._modifySources.bind(this), 1);
-    // We start with the queue paused. We resume it when the signaling state is
-    // stable and the ice connection state is connected.
-    this.modifySourcesQueue.pause();
 }
 
 JingleSessionPC.prototype = Object.create(JingleSession.prototype);
 JingleSessionPC.prototype.constructor = JingleSessionPC;
 
 
-JingleSessionPC.prototype.updateModifySourcesQueue = function() {
-    var signalingState = this.peerconnection.signalingState;
-    var iceConnectionState = this.peerconnection.iceConnectionState;
-    if (signalingState === 'stable' && iceConnectionState === 'connected') {
-        this.modifySourcesQueue.resume();
-    } else {
-        this.modifySourcesQueue.pause();
-    }
-};
-
 JingleSessionPC.prototype.doInitialize = function () {
     var self = this;
-
-    this.hadstuncandidate = false;
-    this.hadturncandidate = false;
     this.lasticecandidate = false;
     // True if reconnect is in progress
     this.isreconnect = false;
@@ -124,7 +105,6 @@ JingleSessionPC.prototype.doInitialize = function () {
         if (self.peerconnection.signalingState === 'stable') {
             self.wasstable = true;
         }
-        self.updateModifySourcesQueue();
     };
     /**
      * The oniceconnectionstatechange event handler contains the code to execute when the iceconnectionstatechange event,
@@ -140,7 +120,6 @@ JingleSessionPC.prototype.doInitialize = function () {
             self.peerconnection.iceConnectionState] = now;
         logger.log("(TIME) ICE " + self.peerconnection.iceConnectionState +
                     ":\t", now);
-        self.updateModifySourcesQueue();
         switch (self.peerconnection.iceConnectionState) {
             case 'connected':
 
@@ -180,12 +159,6 @@ JingleSessionPC.prototype.sendIceCandidate = function (candidate) {
         }
         ice.xmlns = 'urn:xmpp:jingle:transports:ice-udp:1';
 
-        if (jcand.type === 'srflx') {
-            this.hadstuncandidate = true;
-        } else if (jcand.type === 'relay') {
-            this.hadturncandidate = true;
-        }
-
         if (this.usedrip) {
             if (this.drip_container.length === 0) {
                 // start 20ms callout
@@ -203,8 +176,6 @@ JingleSessionPC.prototype.sendIceCandidate = function (candidate) {
         logger.log('sendIceCandidate: last candidate.');
         // FIXME: remember to re-think in ICE-restart
         this.lasticecandidate = true;
-        logger.log('Have we encountered any srflx candidates? ' + this.hadstuncandidate);
-        logger.log('Have we encountered any relay candidates? ' + this.hadturncandidate);
     }
 };
 
@@ -307,118 +278,15 @@ JingleSessionPC.prototype.acceptOffer = function(jingleOffer,
 JingleSessionPC.prototype.setOfferCycle = function (jingleOfferIq,
                                                           success,
                                                           failure) {
-    // Set Jingle offer as RD
-    this.setOffer(jingleOfferIq,
-        function() {
-            // Set offer OK, now let's try create an answer
-            this.createAnswer(function(answer) {
-                    // Create answer OK, set it as local SDP
-                    this.setLocalDescription(answer, success, failure);
-                }.bind(this),
-                failure);
-        }.bind(this),
-        failure);
-};
-
-/**
- * Sets remote offer on PeerConnection by converting given Jingle offer IQ into
- * SDP and setting it as remote description.
- * @param jingleOfferIq  jQuery selector pointing to the jingle element of
- *        the offer IQ
- * @param success callback called when setRemoteDescription on PeerConnection
- *        succeeds
- * @param failure callback called with an error argument when
- *        setRemoteDescription fails.
- */
-JingleSessionPC.prototype.setOffer = function (jingleOfferIq, success, failure) {
-    this.remoteSDP = new SDP('');
-    if (this.webrtcIceTcpDisable) {
-        this.remoteSDP.removeTcpCandidates = true;
-    }
-    if (this.webrtcIceUdpDisable) {
-        this.remoteSDP.removeUdpCandidates = true;
-    }
-
-    this.remoteSDP.fromJingle(jingleOfferIq);
-    this.readSsrcInfo($(jingleOfferIq).find(">content"));
-    var remotedesc
-        = new RTCSessionDescription({type: 'offer', sdp: this.remoteSDP.raw});
-
-    this.peerconnection.setRemoteDescription(remotedesc,
-        function () {
-            //logger.log('setRemoteDescription success');
-            if (success) {
-                success();
-            }
-        },
-        function (e) {
-            logger.error('setRemoteDescription error', e);
-            if (failure)
-                failure(e);
-            JingleSessionPC.onJingleFatalError(this, e);
-        }.bind(this)
-    );
-};
-
-/**
- * This is a wrapper to PeerConnection.createAnswer in order to generate failure
- * event when error occurs. It also includes "media_constraints" if any are set
- * on this JingleSessionPC instance.
- * @param success callback called when PC.createAnswer succeeds, SDP will be
- *        the first argument
- * @param failure callback called with error argument when setAnswer fails
- */
-JingleSessionPC.prototype.createAnswer = function (success, failure) {
-    //logger.log('createAnswer');
-    var self = this;
-    this.peerconnection.createAnswer(
-        function (answer) {
-            var modifiedAnswer = new SDP(answer.sdp);
-            JingleSessionPC._fixAnswerRFC4145Setup(
-                /* offer */ self.remoteSDP,
-                /* answer */ modifiedAnswer);
-            answer.sdp = modifiedAnswer.raw;
-            success(answer);
-        },
-        function (error) {
-            logger.error("createAnswer failed", error);
-            if (failure)
-                failure(error);
-            self.room.eventEmitter.emit(
-                    XMPPEvents.CONFERENCE_SETUP_FAILED, error);
-        },
-        this.media_constraints
-    );
-};
-
-JingleSessionPC.prototype.setLocalDescription = function (sdp, success,
-                                                               failure) {
-    var self = this;
-    this.localSDP = new SDP(sdp.sdp);
-    sdp.sdp = this.localSDP.raw;
-    this.peerconnection.setLocalDescription(sdp,
-        function () {
-            if (success)
-                success();
-        },
-        function (error) {
-            logger.error('setLocalDescription failed', error);
-            if (failure)
-                failure(error);
-            self.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED);
-        }
-    );
-    // Some checks for STUN and TURN candiates present in local SDP
-    // Eventually could be removed as we don't really care
-    var cands = SDPUtil.find_lines(this.localSDP.raw, 'a=candidate:');
-    for (var j = 0; j < cands.length; j++) {
-        var cand = SDPUtil.parse_icecandidate(cands[j]);
-        if (cand.type == 'srflx') {
-            this.hadstuncandidate = true;
-        } else if (cand.type == 'relay') {
-            this.hadturncandidate = true;
-        }
-    }
+    this.jingleOfferIq = jingleOfferIq;
+    this.modifySourcesQueue.push(success, function (error) {
+        if(!error)
+            return;
+        if (failure)
+            failure(error);
+        JingleSessionPC.onJingleFatalError(this, error);
+        failure(error);
+    }.bind(this));
 };
 
 /**
@@ -667,7 +535,6 @@ JingleSessionPC.prototype.onTerminated = function (reasonCondition,
  * @param elem An array of Jingle "content" elements.
  */
 JingleSessionPC.prototype.addSource = function (elem) {
-
     var self = this;
     // FIXME: dirty waiting
     if (!this.peerconnection.localDescription)
@@ -753,7 +620,6 @@ JingleSessionPC.prototype.addSource = function (elem) {
  * @param elem An array of Jingle "content" elements.
  */
 JingleSessionPC.prototype.removeSource = function (elem) {
-
     var self = this;
     // FIXME: dirty waiting
     if (!this.peerconnection.localDescription) {
@@ -828,11 +694,11 @@ JingleSessionPC.prototype.removeSource = function (elem) {
 };
 
 JingleSessionPC.prototype._modifySources = function (successCallback, queueCallback) {
-    var self = this;
+    var self = this, sdp = null, media_constraints;
 
     if (this.peerconnection.signalingState == 'closed') return;
-    if (!(this.addssrc.length || this.removessrc.length || this.pendingop !== null
-        || this.modifyingLocalStreams)){
+    if (!(this.addssrc.length || this.removessrc.length
+        || this.modifyingLocalStreams || this.jingleOfferIq !== null)){
         // There is nothing to do since scheduled job might have been
         // executed by another succeeding call
         if(successCallback){
@@ -842,10 +708,26 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
         return;
     }
 
-    // Reset switch streams flags
-    this.modifyingLocalStreams = false;
+    if(this.jingleOfferIq) {
+        fromSessionInitiate = true;
+        sdp = new SDP('');
+        if (this.webrtcIceTcpDisable) {
+            sdp.removeTcpCandidates = true;
+        }
+        if (this.webrtcIceUdpDisable) {
+            sdp.removeUdpCandidates = true;
+        }
 
-    var sdp = new SDP(this.peerconnection.remoteDescription.sdp);
+        sdp.fromJingle(this.jingleOfferIq);
+        this.readSsrcInfo($(this.jingleOfferIq).find(">content"));
+        this.jingleOfferIq = null;
+        media_constraints = this.media_constraints;
+    } else {
+        // Reset switch streams flags
+        this.modifyingLocalStreams = false;
+
+        sdp = new SDP(this.peerconnection.remoteDescription.sdp);
+    }
 
     // add sources
     this.addssrc.forEach(function(lines, idx) {
@@ -869,37 +751,24 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
 
             if(self.signalingState == 'closed') {
                 logger.error("createAnswer attempt on closed state");
-                queueCallback("createAnswer attempt on closed state");
+                queueCallback(new Error("createAnswer attempt on closed state"));
                 return;
             }
 
             self.peerconnection.createAnswer(
-                function(modifiedAnswer) {
-                    // change video direction, see https://github.com/jitsi/jitmeet/issues/41
-                    if (self.pendingop !== null) {
-                        var sdp = new SDP(modifiedAnswer.sdp);
-                        if (sdp.media.length > 1) {
-                            switch(self.pendingop) {
-                                case 'mute':
-                                    sdp.media[1] = sdp.media[1].replace('a=sendrecv', 'a=recvonly');
-                                    break;
-                                case 'unmute':
-                                    sdp.media[1] = sdp.media[1].replace('a=recvonly', 'a=sendrecv');
-                                    break;
-                            }
-                            sdp.raw = sdp.session + sdp.media.join('');
-                            modifiedAnswer.sdp = sdp.raw;
-                        }
-                        self.pendingop = null;
-                    }
-
+                function(answer) {
                     // FIXME: pushing down an answer while ice connection state
                     // is still checking is bad...
                     //logger.log(self.peerconnection.iceConnectionState);
 
-                    // trying to work around another chrome bug
-                    //modifiedAnswer.sdp = modifiedAnswer.sdp.replace(/a=setup:active/g, 'a=setup:actpass');
-                    self.peerconnection.setLocalDescription(modifiedAnswer,
+                    var modifiedAnswer = new SDP(answer.sdp);
+                    JingleSessionPC._fixAnswerRFC4145Setup(
+                        /* offer */ sdp,
+                        /* answer */ modifiedAnswer);
+                    answer.sdp = modifiedAnswer.raw;
+                    self.localSDP = new SDP(answer.sdp);
+                    answer.sdp = self.localSDP.raw;
+                    self.peerconnection.setLocalDescription(answer,
                         function() {
                             if(successCallback){
                                 successCallback();
@@ -915,7 +784,8 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
                 function(error) {
                     logger.error('modified answer failed', error);
                     queueCallback(error);
-                }
+                },
+                media_constraints
             );
         },
         function(error) {
@@ -928,15 +798,15 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
 /**
  * Adds stream.
  * @param stream new stream that will be added.
- * @param success_callback callback executed after successful stream addition.
+ * @param callback callback executed after successful stream addition.
+ * @param errorCallback callback executed if stream addition fail.
  * @param ssrcInfo object with information about the SSRCs associated with the
  * stream.
  * @param dontModifySources {boolean} if true _modifySources won't be called.
  * Used for streams added before the call start.
- * @throws error if modifySourcesQueue is paused.
  */
-JingleSessionPC.prototype.addStream = function (stream, callback, ssrcInfo,
-    dontModifySources) {
+JingleSessionPC.prototype.addStream = function (stream, callback, errorCallback,
+    ssrcInfo, dontModifySources) {
     // Remember SDP to figure out added/removed SSRCs
     var oldSdp = null;
     if(this.peerconnection && this.peerconnection.localDescription) {
@@ -959,14 +829,6 @@ JingleSessionPC.prototype.addStream = function (stream, callback, ssrcInfo,
         return;
     }
 
-    if(this.modifySourcesQueue.paused) {
-        // if this.modifySourcesQueue.paused, modifySources won't be called and
-        // the SDPs won't be updated. Basically removeStream will fail. That's
-        // why we are throwing the error to inform the callers of the method.
-        throw new Error("modifySourcesQueue paused");
-        return;
-    }
-
     if(stream || ssrcInfo)
         this.peerconnection.addStream(stream, ssrcInfo);
 
@@ -980,10 +842,15 @@ JingleSessionPC.prototype.addStream = function (stream, callback, ssrcInfo,
                 self.modifiedSSRCs[ssrcInfo.type] || [];
             self.modifiedSSRCs[ssrcInfo.type].push(ssrcInfo);
         }
-        callback();
         var newSdp = new SDP(self.peerconnection.localDescription.sdp);
         logger.log("SDPs", oldSdp, newSdp);
         self.notifyMySSRCUpdate(oldSdp, newSdp);
+    }, function (error) {
+        if(!error) {
+            callback();
+        } else {
+            errorCallback(error);
+        }
     });
 }
 
@@ -999,12 +866,13 @@ JingleSessionPC.prototype.generateNewStreamSSRCInfo = function () {
 /**
  * Remove streams.
  * @param stream stream that will be removed.
- * @param success_callback callback executed after successful stream addition.
+ * @param callback callback executed after successful stream addition.
+ * @param errorCallback callback executed if stream addition fail.
  * @param ssrcInfo object with information about the SSRCs associated with the
  * stream.
- * @throws error if modifySourcesQueue is paused.
  */
-JingleSessionPC.prototype.removeStream = function (stream, callback, ssrcInfo) {
+JingleSessionPC.prototype.removeStream = function (stream, callback, errorCallback,
+    ssrcInfo) {
     // Conference is not active
     if(!this.peerconnection) {
         callback();
@@ -1042,16 +910,9 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, ssrcInfo) {
         }
 
         if(!track) {
-            logger.log("Cannot remove tracks: no tracks.");
-            callback();
-            return;
-        }
-
-        if(this.modifySourcesQueue.paused) {
-            // if this.modifySourcesQueue.paused, modifySources won't be called and
-            // the SDPs won't be updated. Basically removeStream will fail. That's
-            // why we are throwing the error to inform the callers of the method.
-            throw new Error("modifySourcesQueue paused");
+            var msg = "Cannot remove tracks: no tracks.";
+            logger.log(msg);
+            errorCallback(new Error(msg));
             return;
         }
 
@@ -1068,12 +929,6 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, ssrcInfo) {
         } else {
             logger.log("Cannot remove tracks: no RTPSender.");
         }
-    } else if(this.modifySourcesQueue.paused) {
-        // if this.modifySourcesQueue.paused, modifySources won't be called and
-        // the SDPs won't be updated. Basically removeStream will fail. That's
-        // why we are throwing the error to inform the callers of the method.
-        throw new Error("modifySourcesQueue paused");
-        return;
     } else if(stream)
         this.peerconnection.removeStream(stream, false, ssrcInfo);
     // else
@@ -1086,8 +941,6 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, ssrcInfo) {
     this.modifySourcesQueue.push(function() {
         logger.log('modify sources done');
 
-        callback();
-
         var newSdp = new SDP(self.peerconnection.localDescription.sdp);
         if(ssrcInfo) {
             self.modifiedSSRCs[ssrcInfo.type] =
@@ -1096,6 +949,12 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, ssrcInfo) {
         }
         logger.log("SDPs", oldSdp, newSdp);
         self.notifyMySSRCUpdate(oldSdp, newSdp);
+    }, function (error) {
+        if(!error) {
+            callback();
+        } else {
+            errorCallback(error);
+        }
     });
 }
 
