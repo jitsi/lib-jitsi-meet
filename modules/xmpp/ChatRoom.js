@@ -606,29 +606,39 @@ ChatRoom.prototype.setJingleSession = function(session){
     this.session = session;
 };
 
-
-ChatRoom.prototype.removeStream = function (stream, callback, ssrcInfo) {
+/**
+ * Remove stream.
+ * @param stream stream that will be removed.
+ * @param callback callback executed after successful stream removal.
+ * @param errorCallback callback executed if stream removal fail.
+ * @param ssrcInfo object with information about the SSRCs associated with the
+ * stream.
+ */
+ChatRoom.prototype.removeStream = function (stream, callback, errorCallback,
+    ssrcInfo) {
     if(!this.session) {
         callback();
         return;
     }
-    this.session.removeStream(stream, callback, ssrcInfo);
+    this.session.removeStream(stream, callback, errorCallback, ssrcInfo);
 };
 
 /**
  * Adds stream.
  * @param stream new stream that will be added.
  * @param callback callback executed after successful stream addition.
+ * @param errorCallback callback executed if stream addition fail.
  * @param ssrcInfo object with information about the SSRCs associated with the
  * stream.
  * @param dontModifySources {boolean} if true _modifySources won't be called.
  * Used for streams added before the call start.
  */
-ChatRoom.prototype.addStream = function (stream, callback, ssrcInfo,
-    dontModifySources) {
+ChatRoom.prototype.addStream = function (stream, callback, errorCallback,
+    ssrcInfo, dontModifySources) {
     if(this.session) {
         // FIXME: will block switchInProgress on true value in case of exception
-        this.session.addStream(stream, callback, ssrcInfo, dontModifySources);
+        this.session.addStream(stream, callback, errorCallback, ssrcInfo,
+            dontModifySources);
     } else {
         // We are done immediately
         logger.warn("No conference handler or conference not started yet");

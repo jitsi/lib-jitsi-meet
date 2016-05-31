@@ -116,7 +116,8 @@ RTC.prototype.onIncommingCall = function(event) {
             };
         }
         this.room.addStream(
-            localTrack.getOriginalStream(), function () {}, ssrcInfo, true);
+            localTrack.getOriginalStream(), function () {}, function () {},
+            ssrcInfo, true);
     }.bind(this));
 };
 
