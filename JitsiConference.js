@@ -337,7 +337,7 @@ JitsiConference.prototype.addTrack = function (track) {
     this.room.addListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
         track.ssrcHandler);
 
-    return new Promise(function (resolve) {
+    return new Promise(function (resolve, reject) {
         this.room.addStream(track.getOriginalStream(), function () {
             if (track.isVideoTrack()) {
                 this.removeCommand("videoType");
@@ -377,7 +377,9 @@ JitsiConference.prototype.addTrack = function (track) {
 
             this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
             resolve(track);
-        }.bind(this));
+        }.bind(this), function (error) {
+            reject(error);
+        });
     }.bind(this));
 };
 
@@ -423,7 +425,7 @@ JitsiConference.prototype.removeTrack = function (track) {
         }
         return Promise.resolve();
     }
-    return new Promise(function (resolve) {
+    return new Promise(function (resolve, reject) {
         this.room.removeStream(track.getOriginalStream(), function(){
             track._setSSRC(null);
             //FIXME: This dependacy is not necessary. This is quick fix.
@@ -444,7 +446,9 @@ JitsiConference.prototype.removeTrack = function (track) {
 
             this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
             resolve();
-        }.bind(this), {
+        }.bind(this), function (error) {
+            reject(error);
+        }, {
             mtype: track.getType(),
             type: "remove",
             ssrc: track.ssrc});
