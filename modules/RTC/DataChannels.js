@@ -5,6 +5,7 @@
 
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCEvents = require("../../service/RTC/RTCEvents");
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 
 /**
@@ -71,6 +72,8 @@ DataChannels.prototype.onDataChannel = function (event) {
     };
 
     dataChannel.onerror = function (error) {
+        var e = new Error("Data Channel Error:" + error);
+        GlobalOnErrorHandler.callErrorHandler(e);
         logger.error("Data Channel Error:", error, dataChannel);
     };
 
@@ -83,10 +86,12 @@ DataChannels.prototype.onDataChannel = function (event) {
             obj = JSON.parse(data);
         }
         catch (e) {
+            GlobalOnErrorHandler.callErrorHandler(e);
             logger.error(
                 "Failed to parse data channel message as JSON: ",
                 data,
-                dataChannel);
+                dataChannel,
+                e);
         }
         if (('undefined' !== typeof(obj)) && (null !== obj)) {
             var colibriClass = obj.colibriClass;

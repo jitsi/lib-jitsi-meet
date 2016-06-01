@@ -2,6 +2,7 @@
    Toolbar, Util, Promise */
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var JitsiRecorderErrors = require("../../JitsiRecorderErrors");
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 
@@ -201,7 +202,9 @@ function (state, callback, errCallback, options) {
             this.setRecordingJibri(state, callback, errCallback, options);
             break;
         default:
-            logger.error("Unknown recording type!");
+            var errmsg = "Unknown recording type!";
+            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+            logger.error(errmsg);
             return;
     }
 };

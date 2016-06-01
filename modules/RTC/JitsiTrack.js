@@ -347,8 +347,7 @@ JitsiTrack.prototype.setAudioOutput = function (audioOutputDeviceId) {
             .catch(function (error) {
                 logger.error('Failed to change audio output device on element',
                     element, error);
-
-                    throw error;
+                throw error;
             });
     }))
     .then(function () {

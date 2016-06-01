@@ -15,6 +15,7 @@ var JitsiTrackEvents = require("./JitsiTrackEvents");
 var JitsiTrackErrors = require("./JitsiTrackErrors");
 var Settings = require("./modules/settings/Settings");
 var ComponentsVersions = require("./modules/version/ComponentsVersions");
+var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -27,9 +28,11 @@ var ComponentsVersions = require("./modules/version/ComponentsVersions");
  */
 function JitsiConference(options) {
     if(!options.name || options.name.toLowerCase() !== options.name) {
-        logger.error("Invalid conference name (no conference name passed or it"
-            + "contains invalid characters like capital letters)!");
-         return;
+        var errmsg
+            = "Invalid conference name (no conference name passed or it "
+                + "contains invalid characters like capital letters)!";
+        logger.error(errmsg);
+        throw new Error(errmsg);
     }
     this.options = options;
     this.connection = this.options.connection;
@@ -118,6 +121,8 @@ JitsiConference.prototype.leave = function () {
     ).then(this._leaveRoomAndRemoveParticipants.bind(this))
     .catch(function (error) {
         logger.error(error);
+        GlobalOnErrorHandler.callUnhandledRejectionHandler(
+            {promise: this, reason: error});
         // We are proceeding with leaving the conference because room.leave may
         // succeed.
         this._leaveRoomAndRemoveParticipants();
@@ -924,10 +929,16 @@ function setupListeners(conference) {
             // Accept incoming call
             conference.room.setJingleSession(jingleSession);
             conference.room.connectionTimes["session.initiate"] = now;
-            jingleSession.initialize(false /* initiator */, conference.room);
+            try{
+                jingleSession.initialize(false /* initiator */,
+                    conference.room);
+            } catch (error) {
+                GlobalOnErrorHandler.callErrorHandler(error);
+            };
             conference.rtc.onIncommingCall(jingleSession);
             jingleSession.acceptOffer(jingleOffer, null,
                 function (error) {
+                    GlobalOnErrorHandler.callErrorHandler(error);
                     logger.error(
                         "Failed to accept incoming Jingle session", error);
                 }
@@ -935,10 +946,12 @@ function setupListeners(conference) {
             conference.statistics.startRemoteStats(
                     jingleSession.peerconnection);
         } else {
-            // Error cause this should never happen unless something is wrong !
-            logger.error(
-                "Rejecting session-initiate from non focus user: "
-                        + jingleSession.peerjid);
+            // Error cause this should never happen unless something is wrong!
+            var errmsg
+                = "Rejecting session-initiate from non-focus user: "
+                    + jingleSession.peerjid;
+            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+            logger.error(errmsg);
         }
     });
 
@@ -1025,8 +1038,8 @@ function setupListeners(conference) {
     conference.room.addListener(XMPPEvents.GRACEFUL_SHUTDOWN, function () {
         conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.GRACEFUL_SHUTDOWN);
     });
-    conference.room.addListener(XMPPEvents.JINGLE_FATAL_ERROR, function () {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.JINGLE_FATAL_ERROR);
+    conference.room.addListener(XMPPEvents.JINGLE_FATAL_ERROR, function (session, error) {
+        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.JINGLE_FATAL_ERROR, error);
     });
     conference.room.addListener(XMPPEvents.MUC_DESTROYED, function (reason) {
         conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.CONFERENCE_DESTROYED, reason);
@@ -1077,8 +1090,10 @@ function setupListeners(conference) {
     conference.room.addListener(XMPPEvents.CONNECTION_RESTORED, function () {
         conference.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_RESTORED);
     });
-    conference.room.addListener(XMPPEvents.CONFERENCE_SETUP_FAILED, function () {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.SETUP_FAILED);
+    conference.room.addListener(XMPPEvents.CONFERENCE_SETUP_FAILED,
+    function (error) {
+        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+            JitsiConferenceErrors.SETUP_FAILED, error);
     });
 
     conference.room.addListener(AuthenticationEvents.IDENTITY_UPDATED, function (authEnabled, authIdentity) {
@@ -1290,7 +1305,8 @@ function setupListeners(conference) {
             function (pc) {
                 conference.statistics.sendIceConnectionFailedEvent(pc);
                 conference.room.eventEmitter.emit(
-                    XMPPEvents.CONFERENCE_SETUP_FAILED);
+                    XMPPEvents.CONFERENCE_SETUP_FAILED,
+                    new Error("ICE fail")); 
             });
 
         conference.rtc.addListener(RTCEvents.TRACK_ATTACHED,
