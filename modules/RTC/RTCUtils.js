@@ -29,6 +29,10 @@ var devices = {
 // Currently audio output device change is supported only in Chrome and
 // default output always has 'default' device ID
 var audioOutputDeviceId = 'default'; // default device
+// Disables Acoustic Echo Cancellation
+var disableAEC = false;
+// Disables Noise Suppression
+var disableNS = false;
 
 var featureDetectionAudioEl = document.createElement('audio');
 var isAudioOutputDeviceChangeAvailable =
@@ -133,12 +137,12 @@ function getConstraints(um, options) {
             }
             // if it is good enough for hangouts...
             constraints.audio.optional.push(
-                {googEchoCancellation: true},
+                {googEchoCancellation: !disableAEC},
                 {googAutoGainControl: true},
-                {googNoiseSupression: true},
+                {googNoiseSupression: !disableNS},
                 {googHighpassFilter: true},
-                {googNoisesuppression2: true},
-                {googEchoCancellation2: true},
+                {googNoiseSuppression2: !disableNS},
+                {googEchoCancellation2: !disableAEC},
                 {googAutoGainControl2: true}
             );
         } else {
@@ -577,6 +581,16 @@ function wrapAttachMediaStream(origAttachMediaStream) {
 //Options parameter is to pass config options. Currently uses only "useIPv6".
 var RTCUtils = {
     init: function (options) {
+
+        if (typeof(options.disableAEC) === "boolean") {
+            disableAEC = options.disableAEC;
+            logger.info("Disable AEC: " + disableAEC);
+        }
+        if (typeof(options.disableNS) === "boolean") {
+            disableNS = options.disableNS;
+            logger.info("Disable NS: " + disableNS);
+        }
+        
         return new Promise(function(resolve, reject) {
             if (RTCBrowserType.isFirefox()) {
                 var FFversion = RTCBrowserType.getFirefoxVersion();
