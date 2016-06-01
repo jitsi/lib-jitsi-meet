@@ -8,6 +8,7 @@ var JitsiConnectionErrors = require("./JitsiConnectionErrors");
 var JitsiConferenceErrors = require("./JitsiConferenceErrors");
 var JitsiTrackEvents = require("./JitsiTrackEvents");
 var JitsiTrackErrors = require("./JitsiTrackErrors");
+var JitsiTrackError = require("./JitsiTrackError");
 var Logger = require("jitsi-meet-logger");
 var MediaType = require("./service/RTC/MediaType");
 var RTC = require("./modules/RTC/RTC");
@@ -114,18 +115,27 @@ var LibJitsiMeet = {
                 this._gumFailedHandler.forEach(function (handler) {
                     handler(error);
                 });
-                if(!this._gumFailedHandler.length)
+
+                if(!this._gumFailedHandler.length) {
                     Statistics.sendGetUserMediaFailed(error);
-                if(error === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
-                    var oldResolution = options.resolution || '360';
-                    var newResolution = getLowerResolution(oldResolution);
-                    if(newResolution === null)
+                }
+
+                if(error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
+                    var oldResolution = options.resolution || '360',
+                        newResolution = getLowerResolution(oldResolution);
+
+                    if (newResolution === null) {
                         return Promise.reject(error);
+                    }
+
                     options.resolution = newResolution;
+
                     logger.debug("Retry createLocalTracks with resolution",
                                 newResolution);
+
                     return LibJitsiMeet.createLocalTracks(options);
                 }
+
                 return Promise.reject(error);
             }.bind(this));
     },
@@ -207,6 +217,10 @@ var LibJitsiMeet = {
 // why the decision is to provide LibJitsiMeet as a parameter of
 // JitsiConnection.
 LibJitsiMeet.JitsiConnection = JitsiConnection.bind(null, LibJitsiMeet);
+
+// expose JitsiTrackError this way to give library consumers to do checks like
+// if (error instanceof JitsiMeetJS.JitsiTrackError) { }
+LibJitsiMeet.JitsiTrackError = JitsiTrackError;
 
 //Setups the promise object.
 window.Promise = window.Promise || require("es6-promise").Promise;
