@@ -69,6 +69,16 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
         }
     };
 
+    // Subscribe each created local audio track to
+    // RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED event. This is different from
+    // handling this event for remote tracks (which are handled in RTC.js),
+    // because there might be local tracks not attached to a conference.
+    if (this.isAudioTrack() && RTCUtils.isDeviceChangeAvailable('output')) {
+        this._onAudioOutputDeviceChanged = this.setAudioOutput.bind(this);
+
+        RTCUtils.addListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
+            this._onAudioOutputDeviceChanged);
+    }
 
     RTCUtils.addListener(RTCEvents.DEVICE_LIST_CHANGED,
         this._onDeviceListChanged);
@@ -287,6 +297,11 @@ JitsiLocalTrack.prototype.dispose = function () {
 
     RTCUtils.removeListener(RTCEvents.DEVICE_LIST_CHANGED,
         this._onDeviceListChanged);
+
+    if (this._onAudioOutputDeviceChanged) {
+        RTCUtils.removeListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
+            this._onAudioOutputDeviceChanged);
+    }
 
     return promise;
 };
