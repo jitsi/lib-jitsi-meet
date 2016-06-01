@@ -3,6 +3,7 @@
  * Strophe logger implementation. Logs from level WARN and above.
  */
 var logger = require("jitsi-meet-logger").getLogger(__filename);
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 module.exports = function () {
 
@@ -13,7 +14,9 @@ module.exports = function () {
                 break;
             case Strophe.LogLevel.ERROR:
             case Strophe.LogLevel.FATAL:
-                logger.error("Strophe: " + msg);
+                msg = "Strophe: " + msg;
+                GlobalOnErrorHandler.callErrorHandler(new Error(msg));
+                logger.error(msg);
                 break;
         }
     };

@@ -226,7 +226,7 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                             // This is not good when video type changes after
                             // unmute, but let's not crash here
                             if (self.videoType != streamInfo.videoType) {
-                                logger.error(
+                                logger.warn(
                                     "Video type has changed after unmute!",
                                     self.videoType, streamInfo.videoType);
                                 self.videoType = streamInfo.videoType;

@@ -5,6 +5,7 @@ var logger = require("jitsi-meet-logger").getLogger(__filename);
 var JingleSession = require("./JingleSessionPC");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var RTCBrowserType = require("../RTC/RTCBrowserType");
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 
 module.exports = function(XMPP, eventEmitter) {
@@ -154,6 +155,7 @@ module.exports = function(XMPP, eventEmitter) {
                                 window.performance.now());
                         },
                         function(error) {
+                            GlobalOnErrorHandler.callErrorHandler(error);
                             logger.error('Transport replace failed', error);
                             sess.sendTransportReject();
                         });

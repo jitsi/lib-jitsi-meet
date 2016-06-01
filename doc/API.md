@@ -128,10 +128,10 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - LOCAL_TRACK_STOPPED - indicates that a local track was stopped. This
         event can be fired when ```dispose()``` method is called or for other reasons.
         - TRACK_AUDIO_OUTPUT_CHANGED - indicates that audio output device for track was changed (parameters - deviceId (string) - new audio output device ID).
-        
+
     4. mediaDevices
         - DEVICE_LIST_CHANGED - indicates that list of currently connected devices has changed (parameters - devices(MediaDeviceInfo[])).
-        
+
 
 * ```JitsiMeetJS.errors``` - JS object that contains all errors used by the API. You can use that object to check the reported errors from the API
     We have three error types - connection, conference and track. You can access the events with the following code ```JitsiMeetJS.errors.<error_type>.<error_name>```.
@@ -146,7 +146,7 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - VIDEOBRIDGE_NOT_AVAILABLE - video bridge issues.
         - RESERVATION_ERROR - error in reservation system
         - GRACEFUL_SHUTDOWN - graceful shutdown
-        - JINGLE_FATAL_ERROR - error in jingle
+        - JINGLE_FATAL_ERROR - error in jingle (the orriginal error is attached as parameter.)
         - CONFERENCE_DESTROYED - conference has been destroyed
         - CHAT_ERROR - chat error happened
         - FOCUS_DISCONNECTED - focus error happened
@@ -367,7 +367,7 @@ We have the following methods for controling the tracks:
 9. getParticipantId() - returns id(string) of the track owner
 
    Note: This method is implemented only for the remote tracks.
-   
+
 10. setAudioOutput(audioOutputDeviceId) - sets new audio output device for track's DOM elements. Video tracks are ignored.
 
 11. getDeviceId() - returns device ID associated with track (for local tracks only)
