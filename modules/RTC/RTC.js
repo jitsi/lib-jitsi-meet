@@ -85,9 +85,10 @@ RTC.obtainAudioAndVideoPermissions = function (options) {
 };
 
 RTC.prototype.onIncommingCall = function(event) {
-    if(this.options.config.openSctp)
+    if(this.options.config.openSctp && !RTCBrowserType.usesORTC()) {
         this.dataChannels = new DataChannels(event.peerconnection,
             this.eventEmitter);
+    }
     // Add local Tracks to the ChatRoom
     this.localTracks.forEach(function(localTrack) {
         var ssrcInfo = null;

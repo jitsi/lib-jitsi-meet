@@ -6,6 +6,7 @@ var EventEmitter = require("events");
 var StatisticsEvents = require("../../service/statistics/Events");
 var CallStats = require("./CallStats");
 var ScriptUtil = require('../util/ScriptUtil');
+var RTCBrowserType = require("../RTC/RTCBrowserType");
 
 // Since callstats.io is a third party, we cannot guarantee the quality of their
 // service. More specifically, their server may take noticeably long time to
@@ -51,6 +52,10 @@ function Statistics(xmpp, options) {
 Statistics.audioLevelsEnabled = false;
 
 Statistics.prototype.startRemoteStats = function (peerconnection) {
+    if (RTCBrowserType.usesORTC()) {
+        // Can't capture statistics here yet
+        return;
+    }
     if(!Statistics.audioLevelsEnabled)
         return;
 
