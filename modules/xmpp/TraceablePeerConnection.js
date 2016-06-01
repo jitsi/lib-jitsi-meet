@@ -5,6 +5,7 @@ var RTCBrowserType = require("../RTC/RTCBrowserType.js");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var transform = require('sdp-transform');
 var RandomUtil = require('../util/RandomUtil');
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 var SIMULCAST_LAYERS = 3;
 
@@ -201,6 +202,8 @@ TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
                         ssrcOperation.ssrc.ssrcs.length) {
                         ssrc = ssrcOperation.ssrc.ssrcs[0];
                     } else {
+                        GlobalOnErrorHandler.callErrorHandler(
+                            new Error("SSRC replacement error!"));
                         logger.error("SSRC replacement error!");
                         break;
                     }
@@ -467,17 +470,10 @@ Object.keys(getters).forEach(function (prop) {
 
 TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
     this.trace('addStream', stream? stream.id : "null");
-    try
-    {
-        if(stream)
-            this.peerconnection.addStream(stream);
-        if(ssrcInfo && this.replaceSSRCs[ssrcInfo.mtype])
-            this.replaceSSRCs[ssrcInfo.mtype].push(ssrcInfo);
-    }
-    catch (e)
-    {
-        logger.error(e);
-    }
+    if(stream)
+        this.peerconnection.addStream(stream);
+    if(ssrcInfo && this.replaceSSRCs[ssrcInfo.mtype])
+        this.replaceSSRCs[ssrcInfo.mtype].push(ssrcInfo);
 };
 
 TraceablePeerConnection.prototype.removeStream = function (stream, stopStreams,
@@ -486,28 +482,23 @@ ssrcInfo) {
     if(stopStreams) {
         RTC.stopMediaStream(stream);
     }
-
-    try {
-        // FF doesn't support this yet.
-        if (this.peerconnection.removeStream) {
-            this.peerconnection.removeStream(stream);
-            // Removing all cached ssrcs for the streams that are removed or
-            // muted.
-            if(ssrcInfo && this.replaceSSRCs[ssrcInfo.mtype]) {
-                for(i = 0; i < this.replaceSSRCs[ssrcInfo.mtype].length; i++) {
-                    var op = this.replaceSSRCs[ssrcInfo.mtype][i];
-                    if(op.type === "unmute" &&
-                        op.ssrc.ssrcs.join("_") ===
-                        ssrcInfo.ssrc.ssrcs.join("_")) {
-                        this.replaceSSRCs[ssrcInfo.mtype].splice(i, 1);
-                        break;
-                    }
+    // FF doesn't support this yet.
+    if (this.peerconnection.removeStream) {
+        this.peerconnection.removeStream(stream);
+        // Removing all cached ssrcs for the streams that are removed or
+        // muted.
+        if(ssrcInfo && this.replaceSSRCs[ssrcInfo.mtype]) {
+            for(i = 0; i < this.replaceSSRCs[ssrcInfo.mtype].length; i++) {
+                var op = this.replaceSSRCs[ssrcInfo.mtype][i];
+                if(op.type === "unmute" &&
+                    op.ssrc.ssrcs.join("_") ===
+                    ssrcInfo.ssrc.ssrcs.join("_")) {
+                    this.replaceSSRCs[ssrcInfo.mtype].splice(i, 1);
+                    break;
                 }
-                this.replaceSSRCs[ssrcInfo.mtype].push(ssrcInfo);
             }
+            this.replaceSSRCs[ssrcInfo.mtype].push(ssrcInfo);
         }
-    } catch (e) {
-        logger.error(e);
     }
 };
 

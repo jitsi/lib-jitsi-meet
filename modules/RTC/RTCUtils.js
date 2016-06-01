@@ -16,6 +16,7 @@ var screenObtainer = require("./ScreenObtainer");
 var JitsiTrackErrors = require("../../JitsiTrackErrors");
 var MediaType = require("../../service/RTC/MediaType");
 var VideoType = require("../../service/RTC/VideoType");
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 var eventEmitter = new EventEmitter();
 
@@ -181,9 +182,11 @@ function getConstraints(um, options) {
             };
 
         } else {
-            logger.error(
-                "'screen' WebRTC media source is supported only in Chrome" +
-                " and with Temasys plugin");
+            var errmsg
+                = "'screen' WebRTC media source is supported only in Chrome"
+                    + " and with Temasys plugin";
+            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+            logger.error(errmsg);
         }
     }
     if (um.indexOf('desktop') >= 0) {
@@ -565,6 +568,8 @@ function wrapAttachMediaStream(origAttachMediaStream) {
             stream.getAudioTracks && stream.getAudioTracks().length) {
             element.setSinkId(RTCUtils.getAudioOutputDevice())
                 .catch(function (ex) {
+                    GlobalOnErrorHandler.callUnhandledRejectionHandler(
+                        {promise: this, reason: ex});
                     logger.error('Failed to set audio output on element',
                         element, ex);
                 });
@@ -749,11 +754,12 @@ var RTCUtils = {
                     resolve();
                 });
             } else {
+                var errmsg = 'Browser does not appear to be WebRTC-capable';
                 try {
-                    logger.error('Browser does not appear to be WebRTC-capable');
+                    logger.error(errmsg);
                 } catch (e) {
                 }
-                reject('Browser does not appear to be WebRTC-capable');
+                reject(new Error(errmsg));
                 return;
             }
 

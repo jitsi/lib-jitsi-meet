@@ -1,5 +1,6 @@
 /* global $, Strophe, callstats */
 var logger = require("jitsi-meet-logger").getLogger(__filename);
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 var jsSHA = require('jssha');
 var io = require('socket.io-client');
@@ -80,6 +81,7 @@ function _try_catch (f) {
         try {
             f.apply(this, arguments);
         } catch (e) {
+            GlobalOnErrorHandler.callErrorHandler(e);
             logger.error(e);
         }
     };
@@ -125,6 +127,7 @@ var CallStats = _try_catch(function(jingleSession, Settings, options) {
         // The callstats.io API failed to initialize (e.g. because its
         // download failed to succeed in general or on time). Further
         // attempts to utilize it cannot possibly succeed.
+        GlobalOnErrorHandler.callErrorHandler(e);
         callStats = null;
         logger.error(e);
     }

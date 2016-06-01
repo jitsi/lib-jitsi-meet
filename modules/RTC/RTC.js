@@ -10,6 +10,7 @@ var DataChannels = require("./DataChannels");
 var JitsiRemoteTrack = require("./JitsiRemoteTrack.js");
 var MediaType = require("../../service/RTC/MediaType");
 var VideoType = require("../../service/RTC/VideoType");
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 function createLocalTracks(tracksInfo, options) {
     var newTracks = [];
@@ -132,8 +133,13 @@ RTC.prototype.onIncommingCall = function(event) {
                 msid: localTrack.initialMSID
             };
         }
-        this.room.addStream(
-            localTrack.getOriginalStream(), function () {}, ssrcInfo, true);
+        try {
+            this.room.addStream(
+                localTrack.getOriginalStream(), function () {}, ssrcInfo, true);
+        } catch(e) {
+            GlobalOnErrorHandler.callErrorHandler(e);
+            logger.error(e);
+        }
     }.bind(this));
 };
 
@@ -396,6 +402,13 @@ RTC.stopMediaStream = function (mediaStream) {
  */
 RTC.isDesktopSharingEnabled = function () {
     return RTCUtils.isDesktopSharingEnabled();
+};
+
+/**
+ * Closes all currently opened data channels.
+ */
+RTC.prototype.closeAllDataChannels = function () {
+    this.dataChannels.closeAllChannels();
 };
 
 RTC.prototype.dispose = function() {

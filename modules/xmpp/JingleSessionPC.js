@@ -11,6 +11,7 @@ var async = require("async");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var RTCBrowserType = require("../RTC/RTCBrowserType");
 var RTC = require("../RTC/RTC");
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 /**
  * Constant tells how long we're going to wait for IQ response, before timeout
@@ -56,8 +57,8 @@ function JingleSessionPC(me, sid, peerjid, connection,
     // stable and the ice connection state is connected.
     this.modifySourcesQueue.pause();
 }
-//XXX this is badly broken...
-JingleSessionPC.prototype = JingleSession.prototype;
+
+JingleSessionPC.prototype = Object.create(JingleSession.prototype);
 JingleSessionPC.prototype.constructor = JingleSessionPC;
 
 
@@ -175,7 +176,9 @@ JingleSessionPC.prototype.sendIceCandidate = function (candidate) {
         var ice = SDPUtil.iceparams(this.localSDP.media[candidate.sdpMLineIndex], this.localSDP.session);
         var jcand = SDPUtil.candidateToJingle(candidate.candidate);
         if (!(ice && jcand)) {
-            logger.error('failed to get ice && jcand');
+            var errorMesssage = "failed to get ice && jcand";
+            GlobalOnErrorHandler.callErrorHandler(new Error(errorMesssage));
+            logger.error(errorMesssage);
             return;
         }
         ice.xmlns = 'urn:xmpp:jingle:transports:ice-udp:1';
@@ -247,7 +250,10 @@ JingleSessionPC.prototype.sendIceCandidates = function (candidates) {
     // might merge last-candidate notification into this, but it is called alot later. See webrtc issue #2340
     //logger.log('was this the last candidate', this.lasticecandidate);
     this.connection.sendIQ(
-        cand, null, this.newJingleErrorHandler(cand), IQ_TIMEOUT);
+        cand, null, this.newJingleErrorHandler(cand, function (error) {
+            GlobalOnErrorHandler.callErrorHandler(
+                new Error("Jingle error: " + JSON.stringify(error)));
+        }), IQ_TIMEOUT);
 };
 
 JingleSessionPC.prototype.readSsrcInfo = function (contents) {
@@ -405,7 +411,8 @@ JingleSessionPC.prototype.setLocalDescription = function (sdp, success,
             logger.error('setLocalDescription failed', error);
             if (failure)
                 failure(error);
-            self.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED);
+            self.room.eventEmitter.emit(
+                    XMPPEvents.CONFERENCE_SETUP_FAILED, error);
         }
     );
     // Some checks for STUN and TURN candiates present in local SDP
@@ -491,13 +498,29 @@ JingleSessionPC._fixAnswerRFC4145Setup = function (offer, answer) {
 JingleSessionPC.prototype.replaceTransport = function (jingleOfferElem,
                                                        success,
                                                        failure) {
-    // Set offer as RD
-    this.setOfferCycle(jingleOfferElem,
-        function () {
-            // Set local description OK, now localSDP up to date
-            this.sendTransportAccept(this.localSDP, success, failure);
-        }.bind(this),
-        failure);
+    
+    // We need to first set an offer without the 'data' section to have the SCTP
+    // stack cleaned up. After that the original offer is set to have the SCTP
+    // connection established with the new bridge.
+    this.room.eventEmitter.emit(XMPPEvents.ICE_RESTARTING);
+    var originalOffer = jingleOfferElem.clone();
+    jingleOfferElem.find(">content[name='data']").remove();
+
+    var self = this;
+    // First set an offer without the 'data' section
+    this.setOfferCycle(
+        jingleOfferElem,
+        function() {
+            // Now set the original offer(with the 'data' section)
+            self.setOfferCycle(originalOffer,
+                function () {
+                    // Set local description OK, now localSDP up to date
+                    self.sendTransportAccept(self.localSDP, success, failure);
+                },
+                failure);
+        },
+        failure
+    );
 };
 
 /**
@@ -608,6 +631,7 @@ JingleSessionPC.prototype.sendTransportReject = function(success, failure) {
         IQ_TIMEOUT);
 };
 
+//FIXME: I think this method is not used!
 JingleSessionPC.prototype.terminate = function (reason,  text,
                                                 success, failure) {
     var term = $iq({to: this.peerjid,
@@ -774,7 +798,10 @@ JingleSessionPC.prototype.removeSource = function (elem) {
             var ssrc = $(this).attr('ssrc');
             // This should never happen, but can be useful for bug detection
             if(mySdp.containsSSRC(ssrc)){
-                logger.error("Got remove stream request for my own ssrc: "+ssrc);
+                var errmsg
+                    = "Got remove stream request for my own ssrc: " + ssrc;
+                GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+                logger.error(errmsg);
                 return;
             }
             ssrcs.push(ssrc);
@@ -848,12 +875,30 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
     this.removessrc = [];
 
     sdp.raw = sdp.session + sdp.media.join('');
-    this.peerconnection.setRemoteDescription(new RTCSessionDescription({type: 'offer', sdp: sdp.raw}),
+    /**
+     * Implements a failure callback which reports an error message and an
+     * optional error through (1) logger, (2) GlobalOnErrorHandler, and (3)
+     * queueCallback.
+     *
+     * @param {string} errmsg the error messsage to report
+     * @param {*} error an optional error to report in addition to errmsg
+     */
+    function reportError(errmsg, err) {
+        if (err) {
+           errmsg = errmsg + ': ' + err; // for logger and GlobalOnErrorHandler
+           logger.error(errmsg, err);
+        } else {
+           logger.error(errmsg);
+           err = errmsg; // for queueCallback
+        }
+        GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+        queueCallback(err);
+    };
+    this.peerconnection.setRemoteDescription(
+        new RTCSessionDescription({type: 'offer', sdp: sdp.raw}),
         function() {
-
             if(self.signalingState == 'closed') {
-                logger.error("createAnswer attempt on closed state");
-                queueCallback("createAnswer attempt on closed state");
+                reportError("createAnswer attempt on closed state");
                 return;
             }
 
@@ -885,27 +930,18 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
                     //modifiedAnswer.sdp = modifiedAnswer.sdp.replace(/a=setup:active/g, 'a=setup:actpass');
                     self.peerconnection.setLocalDescription(modifiedAnswer,
                         function() {
-                            if(successCallback){
-                                successCallback();
-                            }
+                            successCallback && successCallback();
                             queueCallback();
                         },
-                        function(error) {
-                            logger.error('modified setLocalDescription failed', error);
-                            queueCallback(error);
-                        }
+                        reportError.bind(
+                            undefined,
+                            "modified setLocalDescription failed")
                     );
                 },
-                function(error) {
-                    logger.error('modified answer failed', error);
-                    queueCallback(error);
-                }
+                reportError.bind(undefined, "modified answer failed")
             );
         },
-        function(error) {
-            logger.error('modify failed', error);
-            queueCallback(error);
-        }
+        reportError.bind(undefined, 'modify failed')
     );
 };
 
@@ -1112,7 +1148,10 @@ JingleSessionPC.prototype.notifyMySSRCUpdate = function (old_sdp, new_sdp) {
     if (removed && remove) {
         logger.info("Sending source-remove", remove.tree());
         this.connection.sendIQ(
-            remove, null, this.newJingleErrorHandler(remove), IQ_TIMEOUT);
+            remove, null, this.newJingleErrorHandler(remove, function (error) {
+                GlobalOnErrorHandler.callErrorHandler(
+                    new Error("Jingle error: " + JSON.stringify(error)));
+            }), IQ_TIMEOUT);
     } else {
         logger.log('removal not necessary');
     }
@@ -1134,7 +1173,10 @@ JingleSessionPC.prototype.notifyMySSRCUpdate = function (old_sdp, new_sdp) {
     if (added && add) {
         logger.info("Sending source-add", add.tree());
         this.connection.sendIQ(
-            add, null, this.newJingleErrorHandler(add), IQ_TIMEOUT);
+            add, null, this.newJingleErrorHandler(add, function (error) {
+                GlobalOnErrorHandler.callErrorHandler(
+                    new Error("Jingle error: " + JSON.stringify(error)));
+            }), IQ_TIMEOUT);
     } else {
         logger.log('addition not necessary');
     }
@@ -1187,15 +1229,12 @@ JingleSessionPC.prototype.newJingleErrorHandler = function(request, failureCb) {
         if (failureCb) {
             failureCb(error);
         }
-
-        this.room.eventEmitter.emit(XMPPEvents.JINGLE_ERROR, error);
-
     }.bind(this);
 };
 
 JingleSessionPC.onJingleFatalError = function (session, error)
 {
-    this.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED);
+    this.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED, error);
     this.room.eventEmitter.emit(XMPPEvents.JINGLE_FATAL_ERROR, session, error);
 };
 
@@ -1249,45 +1288,50 @@ JingleSessionPC.prototype.remoteTrackAdded = function (stream, track) {
         owner: undefined, /* to be determined below */
         muted: null /* will be set in the ChatRoom */
     };
-
-    // look up an associated JID for a stream id
-    if (!mediaType) {
-        logger.error("MediaType undefined", track);
-        return;
-    }
-
-    var remoteSDP = new SDP(this.peerconnection.remoteDescription.sdp);
-    var medialines = remoteSDP.media.filter(function (mediaLines) {
-        return mediaLines.startsWith("m=" + mediaType);
-    });
-
-    if (!medialines.length) {
-        logger.error("No media for type " + mediaType + " found in remote SDP");
-        return;
-    }
-
-    var ssrclines = SDPUtil.find_lines(medialines[0], 'a=ssrc:');
-    ssrclines = ssrclines.filter(function (line) {
-        var msid = RTCBrowserType.isTemasysPluginUsed() ? 'mslabel' : 'msid';
-        return line.indexOf(msid + ':' + streamId) !== -1;
-    });
-
-    var thessrc;
-    if (ssrclines.length) {
-        thessrc = ssrclines[0].substring(7).split(' ')[0];
-        if (!this.ssrcOwners[thessrc]) {
-            logger.error("No SSRC owner known for: " + thessrc);
-            return;
+    try{
+        // look up an associated JID for a stream id
+        if (!mediaType) {
+            logger.error("MediaType undefined", track);
+            throw new Error("MediaType undefined for remote track");
         }
-        jitsiTrackAddedEvent.owner = this.ssrcOwners[thessrc];
-        logger.log('associated jid', this.ssrcOwners[thessrc], thessrc);
-    } else {
-        logger.error("No SSRC lines for ", streamId);
-        return;
-    }
-    jitsiTrackAddedEvent.ssrc = thessrc;
 
-    this.room.remoteTrackAdded(jitsiTrackAddedEvent);
+        var remoteSDP = new SDP(this.peerconnection.remoteDescription.sdp);
+        var medialines = remoteSDP.media.filter(function (mediaLines){
+            return mediaLines.startsWith("m=" + mediaType);
+        });
+        if (!medialines.length) {
+            logger.error("No media for type " + mediaType + " found in remote SDP");
+            throw new Error("No media for type " + mediaType +
+                " found in remote SDP for remote track");
+        }
+
+        var ssrclines = SDPUtil.find_lines(medialines[0], 'a=ssrc:');
+        ssrclines = ssrclines.filter(function (line) {
+            var msid = RTCBrowserType.isTemasysPluginUsed() ? 'mslabel' : 'msid';
+            return line.indexOf(msid + ':' + streamId) !== -1;
+        });
+
+        var thessrc;
+        if (ssrclines.length) {
+            thessrc = ssrclines[0].substring(7).split(' ')[0];
+            if (!this.ssrcOwners[thessrc]) {
+                logger.error("No SSRC owner known for: " + thessrc);
+                throw new Error("No SSRC owner known for: " + thessrc +
+                    " for remote track");
+            }
+            jitsiTrackAddedEvent.owner = this.ssrcOwners[thessrc];
+            logger.log('associated jid', this.ssrcOwners[thessrc], thessrc);
+        } else {
+            logger.error("No SSRC lines for ", streamId);
+            throw new Error("No SSRC lines for streamId " + streamId +
+                " for remote track");
+        }
+        jitsiTrackAddedEvent.ssrc = thessrc;
+
+        this.room.remoteTrackAdded(jitsiTrackAddedEvent);
+    } catch (error) {
+        GlobalOnErrorHandler.callErrorHandler(error);
+    }
 };
 
 /**
@@ -1321,13 +1365,21 @@ JingleSessionPC.prototype.remoteTrackRemoved = function (stream, track) {
     logger.info("Remote track removed", stream, track);
     var streamId = RTC.getStreamID(stream);
     var trackId = track && track.id;
-    if (!streamId) {
-        logger.error("No stream ID for", stream);
-    } else if (!trackId) {
-        logger.error("No track ID for", track);
-    } else {
+    try{
+        if (!streamId) {
+            logger.error("No stream ID for", stream);
+            throw new Error("Remote track removal failed - No stream ID");
+        }
+
+        if (!trackId) {
+            logger.error("No track ID for", track);
+            throw new Error("Remote track removal failed - No track ID");
+        }
+
         this.room.eventEmitter.emit(
             XMPPEvents.REMOTE_TRACK_REMOVED, streamId, trackId);
+    } catch (error) {
+        GlobalOnErrorHandler.callErrorHandler(error);
     }
 };
 
@@ -1365,7 +1417,9 @@ JingleSessionPC.prototype.fixJingle = function(jingle) {
             this.fixSourceRemoveJingle(jingle);
             break;
         default:
-            logger.error("Unknown jingle action!");
+            var errmsg = "Unknown jingle action!";
+            GlobalOnErrorHandler.callErrorHandler(errmsg);
+            logger.error(errmsg);
             return false;
     }
 

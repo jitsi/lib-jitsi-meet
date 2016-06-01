@@ -1,7 +1,7 @@
 /* global $, $iq, Strophe */
 
 var logger = require("jitsi-meet-logger").getLogger(__filename);
-
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 
 /**
@@ -77,7 +77,10 @@ module.exports = function (XMPP, eventEmitter) {
                         callback(ping.length > 0);
                     },
                     function (error) {
-                        logger.error("Ping feature discovery error", error);
+                        var errmsg = "Ping feature discovery error";
+                        GlobalOnErrorHandler.callErrorHandler(new Error(
+                            errmsg + ": " + error));
+                        logger.error(errmsg, error);
                         callback(false);
                     }
                 );
@@ -96,7 +99,9 @@ module.exports = function (XMPP, eventEmitter) {
          */
         startInterval: function (remoteJid, interval) {
             if (this.intervalId) {
-                logger.error("Ping task scheduled already");
+                var errmsg = "Ping task scheduled already";
+                GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+                logger.error(errmsg);
                 return;
             }
             if (!interval)
@@ -110,8 +115,9 @@ module.exports = function (XMPP, eventEmitter) {
                 },
                 function (error) {
                     self.failedPings += 1;
-                    logger.error(
-                        "Ping " + (error ? "error" : "timeout"), error);
+                    var errmsg = "Ping " + (error ? "error" : "timeout");
+                    GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+                    logger.error(errmsg, error);
                     if (self.failedPings >= PING_THRESHOLD) {
                         self.connection.disconnect();
                     }
