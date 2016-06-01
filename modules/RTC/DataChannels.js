@@ -163,14 +163,24 @@ DataChannels.prototype.onDataChannel = function (event) {
     this._dataChannels.push(dataChannel);
 };
 
+/**
+ * Closes all currently opened data channels.
+ */
+DataChannels.prototype.closeAllChannels = function () {
+    this._dataChannels.forEach(function (dc){
+        // the DC will be removed from the array on 'onclose' event
+        dc.close();
+    });
+};
+
 DataChannels.prototype.handleSelectedEndpointEvent = function (userResource) {
     this.lastSelectedEndpoint = userResource;
     this._onXXXEndpointChanged("selected", userResource);
-}
+};
 
 DataChannels.prototype.handlePinnedEndpointEvent = function (userResource) {
     this._onXXXEndpointChanged("pinnned", userResource);
-}
+};
 
 /**
  * Notifies Videobridge about a change in the value of a specific
@@ -215,7 +225,7 @@ DataChannels.prototype._onXXXEndpointChanged = function (xxx, userResource) {
             return true;
         }
     });
-}
+};
 
 DataChannels.prototype._some = function (callback, thisArg) {
     var dataChannels = this._dataChannels;
@@ -228,6 +238,6 @@ DataChannels.prototype._some = function (callback, thisArg) {
     } else {
         return false;
     }
-}
+};
 
 module.exports = DataChannels;

@@ -955,6 +955,13 @@ function setupListeners(conference) {
         }
     });
 
+    conference.room.addListener(XMPPEvents.ICE_RESTARTING, function () {
+        // All data channels have to be closed, before ICE restart
+        // otherwise Chrome will not trigger "opened" event for the channel
+        // established with the new bridge
+        conference.rtc.closeAllDataChannels();
+    });
+
     conference.room.addListener(XMPPEvents.REMOTE_TRACK_ADDED,
         function (data) {
             var track = conference.rtc.createRemoteTrack(data);

@@ -43,6 +43,22 @@ var XMPPEvents = {
     FOCUS_DISCONNECTED: 'xmpp.focus_disconnected',
     FOCUS_LEFT: "xmpp.focus_left",
     GRACEFUL_SHUTDOWN: "xmpp.graceful_shutdown",
+    /**
+     * Event fired when 'transport-replace' Jingle message has been received,
+     * before the new offer is set on the PeerConnection.
+     */
+    ICE_RESTARTING: "rtc.ice_restarting",
+    /* Event fired when XMPP error is returned to any request, it is meant to be
+     * used to report 'signaling' errors to CallStats
+     *
+     * {
+     *   code: {XMPP error code}
+     *   reason: {XMPP error condition}
+     *   source = request.tree()
+     *   session = {JingleSession instance}
+     * }
+     */
+    JINGLE_ERROR: 'xmpp.jingle_error',
     // Event fired when we have failed to set initial offer
     JINGLE_FATAL_ERROR: 'xmpp.jingle_fatal_error',
     // Designates an event indicating that we were kicked from the XMPP MUC.
