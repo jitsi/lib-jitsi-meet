@@ -60,6 +60,20 @@ function RTC(room, options) {
             videoTrack._setVideoType(data.value);
         }
     });
+
+    // Switch audio output device on all remote audio tracks. Local audio tracks
+    // handle this event by themselves.
+    if (RTCUtils.isDeviceChangeAvailable('output')) {
+        RTCUtils.addListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
+            function (deviceId) {
+                for (var key in self.remoteTracks) {
+                    if (self.remoteTracks.hasOwnProperty(key)
+                        && self.remoteTracks[key].audio) {
+                        self.remoteTracks[key].audio.setAudioOutput(deviceId);
+                    }
+                }
+            });
+    }
 }
 
 /**
