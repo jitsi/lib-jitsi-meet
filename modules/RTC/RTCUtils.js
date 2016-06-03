@@ -14,6 +14,7 @@ var SDPUtil = require("../xmpp/SDPUtil");
 var EventEmitter = require("events");
 var screenObtainer = require("./ScreenObtainer");
 var JitsiTrackErrors = require("../../JitsiTrackErrors");
+var JitsiTrackError = require("../../JitsiTrackError");
 var MediaType = require("../../service/RTC/MediaType");
 var VideoType = require("../../service/RTC/VideoType");
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
@@ -473,7 +474,8 @@ function obtainDevices(options) {
             });
             logger.error(
                 "failed to obtain " + device + " stream - stop", error);
-            options.errorCallback(JitsiTrackErrors.parseError(error, devices));
+
+            options.errorCallback(error);
         });
 }
 
@@ -802,14 +804,17 @@ var RTCUtils = {
                     setAvailableDevices(um, false);
                     logger.warn('Failed to get access to local media. Error ',
                         error, constraints);
+
                     if (failure_callback) {
-                        failure_callback(error, resolution);
+                        failure_callback(
+                            new JitsiTrackError(error, constraints, um));
                     }
                 });
         } catch (e) {
             logger.error('GUM failed: ', e);
+
             if (failure_callback) {
-                failure_callback(e);
+                failure_callback(new JitsiTrackError(e, constraints, um));
             }
         }
     },
@@ -880,16 +885,36 @@ var RTCUtils = {
                     this.getUserMediaWithConstraints(
                         options.devices,
                         function (stream) {
-                            if((options.devices.indexOf("audio") !== -1 &&
-                                !stream.getAudioTracks().length) ||
-                                (options.devices.indexOf("video") !== -1 &&
-                                !stream.getVideoTracks().length))
+                            var audioDeviceRequested = options.devices.indexOf("audio") !== -1;
+                            var videoDeviceRequested = options.devices.indexOf("video") !== -1;
+                            var audioTracksReceived = !!stream.getAudioTracks().length;
+                            var videoTracksReceived = !!stream.getVideoTracks().length;
+
+                            if((audioDeviceRequested && !audioTracksReceived) ||
+                                (videoDeviceRequested && !videoTracksReceived))
                             {
                                 self.stopMediaStream(stream);
-                                reject(JitsiTrackErrors.parseError(
-                                    new Error("Unable to get the audio and " +
-                                        "video tracks."),
-                                    options.devices));
+
+                                // We are getting here in case if we requested
+                                // 'audio' or 'video' devices or both, but
+                                // didn't get corresponding MediaStreamTrack in
+                                // response stream. We don't know the reason why
+                                // this happened, so reject with general error.
+                                var devices = [];
+
+                                if (audioDeviceRequested && !audioTracksReceived) {
+                                    devices.push("audio");
+                                }
+
+                                if (videoDeviceRequested && !videoTracksReceived) {
+                                    devices.push("video");
+                                }
+
+                                reject(new JitsiTrackError(
+                                    { name: "UnknownError" },
+                                    getConstraints(options.devices, options),
+                                    devices)
+                                );
                                 return;
                             }
                             if(hasDesktop) {
@@ -899,17 +924,15 @@ var RTCUtils = {
                                             desktopStream: desktopStream});
                                     }, function (error) {
                                         self.stopMediaStream(stream);
-                                        reject(
-                                            JitsiTrackErrors.parseError(error,
-                                                options.devices));
+
+                                        reject(error);
                                     });
                             } else {
                                 successCallback({audioVideo: stream});
                             }
                         },
                         function (error) {
-                            reject(JitsiTrackErrors.parseError(error,
-                                options.devices));
+                            reject(error);
                         },
                         options);
                 } else if (hasDesktop) {
@@ -917,9 +940,7 @@ var RTCUtils = {
                         function (stream) {
                             successCallback({desktopStream: stream});
                         }, function (error) {
-                            reject(
-                                JitsiTrackErrors.parseError(error,
-                                    ["desktop"]));
+                            reject(error);
                         });
                 }
             }

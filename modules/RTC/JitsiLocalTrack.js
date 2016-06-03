@@ -4,6 +4,7 @@ var JitsiTrack = require("./JitsiTrack");
 var RTCBrowserType = require("./RTCBrowserType");
 var JitsiTrackEvents = require('../../JitsiTrackEvents');
 var JitsiTrackErrors = require("../../JitsiTrackErrors");
+var JitsiTrackError = require("../../JitsiTrackError");
 var RTCEvents = require("../../service/RTC/RTCEvents");
 var RTCUtils = require("./RTCUtils");
 var VideoType = require('../../service/RTC/VideoType');
@@ -141,7 +142,8 @@ function createMuteUnmutePromise(track, mute)
     return new Promise(function (resolve, reject) {
 
         if(this.inMuteOrUnmuteProgress) {
-            reject(new Error(JitsiTrackErrors.TRACK_MUTE_UNMUTE_IN_PROGRESS));
+            reject(new JitsiTrackError(
+                JitsiTrackErrors.TRACK_MUTE_UNMUTE_IN_PROGRESS));
             return;
         }
         this.inMuteOrUnmuteProgress = true;
