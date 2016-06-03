@@ -498,7 +498,7 @@ JingleSessionPC._fixAnswerRFC4145Setup = function (offer, answer) {
 JingleSessionPC.prototype.replaceTransport = function (jingleOfferElem,
                                                        success,
                                                        failure) {
-    
+
     // We need to first set an offer without the 'data' section to have the SCTP
     // stack cleaned up. After that the original offer is set to have the SCTP
     // connection established with the new bridge.
@@ -1250,7 +1250,7 @@ JingleSessionPC.prototype.remoteStreamAdded = function (stream) {
         return;
     }
     // Bind 'addtrack'/'removetrack' event handlers
-    if (RTCBrowserType.isChrome()) {
+    if (RTCBrowserType.isChrome() || RTCBrowserType.isNWJS()) {
         stream.onaddtrack = function (event) {
             self.remoteTrackAdded(event.target, event.track);
         };
