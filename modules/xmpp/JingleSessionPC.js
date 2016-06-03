@@ -364,7 +364,7 @@ JingleSessionPC._fixAnswerRFC4145Setup = function (offer, answer) {
 JingleSessionPC.prototype.replaceTransport = function (jingleOfferElem,
                                                        success,
                                                        failure) {
-    
+
     // We need to first set an offer without the 'data' section to have the SCTP
     // stack cleaned up. After that the original offer is set to have the SCTP
     // connection established with the new bridge.
@@ -718,7 +718,6 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
     }
 
     if(this.jingleOfferIq) {
-        fromSessionInitiate = true;
         sdp = new SDP('');
         if (this.webrtcIceTcpDisable) {
             sdp.removeTcpCandidates = true;
@@ -769,7 +768,7 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
            logger.error(errmsg, err);
         } else {
            logger.error(errmsg);
-           err = errmsg; // for queueCallback
+           err = new Error(errmsg); // for queueCallback
         }
         GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
         queueCallback(err);
@@ -804,8 +803,8 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
                             undefined,
                             "modified setLocalDescription failed")
                     );
-                },
-                reportError.bind(undefined, "modified answer failed")
+                }, reportError.bind(undefined, "modified answer failed"),
+                media_constraints
             );
         },
         reportError.bind(undefined, 'modify failed')
