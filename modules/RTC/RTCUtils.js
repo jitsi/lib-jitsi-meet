@@ -570,7 +570,9 @@ function wrapAttachMediaStream(origAttachMediaStream) {
                 .catch(function (ex) {
                     GlobalOnErrorHandler.callUnhandledRejectionHandler(
                         {promise: this, reason: ex});
-                    logger.error('Failed to set audio output on element',
+                    logger.warn('Failed to set audio output device for the ' +
+                        'element. Default audio output device will be used ' +
+                        'instead',
                         element, ex);
                 });
         }
