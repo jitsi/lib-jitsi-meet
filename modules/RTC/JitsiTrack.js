@@ -334,7 +334,9 @@ JitsiTrack.prototype.setAudioOutput = function (audioOutputDeviceId) {
     return Promise.all(this.containers.map(function(element) {
         return element.setSinkId(audioOutputDeviceId)
             .catch(function (error) {
-                logger.error('Failed to change audio output device on element',
+                logger.warn(
+                    'Failed to change audio output device on element. Default' +
+                    ' or previously set audio output device will be used.',
                     element, error);
                 throw error;
             });
