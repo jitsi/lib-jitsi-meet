@@ -8,6 +8,7 @@ var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var JitsiConnectionErrors = require("../../JitsiConnectionErrors");
 var JitsiConnectionEvents = require("../../JitsiConnectionEvents");
 var RTC = require("../RTC/RTC");
+var RTCBrowserType = require("../RTC/RTCBrowserType");
 
 var authenticatedUser = false;
 
@@ -44,6 +45,9 @@ function XMPP(options, token) {
 
     this.connection = createConnection(options.bosh, token);
 
+    // Initialize features advertised in disco-info
+    this.initFeaturesList();
+
     // Setup a disconnect on unload as a way to facilitate API consumers. It
     // sounds like they would want that. A problem for them though may be if
     // they wanted to utilize the connected connection in an unload handler of
@@ -51,6 +55,44 @@ function XMPP(options, token) {
     // registering their unload handler before us.
     $(window).on('beforeunload unload', this.disconnect.bind(this));
 }
+
+/**
+ * Initializes the list of feature advertised through the disco-info mechanism
+ */
+XMPP.prototype.initFeaturesList = function () {
+    var disco = this.connection.disco;
+    if (disco) {
+        // http://xmpp.org/extensions/xep-0167.html#support
+        // http://xmpp.org/extensions/xep-0176.html#support
+        disco.addFeature('urn:xmpp:jingle:1');
+        disco.addFeature('urn:xmpp:jingle:apps:rtp:1');
+        disco.addFeature('urn:xmpp:jingle:transports:ice-udp:1');
+        disco.addFeature('urn:xmpp:jingle:apps:dtls:0');
+        disco.addFeature('urn:xmpp:jingle:transports:dtls-sctp:1');
+        disco.addFeature('urn:xmpp:jingle:apps:rtp:audio');
+        disco.addFeature('urn:xmpp:jingle:apps:rtp:video');
+
+        if (RTCBrowserType.isChrome() || RTCBrowserType.isOpera()
+            || RTCBrowserType.isTemasysPluginUsed()) {
+            disco.addFeature('urn:ietf:rfc:4588');
+        }
+
+        // this is dealt with by SDP O/A so we don't need to announce this
+        //disco.addFeature('urn:xmpp:jingle:apps:rtp:rtcp-fb:0'); // XEP-0293
+        //disco.addFeature('urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'); // XEP-0294
+
+        disco.addFeature('urn:ietf:rfc:5761'); // rtcp-mux
+        disco.addFeature('urn:ietf:rfc:5888'); // a=group, e.g. bundle
+
+        //disco.addFeature('urn:ietf:rfc:5576'); // a=ssrc
+
+        // Enable Lipsync ?
+        if (this.options.enableLipSync && RTCBrowserType.isChrome()) {
+            logger.info("Lip-sync enabled !");
+            this.connection.disco.addFeature('http://jitsi.org/meet/lipsync');
+        }
+    }
+};
 
 XMPP.prototype.getConnection = function () { return this.connection; };
 
