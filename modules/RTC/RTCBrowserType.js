@@ -20,6 +20,8 @@ var RTCBrowserType = {
 
     RTC_BROWSER_NWJS: "rtc_browser.nwjs",
 
+    RTC_BROWSER_REACT_NATIVE: "rtc_browser.react-native",
+
     getBrowserType: function () {
         return currentBrowser;
     },
@@ -44,6 +46,9 @@ var RTCBrowserType = {
     },
     isNWJS: function () {
         return currentBrowser === RTCBrowserType.RTC_BROWSER_NWJS;
+    },
+    isReactNative: function () {
+        return currentBrowser === RTCBrowserType.RTC_BROWSER_REACT_NATIVE;
     },
     isTemasysPluginUsed: function () {
         return RTCBrowserType.isIExplorer() || RTCBrowserType.isSafari();
@@ -163,9 +168,25 @@ function detectNWJS (){
     return null;
 }
 
+function detectReactNative() {
+    var match
+        = navigator.userAgent.match(/\b(react[ \t_-]*native)(?:\/(\S+))?/i);
+    var version;
+    if (match) {
+        currentBrowser = RTCBrowserType.RTC_BROWSER_REACT_NATIVE;
+        if (match.length > 2) {
+            version = match[2];
+        }
+        console.info(
+            "This appears to be " + /* name */ match[1] + ", ver: " + version);
+    }
+    return version;
+}
+
 function detectBrowser() {
     var version;
     var detectors = [
+        detectReactNative,
         detectNWJS,
         detectOpera,
         detectChrome,
