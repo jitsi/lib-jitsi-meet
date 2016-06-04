@@ -132,7 +132,8 @@ RTC.prototype.onIncommingCall = function(event) {
         }
         try {
             this.room.addStream(
-                localTrack.getOriginalStream(), function () {}, ssrcInfo, true);
+                localTrack.getOriginalStream(), function () {}, function () {},
+                ssrcInfo, true);
         } catch(e) {
             GlobalOnErrorHandler.callErrorHandler(e);
             logger.error(e);

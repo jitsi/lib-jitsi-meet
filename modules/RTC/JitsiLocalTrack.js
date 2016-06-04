@@ -203,15 +203,19 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
     } else {
         if (mute) {
             this.dontFireRemoveEvent = true;
-            this.rtc.room.removeStream(this.stream, function () {},
-                {mtype: this.type, type: "mute", ssrc: this.ssrc});
-            RTCUtils.stopMediaStream(this.stream);
-            setStreamToNull = true;
-            if(isAudio)
-                this.rtc.room.setAudioMute(mute, callbackFunction);
-            else
-                this.rtc.room.setVideoMute(mute, callbackFunction);
-            //FIXME: Maybe here we should set the SRC for the containers to something
+            this.rtc.room.removeStream(this.stream, function () {
+                    RTCUtils.stopMediaStream(this.stream);
+                    setStreamToNull = true;
+                    if(isAudio)
+                        this.rtc.room.setAudioMute(mute, callbackFunction);
+                    else
+                        this.rtc.room.setVideoMute(mute, callbackFunction);
+                    //FIXME: Maybe here we should set the SRC for the containers to something
+                }.bind(this),
+                function (error) {
+                    reject(error);
+                }, {mtype: this.type, type: "mute", ssrc: this.ssrc});
+
         } else {
             var self = this;
             // FIXME why are we doing all this audio type checks and
@@ -266,6 +270,8 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                             else
                                 self.rtc.room.setVideoMute(
                                     mute, callbackFunction);
+                        }, function (error) {
+                            reject(error);
                         }, {
                             mtype: self.type,
                             type: "unmute",
