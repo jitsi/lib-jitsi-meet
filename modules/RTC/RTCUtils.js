@@ -119,6 +119,12 @@ function getConstraints(um, options) {
             constraints.video.optional.push({
                 sourceId: options.cameraDeviceId
             });
+        } else {
+            // by default prefer the "user" camera if we have not specified the
+            // exact device id for mobile devices
+            if (RTCBrowserType.isReactNative() || RTCBrowserType.isAndroid()) {
+                constraints.video.facingMode = "user";
+            }
         }
 
         constraints.video.optional.push({ googLeakyBucket: true });
@@ -603,7 +609,7 @@ var RTCUtils = {
             disableNS = options.disableNS;
             logger.info("Disable NS: " + disableNS);
         }
-        
+
         return new Promise(function(resolve, reject) {
             if (RTCBrowserType.isFirefox()) {
                 var FFversion = RTCBrowserType.getFirefoxVersion();
