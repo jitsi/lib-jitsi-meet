@@ -629,11 +629,10 @@ var RTCUtils = {
                     //
                     // https://groups.google.com/forum/#!topic/mozilla.dev.media/pKOiioXonJg
                     // https://github.com/webrtc/samples/issues/302
-                    if (!element)
-                        return;
-                    element.mozSrcObject = stream;
-                    element.play();
-
+                    if (element) {
+                        element.mozSrcObject = stream;
+                        element.play();
+                    }
                     return element;
                 });
                 this.getStreamID = function (stream) {
@@ -648,9 +647,7 @@ var RTCUtils = {
                     return SDPUtil.filter_special_chars(id);
                 };
                 this.getVideoSrc = function (element) {
-                    if (!element)
-                        return null;
-                    return element.mozSrcObject;
+                    return element ? element.mozSrcObject : null;
                 };
                 this.setVideoSrc = function (element, src) {
                     if (element)
