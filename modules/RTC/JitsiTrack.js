@@ -184,25 +184,25 @@ JitsiTrack.prototype.attach = function (container) {
 };
 
 /**
- * Removes the track from the passed HTML container.
- * @param container the HTML container. If <tt>null</tt> all containers are removed.
- *        A container can be 'video', 'audio' or 'object' HTML element instance
- *        to which this JitsiTrack is currently attached to.
+ * Removes this JitsiTrack from the passed HTML container.
+ *
+ * @param container the HTML container to detach from this JitsiTrack. If
+ * <tt>null</tt> or <tt>undefined</tt>, all containers are removed. A container
+ * can be a 'video', 'audio' or 'object' HTML element instance to which this
+ * JitsiTrack is currently attached.
  */
 JitsiTrack.prototype.detach = function (container) {
-    for(var i = 0; i < this.containers.length; i++)
-    {
-        if(!container)
-        {
-            RTCUtils.setVideoSrc(this.containers[i], null);
+    for (var cs = this.containers, i = cs.length - 1; i >= 0; --i) {
+        var c = cs[i];
+        if (!container) {
+            RTCUtils.setVideoSrc(c, null);
         }
-        if(!container || $(this.containers[i]).is($(container)))
-        {
-            this.containers.splice(i,1);
+        if (!container || $(c).is($(container))) {
+            cs.splice(i, 1);
         }
     }
 
-    if(container) {
+    if (container) {
         RTCUtils.setVideoSrc(container, null);
     }
 };
