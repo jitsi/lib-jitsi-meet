@@ -174,15 +174,7 @@ JitsiTrack.prototype._maybeFireTrackAttached = function (container) {
  */
 JitsiTrack.prototype.attach = function (container) {
     if(this.stream) {
-        // The container must be visible in order to play or attach the stream
-        // when Temasys plugin is in use
-        var containerSel = $(container);
-        if (RTCBrowserType.isTemasysPluginUsed() &&
-            !containerSel.is(':visible')) {
-            containerSel.show();
-        }
-        container
-            = RTCUtils.attachMediaStream(container, this.stream);
+        container = RTCUtils.attachMediaStream(container, this.stream);
     }
     this.containers.push(container);
 

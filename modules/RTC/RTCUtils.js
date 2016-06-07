@@ -748,6 +748,13 @@ var RTCUtils = {
                             return;
                         }
 
+                        // The container must be visible in order to play or
+                        // attach the stream when Temasys plugin is in use
+                        var containerSel = $(element);
+                        if (RTCBrowserType.isTemasysPluginUsed()
+                                && !containerSel.is(':visible')) {
+                            containerSel.show();
+                        }
                         var isVideoStream = !!stream.getVideoTracks().length;
                         if (isVideoStream && !$(element).is(':visible')) {
                             throw new Error('video element must be visible to attach video stream');
