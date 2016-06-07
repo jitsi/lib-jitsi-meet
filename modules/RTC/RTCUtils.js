@@ -120,11 +120,9 @@ function getConstraints(um, options) {
                 sourceId: options.cameraDeviceId
             });
         } else {
-            // by default prefer the "user" camera if we have not specified the
-            // exact device id for mobile devices
-            if (RTCBrowserType.isReactNative() || RTCBrowserType.isAndroid()) {
-                constraints.video.facingMode = "user";
-            }
+            // by default prefer the front ("user") camera if we have not
+            // specified the exact device id
+            constraints.video.facingMode = "user";
         }
 
         constraints.video.optional.push({ googLeakyBucket: true });
