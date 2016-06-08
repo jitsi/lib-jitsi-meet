@@ -195,15 +195,15 @@ JitsiTrack.prototype.detach = function (container) {
     for (var cs = this.containers, i = cs.length - 1; i >= 0; --i) {
         var c = cs[i];
         if (!container) {
-            RTCUtils.setVideoSrc(c, null);
+            RTCUtils.attachMediaStream(c, null);
         }
-        if (!container || $(c).is($(container))) {
+        if (!container || c === container) {
             cs.splice(i, 1);
         }
     }
 
     if (container) {
-        RTCUtils.setVideoSrc(container, null);
+        RTCUtils.attachMediaStream(container, null);
     }
 };
 

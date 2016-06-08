@@ -381,10 +381,6 @@ RTC.enumerateDevices = function (callback) {
     RTCUtils.enumerateDevices(callback);
 };
 
-RTC.setVideoSrc = function (element, src) {
-    RTCUtils.setVideoSrc(element, src);
-};
-
 /**
  * A method to handle stopping of the stream.
  * One point to handle the differences in various implementations.
