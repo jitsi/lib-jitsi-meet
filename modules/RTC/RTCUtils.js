@@ -119,6 +119,10 @@ function getConstraints(um, options) {
             constraints.video.optional.push({
                 sourceId: options.cameraDeviceId
             });
+        } else {
+            // Prefer the front i.e. user-facing camera (to the back i.e.
+            // environment-facing camera, for example).
+            constraints.video.facingMode = 'user';
         }
 
         constraints.video.optional.push({ googLeakyBucket: true });
@@ -603,7 +607,7 @@ var RTCUtils = {
             disableNS = options.disableNS;
             logger.info("Disable NS: " + disableNS);
         }
-        
+
         return new Promise(function(resolve, reject) {
             if (RTCBrowserType.isFirefox()) {
                 var FFversion = RTCBrowserType.getFirefoxVersion();
