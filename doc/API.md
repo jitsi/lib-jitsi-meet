@@ -381,7 +381,7 @@ so ```"name"```, ```"message"``` and ```"stack"``` properties are available. For
 exposes additional ```"gum"``` property, which is an object with following properties:
  - error - original GUM error
  - constraints - GUM constraints object used for the call
- - devices - array of devices requested in GUM call (possible values - "audio", "video", "screen", "desktop")
+ - devices - array of devices requested in GUM call (possible values - "audio", "video", "screen", "desktop", "audiooutput")
 
 Getting Started
 ==============

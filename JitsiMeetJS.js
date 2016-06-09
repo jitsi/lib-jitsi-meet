@@ -197,7 +197,11 @@ var LibJitsiMeet = {
               handler(error);
           });
         } else {
-            Statistics.sendUnhandledError(error);
+            if (error instanceof JitsiTrackError && error.gum) {
+                Statistics.sendGetUserMediaFailed(error);
+            } else {
+                Statistics.sendUnhandledError(error);
+            }
         }
     },
 
