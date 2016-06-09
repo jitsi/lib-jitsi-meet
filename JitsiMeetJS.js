@@ -18,6 +18,7 @@ var Statistics = require("./modules/statistics/statistics");
 var Resolutions = require("./service/RTC/Resolutions");
 var ScriptUtil = require("./modules/util/ScriptUtil");
 var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
+var RTCBrowserType = require("./modules/RTC/RTCBrowserType");
 
 function getLowerResolution(resolution) {
     if(!Resolutions[resolution])
@@ -207,7 +208,8 @@ var LibJitsiMeet = {
      */
     util: {
         ScriptUtil: ScriptUtil,
-        RTCUIHelper: RTCUIHelper
+        RTCUIHelper: RTCUIHelper,
+        RTCBrowserType: RTCBrowserType
     }
 };
 

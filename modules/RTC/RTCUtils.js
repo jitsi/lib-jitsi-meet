@@ -186,8 +186,8 @@ function getConstraints(um, options) {
             };
         } else if (RTCBrowserType.isFirefox()) {
             constraints.video = {
-                mozMediaSource: "window",
-                mediaSource: "window"
+                mozMediaSource: options.ffShareMode, // "window",
+                mediaSource: options.ffShareMode, // "window"
             };
 
         } else {
@@ -484,7 +484,7 @@ function obtainDevices(options) {
                 "failed to obtain " + device + " stream - stop", error);
 
             options.errorCallback(error);
-        });
+        }, options.options);
 }
 
 
@@ -603,7 +603,7 @@ var RTCUtils = {
             disableNS = options.disableNS;
             logger.info("Disable NS: " + disableNS);
         }
-        
+
         return new Promise(function(resolve, reject) {
             if (RTCBrowserType.isFirefox()) {
                 var FFversion = RTCBrowserType.getFirefoxVersion();
@@ -912,7 +912,8 @@ var RTCUtils = {
                     streams: [],
                     successCallback: successCallback,
                     errorCallback: reject,
-                    deviceGUM: deviceGUM
+                    deviceGUM: deviceGUM,
+                    options: options
                 });
             } else {
                 var hasDesktop = options.devices.indexOf('desktop') > -1;

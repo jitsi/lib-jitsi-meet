@@ -131,9 +131,10 @@ var ScreenObtainer = {
      * Obtains a screen capture stream on Firefox.
      * @param callback
      * @param errorCallback
+     * @param options from jitsi-meet
      */
     obtainScreenOnFirefox:
-           function (callback, errorCallback) {
+           function (callback, errorCallback, options) {
         var self = this;
         var extensionRequired = false;
         if (this.options.desktopSharingFirefoxMaxVersionExtRequired === -1 ||
@@ -146,7 +147,7 @@ var ScreenObtainer = {
         }
 
         if (!extensionRequired || firefoxExtInstalled === true) {
-            obtainWebRTCScreen(callback, errorCallback);
+            obtainWebRTCScreen(callback, errorCallback, options);
             return;
         }
 
@@ -243,11 +244,12 @@ var ScreenObtainer = {
  * 'media.getusermedia.screensharing.allowed_domains' preference in
  * 'about:config'.
  */
-function obtainWebRTCScreen(streamCallback, failCallback) {
+function obtainWebRTCScreen(streamCallback, failCallback, options) {
     GUM(
         ['screen'],
         streamCallback,
-        failCallback
+        failCallback,
+        options
     );
 }
 
