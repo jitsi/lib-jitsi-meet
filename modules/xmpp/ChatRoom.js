@@ -254,11 +254,12 @@ ChatRoom.prototype.onPresence = function (pres) {
     parser.packet2JSON(pres, nodes);
     this.lastPresences[from] = nodes;
     var jibri = null;
+    var i, node;
     // process nodes to extract data needed for MUC_JOINED and MUC_MEMBER_JOINED
     // events
-    for(var i = 0; i < nodes.length; i++)
+    for(i = 0; i < nodes.length; i++)
     {
-        var node = nodes[i];
+        node = nodes[i];
         switch(node.tagName)
         {
             case "nick":
@@ -319,9 +320,9 @@ ChatRoom.prototype.onPresence = function (pres) {
 
     // after we had fired member or room joined events, lets fire events
     // for the rest info we got in presence
-    for(var i = 0; i < nodes.length; i++)
+    for(i = 0; i < nodes.length; i++)
     {
-        var node = nodes[i];
+        node = nodes[i];
         switch(node.tagName)
         {
             case "nick":
@@ -342,7 +343,7 @@ ChatRoom.prototype.onPresence = function (pres) {
                 }
                 break;
             case "jibri-recording-status":
-                var jibri = node;
+                jibri = node;
                 break;
             case "call-control":
                 var att = node.attributes;
