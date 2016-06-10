@@ -6,6 +6,8 @@ var jsSHA = require('jssha');
 var io = require('socket.io-client');
 
 /**
+ * We define enumeration of wrtcFuncNames as we need them before
+ * callstats is initialized to queue events.
  * @const
  * @see http://www.callstats.io/api/#enumeration-of-wrtcfuncnames
  */
@@ -17,10 +19,13 @@ var wrtcFuncNames = {
     addIceCandidate:      "addIceCandidate",
     getUserMedia:         "getUserMedia",
     iceConnectionFailure: "iceConnectionFailure",
-    signalingError:       "signalingError"
+    signalingError:       "signalingError",
+    applicationError:     "applicationError"
 };
 
 /**
+ * We define enumeration of fabricEvent as we need them before
+ * callstats is initialized to queue events.
  * @const
  * @see http://www.callstats.io/api/#enumeration-of-fabricevent
  */
@@ -393,10 +398,8 @@ CallStats.sendAddIceCandidateFailed = _try_catch(function (e, pc, cs) {
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
 CallStats.sendUnhandledError = _try_catch(function (e, cs) {
-    // for now send the stack property of errors, which is has the form:
-    // name: message <newline> stack(multiline)
     CallStats._reportError
-        .call(cs, wrtcFuncNames.signalingError, e, null);
+        .call(cs, wrtcFuncNames.applicationError, e, null);
 });
 
 module.exports = CallStats;
