@@ -381,4 +381,17 @@ Statistics.prototype.sendFeedback = function(overall, detailed) {
 
 Statistics.LOCAL_JID = require("../../service/statistics/constants").LOCAL_JID;
 
+/**
+ * Reports global error to CallStats.
+ *
+ * @param {Error} error
+ */
+Statistics.reportGlobalError = function (error) {
+    if (error instanceof JitsiTrackError && error.gum) {
+        this.sendGetUserMediaFailed(error);
+    } else {
+        this.sendUnhandledError(error);
+    }
+};
+
 module.exports = Statistics;

@@ -197,11 +197,7 @@ var LibJitsiMeet = {
               handler(error);
           });
         } else {
-            if (error instanceof JitsiTrackError && error.gum) {
-                Statistics.sendGetUserMediaFailed(error);
-            } else {
-                Statistics.sendUnhandledError(error);
-            }
+            Statistics.reportGlobalError.call(Statistics, error);
         }
     },
 
