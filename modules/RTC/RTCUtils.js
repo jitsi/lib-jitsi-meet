@@ -123,9 +123,9 @@ function getConstraints(um, options) {
         } else {
             // Prefer the front i.e. user-facing camera (to the back i.e.
             // environment-facing camera, for example).
-            // TODO: maybe use "exact" syntax if options.facingMode is defined
-            // but this probably needs to be updated with other constraints,
-            // as we currently don't use "exact" syntax anywhere
+            // TODO: Maybe use "exact" syntax if options.facingMode is defined,
+            // but this probably needs to be decided when updating other
+            // constraints, as we currently don't use "exact" syntax anywhere.
             constraints.video.facingMode = options.facingMode || 'user';
         }
 
