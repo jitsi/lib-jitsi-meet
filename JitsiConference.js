@@ -59,13 +59,8 @@ function JitsiConference(options) {
     JitsiMeetJS._gumFailedHandler.push(function(error) {
         this.statistics.sendGetUserMediaFailed(error);
     }.bind(this));
-    JitsiMeetJS._globalOnErrorHandler.push(function(error) {
-        if (error instanceof JitsiTrackError && error.gum) {
-            this.statistics.sendGetUserMediaFailed(error);
-        } else {
-            this.statistics.sendUnhandledError(error);
-        }
-    }.bind(this));
+    JitsiMeetJS._globalOnErrorHandler.push(
+        Statistics.reportGlobalError.bind(this.statistics));
     this.participants = {};
     this.lastDominantSpeaker = null;
     this.dtmfManager = null;
