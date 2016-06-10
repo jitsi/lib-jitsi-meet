@@ -270,6 +270,13 @@ JitsiConference.prototype.sendCommand = function (name, values) {
 };
 
 /**
+ * Advertises a particular value of the "raisedHand" property in our presence.
+ **/
+JitsiConference.prototype.setRaisedHand = function (raisedHand) {
+    this.sendCommand("raisedHand", {value : raisedHand});
+};
+
+/**
  * Send presence command one time.
  * @param name {String} the name of the command.
  * @param values {Object} with keys and values that will be sent.
@@ -638,6 +645,22 @@ JitsiConference.prototype.onDisplayNameChanged = function (jid, displayName) {
 
     participant._displayName = displayName;
     this.eventEmitter.emit(JitsiConferenceEvents.DISPLAY_NAME_CHANGED, id, displayName);
+};
+
+JitsiConference.prototype.onRaisedHandStatusChanged
+    = function (id, raisedHandStatus) {
+
+    var participant = this.getParticipantById(id);
+    if (!participant) {
+        return;
+    }
+
+    if (participant._raisedHandStatus != raisedHandStatus) {
+        participant._raisedHandStatus = raisedHandStatus;
+        this.eventEmitter.emit(
+            JitsiConferenceEvents.RAISED_HAND_STATUS_CHANGED,
+            participant, raisedHandStatus);
+    }
 };
 
 /**
@@ -1023,6 +1046,9 @@ function setupListeners(conference) {
     conference.room.addListener(XMPPEvents.ROOM_JOIN_ERROR, function (pres) {
         conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
             JitsiConferenceErrors.CONNECTION_ERROR, pres);
+    });
+    conference.room.addPresenceListener("raisedHand", function (node, from) {
+        conference.onRaisedHandStatusChanged(from, node.value === "true");
     });
     conference.room.addListener(XMPPEvents.ROOM_CONNECT_ERROR, function (pres) {
         conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
