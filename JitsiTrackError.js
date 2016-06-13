@@ -33,8 +33,8 @@ TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_MUTE_UNMUTE_IN_PROGRESS]
  * @param {Object|string} error - error object or error name
  * @param {Object|string} (options) - getUserMedia constraints object or error
  *      message
- * @param {('audio'|'video'|'desktop'|'screen')[]} (devices) - list of
- *      getUserMedia requested devices
+ * @param {('audio'|'video'|'desktop'|'screen'|'audiooutput')[]} (devices) -
+ *      list of getUserMedia requested devices
  */
 function JitsiTrackError(error, options, devices) {
     if (typeof error === "object" && typeof error.name !== "undefined") {

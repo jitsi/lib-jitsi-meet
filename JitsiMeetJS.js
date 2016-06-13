@@ -197,7 +197,7 @@ var LibJitsiMeet = {
               handler(error);
           });
         } else {
-            Statistics.sendUnhandledError(error);
+            Statistics.reportGlobalError(error);
         }
     },
 

@@ -59,9 +59,8 @@ function JitsiConference(options) {
     JitsiMeetJS._gumFailedHandler.push(function(error) {
         this.statistics.sendGetUserMediaFailed(error);
     }.bind(this));
-    JitsiMeetJS._globalOnErrorHandler.push(function(error) {
-        this.statistics.sendUnhandledError(error);
-    }.bind(this));
+    JitsiMeetJS._globalOnErrorHandler.push(
+        Statistics.reportGlobalError.bind(this.statistics));
     this.participants = {};
     this.lastDominantSpeaker = null;
     this.dtmfManager = null;
@@ -1310,7 +1309,7 @@ function setupListeners(conference) {
                 conference.statistics.sendIceConnectionFailedEvent(pc);
                 conference.room.eventEmitter.emit(
                     XMPPEvents.CONFERENCE_SETUP_FAILED,
-                    new Error("ICE fail")); 
+                    new Error("ICE fail"));
             });
 
         conference.rtc.addListener(RTCEvents.TRACK_ATTACHED,

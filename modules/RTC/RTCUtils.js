@@ -582,12 +582,15 @@ function wrapAttachMediaStream(origAttachMediaStream) {
             stream.getAudioTracks && stream.getAudioTracks().length) {
             element.setSinkId(RTCUtils.getAudioOutputDevice())
                 .catch(function (ex) {
+                    var err = new JitsiTrackError(ex, null, ['audiooutput']);
+
                     GlobalOnErrorHandler.callUnhandledRejectionHandler(
-                        {promise: this, reason: ex});
+                        {promise: this, reason: err});
+
                     logger.warn('Failed to set audio output device for the ' +
                         'element. Default audio output device will be used ' +
                         'instead',
-                        element, ex);
+                        element, err);
                 });
         }
 
