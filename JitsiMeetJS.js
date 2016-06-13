@@ -197,7 +197,7 @@ var LibJitsiMeet = {
               handler(error);
           });
         } else {
-            Statistics.reportGlobalError.call(Statistics, error);
+            Statistics.reportGlobalError(error);
         }
     },
 
