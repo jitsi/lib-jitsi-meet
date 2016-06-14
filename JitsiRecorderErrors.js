@@ -9,6 +9,11 @@ var JitsiRecorderErrors = {
     RECORDER_UNAVAILABLE: "recorder.unavailable",
 
     /**
+     * Indicates that all available recorders are currently busy.
+     */
+    RECORDER_BUSY: "recorder.busy",
+
+    /**
      * Indicates that the authentication token is missing.
      */
     NO_TOKEN: "recorder.noToken",
@@ -18,6 +23,10 @@ var JitsiRecorderErrors = {
      */
     STATE_CHANGE_FAILED: "recorder.stateChangeFailed",
 
+    /**
+     * Indicates an invalid state.
+     */
+    INVALID_STATE: "recorder.invalidState"
 };
 
 module.exports = JitsiRecorderErrors;

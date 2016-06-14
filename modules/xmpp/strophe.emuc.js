@@ -27,7 +27,9 @@ module.exports = function(XMPP) {
         createRoom: function (jid, password, options, settings) {
             var roomJid = Strophe.getBareJidFromJid(jid);
             if (this.rooms[roomJid]) {
-                logger.error("You are already in the room!");
+                var errmsg = "You are already in the room!";
+                logger.error(errmsg);
+                throw new Error(errmsg);
                 return;
             }
             this.rooms[roomJid] = new ChatRoom(this.connection, jid,

@@ -1,11 +1,15 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var JitsiConnection = require("./JitsiConnection");
+var JitsiMediaDevices = require("./JitsiMediaDevices");
 var JitsiConferenceEvents = require("./JitsiConferenceEvents");
 var JitsiConnectionEvents = require("./JitsiConnectionEvents");
+var JitsiMediaDevicesEvents = require('./JitsiMediaDevicesEvents');
 var JitsiConnectionErrors = require("./JitsiConnectionErrors");
 var JitsiConferenceErrors = require("./JitsiConferenceErrors");
 var JitsiTrackEvents = require("./JitsiTrackEvents");
 var JitsiTrackErrors = require("./JitsiTrackErrors");
+var JitsiTrackError = require("./JitsiTrackError");
+var JitsiRecorderErrors = require("./JitsiRecorderErrors");
 var Logger = require("jitsi-meet-logger");
 var MediaType = require("./service/RTC/MediaType");
 var RTC = require("./modules/RTC/RTC");
@@ -13,6 +17,7 @@ var RTCUIHelper = require("./modules/RTC/RTCUIHelper");
 var Statistics = require("./modules/statistics/statistics");
 var Resolutions = require("./service/RTC/Resolutions");
 var ScriptUtil = require("./modules/util/ScriptUtil");
+var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 
 function getLowerResolution(resolution) {
     if(!Resolutions[resolution])
@@ -40,43 +45,27 @@ var LibJitsiMeet = {
     events: {
         conference: JitsiConferenceEvents,
         connection: JitsiConnectionEvents,
-        track: JitsiTrackEvents
+        track: JitsiTrackEvents,
+        mediaDevices: JitsiMediaDevicesEvents
     },
     errors: {
         conference: JitsiConferenceErrors,
         connection: JitsiConnectionErrors,
+        recorder: JitsiRecorderErrors,
         track: JitsiTrackErrors
     },
     logLevels: Logger.levels,
+    mediaDevices: JitsiMediaDevices,
     /**
      * Array of functions that will receive the GUM error.
      */
     _gumFailedHandler: [],
     init: function (options) {
-        Statistics.audioLevelsEnabled = !options.disableAudioLevels || true;
+        Statistics.audioLevelsEnabled = !options.disableAudioLevels;
 
         if (options.enableWindowOnErrorHandler) {
-            // if an old handler exists also fire its events
-            var oldOnErrorHandler = window.onerror;
-            window.onerror = function (message, source, lineno, colno, error) {
-
-                this.getGlobalOnErrorHandler(
-                    message, source, lineno, colno, error);
-
-                if (oldOnErrorHandler)
-                    oldOnErrorHandler(message, source, lineno, colno, error);
-            }.bind(this);
-
-            // if an old handler exists also fire its events
-            var oldOnUnhandledRejection = window.onunhandledrejection;
-            window.onunhandledrejection = function(event) {
-
-                this.getGlobalOnErrorHandler(
-                    null, null, null, null, event.reason);
-
-                if(oldOnUnhandledRejection)
-                    oldOnUnhandledRejection(event);
-            }.bind(this);
+            GlobalOnErrorHandler.addHandler(
+                this.getGlobalOnErrorHandler.bind(this));
         }
 
         return RTC.init(options || {});
@@ -128,27 +117,39 @@ var LibJitsiMeet = {
                 this._gumFailedHandler.forEach(function (handler) {
                     handler(error);
                 });
-                if(!this._gumFailedHandler.length)
+
+                if(!this._gumFailedHandler.length) {
                     Statistics.sendGetUserMediaFailed(error);
-                if(error === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
-                    var oldResolution = options.resolution || '360';
-                    var newResolution = getLowerResolution(oldResolution);
-                    if(newResolution === null)
+                }
+
+                if(error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
+                    var oldResolution = options.resolution || '360',
+                        newResolution = getLowerResolution(oldResolution);
+
+                    if (newResolution === null) {
                         return Promise.reject(error);
+                    }
+
                     options.resolution = newResolution;
+
                     logger.debug("Retry createLocalTracks with resolution",
                                 newResolution);
+
                     return LibJitsiMeet.createLocalTracks(options);
                 }
+
                 return Promise.reject(error);
             }.bind(this));
     },
     /**
      * Checks if its possible to enumerate available cameras/micropones.
      * @returns {boolean} true if available, false otherwise.
+     * @deprecated use JitsiMeetJS.mediaDevices.isDeviceListAvailable instead
      */
     isDeviceListAvailable: function () {
-        return RTC.isDeviceListAvailable();
+        logger.warn('This method is deprecated, use ' +
+            'JitsiMeetJS.mediaDevices.isDeviceListAvailable instead');
+        return this.mediaDevices.isDeviceListAvailable();
     },
     /**
      * Returns true if changing the input (camera / microphone) or output
@@ -156,30 +157,22 @@ var LibJitsiMeet = {
      * @params {string} [deviceType] - type of device to change. Default is
      *      undefined or 'input', 'output' - for audio output device change.
      * @returns {boolean} true if available, false otherwise.
+     * @deprecated use JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead
      */
     isDeviceChangeAvailable: function (deviceType) {
-        return RTC.isDeviceChangeAvailable(deviceType);
+        logger.warn('This method is deprecated, use ' +
+            'JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead');
+        return this.mediaDevices.isDeviceChangeAvailable(deviceType);
     },
     /**
-     * Returns currently used audio output device id, '' stands for default
-     * device
-     * @returns {string}
+     * Executes callback with list of media devices connected.
+     * @param {function} callback
+     * @deprecated use JitsiMeetJS.mediaDevices.enumerateDevices instead
      */
-    getAudioOutputDevice: function () {
-        return RTC.getAudioOutputDevice();
-    },
-    /**
-     * Sets current audio output device.
-     * @param {string} deviceId - id of 'audiooutput' device from
-     *      navigator.mediaDevices.enumerateDevices(), '' is for default device
-     * @returns {Promise} - resolves when audio output is changed, is rejected
-     *      otherwise
-     */
-    setAudioOutputDevice: function (deviceId) {
-        return RTC.setAudioOutputDevice(deviceId);
-    },
     enumerateDevices: function (callback) {
-        RTC.enumerateDevices(callback);
+        logger.warn('This method is deprecated, use ' +
+            'JitsiMeetJS.mediaDevices.enumerateDevices instead');
+        this.mediaDevices.enumerateDevices(callback);
     },
     /**
      * Array of functions that will receive the unhandled errors.
@@ -192,7 +185,7 @@ var LibJitsiMeet = {
      * (function(message, source, lineno, colno, error)).
      */
     getGlobalOnErrorHandler: function (message, source, lineno, colno, error) {
-        console.error(
+        logger.error(
             'UnhandledError: ' + message,
             'Script: ' + source,
             'Line: ' + lineno,
@@ -204,7 +197,7 @@ var LibJitsiMeet = {
               handler(error);
           });
         } else {
-            Statistics.sendUnhandledError(error);
+            Statistics.reportGlobalError(error);
         }
     },
 
@@ -226,6 +219,10 @@ var LibJitsiMeet = {
 // why the decision is to provide LibJitsiMeet as a parameter of
 // JitsiConnection.
 LibJitsiMeet.JitsiConnection = JitsiConnection.bind(null, LibJitsiMeet);
+
+// expose JitsiTrackError this way to give library consumers to do checks like
+// if (error instanceof JitsiMeetJS.JitsiTrackError) { }
+LibJitsiMeet.JitsiTrackError = JitsiTrackError;
 
 //Setups the promise object.
 window.Promise = window.Promise || require("es6-promise").Promise;

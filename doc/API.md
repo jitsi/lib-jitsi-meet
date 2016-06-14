@@ -27,6 +27,8 @@ Jitsi Meet API has the following components:
 
 * JitsiTrack
 
+* JitsiTrackError
+
 Usage
 ======
 JitsiMeetJS
@@ -56,7 +58,7 @@ The ```options``` parameter is JS object with the following properties:
 JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
 ```
 
-* ```JitsiMeetJS.createLocalTracks(options)``` - Creates the media tracks and returns them trough ```Promise``` object.
+* ```JitsiMeetJS.createLocalTracks(options)``` - Creates the media tracks and returns them trough ```Promise``` object. If rejected, passes ```JitsiTrackError``` instance to catch block.
     - options - JS object with configuration options for the local media tracks. You can change the following properties there:
         1. devices - array with the devices - "desktop", "video" and "audio" that will be passed to GUM. If that property is not set GUM will try to get all available devices.
         2. resolution - the prefered resolution for the local video.
@@ -65,18 +67,25 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         5. minFps - the minimum frame rate for the video stream (passed to GUM)
         6. maxFps - the maximum frame rate for the video stream (passed to GUM)
 
-* ```JitsiMeetJS.enumerateDevices(callback)``` - returns list of the available devices as a parameter to the callback function. Every device is a object with the following format:
-    - label - the name of the device
-    - kind - "audioinput" or "videoinput"
-    - deviceId - the id of the device.
-
-* ```JitsiMeetJS.isDeviceListAvailable()``` - returns true if retrieving the device list is support and false - otherwise.
-* ```JitsiMeetJS.isDeviceChangeAvailable(deviceType)``` - returns true if changing the input (camera / microphone) or output (audio) device is supported and false if not. ```deviceType``` is a type of device to change. Undefined or 'input' stands for input devices, 'output' - for audio output devices.
-* ```JitsiMeetJS.setAudioOutputDevice(deviceId)``` - sets current audio output device. ```deviceId``` - id of 'audiooutput' device from ```JitsiMeetJS.enumerateDevices()```, '' is for default device.
-* ```JitsiMeetJS.getAudioOutputDevice()``` - returns currently used audio output device id, '' stands for default device.
+* ```JitsiMeetJS.enumerateDevices(callback)``` - __DEPRECATED__. Use ```JitsiMeetJS.mediaDevices.enumerateDevices(callback)``` instead.
+* ```JitsiMeetJS.isDeviceListAvailable()``` - __DEPRECATED__. Use ```JitsiMeetJS.mediaDevices.isDeviceListAvailable()``` instead.
+* ```JitsiMeetJS.isDeviceChangeAvailable(deviceType)``` - __DEPRECATED__. Use ```JitsiMeetJS.mediaDevices.isDeviceChangeAvailable(deviceType)``` instead.
 * ```JitsiMeetJS.isDesktopSharingEnabled()``` - returns true if desktop sharing is supported and false otherwise. NOTE: that method can be used after ```JitsiMeetJS.init(options)``` is completed otherwise the result will be always null.
 * ```JitsiMeetJS.getGlobalOnErrorHandler()``` - returns function that can be used to be attached to window.onerror and if options.enableWindowOnErrorHandler is enabled returns the function used by the lib. (function(message, source, lineno, colno, error)).
 
+* ```JitsiMeetJS.mediaDevices``` - JS object that contains methods for interaction with media devices. Following methods are available:
+    - ```isDeviceListAvailable()``` - returns true if retrieving the device list is supported and false - otherwise
+    - ```isDeviceChangeAvailable(deviceType)``` - returns true if changing the input (camera / microphone) or output (audio) device is supported and false if not. ```deviceType``` is a type of device to change. Undefined or 'input' stands for input devices, 'output' - for audio output devices.
+    - ```enumerateDevices(callback)``` - returns list of the available devices as a parameter to the callback function. Every device is a MediaDeviceInfo object with the following properties:
+        - label - the name of the device
+        - kind - "audioinput", "videoinput" or "audiooutput"
+        - deviceId - the id of the device
+        - groupId - group identifier, two devices have the same group identifier if they belong to the same physical device; for example a monitor with both a built-in camera and microphone
+    - ```setAudioOutputDevice(deviceId)``` - sets current audio output device. ```deviceId``` - id of 'audiooutput' device from ```JitsiMeetJS.enumerateDevices()```, '' is for default device.
+    - ```getAudioOutputDevice()``` - returns currently used audio output device id, '' stands for default device.
+    - ```isDevicePermissionGranted(type)``` - returns true if user granted permission to media devices. ```type``` - 'audio', 'video' or ```undefined```. In case of ```undefined``` will check if both audio and video permissions were granted.
+    - ```addEventListener(event, handler)``` - attaches an event handler.
+    - ```removeEventListener(event, handler)``` - removes an event handler.
 
 
 * ```JitsiMeetJS.events``` - JS object that contains all events used by the API. You will need that JS object when you try to subscribe for connection or conference events.
@@ -119,10 +128,13 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - LOCAL_TRACK_STOPPED - indicates that a local track was stopped. This
         event can be fired when ```dispose()``` method is called or for other reasons.
         - TRACK_AUDIO_OUTPUT_CHANGED - indicates that audio output device for track was changed (parameters - deviceId (string) - new audio output device ID).
-        
+
+    4. mediaDevices
+        - DEVICE_LIST_CHANGED - indicates that list of currently connected devices has changed (parameters - devices(MediaDeviceInfo[])).
+
 
 * ```JitsiMeetJS.errors``` - JS object that contains all errors used by the API. You can use that object to check the reported errors from the API
-    We have two error types - connection and conference. You can access the events with the following code ```JitsiMeetJS.errors.<error_type>.<error_name>```.
+    We have three error types - connection, conference and track. You can access the events with the following code ```JitsiMeetJS.errors.<error_type>.<error_name>```.
     For example if you want to use the conference event that is fired when somebody leave conference you can use the following code - ```JitsiMeetJS.errors.conference.PASSWORD_REQUIRED```.
     We support the following errors:
     1. conference
@@ -134,7 +146,7 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - VIDEOBRIDGE_NOT_AVAILABLE - video bridge issues.
         - RESERVATION_ERROR - error in reservation system
         - GRACEFUL_SHUTDOWN - graceful shutdown
-        - JINGLE_FATAL_ERROR - error in jingle
+        - JINGLE_FATAL_ERROR - error in jingle (the orriginal error is attached as parameter.)
         - CONFERENCE_DESTROYED - conference has been destroyed
         - CHAT_ERROR - chat error happened
         - FOCUS_DISCONNECTED - focus error happened
@@ -144,6 +156,19 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - PASSWORD_REQUIRED - passed when the connection to the server failed. You should try to authenticate with password.
         - CONNECTION_ERROR - indicates connection failures.
         - OTHER_ERROR - all other errors
+    3. track
+        - GENERAL - generic getUserMedia-related error.
+        - UNSUPPORTED_RESOLUTION - getUserMedia-related error, indicates that requested video resolution is not supported by camera.
+        - PERMISSION_DENIED - getUserMedia-related error, indicates that user denied permission to share requested device.
+        - NOT_FOUND - getUserMedia-related error, indicates that requested device was not found.
+        - CONSTRAINT_FAILED - getUserMedia-related error, indicates that some of requested constraints in getUserMedia call were not satisfied.
+        - TRACK_IS_DISPOSED - an error which indicates that track has been already disposed and cannot be longer used.
+        - TRACK_MUTE_UNMUTE_IN_PROGRESS - an error which indicates that track is currently in progress of muting or unmuting itself.
+        - CHROME_EXTENSION_GENERIC_ERROR - generic error for jidesha extension for Chrome.
+        - CHROME_EXTENSION_USER_CANCELED - an error which indicates that user canceled screen sharing window selection dialog in jidesha extension for Chrome.
+        - CHROME_EXTENSION_INSTALLATION_ERROR - an error which indicates that the jidesha extension for Chrome is failed to install.
+        - FIREFOX_EXTENSION_NEEDED - An error which indicates that the jidesha extension for Firefox is needed to proceed with screen sharing, and that it is not installed.
+        
 * ```JitsiMeetJS.logLevels``` - object with the log levels:
     1. TRACE
     2. DEBUG
@@ -166,7 +191,6 @@ This objects represents the server connection. You can create new ```JitsiConnec
         2. hosts - JS Object
             - domain
             - muc
-            - bridge
             - anonymousdomain
         3. useStunTurn -
 
@@ -343,9 +367,21 @@ We have the following methods for controling the tracks:
 9. getParticipantId() - returns id(string) of the track owner
 
    Note: This method is implemented only for the remote tracks.
-   
+
 10. setAudioOutput(audioOutputDeviceId) - sets new audio output device for track's DOM elements. Video tracks are ignored.
 
+11. getDeviceId() - returns device ID associated with track (for local tracks only)
+
+12. isEnded() - returns true if track is ended
+
+JitsiTrackError
+======
+The object represents error that happened to a JitsiTrack. Is inherited from JavaScript base ```Error``` object, 
+so ```"name"```, ```"message"``` and ```"stack"``` properties are available. For GUM-related errors,
+exposes additional ```"gum"``` property, which is an object with following properties:
+ - error - original GUM error
+ - constraints - GUM constraints object used for the call
+ - devices - array of devices requested in GUM call (possible values - "audio", "video", "screen", "desktop", "audiooutput")
 
 Getting Started
 ==============

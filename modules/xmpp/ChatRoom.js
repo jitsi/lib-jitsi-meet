@@ -6,6 +6,8 @@ var MediaType = require("../../service/RTC/MediaType");
 var Moderator = require("./moderator");
 var EventEmitter = require("events");
 var Recorder = require("./recording");
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
+
 var JIBRI_XMLNS = 'http://jitsi.org/protocol/jibri';
 
 var parser = {
@@ -198,8 +200,9 @@ ChatRoom.prototype.createNonAnonymousRoom = function () {
         if (!$(form).find(
                 '>query>x[xmlns="jabber:x:data"]' +
                 '>field[var="muc#roomconfig_whois"]').length) {
-
-            logger.error('non-anonymous rooms not supported');
+            var errmsg = "non-anonymous rooms not supported";
+            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+            logger.error(errmsg);
             return;
         }
 
@@ -218,7 +221,8 @@ ChatRoom.prototype.createNonAnonymousRoom = function () {
         self.connection.sendIQ(formSubmit);
 
     }, function (error) {
-        logger.error("Error getting room configuration form");
+        GlobalOnErrorHandler.callErrorHandler(error);
+        logger.error("Error getting room configuration form: ", error);
     });
 };
 
@@ -370,12 +374,12 @@ ChatRoom.prototype.processNode = function (node, from) {
     // make sure we catch all errors coming from any handler
     // otherwise we can remove the presence handler from strophe
     try {
-        if(this.presHandlers[node.tagName])
-            this.presHandlers[node.tagName](
-                node, Strophe.getResourceFromJid(from), from);
+        var tagHandler = this.presHandlers[node.tagName];
+        if(tagHandler)
+            tagHandler(node, Strophe.getResourceFromJid(from), from);
     } catch (e) {
-        logger.error('Error processing:' + node.tagName
-            + ' node.', e);
+        GlobalOnErrorHandler.callErrorHandler(e);
+        logger.error('Error processing:' + node.tagName + ' node.', e);
     }
 };
 
@@ -606,29 +610,39 @@ ChatRoom.prototype.setJingleSession = function(session){
     this.session = session;
 };
 
-
-ChatRoom.prototype.removeStream = function (stream, callback, ssrcInfo) {
+/**
+ * Remove stream.
+ * @param stream stream that will be removed.
+ * @param callback callback executed after successful stream removal.
+ * @param errorCallback callback executed if stream removal fail.
+ * @param ssrcInfo object with information about the SSRCs associated with the
+ * stream.
+ */
+ChatRoom.prototype.removeStream = function (stream, callback, errorCallback,
+    ssrcInfo) {
     if(!this.session) {
         callback();
         return;
     }
-    this.session.removeStream(stream, callback, ssrcInfo);
+    this.session.removeStream(stream, callback, errorCallback, ssrcInfo);
 };
 
 /**
  * Adds stream.
  * @param stream new stream that will be added.
  * @param callback callback executed after successful stream addition.
+ * @param errorCallback callback executed if stream addition fail.
  * @param ssrcInfo object with information about the SSRCs associated with the
  * stream.
  * @param dontModifySources {boolean} if true _modifySources won't be called.
  * Used for streams added before the call start.
  */
-ChatRoom.prototype.addStream = function (stream, callback, ssrcInfo,
-    dontModifySources) {
+ChatRoom.prototype.addStream = function (stream, callback, errorCallback,
+    ssrcInfo, dontModifySources) {
     if(this.session) {
         // FIXME: will block switchInProgress on true value in case of exception
-        this.session.addStream(stream, callback, ssrcInfo, dontModifySources);
+        this.session.addStream(stream, callback, errorCallback, ssrcInfo,
+            dontModifySources);
     } else {
         // We are done immediately
         logger.warn("No conference handler or conference not started yet");
@@ -704,8 +718,8 @@ ChatRoom.prototype.removeListener = function (type, listener) {
 ChatRoom.prototype.remoteTrackAdded = function(data) {
     // Will figure out current muted status by looking up owner's presence
     var pres = this.lastPresences[data.owner];
-    var mediaType = data.mediaType;
     if(pres) {
+        var mediaType = data.mediaType;
         var mutedNode = null;
         if (mediaType === MediaType.AUDIO) {
             mutedNode = filterNodeFromPresenceJSON(pres, "audiomuted");
