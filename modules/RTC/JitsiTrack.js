@@ -174,15 +174,7 @@ JitsiTrack.prototype._maybeFireTrackAttached = function (container) {
  */
 JitsiTrack.prototype.attach = function (container) {
     if(this.stream) {
-        // The container must be visible in order to play or attach the stream
-        // when Temasys plugin is in use
-        var containerSel = $(container);
-        if (RTCBrowserType.isTemasysPluginUsed() &&
-            !containerSel.is(':visible')) {
-            containerSel.show();
-        }
-        container
-            = RTCUtils.attachMediaStream(container, this.stream);
+        container = RTCUtils.attachMediaStream(container, this.stream);
     }
     this.containers.push(container);
 
@@ -192,26 +184,26 @@ JitsiTrack.prototype.attach = function (container) {
 };
 
 /**
- * Removes the track from the passed HTML container.
- * @param container the HTML container. If <tt>null</tt> all containers are removed.
- *        A container can be 'video', 'audio' or 'object' HTML element instance
- *        to which this JitsiTrack is currently attached to.
+ * Removes this JitsiTrack from the passed HTML container.
+ *
+ * @param container the HTML container to detach from this JitsiTrack. If
+ * <tt>null</tt> or <tt>undefined</tt>, all containers are removed. A container
+ * can be a 'video', 'audio' or 'object' HTML element instance to which this
+ * JitsiTrack is currently attached.
  */
 JitsiTrack.prototype.detach = function (container) {
-    for(var i = 0; i < this.containers.length; i++)
-    {
-        if(!container)
-        {
-            RTCUtils.setVideoSrc(this.containers[i], null);
+    for (var cs = this.containers, i = cs.length - 1; i >= 0; --i) {
+        var c = cs[i];
+        if (!container) {
+            RTCUtils.attachMediaStream(c, null);
         }
-        if(!container || $(this.containers[i]).is($(container)))
-        {
-            this.containers.splice(i,1);
+        if (!container || c === container) {
+            cs.splice(i, 1);
         }
     }
 
-    if(container) {
-        RTCUtils.setVideoSrc(container, null);
+    if (container) {
+        RTCUtils.attachMediaStream(container, null);
     }
 };
 

@@ -69,15 +69,7 @@ var RTCUIHelper = {
      */
     getVideoId: function (element) {
         var src = RTC.getVideoSrc(element);
-        if (!src) {
-            return "";
-        }
-
-        if (RTCBrowserType.isFirefox()) {
-            return src.id;
-        }
-
-        return src;
+        return src ? String(src) : '';
     }
 };
 

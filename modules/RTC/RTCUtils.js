@@ -578,8 +578,10 @@ function wrapAttachMediaStream(origAttachMediaStream) {
     return function(element, stream) {
         var res = origAttachMediaStream.apply(RTCUtils, arguments);
 
-        if (RTCUtils.isDeviceChangeAvailable('output') &&
-            stream.getAudioTracks && stream.getAudioTracks().length) {
+        if (stream
+                && RTCUtils.isDeviceChangeAvailable('output')
+                && stream.getAudioTracks
+                && stream.getAudioTracks().length) {
             element.setSinkId(RTCUtils.getAudioOutputDevice())
                 .catch(function (ex) {
                     var err = new JitsiTrackError(ex, null, ['audiooutput']);
@@ -596,6 +598,107 @@ function wrapAttachMediaStream(origAttachMediaStream) {
 
         return res;
     }
+}
+
+/**
+ * Represents a default implementation of {@link RTCUtils#getVideoSrc} which
+ * tries to be browser-agnostic through feature checking. Note though that it
+ * was not completely clear from the predating browser-specific implementations
+ * what &quot;videoSrc&quot; was because one implementation would return
+ * <tt>MediaStream</tt> (e.g. Firefox), another a <tt>string</tt> representation
+ * of the <tt>URL</tt> of the <tt>MediaStream</tt> (e.g. Chrome) and the return
+ * value was only used by {@link RTCUIHelper#getVideoId} which itself did not
+ * appear to be used anywhere. Generally, the implementation will try to follow
+ * the related standards i.e. work with the <tt>srcObject</tt> and <tt>src</tt>
+ * properties of the specified <tt>element</tt> taking into account vender
+ * prefixes.
+ *
+ * @param element the element to get the associated video source/src of
+ * @return the video source/src of the specified <tt>element</tt>
+ */
+function defaultGetVideoSrc(element) {
+    // https://www.w3.org/TR/mediacapture-streams/
+    //
+    // User Agents that support this specification must support the srcObject
+    // attribute of the HTMLMediaElement interface defined in [HTML51].
+
+    // https://www.w3.org/TR/2015/WD-html51-20150506/semantics.html#dom-media-srcobject
+    //
+    // There are three ways to specify a media resource: the srcObject IDL
+    // attribute, the src content attribute, and source elements. The IDL
+    // attribute takes priority, followed by the content attribute, followed by
+    // the elements.
+
+    // srcObject
+    var srcObject = element.srcObject || element.mozSrcObject;
+    if (srcObject) {
+        // Try the optimized path to the URL of a MediaStream.
+        var url = srcObject.jitsiObjectURL;
+        if (url) {
+            return url.toString();
+        }
+        // Go via the unoptimized path to the URL of a MediaStream then.
+        var URL = (window.URL || webkitURL);
+        if (URL) {
+            url = URL.createObjectURL(srcObject);
+            try {
+                return url.toString();
+            } finally {
+                URL.revokeObjectURL(url);
+            }
+        }
+    }
+
+    // src
+    return element.src;
+}
+
+/**
+ * Represents a default implementation of setting a <tt>MediaStream</tt> as the
+ * source of a video element that tries to be browser-agnostic through feature
+ * checking. Note though that it was not completely clear from the predating
+ * browser-specific implementations what &quot;videoSrc&quot; was because one
+ * implementation of {@link RTCUtils#getVideoSrc} would return
+ * <tt>MediaStream</tt> (e.g. Firefox), another a <tt>string</tt> representation
+ * of the <tt>URL</tt> of the <tt>MediaStream</tt> (e.g. Chrome) and the return
+ * value was only used by {@link RTCUIHelper#getVideoId} which itself did not
+ * appear to be used anywhere. Generally, the implementation will try to follow
+ * the related standards i.e. work with the <tt>srcObject</tt> and <tt>src</tt>
+ * properties of the specified <tt>element</tt> taking into account vender
+ * prefixes.
+ *
+ * @param element the element whose video source/src is to be set to the
+ * specified <tt>stream</tt>
+ * @param {MediaStream} stream the <tt>MediaStream</tt> to set as the video
+ * source/src of <tt>element</tt>
+ */
+function defaultSetVideoSrc(element, stream) {
+    // srcObject
+    var srcObjectPropertyName = 'srcObject';
+    if (!(srcObjectPropertyName in element)) {
+        srcObjectPropertyName = 'mozSrcObject';
+        if (!(srcObjectPropertyName in element)) {
+            srcObjectPropertyName = null;
+        }
+    }
+    if (srcObjectPropertyName) {
+        element[srcObjectPropertyName] = stream;
+        return;
+    }
+
+    // src
+    var src;
+    if (stream) {
+        src = stream.jitsiObjectURL;
+        // Save the created URL for stream so we can reuse it and not keep
+        // creating URLs.
+        if (!src) {
+            stream.jitsiObjectURL
+                = src
+                    = (URL || webkitURL).createObjectURL(stream);
+        }
+    }
+    element.src = src || '';
 }
 
 //Options parameter is to pass config options. Currently uses only "useIPv6".
@@ -636,11 +739,11 @@ var RTCUtils = {
                     //
                     // https://groups.google.com/forum/#!topic/mozilla.dev.media/pKOiioXonJg
                     // https://github.com/webrtc/samples/issues/302
-                    if (!element)
-                        return;
-                    element.mozSrcObject = stream;
-                    element.play();
-
+                    if (element) {
+                        defaultSetVideoSrc(element, stream);
+                        if (stream)
+                            element.play();
+                    }
                     return element;
                 });
                 this.getStreamID = function (stream) {
@@ -654,15 +757,7 @@ var RTCUtils = {
                     }
                     return SDPUtil.filter_special_chars(id);
                 };
-                this.getVideoSrc = function (element) {
-                    if (!element)
-                        return null;
-                    return element.mozSrcObject;
-                };
-                this.setVideoSrc = function (element, src) {
-                    if (element)
-                        element.mozSrcObject = src;
-                };
+                this.getVideoSrc = defaultGetVideoSrc;
                 RTCSessionDescription = mozRTCSessionDescription;
                 RTCIceCandidate = mozRTCIceCandidate;
             } else if (RTCBrowserType.isChrome() ||
@@ -681,16 +776,7 @@ var RTCUtils = {
                     this.enumerateDevices = enumerateDevicesThroughMediaStreamTrack;
                 }
                 this.attachMediaStream = wrapAttachMediaStream(function (element, stream) {
-
-                    // saves the created url for the stream, so we can reuse it
-                    // and not keep creating urls
-                    if (!stream.jitsiObjectURL) {
-                        stream.jitsiObjectURL
-                            = webkitURL.createObjectURL(stream);
-                    }
-
-                    element.src = stream.jitsiObjectURL;
-
+                    defaultSetVideoSrc(element, stream);
                     return element;
                 });
                 this.getStreamID = function (stream) {
@@ -709,13 +795,7 @@ var RTCUtils = {
                             ? id
                             : SDPUtil.filter_special_chars(id));
                 };
-                this.getVideoSrc = function (element) {
-                    return element ? element.getAttribute("src") : null;
-                };
-                this.setVideoSrc = function (element, src) {
-                    if (element)
-                        element.setAttribute("src", src || '');
-                };
+                this.getVideoSrc = defaultGetVideoSrc;
                 // DTLS should now be enabled by default but..
                 this.pc_constraints = {'optional': [
                     {'DtlsSrtpKeyAgreement': 'true'}
@@ -750,14 +830,25 @@ var RTCUtils = {
                     self.getUserMedia = window.getUserMedia;
                     self.enumerateDevices = enumerateDevicesThroughMediaStreamTrack;
                     self.attachMediaStream = wrapAttachMediaStream(function (element, stream) {
+                        if (stream) {
+                            if (stream.id === "dummyAudio"
+                                    || stream.id === "dummyVideo") {
+                                return;
+                            }
 
-                        if (stream.id === "dummyAudio" || stream.id === "dummyVideo") {
-                            return;
-                        }
-
-                        var isVideoStream = !!stream.getVideoTracks().length;
-                        if (isVideoStream && !$(element).is(':visible')) {
-                            throw new Error('video element must be visible to attach video stream');
+                            // The container must be visible in order to play or
+                            // attach the stream when Temasys plugin is in use
+                            var containerSel = $(element);
+                            if (RTCBrowserType.isTemasysPluginUsed()
+                                    && !containerSel.is(':visible')) {
+                                containerSel.show();
+                            }
+                            var video = !!stream.getVideoTracks().length;
+                            if (video && !$(element).is(':visible')) {
+                                throw new Error(
+                                    'video element must be visible to attach'
+                                        + ' video stream');
+                            }
                         }
 
                         return attachMediaStream(element, stream);
@@ -766,8 +857,12 @@ var RTCUtils = {
                         return SDPUtil.filter_special_chars(stream.label);
                     };
                     self.getVideoSrc = function (element) {
+                        // There's nothing standard about getVideoSrc in the
+                        // case of Temasys so there's no point to try to
+                        // generalize it through defaultGetVideoSrc.
                         if (!element) {
-                            logger.warn("Attempt to get video SRC of null element");
+                            logger.warn(
+                                "Attempt to get video SRC of null element");
                             return null;
                         }
                         var children = element.children;
@@ -778,19 +873,6 @@ var RTCUtils = {
                         }
                         //logger.info(element.id + " SRC: " + src);
                         return null;
-                    };
-                    self.setVideoSrc = function (element, src) {
-                        //logger.info("Set video src: ", element, src);
-                        if (!src) {
-                            attachMediaStream(element, null);
-                        } else {
-                            AdapterJS.WebRTCPlugin.WaitForPluginReady();
-                            var stream
-                                = AdapterJS.WebRTCPlugin.plugin
-                                    .getStreamWithId(
-                                        AdapterJS.WebRTCPlugin.pageId, src);
-                            attachMediaStream(element, stream);
-                        }
                     };
 
                     onReady(options, self.getUserMediaWithConstraints);
@@ -1051,8 +1133,10 @@ var RTCUtils = {
         }
 
         // if we have done createObjectURL, lets clean it
-        if (mediaStream.jitsiObjectURL) {
-            webkitURL.revokeObjectURL(mediaStream.jitsiObjectURL);
+        var url = mediaStream.jitsiObjectURL;
+        if (url) {
+            delete mediaStream.jitsiObjectURL;
+            (URL || webkitURL).revokeObjectURL(url);
         }
     },
     /**
