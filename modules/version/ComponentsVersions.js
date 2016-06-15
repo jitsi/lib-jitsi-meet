@@ -1,4 +1,5 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
+var Statistics = require("../statistics/statistics");
 
 /**
  * The constant for the name of the focus component.
@@ -46,6 +47,7 @@ function(node, mucResource, mucJid) {
         return;
     }
 
+    var log = "";
     node.children.forEach(function(item){
 
         var componentName = item.attributes.name;
@@ -62,8 +64,15 @@ function(node, mucResource, mucJid) {
         if (this.versions[componentName] !== version) {
             this.versions[componentName] = version;
             logger.info("Got " + componentName + " version: " + version);
+
+            log += (log.length > 0? ", " : "")
+                + componentName + ": " + version;
         }
     }.bind(this));
+
+    // logs versions to stats
+    if (log.length > 0)
+        Statistics.sendLog(log);
 };
 
 /**

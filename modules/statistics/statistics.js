@@ -92,7 +92,7 @@ Statistics.prototype.startRemoteStats = function (peerconnection) {
 
     try {
         this.rtpStats
-            = new RTPStats(peerconnection, 
+            = new RTPStats(peerconnection,
                     this.audioLevelsInterval, 2000, this.eventEmitter);
         this.rtpStats.start();
     } catch (e) {
@@ -366,6 +366,16 @@ Statistics.prototype.sendUnhandledError = function (e) {
  */
 Statistics.sendUnhandledError = function (e) {
     CallStats.sendUnhandledError(e, null);
+};
+
+/**
+ * Adds to CallStats an application log.
+ *
+ * @param {String} a log message to send
+ */
+Statistics.sendLog = function (m) {
+    // uses  the same field for cs stat as unhandled error
+    CallStats.sendUnhandledError(m, null);
 };
 
 /**

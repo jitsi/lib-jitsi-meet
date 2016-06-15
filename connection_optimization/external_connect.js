@@ -39,6 +39,13 @@ function createConnectionExternally(webserviceUrl, success_callback,
             if (xhttp.status == HTTP_STATUS_OK) {
                 try {
                     var data = JSON.parse(xhttp.responseText);
+                    var headers = xhttp.getAllResponseHeaders();
+                    window.jitsiProxyRegion
+                        = xhttp.getResponseHeader('X-Proxy-Region');
+                    window.jitsiRegion
+                        = xhttp.getResponseHeader('X-Jitsi-Region');
+                    window.jitsiShard
+                        = xhttp.getResponseHeader('X-Jitsi-Shard');
                     success_callback(data);
                 } catch (e) {
                     error_callback(e);
