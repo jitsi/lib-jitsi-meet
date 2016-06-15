@@ -103,6 +103,7 @@ function setResolutionConstraints(constraints, resolution) {
  * @param {string} options.desktopStream
  * @param {string} options.cameraDeviceId
  * @param {string} options.micDeviceId
+ * @param {'user'|'environment'} options.facingMode
  * @param {bool} firefox_fake_device
  */
 function getConstraints(um, options) {
@@ -122,7 +123,10 @@ function getConstraints(um, options) {
         } else {
             // Prefer the front i.e. user-facing camera (to the back i.e.
             // environment-facing camera, for example).
-            constraints.video.facingMode = 'user';
+            // TODO: Maybe use "exact" syntax if options.facingMode is defined,
+            // but this probably needs to be decided when updating other
+            // constraints, as we currently don't use "exact" syntax anywhere.
+            constraints.video.facingMode = options.facingMode || 'user';
         }
 
         constraints.video.optional.push({ googLeakyBucket: true });

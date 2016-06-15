@@ -66,6 +66,7 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         4. micDeviceId - the deviceID for the audio device that is going to be used
         5. minFps - the minimum frame rate for the video stream (passed to GUM)
         6. maxFps - the maximum frame rate for the video stream (passed to GUM)
+        7. facingMode - facing mode for a camera (possible values - 'user', 'environment')
 
 * ```JitsiMeetJS.enumerateDevices(callback)``` - __DEPRECATED__. Use ```JitsiMeetJS.mediaDevices.enumerateDevices(callback)``` instead.
 * ```JitsiMeetJS.isDeviceListAvailable()``` - __DEPRECATED__. Use ```JitsiMeetJS.mediaDevices.isDeviceListAvailable()``` instead.
