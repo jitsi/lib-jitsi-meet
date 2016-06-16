@@ -76,17 +76,13 @@ function JitsiConference(options) {
     };
     this.isMutedByFocus = false;
 
-    // Lets send some general stats useful for debuging problems
-    var log = "";
-    if(window.jitsiProxyRegion)
-        log += "ProxyRegion:" + window.jitsiProxyRegion;
-    if(window.jitsiRegion)
-        log += (log.length > 0? ", " : "") + "Region: " + window.jitsiRegion;
-    if(window.jitsiShard)
-        log += (log.length > 0? ", " : "") + "Shard: " + window.jitsiShard;
-
-    if (log.length > 0)
-        Statistics.sendLog(log);
+    // Lets send some general stats useful for debugging problems
+    if (window.jitsiRegionInfo
+            && Object.keys(window.jitsiRegionInfo).length > 0) {
+        // remove quotes to make it prettier
+        Statistics.sendLog(
+            JSON.stringify(window.jitsiRegionInfo).replace(/\"/g, ""));
+    }
 
     if(JitsiMeetJS.version)
         Statistics.sendLog("LibJitsiMeet:" + JitsiMeetJS.version);
