@@ -379,6 +379,16 @@ Statistics.sendLog = function (m) {
 };
 
 /**
+ * Adds to CallStats an application log.
+ *
+ * @param {String} a log message to send
+ */
+Statistics.prototype.sendLog = function (m) {
+    // uses  the same field for cs stat as unhandled error
+    CallStats.sendUnhandledError(m, this.callstats);
+};
+
+/**
  * Sends the given feedback through CallStats.
  *
  * @param overall an integer between 1 and 5 indicating the user feedback
