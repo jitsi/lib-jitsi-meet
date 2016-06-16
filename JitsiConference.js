@@ -1342,6 +1342,14 @@ function setupListeners(conference) {
                 conference.statistics.sendMuteEvent(track.isMuted(), type);
             });
 
+        // log all events for the recorder operated by the moderator
+        if (conference.isModerator()) {
+            conference.on(JitsiConferenceEvents.RECORDER_STATE_CHANGED,
+                function (status, error) {
+                    conference.statistics.sendLog("Recorder: " + status);
+                });
+        }
+
         conference.room.addListener(XMPPEvents.CREATE_OFFER_FAILED, function (e, pc) {
             conference.statistics.sendCreateOfferFailed(e, pc);
         });
