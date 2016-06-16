@@ -4,20 +4,12 @@ var XMPP = require("./modules/xmpp/xmpp");
 /**
  * Creates new connection object for the Jitsi Meet server side video conferencing service. Provides access to the
  * JitsiConference interface.
- * @param JitsiMeetJS the JitsiMeetJS instance which is initializing the new
- * JitsiConnection instance
  * @param appID identification for the provider of Jitsi Meet video conferencing services.
  * @param token the JWT token used to authenticate with the server(optional)
  * @param options Object with properties / settings related to connection with the server.
  * @constructor
  */
-function JitsiConnection(JitsiMeetJS, appID, token, options) {
-    /**
-     * The {JitsiMeetJS} instance which has initialized this {JitsiConnection}
-     * instance.
-     * @public
-     */
-    this.JitsiMeetJS = JitsiMeetJS;
+function JitsiConnection(appID, token, options) {
     this.appID = appID;
     this.token = token;
     this.options = options;

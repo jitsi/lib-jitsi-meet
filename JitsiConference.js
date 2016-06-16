@@ -55,12 +55,6 @@ function JitsiConference(options) {
         roomName: this.options.name
     });
     setupListeners(this);
-    var JitsiMeetJS = this.connection.JitsiMeetJS;
-    JitsiMeetJS._gumFailedHandler.push(function(error) {
-        this.statistics.sendGetUserMediaFailed(error);
-    }.bind(this));
-    JitsiMeetJS._globalOnErrorHandler.push(
-        Statistics.reportGlobalError.bind(this.statistics));
     this.participants = {};
     this.lastDominantSpeaker = null;
     this.dtmfManager = null;
@@ -75,17 +69,6 @@ function JitsiConference(options) {
         video: undefined
     };
     this.isMutedByFocus = false;
-
-    // Lets send some general stats useful for debugging problems
-    if (window.jitsiRegionInfo
-            && Object.keys(window.jitsiRegionInfo).length > 0) {
-        // remove quotes to make it prettier
-        Statistics.sendLog(
-            JSON.stringify(window.jitsiRegionInfo).replace(/\"/g, ""));
-    }
-
-    if(JitsiMeetJS.version)
-        Statistics.sendLog("LibJitsiMeet:" + JitsiMeetJS.version);
 }
 
 /**
