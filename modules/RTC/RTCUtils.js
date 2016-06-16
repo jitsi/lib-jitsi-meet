@@ -40,6 +40,12 @@ var featureDetectionAudioEl = document.createElement('audio');
 var isAudioOutputDeviceChangeAvailable =
     typeof featureDetectionAudioEl.setSinkId !== 'undefined';
 
+var constraintsNewFormatSupported = !!(navigator.mediaDevices &&
+    navigator.mediaDevices.getSupportedConstraints);
+var supportedGetUserMediaConstraints = constraintsNewFormatSupported
+    ? navigator.mediaDevices.getSupportedConstraints()
+    : {};
+
 var currentlyAvailableMediaDevices = [];
 
 var rawEnumerateDevicesWithCallback = navigator.mediaDevices
@@ -70,7 +76,7 @@ var isDeviceChangeEventSupported = false;
 
 var rtcReady = false;
 
-function setResolutionConstraints(constraints, resolution) {
+function setOldFormatResolutionConstraints(constraints, resolution) {
     var isAndroid = RTCBrowserType.isAndroid();
 
     if (Resolutions[resolution]) {
@@ -94,19 +100,249 @@ function setResolutionConstraints(constraints, resolution) {
 }
 
 /**
+ * Construct resolution constraints according to W3C spec.
+ * @param {Object} constraints
+ * @param {string} resolution
+ */
+function setNewFormatResolutionConstraints(constraints, resolution) {
+    if (!supportedGetUserMediaConstraints.width ||
+        !supportedGetUserMediaConstraints.height) {
+        return;
+    }
+
+    var maxWidth = resolution && Resolutions[resolution]
+        ? Resolutions[resolution].width
+        : 4096;
+    var maxHeight = resolution && Resolutions[resolution]
+        ? Resolutions[resolution].height
+        : 3072;
+
+    // TODO: check if specific handling is needed for Android.
+
+    if (!constraints.video.advanced) {
+        Object.assign(constraints.video, { advanced: [] });
+    }
+
+    Object.assign(constraints.video, {
+        advanced: constraints.video.advanced.concat(
+            Object.keys(Resolutions)
+                .map(function (key) {
+                    return Resolutions[key];
+                })
+                .sort(function (a, b) {
+                    return a.order < b.order;
+                })
+                .map(function (res) {
+                    // If exact resolution was passed, limit constraints to it.
+                    if (res.width <= maxWidth && res.height <= maxHeight) {
+                        // TODO: replace with "exact" syntax as soon as it's fixed for Chrome
+                        // (@see https://bugs.chromium.org/p/chromium/issues/detail?id=620665).
+                        // "Max" doesn't help here, because Chrome for some
+                        // reason selects the lowest resolution.
+                        return {
+                            width: { min: res.width },
+                            height: { min: res.height }
+                        };
+                    }
+                })
+                .filter(function (item) {
+                    return typeof item !== 'undefined';
+                })
+        )
+    });
+
+    if (supportedGetUserMediaConstraints.aspectRatio) {
+        // Prefer 16:9 aspect ratio over 4:3.
+        constraints.video.advanced.push({ aspectRatio: 16/9 });
+        constraints.video.advanced.push({ aspectRatio: 4/3 });
+    }
+}
+
+/**
+ * Returns constraints object for use with gUM.
  * @param {string[]} um required user media types
- *
  * @param {Object} [options={}] optional parameters
  * @param {string} options.resolution
  * @param {number} options.bandwidth
  * @param {number} options.fps
+ * @param {number} options.minFps
+ * @param {number} options.maxFps
  * @param {string} options.desktopStream
  * @param {string} options.cameraDeviceId
  * @param {string} options.micDeviceId
  * @param {'user'|'environment'} options.facingMode
- * @param {bool} firefox_fake_device
+ * @param {boolean} options.firefox_fake_device
+ * @returns {Object}
  */
 function getConstraints(um, options) {
+    return constraintsNewFormatSupported
+        ? getNewFormatConstraints(um, options)
+        : getOldFormatConstraints(um, options);
+}
+
+/**
+ * Constructs new style gUM constraints object according to W3C spec (@see
+ * https://www.w3.org/TR/mediacapture-streams/#constrainable-interface).
+ * For params @see getConstraints function.
+ * @param um
+ * @param options
+ * @returns {Object}
+ */
+function getNewFormatConstraints(um, options) {
+    var constraints = {
+        audio: false,
+        video: false
+    };
+
+    if (um.indexOf('video') >= 0) {
+        constraints.video = {};
+
+        if (options.cameraDeviceId &&
+            supportedGetUserMediaConstraints.deviceId) {
+            Object.assign(constraints.video, {
+                deviceId: options.cameraDeviceId
+            });
+        } else if (supportedGetUserMediaConstraints.facingMode) {
+            // Prefer the front i.e. user-facing camera (to the back i.e.
+            // environment-facing camera, for example), if no specific device ID
+            // was passed.
+            Object.assign(constraints.video, {
+                facingMode: options.facingMode || 'user'
+            });
+        }
+
+        if ((options.minFps || options.maxFps || options.fps) &&
+            supportedGetUserMediaConstraints.frameRate) {
+            // For some cameras it might be necessary to request 30fps
+            // so they choose 30fps mjpg over 10fps yuy2.
+            Object.assign(constraints.video, {
+                frameRate: {
+                    min: options.minFps,
+                    ideal: options.fps,
+                    max: options.maxFps
+                }
+            });
+        }
+
+        setNewFormatResolutionConstraints(constraints, options.resolution);
+    }
+
+    if (um.indexOf('audio') >= 0) {
+        constraints.audio = {};
+
+        if (options.micDeviceId &&
+            supportedGetUserMediaConstraints.deviceId) {
+            Object.assign(constraints.audio, {
+                deviceId: options.micDeviceId
+            });
+        }
+
+        if (supportedGetUserMediaConstraints.echoCancellation) {
+            Object.assign(constraints.audio, {
+                echoCancellation: !disableAEC
+            });
+        }
+
+        if (supportedGetUserMediaConstraints.mozAutoGainControl) {
+            Object.assign(constraints.audio, {
+                mozAutoGainControl: true
+            });
+        }
+
+        if (supportedGetUserMediaConstraints.mozNoiseSuppression) {
+            Object.assign(constraints.audio, {
+                mozNoiseSuppression: !disableNS
+            });
+        }
+
+        // Current "getSupportedConstraints" for Chrome doesn't return Chrome-
+        // specific filters, so use browser detection instead of feature
+        // detection here.
+        // There is a chance that those constraints are actually not working:
+        // https://bugs.chromium.org/p/chromium/issues/detail?id=605673
+        // TODO: fix this as soon as those filters are standardized.
+        if (RTCBrowserType.isChrome()) {
+            Object.assign(constraints.audio, {
+                googAutoGainControl: true,
+                googNoiseSupression: !disableNS,
+                googHighpassFilter: true,
+                googNoiseSuppression2: !disableNS,
+                googEchoCancellation2: !disableAEC,
+                googAutoGainControl2: true
+            });
+        }
+    }
+
+    if (um.indexOf('screen') >= 0) {
+        if (supportedGetUserMediaConstraints.mediaSource) {
+            constraints.video = {
+                mediaSource: "window"
+            };
+
+            if (supportedGetUserMediaConstraints.width) {
+                Object.assign(constraints.video, {
+                    width: { max: window.screen.width }
+                });
+            }
+
+            if (supportedGetUserMediaConstraints.height) {
+                Object.assign(constraints.video, {
+                    height: { max: window.screen.height }
+                });
+            }
+
+            if (supportedGetUserMediaConstraints.frameRate) {
+                Object.assign(constraints.video, {
+                    frameRate: { max: 3 }
+                });
+            }
+        } else {
+            var errmsg = "'screen' WebRTC media source is not supported";
+            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+            logger.error(errmsg);
+        }
+    }
+
+    if (um.indexOf('desktop') >= 0) {
+        // We can't use new style constraints with non-standard Chrome props:
+        // https://bugs.chromium.org/p/chromium/issues/detail?id=605673
+        // TODO: fix this in future.
+        constraints.video = {
+            mandatory: {
+                chromeMediaSource: "desktop",
+                chromeMediaSourceId: options.desktopStream,
+                maxWidth: window.screen.width,
+                maxHeight: window.screen.height,
+                maxFrameRate: 3
+            },
+            optional: []
+        };
+    }
+
+    // TODO: check for "bandwidth" constraint
+
+    // We turn audio for both audio and video tracks, the fake audio & video
+    // seems to work only when enabled in one getUserMedia call, we cannot get
+    // fake audio separate by fake video this later can be a problem with some
+    // of the tests.
+    if (RTCBrowserType.isFirefox() && options.firefox_fake_device) {
+        // seems to be fixed now, removing this experimental fix, as having
+        // multiple audio tracks brake the tests
+        //constraints.audio = true;
+        constraints.fake = true;
+    }
+
+    return constraints;
+}
+
+/**
+ * Returns old style gUM constraints with "mandatory" and "optional" sections.
+ * For params @see getConstraints function.
+ * @param um
+ * @param options
+ * @returns {Object}
+ */
+function getOldFormatConstraints(um, options) {
     var constraints = {audio: false, video: false};
 
     if (um.indexOf('video') >= 0) {
@@ -114,24 +350,33 @@ function getConstraints(um, options) {
         constraints.video = { mandatory: {}, optional: [] };
 
         if (options.cameraDeviceId) {
-            // new style of settings device id (FF only)
-            constraints.video.deviceId = options.cameraDeviceId;
+            // Don't mix new and old style settings for Chrome.
+            if (!RTCBrowserType.isChrome()) {
+                // new style of settings device id
+                constraints.video.deviceId = options.cameraDeviceId;
+            }
             // old style
             constraints.video.optional.push({
                 sourceId: options.cameraDeviceId
             });
         } else {
             // Prefer the front i.e. user-facing camera (to the back i.e.
-            // environment-facing camera, for example).
-            // TODO: Maybe use "exact" syntax if options.facingMode is defined,
-            // but this probably needs to be decided when updating other
-            // constraints, as we currently don't use "exact" syntax anywhere.
-            constraints.video.facingMode = options.facingMode || 'user';
+            // environment-facing camera, for example), if no specific device ID
+            // was passed.
+
+            // Don't mix new and old style settings for Chrome.
+            if (!RTCBrowserType.isChrome()) {
+                constraints.video.facingMode = options.facingMode || 'user';
+            }
+
+            constraints.video.optional.push({
+                facingMode: options.facingMode || 'user'
+            });
         }
 
         constraints.video.optional.push({ googLeakyBucket: true });
 
-        setResolutionConstraints(constraints, options.resolution);
+        setOldFormatResolutionConstraints(constraints, options.resolution);
     }
     if (um.indexOf('audio') >= 0) {
         if (RTCBrowserType.isReactNative()) {
@@ -142,8 +387,11 @@ function getConstraints(um, options) {
             // same behaviour as true
             constraints.audio = { mandatory: {}, optional: []};
             if (options.micDeviceId) {
-                // new style of settings device id (FF only)
-                constraints.audio.deviceId = options.micDeviceId;
+                // Don't mix new and old style settings for Chrome.
+                if (!RTCBrowserType.isChrome()) {
+                    // new style of settings device id
+                    constraints.audio.deviceId = options.micDeviceId;
+                }
                 // old style
                 constraints.audio.optional.push({
                     sourceId: options.micDeviceId
