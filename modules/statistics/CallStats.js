@@ -41,7 +41,8 @@ var fabricEvent = {
     fabricTerminated:"fabricTerminated",
     screenShareStart:"screenShareStart",
     screenShareStop:"screenShareStop",
-    dominantSpeaker:"dominantSpeaker"
+    dominantSpeaker:"dominantSpeaker",
+    activeDeviceList:"activeDeviceList"
 };
 
 var callStats = null;
@@ -66,7 +67,10 @@ function initCallback (err, msg) {
             {
                 var data = report.data;
                 callStats.sendFabricEvent(
-                    this.peerconnection, data.event, this.confID);
+                    this.peerconnection,
+                    data.event,
+                    this.confID,
+                    data.eventData);
             }
         }, this);
         CallStats.reportsQueue.length = 0;
@@ -206,6 +210,7 @@ function (ssrc, isLocal, usageLabel, containerId) {
  * Notifies CallStats for mute events
  * @param mute {boolean} true for muted and false for not muted
  * @param type {String} "audio"/"video"
+ * @param {CallStats} cs callstats instance related to the event
  */
 CallStats.sendMuteEvent = _try_catch(function (mute, type, cs) {
 
@@ -224,6 +229,7 @@ CallStats.sendMuteEvent = _try_catch(function (mute, type, cs) {
  * Notifies CallStats for screen sharing events
  * @param start {boolean} true for starting screen sharing and
  * false for not stopping
+ * @param {CallStats} cs callstats instance related to the event
  */
 CallStats.sendScreenSharingEvent = _try_catch(function (start, cs) {
 
@@ -233,6 +239,7 @@ CallStats.sendScreenSharingEvent = _try_catch(function (start, cs) {
 
 /**
  * Notifies CallStats that we are the new dominant speaker in the conference.
+ * @param {CallStats} cs callstats instance related to the event
  */
 CallStats.sendDominantSpeakerEvent = _try_catch(function (cs) {
 
@@ -241,20 +248,32 @@ CallStats.sendDominantSpeakerEvent = _try_catch(function (cs) {
 });
 
 /**
+ * Notifies CallStats about active device.
+ * @param {{deviceList: {String:String}}} list of devices with their data
+ * @param {CallStats} cs callstats instance related to the event
+ */
+CallStats.sendАctiveDeviceListEvent = _try_catch(function (devicesData, cs) {
+
+    CallStats._reportEvent.call(cs, fabricEvent.activeDeviceList, devicesData);
+});
+
+/**
  * Reports an error to callstats.
  *
  * @param type the type of the error, which will be one of the wrtcFuncNames
  * @param e the error
  * @param pc the peerconnection
+ * @param eventData additional data to pass to event
  * @private
  */
-CallStats._reportEvent = function (event) {
+CallStats._reportEvent = function (event, eventData) {
     if (callStats) {
-        callStats.sendFabricEvent(this.peerconnection, event, this.confID);
+        callStats.sendFabricEvent(
+            this.peerconnection, event, this.confID, eventData);
     } else {
         CallStats.reportsQueue.push({
                 type: reportType.EVENT,
-                data: {event: event}
+                data: {event: event, eventData: eventData}
             });
     }
 };
