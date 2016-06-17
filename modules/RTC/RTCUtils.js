@@ -114,10 +114,10 @@ function getConstraints(um, options) {
         constraints.video = { mandatory: {}, optional: [] };
 
         if (options.cameraDeviceId) {
-            // Don't mix new and old style settings for Chrome as this leads to
-            // TypeError in new Chrome versions. @see
+            // Don't mix new and old style settings for Chromium as this leads
+            // to TypeError in new Chromium versions. @see
             // https://bugs.chromium.org/p/chromium/issues/detail?id=614716
-            if (!RTCBrowserType.isChrome()) {
+            if (!RTCBrowserType.isChrome() && !RTCBrowserType.isOpera()) {
                 // New style of setting device id.
                 constraints.video.deviceId = options.cameraDeviceId;
             }
@@ -132,10 +132,10 @@ function getConstraints(um, options) {
             // but this probably needs to be decided when updating other
             // constraints, as we currently don't use "exact" syntax anywhere.
 
-            // Don't mix new and old style settings for Chrome as this leads to
-            // TypeError in new Chrome versions. @see
+            // Don't mix new and old style settings for Chromium as this leads
+            // to TypeError in new Chromium versions. @see
             // https://bugs.chromium.org/p/chromium/issues/detail?id=614716
-            if (!RTCBrowserType.isChrome()) {
+            if (!RTCBrowserType.isChrome() && !RTCBrowserType.isOpera()) {
                 constraints.video.facingMode = options.facingMode || 'user';
             }
 
@@ -157,10 +157,10 @@ function getConstraints(um, options) {
             // same behaviour as true
             constraints.audio = { mandatory: {}, optional: []};
             if (options.micDeviceId) {
-                // Don't mix new and old style settings for Chrome as this leads to
-                // TypeError in new Chrome versions. @see
+                // Don't mix new and old style settings for Chromium as this
+                // leads to TypeError in new Chromium versions. @see
                 // https://bugs.chromium.org/p/chromium/issues/detail?id=614716
-                if (!RTCBrowserType.isChrome()) {
+                if (!RTCBrowserType.isChrome() && !RTCBrowserType.isOpera()) {
                     // New style of setting device id.
                     constraints.audio.deviceId = options.micDeviceId;
                 }
