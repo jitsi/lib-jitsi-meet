@@ -114,9 +114,14 @@ function getConstraints(um, options) {
         constraints.video = { mandatory: {}, optional: [] };
 
         if (options.cameraDeviceId) {
-            // new style of settings device id (FF only)
-            constraints.video.deviceId = options.cameraDeviceId;
-            // old style
+            // Don't mix new and old style settings for Chrome as this leads to
+            // TypeError in new Chrome versions. @see
+            // https://bugs.chromium.org/p/chromium/issues/detail?id=614716
+            if (!RTCBrowserType.isChrome()) {
+                // New style of setting device id.
+                constraints.video.deviceId = options.cameraDeviceId;
+            }
+            // Old style.
             constraints.video.optional.push({
                 sourceId: options.cameraDeviceId
             });
@@ -126,7 +131,17 @@ function getConstraints(um, options) {
             // TODO: Maybe use "exact" syntax if options.facingMode is defined,
             // but this probably needs to be decided when updating other
             // constraints, as we currently don't use "exact" syntax anywhere.
-            constraints.video.facingMode = options.facingMode || 'user';
+
+            // Don't mix new and old style settings for Chrome as this leads to
+            // TypeError in new Chrome versions. @see
+            // https://bugs.chromium.org/p/chromium/issues/detail?id=614716
+            if (!RTCBrowserType.isChrome()) {
+                constraints.video.facingMode = options.facingMode || 'user';
+            }
+
+            constraints.video.optional.push({
+                facingMode: options.facingMode || 'user'
+            });
         }
 
         constraints.video.optional.push({ googLeakyBucket: true });
@@ -142,9 +157,14 @@ function getConstraints(um, options) {
             // same behaviour as true
             constraints.audio = { mandatory: {}, optional: []};
             if (options.micDeviceId) {
-                // new style of settings device id (FF only)
-                constraints.audio.deviceId = options.micDeviceId;
-                // old style
+                // Don't mix new and old style settings for Chrome as this leads to
+                // TypeError in new Chrome versions. @see
+                // https://bugs.chromium.org/p/chromium/issues/detail?id=614716
+                if (!RTCBrowserType.isChrome()) {
+                    // New style of setting device id.
+                    constraints.audio.deviceId = options.micDeviceId;
+                }
+                // Old style.
                 constraints.audio.optional.push({
                     sourceId: options.micDeviceId
                 });
