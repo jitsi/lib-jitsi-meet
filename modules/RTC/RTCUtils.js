@@ -40,7 +40,7 @@ var featureDetectionAudioEl = document.createElement('audio');
 var isAudioOutputDeviceChangeAvailable =
     typeof featureDetectionAudioEl.setSinkId !== 'undefined';
 
-var currentlyAvailableMediaDevices = [];
+var currentlyAvailableMediaDevices;
 
 var rawEnumerateDevicesWithCallback = navigator.mediaDevices
     && navigator.mediaDevices.enumerateDevices
@@ -305,7 +305,11 @@ function pollForAvailableMediaDevices() {
     // and then plug in a new one.
     if (rawEnumerateDevicesWithCallback) {
         rawEnumerateDevicesWithCallback(function (devices) {
-            if (compareAvailableMediaDevices(devices)) {
+            // We don't fire RTCEvents.DEVICE_LIST_CHANGED for the first time
+            // we call enumerateDevices(). This is the initial step.
+            if (typeof currentlyAvailableMediaDevices === 'undefined') {
+                currentlyAvailableMediaDevices = devices.slice(0);
+            } else if (compareAvailableMediaDevices(devices)) {
                 onMediaDevicesListChanged(devices);
             }
 
