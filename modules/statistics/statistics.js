@@ -254,6 +254,20 @@ Statistics.prototype.sendDominantSpeakerEvent = function () {
 };
 
 /**
+ * Notifies about active device.
+ * @param {{deviceList: {String:String}}} list of devices with their data
+ */
+Statistics.sendАctiveDeviceListEvent = function (devicesData) {
+    if (Statistics.callsStatsInstances.length) {
+        Statistics.callsStatsInstances.forEach(function (cs) {
+            CallStats.sendАctiveDeviceListEvent(devicesData, cs);
+        });
+    } else {
+        CallStats.sendАctiveDeviceListEvent(devicesData, null);
+    }
+};
+
+/**
  * Lets the underlying statistics module know where is given SSRC rendered by
  * providing renderer tag ID.
  * @param ssrc {number} the SSRC of the stream
