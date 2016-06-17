@@ -42,6 +42,7 @@ var LibJitsiMeet = {
 
     version: '{#COMMIT_HASH#}',
 
+    JitsiConnection: JitsiConnection,
     events: {
         conference: JitsiConferenceEvents,
         connection: JitsiConnectionEvents,
@@ -56,10 +57,6 @@ var LibJitsiMeet = {
     },
     logLevels: Logger.levels,
     mediaDevices: JitsiMediaDevices,
-    /**
-     * Array of functions that will receive the GUM error.
-     */
-    _gumFailedHandler: [],
     init: function (options) {
         Statistics.audioLevelsEnabled = !options.disableAudioLevels;
 
@@ -67,6 +64,17 @@ var LibJitsiMeet = {
             GlobalOnErrorHandler.addHandler(
                 this.getGlobalOnErrorHandler.bind(this));
         }
+
+        // Lets send some general stats useful for debugging problems
+        if (window.jitsiRegionInfo
+            && Object.keys(window.jitsiRegionInfo).length > 0) {
+            // remove quotes to make it prettier
+            Statistics.sendLog(
+                JSON.stringify(window.jitsiRegionInfo).replace(/\"/g, ""));
+        }
+
+        if(JitsiMeetJS.version)
+            Statistics.sendLog("LibJitsiMeet:" + JitsiMeetJS.version);
 
         return RTC.init(options || {});
     },
@@ -114,13 +122,7 @@ var LibJitsiMeet = {
                     }
                 return tracks;
             }).catch(function (error) {
-                this._gumFailedHandler.forEach(function (handler) {
-                    handler(error);
-                });
-
-                if(!this._gumFailedHandler.length) {
-                    Statistics.sendGetUserMediaFailed(error);
-                }
+                Statistics.sendGetUserMediaFailed(error);
 
                 if(error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
                     var oldResolution = options.resolution || '360',
@@ -175,10 +177,6 @@ var LibJitsiMeet = {
         this.mediaDevices.enumerateDevices(callback);
     },
     /**
-     * Array of functions that will receive the unhandled errors.
-     */
-    _globalOnErrorHandler: [],
-    /**
      * @returns function that can be used to be attached to window.onerror and
      * if options.enableWindowOnErrorHandler is enabled returns
      * the function used by the lib.
@@ -191,14 +189,7 @@ var LibJitsiMeet = {
             'Line: ' + lineno,
             'Column: ' + colno,
             'StackTrace: ', error);
-        var globalOnErrorHandler = this._globalOnErrorHandler;
-        if (globalOnErrorHandler.length) {
-          globalOnErrorHandler.forEach(function (handler) {
-              handler(error);
-          });
-        } else {
-            Statistics.reportGlobalError(error);
-        }
+        Statistics.reportGlobalError(error);
     },
 
     /**
@@ -210,15 +201,6 @@ var LibJitsiMeet = {
         RTCUIHelper: RTCUIHelper
     }
 };
-
-// XXX JitsiConnection or the instances it initializes and is associated with
-// (e.g. JitsiConference) may need a reference to LibJitsiMeet (aka
-// JitsiMeetJS). An approach could be to declare LibJitsiMeet global (which is
-// what we do in Jitsi Meet) but that could be seen as not such a cool decision
-// certainly looks even worse within the lib-jitsi-meet library itself. That's
-// why the decision is to provide LibJitsiMeet as a parameter of
-// JitsiConnection.
-LibJitsiMeet.JitsiConnection = JitsiConnection.bind(null, LibJitsiMeet);
 
 // expose JitsiTrackError this way to give library consumers to do checks like
 // if (error instanceof JitsiMeetJS.JitsiTrackError) { }

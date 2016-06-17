@@ -84,6 +84,12 @@ function Statistics(xmpp, options) {
 }
 Statistics.audioLevelsEnabled = false;
 
+/**
+ * Array of callstats instances. Used to call Statistics static methods and
+ * send stats to all cs instances.
+ */
+Statistics.callsStatsInstances = [];
+
 Statistics.prototype.startRemoteStats = function (peerconnection) {
     if(!Statistics.audioLevelsEnabled)
         return;
@@ -194,6 +200,7 @@ Statistics.prototype.stopRemoteStats = function () {
 Statistics.prototype.startCallStats = function (session, settings) {
     if(this.callStatsIntegrationEnabled && !this.callstats) {
         this.callstats = new CallStats(session, settings, this.options);
+        Statistics.callsStatsInstances.push(this.callstats);
     }
 };
 
@@ -270,27 +277,23 @@ function (ssrc, isLocal, usageLabel, containerId) {
  *
  * @param {Error} e error to send
  */
-Statistics.prototype.sendGetUserMediaFailed = function (e) {
-    if(this.callstats) {
+Statistics.sendGetUserMediaFailed = function (e) {
+
+    if (Statistics.callsStatsInstances.length) {
+        Statistics.callsStatsInstances.forEach(function (cs) {
+            CallStats.sendGetUserMediaFailed(
+                e instanceof JitsiTrackError
+                    ? formatJitsiTrackErrorForCallStats(e)
+                    : e,
+                cs);
+        });
+    } else {
         CallStats.sendGetUserMediaFailed(
             e instanceof JitsiTrackError
                 ? formatJitsiTrackErrorForCallStats(e)
                 : e,
-            this.callstats);
+            null);
     }
-};
-
-/**
- * Notifies CallStats that getUserMedia failed.
- *
- * @param {Error} e error to send
- */
-Statistics.sendGetUserMediaFailed = function (e) {
-    CallStats.sendGetUserMediaFailed(
-        e instanceof JitsiTrackError
-            ? formatJitsiTrackErrorForCallStats(e)
-            : e,
-        null);
 };
 
 /**
@@ -349,23 +352,18 @@ Statistics.prototype.sendAddIceCandidateFailed = function (e, pc) {
 };
 
 /**
- * Notifies CallStats that there is an unhandled error on the page.
- *
- * @param {Error} e error to send
- * @param {RTCPeerConnection} pc connection on which failure occured.
- */
-Statistics.prototype.sendUnhandledError = function (e) {
-    if(this.callstats)
-        CallStats.sendUnhandledError(e, this.callstats);
-};
-
-/**
  * Notifies CallStats that there is unhandled exception.
  *
  * @param {Error} e error to send
  */
 Statistics.sendUnhandledError = function (e) {
-    CallStats.sendUnhandledError(e, null);
+    if (Statistics.callsStatsInstances.length) {
+        Statistics.callsStatsInstances.forEach(function (cs) {
+            CallStats.sendUnhandledError(e, cs);
+        });
+    } else {
+        CallStats.sendUnhandledError(e, null);
+    }
 };
 
 /**
@@ -375,7 +373,7 @@ Statistics.sendUnhandledError = function (e) {
  */
 Statistics.sendLog = function (m) {
     // uses  the same field for cs stat as unhandled error
-    CallStats.sendUnhandledError(m, null);
+    Statistics.sendUnhandledError(m);
 };
 
 /**
@@ -408,9 +406,9 @@ Statistics.LOCAL_JID = require("../../service/statistics/constants").LOCAL_JID;
  */
 Statistics.reportGlobalError = function (error) {
     if (error instanceof JitsiTrackError && error.gum) {
-        this.sendGetUserMediaFailed(error);
+        Statistics.sendGetUserMediaFailed(error);
     } else {
-        this.sendUnhandledError(error);
+        Statistics.sendUnhandledError(error);
     }
 };
 
