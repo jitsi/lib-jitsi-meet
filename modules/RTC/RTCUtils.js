@@ -321,6 +321,7 @@ function pollForAvailableMediaDevices() {
  * @emits RTCEvents.DEVICE_LIST_CHANGED
  */
 function onMediaDevicesListChanged(devices) {
+    var initialDeviceList = currentlyAvailableMediaDevices.length == 0;
     currentlyAvailableMediaDevices = devices.slice(0);
     logger.info('list of media devices has changed:', currentlyAvailableMediaDevices);
 
@@ -349,7 +350,8 @@ function onMediaDevicesListChanged(devices) {
         setAvailableDevices(['audio'], false);
     }
 
-    eventEmitter.emit(RTCEvents.DEVICE_LIST_CHANGED, devices);
+    eventEmitter.emit(
+        RTCEvents.DEVICE_LIST_CHANGED, devices, initialDeviceList);
 }
 
 // In case of IE we continue from 'onReady' callback

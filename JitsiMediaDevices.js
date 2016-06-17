@@ -7,7 +7,13 @@ var JitsiMediaDevicesEvents = require('./JitsiMediaDevicesEvents');
 var eventEmitter = new EventEmitter();
 
 RTC.addListener(RTCEvents.DEVICE_LIST_CHANGED,
-    function (devices) {
+    function (devices, isInitial) {
+
+        if (isInitial) {
+            // skip initial event
+            return;
+        }
+
         eventEmitter.emit(JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED, devices);
     });
 

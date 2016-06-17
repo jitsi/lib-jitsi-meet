@@ -55,7 +55,12 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
     // called.
     this._realDeviceId = this.deviceId === '' ? undefined : this.deviceId;
 
-    this._onDeviceListChanged = function (devices) {
+    this._onDeviceListChanged = function (devices, isInitial) {
+
+        // skip initial event
+        if (isInitial)
+            return;
+
         self._setRealDeviceIdFromDeviceList(devices);
 
         // Mark track as ended for those browsers that do not support
