@@ -87,6 +87,7 @@ function ChatRoom(connection, jid, password, XMPP, options, settings) {
     this.phoneNumber = null;
     this.phonePin = null;
     this.connectionTimes = {};
+    this.participantPropertyListener = null;
 }
 
 ChatRoom.prototype.initPresenceMap = function () {
@@ -370,13 +371,26 @@ ChatRoom.prototype.onPresence = function (pres) {
     }
 };
 
+/**
+ * Sets the special listener to be used for "command"s whose name starts with
+ * "jitsi_participant_".
+ */
+ChatRoom.prototype.setParticipantPropertyListener = function (listener) {
+    this.participantPropertyListener = listener;
+};
+
 ChatRoom.prototype.processNode = function (node, from) {
     // make sure we catch all errors coming from any handler
     // otherwise we can remove the presence handler from strophe
     try {
         var tagHandler = this.presHandlers[node.tagName];
-        if(tagHandler)
+        if (node.tagName.startsWith("jitsi_participant_")) {
+            tagHandler = this.participantPropertyListener;
+        }
+
+        if(tagHandler) {
             tagHandler(node, Strophe.getResourceFromJid(from), from);
+        }
     } catch (e) {
         GlobalOnErrorHandler.callErrorHandler(e);
         logger.error('Error processing:' + node.tagName + ' node.', e);
