@@ -1183,6 +1183,31 @@ var RTCUtils = {
      */
     getAudioOutputDevice: function () {
         return audioOutputDeviceId;
+    },
+
+    /**
+     * Returns list of available media devices if its obtained, otherwise an
+     * empty array is returned/
+     * @returns {Array} list of available media devices.
+     */
+    getCurrentlyAvailableMediaDevices: function () {
+        return currentlyAvailableMediaDevices;
+    },
+
+    /**
+     * Returns event data for device to be reported to stats.
+     * @returns {MediaDeviceInfo} device.
+     */
+    getEventDataForActiveDevice: function (device) {
+        var devices = [];
+        var deviceData = {
+            "deviceId": device.deviceId,
+            "kind":     device.kind,
+            "label":    device.label,
+            "groupId":  device.groupId
+        };
+        devices.push(deviceData);
+        return { deviceList: devices };
     }
 };
 
