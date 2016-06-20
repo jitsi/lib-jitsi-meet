@@ -577,15 +577,12 @@ ChatRoom.prototype.addToPresence = function (key, values) {
     values.tagName = key;
     this.removeFromPresence(key);
     this.presMap.nodes.push(values);
-    this.presMap["nodes"].push(values);
 };
 
 ChatRoom.prototype.removeFromPresence = function (key) {
-    for(var i = 0; i < this.presMap.nodes.length; i++)
-    {
-        if(key === this.presMap.nodes[i].tagName)
-            this.presMap.nodes.splice(i, 1);
-    }
+    var nodes = this.presMap.nodes.filter(function(node) {
+        return key !== node.tagName;});
+    this.presMap.nodes = nodes;
 };
 
 ChatRoom.prototype.addPresenceListener = function (name, handler) {
