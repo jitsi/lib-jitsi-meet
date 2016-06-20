@@ -16,6 +16,7 @@ function JitsiParticipant(jid, conference, displayName, isHidden){
     this._tracks = [];
     this._role = 'none';
     this._status = null;
+    this._raisedHandStatus = false;
     this._availableDevices = {
         audio: undefined,
         video: undefined
