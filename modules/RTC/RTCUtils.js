@@ -109,14 +109,28 @@ function setResolutionConstraints(constraints, resolution) {
 function getConstraints(um, options) {
     var constraints = {audio: false, video: false};
 
+    // Don't mix new and old style settings for Chromium as this leads
+    // to TypeError in new Chromium versions. @see
+    // https://bugs.chromium.org/p/chromium/issues/detail?id=614716
+    // This is a temporary solution, in future we will fully split old and
+    // new style constraints when new versions of Chromium and Firefox will
+    // have stable support of new constraints format. For more information
+    // @see https://github.com/jitsi/lib-jitsi-meet/pull/136
+    var isNewStyleConstraintsSupported =
+        RTCBrowserType.isFirefox() ||
+        RTCBrowserType.isReactNative() ||
+        RTCBrowserType.isTemasysPluginUsed();
+
     if (um.indexOf('video') >= 0) {
         // same behaviour as true
         constraints.video = { mandatory: {}, optional: [] };
 
         if (options.cameraDeviceId) {
-            // new style of settings device id (FF only)
-            constraints.video.deviceId = options.cameraDeviceId;
-            // old style
+            if (isNewStyleConstraintsSupported) {
+                // New style of setting device id.
+                constraints.video.deviceId = options.cameraDeviceId;
+            }
+            // Old style.
             constraints.video.optional.push({
                 sourceId: options.cameraDeviceId
             });
@@ -126,7 +140,13 @@ function getConstraints(um, options) {
             // TODO: Maybe use "exact" syntax if options.facingMode is defined,
             // but this probably needs to be decided when updating other
             // constraints, as we currently don't use "exact" syntax anywhere.
-            constraints.video.facingMode = options.facingMode || 'user';
+            if (isNewStyleConstraintsSupported) {
+                constraints.video.facingMode = options.facingMode || 'user';
+            }
+
+            constraints.video.optional.push({
+                facingMode: options.facingMode || 'user'
+            });
         }
 
         constraints.video.optional.push({ googLeakyBucket: true });
@@ -142,9 +162,11 @@ function getConstraints(um, options) {
             // same behaviour as true
             constraints.audio = { mandatory: {}, optional: []};
             if (options.micDeviceId) {
-                // new style of settings device id (FF only)
-                constraints.audio.deviceId = options.micDeviceId;
-                // old style
+                if (isNewStyleConstraintsSupported) {
+                    // New style of setting device id.
+                    constraints.audio.deviceId = options.micDeviceId;
+                }
+                // Old style.
                 constraints.audio.optional.push({
                     sourceId: options.micDeviceId
                 });
