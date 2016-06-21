@@ -73,8 +73,8 @@ var LibJitsiMeet = {
                 JSON.stringify(window.jitsiRegionInfo).replace(/\"/g, ""));
         }
 
-        if(JitsiMeetJS.version)
-            Statistics.sendLog("LibJitsiMeet:" + JitsiMeetJS.version);
+        if(this.version)
+            Statistics.sendLog("LibJitsiMeet:" + this.version);
 
         return RTC.init(options || {});
     },
