@@ -60,6 +60,10 @@ var LibJitsiMeet = {
     init: function (options) {
         Statistics.audioLevelsEnabled = !options.disableAudioLevels;
 
+        if(typeof options.audioLevelsInterval === 'number') {
+            Statistics.audioLevelsInterval = options.audioLevelsInterval;
+        }
+
         if (options.enableWindowOnErrorHandler) {
             GlobalOnErrorHandler.addHandler(
                 this.getGlobalOnErrorHandler.bind(this));
