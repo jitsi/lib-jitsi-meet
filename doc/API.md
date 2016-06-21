@@ -53,6 +53,8 @@ The ```options``` parameter is JS object with the following properties:
 
 * ```JitsiMeetJS.JitsiConnection``` - the ```JitsiConnection``` constructor. You can use that to create new server connection.
 
+* ```JitsiMeetJS.JitsiTrackError``` - the ```JitsiTrackError``` constructor. You can use that to check ```instanceof``` errors you get from ```JitsiMeetJS.createLocalTracks()``` method.
+
 * ```JitsiMeetJS.setLogLevel``` - changes the log level for the library. For example to have only error messages you should do:
 ```
 JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
@@ -88,6 +90,26 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
     - ```addEventListener(event, handler)``` - attaches an event handler.
     - ```removeEventListener(event, handler)``` - removes an event handler.
 
+* ```JitsiMeetJS.environment``` - environment detection helper. Provides following methods and properties:
+    - ```RTC_BROWSER_CHROME```
+    - ```RTC_BROWSER_OPERA```
+    - ```RTC_BROWSER_FIREFOX```
+    - ```RTC_BROWSER_IEXPLORER```
+    - ```RTC_BROWSER_SAFARI```
+    - ```RTC_BROWSER_NWJS```
+    - ```RTC_BROWSER_REACT_NATIVE```
+    - ```getBrowserType()``` - gets current browser type.
+    - ```isChrome()``` - checks if current browser is Chrome.
+    - ```isOpera()``` - checks if current browser is Opera.
+    - ```isFirefox()``` - checks if current browser is Firefox.
+    - ```isIExplorer()``` - checks if current browser is Internet Explorer.
+    - ```isSafari()``` - checks if current browser is Safari.
+    - ```isNWJS()``` - checks if current environment is NWJS.
+    - ```isReactNative()``` - checks if current environment is React Native.
+    - ```isTemasysPluginUsed()``` - checks if Temasys RTC plugin is used.
+    - ```getFirefoxVersion()``` - returns Firefox version.
+    - ```getChromeVersion()``` - returns Chrome version.
+    - ```isAndroid()``` - checks whether the browser is running on an android device.
 
 * ```JitsiMeetJS.events``` - JS object that contains all events used by the API. You will need that JS object when you try to subscribe for connection or conference events.
     We have two event types - connection and conference. You can access the events with the following code ```JitsiMeetJS.events.<event_type>.<event_name>```.

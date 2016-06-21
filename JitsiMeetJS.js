@@ -18,6 +18,7 @@ var Statistics = require("./modules/statistics/statistics");
 var Resolutions = require("./service/RTC/Resolutions");
 var ScriptUtil = require("./modules/util/ScriptUtil");
 var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
+var RTCBrowserType = require("./modules/RTC/RTCBrowserType");
 
 function getLowerResolution(resolution) {
     if(!Resolutions[resolution])
@@ -42,6 +43,9 @@ var LibJitsiMeet = {
 
     version: '{#COMMIT_HASH#}',
 
+    // expose JitsiTrackError this way to give library consumers to do checks
+    // like if (error instanceof JitsiMeetJS.JitsiTrackError) { }
+    JitsiTrackError: JitsiTrackError,
     JitsiConnection: JitsiConnection,
     events: {
         conference: JitsiConferenceEvents,
@@ -57,6 +61,7 @@ var LibJitsiMeet = {
     },
     logLevels: Logger.levels,
     mediaDevices: JitsiMediaDevices,
+    environment: RTCBrowserType,
     init: function (options) {
         Statistics.audioLevelsEnabled = !options.disableAudioLevels;
 
@@ -201,10 +206,6 @@ var LibJitsiMeet = {
         RTCUIHelper: RTCUIHelper
     }
 };
-
-// expose JitsiTrackError this way to give library consumers to do checks like
-// if (error instanceof JitsiMeetJS.JitsiTrackError) { }
-LibJitsiMeet.JitsiTrackError = JitsiTrackError;
 
 //Setups the promise object.
 window.Promise = window.Promise || require("es6-promise").Promise;
