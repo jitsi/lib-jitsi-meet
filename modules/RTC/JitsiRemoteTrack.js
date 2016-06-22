@@ -13,11 +13,11 @@ var JitsiTrackEvents = require("../../JitsiTrackEvents");
  * @param muted intial muted state of the JitsiRemoteTrack
  * @constructor
  */
-function JitsiRemoteTrack(RTC, ownerJid, stream, track, mediaType, videoType,
+function JitsiRemoteTrack(conference, ownerJid, stream, track, mediaType, videoType,
                           ssrc, muted) {
     JitsiTrack.call(
-        this, RTC, stream, track, function () {}, mediaType, videoType, ssrc);
-    this.rtc = RTC;
+        this, conference, stream, track, function () {}, mediaType, videoType, ssrc);
+    this.conference = conference;
     this.peerjid = ownerJid;
     this.muted = muted;
 }
