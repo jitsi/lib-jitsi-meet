@@ -668,6 +668,8 @@ function defaultGetVideoSrc(element) {
         if (URL) {
             url = URL.createObjectURL(srcObject);
             try {
+                // store the url to avoid creating different url for every call
+                srcObject.jitsiObjectURL = url;
                 return url.toString();
             } finally {
                 URL.revokeObjectURL(url);
