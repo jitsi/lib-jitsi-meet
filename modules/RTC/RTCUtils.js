@@ -343,6 +343,7 @@ function pollForAvailableMediaDevices() {
  * @emits RTCEvents.DEVICE_LIST_CHANGED
  */
 function onMediaDevicesListChanged(devices) {
+    var initialDeviceList = currentlyAvailableMediaDevices.length == 0;
     currentlyAvailableMediaDevices = devices.slice(0);
     logger.info('list of media devices has changed:', currentlyAvailableMediaDevices);
 
@@ -371,7 +372,8 @@ function onMediaDevicesListChanged(devices) {
         setAvailableDevices(['audio'], false);
     }
 
-    eventEmitter.emit(RTCEvents.DEVICE_LIST_CHANGED, devices);
+    eventEmitter.emit(
+        RTCEvents.DEVICE_LIST_CHANGED, devices, initialDeviceList);
 }
 
 // In case of IE we continue from 'onReady' callback
@@ -1203,6 +1205,31 @@ var RTCUtils = {
      */
     getAudioOutputDevice: function () {
         return audioOutputDeviceId;
+    },
+
+    /**
+     * Returns list of available media devices if its obtained, otherwise an
+     * empty array is returned/
+     * @returns {Array} list of available media devices.
+     */
+    getCurrentlyAvailableMediaDevices: function () {
+        return currentlyAvailableMediaDevices;
+    },
+
+    /**
+     * Returns event data for device to be reported to stats.
+     * @returns {MediaDeviceInfo} device.
+     */
+    getEventDataForActiveDevice: function (device) {
+        var devices = [];
+        var deviceData = {
+            "deviceId": device.deviceId,
+            "kind":     device.kind,
+            "label":    device.label,
+            "groupId":  device.groupId
+        };
+        devices.push(deviceData);
+        return { deviceList: devices };
     }
 };
 
