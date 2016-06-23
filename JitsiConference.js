@@ -1082,6 +1082,16 @@ function setupListeners(conference) {
 
     conference.room.addListener(XMPPEvents.LOCAL_ROLE_CHANGED, function (role) {
         conference.eventEmitter.emit(JitsiConferenceEvents.USER_ROLE_CHANGED, conference.myUserId(), role);
+
+        // log all events for the recorder operated by the moderator
+        if (conference.statistics && conference.isModerator()) {
+            conference.on(JitsiConferenceEvents.RECORDER_STATE_CHANGED,
+                function (status, error) {
+                    Statistics.sendLog(
+                        "[Recorder] status: " + status
+                            + (error? " error: " + error : ""));
+                });
+        }
     });
     conference.room.addListener(XMPPEvents.MUC_ROLE_CHANGED, conference.onUserRoleChanged.bind(conference));
 
@@ -1334,14 +1344,6 @@ function setupListeners(conference) {
                 var type = (track.getType() === "audio")? "audio" : "video";
                 conference.statistics.sendMuteEvent(track.isMuted(), type);
             });
-
-        // log all events for the recorder operated by the moderator
-        if (conference.isModerator()) {
-            conference.on(JitsiConferenceEvents.RECORDER_STATE_CHANGED,
-                function (status, error) {
-                    Statistics.sendLog("Recorder: " + status);
-                });
-        }
 
         conference.room.addListener(XMPPEvents.CREATE_OFFER_FAILED, function (e, pc) {
             conference.statistics.sendCreateOfferFailed(e, pc);
