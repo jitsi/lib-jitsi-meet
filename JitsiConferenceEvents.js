@@ -130,7 +130,12 @@ var JitsiConferenceEvents = {
     /**
      * Indicates that authentication status changed.
      */
-    AUTH_STATUS_CHANGED: "conference.auth_status_changed"
+    AUTH_STATUS_CHANGED: "conference.auth_status_changed",
+    /**
+     * Indicates that a the value of a specific property of a specific
+     * participant has changed.
+     */
+    PARTICIPANT_PROPERTY_CHANGED: "conference.participant_property_changed"
 };
 
 module.exports = JitsiConferenceEvents;
