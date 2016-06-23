@@ -1355,7 +1355,7 @@ function setupListeners(conference) {
         if (conference.isModerator()) {
             conference.on(JitsiConferenceEvents.RECORDER_STATE_CHANGED,
                 function (status, error) {
-                    conference.statistics.sendLog("Recorder: " + status);
+                    Statistics.sendLog("Recorder: " + status);
                 });
         }
 
