@@ -20,7 +20,7 @@ var wrtcFuncNames = {
     getUserMedia:         "getUserMedia",
     iceConnectionFailure: "iceConnectionFailure",
     signalingError:       "signalingError",
-    applicationError:     "applicationError"
+    applicationLog:       "applicationLog"
 };
 
 /**
@@ -451,15 +451,14 @@ CallStats.sendAddIceCandidateFailed = _try_catch(function (e, pc, cs) {
 });
 
 /**
- * Notifies CallStats that there is an unhandled error on the page.
+ * Notifies CallStats that there is a log we want to report.
  *
- * @param {Error} e error to send
- * @param {RTCPeerConnection} pc connection on which failure occured.
+ * @param {Error} e error to send or {String} message
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendUnhandledError = _try_catch(function (e, cs) {
+CallStats.sendApplicationLog = _try_catch(function (e, cs) {
     CallStats._reportError
-        .call(cs, wrtcFuncNames.applicationError, e, null);
+        .call(cs, wrtcFuncNames.applicationLog, e, null);
 });
 
 module.exports = CallStats;
