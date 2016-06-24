@@ -53,8 +53,6 @@ The ```options``` parameter is JS object with the following properties:
 
 * ```JitsiMeetJS.JitsiConnection``` - the ```JitsiConnection``` constructor. You can use that to create new server connection.
 
-* ```JitsiMeetJS.JitsiTrackError``` - the ```JitsiTrackError``` constructor. You can use that to check ```instanceof``` errors you get from ```JitsiMeetJS.createLocalTracks()``` method.
-
 * ```JitsiMeetJS.setLogLevel``` - changes the log level for the library. For example to have only error messages you should do:
 ```
 JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
