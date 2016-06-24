@@ -6,7 +6,8 @@ var EventEmitter = require("events");
 var StatisticsEvents = require("../../service/statistics/Events");
 var CallStats = require("./CallStats");
 var ScriptUtil = require('../util/ScriptUtil');
-var JitsiTrackError = require("../../JitsiTrackError");
+var JitsiMediaDevicesError =
+    require("../../modules/mediaDevices/JitsiMediaDevicesError");
 
 // Since callstats.io is a third party, we cannot guarantee the quality of their
 // service. More specifically, their server may take noticeably long time to
@@ -32,11 +33,11 @@ var LOG_INTERVAL = 60000;
 /**
  * callstats strips any additional fields from Error except for "name", "stack",
  * "message" and "constraintName". So we need to bundle additional information
- * from JitsiTrackError into error passed to callstats to preserve valuable
- * information about error.
- * @param {JitsiTrackError} error
+ * from JitsiMediaDevicesError into error passed to callstats to preserve
+ * valuable information about error.
+ * @param {JitsiMediaDevicesError} error
  */
-function formatJitsiTrackErrorForCallStats(error) {
+function formatJitsiMediaDevicesErrorForCallStats(error) {
     var err = new Error();
 
     // Just copy original stack from error
@@ -280,15 +281,15 @@ Statistics.sendGetUserMediaFailed = function (e) {
     if (Statistics.callsStatsInstances.length) {
         Statistics.callsStatsInstances.forEach(function (cs) {
             CallStats.sendGetUserMediaFailed(
-                e instanceof JitsiTrackError
-                    ? formatJitsiTrackErrorForCallStats(e)
+                e instanceof JitsiMediaDevicesError
+                    ? formatJitsiMediaDevicesErrorForCallStats(e)
                     : e,
                 cs);
         });
     } else {
         CallStats.sendGetUserMediaFailed(
-            e instanceof JitsiTrackError
-                ? formatJitsiTrackErrorForCallStats(e)
+            e instanceof JitsiMediaDevicesError
+                ? formatJitsiMediaDevicesErrorForCallStats(e)
                 : e,
             null);
     }
@@ -403,7 +404,7 @@ Statistics.LOCAL_JID = require("../../service/statistics/constants").LOCAL_JID;
  * @param {Error} error
  */
 Statistics.reportGlobalError = function (error) {
-    if (error instanceof JitsiTrackError && error.gum) {
+    if (error instanceof JitsiMediaDevicesError) {
         Statistics.sendGetUserMediaFailed(error);
     } else {
         Statistics.sendUnhandledError(error);
