@@ -60,7 +60,7 @@ The ```options``` parameter is JS object with the following properties:
 JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
 ```
 
-* ```JitsiMeetJS.createLocalTracks(options)``` - Creates the media tracks and returns them trough ```Promise``` object. If rejected, passes ```JitsiTrackError``` instance to catch block.
+* ```JitsiMeetJS.createLocalTracks(options, firePermissionPromptIsShownEvent)``` - Creates the media tracks and returns them trough ```Promise``` object. If rejected, passes ```JitsiTrackError``` instance to catch block.
     - options - JS object with configuration options for the local media tracks. You can change the following properties there:
         1. devices - array with the devices - "desktop", "video" and "audio" that will be passed to GUM. If that property is not set GUM will try to get all available devices.
         2. resolution - the prefered resolution for the local video.
@@ -69,6 +69,7 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         5. minFps - the minimum frame rate for the video stream (passed to GUM)
         6. maxFps - the maximum frame rate for the video stream (passed to GUM)
         7. facingMode - facing mode for a camera (possible values - 'user', 'environment')
+    - firePermissionPromptIsShownEvent - optional boolean parameter. If set to ```true```, ```JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN``` will be fired when browser shows gUM permission prompt.
 
 * ```JitsiMeetJS.enumerateDevices(callback)``` - __DEPRECATED__. Use ```JitsiMeetJS.mediaDevices.enumerateDevices(callback)``` instead.
 * ```JitsiMeetJS.isDeviceListAvailable()``` - __DEPRECATED__. Use ```JitsiMeetJS.mediaDevices.isDeviceListAvailable()``` instead.
@@ -89,27 +90,6 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
     - ```isDevicePermissionGranted(type)``` - returns true if user granted permission to media devices. ```type``` - 'audio', 'video' or ```undefined```. In case of ```undefined``` will check if both audio and video permissions were granted.
     - ```addEventListener(event, handler)``` - attaches an event handler.
     - ```removeEventListener(event, handler)``` - removes an event handler.
-
-* ```JitsiMeetJS.environment``` - environment detection helper. Provides following methods and properties:
-    - ```RTC_BROWSER_CHROME```
-    - ```RTC_BROWSER_OPERA```
-    - ```RTC_BROWSER_FIREFOX```
-    - ```RTC_BROWSER_IEXPLORER```
-    - ```RTC_BROWSER_SAFARI```
-    - ```RTC_BROWSER_NWJS```
-    - ```RTC_BROWSER_REACT_NATIVE```
-    - ```getBrowserType()``` - gets current browser type.
-    - ```isChrome()``` - checks if current browser is Chrome.
-    - ```isOpera()``` - checks if current browser is Opera.
-    - ```isFirefox()``` - checks if current browser is Firefox.
-    - ```isIExplorer()``` - checks if current browser is Internet Explorer.
-    - ```isSafari()``` - checks if current browser is Safari.
-    - ```isNWJS()``` - checks if current environment is NWJS.
-    - ```isReactNative()``` - checks if current environment is React Native.
-    - ```isTemasysPluginUsed()``` - checks if Temasys RTC plugin is used.
-    - ```getFirefoxVersion()``` - returns Firefox version.
-    - ```getChromeVersion()``` - returns Chrome version.
-    - ```isAndroid()``` - checks whether the browser is running on an android device.
 
 * ```JitsiMeetJS.events``` - JS object that contains all events used by the API. You will need that JS object when you try to subscribe for connection or conference events.
     We have two event types - connection and conference. You can access the events with the following code ```JitsiMeetJS.events.<event_type>.<event_name>```.
@@ -154,6 +134,7 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
 
     4. mediaDevices
         - DEVICE_LIST_CHANGED - indicates that list of currently connected devices has changed (parameters - devices(MediaDeviceInfo[])).
+        - PERMISSION_PROMPT_IS_SHOWN - Indicates that the environment is currently showing permission prompt to access camera and/or microphone (parameters - environmentType ('chrome'|'opera'|'firefox'|'iexplorer'|'safari'|'nwjs'|'react-native'|'android').
 
 
 * ```JitsiMeetJS.errors``` - JS object that contains all errors used by the API. You can use that object to check the reported errors from the API

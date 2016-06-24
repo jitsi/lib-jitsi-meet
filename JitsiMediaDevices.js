@@ -88,6 +88,13 @@ var JitsiMediaDevices = {
      */
     removeEventListener: function (event, handler) {
         eventEmitter.removeListener(event, handler);
+    },
+    /**
+     * Emits an event.
+     * @param {string} event - event name
+     */
+    emitEvent: function (event) {
+        eventEmitter.emit.apply(eventEmitter, arguments);
     }
 };
 
