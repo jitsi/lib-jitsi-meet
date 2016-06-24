@@ -47,7 +47,6 @@ function JitsiConference(options) {
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
     this.rtc = new RTC(this.room, options);
     this.statistics = new Statistics(this.xmpp, {
-        audioLevelsInterval: this.options.config.audioLevelsInterval,
         callStatsID: this.options.config.callStatsID,
         callStatsSecret: this.options.config.callStatsSecret,
         disableThirdPartyRequests:
@@ -894,6 +893,13 @@ JitsiConference.prototype.getConnectionTimes = function () {
 };
 
 /**
+ * Sets a property for the local participant.
+ */
+JitsiConference.prototype.setLocalParticipantProperty = function(name, value) {
+    this.sendCommand("jitsi_participant_" + name, {value: value});
+};
+
+/**
  * Sends the given feedback through CallStats if enabled.
  *
  * @param overallFeedback an integer between 1 and 5 indicating the
@@ -1055,6 +1061,16 @@ function setupListeners(conference) {
     });
     conference.room.addListener(XMPPEvents.FOCUS_LEFT, function () {
         conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.FOCUS_LEFT);
+    });
+    conference.room.setParticipantPropertyListener(function (node, from) {
+        var participant = conference.getParticipantById(from);
+        if (!participant) {
+            return;
+        }
+
+        participant.setProperty(
+            node.tagName.substring("jitsi_participant_".length),
+            node.value);
     });
 //    FIXME
 //    conference.room.addListener(XMPPEvents.MUC_JOINED, function () {

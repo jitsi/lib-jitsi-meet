@@ -87,6 +87,7 @@ function ChatRoom(connection, jid, password, XMPP, options, settings) {
     this.phoneNumber = null;
     this.phonePin = null;
     this.connectionTimes = {};
+    this.participantPropertyListener = null;
 }
 
 ChatRoom.prototype.initPresenceMap = function () {
@@ -241,11 +242,10 @@ ChatRoom.prototype.onPresence = function (pres) {
     var jid = mucUserItem.attr('jid');
     member.jid = jid;
     member.isFocus
-        = !!jid && jid.indexOf(this.moderator.getFocusUserJid() + "/") === 0;
+        = jid && jid.indexOf(this.moderator.getFocusUserJid() + "/") === 0;
 
     member.isHiddenDomain
-        = !!jid && jid.indexOf("@") > 0
-            && this.options.hiddenDomain
+        = jid && jid.indexOf("@") > 0
             && this.options.hiddenDomain
                 === jid.substring(jid.indexOf("@") + 1, jid.indexOf("/"))
 
@@ -326,8 +326,8 @@ ChatRoom.prototype.onPresence = function (pres) {
         {
             case "nick":
                 if(!member.isFocus) {
-                    var displayName = !this.xmpp.options.displayJids
-                        ? member.nick : Strophe.getResourceFromJid(from);
+                    var displayName = this.xmpp.options.displayJids
+                        ? Strophe.getResourceFromJid(from) : member.nick;
 
                     if (displayName && displayName.length > 0) {
                         this.eventEmitter.emit(
@@ -336,7 +336,7 @@ ChatRoom.prototype.onPresence = function (pres) {
                 }
                 break;
             case "bridgeIsDown":
-                if(!this.bridgeIsDown) {
+                if (member.isFocus && !this.bridgeIsDown) {
                     this.bridgeIsDown = true;
                     this.eventEmitter.emit(XMPPEvents.BRIDGE_DOWN);
                 }
@@ -352,7 +352,7 @@ ChatRoom.prototype.onPresence = function (pres) {
                 this.phonePin = att.pin || null;
                 this.eventEmitter.emit(XMPPEvents.PHONE_NUMBER_CHANGED);
                 break;
-            default :
+            default:
                 this.processNode(node, from);
         }
     }
@@ -370,13 +370,26 @@ ChatRoom.prototype.onPresence = function (pres) {
     }
 };
 
+/**
+ * Sets the special listener to be used for "command"s whose name starts with
+ * "jitsi_participant_".
+ */
+ChatRoom.prototype.setParticipantPropertyListener = function (listener) {
+    this.participantPropertyListener = listener;
+};
+
 ChatRoom.prototype.processNode = function (node, from) {
     // make sure we catch all errors coming from any handler
     // otherwise we can remove the presence handler from strophe
     try {
         var tagHandler = this.presHandlers[node.tagName];
-        if(tagHandler)
+        if (node.tagName.startsWith("jitsi_participant_")) {
+            tagHandler = this.participantPropertyListener;
+        }
+
+        if(tagHandler) {
             tagHandler(node, Strophe.getResourceFromJid(from), from);
+        }
     } catch (e) {
         GlobalOnErrorHandler.callErrorHandler(e);
         logger.error('Error processing:' + node.tagName + ' node.', e);
@@ -561,15 +574,14 @@ ChatRoom.prototype.lockRoom = function (key, onSuccess, onError, onNotSupported)
 
 ChatRoom.prototype.addToPresence = function (key, values) {
     values.tagName = key;
-    this.presMap["nodes"].push(values);
+    this.removeFromPresence(key);
+    this.presMap.nodes.push(values);
 };
 
 ChatRoom.prototype.removeFromPresence = function (key) {
-    for(var i = 0; i < this.presMap.nodes.length; i++)
-    {
-        if(key === this.presMap.nodes[i].tagName)
-            this.presMap.nodes.splice(i, 1);
-    }
+    var nodes = this.presMap.nodes.filter(function(node) {
+        return key !== node.tagName;});
+    this.presMap.nodes = nodes;
 };
 
 ChatRoom.prototype.addPresenceListener = function (name, handler) {

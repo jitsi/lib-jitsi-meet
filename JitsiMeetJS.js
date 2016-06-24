@@ -65,6 +65,10 @@ var LibJitsiMeet = {
     init: function (options) {
         Statistics.audioLevelsEnabled = !options.disableAudioLevels;
 
+        if(typeof options.audioLevelsInterval === 'number') {
+            Statistics.audioLevelsInterval = options.audioLevelsInterval;
+        }
+
         if (options.enableWindowOnErrorHandler) {
             GlobalOnErrorHandler.addHandler(
                 this.getGlobalOnErrorHandler.bind(this));
@@ -78,8 +82,8 @@ var LibJitsiMeet = {
                 JSON.stringify(window.jitsiRegionInfo).replace(/\"/g, ""));
         }
 
-        if(JitsiMeetJS.version)
-            Statistics.sendLog("LibJitsiMeet:" + JitsiMeetJS.version);
+        if(this.version)
+            Statistics.sendLog("LibJitsiMeet:" + this.version);
 
         return RTC.init(options || {});
     },
