@@ -22,41 +22,90 @@ var RTCBrowserType = {
 
     RTC_BROWSER_REACT_NATIVE: "rtc_browser.react-native",
 
+    /**
+     * Gets current browser type.
+     * @returns {string}
+     */
     getBrowserType: function () {
         return currentBrowser;
     },
 
+    /**
+     * Checks if current browser is Chrome.
+     * @returns {boolean}
+     */
     isChrome: function () {
         return currentBrowser === RTCBrowserType.RTC_BROWSER_CHROME;
     },
 
+    /**
+     * Checks if current browser is Opera.
+     * @returns {boolean}
+     */
     isOpera: function () {
         return currentBrowser === RTCBrowserType.RTC_BROWSER_OPERA;
     },
+
+    /**
+     * Checks if current browser is Firefox.
+     * @returns {boolean}
+     */
     isFirefox: function () {
         return currentBrowser === RTCBrowserType.RTC_BROWSER_FIREFOX;
     },
 
+    /**
+     * Checks if current browser is Internet Explorer.
+     * @returns {boolean}
+     */
     isIExplorer: function () {
         return currentBrowser === RTCBrowserType.RTC_BROWSER_IEXPLORER;
     },
 
+    /**
+     * Checks if current browser is Safari.
+     * @returns {boolean}
+     */
     isSafari: function () {
         return currentBrowser === RTCBrowserType.RTC_BROWSER_SAFARI;
     },
+
+    /**
+     * Checks if current environment is NWJS.
+     * @returns {boolean}
+     */
     isNWJS: function () {
         return currentBrowser === RTCBrowserType.RTC_BROWSER_NWJS;
     },
+
+    /**
+     * Checks if current environment is React Native.
+     * @returns {boolean}
+     */
     isReactNative: function () {
         return currentBrowser === RTCBrowserType.RTC_BROWSER_REACT_NATIVE;
     },
+
+    /**
+     * Checks if Temasys RTC plugin is used.
+     * @returns {boolean}
+     */
     isTemasysPluginUsed: function () {
         return RTCBrowserType.isIExplorer() || RTCBrowserType.isSafari();
     },
+
+    /**
+     * Returns Firefox version.
+     * @returns {number|null}
+     */
     getFirefoxVersion: function () {
         return RTCBrowserType.isFirefox() ? browserVersion : null;
     },
 
+    /**
+     * Returns Chrome version.
+     * @returns {number|null}
+     */
     getChromeVersion: function () {
         return RTCBrowserType.isChrome() ? browserVersion : null;
     },
@@ -72,6 +121,7 @@ var RTCBrowserType = {
 
     /**
      * Whether the browser is running on an android device.
+     * @returns {boolean}
      */
     isAndroid: function() {
         return isAndroid;

@@ -1,4 +1,5 @@
 /* global Strophe */
+var JitsiConferenceEvents = require('./JitsiConferenceEvents');
 
 /**
  * Represents a participant in (a member of) a conference.
@@ -21,6 +22,7 @@ function JitsiParticipant(jid, conference, displayName, isHidden){
         video: undefined
     };
     this._isHidden = isHidden;
+    this._properties = {};
 }
 
 /**
@@ -28,6 +30,33 @@ function JitsiParticipant(jid, conference, displayName, isHidden){
  */
 JitsiParticipant.prototype.getConference = function() {
     return this._conference;
+};
+
+/**
+ * Gets the value of a property of this participant.
+ */
+JitsiParticipant.prototype.getProperty = function(name) {
+    return this._properties[name];
+};
+
+/**
+ * Sets the value of a property of this participant, and fires an event if the
+ * value has changed.
+ * @name the name of the property.
+ * @value the value to set.
+ */
+JitsiParticipant.prototype.setProperty = function(name, value) {
+    var oldValue = this._properties[name];
+    this._properties[name] = value;
+
+    if (value !== oldValue) {
+        this._conference.eventEmitter.emit(
+            JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
+            this,
+            name,
+            oldValue,
+            value);
+    }
 };
 
 /**

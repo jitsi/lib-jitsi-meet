@@ -300,6 +300,23 @@ RTC.getAudioOutputDevice = function () {
 };
 
 /**
+ * Returns list of available media devices if its obtained, otherwise an
+ * empty array is returned/
+ * @returns {Array} list of available media devices.
+ */
+RTC.getCurrentlyAvailableMediaDevices = function () {
+    return RTCUtils.getCurrentlyAvailableMediaDevices();
+};
+
+/**
+ * Returns event data for device to be reported to stats.
+ * @returns {MediaDeviceInfo} device.
+ */
+RTC.getEventDataForActiveDevice = function (device) {
+    return RTCUtils.getEventDataForActiveDevice(device);
+};
+
+/**
  * Sets current audio output device.
  * @param {string} deviceId - id of 'audiooutput' device from
  *      navigator.mediaDevices.enumerateDevices()
