@@ -222,8 +222,10 @@ XMPP.prototype.connect = function (jid, password) {
         var configDomain
             = this.options.hosts.anonymousdomain || this.options.hosts.domain;
         // Force authenticated domain if room is appended with '?login=true'
+        // or if we're joining with the token
         if (this.options.hosts.anonymousdomain
-                && window.location.search.indexOf("login=true") !== -1) {
+                && (window.location.search.indexOf("login=true") !== -1
+                    || this.options.token)) {
             configDomain = this.options.hosts.domain;
         }
         jid = configDomain || window.location.hostname;
