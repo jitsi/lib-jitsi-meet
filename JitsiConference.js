@@ -165,7 +165,8 @@ JitsiConference.prototype.getTokenAuthUrl = function (roleUpgrade) {
  * Check if external authentication is enabled for this conference.
  */
 JitsiConference.prototype.isExternalAuthEnabled = function () {
-    return this.room && this.room.moderator.isExternalAuthEnabled();
+    return this.room &&
+        (this.room.moderator.isExternalAuthEnabled() || this.getTokenAuthUrl());
 };
 
 /**
@@ -180,10 +181,15 @@ JitsiConference.prototype.getExternalAuthUrl = function (urlForPopup) {
             reject();
             return;
         }
-        if (urlForPopup) {
-            this.room.moderator.getPopupLoginUrl(resolve, reject);
+        var tokenAuthURL = this.getTokenAuthUrl(urlForPopup);
+        if (tokenAuthURL) {
+            resolve(tokenAuthURL);
         } else {
-            this.room.moderator.getLoginUrl(resolve, reject);
+            if (urlForPopup) {
+                this.room.moderator.getPopupLoginUrl(resolve, reject);
+            } else {
+                this.room.moderator.getLoginUrl(resolve, reject);
+            }
         }
     }.bind(this));
 };
