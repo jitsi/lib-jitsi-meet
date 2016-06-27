@@ -30,6 +30,34 @@ JitsiConnection.prototype.connect = function (options) {
 }
 
 /**
+ * Creates the URL pointing to JWT token authentication service. It is formatted
+ * from the pattern in "tokenAuthUrl" option which can contain the following
+ * constants:
+ * '{room}' - name of the conference room passed as <tt>roomName</tt> argument
+ * to this method.
+ * '{roleUpgrade}' - will contain 'true' if the URL will be used for the role
+ * upgrade scenario, where user connects from anonymous domain and then gets
+ * upgraded to the moderator by logging-in from the popup window.
+ *
+ * @param roomName the name of the conference room for which the user will be
+ * authenticated
+ * @param {bool} roleUpgrade <tt>true</tt> if the URL will be used for role
+ * upgrade scenario, where the user logs-in from the popup window in order to
+ * have the moderator rights granted
+ *
+ * @returns {string|null} the URL pointing to JWT login service or <tt>null</tt>
+ * if no 'tokenAuthUrl' option was set and the URL can not be constructed.
+ */
+JitsiConnection.prototype.getTokenAuthUrl = function(roomName, roleUpgrade) {
+    var url = this.options.tokenAuthUrl;
+    if (typeof url !== "string") {
+        return null;
+    }
+    return url.replace("{room}", roomName)
+              .replace("{roleUpgrade}", roleUpgrade === true);
+};
+
+/**
  * Attach to existing connection. Can be used for optimizations. For example:
  * if the connection is created on the server we can attach to it and start
  * using it.

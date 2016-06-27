@@ -153,6 +153,15 @@ JitsiConference.prototype.getAuthLogin = function () {
 };
 
 /**
+ * Creates the URL pointing to JWT token authentication service. Fills
+ * 'roomName' argument with the name of the conference room and calls method
+ * with the same name in JitsiConnection.
+ */
+JitsiConference.prototype.getTokenAuthUrl = function (roleUpgrade) {
+    return this.connection.getTokenAuthUrl(this.options.name, roleUpgrade);
+};
+
+/**
  * Check if external authentication is enabled for this conference.
  */
 JitsiConference.prototype.isExternalAuthEnabled = function () {
