@@ -331,16 +331,18 @@ JitsiConference.prototype.addTrack = function (track) {
     this.room.addListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
         track.ssrcHandler);
 
-    // Report active device to statistics
-    var devices = RTC.getCurrentlyAvailableMediaDevices();
-    device = devices.find(function (d) {
-        return d.kind === track.getTrack().kind + 'input'
-            && d.label === track.getTrack().label;
-    });
-
-    Statistics.sendАctiveDeviceListEvent(
-        RTC.getEventDataForActiveDevice(device));
-
+    if(track.isAudioTrack() || (track.isVideoTrack() &&
+        track.videoType !== "desktop")) {
+        // Report active device to statistics
+        var devices = RTC.getCurrentlyAvailableMediaDevices();
+        device = devices.find(function (d) {
+            return d.kind === track.getTrack().kind + 'input'
+                && d.label === track.getTrack().label;
+        });
+        if(device)
+            Statistics.sendАctiveDeviceListEvent(
+                RTC.getEventDataForActiveDevice(device));
+    }
     return new Promise(function (resolve, reject) {
         this.room.addStream(track.getOriginalStream(), function () {
             if (track.isVideoTrack()) {
