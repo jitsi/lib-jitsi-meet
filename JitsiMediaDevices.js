@@ -95,8 +95,8 @@ var JitsiMediaDevices = {
      */
     setAudioOutputDevice: function (deviceId) {
 
-        if (RTC.getCurrentlyAvailableMediaDevices()
-            && RTC.getCurrentlyAvailableMediaDevices().length > 0)
+        var availableDevices = RTC.getCurrentlyAvailableMediaDevices();
+        if (availableDevices && availableDevices.length > 0)
         {
             // if we have devices info report device to stats
             // normally this will not happen on startup as this method is called
