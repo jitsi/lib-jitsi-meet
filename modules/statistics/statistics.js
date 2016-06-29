@@ -277,15 +277,16 @@ Statistics.prototype.sendDominantSpeakerEvent = function () {
 
 /**
  * Notifies about active device.
- * @param {{deviceList: {String:String}}} list of devices with their data
+ * @param {{deviceList: {String:String}}} devicesData - list of devices with
+ *      their data
  */
-Statistics.sendАctiveDeviceListEvent = function (devicesData) {
+Statistics.sendActiveDeviceListEvent = function (devicesData) {
     if (Statistics.callsStatsInstances.length) {
         Statistics.callsStatsInstances.forEach(function (cs) {
-            CallStats.sendАctiveDeviceListEvent(devicesData, cs);
+            CallStats.sendActiveDeviceListEvent(devicesData, cs);
         });
     } else {
-        CallStats.sendАctiveDeviceListEvent(devicesData, null);
+        CallStats.sendActiveDeviceListEvent(devicesData, null);
     }
 };
 
