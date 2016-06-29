@@ -340,7 +340,7 @@ JitsiConference.prototype.addTrack = function (track) {
                 && d.label === track.getTrack().label;
         });
         if(device)
-            Statistics.sendАctiveDeviceListEvent(
+            Statistics.sendActiveDeviceListEvent(
                 RTC.getEventDataForActiveDevice(device));
     }
     return new Promise(function (resolve, reject) {

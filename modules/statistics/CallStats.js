@@ -293,7 +293,7 @@ CallStats.sendDominantSpeakerEvent = _try_catch(function (cs) {
  * @param {{deviceList: {String:String}}} list of devices with their data
  * @param {CallStats} cs callstats instance related to the event
  */
-CallStats.sendАctiveDeviceListEvent = _try_catch(function (devicesData, cs) {
+CallStats.sendActiveDeviceListEvent = _try_catch(function (devicesData, cs) {
 
     CallStats._reportEvent.call(cs, fabricEvent.activeDeviceList, devicesData);
 });

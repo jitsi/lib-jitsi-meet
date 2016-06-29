@@ -30,8 +30,10 @@ function logOutputDevice (deviceID, devices) {
         return d.kind === 'audiooutput' && d.deviceId === deviceID;
     });
 
-    Statistics.sendАctiveDeviceListEvent(
-        RTC.getEventDataForActiveDevice(device));
+    if (device) {
+        Statistics.sendActiveDeviceListEvent(
+            RTC.getEventDataForActiveDevice(device));
+    }
 }
 
 var JitsiMediaDevices = {
