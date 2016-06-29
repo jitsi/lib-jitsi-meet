@@ -373,7 +373,8 @@ RTC.isDesktopSharingEnabled = function () {
  * Closes all currently opened data channels.
  */
 RTC.prototype.closeAllDataChannels = function () {
-    this.dataChannels.closeAllChannels();
+    if(this.dataChannels)
+        this.dataChannels.closeAllChannels();
 };
 
 RTC.prototype.dispose = function() {

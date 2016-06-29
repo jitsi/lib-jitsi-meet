@@ -8,6 +8,11 @@ var CallStats = require("./CallStats");
 var ScriptUtil = require('../util/ScriptUtil');
 var JitsiTrackError = require("../../JitsiTrackError");
 
+/**
+ * True if callstats API is loaded
+ */
+ var isCallstatsLoaded = false;
+
 // Since callstats.io is a third party, we cannot guarantee the quality of their
 // service. More specifically, their server may take noticeably long time to
 // respond. Consequently, it is in our best interest (in the sense that the
@@ -16,10 +21,12 @@ var JitsiTrackError = require("../../JitsiTrackError");
 // downloading their API as soon as possible and (2) do the downloading
 // asynchronously.
 function loadCallStatsAPI() {
-    ScriptUtil.loadScript(
-            'https://api.callstats.io/static/callstats.min.js',
-            /* async */ true,
-            /* prepend */ true);
+    if(!isCallstatsLoaded)
+        ScriptUtil.loadScript(
+                'https://api.callstats.io/static/callstats.min.js',
+                /* async */ true,
+                /* prepend */ true);
+    isCallstatsLoaded = true;
     // FIXME At the time of this writing, we hope that the callstats.io API will
     // have loaded by the time we needed it (i.e. CallStats.init is invoked).
 }
@@ -199,6 +206,23 @@ Statistics.prototype.startCallStats = function (session, settings) {
     if(this.callStatsIntegrationEnabled && !this.callstats) {
         this.callstats = new CallStats(session, settings, this.options);
         Statistics.callsStatsInstances.push(this.callstats);
+    }
+};
+
+/**
+ * Removes the callstats.io instances.
+ */
+Statistics.prototype.stopCallStats = function () {
+    if(this.callStatsIntegrationEnabled && this.callstats) {
+        var callstatsList = Statistics.callsStatsInstances;
+        for(var i = 0;i < callstatsList.length; i++) {
+            if(this.callstats === callstatsList[i]) {
+                Statistics.callsStatsInstances.splice(i, 1);
+                break;
+            }
+        }
+        this.callstats = null;
+        CallStats.dispose();
     }
 };
 
