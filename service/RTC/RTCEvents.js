@@ -7,7 +7,8 @@ var RTCEvents = {
     AVAILABLE_DEVICES_CHANGED: "rtc.available_devices_changed",
     TRACK_ATTACHED: "rtc.track_attached",
     AUDIO_OUTPUT_DEVICE_CHANGED: "rtc.audio_output_device_changed",
-    DEVICE_LIST_CHANGED: "rtc.device_list_changed"
+    DEVICE_LIST_CHANGED: "rtc.device_list_changed",
+    DEVICE_LIST_AVAILABLE: "rtc.device_list_available"
 };
 
 module.exports = RTCEvents;

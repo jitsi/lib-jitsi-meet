@@ -40,7 +40,7 @@ var featureDetectionAudioEl = document.createElement('audio');
 var isAudioOutputDeviceChangeAvailable =
     typeof featureDetectionAudioEl.setSinkId !== 'undefined';
 
-var currentlyAvailableMediaDevices = [];
+var currentlyAvailableMediaDevices;
 
 var rawEnumerateDevicesWithCallback = navigator.mediaDevices
     && navigator.mediaDevices.enumerateDevices
@@ -327,7 +327,11 @@ function pollForAvailableMediaDevices() {
     // and then plug in a new one.
     if (rawEnumerateDevicesWithCallback) {
         rawEnumerateDevicesWithCallback(function (devices) {
-            if (compareAvailableMediaDevices(devices)) {
+            // We don't fire RTCEvents.DEVICE_LIST_CHANGED for the first time
+            // we call enumerateDevices(). This is the initial step.
+            if (typeof currentlyAvailableMediaDevices === 'undefined') {
+                currentlyAvailableMediaDevices = devices.slice(0);
+            } else if (compareAvailableMediaDevices(devices)) {
                 onMediaDevicesListChanged(devices);
             }
 
@@ -382,12 +386,24 @@ function onReady (options, GUM) {
     eventEmitter.emit(RTCEvents.RTC_READY, true);
     screenObtainer.init(options, GUM);
 
-    if (isDeviceChangeEventSupported && RTCUtils.isDeviceListAvailable()) {
-        navigator.mediaDevices.addEventListener('devicechange', function () {
-            RTCUtils.enumerateDevices(onMediaDevicesListChanged);
+    if (RTCUtils.isDeviceListAvailable() && rawEnumerateDevicesWithCallback) {
+        rawEnumerateDevicesWithCallback(function (devices) {
+            currentlyAvailableMediaDevices = devices.splice(0);
+
+            eventEmitter.emit(RTCEvents.DEVICE_LIST_AVAILABLE,
+                currentlyAvailableMediaDevices);
+
+            if (isDeviceChangeEventSupported) {
+                navigator.mediaDevices.addEventListener(
+                    'devicechange',
+                    function () {
+                        RTCUtils.enumerateDevices(
+                            onMediaDevicesListChanged);
+                    });
+            } else {
+                pollForAvailableMediaDevices();
+            }
         });
-    } else if (RTCUtils.isDeviceListAvailable()) {
-        pollForAvailableMediaDevices();
     }
 }
 
@@ -1204,6 +1220,31 @@ var RTCUtils = {
      */
     getAudioOutputDevice: function () {
         return audioOutputDeviceId;
+    },
+
+    /**
+     * Returns list of available media devices if its obtained, otherwise an
+     * empty array is returned/
+     * @returns {Array} list of available media devices.
+     */
+    getCurrentlyAvailableMediaDevices: function () {
+        return currentlyAvailableMediaDevices;
+    },
+
+    /**
+     * Returns event data for device to be reported to stats.
+     * @returns {MediaDeviceInfo} device.
+     */
+    getEventDataForActiveDevice: function (device) {
+        var devices = [];
+        var deviceData = {
+            "deviceId": device.deviceId,
+            "kind":     device.kind,
+            "label":    device.label,
+            "groupId":  device.groupId
+        };
+        devices.push(deviceData);
+        return { deviceList: devices };
     }
 };
 

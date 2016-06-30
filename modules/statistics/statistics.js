@@ -253,6 +253,21 @@ Statistics.prototype.sendDominantSpeakerEvent = function () {
 };
 
 /**
+ * Notifies about active device.
+ * @param {{deviceList: {String:String}}} devicesData - list of devices with
+ *      their data
+ */
+Statistics.sendActiveDeviceListEvent = function (devicesData) {
+    if (Statistics.callsStatsInstances.length) {
+        Statistics.callsStatsInstances.forEach(function (cs) {
+            CallStats.sendActiveDeviceListEvent(devicesData, cs);
+        });
+    } else {
+        CallStats.sendActiveDeviceListEvent(devicesData, null);
+    }
+};
+
+/**
  * Lets the underlying statistics module know where is given SSRC rendered by
  * providing renderer tag ID.
  * @param ssrc {number} the SSRC of the stream
@@ -351,38 +366,18 @@ Statistics.prototype.sendAddIceCandidateFailed = function (e, pc) {
 };
 
 /**
- * Notifies CallStats that there is unhandled exception.
- *
- * @param {Error} e error to send
- */
-Statistics.sendUnhandledError = function (e) {
-    if (Statistics.callsStatsInstances.length) {
-        Statistics.callsStatsInstances.forEach(function (cs) {
-            CallStats.sendUnhandledError(e, cs);
-        });
-    } else {
-        CallStats.sendUnhandledError(e, null);
-    }
-};
-
-/**
  * Adds to CallStats an application log.
  *
- * @param {String} a log message to send
+ * @param {String} a log message to send or an {Error} object to be reported
  */
 Statistics.sendLog = function (m) {
-    // uses  the same field for cs stat as unhandled error
-    Statistics.sendUnhandledError(m);
-};
-
-/**
- * Adds to CallStats an application log.
- *
- * @param {String} a log message to send
- */
-Statistics.prototype.sendLog = function (m) {
-    // uses  the same field for cs stat as unhandled error
-    CallStats.sendUnhandledError(m, this.callstats);
+    if (Statistics.callsStatsInstances.length) {
+        Statistics.callsStatsInstances.forEach(function (cs) {
+            CallStats.sendApplicationLog(m, cs);
+        });
+    } else {
+        CallStats.sendApplicationLog(m, null);
+    }
 };
 
 /**
@@ -407,7 +402,7 @@ Statistics.reportGlobalError = function (error) {
     if (error instanceof JitsiMediaDevicesError) {
         Statistics.sendGetUserMediaFailed(error);
     } else {
-        Statistics.sendUnhandledError(error);
+        Statistics.sendLog(error);
     }
 };
 

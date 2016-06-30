@@ -28,6 +28,11 @@ var Statistics = require("./modules/statistics/statistics");
 var Resolutions = require("./service/RTC/Resolutions");
 var ScriptUtil = require("./modules/util/ScriptUtil");
 var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
+var RTCBrowserType = require("./modules/RTC/RTCBrowserType");
+
+// The amount of time to wait until firing
+// JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN event
+var USER_MEDIA_PERMISSION_PROMPT_TIMEOUT = 500;
 
 function getLowerResolution(resolution) {
     if(!Resolutions[resolution])
@@ -118,13 +123,36 @@ var LibJitsiMeet = {
      * will be returned trough the Promise, otherwise JitsiTrack objects will be returned.
      * @param {string} options.cameraDeviceId
      * @param {string} options.micDeviceId
+     * @param {boolean} (firePermissionPromptIsShownEvent) - if event
+     *      JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN should be fired
      * @returns {Promise.<{Array.<JitsiTrack>}, JitsiConferenceError>}
      *     A promise that returns an array of created JitsiTracks if resolved,
      *     or a JitsiConferenceError if rejected.
      */
-    createLocalTracks: function (options) {
-        return RTC.obtainAudioAndVideoPermissions(options || {}).then(
-            function(tracks) {
+    createLocalTracks: function (options, firePermissionPromptIsShownEvent) {
+        var promiseFulfilled = false;
+
+        if (firePermissionPromptIsShownEvent === true) {
+            window.setTimeout(function () {
+                if (!promiseFulfilled) {
+                    var browser = RTCBrowserType.getBrowserType()
+                        .split('rtc_browser.')[1];
+
+                    if (RTCBrowserType.isAndroid()) {
+                        browser = 'android';
+                    }
+
+                    JitsiMediaDevices.emitEvent(
+                        JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN,
+                        browser);
+                }
+            }, USER_MEDIA_PERMISSION_PROMPT_TIMEOUT);
+        }
+
+        return RTC.obtainAudioAndVideoPermissions(options || {})
+            .then(function(tracks) {
+                promiseFulfilled = true;
+
                 if(!RTC.options.disableAudioLevels)
                     for(var i = 0; i < tracks.length; i++) {
                         var track = tracks[i];
@@ -139,8 +167,11 @@ var LibJitsiMeet = {
                                 });
                         }
                     }
+
                 return tracks;
             }).catch(function (error) {
+                promiseFulfilled = true;
+
                 Statistics.sendGetUserMediaFailed(error);
 
                 if(error.name ===
