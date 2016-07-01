@@ -313,10 +313,6 @@ RTC.getStreamID = function (stream) {
     return RTCUtils.getStreamID(stream);
 };
 
-RTC.getVideoSrc = function (element) {
-    return RTCUtils.getVideoSrc(element);
-};
-
 /**
  * Returns true if retrieving the the list of input devices is supported and
  * false if not.
