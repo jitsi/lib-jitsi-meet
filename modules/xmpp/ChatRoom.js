@@ -393,12 +393,23 @@ ChatRoom.prototype._initFocus = function (from, mucJid) {
     if(!this.recording) {
         this.recording = new Recorder(this.options.recordingType,
             this.eventEmitter, this.connection, this.focusMucJid,
-            this.options.jirecon, this.roomjid);
+            this.options.jirecon, this.roomjid,
+            this.options.googleAccessToken);
         if(this.lastJibri)
             this.recording.handleJibriPresence(this.lastJibri);
     }
     logger.info("Ignore focus: " + from + ", real JID: " + mucJid);
 }
+
+/**
+ * Obtains the list of recording streams. See YouTubeAPI.getLiveStreams for
+ * the description.
+ * @returns {Promise|null} null is returned if YouTubeAPI is not enabled in
+ * the current session. See YouTubeAPI.getLiveStreams for more details.
+ */
+ChatRoom.prototype.getRecordingStreams = function () {
+    return this.recording.getRecordingStreams();
+};
 
 /**
  * Sets the special listener to be used for "command"s whose name starts with

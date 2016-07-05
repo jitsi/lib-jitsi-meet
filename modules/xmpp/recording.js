@@ -3,11 +3,12 @@
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var JitsiRecorderErrors = require("../../JitsiRecorderErrors");
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
+var YouTubeAPI = require("../youtube/YoutubeAPI");
 
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 
 function Recording(type, eventEmitter, connection, focusMucJid, jirecon,
-    roomjid) {
+    roomjid, googleAccessToken) {
     this.eventEmitter = eventEmitter;
     this.connection = connection;
     this.state = null;
@@ -20,7 +21,11 @@ function Recording(type, eventEmitter, connection, focusMucJid, jirecon,
             || (type !== Recording.types.JIBRI
                 && type !== Recording.types.COLIBRI))
             ? false : true;
-
+    if (typeof googleAccessToken === "string" &&
+        type === Recording.types.JIBRI) {
+        this.youtube = new YouTubeAPI(googleAccessToken);
+        logger.info("YouTube API initialized");
+    }
     /**
      * The ID of the jirecon recording session. Jirecon generates it when we
      * initially start recording, and it needs to be used in subsequent requests
@@ -50,6 +55,20 @@ Recording.status = {
 Recording.action = {
     START: "start",
     STOP: "stop"
+};
+
+/**
+ * Obtains the list of recording streams. See YouTubeAPI.getLiveStreams for
+ * the description.
+ * @returns {Promise|null} null is returned if YouTubeAPI is not enabled in
+ * the current session. See YouTubeAPI.getLiveStreams for more details.
+ */
+Recording.prototype.getRecordingStreams = function () {
+    if (this.youtube) {
+        return this.youtube.getLiveStreams();
+    } else {
+        return null;
+    }
 };
 
 Recording.prototype.handleJibriPresence = function (jibri) {
