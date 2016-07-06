@@ -68,6 +68,7 @@ function JitsiConference(options) {
         video: undefined
     };
     this.isMutedByFocus = false;
+    this.reportedAudioSSRCs = {};
 }
 
 /**
@@ -945,6 +946,63 @@ JitsiConference.prototype.isCallstatsEnabled = function () {
 }
 
 /**
+ * Reports detected audio problem with the media stream related to the passed
+ * ssrc.
+ * @param ssrc {string} the ssrc
+ */
+JitsiConference.prototype._reportAudioProblem = function (ssrc) {
+    if(this.reportedAudioSSRCs[ssrc])
+        return;
+    var track = this.rtc.getRemoteTrackBySSRC(ssrc);
+    if(!track || !track.isAudioTrack())
+        return;
+
+    this.reportedAudioSSRCs[ssrc] = true;
+    var errorContent = {
+        errMsg: "The audio is received but not played",
+        ssrc: ssrc
+    };
+
+    var mstream = track.stream, mtrack = track.track;
+    if(mstream) {
+        errorContent.MediaStream = {
+            active: mstream.active,
+            id: mstream.id
+        }
+    }
+
+    if(mtrack) {
+        errorContent.MediaStreamTrack = {
+            enabled: mtrack.enabled,
+            id: mtrack.id,
+            label: mtrack.label,
+            muted: mtrack.muted
+        }
+    }
+
+    if(track.containers) {
+        errorContent.containers = [];
+        track.containers.forEach(function (container) {
+            errorContent.containers.push({
+                autoplay: container.autoplay,
+                muted: container.muted,
+                src: container.src,
+                volume: container.volume,
+                id: container.id,
+                ended: container.ended,
+                paused: container.paused,
+                readyState: container.readyState
+            });
+        });
+    }
+
+    this.statistics.sendDetectedAudioProblem(
+        new Error(JSON.stringify(errorContent)));
+    logger.error("Audio problem detected. The audio is received but not played",
+        errorContent);
+}
+
+/**
  * Setups the listeners needed for the conference.
  * @param conference the conference
  */
@@ -1309,6 +1367,11 @@ function setupListeners(conference) {
 
             conference.rtc.setAudioLevel(resource, level);
         });
+
+        conference.statistics.addAudioProblemListener(function (ssrc) {
+            conference._reportAudioProblem(ssrc)
+        });
+
         conference.statistics.addConnectionStatsListener(function (stats) {
             var ssrc2resolution = stats.resolution;
 
