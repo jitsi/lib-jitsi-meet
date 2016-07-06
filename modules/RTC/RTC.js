@@ -313,10 +313,6 @@ RTC.getStreamID = function (stream) {
     return RTCUtils.getStreamID(stream);
 };
 
-RTC.getVideoSrc = function (element) {
-    return RTCUtils.getVideoSrc(element);
-};
-
 /**
  * Returns true if retrieving the the list of input devices is supported and
  * false if not.
@@ -343,6 +339,23 @@ RTC.isDeviceChangeAvailable = function (deviceType) {
  */
 RTC.getAudioOutputDevice = function () {
     return RTCUtils.getAudioOutputDevice();
+};
+
+/**
+ * Returns list of available media devices if its obtained, otherwise an
+ * empty array is returned/
+ * @returns {Array} list of available media devices.
+ */
+RTC.getCurrentlyAvailableMediaDevices = function () {
+    return RTCUtils.getCurrentlyAvailableMediaDevices();
+};
+
+/**
+ * Returns event data for device to be reported to stats.
+ * @returns {MediaDeviceInfo} device.
+ */
+RTC.getEventDataForActiveDevice = function (device) {
+    return RTCUtils.getEventDataForActiveDevice(device);
 };
 
 /**

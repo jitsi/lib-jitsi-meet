@@ -60,6 +60,9 @@ var LibJitsiMeet = {
         recorder: JitsiRecorderErrors,
         track: JitsiTrackErrors
     },
+    errorTypes: {
+        JitsiTrackError: JitsiTrackError
+    },
     logLevels: Logger.levels,
     mediaDevices: JitsiMediaDevices,
     init: function (options) {
@@ -236,10 +239,6 @@ var LibJitsiMeet = {
         RTCUIHelper: RTCUIHelper
     }
 };
-
-// expose JitsiTrackError this way to give library consumers to do checks like
-// if (error instanceof JitsiMeetJS.JitsiTrackError) { }
-LibJitsiMeet.JitsiTrackError = JitsiTrackError;
 
 //Setups the promise object.
 window.Promise = window.Promise || require("es6-promise").Promise;

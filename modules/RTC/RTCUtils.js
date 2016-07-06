@@ -386,12 +386,24 @@ function onReady (options, GUM) {
     eventEmitter.emit(RTCEvents.RTC_READY, true);
     screenObtainer.init(options, GUM);
 
-    if (isDeviceChangeEventSupported && RTCUtils.isDeviceListAvailable()) {
-        navigator.mediaDevices.addEventListener('devicechange', function () {
-            RTCUtils.enumerateDevices(onMediaDevicesListChanged);
+    if (RTCUtils.isDeviceListAvailable() && rawEnumerateDevicesWithCallback) {
+        rawEnumerateDevicesWithCallback(function (devices) {
+            currentlyAvailableMediaDevices = devices.splice(0);
+
+            eventEmitter.emit(RTCEvents.DEVICE_LIST_AVAILABLE,
+                currentlyAvailableMediaDevices);
+
+            if (isDeviceChangeEventSupported) {
+                navigator.mediaDevices.addEventListener(
+                    'devicechange',
+                    function () {
+                        RTCUtils.enumerateDevices(
+                            onMediaDevicesListChanged);
+                    });
+            } else {
+                pollForAvailableMediaDevices();
+            }
         });
-    } else if (RTCUtils.isDeviceListAvailable()) {
-        pollForAvailableMediaDevices();
     }
 }
 
@@ -631,59 +643,6 @@ function wrapAttachMediaStream(origAttachMediaStream) {
 }
 
 /**
- * Represents a default implementation of {@link RTCUtils#getVideoSrc} which
- * tries to be browser-agnostic through feature checking. Note though that it
- * was not completely clear from the predating browser-specific implementations
- * what &quot;videoSrc&quot; was because one implementation would return
- * <tt>MediaStream</tt> (e.g. Firefox), another a <tt>string</tt> representation
- * of the <tt>URL</tt> of the <tt>MediaStream</tt> (e.g. Chrome) and the return
- * value was only used by {@link RTCUIHelper#getVideoId} which itself did not
- * appear to be used anywhere. Generally, the implementation will try to follow
- * the related standards i.e. work with the <tt>srcObject</tt> and <tt>src</tt>
- * properties of the specified <tt>element</tt> taking into account vender
- * prefixes.
- *
- * @param element the element to get the associated video source/src of
- * @return the video source/src of the specified <tt>element</tt>
- */
-function defaultGetVideoSrc(element) {
-    // https://www.w3.org/TR/mediacapture-streams/
-    //
-    // User Agents that support this specification must support the srcObject
-    // attribute of the HTMLMediaElement interface defined in [HTML51].
-
-    // https://www.w3.org/TR/2015/WD-html51-20150506/semantics.html#dom-media-srcobject
-    //
-    // There are three ways to specify a media resource: the srcObject IDL
-    // attribute, the src content attribute, and source elements. The IDL
-    // attribute takes priority, followed by the content attribute, followed by
-    // the elements.
-
-    // srcObject
-    var srcObject = element.srcObject || element.mozSrcObject;
-    if (srcObject) {
-        // Try the optimized path to the URL of a MediaStream.
-        var url = srcObject.jitsiObjectURL;
-        if (url) {
-            return url.toString();
-        }
-        // Go via the unoptimized path to the URL of a MediaStream then.
-        var URL = (window.URL || webkitURL);
-        if (URL) {
-            url = URL.createObjectURL(srcObject);
-            try {
-                return url.toString();
-            } finally {
-                URL.revokeObjectURL(url);
-            }
-        }
-    }
-
-    // src
-    return element.src;
-}
-
-/**
  * Represents a default implementation of setting a <tt>MediaStream</tt> as the
  * source of a video element that tries to be browser-agnostic through feature
  * checking. Note though that it was not completely clear from the predating
@@ -787,7 +746,6 @@ var RTCUtils = {
                     }
                     return SDPUtil.filter_special_chars(id);
                 };
-                this.getVideoSrc = defaultGetVideoSrc;
                 RTCSessionDescription = mozRTCSessionDescription;
                 RTCIceCandidate = mozRTCIceCandidate;
             } else if (RTCBrowserType.isChrome() ||
@@ -825,7 +783,6 @@ var RTCUtils = {
                             ? id
                             : SDPUtil.filter_special_chars(id));
                 };
-                this.getVideoSrc = defaultGetVideoSrc;
                 // DTLS should now be enabled by default but..
                 this.pc_constraints = {'optional': [
                     {'DtlsSrtpKeyAgreement': 'true'}
@@ -885,24 +842,6 @@ var RTCUtils = {
                     });
                     self.getStreamID = function (stream) {
                         return SDPUtil.filter_special_chars(stream.label);
-                    };
-                    self.getVideoSrc = function (element) {
-                        // There's nothing standard about getVideoSrc in the
-                        // case of Temasys so there's no point to try to
-                        // generalize it through defaultGetVideoSrc.
-                        if (!element) {
-                            logger.warn(
-                                "Attempt to get video SRC of null element");
-                            return null;
-                        }
-                        var children = element.children;
-                        for (var i = 0; i !== children.length; ++i) {
-                            if (children[i].name === 'streamId') {
-                                return children[i].value;
-                            }
-                        }
-                        //logger.info(element.id + " SRC: " + src);
-                        return null;
                     };
 
                     onReady(options, self.getUserMediaWithConstraints);
@@ -1207,6 +1146,31 @@ var RTCUtils = {
      */
     getAudioOutputDevice: function () {
         return audioOutputDeviceId;
+    },
+
+    /**
+     * Returns list of available media devices if its obtained, otherwise an
+     * empty array is returned/
+     * @returns {Array} list of available media devices.
+     */
+    getCurrentlyAvailableMediaDevices: function () {
+        return currentlyAvailableMediaDevices;
+    },
+
+    /**
+     * Returns event data for device to be reported to stats.
+     * @returns {MediaDeviceInfo} device.
+     */
+    getEventDataForActiveDevice: function (device) {
+        var devices = [];
+        var deviceData = {
+            "deviceId": device.deviceId,
+            "kind":     device.kind,
+            "label":    device.label,
+            "groupId":  device.groupId
+        };
+        devices.push(deviceData);
+        return { deviceList: devices };
     }
 };
 
