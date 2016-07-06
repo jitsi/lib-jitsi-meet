@@ -1,5 +1,6 @@
 var JitsiConference = require("./JitsiConference");
 var XMPP = require("./modules/xmpp/xmpp");
+var JitsiConnectionEvents = require("./JitsiConnectionEvents");
 
 /**
  * Creates new connection object for the Jitsi Meet server side video conferencing service. Provides access to the
@@ -38,6 +39,38 @@ JitsiConnection.prototype.connect = function (options) {
  */
 JitsiConnection.prototype.attach = function (options) {
     this.xmpp.attach(options);
+}
+
+/**
+ * Reloads the JitsiConnection instance and all related conferences
+ * @param options {object} options to be overriden
+ */
+JitsiConnection.prototype.reload = function (options) {
+    var states = {};
+    for(var name in this.conferences) {
+        states[name] = this.conferences[name].room.exportState();
+        this.conferences[name].leave(true);
+    }
+    this.connectionEstablishedHandler =
+        this.reloadConferneces.bind(this, states);
+    this.addEventListener(JitsiConnectionEvents.CONNECTION_ESTABLISHED,
+        this.connectionEstablishedHandler);
+    this.xmpp.reload(options || {});
+}
+
+/**
+ * Reloads all conferences related to this JitsiConnection instance
+ * @param states {object} the exported states per conference
+ */
+JitsiConnection.prototype.reloadConferences = function (states) {
+    this.removeEventListener(JitsiConnectionEvents.CONNECTION_ESTABLISHED,
+        this.connectionEstablishedHandler);
+    this.connectionEstablishedHandler = null;
+    states = states || {};
+    for(var name in this.conferences) {
+        this.conferences[name].reinitialize({connection: this,
+            roomState: states[name]});
+    }
 }
 
 /**

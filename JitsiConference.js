@@ -37,6 +37,7 @@ function JitsiConference(options) {
     this.eventEmitter = new EventEmitter();
     this.settings = new Settings();
     this._init(options);
+    this.componentsVersions = new ComponentsVersions(this);
     this.rtc = new RTC(this, options);
     this.statistics = new Statistics(this.xmpp, {
         callStatsID: this.options.config.callStatsID,
@@ -86,7 +87,11 @@ JitsiConference.prototype._init = function (options) {
 
     this.room = this.xmpp.createRoom(this.options.name, this.options.config,
         this.settings);
-    this.componentsVersions = new ComponentsVersions(this.room);
+
+    //restore previous presence options
+    if(options.roomState) {
+        this.room.loadState(options.roomState);
+    }
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
 }
 
@@ -95,14 +100,22 @@ JitsiConference.prototype._init = function (options) {
  * @param options {object} options to be overriden
  */
 JitsiConference.prototype.reload = function (options) {
-    this.statistics.stopCallStats();
-    this.rtc.closeAllDataChannels();
-    this._leaveRoomAndRemoveParticipants();
+    var roomState = this.room.exportState();
+    if(!options)
+        options = {};
+    options.roomState = roomState;
+    this.leave(true);
+    this.reinitialize(options);
+}
+
+/**
+ * Reinitializes JitsiConference instance
+ * @param options {object} options to be overriden
+ */
+JitsiConference.prototype.reinitialize = function (options) {
     this._init(options || {});
     this.eventManager.setupChatRoomListeners();
-    //if we have new xmpp instance we should set it's listeners again.
-    if(options.connection)
-        this.eventManager.setupXMPPListeners();
+    this.eventManager.setupStatisticsListeners();
     this.join();
 }
 
@@ -126,23 +139,31 @@ JitsiConference.prototype.isJoined = function () {
  * Leaves the conference and calls onMemberLeft for every participant.
  */
 JitsiConference.prototype._leaveRoomAndRemoveParticipants = function () {
+    // remove all participants
+    this.getParticipants().forEach(function (participant) {
+        this.onMemberLeft(participant.getJid());
+    }.bind(this));
+
     // leave the conference
     if (this.room) {
         this.room.leave();
     }
 
     this.room = null;
-    // remove all participants
-    this.getParticipants().forEach(function (participant) {
-        this.onMemberLeft(participant.getJid());
-    }.bind(this));
 }
 /**
  * Leaves the conference.
  * @returns {Promise}
  */
-JitsiConference.prototype.leave = function () {
+JitsiConference.prototype.leave = function (dontRemoveLocalTracks) {
     var conference = this;
+
+    this.statistics.stopCallStats();
+    this.rtc.closeAllDataChannels();
+    if(dontRemoveLocalTracks) {
+        this._leaveRoomAndRemoveParticipants();
+        return  Promise.resolve();
+    }
 
     return Promise.all(
         conference.getLocalTracks().map(function (track) {
@@ -1084,5 +1105,22 @@ JitsiConference.prototype._setupListeners = function () {
     this.eventManager.setupStatisticsListeners();
 }
 
+/**
+ * Checks if the user identified by given <tt>mucJid</tt> is the conference
+ * focus.
+ * @param mucJid the full MUC address of the user to be checked.
+ * @returns {boolean} <tt>true</tt> if MUC user is the conference focus.
+ */
+JitsiConference.prototype._isFocus = function (mucJid) {
+    return this.room.isFocus(mucJid);
+}
+
+/**
+ * Fires CONFERENCE_FAILED event with INCOMPATIBLE_SERVER_VERSIONS parameter
+ */
+JitsiConference.prototype._fireIncompatibleVersionsEvent = function () {
+    this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+        JitsiConferenceErrors.INCOMPATIBLE_SERVER_VERSIONS);
+}
 
 module.exports = JitsiConference;

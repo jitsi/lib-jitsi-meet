@@ -74,7 +74,7 @@ function ChatRoom(connection, jid, password, XMPP, options, settings) {
     this.presMap = {};
     this.presHandlers = {};
     this.joined = false;
-    this.role = 'none';
+    this.role = null;
     this.focusMucJid = null;
     this.bridgeIsDown = false;
     this.options = options || {};
@@ -271,8 +271,9 @@ ChatRoom.prototype.onPresence = function (pres) {
     }
 
     if (from == this.myroomjid) {
-        if (member.affiliation == 'owner' && this.role !== member.role) {
-            this.role = member.role;
+        var newRole = member.affiliation == "owner"? member.role : "none";
+        if (this.role !== newRole) {
+            this.role = newRole;
             this.eventEmitter.emit(XMPPEvents.LOCAL_ROLE_CHANGED, this.role);
         }
         if (!this.joined) {
@@ -591,6 +592,30 @@ ChatRoom.prototype.addPresenceListener = function (name, handler) {
 ChatRoom.prototype.removePresenceListener = function (name) {
     delete this.presHandlers[name];
 };
+
+/**
+ * Exports the current state of the ChatRoom instance.
+ * @returns {object}
+ */
+ChatRoom.prototype.exportState = function () {
+    return {
+        presHandlers: this.presHandlers,
+        presMapNodes: this.presMap.nodes
+    }
+}
+
+/**
+ * Loads previously exported state object from ChatRoom instance into current
+ * ChatRoom instance.
+ * @param state {object} the state received by ChatRoom.exportState method.
+ */
+ChatRoom.prototype.loadState = function (state) {
+    if(!state || !state.presHandlers || !state.presMapNodes)
+        throw new Error("Invalid state object passed");
+
+    this.presHandlers = state.presHandlers;
+    this.presMap.nodes = state.presMapNodes;
+}
 
 /**
  * Checks if the user identified by given <tt>mucJid</tt> is the conference

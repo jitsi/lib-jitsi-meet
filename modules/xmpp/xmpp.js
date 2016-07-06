@@ -41,6 +41,8 @@ function XMPP(options, token) {
     this.connectionTimes = {};
     this.forceMuted = false;
     this.options = options;
+    this.connectParams = {};
+    this.token = token;
     initStrophePlugins(this);
 
     this.connection = createConnection(options.bosh, token);
@@ -54,6 +56,45 @@ function XMPP(options, token) {
     // their own. However, it should be fairly easy for them to do that by
     // registering their unload handler before us.
     $(window).on('beforeunload unload', this.disconnect.bind(this));
+}
+
+/**
+ * Reloads the XMPP module
+ * @param options {object} options to be overriden
+ */
+XMPP.prototype.reload = function (options) {
+    if(!options)
+        options = {};
+    if(!this.options) {
+        this.options = options;
+    } else {
+        // Override config options
+        for(var key in options)
+            this.options[key] = options[key] || this.options[key];
+    }
+
+    this.disconnect();
+    this.connection.pause();
+    this.connection = createConnection(this.options.bosh, this.token);
+
+    // Initialize features advertised in disco-info
+    this.initFeaturesList();
+
+    //getData for attach
+    if(this.options.prebindURL &&
+        typeof(createConnectionExternally) === "function") {
+        var self = this;
+        createConnectionExternally(this.options.prebindURL, function (data) {
+            self.attach(data);
+        }, function (error) {
+            //connect
+            self.connect(this.connectParams.jid, this.connectParams.password);
+        });
+    } else {
+        //connect
+        this.connect(this.connectParams.jid, this.connectParams.password);
+    }
+
 }
 
 /**
@@ -218,6 +259,10 @@ XMPP.prototype._connect = function (jid, password) {
 }
 
 XMPP.prototype.connect = function (jid, password) {
+    this.connectParams = {
+        jid: jid,
+        password: password
+    };
     if (!jid) {
         var configDomain
             = this.options.hosts.anonymousdomain || this.options.hosts.domain;
