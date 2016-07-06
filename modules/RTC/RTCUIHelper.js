@@ -60,16 +60,6 @@ var RTCUIHelper = {
         if (!RTCBrowserType.isIExplorer()) {
             streamElement.autoplay = true;
         }
-    },
-
-    /**
-     * Extract video stream id from the video element.
-     * @param {Element} element
-     * @returns {string} video stream id or empty string
-     */
-    getVideoId: function (element) {
-        var src = RTC.getVideoSrc(element);
-        return src ? String(src) : '';
     }
 };
 

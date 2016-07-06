@@ -344,17 +344,27 @@ JitsiConference.prototype.setSubject = function (subject) {
  * Adds JitsiLocalTrack object to the conference.
  * @param track the JitsiLocalTrack object.
  * @returns {Promise<JitsiLocalTrack>}
- * @throws will throw and error if track is video track
- * and there is already another video track in the conference.
+ * @throws {Error} if the specified track is a video track and there is already
+ * another video track in the conference.
  */
 JitsiConference.prototype.addTrack = function (track) {
-    if(track.disposed)
-    {
+    if (track.disposed) {
         throw new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED);
     }
 
-    if (track.isVideoTrack() && this.rtc.getLocalVideoTrack()) {
-        throw new Error("cannot add second video track to the conference");
+    if (track.isVideoTrack()) {
+        // Ensure there's exactly 1 local video track in the conference.
+        var localVideoTrack = this.rtc.getLocalVideoTrack();
+        if (localVideoTrack) {
+            // Don't be excessively harsh and severe if the API client happens
+            // to attempt to add the same local video track twice.
+            if (track === localVideoTrack) {
+                return Promise.resolve(track);
+            } else {
+                throw new Error(
+                        "cannot add second video track to the conference");
+            }
+        }
     }
 
     track.ssrcHandler = function (conference, ssrcMap) {
