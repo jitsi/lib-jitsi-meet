@@ -160,23 +160,21 @@ var LibJitsiMeet = {
             }).catch(function (error) {
                 promiseFulfilled = true;
 
-                Statistics.sendGetUserMediaFailed(error);
-
                 if(error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
                     var oldResolution = options.resolution || '360',
                         newResolution = getLowerResolution(oldResolution);
 
-                    if (newResolution === null) {
-                        return Promise.reject(error);
+                    if (newResolution !== null) {
+                        options.resolution = newResolution;
+
+                        logger.debug("Retry createLocalTracks with resolution",
+                            newResolution);
+
+                        return LibJitsiMeet.createLocalTracks(options);
                     }
-
-                    options.resolution = newResolution;
-
-                    logger.debug("Retry createLocalTracks with resolution",
-                                newResolution);
-
-                    return LibJitsiMeet.createLocalTracks(options);
                 }
+
+                Statistics.sendGetUserMediaFailed(error);
 
                 return Promise.reject(error);
             }.bind(this));
