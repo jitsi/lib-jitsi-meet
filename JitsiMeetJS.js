@@ -174,7 +174,16 @@ var LibJitsiMeet = {
                     }
                 }
 
-                Statistics.sendGetUserMediaFailed(error);
+                if (JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED ===
+                        error.name) {
+                    // User cancelled action is not really an error, so only
+                    // log it as an event to avoid having conference classified
+                    // as partially failed
+                    Statistics.sendLog(error.message);
+                } else {
+                    // Report gUM failed to the stats
+                    Statistics.sendGetUserMediaFailed(error);
+                }
 
                 return Promise.reject(error);
             }.bind(this));
