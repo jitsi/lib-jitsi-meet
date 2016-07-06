@@ -3,8 +3,10 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
 var AdapterJS = require("./adapter.screenshare");
-var JitsiTrackErrors = require("../../JitsiTrackErrors");
-var JitsiTrackError = require("../../JitsiTrackError");
+var JitsiMediaDevicesError =
+    require("../../modules/mediaDevices/JitsiMediaDevicesError");
+var JitsiMediaDevicesErrors =
+    require("../../modules/mediaDevices/JitsiMediaDevicesErrors");
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 /**
@@ -69,7 +71,7 @@ var ScreenObtainer = {
             obtainDesktopStream = function (onSuccess, onFailure) {
                 window.JitsiMeetNW.obtainDesktopStream (
                     onSuccess, function (error, constraints) {
-                        onFailure && onFailure(new JitsiTrackError(
+                        onFailure && onFailure(new JitsiMediaDevicesError(
                             error, constraints, ["desktop"]));
                     });
             };
@@ -179,8 +181,8 @@ var ScreenObtainer = {
 
         // Make sure desktopsharing knows that we failed, so that it doesn't get
         // stuck in 'switching' mode.
-        errorCallback(
-            new JitsiTrackError(JitsiTrackErrors.FIREFOX_EXTENSION_NEEDED));
+        errorCallback(new JitsiMediaDevicesError(
+            JitsiMediaDevicesErrors.FIREFOX_EXTENSION_NEEDED));
     },
     /**
      * Asks Chrome extension to call chooseDesktopMedia and gets chrome
@@ -224,8 +226,8 @@ var ScreenObtainer = {
 
             logger.log(msg, e);
 
-            failCallback(new JitsiTrackError(
-                JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR,
+            failCallback(new JitsiMediaDevicesError(
+                JitsiMediaDevicesErrors.CHROME_EXTENSION_INSTALLATION_ERROR,
                 msg
             ));
         }
@@ -353,8 +355,8 @@ function doGetStreamFromExtension(options, streamCallback, failCallback) {
                 var lastError = chrome.runtime.lastError;
                 failCallback(lastError instanceof Error
                     ? lastError
-                    : new JitsiTrackError(
-                        JitsiTrackErrors.CHROME_EXTENSION_GENERIC_ERROR,
+                    : new JitsiMediaDevicesError(
+                        JitsiMediaDevicesErrors.CHROME_EXTENSION_GENERIC_ERROR,
                         lastError));
                 return;
             }
@@ -373,13 +375,14 @@ function doGetStreamFromExtension(options, streamCallback, failCallback) {
                 // then the callback is called with an empty streamId.
                 if(response.streamId === "")
                 {
-                    failCallback(new JitsiTrackError(
-                        JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED));
+                    failCallback(new JitsiMediaDevicesError(
+                        JitsiMediaDevicesErrors.CHROME_EXTENSION_USER_CANCELED
+                    ));
                     return;
                 }
 
-                failCallback(new JitsiTrackError(
-                    JitsiTrackErrors.CHROME_EXTENSION_GENERIC_ERROR,
+                failCallback(new JitsiMediaDevicesError(
+                    JitsiMediaDevicesErrors.CHROME_EXTENSION_GENERIC_ERROR,
                     response.error));
             }
         }

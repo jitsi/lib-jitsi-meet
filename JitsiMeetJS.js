@@ -1,14 +1,24 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
+
 var JitsiConnection = require("./JitsiConnection");
-var JitsiMediaDevices = require("./JitsiMediaDevices");
-var JitsiConferenceEvents = require("./JitsiConferenceEvents");
 var JitsiConnectionEvents = require("./JitsiConnectionEvents");
-var JitsiMediaDevicesEvents = require('./JitsiMediaDevicesEvents');
 var JitsiConnectionErrors = require("./JitsiConnectionErrors");
+
+var JitsiConferenceEvents = require("./JitsiConferenceEvents");
 var JitsiConferenceErrors = require("./JitsiConferenceErrors");
+
+var JitsiMediaDevices = require("./modules/mediaDevices/JitsiMediaDevices");
+var JitsiMediaDevicesEvents =
+    require('./modules/mediaDevices/JitsiMediaDevicesEvents');
+var JitsiMediaDevicesError =
+    require("./modules/mediaDevices/JitsiMediaDevicesError");
+var JitsiMediaDevicesErrors =
+    require("./modules/mediaDevices/JitsiMediaDevicesErrors");
+
 var JitsiTrackEvents = require("./JitsiTrackEvents");
 var JitsiTrackErrors = require("./JitsiTrackErrors");
 var JitsiTrackError = require("./JitsiTrackError");
+
 var JitsiRecorderErrors = require("./JitsiRecorderErrors");
 var Logger = require("jitsi-meet-logger");
 var MediaType = require("./service/RTC/MediaType");
@@ -58,7 +68,12 @@ var LibJitsiMeet = {
         conference: JitsiConferenceErrors,
         connection: JitsiConnectionErrors,
         recorder: JitsiRecorderErrors,
-        track: JitsiTrackErrors
+        track: JitsiTrackErrors,
+        mediaDevices: JitsiMediaDevicesErrors
+    },
+    errorTypes: {
+        JitsiTrackError: JitsiTrackError,
+        JitsiMediaDevicesError: JitsiMediaDevicesError
     },
     logLevels: Logger.levels,
     mediaDevices: JitsiMediaDevices,
@@ -159,7 +174,8 @@ var LibJitsiMeet = {
 
                 Statistics.sendGetUserMediaFailed(error);
 
-                if(error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
+                if(error.name ===
+                    JitsiMediaDevicesErrors.UNSUPPORTED_RESOLUTION) {
                     var oldResolution = options.resolution || '360',
                         newResolution = getLowerResolution(oldResolution);
 
@@ -236,10 +252,6 @@ var LibJitsiMeet = {
         RTCUIHelper: RTCUIHelper
     }
 };
-
-// expose JitsiTrackError this way to give library consumers to do checks like
-// if (error instanceof JitsiMeetJS.JitsiTrackError) { }
-LibJitsiMeet.JitsiTrackError = JitsiTrackError;
 
 //Setups the promise object.
 window.Promise = window.Promise || require("es6-promise").Promise;

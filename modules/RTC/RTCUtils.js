@@ -13,8 +13,8 @@ var AdapterJS = require("./adapter.screenshare");
 var SDPUtil = require("../xmpp/SDPUtil");
 var EventEmitter = require("events");
 var screenObtainer = require("./ScreenObtainer");
-var JitsiTrackErrors = require("../../JitsiTrackErrors");
-var JitsiTrackError = require("../../JitsiTrackError");
+var JitsiMediaDevicesError =
+    require("../../modules/mediaDevices/JitsiMediaDevicesError");
 var MediaType = require("../../service/RTC/MediaType");
 var VideoType = require("../../service/RTC/VideoType");
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
@@ -626,7 +626,8 @@ function wrapAttachMediaStream(origAttachMediaStream) {
                 && stream.getAudioTracks().length) {
             element.setSinkId(RTCUtils.getAudioOutputDevice())
                 .catch(function (ex) {
-                    var err = new JitsiTrackError(ex, null, ['audiooutput']);
+                    var err = new JitsiMediaDevicesError(
+                        ex, null, ['audiooutput']);
 
                     GlobalOnErrorHandler.callUnhandledRejectionHandler(
                         {promise: this, reason: err});
@@ -897,14 +898,14 @@ var RTCUtils = {
 
                     if (failure_callback) {
                         failure_callback(
-                            new JitsiTrackError(error, constraints, um));
+                            new JitsiMediaDevicesError(error, constraints, um));
                     }
                 });
         } catch (e) {
             logger.error('GUM failed: ', e);
 
             if (failure_callback) {
-                failure_callback(new JitsiTrackError(e, constraints, um));
+                failure_callback(new JitsiMediaDevicesError(e, constraints, um));
             }
         }
     },
@@ -1007,7 +1008,7 @@ var RTCUtils = {
                                     devices.push("video");
                                 }
 
-                                reject(new JitsiTrackError(
+                                reject(new JitsiMediaDevicesError(
                                     { name: "UnknownError" },
                                     getConstraints(options.devices, options),
                                     devices)
