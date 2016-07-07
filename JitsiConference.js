@@ -101,6 +101,8 @@ JitsiConference.prototype._leaveRoomAndRemoveParticipants = function () {
     this.getParticipants().forEach(function (participant) {
         this.onMemberLeft(participant.getJid());
     }.bind(this));
+
+    this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_LEFT);
 }
 /**
  * Leaves the conference.
@@ -1152,10 +1154,6 @@ function setupListeners(conference) {
             node.tagName.substring("jitsi_participant_".length),
             node.value);
     });
-//    FIXME
-//    conference.room.addListener(XMPPEvents.MUC_JOINED, function () {
-//        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_LEFT);
-//    });
 
     conference.room.addListener(XMPPEvents.KICKED, function () {
         conference.eventEmitter.emit(JitsiConferenceEvents.KICKED);
