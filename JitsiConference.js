@@ -314,7 +314,8 @@ JitsiConference.prototype.setSubject = function (subject) {
  */
 JitsiConference.prototype.addTrack = function (track) {
     if (track.disposed) {
-        throw new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED);
+        return Promise.reject(
+            new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
     }
 
     if (track.isVideoTrack()) {
@@ -326,8 +327,8 @@ JitsiConference.prototype.addTrack = function (track) {
             if (track === localVideoTrack) {
                 return Promise.resolve(track);
             } else {
-                throw new Error(
-                        "cannot add second video track to the conference");
+                return Promise.reject(new Error(
+                    "cannot add second video track to the conference"));
             }
         }
     }
@@ -430,9 +431,9 @@ JitsiConference.prototype._fireMuteChangeEvent = function (track) {
  * @returns {Promise}
  */
 JitsiConference.prototype.removeTrack = function (track) {
-    if(track.disposed)
-    {
-        throw new Error(JitsiTrackErrors.TRACK_IS_DISPOSED);
+    if (track.disposed) {
+        return Promise.reject(
+            new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
     }
 
     if(!this.room){
@@ -445,8 +446,7 @@ JitsiConference.prototype.removeTrack = function (track) {
     return new Promise(function (resolve, reject) {
         this.room.removeStream(track.getOriginalStream(), function(){
             track._setSSRC(null);
-            //FIXME: This dependacy is not necessary. This is quick fix.
-            track._setConference(this);
+            track._setConference(null);
             this.rtc.removeLocalTrack(track);
             track.removeEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED,
                 track.muteHandler);
