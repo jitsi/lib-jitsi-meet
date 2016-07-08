@@ -130,9 +130,18 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.FOCUS_DISCONNECTED);
 
-    this.chatRoomForwarder.forward(XMPPEvents.FOCUS_LEFT,
-        JitsiConferenceEvents.CONFERENCE_FAILED,
-        JitsiConferenceErrors.FOCUS_LEFT);
+    conference.room.addListener(XMPPEvents.FOCUS_LEFT,
+        function () {
+            if(!conference.connection.reload())
+                conference.eventEmitter.emit(
+                    JitsiConferenceEvents.CONFERENCE_FAILED,
+                    JitsiConferenceErrors.FOCUS_LEFT);
+        });
+
+    conference.room.addListener(XMPPEvents.ALLOCATE_FOCUS_MAX_RETRIES_ERROR,
+        function () {
+            conference.connection.reload();
+        });
 
     this.chatRoomForwarder.forward(XMPPEvents.CONNECTION_INTERRUPTED,
         JitsiConferenceEvents.CONNECTION_INTERRUPTED);

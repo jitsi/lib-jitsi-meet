@@ -62,7 +62,8 @@ function filterNodeFromPresenceJSON(pres, nodeName){
     return res;
 }
 
-function ChatRoom(connection, jid, password, XMPP, options, settings) {
+function ChatRoom(connection, jid, password, XMPP, options, settings,
+    maxRetries) {
     this.eventEmitter = new EventEmitter();
     this.xmpp = XMPP;
     this.connection = connection;
@@ -79,7 +80,8 @@ function ChatRoom(connection, jid, password, XMPP, options, settings) {
     this.bridgeIsDown = false;
     this.options = options || {};
     this.moderator = new Moderator(this.roomjid, this.xmpp, this.eventEmitter,
-        settings, {connection: this.xmpp.options, conference: this.options});
+        settings, {connection: this.xmpp.options, conference: this.options},
+        maxRetries);
     this.initPresenceMap();
     this.session = null;
     var self = this;
@@ -243,7 +245,7 @@ ChatRoom.prototype.onPresence = function (pres) {
     member.jid = jid;
     member.isFocus
         = jid && jid.indexOf(this.moderator.getFocusUserJid() + "/") === 0;
-
+    console.debug("aaaaa", jid, this.moderator.getFocusUserJid(), pres);
     member.isHiddenDomain
         = jid && jid.indexOf("@") > 0
             && this.options.hiddenDomain

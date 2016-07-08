@@ -36,6 +36,7 @@ function JitsiConference(options) {
     }
     this.eventEmitter = new EventEmitter();
     this.settings = new Settings();
+    this.retries = 0;
     this._init(options);
     this.componentsVersions = new ComponentsVersions(this);
     this.rtc = new RTC(this, options);
@@ -84,9 +85,9 @@ JitsiConference.prototype._init = function (options) {
     // reloaded)
     this.connection = options.connection || this.connection;
     this.xmpp = this.connection.xmpp;
-
+    this.retries++;
     this.room = this.xmpp.createRoom(this.options.name, this.options.config,
-        this.settings);
+        this.settings, (this.retries < 4 ? 3 : null));
 
     //restore previous presence options
     if(options.roomState) {

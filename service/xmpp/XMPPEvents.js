@@ -7,6 +7,11 @@ var XMPPEvents = {
     // audio.
     AUDIO_MUTED_BY_FOCUS: "xmpp.audio_muted_by_focus",
     AUTHENTICATION_REQUIRED: "xmpp.authentication_required",
+    /**
+     * Max retries value of Moderator.allocateConferenceFocus failures is
+     * reached.
+     */
+    ALLOCATE_FOCUS_MAX_RETRIES_ERROR: "xmpp.allocate_focus_max_retries_error",
     BRIDGE_DOWN: "xmpp.bridge_down",
     // Designates an event indicating that an offer (e.g. Jingle
     // session-initiate) was received.
