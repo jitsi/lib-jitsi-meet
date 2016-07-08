@@ -51,7 +51,7 @@ function DataChannels(peerConnection, emitter) {
 DataChannels.prototype.onDataChannel = function (event) {
     var dataChannel = event.channel;
     var self = this;
-    var lastSelectedEndpoint = null;
+    var selectedEndpoint = null;
 
     dataChannel.onopen = function () {
         logger.info("Data channel opened by the Videobridge!", dataChannel);
@@ -68,7 +68,8 @@ DataChannels.prototype.onDataChannel = function (event) {
         // selections so that it can do adaptive simulcast,
         // we want the notification to trigger even if userJid is undefined,
         // or null.
-        self.handleSelectedEndpointEvent(self.lastSelectedEndpoint);
+        // XXX why do we not do the same for pinned endpoints?
+        self.sendSelectedEndpointMessage(self.selectedEndpoint);
     };
 
     dataChannel.onerror = function (error) {
@@ -173,13 +174,19 @@ DataChannels.prototype.closeAllChannels = function () {
     });
 };
 
-DataChannels.prototype.handleSelectedEndpointEvent = function (userResource) {
-    this.lastSelectedEndpoint = userResource;
-    this._onXXXEndpointChanged("selected", userResource);
+/**
+ * Sends a "selected endpoint changed" message via the data channel.
+ */
+DataChannels.prototype.sendSelectedEndpointMessage = function (endpointId) {
+    this.selectedEndpoint = endpointId;
+    this._onXXXEndpointChanged("selected", endpointId);
 };
 
-DataChannels.prototype.handlePinnedEndpointEvent = function (userResource) {
-    this._onXXXEndpointChanged("pinnned", userResource);
+/**
+ * Sends a "pinned endpoint changed" message via the data channel.
+ */
+DataChannels.prototype.sendPinnedEndpointMessage = function (endpointId) {
+    this._onXXXEndpointChanged("pinnned", endpointId);
 };
 
 /**

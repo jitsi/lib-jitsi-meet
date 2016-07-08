@@ -526,7 +526,7 @@ JitsiConference.prototype.unlock = function () {
  */
 JitsiConference.prototype.selectParticipant = function(participantId) {
     if (this.rtc) {
-        this.rtc.selectedEndpoint(participantId);
+        this.rtc.selectEndpoint(participantId);
     }
 };
 
