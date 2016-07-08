@@ -888,6 +888,18 @@ ChatRoom.prototype.leave = function () {
     this.eventEmitter.emit(XMPPEvents.DISPOSE_CONFERENCE);
     this.doLeave();
     this.connection.emuc.doLeave(this.roomjid);
+    this._dispose();
+};
+
+/**
+ * Cleans up instance from attached event listeners.
+ *
+ * @private
+ */
+ChatRoom.prototype._dispose = function () {
+    this.moderator.dispose();
+    this.eventEmitter.removeAllListeners();
+    this.presHandlers = {};
 };
 
 module.exports = ChatRoom;

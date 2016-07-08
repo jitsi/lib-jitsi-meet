@@ -43,7 +43,7 @@ function Moderator(roomName, xmpp, emitter, settings, options) {
     this.focusUserJid;
     //FIXME:
     // Message listener that talks to POPUP window
-    function listener(event) {
+    this._listener = function listener(event) {
         if (event.data && event.data.sessionId) {
             if (event.origin !== window.location.origin) {
                 logger.warn("Ignoring sessionId from different origin: " +
@@ -53,12 +53,12 @@ function Moderator(roomName, xmpp, emitter, settings, options) {
             settings.setSessionId(event.data.sessionId);
             // After popup is closed we will authenticate
         }
-    }
+    };
     // Register
     if (window.addEventListener) {
-        window.addEventListener("message", listener, false);
-    } else {
-        window.attachEvent("onmessage", listener);
+        window.addEventListener("message", this._listener, false);
+    } else if (window.attachEvent) {
+        window.attachEvent("onmessage", this._listener);
     }
 }
 
@@ -525,6 +525,17 @@ Moderator.prototype.logout =  function (callback) {
             logger.error(errmsg, error);
         }
     );
+};
+
+/**
+ * Disposes instance.
+ */
+Moderator.prototype.dispose = function () {
+    if (window.removeEventListener) {
+        window.removeEventListener("message", this._listener, false);
+    } else if (window.detachEvent) {
+        window.detachEvent("onmessage", this._listener);
+    }
 };
 
 module.exports = Moderator;
