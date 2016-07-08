@@ -415,19 +415,26 @@ RTC.prototype.getResourceBySSRC = function (ssrc) {
         return this.conference.myUserId();
     }
 
-    var self = this;
-    var resultResource = null;
-    Object.keys(this.remoteTracks).some(function (resource) {
-        var audioTrack = self.getRemoteAudioTrack(resource);
-        var videoTrack = self.getRemoteVideoTrack(resource);
-        if((audioTrack && audioTrack.getSSRC() == ssrc) ||
-            (videoTrack && videoTrack.getSSRC() == ssrc)) {
-            resultResource = resource;
-            return true;
-        }
-    });
+    var track = this.getRemoteTrackBySSRC(ssrc);
+    return track? track.getParticipantId() : null;
+};
 
-    return resultResource;
+/**
+ * Searches in remoteTracks for the ssrc and returns the corresponding track.
+ * @param ssrc the ssrc to check.
+ */
+RTC.prototype.getRemoteTrackBySSRC = function (ssrc) {
+    for (var resource in this.remoteTracks) {
+        var track = this.getRemoteAudioTrack(resource);
+        if(track && track.getSSRC() == ssrc) {
+            return track;
+        }
+        track = this.getRemoteVideoTrack(resource);
+        if(track && track.getSSRC() == ssrc) {
+            return track;
+        }
+    }
+    return null;
 };
 
 /**

@@ -63,6 +63,7 @@ function JitsiConference(options) {
         video: undefined
     };
     this.isMutedByFocus = false;
+    this.reportedAudioSSRCs = {};
 }
 
 /**
@@ -151,6 +152,8 @@ JitsiConference.prototype._leaveRoomAndRemoveParticipants = function () {
     }
 
     this.room = null;
+
+    this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_LEFT);
 }
 /**
  * Leaves the conference.
@@ -371,7 +374,8 @@ JitsiConference.prototype.setSubject = function (subject) {
  */
 JitsiConference.prototype.addTrack = function (track) {
     if (track.disposed) {
-        throw new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED);
+        return Promise.reject(
+            new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
     }
 
     if (track.isVideoTrack()) {
@@ -383,8 +387,8 @@ JitsiConference.prototype.addTrack = function (track) {
             if (track === localVideoTrack) {
                 return Promise.resolve(track);
             } else {
-                throw new Error(
-                        "cannot add second video track to the conference");
+                return Promise.reject(new Error(
+                    "cannot add second video track to the conference"));
             }
         }
     }
@@ -488,9 +492,9 @@ JitsiConference.prototype._fireMuteChangeEvent = function (track) {
  * @returns {Promise}
  */
 JitsiConference.prototype.removeTrack = function (track) {
-    if(track.disposed)
-    {
-        throw new Error(JitsiTrackErrors.TRACK_IS_DISPOSED);
+    if (track.disposed) {
+        return Promise.reject(
+            new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
     }
 
     if(!this.room){
@@ -1094,6 +1098,63 @@ JitsiConference.prototype._onTrackAttach = function(track, container) {
     }
     this.statistics.associateStreamWithVideoTag(
         ssrc, track.isLocal(), track.getUsageLabel(), container.id);
+}
+
+/**
+ * Reports detected audio problem with the media stream related to the passed
+ * ssrc.
+ * @param ssrc {string} the ssrc
+ */
+JitsiConference.prototype._reportAudioProblem = function (ssrc) {
+    if(this.reportedAudioSSRCs[ssrc])
+        return;
+    var track = this.rtc.getRemoteTrackBySSRC(ssrc);
+    if(!track || !track.isAudioTrack())
+        return;
+
+    this.reportedAudioSSRCs[ssrc] = true;
+    var errorContent = {
+        errMsg: "The audio is received but not played",
+        ssrc: ssrc
+    };
+
+    var mstream = track.stream, mtrack = track.track;
+    if(mstream) {
+        errorContent.MediaStream = {
+            active: mstream.active,
+            id: mstream.id
+        }
+    }
+
+    if(mtrack) {
+        errorContent.MediaStreamTrack = {
+            enabled: mtrack.enabled,
+            id: mtrack.id,
+            label: mtrack.label,
+            muted: mtrack.muted
+        }
+    }
+
+    if(track.containers) {
+        errorContent.containers = [];
+        track.containers.forEach(function (container) {
+            errorContent.containers.push({
+                autoplay: container.autoplay,
+                muted: container.muted,
+                src: container.src,
+                volume: container.volume,
+                id: container.id,
+                ended: container.ended,
+                paused: container.paused,
+                readyState: container.readyState
+            });
+        });
+    }
+
+    this.statistics.sendDetectedAudioProblem(
+        new Error(JSON.stringify(errorContent)));
+    logger.error("Audio problem detected. The audio is received but not played",
+        errorContent);
 }
 
 /**
