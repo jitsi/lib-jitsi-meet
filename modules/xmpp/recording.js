@@ -42,6 +42,7 @@ Recording.status = {
     AVAILABLE: "available",
     UNAVAILABLE: "unavailable",
     PENDING: "pending",
+    RETRYING: "retrying",
     BUSY: "busy",
     FAILED: "failed"
 };
