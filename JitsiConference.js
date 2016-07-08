@@ -1002,7 +1002,14 @@ JitsiConference.prototype._reportAudioProblem = function (ssrc) {
         new Error(JSON.stringify(errorContent)));
     logger.error("Audio problem detected. The audio is received but not played",
         errorContent);
-}
+};
+
+/**
+ * Logs an "application log" message
+ */
+JitsiConference.prototype.sendApplicationLog = function(message) {
+    Statistics.sendLog(message);
+};
 
 /**
  * Setups the listeners needed for the conference.
