@@ -156,10 +156,20 @@ JitsiConference.prototype.getAuthLogin = function () {
 };
 
 /**
+ * Creates the URL pointing to JWT token authentication service. Fills
+ * 'roomName' argument with the name of the conference room and calls method
+ * with the same name in JitsiConnection.
+ */
+JitsiConference.prototype.getTokenAuthUrl = function (roleUpgrade) {
+    return this.connection.getTokenAuthUrl(this.options.name, roleUpgrade);
+};
+
+/**
  * Check if external authentication is enabled for this conference.
  */
 JitsiConference.prototype.isExternalAuthEnabled = function () {
-    return this.room && this.room.moderator.isExternalAuthEnabled();
+    return this.room &&
+        (this.room.moderator.isExternalAuthEnabled() || this.getTokenAuthUrl());
 };
 
 /**
@@ -174,10 +184,15 @@ JitsiConference.prototype.getExternalAuthUrl = function (urlForPopup) {
             reject();
             return;
         }
-        if (urlForPopup) {
-            this.room.moderator.getPopupLoginUrl(resolve, reject);
+        var tokenAuthURL = this.getTokenAuthUrl(urlForPopup);
+        if (tokenAuthURL) {
+            resolve(tokenAuthURL);
         } else {
-            this.room.moderator.getLoginUrl(resolve, reject);
+            if (urlForPopup) {
+                this.room.moderator.getPopupLoginUrl(resolve, reject);
+            } else {
+                this.room.moderator.getLoginUrl(resolve, reject);
+            }
         }
     }.bind(this));
 };
