@@ -585,7 +585,7 @@ JitsiConference.prototype.unlock = function () {
  */
 JitsiConference.prototype.selectParticipant = function(participantId) {
     if (this.rtc) {
-        this.rtc.selectedEndpoint(participantId);
+        this.rtc.selectEndpoint(participantId);
     }
 };
 
@@ -1155,7 +1155,14 @@ JitsiConference.prototype._reportAudioProblem = function (ssrc) {
         new Error(JSON.stringify(errorContent)));
     logger.error("Audio problem detected. The audio is received but not played",
         errorContent);
-}
+};
+
+/**
+ * Logs an "application log" message
+ */
+JitsiConference.prototype.sendApplicationLog = function(message) {
+    Statistics.sendLog(message);
+};
 
 /**
  * Setups the listeners needed for the conference.
@@ -1165,7 +1172,7 @@ JitsiConference.prototype._setupListeners = function () {
     this.eventManager.setupChatRoomListeners();
     this.eventManager.setupRTCListeners();
     this.eventManager.setupStatisticsListeners();
-}
+};
 
 /**
  * Checks if the user identified by given <tt>mucJid</tt> is the conference
@@ -1175,7 +1182,7 @@ JitsiConference.prototype._setupListeners = function () {
  */
 JitsiConference.prototype._isFocus = function (mucJid) {
     return this.room.isFocus(mucJid);
-}
+};
 
 /**
  * Fires CONFERENCE_FAILED event with INCOMPATIBLE_SERVER_VERSIONS parameter
@@ -1183,6 +1190,6 @@ JitsiConference.prototype._isFocus = function (mucJid) {
 JitsiConference.prototype._fireIncompatibleVersionsEvent = function () {
     this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.INCOMPATIBLE_SERVER_VERSIONS);
-}
+};
 
 module.exports = JitsiConference;

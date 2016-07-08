@@ -36,6 +36,16 @@ function JingleSessionPC(me, sid, peerjid, connection,
     this.modifiedSSRCs = {};
 
     /**
+     * The local ICE username fragment for this session.
+     */
+    this.localUfrag = null;
+
+    /**
+     * The remote ICE username fragment for this session.
+     */
+    this.remoteUfrag = null;
+
+    /**
      * A map that stores SSRCs of remote streams. And is used only locally
      * We store the mapping when jingle is received, and later is used
      * onaddstream webrtc event where we have only the ssrc
@@ -78,6 +88,7 @@ JingleSessionPC.prototype.doInitialize = function () {
             // complete.
             return;
         }
+        // XXX this is broken, candidate is not parsed.
         var candidate = ev.candidate;
         if (candidate) {
             // Discard candidates of disabled protocols.
@@ -773,6 +784,14 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
         GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
         queueCallback(err);
     };
+
+    var ufrag = getUfrag(sdp.raw);
+    if (ufrag != self.remoteUfrag) {
+        self.remoteUfrag = ufrag;
+        self.room.eventEmitter.emit(
+                XMPPEvents.REMOTE_UFRAG_CHANGED, ufrag);
+    }
+
     this.peerconnection.setRemoteDescription(
         new RTCSessionDescription({type: 'offer', sdp: sdp.raw}),
         function() {
@@ -794,6 +813,12 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
                     answer.sdp = modifiedAnswer.raw;
                     self.localSDP = new SDP(answer.sdp);
                     answer.sdp = self.localSDP.raw;
+                    var ufrag = getUfrag(answer.sdp);
+                    if (ufrag != self.localUfrag) {
+                        self.localUfrag = ufrag;
+                        self.room.eventEmitter.emit(
+                                XMPPEvents.LOCAL_UFRAG_CHANGED, ufrag);
+                    }
                     self.peerconnection.setLocalDescription(answer,
                         function() {
                             successCallback && successCallback();
@@ -1429,6 +1454,17 @@ function createDescriptionNode(jingle, mtype) {
         desc = content.find(">description");
     }
     return desc;
+}
+
+/**
+ * Extracts the ice username fragment from an SDP string.
+ */
+function getUfrag(sdp) {
+    var ufragLines = sdp.split('\n').filter(function(line) {
+        return line.startsWith("a=ice-ufrag:");});
+    if (ufragLines.length > 0) {
+        return ufragLines[0].substr("a=ice-ufrag:".length)
+    }
 }
 
 module.exports = JingleSessionPC;
