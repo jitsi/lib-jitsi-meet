@@ -1053,6 +1053,13 @@ function setupListeners(conference) {
         conference.rtc.closeAllDataChannels();
     });
 
+    conference.room.addListener(XMPPEvents.LOCAL_UFRAG_CHANGED, function (ufrag) {
+        Statistics.sendLog("Local ufrag: " + ufrag);
+    });
+    conference.room.addListener(XMPPEvents.REMOTE_UFRAG_CHANGED, function (ufrag) {
+        Statistics.sendLog("Remote ufrag: " + ufrag);
+    });
+
     conference.room.addListener(XMPPEvents.REMOTE_TRACK_ADDED,
         function (data) {
             var track = conference.rtc.createRemoteTrack(data);

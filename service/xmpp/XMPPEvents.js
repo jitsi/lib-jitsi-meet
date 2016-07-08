@@ -157,6 +157,12 @@ var XMPPEvents = {
     START_MUTED_FROM_FOCUS: "xmpp.start_muted_from_focus",
     // Designates an event indicating that the subject of the XMPP MUC has
     // changed.
-    SUBJECT_CHANGED: "xmpp.subject_changed"
+    SUBJECT_CHANGED: "xmpp.subject_changed",
+    // Designates an event indicating that the local ICE username fragment of
+    // the jingle session has changed.
+    LOCAL_UFRAG_CHANGED: "xmpp.local_ufrag_changed",
+    // Designates an event indicating that the local ICE username fragment of
+    // the jingle session has changed.
+    REMOTE_UFRAG_CHANGED: "xmpp.remote_ufrag_changed"
 };
 module.exports = XMPPEvents;
