@@ -101,20 +101,20 @@ JitsiConference.prototype._init = function (options) {
  * Reloads the conference
  * @param options {object} options to be overriden
  */
-JitsiConference.prototype.reload = function (options) {
+JitsiConference.prototype._reload = function (options) {
     var roomState = this.room.exportState();
     if(!options)
         options = {};
     options.roomState = roomState;
     this.leave(true);
-    this.reinitialize(options);
+    this._reinitialize(options);
 }
 
 /**
  * Reinitializes JitsiConference instance
  * @param options {object} options to be overriden
  */
-JitsiConference.prototype.reinitialize = function (options) {
+JitsiConference.prototype._reinitialize = function (options) {
     this._init(options || {});
     this.eventManager.setupChatRoomListeners();
     this.eventManager.setupStatisticsListeners();

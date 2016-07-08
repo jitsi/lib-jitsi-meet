@@ -28,7 +28,7 @@ function JitsiConnection(appID, token, options) {
             if(errType === JitsiConnectionErrors.OTHER_ERROR &&
                 (msg === "item-not-found" || msg === "host-unknown")) {
                     // FIXME: don't report the error if we are going to reload
-                    this.reload();
+                    this._reload();
                 }
         }.bind(this));
 }
@@ -60,7 +60,7 @@ JitsiConnection.prototype.attach = function (options) {
  * Reloads the JitsiConnection instance and all related conferences
  * @param options {object} options to be overriden
  */
-JitsiConnection.prototype.reload = function (options) {
+JitsiConnection.prototype._reload = function (options) {
     if(this.retryOnFail === 0)
         return false;
     this.retryOnFail--;
@@ -70,7 +70,7 @@ JitsiConnection.prototype.reload = function (options) {
         this.conferences[name].leave(true);
     }
     this.connectionEstablishedHandler =
-        this.reloadConferences.bind(this, states);
+        this._reloadConferences.bind(this, states);
     this.addEventListener(JitsiConnectionEvents.CONNECTION_ESTABLISHED,
         this.connectionEstablishedHandler);
     this.xmpp.reload(options || {});
@@ -81,13 +81,13 @@ JitsiConnection.prototype.reload = function (options) {
  * Reloads all conferences related to this JitsiConnection instance
  * @param states {object} the exported states per conference
  */
-JitsiConnection.prototype.reloadConferences = function (states) {
+JitsiConnection.prototype._reloadConferences = function (states) {
     this.removeEventListener(JitsiConnectionEvents.CONNECTION_ESTABLISHED,
         this.connectionEstablishedHandler);
     this.connectionEstablishedHandler = null;
     states = states || {};
     for(var name in this.conferences) {
-        this.conferences[name].reinitialize({connection: this,
+        this.conferences[name]._reinitialize({connection: this,
             roomState: states[name]});
     }
 }
