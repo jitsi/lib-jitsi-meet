@@ -116,10 +116,13 @@ module.exports = function (XMPP, eventEmitter) {
                 function (error) {
                     self.failedPings += 1;
                     var errmsg = "Ping " + (error ? "error" : "timeout");
-                    GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
-                    logger.error(errmsg, error);
                     if (self.failedPings >= PING_THRESHOLD) {
+                        GlobalOnErrorHandler.callErrorHandler(
+                            new Error(errmsg));
+                        logger.error(errmsg, error);
                         self.connection.disconnect();
+                    } else {
+                        logger.warn(errmsg, error);
                     }
                 }, PING_TIMEOUT);
             }, interval);
