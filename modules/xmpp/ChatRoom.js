@@ -245,7 +245,6 @@ ChatRoom.prototype.onPresence = function (pres) {
     member.jid = jid;
     member.isFocus
         = jid && jid.indexOf(this.moderator.getFocusUserJid() + "/") === 0;
-    console.debug("aaaaa", jid, this.moderator.getFocusUserJid(), pres);
     member.isHiddenDomain
         = jid && jid.indexOf("@") > 0
             && this.options.hiddenDomain
@@ -290,17 +289,8 @@ ChatRoom.prototype.onPresence = function (pres) {
         this.members[from] = member;
         logger.log('entered', from, member);
         if (member.isFocus) {
-            this.focusMucJid = from;
-            if(!this.recording) {
-                this.recording = new Recorder(this.options.recordingType,
-                    this.eventEmitter, this.connection, this.focusMucJid,
-                    this.options.jirecon, this.roomjid);
-                if(this.lastJibri)
-                    this.recording.handleJibriPresence(this.lastJibri);
-            }
-            logger.info("Ignore focus: " + from + ", real JID: " + jid);
-        }
-        else {
+            this._initFocus(from);
+        } else {
             this.eventEmitter.emit(
                 XMPPEvents.MUC_MEMBER_JOINED,
                 from, member.nick, member.role, member.isHiddenDomain);
@@ -313,6 +303,19 @@ ChatRoom.prototype.onPresence = function (pres) {
             memberOfThis.role = member.role;
             this.eventEmitter.emit(
                 XMPPEvents.MUC_ROLE_CHANGED, from, member.role);
+        }
+
+        if (member.isFocus) {
+            // From time to time first few presences of the focus are not
+            // containing it's jid. That way we can mark later the focus member
+            // instead of not marking it at all and not starting the conference.
+            // FIXME: Maybe there is a better way to handle this issue. It seems
+            // there is some period of time in prosody that the configuration
+            // form is received but not applied. And if any participant joins
+            // during that period of time the first presence from the focus
+            // won't conain <item jid="focus..." />.
+            memberOfThis.isFocus = true;
+            this._initFocus(from);
         }
 
         // store the new display name
@@ -372,6 +375,22 @@ ChatRoom.prototype.onPresence = function (pres) {
             this.recording.handleJibriPresence(jibri);
     }
 };
+
+/**
+ * Initialize some properties when the focus participant is verified.
+ * @param from jid of the focus
+ */
+ChatRoom.prototype._initFocus = function (from) {
+    this.focusMucJid = from;
+    if(!this.recording) {
+        this.recording = new Recorder(this.options.recordingType,
+            this.eventEmitter, this.connection, this.focusMucJid,
+            this.options.jirecon, this.roomjid);
+        if(this.lastJibri)
+            this.recording.handleJibriPresence(this.lastJibri);
+    }
+    logger.info("Ignore focus: " + from + ", real JID: " + jid);
+}
 
 /**
  * Sets the special listener to be used for "command"s whose name starts with
