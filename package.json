@@ -1,6 +1,6 @@
 {
   "name": "@cloudversify/lib-jitsi-meet",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "JS library for accessing Jitsi server side deployments - forked and modified by Cloudversify Inc.",
   "repository": {
     "type": "git",
