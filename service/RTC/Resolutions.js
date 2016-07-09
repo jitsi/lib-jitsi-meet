@@ -50,6 +50,13 @@ var Resolutions = {
         width: 320,
         height: 240,
         order: 1
+    },
+
+    // Very small resolution
+    "small": {
+        width: 160,
+        height: 120,
+        order: 0
     }
 };
 module.exports = Resolutions;
