@@ -289,7 +289,7 @@ ChatRoom.prototype.onPresence = function (pres) {
         this.members[from] = member;
         logger.log('entered', from, member);
         if (member.isFocus) {
-            this._initFocus(from);
+            this._initFocus(from, jid);
         } else {
             this.eventEmitter.emit(
                 XMPPEvents.MUC_MEMBER_JOINED,
@@ -315,7 +315,7 @@ ChatRoom.prototype.onPresence = function (pres) {
             // during that period of time the first presence from the focus
             // won't conain <item jid="focus..." />.
             memberOfThis.isFocus = true;
-            this._initFocus(from);
+            this._initFocus(from, jid);
         }
 
         // store the new display name
@@ -379,8 +379,9 @@ ChatRoom.prototype.onPresence = function (pres) {
 /**
  * Initialize some properties when the focus participant is verified.
  * @param from jid of the focus
+ * @param mucJid the jid of the focus in the muc
  */
-ChatRoom.prototype._initFocus = function (from) {
+ChatRoom.prototype._initFocus = function (from, mucJid) {
     this.focusMucJid = from;
     if(!this.recording) {
         this.recording = new Recorder(this.options.recordingType,
@@ -389,7 +390,7 @@ ChatRoom.prototype._initFocus = function (from) {
         if(this.lastJibri)
             this.recording.handleJibriPresence(this.lastJibri);
     }
-    logger.info("Ignore focus: " + from + ", real JID: " + jid);
+    logger.info("Ignore focus: " + from + ", real JID: " + mucJid);
 }
 
 /**
