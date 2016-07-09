@@ -1,10 +1,10 @@
 {
-  "name": "lib-jitsi-meet",
+  "name": "@cloudversify/lib-jitsi-meet",
   "version": "0.0.0",
-  "description": "JS library for accessing Jitsi server side deployments",
+  "description": "JS library for accessing Jitsi server side deployments - forked and modified by Cloudversify Inc.",
   "repository": {
     "type": "git",
-    "url": "git://github.com/jitsi/jitsi-meet"
+    "url": "git://github.com/cloudversify/jitsi-meet"
   },
   "keywords": [
     "jingle",
@@ -38,7 +38,7 @@
     "watchify": "^3.7.0"
   },
   "scripts": {
-    "install": "npm run browserify && npm run version && npm run uglifyjs",
+    "install": "npm run browserify && npm run uglifyjs",
 
     "browserify": "browserify -d JitsiMeetJS.js -s JitsiMeetJS | exorcist lib-jitsi-meet.js.map > lib-jitsi-meet.js && [ -s lib-jitsi-meet.js ]",
     "version": "VERSION=`./get-version.sh` && echo lib-jitsi-meet version is:${VERSION} && sed -i'' -e s/{#COMMIT_HASH#}/${VERSION}/g lib-jitsi-meet.js",
