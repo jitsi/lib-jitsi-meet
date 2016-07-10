@@ -141,14 +141,14 @@ RTC.prototype.onIncommingCall = function(event) {
     }.bind(this));
 };
 
-RTC.prototype.selectEndpoint = function (id) {
+RTC.prototype.selectedEndpoint = function (id) {
     if(this.dataChannels)
-        this.dataChannels.sendSelectedEndpointMessage(id);
+        this.dataChannels.handleSelectedEndpointEvent(id);
 };
 
 RTC.prototype.pinEndpoint = function (id) {
     if(this.dataChannels)
-        this.dataChannels.sendPinnedEndpointMessage(id);
+        this.dataChannels.handlePinnedEndpointEvent(id);
 };
 
 RTC.prototype.addListener = function (type, listener) {

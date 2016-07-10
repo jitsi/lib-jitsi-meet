@@ -526,7 +526,7 @@ JitsiConference.prototype.unlock = function () {
  */
 JitsiConference.prototype.selectParticipant = function(participantId) {
     if (this.rtc) {
-        this.rtc.selectEndpoint(participantId);
+        this.rtc.selectedEndpoint(participantId);
     }
 };
 
@@ -1002,14 +1002,7 @@ JitsiConference.prototype._reportAudioProblem = function (ssrc) {
         new Error(JSON.stringify(errorContent)));
     logger.error("Audio problem detected. The audio is received but not played",
         errorContent);
-};
-
-/**
- * Logs an "application log" message
- */
-JitsiConference.prototype.sendApplicationLog = function(message) {
-    Statistics.sendLog(message);
-};
+}
 
 /**
  * Setups the listeners needed for the conference.
@@ -1058,13 +1051,6 @@ function setupListeners(conference) {
         // otherwise Chrome will not trigger "opened" event for the channel
         // established with the new bridge
         conference.rtc.closeAllDataChannels();
-    });
-
-    conference.room.addListener(XMPPEvents.LOCAL_UFRAG_CHANGED, function (ufrag) {
-        Statistics.sendLog("Local ufrag: " + ufrag);
-    });
-    conference.room.addListener(XMPPEvents.REMOTE_UFRAG_CHANGED, function (ufrag) {
-        Statistics.sendLog("Remote ufrag: " + ufrag);
     });
 
     conference.room.addListener(XMPPEvents.REMOTE_TRACK_ADDED,
