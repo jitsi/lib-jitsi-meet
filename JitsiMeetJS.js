@@ -1,4 +1,5 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
+var AuthUtil = require("./modules/util/AuthUtil");
 var JitsiConnection = require("./JitsiConnection");
 var JitsiMediaDevices = require("./JitsiMediaDevices");
 var JitsiConferenceEvents = require("./JitsiConferenceEvents");
@@ -236,7 +237,8 @@ var LibJitsiMeet = {
      */
     util: {
         ScriptUtil: ScriptUtil,
-        RTCUIHelper: RTCUIHelper
+        RTCUIHelper: RTCUIHelper,
+        AuthUtil: AuthUtil
     }
 };
 
