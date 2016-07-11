@@ -116,10 +116,18 @@ module.exports = function (XMPP, eventEmitter) {
                 function (error) {
                     self.failedPings += 1;
                     var errmsg = "Ping " + (error ? "error" : "timeout");
-                    GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
-                    logger.error(errmsg, error);
                     if (self.failedPings >= PING_THRESHOLD) {
-                        self.connection.disconnect();
+                        GlobalOnErrorHandler.callErrorHandler(
+                            new Error(errmsg));
+                        logger.error(errmsg, error);
+                        // FIXME it doesn't help to disconnect when 3rd PING
+                        // times out, it only stops Strophe from retrying.
+                        // Not really sure what's the right thing to do in that
+                        // situation, but just closing the connection makes no
+                        // sense.
+                        //self.connection.disconnect();
+                    } else {
+                        logger.warn(errmsg, error);
                     }
                 }, PING_TIMEOUT);
             }, interval);

@@ -8,6 +8,16 @@ var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 module.exports = function () {
 
     Strophe.log = function (level, msg) {
+        // Our global handler reports uncaught errors to the stats which may
+        // interpret those as partial call failure.
+        // Strophe log entry about secondary request timeout does not mean that
+        // it's a final failure(the request will be restarted), so we lower it's
+        // level here to a warning.
+        if (typeof msg === 'string' &&
+                msg.indexOf("Request ") !== -1 &&
+                msg.indexOf("timed out (secondary), restarting") !== -1) {
+            level = Strophe.LogLevel.WARN;
+        }
         switch (level) {
             case Strophe.LogLevel.WARN:
                 logger.warn("Strophe: " + msg);

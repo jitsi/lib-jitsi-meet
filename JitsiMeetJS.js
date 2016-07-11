@@ -161,22 +161,29 @@ var LibJitsiMeet = {
             }).catch(function (error) {
                 promiseFulfilled = true;
 
-                Statistics.sendGetUserMediaFailed(error);
-
                 if(error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
                     var oldResolution = options.resolution || '360',
                         newResolution = getLowerResolution(oldResolution);
 
-                    if (newResolution === null) {
-                        return Promise.reject(error);
+                    if (newResolution !== null) {
+                        options.resolution = newResolution;
+
+                        logger.debug("Retry createLocalTracks with resolution",
+                            newResolution);
+
+                        return LibJitsiMeet.createLocalTracks(options);
                     }
+                }
 
-                    options.resolution = newResolution;
-
-                    logger.debug("Retry createLocalTracks with resolution",
-                                newResolution);
-
-                    return LibJitsiMeet.createLocalTracks(options);
+                if (JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED ===
+                        error.name) {
+                    // User cancelled action is not really an error, so only
+                    // log it as an event to avoid having conference classified
+                    // as partially failed
+                    Statistics.sendLog(error.message);
+                } else {
+                    // Report gUM failed to the stats
+                    Statistics.sendGetUserMediaFailed(error);
                 }
 
                 return Promise.reject(error);
