@@ -917,6 +917,20 @@ JitsiConference.prototype.getConnectionTimes = function () {
     return this.room.connectionTimes;
 };
 
+JitsiConference.prototype.sendRemoteMuteAudio = function (jid) {
+    this.xmpp.sendRemoteMuteAudio(jid)
+};
+
+JitsiConference.prototype.sendRemoteMuteVideo = function (jid) {
+    this.xmpp.sendRemoteMuteVideo(jid)
+};
+JitsiConference.prototype.sendRemoteUnmuteAudio = function (jid) {
+    this.xmpp.sendRemoteUnmuteAudio(jid)
+};
+
+JitsiConference.prototype.sendRemoteUnmuteVideo = function (jid) {
+    this.xmpp.sendRemoteUnmuteVideo(jid)
+};
 /**
  * Sets a property for the local participant.
  */

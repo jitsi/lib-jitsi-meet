@@ -2,6 +2,10 @@ var logger = require("jitsi-meet-logger").getLogger(__filename);
 
 module.exports = function(XMPP) {
     Strophe.addConnectionPlugin('focusAdmin', {
+        connection: null,
+        init: function(conn){
+            this.connection = conn;
+        },
         sendRemoteMuteAudio: function (jid, success, failure){
             var iq = $iq({to: jid,
                 type: 'set'})
@@ -13,11 +17,11 @@ module.exports = function(XMPP) {
             // Calling tree() to print something useful
             iq = iq.tree();
             logger.info("Sending mute", iq);
+            console.log('sending mute', iq);
 
             this.connection.sendIQ(iq,
                 success,
-                this.newJingleErrorHandler(iq, failure),
-                IQ_TIMEOUT);
+                failure);
         },
         sendRemoteUnmuteAudio: function (jid, success, failure){
             var iq = $iq({to: jid,
@@ -30,11 +34,11 @@ module.exports = function(XMPP) {
             // Calling tree() to print something useful
             iq = iq.tree();
             logger.info("Sending mute", iq);
+            console.log('sending mute', iq);
 
             this.connection.sendIQ(iq,
                 success,
-                this.newJingleErrorHandler(iq, failure),
-                IQ_TIMEOUT);
+                failure);
         },
         sendRemoteMuteVideo: function (jid, success, failure){
             var iq = $iq({to: jid,
@@ -47,11 +51,11 @@ module.exports = function(XMPP) {
             // Calling tree() to print something useful
             iq = iq.tree();
             logger.info("Sending mute", iq);
+            console.log('sending mute', iq);
 
             this.connection.sendIQ(iq,
                 success,
-                this.newJingleErrorHandler(iq, failure),
-                IQ_TIMEOUT);
+                failure);
         },
         sendRemoteUnmuteVideo: function (jid, success, failure){
             var iq = $iq({to: jid,
@@ -64,11 +68,11 @@ module.exports = function(XMPP) {
             // Calling tree() to print something useful
             iq = iq.tree();
             logger.info("Sending mute", iq);
+            console.log('sending mute', iq);
 
             this.connection.sendIQ(iq,
                 success,
-                this.newJingleErrorHandler(iq, failure),
-                IQ_TIMEOUT);
+                failure);
         }
     });
 };
