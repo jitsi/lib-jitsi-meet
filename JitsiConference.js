@@ -526,7 +526,7 @@ JitsiConference.prototype.unlock = function () {
  */
 JitsiConference.prototype.selectParticipant = function(participantId) {
     if (this.rtc) {
-        this.rtc.selectedEndpoint(participantId);
+        this.rtc.selectEndpoint(participantId);
     }
 };
 
@@ -1019,6 +1019,13 @@ JitsiConference.prototype._reportAudioProblem = function (ssrc) {
 }
 
 /**
+ * Logs an "application log" message
+ */
+JitsiConference.prototype.sendApplicationLog = function(message) {
+    Statistics.sendLog(message);
+};
+
+/**
  * Setups the listeners needed for the conference.
  * @param conference the conference
  */
@@ -1067,6 +1074,13 @@ function setupListeners(conference) {
         conference.rtc.closeAllDataChannels();
     });
 
+    conference.room.addListener(XMPPEvents.LOCAL_UFRAG_CHANGED, function (ufrag) {
+        Statistics.sendLog("Local ufrag: " + ufrag);
+    });
+    conference.room.addListener(XMPPEvents.REMOTE_UFRAG_CHANGED, function (ufrag) {
+        Statistics.sendLog("Remote ufrag: " + ufrag);
+    });
+    
     conference.room.addListener(XMPPEvents.REMOTE_TRACK_ADDED,
         function (data) {
             var track = conference.rtc.createRemoteTrack(data);
