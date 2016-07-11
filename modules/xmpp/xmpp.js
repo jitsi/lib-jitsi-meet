@@ -3,6 +3,7 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var EventEmitter = require("events");
 var Pako = require("pako");
+var RandomUtil = require("../util/RandomUtil");
 var RTCEvents = require("../../service/RTC/RTCEvents");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var JitsiConnectionErrors = require("../../JitsiConnectionErrors");
@@ -245,6 +246,9 @@ XMPP.prototype.createRoom = function (roomName, options, settings) {
 
         if (!authenticatedUser)
             tmpJid = tmpJid.substr(0, 8);
+        else
+            tmpJid += "-" + RandomUtil.randomHexString(6);
+
         roomjid += '/' + tmpJid;
     }
 
