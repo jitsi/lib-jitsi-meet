@@ -412,10 +412,19 @@ ChatRoom.prototype.setSubject = function (subject) {
     this.connection.send(msg);
 };
 
-
-ChatRoom.prototype.onParticipantLeft = function (jid) {
+/**
+ * Called when participant leaves.
+ * @param jid the jid of the participant that leaves
+ * @param skipEvents optional params to skip any events, including check
+ * whether this is the focus that left
+ */
+ChatRoom.prototype.onParticipantLeft = function (jid, skipEvents) {
 
     delete this.lastPresences[jid];
+
+    if(skipEvents)
+        return;
+
     this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, jid);
 
     this.moderator.onMucMemberLeft(jid);
@@ -443,7 +452,7 @@ ChatRoom.prototype.onPresenceUnavailable = function (pres, from) {
     // Status code 110 indicates that this notification is "self-presence".
     if (!$(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="110"]').length) {
         delete this.members[from];
-        this.onParticipantLeft(from);
+        this.onParticipantLeft(from, false);
     }
     // If the status code is 110 this means we're leaving and we would like
     // to remove everyone else from our view, so we trigger the event.
@@ -451,7 +460,7 @@ ChatRoom.prototype.onPresenceUnavailable = function (pres, from) {
         for (var i in this.members) {
             var member = this.members[i];
             delete this.members[i];
-            this.onParticipantLeft(member);
+            this.onParticipantLeft(i, member.isFocus);
         }
     }
     if ($(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="307"]').length) {
