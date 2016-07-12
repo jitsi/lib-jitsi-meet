@@ -951,6 +951,8 @@ JitsiConference.prototype.isCallstatsEnabled = function () {
  * Reports detected audio problem with the media stream related to the passed
  * ssrc.
  * @param ssrc {string} the ssrc
+ * NOTE: all logger.log calls are there only to be able to see the info in
+ * torture
  */
 JitsiConference.prototype._reportAudioProblem = function (ssrc) {
     if(this.reportedAudioSSRCs[ssrc])
@@ -959,32 +961,58 @@ JitsiConference.prototype._reportAudioProblem = function (ssrc) {
     if(!track || !track.isAudioTrack())
         return;
 
+    var id = track.getParticipantId();
+    var displayName = null;
+    if(id) {
+        var participant = this.getParticipantById(id);
+        if(participant) {
+            displayName = participant.getDisplayName();
+        }
+    }
     this.reportedAudioSSRCs[ssrc] = true;
     var errorContent = {
         errMsg: "The audio is received but not played",
-        ssrc: ssrc
+        ssrc: ssrc,
+        jid: id,
+        displayName: displayName
     };
+
+    logger.log("=================The audio is received but not played" +
+        "======================");
+    logger.log("ssrc: ", ssrc);
+    logger.log("jid: ", id);
+    logger.log("displayName: ", displayName);
 
     var mstream = track.stream, mtrack = track.track;
     if(mstream) {
+        logger.log("MediaStream:");
         errorContent.MediaStream = {
             active: mstream.active,
             id: mstream.id
-        }
+        };
+        logger.log("active: ", mstream.active);
+        logger.log("id: ", mstream.id);
     }
 
     if(mtrack) {
+        logger.log("MediaStreamTrack:");
         errorContent.MediaStreamTrack = {
             enabled: mtrack.enabled,
             id: mtrack.id,
             label: mtrack.label,
             muted: mtrack.muted
         }
+        logger.log("enabled: ", mtrack.enabled);
+        logger.log("id: ", mtrack.id);
+        logger.log("label: ", mtrack.label);
+        logger.log("muted: ", mtrack.muted);
     }
 
     if(track.containers) {
         errorContent.containers = [];
+        logger.log("Containers:");
         track.containers.forEach(function (container) {
+            logger.log("Container:");
             errorContent.containers.push({
                 autoplay: container.autoplay,
                 muted: container.muted,
@@ -995,11 +1023,21 @@ JitsiConference.prototype._reportAudioProblem = function (ssrc) {
                 paused: container.paused,
                 readyState: container.readyState
             });
+            logger.log("autoplay: ", container.autoplay);
+            logger.log("muted: ", container.muted);
+            logger.log("src: ", container.src);
+            logger.log("volume: ", container.volume);
+            logger.log("id: ", container.id);
+            logger.log("ended: ", container.ended);
+            logger.log("paused: ", container.paused);
+            logger.log("readyState: ", container.readyState);
         });
     }
 
     this.statistics.sendDetectedAudioProblem(
         new Error(JSON.stringify(errorContent)));
+    // Prints JSON.stringify(errorContent) to be able to see all properties of
+    // errorContent from torture
     logger.error("Audio problem detected. The audio is received but not played",
         errorContent);
 };
