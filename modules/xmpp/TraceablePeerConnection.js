@@ -224,6 +224,12 @@ TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
                         break;
                     var ssrcMap = {};
                     var ssrcLastIdx = ssrcOperation.ssrc.ssrcs.length - 1;
+
+                    // Calder Hayes - CloudversifyInc
+                    // This fixed a lot of muting issues, not sure what implications it has.
+                    bLine.ssrcs = (bLine.ssrcs) ? bLine.ssrcs : [];
+
+
                     for(var i = 0; i < bLine.ssrcs.length; i++) {
                         var ssrc = bLine.ssrcs[i];
                         if (ssrc.attribute !== 'msid' &&

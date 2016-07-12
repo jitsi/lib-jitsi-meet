@@ -189,6 +189,15 @@ DataChannels.prototype.sendPinnedEndpointMessage = function (endpointId) {
     this._onXXXEndpointChanged("pinnned", endpointId);
 };
 
+DataChannels.prototype.handleSelectedEndpointEvent = function (userResource) {
+    this.lastSelectedEndpoint = userResource;
+    this._onXXXEndpointChanged("selected", userResource);
+};
+
+DataChannels.prototype.handlePinnedEndpointEvent = function (userResource) {
+    this._onXXXEndpointChanged("pinnned", userResource);
+};
+
 /**
  * Notifies Videobridge about a change in the value of a specific
  * endpoint-related property such as selected endpoint and pinnned endpoint.

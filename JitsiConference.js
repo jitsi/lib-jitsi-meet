@@ -917,6 +917,20 @@ JitsiConference.prototype.getConnectionTimes = function () {
     return this.room.connectionTimes;
 };
 
+JitsiConference.prototype.sendRemoteMuteAudio = function (jid) {
+    this.xmpp.sendRemoteMuteAudio(jid)
+};
+
+JitsiConference.prototype.sendRemoteMuteVideo = function (jid) {
+    this.xmpp.sendRemoteMuteVideo(jid)
+};
+JitsiConference.prototype.sendRemoteUnmuteAudio = function (jid) {
+    this.xmpp.sendRemoteUnmuteAudio(jid)
+};
+
+JitsiConference.prototype.sendRemoteUnmuteVideo = function (jid) {
+    this.xmpp.sendRemoteUnmuteVideo(jid)
+};
 /**
  * Sets a property for the local participant.
  */
@@ -1002,7 +1016,7 @@ JitsiConference.prototype._reportAudioProblem = function (ssrc) {
         new Error(JSON.stringify(errorContent)));
     logger.error("Audio problem detected. The audio is received but not played",
         errorContent);
-};
+}
 
 /**
  * Logs an "application log" message
@@ -1066,7 +1080,7 @@ function setupListeners(conference) {
     conference.room.addListener(XMPPEvents.REMOTE_UFRAG_CHANGED, function (ufrag) {
         Statistics.sendLog("Remote ufrag: " + ufrag);
     });
-
+    
     conference.room.addListener(XMPPEvents.REMOTE_TRACK_ADDED,
         function (data) {
             var track = conference.rtc.createRemoteTrack(data);

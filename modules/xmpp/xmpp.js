@@ -32,6 +32,7 @@ function initStrophePlugins(XMPP) {
     require("./strophe.util")();
     require("./strophe.ping")(XMPP, XMPP.eventEmitter);
     require("./strophe.rayo")();
+    require("./strophe.focusAdmin")();
     require("./strophe.logger")();
 }
 
@@ -255,6 +256,22 @@ XMPP.prototype.createRoom = function (roomName, options, settings) {
     }
 
     return this.connection.emuc.createRoom(roomjid, null, options, settings);
+}
+
+XMPP.prototype.sendRemoteMuteAudio = function (jid, success, failure) {
+    return this.connection.focusAdmin.sendRemoteMuteAudio(jid, success, failure);
+}
+
+XMPP.prototype.sendRemoteUnmuteAudio = function (jid, success, failure) {
+    return this.connection.focusAdmin.sendRemoteUnmuteAudio(jid, success, failure);
+}
+
+XMPP.prototype.sendRemoteMuteVideo = function (jid, success, failure) {
+    return this.connection.focusAdmin.sendRemoteMuteVideo(jid, success, failure);
+}
+
+XMPP.prototype.sendRemoteUnmuteVideo = function (jid, success, failure) {
+    return this.connection.focusAdmin.sendRemoteUnmuteVideo(jid, success, failure);
 }
 
 XMPP.prototype.addListener = function(type, listener) {
