@@ -13,19 +13,31 @@ function JitsiConnection(appID, token, options) {
     this.appID = appID;
     this.token = token;
     this.options = options;
-    this.xmpp = new XMPP(options);
+    this.xmpp = new XMPP(options, token);
     this.conferences = {};
 }
 
 /**
  * Connect the client with the server.
- * @param options {object} connecting options (for example authentications parameters).
+ * @param options {object} connecting options
+ * (for example authentications parameters).
  */
 JitsiConnection.prototype.connect = function (options) {
     if(!options)
         options = {};
 
     this.xmpp.connect(options.id, options.password);
+}
+
+/**
+ * Attach to existing connection. Can be used for optimizations. For example:
+ * if the connection is created on the server we can attach to it and start
+ * using it.
+ *
+ * @param options {object} connecting options - rid, sid and jid.
+ */
+JitsiConnection.prototype.attach = function (options) {
+    this.xmpp.attach(options);
 }
 
 /**
@@ -58,9 +70,10 @@ JitsiConnection.prototype.setToken = function (token) {
  * @returns {JitsiConference} returns the new conference object.
  */
 JitsiConnection.prototype.initJitsiConference = function (name, options) {
-    this.conferences[name] = new JitsiConference({name: name, config: options,
-        connection: this});
-    return this.conferences[name];
+    var conference
+        = new JitsiConference({name: name, config: options, connection: this});
+    this.conferences[name] = conference;
+    return conference;
 }
 
 /**
@@ -80,5 +93,12 @@ JitsiConnection.prototype.addEventListener = function (event, listener) {
 JitsiConnection.prototype.removeEventListener = function (event, listener) {
     this.xmpp.removeListener(event, listener);
 }
+
+/**
+ * Returns measured connectionTimes.
+ */
+JitsiConnection.prototype.getConnectionTimes = function () {
+    return this.xmpp.connectionTimes;
+};
 
 module.exports = JitsiConnection;

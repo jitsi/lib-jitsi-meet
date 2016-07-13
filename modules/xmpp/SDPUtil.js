@@ -4,15 +4,18 @@ var RTCBrowserType = require("../RTC/RTCBrowserType");
 
 SDPUtil = {
     filter_special_chars: function (text) {
-        return text.replace(/[\\\/\{,\}\+]/g, "");
+        // XXX Neither one of the falsy values (e.g. null, undefined, false,
+        // "", etc.) "contain" special chars.
+        return text ? text.replace(/[\\\/\{,\}\+]/g, "") : text;
     },
     iceparams: function (mediadesc, sessiondesc) {
         var data = null;
-        if (SDPUtil.find_line(mediadesc, 'a=ice-ufrag:', sessiondesc) &&
-            SDPUtil.find_line(mediadesc, 'a=ice-pwd:', sessiondesc)) {
+        var ufrag, pwd;
+        if ((ufrag = SDPUtil.find_line(mediadesc, 'a=ice-ufrag:', sessiondesc))
+                && (pwd = SDPUtil.find_line(mediadesc, 'a=ice-pwd:', sessiondesc))) {
             data = {
-                ufrag: SDPUtil.parse_iceufrag(SDPUtil.find_line(mediadesc, 'a=ice-ufrag:', sessiondesc)),
-                pwd: SDPUtil.parse_icepwd(SDPUtil.find_line(mediadesc, 'a=ice-pwd:', sessiondesc))
+                ufrag: SDPUtil.parse_iceufrag(ufrag),
+                pwd: SDPUtil.parse_icepwd(pwd)
             };
         }
         return data;

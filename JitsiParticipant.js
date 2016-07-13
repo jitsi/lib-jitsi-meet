@@ -1,9 +1,14 @@
 /* global Strophe */
+var JitsiConferenceEvents = require('./JitsiConferenceEvents');
 
 /**
  * Represents a participant in (a member of) a conference.
+ * @param jid the conference XMPP jid
+ * @param conference
+ * @param displayName
+ * @param isHidden indicates if this participant is a hidden participant
  */
-function JitsiParticipant(jid, conference, displayName){
+function JitsiParticipant(jid, conference, displayName, isHidden){
     this._jid = jid;
     this._id = Strophe.getResourceFromJid(jid);
     this._conference = conference;
@@ -16,6 +21,8 @@ function JitsiParticipant(jid, conference, displayName){
         audio: undefined,
         video: undefined
     };
+    this._isHidden = isHidden;
+    this._properties = {};
 }
 
 /**
@@ -26,10 +33,37 @@ JitsiParticipant.prototype.getConference = function() {
 };
 
 /**
+ * Gets the value of a property of this participant.
+ */
+JitsiParticipant.prototype.getProperty = function(name) {
+    return this._properties[name];
+};
+
+/**
+ * Sets the value of a property of this participant, and fires an event if the
+ * value has changed.
+ * @name the name of the property.
+ * @value the value to set.
+ */
+JitsiParticipant.prototype.setProperty = function(name, value) {
+    var oldValue = this._properties[name];
+    this._properties[name] = value;
+
+    if (value !== oldValue) {
+        this._conference.eventEmitter.emit(
+            JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
+            this,
+            name,
+            oldValue,
+            value);
+    }
+};
+
+/**
  * @returns {Array.<JitsiTrack>} The list of media tracks for this participant.
  */
 JitsiParticipant.prototype.getTracks = function() {
-    return this._tracks;
+    return this._tracks.slice();
 };
 
 /**
@@ -65,6 +99,15 @@ JitsiParticipant.prototype.getStatus = function () {
  */
 JitsiParticipant.prototype.isModerator = function() {
     return this._role === 'moderator';
+};
+
+/**
+ * @returns {Boolean} Whether this participant is a hidden participant. Some
+ * special system participants may want to join hidden (like for example the
+ * recorder).
+ */
+JitsiParticipant.prototype.isHidden = function() {
+    return this._isHidden;
 };
 
 // Gets a link to an etherpad instance advertised by the participant?

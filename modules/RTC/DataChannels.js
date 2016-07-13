@@ -5,6 +5,7 @@
 
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCEvents = require("../../service/RTC/RTCEvents");
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 
 /**
@@ -50,7 +51,7 @@ function DataChannels(peerConnection, emitter) {
 DataChannels.prototype.onDataChannel = function (event) {
     var dataChannel = event.channel;
     var self = this;
-    var lastSelectedEndpoint = null;
+    var selectedEndpoint = null;
 
     dataChannel.onopen = function () {
         logger.info("Data channel opened by the Videobridge!", dataChannel);
@@ -67,10 +68,13 @@ DataChannels.prototype.onDataChannel = function (event) {
         // selections so that it can do adaptive simulcast,
         // we want the notification to trigger even if userJid is undefined,
         // or null.
-        self.handleSelectedEndpointEvent(self.lastSelectedEndpoint);
+        // XXX why do we not do the same for pinned endpoints?
+        self.sendSelectedEndpointMessage(self.selectedEndpoint);
     };
 
     dataChannel.onerror = function (error) {
+        var e = new Error("Data Channel Error:" + error);
+        GlobalOnErrorHandler.callErrorHandler(e);
         logger.error("Data Channel Error:", error, dataChannel);
     };
 
@@ -83,10 +87,12 @@ DataChannels.prototype.onDataChannel = function (event) {
             obj = JSON.parse(data);
         }
         catch (e) {
+            GlobalOnErrorHandler.callErrorHandler(e);
             logger.error(
                 "Failed to parse data channel message as JSON: ",
                 data,
-                dataChannel);
+                dataChannel,
+                e);
         }
         if (('undefined' !== typeof(obj)) && (null !== obj)) {
             var colibriClass = obj.colibriClass;
@@ -158,14 +164,30 @@ DataChannels.prototype.onDataChannel = function (event) {
     this._dataChannels.push(dataChannel);
 };
 
-DataChannels.prototype.handleSelectedEndpointEvent = function (userResource) {
-    this.lastSelectedEndpoint = userResource;
-    this._onXXXEndpointChanged("selected", userResource);
-}
+/**
+ * Closes all currently opened data channels.
+ */
+DataChannels.prototype.closeAllChannels = function () {
+    this._dataChannels.forEach(function (dc){
+        // the DC will be removed from the array on 'onclose' event
+        dc.close();
+    });
+};
 
-DataChannels.prototype.handlePinnedEndpointEvent = function (userResource) {
-    this._onXXXEndpointChanged("pinnned", userResource);
-}
+/**
+ * Sends a "selected endpoint changed" message via the data channel.
+ */
+DataChannels.prototype.sendSelectedEndpointMessage = function (endpointId) {
+    this.selectedEndpoint = endpointId;
+    this._onXXXEndpointChanged("selected", endpointId);
+};
+
+/**
+ * Sends a "pinned endpoint changed" message via the data channel.
+ */
+DataChannels.prototype.sendPinnedEndpointMessage = function (endpointId) {
+    this._onXXXEndpointChanged("pinnned", endpointId);
+};
 
 /**
  * Notifies Videobridge about a change in the value of a specific
@@ -184,10 +206,10 @@ DataChannels.prototype._onXXXEndpointChanged = function (xxx, userResource) {
     var upper = head.toUpperCase() + tail;
 
     // Notify Videobridge about the specified endpoint change.
-    console.log(lower + ' endpoint changed: ', userResource);
+    logger.log(lower + ' endpoint changed: ', userResource);
     this._some(function (dataChannel) {
         if (dataChannel.readyState == 'open') {
-            console.log(
+            logger.log(
                     'sending ' + lower
                         + ' endpoint changed notification to the bridge: ',
                     userResource);
@@ -197,12 +219,20 @@ DataChannels.prototype._onXXXEndpointChanged = function (xxx, userResource) {
             jsonObject.colibriClass = (upper + 'EndpointChangedEvent');
             jsonObject[lower + "Endpoint"]
                 = (userResource ? userResource : null);
-            dataChannel.send(JSON.stringify(jsonObject));
+            try {
+                dataChannel.send(JSON.stringify(jsonObject));
+            } catch (e) {
+                // FIXME: Maybe we should check if the conference is left
+                // before calling _onXXXEndpointChanged method.
+                // FIXME: We should check if we are disposing correctly the
+                // data channels.
+                logger.warn(e);
+            }
 
             return true;
         }
     });
-}
+};
 
 DataChannels.prototype._some = function (callback, thisArg) {
     var dataChannels = this._dataChannels;
@@ -215,6 +245,6 @@ DataChannels.prototype._some = function (callback, thisArg) {
     } else {
         return false;
     }
-}
+};
 
 module.exports = DataChannels;

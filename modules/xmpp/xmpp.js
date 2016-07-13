@@ -3,20 +3,22 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var EventEmitter = require("events");
 var Pako = require("pako");
+var RandomUtil = require("../util/RandomUtil");
 var RTCEvents = require("../../service/RTC/RTCEvents");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var JitsiConnectionErrors = require("../../JitsiConnectionErrors");
 var JitsiConnectionEvents = require("../../JitsiConnectionEvents");
 var RTC = require("../RTC/RTC");
+var RTCBrowserType = require("../RTC/RTCBrowserType");
 
 var authenticatedUser = false;
 
-function createConnection(bosh) {
+function createConnection(bosh, token) {
     bosh = bosh || '/http-bind';
 
     // Append token as URL param
-    if (this.token) {
-        bosh += (bosh.indexOf('?') == -1 ? '?' : '&') + 'token=' + this.token;
+    if (token) {
+        bosh += (bosh.indexOf('?') == -1 ? '?' : '&') + 'token=' + token;
     }
 
     return new Strophe.Connection(bosh);
@@ -33,16 +35,19 @@ function initStrophePlugins(XMPP) {
     require("./strophe.logger")();
 }
 
-function XMPP(options) {
+function XMPP(options, token) {
     this.eventEmitter = new EventEmitter();
     this.connection = null;
     this.disconnectInProgress = false;
-
+    this.connectionTimes = {};
     this.forceMuted = false;
     this.options = options;
     initStrophePlugins(this);
 
-    this.connection = createConnection(options.bosh);
+    this.connection = createConnection(options.bosh, token);
+
+    // Initialize features advertised in disco-info
+    this.initFeaturesList();
 
     // Setup a disconnect on unload as a way to facilitate API consumers. It
     // sounds like they would want that. A problem for them though may be if
@@ -52,10 +57,119 @@ function XMPP(options) {
     $(window).on('beforeunload unload', this.disconnect.bind(this));
 }
 
+/**
+ * Initializes the list of feature advertised through the disco-info mechanism
+ */
+XMPP.prototype.initFeaturesList = function () {
+    var disco = this.connection.disco;
+    if (disco) {
+        // http://xmpp.org/extensions/xep-0167.html#support
+        // http://xmpp.org/extensions/xep-0176.html#support
+        disco.addFeature('urn:xmpp:jingle:1');
+        disco.addFeature('urn:xmpp:jingle:apps:rtp:1');
+        disco.addFeature('urn:xmpp:jingle:transports:ice-udp:1');
+        disco.addFeature('urn:xmpp:jingle:apps:dtls:0');
+        disco.addFeature('urn:xmpp:jingle:transports:dtls-sctp:1');
+        disco.addFeature('urn:xmpp:jingle:apps:rtp:audio');
+        disco.addFeature('urn:xmpp:jingle:apps:rtp:video');
+
+        if (RTCBrowserType.isChrome() || RTCBrowserType.isOpera()
+            || RTCBrowserType.isTemasysPluginUsed()) {
+            disco.addFeature('urn:ietf:rfc:4588');
+        }
+
+        // this is dealt with by SDP O/A so we don't need to announce this
+        //disco.addFeature('urn:xmpp:jingle:apps:rtp:rtcp-fb:0'); // XEP-0293
+        //disco.addFeature('urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'); // XEP-0294
+
+        disco.addFeature('urn:ietf:rfc:5761'); // rtcp-mux
+        disco.addFeature('urn:ietf:rfc:5888'); // a=group, e.g. bundle
+
+        //disco.addFeature('urn:ietf:rfc:5576'); // a=ssrc
+
+        // Enable Lipsync ?
+        if (this.options.enableLipSync && RTCBrowserType.isChrome()) {
+            logger.info("Lip-sync enabled !");
+            this.connection.disco.addFeature('http://jitsi.org/meet/lipsync');
+        }
+    }
+};
+
 XMPP.prototype.getConnection = function () { return this.connection; };
 
+/**
+ * Receive connection status changes and handles them.
+ * @password {string} the password passed in connect method
+ * @status the connection status
+ * @msg message
+ */
+XMPP.prototype.connectionHandler = function (password, status, msg) {
+    var now = window.performance.now();
+    this.connectionTimes[Strophe.getStatusString(status).toLowerCase()] = now;
+    logger.log("(TIME) Strophe " + Strophe.getStatusString(status) +
+        (msg ? "[" + msg + "]" : "") + ":\t", now);
+    if (status === Strophe.Status.CONNECTED ||
+        status === Strophe.Status.ATTACHED) {
+        if (this.options.useStunTurn) {
+            this.connection.jingle.getStunAndTurnCredentials();
+        }
+
+        logger.info("My Jabber ID: " + this.connection.jid);
+
+        // Schedule ping ?
+        var pingJid = this.connection.domain;
+        this.connection.ping.hasPingSupport(
+            pingJid,
+            function (hasPing) {
+                if (hasPing)
+                    this.connection.ping.startInterval(pingJid);
+                else
+                    logger.warn("Ping NOT supported by " + pingJid);
+            }.bind(this));
+
+        if (password)
+            authenticatedUser = true;
+        if (this.connection && this.connection.connected &&
+            Strophe.getResourceFromJid(this.connection.jid)) {
+            // .connected is true while connecting?
+//                this.connection.send($pres());
+            this.eventEmitter.emit(
+                    JitsiConnectionEvents.CONNECTION_ESTABLISHED,
+                    Strophe.getResourceFromJid(this.connection.jid));
+        }
+    } else if (status === Strophe.Status.CONNFAIL) {
+        if (msg === 'x-strophe-bad-non-anon-jid') {
+            this.anonymousConnectionFailed = true;
+        } else {
+            this.connectionFailed = true;
+        }
+        this.lastErrorMsg = msg;
+    } else if (status === Strophe.Status.DISCONNECTED) {
+        // Stop ping interval
+        this.connection.ping.stopInterval();
+        this.disconnectInProgress = false;
+        if (this.anonymousConnectionFailed) {
+            // prompt user for username and password
+            this.eventEmitter.emit(JitsiConnectionEvents.CONNECTION_FAILED,
+                JitsiConnectionErrors.PASSWORD_REQUIRED);
+        } else if(this.connectionFailed) {
+            this.eventEmitter.emit(JitsiConnectionEvents.CONNECTION_FAILED,
+                JitsiConnectionErrors.OTHER_ERROR,
+                msg ? msg : this.lastErrorMsg);
+        } else {
+            this.eventEmitter.emit(
+                    JitsiConnectionEvents.CONNECTION_DISCONNECTED,
+                    msg ? msg : this.lastErrorMsg);
+        }
+    } else if (status === Strophe.Status.AUTHFAIL) {
+        // wrong password or username, prompt user
+        this.eventEmitter.emit(JitsiConnectionEvents.CONNECTION_FAILED,
+            JitsiConnectionErrors.PASSWORD_REQUIRED);
+
+    }
+}
+
 XMPP.prototype._connect = function (jid, password) {
-    var self = this;
     // connection.connect() starts the connection process.
     //
     // As the connection process proceeds, the user supplied callback will
@@ -83,72 +197,25 @@ XMPP.prototype._connect = function (jid, password) {
     //  Status.DISCONNECTING - The connection is currently being terminated
     //  Status.ATTACHED - The connection has been attached
 
-    var anonymousConnectionFailed = false;
-    var connectionFailed = false;
-    var lastErrorMsg;
-    this.connection.connect(jid, password, function (status, msg) {
-        logger.log("(TIME) Strophe " + Strophe.getStatusString(status) +
-            (msg ? "[" + msg + "]" : "") + "\t:" + window.performance.now());
-        if (status === Strophe.Status.CONNECTED) {
-            if (self.options.useStunTurn) {
-                self.connection.jingle.getStunAndTurnCredentials();
-            }
+    this.anonymousConnectionFailed = false;
+    this.connectionFailed = false;
+    this.lastErrorMsg = undefined;
+    this.connection.connect(jid, password,
+        this.connectionHandler.bind(this, password));
+}
 
-            logger.info("My Jabber ID: " + self.connection.jid);
-
-            // Schedule ping ?
-            var pingJid = self.connection.domain;
-            self.connection.ping.hasPingSupport(
-                pingJid,
-                function (hasPing) {
-                    if (hasPing)
-                        self.connection.ping.startInterval(pingJid);
-                    else
-                        logger.warn("Ping NOT supported by " + pingJid);
-                }
-            );
-
-            if (password)
-                authenticatedUser = true;
-            if (self.connection && self.connection.connected &&
-                Strophe.getResourceFromJid(self.connection.jid)) {
-                // .connected is true while connecting?
-//                self.connection.send($pres());
-                self.eventEmitter.emit(
-                        JitsiConnectionEvents.CONNECTION_ESTABLISHED,
-                        Strophe.getResourceFromJid(self.connection.jid));
-            }
-        } else if (status === Strophe.Status.CONNFAIL) {
-            if (msg === 'x-strophe-bad-non-anon-jid') {
-                anonymousConnectionFailed = true;
-            } else {
-                connectionFailed = true;
-            }
-            lastErrorMsg = msg;
-        } else if (status === Strophe.Status.DISCONNECTED) {
-            // Stop ping interval
-            self.connection.ping.stopInterval();
-            self.disconnectInProgress = false;
-            if (anonymousConnectionFailed) {
-                // prompt user for username and password
-                self.eventEmitter.emit(JitsiConnectionEvents.CONNECTION_FAILED,
-                    JitsiConnectionErrors.PASSWORD_REQUIRED);
-            } else if(connectionFailed) {
-                self.eventEmitter.emit(JitsiConnectionEvents.CONNECTION_FAILED,
-                    JitsiConnectionErrors.OTHER_ERROR,
-                    msg ? msg : lastErrorMsg);
-            } else {
-                self.eventEmitter.emit(
-                        JitsiConnectionEvents.CONNECTION_DISCONNECTED,
-                        msg ? msg : lastErrorMsg);
-            }
-        } else if (status === Strophe.Status.AUTHFAIL) {
-            // wrong password or username, prompt user
-            self.eventEmitter.emit(JitsiConnectionEvents.CONNECTION_FAILED,
-                JitsiConnectionErrors.PASSWORD_REQUIRED);
-
-        }
-    });
+/**
+ * Attach to existing connection. Can be used for optimizations. For example:
+ * if the connection is created on the server we can attach to it and start
+ * using it.
+ *
+ * @param options {object} connecting options - rid, sid, jid and password.
+ */
+ XMPP.prototype.attach = function (options) {
+    var now = this.connectionTimes["attaching"] = window.performance.now();
+    logger.log("(TIME) Strophe Attaching\t:" + now);
+    this.connection.attach(options.jid, options.sid, parseInt(options.rid,10)+1,
+        this.connectionHandler.bind(this, options.password));
 }
 
 XMPP.prototype.connect = function (jid, password) {
@@ -156,8 +223,10 @@ XMPP.prototype.connect = function (jid, password) {
         var configDomain
             = this.options.hosts.anonymousdomain || this.options.hosts.domain;
         // Force authenticated domain if room is appended with '?login=true'
+        // or if we're joining with the token
         if (this.options.hosts.anonymousdomain
-                && window.location.search.indexOf("login=true") !== -1) {
+                && (window.location.search.indexOf("login=true") !== -1
+                    || this.options.token)) {
             configDomain = this.options.hosts.domain;
         }
         jid = configDomain || window.location.hostname;
@@ -179,6 +248,9 @@ XMPP.prototype.createRoom = function (roomName, options, settings) {
 
         if (!authenticatedUser)
             tmpJid = tmpJid.substr(0, 8);
+        else
+            tmpJid += "-" + RandomUtil.randomHexString(6);
+
         roomjid += '/' + tmpJid;
     }
 
@@ -191,26 +263,6 @@ XMPP.prototype.addListener = function(type, listener) {
 
 XMPP.prototype.removeListener = function (type, listener) {
     this.eventEmitter.removeListener(type, listener);
-};
-
-//FIXME: this should work with the room
-XMPP.prototype.leaveRoom = function (jid) {
-    var handler = this.connection.jingle.jid2session[jid];
-    if (handler && handler.peerconnection) {
-        // FIXME: probably removing streams is not required and close() should
-        // be enough
-        if (RTC.localAudio) {
-            handler.peerconnection.removeStream(
-                RTC.localAudio.getOriginalStream(), true);
-        }
-        if (RTC.localVideo) {
-            handler.peerconnection.removeStream(
-                RTC.localVideo.getOriginalStream(), true);
-        }
-        handler.peerconnection.close();
-    }
-    this.eventEmitter.emit(XMPPEvents.DISPOSE_CONFERENCE);
-    this.connection.emuc.doLeave(jid);
 };
 
 /**

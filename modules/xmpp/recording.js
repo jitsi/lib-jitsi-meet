@@ -1,19 +1,26 @@
 /* global $, $iq, config, connection, focusMucJid, messageHandler,
    Toolbar, Util, Promise */
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
+var JitsiRecorderErrors = require("../../JitsiRecorderErrors");
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
+
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 
 function Recording(type, eventEmitter, connection, focusMucJid, jirecon,
     roomjid) {
     this.eventEmitter = eventEmitter;
     this.connection = connection;
-    this.state = "off";
+    this.state = null;
     this.focusMucJid = focusMucJid;
     this.jirecon = jirecon;
     this.url = null;
     this.type = type;
-    this._isSupported = ((type === Recording.types.JIBRI)
-        || (type === Recording.types.JIRECON && !this.jirecon))? false : true;
+    this._isSupported
+        = ( type === Recording.types.JIRECON && !this.jirecon
+            || (type !== Recording.types.JIBRI
+                && type !== Recording.types.COLIBRI))
+            ? false : true;
+
     /**
      * The ID of the jirecon recording session. Jirecon generates it when we
      * initially start recording, and it needs to be used in subsequent requests
@@ -29,41 +36,75 @@ Recording.types = {
     JIBRI: "jibri"
 };
 
+Recording.status = {
+    ON: "on",
+    OFF: "off",
+    AVAILABLE: "available",
+    UNAVAILABLE: "unavailable",
+    PENDING: "pending",
+    RETRYING: "retrying",
+    BUSY: "busy",
+    FAILED: "failed"
+};
+
+Recording.action = {
+    START: "start",
+    STOP: "stop"
+};
+
 Recording.prototype.handleJibriPresence = function (jibri) {
     var attributes = jibri.attributes;
     if(!attributes)
         return;
 
-    this._isSupported =
-        (attributes.status && attributes.status !== "undefined");
-    if(this._isSupported) {
-        this.url = attributes.url || null;
-        this.state = attributes.status || "off";
+    var newState = attributes.status;
+    logger.log("Handle jibri presence : ", newState);
+
+    if (newState === this.state)
+        return;
+
+    if (newState === "undefined") {
+        this.state = Recording.status.UNAVAILABLE;
     }
-    this.eventEmitter.emit(XMPPEvents.RECORDING_STATE_CHANGED);
+    else if (newState === "off") {
+        if (!this.state
+            || this.state === "undefined"
+            || this.state === Recording.status.UNAVAILABLE)
+            this.state = Recording.status.AVAILABLE;
+        else
+            this.state = Recording.status.OFF;
+    }
+    else {
+        this.state = newState;
+    }
+
+    this.eventEmitter.emit(XMPPEvents.RECORDER_STATE_CHANGED, this.state);
 };
 
-Recording.prototype.setRecordingJibri = function (state, callback, errCallback,
-    options) {
+Recording.prototype.setRecordingJibri
+    = function (state, callback, errCallback, options) {
+
     if (state == this.state){
-        errCallback(new Error("Invalid state!"));
+        errCallback(JitsiRecorderErrors.INVALID_STATE);
     }
     options = options || {};
-    // FIXME jibri does not accept IQ without 'url' attribute set ?
 
+    // FIXME jibri does not accept IQ without 'url' attribute set ?
     var iq = $iq({to: this.focusMucJid, type: 'set'})
         .c('jibri', {
-            "xmlns": 'http://jitsi.org/protocol/jibri',
-            "action": (state === 'on') ? 'start' : 'stop',
-            "streamid": options.streamId,
-            "follow-entity": options.followEntity
+        "xmlns": 'http://jitsi.org/protocol/jibri',
+        "action": (state === Recording.status.ON)
+                    ? Recording.action.START
+                    : Recording.action.STOP,
+        "streamid": options.streamId,
         }).up();
 
-    logger.log('Set jibri recording: '+state, iq.nodeTree);
-    console.log(iq.nodeTree);
+    logger.log('Set jibri recording: ' + state, iq.nodeTree);
+    logger.log(iq.nodeTree);
     this.connection.sendIQ(
         iq,
         function (result) {
+            logger.log("Result", result);
             callback($(result).find('jibri').attr('state'),
             $(result).find('jibri').attr('url'));
         },
@@ -74,20 +115,23 @@ Recording.prototype.setRecordingJibri = function (state, callback, errCallback,
 };
 
 Recording.prototype.setRecordingJirecon =
-function (state, callback, errCallback, options) {
+    function (state, callback, errCallback, options) {
+
     if (state == this.state){
         errCallback(new Error("Invalid state!"));
     }
 
     var iq = $iq({to: this.jirecon, type: 'set'})
         .c('recording', {xmlns: 'http://jitsi.org/protocol/jirecon',
-            action: (state === 'on') ? 'start' : 'stop',
+            action: (state === Recording.status.ON)
+                ? Recording.action.START
+                : Recording.action.STOP,
             mucjid: this.roomjid});
     if (state === 'off'){
         iq.attrs({rid: this.jireconRid});
     }
 
-    console.log('Start recording');
+    logger.log('Start recording');
     var self = this;
     this.connection.sendIQ(
         iq,
@@ -95,18 +139,18 @@ function (state, callback, errCallback, options) {
             // TODO wait for an IQ with the real status, since this is
             // provisional?
             self.jireconRid = $(result).find('recording').attr('rid');
-            console.log('Recording ' +
-                ((state === 'on') ? 'started' : 'stopped') +
+            logger.log('Recording ' +
+                ((state === Recording.status.ON) ? 'started' : 'stopped') +
                 '(jirecon)' + result);
             self.state = state;
-            if (state === 'off'){
+            if (state === Recording.status.OFF){
                 self.jireconRid = null;
             }
 
             callback(state);
         },
         function (error) {
-            console.log('Failed to start recording, error: ', error);
+            logger.log('Failed to start recording, error: ', error);
             errCallback(error);
         });
 };
@@ -125,7 +169,7 @@ function (state, callback, errCallback, options) {
     var self = this;
     this.connection.sendIQ(elem,
         function (result) {
-            console.log('Set recording "', state, '". Result:', result);
+            logger.log('Set recording "', state, '". Result:', result);
             var recordingElem = $(result).find('>conference>recording');
             var newState = recordingElem.attr('state');
 
@@ -143,7 +187,7 @@ function (state, callback, errCallback, options) {
             }
         },
         function (error) {
-            console.warn(error);
+            logger.warn(error);
             errCallback(error);
         }
     );
@@ -162,39 +206,61 @@ function (state, callback, errCallback, options) {
             this.setRecordingJibri(state, callback, errCallback, options);
             break;
         default:
-            console.error("Unknown recording type!");
+            var errmsg = "Unknown recording type!";
+            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+            logger.error(errmsg);
             return;
     }
 };
 
 /**
- *Starts/stops the recording
+ * Starts/stops the recording.
  * @param token token for authentication
  * @param statusChangeHandler {function} receives the new status as argument.
  */
 Recording.prototype.toggleRecording = function (options, statusChangeHandler) {
-    if ((!options.token && this.type === Recording.types.COLIBRI) ||
-        (!options.streamId && this.type === Recording.types.JIBRI)){
-        statusChangeHandler("error", new Error("No token passed!"));
+    var oldState = this.state;
+
+    // If the recorder is currently unavailable we throw an error.
+    if (oldState === Recording.status.UNAVAILABLE
+        || oldState === Recording.status.FAILED)
+        statusChangeHandler(Recording.status.FAILED,
+                            JitsiRecorderErrors.RECORDER_UNAVAILABLE);
+    else if (oldState === Recording.status.BUSY)
+        statusChangeHandler(Recording.status.BUSY,
+                            JitsiRecorderErrors.RECORDER_BUSY);
+
+    // If we're about to turn ON the recording we need either a streamId or
+    // an authentication token depending on the recording type. If we don't
+    // have any of those we throw an error.
+    if ((oldState === Recording.status.OFF
+        || oldState === Recording.status.AVAILABLE)
+        && ((!options.token && this.type === Recording.types.COLIBRI) ||
+        (!options.streamId && this.type === Recording.types.JIBRI))) {
+        statusChangeHandler(Recording.status.FAILED,
+                            JitsiRecorderErrors.NO_TOKEN);
         logger.error("No token passed!");
         return;
     }
 
-    var oldState = this.state;
-    var newState = (oldState === 'off' || !oldState) ? 'on' : 'off';
+    var newState = (oldState === Recording.status.AVAILABLE
+                    || oldState === Recording.status.OFF)
+                    ? Recording.status.ON
+                    : Recording.status.OFF;
+
     var self = this;
+    logger.log("Toggle recording (old state, new state): ", oldState, newState);
     this.setRecording(newState,
         function (state, url) {
-            logger.log("New recording state: ", state);
+            // If the state is undefined we're going to wait for presence
+            // update.
             if (state && state !== oldState) {
                 self.state = state;
                 self.url = url;
                 statusChangeHandler(state);
-            } else {
-                statusChangeHandler("error", new Error("Status not changed!"));
             }
         }, function (error) {
-            statusChangeHandler("error", error);
+            statusChangeHandler(Recording.status.FAILED, error);
         }, options);
 };
 

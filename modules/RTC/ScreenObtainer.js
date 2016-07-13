@@ -4,6 +4,8 @@ var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
 var AdapterJS = require("./adapter.screenshare");
 var JitsiTrackErrors = require("../../JitsiTrackErrors");
+var JitsiTrackError = require("../../JitsiTrackError");
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 /**
  * Indicates whether the Chrome desktop sharing extension is installed.
@@ -63,7 +65,15 @@ var ScreenObtainer = {
         var chromeMethod =
             (options.desktopSharingChromeMethod || options.desktopSharing);
 
-        if (RTCBrowserType.isTemasysPluginUsed()) {
+        if (RTCBrowserType.isNWJS()) {
+            obtainDesktopStream = function (onSuccess, onFailure) {
+                window.JitsiMeetNW.obtainDesktopStream (
+                    onSuccess, function (error, constraints) {
+                        onFailure && onFailure(new JitsiTrackError(
+                            error, constraints, ["desktop"]));
+                    });
+            };
+        } else if (RTCBrowserType.isTemasysPluginUsed()) {
             if (!AdapterJS.WebRTCPlugin.plugin.HasScreensharingFeature) {
                 logger.info("Screensharing not supported by this plugin " +
                     "version");
@@ -169,10 +179,8 @@ var ScreenObtainer = {
 
         // Make sure desktopsharing knows that we failed, so that it doesn't get
         // stuck in 'switching' mode.
-        errorCallback({
-            type: "jitsiError",
-            errorObject: JitsiTrackErrors.FIREFOX_EXTENSION_NEEDED
-        });
+        errorCallback(
+            new JitsiTrackError(JitsiTrackErrors.FIREFOX_EXTENSION_NEEDED));
     },
     /**
      * Asks Chrome extension to call chooseDesktopMedia and gets chrome
@@ -203,25 +211,23 @@ var ScreenObtainer = {
                                 streamCallback, failCallback);
                         }, 500);
                     },
-                    function (arg) {
-                        logger.log("Failed to install the extension from:"
-                            + getWebStoreInstallUrl(self.options), arg);
-                        failCallback({
-                            type: "jitsiError",
-                            errorObject: JitsiTrackErrors
-                                .CHROME_EXTENSION_INSTALLATION_ERROR
-                        });
-                    }
+                    handleExtensionInstallationError
                 );
             } catch(e) {
-                logger.log("Failed to install the extension from:"
-                    + self.getWebStoreInstallUrl(this.options), e);
-                failCallback({
-                    type: "jitsiError",
-                    errorObject:
-                        JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR
-                });
+                handleExtensionInstallationError(e);
             }
+        }
+
+        function handleExtensionInstallationError(e) {
+            var msg = "Failed to install the extension from "
+                + getWebStoreInstallUrl(self.options);
+
+            logger.log(msg, e);
+
+            failCallback(new JitsiTrackError(
+                JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR,
+                msg
+            ));
         }
     }
 };
@@ -291,13 +297,14 @@ function isUpdateRequired(minVersion, extVersion) {
         return false;
     }
     catch (e) {
+        GlobalOnErrorHandler.callErrorHandler(e);
         logger.error("Failed to parse extension version", e);
         return true;
     }
 }
 
 function checkChromeExtInstalled(callback, options) {
-    if (!chrome || !chrome.runtime) {
+    if (typeof chrome === "undefined" || !chrome || !chrome.runtime) {
         // No API, so no extension for sure
         callback(false, false);
         return;
@@ -342,7 +349,13 @@ function doGetStreamFromExtension(options, streamCallback, failCallback) {
         },
         function (response) {
             if (!response) {
-                failCallback(chrome.runtime.lastError);
+                // possibly re-wraping error message to make code consistent
+                var lastError = chrome.runtime.lastError;
+                failCallback(lastError instanceof Error
+                    ? lastError
+                    : new JitsiTrackError(
+                        JitsiTrackErrors.CHROME_EXTENSION_GENERIC_ERROR,
+                        lastError));
                 return;
             }
             logger.log("Response from extension: ", response);
@@ -360,15 +373,14 @@ function doGetStreamFromExtension(options, streamCallback, failCallback) {
                 // then the callback is called with an empty streamId.
                 if(response.streamId === "")
                 {
-                    failCallback({
-                        type: "jitsiError",
-                        errorObject:
-                            JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED
-                    });
+                    failCallback(new JitsiTrackError(
+                        JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED));
                     return;
                 }
 
-                failCallback("Extension failed to get the stream");
+                failCallback(new JitsiTrackError(
+                    JitsiTrackErrors.CHROME_EXTENSION_GENERIC_ERROR,
+                    response.error));
             }
         }
     );
