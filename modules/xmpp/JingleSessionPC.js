@@ -309,6 +309,10 @@ JingleSessionPC.prototype.active = function () {
     return this.state == 'active';
 };
 
+JingleSessionPC.prototype.getName = function() {
+    return this.room.roomJid;
+};
+
 JingleSessionPC.prototype.sendIceCandidate = function (candidate) {
     var self = this;
     if (candidate && !this.lasticecandidate) {

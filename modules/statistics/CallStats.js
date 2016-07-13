@@ -102,7 +102,7 @@ var CallStats = _try_catch(function(jingleSession, Settings, options) {
 
         this.userID = Settings.getCallStatsUserName();
 
-        this.confID = this.session.room.roomjid;
+        this.confID = options.callStatsConfIDNamespace + '/' + this.session.getName();
 
         //userID is generated or given by the origin server
         callStats.initialize(options.callStatsID,
