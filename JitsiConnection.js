@@ -58,9 +58,8 @@ JitsiConnection.prototype.attach = function (options) {
 
 /**
  * Reloads the JitsiConnection instance and all related conferences
- * @param options {object} options to be overriden
  */
-JitsiConnection.prototype._reload = function (options) {
+JitsiConnection.prototype._reload = function () {
     if(this.retryOnFail === 0)
         return false;
     this.retryOnFail--;
@@ -73,7 +72,7 @@ JitsiConnection.prototype._reload = function (options) {
         this._reloadConferences.bind(this, states);
     this.addEventListener(JitsiConnectionEvents.CONNECTION_ESTABLISHED,
         this.connectionEstablishedHandler);
-    this.xmpp.reload(options || {});
+    this.xmpp.reload();
     return true;
 }
 
@@ -87,8 +86,8 @@ JitsiConnection.prototype._reloadConferences = function (states) {
     this.connectionEstablishedHandler = null;
     states = states || {};
     for(var name in this.conferences) {
-        this.conferences[name]._reinitialize({connection: this,
-            roomState: states[name]});
+        this.conferences[name]._init({roomState: states[name]});
+        this.conferences[name].join();
     }
 }
 

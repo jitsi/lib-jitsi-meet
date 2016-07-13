@@ -37,18 +37,10 @@ function JitsiConference(options) {
     this.eventEmitter = new EventEmitter();
     this.settings = new Settings();
     this.retries = 0;
+    this.options = options;
+    this.eventManager = new JitsiConferenceEventManager(this);
     this._init(options);
     this.componentsVersions = new ComponentsVersions(this);
-    this.rtc = new RTC(this, options);
-    this.statistics = new Statistics(this.xmpp, {
-        callStatsID: this.options.config.callStatsID,
-        callStatsSecret: this.options.config.callStatsSecret,
-        disableThirdPartyRequests:
-            this.options.config.disableThirdPartyRequests,
-        roomName: this.options.name
-    });
-    this.eventManager = new JitsiConferenceEventManager(this);
-    this._setupListeners();
     this.participants = {};
     this.lastDominantSpeaker = null;
     this.dtmfManager = null;
@@ -68,33 +60,55 @@ function JitsiConference(options) {
 
 /**
  * Initializes the conference object properties
- * @param options overrides this.options
+ * @param options {object}
+ * @param connection {JitsiConnection} overrides this.connection
+ * @param roomState {object} the state of the ChatRoom instance received by
+ * ChatRoom.exportState. If this property is set it will be passed to
+ * ChatRoom.loadState
  */
 JitsiConference.prototype._init = function (options) {
     if(!options)
         options = {};
-    if(!this.options) {
-        this.options = options;
-    } else {
-        // Override config options
-        var config = options.config || {};
-        for(var key in config)
-            this.options.config[key] = config[key] || this.options.config[key];
-    }
 
     // Override connection and xmpp properties (Usefull if the connection
     // reloaded)
-    this.connection = options.connection || this.connection;
-    this.xmpp = this.connection.xmpp;
+    if(options.connection) {
+        this.connection = options.connection;
+        this.xmpp = this.connection.xmpp;
+        // Setup XMPP events only if we have new connection object.
+        this.eventManager.setupXMPPListeners();
+    }
+
     this.retries++;
     this.room = this.xmpp.createRoom(this.options.name, this.options.config,
         this.settings, (this.retries < 4 ? 3 : null));
+
+    this.eventManager.setupChatRoomListeners();
 
     //restore previous presence options
     if(options.roomState) {
         this.room.loadState(options.roomState);
     }
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
+
+    if(!this.rtc) {
+        this.rtc = new RTC(this, options);
+        this.eventManager.setupRTCListeners();
+    }
+
+
+    if(!this.statistics) {
+        this.statistics = new Statistics(this.xmpp, {
+            callStatsID: this.options.config.callStatsID,
+            callStatsSecret: this.options.config.callStatsSecret,
+            disableThirdPartyRequests:
+                this.options.config.disableThirdPartyRequests,
+            roomName: this.options.name
+        });
+    }
+    // Always add listeners because on reload we are executing leave and the
+    // listeners are removed from statistics module.
+    this.eventManager.setupStatisticsListeners();
 }
 
 /**
@@ -107,17 +121,7 @@ JitsiConference.prototype._reload = function (options) {
         options = {};
     options.roomState = roomState;
     this.leave(true);
-    this._reinitialize(options);
-}
-
-/**
- * Reinitializes JitsiConference instance
- * @param options {object} options to be overriden
- */
-JitsiConference.prototype._reinitialize = function (options) {
-    this._init(options || {});
-    this.eventManager.setupChatRoomListeners();
-    this.eventManager.setupStatisticsListeners();
+    this._init(options);
     this.join();
 }
 
@@ -1162,16 +1166,6 @@ JitsiConference.prototype._reportAudioProblem = function (ssrc) {
  */
 JitsiConference.prototype.sendApplicationLog = function(message) {
     Statistics.sendLog(message);
-};
-
-/**
- * Setups the listeners needed for the conference.
- */
-JitsiConference.prototype._setupListeners = function () {
-    this.eventManager.setupXMPPListeners();
-    this.eventManager.setupChatRoomListeners();
-    this.eventManager.setupRTCListeners();
-    this.eventManager.setupStatisticsListeners();
 };
 
 /**

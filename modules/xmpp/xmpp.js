@@ -60,19 +60,8 @@ function XMPP(options, token) {
 
 /**
  * Reloads the XMPP module
- * @param options {object} options to be overriden
  */
-XMPP.prototype.reload = function (options) {
-    if(!options)
-        options = {};
-    if(!this.options) {
-        this.options = options;
-    } else {
-        // Override config options
-        for(var key in options)
-            this.options[key] = options[key] || this.options[key];
-    }
-
+XMPP.prototype.reload = function () {
     this.disconnect();
     this.connection.pause();
     this.connection = createConnection(this.options.bosh, this.token);

@@ -21,12 +21,13 @@ var JitsiTrackError = require("../../JitsiTrackError");
 // downloading their API as soon as possible and (2) do the downloading
 // asynchronously.
 function loadCallStatsAPI() {
-    if(!isCallstatsLoaded)
+    if(!isCallstatsLoaded) {
         ScriptUtil.loadScript(
                 'https://api.callstats.io/static/callstats.min.js',
                 /* async */ true,
                 /* prepend */ true);
-    isCallstatsLoaded = true;
+        isCallstatsLoaded = true;
+    }
     // FIXME At the time of this writing, we hope that the callstats.io API will
     // have loaded by the time we needed it (i.e. CallStats.init is invoked).
 }
@@ -221,14 +222,9 @@ Statistics.prototype.startCallStats = function (session, settings) {
  * Removes the callstats.io instances.
  */
 Statistics.prototype.stopCallStats = function () {
-    if(this.callStatsIntegrationEnabled && this.callstats) {
-        var callstatsList = Statistics.callsStatsInstances;
-        for(var i = 0;i < callstatsList.length; i++) {
-            if(this.callstats === callstatsList[i]) {
-                Statistics.callsStatsInstances.splice(i, 1);
-                break;
-            }
-        }
+    if(this.callstats) {
+        var index = Statistics.callsStatsInstances.indexOf(this.callstats);
+        Statistics.callsStatsInstances.splice(index, 1);
         this.callstats = null;
         CallStats.dispose();
     }
