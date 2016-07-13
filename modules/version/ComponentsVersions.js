@@ -19,17 +19,18 @@ ComponentsVersions.XMPP_SERVER_COMPONENT = "xmpp";
 
 /**
  * Creates new instance of <tt>ComponentsVersions</tt> which will be discovering
- * the versions of conferencing system components in given <tt>ChatRoom</tt>.
- * @param chatRoom <tt>ChatRoom</tt> instance which will be used to listen for
- *        focus presence updates.
+ * the versions of conferencing system components in given
+ * <tt>JitsiConference</tt>.
+ * @param conference <tt>JitsiConference</tt> instance which will be used to
+ *        listen for focus presence updates.
  * @constructor
  */
-function ComponentsVersions(chatRoom) {
+function ComponentsVersions(conference) {
 
     this.versions = {};
 
-    this.chatRoom = chatRoom;
-    this.chatRoom.addPresenceListener(
+    this.conference = conference;
+    this.conference.addCommandListener(
         'versions', this.processPresence.bind(this));
 }
 
@@ -41,7 +42,7 @@ function(node, mucResource, mucJid) {
         return;
     }
 
-    if (!this.chatRoom.isFocus(mucJid)) {
+    if (!this.conference._isFocus(mucJid)) {
         logger.warn(
             "Received versions not from the focus user: " + node, mucJid);
         return;
@@ -62,6 +63,12 @@ function(node, mucResource, mucJid) {
 
         var version = item.value;
         if (this.versions[componentName] !== version) {
+            if(this.versions[componentName] &&
+                componentName !== ComponentsVersions.FOCUS_COMPONENT &&
+                componentName !== ComponentsVersions.VIDEOBRIDGE_COMPONENT) {
+                //version is changed during the call
+                this.conference._fireIncompatibleVersionsEvent();
+            }
             this.versions[componentName] = version;
             logger.info("Got " + componentName + " version: " + version);
 
@@ -87,4 +94,3 @@ ComponentsVersions.prototype.getComponentVersion = function(componentName) {
 };
 
 module.exports = ComponentsVersions;
-

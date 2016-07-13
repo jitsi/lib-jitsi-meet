@@ -62,7 +62,8 @@ function filterNodeFromPresenceJSON(pres, nodeName){
     return res;
 }
 
-function ChatRoom(connection, jid, password, XMPP, options, settings) {
+function ChatRoom(connection, jid, password, XMPP, options, settings,
+    maxRetries) {
     this.eventEmitter = new EventEmitter();
     this.xmpp = XMPP;
     this.connection = connection;
@@ -74,12 +75,13 @@ function ChatRoom(connection, jid, password, XMPP, options, settings) {
     this.presMap = {};
     this.presHandlers = {};
     this.joined = false;
-    this.role = 'none';
+    this.role = null;
     this.focusMucJid = null;
     this.bridgeIsDown = false;
     this.options = options || {};
     this.moderator = new Moderator(this.roomjid, this.xmpp, this.eventEmitter,
-        settings, {connection: this.xmpp.options, conference: this.options});
+        settings, {connection: this.xmpp.options, conference: this.options},
+        maxRetries);
     this.initPresenceMap();
     this.session = null;
     var self = this;
@@ -243,7 +245,6 @@ ChatRoom.prototype.onPresence = function (pres) {
     member.jid = jid;
     member.isFocus
         = jid && jid.indexOf(this.moderator.getFocusUserJid() + "/") === 0;
-
     member.isHiddenDomain
         = jid && jid.indexOf("@") > 0
             && this.options.hiddenDomain
@@ -271,8 +272,9 @@ ChatRoom.prototype.onPresence = function (pres) {
     }
 
     if (from == this.myroomjid) {
-        if (member.affiliation == 'owner' && this.role !== member.role) {
-            this.role = member.role;
+        var newRole = member.affiliation == "owner"? member.role : "none";
+        if (this.role !== newRole) {
+            this.role = newRole;
             this.eventEmitter.emit(XMPPEvents.LOCAL_ROLE_CHANGED, this.role);
         }
         if (!this.joined) {
@@ -287,17 +289,8 @@ ChatRoom.prototype.onPresence = function (pres) {
         this.members[from] = member;
         logger.log('entered', from, member);
         if (member.isFocus) {
-            this.focusMucJid = from;
-            if(!this.recording) {
-                this.recording = new Recorder(this.options.recordingType,
-                    this.eventEmitter, this.connection, this.focusMucJid,
-                    this.options.jirecon, this.roomjid);
-                if(this.lastJibri)
-                    this.recording.handleJibriPresence(this.lastJibri);
-            }
-            logger.info("Ignore focus: " + from + ", real JID: " + jid);
-        }
-        else {
+            this._initFocus(from, jid);
+        } else {
             this.eventEmitter.emit(
                 XMPPEvents.MUC_MEMBER_JOINED,
                 from, member.nick, member.role, member.isHiddenDomain);
@@ -310,6 +303,19 @@ ChatRoom.prototype.onPresence = function (pres) {
             memberOfThis.role = member.role;
             this.eventEmitter.emit(
                 XMPPEvents.MUC_ROLE_CHANGED, from, member.role);
+        }
+
+        if (member.isFocus) {
+            // From time to time first few presences of the focus are not
+            // containing it's jid. That way we can mark later the focus member
+            // instead of not marking it at all and not starting the conference.
+            // FIXME: Maybe there is a better way to handle this issue. It seems
+            // there is some period of time in prosody that the configuration
+            // form is received but not applied. And if any participant joins
+            // during that period of time the first presence from the focus
+            // won't conain <item jid="focus..." />.
+            memberOfThis.isFocus = true;
+            this._initFocus(from, jid);
         }
 
         // store the new display name
@@ -369,6 +375,23 @@ ChatRoom.prototype.onPresence = function (pres) {
             this.recording.handleJibriPresence(jibri);
     }
 };
+
+/**
+ * Initialize some properties when the focus participant is verified.
+ * @param from jid of the focus
+ * @param mucJid the jid of the focus in the muc
+ */
+ChatRoom.prototype._initFocus = function (from, mucJid) {
+    this.focusMucJid = from;
+    if(!this.recording) {
+        this.recording = new Recorder(this.options.recordingType,
+            this.eventEmitter, this.connection, this.focusMucJid,
+            this.options.jirecon, this.roomjid);
+        if(this.lastJibri)
+            this.recording.handleJibriPresence(this.lastJibri);
+    }
+    logger.info("Ignore focus: " + from + ", real JID: " + mucJid);
+}
 
 /**
  * Sets the special listener to be used for "command"s whose name starts with
@@ -600,6 +623,30 @@ ChatRoom.prototype.addPresenceListener = function (name, handler) {
 ChatRoom.prototype.removePresenceListener = function (name) {
     delete this.presHandlers[name];
 };
+
+/**
+ * Exports the current state of the ChatRoom instance.
+ * @returns {object}
+ */
+ChatRoom.prototype.exportState = function () {
+    return {
+        presHandlers: this.presHandlers,
+        presMapNodes: this.presMap.nodes
+    }
+}
+
+/**
+ * Loads previously exported state object from ChatRoom instance into current
+ * ChatRoom instance.
+ * @param state {object} the state received by ChatRoom.exportState method.
+ */
+ChatRoom.prototype.loadState = function (state) {
+    if(!state || !state.presHandlers || !state.presMapNodes)
+        throw new Error("Invalid state object passed");
+
+    this.presHandlers = state.presHandlers;
+    this.presMap.nodes = state.presMapNodes;
+}
 
 /**
  * Checks if the user identified by given <tt>mucJid</tt> is the conference

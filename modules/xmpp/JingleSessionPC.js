@@ -1103,7 +1103,10 @@ JingleSessionPC.prototype.newJingleErrorHandler = function(request, failureCb) {
             error.source = request.tree();
         }
 
-        error.session = this;
+        // Commented to fix JSON.stringify(error) exception for circular
+        // dependancies when we print that error.
+        // FIXME: Maybe we can include part of the session object
+        // error.session = this;
 
         logger.error("Jingle error", error);
         if (failureCb) {

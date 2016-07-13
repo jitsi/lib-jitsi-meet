@@ -473,4 +473,12 @@ CallStats.sendApplicationLog = _try_catch(function (e, cs) {
         .call(cs, wrtcFuncNames.applicationLog, e, null);
 });
 
+/**
+ * Clears allocated resources.
+ */
+CallStats.dispose = function () {
+    callStats = null;
+    CallStats.initialized = false;
+};
+
 module.exports = CallStats;

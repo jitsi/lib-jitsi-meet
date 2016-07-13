@@ -54,7 +54,7 @@ function addMediaStreamInactiveHandler(mediaStream, handler) {
  * @param videoType the VideoType for this track if any
  * @param ssrc the SSRC of this track if known
  */
-function JitsiTrack(rtc, stream, track, streamInactiveHandler, trackMediaType,
+function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMediaType,
                     videoType, ssrc)
 {
     /**
@@ -62,7 +62,7 @@ function JitsiTrack(rtc, stream, track, streamInactiveHandler, trackMediaType,
      * @type {Array}
      */
     this.containers = [];
-    this.rtc = rtc;
+    this.conference = conference;
     this.stream = stream;
     this.ssrc = ssrc;
     this.eventEmitter = new EventEmitter();
@@ -151,8 +151,8 @@ JitsiTrack.prototype.getUsageLabel = function () {
  * @private
  */
 JitsiTrack.prototype._maybeFireTrackAttached = function (container) {
-    if (this.rtc && container) {
-        this.rtc.eventEmitter.emit(RTCEvents.TRACK_ATTACHED, this, container);
+    if (this.conference && container) {
+        this.conference._onTrackAttach(this, container);
     }
 };
 
