@@ -287,17 +287,56 @@ RTC.prototype.createRemoteTrack = function (event) {
 
 /**
  * Removes all JitsiRemoteTracks associated with given MUC nickname (resource
- * part of the JID).
- * @param resource the resource part of the MUC JID
- * @returns {JitsiRemoteTrack|null}
+ * part of the JID). Returns array of removed tracks.
+ *
+ * @param {string} resource - The resource part of the MUC JID.
+ * @returns {JitsiRemoteTrack[]}
  */
 RTC.prototype.removeRemoteTracks = function (resource) {
-    var remoteTracks = this.remoteTracks[resource];
+    var remoteTracksForResource = this.remoteTracks[resource];
+    var removedTracks = [];
 
-    if(remoteTracks) {
-        remoteTracks['audio'] && remoteTracks['audio'].dispose();
-        remoteTracks['video'] && remoteTracks['video'].dispose();
+    if (remoteTracksForResource) {
+        for (var key in remoteTracksForResource) {
+            if (remoteTracksForResource.hasOwnProperty(key) &&
+                remoteTracksForResource[key]) {
+                var removedTrack = this.removeRemoteTrack(
+                    resource, remoteTracksForResource[key]);
+
+                if (removedTrack) {
+                    removedTracks.push(removedTrack);
+                }
+            }
+        }
+
         delete this.remoteTracks[resource];
+    }
+
+    return removedTracks;
+};
+
+/**
+ * Removes specified JitsiRemoteTrack associated with given MUC nickname
+ * (resource part of the JID). Returns removed track if any.
+ *
+ * @param {string} resource - The resource part of the MUC JID.
+ * @param {JitsiRemoteTrack} track - Track to remove.
+ * @returns {JitsiRemoteTrack|undefined}
+ */
+RTC.prototype.removeRemoteTrack = function (resource, track) {
+    var remoteTracksForResource = this.remoteTracks[resource];
+
+    if (remoteTracksForResource) {
+        for (var key in remoteTracksForResource) {
+            if (remoteTracksForResource.hasOwnProperty(key) &&
+                remoteTracksForResource[key] &&
+                remoteTracksForResource[key] === track) {
+                remoteTracksForResource[key].dispose();
+                delete remoteTracksForResource[key];
+                return track;
+            }
+
+        }
     }
 };
 

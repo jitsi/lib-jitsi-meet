@@ -628,7 +628,11 @@ JitsiConference.prototype.onMemberLeft = function (jid) {
     var participant = this.participants[id];
     delete this.participants[id];
 
-    this.rtc.removeRemoteTracks(id);
+    var removedTracks = this.rtc.removeRemoteTracks(id);
+
+    removedTracks.forEach(function (track) {
+        this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+    }.bind(this));
 
     this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant);
 };
@@ -1122,8 +1126,15 @@ function setupListeners(conference) {
                         && tracks[i].getStreamId() == streamId
                         && tracks[i].getTrackId() == trackId) {
                         var track = participant._tracks.splice(i, 1)[0];
-                        conference.eventEmitter.emit(
-                            JitsiConferenceEvents.TRACK_REMOVED, track);
+
+                        track = conference.rtc.removeRemoteTrack(
+                            participant.getId(), track);
+
+                        if (track) {
+                            conference.eventEmitter.emit(
+                                JitsiConferenceEvents.TRACK_REMOVED, track);
+                        }
+
                         return;
                     }
                 }
