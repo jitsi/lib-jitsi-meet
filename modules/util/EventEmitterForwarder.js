@@ -31,7 +31,7 @@ EventEmitterForwarder.prototype.forward = function () {
     args[0] = this.dest;
     //Using bind.apply to pass the arguments as Array-like object ("arguments")
     this.src.addListener(srcEvent,
-        this.dest.emit.bind.apply(this.dest.emit, args));
+        Function.prototype.bind.apply(this.dest.emit, args));
 };
 
 module.exports = EventEmitterForwarder;
