@@ -139,13 +139,20 @@ ChatRoom.prototype.sendPresence = function (fromJoin) {
     }
 
     var pres = $pres({to: to });
-    pres.c('x', {xmlns: this.presMap['xns']});
 
-    if (this.password) {
-        pres.c('password').t(this.password).up();
+    // xep-0045 defines: "including in the initial presence stanza an empty
+    // <x/> element qualified by the 'http://jabber.org/protocol/muc' namespace"
+    // and subsequent presences should not include that or it can be considered
+    // as joining, and server can send us the message history for the room on
+    // every presence
+    if (fromJoin) {
+        pres.c('x', {xmlns: this.presMap['xns']});
+
+        if (this.password) {
+            pres.c('password').t(this.password).up();
+        }
+        pres.up();
     }
-
-    pres.up();
 
     // Send XEP-0115 'c' stanza that contains our capabilities info
     var connection = this.connection;
