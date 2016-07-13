@@ -53,7 +53,7 @@ function JitsiConference(options) {
             this.options.config.disableThirdPartyRequests,
         roomName: this.options.name
     });
-    setupListeners(this);
+    this._setupListeners();
     this.participants = {};
     this.lastDominantSpeaker = null;
     this.dtmfManager = null;
@@ -101,9 +101,8 @@ JitsiConference.prototype._leaveRoomAndRemoveParticipants = function () {
     this.getParticipants().forEach(function (participant) {
         this.onMemberLeft(participant.getJid());
     }.bind(this));
+};
 
-    this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_LEFT);
-}
 /**
  * Leaves the conference.
  * @returns {Promise}
@@ -114,17 +113,24 @@ JitsiConference.prototype.leave = function () {
     return Promise.all(
         conference.getLocalTracks().map(function (track) {
             return conference.removeTrack(track);
-        })
-    ).then(this._leaveRoomAndRemoveParticipants.bind(this))
-    .catch(function (error) {
-        logger.error(error);
-        GlobalOnErrorHandler.callUnhandledRejectionHandler(
-            {promise: this, reason: error});
-        // We are proceeding with leaving the conference because room.leave may
-        // succeed.
-        this._leaveRoomAndRemoveParticipants();
-        return Promise.resolve();
-    }.bind(this));
+        }))
+        .then(this._leaveRoomAndRemoveParticipants.bind(this))
+        .catch(function (error) {
+            logger.error(error);
+            GlobalOnErrorHandler.callUnhandledRejectionHandler(
+                {promise: this, reason: error});
+            // We are proceeding with leaving the conference because room.leave
+            // may succeed.
+            this._leaveRoomAndRemoveParticipants();
+            return Promise.resolve();
+        }.bind(this))
+        .then(function() {
+            conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_LEFT);
+
+            conference._dispose();
+
+            return Promise.resolve();
+        });
 };
 
 /**
@@ -1050,46 +1056,42 @@ JitsiConference.prototype.sendApplicationLog = function(message) {
 };
 
 /**
- * Setups the listeners needed for the conference.
- * @param conference the conference
+ * Cleans all attached event listeners.
+ *
+ * @private
  */
-function setupListeners(conference) {
-    conference.xmpp.addListener(
-        XMPPEvents.CALL_INCOMING, function (jingleSession, jingleOffer, now) {
+JitsiConference.prototype._dispose = function () {
+    // ChatRoom's listeners cleared inside its leave() method, so there is no
+    // need to clean them separately here.
 
-        if (conference.room.isFocus(jingleSession.peerjid)) {
-            // Accept incoming call
-            conference.room.setJingleSession(jingleSession);
-            conference.room.connectionTimes["session.initiate"] = now;
-            try{
-                jingleSession.initialize(false /* initiator */,
-                    conference.room);
-            } catch (error) {
-                GlobalOnErrorHandler.callErrorHandler(error);
-            };
-            conference.rtc.onIncommingCall(jingleSession);
-            jingleSession.acceptOffer(jingleOffer, null,
-                function (error) {
-                    GlobalOnErrorHandler.callErrorHandler(error);
-                    logger.error(
-                        "Failed to accept incoming Jingle session", error);
-                }
-            );
-            // Start callstats as soon as peerconnection is initialized,
-            // do not wait for XMPPEvents.PEERCONNECTION_READY, as it may never
-            // happen in case if user doesn't have or denied permission to
-            // both camera and microphone.
-            conference.statistics.startCallStats(jingleSession, conference.settings);
-            conference.statistics.startRemoteStats(jingleSession.peerconnection);
-        } else {
-            // Error cause this should never happen unless something is wrong!
-            var errmsg
-                = "Rejecting session-initiate from non-focus user: "
-                    + jingleSession.peerjid;
-            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
-            logger.error(errmsg);
-        }
-    });
+    this.statistics.dispose();
+    this.rtc.dispose();
+
+    // Remove specific XMPP listeners attached in _setupListeners() method.
+    this.xmpp.removeListener(
+        XMPPEvents.CALL_INCOMING, this._onCallIncoming);
+    this.xmpp.removeListener(
+        XMPPEvents.START_MUTED_FROM_FOCUS, this._onStartMutedFromFocus);
+
+    this.eventEmitter.removeAllListeners();
+};
+
+/**
+ * Setups the listeners needed for the conference.
+ *
+ * @private
+ */
+JitsiConference.prototype._setupListeners = function() {
+    var conference = this;
+
+    this._onCallIncoming = this._onCallIncoming.bind(this);
+    this._onStartMutedFromFocus = this._onStartMutedFromFocus.bind(this);
+
+    this.xmpp.addListener(
+        XMPPEvents.CALL_INCOMING, this._onCallIncoming);
+
+    this.xmpp.addListener(
+        XMPPEvents.START_MUTED_FROM_FOCUS, this._onStartMutedFromFocus);
 
     conference.room.addListener(XMPPEvents.ICE_RESTARTING, function () {
         // All data channels have to be closed, before ICE restart
@@ -1303,25 +1305,6 @@ function setupListeners(conference) {
                 lastNEndpoints, endpointsEnteringLastN);
         });
 
-    conference.xmpp.addListener(XMPPEvents.START_MUTED_FROM_FOCUS,
-        function (audioMuted, videoMuted) {
-            conference.startAudioMuted = audioMuted;
-            conference.startVideoMuted = videoMuted;
-
-            // mute existing local tracks because this is initial mute from
-            // Jicofo
-            conference.getLocalTracks().forEach(function (track) {
-                if (conference.startAudioMuted && track.isAudioTrack()) {
-                    track.mute();
-                }
-                if (conference.startVideoMuted && track.isVideoTrack()) {
-                    track.mute();
-                }
-            });
-
-            conference.eventEmitter.emit(JitsiConferenceEvents.STARTED_MUTED);
-        });
-
     conference.room.addPresenceListener("startmuted", function (data, from) {
         var isModerator = false;
         if (conference.myUserId() === from && conference.isModerator()) {
@@ -1454,10 +1437,6 @@ function setupListeners(conference) {
             conference.eventEmitter.emit(
                 JitsiConferenceEvents.CONNECTION_STATS, stats);
         });
-        conference.room.addListener(XMPPEvents.DISPOSE_CONFERENCE,
-            function () {
-                conference.statistics.dispose();
-            });
 
         conference.room.addListener(XMPPEvents.CONNECTION_ICE_FAILED,
             function (pc) {
@@ -1512,7 +1491,77 @@ function setupListeners(conference) {
             }
         );
     }
-}
+};
 
+/**
+ * Event handler for XMPPEvents.START_MUTED_FROM_FOCUS event.
+ *
+ * @private
+ * @param {boolean} audioMuted - If audio is muted.
+ * @param {boolean} videoMuted - If video is muted.
+ */
+JitsiConference.prototype._onStartMutedFromFocus = function(
+    audioMuted, videoMuted) {
+    var self = this;
+
+    this.startAudioMuted = audioMuted;
+    this.startVideoMuted = videoMuted;
+
+    // mute existing local tracks because this is initial mute from
+    // Jicofo
+    this.getLocalTracks().forEach(function (track) {
+        if (self.startAudioMuted && track.isAudioTrack()) {
+            track.mute();
+        }
+        if (self.startVideoMuted && track.isVideoTrack()) {
+            track.mute();
+        }
+    });
+
+    this.eventEmitter.emit(JitsiConferenceEvents.STARTED_MUTED);
+};
+
+/**
+ * Event handler for XMPPEvents.CALL_INCOMING event.
+ *
+ * @private
+ * @param jingleSession
+ * @param jingleOffer
+ * @param now
+ */
+JitsiConference.prototype._onCallIncoming = function(
+    jingleSession, jingleOffer, now) {
+    if (this.room.isFocus(jingleSession.peerjid)) {
+        // Accept incoming call
+        this.room.setJingleSession(jingleSession);
+        this.room.connectionTimes["session.initiate"] = now;
+        try {
+            jingleSession.initialize(false /* initiator */, this.room);
+        } catch (error) {
+            GlobalOnErrorHandler.callErrorHandler(error);
+        }
+        this.rtc.onIncommingCall(jingleSession);
+        jingleSession.acceptOffer(jingleOffer, null,
+            function (error) {
+                GlobalOnErrorHandler.callErrorHandler(error);
+                logger.error(
+                    "Failed to accept incoming Jingle session", error);
+            }
+        );
+        // Start callstats as soon as peerconnection is initialized,
+        // do not wait for XMPPEvents.PEERCONNECTION_READY, as it may never
+        // happen in case if user doesn't have or denied permission to
+        // both camera and microphone.
+        this.statistics.startCallStats(jingleSession, this.settings);
+        this.statistics.startRemoteStats(jingleSession.peerconnection);
+    } else {
+        // Error cause this should never happen unless something is wrong!
+        var errmsg
+            = "Rejecting session-initiate from non-focus user: "
+            + jingleSession.peerjid;
+        GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+        logger.error(errmsg);
+    }
+};
 
 module.exports = JitsiConference;

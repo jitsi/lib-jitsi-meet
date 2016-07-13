@@ -61,20 +61,32 @@ function RTC(room, options) {
         }
     });
 
-    // Switch audio output device on all remote audio tracks. Local audio tracks
-    // handle this event by themselves.
     if (RTCUtils.isDeviceChangeAvailable('output')) {
-        RTCUtils.addListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
-            function (deviceId) {
-                for (var key in self.remoteTracks) {
-                    if (self.remoteTracks.hasOwnProperty(key)
-                        && self.remoteTracks[key].audio) {
-                        self.remoteTracks[key].audio.setAudioOutput(deviceId);
-                    }
-                }
-            });
+        this._onAudioOutputDeviceChanged =
+            this._onAudioOutputDeviceChanged.bind(this);
+
+        RTCUtils.addListener(
+            RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
+            this._onAudioOutputDeviceChanged);
     }
 }
+
+/**
+ * Event handler for event when audio output devices changes. We switch audio
+ * output device on all remote audio tracks. Local audio tracks handle this
+ * event by themselves.
+ *
+ * @param {string} deviceId - Audio output device ID.
+ * @private
+ */
+RTC.prototype._onAudioOutputDeviceChanged = function (deviceId) {
+    for (var key in this.remoteTracks) {
+        if (this.remoteTracks.hasOwnProperty(key)
+            && this.remoteTracks[key].audio) {
+            this.remoteTracks[key].audio.setAudioOutput(deviceId);
+        }
+    }
+};
 
 /**
  * Creates the local MediaStreams.
@@ -418,7 +430,15 @@ RTC.prototype.closeAllDataChannels = function () {
     this.dataChannels.closeAllChannels();
 };
 
+/**
+ * Clean up event listeners.
+ */
 RTC.prototype.dispose = function() {
+    this.eventEmitter.removeAllListeners();
+
+    RTCUtils.removeListener(
+        RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
+        this._onAudioOutputDeviceChanged);
 };
 
 /*
