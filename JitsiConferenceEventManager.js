@@ -243,6 +243,15 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
                 JitsiConferenceEvents.USER_STATUS_CHANGED, id, status);
         });
 
+    conference.room.addListener(XMPPEvents.LOCAL_UFRAG_CHANGED,
+        function (ufrag) {
+            Statistics.sendLog("Local ufrag: " + ufrag);
+        });
+    conference.room.addListener(XMPPEvents.REMOTE_UFRAG_CHANGED,
+        function (ufrag) {
+            Statistics.sendLog("Remote ufrag: " + ufrag);
+        });
+
     chatRoom.addPresenceListener("startmuted", function (data, from) {
         var isModerator = false;
         if (conference.myUserId() === from && conference.isModerator()) {
@@ -495,6 +504,10 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function () {
 
         conference.eventEmitter.emit(
             JitsiConferenceEvents.CONNECTION_STATS, stats);
+    });
+
+    conference.statistics.addAudioProblemListener(function (ssrc) {
+        conference._reportAudioProblem(ssrc);
     });
 };
 
