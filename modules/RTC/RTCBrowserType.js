@@ -222,13 +222,19 @@ function detectReactNative() {
     var match
         = navigator.userAgent.match(/\b(react[ \t_-]*native)(?:\/(\S+))?/i);
     var version;
-    if (match) {
+    // If we're debugging React-Native app, it may be treated as Chrome, which
+    // leads to some bugs.
+    // So we need to check navigator.product and always return some version
+    // even if can't get the real one.
+    if (match || navigator.product === "ReactNative") {
         currentBrowser = RTCBrowserType.RTC_BROWSER_REACT_NATIVE;
-        if (match.length > 2) {
+        if (match && match[2]) {
             version = match[2];
+        } else {
+            version = "react_native";
         }
         console.info(
-            "This appears to be " + /* name */ match[1] + ", ver: " + version);
+            "This appears to be React-Native, ver: " + version);
     }
     return version;
 }
