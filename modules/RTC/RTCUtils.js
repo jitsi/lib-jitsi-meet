@@ -1101,6 +1101,13 @@ var RTCUtils = {
             mediaStream.stop();
         }
 
+        // The MediaStream implementation of the react-native-webrtc project has
+        // an explicit release method that is to be invoked in order to release
+        // used resources such as memory.
+        if (mediaStream.release) {
+            mediaStream.release();
+        }
+
         // if we have done createObjectURL, lets clean it
         var url = mediaStream.jitsiObjectURL;
         if (url) {

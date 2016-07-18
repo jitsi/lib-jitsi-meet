@@ -71,6 +71,15 @@ function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMedia
     this.track = track;
     this.videoType = videoType;
 
+    /**
+     * Indicates whether this JitsiTrack has been disposed. If true, this
+     * JitsiTrack is to be considered unusable and operations involving it are
+     * to fail (e.g. {@link JitsiConference#addTrack(JitsiTrack)},
+     * {@link JitsiConference#removeTrack(JitsiTrack)}).
+     * @type {boolean}
+     */
+    this.disposed = false;
+
     if(stream) {
         if (RTCBrowserType.isFirefox()) {
             implementOnEndedHandling(this);
@@ -208,10 +217,16 @@ JitsiTrack.prototype.detach = function (container) {
 };
 
 /**
- * Dispose sending the media track. And removes it from the HTML.
- * NOTE: Works for local tracks only.
+ * Removes attached event listeners.
+ *
+ * @returns {Promise}
  */
 JitsiTrack.prototype.dispose = function () {
+    this.eventEmitter.removeAllListeners();
+
+    this.disposed = true;
+
+    return Promise.resolve();
 };
 
 /**
