@@ -37,7 +37,6 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
     this.resolution = resolution;
     this.deviceId = deviceId;
     this.startMuted = false;
-    this.disposed = false;
     this.initialMSID = this.getMSID();
     this.inMuteOrUnmuteProgress = false;
 
@@ -251,6 +250,7 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                     }
 
                     if(!streamInfo) {
+                        // FIXME: introduce new JitsiTrackError for that
                         reject(new Error('track.no_stream_found'));
                         return;
                     }
@@ -287,9 +287,12 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
 /**
  * Stops sending the media track. And removes it from the HTML.
  * NOTE: Works for local tracks only.
+ *
+ * @extends JitsiTrack#dispose
  * @returns {Promise}
  */
 JitsiLocalTrack.prototype.dispose = function () {
+    var self = this;
     var promise = Promise.resolve();
 
     if (this.conference){
@@ -301,8 +304,6 @@ JitsiLocalTrack.prototype.dispose = function () {
         this.detach();
     }
 
-    this.disposed = true;
-
     RTCUtils.removeListener(RTCEvents.DEVICE_LIST_CHANGED,
         this._onDeviceListChanged);
 
@@ -311,7 +312,10 @@ JitsiLocalTrack.prototype.dispose = function () {
             this._onAudioOutputDeviceChanged);
     }
 
-    return promise;
+    return promise
+        .then(function() {
+            return JitsiTrack.prototype.dispose.call(self);
+        });
 };
 
 /**

@@ -1101,6 +1101,13 @@ var RTCUtils = {
             mediaStream.stop();
         }
 
+        // MediaStream in react-native-webrtc implementation has special
+        // "release" method to do the clean up of memory. We use it to prevent
+        // memory leaks.
+        if (mediaStream.release) {
+            mediaStream.release();
+        }
+
         // if we have done createObjectURL, lets clean it
         var url = mediaStream.jitsiObjectURL;
         if (url) {
