@@ -241,17 +241,40 @@ RTC.prototype.createRemoteTrack = function (event) {
 
 /**
  * Removes all JitsiRemoteTracks associated with given MUC nickname (resource
- * part of the JID).
- * @param resource the resource part of the MUC JID
- * @returns {JitsiRemoteTrack|null}
+ * part of the JID). Returns array of removed tracks.
+ *
+ * @param {string} resource - The resource part of the MUC JID.
+ * @returns {JitsiRemoteTrack[]}
  */
 RTC.prototype.removeRemoteTracks = function (resource) {
-    var remoteTracks = this.remoteTracks[resource];
+    var removedTracks = [];
+    var removedAudioTrack = this.removeRemoteTrack(resource, MediaType.AUDIO);
+    var removedVideoTrack = this.removeRemoteTrack(resource, MediaType.VIDEO);
 
-    if(remoteTracks) {
-        remoteTracks['audio'] && remoteTracks['audio'].dispose();
-        remoteTracks['video'] && remoteTracks['video'].dispose();
-        delete this.remoteTracks[resource];
+    removedAudioTrack && removedTracks.push(removedAudioTrack);
+    removedVideoTrack && removedTracks.push(removedVideoTrack);
+
+    delete this.remoteTracks[resource];
+
+    return removedTracks;
+};
+
+/**
+ * Removes specified track type associated with given MUC nickname
+ * (resource part of the JID). Returns removed track if any.
+ *
+ * @param {string} resource - The resource part of the MUC JID.
+ * @param {string} mediaType - Type of track to remove.
+ * @returns {JitsiRemoteTrack|undefined}
+ */
+RTC.prototype.removeRemoteTrack = function (resource, mediaType) {
+    var remoteTracksForResource = this.remoteTracks[resource];
+
+    if (remoteTracksForResource && remoteTracksForResource[mediaType]) {
+        var track = remoteTracksForResource[mediaType];
+        track.dispose();
+        delete remoteTracksForResource[mediaType];
+        return track;
     }
 };
 
