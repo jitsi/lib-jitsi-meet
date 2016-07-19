@@ -83,8 +83,6 @@ JitsiConference.prototype._init = function (options) {
     this.room = this.xmpp.createRoom(this.options.name, this.options.config,
         this.settings, (this.retries < 4 ? 3 : null));
 
-    this.eventManager.setupChatRoomListeners();
-
     //restore previous presence options
     if(options.roomState) {
         this.room.loadState(options.roomState);
@@ -96,7 +94,6 @@ JitsiConference.prototype._init = function (options) {
         this.eventManager.setupRTCListeners();
     }
 
-
     if(!this.statistics) {
         this.statistics = new Statistics(this.xmpp, {
             callStatsID: this.options.config.callStatsID,
@@ -106,6 +103,9 @@ JitsiConference.prototype._init = function (options) {
             roomName: this.options.name
         });
     }
+
+    this.eventManager.setupChatRoomListeners();
+
     // Always add listeners because on reload we are executing leave and the
     // listeners are removed from statistics module.
     this.eventManager.setupStatisticsListeners();
