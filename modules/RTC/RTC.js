@@ -247,50 +247,34 @@ RTC.prototype.createRemoteTrack = function (event) {
  * @returns {JitsiRemoteTrack[]}
  */
 RTC.prototype.removeRemoteTracks = function (resource) {
-    var remoteTracksForResource = this.remoteTracks[resource];
     var removedTracks = [];
+    var removedAudioTrack = this.removeRemoteTrack(resource, MediaType.AUDIO);
+    var removedVideoTrack = this.removeRemoteTrack(resource, MediaType.VIDEO);
 
-    if (remoteTracksForResource) {
-        for (var key in remoteTracksForResource) {
-            if (remoteTracksForResource.hasOwnProperty(key) &&
-                remoteTracksForResource[key]) {
-                var removedTrack = this.removeRemoteTrack(
-                    resource, remoteTracksForResource[key]);
+    removedAudioTrack && removedTracks.push(removedAudioTrack);
+    removedVideoTrack && removedTracks.push(removedVideoTrack);
 
-                if (removedTrack) {
-                    removedTracks.push(removedTrack);
-                }
-            }
-        }
-
-        delete this.remoteTracks[resource];
-    }
+    delete this.remoteTracks[resource];
 
     return removedTracks;
 };
 
 /**
- * Removes specified JitsiRemoteTrack associated with given MUC nickname
+ * Removes specified track type associated with given MUC nickname
  * (resource part of the JID). Returns removed track if any.
  *
  * @param {string} resource - The resource part of the MUC JID.
- * @param {JitsiRemoteTrack} track - Track to remove.
+ * @param {string} mediaType - Type of track to remove.
  * @returns {JitsiRemoteTrack|undefined}
  */
-RTC.prototype.removeRemoteTrack = function (resource, track) {
+RTC.prototype.removeRemoteTrack = function (resource, mediaType) {
     var remoteTracksForResource = this.remoteTracks[resource];
 
-    if (remoteTracksForResource) {
-        for (var key in remoteTracksForResource) {
-            if (remoteTracksForResource.hasOwnProperty(key) &&
-                remoteTracksForResource[key] &&
-                remoteTracksForResource[key] === track) {
-                remoteTracksForResource[key].dispose();
-                delete remoteTracksForResource[key];
-                return track;
-            }
-
-        }
+    if (remoteTracksForResource && remoteTracksForResource[mediaType]) {
+        var track = remoteTracksForResource[mediaType];
+        track.dispose();
+        delete remoteTracksForResource[mediaType];
+        return track;
     }
 };
 
