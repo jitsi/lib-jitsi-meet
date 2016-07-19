@@ -37,9 +37,6 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
     this.resolution = resolution;
     this.deviceId = deviceId;
     this.startMuted = false;
-    this.disposed = false;
-    //FIXME: This dependacy is not necessary.
-    this.conference = null;
     this.initialMSID = this.getMSID();
     this.inMuteOrUnmuteProgress = false;
 
@@ -170,7 +167,7 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
         resolve();
         return;
     }
-    if(!this.rtc) {
+    if(!this.conference) {
         this.startMuted = mute;
         resolve();
         return;
@@ -197,19 +194,21 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
         if (this.track)
             this.track.enabled = !mute;
         if(isAudio)
-            this.rtc.room.setAudioMute(mute, callbackFunction);
+            this.conference.room.setAudioMute(mute, callbackFunction);
         else
-            this.rtc.room.setVideoMute(mute, callbackFunction);
+            this.conference.room.setVideoMute(mute, callbackFunction);
     } else {
         if (mute) {
             this.dontFireRemoveEvent = true;
-            this.rtc.room.removeStream(this.stream, function () {
+            this.conference.room.removeStream(this.stream, function () {
                     RTCUtils.stopMediaStream(this.stream);
                     setStreamToNull = true;
                     if(isAudio)
-                        this.rtc.room.setAudioMute(mute, callbackFunction);
+                        this.conference.room.setAudioMute(mute,
+                            callbackFunction);
                     else
-                        this.rtc.room.setVideoMute(mute, callbackFunction);
+                        this.conference.room.setVideoMute(mute,
+                            callbackFunction);
                     //FIXME: Maybe here we should set the SRC for the containers to something
                 }.bind(this),
                 function (error) {
@@ -251,6 +250,7 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                     }
 
                     if(!streamInfo) {
+                        // FIXME Introduce a new JitsiTrackError.
                         reject(new Error('track.no_stream_found'));
                         return;
                     }
@@ -262,13 +262,13 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                                     self.containers[i], self.stream);
                     }
 
-                    self.rtc.room.addStream(self.stream,
+                    self.conference.room.addStream(self.stream,
                         function () {
                             if(isAudio)
-                                self.rtc.room.setAudioMute(
+                                self.conference.room.setAudioMute(
                                     mute, callbackFunction);
                             else
-                                self.rtc.room.setVideoMute(
+                                self.conference.room.setVideoMute(
                                     mute, callbackFunction);
                         }, function (error) {
                             reject(error);
@@ -285,11 +285,16 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
 };
 
 /**
+ * @inheritdoc
+ *
  * Stops sending the media track. And removes it from the HTML.
  * NOTE: Works for local tracks only.
+ *
+ * @extends JitsiTrack#dispose
  * @returns {Promise}
  */
 JitsiLocalTrack.prototype.dispose = function () {
+    var self = this;
     var promise = Promise.resolve();
 
     if (this.conference){
@@ -301,8 +306,6 @@ JitsiLocalTrack.prototype.dispose = function () {
         this.detach();
     }
 
-    this.disposed = true;
-
     RTCUtils.removeListener(RTCEvents.DEVICE_LIST_CHANGED,
         this._onDeviceListChanged);
 
@@ -311,7 +314,10 @@ JitsiLocalTrack.prototype.dispose = function () {
             this._onAudioOutputDeviceChanged);
     }
 
-    return promise;
+    return promise
+        .then(function() {
+            return JitsiTrack.prototype.dispose.call(self); // super.dispose();
+        });
 };
 
 /**
@@ -332,22 +338,6 @@ JitsiLocalTrack.prototype.isMuted = function () {
 };
 
 /**
- * Private method. Updates rtc property of the track.
- * @param rtc the rtc instance.
- */
-JitsiLocalTrack.prototype._setRTC = function (rtc) {
-    this.rtc = rtc;
-    // We want to keep up with postponed events which should have been fired
-    // on "attach" call, but for local track we not always have the conference
-    // before attaching. However this may result in duplicated events if they
-    // have been triggered on "attach" already.
-    for(var i = 0; i < this.containers.length; i++)
-    {
-        this._maybeFireTrackAttached(this.containers[i]);
-    }
-};
-
-/**
  * Updates the SSRC associated with the MediaStream in JitsiLocalTrack object.
  * @ssrc the new ssrc
  */
@@ -356,7 +346,6 @@ JitsiLocalTrack.prototype._setSSRC = function (ssrc) {
 };
 
 
-//FIXME: This dependacy is not necessary. This is quick fix.
 /**
  * Sets the JitsiConference object associated with the track. This is temp
  * solution.
@@ -364,6 +353,15 @@ JitsiLocalTrack.prototype._setSSRC = function (ssrc) {
  */
 JitsiLocalTrack.prototype._setConference = function(conference) {
     this.conference = conference;
+
+    // We want to keep up with postponed events which should have been fired
+    // on "attach" call, but for local track we not always have the conference
+    // before attaching. However this may result in duplicated events if they
+    // have been triggered on "attach" already.
+    for(var i = 0; i < this.containers.length; i++)
+    {
+        this._maybeFireTrackAttached(this.containers[i]);
+    }
 };
 
 /**

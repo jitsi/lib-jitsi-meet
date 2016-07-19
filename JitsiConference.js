@@ -3,8 +3,6 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTC = require("./modules/RTC/RTC");
 var XMPPEvents = require("./service/xmpp/XMPPEvents");
-var AuthenticationEvents = require("./service/authentication/AuthenticationEvents");
-var RTCEvents = require("./service/RTC/RTCEvents");
 var EventEmitter = require("events");
 var JitsiConferenceEvents = require("./JitsiConferenceEvents");
 var JitsiConferenceErrors = require("./JitsiConferenceErrors");
@@ -17,6 +15,7 @@ var JitsiTrackError = require("./JitsiTrackError");
 var Settings = require("./modules/settings/Settings");
 var ComponentsVersions = require("./modules/version/ComponentsVersions");
 var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
+var JitsiConferenceEventManager = require("./JitsiConferenceEventManager");
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -35,25 +34,13 @@ function JitsiConference(options) {
         logger.error(errmsg);
         throw new Error(errmsg);
     }
-    this.options = options;
-    this.connection = this.options.connection;
-    this.xmpp = this.connection.xmpp;
     this.eventEmitter = new EventEmitter();
-    var confID = this.options.name  + '@' + this.xmpp.options.hosts.muc;
     this.settings = new Settings();
-    this.room = this.xmpp.createRoom(this.options.name, this.options.config,
-        this.settings);
-    this.componentsVersions = new ComponentsVersions(this.room);
-    this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
-    this.rtc = new RTC(this.room, options);
-    this.statistics = new Statistics(this.xmpp, {
-        callStatsID: this.options.config.callStatsID,
-        callStatsSecret: this.options.config.callStatsSecret,
-        disableThirdPartyRequests:
-            this.options.config.disableThirdPartyRequests,
-        roomName: this.options.name
-    });
-    setupListeners(this);
+    this.retries = 0;
+    this.options = options;
+    this.eventManager = new JitsiConferenceEventManager(this);
+    this._init(options);
+    this.componentsVersions = new ComponentsVersions(this);
     this.participants = {};
     this.lastDominantSpeaker = null;
     this.dtmfManager = null;
@@ -69,6 +56,73 @@ function JitsiConference(options) {
     };
     this.isMutedByFocus = false;
     this.reportedAudioSSRCs = {};
+}
+
+/**
+ * Initializes the conference object properties
+ * @param options {object}
+ * @param connection {JitsiConnection} overrides this.connection
+ * @param roomState {object} the state of the ChatRoom instance received by
+ * ChatRoom.exportState. If this property is set it will be passed to
+ * ChatRoom.loadState
+ */
+JitsiConference.prototype._init = function (options) {
+    if(!options)
+        options = {};
+
+    // Override connection and xmpp properties (Usefull if the connection
+    // reloaded)
+    if(options.connection) {
+        this.connection = options.connection;
+        this.xmpp = this.connection.xmpp;
+        // Setup XMPP events only if we have new connection object.
+        this.eventManager.setupXMPPListeners();
+    }
+
+    this.retries++;
+    this.room = this.xmpp.createRoom(this.options.name, this.options.config,
+        this.settings, (this.retries < 4 ? 3 : null));
+
+    this.eventManager.setupChatRoomListeners();
+
+    //restore previous presence options
+    if(options.roomState) {
+        this.room.loadState(options.roomState);
+    }
+    this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
+
+    if(!this.rtc) {
+        this.rtc = new RTC(this, options);
+        this.eventManager.setupRTCListeners();
+    }
+
+
+    if(!this.statistics) {
+        this.statistics = new Statistics(this.xmpp, {
+            callStatsID: this.options.config.callStatsID,
+            callStatsSecret: this.options.config.callStatsSecret,
+            disableThirdPartyRequests:
+                this.options.config.disableThirdPartyRequests,
+            roomName: this.options.name
+        });
+    }
+    // Always add listeners because on reload we are executing leave and the
+    // listeners are removed from statistics module.
+    this.eventManager.setupStatisticsListeners();
+}
+
+/**
+ * Reloads the conference
+ * @param options {object} options to be overriden
+ */
+JitsiConference.prototype._reload = function (options) {
+    var roomState = this.room.exportState();
+    if(!options)
+        options = {};
+    options.roomState = roomState;
+    this.leave(true);
+    this._init(options);
+    this.join();
 }
 
 /**
@@ -91,16 +145,17 @@ JitsiConference.prototype.isJoined = function () {
  * Leaves the conference and calls onMemberLeft for every participant.
  */
 JitsiConference.prototype._leaveRoomAndRemoveParticipants = function () {
+    // remove all participants
+    this.getParticipants().forEach(function (participant) {
+        this.onMemberLeft(participant.getJid());
+    }.bind(this));
+
     // leave the conference
     if (this.room) {
         this.room.leave();
     }
 
     this.room = null;
-    // remove all participants
-    this.getParticipants().forEach(function (participant) {
-        this.onMemberLeft(participant.getJid());
-    }.bind(this));
 
     this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_LEFT);
 }
@@ -108,8 +163,15 @@ JitsiConference.prototype._leaveRoomAndRemoveParticipants = function () {
  * Leaves the conference.
  * @returns {Promise}
  */
-JitsiConference.prototype.leave = function () {
+JitsiConference.prototype.leave = function (dontRemoveLocalTracks) {
     var conference = this;
+
+    this.statistics.stopCallStats();
+    this.rtc.closeAllDataChannels();
+    if(dontRemoveLocalTracks) {
+        this._leaveRoomAndRemoveParticipants();
+        return  Promise.resolve();
+    }
 
     return Promise.all(
         conference.getLocalTracks().map(function (track) {
@@ -369,6 +431,7 @@ JitsiConference.prototype.addTrack = function (track) {
                 });
             }
             this.rtc.addLocalTrack(track);
+
             if (track.startMuted) {
                 track.mute();
             }
@@ -386,7 +449,7 @@ JitsiConference.prototype.addTrack = function (track) {
                                    track.muteHandler);
             track.addEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
                                    track.audioLevelHandler);
-            //FIXME: This dependacy is not necessary. This is quick fix.
+
             track._setConference(this);
 
             // send event for starting screen sharing
@@ -698,6 +761,84 @@ JitsiConference.prototype.onTrackAdded = function (track) {
     emitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
 };
 
+/**
+ * Handles incoming call event.
+ */
+JitsiConference.prototype.onIncomingCall =
+function (jingleSession, jingleOffer, now) {
+    if (!this.room.isFocus(jingleSession.peerjid)) {
+        // Error cause this should never happen unless something is wrong!
+        var errmsg = "Rejecting session-initiate from non-focus user: "
+                + jingleSession.peerjid;
+        GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+        logger.error(errmsg);
+        return;
+    }
+
+    // Accept incoming call
+    this.room.setJingleSession(jingleSession);
+    this.room.connectionTimes["session.initiate"] = now;
+    try{
+        jingleSession.initialize(false /* initiator */,this.room);
+    } catch (error) {
+        GlobalOnErrorHandler.callErrorHandler(error);
+    };
+
+    this.rtc.onIncommingCall(jingleSession);
+    // Add local Tracks to the ChatRoom
+    this.rtc.localTracks.forEach(function(localTrack) {
+        var ssrcInfo = null;
+        if(localTrack.isVideoTrack() && localTrack.isMuted()) {
+            /**
+             * Handles issues when the stream is added before the peerconnection
+             * is created. The peerconnection is created when second participant
+             * enters the call. In that use case the track doesn't have
+             * information about it's ssrcs and no jingle packets are sent. That
+             * can cause inconsistent behavior later.
+             *
+             * For example:
+             * If we mute the stream and than second participant enter it's
+             * remote SDP won't include that track. On unmute we are not sending
+             * any jingle packets which will brake the unmute.
+             *
+             * In order to solve issues like the above one here we have to
+             * generate the ssrc information for the track .
+             */
+            localTrack._setSSRC(
+                this.room.generateNewStreamSSRCInfo());
+            ssrcInfo = {
+                mtype: localTrack.getType(),
+                type: "addMuted",
+                ssrc: localTrack.ssrc,
+                msid: localTrack.initialMSID
+            };
+        }
+        try {
+            this.room.addStream(
+                localTrack.getOriginalStream(), function () {}, function () {},
+                ssrcInfo, true);
+        } catch(e) {
+            GlobalOnErrorHandler.callErrorHandler(e);
+            logger.error(e);
+        }
+    }.bind(this));
+
+    jingleSession.acceptOffer(jingleOffer, null,
+        function (error) {
+            GlobalOnErrorHandler.callErrorHandler(error);
+            logger.error(
+                "Failed to accept incoming Jingle session", error);
+        }
+    );
+
+    // Start callstats as soon as peerconnection is initialized,
+    // do not wait for XMPPEvents.PEERCONNECTION_READY, as it may never
+    // happen in case if user doesn't have or denied permission to
+    // both camera and microphone.
+    this.statistics.startCallStats(jingleSession, this.settings);
+    this.statistics.startRemoteStats(jingleSession.peerconnection);
+}
+
 JitsiConference.prototype.updateDTMFSupport = function () {
     var somebodySupportsDTMF = false;
     var participants = this.getParticipants();
@@ -951,6 +1092,22 @@ JitsiConference.prototype.isCallstatsEnabled = function () {
     return this.statistics.isCallstatsEnabled();
 }
 
+
+/**
+ * Handles track attached to container (Calls associateStreamWithVideoTag method
+ * from statistics module)
+ * @param track the track
+ * @param container the container
+ */
+JitsiConference.prototype._onTrackAttach = function(track, container) {
+    var ssrc = track.getSSRC();
+    if (!container.id || !ssrc) {
+        return;
+    }
+    this.statistics.associateStreamWithVideoTag(
+        ssrc, track.isLocal(), track.getUsageLabel(), container.id);
+}
+
 /**
  * Reports detected audio problem with the media stream related to the passed
  * ssrc.
@@ -1054,476 +1211,21 @@ JitsiConference.prototype.sendApplicationLog = function(message) {
 };
 
 /**
- * Setups the listeners needed for the conference.
- * @param conference the conference
+ * Checks if the user identified by given <tt>mucJid</tt> is the conference
+ * focus.
+ * @param mucJid the full MUC address of the user to be checked.
+ * @returns {boolean} <tt>true</tt> if MUC user is the conference focus.
  */
-function setupListeners(conference) {
-    conference.xmpp.addListener(
-        XMPPEvents.CALL_INCOMING, function (jingleSession, jingleOffer, now) {
-
-        if (conference.room.isFocus(jingleSession.peerjid)) {
-            // Accept incoming call
-            conference.room.setJingleSession(jingleSession);
-            conference.room.connectionTimes["session.initiate"] = now;
-            try{
-                jingleSession.initialize(false /* initiator */,
-                    conference.room);
-            } catch (error) {
-                GlobalOnErrorHandler.callErrorHandler(error);
-            };
-            conference.rtc.onIncommingCall(jingleSession);
-            jingleSession.acceptOffer(jingleOffer, null,
-                function (error) {
-                    GlobalOnErrorHandler.callErrorHandler(error);
-                    logger.error(
-                        "Failed to accept incoming Jingle session", error);
-                }
-            );
-            // Start callstats as soon as peerconnection is initialized,
-            // do not wait for XMPPEvents.PEERCONNECTION_READY, as it may never
-            // happen in case if user doesn't have or denied permission to
-            // both camera and microphone.
-            conference.statistics.startCallStats(jingleSession, conference.settings);
-            conference.statistics.startRemoteStats(jingleSession.peerconnection);
-        } else {
-            // Error cause this should never happen unless something is wrong!
-            var errmsg
-                = "Rejecting session-initiate from non-focus user: "
-                    + jingleSession.peerjid;
-            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
-            logger.error(errmsg);
-        }
-    });
-
-    conference.room.addListener(XMPPEvents.ICE_RESTARTING, function () {
-        // All data channels have to be closed, before ICE restart
-        // otherwise Chrome will not trigger "opened" event for the channel
-        // established with the new bridge
-        conference.rtc.closeAllDataChannels();
-    });
-
-    conference.room.addListener(XMPPEvents.LOCAL_UFRAG_CHANGED, function (ufrag) {
-        Statistics.sendLog("Local ufrag: " + ufrag);
-    });
-    conference.room.addListener(XMPPEvents.REMOTE_UFRAG_CHANGED, function (ufrag) {
-        Statistics.sendLog("Remote ufrag: " + ufrag);
-    });
-
-    conference.room.addListener(XMPPEvents.REMOTE_TRACK_ADDED,
-        function (data) {
-            var track = conference.rtc.createRemoteTrack(data);
-            if (track) {
-                conference.onTrackAdded(track);
-            }
-        }
-    );
-    conference.room.addListener(XMPPEvents.REMOTE_TRACK_REMOVED,
-        function (streamId, trackId) {
-            conference.getParticipants().forEach(function(participant) {
-                var tracks = participant.getTracks();
-                for(var i = 0; i < tracks.length; i++) {
-                    if(tracks[i]
-                        && tracks[i].getStreamId() == streamId
-                        && tracks[i].getTrackId() == trackId) {
-                        var track = participant._tracks.splice(i, 1)[0];
-
-                        track = conference.rtc.removeRemoteTrack(
-                            participant.getId(), track);
-
-                        if (track) {
-                            conference.eventEmitter.emit(
-                                JitsiConferenceEvents.TRACK_REMOVED, track);
-                        }
-
-                        return;
-                    }
-                }
-            });
-        }
-    );
-
-    conference.room.addListener(XMPPEvents.AUDIO_MUTED_BY_FOCUS,
-        function (value) {
-            // set isMutedByFocus when setAudioMute Promise ends
-            conference.rtc.setAudioMute(value).then(
-                function() {
-                    conference.isMutedByFocus = true;
-                },
-                function() {
-                    logger.warn(
-                        "Error while audio muting due to focus request");
-                });
-        }
-    );
-
-    conference.room.addListener(XMPPEvents.SUBJECT_CHANGED, function (subject) {
-        conference.eventEmitter.emit(JitsiConferenceEvents.SUBJECT_CHANGED,
-            subject);
-    });
-
-    conference.room.addListener(XMPPEvents.MUC_JOINED, function () {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_JOINED);
-    });
-    conference.room.addListener(XMPPEvents.ROOM_JOIN_ERROR, function (pres) {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
-            JitsiConferenceErrors.CONNECTION_ERROR, pres);
-    });
-    conference.room.addListener(XMPPEvents.ROOM_CONNECT_ERROR, function (pres) {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
-            JitsiConferenceErrors.CONNECTION_ERROR, pres);
-    });
-    conference.room.addListener(XMPPEvents.ROOM_MAX_USERS_ERROR,
-    function (pres) {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
-            JitsiConferenceErrors.CONFERENCE_MAX_USERS, pres);
-    });
-    conference.room.addListener(XMPPEvents.PASSWORD_REQUIRED, function (pres) {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.PASSWORD_REQUIRED, pres);
-    });
-    conference.room.addListener(XMPPEvents.AUTHENTICATION_REQUIRED, function () {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.AUTHENTICATION_REQUIRED);
-    });
-    conference.room.addListener(XMPPEvents.BRIDGE_DOWN, function () {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.VIDEOBRIDGE_NOT_AVAILABLE);
-    });
-    conference.room.addListener(XMPPEvents.RESERVATION_ERROR, function (code, msg) {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.RESERVATION_ERROR, code, msg);
-    });
-    conference.room.addListener(XMPPEvents.GRACEFUL_SHUTDOWN, function () {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.GRACEFUL_SHUTDOWN);
-    });
-    conference.room.addListener(XMPPEvents.JINGLE_FATAL_ERROR, function (session, error) {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.JINGLE_FATAL_ERROR, error);
-    });
-    conference.room.addListener(XMPPEvents.MUC_DESTROYED, function (reason) {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.CONFERENCE_DESTROYED, reason);
-    });
-    conference.room.addListener(XMPPEvents.CHAT_ERROR_RECEIVED, function (err, msg) {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_ERROR, JitsiConferenceErrors.CHAT_ERROR, err, msg);
-    });
-    conference.room.addListener(XMPPEvents.FOCUS_DISCONNECTED, function (focus, retrySec) {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.FOCUS_DISCONNECTED, focus, retrySec);
-    });
-    conference.room.addListener(XMPPEvents.FOCUS_LEFT, function () {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.FOCUS_LEFT);
-    });
-    conference.room.setParticipantPropertyListener(function (node, from) {
-        var participant = conference.getParticipantById(from);
-        if (!participant) {
-            return;
-        }
-
-        participant.setProperty(
-            node.tagName.substring("jitsi_participant_".length),
-            node.value);
-    });
-
-    conference.room.addListener(XMPPEvents.KICKED, function () {
-        conference.eventEmitter.emit(JitsiConferenceEvents.KICKED);
-    });
-
-    conference.room.addListener(XMPPEvents.MUC_MEMBER_JOINED, conference.onMemberJoined.bind(conference));
-    conference.room.addListener(XMPPEvents.MUC_MEMBER_LEFT, conference.onMemberLeft.bind(conference));
-
-    conference.room.addListener(XMPPEvents.DISPLAY_NAME_CHANGED, conference.onDisplayNameChanged.bind(conference));
-
-    conference.room.addListener(XMPPEvents.LOCAL_ROLE_CHANGED, function (role) {
-        conference.eventEmitter.emit(JitsiConferenceEvents.USER_ROLE_CHANGED, conference.myUserId(), role);
-
-        // log all events for the recorder operated by the moderator
-        if (conference.statistics && conference.isModerator()) {
-            conference.on(JitsiConferenceEvents.RECORDER_STATE_CHANGED,
-                function (status, error) {
-                    Statistics.sendLog(
-                        "[Recorder] status: " + status
-                            + (error? " error: " + error : ""));
-                });
-        }
-    });
-    conference.room.addListener(XMPPEvents.MUC_ROLE_CHANGED, conference.onUserRoleChanged.bind(conference));
-
-    conference.room.addListener(XMPPEvents.CONNECTION_INTERRUPTED, function () {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_INTERRUPTED);
-    });
-
-    conference.room.addListener(XMPPEvents.RECORDER_STATE_CHANGED,
-        function (state) {
-            conference.eventEmitter.emit(
-                JitsiConferenceEvents.RECORDER_STATE_CHANGED, state);
-        });
-
-    conference.room.addListener(XMPPEvents.PHONE_NUMBER_CHANGED, function () {
-        conference.eventEmitter.emit(
-            JitsiConferenceEvents.PHONE_NUMBER_CHANGED);
-    });
-
-    conference.room.addListener(XMPPEvents.CONNECTION_RESTORED, function () {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_RESTORED);
-    });
-    conference.room.addListener(XMPPEvents.CONFERENCE_SETUP_FAILED,
-    function (error) {
-        conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
-            JitsiConferenceErrors.SETUP_FAILED, error);
-    });
-
-    conference.room.addListener(AuthenticationEvents.IDENTITY_UPDATED, function (authEnabled, authIdentity) {
-        conference.authEnabled = authEnabled;
-        conference.authIdentity = authIdentity;
-        conference.eventEmitter.emit(JitsiConferenceEvents.AUTH_STATUS_CHANGED, authEnabled, authIdentity);
-    });
-
-    conference.room.addListener(XMPPEvents.MESSAGE_RECEIVED, function (jid, displayName, txt, myJid, ts) {
-        var id = Strophe.getResourceFromJid(jid);
-        conference.eventEmitter.emit(JitsiConferenceEvents.MESSAGE_RECEIVED, id, txt, ts);
-    });
-
-    conference.room.addListener(XMPPEvents.PRESENCE_STATUS, function (jid, status) {
-        var id = Strophe.getResourceFromJid(jid);
-        var participant = conference.getParticipantById(id);
-        if (!participant || participant._status === status) {
-            return;
-        }
-        participant._status = status;
-        conference.eventEmitter.emit(JitsiConferenceEvents.USER_STATUS_CHANGED, id, status);
-    });
-
-    conference.rtc.addListener(RTCEvents.DOMINANTSPEAKER_CHANGED, function (id) {
-        if(conference.lastDominantSpeaker !== id && conference.room) {
-            conference.lastDominantSpeaker = id;
-            conference.eventEmitter.emit(JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED, id);
-        }
-        if (conference.statistics && conference.myUserId() === id) {
-            // We are the new dominant speaker.
-            conference.statistics.sendDominantSpeakerEvent();
-        }
-    });
-
-    conference.rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, function () {
-        var now = window.performance.now();
-        logger.log("(TIME) data channel opened ", now);
-        conference.room.connectionTimes["data.channel.opened"] = now;
-    });
-
-    conference.rtc.addListener(RTCEvents.LASTN_CHANGED, function (oldValue, newValue) {
-        conference.eventEmitter.emit(JitsiConferenceEvents.IN_LAST_N_CHANGED, oldValue, newValue);
-    });
-
-    conference.rtc.addListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
-        function (lastNEndpoints, endpointsEnteringLastN) {
-            conference.eventEmitter.emit(JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED,
-                lastNEndpoints, endpointsEnteringLastN);
-        });
-
-    conference.xmpp.addListener(XMPPEvents.START_MUTED_FROM_FOCUS,
-        function (audioMuted, videoMuted) {
-            conference.startAudioMuted = audioMuted;
-            conference.startVideoMuted = videoMuted;
-
-            // mute existing local tracks because this is initial mute from
-            // Jicofo
-            conference.getLocalTracks().forEach(function (track) {
-                if (conference.startAudioMuted && track.isAudioTrack()) {
-                    track.mute();
-                }
-                if (conference.startVideoMuted && track.isVideoTrack()) {
-                    track.mute();
-                }
-            });
-
-            conference.eventEmitter.emit(JitsiConferenceEvents.STARTED_MUTED);
-        });
-
-    conference.room.addPresenceListener("startmuted", function (data, from) {
-        var isModerator = false;
-        if (conference.myUserId() === from && conference.isModerator()) {
-            isModerator = true;
-        } else {
-            var participant = conference.getParticipantById(from);
-            if (participant && participant.isModerator()) {
-                isModerator = true;
-            }
-        }
-
-        if (!isModerator) {
-            return;
-        }
-
-        var startAudioMuted = data.attributes.audio === 'true';
-        var startVideoMuted = data.attributes.video === 'true';
-
-        var updated = false;
-
-        if (startAudioMuted !== conference.startMutedPolicy.audio) {
-            conference.startMutedPolicy.audio = startAudioMuted;
-            updated = true;
-        }
-
-        if (startVideoMuted !== conference.startMutedPolicy.video) {
-            conference.startMutedPolicy.video = startVideoMuted;
-            updated = true;
-        }
-
-        if (updated) {
-            conference.eventEmitter.emit(
-                JitsiConferenceEvents.START_MUTED_POLICY_CHANGED,
-                conference.startMutedPolicy
-            );
-        }
-    });
-
-    conference.rtc.addListener(RTCEvents.AVAILABLE_DEVICES_CHANGED, function (devices) {
-        conference.room.updateDeviceAvailability(devices);
-    });
-    conference.room.addPresenceListener("devices", function (data, from) {
-        var isAudioAvailable = false;
-        var isVideoAvailable = false;
-        data.children.forEach(function (config) {
-            if (config.tagName === 'audio') {
-                isAudioAvailable = config.value === 'true';
-            }
-            if (config.tagName === 'video') {
-                isVideoAvailable = config.value === 'true';
-            }
-        });
-
-        var availableDevices;
-        if (conference.myUserId() === from) {
-            availableDevices = conference.availableDevices;
-        } else {
-            var participant = conference.getParticipantById(from);
-            if (!participant) {
-                return;
-            }
-
-            availableDevices = participant._availableDevices;
-        }
-
-        var updated = false;
-
-        if (availableDevices.audio !== isAudioAvailable) {
-            updated = true;
-            availableDevices.audio = isAudioAvailable;
-        }
-
-        if (availableDevices.video !== isVideoAvailable) {
-            updated = true;
-            availableDevices.video = isVideoAvailable;
-        }
-
-        if (updated) {
-            conference.eventEmitter.emit(
-                JitsiConferenceEvents.AVAILABLE_DEVICES_CHANGED,
-                from, availableDevices);
-        }
-    });
-
-    if(conference.statistics) {
-        //FIXME: Maybe remove event should not be associated with the conference.
-        conference.statistics.addAudioLevelListener(function (ssrc, level) {
-            var userId = null;
-
-            var resource = conference.rtc.getResourceBySSRC(ssrc);
-            if (!resource)
-                return;
-
-            conference.rtc.setAudioLevel(resource, level);
-        });
-
-        conference.statistics.addAudioProblemListener(function (ssrc) {
-            conference._reportAudioProblem(ssrc)
-        });
-
-        conference.statistics.addConnectionStatsListener(function (stats) {
-            var ssrc2resolution = stats.resolution;
-
-            var id2resolution = {};
-
-            // preprocess resolutions: group by user id, skip incorrect
-            // resolutions etc.
-            Object.keys(ssrc2resolution).forEach(function (ssrc) {
-                var resolution = ssrc2resolution[ssrc];
-
-                if (!resolution.width || !resolution.height ||
-                    resolution.width == -1 || resolution.height == -1) {
-                    return;
-                }
-
-                var id = conference.rtc.getResourceBySSRC(ssrc);
-                if (!id) {
-                    return;
-                }
-
-                // ssrc to resolution map for user id
-                var idResolutions = id2resolution[id] || {};
-                idResolutions[ssrc] = resolution;
-
-                id2resolution[id] = idResolutions;
-            });
-
-            stats.resolution = id2resolution;
-
-            conference.eventEmitter.emit(
-                JitsiConferenceEvents.CONNECTION_STATS, stats);
-        });
-        conference.room.addListener(XMPPEvents.DISPOSE_CONFERENCE,
-            function () {
-                conference.statistics.dispose();
-            });
-
-        conference.room.addListener(XMPPEvents.CONNECTION_ICE_FAILED,
-            function (pc) {
-                conference.statistics.sendIceConnectionFailedEvent(pc);
-                conference.room.eventEmitter.emit(
-                    XMPPEvents.CONFERENCE_SETUP_FAILED,
-                    new Error("ICE fail"));
-            });
-
-        conference.rtc.addListener(RTCEvents.TRACK_ATTACHED,
-            function(track, container) {
-                var ssrc = track.getSSRC();
-                if (!container.id || !ssrc) {
-                    return;
-                }
-                conference.statistics.associateStreamWithVideoTag(
-                    ssrc, track.isLocal(), track.getUsageLabel(), container.id);
-
-            });
-
-        conference.on(JitsiConferenceEvents.TRACK_MUTE_CHANGED,
-            function (track) {
-                if(!track.isLocal())
-                    return;
-                var type = (track.getType() === "audio")? "audio" : "video";
-                conference.statistics.sendMuteEvent(track.isMuted(), type);
-            });
-
-        conference.room.addListener(XMPPEvents.CREATE_OFFER_FAILED, function (e, pc) {
-            conference.statistics.sendCreateOfferFailed(e, pc);
-        });
-
-        conference.room.addListener(XMPPEvents.CREATE_ANSWER_FAILED, function (e, pc) {
-            conference.statistics.sendCreateAnswerFailed(e, pc);
-        });
-
-        conference.room.addListener(XMPPEvents.SET_LOCAL_DESCRIPTION_FAILED,
-            function (e, pc) {
-                conference.statistics.sendSetLocalDescFailed(e, pc);
-            }
-        );
-
-        conference.room.addListener(XMPPEvents.SET_REMOTE_DESCRIPTION_FAILED,
-            function (e, pc) {
-                conference.statistics.sendSetRemoteDescFailed(e, pc);
-            }
-        );
-
-        conference.room.addListener(XMPPEvents.ADD_ICE_CANDIDATE_FAILED,
-            function (e, pc) {
-                conference.statistics.sendAddIceCandidateFailed(e, pc);
-            }
-        );
-    }
-}
-
+JitsiConference.prototype._isFocus = function (mucJid) {
+    return this.room.isFocus(mucJid);
+};
+
+/**
+ * Fires CONFERENCE_FAILED event with INCOMPATIBLE_SERVER_VERSIONS parameter
+ */
+JitsiConference.prototype._fireIncompatibleVersionsEvent = function () {
+    this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+        JitsiConferenceErrors.INCOMPATIBLE_SERVER_VERSIONS);
+};
 
 module.exports = JitsiConference;

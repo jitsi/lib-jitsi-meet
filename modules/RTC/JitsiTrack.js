@@ -54,7 +54,7 @@ function addMediaStreamInactiveHandler(mediaStream, handler) {
  * @param videoType the VideoType for this track if any
  * @param ssrc the SSRC of this track if known
  */
-function JitsiTrack(rtc, stream, track, streamInactiveHandler, trackMediaType,
+function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMediaType,
                     videoType, ssrc)
 {
     /**
@@ -62,7 +62,7 @@ function JitsiTrack(rtc, stream, track, streamInactiveHandler, trackMediaType,
      * @type {Array}
      */
     this.containers = [];
-    this.rtc = rtc;
+    this.conference = conference;
     this.stream = stream;
     this.ssrc = ssrc;
     this.eventEmitter = new EventEmitter();
@@ -70,6 +70,15 @@ function JitsiTrack(rtc, stream, track, streamInactiveHandler, trackMediaType,
     this.type = trackMediaType;
     this.track = track;
     this.videoType = videoType;
+
+    /**
+     * Indicates whether this JitsiTrack has been disposed. If true, this
+     * JitsiTrack is to be considered unusable and operations involving it are
+     * to fail (e.g. {@link JitsiConference#addTrack(JitsiTrack)},
+     * {@link JitsiConference#removeTrack(JitsiTrack)}).
+     * @type {boolean}
+     */
+    this.disposed = false;
 
     if(stream) {
         if (RTCBrowserType.isFirefox()) {
@@ -151,8 +160,8 @@ JitsiTrack.prototype.getUsageLabel = function () {
  * @private
  */
 JitsiTrack.prototype._maybeFireTrackAttached = function (container) {
-    if (this.rtc && container) {
-        this.rtc.eventEmitter.emit(RTCEvents.TRACK_ATTACHED, this, container);
+    if (this.conference && container) {
+        this.conference._onTrackAttach(this, container);
     }
 };
 
@@ -208,10 +217,16 @@ JitsiTrack.prototype.detach = function (container) {
 };
 
 /**
- * Dispose sending the media track. And removes it from the HTML.
- * NOTE: Works for local tracks only.
+ * Removes attached event listeners.
+ *
+ * @returns {Promise}
  */
 JitsiTrack.prototype.dispose = function () {
+    this.eventEmitter.removeAllListeners();
+
+    this.disposed = true;
+
+    return Promise.resolve();
 };
 
 /**
