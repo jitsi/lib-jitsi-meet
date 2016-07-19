@@ -24,7 +24,7 @@
     "retry": "0.6.1",
     "jssha": "1.5.0",
     "es6-promise": "*",
-    "jitsi-meet-logger": "jitsi/jitsi-meet-logger",
+    "jitsi-meet-logger": "git+https://github.com/jitsi/jitsi-meet-logger.git",
     "strophe": "^1.2.2",
     "strophejs-plugins": "^0.0.6",
     "socket.io-client": "1.3.6"
