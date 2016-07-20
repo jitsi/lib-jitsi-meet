@@ -118,6 +118,8 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - AVAILABLE_DEVICES_CHANGED - notifies that available participant devices changed (camera or microphone was added or removed) (parameters - id(string), devices(JS object with 2 properties - audio(boolean), video(boolean)))
         - CONNECTION_STATS - New local connection statistics are received. (parameters - stats(object))
         - AUTH_STATUS_CHANGED - notifies that authentication is enabled or disabled, or local user authenticated (logged in). (parameters - isAuthEnabled(boolean), authIdentity(string))
+        - DATACHANNEL_ENDPOINT_MESSAGE_RECEIVED - notifies that a new message
+        from another participant is received on a data channel.
 
     2. connection
         - CONNECTION_FAILED - indicates that the server connection failed.
@@ -170,10 +172,10 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - CHROME_EXTENSION_USER_CANCELED - an error which indicates that user canceled screen sharing window selection dialog in jidesha extension for Chrome.
         - CHROME_EXTENSION_INSTALLATION_ERROR - an error which indicates that the jidesha extension for Chrome is failed to install.
         - FIREFOX_EXTENSION_NEEDED - An error which indicates that the jidesha extension for Firefox is needed to proceed with screen sharing, and that it is not installed.
-        
+
 * ```JitsiMeetJS.errorTypes``` - constructors for Error instances that can be produced by library. Are useful for checks like ```error instanceof JitsiMeetJS.errorTypes.JitsiTrackError```. Following Errors are available:
     1. ```JitsiTrackError``` - Error that happened to a JitsiTrack.
-        
+
 * ```JitsiMeetJS.logLevels``` - object with the log levels:
     1. TRACE
     2. DEBUG
@@ -381,7 +383,7 @@ We have the following methods for controling the tracks:
 
 JitsiTrackError
 ======
-The object represents error that happened to a JitsiTrack. Is inherited from JavaScript base ```Error``` object, 
+The object represents error that happened to a JitsiTrack. Is inherited from JavaScript base ```Error``` object,
 so ```"name"```, ```"message"``` and ```"stack"``` properties are available. For GUM-related errors,
 exposes additional ```"gum"``` property, which is an object with following properties:
  - error - original GUM error
