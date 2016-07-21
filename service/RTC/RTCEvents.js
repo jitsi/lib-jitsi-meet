@@ -8,13 +8,7 @@ var RTCEvents = {
     TRACK_ATTACHED: "rtc.track_attached",
     AUDIO_OUTPUT_DEVICE_CHANGED: "rtc.audio_output_device_changed",
     DEVICE_LIST_CHANGED: "rtc.device_list_changed",
-    DEVICE_LIST_AVAILABLE: "rtc.device_list_available",
-    /**
-     * Indicates that a message from another participant is received on
-     * data channel.
-     */
-    DATACHANNEL_ENDPOINT_MESSAGE_RECEIVED:
-        "rtc.datachannel_endpoint_message_received"
+    DEVICE_LIST_AVAILABLE: "rtc.device_list_available"
 };
 
 module.exports = RTCEvents;

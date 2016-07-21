@@ -485,14 +485,4 @@ RTC.prototype.handleRemoteTrackVideoTypeChanged = function (value, from) {
     }
 }
 
-/**
- * Sends broadcast message via the datachannels.
- * @param payload {object} the payload of the message.
- */
-RTC.prototype.sendDataChannelBroadcast = function (payload) {
-    if(this.dataChannels) {
-        this.dataChannels.sendBroadcastMessage(payload);
-    }
-}
-
 module.exports = RTC;

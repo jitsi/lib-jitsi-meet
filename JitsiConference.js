@@ -1228,14 +1228,4 @@ JitsiConference.prototype._fireIncompatibleVersionsEvent = function () {
         JitsiConferenceErrors.INCOMPATIBLE_SERVER_VERSIONS);
 };
 
-/**
- * Sends broadcast message via the datachannels.
- * @param payload {object} the payload of the message.
- */
-JitsiConference.prototype.sendDataChannelBroadcast = function (payload) {
-    if(this.rtc) {
-        this.rtc.sendDataChannelBroadcast(payload);
-    }
-}
-
 module.exports = JitsiConference;
