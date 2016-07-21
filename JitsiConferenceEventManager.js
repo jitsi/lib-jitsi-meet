@@ -394,6 +394,10 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
  */
 JitsiConferenceEventManager.prototype.setupRTCListeners = function () {
     var conference = this.conference;
+
+    this.rtcForwarder = new EventEmitterForwarder(conference.rtc,
+        this.conference.eventEmitter);
+
     conference.rtc.addListener(RTCEvents.DOMINANTSPEAKER_CHANGED,
         function (id) {
             if(conference.lastDominantSpeaker !== id && conference.room) {
@@ -413,22 +417,22 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function () {
         conference.room.connectionTimes["data.channel.opened"] = now;
     });
 
-    conference.rtc.addListener(RTCEvents.LASTN_CHANGED,
-        function (oldValue, newValue) {
-            conference.eventEmitter.emit(
-                JitsiConferenceEvents.IN_LAST_N_CHANGED, oldValue, newValue);
-        });
+    this.rtcForwarder.forward(RTCEvents.LASTN_CHANGED,
+        JitsiConferenceEvents.IN_LAST_N_CHANGED);
 
-    conference.rtc.addListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
-        function (lastNEndpoints, endpointsEnteringLastN) {
-            conference.eventEmitter.emit(
-                JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED,
-                lastNEndpoints, endpointsEnteringLastN);
-        });
+    this.rtcForwarder.forward(RTCEvents.LASTN_ENDPOINT_CHANGED,
+        JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED);
 
     conference.rtc.addListener(RTCEvents.AVAILABLE_DEVICES_CHANGED,
         function (devices) {
             conference.room.updateDeviceAvailability(devices);
+        });
+
+    conference.rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
+        function (from, payload) {
+            conference.eventEmitter.emit(
+                JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
+                conference.getParticipantById(from), payload);
         });
 };
 

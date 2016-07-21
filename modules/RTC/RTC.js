@@ -485,4 +485,16 @@ RTC.prototype.handleRemoteTrackVideoTypeChanged = function (value, from) {
     }
 }
 
+/**
+ * Sends message via the datachannels.
+ * @param to {string} the id of the endpoint that should receive the message.
+ * If "" the message will be sent to all participants.
+ * @param payload {object} the payload of the message.
+ */
+RTC.prototype.sendDataChannelMessage = function (to, payload) {
+    if(this.dataChannels) {
+        this.dataChannels.sendDataChannelMessage(to, payload);
+    }
+}
+
 module.exports = RTC;
