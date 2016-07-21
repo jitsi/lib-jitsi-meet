@@ -135,13 +135,7 @@ var JitsiConferenceEvents = {
      * Indicates that a the value of a specific property of a specific
      * participant has changed.
      */
-    PARTICIPANT_PROPERTY_CHANGED: "conference.participant_property_changed",
-    /**
-     * Indicates that a message from another participant is received on
-     * data channel.
-     */
-    DATACHANNEL_ENDPOINT_MESSAGE_RECEIVED:
-        "conference.datachannel_endpoint_message_received"
+    PARTICIPANT_PROPERTY_CHANGED: "conference.participant_property_changed"
 };
 
 module.exports = JitsiConferenceEvents;
