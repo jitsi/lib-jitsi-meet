@@ -800,6 +800,11 @@ ChatRoom.prototype.remoteTrackAdded = function(data) {
             mutedNode = filterNodeFromPresenceJSON(pres, "audiomuted");
         } else if (mediaType === MediaType.VIDEO) {
             mutedNode = filterNodeFromPresenceJSON(pres, "videomuted");
+            var videoTypeNode = filterNodeFromPresenceJSON(pres, "videoType");
+            if(videoTypeNode
+                && videoTypeNode.length > 0
+                && videoTypeNode[0])
+                data.videoType = videoTypeNode[0]["value"];
         } else {
             logger.warn("Unsupported media type: " + mediaType);
             data.muted = null;
