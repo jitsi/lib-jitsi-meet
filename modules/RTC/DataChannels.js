@@ -143,6 +143,10 @@ DataChannels.prototype.onDataChannel = function (event) {
                     lastNEndpoints, endpointsEnteringLastN, obj);
                 self.eventEmitter.emit(RTCEvents.LASTN_ENDPOINT_CHANGED,
                     lastNEndpoints, endpointsEnteringLastN, obj);
+            } else if("EndpointMessage" === colibriClass) {
+                self.eventEmitter.emit(
+                    RTCEvents.ENDPOINT_MESSAGE_RECEIVED, obj.from,
+                    obj.msgPayload);
             }
             else {
                 logger.debug("Data channel JSON-formatted message: ", obj);
@@ -204,34 +208,22 @@ DataChannels.prototype._onXXXEndpointChanged = function (xxx, userResource) {
     var tail = xxx.substring(1);
     var lower = head.toLowerCase() + tail;
     var upper = head.toUpperCase() + tail;
+    logger.log(
+            'sending ' + lower
+                + ' endpoint changed notification to the bridge: ',
+            userResource);
+
+    var jsonObject = {};
+
+    jsonObject.colibriClass = (upper + 'EndpointChangedEvent');
+    jsonObject[lower + "Endpoint"]
+        = (userResource ? userResource : null);
+
+    this.send(jsonObject);
 
     // Notify Videobridge about the specified endpoint change.
     logger.log(lower + ' endpoint changed: ', userResource);
-    this._some(function (dataChannel) {
-        if (dataChannel.readyState == 'open') {
-            logger.log(
-                    'sending ' + lower
-                        + ' endpoint changed notification to the bridge: ',
-                    userResource);
 
-            var jsonObject = {};
-
-            jsonObject.colibriClass = (upper + 'EndpointChangedEvent');
-            jsonObject[lower + "Endpoint"]
-                = (userResource ? userResource : null);
-            try {
-                dataChannel.send(JSON.stringify(jsonObject));
-            } catch (e) {
-                // FIXME: Maybe we should check if the conference is left
-                // before calling _onXXXEndpointChanged method.
-                // FIXME: We should check if we are disposing correctly the
-                // data channels.
-                logger.warn(e);
-            }
-
-            return true;
-        }
-    });
 };
 
 DataChannels.prototype._some = function (callback, thisArg) {
@@ -246,5 +238,32 @@ DataChannels.prototype._some = function (callback, thisArg) {
         return false;
     }
 };
+
+/**
+ * Sends passed object via the first found open datachannel
+ * @param jsonObject {object} the object that will be sent
+ */
+DataChannels.prototype.send = function (jsonObject) {
+    this._some(function (dataChannel) {
+        if (dataChannel.readyState == 'open') {
+            dataChannel.send(JSON.stringify(jsonObject));
+            return true;
+        }
+    });
+}
+
+/**
+ * Sends message via the datachannels.
+ * @param to {string} the id of the endpoint that should receive the message.
+ * If "" the message will be sent to all participants.
+ * @param payload {object} the payload of the message.
+ */
+DataChannels.prototype.sendDataChannelMessage = function (to, payload) {
+    this.send({
+        colibriClass: "EndpointMessage",
+        to: to,
+        msgPayload: payload
+    });
+}
 
 module.exports = DataChannels;
