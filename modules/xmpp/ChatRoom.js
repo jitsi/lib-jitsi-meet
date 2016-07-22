@@ -495,7 +495,7 @@ ChatRoom.prototype.onPresenceUnavailable = function (pres, from) {
     }
     if ($(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="307"]').length) {
         if (this.myroomjid === from) {
-            this.leave();
+            this.leave(true);
             this.eventEmitter.emit(XMPPEvents.KICKED);
         }
     }
@@ -948,13 +948,15 @@ ChatRoom.prototype.onMute = function (iq) {
 
 /**
  * Leaves the room. Closes the jingle session.
+ * @parama voidSendingPresence avoids sending the presence when leaving
  */
-ChatRoom.prototype.leave = function () {
+ChatRoom.prototype.leave = function (avoidSendingPresence) {
     if (this.session) {
         this.session.close();
     }
     this.eventEmitter.emit(XMPPEvents.DISPOSE_CONFERENCE);
-    this.doLeave();
+    if(!avoidSendingPresence)
+        this.doLeave();
     this.connection.emuc.doLeave(this.roomjid);
 };
 

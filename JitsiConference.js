@@ -83,8 +83,6 @@ JitsiConference.prototype._init = function (options) {
     this.room = this.xmpp.createRoom(this.options.name, this.options.config,
         this.settings, (this.retries < 4 ? 3 : null));
 
-    this.eventManager.setupChatRoomListeners();
-
     //restore previous presence options
     if(options.roomState) {
         this.room.loadState(options.roomState);
@@ -96,7 +94,6 @@ JitsiConference.prototype._init = function (options) {
         this.eventManager.setupRTCListeners();
     }
 
-
     if(!this.statistics) {
         this.statistics = new Statistics(this.xmpp, {
             callStatsID: this.options.config.callStatsID,
@@ -106,6 +103,9 @@ JitsiConference.prototype._init = function (options) {
             roomName: this.options.name
         });
     }
+
+    this.eventManager.setupChatRoomListeners();
+
     // Always add listeners because on reload we are executing leave and the
     // listeners are removed from statistics module.
     this.eventManager.setupStatisticsListeners();
@@ -491,6 +491,30 @@ JitsiConference.prototype._fireMuteChangeEvent = function (track) {
 };
 
 /**
+ * Clear JitsiLocalTrack properties and listeners.
+ * @param track the JitsiLocalTrack object.
+ */
+JitsiConference.prototype.onTrackRemoved = function (track) {
+    track._setSSRC(null);
+    track._setConference(null);
+    this.rtc.removeLocalTrack(track);
+    track.removeEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED,
+        track.muteHandler);
+    track.removeEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
+        track.audioLevelHandler);
+    this.room.removeListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+        track.ssrcHandler);
+
+    // send event for stopping screen sharing
+    // FIXME: we assume we have only one screen sharing track
+    // if we change this we need to fix this check
+    if (track.isVideoTrack() && track.videoType === "desktop")
+        this.statistics.sendScreenSharingEvent(false);
+
+    this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+}
+
+/**
  * Removes JitsiLocalTrack object to the conference.
  * @param track the JitsiLocalTrack object.
  * @returns {Promise}
@@ -503,30 +527,13 @@ JitsiConference.prototype.removeTrack = function (track) {
 
     if(!this.room){
         if(this.rtc) {
-            this.rtc.removeLocalTrack(track);
-            this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+            this.onTrackRemoved(track);
         }
         return Promise.resolve();
     }
     return new Promise(function (resolve, reject) {
         this.room.removeStream(track.getOriginalStream(), function(){
-            track._setSSRC(null);
-            track._setConference(null);
-            this.rtc.removeLocalTrack(track);
-            track.removeEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED,
-                track.muteHandler);
-            track.removeEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
-                track.audioLevelHandler);
-            this.room.removeListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
-                track.ssrcHandler);
-
-            // send event for stopping screen sharing
-            // FIXME: we assume we have only one screen sharing track
-            // if we change this we need to fix this check
-            if (track.isVideoTrack() && track.videoType === "desktop")
-                this.statistics.sendScreenSharingEvent(false);
-
-            this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+            this.onTrackRemoved(track);
             resolve();
         }.bind(this), function (error) {
             reject(error);
