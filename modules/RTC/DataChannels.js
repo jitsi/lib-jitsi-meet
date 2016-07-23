@@ -246,7 +246,21 @@ DataChannels.prototype._some = function (callback, thisArg) {
 DataChannels.prototype.send = function (jsonObject) {
     this._some(function (dataChannel) {
         if (dataChannel.readyState == 'open') {
-            dataChannel.send(JSON.stringify(jsonObject));
+            try {
+                // Can throw NetworkError and InvalidStateError. We
+                // shouldn't be experiencing InvalidStateError. But NetworkError
+                // is easily reproducable when start leaving the conference.
+                // I cannot reproduce it in any other use cases and for this one
+                // we can safely ignore the error and just report it to the
+                // global error handler. If we notice this error during the
+                // conference maybe it's better to throw it to the user of the
+                // library in order to notify the caller of the method for
+                // the failure.
+                dataChannel.send(JSON.stringify(jsonObject));
+            } catch (error) {
+                GlobalOnErrorHandler.callErrorHandler(error);
+                logger.error("Cannot send ", jsonObject, ". Error: ", error);
+            }
             return true;
         }
     });
