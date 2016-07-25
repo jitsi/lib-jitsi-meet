@@ -369,6 +369,7 @@ JitsiConference.prototype.setSubject = function (subject) {
     }
 };
 
+
 /**
  * Adds JitsiLocalTrack object to the conference.
  * @param track the JitsiLocalTrack object.
