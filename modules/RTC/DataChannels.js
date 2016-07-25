@@ -69,7 +69,13 @@ DataChannels.prototype.onDataChannel = function (event) {
         // we want the notification to trigger even if userJid is undefined,
         // or null.
         // XXX why do we not do the same for pinned endpoints?
-        self.sendSelectedEndpointMessage(self.selectedEndpoint);
+        try {
+            self.sendSelectedEndpointMessage(self.selectedEndpoint);
+        } catch (error) {
+            GlobalOnErrorHandler.callErrorHandler(error);
+            logger.error("Cannot sendSelectedEndpointMessage ",
+                self.selectedEndpoint, ". Error: ", error);
+        }
     };
 
     dataChannel.onerror = function (error) {
@@ -180,6 +186,10 @@ DataChannels.prototype.closeAllChannels = function () {
 
 /**
  * Sends a "selected endpoint changed" message via the data channel.
+ * @param endpointId {string} the id of the selected endpoint
+ * @throws NetworkError or InvalidStateError from RTCDataChannel#send (@see
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send})
+ * or Error with "No opened data channels found!" message.
  */
 DataChannels.prototype.sendSelectedEndpointMessage = function (endpointId) {
     this.selectedEndpoint = endpointId;
@@ -188,6 +198,10 @@ DataChannels.prototype.sendSelectedEndpointMessage = function (endpointId) {
 
 /**
  * Sends a "pinned endpoint changed" message via the data channel.
+ * @param endpointId {string} the id of the pinned endpoint
+ * @throws NetworkError or InvalidStateError from RTCDataChannel#send (@see
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send})
+ * or Error with "No opened data channels found!" message.
  */
 DataChannels.prototype.sendPinnedEndpointMessage = function (endpointId) {
     this._onXXXEndpointChanged("pinnned", endpointId);
@@ -200,6 +214,9 @@ DataChannels.prototype.sendPinnedEndpointMessage = function (endpointId) {
  * @param xxx the name of the endpoint-related property whose value changed
  * @param userResource the new value of the endpoint-related property after the
  * change
+ * @throws NetworkError or InvalidStateError from RTCDataChannel#send (@see
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send})
+ * or Error with "No opened data channels found!" message.
  */
 DataChannels.prototype._onXXXEndpointChanged = function (xxx, userResource) {
     // Derive the correct words from xxx such as selected and Selected, pinned
@@ -223,7 +240,6 @@ DataChannels.prototype._onXXXEndpointChanged = function (xxx, userResource) {
 
     // Notify Videobridge about the specified endpoint change.
     logger.log(lower + ' endpoint changed: ', userResource);
-
 };
 
 DataChannels.prototype._some = function (callback, thisArg) {
@@ -242,28 +258,19 @@ DataChannels.prototype._some = function (callback, thisArg) {
 /**
  * Sends passed object via the first found open datachannel
  * @param jsonObject {object} the object that will be sent
+ * @throws NetworkError or InvalidStateError from RTCDataChannel#send (@see
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send})
+ * or Error with "No opened data channels found!" message.
  */
 DataChannels.prototype.send = function (jsonObject) {
-    this._some(function (dataChannel) {
+    if(!this._some(function (dataChannel) {
         if (dataChannel.readyState == 'open') {
-            try {
-                // Can throw NetworkError and InvalidStateError. We
-                // shouldn't be experiencing InvalidStateError. But NetworkError
-                // is easily reproducable when start leaving the conference.
-                // I cannot reproduce it in any other use cases and for this one
-                // we can safely ignore the error and just report it to the
-                // global error handler. If we notice this error during the
-                // conference maybe it's better to throw it to the user of the
-                // library in order to notify the caller of the method for
-                // the failure.
                 dataChannel.send(JSON.stringify(jsonObject));
-            } catch (error) {
-                GlobalOnErrorHandler.callErrorHandler(error);
-                logger.error("Cannot send ", jsonObject, ". Error: ", error);
-            }
             return true;
         }
-    });
+    })) {
+        throw new Error("No opened data channels found!");
+    }
 }
 
 /**
@@ -271,6 +278,9 @@ DataChannels.prototype.send = function (jsonObject) {
  * @param to {string} the id of the endpoint that should receive the message.
  * If "" the message will be sent to all participants.
  * @param payload {object} the payload of the message.
+ * @throws NetworkError or InvalidStateError from RTCDataChannel#send (@see
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send})
+ * or Error with "No opened data channels found!" message.
  */
 DataChannels.prototype.sendDataChannelMessage = function (to, payload) {
     this.send({

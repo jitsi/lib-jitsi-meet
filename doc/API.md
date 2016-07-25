@@ -347,8 +347,22 @@ The object represents a conference. We have the following methods to control the
     - to - the id of the endpoint that should receive the message. If "" the message will be sent to all participants.
     - payload - JSON object - the payload of the message.
 
+Throws NetworkError or InvalidStateError or Error if the operation fails.
+
 32. broadcastEndpointMessage(payload) - Sends broadcast message via the datachannels.
     - payload - JSON object - the payload of the message.
+
+Throws NetworkError or InvalidStateError or Error if the operation fails.
+
+33. selectParticipant(participantId) - Elects the participant with the given id to be the selected participant in order to receive higher video quality (if simulcast is enabled).
+    - participantId - the identifier of the participant
+
+Throws NetworkError or InvalidStateError or Error if the operation fails.
+
+34. pinParticipant(participantId) - Elects the participant with the given id to be the pinned participant in order to always receive video for this participant (even when last n is enabled).
+    - participantId - the identifier of the participant
+
+Throws NetworkError or InvalidStateError or Error if the operation fails.
 
 JitsiTrack
 ======

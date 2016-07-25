@@ -591,23 +591,24 @@ JitsiConference.prototype.unlock = function () {
 };
 
 /**
- * Elects the participant with the given id to be the selected participant or the speaker.
- * @param id the identifier of the participant
+ * Elects the participant with the given id to be the selected participant in
+ * order to receive higher video quality (if simulcast is enabled).
+ * @param participantId the identifier of the participant
+ * @throws NetworkError or InvalidStateError or Error if the operation fails.
  */
 JitsiConference.prototype.selectParticipant = function(participantId) {
-    if (this.rtc) {
-        this.rtc.selectEndpoint(participantId);
-    }
+    this.rtc.selectEndpoint(participantId);
 };
 
 /**
- *
- * @param id the identifier of the participant
+ * Elects the participant with the given id to be the pinned participant in
+ * order to always receive video for this participant (even when last n is
+ * enabled).
+ * @param participantId the identifier of the participant
+ * @throws NetworkError or InvalidStateError or Error if the operation fails.
  */
 JitsiConference.prototype.pinParticipant = function(participantId) {
-    if (this.rtc) {
-        this.rtc.pinEndpoint(participantId);
-    }
+    this.rtc.pinEndpoint(participantId);
 };
 
 /**
@@ -1240,16 +1241,16 @@ JitsiConference.prototype._fireIncompatibleVersionsEvent = function () {
  * @param to {string} the id of the endpoint that should receive the message.
  * If "" the message will be sent to all participants.
  * @param payload {object} the payload of the message.
+ * @throws NetworkError or InvalidStateError or Error if the operation fails.
  */
 JitsiConference.prototype.sendEndpointMessage = function (to, payload) {
-    if(this.rtc) {
-        this.rtc.sendDataChannelMessage(to, payload);
-    }
+    this.rtc.sendDataChannelMessage(to, payload);
 }
 
 /**
  * Sends broadcast message via the datachannels.
  * @param payload {object} the payload of the message.
+ * @throws NetworkError or InvalidStateError or Error if the operation fails.
  */
 JitsiConference.prototype.broadcastEndpointMessage = function (payload) {
     this.sendEndpointMessage("", payload);
