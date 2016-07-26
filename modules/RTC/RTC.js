@@ -86,14 +86,34 @@ RTC.prototype.onIncommingCall = function(event) {
             this.eventEmitter);
 };
 
+/**
+ * Elects the participant with the given id to be the pinned participant in
+ * order to always receive video for this participant (even when last n is
+ * enabled).
+ * @param id {string} the user id.
+ * @throws NetworkError or InvalidStateError or Error if the operation fails.
+*/
 RTC.prototype.selectEndpoint = function (id) {
-    if(this.dataChannels)
+    if(this.dataChannels) {
         this.dataChannels.sendSelectedEndpointMessage(id);
+    } else {
+        throw new Error("Data channels support is disabled!");
+    }
 };
 
+/**
+ * Elects the participant with the given id to be the pinned participant in
+ * order to always receive video for this participant (even when last n is
+ * enabled).
+ * @param id {string} the user id
+ * @throws NetworkError or InvalidStateError or Error if the operation fails.
+ */
 RTC.prototype.pinEndpoint = function (id) {
-    if(this.dataChannels)
+    if(this.dataChannels) {
         this.dataChannels.sendPinnedEndpointMessage(id);
+    } else {
+        throw new Error("Data channels support is disabled!");
+    }
 };
 
 RTC.prototype.addListener = function (type, listener) {
@@ -490,10 +510,13 @@ RTC.prototype.handleRemoteTrackVideoTypeChanged = function (value, from) {
  * @param to {string} the id of the endpoint that should receive the message.
  * If "" the message will be sent to all participants.
  * @param payload {object} the payload of the message.
+ * @throws NetworkError or InvalidStateError or Error if the operation fails.
  */
 RTC.prototype.sendDataChannelMessage = function (to, payload) {
     if(this.dataChannels) {
         this.dataChannels.sendDataChannelMessage(to, payload);
+    } else {
+        throw new Error("Data channels support is disabled!");
     }
 }
 
