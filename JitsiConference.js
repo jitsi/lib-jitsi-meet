@@ -18,6 +18,8 @@ var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 var JitsiConferenceEventManager = require("./JitsiConferenceEventManager");
 var VideoType = require('./service/RTC/VideoType');
 var Transcriber = require("./modules/transcription/transcriber");
+var ParticipantConnectionStatus
+    = require("./modules/connectivity/ParticipantConnectionStatus");
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -91,6 +93,9 @@ JitsiConference.prototype._init = function (options) {
         this.rtc = new RTC(this, options);
         this.eventManager.setupRTCListeners();
     }
+
+    this.participantConnectionStatus
+        = new ParticipantConnectionStatus(this.rtc, this);
 
     if(!this.statistics) {
         this.statistics = new Statistics(this.xmpp, {
