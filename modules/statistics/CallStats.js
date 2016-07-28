@@ -337,7 +337,7 @@ CallStats.prototype.sendTerminateEvent = _try_catch(function () {
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
 CallStats.prototype.sendDetectedAudioProblem = _try_catch(function (e) {
-    CallStats._reportError.call(this, wrtcFuncNames.signalingError, e,
+    CallStats._reportError.call(this, wrtcFuncNames.applicationLog, e,
         this.peerconnection);
 });
 

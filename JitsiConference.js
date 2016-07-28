@@ -1203,12 +1203,15 @@ JitsiConference.prototype._reportAudioProblem = function (ssrc) {
         });
     }
 
-    this.statistics.sendDetectedAudioProblem(
-        new Error(JSON.stringify(errorContent)));
     // Prints JSON.stringify(errorContent) to be able to see all properties of
     // errorContent from torture
     logger.error("Audio problem detected. The audio is received but not played",
         errorContent);
+
+    delete errorContent.displayName;
+
+    this.statistics.sendDetectedAudioProblem(
+        new Error(JSON.stringify(errorContent)));
 };
 
 /**
