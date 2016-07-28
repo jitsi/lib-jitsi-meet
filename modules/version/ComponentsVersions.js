@@ -12,7 +12,7 @@ ComponentsVersions.FOCUS_COMPONENT = "focus";
  */
 ComponentsVersions.VIDEOBRIDGE_COMPONENT = "videobridge";
 /**
- * The contant for the name of the XMPP server component.
+ * The constant for the name of the XMPP server component.
  * @type {string}
  */
 ComponentsVersions.XMPP_SERVER_COMPONENT = "xmpp";
@@ -35,7 +35,7 @@ function ComponentsVersions(conference) {
 }
 
 ComponentsVersions.prototype.processPresence =
-function(node, mucResource, mucJid) {
+    function(node, mucResource, mucJid) {
 
     if (node.attributes.xmlns !== 'http://jitsi.org/jitmeet') {
         logger.warn("Ignored presence versions node - invalid xmlns", node);
@@ -63,12 +63,6 @@ function(node, mucResource, mucJid) {
 
         var version = item.value;
         if (this.versions[componentName] !== version) {
-            if(this.versions[componentName] &&
-                componentName !== ComponentsVersions.FOCUS_COMPONENT &&
-                componentName !== ComponentsVersions.VIDEOBRIDGE_COMPONENT) {
-                //version is changed during the call
-                this.conference._fireIncompatibleVersionsEvent();
-            }
             this.versions[componentName] = version;
             logger.info("Got " + componentName + " version: " + version);
 
