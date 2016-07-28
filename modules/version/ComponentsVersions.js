@@ -48,7 +48,7 @@ ComponentsVersions.prototype.processPresence =
         return;
     }
 
-    var log = "";
+    var log = [];
     node.children.forEach(function(item){
 
         var componentName = item.attributes.name;
@@ -66,14 +66,16 @@ ComponentsVersions.prototype.processPresence =
             this.versions[componentName] = version;
             logger.info("Got " + componentName + " version: " + version);
 
-            log += (log.length > 0? ", " : "")
-                + componentName + ": " + version;
+            log.push({
+                id: "component_version",
+                component: componentName,
+                version: version});
         }
     }.bind(this));
 
     // logs versions to stats
     if (log.length > 0)
-        Statistics.sendLog(log);
+        Statistics.sendLog(JSON.stringify(log));
 };
 
 /**

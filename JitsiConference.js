@@ -1212,7 +1212,11 @@ JitsiConference.prototype._reportAudioProblem = function (ssrc) {
 };
 
 /**
- * Logs an "application log" message
+ * Logs an "application log" message.
+ * @param message {string} The message to log. Note that while this can be a
+ * generic string, the convention used by lib-jitsi-meet and jitsi-meet is to
+ * log valid JSON strings, with an "id" field used for distinguishing between
+ * message types. E.g.: {id: "recorder_status", status: "off"}
  */
 JitsiConference.prototype.sendApplicationLog = function(message) {
     Statistics.sendLog(message);
