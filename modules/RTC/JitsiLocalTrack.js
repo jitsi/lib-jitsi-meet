@@ -167,7 +167,7 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
         resolve();
         return;
     }
-    if(!this.conference) {
+    if(!this.conference || !this.conference.room) {
         this.startMuted = mute;
         resolve();
         return;
