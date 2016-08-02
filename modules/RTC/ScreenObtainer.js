@@ -2,7 +2,7 @@
 /* jshint -W003 */
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
-var AdapterJS = require("./adapter.screenshare");
+var AdapterJS = require("./adapter");
 var JitsiTrackErrors = require("../../JitsiTrackErrors");
 
 /**
