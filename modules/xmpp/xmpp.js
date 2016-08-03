@@ -48,6 +48,10 @@ function XMPP(options, token) {
 
     this.connection = createConnection(options.bosh, token);
 
+    if(!this.connection.disco || !this.connection.caps)
+        throw new Error(
+            "Missing strophe-plugins (disco and caps plugins are required)!");
+
     // Initialize features advertised in disco-info
     this.initFeaturesList();
 
