@@ -215,8 +215,14 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
         if (conference.statistics && conference.isModerator()) {
             conference.on(JitsiConferenceEvents.RECORDER_STATE_CHANGED,
                 function (status, error) {
-                    Statistics.sendLog("[Recorder] status: " + status
-                        + (error? " error: " + error : ""));
+                    var logObject = {
+                        id: "recorder_status",
+                        status: status
+                    };
+                    if (error) {
+                        logObject.error = error;
+                    }
+                    Statistics.sendLog(JSON.stringify(logObject));
                 });
         }
     });
@@ -254,11 +260,13 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
 
     conference.room.addListener(XMPPEvents.LOCAL_UFRAG_CHANGED,
         function (ufrag) {
-            Statistics.sendLog("Local ufrag: " + ufrag);
+            Statistics.sendLog(
+                JSON.stringify({id: "local_ufrag", value: ufrag}));
         });
     conference.room.addListener(XMPPEvents.REMOTE_UFRAG_CHANGED,
         function (ufrag) {
-            Statistics.sendLog("Remote ufrag: " + ufrag);
+            Statistics.sendLog(
+                JSON.stringify({id: "remote_ufrag", value: ufrag}));
         });
 
     chatRoom.addPresenceListener("startmuted", function (data, from) {

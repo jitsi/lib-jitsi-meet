@@ -67,6 +67,7 @@ var LibJitsiMeet = {
     logLevels: Logger.levels,
     mediaDevices: JitsiMediaDevices,
     init: function (options) {
+        var logObject, attr;
         Statistics.audioLevelsEnabled = !options.disableAudioLevels;
 
         if(typeof options.audioLevelsInterval === 'number') {
@@ -78,16 +79,28 @@ var LibJitsiMeet = {
                 this.getGlobalOnErrorHandler.bind(this));
         }
 
-        // Lets send some general stats useful for debugging problems
+        // Log deployment-specific information, if available.
         if (window.jitsiRegionInfo
             && Object.keys(window.jitsiRegionInfo).length > 0) {
-            // remove quotes to make it prettier
-            Statistics.sendLog(
-                JSON.stringify(window.jitsiRegionInfo).replace(/\"/g, ""));
+            logObject = {};
+            for (attr in window.jitsiRegionInfo) {
+                if (window.jitsiRegionInfo.hasOwnProperty(attr)) {
+                    logObject[attr] = window.jitsiRegionInfo[attr];
+                }
+            }
+
+            logObject.id = "deployment_info";
+            Statistics.sendLog(JSON.stringify(logObject));
         }
 
-        if(this.version)
-            Statistics.sendLog("LibJitsiMeet:" + this.version);
+        if(this.version) {
+            logObject = {
+                id: "component_version",
+                component: "lib-jitsi-meet",
+                version: this.version
+            }
+            Statistics.sendLog(JSON.stringify(logObject));
+        }
 
         return RTC.init(options || {});
     },
@@ -180,7 +193,11 @@ var LibJitsiMeet = {
                     // User cancelled action is not really an error, so only
                     // log it as an event to avoid having conference classified
                     // as partially failed
-                    Statistics.sendLog(error.message);
+                    var logObject = {
+                        id: "chrome_extension_user_canceled",
+                        message: error.message
+                    };
+                    Statistics.sendLog(JSON.stringify(logObject));
                 } else {
                     // Report gUM failed to the stats
                     Statistics.sendGetUserMediaFailed(error);
