@@ -80,7 +80,10 @@ DataChannels.prototype.onDataChannel = function (event) {
 
     dataChannel.onerror = function (error) {
         var e = new Error("Data Channel Error:" + error);
-        GlobalOnErrorHandler.callErrorHandler(e);
+        // FIXME: this one seems to be generated a bit too often right now
+        // so we are temporarily commenting it before we have more clarity
+        // on which of the errors we absolutely need to report
+        //GlobalOnErrorHandler.callErrorHandler(e);
         logger.error("Data Channel Error:", error, dataChannel);
     };
 
