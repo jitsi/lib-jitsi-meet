@@ -4,11 +4,17 @@
  */
 var JitsiConferenceEvents = {
     /**
-     * A new media track was added to the conference.
+     * A new media track was added to the conference. The event provides the
+     * following parameters to its listeners:
+     *
+     * @param {JitsiTrack} track the added JitsiTrack
      */
     TRACK_ADDED: "conference.trackAdded",
     /**
-     * The media track was removed from the conference.
+     * The media track was removed from the conference. The event provides the
+     * following parameters to its listeners:
+     *
+     * @param {JitsiTrack} track the removed JitsiTrack
      */
     TRACK_REMOVED: "conference.trackRemoved",
     /**
@@ -85,7 +91,8 @@ var JitsiConferenceEvents = {
      */
     CONFERENCE_ERROR: "conference.error",
     /**
-     * Indicates that conference has been joined.
+     * Indicates that conference has been joined. The event does NOT provide any
+     * parameters to its listeners.
      */
     CONFERENCE_JOINED: "conference.joined",
     /**
@@ -111,7 +118,7 @@ var JitsiConferenceEvents = {
     /**
      * Indicates that recording state changed.
      */
-    RECORDING_STATE_CHANGED: "conference.recordingStateChanged",
+    RECORDER_STATE_CHANGED: "conference.recorderStateChanged",
     /**
      * Indicates that phone number changed.
      */
@@ -123,7 +130,18 @@ var JitsiConferenceEvents = {
     /**
      * Indicates that authentication status changed.
      */
-    AUTH_STATUS_CHANGED: "conference.auth_status_changed"
+    AUTH_STATUS_CHANGED: "conference.auth_status_changed",
+    /**
+     * Indicates that a the value of a specific property of a specific
+     * participant has changed.
+     */
+    PARTICIPANT_PROPERTY_CHANGED: "conference.participant_property_changed",
+    /**
+     * Indicates that a message from another participant is received on
+     * data channel.
+     */
+    ENDPOINT_MESSAGE_RECEIVED:
+        "conference.endpoint_message_received"
 };
 
 module.exports = JitsiConferenceEvents;

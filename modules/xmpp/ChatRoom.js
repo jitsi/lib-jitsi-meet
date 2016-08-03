@@ -2,9 +2,12 @@
 /* jshint -W101,-W069 */
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
+var MediaType = require("../../service/RTC/MediaType");
 var Moderator = require("./moderator");
 var EventEmitter = require("events");
 var Recorder = require("./recording");
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
+
 var JIBRI_XMLNS = 'http://jitsi.org/protocol/jibri';
 
 var parser = {
@@ -59,7 +62,8 @@ function filterNodeFromPresenceJSON(pres, nodeName){
     return res;
 }
 
-function ChatRoom(connection, jid, password, XMPP, options, settings) {
+function ChatRoom(connection, jid, password, XMPP, options, settings,
+    maxRetries) {
     this.eventEmitter = new EventEmitter();
     this.xmpp = XMPP;
     this.connection = connection;
@@ -71,18 +75,21 @@ function ChatRoom(connection, jid, password, XMPP, options, settings) {
     this.presMap = {};
     this.presHandlers = {};
     this.joined = false;
-    this.role = 'none';
+    this.role = null;
     this.focusMucJid = null;
     this.bridgeIsDown = false;
     this.options = options || {};
     this.moderator = new Moderator(this.roomjid, this.xmpp, this.eventEmitter,
-        settings);
+        settings, {connection: this.xmpp.options, conference: this.options},
+        maxRetries);
     this.initPresenceMap();
     this.session = null;
     var self = this;
     this.lastPresences = {};
     this.phoneNumber = null;
     this.phonePin = null;
+    this.connectionTimes = {};
+    this.participantPropertyListener = null;
 }
 
 ChatRoom.prototype.initPresenceMap = function () {
@@ -94,7 +101,9 @@ ChatRoom.prototype.initPresenceMap = function () {
         "value": navigator.userAgent,
         "attributes": {xmlns: 'http://jitsi.org/jitmeet/user-agent'}
     });
-
+    // We need to broadcast 'videomuted' status from the beginning, cause Jicofo
+    // makes decisions based on that. Initialize it with 'false' here.
+    this.addVideoInfoToPresence(false);
 };
 
 ChatRoom.prototype.updateDeviceAvailability = function (devices) {
@@ -117,35 +126,51 @@ ChatRoom.prototype.join = function (password) {
     if(password)
         this.password = password;
     var self = this;
-    this.moderator.allocateConferenceFocus(function()
-    {
+    this.moderator.allocateConferenceFocus(function () {
         self.sendPresence(true);
-    }.bind(this));
+    });
 };
 
 ChatRoom.prototype.sendPresence = function (fromJoin) {
-    if (!this.presMap['to'] || (!this.joined && !fromJoin)) {
+    var to = this.presMap['to'];
+    if (!to || (!this.joined && !fromJoin)) {
         // Too early to send presence - not initialized
         return;
     }
 
-    var pres = $pres({to: this.presMap['to'] });
-    pres.c('x', {xmlns: this.presMap['xns']});
+    var pres = $pres({to: to });
 
-    if (this.password) {
-        pres.c('password').t(this.password).up();
+    // xep-0045 defines: "including in the initial presence stanza an empty
+    // <x/> element qualified by the 'http://jabber.org/protocol/muc' namespace"
+    // and subsequent presences should not include that or it can be considered
+    // as joining, and server can send us the message history for the room on
+    // every presence
+    if (fromJoin) {
+        pres.c('x', {xmlns: this.presMap['xns']});
+
+        if (this.password) {
+            pres.c('password').t(this.password).up();
+        }
+        pres.up();
     }
 
-    pres.up();
-
     // Send XEP-0115 'c' stanza that contains our capabilities info
-    if (this.connection.caps) {
-        this.connection.caps.node = this.xmpp.options.clientNode;
-        pres.c('c', this.connection.caps.generateCapsAttrs()).up();
+    var connection = this.connection;
+    var caps = connection.caps;
+    if (caps) {
+        caps.node = this.xmpp.options.clientNode;
+        pres.c('c', caps.generateCapsAttrs()).up();
     }
 
     parser.JSON2packet(this.presMap.nodes, pres);
-    this.connection.send(pres);
+    connection.send(pres);
+    if (fromJoin) {
+        // XXX We're pressed for time here because we're beginning a complex
+        // and/or lengthy conference-establishment process which supposedly
+        // involves multiple RTTs. We don't have the time to wait for Strophe to
+        // decide to send our IQ.
+        connection.flush();
+    }
 };
 
 
@@ -185,8 +210,9 @@ ChatRoom.prototype.createNonAnonymousRoom = function () {
         if (!$(form).find(
                 '>query>x[xmlns="jabber:x:data"]' +
                 '>field[var="muc#roomconfig_whois"]').length) {
-
-            logger.error('non-anonymous rooms not supported');
+            var errmsg = "non-anonymous rooms not supported";
+            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+            logger.error(errmsg);
             return;
         }
 
@@ -205,7 +231,8 @@ ChatRoom.prototype.createNonAnonymousRoom = function () {
         self.connection.sendIQ(formSubmit);
 
     }, function (error) {
-        logger.error("Error getting room configuration form");
+        GlobalOnErrorHandler.callErrorHandler(error);
+        logger.error("Error getting room configuration form: ", error);
     });
 };
 
@@ -215,17 +242,20 @@ ChatRoom.prototype.onPresence = function (pres) {
     var member = {};
     member.show = $(pres).find('>show').text();
     member.status = $(pres).find('>status').text();
-    var tmp = $(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>item');
-    member.affiliation = tmp.attr('affiliation');
-    member.role = tmp.attr('role');
+    var mucUserItem
+        = $(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>item');
+    member.affiliation = mucUserItem.attr('affiliation');
+    member.role = mucUserItem.attr('role');
 
     // Focus recognition
-    member.jid = tmp.attr('jid');
-    member.isFocus = false;
-    if (member.jid
-        && member.jid.indexOf(this.moderator.getFocusUserJid() + "/") === 0) {
-        member.isFocus = true;
-    }
+    var jid = mucUserItem.attr('jid');
+    member.jid = jid;
+    member.isFocus
+        = jid && jid.indexOf(this.moderator.getFocusUserJid() + "/") === 0;
+    member.isHiddenDomain
+        = jid && jid.indexOf("@") > 0
+            && this.options.hiddenDomain
+                === jid.substring(jid.indexOf("@") + 1, jid.indexOf("/"))
 
     $(pres).find(">x").remove();
     var nodes = [];
@@ -249,15 +279,16 @@ ChatRoom.prototype.onPresence = function (pres) {
     }
 
     if (from == this.myroomjid) {
-        if (member.affiliation == 'owner'
-            &&  this.role !== member.role) {
-                this.role = member.role;
-                this.eventEmitter.emit(
-                    XMPPEvents.LOCAL_ROLE_CHANGED, this.role);
+        var newRole = member.affiliation == "owner"? member.role : "none";
+        if (this.role !== newRole) {
+            this.role = newRole;
+            this.eventEmitter.emit(XMPPEvents.LOCAL_ROLE_CHANGED, this.role);
         }
         if (!this.joined) {
             this.joined = true;
-            console.log("(TIME) MUC joined:\t", window.performance.now());
+            var now = this.connectionTimes["muc.joined"] =
+                window.performance.now();
+            logger.log("(TIME) MUC joined:\t", now);
             this.eventEmitter.emit(XMPPEvents.MUC_JOINED);
         }
     } else if (this.members[from] === undefined) {
@@ -265,32 +296,38 @@ ChatRoom.prototype.onPresence = function (pres) {
         this.members[from] = member;
         logger.log('entered', from, member);
         if (member.isFocus) {
-            this.focusMucJid = from;
-            if(!this.recording) {
-                this.recording = new Recorder(this.options.recordingType,
-                    this.eventEmitter, this.connection, this.focusMucJid,
-                    this.options.jirecon, this.roomjid);
-                if(this.lastJibri)
-                    this.recording.handleJibriPresence(this.lastJibri);
-            }
-            logger.info("Ignore focus: " + from + ", real JID: " + member.jid);
-        }
-        else {
+            this._initFocus(from, jid);
+        } else {
             this.eventEmitter.emit(
-                XMPPEvents.MUC_MEMBER_JOINED, from, member.nick, member.role);
+                XMPPEvents.MUC_MEMBER_JOINED,
+                from, member.nick, member.role, member.isHiddenDomain);
         }
     } else {
         // Presence update for existing participant
         // Watch role change:
-        if (this.members[from].role != member.role) {
-            this.members[from].role = member.role;
+        var memberOfThis = this.members[from];
+        if (memberOfThis.role != member.role) {
+            memberOfThis.role = member.role;
             this.eventEmitter.emit(
                 XMPPEvents.MUC_ROLE_CHANGED, from, member.role);
         }
 
+        if (member.isFocus) {
+            // From time to time first few presences of the focus are not
+            // containing it's jid. That way we can mark later the focus member
+            // instead of not marking it at all and not starting the conference.
+            // FIXME: Maybe there is a better way to handle this issue. It seems
+            // there is some period of time in prosody that the configuration
+            // form is received but not applied. And if any participant joins
+            // during that period of time the first presence from the focus
+            // won't conain <item jid="focus..." />.
+            memberOfThis.isFocus = true;
+            this._initFocus(from, jid);
+        }
+
         // store the new display name
         if(member.displayName)
-            this.members[from].displayName = member.displayName;
+            memberOfThis.displayName = member.displayName;
     }
 
     // after we had fired member or room joined events, lets fire events
@@ -302,8 +339,8 @@ ChatRoom.prototype.onPresence = function (pres) {
         {
             case "nick":
                 if(!member.isFocus) {
-                    var displayName = !this.xmpp.options.displayJids
-                        ? member.nick : Strophe.getResourceFromJid(from);
+                    var displayName = this.xmpp.options.displayJids
+                        ? Strophe.getResourceFromJid(from) : member.nick;
 
                     if (displayName && displayName.length > 0) {
                         this.eventEmitter.emit(
@@ -312,7 +349,7 @@ ChatRoom.prototype.onPresence = function (pres) {
                 }
                 break;
             case "bridgeIsDown":
-                if(!this.bridgeIsDown) {
+                if (member.isFocus && !this.bridgeIsDown) {
                     this.bridgeIsDown = true;
                     this.eventEmitter.emit(XMPPEvents.BRIDGE_DOWN);
                 }
@@ -328,7 +365,7 @@ ChatRoom.prototype.onPresence = function (pres) {
                 this.phonePin = att.pin || null;
                 this.eventEmitter.emit(XMPPEvents.PHONE_NUMBER_CHANGED);
                 break;
-            default :
+            default:
                 this.processNode(node, from);
         }
     }
@@ -344,12 +381,49 @@ ChatRoom.prototype.onPresence = function (pres) {
         if(this.recording)
             this.recording.handleJibriPresence(jibri);
     }
+};
 
+/**
+ * Initialize some properties when the focus participant is verified.
+ * @param from jid of the focus
+ * @param mucJid the jid of the focus in the muc
+ */
+ChatRoom.prototype._initFocus = function (from, mucJid) {
+    this.focusMucJid = from;
+    if(!this.recording) {
+        this.recording = new Recorder(this.options.recordingType,
+            this.eventEmitter, this.connection, this.focusMucJid,
+            this.options.jirecon, this.roomjid);
+        if(this.lastJibri)
+            this.recording.handleJibriPresence(this.lastJibri);
+    }
+    logger.info("Ignore focus: " + from + ", real JID: " + mucJid);
+}
+
+/**
+ * Sets the special listener to be used for "command"s whose name starts with
+ * "jitsi_participant_".
+ */
+ChatRoom.prototype.setParticipantPropertyListener = function (listener) {
+    this.participantPropertyListener = listener;
 };
 
 ChatRoom.prototype.processNode = function (node, from) {
-    if(this.presHandlers[node.tagName])
-        this.presHandlers[node.tagName](node, Strophe.getResourceFromJid(from));
+    // make sure we catch all errors coming from any handler
+    // otherwise we can remove the presence handler from strophe
+    try {
+        var tagHandler = this.presHandlers[node.tagName];
+        if (node.tagName.startsWith("jitsi_participant_")) {
+            tagHandler = this.participantPropertyListener;
+        }
+
+        if(tagHandler) {
+            tagHandler(node, Strophe.getResourceFromJid(from), from);
+        }
+    } catch (e) {
+        GlobalOnErrorHandler.callErrorHandler(e);
+        logger.error('Error processing:' + node.tagName + ' node.', e);
+    }
 };
 
 ChatRoom.prototype.sendMessage = function (body, nickname) {
@@ -368,10 +442,19 @@ ChatRoom.prototype.setSubject = function (subject) {
     this.connection.send(msg);
 };
 
-
-ChatRoom.prototype.onParticipantLeft = function (jid) {
+/**
+ * Called when participant leaves.
+ * @param jid the jid of the participant that leaves
+ * @param skipEvents optional params to skip any events, including check
+ * whether this is the focus that left
+ */
+ChatRoom.prototype.onParticipantLeft = function (jid, skipEvents) {
 
     delete this.lastPresences[jid];
+
+    if(skipEvents)
+        return;
+
     this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, jid);
 
     this.moderator.onMucMemberLeft(jid);
@@ -389,7 +472,7 @@ ChatRoom.prototype.onPresenceUnavailable = function (pres, from) {
             reason = reasonSelect.text();
         }
 
-        this.xmpp.leaveRoom(this.roomjid);
+        this.leave();
 
         this.eventEmitter.emit(XMPPEvents.MUC_DESTROYED, reason);
         delete this.connection.emuc.rooms[Strophe.getBareJidFromJid(from)];
@@ -399,7 +482,7 @@ ChatRoom.prototype.onPresenceUnavailable = function (pres, from) {
     // Status code 110 indicates that this notification is "self-presence".
     if (!$(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="110"]').length) {
         delete this.members[from];
-        this.onParticipantLeft(from);
+        this.onParticipantLeft(from, false);
     }
     // If the status code is 110 this means we're leaving and we would like
     // to remove everyone else from our view, so we trigger the event.
@@ -407,12 +490,12 @@ ChatRoom.prototype.onPresenceUnavailable = function (pres, from) {
         for (var i in this.members) {
             var member = this.members[i];
             delete this.members[i];
-            this.onParticipantLeft(member);
+            this.onParticipantLeft(i, member.isFocus);
         }
     }
     if ($(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="307"]').length) {
         if (this.myroomjid === from) {
-            this.xmpp.leaveRoom(this.roomjid);
+            this.leave(true);
             this.eventEmitter.emit(XMPPEvents.KICKED);
         }
     }
@@ -480,6 +563,10 @@ ChatRoom.prototype.onPresenceError = function (pres, from) {
             logger.warn('onPresError ', pres);
             this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_ERROR, pres);
         }
+    } else if($(pres).find('>error>service-unavailable').length) {
+        logger.warn('Maximum users limit for the room has been reached',
+            pres);
+        this.eventEmitter.emit(XMPPEvents.ROOM_MAX_USERS_ERROR, pres);
     } else {
         logger.warn('onPresError ', pres);
         this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_ERROR, pres);
@@ -526,15 +613,14 @@ ChatRoom.prototype.lockRoom = function (key, onSuccess, onError, onNotSupported)
 
 ChatRoom.prototype.addToPresence = function (key, values) {
     values.tagName = key;
-    this.presMap["nodes"].push(values);
+    this.removeFromPresence(key);
+    this.presMap.nodes.push(values);
 };
 
 ChatRoom.prototype.removeFromPresence = function (key) {
-    for(var i = 0; i < this.presMap.nodes.length; i++)
-    {
-        if(key === this.presMap.nodes[i].tagName)
-            this.presMap.nodes.splice(i, 1);
-    }
+    var nodes = this.presMap.nodes.filter(function(node) {
+        return key !== node.tagName;});
+    this.presMap.nodes = nodes;
 };
 
 ChatRoom.prototype.addPresenceListener = function (name, handler) {
@@ -543,6 +629,45 @@ ChatRoom.prototype.addPresenceListener = function (name, handler) {
 
 ChatRoom.prototype.removePresenceListener = function (name) {
     delete this.presHandlers[name];
+};
+
+/**
+ * Exports the current state of the ChatRoom instance.
+ * @returns {object}
+ */
+ChatRoom.prototype.exportState = function () {
+    return {
+        presHandlers: this.presHandlers,
+        presMapNodes: this.presMap.nodes
+    }
+}
+
+/**
+ * Loads previously exported state object from ChatRoom instance into current
+ * ChatRoom instance.
+ * @param state {object} the state received by ChatRoom.exportState method.
+ */
+ChatRoom.prototype.loadState = function (state) {
+    if(!state || !state.presHandlers || !state.presMapNodes)
+        throw new Error("Invalid state object passed");
+
+    this.presHandlers = state.presHandlers;
+    this.presMap.nodes = state.presMapNodes;
+}
+
+/**
+ * Checks if the user identified by given <tt>mucJid</tt> is the conference
+ * focus.
+ * @param mucJid the full MUC address of the user to be checked.
+ * @returns {boolean} <tt>true</tt> if MUC user is the conference focus.
+ */
+ChatRoom.prototype.isFocus = function (mucJid) {
+    var member = this.members[mucJid];
+    if (member) {
+        return member.isFocus;
+    } else {
+        return null;
+    }
 };
 
 ChatRoom.prototype.isModerator = function () {
@@ -558,32 +683,41 @@ ChatRoom.prototype.getMemberRole = function (peerJid) {
 
 ChatRoom.prototype.setJingleSession = function(session){
     this.session = session;
-    this.session.room = this;
 };
 
-
-ChatRoom.prototype.removeStream = function (stream, callback, ssrcInfo) {
+/**
+ * Remove stream.
+ * @param stream stream that will be removed.
+ * @param callback callback executed after successful stream removal.
+ * @param errorCallback callback executed if stream removal fail.
+ * @param ssrcInfo object with information about the SSRCs associated with the
+ * stream.
+ */
+ChatRoom.prototype.removeStream = function (stream, callback, errorCallback,
+    ssrcInfo) {
     if(!this.session) {
         callback();
         return;
     }
-    this.session.removeStream(stream, callback, ssrcInfo);
+    this.session.removeStream(stream, callback, errorCallback, ssrcInfo);
 };
 
 /**
  * Adds stream.
  * @param stream new stream that will be added.
  * @param callback callback executed after successful stream addition.
+ * @param errorCallback callback executed if stream addition fail.
  * @param ssrcInfo object with information about the SSRCs associated with the
  * stream.
  * @param dontModifySources {boolean} if true _modifySources won't be called.
  * Used for streams added before the call start.
  */
-ChatRoom.prototype.addStream = function (stream, callback, ssrcInfo,
-    dontModifySources) {
+ChatRoom.prototype.addStream = function (stream, callback, errorCallback,
+    ssrcInfo, dontModifySources) {
     if(this.session) {
         // FIXME: will block switchInProgress on true value in case of exception
-        this.session.addStream(stream, callback, ssrcInfo, dontModifySources);
+        this.session.addStream(stream, callback, errorCallback, ssrcInfo,
+            dontModifySources);
     } else {
         // We are done immediately
         logger.warn("No conference handler or conference not started yet");
@@ -606,7 +740,6 @@ ChatRoom.prototype.generateNewStreamSSRCInfo = function () {
 };
 
 ChatRoom.prototype.setVideoMute = function (mute, callback, options) {
-    var self = this;
     this.sendVideoInfoPresence(mute);
     if(callback)
         callback(mute);
@@ -620,7 +753,7 @@ ChatRoom.prototype.addAudioInfoToPresence = function (mute) {
     this.removeFromPresence("audiomuted");
     this.addToPresence("audiomuted",
         {attributes:
-        {"audions": "http://jitsi.org/jitmeet/audio"},
+        {"xmlns": "http://jitsi.org/jitmeet/audio"},
             value: mute.toString()});
 };
 
@@ -637,7 +770,7 @@ ChatRoom.prototype.addVideoInfoToPresence = function (mute) {
     this.removeFromPresence("videomuted");
     this.addToPresence("videomuted",
         {attributes:
-        {"videons": "http://jitsi.org/jitmeet/video"},
+        {"xmlns": "http://jitsi.org/jitmeet/video"},
             value: mute.toString()});
 };
 
@@ -657,21 +790,34 @@ ChatRoom.prototype.removeListener = function (type, listener) {
     this.eventEmitter.removeListener(type, listener);
 };
 
-ChatRoom.prototype.remoteStreamAdded = function(data, sid, thessrc) {
-    if(this.lastPresences[data.peerjid])
-    {
-        var pres = this.lastPresences[data.peerjid];
-        var audiomuted = filterNodeFromPresenceJSON(pres, "audiomuted");
-        var videomuted = filterNodeFromPresenceJSON(pres, "videomuted");
-        data.videomuted = ((videomuted.length > 0
-            && videomuted[0]
-            && videomuted[0]["value"] === "true")? true : false);
-        data.audiomuted = ((audiomuted.length > 0
-            && audiomuted[0]
-            && audiomuted[0]["value"] === "true")? true : false);
+ChatRoom.prototype.remoteTrackAdded = function(data) {
+    // Will figure out current muted status by looking up owner's presence
+    var pres = this.lastPresences[data.owner];
+    if(pres) {
+        var mediaType = data.mediaType;
+        var mutedNode = null;
+        if (mediaType === MediaType.AUDIO) {
+            mutedNode = filterNodeFromPresenceJSON(pres, "audiomuted");
+        } else if (mediaType === MediaType.VIDEO) {
+            mutedNode = filterNodeFromPresenceJSON(pres, "videomuted");
+            var videoTypeNode = filterNodeFromPresenceJSON(pres, "videoType");
+            if(videoTypeNode
+                && videoTypeNode.length > 0
+                && videoTypeNode[0])
+                data.videoType = videoTypeNode[0]["value"];
+        } else {
+            logger.warn("Unsupported media type: " + mediaType);
+            data.muted = null;
+        }
+
+        if (mutedNode) {
+            data.muted = mutedNode.length > 0 &&
+                         mutedNode[0] &&
+                         mutedNode[0]["value"] === "true";
+        }
     }
 
-    this.eventEmitter.emit(XMPPEvents.REMOTE_STREAM_RECEIVED, data, sid, thessrc);
+    this.eventEmitter.emit(XMPPEvents.REMOTE_TRACK_ADDED, data);
 };
 
 /**
@@ -688,18 +834,14 @@ ChatRoom.prototype.isRecordingSupported = function () {
  * and "off" if the recording is not started.
  */
 ChatRoom.prototype.getRecordingState = function () {
-    if(this.recording)
-        return this.recording.getState();
-    return "off";
+    return (this.recording) ? this.recording.getState() : undefined;
 }
 
 /**
  * Returns the url of the recorded video.
  */
 ChatRoom.prototype.getRecordingURL = function () {
-    if(this.recording)
-        return this.recording.getURL();
-    return null;
+    return (this.recording) ? this.recording.getURL() : null;
 }
 
 /**
@@ -713,7 +855,7 @@ ChatRoom.prototype.toggleRecording = function (options, statusChangeHandler) {
 
     return statusChangeHandler("error",
         new Error("The conference is not created yet!"));
-}
+};
 
 /**
  * Returns true if the SIP calls are supported and false otherwise
@@ -722,7 +864,7 @@ ChatRoom.prototype.isSIPCallingSupported = function () {
     if(this.moderator)
         return this.moderator.isSipGatewayEnabled();
     return false;
-}
+};
 
 /**
  * Dials a number.
@@ -732,28 +874,28 @@ ChatRoom.prototype.dial = function (number) {
     return this.connection.rayo.dial(number, "fromnumber",
         Strophe.getNodeFromJid(this.myroomjid), this.password,
         this.focusMucJid);
-}
+};
 
 /**
  * Hangup an existing call
  */
 ChatRoom.prototype.hangup = function () {
     return this.connection.rayo.hangup();
-}
+};
 
 /**
  * Returns the phone number for joining the conference.
  */
 ChatRoom.prototype.getPhoneNumber = function () {
     return this.phoneNumber;
-}
+};
 
 /**
  * Returns the pin for joining the conference with phone.
  */
 ChatRoom.prototype.getPhonePin = function () {
     return this.phonePin;
-}
+};
 
 /**
  * Returns the connection state for the current session.
@@ -762,7 +904,7 @@ ChatRoom.prototype.getConnectionState = function () {
     if(!this.session)
         return null;
     return this.session.getIceConnectionState();
-}
+};
 
 /**
  * Mutes remote participant.
@@ -788,7 +930,7 @@ ChatRoom.prototype.muteParticipant = function (jid, mute) {
         function (error) {
             logger.log('set mute error', error);
         });
-}
+};
 
 ChatRoom.prototype.onMute = function (iq) {
     var from = iq.getAttribute('from');
@@ -802,6 +944,20 @@ ChatRoom.prototype.onMute = function (iq) {
         this.eventEmitter.emit(XMPPEvents.AUDIO_MUTED_BY_FOCUS, doMuteAudio);
     }
     return true;
-}
+};
+
+/**
+ * Leaves the room. Closes the jingle session.
+ * @parama voidSendingPresence avoids sending the presence when leaving
+ */
+ChatRoom.prototype.leave = function (avoidSendingPresence) {
+    if (this.session) {
+        this.session.close();
+    }
+    this.eventEmitter.emit(XMPPEvents.DISPOSE_CONFERENCE);
+    if(!avoidSendingPresence)
+        this.doLeave();
+    this.connection.emuc.doLeave(this.roomjid);
+};
 
 module.exports = ChatRoom;

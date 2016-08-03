@@ -5,7 +5,8 @@
  */
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 
-function JingleSession(me, sid, connection, service, eventEmitter) {
+function JingleSession(me, sid, peerjid, connection,
+                       media_constraints, ice_config, service, eventEmitter) {
     /**
      * Our JID.
      */
@@ -15,6 +16,11 @@ function JingleSession(me, sid, connection, service, eventEmitter) {
      * The Jingle session identifier.
      */
     this.sid = sid;
+
+    /**
+     * the JID of the remote peer.
+     */
+    this.peerjid = peerjid;
 
     /**
      * The XMPP connection.
@@ -44,37 +50,35 @@ function JingleSession(me, sid, connection, service, eventEmitter) {
     this.drip_container = [];
 
     // Media constraints. Is this WebRTC only?
-    this.media_constraints = null;
+    this.media_constraints = media_constraints;
 
     // ICE servers config (RTCConfiguration?).
-    this.ice_config = {};
+    this.ice_config = ice_config;
 
     // The chat room instance associated with the session.
     this.room = null;
+
+    // Jingle session state - uninitialized until 'initialize' is called
+    this.state = null;
 }
 
 /**
  * Prepares this object to initiate a session.
- * @param peerjid the JID of the remote peer.
  * @param isInitiator whether we will be the Jingle initiator.
- * @param media_constraints
- * @param ice_config
+ * @param room <tt>ChatRoom<tt> for the conference associated with this session
  */
-JingleSession.prototype.initialize = function(peerjid, isInitiator,
-                                              media_constraints, ice_config) {
-    this.media_constraints = media_constraints;
-    this.ice_config = ice_config;
-
+JingleSession.prototype.initialize = function(isInitiator, room) {
     if (this.state !== null) {
-        logger.error('attempt to initiate on session ' + this.sid +
-        'in state ' + this.state);
-        return;
+        var errmsg
+            = 'attempt to initiate on session ' + this.sid + 'in state '
+                + this.state;
+        logger.error(errmsg);
+        throw new Error(errmsg);
     }
+    this.room = room;
     this.state = 'pending';
-    this.initiator = isInitiator ? this.me : peerjid;
-    this.responder = !isInitiator ? this.me : peerjid;
-    this.peerjid = peerjid;
-
+    this.initiator = isInitiator ? this.me : this.peerjid;
+    this.responder = !isInitiator ? this.me : this.peerjid;
     this.doInitialize();
 };
 
@@ -88,6 +92,16 @@ JingleSession.prototype.doInitialize = function() {};
  * Note: currently only used on transport-info
  */
 JingleSession.prototype.addIceCandidates = function(contents) {};
+
+/**
+ * Checks if this JingleSession is in 'active' state which means that the call
+ * is in progress.
+ * @returns {boolean} <tt>true</tt> if this JingleSession is in 'active' state
+ *          or <tt>false</tt> otherwise.
+ */
+JingleSession.prototype.active = function () {
+    return this.state === 'active';
+};
 
 /**
  * Handles an 'add-source' event.
@@ -104,29 +118,20 @@ JingleSession.prototype.addSources = function(contents) {};
 JingleSession.prototype.removeSources = function(contents) {};
 
 /**
- * Terminates this Jingle session (stops sending media and closes the streams?)
+ * Terminates this Jingle session by sending session-terminate
+ * @param reason XMPP Jingle error condition
+ * @param text some meaningful error message
  */
-JingleSession.prototype.terminate = function() {};
-
-/**
- * Sends a Jingle session-terminate message to the peer and terminates the
- * session.
- * @param reason
- * @param text
- */
-JingleSession.prototype.sendTerminate = function(reason, text) {};
+JingleSession.prototype.terminate = function(reason, text) {};
 
 /**
  * Handles an offer from the remote peer (prepares to accept a session).
  * @param jingle the 'jingle' XML element.
+ * @param success callback called when we the incoming session has been accepted
+ * @param failure callback called when we fail for any reason, will supply error
+ *        object with details(which is meant more to be printed to the logger
+ *        than analysed in the code, as the error is unrecoverable anyway)
  */
-JingleSession.prototype.setOffer = function(jingle) {};
-
-/**
- * Handles an answer from the remote peer (prepares to accept a session).
- * @param jingle the 'jingle' XML element.
- */
-JingleSession.prototype.setAnswer = function(jingle) {};
-
+JingleSession.prototype.acceptOffer = function(jingle, success, failure) {};
 
 module.exports = JingleSession;

@@ -55,7 +55,16 @@ var JitsiConferenceErrors = {
     /**
      * Indicates that focus left the conference.
      */
-    FOCUS_LEFT: "conference.focusLeft"
+    FOCUS_LEFT: "conference.focusLeft",
+    /**
+     * Indicates that max users limit has been reached.
+     */
+    CONFERENCE_MAX_USERS: "conference.max_users",
+    /**
+     * Indicates that the versions of the server side components are
+     * incompatible with the client side.
+     */
+    INCOMPATIBLE_SERVER_VERSIONS: "conference.incompatible_server_versions"
     /**
      * Many more errors TBD here.
      */

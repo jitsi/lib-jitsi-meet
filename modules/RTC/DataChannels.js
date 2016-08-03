@@ -5,6 +5,7 @@
 
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCEvents = require("../../service/RTC/RTCEvents");
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 
 /**
@@ -50,7 +51,7 @@ function DataChannels(peerConnection, emitter) {
 DataChannels.prototype.onDataChannel = function (event) {
     var dataChannel = event.channel;
     var self = this;
-    var lastSelectedEndpoint = null;
+    var selectedEndpoint = null;
 
     dataChannel.onopen = function () {
         logger.info("Data channel opened by the Videobridge!", dataChannel);
@@ -67,10 +68,19 @@ DataChannels.prototype.onDataChannel = function (event) {
         // selections so that it can do adaptive simulcast,
         // we want the notification to trigger even if userJid is undefined,
         // or null.
-        self.handleSelectedEndpointEvent(self.lastSelectedEndpoint);
+        // XXX why do we not do the same for pinned endpoints?
+        try {
+            self.sendSelectedEndpointMessage(self.selectedEndpoint);
+        } catch (error) {
+            GlobalOnErrorHandler.callErrorHandler(error);
+            logger.error("Cannot sendSelectedEndpointMessage ",
+                self.selectedEndpoint, ". Error: ", error);
+        }
     };
 
     dataChannel.onerror = function (error) {
+        var e = new Error("Data Channel Error:" + error);
+        GlobalOnErrorHandler.callErrorHandler(e);
         logger.error("Data Channel Error:", error, dataChannel);
     };
 
@@ -83,10 +93,12 @@ DataChannels.prototype.onDataChannel = function (event) {
             obj = JSON.parse(data);
         }
         catch (e) {
+            GlobalOnErrorHandler.callErrorHandler(e);
             logger.error(
                 "Failed to parse data channel message as JSON: ",
                 data,
-                dataChannel);
+                dataChannel,
+                e);
         }
         if (('undefined' !== typeof(obj)) && (null !== obj)) {
             var colibriClass = obj.colibriClass;
@@ -137,6 +149,10 @@ DataChannels.prototype.onDataChannel = function (event) {
                     lastNEndpoints, endpointsEnteringLastN, obj);
                 self.eventEmitter.emit(RTCEvents.LASTN_ENDPOINT_CHANGED,
                     lastNEndpoints, endpointsEnteringLastN, obj);
+            } else if("EndpointMessage" === colibriClass) {
+                self.eventEmitter.emit(
+                    RTCEvents.ENDPOINT_MESSAGE_RECEIVED, obj.from,
+                    obj.msgPayload);
             }
             else {
                 logger.debug("Data channel JSON-formatted message: ", obj);
@@ -158,14 +174,38 @@ DataChannels.prototype.onDataChannel = function (event) {
     this._dataChannels.push(dataChannel);
 };
 
-DataChannels.prototype.handleSelectedEndpointEvent = function (userResource) {
-    this.lastSelectedEndpoint = userResource;
-    this._onXXXEndpointChanged("selected", userResource);
-}
+/**
+ * Closes all currently opened data channels.
+ */
+DataChannels.prototype.closeAllChannels = function () {
+    this._dataChannels.forEach(function (dc){
+        // the DC will be removed from the array on 'onclose' event
+        dc.close();
+    });
+};
 
-DataChannels.prototype.handlePinnedEndpointEvent = function (userResource) {
-    this._onXXXEndpointChanged("pinnned", userResource);
-}
+/**
+ * Sends a "selected endpoint changed" message via the data channel.
+ * @param endpointId {string} the id of the selected endpoint
+ * @throws NetworkError or InvalidStateError from RTCDataChannel#send (@see
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send})
+ * or Error with "No opened data channels found!" message.
+ */
+DataChannels.prototype.sendSelectedEndpointMessage = function (endpointId) {
+    this.selectedEndpoint = endpointId;
+    this._onXXXEndpointChanged("selected", endpointId);
+};
+
+/**
+ * Sends a "pinned endpoint changed" message via the data channel.
+ * @param endpointId {string} the id of the pinned endpoint
+ * @throws NetworkError or InvalidStateError from RTCDataChannel#send (@see
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send})
+ * or Error with "No opened data channels found!" message.
+ */
+DataChannels.prototype.sendPinnedEndpointMessage = function (endpointId) {
+    this._onXXXEndpointChanged("pinnned", endpointId);
+};
 
 /**
  * Notifies Videobridge about a change in the value of a specific
@@ -174,6 +214,9 @@ DataChannels.prototype.handlePinnedEndpointEvent = function (userResource) {
  * @param xxx the name of the endpoint-related property whose value changed
  * @param userResource the new value of the endpoint-related property after the
  * change
+ * @throws NetworkError or InvalidStateError from RTCDataChannel#send (@see
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send})
+ * or Error with "No opened data channels found!" message.
  */
 DataChannels.prototype._onXXXEndpointChanged = function (xxx, userResource) {
     // Derive the correct words from xxx such as selected and Selected, pinned
@@ -182,27 +225,22 @@ DataChannels.prototype._onXXXEndpointChanged = function (xxx, userResource) {
     var tail = xxx.substring(1);
     var lower = head.toLowerCase() + tail;
     var upper = head.toUpperCase() + tail;
+    logger.log(
+            'sending ' + lower
+                + ' endpoint changed notification to the bridge: ',
+            userResource);
+
+    var jsonObject = {};
+
+    jsonObject.colibriClass = (upper + 'EndpointChangedEvent');
+    jsonObject[lower + "Endpoint"]
+        = (userResource ? userResource : null);
+
+    this.send(jsonObject);
 
     // Notify Videobridge about the specified endpoint change.
-    console.log(lower + ' endpoint changed: ', userResource);
-    this._some(function (dataChannel) {
-        if (dataChannel.readyState == 'open') {
-            console.log(
-                    'sending ' + lower
-                        + ' endpoint changed notification to the bridge: ',
-                    userResource);
-
-            var jsonObject = {};
-
-            jsonObject.colibriClass = (upper + 'EndpointChangedEvent');
-            jsonObject[lower + "Endpoint"]
-                = (userResource ? userResource : null);
-            dataChannel.send(JSON.stringify(jsonObject));
-
-            return true;
-        }
-    });
-}
+    logger.log(lower + ' endpoint changed: ', userResource);
+};
 
 DataChannels.prototype._some = function (callback, thisArg) {
     var dataChannels = this._dataChannels;
@@ -215,6 +253,41 @@ DataChannels.prototype._some = function (callback, thisArg) {
     } else {
         return false;
     }
+};
+
+/**
+ * Sends passed object via the first found open datachannel
+ * @param jsonObject {object} the object that will be sent
+ * @throws NetworkError or InvalidStateError from RTCDataChannel#send (@see
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send})
+ * or Error with "No opened data channels found!" message.
+ */
+DataChannels.prototype.send = function (jsonObject) {
+    if(!this._some(function (dataChannel) {
+        if (dataChannel.readyState == 'open') {
+                dataChannel.send(JSON.stringify(jsonObject));
+            return true;
+        }
+    })) {
+        throw new Error("No opened data channels found!");
+    }
+}
+
+/**
+ * Sends message via the datachannels.
+ * @param to {string} the id of the endpoint that should receive the message.
+ * If "" the message will be sent to all participants.
+ * @param payload {object} the payload of the message.
+ * @throws NetworkError or InvalidStateError from RTCDataChannel#send (@see
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send})
+ * or Error with "No opened data channels found!" message.
+ */
+DataChannels.prototype.sendDataChannelMessage = function (to, payload) {
+    this.send({
+        colibriClass: "EndpointMessage",
+        to: to,
+        msgPayload: payload
+    });
 }
 
 module.exports = DataChannels;

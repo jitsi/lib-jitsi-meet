@@ -14,7 +14,11 @@ var JitsiTrackEvents = {
     /**
      * The video type("camera" or "desktop") of the track was changed.
      */
-     TRACK_VIDEOTYPE_CHANGED: "track.videoTypeChanged"
+    TRACK_VIDEOTYPE_CHANGED: "track.videoTypeChanged",
+    /**
+     * The audio output of the track was changed.
+     */
+    TRACK_AUDIO_OUTPUT_CHANGED: "track.audioOutputChanged"
 };
 
 module.exports = JitsiTrackEvents;
