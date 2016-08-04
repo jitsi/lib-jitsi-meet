@@ -46,7 +46,9 @@ var JitsiMediaDevices = {
     },
     /**
      * Checks if its possible to enumerate available cameras/micropones.
-     * @returns {boolean} true if available, false otherwise.
+     * @returns {Promise<boolean>} a Promise which will be resolved only once
+     * the WebRTC stack is ready, either with true if the device listing is
+     * available available or with false otherwise.
      */
     isDeviceListAvailable: function () {
         return RTC.isDeviceListAvailable();
