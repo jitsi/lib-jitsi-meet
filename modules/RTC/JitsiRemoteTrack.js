@@ -1,6 +1,7 @@
 var JitsiTrack = require("./JitsiTrack");
 var JitsiTrackEvents = require("../../JitsiTrackEvents");
 var RTCBrowserType = require("./RTCBrowserType");
+var AnalyticsAdapter = require("../statistics/AnalyticsAdapter");
 
 var ttfmTrackerAudioAttached = false;
 var ttfmTrackerVideoAttached = false;
@@ -112,12 +113,14 @@ JitsiRemoteTrack.prototype._attachTTFMTracker = function (container) {
 
         var now = window.performance.now();
         console.log("(TIME) Render " + type + ":\t", now);
+        this.conference.getConnectionTimes()[type + ".render"] = now;
 
         var ttfm = now
             - (this.conference.getConnectionTimes()["session.initiate"]
             - this.conference.getConnectionTimes()["muc.joined"]);
         this.conference.getConnectionTimes()[type + ".ttfm"] = ttfm;
         console.log("(TIME) TTFM " + type + ":\t", ttfm);
+        AnalyticsAdapter.sendEvent(type +'.ttfm', ttfm);
     }.bind(this));
 };
 
