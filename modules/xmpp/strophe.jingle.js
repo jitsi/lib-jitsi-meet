@@ -6,7 +6,7 @@ var JingleSession = require("./JingleSessionPC");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var RTCBrowserType = require("../RTC/RTCBrowserType");
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
-
+var AnalyticsAdapter = require("../statistics/AnalyticsAdapter");
 
 module.exports = function(XMPP, eventEmitter) {
     Strophe.addConnectionPlugin('jingle', {
@@ -101,6 +101,7 @@ module.exports = function(XMPP, eventEmitter) {
                             .up();
                         this.terminate(sess.sid);
                     }
+                    AnalyticsAdapter.sendEvent('xmpp.session-initiate', now);
                     break;
                 case 'session-terminate':
                     logger.log('terminating...', sess.sid);
@@ -114,13 +115,18 @@ module.exports = function(XMPP, eventEmitter) {
                     this.terminate(sess.sid, reasonCondition, reasonText);
                     break;
                 case 'transport-replace':
-                    logger.info("(TIME) Start transport replace",
-                                window.performance.now());
+                    var now = window.performance.now();
+                    logger.info("(TIME) Start transport replace", now);
+                    AnalyticsAdapter.sendEvent(
+                        'xmpp.transport-replace.start', now);
+
                     sess.replaceTransport($(iq).find('>jingle'),
                         function () {
+                            var now = window.performance.now();
                             logger.info(
-                                "(TIME) Transport replace success!",
-                                window.performance.now());
+                                "(TIME) Transport replace success!", now);
+                            AnalyticsAdapter.sendEvent(
+                                'xmpp.transport-replace.success', now);
                         },
                         function(error) {
                             GlobalOnErrorHandler.callErrorHandler(error);

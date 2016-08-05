@@ -93,6 +93,19 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
 
     this.chatRoomForwarder.forward(XMPPEvents.MUC_JOINED,
         JitsiConferenceEvents.CONFERENCE_JOINED);
+    // send some analytics events
+    chatRoom.addListener(XMPPEvents.MUC_JOINED,
+        function ()
+        {
+            for (var ckey in chatRoom.connectionTimes){
+                var cvalue = chatRoom.connectionTimes[ckey];
+                AnalyticsAdapter.sendEvent('conference.' + ckey, cvalue);
+            }
+            for (var xkey in chatRoom.xmpp.connectionTimes){
+                var xvalue = chatRoom.xmpp.connectionTimes[xkey];
+                AnalyticsAdapter.sendEvent('xmpp.' + xkey, xvalue);
+            }
+        });
 
     this.chatRoomForwarder.forward(XMPPEvents.ROOM_JOIN_ERROR,
         JitsiConferenceEvents.CONFERENCE_FAILED,
@@ -438,6 +451,7 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function () {
         var now = window.performance.now();
         logger.log("(TIME) data channel opened ", now);
         conference.room.connectionTimes["data.channel.opened"] = now;
+        AnalyticsAdapter.sendEvent('conference.dataChannel.open', now);
     });
 
     this.rtcForwarder.forward(RTCEvents.LASTN_CHANGED,
