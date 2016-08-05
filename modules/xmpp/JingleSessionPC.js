@@ -435,15 +435,34 @@ JingleSessionPC.prototype.sendSessionAccept = function (localSDP,
     // Calling tree() to print something useful
     accept = accept.tree();
     logger.info("Sending session-accept", accept);
-
+    var self = this;
     this.connection.sendIQ(accept,
         success,
-        this.newJingleErrorHandler(accept, failure),
+        this.newJingleErrorHandler(accept, function (error) {
+            failure(error);
+            // 'session-accept' is a critical timeout and we'll have to restart
+            self.room.eventEmitter.emit(XMPPEvents.SESSION_ACCEPT_TIMEOUT);
+        }),
         IQ_TIMEOUT);
     // XXX Videobridge needs WebRTC's answer (ICE ufrag and pwd, DTLS
     // fingerprint and setup) ASAP in order to start the connection
     // establishment.
-    this.connection.flush();
+    //
+    // FIXME Flushing the connection at this point triggers an issue with BOSH
+    // request handling in Prosody on slow connections.
+    //
+    // The problem is that this request will be quite large and it may take time
+    // before it reaches Prosody. In the meantime Strophe may decide to send
+    // the next one. And it was observed that a small request with
+    // 'transport-info' usually follows this one. It does reach Prosody before
+    // the previous one was completely received. 'rid' on the server is
+    // increased and Prosody ignores the request with 'session-accept'. It will
+    // never reach Jicofo and everything in the request table is lost. Removing
+    // the flush does not guarantee it will never happen, but makes it much less
+    // likely('transport-info' is bundled with 'session-accept' and any
+    // immediate requests).
+    //
+    // this.connection.flush();
 };
 
 /**
