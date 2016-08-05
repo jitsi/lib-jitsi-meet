@@ -139,16 +139,9 @@ var LibJitsiMeet = {
         if (firePermissionPromptIsShownEvent === true) {
             window.setTimeout(function () {
                 if (!promiseFulfilled) {
-                    var browser = RTCBrowserType.getBrowserType()
-                        .split('rtc_browser.')[1];
-
-                    if (RTCBrowserType.isAndroid()) {
-                        browser = 'android';
-                    }
-
                     JitsiMediaDevices.emitEvent(
                         JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN,
-                        browser);
+                        RTCBrowserType.getBrowserName());
                 }
             }, USER_MEDIA_PERMISSION_PROMPT_TIMEOUT);
         }
