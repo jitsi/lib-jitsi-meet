@@ -144,6 +144,17 @@ var XMPPEvents = {
      * Indicates that the local sendrecv streams in local SDP are changed.
      */
     SENDRECV_STREAMS_CHANGED: "xmpp.sendrecv_streams_changed",
+    /**
+     * Event fired when we do not get our 'session-accept' acknowledged by
+     * Jicofo. It most likely means that there is serious problem with our
+     * connection or XMPP server and we should reload the conference.
+     *
+     * We have seen that to happen in BOSH requests race condition when the BOSH
+     * request table containing the 'session-accept' was discarded by Prosody.
+     * Jicofo does send the RESULT immediately without any condition, so missing
+     * packets means that most likely it has never seen our IQ.
+     */
+    SESSION_ACCEPT_TIMEOUT: "xmpp.session_accept_timeout",
     // TODO: only used in a hack, should probably be removed.
     SET_LOCAL_DESCRIPTION_ERROR: 'xmpp.set_local_description_error',
 

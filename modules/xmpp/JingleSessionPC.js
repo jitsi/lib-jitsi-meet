@@ -432,10 +432,14 @@ JingleSessionPC.prototype.sendSessionAccept = function (localSDP,
     // Calling tree() to print something useful
     accept = accept.tree();
     logger.info("Sending session-accept", accept);
-
+    var self = this;
     this.connection.sendIQ(accept,
         success,
-        this.newJingleErrorHandler(accept, failure),
+        this.newJingleErrorHandler(accept, function (error) {
+            failure(error);
+            // 'session-accept' is a critical timeout and we'll have to restart
+            self.room.eventEmitter.emit(XMPPEvents.SESSION_ACCEPT_TIMEOUT);
+        }),
         IQ_TIMEOUT);
     // XXX Videobridge needs WebRTC's answer (ICE ufrag and pwd, DTLS
     // fingerprint and setup) ASAP in order to start the connection
