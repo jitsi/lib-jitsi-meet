@@ -36,6 +36,9 @@ function JitsiConnection(appID, token, options) {
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_DISCONNECTED,
         function (msg) {
+            // we can see disconnects from normal tab closing of the browser
+            // and then there are no msgs, but we want to log only disconnects
+            // when there is real error
             if(msg)
                 AnalyticsAdapter.sendEvent('connection.disconnected.' + msg);
         });
