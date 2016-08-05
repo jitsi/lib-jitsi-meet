@@ -1,3 +1,5 @@
+var RTCBrowserType = require("../RTC/RTCBrowserType");
+
 function NoopAnalytics() {}
 NoopAnalytics.prototype.sendEvent = function () {};
 
@@ -7,9 +9,11 @@ NoopAnalytics.prototype.sendEvent = function () {};
 // implementation we will use here and we have to postpone it i.e. we will make
 // a lazy decision.
 
-function AnalyticsAdapter() {}
+function AnalyticsAdapter() {
+    this.browserActionSuffix = '.' + RTCBrowserType.getBrowserName();
+}
 
-AnalyticsAdapter.prototype.sendEvent = function ()
+AnalyticsAdapter.prototype.sendEvent = function (action, data)
 {
     var a = this.analytics;
 
@@ -19,7 +23,7 @@ AnalyticsAdapter.prototype.sendEvent = function ()
         this.analytics = a = new AnalyticsImpl();
     }
     try {
-        a.sendEvent.apply(a, arguments);
+        a.sendEvent(action + this.browserActionSuffix, data);
     } catch (ignored) {}
 };
 
