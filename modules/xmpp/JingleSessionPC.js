@@ -12,6 +12,7 @@ var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var RTCBrowserType = require("../RTC/RTCBrowserType");
 var RTC = require("../RTC/RTC");
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
+var AnalyticsAdapter = require("../statistics/AnalyticsAdapter");
 
 /**
  * Constant tells how long we're going to wait for IQ response, before timeout
@@ -132,6 +133,8 @@ JingleSessionPC.prototype.doInitialize = function () {
             self.peerconnection.iceConnectionState] = now;
         logger.log("(TIME) ICE " + self.peerconnection.iceConnectionState +
                     ":\t", now);
+        AnalyticsAdapter.sendEvent(
+            'ice.' + self.peerconnection.iceConnectionState, now);
         switch (self.peerconnection.iceConnectionState) {
             case 'connected':
 

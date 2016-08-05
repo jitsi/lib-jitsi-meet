@@ -189,6 +189,8 @@ JitsiTrack.prototype.attach = function (container) {
 
     this._maybeFireTrackAttached(container);
 
+    this._attachTTFMTracker(container);
+
     return container;
 };
 
@@ -214,6 +216,17 @@ JitsiTrack.prototype.detach = function (container) {
     if (container) {
         RTCUtils.attachMediaStream(container, null);
     }
+};
+
+/**
+ * Attach time to first media tracker only if there is conference and only
+ * for the first element.
+ * @param container the HTML container which can be 'video' or 'audio' element.
+ *        It can also be 'object' element if Temasys plugin is in use and this
+ *        method has been called previously on video or audio HTML element.
+ * @private
+ */
+JitsiTrack.prototype._attachTTFMTracker = function (container) {
 };
 
 /**

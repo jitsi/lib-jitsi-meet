@@ -1,5 +1,10 @@
 var JitsiTrack = require("./JitsiTrack");
 var JitsiTrackEvents = require("../../JitsiTrackEvents");
+var RTCBrowserType = require("./RTCBrowserType");
+var AnalyticsAdapter = require("../statistics/AnalyticsAdapter");
+
+var ttfmTrackerAudioAttached = false;
+var ttfmTrackerVideoAttached = false;
 
 /**
  * Represents a single media track (either audio or video).
@@ -82,6 +87,41 @@ JitsiRemoteTrack.prototype._setVideoType = function (type) {
         return;
     this.videoType = type;
     this.eventEmitter.emit(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, type);
+};
+
+/**
+ * Attach time to first media tracker only if there is conference and only
+ * for the first element.
+ * @param container the HTML container which can be 'video' or 'audio' element.
+ *        It can also be 'object' element if Temasys plugin is in use and this
+ *        method has been called previously on video or audio HTML element.
+ * @private
+ */
+JitsiRemoteTrack.prototype._attachTTFMTracker = function (container) {
+    if((ttfmTrackerAudioAttached && this.isAudioTrack())
+        || (ttfmTrackerVideoAttached && this.isVideoTrack()))
+        return;
+
+    if (this.isAudioTrack())
+        ttfmTrackerAudioAttached = true;
+    if (this.isVideoTrack())
+        ttfmTrackerVideoAttached = true;
+
+    // FIXME: this is not working for temasys
+    container.addEventListener("canplay", function () {
+        var type = (this.isVideoTrack() ? 'video' : 'audio');
+
+        var now = window.performance.now();
+        console.log("(TIME) Render " + type + ":\t", now);
+        this.conference.getConnectionTimes()[type + ".render"] = now;
+
+        var ttfm = now
+            - (this.conference.getConnectionTimes()["session.initiate"]
+            - this.conference.getConnectionTimes()["muc.joined"]);
+        this.conference.getConnectionTimes()[type + ".ttfm"] = ttfm;
+        console.log("(TIME) TTFM " + type + ":\t", ttfm);
+        AnalyticsAdapter.sendEvent(type +'.ttfm', ttfm);
+    }.bind(this));
 };
 
 module.exports = JitsiRemoteTrack;

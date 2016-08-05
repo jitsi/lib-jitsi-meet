@@ -8,6 +8,7 @@ var JitsiConferenceEvents = require("./JitsiConferenceEvents");
 var JitsiConferenceErrors = require("./JitsiConferenceErrors");
 var JitsiParticipant = require("./JitsiParticipant");
 var Statistics = require("./modules/statistics/statistics");
+var AnalyticsAdapter = require("./modules/statistics/AnalyticsAdapter");
 var JitsiDTMFManager = require('./modules/DTMF/JitsiDTMFManager');
 var JitsiTrackEvents = require("./JitsiTrackEvents");
 var JitsiTrackErrors = require("./JitsiTrackErrors");
@@ -786,6 +787,8 @@ function (jingleSession, jingleOffer, now) {
     // Accept incoming call
     this.room.setJingleSession(jingleSession);
     this.room.connectionTimes["session.initiate"] = now;
+    AnalyticsAdapter.sendEvent("muc.idle",
+        (now - this.room.connectionTimes["muc.joined"]));
     try{
         jingleSession.initialize(false /* initiator */,this.room);
     } catch (error) {
