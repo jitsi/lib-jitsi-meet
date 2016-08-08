@@ -140,8 +140,11 @@ var JitsiConferenceEvents = {
      * Indicates that a message from another participant is received on
      * data channel.
      */
-    ENDPOINT_MESSAGE_RECEIVED:
-        "conference.endpoint_message_received"
+    ENDPOINT_MESSAGE_RECEIVED: "conference.endpoint_message_received",
+    /**
+     * Indicates that the room has been locked or unlocked.
+     */
+    LOCK_STATE_CHANGED: "conference.lock_state_changed"
 };
 
 module.exports = JitsiConferenceEvents;
