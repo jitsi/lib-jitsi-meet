@@ -447,6 +447,9 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function () {
                 JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
                 conference.getParticipantById(from), payload);
         });
+
+    this.chatRoomForwarder.forward(XMPPEvents.MUC_LOCK_CHANGED,
+        JitsiConferenceEvents.LOCK_STATE_CHANGED);
 };
 
 /**

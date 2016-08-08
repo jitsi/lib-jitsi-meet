@@ -90,6 +90,8 @@ function ChatRoom(connection, jid, password, XMPP, options, settings,
     this.phonePin = null;
     this.connectionTimes = {};
     this.participantPropertyListener = null;
+
+    this.locked = false;
 }
 
 ChatRoom.prototype.initPresenceMap = function () {
@@ -193,6 +195,24 @@ ChatRoom.prototype.doLeave = function () {
     this.connection.flush();
     this.connection.send(pres);
     this.connection.flush();
+};
+
+ChatRoom.prototype.discoRoomInfo = function () {
+  // https://xmpp.org/extensions/xep-0045.html#disco-roominfo
+
+  var getInfo = $iq({type: 'get', to: this.roomjid})
+    .c('query', {xmlns: Strophe.NS.DISCO_INFO});
+
+  this.connection.sendIQ(getInfo, (result) => {
+    var locked = $(result).find('>query>feature[var="muc_passwordprotected"]').length;
+    if (locked != this.locked) {
+      this.eventEmitter.emit(XMPPEvents.MUC_LOCK_CHANGED, locked);
+      this.locked = locked;
+    }
+  }, (error) => {
+    GlobalOnErrorHandler.callErrorHandler(error);
+    logger.error("Error getting room info: ", error);
+  });
 };
 
 
@@ -536,6 +556,10 @@ ChatRoom.prototype.onMessage = function (msg, from) {
             var dateParts = stamp.match(/(\d{4})(\d{2})(\d{2}T\d{2}:\d{2}:\d{2})/);
             stamp = dateParts[1] + "-" + dateParts[2] + "-" + dateParts[3] + "Z";
         }
+    }
+
+    if (from==this.myroomjid && $(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="104"]').length) {
+      this.discoRoomInfo();
     }
 
     if (txt) {

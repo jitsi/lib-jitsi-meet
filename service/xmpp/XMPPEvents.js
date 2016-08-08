@@ -84,6 +84,8 @@ var XMPPEvents = {
     // Designates an event indicating that the MUC role of a participant has
     // changed.
     MUC_ROLE_CHANGED: "xmpp.muc_role_changed",
+    // Designates an event indicating that the MUC has been locked or unlocked.
+    MUC_LOCK_CHANGED: "xmpp.muc_lock_changed",
     // Designates an event indicating that a participant in the XMPP MUC has
     // advertised that they have audio muted (or unmuted).
     PARTICIPANT_AUDIO_MUTED: "xmpp.audio_muted",
