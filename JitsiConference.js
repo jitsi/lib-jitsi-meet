@@ -8,7 +8,6 @@ var JitsiConferenceEvents = require("./JitsiConferenceEvents");
 var JitsiConferenceErrors = require("./JitsiConferenceErrors");
 var JitsiParticipant = require("./JitsiParticipant");
 var Statistics = require("./modules/statistics/statistics");
-var AnalyticsAdapter = require("./modules/statistics/AnalyticsAdapter");
 var JitsiDTMFManager = require('./modules/DTMF/JitsiDTMFManager');
 var JitsiTrackEvents = require("./JitsiTrackEvents");
 var JitsiTrackErrors = require("./JitsiTrackErrors");
@@ -99,8 +98,6 @@ JitsiConference.prototype._init = function (options) {
         this.statistics = new Statistics(this.xmpp, {
             callStatsID: this.options.config.callStatsID,
             callStatsSecret: this.options.config.callStatsSecret,
-            disableThirdPartyRequests:
-                this.options.config.disableThirdPartyRequests,
             roomName: this.options.name
         });
     }
@@ -787,7 +784,7 @@ function (jingleSession, jingleOffer, now) {
     // Accept incoming call
     this.room.setJingleSession(jingleSession);
     this.room.connectionTimes["session.initiate"] = now;
-    AnalyticsAdapter.sendEvent("muc.idle",
+    Statistics.analytics.sendEvent("muc.idle",
         (now - this.room.connectionTimes["muc.joined"]));
     try{
         jingleSession.initialize(false /* initiator */,this.room);

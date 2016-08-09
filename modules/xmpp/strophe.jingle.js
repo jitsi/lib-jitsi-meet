@@ -6,7 +6,7 @@ var JingleSession = require("./JingleSessionPC");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var RTCBrowserType = require("../RTC/RTCBrowserType");
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
-var AnalyticsAdapter = require("../statistics/AnalyticsAdapter");
+var Statistics = require("../statistics/statistics");
 
 module.exports = function(XMPP, eventEmitter) {
     Strophe.addConnectionPlugin('jingle', {
@@ -101,7 +101,8 @@ module.exports = function(XMPP, eventEmitter) {
                             .up();
                         this.terminate(sess.sid);
                     }
-                    AnalyticsAdapter.sendEvent('xmpp.session-initiate', now);
+                    Statistics.analytics.sendEvent(
+                        'xmpp.session-initiate', now);
                     break;
                 case 'session-terminate':
                     logger.log('terminating...', sess.sid);
@@ -117,7 +118,7 @@ module.exports = function(XMPP, eventEmitter) {
                 case 'transport-replace':
                     var now = window.performance.now();
                     logger.info("(TIME) Start transport replace", now);
-                    AnalyticsAdapter.sendEvent(
+                    Statistics.analytics.sendEvent(
                         'xmpp.transport-replace.start', now);
 
                     sess.replaceTransport($(iq).find('>jingle'),
@@ -125,7 +126,7 @@ module.exports = function(XMPP, eventEmitter) {
                             var now = window.performance.now();
                             logger.info(
                                 "(TIME) Transport replace success!", now);
-                            AnalyticsAdapter.sendEvent(
+                            Statistics.analytics.sendEvent(
                                 'xmpp.transport-replace.success', now);
                         },
                         function(error) {
