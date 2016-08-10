@@ -941,6 +941,7 @@ var RTCUtils = {
         var self = this;
 
         options = options || {};
+        var dsOptions = options.desktopSharingExtensionExternalInstallation;
         return new Promise(function (resolve, reject) {
             var successCallback = function (stream) {
                 resolve(handleLocalStream(stream, options.resolution));
@@ -971,7 +972,8 @@ var RTCUtils = {
 
                 if(screenObtainer.isSupported()){
                     deviceGUM["desktop"] = screenObtainer.obtainStream.bind(
-                        screenObtainer);
+                        screenObtainer,
+                        dsOptions);
                 }
                 // With FF/IE we can't split the stream into audio and video because FF
                 // doesn't support media stream constructors. So, we need to get the
@@ -1032,6 +1034,7 @@ var RTCUtils = {
                             }
                             if(hasDesktop) {
                                 screenObtainer.obtainStream(
+                                    dsOptions,
                                     function (desktopStream) {
                                         successCallback({audioVideo: stream,
                                             desktopStream: desktopStream});
@@ -1050,6 +1053,7 @@ var RTCUtils = {
                         options);
                 } else if (hasDesktop) {
                     screenObtainer.obtainStream(
+                        dsOptions,
                         function (stream) {
                             successCallback({desktopStream: stream});
                         }, function (error) {
