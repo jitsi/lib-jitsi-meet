@@ -237,8 +237,7 @@ var ScreenObtainer = {
     },
     handleExtensionInstallationError: function (options, streamCallback,
         failCallback, e) {
-        if("Inline installs can not be initiated from pop-up windows." === e &&
-            options.interval > 0 &&
+        if( CHROME_EXTENSION_POPUP_ERROR === e && options.interval > 0 &&
             typeof(options.checkAgain) === "function" &&
             typeof(options.listener) === "function") {
             options.listener(getWebStoreInstallUrl(this.options));
