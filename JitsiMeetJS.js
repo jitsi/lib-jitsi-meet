@@ -16,7 +16,6 @@ var MediaType = require("./service/RTC/MediaType");
 var RTC = require("./modules/RTC/RTC");
 var RTCUIHelper = require("./modules/RTC/RTCUIHelper");
 var Statistics = require("./modules/statistics/statistics");
-var AnalyticsAdapter = require("./modules/statistics/AnalyticsAdapter");
 var Resolutions = require("./service/RTC/Resolutions");
 var ScriptUtil = require("./modules/util/ScriptUtil");
 var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
@@ -67,14 +66,11 @@ var LibJitsiMeet = {
     },
     logLevels: Logger.levels,
     mediaDevices: JitsiMediaDevices,
-    analytics: AnalyticsAdapter,
+    analytics: null,
     init: function (options) {
         var logObject, attr;
-        Statistics.audioLevelsEnabled = !options.disableAudioLevels;
-
-        if(typeof options.audioLevelsInterval === 'number') {
-            Statistics.audioLevelsInterval = options.audioLevelsInterval;
-        }
+        Statistics.init(options);
+        this.analytics = Statistics.analytics;
 
         if (options.enableWindowOnErrorHandler) {
             GlobalOnErrorHandler.addHandler(

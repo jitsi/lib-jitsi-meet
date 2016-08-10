@@ -2,7 +2,7 @@ var JitsiConference = require("./JitsiConference");
 var XMPP = require("./modules/xmpp/xmpp");
 var JitsiConnectionEvents = require("./JitsiConnectionEvents");
 var JitsiConnectionErrors = require("./JitsiConnectionErrors");
-var AnalyticsAdapter = require("./modules/statistics/AnalyticsAdapter");
+var Statistics = require("./modules/statistics/statistics");
 
 /**
  * Creates new connection object for the Jitsi Meet server side video conferencing service. Provides access to the
@@ -26,7 +26,7 @@ function JitsiConnection(appID, token, options) {
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
         function (errType, msg) {
-            AnalyticsAdapter.sendEvent('connection.failed.' + errType);
+            Statistics.analytics.sendEvent('connection.failed.' + errType);
             if(errType === JitsiConnectionErrors.OTHER_ERROR &&
                 (msg === "item-not-found" || msg === "host-unknown")) {
                     // FIXME: don't report the error if we are going to reload
@@ -40,7 +40,8 @@ function JitsiConnection(appID, token, options) {
             // and then there are no msgs, but we want to log only disconnects
             // when there is real error
             if(msg)
-                AnalyticsAdapter.sendEvent('connection.disconnected.' + msg);
+                Statistics.analytics.sendEvent(
+                    'connection.disconnected.' + msg);
         });
 }
 
@@ -73,7 +74,7 @@ JitsiConnection.prototype.attach = function (options) {
 JitsiConnection.prototype._reload = function () {
     if(this.retryOnFail === 0)
         return false;
-    AnalyticsAdapter.sendEvent('connection.reload');
+    Statistics.analytics.sendEvent('connection.reload');
     this.retryOnFail--;
     var states = {};
     for(var name in this.conferences) {
