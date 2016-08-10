@@ -234,6 +234,7 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                 streamOptions['micDeviceId'] = self.getDeviceId();
             } else if(self.videoType === VideoType.CAMERA) {
                 streamOptions['cameraDeviceId'] = self.getDeviceId();
+                streamOptions['facingMode'] = self.getCameraFacingMode();
             }
             RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
                 .then(function (streamsInfo) {
