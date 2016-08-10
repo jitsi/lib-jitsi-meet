@@ -51,6 +51,7 @@ The ```options``` parameter is JS object with the following properties:
     10. disableSimulcast - boolean property. Enables/disables simulcast.
     11. enableWindowOnErrorHandler - boolean property (default false). Enables/disables attaching global onerror handler (window.onerror).
     12. disableThirdPartyRequests - if true - callstats will be disabled and the callstats API won't be included.
+    13. analyticsScriptUrl - (optional) custom url to search for the analytics lib, if missing js file will be expected to be next to the library file (the location it is sourced from) 
 
 * ```JitsiMeetJS.JitsiConnection``` - the ```JitsiConnection``` constructor. You can use that to create new server connection.
 

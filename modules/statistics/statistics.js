@@ -41,11 +41,14 @@ function loadCallStatsAPI() {
 // download the API asynchronously. Additionally, Google Analytics will download
 // its implementation asynchronously anyway so it makes sense to append the
 // loading on our side rather than prepend it.
-function loadAnalytics() {
+function loadAnalytics(customScriptUrl) {
+    // if we have a custom script url passed as parameter we don't want to
+    // search it relatively near the library
     JitsiMeetJS.util.ScriptUtil.loadScript(
-        'analytics.js?v=1',
+        customScriptUrl ? customScriptUrl : 'analytics.js',
         /* async */ true,
-        /* prepend */ false);
+        /* prepend */ false,
+        /* relativeURL */ customScriptUrl ? false : true);
 }
 
 /**
@@ -96,7 +99,7 @@ Statistics.init = function (options) {
     Statistics.disableThirdPartyRequests = options.disableThirdPartyRequests;
 
     if (Statistics.disableThirdPartyRequests !== true)
-        loadAnalytics();
+        loadAnalytics(options.analyticsScriptUrl);
 }
 
 function Statistics(xmpp, options) {
