@@ -1,6 +1,7 @@
 var JitsiTrack = require("./JitsiTrack");
 var JitsiTrackEvents = require("../../JitsiTrackEvents");
 var RTCBrowserType = require("./RTCBrowserType");
+var Statistics = require("../statistics/statistics");
 
 var ttfmTrackerAudioAttached = false;
 var ttfmTrackerVideoAttached = false;

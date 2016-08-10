@@ -2,6 +2,7 @@ var JitsiConference = require("./JitsiConference");
 var XMPP = require("./modules/xmpp/xmpp");
 var JitsiConnectionEvents = require("./JitsiConnectionEvents");
 var JitsiConnectionErrors = require("./JitsiConnectionErrors");
+var Statistics = require("./modules/statistics/statistics");
 
 /**
  * Creates new connection object for the Jitsi Meet server side video conferencing service. Provides access to the
