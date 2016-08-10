@@ -123,6 +123,28 @@ var LibJitsiMeet = {
      * will be returned trough the Promise, otherwise JitsiTrack objects will be returned.
      * @param {string} options.cameraDeviceId
      * @param {string} options.micDeviceId
+     * @param {object} options.desktopSharingExtensionExternalInstallation -
+     * enables external installation process for desktop sharing extension if
+     * the inline installation is not posible. The following properties should
+     * be provided:
+     * @param {intiger} interval - the interval (in ms) for
+     * checking whether the desktop sharing extension is installed or not
+     * @param {Function} checkAgain - returns boolean. While checkAgain()==true
+     * createLocalTracks will wait and check on every "interval" ms for the
+     * extension. If the desktop extension is not install and checkAgain()==true
+     * createLocalTracks will finish with rejected Promise.
+     * @param {Function} listener - The listener will be called to notify the
+     * user of lib-jitsi-meet that createLocalTracks is starting external
+     * extension installation process.
+     * NOTE: If the inline installation process is not possible and external
+     * installation is enabled the listener property will be called to notify
+     * the start of external installation process. After that createLocalTracks
+     * will start to check for the extension on every interval ms until the
+     * plugin is installed or until checkAgain return false. If the extension
+     * is found createLocalTracks will try to get the desktop sharing track and
+     * will finish the execution. If checkAgain returns false, createLocalTracks
+     * will finish the execution with rejected Promise.
+     *
      * @param {boolean} (firePermissionPromptIsShownEvent) - if event
      *      JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN should be fired
      * @returns {Promise.<{Array.<JitsiTrack>}, JitsiConferenceError>}
