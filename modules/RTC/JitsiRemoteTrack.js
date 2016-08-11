@@ -25,6 +25,10 @@ function JitsiRemoteTrack(conference, ownerJid, stream, track, mediaType, videoT
     this.conference = conference;
     this.peerjid = ownerJid;
     this.muted = muted;
+    // we want to mark whether the track has been ever muted
+    // to detect ttfm events for startmuted conferences, as it can significantly
+    // increase ttfm values
+    this.hasBeenMuted = muted;
 }
 
 JitsiRemoteTrack.prototype = Object.create(JitsiTrack.prototype);
@@ -37,6 +41,9 @@ JitsiRemoteTrack.prototype.constructor = JitsiRemoteTrack;
 JitsiRemoteTrack.prototype.setMute = function (value) {
     if(this.muted === value)
         return;
+
+    if(value)
+        this.hasBeenMuted = true;
 
     // we can have a fake video stream
     if(this.stream)
@@ -120,7 +127,10 @@ JitsiRemoteTrack.prototype._attachTTFMTracker = function (container) {
             - this.conference.getConnectionTimes()["muc.joined"]);
         this.conference.getConnectionTimes()[type + ".ttfm"] = ttfm;
         console.log("(TIME) TTFM " + type + ":\t", ttfm);
-        Statistics.analytics.sendEvent(type +'.ttfm', ttfm);
+        var eventName = type +'.ttfm';
+        if(this.hasBeenMuted)
+            eventName += '.muted';
+        Statistics.analytics.sendEvent(eventName, ttfm);
     }.bind(this));
 };
 
