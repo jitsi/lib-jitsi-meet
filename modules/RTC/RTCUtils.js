@@ -17,6 +17,7 @@ var JitsiTrackErrors = require("../../JitsiTrackErrors");
 var JitsiTrackError = require("../../JitsiTrackError");
 var MediaType = require("../../service/RTC/MediaType");
 var VideoType = require("../../service/RTC/VideoType");
+var CameraFacingMode = require("../../service/RTC/CameraFacingMode");
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 var eventEmitter = new EventEmitter();
@@ -116,7 +117,7 @@ function setResolutionConstraints(constraints, resolution) {
  * @param {string} options.desktopStream
  * @param {string} options.cameraDeviceId
  * @param {string} options.micDeviceId
- * @param {'user'|'environment'} options.facingMode
+ * @param {CameraFacingMode} options.facingMode
  * @param {bool} firefox_fake_device
  */
 function getConstraints(um, options) {
@@ -153,12 +154,13 @@ function getConstraints(um, options) {
             // TODO: Maybe use "exact" syntax if options.facingMode is defined,
             // but this probably needs to be decided when updating other
             // constraints, as we currently don't use "exact" syntax anywhere.
-            if (isNewStyleConstraintsSupported) {
-                constraints.video.facingMode = options.facingMode || 'user';
-            }
+            var facingMode = options.facingMode || CameraFacingMode.USER;
 
+            if (isNewStyleConstraintsSupported) {
+                constraints.video.facingMode = facingMode;
+            }
             constraints.video.optional.push({
-                facingMode: options.facingMode || 'user'
+                facingMode: facingMode
             });
         }
 
