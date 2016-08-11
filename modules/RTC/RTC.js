@@ -17,16 +17,19 @@ function createLocalTracks(tracksInfo, options) {
     var deviceId = null;
     tracksInfo.forEach(function(trackInfo){
         if (trackInfo.mediaType === MediaType.AUDIO) {
-          deviceId = options.micDeviceId;
+            deviceId = options.micDeviceId;
         } else if (trackInfo.videoType === VideoType.CAMERA){
-          deviceId = options.cameraDeviceId;
+            deviceId = options.cameraDeviceId;
         }
         var localTrack
             = new JitsiLocalTrack(
-                trackInfo.stream,
-                trackInfo.track,
-                trackInfo.mediaType,
-                trackInfo.videoType, trackInfo.resolution, deviceId);
+            trackInfo.stream,
+            trackInfo.track,
+            trackInfo.mediaType,
+            trackInfo.videoType,
+            trackInfo.resolution,
+            deviceId,
+            options.facingMode);
         newTracks.push(localTrack);
     });
     return newTracks;

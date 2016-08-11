@@ -7,7 +7,9 @@ var JitsiTrackErrors = require("../../JitsiTrackErrors");
 var JitsiTrackError = require("../../JitsiTrackError");
 var RTCEvents = require("../../service/RTC/RTCEvents");
 var RTCUtils = require("./RTCUtils");
+var MediaType = require('../../service/RTC/MediaType');
 var VideoType = require('../../service/RTC/VideoType');
+var CameraFacingMode = require('../../service/RTC/CameraFacingMode');
 
 /**
  * Represents a single media track(either audio or video).
@@ -18,10 +20,11 @@ var VideoType = require('../../service/RTC/VideoType');
  * @param videoType the VideoType of the JitsiRemoteTrack
  * @param resolution the video resoultion if it's a video track
  * @param deviceId the ID of the local device for this track
+ * @param facingMode the camera facing mode used in getUserMedia call
  * @constructor
  */
 function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
-                         deviceId) {
+                         deviceId, facingMode) {
     var self = this;
 
     JitsiTrack.call(this,
@@ -39,6 +42,9 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
     this.startMuted = false;
     this.initialMSID = this.getMSID();
     this.inMuteOrUnmuteProgress = false;
+
+    // Store camera facing mode used during getUserMedia call.
+    this.facingMode = facingMode;
 
     // Currently there is no way to know the MediaStreamTrack ended due to to
     // device disconnect in Firefox through e.g. "readyState" property. Instead
@@ -228,6 +234,7 @@ JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
                 streamOptions['micDeviceId'] = self.getDeviceId();
             } else if(self.videoType === VideoType.CAMERA) {
                 streamOptions['cameraDeviceId'] = self.getDeviceId();
+                streamOptions['facingMode'] = self.getCameraFacingMode();
             }
             RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
                 .then(function (streamsInfo) {
@@ -395,5 +402,42 @@ JitsiLocalTrack.prototype.isLocal = function () {
 JitsiLocalTrack.prototype.getDeviceId = function () {
     return this._realDeviceId || this.deviceId;
 };
+
+/**
+ * Returns facing mode for video track from camera. For other cases (e.g. audio
+ * track or 'desktop' video track) returns undefined.
+ *
+ * @returns {CameraFacingMode|undefined}
+ */
+JitsiLocalTrack.prototype.getCameraFacingMode = function () {
+    if (this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
+        // MediaStreamTrack#getSettings() is not implemented in many browsers,
+        // so we do a feature checking here. Progress on implementation can be
+        // tracked at https://bugs.chromium.org/p/webrtc/issues/detail?id=2481
+        // for Chromium and https://bugzilla.mozilla.org/show_bug.cgi?id=1213517
+        // for Firefox. Even if a browser already implements getSettings()
+        // it might still not return anything for 'facingMode' so we need to
+        // take into account this.
+        var trackSettings;
+
+        if (this.track &&
+            typeof this.track.getSettings === 'function' &&
+            (trackSettings = this.track.getSettings()) &&
+            'facingMode' in trackSettings) {
+            return trackSettings.facingMode;
+        } else if (typeof this.facingMode !== 'undefined') {
+            return this.facingMode;
+        } else {
+            // In most cases we are showing a webcam. So if we failed to satisfy
+            // any of the above conditions and got here, that means that we're
+            // probably showing the user facing camera.
+            return CameraFacingMode.USER;
+        }
+
+    }
+
+    return undefined;
+};
+
 
 module.exports = JitsiLocalTrack;
