@@ -2,6 +2,7 @@ var JitsiTrack = require("./JitsiTrack");
 var JitsiTrackEvents = require("../../JitsiTrackEvents");
 var RTCBrowserType = require("./RTCBrowserType");
 var Statistics = require("../statistics/statistics");
+var AdapterJS = require("./adapter.screenshare");
 
 var ttfmTrackerAudioAttached = false;
 var ttfmTrackerVideoAttached = false;
@@ -114,8 +115,7 @@ JitsiRemoteTrack.prototype._attachTTFMTracker = function (container) {
     if (this.isVideoTrack())
         ttfmTrackerVideoAttached = true;
 
-    // FIXME: this is not working for temasys
-    container.addEventListener("canplay", function () {
+    var playCallback = function () {
         var type = (this.isVideoTrack() ? 'video' : 'audio');
 
         var now = window.performance.now();
@@ -131,7 +131,15 @@ JitsiRemoteTrack.prototype._attachTTFMTracker = function (container) {
         if(this.hasBeenMuted)
             eventName += '.muted';
         Statistics.analytics.sendEvent(eventName, ttfm);
-    }.bind(this));
+    }.bind(this);
+
+    if (RTCBrowserType.isTemasysPluginUsed()) {
+        // FIXME: this is not working for IE11
+        AdapterJS.addEvent(container, 'play', playCallback);
+    }
+    else {
+        container.addEventListener("canplay", playCallback);
+    }
 };
 
 module.exports = JitsiRemoteTrack;
