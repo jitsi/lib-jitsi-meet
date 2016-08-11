@@ -97,6 +97,26 @@ JitsiRemoteTrack.prototype._setVideoType = function (type) {
     this.eventEmitter.emit(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, type);
 };
 
+JitsiRemoteTrack.prototype._playCallback = function () {
+    var type = (this.isVideoTrack() ? 'video' : 'audio');
+
+    var now = window.performance.now();
+    console.log("(TIME) Render " + type + ":\t", now);
+    this.conference.getConnectionTimes()[type + ".render"] = now;
+
+    var ttfm = now
+        - (this.conference.getConnectionTimes()["session.initiate"]
+        - this.conference.getConnectionTimes()["muc.joined"])
+        - (window.connectionTimes["obtainPermissions.end"]
+        - window.connectionTimes["obtainPermissions.start"]);
+    this.conference.getConnectionTimes()[type + ".ttfm"] = ttfm;
+    console.log("(TIME) TTFM " + type + ":\t", ttfm);
+    var eventName = type +'.ttfm';
+    if(this.hasBeenMuted)
+        eventName += '.muted';
+    Statistics.analytics.sendEvent(eventName, ttfm);
+};
+
 /**
  * Attach time to first media tracker only if there is conference and only
  * for the first element.
@@ -115,32 +135,12 @@ JitsiRemoteTrack.prototype._attachTTFMTracker = function (container) {
     if (this.isVideoTrack())
         ttfmTrackerVideoAttached = true;
 
-    var playCallback = function () {
-        var type = (this.isVideoTrack() ? 'video' : 'audio');
-
-        var now = window.performance.now();
-        console.log("(TIME) Render " + type + ":\t", now);
-        this.conference.getConnectionTimes()[type + ".render"] = now;
-
-        var ttfm = now
-            - (this.conference.getConnectionTimes()["session.initiate"]
-                - this.conference.getConnectionTimes()["muc.joined"])
-            - (window.connectionTimes["obtainPermissions.end"]
-                - window.connectionTimes["obtainPermissions.start"]);
-        this.conference.getConnectionTimes()[type + ".ttfm"] = ttfm;
-        console.log("(TIME) TTFM " + type + ":\t", ttfm);
-        var eventName = type +'.ttfm';
-        if(this.hasBeenMuted)
-            eventName += '.muted';
-        Statistics.analytics.sendEvent(eventName, ttfm);
-    }.bind(this);
-
     if (RTCBrowserType.isTemasysPluginUsed()) {
         // FIXME: this is not working for IE11
-        AdapterJS.addEvent(container, 'play', playCallback);
+        AdapterJS.addEvent(container, 'play', this._playCallback.bind(this));
     }
     else {
-        container.addEventListener("canplay", playCallback);
+        container.addEventListener("canplay", this._playCallback.bind(this));
     }
 };
 
