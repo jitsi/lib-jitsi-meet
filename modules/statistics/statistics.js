@@ -44,7 +44,7 @@ function loadCallStatsAPI() {
 function loadAnalytics(customScriptUrl) {
     // if we have a custom script url passed as parameter we don't want to
     // search it relatively near the library
-    JitsiMeetJS.util.ScriptUtil.loadScript(
+    ScriptUtil.loadScript(
         customScriptUrl ? customScriptUrl : 'analytics.js',
         /* async */ true,
         /* prepend */ false,

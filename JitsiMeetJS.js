@@ -42,6 +42,29 @@ function getLowerResolution(resolution) {
 }
 
 /**
+ * Checks the available devices in options and concatenate the data to the
+ * name, which will be used as analytics event name. Adds resolution for the
+ * devices.
+ * @param name name of event
+ * @param options gum options
+ * @returns {*}
+ */
+function addDeviceTypeToAnalyticsEvent(name, options) {
+    if (options.devices.indexOf("audio") !== -1) {
+        name += ".audio";
+    }
+    if (options.devices.indexOf("desktop") !== -1) {
+        name += ".desktop";
+    }
+    if (options.devices.indexOf("video") !== -1) {
+        // we have video add resolution
+        name += ".video." + options.resolution;
+    }
+
+    return name;
+}
+
+/**
  * Namespace for the interface of Jitsi Meet Library.
  */
 var LibJitsiMeet = {
@@ -164,9 +187,20 @@ var LibJitsiMeet = {
             }, USER_MEDIA_PERMISSION_PROMPT_TIMEOUT);
         }
 
+        if(!window.connectionTimes)
+            window.connectionTimes = {};
+        window.connectionTimes["obtainPermissions.start"] =
+            window.performance.now();
+
         return RTC.obtainAudioAndVideoPermissions(options || {})
             .then(function(tracks) {
                 promiseFulfilled = true;
+
+                window.connectionTimes["obtainPermissions.end"] =
+                    window.performance.now();
+
+                Statistics.analytics.sendEvent(addDeviceTypeToAnalyticsEvent(
+                    "getUserMedia.success", options), options);
 
                 if(!RTC.options.disableAudioLevels)
                     for(var i = 0; i < tracks.length; i++) {
@@ -197,6 +231,9 @@ var LibJitsiMeet = {
                         logger.debug("Retry createLocalTracks with resolution",
                             newResolution);
 
+                        Statistics.analytics.sendEvent(
+                            "getUserMedia.fail.resolution." + oldResolution);
+
                         return LibJitsiMeet.createLocalTracks(options);
                     }
                 }
@@ -211,10 +248,21 @@ var LibJitsiMeet = {
                         message: error.message
                     };
                     Statistics.sendLog(JSON.stringify(logObject));
+                    Statistics.analytics.sendEvent(
+                        "getUserMedia.userCancel.extensionInstall");
                 } else {
                     // Report gUM failed to the stats
                     Statistics.sendGetUserMediaFailed(error);
                 }
+
+                window.connectionTimes["obtainPermissions.end"] =
+                    window.performance.now();
+
+
+                Statistics.analytics.sendEvent(
+                    addDeviceTypeToAnalyticsEvent(
+                        "getUserMedia.failed", options) + '.' + error.name,
+                    options);
 
                 return Promise.reject(error);
             }.bind(this));
