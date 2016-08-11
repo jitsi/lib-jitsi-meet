@@ -164,9 +164,17 @@ var LibJitsiMeet = {
             }, USER_MEDIA_PERMISSION_PROMPT_TIMEOUT);
         }
 
+        if(!window.connectionTimes)
+            window.connectionTimes = {};
+        window.connectionTimes["obtainPermissions.start"] =
+            window.performance.now();
+
         return RTC.obtainAudioAndVideoPermissions(options || {})
             .then(function(tracks) {
                 promiseFulfilled = true;
+
+                window.connectionTimes["obtainPermissions.end"] =
+                    window.performance.now();
 
                 if(!RTC.options.disableAudioLevels)
                     for(var i = 0; i < tracks.length; i++) {
@@ -215,6 +223,9 @@ var LibJitsiMeet = {
                     // Report gUM failed to the stats
                     Statistics.sendGetUserMediaFailed(error);
                 }
+
+                window.connectionTimes["obtainPermissions.end"] =
+                    window.performance.now();
 
                 return Promise.reject(error);
             }.bind(this));

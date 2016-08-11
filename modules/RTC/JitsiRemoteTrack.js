@@ -124,7 +124,9 @@ JitsiRemoteTrack.prototype._attachTTFMTracker = function (container) {
 
         var ttfm = now
             - (this.conference.getConnectionTimes()["session.initiate"]
-            - this.conference.getConnectionTimes()["muc.joined"]);
+                - this.conference.getConnectionTimes()["muc.joined"])
+            - (window.connectionTimes["obtainPermissions.end"]
+                - window.connectionTimes["obtainPermissions.start"]);
         this.conference.getConnectionTimes()[type + ".ttfm"] = ttfm;
         console.log("(TIME) TTFM " + type + ":\t", ttfm);
         var eventName = type +'.ttfm';
