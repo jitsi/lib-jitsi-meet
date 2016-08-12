@@ -459,13 +459,16 @@ JitsiLocalTrack.prototype.getCameraFacingMode = function () {
         // https://bugs.chromium.org/p/webrtc/issues/detail?id=2481 for Chromium
         // and https://bugzilla.mozilla.org/show_bug.cgi?id=1213517 for Firefox.
         // Even if a browser implements getSettings() already, it might still
-        // not return anything for 'facingMode'.
+        // not return anything for 'facingMode'. In react-native-webrtc case
+        // MediaStreamTrack has getSettings method, but it throws
+        // "Not implemented" Error.
         var trackSettings;
 
-        if (this.track &&
-            typeof this.track.getSettings === 'function' &&
-            (trackSettings = this.track.getSettings()) &&
-            'facingMode' in trackSettings) {
+        try {
+            trackSettings = this.track.getSettings();
+        } catch (ex) {}
+
+        if (trackSettings && 'facingMode' in trackSettings) {
             return trackSettings.facingMode;
         } else if (typeof this._facingMode !== 'undefined') {
             return this._facingMode;
