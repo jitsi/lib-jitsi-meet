@@ -454,7 +454,7 @@ JitsiLocalTrack.prototype.getDeviceId = function () {
 JitsiLocalTrack.prototype.getCameraFacingMode = function () {
     if (this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
         // MediaStreamTrack#getSettings() is not implemented in many browsers,
-        // so we need a feature checking here. Progress on the respective
+        // so we need feature checking here. Progress on the respective
         // browser's implementation can be tracked at
         // https://bugs.chromium.org/p/webrtc/issues/detail?id=2481 for Chromium
         // and https://bugzilla.mozilla.org/show_bug.cgi?id=1213517 for Firefox.
@@ -462,20 +462,25 @@ JitsiLocalTrack.prototype.getCameraFacingMode = function () {
         // not return anything for 'facingMode'.
         var trackSettings;
 
-        if (this.track &&
-            typeof this.track.getSettings === 'function' &&
-            (trackSettings = this.track.getSettings()) &&
-            'facingMode' in trackSettings) {
+        try {
+            trackSettings = this.track.getSettings();
+        } catch (e) {
+            // XXX React-native-webrtc, for example, defines
+            // MediaStreamTrack#getSettings() but the implementation throws a
+            // "Not implemented" Error.
+        }
+        if (trackSettings && 'facingMode' in trackSettings) {
             return trackSettings.facingMode;
-        } else if (typeof this._facingMode !== 'undefined') {
-            return this._facingMode;
-        } else {
-            // In most cases we are showing a webcam. So if we've gotten here,
-            // it should be relatively safe to assume that we are probably
-            // showing the user-facing camera.
-            return CameraFacingMode.USER;
         }
 
+        if (typeof this._facingMode !== 'undefined') {
+            return this._facingMode;
+        }
+
+        // In most cases we are showing a webcam. So if we've gotten here, it
+        // should be relatively safe to assume that we are probably showing
+        // the user-facing camera.
+        return CameraFacingMode.USER;
     }
 
     return undefined;
