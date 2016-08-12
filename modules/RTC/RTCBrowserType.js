@@ -31,6 +31,18 @@ var RTCBrowserType = {
     },
 
     /**
+     * Gets current browser name, split from the type.
+     * @returns {string}
+     */
+    getBrowserName: function () {
+        var browser = currentBrowser.split('rtc_browser.')[1];
+        if (RTCBrowserType.isAndroid()) {
+            browser = 'android';
+        }
+        return browser;
+    },
+
+    /**
      * Checks if current browser is Chrome.
      * @returns {boolean}
      */

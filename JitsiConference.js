@@ -98,8 +98,6 @@ JitsiConference.prototype._init = function (options) {
         this.statistics = new Statistics(this.xmpp, {
             callStatsID: this.options.config.callStatsID,
             callStatsSecret: this.options.config.callStatsSecret,
-            disableThirdPartyRequests:
-                this.options.config.disableThirdPartyRequests,
             roomName: this.options.name
         });
     }
@@ -786,6 +784,8 @@ function (jingleSession, jingleOffer, now) {
     // Accept incoming call
     this.room.setJingleSession(jingleSession);
     this.room.connectionTimes["session.initiate"] = now;
+    Statistics.analytics.sendEvent("muc.idle",
+        (now - this.room.connectionTimes["muc.joined"]));
     try{
         jingleSession.initialize(false /* initiator */,this.room);
     } catch (error) {

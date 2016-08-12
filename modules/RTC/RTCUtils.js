@@ -17,6 +17,7 @@ var JitsiTrackErrors = require("../../JitsiTrackErrors");
 var JitsiTrackError = require("../../JitsiTrackError");
 var MediaType = require("../../service/RTC/MediaType");
 var VideoType = require("../../service/RTC/VideoType");
+var CameraFacingMode = require("../../service/RTC/CameraFacingMode");
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
 var eventEmitter = new EventEmitter();
@@ -42,20 +43,33 @@ var isAudioOutputDeviceChangeAvailable =
 
 var currentlyAvailableMediaDevices;
 
-var rawEnumerateDevicesWithCallback = navigator.mediaDevices
-    && navigator.mediaDevices.enumerateDevices
+var rawEnumerateDevicesWithCallback = undefined;
+/**
+ * "rawEnumerateDevicesWithCallback" will be initialized only after WebRTC is
+ * ready. Otherwise it is too early to assume that the devices listing is not
+ * supported.
+ */
+function initRawEnumerateDevicesWithCallback() {
+    rawEnumerateDevicesWithCallback = navigator.mediaDevices
+        && navigator.mediaDevices.enumerateDevices
         ? function(callback) {
-            navigator.mediaDevices.enumerateDevices().then(callback, function () {
-                callback([]);
+            navigator.mediaDevices.enumerateDevices().then(
+                callback, function () {
+                    callback([]);
             });
         }
+        // Safari:
+        // "ReferenceError: Can't find variable: MediaStreamTrack"
+        // when Temasys plugin is not installed yet, have to delay this call
+        // until WebRTC is ready.
         : (MediaStreamTrack && MediaStreamTrack.getSources)
-            ? function (callback) {
-                MediaStreamTrack.getSources(function (sources) {
-                    callback(sources.map(convertMediaStreamTrackSource));
-                });
-            }
-            : undefined;
+        ? function (callback) {
+            MediaStreamTrack.getSources(function (sources) {
+                callback(sources.map(convertMediaStreamTrackSource));
+            });
+        }
+        : undefined;
+}
 
 // TODO: currently no browser supports 'devicechange' event even in nightly
 // builds so no feature/browser detection is used at all. However in future this
@@ -103,7 +117,7 @@ function setResolutionConstraints(constraints, resolution) {
  * @param {string} options.desktopStream
  * @param {string} options.cameraDeviceId
  * @param {string} options.micDeviceId
- * @param {'user'|'environment'} options.facingMode
+ * @param {CameraFacingMode} options.facingMode
  * @param {bool} firefox_fake_device
  */
 function getConstraints(um, options) {
@@ -140,12 +154,13 @@ function getConstraints(um, options) {
             // TODO: Maybe use "exact" syntax if options.facingMode is defined,
             // but this probably needs to be decided when updating other
             // constraints, as we currently don't use "exact" syntax anywhere.
-            if (isNewStyleConstraintsSupported) {
-                constraints.video.facingMode = options.facingMode || 'user';
-            }
+            var facingMode = options.facingMode || CameraFacingMode.USER;
 
+            if (isNewStyleConstraintsSupported) {
+                constraints.video.facingMode = facingMode;
+            }
             constraints.video.optional.push({
-                facingMode: options.facingMode || 'user'
+                facingMode: facingMode
             });
         }
 
@@ -385,6 +400,9 @@ function onReady (options, GUM) {
     rtcReady = true;
     eventEmitter.emit(RTCEvents.RTC_READY, true);
     screenObtainer.init(options, GUM);
+
+    // Initialize rawEnumerateDevicesWithCallback
+    initRawEnumerateDevicesWithCallback();
 
     if (RTCUtils.isDeviceListAvailable() && rawEnumerateDevicesWithCallback) {
         rawEnumerateDevicesWithCallback(function (devices) {
@@ -925,6 +943,7 @@ var RTCUtils = {
         var self = this;
 
         options = options || {};
+        var dsOptions = options.desktopSharingExtensionExternalInstallation;
         return new Promise(function (resolve, reject) {
             var successCallback = function (stream) {
                 resolve(handleLocalStream(stream, options.resolution));
@@ -955,7 +974,8 @@ var RTCUtils = {
 
                 if(screenObtainer.isSupported()){
                     deviceGUM["desktop"] = screenObtainer.obtainStream.bind(
-                        screenObtainer);
+                        screenObtainer,
+                        dsOptions);
                 }
                 // With FF/IE we can't split the stream into audio and video because FF
                 // doesn't support media stream constructors. So, we need to get the
@@ -1016,6 +1036,7 @@ var RTCUtils = {
                             }
                             if(hasDesktop) {
                                 screenObtainer.obtainStream(
+                                    dsOptions,
                                     function (desktopStream) {
                                         successCallback({audioVideo: stream,
                                             desktopStream: desktopStream});
@@ -1034,6 +1055,7 @@ var RTCUtils = {
                         options);
                 } else if (hasDesktop) {
                     screenObtainer.obtainStream(
+                        dsOptions,
                         function (stream) {
                             successCallback({desktopStream: stream});
                         }, function (error) {
@@ -1055,17 +1077,51 @@ var RTCUtils = {
     isRTCReady: function () {
         return rtcReady;
     },
-    /**
-     * Checks if its possible to enumerate available cameras/micropones.
-     * @returns {boolean} true if available, false otherwise.
-     */
-    isDeviceListAvailable: function () {
+    _isDeviceListAvailable: function () {
+        if (!rtcReady)
+            throw new Error("WebRTC not ready yet");
         var isEnumerateDevicesAvailable
             = navigator.mediaDevices && navigator.mediaDevices.enumerateDevices;
         if (isEnumerateDevicesAvailable) {
             return true;
         }
-        return (MediaStreamTrack && MediaStreamTrack.getSources)? true : false;
+        return (typeof MediaStreamTrack !== "undefined" &&
+            MediaStreamTrack.getSources)? true : false;
+    },
+    /**
+     * Returns a promise which can be used to make sure that the WebRTC stack
+     * has been initialized.
+     *
+     * @returns {Promise} which is resolved only if the WebRTC stack is ready.
+     * Note that currently we do not detect stack initialization failure and
+     * the promise is never rejected(unless unexpected error occurs).
+     */
+    onRTCReady: function() {
+        if (rtcReady) {
+            return Promise.resolve();
+        } else {
+            return new Promise(function (resolve) {
+                var listener = function () {
+                    eventEmitter.removeListener(RTCEvents.RTC_READY, listener);
+                    resolve();
+                };
+                eventEmitter.addListener(RTCEvents.RTC_READY, listener);
+                // We have no failed event, so... it either resolves or nothing
+                // happens
+            });
+        }
+    },
+    /**
+     * Checks if its possible to enumerate available cameras/microphones.
+     *
+     * @returns {Promise<boolean>} a Promise which will be resolved only once
+     * the WebRTC stack is ready, either with true if the device listing is
+     * available available or with false otherwise.
+     */
+    isDeviceListAvailable: function () {
+        return this.onRTCReady().then(function() {
+            return this._isDeviceListAvailable();
+        }.bind(this));
     },
     /**
      * Returns true if changing the input (camera / microphone) or output

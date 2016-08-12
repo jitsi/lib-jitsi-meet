@@ -42,6 +42,29 @@ function getLowerResolution(resolution) {
 }
 
 /**
+ * Checks the available devices in options and concatenate the data to the
+ * name, which will be used as analytics event name. Adds resolution for the
+ * devices.
+ * @param name name of event
+ * @param options gum options
+ * @returns {*}
+ */
+function addDeviceTypeToAnalyticsEvent(name, options) {
+    if (options.devices.indexOf("audio") !== -1) {
+        name += ".audio";
+    }
+    if (options.devices.indexOf("desktop") !== -1) {
+        name += ".desktop";
+    }
+    if (options.devices.indexOf("video") !== -1) {
+        // we have video add resolution
+        name += ".video." + options.resolution;
+    }
+
+    return name;
+}
+
+/**
  * Namespace for the interface of Jitsi Meet Library.
  */
 var LibJitsiMeet = {
@@ -66,13 +89,11 @@ var LibJitsiMeet = {
     },
     logLevels: Logger.levels,
     mediaDevices: JitsiMediaDevices,
+    analytics: null,
     init: function (options) {
         var logObject, attr;
-        Statistics.audioLevelsEnabled = !options.disableAudioLevels;
-
-        if(typeof options.audioLevelsInterval === 'number') {
-            Statistics.audioLevelsInterval = options.audioLevelsInterval;
-        }
+        Statistics.init(options);
+        this.analytics = Statistics.analytics;
 
         if (options.enableWindowOnErrorHandler) {
             GlobalOnErrorHandler.addHandler(
@@ -125,6 +146,28 @@ var LibJitsiMeet = {
      * will be returned trough the Promise, otherwise JitsiTrack objects will be returned.
      * @param {string} options.cameraDeviceId
      * @param {string} options.micDeviceId
+     * @param {object} options.desktopSharingExtensionExternalInstallation -
+     * enables external installation process for desktop sharing extension if
+     * the inline installation is not posible. The following properties should
+     * be provided:
+     * @param {intiger} interval - the interval (in ms) for
+     * checking whether the desktop sharing extension is installed or not
+     * @param {Function} checkAgain - returns boolean. While checkAgain()==true
+     * createLocalTracks will wait and check on every "interval" ms for the
+     * extension. If the desktop extension is not install and checkAgain()==true
+     * createLocalTracks will finish with rejected Promise.
+     * @param {Function} listener - The listener will be called to notify the
+     * user of lib-jitsi-meet that createLocalTracks is starting external
+     * extension installation process.
+     * NOTE: If the inline installation process is not possible and external
+     * installation is enabled the listener property will be called to notify
+     * the start of external installation process. After that createLocalTracks
+     * will start to check for the extension on every interval ms until the
+     * plugin is installed or until checkAgain return false. If the extension
+     * is found createLocalTracks will try to get the desktop sharing track and
+     * will finish the execution. If checkAgain returns false, createLocalTracks
+     * will finish the execution with rejected Promise.
+     *
      * @param {boolean} (firePermissionPromptIsShownEvent) - if event
      *      JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN should be fired
      * @returns {Promise.<{Array.<JitsiTrack>}, JitsiConferenceError>}
@@ -137,23 +180,27 @@ var LibJitsiMeet = {
         if (firePermissionPromptIsShownEvent === true) {
             window.setTimeout(function () {
                 if (!promiseFulfilled) {
-                    var browser = RTCBrowserType.getBrowserType()
-                        .split('rtc_browser.')[1];
-
-                    if (RTCBrowserType.isAndroid()) {
-                        browser = 'android';
-                    }
-
                     JitsiMediaDevices.emitEvent(
                         JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN,
-                        browser);
+                        RTCBrowserType.getBrowserName());
                 }
             }, USER_MEDIA_PERMISSION_PROMPT_TIMEOUT);
         }
 
+        if(!window.connectionTimes)
+            window.connectionTimes = {};
+        window.connectionTimes["obtainPermissions.start"] =
+            window.performance.now();
+
         return RTC.obtainAudioAndVideoPermissions(options || {})
             .then(function(tracks) {
                 promiseFulfilled = true;
+
+                window.connectionTimes["obtainPermissions.end"] =
+                    window.performance.now();
+
+                Statistics.analytics.sendEvent(addDeviceTypeToAnalyticsEvent(
+                    "getUserMedia.success", options), options);
 
                 if(!RTC.options.disableAudioLevels)
                     for(var i = 0; i < tracks.length; i++) {
@@ -184,6 +231,9 @@ var LibJitsiMeet = {
                         logger.debug("Retry createLocalTracks with resolution",
                             newResolution);
 
+                        Statistics.analytics.sendEvent(
+                            "getUserMedia.fail.resolution." + oldResolution);
+
                         return LibJitsiMeet.createLocalTracks(options);
                     }
                 }
@@ -198,17 +248,30 @@ var LibJitsiMeet = {
                         message: error.message
                     };
                     Statistics.sendLog(JSON.stringify(logObject));
+                    Statistics.analytics.sendEvent(
+                        "getUserMedia.userCancel.extensionInstall");
                 } else {
                     // Report gUM failed to the stats
                     Statistics.sendGetUserMediaFailed(error);
                 }
+
+                window.connectionTimes["obtainPermissions.end"] =
+                    window.performance.now();
+
+
+                Statistics.analytics.sendEvent(
+                    addDeviceTypeToAnalyticsEvent(
+                        "getUserMedia.failed", options) + '.' + error.name,
+                    options);
 
                 return Promise.reject(error);
             }.bind(this));
     },
     /**
      * Checks if its possible to enumerate available cameras/micropones.
-     * @returns {boolean} true if available, false otherwise.
+     * @returns {Promise<boolean>} a Promise which will be resolved only once
+     * the WebRTC stack is ready, either with true if the device listing is
+     * available available or with false otherwise.
      * @deprecated use JitsiMeetJS.mediaDevices.isDeviceListAvailable instead
      */
     isDeviceListAvailable: function () {

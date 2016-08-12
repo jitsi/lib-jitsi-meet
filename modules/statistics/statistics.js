@@ -4,6 +4,7 @@ var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTPStats = require("./RTPStatsCollector.js");
 var EventEmitter = require("events");
 var StatisticsEvents = require("../../service/statistics/Events");
+var AnalyticsAdapter = require("./AnalyticsAdapter");
 var CallStats = require("./CallStats");
 var ScriptUtil = require('../util/ScriptUtil');
 var JitsiTrackError = require("../../JitsiTrackError");
@@ -30,6 +31,24 @@ function loadCallStatsAPI() {
     }
     // FIXME At the time of this writing, we hope that the callstats.io API will
     // have loaded by the time we needed it (i.e. CallStats.init is invoked).
+}
+
+// Load the integration of a third-party analytics API such as Google Analytics.
+// Since we cannot guarantee the quality of the third-party service (e.g. their
+// server may take noticeably long time to respond), it is in our best interest
+// (in the sense that the intergration of the analytics API is important to us
+// but not enough to allow it to prevent people from joining a conference) to
+// download the API asynchronously. Additionally, Google Analytics will download
+// its implementation asynchronously anyway so it makes sense to append the
+// loading on our side rather than prepend it.
+function loadAnalytics(customScriptUrl) {
+    // if we have a custom script url passed as parameter we don't want to
+    // search it relatively near the library
+    ScriptUtil.loadScript(
+        customScriptUrl ? customScriptUrl : 'analytics.js',
+        /* async */ true,
+        /* prepend */ false,
+        /* relativeURL */ customScriptUrl ? false : true);
 }
 
 /**
@@ -66,6 +85,23 @@ function formatJitsiTrackErrorForCallStats(error) {
     return err;
 }
 
+/**
+ * Init statistic options
+ * @param options
+ */
+Statistics.init = function (options) {
+    Statistics.audioLevelsEnabled = !options.disableAudioLevels;
+
+    if(typeof options.audioLevelsInterval === 'number') {
+        Statistics.audioLevelsInterval = options.audioLevelsInterval;
+    }
+
+    Statistics.disableThirdPartyRequests = options.disableThirdPartyRequests;
+
+    if (Statistics.disableThirdPartyRequests !== true)
+        loadAnalytics(options.analyticsScriptUrl);
+}
+
 function Statistics(xmpp, options) {
     this.rtpStats = null;
     this.eventEmitter = new EventEmitter();
@@ -76,7 +112,7 @@ function Statistics(xmpp, options) {
             // Even though AppID and AppSecret may be specified, the integration
             // of callstats.io may be disabled because of globally-disallowed
             // requests to any third parties.
-            && (this.options.disableThirdPartyRequests !== true);
+            && (Statistics.disableThirdPartyRequests !== true);
     if(this.callStatsIntegrationEnabled)
         loadCallStatsAPI();
     this.callStats = null;
@@ -88,6 +124,8 @@ function Statistics(xmpp, options) {
 }
 Statistics.audioLevelsEnabled = false;
 Statistics.audioLevelsInterval = 200;
+Statistics.disableThirdPartyRequests = false;
+Statistics.analytics = AnalyticsAdapter;
 
 /**
  * Array of callstats instances. Used to call Statistics static methods and
