@@ -212,7 +212,7 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
             // This path is only for camera.
             var streamOptions = {
                 cameraDeviceId: this.getDeviceId(),
-                devices: ["video"],
+                devices: [ MediaType.VIDEO ],
                 facingMode: this.getCameraFacingMode(),
                 resolution: this.resolution
             };
