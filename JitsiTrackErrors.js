@@ -54,6 +54,10 @@ module.exports = {
      */
     TRACK_IS_DISPOSED: "track.track_is_disposed",
     /**
+     * An error which indicates that track has no MediaStream associated.
+     */
+    TRACK_NO_STREAM_FOUND: "track.no_stream_found",
+    /**
      * An error which indicates that track is currently in progress of muting or
      * unmuting itself.
      */

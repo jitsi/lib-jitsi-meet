@@ -140,158 +140,197 @@ JitsiLocalTrack.prototype.unmute = function () {
 
 /**
  * Creates Promise for mute/unmute operation.
- * @param track the track that will be muted/unmuted
- * @param mute whether to mute or unmute the track
+ *
+ * @param {JitsiLocalTrack} track - The track that will be muted/unmuted.
+ * @param {boolean} mute - Whether to mute or unmute the track.
+ * @returns {Promise}
  */
-function createMuteUnmutePromise(track, mute)
-{
-    return new Promise(function (resolve, reject) {
+function createMuteUnmutePromise(track, mute) {
+    if (track.inMuteOrUnmuteProgress) {
+        return Promise.reject(
+            new JitsiTrackError(JitsiTrackErrors.TRACK_MUTE_UNMUTE_IN_PROGRESS)
+        );
+    }
 
-        if(this.inMuteOrUnmuteProgress) {
-            reject(new JitsiTrackError(
-                JitsiTrackErrors.TRACK_MUTE_UNMUTE_IN_PROGRESS));
-            return;
-        }
-        this.inMuteOrUnmuteProgress = true;
+    track.inMuteOrUnmuteProgress = true;
 
-        this._setMute(mute,
-            function(){
-                this.inMuteOrUnmuteProgress = false;
-                resolve();
-            }.bind(this),
-            function(status){
-                this.inMuteOrUnmuteProgress = false;
-                reject(status);
-            }.bind(this));
-    }.bind(track));
+    return track._setMute(mute)
+        .then(function() {
+            track.inMuteOrUnmuteProgress = false;
+        })
+        .catch(function(status) {
+            track.inMuteOrUnmuteProgress = false;
+            throw status;
+        });
 }
 
 /**
  * Mutes / unmutes the track.
- * @param mute {boolean} if true the track will be muted. Otherwise the track
+ *
+ * @param {boolean} mute - If true the track will be muted. Otherwise the track
  * will be unmuted.
+ * @private
+ * @returns {Promise}
  */
-JitsiLocalTrack.prototype._setMute = function (mute, resolve, reject) {
+JitsiLocalTrack.prototype._setMute = function (mute) {
     if (this.isMuted() === mute) {
-        resolve();
-        return;
+        return Promise.resolve();
     }
+
+    var promise = Promise.resolve();
+    var self = this;
+
+    // Local track can be used out of conference, so we need to handle that
+    // case and mark that track should start muted or not when added to
+    // conference.
     if(!this.conference || !this.conference.room) {
         this.startMuted = mute;
-        resolve();
-        return;
     }
-    var isAudio = this.isAudioTrack();
+
     this.dontFireRemoveEvent = false;
 
-    var setStreamToNull = false;
-    // the callback that will notify that operation had finished
-    var callbackFunction = function() {
-
-        if(setStreamToNull)
-            this.stream = null;
-        this.eventEmitter.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED);
-
-        resolve();
-    }.bind(this);
-
-    if ((window.location.protocol != "https:") ||
-        (isAudio) || this.videoType === VideoType.DESKTOP ||
-        // FIXME FF does not support 'removeStream' method used to mute
+    // FIXME FF does not support 'removeStream' method used to mute
+    if (window.location.protocol !== "https:" ||
+        this.isAudioTrack() ||
+        this.videoType === VideoType.DESKTOP ||
         RTCBrowserType.isFirefox()) {
 
-        if (this.track)
+        if(this.track)
             this.track.enabled = !mute;
-        if(isAudio)
-            this.conference.room.setAudioMute(mute, callbackFunction);
-        else
-            this.conference.room.setVideoMute(mute, callbackFunction);
     } else {
-        if (mute) {
+        if(mute) {
             this.dontFireRemoveEvent = true;
-            this.conference.room.removeStream(this.stream, function () {
-                    RTCUtils.stopMediaStream(this.stream);
-                    setStreamToNull = true;
-                    if(isAudio)
-                        this.conference.room.setAudioMute(mute,
-                            callbackFunction);
-                    else
-                        this.conference.room.setVideoMute(mute,
-                            callbackFunction);
-                    //FIXME: Maybe here we should set the SRC for the containers to something
-                }.bind(this),
-                function (error) {
-                    reject(error);
-                }, {mtype: this.type, type: "mute", ssrc: this.ssrc});
 
+            promise = this._removeStreamFromConferenceAsMute()
+                .then(function() {
+                    //FIXME: Maybe here we should set the SRC for the containers
+                    // to something
+                    RTCUtils.stopMediaStream(self.stream);
+                    self.stream = null;
+                });
         } else {
-            var self = this;
-            // FIXME why are we doing all this audio type checks and
-            // convoluted scenarios if we're going this way only
-            // for VIDEO media and CAMERA type of video ?
+            // This path is only for camera.
             var streamOptions = {
-                devices: (isAudio ? ["audio"] : ["video"]),
-                resolution: self.resolution
+                cameraDeviceId: this.getDeviceId(),
+                devices: [ MediaType.VIDEO ],
+                facingMode: this.getCameraFacingMode(),
+                resolution: this.resolution
             };
-            if (isAudio) {
-                streamOptions['micDeviceId'] = self.getDeviceId();
-            } else if(self.videoType === VideoType.CAMERA) {
-                streamOptions['cameraDeviceId'] = self.getDeviceId();
-                streamOptions['facingMode'] = self.getCameraFacingMode();
-            }
-            RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
+
+            promise = RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
                 .then(function (streamsInfo) {
-                    var streamInfo = null;
-                    for(var i = 0; i < streamsInfo.length; i++) {
-                        if(streamsInfo[i].mediaType === self.getType()) {
-                            streamInfo = streamsInfo[i];
-                            self.stream = streamInfo.stream;
-                            self.track = streamInfo.track;
-                            // This is not good when video type changes after
-                            // unmute, but let's not crash here
-                            if (self.videoType != streamInfo.videoType) {
-                                logger.warn(
-                                    "Video type has changed after unmute!",
-                                    self.videoType, streamInfo.videoType);
-                                self.videoType = streamInfo.videoType;
-                            }
-                            break;
+                    var mediaType = self.getType();
+                    var streamInfo = streamsInfo.find(function(info) {
+                        return info.mediaType === mediaType;
+                    });
+
+                    if(!streamInfo) {
+                        throw new JitsiTrackError(
+                            JitsiTrackErrors.TRACK_NO_STREAM_FOUND);
+                    }else {
+                        self.stream = streamInfo.stream;
+                        self.track = streamInfo.track;
+                        // This is not good when video type changes after
+                        // unmute, but let's not crash here
+                        if (self.videoType !== streamInfo.videoType) {
+                            logger.warn(
+                                "Video type has changed after unmute!",
+                                self.videoType, streamInfo.videoType);
+                            self.videoType = streamInfo.videoType;
                         }
                     }
 
-                    if(!streamInfo) {
-                        // FIXME Introduce a new JitsiTrackError.
-                        reject(new Error('track.no_stream_found'));
-                        return;
-                    }
+                    self.containers = self.containers.map(function(cont) {
+                        return RTCUtils.attachMediaStream(cont, self.stream);
+                    });
 
-                    for(var i = 0; i < self.containers.length; i++)
-                    {
-                        self.containers[i]
-                            = RTCUtils.attachMediaStream(
-                                    self.containers[i], self.stream);
-                    }
-
-                    self.conference.room.addStream(self.stream,
-                        function () {
-                            if(isAudio)
-                                self.conference.room.setAudioMute(
-                                    mute, callbackFunction);
-                            else
-                                self.conference.room.setVideoMute(
-                                    mute, callbackFunction);
-                        }, function (error) {
-                            reject(error);
-                        }, {
-                            mtype: self.type,
-                            type: "unmute",
-                            ssrc: self.ssrc,
-                            msid: self.getMSID()});
-                }).catch(function (error) {
-                    reject(error);
+                   return self._addStreamToConferenceAsUnmute();
                 });
         }
     }
+
+    return promise
+        .then(function() {
+            return self._sendMuteStatus(mute);
+        })
+        .then(function() {
+            self.eventEmitter.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED);
+        });
+};
+
+/**
+ * Adds stream to conference and marks it as "unmute" operation.
+ *
+ * @private
+ * @returns {Promise}
+ */
+JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function () {
+    if (!this.conference || !this.conference.room) {
+        return Promise.resolve();
+    }
+
+    var self = this;
+
+    return new Promise(function(resolve, reject) {
+        self.conference.room.addStream(
+            self.stream,
+            resolve,
+            reject,
+            {
+                mtype: self.type,
+                type: "unmute",
+                ssrc: self.ssrc,
+                msid: self.getMSID()
+            });
+    });
+};
+
+/**
+ * Removes stream from conference and marks it as "mute" operation.
+ *
+ * @private
+ * @returns {Promise}
+ */
+JitsiLocalTrack.prototype._removeStreamFromConferenceAsMute = function () {
+    if (!this.conference || !this.conference.room) {
+        return Promise.resolve();
+    }
+
+    var self = this;
+
+    return new Promise(function(resolve, reject) {
+        self.conference.room.removeStream(
+            self.stream,
+            resolve,
+            reject,
+            {
+                mtype: self.type,
+                type: "mute",
+                ssrc: self.ssrc
+            });
+    });
+};
+
+/**
+ * Sends mute status for a track to conference if any.
+ *
+ * @param {boolean} mute - If track is muted.
+ * @private
+ * @returns {Promise}
+ */
+JitsiLocalTrack.prototype._sendMuteStatus = function(mute) {
+    if (!this.conference || !this.conference.room) {
+        return Promise.resolve();
+    }
+
+    var self = this;
+
+    return new Promise(function(resolve) {
+        self.conference.room[
+            self.isAudioTrack()
+                ? 'setAudioMute'
+                : 'setVideoMute'](mute, resolve);
+    });
 };
 
 /**
