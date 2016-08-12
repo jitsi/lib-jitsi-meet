@@ -225,8 +225,8 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
                     });
 
                     if(!streamInfo) {
-                        // FIXME Introduce a new JitsiTrackError.
-                        throw new Error('track.no_stream_found');
+                        throw new JitsiTrackError(
+                            JitsiTrackErrors.TRACK_NO_STREAM_FOUND);
                     }else {
                         self.stream = streamInfo.stream;
                         self.track = streamInfo.track;
