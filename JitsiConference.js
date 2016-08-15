@@ -595,6 +595,12 @@ JitsiConference.prototype.unlock = function () {
  * @throws NetworkError or InvalidStateError or Error if the operation fails.
  */
 JitsiConference.prototype.selectParticipant = function(participantId) {
+    // if there is no participants there is no point in sending message
+    // who is on stage, also in this moment datachannel
+    // may be not yet established
+    if (!this.participants || Object.keys(this.participants).length === 0)
+        return;
+
     this.rtc.selectEndpoint(participantId);
 };
 
