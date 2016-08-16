@@ -98,6 +98,15 @@ JitsiRemoteTrack.prototype._setVideoType = function (type) {
 };
 
 JitsiRemoteTrack.prototype._playCallback = function () {
+    if((ttfmTrackerAudioAttached && this.isAudioTrack())
+        || (ttfmTrackerVideoAttached && this.isVideoTrack()))
+        return;
+
+    if (this.isAudioTrack())
+        ttfmTrackerAudioAttached = true;
+    if (this.isVideoTrack())
+        ttfmTrackerVideoAttached = true;
+
     var type = (this.isVideoTrack() ? 'video' : 'audio');
 
     var now = window.performance.now();
@@ -126,15 +135,6 @@ JitsiRemoteTrack.prototype._playCallback = function () {
  * @private
  */
 JitsiRemoteTrack.prototype._attachTTFMTracker = function (container) {
-    if((ttfmTrackerAudioAttached && this.isAudioTrack())
-        || (ttfmTrackerVideoAttached && this.isVideoTrack()))
-        return;
-
-    if (this.isAudioTrack())
-        ttfmTrackerAudioAttached = true;
-    if (this.isVideoTrack())
-        ttfmTrackerVideoAttached = true;
-
     if (RTCBrowserType.isTemasysPluginUsed()) {
         // FIXME: this is not working for IE11
         AdapterJS.addEvent(container, 'play', this._playCallback.bind(this));
