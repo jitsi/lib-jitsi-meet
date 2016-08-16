@@ -18,8 +18,11 @@ var ScriptUtil = {
      * @param relativeURL whether we need load the library from url relative
      * to the url that lib-jitsi-meet was loaded. Useful when sourcing the
      * library from different location than the app that is using it
+     * @param loadCallback on load callback function
+     * @param errorCallback callback to be called on error loading the script
      */
-    loadScript: function (src, async, prepend, relativeURL) {
+    loadScript: function (src, async, prepend, relativeURL,
+                          loadCallback, errorCallback) {
         var d = document;
         var tagName = 'script';
         var script = d.createElement(tagName);
@@ -39,6 +42,11 @@ var ScriptUtil = {
                     src = baseScriptSrc + src;
             }
         }
+
+        if (loadCallback)
+            script.onload = loadCallback;
+        if (errorCallback)
+            script.onerror = errorCallback;
 
         script.src = src;
         if (prepend) {

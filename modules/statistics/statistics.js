@@ -48,7 +48,13 @@ function loadAnalytics(customScriptUrl) {
         customScriptUrl ? customScriptUrl : 'analytics.js',
         /* async */ true,
         /* prepend */ false,
-        /* relativeURL */ customScriptUrl ? false : true);
+        /* relativeURL */ customScriptUrl ? false : true,
+        /* loadCallback */ function () {
+            Statistics.analytics.loaded();
+        },
+        /* errorCallback */ function () {
+            Statistics.analytics.dispose();
+        });
 }
 
 /**
@@ -100,7 +106,9 @@ Statistics.init = function (options) {
 
     if (Statistics.disableThirdPartyRequests !== true)
         loadAnalytics(options.analyticsScriptUrl);
-}
+    else // if not enable make sure we dispose any event that goes in the queue
+        Statistics.analytics.dispose();
+};
 
 function Statistics(xmpp, options) {
     this.rtpStats = null;
