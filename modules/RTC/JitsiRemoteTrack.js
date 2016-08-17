@@ -29,7 +29,7 @@ function JitsiRemoteTrack(conference, ownerJid, stream, track, mediaType, videoT
     // we want to mark whether the track has been ever muted
     // to detect ttfm events for startmuted conferences, as it can significantly
     // increase ttfm values
-    this.hasBeenMuted = muted;
+    this.isTTFMCandidate = !muted;
 }
 
 JitsiRemoteTrack.prototype = Object.create(JitsiTrack.prototype);
@@ -44,7 +44,7 @@ JitsiRemoteTrack.prototype.setMute = function (value) {
         return;
 
     if(value)
-        this.hasBeenMuted = true;
+        this.isTTFMCandidate = false;
 
     // we can have a fake video stream
     if(this.stream)
@@ -99,7 +99,8 @@ JitsiRemoteTrack.prototype._setVideoType = function (type) {
 
 JitsiRemoteTrack.prototype._playCallback = function () {
     if((ttfmTrackerAudioAttached && this.isAudioTrack())
-        || (ttfmTrackerVideoAttached && this.isVideoTrack()))
+        || (ttfmTrackerVideoAttached && this.isVideoTrack())
+        || !this.isTTFMCandidate)
         return;
 
     if (this.isAudioTrack())
@@ -121,8 +122,6 @@ JitsiRemoteTrack.prototype._playCallback = function () {
     this.conference.getConnectionTimes()[type + ".ttfm"] = ttfm;
     console.log("(TIME) TTFM " + type + ":\t", ttfm);
     var eventName = type +'.ttfm';
-    if(this.hasBeenMuted)
-        eventName += '.muted';
     Statistics.analytics.sendEvent(eventName, ttfm);
 };
 
@@ -135,6 +134,8 @@ JitsiRemoteTrack.prototype._playCallback = function () {
  * @private
  */
 JitsiRemoteTrack.prototype._attachTTFMTracker = function (container) {
+    if(conference.initialParticipants.indexOf(this.getParticipantId()) === -1)
+        return;
     if (RTCBrowserType.isTemasysPluginUsed()) {
         // FIXME: this is not working for IE11
         AdapterJS.addEvent(container, 'play', this._playCallback.bind(this));

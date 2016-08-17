@@ -42,6 +42,7 @@ function JitsiConference(options) {
     this._init(options);
     this.componentsVersions = new ComponentsVersions(this);
     this.participants = {};
+    this.initialParticipants = [];
     this.lastDominantSpeaker = null;
     this.dtmfManager = null;
     this.somebodySupportsDTMF = false;
@@ -793,6 +794,8 @@ function (jingleSession, jingleOffer, now) {
     };
 
     this.rtc.onIncommingCall(jingleSession);
+    //list of participants that are in the call when the call started.
+    this.initialParticipants = Object.keys(this.participants);
     // Add local Tracks to the ChatRoom
     this.rtc.localTracks.forEach(function(localTrack) {
         var ssrcInfo = null;
