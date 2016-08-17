@@ -7,11 +7,28 @@ var transform = require('sdp-transform');
 var RandomUtil = require('../util/RandomUtil');
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
-var SIMULCAST_LAYERS = 3;
+var DEFAULT_NUM_OF_SIMULCAST_LAYERS = 3;
 
 function TraceablePeerConnection(ice_config, constraints, session) {
     var self = this;
     this.session = session;
+
+    if (session.room.options.debug) {
+        this.history = [];
+    }
+
+    if (session.room.options.numOfSimulcastLayers)
+    {
+        // New option takes precedence.
+        this.numOfSimulcastLayers = session.room.options.numOfSimulcastLayers;
+    }
+    else
+    {
+        // Backwards compatibility.
+        this.numOfSimulcastLayers = session.room.options.disableSimulcast
+            ? 1 : DEFAULT_NUM_OF_SIMULCAST_LAYERS;
+    }
+
     this.replaceSSRCs = {
         "audio": [],
         "video": []
@@ -33,7 +50,7 @@ function TraceablePeerConnection(ice_config, constraints, session) {
     var Interop = require('sdp-interop').Interop;
     this.interop = new Interop();
     var Simulcast = require('sdp-simulcast');
-    this.simulcast = new Simulcast({numOfLayers: SIMULCAST_LAYERS,
+    this.simulcast = new Simulcast({numOfLayers: this.numOfSimulcastLayers,
         explodeRemoteSimulcast: false});
     this.eventEmitter = this.session.room.eventEmitter;
 
@@ -437,24 +454,66 @@ var getters = {
     localDescription:  function() {
         var desc = this.peerconnection.localDescription;
 
-        this.trace('getLocalDescription::preTransform', dumpSDP(desc));
+        if (this.history) {
+            // Add a point in history.
+            var point = {
+                name: 'getLocalDescription',
+                transformations: []
+            };
+
+            // Add a transformation in the point.
+            point.transformations.push({
+                name: 'getLocalDescription',
+                sessionDescription: desc
+            });
+
+            this.history.push(point);
+        }
 
         // if we're running on FF, transform to Plan B first.
         if (RTCBrowserType.usesUnifiedPlan()) {
             desc = this.interop.toPlanB(desc);
-            this.trace('getLocalDescription::postTransform (Plan B)',
-                dumpSDP(desc));
+
+            if (this.history) {
+                var point = this.history[this.history.length - 1];
+                point.transformations.push({
+                    name: 'interop.toPlanB',
+                    sessionDescription: desc
+                });
+            }
         }
         return desc;
     },
     remoteDescription:  function() {
         var desc = this.peerconnection.remoteDescription;
-        this.trace('getRemoteDescription::preTransform', dumpSDP(desc));
+
+        if (this.history) {
+            // Add a point in history.
+            var point = {
+                name: 'getRemoteDescription',
+                transformations: []
+            };
+
+            // Add a transformation in the point.
+            point.transformations.push({
+                name: 'getRemoteDescription',
+                sessionDescription: desc
+            });
+
+            this.history.push(point);
+        }
 
         // if we're running on FF, transform to Plan B first.
         if (RTCBrowserType.usesUnifiedPlan()) {
             desc = this.interop.toPlanB(desc);
-            this.trace('getRemoteDescription::postTransform (Plan B)', dumpSDP(desc));
+            if (this.history) {
+                var point = this.history[this.history.length - 1];
+                point.transformations.push({
+                    name: 'interop.toPlanB',
+                    sessionDescription: desc
+                });
+            }
+
         }
         return desc;
     }
@@ -509,12 +568,34 @@ TraceablePeerConnection.prototype.createDataChannel = function (label, opts) {
 
 TraceablePeerConnection.prototype.setLocalDescription
         = function (description, successCallback, failureCallback) {
-    this.trace('setLocalDescription::preTransform', dumpSDP(description));
+
+    if (this.history) {
+        // Add a point in history.
+        var point = {
+            name: 'setLocalDescription',
+            transformations: []
+        };
+
+        // Add a transformation in the point.
+        point.transformations.push({
+            name: 'setLocalDescription',
+            sessionDescription: description
+        });
+
+        this.history.push(point);
+    }
+
     // if we're running on FF, transform to Plan A first.
     if (RTCBrowserType.usesUnifiedPlan()) {
         description = this.interop.toUnifiedPlan(description);
-        this.trace('setLocalDescription::postTransform (Plan A)',
-            dumpSDP(description));
+
+        if (this.history) {
+            var point = this.history[this.history.length - 1];
+            point.transformations.push({
+                name: 'interop.toUnifiedPlan',
+                sessionDescription: description
+            });
+        }
     }
 
     var self = this;
@@ -534,19 +615,57 @@ TraceablePeerConnection.prototype.setLocalDescription
 
 TraceablePeerConnection.prototype.setRemoteDescription
         = function (description, successCallback, failureCallback) {
-    this.trace('setRemoteDescription::preTransform', dumpSDP(description));
+
+    if (this.history) {
+        // Add a point in history.
+        var point = {
+            name: 'setRemoteDescription',
+            transformations: []
+        };
+
+        // Add a transformation in the point.
+        point.transformations.push({
+            name: 'setRemoteDescription',
+            sessionDescription: description
+        });
+
+        this.history.push(point);
+    }
+
     // TODO the focus should squeze or explode the remote simulcast
     description = this.simulcast.mungeRemoteDescription(description);
-    this.trace('setRemoteDescription::postTransform (simulcast)', dumpSDP(description));
+
+    if (this.history) {
+        var point = this.history[this.history.length - 1];
+        point.transformations.push({
+            name: 'simulcast.mungeRemoteDescription',
+            sessionDescription: description
+        });
+    }
 
     // if we're running on FF, transform to Plan A first.
     if (RTCBrowserType.usesUnifiedPlan()) {
         description = this.interop.toUnifiedPlan(description);
-        this.trace('setRemoteDescription::postTransform (Plan A)', dumpSDP(description));
+
+        if (this.history) {
+            var point = this.history[this.history.length - 1];
+            point.transformations.push({
+                name: 'interop.toUnifiedPlan',
+                sessionDescription: description
+            });
+        }
     }
 
     if (RTCBrowserType.usesPlanB()) {
         description = normalizePlanB(description);
+
+        if (this.history) {
+            var point = this.history[this.history.length - 1];
+            point.transformations.push({
+                name: 'normalizePlanB',
+                sessionDescription: description
+            });
+        }
     }
 
     var self = this;
@@ -584,26 +703,63 @@ TraceablePeerConnection.prototype.createAnswer
     this.trace('createAnswer', JSON.stringify(constraints, null, ' '));
     this.peerconnection.createAnswer(
         function (answer) {
-            self.trace('createAnswerOnSuccess::preTransform', dumpSDP(answer));
+
+            if (self.history) {
+                // Add a point in history.
+                var point = {
+                    name: 'createAnswer',
+                    transformations: []
+                };
+
+                // Add a transformation in the point.
+                point.transformations.push({
+                    name: 'createAnswer',
+                    sessionDescription: answer
+                });
+
+                self.history.push(point);
+            }
+
             // if we're running on FF, transform to Plan A first.
             if (RTCBrowserType.usesUnifiedPlan()) {
                 answer = self.interop.toPlanB(answer);
-                self.trace('createAnswerOnSuccess::postTransform (Plan B)',
-                    dumpSDP(answer));
+
+                if (self.history) {
+                    // Add a transformation in the point.
+                    var point = self.history[self.history.length - 1];
+                    point.transformations.push({
+                        name: 'interop.toPlanB',
+                        sessionDescription: answer
+                    });
+                }
             }
 
-            if (!self.session.room.options.disableSimulcast
+            if (self.numOfSimulcastLayers > 1
                 && self.simulcast.isSupported()) {
                 answer = self.simulcast.mungeLocalDescription(answer);
-                self.trace('createAnswerOnSuccess::postTransform (simulcast)',
-                    dumpSDP(answer));
+
+                if (self.history) {
+                    // Add a transformation in the point.
+                    var point = self.history[self.history.length - 1];
+                    point.transformations.push({
+                        name: 'simulcast.mungeLocalDescription',
+                        sessionDescription: answer
+                    });
+                }
             }
 
             if (!RTCBrowserType.isFirefox())
             {
                 answer = self.ssrcReplacement(answer);
-                self.trace('createAnswerOnSuccess::mungeLocalVideoSSRC',
-                    dumpSDP(answer));
+
+                if (self.history) {
+                    // Add a transformation in the point.
+                    var point = self.history[self.history.length - 1];
+                    point.transformations.push({
+                        name: 'ssrcReplacement',
+                        sessionDescription: answer
+                    });
+                }
             }
 
             self.eventEmitter.emit(XMPPEvents.SENDRECV_STREAMS_CHANGED,
@@ -660,10 +816,10 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
  * - groups - Array of the groups associated with the stream.
  */
 TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
-    if (!this.session.room.options.disableSimulcast
+    if (this.numOfSimulcastLayers > 1
         && this.simulcast.isSupported()) {
         var ssrcInfo = {ssrcs: [], groups: []};
-        for(var i = 0; i < SIMULCAST_LAYERS; i++)
+        for(var i = 0; i < this.numOfSimulcastLayers; i++)
             ssrcInfo.ssrcs.push(RandomUtil.randomInt(1, 0xffffffff));
         ssrcInfo.groups.push({
             primarySSRC: ssrcInfo.ssrcs[0],
