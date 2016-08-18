@@ -14,6 +14,11 @@ function JitsiParticipant(jid, conference, displayName, isHidden){
     this._conference = conference;
     this._displayName = displayName;
     this._supportsDTMF = false;
+    // Indicates whether the participant ever had (audio/video) track in _tracks
+    this._hadTrack = {
+        audio: false,
+        video: false
+    }
     this._tracks = [];
     this._role = 'none';
     this._status = null;
@@ -207,5 +212,29 @@ JitsiParticipant.prototype.supportsDTMF = function () {
     return this._supportsDTMF;
 };
 
+/**
+ * Adds track to participant
+ * @param track {JitsiRemoteTrack} the track
+ */
+JitsiParticipant.prototype.addTrack = function (track) {
+    this._hadTrack[track.getType()] = true;
+    this._tracks.push(track);
+};
+
+/**
+ * Removes track from participant
+ * @param streamId {string} the id of the MediaStream object attached to the
+ * track
+ * @param trackId {string} the id of the MediaStreamTrack object attached to the
+ * track
+ */
+JitsiParticipant.prototype.removeTrack = function (streamId, trackId) {
+    for(var i = 0; i < this._tracks.length; i++) {
+        var track = this._tracks[i];
+        if(track && track.getStreamId() == streamId &&
+            track.getTrackId() == trackId)
+            return this._tracks.splice(i, 1)[0];
+    }
+};
 
 module.exports = JitsiParticipant;

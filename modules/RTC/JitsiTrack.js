@@ -205,17 +205,13 @@ JitsiTrack.prototype.attach = function (container) {
 JitsiTrack.prototype.detach = function (container) {
     for (var cs = this.containers, i = cs.length - 1; i >= 0; --i) {
         var c = cs[i];
-        if (!container) {
-            RTCUtils.attachMediaStream(c, null);
-        }
         if (!container || c === container) {
+            RTCUtils.attachMediaStream(c, null);
+            this._detachTTFMTracker(c);
             cs.splice(i, 1);
         }
     }
 
-    if (container) {
-        RTCUtils.attachMediaStream(container, null);
-    }
 };
 
 /**
@@ -230,13 +226,23 @@ JitsiTrack.prototype._attachTTFMTracker = function (container) {
 };
 
 /**
+ * Detach time to first media tracker
+ * @param container the HTML container which can be 'video' or 'audio' element.
+ *        It can also be 'object' element if Temasys plugin is in use and this
+ *        method has been called previously on video or audio HTML element.
+ * @private
+ */
+JitsiTrack.prototype._detachTTFMTracker = function (container) {
+};
+
+/**
  * Removes attached event listeners.
  *
  * @returns {Promise}
  */
 JitsiTrack.prototype.dispose = function () {
     this.eventEmitter.removeAllListeners();
-
+    this.detach();
     this.disposed = true;
 
     return Promise.resolve();
