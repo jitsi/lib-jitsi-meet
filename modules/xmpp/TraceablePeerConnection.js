@@ -620,7 +620,7 @@ TraceablePeerConnection.prototype.createAnswer
                 // at all
                 self.trace('createAnswerOnError', e);
                 self.trace('createAnswerOnError', dumpSDP(answer));
-                console.error('createAnswerOnError', e, dumpSDP(answer));
+                logger.error('createAnswerOnError', e, dumpSDP(answer));
                 failureCallback(e);
             }
         },
