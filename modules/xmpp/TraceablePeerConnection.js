@@ -584,32 +584,45 @@ TraceablePeerConnection.prototype.createAnswer
     this.trace('createAnswer', JSON.stringify(constraints, null, ' '));
     this.peerconnection.createAnswer(
         function (answer) {
-            self.trace('createAnswerOnSuccess::preTransform', dumpSDP(answer));
-            // if we're running on FF, transform to Plan A first.
-            if (RTCBrowserType.usesUnifiedPlan()) {
-                answer = self.interop.toPlanB(answer);
-                self.trace('createAnswerOnSuccess::postTransform (Plan B)',
-                    dumpSDP(answer));
+            try {
+                self.trace(
+                    'createAnswerOnSuccess::preTransform', dumpSDP(answer));
+                // if we're running on FF, transform to Plan A first.
+                if (RTCBrowserType.usesUnifiedPlan()) {
+                    answer = self.interop.toPlanB(answer);
+                    self.trace('createAnswerOnSuccess::postTransform (Plan B)',
+                        dumpSDP(answer));
+                }
+
+                if (!self.session.room.options.disableSimulcast
+                    && self.simulcast.isSupported()) {
+                    answer = self.simulcast.mungeLocalDescription(answer);
+                    self.trace(
+                        'createAnswerOnSuccess::postTransform (simulcast)',
+                        dumpSDP(answer));
+                }
+
+                if (!RTCBrowserType.isFirefox())
+                {
+                    answer = self.ssrcReplacement(answer);
+                    self.trace('createAnswerOnSuccess::mungeLocalVideoSSRC',
+                        dumpSDP(answer));
+                }
+
+                self.eventEmitter.emit(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+                    extractSSRCMap(answer));
+
+                successCallback(answer);
+            } catch (e) {
+                // there can be error modifying the answer, for example
+                // for ssrcReplacement there was a track with ssrc that is null
+                // and if we do not catch the error no callback is called
+                // at all
+                self.trace('createAnswerOnError', e);
+                self.trace('createAnswerOnError', dumpSDP(answer));
+                console.error('createAnswerOnError', e, dumpSDP(answer));
+                failureCallback(e);
             }
-
-            if (!self.session.room.options.disableSimulcast
-                && self.simulcast.isSupported()) {
-                answer = self.simulcast.mungeLocalDescription(answer);
-                self.trace('createAnswerOnSuccess::postTransform (simulcast)',
-                    dumpSDP(answer));
-            }
-
-            if (!RTCBrowserType.isFirefox())
-            {
-                answer = self.ssrcReplacement(answer);
-                self.trace('createAnswerOnSuccess::mungeLocalVideoSSRC',
-                    dumpSDP(answer));
-            }
-
-            self.eventEmitter.emit(XMPPEvents.SENDRECV_STREAMS_CHANGED,
-                extractSSRCMap(answer));
-
-            successCallback(answer);
         },
         function(err) {
             self.trace('createAnswerOnFailure', err);
