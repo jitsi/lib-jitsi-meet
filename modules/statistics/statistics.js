@@ -489,4 +489,14 @@ Statistics.reportGlobalError = function (error) {
     }
 };
 
+/**
+ * Reports reloads.
+ * @param reason {string} the reason for the reload.
+ */
+Statistics.sendReloadEvent = function (reason) {
+    var eventName = 'connection.reload' + (reason? "." + reason : "");
+    this.analytics.sendEvent(eventName);
+    Statistics.sendLog("connection.reload. Reason: " + reason);
+}
+
 module.exports = Statistics;

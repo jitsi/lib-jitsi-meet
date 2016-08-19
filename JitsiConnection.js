@@ -29,8 +29,9 @@ function JitsiConnection(appID, token, options) {
             Statistics.analytics.sendEvent('connection.failed.' + errType);
             if(errType === JitsiConnectionErrors.OTHER_ERROR &&
                 (msg === "item-not-found" || msg === "host-unknown")) {
+                    var reason = "connectionError." + msg.replace(/-/g,"_");
                     // FIXME: don't report the error if we are going to reload
-                    this._reload();
+                    this._reload(reason);
                 }
         }.bind(this));
 
@@ -70,11 +71,12 @@ JitsiConnection.prototype.attach = function (options) {
 
 /**
  * Reloads the JitsiConnection instance and all related conferences
+ * @param reason {String} the reason for the reload.
  */
-JitsiConnection.prototype._reload = function () {
+JitsiConnection.prototype._reload = function (reason) {
     if(this.retryOnFail === 0)
         return false;
-    Statistics.analytics.sendEvent('connection.reload');
+    Statistics.sendReloadEvent(reason);
     this.retryOnFail--;
     var states = {};
     for(var name in this.conferences) {

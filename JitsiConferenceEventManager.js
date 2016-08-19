@@ -171,16 +171,20 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
     chatRoom.addListener(XMPPEvents.FOCUS_LEFT,
         function () {
             Statistics.analytics.sendEvent('conference.focusLeft');
-            if(!conference.connection._reload())
+            if(!conference.connection._reload("focusLeft"))
                 conference.eventEmitter.emit(
                     JitsiConferenceEvents.CONFERENCE_FAILED,
                     JitsiConferenceErrors.FOCUS_LEFT);
         });
 
-    var reloadHandler = function () { conference.connection._reload(); };
+    var reloadHandler = function (reason) {
+        conference.connection._reload(reason);
+    };
     chatRoom.addListener(
-        XMPPEvents.ALLOCATE_FOCUS_MAX_RETRIES_ERROR, reloadHandler);
-    chatRoom.addListener(XMPPEvents.SESSION_ACCEPT_TIMEOUT, reloadHandler);
+        XMPPEvents.ALLOCATE_FOCUS_MAX_RETRIES_ERROR,
+        reloadHandler.bind(null, "allocateFocusMaxRetries"));
+    chatRoom.addListener(XMPPEvents.SESSION_ACCEPT_TIMEOUT,
+        reloadHandler.bind(null, "sessionAcceptTimeout"));
 
     this.chatRoomForwarder.forward(XMPPEvents.CONNECTION_INTERRUPTED,
         JitsiConferenceEvents.CONNECTION_INTERRUPTED);
