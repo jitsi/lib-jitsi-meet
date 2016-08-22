@@ -21,7 +21,8 @@ function JitsiConnection(appID, token, options) {
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
         function (errType, msg) {
-            Statistics.analytics.sendEvent('connection.failed.' + errType);
+            // sends analytics and callstats event
+            Statistics.sendEventToAll('connection.failed.' + errType, msg);
         }.bind(this));
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_DISCONNECTED,
