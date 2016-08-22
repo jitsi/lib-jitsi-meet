@@ -74,6 +74,9 @@ JitsiConnection.prototype.attach = function (options) {
  * @param reason {String} the reason for the reload.
  */
 JitsiConnection.prototype._reload = function (reason) {
+    if(!this.options.enableReloads)
+        return;
+
     if(this.retryOnFail === 0)
         return false;
     Statistics.sendReloadEvent(reason);
