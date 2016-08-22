@@ -114,6 +114,9 @@ JitsiConference.prototype._init = function (options) {
  * @param options {object} options to be overriden
  */
 JitsiConference.prototype._reload = function (options) {
+    if(!this.options.config.enableReloads)
+        return;
+
     var roomState = this.room.exportState();
     if(!options)
         options = {};
