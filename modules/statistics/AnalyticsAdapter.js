@@ -59,7 +59,7 @@ AnalyticsAdapter.prototype.loaded = function () {
     // new analytics lets send all events if any
     if (AnalyticsAdapter.eventsQueue.length) {
         AnalyticsAdapter.eventsQueue.forEach(function (event) {
-            this.sendEvent(event.action, event.data. event.label);
+            this.sendEvent(event.action, event.data, event.label);
         }.bind(this));
         AnalyticsAdapter.eventsQueue.length = 0;
     }
