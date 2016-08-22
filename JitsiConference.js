@@ -110,20 +110,6 @@ JitsiConference.prototype._init = function (options) {
 }
 
 /**
- * Reloads the conference
- * @param options {object} options to be overriden
- */
-JitsiConference.prototype._reload = function (options) {
-    var roomState = this.room.exportState();
-    if(!options)
-        options = {};
-    options.roomState = roomState;
-    this.leave(true);
-    this._init(options);
-    this.join();
-}
-
-/**
  * Joins the conference.
  * @param password {string} the password
  */
