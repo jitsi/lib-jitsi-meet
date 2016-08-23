@@ -74,6 +74,7 @@ function initCallback (err, msg) {
 
     CallStats.initializeFailed = false;
     CallStats.initialized = true;
+    CallStats.feedbackEnabled = true;
 
     // notify callstats about failures if there were any
     if (CallStats.reportsQueue.length) {
@@ -137,12 +138,8 @@ function _try_catch (f) {
  */
 var CallStats = _try_catch(function(jingleSession, Settings, options) {
     try{
-        //check weather that should work with more than 1 peerconnection
-        if(!callStats) {
-            callStats = new callstats($, io, jsSHA);
-        } else {
-            return;
-        }
+        CallStats.feedbackEnabled = false;
+        callStats = new callstats($, io, jsSHA);
 
         this.session = jingleSession;
         this.peerconnection = jingleSession.peerconnection.peerconnection;
@@ -196,6 +193,12 @@ CallStats.initializeInProgress = false;
  * @type {boolean}
  */
 CallStats.initializeFailed = false;
+
+/**
+ * Shows weather sending feedback is enabled or not
+ * @type {boolean}
+ */
+CallStats.feedbackEnabled = false;
 
 /**
  * Checks whether we need to re-initialize callstats and starts the process.
@@ -406,7 +409,7 @@ CallStats.prototype.sendIceConnectionFailedEvent = _try_catch(function (pc, cs){
  */
 CallStats.prototype.sendFeedback = _try_catch(
 function(overallFeedback, detailedFeedback) {
-    if(!CallStats.initialized) {
+    if(!CallStats.feedbackEnabled) {
         return;
     }
     var feedbackString =    '{"userID":"' + this.userID + '"' +
@@ -523,7 +526,9 @@ CallStats.sendApplicationLog = _try_catch(function (e, cs) {
  * Clears allocated resources.
  */
 CallStats.dispose = function () {
-    callStats = null;
+    // The next line is commented because we need to be able to send feedback
+    // even after the conference has been destroyed.
+    // callStats = null;
     CallStats.initialized = false;
     CallStats.initializeFailed = false;
     CallStats.initializeInProgress = false;
