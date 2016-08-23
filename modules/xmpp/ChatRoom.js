@@ -75,7 +75,7 @@ function ChatRoom(connection, jid, password, XMPP, options, settings) {
     this.joined = false;
     this.role = null;
     this.focusMucJid = null;
-    this.bridgeIsDown = false;
+    this.noBridgeAvailable = false;
     this.options = options || {};
     this.moderator = new Moderator(this.roomjid, this.xmpp, this.eventEmitter,
         settings, {connection: this.xmpp.options, conference: this.options});
@@ -366,9 +366,9 @@ ChatRoom.prototype.onPresence = function (pres) {
                     }
                 }
                 break;
-            case "bridgeIsDown":
-                if (member.isFocus && !this.bridgeIsDown) {
-                    this.bridgeIsDown = true;
+            case "bridgeNotAvailable":
+                if (member.isFocus && !this.noBridgeAvailable) {
+                    this.noBridgeAvailable = true;
                     this.eventEmitter.emit(XMPPEvents.BRIDGE_DOWN);
                 }
                 break;
