@@ -207,20 +207,10 @@ Statistics.prototype.removeConnectionStatsListener = function (listener) {
 
 Statistics.prototype.dispose = function () {
     if(Statistics.audioLevelsEnabled) {
-        Statistics.stopAllLocalStats();
         this.stopRemoteStats();
         if(this.eventEmitter)
             this.eventEmitter.removeAllListeners();
     }
-};
-
-Statistics.stopAllLocalStats = function () {
-    if(!Statistics.audioLevelsEnabled)
-        return;
-
-    for(var i = 0; i < this.localStats.length; i++)
-        this.localStats[i].stop();
-    this.localStats = [];
 };
 
 Statistics.stopLocalStats = function (stream) {
