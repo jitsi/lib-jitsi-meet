@@ -36,7 +36,6 @@ function JitsiConference(options) {
     }
     this.eventEmitter = new EventEmitter();
     this.settings = new Settings();
-    this.retries = 0;
     this.options = options;
     this.eventManager = new JitsiConferenceEventManager(this);
     this._init(options);
@@ -62,9 +61,6 @@ function JitsiConference(options) {
  * Initializes the conference object properties
  * @param options {object}
  * @param connection {JitsiConnection} overrides this.connection
- * @param roomState {object} the state of the ChatRoom instance received by
- * ChatRoom.exportState. If this property is set it will be passed to
- * ChatRoom.loadState
  */
 JitsiConference.prototype._init = function (options) {
     if(!options)
@@ -79,14 +75,9 @@ JitsiConference.prototype._init = function (options) {
         this.eventManager.setupXMPPListeners();
     }
 
-    this.retries++;
     this.room = this.xmpp.createRoom(this.options.name, this.options.config,
-        this.settings, (this.retries < 4 ? 3 : null));
+        this.settings);
 
-    //restore previous presence options
-    if(options.roomState) {
-        this.room.loadState(options.roomState);
-    }
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
 
     if(!this.rtc) {
@@ -107,20 +98,6 @@ JitsiConference.prototype._init = function (options) {
     // Always add listeners because on reload we are executing leave and the
     // listeners are removed from statistics module.
     this.eventManager.setupStatisticsListeners();
-}
-
-/**
- * Reloads the conference
- * @param options {object} options to be overriden
- */
-JitsiConference.prototype._reload = function (options) {
-    var roomState = this.room.exportState();
-    if(!options)
-        options = {};
-    options.roomState = roomState;
-    this.leave(true);
-    this._init(options);
-    this.join();
 }
 
 /**
@@ -161,15 +138,11 @@ JitsiConference.prototype._leaveRoomAndRemoveParticipants = function () {
  * Leaves the conference.
  * @returns {Promise}
  */
-JitsiConference.prototype.leave = function (dontRemoveLocalTracks) {
+JitsiConference.prototype.leave = function () {
     var conference = this;
 
     this.statistics.stopCallStats();
     this.rtc.closeAllDataChannels();
-    if(dontRemoveLocalTracks) {
-        this._leaveRoomAndRemoveParticipants();
-        return  Promise.resolve();
-    }
 
     return Promise.all(
         conference.getLocalTracks().map(function (track) {

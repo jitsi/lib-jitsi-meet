@@ -62,8 +62,7 @@ function filterNodeFromPresenceJSON(pres, nodeName){
     return res;
 }
 
-function ChatRoom(connection, jid, password, XMPP, options, settings,
-    maxRetries) {
+function ChatRoom(connection, jid, password, XMPP, options, settings) {
     this.eventEmitter = new EventEmitter();
     this.xmpp = XMPP;
     this.connection = connection;
@@ -80,8 +79,7 @@ function ChatRoom(connection, jid, password, XMPP, options, settings,
     this.bridgeIsDown = false;
     this.options = options || {};
     this.moderator = new Moderator(this.roomjid, this.xmpp, this.eventEmitter,
-        settings, {connection: this.xmpp.options, conference: this.options},
-        maxRetries);
+        settings, {connection: this.xmpp.options, conference: this.options});
     this.initPresenceMap();
     this.session = null;
     var self = this;
@@ -630,30 +628,6 @@ ChatRoom.prototype.addPresenceListener = function (name, handler) {
 ChatRoom.prototype.removePresenceListener = function (name) {
     delete this.presHandlers[name];
 };
-
-/**
- * Exports the current state of the ChatRoom instance.
- * @returns {object}
- */
-ChatRoom.prototype.exportState = function () {
-    return {
-        presHandlers: this.presHandlers,
-        presMapNodes: this.presMap.nodes
-    }
-}
-
-/**
- * Loads previously exported state object from ChatRoom instance into current
- * ChatRoom instance.
- * @param state {object} the state received by ChatRoom.exportState method.
- */
-ChatRoom.prototype.loadState = function (state) {
-    if(!state || !state.presHandlers || !state.presMapNodes)
-        throw new Error("Invalid state object passed");
-
-    this.presHandlers = state.presHandlers;
-    this.presMap.nodes = state.presMapNodes;
-}
 
 /**
  * Checks if the user identified by given <tt>mucJid</tt> is the conference
