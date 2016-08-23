@@ -179,9 +179,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
     var eventLogHandler = function (reason) {
         Statistics.sendEventToAll("conference.error." + reason);
     };
-    chatRoom.addListener(
-        XMPPEvents.ALLOCATE_FOCUS_MAX_RETRIES_ERROR,
-        eventLogHandler.bind(null, "allocateFocusMaxRetries"));
     chatRoom.addListener(XMPPEvents.SESSION_ACCEPT_TIMEOUT,
         eventLogHandler.bind(null, "sessionAcceptTimeout"));
 

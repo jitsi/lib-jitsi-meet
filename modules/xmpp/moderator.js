@@ -21,7 +21,7 @@ function createExpBackoffTimer(step) {
     };
 }
 
-function Moderator(roomName, xmpp, emitter, settings, options, maxRetries) {
+function Moderator(roomName, xmpp, emitter, settings, options) {
     this.roomName = roomName;
     this.xmppService = xmpp;
     this.getNextTimeout = createExpBackoffTimer(1000);
@@ -30,8 +30,6 @@ function Moderator(roomName, xmpp, emitter, settings, options, maxRetries) {
     this.externalAuthEnabled = false;
     this.settings = settings;
     this.options = options;
-    this.maxRetries = maxRetries || Infinity;
-    this.retries = 0;
 
     // Sip gateway can be enabled by configuring Jigasi host in config.js or
     // it will be enabled automatically if focus detects the component through

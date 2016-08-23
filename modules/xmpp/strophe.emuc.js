@@ -24,7 +24,7 @@ module.exports = function(XMPP) {
             this.connection.addHandler(this.onMute.bind(this),
                 'http://jitsi.org/jitmeet/audio', 'iq', 'set',null,null);
         },
-        createRoom: function (jid, password, options, settings, maxRetries) {
+        createRoom: function (jid, password, options, settings) {
             var roomJid = Strophe.getBareJidFromJid(jid);
             if (this.rooms[roomJid]) {
                 var errmsg = "You are already in the room!";
@@ -33,7 +33,7 @@ module.exports = function(XMPP) {
                 return;
             }
             this.rooms[roomJid] = new ChatRoom(this.connection, jid,
-                password, XMPP, options, settings, maxRetries);
+                password, XMPP, options, settings);
             return this.rooms[roomJid];
         },
         doLeave: function (jid) {
