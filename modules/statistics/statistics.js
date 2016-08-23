@@ -270,8 +270,11 @@ Statistics.prototype.startCallStats = function (session, settings) {
 Statistics.prototype.stopCallStats = function () {
     if(this.callstats) {
         var index = Statistics.callsStatsInstances.indexOf(this.callstats);
-        Statistics.callsStatsInstances.splice(index, 1);
-        this.callstats = null;
+        if(index > -1)
+            Statistics.callsStatsInstances.splice(index, 1);
+        // The next line is commented because we need to be able to send
+        // feedback even after the conference has been destroyed.
+        // this.callstats = null;
         CallStats.dispose();
     }
 };
