@@ -40,13 +40,13 @@ function createConnectionExternally(webserviceUrl, success_callback,
                 try {
                     var data = JSON.parse(xhttp.responseText);
 
+                    var proxyRegion = xhttp.getResponseHeader('X-Proxy-Region');
+                    var jitsiRegion = xhttp.getResponseHeader('X-Jitsi-Region');
                     window.jitsiRegionInfo = {
-                        "ProxyRegion" :
-                            xhttp.getResponseHeader('X-Proxy-Region'),
-                        "Region" :
-                            xhttp.getResponseHeader('X-Jitsi-Region'),
-                        "Shard" :
-                            xhttp.getResponseHeader('X-Jitsi-Shard')
+                        "ProxyRegion" : proxyRegion,
+                        "Region" : jitsiRegion,
+                        "Shard" : xhttp.getResponseHeader('X-Jitsi-Shard'),
+                        "CrossRegion": proxyRegion !== jitsiRegion ? 1 : 0
                     };
 
                     success_callback(data);
