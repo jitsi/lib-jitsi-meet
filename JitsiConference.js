@@ -757,8 +757,10 @@ function (jingleSession, jingleOffer, now) {
     // Accept incoming call
     this.room.setJingleSession(jingleSession);
     this.room.connectionTimes["session.initiate"] = now;
+    // add info whether call is cross-region
     Statistics.analytics.sendEvent("muc.idle",
-        (now - this.room.connectionTimes["muc.joined"]));
+        (now - this.room.connectionTimes["muc.joined"]),
+        window.jitsiRegionInfo["CrossRegion"]);
     try{
         jingleSession.initialize(false /* initiator */,this.room);
     } catch (error) {
