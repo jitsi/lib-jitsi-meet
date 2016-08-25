@@ -240,7 +240,8 @@ var ScreenObtainer = {
         if( CHROME_EXTENSION_POPUP_ERROR === e && options.interval > 0 &&
             typeof(options.checkAgain) === "function" &&
             typeof(options.listener) === "function") {
-            options.listener(getWebStoreInstallUrl(this.options));
+            options.listener("waitingForExtension",
+                getWebStoreInstallUrl(this.options));
             this.checkForChromeExtensionOnInterval(options,
                 streamCallback, failCallback, e);
             return;
@@ -256,29 +257,26 @@ var ScreenObtainer = {
         ));
     },
     checkForChromeExtensionOnInterval: function (options,
-        streamCallback, failCallback, e) {
-        if ( CHROME_EXTENSION_POPUP_ERROR !== e &&
-            (e.name !== JitsiTrackErrors.CHROME_EXTENSION_GENERIC_ERROR ||
-            !e.message ||
-            e.message.message !== CHROME_NO_EXTENSION_ERROR_MSG)) {
-            this.handleExtensionInstallationError(null, streamCallback,
-                failCallback, e);
-            return;
-        }
+        streamCallback, failCallback) {
         if (options.checkAgain() === false) {
             failCallback(new JitsiTrackError(
                 JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR));
             return;
         }
-        var args = arguments;
         var self = this;
         window.setTimeout(function () {
-            doGetStreamFromExtension(self.options,
-                function () {
-                    chromeExtInstalled = true;
-                    streamCallback.apply(null, arguments);
-                }, self.checkForChromeExtensionOnInterval.bind(
-                    self, options, streamCallback, failCallback));
+            checkChromeExtInstalled(function (installed, updateRequired) {
+                chromeExtInstalled = installed;
+                chromeExtUpdateRequired = updateRequired;
+                if(installed) {
+                    options.listener("extensionFound");
+                    self.obtainScreenFromExtension(options,
+                        streamCallback, failCallback);
+                } else {
+                    self.checkForChromeExtensionOnInterval(options,
+                        streamCallback, failCallback);
+                }
+            }, self.options);
         }, options.interval);
     }
 };
