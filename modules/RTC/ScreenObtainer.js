@@ -84,8 +84,32 @@ var ScreenObtainer = {
             obtainDesktopStream = function (options, onSuccess, onFailure) {
                 window.JitsiMeetNW.obtainDesktopStream (
                     onSuccess, function (error, constraints) {
-                        onFailure && onFailure(new JitsiTrackError(
-                            error, constraints, ["desktop"]));
+                        var jitsiError;
+                        // FIXME:
+                        // This is very very durty fix for recognising that the
+                        // user have clicked the cancel button from the Desktop
+                        // sharing pick window. The proper solution would be to
+                        // detect this in the NWJS application by checking the
+                        // streamId === "". Even better solution would be to
+                        // stop calling GUM from the NWJS app and just pass the
+                        // streamId to lib-jitsi-meet. This way the desktop
+                        // sharing implementation for NWJS and chrome extension
+                        // will be the same and lib-jitsi-meet will be able to
+                        // control the constraints, check the streamId, etc.
+                        //
+                        // I cannot find documentation about "InvalidStateError"
+                        // but this is what we are receiving from GUM when the
+                        // streamId for the desktop sharing is "".
+                        if (error && error.name == "InvalidStateError") {
+                            jitsiError = new JitsiTrackError(
+                                JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED
+                            );
+                        } else {
+                            jitsiError = new JitsiTrackError(
+                                error, constraints, ["desktop"]);
+                        }
+                        (typeof(onFailure) === "function") &&
+                            onFailure(jitsiError);
                     });
             };
         } else if (RTCBrowserType.isTemasysPluginUsed()) {
