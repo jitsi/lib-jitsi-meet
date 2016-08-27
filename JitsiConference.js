@@ -18,7 +18,6 @@ var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 var JitsiConferenceEventManager = require("./JitsiConferenceEventManager");
 var Transcriber = require("./modules/transcription/transcriber");
 var AudioRecorder = require("./modules/transcription/audioRecorder");
-var transcriberHolder = require("./modules/transcription/transcriberHolder");
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -59,9 +58,6 @@ function JitsiConference(options) {
     };
     this.isMutedByFocus = false;
     this.reportedAudioSSRCs = {};
-    this.audioRecorder = new AudioRecorder(this);
-    this.transcriber = new Transcriber(this.audioRecorder);
-    transcriberHolder.add(this.transcriber);
 }
 
 /**
