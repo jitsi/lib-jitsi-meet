@@ -371,7 +371,8 @@ JitsiConference.prototype.setSubject = function (subject) {
 };
 
 /**
- *
+ * Get a transcriber object for all current participants in this conference
+ * @return {Transcriber} the transcriber object
  */
 JitsiConference.prototype.getTranscriber = function(){
     if(this.transcriber === undefined){
