@@ -58,6 +58,7 @@ function JitsiConference(options) {
     };
     this.isMutedByFocus = false;
     this.reportedAudioSSRCs = {};
+    this.audioRecorder = new AudioRecorder();
 }
 
 /**
@@ -367,6 +368,16 @@ JitsiConference.prototype.setSubject = function (subject) {
     if (this.room && this.isModerator()) {
         this.room.setSubject(subject);
     }
+};
+
+/**
+ *
+ */
+JitsiConference.prototype.getTranscriber = function(){
+    if(this.transcriber === undefined){
+        this.transcriber = new Transcriber(this.audioRecorder);
+    }
+    return this.transcriber;
 };
 
 /**
@@ -748,6 +759,9 @@ JitsiConference.prototype.onTrackAdded = function (track) {
 
     // Add track to JitsiParticipant.
     participant._tracks.push(track);
+
+    // Add track to the audioRecorder
+    this.audioRecorder.addTrack(track);
 
     var emitter = this.eventEmitter;
     track.addEventListener(
