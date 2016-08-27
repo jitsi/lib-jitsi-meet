@@ -114,7 +114,7 @@ function getURL() {
     var message = "config does not contain an url to a " +
     "Sphinx4 https server";
     if(config.sphinxURL === undefined){
-        throw new Error(message);
+        console.log(message);
     }
     else {
         var toReturn = config.sphinxURL;
@@ -122,7 +122,7 @@ function getURL() {
             return toReturn;
         }
         else{
-            throw new Error(message);
+            console.log(message);
         }
     }
 }
