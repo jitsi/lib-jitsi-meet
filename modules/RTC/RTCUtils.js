@@ -302,8 +302,8 @@ function getConstraints(um, options) {
  * @param stream the stream we received from calling getUserMedia.
  */
 function setAvailableDevices(um, stream) {
-    var audioTracksReceived = !!stream.getAudioTracks().length;
-    var videoTracksReceived = !!stream.getVideoTracks().length;
+    var audioTracksReceived = stream && !!stream.getAudioTracks().length;
+    var videoTracksReceived = stream && !!stream.getVideoTracks().length;
 
     if (um.indexOf("video") != -1) {
         devices.video = videoTracksReceived;
@@ -918,7 +918,7 @@ var RTCUtils = {
                     success_callback(stream);
                 },
                 function (error) {
-                    setAvailableDevices(um, stream);
+                    setAvailableDevices(um, undefined);
                     logger.warn('Failed to get access to local media. Error ',
                         error, constraints);
 
