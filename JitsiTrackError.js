@@ -65,6 +65,7 @@ function JitsiTrackError(error, options, devices) {
                         JitsiTrackErrors.PERMISSION_DENIED]
                         + (this.gum.devices || []).join(", ");
                 break;
+            case "DevicesNotFoundError":
             case "NotFoundError":
                 this.name = JitsiTrackErrors.NOT_FOUND;
                 this.message = TRACK_ERROR_TO_MESSAGE_MAP[
