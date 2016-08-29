@@ -295,12 +295,21 @@ function getConstraints(um, options) {
     return constraints;
 }
 
-function setAvailableDevices(um, available) {
+/**
+ * Sets the availbale devices based on the options we requested and the
+ * streams we received.
+ * @param um the options we requested to getUserMedia.
+ * @param stream the stream we received from calling getUserMedia.
+ */
+function setAvailableDevices(um, stream) {
+    var audioTracksReceived = !!stream.getAudioTracks().length;
+    var videoTracksReceived = !!stream.getVideoTracks().length;
+
     if (um.indexOf("video") != -1) {
-        devices.video = available;
+        devices.video = videoTracksReceived;
     }
     if (um.indexOf("audio") != -1) {
-        devices.audio = available;
+        devices.audio = audioTracksReceived;
     }
 
     eventEmitter.emit(RTCEvents.AVAILABLE_DEVICES_CHANGED, devices);
@@ -361,8 +370,8 @@ function pollForAvailableMediaDevices() {
  * @param {MediaDeviceInfo[]} devices - list of media devices.
  * @emits RTCEvents.DEVICE_LIST_CHANGED
  */
-function onMediaDevicesListChanged(devices) {
-    currentlyAvailableMediaDevices = devices.slice(0);
+function onMediaDevicesListChanged(devicesReceived) {
+    currentlyAvailableMediaDevices = devicesReceived.slice(0);
     logger.info('list of media devices has changed:', currentlyAvailableMediaDevices);
 
     var videoInputDevices = currentlyAvailableMediaDevices.filter(function (d) {
@@ -382,15 +391,15 @@ function onMediaDevicesListChanged(devices) {
 
     if (videoInputDevices.length &&
         videoInputDevices.length === videoInputDevicesWithEmptyLabels.length) {
-        setAvailableDevices(['video'], false);
+        devices.video = false;
     }
 
     if (audioInputDevices.length &&
         audioInputDevices.length === audioInputDevicesWithEmptyLabels.length) {
-        setAvailableDevices(['audio'], false);
+        devices.audio = false;
     }
 
-    eventEmitter.emit(RTCEvents.DEVICE_LIST_CHANGED, devices);
+    eventEmitter.emit(RTCEvents.DEVICE_LIST_CHANGED, devicesReceived);
 }
 
 // In case of IE we continue from 'onReady' callback
@@ -905,11 +914,11 @@ var RTCUtils = {
             this.getUserMedia(constraints,
                 function (stream) {
                     logger.log('onUserMediaSuccess');
-                    setAvailableDevices(um, true);
+                    setAvailableDevices(um, stream);
                     success_callback(stream);
                 },
                 function (error) {
-                    setAvailableDevices(um, false);
+                    setAvailableDevices(um, stream);
                     logger.warn('Failed to get access to local media. Error ',
                         error, constraints);
 
