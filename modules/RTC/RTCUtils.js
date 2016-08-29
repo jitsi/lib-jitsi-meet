@@ -1036,11 +1036,35 @@ var RTCUtils = {
                                     devices.push("video");
                                 }
 
-                                reject(new JitsiTrackError(
-                                    { name: "UnknownError" },
-                                    getConstraints(options.devices, options),
-                                    devices)
-                                );
+                                // we are missing one of the media we requested
+                                // in order to get the actual error that caused
+                                // this missing media we will call one more time
+                                // getUserMedia so we can obtain the actual
+                                // error (Example usecases are requesting
+                                // audio and video and video device is missing
+                                // or device is denied to be used and chrome is
+                                // set to not ask for permissions)
+                                self.getUserMediaWithConstraints(
+                                    devices,
+                                    function (stream) {
+                                        // we already failed to obtain this
+                                        // media, so we are not supposed in any
+                                        // way to receive success for this call
+                                        // any way we will throw an error to be
+                                        // sure the promise will finish
+                                        reject(new JitsiTrackError(
+                                            { name: "UnknownError" },
+                                            getConstraints(
+                                                options.devices, options),
+                                            devices)
+                                        );
+                                    },
+                                    function (error) {
+                                        // rejects with real error for not
+                                        // obtaining the media
+                                        reject(error);
+                                    },options);
+
                                 return;
                             }
                             if(hasDesktop) {
