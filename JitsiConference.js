@@ -375,6 +375,18 @@ JitsiConference.prototype.setSubject = function (subject) {
 JitsiConference.prototype.getTranscriber = function(){
     if(this.transcriber === undefined){
         this.transcriber = new Transcriber();
+        //add all existing local audio tracks to the transcriber
+        this.rtc.localTracks.forEach(function (localTrack) {
+            if(localTrack.isAudioTrack()){
+                this.transcriber.addTrack(localTrack);
+            }
+        }.bind(this));
+        //and all remote audio tracks
+        this.rtc.remoteTracks.forEach(function (remoteTrack){
+            if(remoteTrack.isAudioTrack()){
+                this.transcriber.addTrack(remoteTrack);
+            }
+        }.bind(this));
     }
     return this.transcriber;
 };
@@ -759,8 +771,9 @@ JitsiConference.prototype.onTrackAdded = function (track) {
     // Add track to JitsiParticipant.
     participant._tracks.push(track);
 
-    // Add track to the audioRecorder
-    this.audioRecorder.addTrack(track);
+    if(this.transcriber){
+        this.transcriber.addTrack(track);
+    }
 
     var emitter = this.eventEmitter;
     track.addEventListener(
