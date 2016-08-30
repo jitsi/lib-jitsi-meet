@@ -250,19 +250,27 @@ var LibJitsiMeet = {
                     Statistics.sendLog(JSON.stringify(logObject));
                     Statistics.analytics.sendEvent(
                         "getUserMedia.userCancel.extensionInstall");
+                } else if (JitsiTrackErrors.NOT_FOUND === error.name) {
+                    // logs not found devices with just application log to cs
+                    var logObject = {
+                        id: "usermedia_missing_device",
+                        status: error.gum.devices
+                    };
+                    Statistics.sendLog(JSON.stringify(logObject));
+                    Statistics.analytics.sendEvent(
+                        "getUserMedia.deviceNotFound."
+                            + error.gum.devices.join('.'));
                 } else {
                     // Report gUM failed to the stats
                     Statistics.sendGetUserMediaFailed(error);
+                    Statistics.analytics.sendEvent(
+                        addDeviceTypeToAnalyticsEvent(
+                            "getUserMedia.failed", options) + '.' + error.name,
+                        options);
                 }
 
                 window.connectionTimes["obtainPermissions.end"] =
                     window.performance.now();
-
-
-                Statistics.analytics.sendEvent(
-                    addDeviceTypeToAnalyticsEvent(
-                        "getUserMedia.failed", options) + '.' + error.name,
-                    options);
 
                 return Promise.reject(error);
             }.bind(this));
