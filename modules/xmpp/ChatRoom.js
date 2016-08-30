@@ -556,7 +556,7 @@ ChatRoom.prototype.onMessage = function (msg, from) {
         }
     }
 
-    if (from==this.myroomjid && $(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="104"]').length) {
+    if (from==this.myroomjid && $(msg).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="104"]').length) {
       this.discoRoomInfo();
     }
 
