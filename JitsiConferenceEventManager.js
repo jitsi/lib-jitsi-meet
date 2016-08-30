@@ -53,22 +53,17 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
     );
     chatRoom.addListener(XMPPEvents.REMOTE_TRACK_REMOVED,
         function (streamId, trackId) {
-            conference.getParticipants().forEach(function(participant) {
-                var tracks = participant.getTracks();
-                for(var i = 0; i < tracks.length; i++) {
-                    if(tracks[i]
-                        && tracks[i].getStreamId() == streamId
-                        && tracks[i].getTrackId() == trackId) {
-                        var track = participant._tracks.splice(i, 1)[0];
+            conference.getParticipants().some(function(participant) {
+                var track = participant.removeTrack(streamId, trackId);
+                if(!track)
+                    return false;
 
-                        conference.rtc.removeRemoteTrack(
-                            participant.getId(), track.getType());
+                conference.rtc.removeRemoteTrack(
+                    participant.getId(), track.getType());
 
-                        conference.eventEmitter.emit(
-                            JitsiConferenceEvents.TRACK_REMOVED, track);
-                        return;
-                    }
-                }
+                conference.eventEmitter.emit(
+                    JitsiConferenceEvents.TRACK_REMOVED, track);
+                return true;
             });
         }
     );

@@ -1,11 +1,6 @@
 var JitsiTrack = require("./JitsiTrack");
 var JitsiTrackEvents = require("../../JitsiTrackEvents");
-var RTCBrowserType = require("./RTCBrowserType");
-var Statistics = require("../statistics/statistics");
-var AdapterJS = require("./adapter.screenshare");
-
-var ttfmTrackerAudioAttached = false;
-var ttfmTrackerVideoAttached = false;
+var RTCUtils = require("./RTCUtils");
 
 /**
  * Represents a single media track (either audio or video).
@@ -17,19 +12,28 @@ var ttfmTrackerVideoAttached = false;
  * @param videoType the VideoType of the JitsiRemoteTrack
  * @param ssrc the SSRC number of the Media Stream
  * @param muted intial muted state of the JitsiRemoteTrack
+ * @param initialTrackForParticipant {boolean} if true this track will be the
+ * first track from it type (audio or video) received for the participant. Used
+ * only for TTFM.
  * @constructor
  */
-function JitsiRemoteTrack(conference, ownerJid, stream, track, mediaType, videoType,
-                          ssrc, muted) {
+function JitsiRemoteTrack(conference, ownerJid, stream, track, mediaType,
+                          videoType, ssrc, muted) {
     JitsiTrack.call(
-        this, conference, stream, track, function () {}, mediaType, videoType, ssrc);
+        this, conference, stream, track, function () {}, mediaType, videoType,
+        ssrc);
     this.conference = conference;
     this.peerjid = ownerJid;
     this.muted = muted;
-    // we want to mark whether the track has been ever muted
-    // to detect ttfm events for startmuted conferences, as it can significantly
-    // increase ttfm values
-    this.hasBeenMuted = muted;
+    var participant = this.conference.getParticipantById(
+        this.getParticipantId());
+    // filter the tracks that we don't want to log for the TTFM statistics.
+    // Currently if the track havent been muted and this is the first media
+    // from it type (audio or video) received for this participant we can use
+    // it as a TTFM candidate. We want to track only the first received stream
+    // per participant and we want to discard muted tracks because the ttfm
+    // value will be increased with the time when the track have been muted.
+    this.isTTFMCandidate = !(muted && participant._hadTrack[this.getType()]);
 }
 
 JitsiRemoteTrack.prototype = Object.create(JitsiTrack.prototype);
@@ -44,7 +48,7 @@ JitsiRemoteTrack.prototype.setMute = function (value) {
         return;
 
     if(value)
-        this.hasBeenMuted = true;
+        this.isTTFMCandidate = false;
 
     // we can have a fake video stream
     if(this.stream)
@@ -97,26 +101,6 @@ JitsiRemoteTrack.prototype._setVideoType = function (type) {
     this.eventEmitter.emit(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, type);
 };
 
-JitsiRemoteTrack.prototype._playCallback = function () {
-    var type = (this.isVideoTrack() ? 'video' : 'audio');
-
-    var now = window.performance.now();
-    console.log("(TIME) Render " + type + ":\t", now);
-    this.conference.getConnectionTimes()[type + ".render"] = now;
-
-    var ttfm = now
-        - (this.conference.getConnectionTimes()["session.initiate"]
-        - this.conference.getConnectionTimes()["muc.joined"])
-        - (window.connectionTimes["obtainPermissions.end"]
-        - window.connectionTimes["obtainPermissions.start"]);
-    this.conference.getConnectionTimes()[type + ".ttfm"] = ttfm;
-    console.log("(TIME) TTFM " + type + ":\t", ttfm);
-    var eventName = type +'.ttfm';
-    if(this.hasBeenMuted)
-        eventName += '.muted';
-    Statistics.analytics.sendEvent(eventName, ttfm);
-};
-
 /**
  * Attach time to first media tracker only if there is conference and only
  * for the first element.
@@ -126,22 +110,43 @@ JitsiRemoteTrack.prototype._playCallback = function () {
  * @private
  */
 JitsiRemoteTrack.prototype._attachTTFMTracker = function (container) {
-    if((ttfmTrackerAudioAttached && this.isAudioTrack())
-        || (ttfmTrackerVideoAttached && this.isVideoTrack()))
+    if(container.jitsiTTFMListenerAdded) {
+        clearJitsiTrackPropsFromContainer(container);
+    }
+    if(!this.conference._canBeFirstMedia(this))
         return;
+    // Update the information about the current attached track.
+    // FIXME: This will work only for 1 conference on the page. If we have
+    // multiple conferences on the page we should add id for the conference
+    container.jitsiUserId = this.getParticipantId();
+    container.jitsiTrackType = this.getType();
+    // Make sure we are attaching only one listener per container.
+    if(container.jitsiTTFMListenerAdded)
+        return;
+    container.jitsiTTFMListenerAdded = true;
+    RTCUtils.addPlayListener(container,
+        this.conference._playCallback.bind(this.conference, container));
+};
 
-    if (this.isAudioTrack())
-        ttfmTrackerAudioAttached = true;
-    if (this.isVideoTrack())
-        ttfmTrackerVideoAttached = true;
+/**
+ * Clears jitsi track properties from passed html element.
+ * @param container {HTMLElement} the html element
+ */
+function clearJitsiTrackPropsFromContainer(container) {
+    container.jitsiUserId = null;
+    container.jitsiTrackType = null;
+}
 
-    if (RTCBrowserType.isTemasysPluginUsed()) {
-        // FIXME: this is not working for IE11
-        AdapterJS.addEvent(container, 'play', this._playCallback.bind(this));
-    }
-    else {
-        container.addEventListener("canplay", this._playCallback.bind(this));
-    }
+/**
+ * Detach time to first media tracker
+ * @param container the HTML container which can be 'video' or 'audio' element.
+ *        It can also be 'object' element if Temasys plugin is in use and this
+ *        method has been called previously on video or audio HTML element.
+ * @private
+ */
+JitsiRemoteTrack.prototype._detachTTFMTracker = function (container) {
+    clearJitsiTrackPropsFromContainer(container);
+    //FIXME: remove the listener
 };
 
 module.exports = JitsiRemoteTrack;

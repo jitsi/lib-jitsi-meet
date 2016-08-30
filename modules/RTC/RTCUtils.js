@@ -708,6 +708,16 @@ function defaultSetVideoSrc(element, stream) {
     element.src = src || '';
 }
 
+/**
+ * Add the passed listener to a container to listen for "canplay" events.
+ * @param container HTMLElement
+ * @param listener {Function}
+ */
+function defaultAddPlayListener(container, listener) {
+    if(container.addEventListener)
+        container.addEventListener("canplay", listener);
+}
+
 //Options parameter is to pass config options. Currently uses only "useIPv6".
 var RTCUtils = {
     init: function (options) {
@@ -764,6 +774,7 @@ var RTCUtils = {
                     }
                     return SDPUtil.filter_special_chars(id);
                 };
+                this.addPlayListener = defaultAddPlayListener;
                 RTCSessionDescription = mozRTCSessionDescription;
                 RTCIceCandidate = mozRTCIceCandidate;
             } else if (RTCBrowserType.isChrome() ||
@@ -801,6 +812,7 @@ var RTCUtils = {
                             ? id
                             : SDPUtil.filter_special_chars(id));
                 };
+                this.addPlayListener = defaultAddPlayListener;
                 // DTLS should now be enabled by default but..
                 this.pc_constraints = {'optional': [
                     {'DtlsSrtpKeyAgreement': 'true'}
@@ -861,7 +873,10 @@ var RTCUtils = {
                     self.getStreamID = function (stream) {
                         return SDPUtil.filter_special_chars(stream.label);
                     };
-
+                    this.addPlayListener = function (container, listener) {
+                        // FIXME: this is not working for IE11
+                        AdapterJS.addEvent(container, 'play', listener);
+                    };
                     onReady(options, self.getUserMediaWithConstraints);
                     resolve();
                 });

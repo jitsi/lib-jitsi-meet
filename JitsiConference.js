@@ -41,6 +41,7 @@ function JitsiConference(options) {
     this._init(options);
     this.componentsVersions = new ComponentsVersions(this);
     this.participants = {};
+    this.initialParticipants = [];
     this.lastDominantSpeaker = null;
     this.dtmfManager = null;
     this.somebodySupportsDTMF = false;
@@ -55,6 +56,8 @@ function JitsiConference(options) {
     };
     this.isMutedByFocus = false;
     this.reportedAudioSSRCs = {};
+    this.ttfmAudioReported = false;
+    this.ttfmVideoReported = false;
 }
 
 /**
@@ -718,7 +721,7 @@ JitsiConference.prototype.onTrackAdded = function (track) {
     }
 
     // Add track to JitsiParticipant.
-    participant._tracks.push(track);
+    participant.addTrack(track);
 
     var emitter = this.eventEmitter;
     track.addEventListener(
@@ -771,6 +774,8 @@ function (jingleSession, jingleOffer, now) {
     };
 
     this.rtc.onIncommingCall(jingleSession);
+    //list of participants that are in the call when the call started.
+    this.initialParticipants = Object.keys(this.participants);
     // Add local Tracks to the ChatRoom
     this.rtc.localTracks.forEach(function(localTrack) {
         var ssrcInfo = null;
@@ -1239,6 +1244,52 @@ JitsiConference.prototype.sendEndpointMessage = function (to, payload) {
  */
 JitsiConference.prototype.broadcastEndpointMessage = function (payload) {
     this.sendEndpointMessage("", payload);
+}
+
+/**
+ * Play event handler for video, audio or object elements.
+ * @param container {HTMLElement} the element which will fire the events.
+ */
+JitsiConference.prototype._playCallback = function (container) {
+    var userID = container.jitsiUserId, type = container.jitsiTrackType;
+    if(!userID || !type)
+        return;
+    var track = this.rtc.getRemoteTrackByType(type, userID);
+    if(!track || !this._canBeFirstMedia(track))
+        return;
+
+    if (track.isAudioTrack())
+        this.ttfmAudioReported = true;
+    else if (track.isVideoTrack())
+        this.ttfmVideoReported = true;
+
+    var type = track.getType();
+
+    var now = window.performance.now();
+    console.log("(TIME) Render " + type + ":\t", now);
+
+    var ttfm = now
+        - (this.getConnectionTimes()["session.initiate"]
+        - this.getConnectionTimes()["muc.joined"])
+        - (window.connectionTimes["obtainPermissions.end"]
+        - window.connectionTimes["obtainPermissions.start"]);
+    console.log("(TIME) TTFM " + type + ":\t", ttfm);
+    var eventName = type +'.ttfm';
+    Statistics.analytics.sendEvent(eventName, ttfm);
+};
+
+/**
+ * Checks whether the passed track can be used to report TTFM.
+ * @param track {JitsiRemoteTrack} the track that will be tested.
+ * @returns {boolean}
+ */
+JitsiConference.prototype._canBeFirstMedia = function (track) {
+    var res =
+        (this.initialParticipants.indexOf(track.getParticipantId()) !== -1) &&
+        track.isTTFMCandidate &&
+        ((!this.ttfmAudioReported && track.isAudioTrack()) ||
+            (!this.ttfmVideoReported && track.isVideoTrack()));
+    return res;
 }
 
 module.exports = JitsiConference;
