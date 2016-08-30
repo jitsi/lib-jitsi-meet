@@ -201,16 +201,16 @@ ChatRoom.prototype.discoRoomInfo = function () {
   var getInfo = $iq({type: 'get', to: this.roomjid})
     .c('query', {xmlns: Strophe.NS.DISCO_INFO});
 
-  this.connection.sendIQ(getInfo, (result) => {
+  this.connection.sendIQ(getInfo, function (result) {
     var locked = $(result).find('>query>feature[var="muc_passwordprotected"]').length;
     if (locked != this.locked) {
       this.eventEmitter.emit(XMPPEvents.MUC_LOCK_CHANGED, locked);
       this.locked = locked;
     }
-  }, (error) => {
+  }.bind(this), function (error) {
     GlobalOnErrorHandler.callErrorHandler(error);
     logger.error("Error getting room info: ", error);
-  });
+  }.bind(this));
 };
 
 
