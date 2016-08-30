@@ -154,13 +154,17 @@ audioRecorder.prototype.addTrack = function (track) {
  * but not removed from the array so that the recorded stream can still be
  * accessed
  *
- * @param jitsiTrack the JitsiTrack to remove from the recording session
+ * @param {JitsiTrack} track the JitsiTrack to remove from the recording session
  */
-audioRecorder.prototype.removeTrack = function(jitsiTrack){
+audioRecorder.prototype.removeTrack = function(track){
+    if(track.isVideoTrack()){
+        return;
+    }
+    
     var array = this.recorders;
     var i;
     for(i = 0; i < array.length; i++) {
-        if(array[i].track.getParticipantId() === jitsiTrack.getParticipantId()){
+        if(array[i].track.getParticipantId() === track.getParticipantId()){
             var recorderToRemove = array[i];
             if(this.isRecording){
                 stopRecorder(recorderToRemove);

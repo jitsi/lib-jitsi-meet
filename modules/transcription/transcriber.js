@@ -17,9 +17,9 @@ var MAXIMUM_SENTENCE_LENGTH = 80;
  * will be merged to create a transcript
  * @param {AudioRecorder} audioRecorder An audioRecorder recording a conference
  */
-var transcriber = function(audioRecorder) {
+var transcriber = function() {
     //the object which can record all audio in the conference
-    this.audioRecorder = audioRecorder;
+    this.audioRecorder = new AudioRecorder();
     //this object can send the recorder audio to a speech-to-text service
     this.transcriptionService =  new SphinxService();
     //holds a counter to keep track if merging can start
@@ -273,10 +273,21 @@ var pushWordToSortedArray = function(array, word){
 };
 
 /**
- * Returns the AudioRecorder module to add and remove tracks to
+ * Gives the transcriber a JitsiTrack holding an audioStream to transcribe.
+ * The JitsiTrack is given to the audioRecorder. If it doesn't hold an
+ * audiostream, it will not be added by the audioRecorder
+ * @param {JitsiTrack} track the track to give to the audioRecorder
  */
-transcriber.getAudioRecorder = function getAudioRecorder() {
-    return this.audioRecorder;
+transcriber.prototype.addTrack = function(track){
+    this.audioRecorder.addTrack(track);
+};
+
+/**
+ * Remove the given track from the auioRecorder
+ * @param track
+ */
+transcriber.prototype.removeTrack = function(track){
+    this.audioRecorder.removeTrack(track);
 };
 
 /**
