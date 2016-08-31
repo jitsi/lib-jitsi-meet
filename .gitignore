@@ -6,3 +6,4 @@ node_modules
 deploy-local.sh
 .remote-sync.json
 lib-jitsi-meet.*
+npm-*.log

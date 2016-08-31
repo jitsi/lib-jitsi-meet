@@ -66,6 +66,11 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
 
                         conference.eventEmitter.emit(
                             JitsiConferenceEvents.TRACK_REMOVED, track);
+                        
+                        if(conference.transcriber){
+                            conference.transcriber.removeTrack(track);    
+                        }
+                        
                         return;
                     }
                 }
@@ -220,6 +225,9 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
             conference.room = null;
             conference.leave.bind(conference);
         });
+
+    this.chatRoomForwarder.forward(XMPPEvents.MUC_LOCK_CHANGED,
+        JitsiConferenceEvents.LOCK_STATE_CHANGED);
 
     chatRoom.addListener(XMPPEvents.MUC_MEMBER_JOINED,
         conference.onMemberJoined.bind(conference));
