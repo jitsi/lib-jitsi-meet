@@ -16,6 +16,7 @@ var Settings = require("./modules/settings/Settings");
 var ComponentsVersions = require("./modules/version/ComponentsVersions");
 var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 var JitsiConferenceEventManager = require("./JitsiConferenceEventManager");
+var Transcriber = require("./modules/transcription/transcriber");
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -338,6 +339,29 @@ JitsiConference.prototype.setSubject = function (subject) {
     if (this.room && this.isModerator()) {
         this.room.setSubject(subject);
     }
+};
+
+/**
+ * Get a transcriber object for all current participants in this conference
+ * @return {Transcriber} the transcriber object
+ */
+JitsiConference.prototype.getTranscriber = function(){
+    if(this.transcriber === undefined){
+        this.transcriber = new Transcriber();
+        //add all existing local audio tracks to the transcriber
+        this.rtc.localTracks.forEach(function (localTrack) {
+            if(localTrack.isAudioTrack()){
+                this.transcriber.addTrack(localTrack);
+            }
+        }.bind(this));
+        //and all remote audio tracks
+        this.rtc.remoteTracks.forEach(function (remoteTrack){
+            if(remoteTrack.isAudioTrack()){
+                this.transcriber.addTrack(remoteTrack);
+            }
+        }.bind(this));
+    }
+    return this.transcriber;
 };
 
 /**
@@ -719,6 +743,10 @@ JitsiConference.prototype.onTrackAdded = function (track) {
 
     // Add track to JitsiParticipant.
     participant._tracks.push(track);
+
+    if(this.transcriber){
+        this.transcriber.addTrack(track);
+    }
 
     var emitter = this.eventEmitter;
     track.addEventListener(

@@ -66,6 +66,11 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
 
                         conference.eventEmitter.emit(
                             JitsiConferenceEvents.TRACK_REMOVED, track);
+                        
+                        if(conference.transcriber){
+                            conference.transcriber.removeTrack(track);    
+                        }
+                        
                         return;
                     }
                 }
