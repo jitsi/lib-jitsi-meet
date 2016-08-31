@@ -553,6 +553,17 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function () {
     conference.statistics.addAudioProblemListener(function (ssrc) {
         conference._reportAudioProblem(ssrc);
     });
+
+    conference.statistics.addByteSentStatsListener(function (stats) {
+        var tracks = conference.getLocalTracks();
+        conference.getLocalTracks().forEach(function (track) {
+            var ssrc = track.getSSRC();
+            if(!track.isAudioTrack() || !ssrc || !stats.hasOwnProperty(ssrc))
+                return;
+
+            track._setByteSent(stats[ssrc]);
+        });
+    });
 };
 
 module.exports = JitsiConferenceEventManager;

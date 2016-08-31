@@ -16,6 +16,7 @@ var Settings = require("./modules/settings/Settings");
 var ComponentsVersions = require("./modules/version/ComponentsVersions");
 var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 var JitsiConferenceEventManager = require("./JitsiConferenceEventManager");
+var VideoType = require('../../service/RTC/VideoType');
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -379,7 +380,7 @@ JitsiConference.prototype.addTrack = function (track) {
         track.ssrcHandler);
 
     if(track.isAudioTrack() || (track.isVideoTrack() &&
-        track.videoType !== "desktop")) {
+        track.videoType !== VideoType.DESKTOP)) {
         // Report active device to statistics
         var devices = RTC.getCurrentlyAvailableMediaDevices();
         device = devices.find(function (d) {
@@ -426,7 +427,7 @@ JitsiConference.prototype.addTrack = function (track) {
             // send event for starting screen sharing
             // FIXME: we assume we have only one screen sharing track
             // if we change this we need to fix this check
-            if (track.isVideoTrack() && track.videoType === "desktop")
+            if (track.isVideoTrack() && track.videoType === VideoType.DESKTOP)
                 this.statistics.sendScreenSharingEvent(true);
 
             this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
@@ -479,7 +480,7 @@ JitsiConference.prototype.onTrackRemoved = function (track) {
     // send event for stopping screen sharing
     // FIXME: we assume we have only one screen sharing track
     // if we change this we need to fix this check
-    if (track.isVideoTrack() && track.videoType === "desktop")
+    if (track.isVideoTrack() && track.videoType === VideoType.DESKTOP)
         this.statistics.sendScreenSharingEvent(false);
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);

@@ -18,7 +18,11 @@ var JitsiTrackEvents = {
     /**
      * The audio output of the track was changed.
      */
-    TRACK_AUDIO_OUTPUT_CHANGED: "track.audioOutputChanged"
+    TRACK_AUDIO_OUTPUT_CHANGED: "track.audioOutputChanged",
+    /**
+     * Detects that no audio have been sent.
+     */
+    TRACK_AUDIO_NOT_WORKING: "track.audioNotWorking"
 };
 
 module.exports = JitsiTrackEvents;

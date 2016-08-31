@@ -55,6 +55,10 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
     // enumerateDevices() list.
     this._trackEnded = false;
 
+    this._bytesSent = null;
+
+    this._testByteSent = true;
+
     // Currently there is no way to determine with what device track was
     // created (until getConstraints() support), however we can associate tracks
     // with real devices obtained from enumerateDevices() call as soon as it's
@@ -444,6 +448,24 @@ JitsiLocalTrack.prototype.isLocal = function () {
 JitsiLocalTrack.prototype.getDeviceId = function () {
     return this._realDeviceId || this.deviceId;
 };
+
+/**
+ * Sets the value of bytes sent statistic.
+ * @param bytesSent {intiger} the new value
+ * NOTE: used only for audio tracks to detect audio issues.
+ */
+JitsiLocalTrack.prototype._setByteSent = function (bytesSent) {
+    this._bytesSent = bytesSent;
+    if(this._testByteSent) {
+        setTimeout(function () {
+            if(this._bytesSent <= 0){
+                //we are not receiving anything from the microphone
+                this.eventEmitter.emit(JitsiTrackEvents.TRACK_AUDIO_NOT_WORKING);
+            }
+        }.bind(this), 3000);
+        this._testByteSent = false;
+    }
+}
 
 /**
  * Returns facing mode for video track from camera. For other cases (e.g. audio
