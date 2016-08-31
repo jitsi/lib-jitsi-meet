@@ -487,6 +487,8 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function () {
     var conference = this.conference;
     conference.xmpp.addListener(
         XMPPEvents.CALL_INCOMING, conference.onIncomingCall.bind(conference));
+    conference.xmpp.addListener(
+        XMPPEvents.CALL_ENDED, conference.onCallEnded.bind(conference));
 
     conference.xmpp.addListener(XMPPEvents.START_MUTED_FROM_FOCUS,
         function (audioMuted, videoMuted) {

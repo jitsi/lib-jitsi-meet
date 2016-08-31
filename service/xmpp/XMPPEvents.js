@@ -11,6 +11,11 @@ var XMPPEvents = {
     // Designates an event indicating that an offer (e.g. Jingle
     // session-initiate) was received.
     CALL_INCOMING: "xmpp.callincoming.jingle",
+    // Triggered when Jicofo kills our media session, this can happen while
+    // we're still in the MUC, when it decides to terminate the media session.
+    // For example when the session is idle for too long, because we're the only
+    // person in the conference room.
+    CALL_ENDED: "xmpp.callended.jingle",
     CHAT_ERROR_RECEIVED: "xmpp.chat_error_received",
     CONFERENCE_SETUP_FAILED: "xmpp.conference_setup_failed",
     // Designates an event indicating that the connection to the XMPP server
