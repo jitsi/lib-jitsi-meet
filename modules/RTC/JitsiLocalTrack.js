@@ -55,8 +55,16 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
     // enumerateDevices() list.
     this._trackEnded = false;
 
+    /**
+     * The value of bytes sent received from the statistics module.
+     */
     this._bytesSent = null;
 
+    /**
+     * Used only for detection of audio problems. We want to check only once
+     * whether the track is sending bytes ot not. This flag is set to false
+     * after the check.
+     */
     this._testByteSent = true;
 
     // Currently there is no way to determine with what device track was
