@@ -868,6 +868,8 @@ JitsiConference.prototype.onCallEnded
     // Send analytics event
     Statistics.analytics.sendEvent(
         "session.terminate", window.performance.now());
+    // Sends "session.terminate" through the stats as well
+    this.sendApplicationLog(JSON.stringify({ "id" : "session_terminate" }));
     // Stop the stats
     if (this.statistics) {
         this.statistics.stopRemoteStats();
