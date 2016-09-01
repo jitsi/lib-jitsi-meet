@@ -142,16 +142,13 @@ Statistics.analytics = AnalyticsAdapter;
 Statistics.callsStatsInstances = [];
 
 Statistics.prototype.startRemoteStats = function (peerconnection) {
-    if(!Statistics.audioLevelsEnabled)
-        return;
-
     this.stopRemoteStats();
 
     try {
         this.rtpStats
             = new RTPStats(peerconnection,
                     Statistics.audioLevelsInterval, 2000, this.eventEmitter);
-        this.rtpStats.start();
+        this.rtpStats.start(Statistics.audioLevelsEnabled);
     } catch (e) {
         this.rtpStats = null;
         logger.error('Failed to start collecting remote statistics: ' + e);
@@ -189,10 +186,6 @@ Statistics.prototype.removeAudioLevelListener = function(listener) {
     this.eventEmitter.removeListener(StatisticsEvents.AUDIO_LEVEL, listener);
 };
 
-Statistics.prototype.addConnectionStatsListener = function (listener) {
-    this.eventEmitter.on(StatisticsEvents.CONNECTION_STATS, listener);
-};
-
 /**
  * Adds listener for detected audio problems.
  * @param listener the listener.
@@ -201,16 +194,27 @@ Statistics.prototype.addAudioProblemListener = function (listener) {
     this.eventEmitter.on(StatisticsEvents.AUDIO_NOT_WORKING, listener);
 };
 
+Statistics.prototype.addConnectionStatsListener = function (listener) {
+    this.eventEmitter.on(StatisticsEvents.CONNECTION_STATS, listener);
+};
+
 Statistics.prototype.removeConnectionStatsListener = function (listener) {
     this.eventEmitter.removeListener(StatisticsEvents.CONNECTION_STATS, listener);
 };
 
+Statistics.prototype.addByteSentStatsListener = function (listener) {
+    this.eventEmitter.on(StatisticsEvents.BYTE_SENT_STATS, listener);
+};
+
+Statistics.prototype.removeByteSentStatsListener = function (listener) {
+    this.eventEmitter.removeListener(StatisticsEvents.BYTE_SENT_STATS,
+        listener);
+};
+
 Statistics.prototype.dispose = function () {
-    if(Statistics.audioLevelsEnabled) {
-        this.stopRemoteStats();
-        if(this.eventEmitter)
-            this.eventEmitter.removeAllListeners();
-    }
+    this.stopRemoteStats();
+    if(this.eventEmitter)
+        this.eventEmitter.removeAllListeners();
 };
 
 Statistics.stopLocalStats = function (stream) {
@@ -226,7 +230,7 @@ Statistics.stopLocalStats = function (stream) {
 };
 
 Statistics.prototype.stopRemoteStats = function () {
-    if (!Statistics.audioLevelsEnabled || !this.rtpStats) {
+    if (!this.rtpStats) {
         return;
     }
 

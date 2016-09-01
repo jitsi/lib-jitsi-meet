@@ -66,11 +66,11 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
 
                         conference.eventEmitter.emit(
                             JitsiConferenceEvents.TRACK_REMOVED, track);
-                        
+
                         if(conference.transcriber){
-                            conference.transcriber.removeTrack(track);    
+                            conference.transcriber.removeTrack(track);
                         }
-                        
+
                         return;
                     }
                 }
@@ -560,6 +560,16 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function () {
 
     conference.statistics.addAudioProblemListener(function (ssrc) {
         conference._reportAudioProblem(ssrc);
+    });
+
+    conference.statistics.addByteSentStatsListener(function (stats) {
+        conference.getLocalTracks().forEach(function (track) {
+            var ssrc = track.getSSRC();
+            if(!track.isAudioTrack() || !ssrc || !stats.hasOwnProperty(ssrc))
+                return;
+
+            track._setByteSent(stats[ssrc]);
+        });
     });
 };
 

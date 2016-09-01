@@ -202,16 +202,13 @@ function ConferenceStats() {
  * @param audioLevelsInterval
  * @param statsInterval stats refresh interval given in ms.
  * @param eventEmitter
- * @param config {object} supports the following properties: disableAudioLevels,
- * disableStats, logStats
  * @constructor
  */
 function StatsCollector(
         peerconnection,
         audioLevelsInterval,
         statsInterval,
-        eventEmitter,
-        config) {
+        eventEmitter) {
     // StatsCollector depends entirely on the format of the reports returned by
     // RTCPeerConnection#getStats. Given that the value of
     // RTCBrowserType#getBrowserType() is very unlikely to change at runtime, it
@@ -247,7 +244,6 @@ function StatsCollector(
     this.baselineStatsReport = null;
     this.audioLevelsIntervalId = null;
     this.eventEmitter = eventEmitter;
-    this.config = config || {};
     this.conferenceStats = new ConferenceStats();
 
     /**
@@ -312,33 +308,35 @@ StatsCollector.prototype.errorCallback = function (error) {
 /**
  * Starts stats updates.
  */
-StatsCollector.prototype.start = function () {
+StatsCollector.prototype.start = function (startAudioLevelStats) {
     var self = this;
-    this.audioLevelsIntervalId = setInterval(
-        function () {
-            // Interval updates
-            self.peerconnection.getStats(
-                function (report) {
-                    var results = null;
-                    if (!report || !report.result ||
-                        typeof report.result != 'function') {
-                        results = report;
-                    }
-                    else {
-                        results = report.result();
-                    }
-                    self.currentAudioLevelsReport = results;
-                    self.processAudioLevelReport();
-                    self.baselineAudioLevelsReport =
-                        self.currentAudioLevelsReport;
-                },
-                self.errorCallback
-            );
-        },
-        self.audioLevelsIntervalMilis
-    );
+    if(startAudioLevelStats) {
+        this.audioLevelsIntervalId = setInterval(
+            function () {
+                // Interval updates
+                self.peerconnection.getStats(
+                    function (report) {
+                        var results = null;
+                        if (!report || !report.result ||
+                            typeof report.result != 'function') {
+                            results = report;
+                        }
+                        else {
+                            results = report.result();
+                        }
+                        self.currentAudioLevelsReport = results;
+                        self.processAudioLevelReport();
+                        self.baselineAudioLevelsReport =
+                            self.currentAudioLevelsReport;
+                    },
+                    self.errorCallback
+                );
+            },
+            self.audioLevelsIntervalMilis
+        );
+    }
 
-    if (!this.config.disableStats && browserSupported) {
+    if (browserSupported) {
         this.statsIntervalId = setInterval(
             function () {
                 // Interval updates
@@ -372,8 +370,7 @@ StatsCollector.prototype.start = function () {
         );
     }
 
-    if (this.config.logStats
-            && browserSupported
+    if (browserSupported
             // logging statistics does not support firefox
             && this._browserType !== RTCBrowserType.RTC_BROWSER_FIREFOX) {
         this.gatherStatsIntervalId = setInterval(
@@ -507,6 +504,7 @@ StatsCollector.prototype.processStatsReport = function () {
     }
 
     var getStatValue = this._getStatValue;
+    byteSentStats = {};
 
     for (var idx in this.currentStatsReport) {
         var now = this.currentStatsReport[idx];
@@ -622,8 +620,16 @@ StatsCollector.prototype.processStatsReport = function () {
                 = nowBytesTransmitted - getStatValue(before, "bytesReceived");
         }
         nowBytesTransmitted = getStatValue(now, "bytesSent");
-        if (nowBytesTransmitted) {
-            bytesSent = nowBytesTransmitted - getStatValue(before, "bytesSent");
+        if(typeof(nowBytesTransmitted) === "number" ||
+            typeof(nowBytesTransmitted) === "string") {
+            nowBytesTransmitted = Number(nowBytesTransmitted);
+            if(!isNaN(nowBytesTransmitted)){
+                byteSentStats[ssrc] = nowBytesTransmitted;
+                if (nowBytesTransmitted > 0) {
+                    bytesSent = nowBytesTransmitted -
+                        getStatValue(before, "bytesSent");
+                }
+            }
         }
 
         var time = Math.round((now.timestamp - before.timestamp) / 1000);
@@ -687,7 +693,6 @@ StatsCollector.prototype.processStatsReport = function () {
     Object.keys(this.ssrc2stats).forEach(
         function (ssrc) {
             var ssrcStats = this.ssrc2stats[ssrc];
-
             // process package loss stats
             var ssrc2Loss = ssrcStats.ssrc2Loss;
             var type = ssrc2Loss.isDownloadStream ? "download" : "upload";
@@ -706,6 +711,8 @@ StatsCollector.prototype.processStatsReport = function () {
         },
         this
     );
+
+    this.eventEmitter.emit(StatisticsEvents.BYTE_SENT_STATS, byteSentStats);
 
     this.conferenceStats.bitrate
       = {"upload": bitrateUpload, "download": bitrateDownload};
