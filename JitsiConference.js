@@ -865,6 +865,9 @@ function (jingleSession, jingleOffer, now) {
 JitsiConference.prototype.onCallEnded
 = function (JingleSession, reasonCondition, reasonText) {
     logger.info("Call ended: " + reasonCondition + " - " + reasonText);
+    // Send analytics event
+    Statistics.analytics.sendEvent(
+        "session.terminate", window.performance.now());
     // Stop the stats
     if (this.statistics) {
         this.statistics.stopRemoteStats();
