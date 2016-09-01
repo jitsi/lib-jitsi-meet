@@ -869,6 +869,8 @@ JitsiConference.prototype.onCallEnded
     if (this.statistics) {
         this.statistics.stopRemoteStats();
     }
+    // Let the RTC service do any cleanups
+    this.rtc.onCallEnded();
     // PeerConnection has been closed which means that SSRCs stored in
     // JitsiLocalTrack will not match those assigned by the old PeerConnection
     // and SSRC replacement logic will not work as expected.

@@ -90,6 +90,20 @@ RTC.prototype.onIncommingCall = function(event) {
 };
 
 /**
+ * Should be called when current media session ends and after the PeerConnection
+ * has been closed using PeerConnection.close() method.
+ */
+RTC.prototype.onCallEnded = function() {
+    if (this.dataChannels) {
+        // DataChannels are not explicitly closed as the PeerConnection
+        // is closed on call ended which triggers data channel onclose events.
+        // The reference is cleared to disable any logic related to the data
+        // channels.
+        this.dataChannels = null;
+    }
+};
+
+/**
  * Elects the participant with the given id to be the pinned participant in
  * order to always receive video for this participant (even when last n is
  * enabled).
