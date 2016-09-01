@@ -868,6 +868,7 @@ JitsiConference.prototype.onCallEnded
     // Stop the stats
     if (this.statistics) {
         this.statistics.stopRemoteStats();
+        this.statistics.stopCallStats();
     }
     // Current JingleSession is invalid so set it to null on the room
     this.room.setJingleSession(null);
