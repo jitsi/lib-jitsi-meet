@@ -869,6 +869,8 @@ JitsiConference.prototype.onCallEnded
     if (this.statistics) {
         this.statistics.stopRemoteStats();
     }
+    // Current JingleSession is invalid so set it to null on the room
+    this.room.setJingleSession(null);
     // Let the RTC service do any cleanups
     this.rtc.onCallEnded();
     // PeerConnection has been closed which means that SSRCs stored in
