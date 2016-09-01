@@ -4,7 +4,7 @@ function NoopAnalytics() {}
 NoopAnalytics.prototype.sendEvent = function () {};
 
 function AnalyticsAdapter() {
-    this.browserActionSuffix = '.' + RTCBrowserType.getBrowserName();
+    this.browserName = RTCBrowserType.getBrowserName();
 }
 
 // some events may happen before init or implementation script download
@@ -35,7 +35,7 @@ AnalyticsAdapter.prototype.sendEvent = function (action, data, label) {
     }
     try {
         this.analytics.sendEvent(
-            action + this.browserActionSuffix, data, label);
+            action, data, label, this.browserName);
     } catch (ignored) {}
 };
 
