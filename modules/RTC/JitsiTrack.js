@@ -70,6 +70,7 @@ function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMedia
     this.type = trackMediaType;
     this.track = track;
     this.videoType = videoType;
+    this.handlers = {};
 
     /**
      * Indicates whether this JitsiTrack has been disposed. If true, this
@@ -79,13 +80,38 @@ function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMedia
      * @type {boolean}
      */
     this.disposed = false;
+    this._setHandler("inactive", streamInactiveHandler);
+}
 
-    if(stream) {
-        if (RTCBrowserType.isFirefox()) {
-            implementOnEndedHandling(this);
+/**
+ * Sets handler to the WebRTC MediaStream or MediaStreamTrack object depending
+ * on the passed type.
+ * @param {string} type the type of the handler that is going to be set
+ * @param {Function} handler the handler.
+ */
+JitsiTrack.prototype._setHandler = function (type, handler) {
+    if(this.stream) {
+        if(type === "inactive") {
+            if (RTCBrowserType.isFirefox()) {
+                implementOnEndedHandling(this);
+            }
+            addMediaStreamInactiveHandler(this.stream, handler);
         }
-        addMediaStreamInactiveHandler(stream, streamInactiveHandler);
     }
+    this.handlers[type] = handler;
+}
+
+/**
+ * Sets the stream property of JitsiTrack object and sets all stored handlers
+ * to it.
+ * @param {MediaStream} stream the new stream.
+ */
+JitsiTrack.prototype._setStream = function (stream) {
+    this.stream = stream;
+    Object.keys(this.handlers).forEach(function (type) {
+        typeof(this.handlers[type]) === "function" &&
+            this._setHandler(type, this.handlers[type]);
+    }, this);
 }
 
 /**
