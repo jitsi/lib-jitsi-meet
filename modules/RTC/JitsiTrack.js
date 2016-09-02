@@ -86,8 +86,8 @@ function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMedia
 /**
  * Sets handler to the WebRTC MediaStream or MediaStreamTrack object depending
  * on the passed type.
- * @param type {string} the type of the handler that is going to be set
- * @param handler {Function} the handler.
+ * @param {string} type the type of the handler that is going to be set
+ * @param {Function} handler the handler.
  */
 JitsiTrack.prototype._setHandler = function (type, handler) {
     if(this.stream) {
@@ -104,7 +104,7 @@ JitsiTrack.prototype._setHandler = function (type, handler) {
 /**
  * Sets the stream property of JitsiTrack object and sets all stored handlers
  * to it.
- * @param stream {MediaStream} the new stream.
+ * @param {MediaStream} stream the new stream.
  */
 JitsiTrack.prototype._setStream = function (stream) {
     this.stream = stream;
