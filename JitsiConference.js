@@ -57,6 +57,11 @@ function JitsiConference(options) {
     };
     this.isMutedByFocus = false;
     this.reportedAudioSSRCs = {};
+    // Flag indicates if the 'onCallEnded' method was ever called on this
+    // instance. Used to log extra analytics event for debugging purpose.
+    // We need to know if the potential issue happened before or after
+    // the restart.
+    this.wasStopped = false;
 }
 
 /**
@@ -786,6 +791,11 @@ function (jingleSession, jingleOffer, now) {
     // Accept incoming call
     this.room.setJingleSession(jingleSession);
     this.room.connectionTimes["session.initiate"] = now;
+    // Log "session.restart"
+    if (this.wasStopped) {
+        Statistics.analytics.sendEvent("session.restart", now);
+        this.sendApplicationLog(JSON.stringify({ "id" : "session_restart"}));
+    }
     // add info whether call is cross-region
     var crossRegion = null;
     if (window.jitsiRegionInfo)
@@ -865,6 +875,7 @@ function (jingleSession, jingleOffer, now) {
 JitsiConference.prototype.onCallEnded
 = function (JingleSession, reasonCondition, reasonText) {
     logger.info("Call ended: " + reasonCondition + " - " + reasonText);
+    this.wasStopped = true;
     // Send analytics event
     Statistics.analytics.sendEvent(
         "session.terminate", window.performance.now());
