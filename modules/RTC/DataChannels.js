@@ -207,12 +207,12 @@ DataChannels.prototype.sendSelectedEndpointMessage = function (endpointId) {
  * or Error with "No opened data channels found!" message.
  */
 DataChannels.prototype.sendPinnedEndpointMessage = function (endpointId) {
-    this._onXXXEndpointChanged("pinnned", endpointId);
+    this._onXXXEndpointChanged("pinned", endpointId);
 };
 
 /**
  * Notifies Videobridge about a change in the value of a specific
- * endpoint-related property such as selected endpoint and pinnned endpoint.
+ * endpoint-related property such as selected endpoint and pinned endpoint.
  *
  * @param xxx the name of the endpoint-related property whose value changed
  * @param userResource the new value of the endpoint-related property after the
