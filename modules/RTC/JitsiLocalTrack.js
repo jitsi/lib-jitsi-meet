@@ -206,7 +206,6 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
         this.isAudioTrack() ||
         this.videoType === VideoType.DESKTOP ||
         RTCBrowserType.isFirefox()) {
-
         if(this.track)
             this.track.enabled = !mute;
     } else {
@@ -218,7 +217,7 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
                     //FIXME: Maybe here we should set the SRC for the containers
                     // to something
                     RTCUtils.stopMediaStream(self.stream);
-                    self.stream = null;
+                    self._setStream(null);
                 });
         } else {
             // This path is only for camera.
@@ -240,7 +239,7 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
                         throw new JitsiTrackError(
                             JitsiTrackErrors.TRACK_NO_STREAM_FOUND);
                     }else {
-                        self.stream = streamInfo.stream;
+                        self._setStream(streamInfo.stream);
                         self.track = streamInfo.track;
                         // This is not good when video type changes after
                         // unmute, but let's not crash here
