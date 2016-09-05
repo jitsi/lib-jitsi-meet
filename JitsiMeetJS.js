@@ -1,3 +1,4 @@
+require("babel-polyfill");
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var AuthUtil = require("./modules/util/AuthUtil");
 var JitsiConnection = require("./JitsiConnection");

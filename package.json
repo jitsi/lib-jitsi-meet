@@ -31,16 +31,16 @@
     "current-executing-script": "*"
   },
   "devDependencies": {
+    "babel-polyfill": "^6.13.0",
     "browserify": "11.1.x",
+    "exorcist": "*",
     "jshint": "^2.8.0",
     "precommit-hook": "^3.0.0",
-    "exorcist": "*",
     "uglify-js": "2.4.24",
     "watchify": "^3.7.0"
   },
   "scripts": {
     "install": "npm run browserify && npm run version && npm run uglifyjs",
-
     "browserify": "browserify -d JitsiMeetJS.js -s JitsiMeetJS | exorcist lib-jitsi-meet.js.map > lib-jitsi-meet.js && [ -s lib-jitsi-meet.js ]",
     "version": "VERSION=`./get-version.sh` && echo lib-jitsi-meet version is:${VERSION} && sed -i'' -e s/{#COMMIT_HASH#}/${VERSION}/g lib-jitsi-meet.js",
     "uglifyjs": "uglifyjs -p relative lib-jitsi-meet.js -o lib-jitsi-meet.min.js --source-map lib-jitsi-meet.min.map --in-source-map lib-jitsi-meet.js.map",
