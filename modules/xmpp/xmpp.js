@@ -122,7 +122,7 @@ XMPP.prototype.initFeaturesList = function () {
         //disco.addFeature('urn:ietf:rfc:5576'); // a=ssrc
 
         // Enable Lipsync ?
-        if (this.options.enableLipSync && RTCBrowserType.isChrome()) {
+        if (RTCBrowserType.isChrome() && false !== this.options.enableLipSync) {
             logger.info("Lip-sync enabled !");
             this.connection.disco.addFeature('http://jitsi.org/meet/lipsync');
         }
