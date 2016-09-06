@@ -174,13 +174,11 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: true
             }).up();
     //}
-    if (this.options.connection.enableLipSync !== undefined) {
-        elem.c(
-            'property', {
-                name: 'enableLipSync',
-                value: this.options.connection.enableLipSync
-            }).up();
-    }
+    elem.c(
+        'property', {
+            name: 'enableLipSync',
+            value: false !== this.options.connection.enableLipSync
+        }).up();
     if (this.options.conference.audioPacketDelay !== undefined) {
         elem.c(
             'property', {
