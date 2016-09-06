@@ -203,6 +203,7 @@ This objects represents the server connection. You can create new ```JitsiConnec
             - muc
             - anonymousdomain
         3. useStunTurn -
+        4. enableLipSync - (optional) boolean property which enables the lipsync feature. Currently works only in Chrome and is enabled by default.
 
 2. connect(options) - establish server connection
     - options - JS Object with ```id``` and ```password``` properties.
