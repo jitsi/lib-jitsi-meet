@@ -114,6 +114,8 @@ module.exports = function(XMPP, eventEmitter) {
                         reasonText = $(iq).find('>jingle>reason>text').text();
                     }
                     this.terminate(sess.sid, reasonCondition, reasonText);
+                    eventEmitter.emit(XMPPEvents.CALL_ENDED,
+                        sess, reasonCondition, reasonText);
                     break;
                 case 'transport-replace':
                     var now = window.performance.now();

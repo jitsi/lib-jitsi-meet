@@ -124,6 +124,9 @@ function Statistics(xmpp, options) {
     if(this.callStatsIntegrationEnabled)
         loadCallStatsAPI();
     this.callStats = null;
+    // Flag indicates whether or not the CallStats have been started for this
+    // Statistics instance
+    this.callStatsStarted = false;
 
     /**
      * Send the stats already saved in rtpStats to be logged via the focus.
@@ -252,9 +255,17 @@ Statistics.prototype.stopRemoteStats = function () {
  * /modules/settings/Settings.js
  */
 Statistics.prototype.startCallStats = function (session, settings) {
-    if(this.callStatsIntegrationEnabled && !this.callstats) {
+    if(this.callStatsIntegrationEnabled && !this.callStatsStarted) {
+        // Here we overwrite the previous instance, but it must be bound to
+        // the new PeerConnection
+        // FIXME CallStats does not show the participant after
+        // stopCallStats/startCallStats, the issue is being investigated on both
+        // our and CallStats side, but given how rare this situation should
+        // be, we need to have this change merged. Without it "invalid pcHash"
+        // error is reported(lib calls are made for the old PeerConnection).
         this.callstats = new CallStats(session, settings, this.options);
         Statistics.callsStatsInstances.push(this.callstats);
+        this.callStatsStarted = true;
     }
 };
 
@@ -262,7 +273,7 @@ Statistics.prototype.startCallStats = function (session, settings) {
  * Removes the callstats.io instances.
  */
 Statistics.prototype.stopCallStats = function () {
-    if(this.callstats) {
+    if(this.callStatsStarted) {
         var index = Statistics.callsStatsInstances.indexOf(this.callstats);
         if(index > -1)
             Statistics.callsStatsInstances.splice(index, 1);
@@ -270,6 +281,7 @@ Statistics.prototype.stopCallStats = function () {
         // feedback even after the conference has been destroyed.
         // this.callstats = null;
         CallStats.dispose();
+        this.callStatsStarted = false;
     }
 };
 

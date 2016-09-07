@@ -57,6 +57,11 @@ function JitsiConference(options) {
     };
     this.isMutedByFocus = false;
     this.reportedAudioSSRCs = {};
+    // Flag indicates if the 'onCallEnded' method was ever called on this
+    // instance. Used to log extra analytics event for debugging purpose.
+    // We need to know if the potential issue happened before or after
+    // the restart.
+    this.wasStopped = false;
 }
 
 /**
@@ -786,6 +791,10 @@ function (jingleSession, jingleOffer, now) {
     // Accept incoming call
     this.room.setJingleSession(jingleSession);
     this.room.connectionTimes["session.initiate"] = now;
+    // Log "session.restart"
+    if (this.wasStopped) {
+        Statistics.sendEventToAll("session.restart");
+    }
     // add info whether call is cross-region
     var crossRegion = null;
     if (window.jitsiRegionInfo)
@@ -852,7 +861,48 @@ function (jingleSession, jingleOffer, now) {
     // both camera and microphone.
     this.statistics.startCallStats(jingleSession, this.settings);
     this.statistics.startRemoteStats(jingleSession.peerconnection);
-}
+};
+
+/**
+ * Handles the call ended event.
+ * @param {JingleSessionPC} JingleSession the jingle session which has been
+ * terminated.
+ * @param {String} reasonCondition the Jingle reason condition.
+ * @param {String|null} reasonText human readable reason text which may provide
+ * more details about why the call has been terminated.
+ */
+JitsiConference.prototype.onCallEnded
+= function (JingleSession, reasonCondition, reasonText) {
+    logger.info("Call ended: " + reasonCondition + " - " + reasonText);
+    this.wasStopped = true;
+    // Send session.terminate event
+    Statistics.sendEventToAll("session.terminate");
+    // Stop the stats
+    if (this.statistics) {
+        this.statistics.stopRemoteStats();
+        this.statistics.stopCallStats();
+    }
+    // Current JingleSession is invalid so set it to null on the room
+    this.room.setJingleSession(null);
+    // Let the RTC service do any cleanups
+    this.rtc.onCallEnded();
+    // PeerConnection has been closed which means that SSRCs stored in
+    // JitsiLocalTrack will not match those assigned by the old PeerConnection
+    // and SSRC replacement logic will not work as expected.
+    // We want to re-register 'ssrcHandler' of our local tracks, so that they
+    // will learn what their SSRC from the new PeerConnection which will be
+    // created on incoming call event.
+    var self = this;
+    this.rtc.localTracks.forEach(function(localTrack) {
+        // Reset SSRC as it will no longer be valid
+        localTrack._setSSRC(null);
+        // Bind the handler to fetch new SSRC, it will un register itself once
+        // it reads the values
+        self.room.addListener(
+            XMPPEvents.SENDRECV_STREAMS_CHANGED, localTrack.ssrcHandler);
+    });
+};
+
 
 JitsiConference.prototype.updateDTMFSupport = function () {
     var somebodySupportsDTMF = false;
