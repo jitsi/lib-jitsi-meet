@@ -217,6 +217,17 @@ var LibJitsiMeet = {
                         }
                     }
 
+                // set real device ids
+                var currentlyAvailableMediaDevices
+                    = RTC.getCurrentlyAvailableMediaDevices();
+                if (currentlyAvailableMediaDevices) {
+                    for(var i = 0; i < tracks.length; i++) {
+                        var track = tracks[i];
+                        track._setRealDeviceIdFromDeviceList(
+                            currentlyAvailableMediaDevices);
+                    }
+                }
+
                 return tracks;
             }).catch(function (error) {
                 promiseFulfilled = true;
