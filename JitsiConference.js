@@ -793,8 +793,7 @@ function (jingleSession, jingleOffer, now) {
     this.room.connectionTimes["session.initiate"] = now;
     // Log "session.restart"
     if (this.wasStopped) {
-        Statistics.analytics.sendEvent("session.restart", now);
-        this.sendApplicationLog(JSON.stringify({ "id" : "session_restart"}));
+        Statistics.sendEventToAll("session.restart");
     }
     // add info whether call is cross-region
     var crossRegion = null;
@@ -876,11 +875,8 @@ JitsiConference.prototype.onCallEnded
 = function (JingleSession, reasonCondition, reasonText) {
     logger.info("Call ended: " + reasonCondition + " - " + reasonText);
     this.wasStopped = true;
-    // Send analytics event
-    Statistics.analytics.sendEvent(
-        "session.terminate", window.performance.now());
-    // Sends "session.terminate" through the stats as well
-    this.sendApplicationLog(JSON.stringify({ "id" : "session_terminate" }));
+    // Send session.terminate event
+    Statistics.sendEventToAll("session.terminate");
     // Stop the stats
     if (this.statistics) {
         this.statistics.stopRemoteStats();
