@@ -469,6 +469,7 @@ Statistics.sendLog = function (m) {
 Statistics.prototype.sendFeedback = function(overall, detailed) {
     if(this.callstats)
         this.callstats.sendFeedback(overall, detailed);
+    Statistics.analytics.sendEvent('feedback.rating', overall);
 };
 
 Statistics.LOCAL_JID = require("../../service/statistics/constants").LOCAL_JID;
