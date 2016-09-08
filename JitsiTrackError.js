@@ -1,4 +1,4 @@
-var JitsiTrackErrors = require("./JitsiTrackErrors");
+import * as JitsiTrackErrors from "./JitsiTrackErrors";
 
 var TRACK_ERROR_TO_MESSAGE_MAP = {};
 
