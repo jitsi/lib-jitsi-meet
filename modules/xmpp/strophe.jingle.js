@@ -90,7 +90,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                         fromJid,
                         this.connection,
                         this.media_constraints,
-                        this.ice_config, this.xmpp);
+                        this.ice_config, this.xmpp.options);
 
                 this.sessions[sess.sid] = sess;
 

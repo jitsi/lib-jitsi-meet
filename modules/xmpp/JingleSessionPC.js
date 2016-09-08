@@ -23,11 +23,30 @@ import * as JingleSessionState from "./JingleSessionState";
  */
 var IQ_TIMEOUT = 10000;
 
-// Jingle stuff
+/**
+ * Creates new <tt>JingleSessionPC</tt>
+ * @param {string} me our JID
+ * @param {string} sid the Jingle Session ID - random string which
+ * identifies the session
+ * @param {string} peerjid remote peer JID
+ * @param {Strophe.Connection} connection Strophe XMPP connection instance
+ * used to send packets.
+ * @param media_constraints the media constraints object passed to
+ * createOffer/Answer, as defined by the WebRTC standard
+ * @param ice_config the ICE servers config object as defined by the WebRTC
+ * standard.
+ * @param {object} options a set of config options
+ * @param {boolean} options.webrtcIceUdpDisable <tt>true</tt> to block UDP
+ * candidates.
+ * @param {boolean} options.webrtcIceTcpDisable <tt>true</tt> to block TCP
+ * candidates.
+ * @param {boolean} options.failICE it's an option used in the tests. Set to
+ * <tt>true</tt> to block any real candidates and make the ICE fail.
+ */
 function JingleSessionPC(me, sid, peerjid, connection,
-                         media_constraints, ice_config, service) {
+                         media_constraints, ice_config, options) {
     JingleSession.call(this, me, sid, peerjid, connection,
-                       media_constraints, ice_config, service);
+                       media_constraints, ice_config);
 
     this.lasticecandidate = false;
     this.closed = false;
@@ -60,14 +79,14 @@ function JingleSessionPC(me, sid, peerjid, connection,
      */
     this.ssrcOwners = {};
 
-    this.webrtcIceUdpDisable = !!this.service.options.webrtcIceUdpDisable;
-    this.webrtcIceTcpDisable = !!this.service.options.webrtcIceTcpDisable;
+    this.webrtcIceUdpDisable = !!options.webrtcIceUdpDisable;
+    this.webrtcIceTcpDisable = !!options.webrtcIceTcpDisable;
     /**
      * Flag used to enforce ICE failure through the URL parameter for
      * the automatic testing purpose.
      * @type {boolean}
      */
-    this.failICE = !!this.service.options.failICE;
+    this.failICE = !!options.failICE;
 
     this.modificationQueue = async.queue(this._processQueueTasks.bind(this), 1);
 }
@@ -241,7 +260,7 @@ JingleSessionPC.prototype.sendIceCandidates = function (candidates) {
             for (var i = 0; i < cands.length; i++) {
                 var candidate = SDPUtil.candidateToJingle(cands[i].candidate);
                 // Mangle ICE candidate if 'failICE' test option is enabled
-                if (this.service.options.failICE) {
+                if (this.failICE) {
                     candidate.ip = "1.1.1.1";
                 }
                 cand.c('candidate', candidate).up();
