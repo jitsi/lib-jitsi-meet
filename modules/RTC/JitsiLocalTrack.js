@@ -2,8 +2,8 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var JitsiTrack = require("./JitsiTrack");
 var RTCBrowserType = require("./RTCBrowserType");
-var JitsiTrackEvents = require('../../JitsiTrackEvents');
-var JitsiTrackErrors = require("../../JitsiTrackErrors");
+import * as JitsiTrackErrors from "../../JitsiTrackErrors";
+import * as JitsiTrackEvents from "../../JitsiTrackEvents";
 var JitsiTrackError = require("../../JitsiTrackError");
 var RTCEvents = require("../../service/RTC/RTCEvents");
 var RTCUtils = require("./RTCUtils");

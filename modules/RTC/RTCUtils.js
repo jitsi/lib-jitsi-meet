@@ -13,7 +13,7 @@ var AdapterJS = require("./adapter.screenshare");
 var SDPUtil = require("../xmpp/SDPUtil");
 var EventEmitter = require("events");
 var screenObtainer = require("./ScreenObtainer");
-var JitsiTrackErrors = require("../../JitsiTrackErrors");
+import * as JitsiTrackErrors from "../../JitsiTrackErrors";
 var JitsiTrackError = require("../../JitsiTrackError");
 var MediaType = require("../../service/RTC/MediaType");
 var VideoType = require("../../service/RTC/VideoType");
