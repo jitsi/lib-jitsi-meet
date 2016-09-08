@@ -21,10 +21,11 @@ var JitsiTrackError = require("../../JitsiTrackError");
 // allow it to prevent people from joining a conference) to (1) start
 // downloading their API as soon as possible and (2) do the downloading
 // asynchronously.
-function loadCallStatsAPI() {
+function loadCallStatsAPI(customScriptUrl) {
     if(!isCallstatsLoaded) {
         ScriptUtil.loadScript(
-                'https://api.callstats.io/static/callstats.min.js',
+                customScriptUrl ? customScriptUrl :
+                    'https://api.callstats.io/static/callstats.min.js',
                 /* async */ true,
                 /* prepend */ true);
         isCallstatsLoaded = true;
@@ -122,7 +123,7 @@ function Statistics(xmpp, options) {
             // requests to any third parties.
             && (Statistics.disableThirdPartyRequests !== true);
     if(this.callStatsIntegrationEnabled)
-        loadCallStatsAPI();
+        loadCallStatsAPI(this.options.callStatsCustomScriptUrl);
     this.callStats = null;
     // Flag indicates whether or not the CallStats have been started for this
     // Statistics instance
