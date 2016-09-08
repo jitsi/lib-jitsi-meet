@@ -412,7 +412,7 @@ JitsiConference.prototype.addTrack = function (track) {
         track.videoType !== VideoType.DESKTOP)) {
         // Report active device to statistics
         var devices = RTC.getCurrentlyAvailableMediaDevices();
-        device = devices.find(function (d) {
+        var device = devices.find(function (d) {
             return d.kind === track.getTrack().kind + 'input'
                 && d.label === track.getTrack().label;
         });

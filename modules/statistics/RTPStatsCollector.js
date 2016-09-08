@@ -504,7 +504,7 @@ StatsCollector.prototype.processStatsReport = function () {
     }
 
     var getStatValue = this._getStatValue;
-    byteSentStats = {};
+    var byteSentStats = {};
 
     for (var idx in this.currentStatsReport) {
         var now = this.currentStatsReport[idx];

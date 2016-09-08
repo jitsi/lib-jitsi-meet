@@ -488,7 +488,7 @@ ssrcInfo) {
         // Removing all cached ssrcs for the streams that are removed or
         // muted.
         if(ssrcInfo && this.replaceSSRCs[ssrcInfo.mtype]) {
-            for(i = 0; i < this.replaceSSRCs[ssrcInfo.mtype].length; i++) {
+            for(var i = 0; i < this.replaceSSRCs[ssrcInfo.mtype].length; i++) {
                 var op = this.replaceSSRCs[ssrcInfo.mtype][i];
                 if(op.type === "unmute" &&
                     op.ssrc.ssrcs.join("_") ===
