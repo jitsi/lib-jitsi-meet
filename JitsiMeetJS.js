@@ -337,7 +337,4 @@ var LibJitsiMeet = {
     }
 };
 
-//Setups the promise object.
-window.Promise = window.Promise || require("es6-promise").Promise;
-
 module.exports = LibJitsiMeet;
