@@ -1,5 +1,5 @@
 var JitsiTrack = require("./JitsiTrack");
-var JitsiTrackEvents = require("../../JitsiTrackEvents");
+import * as JitsiTrackEvents from "../../JitsiTrackEvents";
 var RTCBrowserType = require("./RTCBrowserType");
 var Statistics = require("../statistics/statistics");
 var AdapterJS = require("./adapter.screenshare");

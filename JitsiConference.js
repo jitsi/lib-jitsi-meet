@@ -9,7 +9,7 @@ var JitsiConferenceErrors = require("./JitsiConferenceErrors");
 var JitsiParticipant = require("./JitsiParticipant");
 var Statistics = require("./modules/statistics/statistics");
 var JitsiDTMFManager = require('./modules/DTMF/JitsiDTMFManager');
-var JitsiTrackEvents = require("./JitsiTrackEvents");
+import * as JitsiTrackEvents from "./JitsiTrackEvents";
 var JitsiTrackErrors = require("./JitsiTrackErrors");
 var JitsiTrackError = require("./JitsiTrackError");
 var Settings = require("./modules/settings/Settings");

@@ -7,7 +7,7 @@ var JitsiConnectionEvents = require("./JitsiConnectionEvents");
 var JitsiMediaDevicesEvents = require('./JitsiMediaDevicesEvents');
 var JitsiConnectionErrors = require("./JitsiConnectionErrors");
 var JitsiConferenceErrors = require("./JitsiConferenceErrors");
-var JitsiTrackEvents = require("./JitsiTrackEvents");
+import * as JitsiTrackEvents from "./JitsiTrackEvents";
 var JitsiTrackErrors = require("./JitsiTrackErrors");
 var JitsiTrackError = require("./JitsiTrackError");
 var JitsiRecorderErrors = require("./JitsiRecorderErrors");
