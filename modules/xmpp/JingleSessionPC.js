@@ -87,7 +87,8 @@ JingleSessionPC.prototype.doInitialize = function () {
     this.peerconnection = new TraceablePeerConnection(
             this.connection.jingle.ice_config,
             RTC.getPCConstraints(),
-            this);
+            this.room.options,
+            this.room.eventEmitter);
 
     this.peerconnection.onicecandidate = function (ev) {
         if (!ev) {

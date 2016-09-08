@@ -12,9 +12,26 @@ var SDPUtil = require("./SDPUtil");
 
 var SIMULCAST_LAYERS = 3;
 
-function TraceablePeerConnection(ice_config, constraints, session) {
+/**
+ * Creates new instance of 'TraceablePeerConnection'.
+ *
+ * @param {object} ice_config WebRTC 'PeerConnection' ICE config
+ * @param {object} constraints WebRTC 'PeerConnection' constraints
+ * @param {object} options <tt>TracablePeerConnection</tt> config options.
+ * @param {boolean} options.disableSimulcast if set to 'true' will disable
+ * the simulcast
+ * @param {boolean} options.disableRtx if set to 'true' will disable the RTX
+ * @param {boolean} options.preferH264 if set to 'true' H264 will be preferred
+ * over other video codecs.
+ * @param {EventEmitter} eventEmitter the emitter which wil be used by the new
+ * instance to emit events.
+ *
+ * @constructor
+ */
+function TraceablePeerConnection(ice_config,
+                                 constraints, options, eventEmitter) {
     var self = this;
-    this.session = session;
+    this.options = options;
     var RTCPeerConnectionType = null;
     if (RTCBrowserType.isFirefox()) {
         RTCPeerConnectionType = mozRTCPeerConnection;
@@ -35,7 +52,7 @@ function TraceablePeerConnection(ice_config, constraints, session) {
         explodeRemoteSimulcast: false});
     this.sdpConsistency = new SdpConsistency();
     this.rtxModifier = new RtxModifier();
-    this.eventEmitter = this.session.room.eventEmitter;
+    this.eventEmitter = eventEmitter;
 
     // override as desired
     this.trace = function (what, info) {
@@ -318,7 +335,7 @@ TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
         this.peerconnection.addStream(stream);
     if (ssrcInfo && ssrcInfo.type === "addMuted") {
         this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrc.ssrcs[0]);
-        const simGroup = 
+        const simGroup =
             ssrcInfo.ssrc.groups.find(groupInfo => {
                 return groupInfo.group.semantics === "SIM";
             });
@@ -333,7 +350,7 @@ TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
         if (fidGroups) {
             const rtxSsrcMapping = new Map();
             fidGroups.forEach(fidGroup => {
-                const fidGroupSsrcs = 
+                const fidGroupSsrcs =
                     SDPUtil.parseGroupSsrcs(fidGroup.group);
                 const primarySsrc = fidGroupSsrcs[0];
                 const rtxSsrc = fidGroupSsrcs[1];
@@ -389,7 +406,7 @@ TraceablePeerConnection.prototype.setRemoteDescription
     description = this.simulcast.mungeRemoteDescription(description);
     this.trace('setRemoteDescription::postTransform (simulcast)', dumpSDP(description));
 
-    if (this.session.room.options.preferH264) {
+    if (this.options.preferH264) {
         const parsedSdp = transform.parse(description.sdp);
         const videoMLine = parsedSdp.media.find(m => m.type === "video");
         SDPUtil.preferVideoCodec(videoMLine, "h264");
@@ -539,7 +556,7 @@ TraceablePeerConnection.prototype.createAnswer
                 }
 
                 // Add simulcast streams if simulcast is enabled
-                if (!this.session.room.options.disableSimulcast
+                if (!this.options.disableSimulcast
                     && this.simulcast.isSupported()) {
                     answer = this.simulcast.mungeLocalDescription(answer);
                     this.trace(
@@ -547,7 +564,7 @@ TraceablePeerConnection.prototype.createAnswer
                         dumpSDP(answer));
                 }
 
-                if (!this.session.room.options.disableRtx && !RTCBrowserType.isFirefox()) {
+                if (!this.options.disableRtx && !RTCBrowserType.isFirefox()) {
                     answer.sdp = this.rtxModifier.modifyRtxSsrcs(answer.sdp);
                     this.trace(
                         'createAnswerOnSuccess::postTransform (rtx modifier)',
@@ -623,7 +640,7 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
  */
 TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
     let ssrcInfo = {ssrcs: [], groups: []};
-    if (!this.session.room.options.disableSimulcast
+    if (!this.options.disableSimulcast
         && this.simulcast.isSupported()) {
         for (let i = 0; i < SIMULCAST_LAYERS; i++) {
             ssrcInfo.ssrcs.push(SDPUtil.generateSsrc());
@@ -635,7 +652,7 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
     } else {
         ssrcInfo = {ssrcs: [SDPUtil.generateSsrc()], groups: []};
     }
-    if (!this.session.room.options.disableRtx) {
+    if (!this.options.disableRtx) {
         // Specifically use a for loop here because we'll
         //  be adding to the list we're iterating over, so we
         //  only want to iterate through the items originally
@@ -647,7 +664,7 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
             ssrcInfo.ssrcs.push(rtxSsrc);
             ssrcInfo.groups.push({
                 primarySSRC: primarySsrc,
-                group: { 
+                group: {
                     ssrcs: primarySsrc + " " + rtxSsrc,
                     semantics: "FID"
                 }
