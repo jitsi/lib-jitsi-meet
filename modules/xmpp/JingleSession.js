@@ -9,7 +9,7 @@ const logger = getLogger(__filename);
 import * as JingleSessionState from "./JingleSessionState";
 
 function JingleSession(me, sid, peerjid, connection,
-                       media_constraints, ice_config, service, eventEmitter) {
+                       media_constraints, ice_config, service) {
     /**
      * Our JID.
      */
@@ -34,11 +34,6 @@ function JingleSession(me, sid, peerjid, connection,
      * The XMPP service.
      */
     this.service = service;
-
-    /**
-     * The event emitter.
-     */
-    this.eventEmitter = eventEmitter;
 
     /**
      * Whether to use dripping or not. Dripping is sending trickle candidates

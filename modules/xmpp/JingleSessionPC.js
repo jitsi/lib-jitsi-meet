@@ -25,9 +25,9 @@ var IQ_TIMEOUT = 10000;
 
 // Jingle stuff
 function JingleSessionPC(me, sid, peerjid, connection,
-                         media_constraints, ice_config, service, eventEmitter) {
+                         media_constraints, ice_config, service) {
     JingleSession.call(this, me, sid, peerjid, connection,
-                       media_constraints, ice_config, service, eventEmitter);
+                       media_constraints, ice_config, service);
 
     this.lasticecandidate = false;
     this.closed = false;
