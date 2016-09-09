@@ -18,6 +18,7 @@ var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 var JitsiConferenceEventManager = require("./JitsiConferenceEventManager");
 var VideoType = require('./service/RTC/VideoType');
 var Transcriber = require("./modules/transcription/transcriber");
+var TalkMutedDetection = require("./modules/talkmuted/TalkMutedDetection");
 var ParticipantConnectionStatus
     = require("./modules/connectivity/ParticipantConnectionStatus");
 
@@ -114,6 +115,16 @@ JitsiConference.prototype._init = function (options) {
     // Always add listeners because on reload we are executing leave and the
     // listeners are removed from statistics module.
     this.eventManager.setupStatisticsListeners();
+
+    this.talkMutedDetection = new TalkMutedDetection(function () {
+        this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED);
+    }.bind(this));
+    this.statistics.addAudioLevelListener(
+        this.talkMutedDetection.audioLevelListener
+            .bind(this.talkMutedDetection));
+    this.eventEmitter.on(
+        JitsiConferenceEvents.TRACK_MUTE_CHANGED,
+        this.talkMutedDetection.muteChanged.bind(this.talkMutedDetection));
 }
 
 /**
@@ -455,6 +466,9 @@ JitsiConference.prototype.addTrack = function (track) {
             } else {
                 this.room.setVideoMute(track.isMuted());
             }
+
+            if (this.talkMutedDetection && track.isAudioTrack())
+                this.talkMutedDetection.addTrack(track);
 
             track.muteHandler = this._fireMuteChangeEvent.bind(this, track);
             track.audioLevelHandler = this._fireAudioLevelChangeEvent.bind(this);
