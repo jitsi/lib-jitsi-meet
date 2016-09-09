@@ -1,6 +1,7 @@
 /* global Strophe, $, $pres, $iq, $msg */
 /* jshint -W101,-W069 */
-var logger = require("jitsi-meet-logger").getLogger(__filename);
+import {getLogger} from "jitsi-meet-logger";
+const logger = getLogger(__filename);
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var MediaType = require("../../service/RTC/MediaType");
 var Moderator = require("./moderator");

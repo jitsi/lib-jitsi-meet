@@ -1,4 +1,5 @@
-var logger = require("jitsi-meet-logger").getLogger(__filename);
+import {getLogger} from "jitsi-meet-logger";
+const logger = getLogger(__filename);
 var RTCBrowserType = require("../RTC/RTCBrowserType");
 
 

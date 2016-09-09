@@ -3,7 +3,8 @@
  * have different implementations depending on the underlying interface used
  * (i.e. WebRTC and ORTC) and here we hold the code common to all of them.
  */
-var logger = require("jitsi-meet-logger").getLogger(__filename);
+import {getLogger} from "jitsi-meet-logger";
+const logger = getLogger(__filename);
 
 function JingleSession(me, sid, peerjid, connection,
                        media_constraints, ice_config, service, eventEmitter) {
