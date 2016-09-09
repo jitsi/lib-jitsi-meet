@@ -1,7 +1,7 @@
 var JitsiConference = require("./JitsiConference");
 var XMPP = require("./modules/xmpp/xmpp");
-var JitsiConnectionEvents = require("./JitsiConnectionEvents");
-var JitsiConnectionErrors = require("./JitsiConnectionErrors");
+import * as JitsiConnectionErrors from "./JitsiConnectionErrors";
+import * as JitsiConnectionEvents from "./JitsiConnectionEvents";
 var Statistics = require("./modules/statistics/statistics");
 
 /**

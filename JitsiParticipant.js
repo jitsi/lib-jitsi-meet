@@ -1,5 +1,5 @@
 /* global Strophe */
-var JitsiConferenceEvents = require('./JitsiConferenceEvents');
+import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
 
 /**
  * Represents a participant in (a member of) a conference.

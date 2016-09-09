@@ -3,8 +3,8 @@ var logger = require("jitsi-meet-logger").getLogger(__filename);
 var EventEmitterForwarder = require("./modules/util/EventEmitterForwarder");
 var XMPPEvents = require("./service/xmpp/XMPPEvents");
 var RTCEvents = require("./service/RTC/RTCEvents");
-var JitsiConferenceEvents = require("./JitsiConferenceEvents");
-var JitsiConferenceErrors = require("./JitsiConferenceErrors");
+import * as JitsiConferenceErrors from "./JitsiConferenceErrors";
+import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
 var AuthenticationEvents =
     require("./service/authentication/AuthenticationEvents");
 var Statistics = require("./modules/statistics/statistics");
