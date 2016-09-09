@@ -7,7 +7,7 @@ var StatisticsEvents = require("../../service/statistics/Events");
 var AnalyticsAdapter = require("./AnalyticsAdapter");
 var CallStats = require("./CallStats");
 var ScriptUtil = require('../util/ScriptUtil');
-var JitsiTrackError = require("../../JitsiTrackError");
+import JitsiTrackError from "../../JitsiTrackError";
 
 /**
  * True if callstats API is loaded
