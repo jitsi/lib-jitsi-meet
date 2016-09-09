@@ -26,7 +26,7 @@ TalkMutedDetection.prototype.audioLevelListener =
         if (!isLocal || !this.audioTrack || this.eventFired)
             return;
 
-        if (this.audioTrack.isMuted() && level > 0.02) {
+        if (this.audioTrack.isMuted() && level > 0.6) {
             this.eventFired = true;
             this.callback();
         }
