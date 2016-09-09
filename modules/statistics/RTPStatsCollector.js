@@ -749,9 +749,12 @@ StatsCollector.prototype.processAudioLevelReport = function () {
     for (var idx in this.currentAudioLevelsReport) {
         var now = this.currentAudioLevelsReport[idx];
 
-        //if we don't have "packetsReceived" this is local stream
-        if (now.type != 'ssrc' || !getStatValue(now, 'packetsReceived')) {
+        if (now.type != 'ssrc')
             continue;
+
+        var isLocal = false;
+        if (!getStatValue(now, 'packetsReceived')) {
+            isLocal = true;
         }
 
         var before = this.baselineAudioLevelsReport[idx];
@@ -789,7 +792,7 @@ StatsCollector.prototype.processAudioLevelReport = function () {
             audioLevel = audioLevel / 32767;
             ssrcStats.setSsrcAudioLevel(audioLevel);
             this.eventEmitter.emit(
-                StatisticsEvents.AUDIO_LEVEL, ssrc, audioLevel);
+                StatisticsEvents.AUDIO_LEVEL, ssrc, audioLevel, isLocal);
         }
     }
 };
