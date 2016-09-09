@@ -1,211 +1,224 @@
 /* global Strophe */
 import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
+import * as MediaType from "./service/RTC/MediaType";
 
 /**
- * Represents a participant in (a member of) a conference.
- * @param jid the conference XMPP jid
- * @param conference
- * @param displayName
- * @param isHidden indicates if this participant is a hidden participant
+ * Represents a participant in (i.e. a member of) a conference.
  */
-function JitsiParticipant(jid, conference, displayName, isHidden){
-    this._jid = jid;
-    this._id = Strophe.getResourceFromJid(jid);
-    this._conference = conference;
-    this._displayName = displayName;
-    this._supportsDTMF = false;
-    this._tracks = [];
-    this._role = 'none';
-    this._status = null;
-    this._availableDevices = {
-        audio: undefined,
-        video: undefined
-    };
-    this._isHidden = isHidden;
-    this._properties = {};
-}
-
-/**
- * @returns {JitsiConference} The conference that this participant belongs to.
- */
-JitsiParticipant.prototype.getConference = function() {
-    return this._conference;
-};
-
-/**
- * Gets the value of a property of this participant.
- */
-JitsiParticipant.prototype.getProperty = function(name) {
-    return this._properties[name];
-};
-
-/**
- * Sets the value of a property of this participant, and fires an event if the
- * value has changed.
- * @name the name of the property.
- * @value the value to set.
- */
-JitsiParticipant.prototype.setProperty = function(name, value) {
-    var oldValue = this._properties[name];
-    this._properties[name] = value;
-
-    if (value !== oldValue) {
-        this._conference.eventEmitter.emit(
-            JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
-            this,
-            name,
-            oldValue,
-            value);
+export default class JitsiParticipant {
+    /**
+     * Initializes a new JitsiParticipant instance.
+     *
+     * @constructor
+     * @param jid the conference XMPP jid
+     * @param conference
+     * @param displayName
+     * @param {Boolean} hidden - True if the new JitsiParticipant instance is to
+     * represent a hidden participant; otherwise, false.
+     */
+    constructor(jid, conference, displayName, hidden) {
+        this._jid = jid;
+        this._id = Strophe.getResourceFromJid(jid);
+        this._conference = conference;
+        this._displayName = displayName;
+        this._supportsDTMF = false;
+        this._tracks = [];
+        this._role = 'none';
+        this._status = null;
+        this._availableDevices = {
+            audio: undefined,
+            video: undefined
+        };
+        this._hidden = hidden;
+        this._properties = {};
     }
-};
 
-/**
- * @returns {Array.<JitsiTrack>} The list of media tracks for this participant.
- */
-JitsiParticipant.prototype.getTracks = function() {
-    return this._tracks.slice();
-};
+    /**
+     * @returns {JitsiConference} The conference that this participant belongs
+     * to.
+     */
+    getConference() {
+        return this._conference;
+    }
 
-/**
- * @returns {String} The ID of this participant.
- */
-JitsiParticipant.prototype.getId = function() {
-    return this._id;
-};
+    /**
+     * Gets the value of a property of this participant.
+     */
+    getProperty(name) {
+        return this._properties[name];
+    }
 
-/**
- * @returns {String} The JID of this participant.
- */
-JitsiParticipant.prototype.getJid = function() {
-    return this._jid;
-};
+    /**
+     * Sets the value of a property of this participant, and fires an event if
+     * the value has changed.
+     * @name the name of the property.
+     * @value the value to set.
+     */
+    setProperty(name, value) {
+        var oldValue = this._properties[name];
 
-/**
- * @returns {String} The human-readable display name of this participant.
- */
-JitsiParticipant.prototype.getDisplayName = function() {
-    return this._displayName;
-};
+        if (value !== oldValue) {
+            this._properties[name] = value;
+            this._conference.eventEmitter.emit(
+                JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
+                this,
+                name,
+                oldValue,
+                value);
+        }
+    }
 
-/**
- * @returns {String} The status of the participant.
- */
-JitsiParticipant.prototype.getStatus = function () {
-    return this._status;
-};
+    /**
+     * @returns {Array.<JitsiTrack>} The list of media tracks for this
+     * participant.
+     */
+    getTracks() {
+        return this._tracks.slice();
+    }
 
-/**
- * @returns {Boolean} Whether this participant is a moderator or not.
- */
-JitsiParticipant.prototype.isModerator = function() {
-    return this._role === 'moderator';
-};
+    /**
+     * @returns {String} The ID of this participant.
+     */
+    getId() {
+        return this._id;
+    }
 
-/**
- * @returns {Boolean} Whether this participant is a hidden participant. Some
- * special system participants may want to join hidden (like for example the
- * recorder).
- */
-JitsiParticipant.prototype.isHidden = function() {
-    return this._isHidden;
-};
+    /**
+     * @returns {String} The JID of this participant.
+     */
+    getJid() {
+        return this._jid;
+    }
 
-// Gets a link to an etherpad instance advertised by the participant?
-//JitsiParticipant.prototype.getEtherpad = function() {
-//
-//}
+    /**
+     * @returns {String} The human-readable display name of this participant.
+     */
+    getDisplayName() {
+        return this._displayName;
+    }
 
+    /**
+     * @returns {String} The status of the participant.
+     */
+    getStatus () {
+        return this._status;
+    }
 
-/*
- * @returns {Boolean} Whether this participant has muted their audio.
- */
-JitsiParticipant.prototype.isAudioMuted = function() {
-    return this.getTracks().reduce(function (track, isAudioMuted) {
-        return isAudioMuted && (track.isVideoTrack() || track.isMuted());
-    }, true);
-};
+    /**
+     * @returns {Boolean} Whether this participant is a moderator or not.
+     */
+    isModerator() {
+        return this._role === 'moderator';
+    }
 
-/*
- * @returns {Boolean} Whether this participant has muted their video.
- */
-JitsiParticipant.prototype.isVideoMuted = function() {
-    return this.getTracks().reduce(function (track, isVideoMuted) {
-        return isVideoMuted && (track.isAudioTrack() || track.isMuted());
-    }, true);
-};
+    /**
+     * @returns {Boolean} Whether this participant is a hidden participant. Some
+     * special system participants may want to join hidden (like for example the
+     * recorder).
+     */
+    isHidden() {
+        return this._hidden;
+    }
 
-/*
- * @returns {???} The latest statistics reported by this participant
- * (i.e. info used to populate the GSM bars)
- * TODO: do we expose this or handle it internally?
- */
-JitsiParticipant.prototype.getLatestStats = function() {
+    // Gets a link to an etherpad instance advertised by the participant?
+    //getEtherpad() {
+    //}
 
-};
+    /**
+     * @returns {Boolean} Whether this participant has muted their audio.
+     */
+    isAudioMuted() {
+        return this._isMediaTypeMuted(MediaType.AUDIO);
+    }
 
-/**
- * @returns {String} The role of this participant.
- */
-JitsiParticipant.prototype.getRole = function() {
-    return this._role;
-};
+    /**
+     * Determines whether all JitsiTracks which are of a specific MediaType and
+     * which belong to this JitsiParticipant are muted.
+     *
+     * @param {MediaType} mediaType - The MediaType of the JitsiTracks to be
+     * checked.
+     * @private
+     * @returns {Boolean} True if all JitsiTracks which are of the specified
+     * mediaType and which belong to this JitsiParticipant are muted; otherwise,
+     * false.
+     */
+    _isMediaTypeMuted(mediaType) {
+        return this.getTracks().reduce(
+            (muted, track) =>
+                muted && (track.getType() !== mediaType || track.isMuted()),
+            true);
+    }
 
-/*
- * @returns {Boolean} Whether this participant is
- * the conference focus (i.e. jicofo).
- */
-JitsiParticipant.prototype.isFocus = function() {
+    /**
+     * @returns {Boolean} Whether this participant has muted their video.
+     */
+    isVideoMuted() {
+        return this._isMediaTypeMuted(MediaType.VIDEO);
+    }
 
-};
+    /**
+     * @returns {???} The latest statistics reported by this participant (i.e.
+     * info used to populate the GSM bars)
+     * TODO: do we expose this or handle it internally?
+     */
+    getLatestStats() {
+    }
 
-/*
- * @returns {Boolean} Whether this participant is
- * a conference recorder (i.e. jirecon).
- */
-JitsiParticipant.prototype.isRecorder = function() {
+    /**
+     * @returns {String} The role of this participant.
+     */
+    getRole() {
+        return this._role;
+    }
 
-};
+    /**
+     * @returns {Boolean} Whether this participant is the conference focus (i.e.
+     * jicofo).
+     */
+    isFocus() {
+    }
 
-/*
- * @returns {Boolean} Whether this participant is a SIP gateway (i.e. jigasi).
- */
-JitsiParticipant.prototype.isSipGateway = function() {
+    /**
+     * @returns {Boolean} Whether this participant is a conference recorder
+     * (i.e. jirecon).
+     */
+    isRecorder() {
+    }
 
-};
+    /**
+     * @returns {Boolean} Whether this participant is a SIP gateway (i.e.
+     * jigasi).
+     */
+    isSipGateway() {
+    }
 
-/**
- * @returns {Boolean} Whether this participant
- * is currently sharing their screen.
- */
-JitsiParticipant.prototype.isScreenSharing = function() {
+    /**
+     * @returns {Boolean} Whether this participant is currently sharing their
+     * screen.
+     */
+    isScreenSharing() {
+    }
 
-};
+    /**
+     * @returns {String} The user agent of this participant (i.e. browser
+     * userAgent string).
+     */
+    getUserAgent() {
+    }
 
-/**
- * @returns {String} The user agent of this participant
- * (i.e. browser userAgent string).
- */
-JitsiParticipant.prototype.getUserAgent = function() {
+    /**
+     * Kicks the participant from the conference (requires certain privileges).
+     */
+    kick() {
+    }
 
-};
+    /**
+     * Asks this participant to mute themselves.
+     */
+    askToMute() {
+    }
 
-/**
- * Kicks the participant from the conference (requires certain privileges).
- */
-JitsiParticipant.prototype.kick = function() {
-
-};
-
-/**
- * Asks this participant to mute themselves.
- */
-JitsiParticipant.prototype.askToMute = function() {
-
-};
-
-JitsiParticipant.prototype.supportsDTMF = function () {
-    return this._supportsDTMF;
-};
-
-
-module.exports = JitsiParticipant;
+    supportsDTMF() {
+        return this._supportsDTMF;
+    }
+}
