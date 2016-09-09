@@ -1,6 +1,6 @@
 module.exports = {
     /**
-     * FIXME: needs documentation.
+     * Notifies for audio level in rtp statistics by ssrc.
      */
     AUDIO_LEVEL: "statistics.audioLevel",
     /**
