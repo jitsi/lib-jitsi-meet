@@ -1,10 +1,11 @@
 /* global $, $iq, config, connection, focusMucJid, messageHandler,
    Toolbar, Util, Promise */
+import {getLogger} from "jitsi-meet-logger";
+const logger = getLogger(__filename);
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var JitsiRecorderErrors = require("../../JitsiRecorderErrors");
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 
-var logger = require("jitsi-meet-logger").getLogger(__filename);
 
 function Recording(type, eventEmitter, connection, focusMucJid, jirecon,
     roomjid) {

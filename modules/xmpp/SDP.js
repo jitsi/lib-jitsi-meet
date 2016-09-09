@@ -1,6 +1,6 @@
 /* jshint -W117 */
-
-var logger = require("jitsi-meet-logger").getLogger(__filename);
+import {getLogger} from "jitsi-meet-logger";
+const logger = getLogger(__filename);
 var SDPUtil = require("./SDPUtil");
 
 // SDP STUFF

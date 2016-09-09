@@ -2,10 +2,11 @@
 /**
  * Strophe logger implementation. Logs from level WARN and above.
  */
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
+import {getLogger} from "jitsi-meet-logger";
+const logger = getLogger(__filename);
+import GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
 
-module.exports = function () {
+export default function () {
 
     Strophe.log = function (level, msg) {
         // Our global handler reports uncaught errors to the stats which may
@@ -55,4 +56,4 @@ module.exports = function () {
                 return "unknown";
         }
     };
-};
+}
