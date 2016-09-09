@@ -47,6 +47,11 @@ function JitsiConference(options) {
     this._init(options);
     this.componentsVersions = new ComponentsVersions(this);
     this.participants = {};
+    /**
+     * Jingle Session instance
+     * @type {JingleSessionPC}
+     */
+    this.jingleSession = null;
     this.lastDominantSpeaker = null;
     this.dtmfManager = null;
     this.somebodySupportsDTMF = false;
@@ -181,6 +186,11 @@ JitsiConference.prototype.leave = function () {
             // ChatRoom instance.
             this.getParticipants().forEach(
                 participant => this.onMemberLeft(participant.getJid()));
+            // Close the JingleSession
+            if (this.jingleSession) {
+                this.jingleSession.close();
+                this.jingleSession = null;
+            }
         });
     }
 
@@ -517,7 +527,7 @@ JitsiConference.prototype.replaceTrack = function (oldTrack, newTrack) {
             newTrack.ssrcHandler);
     }
     // Now replace the stream at the lower levels
-    return this.room.replaceStream (oldTrack, newTrack)
+    return this._doReplaceTrack(oldTrack, newTrack)
         .then(() => {
             if (oldTrack) {
                 this.onTrackRemoved(oldTrack);
@@ -530,6 +540,25 @@ JitsiConference.prototype.replaceTrack = function (oldTrack, newTrack) {
         }, (error) => {
             return Promise.reject(new Error(error));
         });
+};
+
+/**
+ * Replaces the tracks at the lower level by going through the Jingle session
+ * and WebRTC peer connection. The method will resolve immediately if there is
+ * currently no JingleSession started.
+ * @param {JitsiLocalTrack|null} oldTrack the track to be removed during
+ * the process or <tt>null</t> if the method should act as "add track"
+ * @param {JitsiLocalTrackn|null} newTrack the new track to be added or
+ * <tt>null</tt> if the method should act as "remove track"
+ * @return {Promise}
+ * @private
+ */
+JitsiConference.prototype._doReplaceTrack = function (oldTrack, newTrack) {
+    if (this.jingleSession) {
+        return this.jingleSession.replaceStream(oldTrack, newTrack);
+    } else {
+        return Promise.resolve();
+    }
 };
 
 /**
@@ -588,6 +617,62 @@ JitsiConference.prototype._setupNewTrack = function (newTrack) {
         this.statistics.sendScreenSharingEvent(true);
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
+};
+
+/**
+ * Adds loca WebRTC stream to the conference.
+ * @param {MediaStream} stream new stream that will be added.
+ * @param {function} callback callback executed after successful stream addition.
+ * @param {function(error)} errorCallback callback executed if stream addition fail.
+ * @param {object} ssrcInfo object with information about the SSRCs associated with the
+ * stream.
+ * @param {boolean} [dontModifySources] if true _modifySources won't be called.
+ * Used for streams added before the call start.
+ */
+JitsiConference.prototype.addLocalWebRTCStream
+    = function (stream, callback, errorCallback, ssrcInfo, dontModifySources) {
+    if(this.jingleSession) {
+        this.jingleSession.addStream(
+            stream, callback, errorCallback, ssrcInfo, dontModifySources);
+    } else {
+        // We are done immediately
+        logger.warn("Add local MediaStream - no JingleSession started yet");
+        callback();
+    }
+};
+
+/**
+ * Remove local WebRTC media stream.
+ * @param {MediaStream} stream the stream that will be removed.
+ * @param {function} callback callback executed after successful stream removal.
+ * @param {function} errorCallback callback executed if stream removal fail.
+ * @param {object} ssrcInfo object with information about the SSRCs associated
+ * with the stream.
+ */
+JitsiConference.prototype.removeLocalWebRTCStream
+    = function (stream, callback, errorCallback, ssrcInfo) {
+    if(this.jingleSession) {
+        this.jingleSession.removeStream(
+            stream, callback, errorCallback, ssrcInfo);
+    } else {
+        // We are done immediately
+        logger.warn("Remove local MediaStream - no JingleSession started yet");
+        callback();
+    }
+};
+
+/**
+ * Generate ssrc info object for a stream with the following properties:
+ * - ssrcs - Array of the ssrcs associated with the stream.
+ * - groups - Array of the groups associated with the stream.
+ */
+JitsiConference.prototype._generateNewStreamSSRCInfo = function () {
+    if(!this.jingleSession) {
+        logger.warn("The call haven't been started. " +
+            "Cannot generate ssrc info at the moment!");
+        return null;
+    }
+    return this.jingleSession.generateNewStreamSSRCInfo();
 };
 
 /**
@@ -875,7 +960,7 @@ function (jingleSession, jingleOffer, now) {
     }
 
     // Accept incoming call
-    this.room.setJingleSession(jingleSession);
+    this.jingleSession = jingleSession;
     this.room.connectionTimes["session.initiate"] = now;
     // Log "session.restart"
     if (this.wasStopped) {
@@ -927,8 +1012,7 @@ function (jingleSession, jingleOffer, now) {
              * In order to solve issues like the above one here we have to
              * generate the ssrc information for the track .
              */
-            localTrack._setSSRC(
-                this.room.generateNewStreamSSRCInfo());
+            localTrack._setSSRC(this._generateNewStreamSSRCInfo());
             ssrcInfo = {
                 mtype: localTrack.getType(),
                 type: "addMuted",
@@ -937,9 +1021,9 @@ function (jingleSession, jingleOffer, now) {
             };
         }
         try {
-            this.room.addStream(
+            this.addLocalWebRTCStream(
                 localTrack.getOriginalStream(), function () {}, function () {},
-                ssrcInfo, true);
+                ssrcInfo, true /* don't modify SSRCs */);
         } catch(e) {
             GlobalOnErrorHandler.callErrorHandler(e);
             logger.error(e);
@@ -986,7 +1070,7 @@ JitsiConference.prototype.onCallEnded
         this.statistics.stopCallStats();
     }
     // Current JingleSession is invalid so set it to null on the room
-    this.room.setJingleSession(null);
+    this.jingleSession = null;
     // Let the RTC service do any cleanups
     this.rtc.onCallEnded();
     // PeerConnection has been closed which means that SSRCs stored in
@@ -1160,8 +1244,8 @@ JitsiConference.prototype.getPhonePin = function () {
  * for its session.
  */
 JitsiConference.prototype.getConnectionState = function () {
-    if(this.room)
-        return this.room.getConnectionState();
+    if(this.jingleSession)
+        return this.jingleSession.getIceConnectionState();
     return null;
 };
 
