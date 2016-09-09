@@ -156,3 +156,7 @@ export const USER_ROLE_CHANGED = "conference.roleChanged";
  * User status changed.
  */
 export const USER_STATUS_CHANGED = "conference.statusChanged";
+/**
+ * Event indicates that local user is talking while he muted himself
+ */
+export const TALK_WHILE_MUTED = "conference.talk_while_muted";
