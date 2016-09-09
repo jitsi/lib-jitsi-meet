@@ -3,7 +3,7 @@ var AuthUtil = require("./modules/util/AuthUtil");
 var JitsiConnection = require("./JitsiConnection");
 var JitsiMediaDevices = require("./JitsiMediaDevices");
 var JitsiConferenceEvents = require("./JitsiConferenceEvents");
-var JitsiConnectionEvents = require("./JitsiConnectionEvents");
+import * as JitsiConnectionEvents from "./JitsiConnectionEvents";
 var JitsiConnectionErrors = require("./JitsiConnectionErrors");
 var JitsiConferenceErrors = require("./JitsiConferenceErrors");
 import * as JitsiMediaDevicesEvents from "./JitsiMediaDevicesEvents";

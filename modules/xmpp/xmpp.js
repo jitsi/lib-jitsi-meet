@@ -7,7 +7,7 @@ var RandomUtil = require("../util/RandomUtil");
 var RTCEvents = require("../../service/RTC/RTCEvents");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var JitsiConnectionErrors = require("../../JitsiConnectionErrors");
-var JitsiConnectionEvents = require("../../JitsiConnectionEvents");
+import * as JitsiConnectionEvents from "../../JitsiConnectionEvents";
 var RTC = require("../RTC/RTC");
 var RTCBrowserType = require("../RTC/RTCBrowserType");
 
