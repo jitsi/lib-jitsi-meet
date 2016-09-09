@@ -2,7 +2,7 @@ var logger = require("jitsi-meet-logger").getLogger(__filename);
 var AuthUtil = require("./modules/util/AuthUtil");
 var JitsiConnection = require("./JitsiConnection");
 var JitsiMediaDevices = require("./JitsiMediaDevices");
-var JitsiConferenceEvents = require("./JitsiConferenceEvents");
+import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
 import * as JitsiConnectionErrors from "./JitsiConnectionErrors";
 import * as JitsiConnectionEvents from "./JitsiConnectionEvents";
 var JitsiConferenceErrors = require("./JitsiConferenceErrors");
