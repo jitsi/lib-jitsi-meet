@@ -51,7 +51,6 @@ function DataChannels(peerConnection, emitter) {
 DataChannels.prototype.onDataChannel = function (event) {
     var dataChannel = event.channel;
     var self = this;
-    var selectedEndpoint = null;
 
     dataChannel.onopen = function () {
         logger.info("Data channel opened by the Videobridge!", dataChannel);
@@ -63,19 +62,6 @@ DataChannels.prototype.onDataChannel = function (event) {
         //dataChannel.send(new ArrayBuffer(12));
 
         self.eventEmitter.emit(RTCEvents.DATA_CHANNEL_OPEN);
-
-        // when the data channel becomes available, tell the bridge about video
-        // selections so that it can do adaptive simulcast,
-        // we want the notification to trigger even if userJid is undefined,
-        // or null.
-        // XXX why do we not do the same for pinned endpoints?
-        try {
-            self.sendSelectedEndpointMessage(self.selectedEndpoint);
-        } catch (error) {
-            GlobalOnErrorHandler.callErrorHandler(error);
-            logger.error("Cannot sendSelectedEndpointMessage ",
-                self.selectedEndpoint, ". Error: ", error);
-        }
     };
 
     dataChannel.onerror = function (error) {
@@ -195,7 +181,6 @@ DataChannels.prototype.closeAllChannels = function () {
  * or Error with "No opened data channels found!" message.
  */
 DataChannels.prototype.sendSelectedEndpointMessage = function (endpointId) {
-    this.selectedEndpoint = endpointId;
     this._onXXXEndpointChanged("selected", endpointId);
 };
 
