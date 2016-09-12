@@ -40,7 +40,7 @@ export default class XMPP {
         this.token = token;
         this._initStrophePlugins(this);
 
-        this.connection = createConnection(options.bosh, token);
+        this.connection = createConnection(token, options.bosh);
 
         if(!this.connection.disco || !this.connection.caps)
             throw new Error(
