@@ -73,6 +73,12 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
     // called.
     this._realDeviceId = this.deviceId === '' ? undefined : this.deviceId;
 
+    /**
+     * Indicates that we have called RTCUtils.stopMediaStream for the
+     * MediaStream related to this JitsiTrack object.
+     */
+    this.stopStreamInProgress = false;
+
     this._onDeviceListChanged = function (devices) {
         self._setRealDeviceIdFromDeviceList(devices);
 
@@ -101,6 +107,19 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
 
     RTCUtils.addListener(RTCEvents.DEVICE_LIST_CHANGED,
         this._onDeviceListChanged);
+
+    if(this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
+        this._setHandler("track_mute", function () {
+            if(!this._checkForCameraIssues())
+                return;
+            this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
+        }.bind(this));
+        this._setHandler("track_ended", function () {
+            if(!this._checkForCameraIssues())
+                return;
+            this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
+        }.bind(this));
+    }
 }
 
 JitsiLocalTrack.prototype = Object.create(JitsiTrack.prototype);
@@ -215,7 +234,7 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
                 this._removeStreamFromConferenceAsMute(() => {
                     //FIXME: Maybe here we should set the SRC for the containers
                     // to something
-                    RTCUtils.stopMediaStream(this.stream);
+                    this._stopMediaStream();
                     this._setStream(null);
                     resolve();
                 }, (err) => {
@@ -363,7 +382,7 @@ JitsiLocalTrack.prototype.dispose = function () {
     }
 
     if (this.stream) {
-        RTCUtils.stopMediaStream(this.stream);
+        this._stopMediaStream();
         this.detach();
     }
 
@@ -468,7 +487,7 @@ JitsiLocalTrack.prototype._setByteSent = function (bytesSent) {
         setTimeout(function () {
             if(this._bytesSent <= 0){
                 //we are not receiving anything from the microphone
-                this.eventEmitter.emit(JitsiTrackEvents.TRACK_AUDIO_NOT_WORKING);
+                this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
             }
         }.bind(this), 3000);
         this._testByteSent = false;
@@ -516,5 +535,57 @@ JitsiLocalTrack.prototype.getCameraFacingMode = function () {
     return undefined;
 };
 
+/**
+ * Stops the associated MediaStream.
+ */
+JitsiLocalTrack.prototype._stopMediaStream = function () {
+    this.stopStreamInProgress = true;
+    RTCUtils.stopMediaStream(this.stream);
+    this.stopStreamInProgress = false;
+}
+
+/**
+ * Detects camera issues on ended and mute events from MediaStreamTrack.
+ * @returns {boolean} true if an issue is detected and false otherwise
+ */
+JitsiLocalTrack.prototype._checkForCameraIssues = function () {
+    if(!this.isVideoTrack() || this.stopStreamInProgress ||
+        this.videoType === VideoType.DESKTOP)
+        return false;
+
+    return !this._isReceivingData();
+}
+
+/**
+ * Checks whether the attached MediaStream is reveiving data from source or
+ * not. If the stream property is null(because of mute or another reason) this
+ * method will return false.
+ * NOTE: This method doesn't indicate problem with the streams directly.
+ * For example in case of video mute the method will return false or if the
+ * user has disposed the track.
+ * @returns {boolean} true if the stream is receiving data and false otherwise.
+ */
+JitsiLocalTrack.prototype._isReceivingData = function () {
+    if(!this.stream)
+        return false;
+    var isReceivingData = false;
+    var tracks = this.stream.getTracks();
+    tracks.some(function (track) {
+        // In older version of the spec there is no muted property and
+        // readyState can have value muted. In the latest versions
+        // readyState can have values "live" and "ended" and there is
+        // muted boolean property. If the stream is muted that means that
+        // we aren't receiving any data from the source. We want to notify
+        // the users for error if the stream is muted or ended on it's
+        // creation.
+        if((!("readyState" in track) || track.readyState === "live")
+            && (!("muted" in track) || track.muted === false)) {
+            isReceivingData = true;
+            return true;
+        }
+        return false;
+    });
+    return isReceivingData;
+}
 
 module.exports = JitsiLocalTrack;
