@@ -8,6 +8,15 @@ var EventEmitter = require("events");
 var MediaType = require("../../service/RTC/MediaType");
 
 /**
+ * Maps our handler types to MediaStreamTrack properties.
+ */
+var trackHandler2Prop = {
+    "track_mute": "onmute",//Not supported on FF
+    "track_unmute": "onunmute",
+    "track_ended": "onended"
+};
+
+/**
  * This implements 'onended' callback normally fired by WebRTC after the stream
  * is stopped. There is no such behaviour yet in FF, so we have to add it.
  * @param jitsiTrack our track object holding the original WebRTC stream object
@@ -90,15 +99,20 @@ function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMedia
  * @param {Function} handler the handler.
  */
 JitsiTrack.prototype._setHandler = function (type, handler) {
-    if(this.stream) {
-        if(type === "inactive") {
-            if (RTCBrowserType.isFirefox()) {
-                implementOnEndedHandling(this);
-            }
-            addMediaStreamInactiveHandler(this.stream, handler);
-        }
-    }
     this.handlers[type] = handler;
+    if(!this.stream)
+        return;
+
+    if(type === "inactive") {
+        if (RTCBrowserType.isFirefox()) {
+            implementOnEndedHandling(this);
+        }
+        addMediaStreamInactiveHandler(this.stream, handler);
+    } else if(trackHandler2Prop.hasOwnProperty(type)) {
+        this.stream.getVideoTracks().forEach(function (track) {
+            track[trackHandler2Prop[type]] = handler;
+        }, this);
+    }
 }
 
 /**
