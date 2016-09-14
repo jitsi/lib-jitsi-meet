@@ -7,3 +7,4 @@ deploy-local.sh
 .remote-sync.json
 lib-jitsi-meet.*
 npm-*.log
+.sync-config.cson
