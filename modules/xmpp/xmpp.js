@@ -242,12 +242,12 @@ export default class XMPP {
     }
 
     createRoom (roomName, options, settings) {
-        let tmpJid = Strophe.getNodeFromJid(this.connection.jid);
+        let mucNickname = Strophe.getNodeFromJid(this.connection.jid);
         let roomjid = roomName  + "@" + this.options.hosts.muc + "/";
 
-        roomjid += (options.useNicks)? options.nick || tmpJid :
-            (this.authenticatedUser? "-" + RandomUtil.randomHexString(6):
-                tmpJid.substr(0, 8));
+        roomjid += (options.useNicks) ? options.nick || mucNickname :
+            (this.authenticatedUser ? "-" + RandomUtil.randomHexString(6):
+                mucNickname.substr(0, 8));
         return this.connection.emuc.createRoom(roomjid, null, options,
             settings);
     }
