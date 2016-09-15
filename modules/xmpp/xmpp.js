@@ -242,12 +242,27 @@ export default class XMPP {
     }
 
     createRoom (roomName, options, settings) {
+        // By default MUC nickname is the resource part of the JID
         let mucNickname = Strophe.getNodeFromJid(this.connection.jid);
         let roomjid = roomName  + "@" + this.options.hosts.muc + "/";
+        let cfgNickname
+            = (options.useNicks && options.nick) ? options.nick : null;
 
-        roomjid += (options.useNicks) ? options.nick || mucNickname :
-            (this.authenticatedUser ? "-" + RandomUtil.randomHexString(6):
-                mucNickname.substr(0, 8));
+        if (cfgNickname) {
+            // Use nick if it's defined
+            mucNickname = options.nick;
+        } else if (!this.authenticatedUser) {
+            // node of the anonymous JID is very long - here we trim it a bit
+            mucNickname = mucNickname.substr(0, 8);
+        }
+        // Constant JIDs need some random part to be appended in order to be
+        // able to join the MUC more than once.
+        if (this.authenticatedUser || cfgNickname != null) {
+            mucNickname += "-" + RandomUtil.randomHexString(6);
+        }
+
+        roomjid += mucNickname;
+
         return this.connection.emuc.createRoom(roomjid, null, options,
             settings);
     }
