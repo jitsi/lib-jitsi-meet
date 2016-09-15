@@ -96,6 +96,7 @@ JitsiConference.prototype._init = function (options) {
 
     this.participantConnectionStatus
         = new ParticipantConnectionStatus(this.rtc, this);
+    this.participantConnectionStatus.init();
 
     if(!this.statistics) {
         this.statistics = new Statistics(this.xmpp, {
@@ -155,6 +156,11 @@ JitsiConference.prototype._leaveRoomAndRemoveParticipants = function () {
  */
 JitsiConference.prototype.leave = function () {
     var conference = this;
+
+    if (this.participantConnectionStatus) {
+        this.participantConnectionStatus.dispose();
+        this.participantConnectionStatus = null;
+    }
 
     this.statistics.stopCallStats();
     this.rtc.closeAllDataChannels();

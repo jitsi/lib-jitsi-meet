@@ -14,10 +14,32 @@ import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
 function ParticipantConnectionStatus(rtc, conference) {
     this.rtc = rtc;
     this.conference = conference;
-    rtc.addListener(
-        RTCEvents.ENDPOINT_CONN_STATUS_CHANGED,
-        this.onEndpointConnStatusChanged.bind(this));
 }
+
+/**
+ * Initializes <tt>ParticipantConnectionStatus</tt> and bind required event
+ * listeners.
+ */
+ParticipantConnectionStatus.prototype.init = function() {
+
+    this._onEndpointConnStatusChanged
+        = this.onEndpointConnStatusChanged.bind(this);
+
+    this.rtc.addListener(
+        RTCEvents.ENDPOINT_CONN_STATUS_CHANGED,
+        this._onEndpointConnStatusChanged);
+};
+
+/**
+ * Removes all event listeners and disposes of all resources held by this
+ * instance.
+ */
+ParticipantConnectionStatus.prototype.dispose = function () {
+
+    this.rtc.removeListener(
+        RTCEvents.ENDPOINT_CONN_STATUS_CHANGED,
+        this._onEndpointConnStatusChanged);
+};
 
 /**
  * Handles RTCEvents.ENDPOINT_CONN_STATUS_CHANGED triggered when we receive
