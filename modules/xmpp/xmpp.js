@@ -17,8 +17,6 @@ import initPing from "./strophe.ping";
 import initRayo from "./strophe.rayo";
 import initStropheLogger from "./strophe.logger";
 
-let authenticatedUser = true;
-
 function createConnection(token, bosh = '/http-bind') {
     // Append token as URL param
     if (token) {
@@ -38,6 +36,7 @@ export default class XMPP {
         this.options = options;
         this.connectParams = {};
         this.token = token;
+        this.authenticatedUser = false;
         this._initStrophePlugins(this);
 
         this.connection = createConnection(token, options.bosh);
@@ -130,7 +129,7 @@ export default class XMPP {
                 }.bind(this));
 
             if (password)
-                authenticatedUser = true;
+                this.authenticatedUser = true;
             if (this.connection && this.connection.connected &&
                 Strophe.getResourceFromJid(this.connection.jid)) {
                 // .connected is true while connecting?
@@ -243,12 +242,27 @@ export default class XMPP {
     }
 
     createRoom (roomName, options, settings) {
-        let tmpJid = Strophe.getNodeFromJid(this.connection.jid);
+        // By default MUC nickname is the resource part of the JID
+        let mucNickname = Strophe.getNodeFromJid(this.connection.jid);
         let roomjid = roomName  + "@" + this.options.hosts.muc + "/";
+        let cfgNickname
+            = (options.useNicks && options.nick) ? options.nick : null;
 
-        roomjid += (options.useNicks)? options.nick || tmpJid :
-            (authenticatedUser? "-" + RandomUtil.randomHexString(6):
-                tmpJid.substr(0, 8));
+        if (cfgNickname) {
+            // Use nick if it's defined
+            mucNickname = options.nick;
+        } else if (!this.authenticatedUser) {
+            // node of the anonymous JID is very long - here we trim it a bit
+            mucNickname = mucNickname.substr(0, 8);
+        }
+        // Constant JIDs need some random part to be appended in order to be
+        // able to join the MUC more than once.
+        if (this.authenticatedUser || cfgNickname != null) {
+            mucNickname += "-" + RandomUtil.randomHexString(6);
+        }
+
+        roomjid += mucNickname;
+
         return this.connection.emuc.createRoom(roomjid, null, options,
             settings);
     }
