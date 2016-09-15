@@ -124,8 +124,7 @@ ChatRoom.prototype.updateDeviceAvailability = function (devices) {
 };
 
 ChatRoom.prototype.join = function (password) {
-    if(password)
-        this.password = password;
+    this.password = password;
     var self = this;
     this.moderator.allocateConferenceFocus(function () {
         self.sendPresence(true);
