@@ -17,8 +17,6 @@ import initPing from "./strophe.ping";
 import initRayo from "./strophe.rayo";
 import initStropheLogger from "./strophe.logger";
 
-let authenticatedUser = true;
-
 function createConnection(token, bosh = '/http-bind') {
     // Append token as URL param
     if (token) {
@@ -38,6 +36,7 @@ export default class XMPP {
         this.options = options;
         this.connectParams = {};
         this.token = token;
+        this.authenticatedUser = false;
         this._initStrophePlugins(this);
 
         this.connection = createConnection(token, options.bosh);
@@ -130,7 +129,7 @@ export default class XMPP {
                 }.bind(this));
 
             if (password)
-                authenticatedUser = true;
+                this.authenticatedUser = true;
             if (this.connection && this.connection.connected &&
                 Strophe.getResourceFromJid(this.connection.jid)) {
                 // .connected is true while connecting?
@@ -247,7 +246,7 @@ export default class XMPP {
         let roomjid = roomName  + "@" + this.options.hosts.muc + "/";
 
         roomjid += (options.useNicks)? options.nick || tmpJid :
-            (authenticatedUser? "-" + RandomUtil.randomHexString(6):
+            (this.authenticatedUser? "-" + RandomUtil.randomHexString(6):
                 tmpJid.substr(0, 8));
         return this.connection.emuc.createRoom(roomjid, null, options,
             settings);
