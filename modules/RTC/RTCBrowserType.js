@@ -107,6 +107,16 @@ var RTCBrowserType = {
     },
 
     /**
+     * Checks if the current browser triggers 'onmute'/'onunmute' events when
+     * user's connection is interrupted and the video stops playback.
+     * @returns {*|boolean} 'true' if the event is supported or 'false'
+     * otherwise.
+     */
+    isVideoMuteOnConnInterruptedSupported: function () {
+        return RTCBrowserType.isChrome();
+    },
+
+    /**
      * Returns Firefox version.
      * @returns {number|null}
      */
