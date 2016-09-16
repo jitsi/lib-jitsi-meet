@@ -85,7 +85,7 @@ JitsiRemoteTrack.prototype.setMute = function (value) {
         this.stream.muted = value;
 
     this.muted = value;
-    this.eventEmitter.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED);
+    this.eventEmitter.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, this);
 };
 
 /**

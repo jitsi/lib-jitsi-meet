@@ -340,7 +340,7 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
             return self._sendMuteStatus(mute);
         })
         .then(function() {
-            self.eventEmitter.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED);
+            self.eventEmitter.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, this);
         });
 };
 
