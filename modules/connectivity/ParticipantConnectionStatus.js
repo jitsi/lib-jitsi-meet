@@ -1,11 +1,11 @@
 /* global __filename, module, require */
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var MediaType = require("../../service/RTC/MediaType");
-var RTCBrowserType = require("../RTC/RTCBrowserType");
-var RTCEvents = require("../../service/RTC/RTCEvents");
+var logger = require('jitsi-meet-logger').getLogger(__filename);
+var MediaType = require('../../service/RTC/MediaType');
+var RTCBrowserType = require('../RTC/RTCBrowserType');
+var RTCEvents = require('../../service/RTC/RTCEvents');
 
-import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
-import * as JitsiTrackEvents from "../../JitsiTrackEvents";
+import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 
 /**
  * How long we're going to wait after the RTC video track muted event for
@@ -132,7 +132,7 @@ ParticipantConnectionStatus.prototype.onEndpointConnStatusChanged
 
     logger.debug(
         'Detector RTCEvents.ENDPOINT_CONN_STATUS_CHANGED('
-            + Date.now() +'): ' + endpointId + ": " + isActive);
+            + Date.now() +'): ' + endpointId + ': ' + isActive);
 
     // Filter out events for the local JID for now
     if (endpointId !== this.conference.myUserId()) {
@@ -144,8 +144,8 @@ ParticipantConnectionStatus.prototype.onEndpointConnStatusChanged
                 && hasRtcMutedVideoTrack(participant)
                 && !participant.isVideoMuted()) {
             logger.debug(
-                "Ignoring RTCEvents.ENDPOINT_CONN_STATUS_CHANGED -"
-                    + " will wait for unmute event");
+                'Ignoring RTCEvents.ENDPOINT_CONN_STATUS_CHANGED -'
+                    + ' will wait for unmute event');
         } else {
             this._changeConnectionStatus(endpointId, isActive);
         }
@@ -201,7 +201,7 @@ ParticipantConnectionStatus.prototype.onRemoteTrackAdded
     if (!remoteTrack.isLocal() && remoteTrack.getType() === MediaType.VIDEO) {
 
         logger.debug(
-            "Detector on remote track added: ", remoteTrack.getParticipantId());
+            'Detector on remote track added: ', remoteTrack.getParticipantId());
 
         remoteTrack.on(
             JitsiTrackEvents.TRACK_MUTE_CHANGED,
@@ -220,7 +220,7 @@ ParticipantConnectionStatus.prototype.onRemoteTrackRemoved
 = function(remoteTrack) {
     if (!remoteTrack.isLocal() && remoteTrack.getType() === MediaType.VIDEO) {
         logger.debug(
-            "Detector on remote track removed: ",
+            'Detector on remote track removed: ',
             remoteTrack.getParticipantId());
         remoteTrack.off(
             JitsiTrackEvents.TRACK_MUTE_CHANGED,
@@ -238,9 +238,9 @@ ParticipantConnectionStatus.prototype.onRemoteTrackRemoved
 ParticipantConnectionStatus.prototype.onTrackRtcMuted = function(track) {
     var participantId = track.getParticipantId();
     var participant = this.conference.getParticipantById(participantId);
-    logger.debug("Detector track RTC muted: ", participantId);
+    logger.debug('Detector track RTC muted: ', participantId);
     if (!participant) {
-        logger.error("No participant for id: " + participantId);
+        logger.error('No participant for id: ' + participantId);
         return;
     }
     if (!participant.isVideoMuted()) {
@@ -249,7 +249,7 @@ ParticipantConnectionStatus.prototype.onTrackRtcMuted = function(track) {
         this.trackTimers[participantId] = window.setTimeout(function () {
             if (!track.isMuted() && participant.isConnectionActive()) {
                 logger.info(
-                    "Connection interrupted through the RTC mute: "
+                    'Connection interrupted through the RTC mute: '
                         + participantId, Date.now());
                 this._changeConnectionStatus(participantId, false);
             }
@@ -265,13 +265,13 @@ ParticipantConnectionStatus.prototype.onTrackRtcMuted = function(track) {
  * will be processed.
  */
 ParticipantConnectionStatus.prototype.onTrackRtcUnmuted = function(track) {
-    logger.debug("Detector track RTC unmuted: ", track);
+    logger.debug('Detector track RTC unmuted: ', track);
     var participantId = track.getParticipantId();
     if (!track.isMuted() &&
         !this.conference.getParticipantById(participantId)
             .isConnectionActive()) {
         logger.info(
-            "Detector connection restored through the RTC unmute: "
+            'Detector connection restored through the RTC unmute: '
                 + participantId, Date.now());
         this._changeConnectionStatus(participantId, true);
     }
@@ -287,18 +287,18 @@ ParticipantConnectionStatus.prototype.onTrackRtcUnmuted = function(track) {
 ParticipantConnectionStatus.prototype.onSignallingMuteChanged
 = function (track) {
     logger.debug(
-        "Detector on track signalling mute changed: ", track, track.isMuted());
+        'Detector on track signalling mute changed: ', track, track.isMuted());
     var isMuted = track.isMuted();
     var participantId = track.getParticipantId();
     var participant = this.conference.getParticipantById(participantId);
     if (!participant) {
-        logger.error("No participant for id: " + participantId);
+        logger.error('No participant for id: ' + participantId);
         return;
     }
     var isConnectionActive = participant.isConnectionActive();
     if (isMuted && isConnectionActive && this.trackTimers[participantId]) {
         logger.debug(
-            "Signalling got in sync - cancelling task for: " + participantId);
+            'Signalling got in sync - cancelling task for: ' + participantId);
         this.clearTimeout(participantId);
     }
 };
