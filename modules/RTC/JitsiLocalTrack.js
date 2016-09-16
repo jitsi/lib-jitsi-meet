@@ -211,14 +211,17 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
     } else {
         if(mute) {
             this.dontFireRemoveEvent = true;
-
-            promise = this._removeStreamFromConferenceAsMute()
-                .then(function() {
+            promise = new Promise( (resolve, reject) => {
+                this._removeStreamFromConferenceAsMute(() => {
                     //FIXME: Maybe here we should set the SRC for the containers
                     // to something
-                    RTCUtils.stopMediaStream(self.stream);
-                    self._setStream(null);
+                    RTCUtils.stopMediaStream(this.stream);
+                    this._setStream(null);
+                    resolve();
+                }, (err) => {
+                    reject(err);
                 });
+            });
         } else {
             // This path is only for camera.
             var streamOptions = {
@@ -298,28 +301,26 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function () {
 
 /**
  * Removes stream from conference and marks it as "mute" operation.
- *
+ * @param {Function} successCallback will be called on success
+ * @param {Function} errorCallback will be called on error
  * @private
- * @returns {Promise}
  */
-JitsiLocalTrack.prototype._removeStreamFromConferenceAsMute = function () {
+JitsiLocalTrack.prototype._removeStreamFromConferenceAsMute =
+function (successCallback, errorCallback) {
     if (!this.conference || !this.conference.room) {
-        return Promise.resolve();
+        successCallback();
+        return;
     }
 
-    var self = this;
-
-    return new Promise(function(resolve, reject) {
-        self.conference.room.removeStream(
-            self.stream,
-            resolve,
-            reject,
-            {
-                mtype: self.type,
-                type: "mute",
-                ssrc: self.ssrc
-            });
-    });
+    this.conference.room.removeStream(
+        this.stream,
+        successCallback,
+        errorCallback,
+        {
+            mtype: this.type,
+            type: "mute",
+            ssrc: this.ssrc
+        });
 };
 
 /**
