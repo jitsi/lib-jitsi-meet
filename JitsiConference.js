@@ -597,6 +597,7 @@ JitsiConference.prototype.unlock = function () {
 /**
  * Elects the participant with the given id to be the selected participant in
  * order to receive higher video quality (if simulcast is enabled).
+ * Or cache it if channel is not created and send it once channel is available.
  * @param participantId the identifier of the participant
  * @throws NetworkError or InvalidStateError or Error if the operation fails.
  */
