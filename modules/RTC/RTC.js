@@ -6,6 +6,8 @@ var RTCEvents = require("../../service/RTC/RTCEvents.js");
 var RTCUtils = require("./RTCUtils.js");
 var JitsiTrack = require("./JitsiTrack");
 var JitsiLocalTrack = require("./JitsiLocalTrack.js");
+var JitsiTrackErrors = require("../../JitsiTrackErrors");
+var JitsiTrackError = require("../../JitsiTrackError");
 var DataChannels = require("./DataChannels");
 var JitsiRemoteTrack = require("./JitsiRemoteTrack.js");
 var MediaType = require("../../service/RTC/MediaType");
@@ -79,7 +81,10 @@ function RTC(conference, options) {
 RTC.obtainAudioAndVideoPermissions = function (options) {
     return RTCUtils.obtainAudioAndVideoPermissions(options).then(
         function (tracksInfo) {
-            return createLocalTracks(tracksInfo, options);
+            var tracks = createLocalTracks(tracksInfo, options);
+            return !tracks.some(track => !track._isReceivingData())? tracks :
+                Promise.reject(new JitsiTrackError(
+                    JitsiTrackErrors.NO_DATA_FROM_SOURCE));
     });
 };
 
