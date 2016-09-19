@@ -116,15 +116,17 @@ JitsiConference.prototype._init = function (options) {
     // listeners are removed from statistics module.
     this.eventManager.setupStatisticsListeners();
 
-    this.talkMutedDetection = new TalkMutedDetection(function () {
-        this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED);
-    }.bind(this));
-    this.statistics.addAudioLevelListener(
-        this.talkMutedDetection.audioLevelListener
-            .bind(this.talkMutedDetection));
-    this.eventEmitter.on(
-        JitsiConferenceEvents.TRACK_MUTE_CHANGED,
-        this.talkMutedDetection.muteChanged.bind(this.talkMutedDetection));
+    if (this.options.config.enableTalkWhileMuted) {
+        this.talkMutedDetection = new TalkMutedDetection(function () {
+            this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED);
+        }.bind(this));
+        this.statistics.addAudioLevelListener(
+            this.talkMutedDetection.audioLevelListener
+                .bind(this.talkMutedDetection));
+        this.eventEmitter.on(
+            JitsiConferenceEvents.TRACK_MUTE_CHANGED,
+            this.talkMutedDetection.muteChanged.bind(this.talkMutedDetection));
+    }
 }
 
 /**

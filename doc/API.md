@@ -219,6 +219,7 @@ This objects represents the server connection. You can create new ```JitsiConnec
         3. jirecon
         4. callStatsID - callstats credentials
         5. callStatsSecret - callstats credentials
+        6. enableTalkWhileMuted - boolean property. Enables/disables talk while muted detection, by default the value is false/disabled.
         **NOTE: if 4 and 5 are set the library is going to send events to callstats. Otherwise the callstats integration will be disabled.**
 
 5. addEventListener(event, listener) - Subscribes the passed listener to the event.
