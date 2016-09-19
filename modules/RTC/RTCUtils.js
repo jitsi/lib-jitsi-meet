@@ -32,6 +32,8 @@ var devices = {
 // Currently audio output device change is supported only in Chrome and
 // default output always has 'default' device ID
 var audioOutputDeviceId = 'default'; // default device
+// whether user has explicitly set a device to use
+var audioOutputChanged = false;
 // Disables Acoustic Echo Cancellation
 var disableAEC = false;
 // Disables Noise Suppression
@@ -650,7 +652,9 @@ function wrapAttachMediaStream(origAttachMediaStream) {
         if (stream
                 && RTCUtils.isDeviceChangeAvailable('output')
                 && stream.getAudioTracks
-                && stream.getAudioTracks().length) {
+                && stream.getAudioTracks().length
+                // we skip setting audio output if there was no explicit change
+                && audioOutputChanged) {
             element.setSinkId(RTCUtils.getAudioOutputDevice())
                 .catch(function (ex) {
                     var err = new JitsiTrackError(ex, null, ['audiooutput']);
@@ -1229,6 +1233,7 @@ var RTCUtils = {
         return featureDetectionAudioEl.setSinkId(deviceId)
             .then(function() {
                 audioOutputDeviceId = deviceId;
+                audioOutputChanged = true;
 
                 logger.log('Audio output device set to ' + deviceId);
 
