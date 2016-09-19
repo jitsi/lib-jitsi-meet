@@ -109,16 +109,14 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
         this._onDeviceListChanged);
 
     if(this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
-        this._setHandler("track_mute", function () {
-            if(!this._checkForCameraIssues())
-                return;
-            this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
-        }.bind(this));
-        this._setHandler("track_ended", function () {
-            if(!this._checkForCameraIssues())
-                return;
-            this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
-        }.bind(this));
+        this._setHandler("track_mute", () => {
+            if(this._checkForCameraIssues())
+                this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
+        });
+        this._setHandler("track_ended", () => {
+            if(this._checkForCameraIssues())
+                this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
+        });
     }
 }
 
@@ -568,24 +566,16 @@ JitsiLocalTrack.prototype._checkForCameraIssues = function () {
 JitsiLocalTrack.prototype._isReceivingData = function () {
     if(!this.stream)
         return false;
-    var isReceivingData = false;
-    var tracks = this.stream.getTracks();
-    tracks.some(function (track) {
-        // In older version of the spec there is no muted property and
-        // readyState can have value muted. In the latest versions
-        // readyState can have values "live" and "ended" and there is
-        // muted boolean property. If the stream is muted that means that
-        // we aren't receiving any data from the source. We want to notify
-        // the users for error if the stream is muted or ended on it's
-        // creation.
-        if((!("readyState" in track) || track.readyState === "live")
-            && (!("muted" in track) || track.muted === false)) {
-            isReceivingData = true;
-            return true;
-        }
-        return false;
-    });
-    return isReceivingData;
+    // In older version of the spec there is no muted property and
+    // readyState can have value muted. In the latest versions
+    // readyState can have values "live" and "ended" and there is
+    // muted boolean property. If the stream is muted that means that
+    // we aren't receiving any data from the source. We want to notify
+    // the users for error if the stream is muted or ended on it's
+    // creation.
+    return this.stream.getTracks().some(track =>
+        ((!("readyState" in track) || track.readyState === "live")
+            && (!("muted" in track) || track.muted === false)));
 }
 
 module.exports = JitsiLocalTrack;

@@ -82,16 +82,9 @@ RTC.obtainAudioAndVideoPermissions = function (options) {
     return RTCUtils.obtainAudioAndVideoPermissions(options).then(
         function (tracksInfo) {
             var tracks = createLocalTracks(tracksInfo, options);
-            var allTracksAreReceivingData = true;
-            tracks.some(function (track) {
-                if(!track._isReceivingData()) {
-                    allTracksAreReceivingData = false;
-                    return true;
-                }
-                return false;
-            });
-            return allTracksAreReceivingData? tracks : Promise.reject(
-                new JitsiTrackError(JitsiTrackErrors.NO_DATA_FROM_SOURCE));
+            return !tracks.some(track => !track._isReceivingData())? tracks :
+                Promise.reject(new JitsiTrackError(
+                    JitsiTrackErrors.NO_DATA_FROM_SOURCE));
     });
 };
 
