@@ -3,7 +3,6 @@
 import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
 import EventEmitter from "events";
-import Pako from "pako";
 import RandomUtil from "../util/RandomUtil";
 import * as JitsiConnectionErrors from "../../JitsiConnectionErrors";
 import * as JitsiConnectionEvents from "../../JitsiConnectionEvents";
@@ -284,36 +283,6 @@ export default class XMPP {
 
     removeListener (type, listener) {
         this.eventEmitter.removeListener(type, listener);
-    }
-
-    /**
-     * Sends 'data' as a log message to the focus. Returns true iff a message
-     * was sent.
-     * @param data
-     * @returns {boolean} true iff a message was sent.
-     */
-    sendLogs (data) {
-        if (!this.connection.emuc.focusMucJid)
-            return false;
-
-        const content = Base64.encode(
-            String.fromCharCode.apply(null,
-                Pako.deflateRaw(JSON.stringify(data))));
-        // XEP-0337-ish
-        const message = $msg({
-            to: this.connection.emuc.focusMucJid,
-            type: "normal"
-        });
-        message.c("log", {
-            xmlns: "urn:xmpp:eventlog",
-            id: "PeerConnectionStats"
-        });
-        message.c("message").t(content).up();
-        message.c("tag", {name: "deflated", value: "true"}).up();
-        message.up();
-
-        this.connection.send(message);
-        return true;
     }
 
     /**

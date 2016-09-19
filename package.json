@@ -21,7 +21,6 @@
     "events": "*",
     "jitsi-meet-logger": "jitsi/jitsi-meet-logger",
     "jssha": "1.5.0",
-    "pako": "*",
     "retry": "0.6.1",
     "sdp-interop": "0.1.11",
     "sdp-simulcast": "0.1.7",
