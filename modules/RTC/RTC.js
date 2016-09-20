@@ -47,6 +47,11 @@ function RTC(conference, options) {
     this.eventEmitter = new EventEmitter();
     var self = this;
     this.options = options || {};
+    // A flag whether we had received that the data channel had opened
+    // we can get this flag out of sync if for some reason data channel got
+    // closed from server, a desired behaviour so we can see errors when this
+    // happen
+    this.dataChannelsOpen = false;
 
     // Switch audio output device on all remote audio tracks. Local audio tracks
     // handle this event by themselves.
@@ -93,6 +98,8 @@ RTC.prototype.onIncommingCall = function(event) {
         this.dataChannels = new DataChannels(event.peerconnection,
             this.eventEmitter);
         this._dataChannelOpenListener = () => {
+            // mark that dataChannel is opened
+            this.dataChannelsOpen = true;
             // when the data channel becomes available, tell the bridge
             // about video selections so that it can do adaptive simulcast,
             // we want the notification to trigger even if userJid
@@ -127,6 +134,7 @@ RTC.prototype.onCallEnded = function() {
         // The reference is cleared to disable any logic related to the data
         // channels.
         this.dataChannels = null;
+        this.dataChannelsOpen = false;
     }
 };
 
@@ -142,7 +150,7 @@ RTC.prototype.onCallEnded = function() {
 RTC.prototype.selectEndpoint = function (id) {
     // cache the value if channel is missing, till we open it
     this.selectedEndpoint = id;
-    if(this.dataChannels)
+    if(this.dataChannels && this.dataChannelsOpen)
         this.dataChannels.sendSelectedEndpointMessage(id);
 };
 
@@ -459,8 +467,10 @@ RTC.isDesktopSharingEnabled = function () {
  * Closes all currently opened data channels.
  */
 RTC.prototype.closeAllDataChannels = function () {
-    if(this.dataChannels)
+    if(this.dataChannels) {
         this.dataChannels.closeAllChannels();
+        this.dataChannelsOpen = false;
+    }
 };
 
 RTC.prototype.dispose = function() {
