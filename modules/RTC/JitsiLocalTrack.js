@@ -108,16 +108,18 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
     RTCUtils.addListener(RTCEvents.DEVICE_LIST_CHANGED,
         this._onDeviceListChanged);
 
-    if(this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
-        this._setHandler("track_mute", () => {
-            if(this._checkForCameraIssues())
-                this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
-        });
-        this._setHandler("track_ended", () => {
-            if(this._checkForCameraIssues())
-                this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
-        });
-    }
+    // FIXME: Removed temporary until we verify that we don't fire the 
+    // the event when the camera is working.
+    // if(this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
+    //     this._setHandler("track_mute", () => {
+    //         if(this._checkForCameraIssues())
+    //             this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
+    //     });
+    //     this._setHandler("track_ended", () => {
+    //         if(this._checkForCameraIssues())
+    //             this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
+    //     });
+    // }
 }
 
 JitsiLocalTrack.prototype = Object.create(JitsiTrack.prototype);
