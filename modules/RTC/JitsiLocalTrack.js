@@ -79,6 +79,13 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
      */
     this.stopStreamInProgress = false;
 
+    /**
+     * On mute event we are waiting for 3s to check if the stream is going to
+     * be still muted before firing the event for camera issue detected
+     * (NO_DATA_FROM_SOURCE).
+     */
+    this._noDataFromSourceTimout = null;
+
     this._onDeviceListChanged = function (devices) {
         self._setRealDeviceIdFromDeviceList(devices);
 
@@ -108,18 +115,7 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
     RTCUtils.addListener(RTCEvents.DEVICE_LIST_CHANGED,
         this._onDeviceListChanged);
 
-    // FIXME: Removed temporary until we verify that we don't fire the 
-    // the event when the camera is working.
-    // if(this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
-    //     this._setHandler("track_mute", () => {
-    //         if(this._checkForCameraIssues())
-    //             this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
-    //     });
-    //     this._setHandler("track_ended", () => {
-    //         if(this._checkForCameraIssues())
-    //             this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
-    //     });
-    // }
+    this._initNoDataFromSourceHandlers();
 }
 
 JitsiLocalTrack.prototype = Object.create(JitsiTrack.prototype);
@@ -131,6 +127,36 @@ JitsiLocalTrack.prototype.constructor = JitsiLocalTrack;
  */
 JitsiLocalTrack.prototype.isEnded = function () {
     return  this.getTrack().readyState === 'ended' || this._trackEnded;
+};
+
+/**
+ * Sets handlers to the MediaStreamTrack object that will detect camera issues.
+ */
+JitsiLocalTrack.prototype._initNoDataFromSourceHandlers = function () {
+    if(this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
+        this._setHandler("track_mute", () => {
+            if(this._checkForCameraIssues()) {
+                this._noDataFromSourceTimout = setTimeout(() => {
+                    this._noDataFromSourceTimout = null;
+                    //unset the handler
+                    this._setHandler("track_unmute", undefined);
+                    if(this._checkForCameraIssues())
+                        this.eventEmitter.emit(
+                            JitsiTrackEvents.NO_DATA_FROM_SOURCE);
+                }, 3000);
+                this._setHandler("track_unmute", () => {
+                    if(this._noDataFromSourceTimout) {
+                        clearTimeout(this._noDataFromSourceTimout);
+                        this._noDataFromSourceTimout = null;
+                    }
+                });
+            }
+        });
+        this._setHandler("track_ended", () => {
+            if(this._checkForCameraIssues())
+                this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
+        });
+    }
 };
 
 /**
