@@ -10,6 +10,7 @@ var RTCUtils = require("./RTCUtils");
 var MediaType = require('../../service/RTC/MediaType');
 var VideoType = require('../../service/RTC/VideoType');
 var CameraFacingMode = require('../../service/RTC/CameraFacingMode');
+var Statistics = require("../statistics/statistics");
 
 /**
  * Represents a single media track(either audio or video).
@@ -136,28 +137,40 @@ JitsiLocalTrack.prototype._initNoDataFromSourceHandlers = function () {
     if(this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
         this._setHandler("track_mute", () => {
             if(this._checkForCameraIssues()) {
+                let now = window.performance.now();
                 this._noDataFromSourceTimout = setTimeout(() => {
                     this._noDataFromSourceTimout = null;
                     //unset the handler
                     this._setHandler("track_unmute", undefined);
                     if(this._checkForCameraIssues())
-                        this.eventEmitter.emit(
-                            JitsiTrackEvents.NO_DATA_FROM_SOURCE);
+                        this._fireNoDataFromSourceEvent();
                 }, 3000);
                 this._setHandler("track_unmute", () => {
                     if(this._noDataFromSourceTimout) {
                         clearTimeout(this._noDataFromSourceTimout);
                         this._noDataFromSourceTimout = null;
+                        Statistics.sendEventToAll(
+                            this.getType() + ".track_unmute",
+                            window.performance.now() - now);
                     }
                 });
             }
         });
         this._setHandler("track_ended", () => {
             if(this._checkForCameraIssues())
-                this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
+                this._fireNoDataFromSourceEvent();
         });
     }
 };
+
+/**
+ * Fires JitsiTrackEvents.NO_DATA_FROM_SOURCE and logs it to analytics and
+ * callstats.
+ */
+JitsiLocalTrack.prototype._fireNoDataFromSourceEvent = function () {
+    this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
+    Statistics.sendEventToAll(this.getType() + ".no_data_from_source");
+}
 
 /**
  * Sets real device ID by comparing track information with device information.
@@ -513,7 +526,7 @@ JitsiLocalTrack.prototype._setByteSent = function (bytesSent) {
         setTimeout(function () {
             if(this._bytesSent <= 0){
                 //we are not receiving anything from the microphone
-                this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
+                this._fireNoDataFromSourceEvent();
             }
         }.bind(this), 3000);
         this._testByteSent = false;
