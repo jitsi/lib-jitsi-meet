@@ -1,15 +1,16 @@
 /* global __filename, Promise */
-var logger = require("jitsi-meet-logger").getLogger(__filename);
+var CameraFacingMode = require('../../service/RTC/CameraFacingMode');
 var JitsiTrack = require("./JitsiTrack");
-var RTCBrowserType = require("./RTCBrowserType");
 import JitsiTrackError from "../../JitsiTrackError";
 import * as JitsiTrackErrors from "../../JitsiTrackErrors";
 import * as JitsiTrackEvents from "../../JitsiTrackEvents";
+var logger = require("jitsi-meet-logger").getLogger(__filename);
+var MediaType = require('../../service/RTC/MediaType');
+var RTCBrowserType = require("./RTCBrowserType");
 var RTCEvents = require("../../service/RTC/RTCEvents");
 var RTCUtils = require("./RTCUtils");
-var MediaType = require('../../service/RTC/MediaType');
+var Statistics = require("../statistics/statistics");
 var VideoType = require('../../service/RTC/VideoType');
-var CameraFacingMode = require('../../service/RTC/CameraFacingMode');
 
 /**
  * Represents a single media track(either audio or video).
@@ -79,6 +80,13 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
      */
     this.stopStreamInProgress = false;
 
+    /**
+     * On mute event we are waiting for 3s to check if the stream is going to
+     * be still muted before firing the event for camera issue detected
+     * (NO_DATA_FROM_SOURCE).
+     */
+    this._noDataFromSourceTimeout = null;
+
     this._onDeviceListChanged = function (devices) {
         self._setRealDeviceIdFromDeviceList(devices);
 
@@ -108,18 +116,7 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
     RTCUtils.addListener(RTCEvents.DEVICE_LIST_CHANGED,
         this._onDeviceListChanged);
 
-    // FIXME: Removed temporary until we verify that we don't fire the 
-    // the event when the camera is working.
-    // if(this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
-    //     this._setHandler("track_mute", () => {
-    //         if(this._checkForCameraIssues())
-    //             this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
-    //     });
-    //     this._setHandler("track_ended", () => {
-    //         if(this._checkForCameraIssues())
-    //             this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
-    //     });
-    // }
+    this._initNoDataFromSourceHandlers();
 }
 
 JitsiLocalTrack.prototype = Object.create(JitsiTrack.prototype);
@@ -132,6 +129,62 @@ JitsiLocalTrack.prototype.constructor = JitsiLocalTrack;
 JitsiLocalTrack.prototype.isEnded = function () {
     return  this.getTrack().readyState === 'ended' || this._trackEnded;
 };
+
+/**
+ * Sets handlers to the MediaStreamTrack object that will detect camera issues.
+ */
+JitsiLocalTrack.prototype._initNoDataFromSourceHandlers = function () {
+    if(this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
+        let _onNoDataFromSourceError
+            = this._onNoDataFromSourceError.bind(this);
+        this._setHandler("track_mute", () => {
+            if(this._checkForCameraIssues()) {
+                let now = window.performance.now();
+                this._noDataFromSourceTimeout
+                    = setTimeout(_onNoDataFromSourceError, 3000);
+                this._setHandler("track_unmute", () => {
+                    this._clearNoDataFromSourceMuteResources();
+                    Statistics.sendEventToAll(
+                            this.getType() + ".track_unmute",
+                            window.performance.now() - now);
+                });
+            }
+        });
+        this._setHandler("track_ended", _onNoDataFromSourceError);
+    }
+};
+
+/**
+ * Clears all timeouts and handlers set on MediaStreamTrack mute event.
+ * FIXME: Change the name of the method with better one.
+ */
+JitsiLocalTrack.prototype._clearNoDataFromSourceMuteResources = function () {
+    if(this._noDataFromSourceTimeout) {
+        clearTimeout(this._noDataFromSourceTimeout);
+        this._noDataFromSourceTimeout = null;
+    }
+    this._setHandler("track_unmute", undefined);
+}
+
+/**
+ * Called when potential camera issue is detected. Clears the handlers and
+ * timeouts set on MediaStreamTrack muted event. Verifies that the camera
+ * issue persists and fires NO_DATA_FROM_SOURCE event.
+ */
+JitsiLocalTrack.prototype._onNoDataFromSourceError = function () {
+    this._clearNoDataFromSourceMuteResources();
+    if(this._checkForCameraIssues())
+        this._fireNoDataFromSourceEvent();
+}
+
+/**
+ * Fires JitsiTrackEvents.NO_DATA_FROM_SOURCE and logs it to analytics and
+ * callstats.
+ */
+JitsiLocalTrack.prototype._fireNoDataFromSourceEvent = function () {
+    this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
+    Statistics.sendEventToAll(this.getType() + ".no_data_from_source");
+}
 
 /**
  * Sets real device ID by comparing track information with device information.
@@ -487,7 +540,7 @@ JitsiLocalTrack.prototype._setByteSent = function (bytesSent) {
         setTimeout(function () {
             if(this._bytesSent <= 0){
                 //we are not receiving anything from the microphone
-                this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
+                this._fireNoDataFromSourceEvent();
             }
         }.bind(this), 3000);
         this._testByteSent = false;
