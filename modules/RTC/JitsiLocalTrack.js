@@ -85,7 +85,7 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
      * be still muted before firing the event for camera issue detected
      * (NO_DATA_FROM_SOURCE).
      */
-    this._noDataFromSourceTimout = null;
+    this._noDataFromSourceTimeout = null;
 
     this._onDeviceListChanged = function (devices) {
         self._setRealDeviceIdFromDeviceList(devices);
@@ -135,33 +135,46 @@ JitsiLocalTrack.prototype.isEnded = function () {
  */
 JitsiLocalTrack.prototype._initNoDataFromSourceHandlers = function () {
     if(this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
+        let _onNoDataFromSourceError
+            = this._onNoDataFromSourceError.bind(this);
         this._setHandler("track_mute", () => {
             if(this._checkForCameraIssues()) {
                 let now = window.performance.now();
-                this._noDataFromSourceTimout = setTimeout(() => {
-                    this._noDataFromSourceTimout = null;
-                    //unset the handler
-                    this._setHandler("track_unmute", undefined);
-                    if(this._checkForCameraIssues())
-                        this._fireNoDataFromSourceEvent();
-                }, 3000);
+                this._noDataFromSourceTimeout = setTimeout(
+                    _onNoDataFromSourceError, 3000);
                 this._setHandler("track_unmute", () => {
-                    if(this._noDataFromSourceTimout) {
-                        clearTimeout(this._noDataFromSourceTimout);
-                        this._noDataFromSourceTimout = null;
-                        Statistics.sendEventToAll(
-                            this.getType() + ".track_unmute",
-                            window.performance.now() - now);
-                    }
+                    this._clearNoDataFromSourceMuteResources();
+                    Statistics.sendEventToAll(this.getType() + ".track_unmute",
+                        window.performance.now() - now);
                 });
             }
         });
-        this._setHandler("track_ended", () => {
-            if(this._checkForCameraIssues())
-                this._fireNoDataFromSourceEvent();
-        });
+        this._setHandler("track_ended", _onNoDataFromSourceError);
     }
 };
+
+/**
+ * Clears all timeouts and handlers set on MediaStreamTrack mute event.
+ * FIXME: Change the name of the method with better one.
+ */
+JitsiLocalTrack.prototype._clearNoDataFromSourceMuteResources = function () {
+    if(this._noDataFromSourceTimeout) {
+        clearTimeout(this._noDataFromSourceTimeout);
+        this._noDataFromSourceTimeout = null;
+    }
+    this._setHandler("track_unmute", undefined);
+}
+
+/**
+ * Called when potential camera issue is detected. Clears the handlers and
+ * timeouts set on MediaStreamTrack muted event. Verifies that the camera
+ * issue persists and fires NO_DATA_FROM_SOURCE event.
+ */
+JitsiLocalTrack.prototype._onNoDataFromSourceError = function () {
+    this._clearNoDataFromSourceMuteResources();
+    if(this._checkForCameraIssues())
+        this._fireNoDataFromSourceEvent();
+}
 
 /**
  * Fires JitsiTrackEvents.NO_DATA_FROM_SOURCE and logs it to analytics and
