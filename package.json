@@ -41,7 +41,7 @@
     "webpack": "*"
   },
   "scripts": {
-    "install": "webpack && webpack -p",
+    "install": "webpack -p",
     "lint": "jshint .",
     "validate": "npm ls"
   },
