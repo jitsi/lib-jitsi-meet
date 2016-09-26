@@ -34,9 +34,9 @@ AnalyticsAdapter.prototype.sendEvent = function (action, data, label) {
         }
     }
     try {
-        this.analytics.sendEvent(
-            action, data, label, this.browserName);
-    } catch (ignored) {}
+        this.analytics.sendEvent(action, data, label, this.browserName);
+    } catch (ignored) { // eslint-disable-line no-empty
+    }
 };
 
 /**

@@ -1,5 +1,6 @@
-/* jshint -W117 */
-import {getLogger} from "jitsi-meet-logger";
+/* global $, $iq, Strophe */
+
+import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
 import ConnectionPlugin from "./ConnectionPlugin";
 
@@ -32,7 +33,7 @@ class RayoConnectionPlugin extends ConnectionPlugin {
                 to: focusMucJid
             });
             req.c('dial', {
-                xmlns: self.RAYO_XMLNS,
+                xmlns: RAYO_XMLNS,
                 to: to,
                 from: from
             });

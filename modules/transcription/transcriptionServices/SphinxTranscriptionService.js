@@ -1,4 +1,4 @@
-/* global config,  XMLHttpRequest, console, APP, JSON */
+/* global config */
 
 var TranscriptionService = require("./AbstractTranscriptionService");
 var Word = require( "../word");

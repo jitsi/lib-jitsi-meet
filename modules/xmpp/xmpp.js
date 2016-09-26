@@ -1,14 +1,12 @@
-/* global $, APP, config, Strophe */
-import {getLogger} from "jitsi-meet-logger";
+/* global $, $msg, Base64, Strophe */
+
+import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
 import EventEmitter from "events";
 import Pako from "pako";
 import RandomUtil from "../util/RandomUtil";
-import RTCEvents from "../../service/RTC/RTCEvents";
-import XMPPEvents from "../../service/xmpp/XMPPEvents";
 import * as JitsiConnectionErrors from "../../JitsiConnectionErrors";
 import * as JitsiConnectionEvents from "../../JitsiConnectionEvents";
-import RTC from "../RTC/RTC";
 import RTCBrowserType from "../RTC/RTCBrowserType";
 import initEmuc from "./strophe.emuc";
 import initJingle from "./strophe.jingle";
@@ -24,7 +22,7 @@ function createConnection(token, bosh = '/http-bind') {
     }
 
     return new Strophe.Connection(bosh);
-};
+}
 
 export default class XMPP {
     constructor(options, token) {
@@ -273,7 +271,7 @@ export default class XMPP {
 
     removeListener (type, listener) {
         this.eventEmitter.removeListener(type, listener);
-    };
+    }
 
     /**
      * Sends 'data' as a log message to the focus. Returns true iff a message

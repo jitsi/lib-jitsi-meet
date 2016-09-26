@@ -1,6 +1,6 @@
-/* global $, $iq, config, connection, focusMucJid, messageHandler,
-   Toolbar, Util, Promise */
-import {getLogger} from "jitsi-meet-logger";
+/* global $, $iq */
+
+import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var JitsiRecorderErrors = require("../../JitsiRecorderErrors");
@@ -116,7 +116,7 @@ Recording.prototype.setRecordingJibri
 };
 
 Recording.prototype.setRecordingJirecon =
-    function (state, callback, errCallback, options) {
+    function (state, callback, errCallback) {
 
     if (state == this.state){
         errCallback(new Error("Invalid state!"));

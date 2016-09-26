@@ -35,6 +35,7 @@
     "babel-polyfill": "*",
     "babel-preset-es2015": "*",
     "babel-register": "*",
+    "eslint": "*",
     "jshint": "^2.8.0",
     "precommit-hook": "^3.0.0",
     "string-replace-loader": "*",
@@ -42,7 +43,7 @@
   },
   "scripts": {
     "install": "webpack -p",
-    "lint": "jshint .",
+    "lint": "jshint . && eslint .",
     "validate": "npm ls"
   },
   "pre-commit": [

@@ -1,6 +1,5 @@
-/* jshint -W117 */
-import {getLogger} from "jitsi-meet-logger";
-const logger = getLogger(__filename);
+/* global $, APP */
+
 var SDPUtil = require("./SDPUtil");
 
 // SDP STUFF
@@ -128,7 +127,7 @@ SDP.prototype.removeSessionLines = function(prefix) {
     });
     this.raw = this.session + this.media.join('');
     return lines;
-}
+};
 // remove lines matching prefix from a media section specified by mediaindex
 // TODO: non-numeric mediaindex could match mid
 SDP.prototype.removeMediaLines = function(mediaindex, prefix) {
@@ -139,12 +138,10 @@ SDP.prototype.removeMediaLines = function(mediaindex, prefix) {
     });
     this.raw = this.session + this.media.join('');
     return lines;
-}
+};
 
 // add content's to a jingle element
 SDP.prototype.toJingle = function (elem, thecreator) {
-//    logger.log("SSRC" + ssrcs["audio"] + " - " + ssrcs["video"]);
-    var self = this;
     var i, j, k, mline, ssrc, rtpmap, tmp, lines;
     // new bundle plan
     lines = SDPUtil.find_lines(this.session, 'a=group:');
@@ -400,7 +397,7 @@ SDP.prototype.transportToJingle = function (mediaindex, elem) {
         }
     }
     elem.up(); // end of transport
-}
+};
 
 SDP.prototype.rtcpFbToJingle = function (mediaindex, elem, payloadtype) { // XEP-0293
     var lines = SDPUtil.find_lines(this.media[mediaindex], 'a=rtcp-fb:' + payloadtype);
@@ -482,7 +479,6 @@ SDP.prototype.fromJingle = function (jingle) {
 SDP.prototype.jingle2media = function (content) {
     var media = '',
         desc = content.find('description'),
-        ssrc = desc.attr('ssrc'),
         self = this,
         tmp;
     var sctp = content.find(

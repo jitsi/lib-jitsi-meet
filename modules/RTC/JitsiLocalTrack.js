@@ -164,7 +164,7 @@ JitsiLocalTrack.prototype._clearNoDataFromSourceMuteResources = function () {
         this._noDataFromSourceTimeout = null;
     }
     this._setHandler("track_unmute", undefined);
-}
+};
 
 /**
  * Called when potential camera issue is detected. Clears the handlers and
@@ -175,7 +175,7 @@ JitsiLocalTrack.prototype._onNoDataFromSourceError = function () {
     this._clearNoDataFromSourceMuteResources();
     if(this._checkForCameraIssues())
         this._fireNoDataFromSourceEvent();
-}
+};
 
 /**
  * Fires JitsiTrackEvents.NO_DATA_FROM_SOURCE and logs it to analytics and
@@ -184,7 +184,7 @@ JitsiLocalTrack.prototype._onNoDataFromSourceError = function () {
 JitsiLocalTrack.prototype._fireNoDataFromSourceEvent = function () {
     this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
     Statistics.sendEventToAll(this.getType() + ".no_data_from_source");
-}
+};
 
 /**
  * Sets real device ID by comparing track information with device information.
@@ -545,7 +545,7 @@ JitsiLocalTrack.prototype._setByteSent = function (bytesSent) {
         }.bind(this), 3000);
         this._testByteSent = false;
     }
-}
+};
 
 /**
  * Returns facing mode for video track from camera. For other cases (e.g. audio
@@ -595,7 +595,7 @@ JitsiLocalTrack.prototype._stopMediaStream = function () {
     this.stopStreamInProgress = true;
     RTCUtils.stopMediaStream(this.stream);
     this.stopStreamInProgress = false;
-}
+};
 
 /**
  * Detects camera issues on ended and mute events from MediaStreamTrack.
@@ -607,7 +607,7 @@ JitsiLocalTrack.prototype._checkForCameraIssues = function () {
         return false;
 
     return !this._isReceivingData();
-}
+};
 
 /**
  * Checks whether the attached MediaStream is reveiving data from source or
@@ -631,6 +631,6 @@ JitsiLocalTrack.prototype._isReceivingData = function () {
     return this.stream.getTracks().some(track =>
         ((!("readyState" in track) || track.readyState === "live")
             && (!("muted" in track) || track.muted === false)));
-}
+};
 
 module.exports = JitsiLocalTrack;

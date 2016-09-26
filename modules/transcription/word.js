@@ -2,9 +2,9 @@
  * An object representing a transcribed word, with some additional information
  * @param word the word 
  * @param begin the time the word was started being uttered
- * @param end the tome the word stopped being uttered
+ * @param end the time the word stopped being uttered
  */
-var Word = function (word, begin, end, name) {
+var Word = function (word, begin, end) {
     this.word = word;
     this.begin = begin;
     this.end = end;

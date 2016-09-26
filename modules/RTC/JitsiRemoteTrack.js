@@ -1,8 +1,8 @@
-/* global __filename, module */
-var logger = require("jitsi-meet-logger").getLogger(__filename);
+/* global Strophe */
 
 var JitsiTrack = require("./JitsiTrack");
 import * as JitsiTrackEvents from "../../JitsiTrackEvents";
+var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
 var RTCEvents = require("../../service/RTC/RTCEvents");
 var Statistics = require("../statistics/statistics");

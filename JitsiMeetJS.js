@@ -31,7 +31,7 @@ function getLowerResolution(resolution) {
     var order = Resolutions[resolution].order;
     var res = null;
     var resName = null;
-    for(var i in Resolutions) {
+    for(let i in Resolutions) {
         var tmp = Resolutions[i];
         if (!res || (res.order < tmp.order && tmp.order < order)) {
             resName = i;
@@ -91,7 +91,7 @@ var LibJitsiMeet = {
     mediaDevices: JitsiMediaDevices,
     analytics: null,
     init: function (options) {
-        var logObject, attr;
+        let logObject, attr;
         Statistics.init(options);
         this.analytics = Statistics.analytics;
 
@@ -119,7 +119,7 @@ var LibJitsiMeet = {
                 id: "component_version",
                 component: "lib-jitsi-meet",
                 version: this.version
-            }
+            };
             Statistics.sendLog(JSON.stringify(logObject));
         }
 
@@ -203,8 +203,8 @@ var LibJitsiMeet = {
                     "getUserMedia.success", options), options);
 
                 if(!RTC.options.disableAudioLevels)
-                    for(var i = 0; i < tracks.length; i++) {
-                        var track = tracks[i];
+                    for(let i = 0; i < tracks.length; i++) {
+                        const track = tracks[i];
                         var mStream = track.getOriginalStream();
                         if(track.getType() === MediaType.AUDIO){
                             Statistics.startLocalStats(mStream,
@@ -221,8 +221,8 @@ var LibJitsiMeet = {
                 var currentlyAvailableMediaDevices
                     = RTC.getCurrentlyAvailableMediaDevices();
                 if (currentlyAvailableMediaDevices) {
-                    for(var i = 0; i < tracks.length; i++) {
-                        var track = tracks[i];
+                    for(let i = 0; i < tracks.length; i++) {
+                        const track = tracks[i];
                         track._setRealDeviceIdFromDeviceList(
                             currentlyAvailableMediaDevices);
                     }
@@ -254,7 +254,7 @@ var LibJitsiMeet = {
                     // User cancelled action is not really an error, so only
                     // log it as an event to avoid having conference classified
                     // as partially failed
-                    var logObject = {
+                    const logObject = {
                         id: "chrome_extension_user_canceled",
                         message: error.message
                     };
@@ -263,7 +263,7 @@ var LibJitsiMeet = {
                         "getUserMedia.userCancel.extensionInstall");
                 } else if (JitsiTrackErrors.NOT_FOUND === error.name) {
                     // logs not found devices with just application log to cs
-                    var logObject = {
+                    const logObject = {
                         id: "usermedia_missing_device",
                         status: error.gum.devices
                     };

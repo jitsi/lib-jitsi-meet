@@ -1,9 +1,9 @@
 /* global $, $iq, Strophe */
-import {getLogger} from "jitsi-meet-logger";
+
+import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
-import GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
-import XMPPEvents from "../../service/xmpp/XMPPEvents";
 import ConnectionPlugin from "./ConnectionPlugin";
+import GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
 
 /**
  * Ping every 10 sec
@@ -103,7 +103,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
             return;
         }
         this.intervalId = window.setInterval(() => {
-            this.ping(remoteJid, (result) => {
+            this.ping(remoteJid, () => {
                 this.failedPings = 0;
             }, (error) => {
                 this.failedPings += 1;

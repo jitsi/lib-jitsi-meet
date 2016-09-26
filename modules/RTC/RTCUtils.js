@@ -1,9 +1,16 @@
-/* global config, require, attachMediaStream, getUserMedia,
-   RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, MediaStreamTrack,
-   mozRTCPeerConnection, mozRTCSessionDescription, mozRTCIceCandidate,
-   webkitRTCPeerConnection, webkitMediaStream, webkitURL
+/* global $,
+          attachMediaStream,
+          MediaStreamTrack,
+          RTCIceCandidate,
+          RTCPeerConnection,
+          RTCSessionDescription,
+          mozRTCIceCandidate,
+          mozRTCPeerConnection,
+          mozRTCSessionDescription,
+          webkitMediaStream,
+          webkitRTCPeerConnection,
+          webkitURL
 */
-/* jshint -W101 */
 
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
@@ -14,7 +21,6 @@ var SDPUtil = require("../xmpp/SDPUtil");
 var EventEmitter = require("events");
 var screenObtainer = require("./ScreenObtainer");
 import JitsiTrackError from "../../JitsiTrackError";
-import * as JitsiTrackErrors from "../../JitsiTrackErrors";
 var MediaType = require("../../service/RTC/MediaType");
 var VideoType = require("../../service/RTC/VideoType");
 var CameraFacingMode = require("../../service/RTC/CameraFacingMode");
@@ -586,6 +592,7 @@ function handleLocalStream(streams, resolution) {
         if (audioVideo) {
             var audioTracks = audioVideo.getAudioTracks();
             if (audioTracks.length) {
+                // eslint-disable-next-line new-cap
                 audioStream = new webkitMediaStream();
                 for (var i = 0; i < audioTracks.length; i++) {
                     audioStream.addTrack(audioTracks[i]);
@@ -594,6 +601,7 @@ function handleLocalStream(streams, resolution) {
 
             var videoTracks = audioVideo.getVideoTracks();
             if (videoTracks.length) {
+                // eslint-disable-next-line new-cap
                 videoStream = new webkitMediaStream();
                 for (var j = 0; j < videoTracks.length; j++) {
                     videoStream.addTrack(videoTracks[j]);
@@ -670,7 +678,7 @@ function wrapAttachMediaStream(origAttachMediaStream) {
         }
 
         return res;
-    }
+    };
 }
 
 /**
@@ -777,8 +785,10 @@ var RTCUtils = {
                     }
                     return SDPUtil.filter_special_chars(id);
                 };
+                /* eslint-disable no-native-reassign */
                 RTCSessionDescription = mozRTCSessionDescription;
                 RTCIceCandidate = mozRTCIceCandidate;
+                /* eslint-enable no-native-reassign */
             } else if (RTCBrowserType.isChrome() ||
                     RTCBrowserType.isOpera() ||
                     RTCBrowserType.isNWJS() ||
@@ -842,7 +852,7 @@ var RTCUtils = {
                 //AdapterJS.WebRTCPlugin.setLogLevel(
                 //    AdapterJS.WebRTCPlugin.PLUGIN_LOG_LEVELS.VERBOSE);
                 var self = this;
-                AdapterJS.webRTCReady(function (isPlugin) {
+                AdapterJS.webRTCReady(function () {
 
                     self.peerconnection = RTCPeerConnection;
                     self.getUserMedia = window.getUserMedia;
@@ -881,10 +891,7 @@ var RTCUtils = {
                 });
             } else {
                 var errmsg = 'Browser does not appear to be WebRTC-capable';
-                try {
-                    logger.error(errmsg);
-                } catch (e) {
-                }
+                logger.error(errmsg);
                 reject(new Error(errmsg));
                 return;
             }
@@ -910,7 +917,6 @@ var RTCUtils = {
     **/
     getUserMediaWithConstraints: function ( um, success_callback, failure_callback, options) {
         options = options || {};
-        var resolution = options.resolution;
         var constraints = getConstraints(um, options);
 
         logger.info("Get media constraints", constraints);
@@ -1051,7 +1057,7 @@ var RTCUtils = {
                                 // set to not ask for permissions)
                                 self.getUserMediaWithConstraints(
                                     devices,
-                                    function (stream) {
+                                    function () {
                                         // we already failed to obtain this
                                         // media, so we are not supposed in any
                                         // way to receive success for this call

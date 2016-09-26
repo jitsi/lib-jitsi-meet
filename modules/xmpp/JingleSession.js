@@ -92,6 +92,7 @@ JingleSession.prototype.doInitialize = function() {};
  * Adds the ICE candidates found in the 'contents' array as remote candidates?
  * Note: currently only used on transport-info
  */
+// eslint-disable-next-line no-unused-vars
 JingleSession.prototype.addIceCandidates = function(contents) {};
 
 /**
@@ -109,6 +110,7 @@ JingleSession.prototype.active = function () {
  *
  * @param contents an array of Jingle 'content' elements.
  */
+// eslint-disable-next-line no-unused-vars
 JingleSession.prototype.addSources = function(contents) {};
 
 /**
@@ -116,6 +118,7 @@ JingleSession.prototype.addSources = function(contents) {};
  *
  * @param contents an array of Jingle 'content' elements.
  */
+// eslint-disable-next-line no-unused-vars
 JingleSession.prototype.removeSources = function(contents) {};
 
 /**
@@ -123,6 +126,7 @@ JingleSession.prototype.removeSources = function(contents) {};
  * @param reason XMPP Jingle error condition
  * @param text some meaningful error message
  */
+// eslint-disable-next-line no-unused-vars
 JingleSession.prototype.terminate = function(reason, text) {};
 
 /**
@@ -133,6 +137,7 @@ JingleSession.prototype.terminate = function(reason, text) {};
  *        object with details(which is meant more to be printed to the logger
  *        than analysed in the code, as the error is unrecoverable anyway)
  */
+// eslint-disable-next-line no-unused-vars
 JingleSession.prototype.acceptOffer = function(jingle, success, failure) {};
 
 module.exports = JingleSession;
