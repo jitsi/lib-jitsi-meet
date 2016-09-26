@@ -25,7 +25,7 @@ function loadCallStatsAPI(customScriptUrl) {
     if(!isCallstatsLoaded) {
         ScriptUtil.loadScript(
                 customScriptUrl ? customScriptUrl :
-                    'https://api.callstats.io/static/callstats.min.js',
+                    'https://api.callstats.io/static/callstats-ws.min.js',
                 /* async */ true,
                 /* prepend */ true);
         isCallstatsLoaded = true;
