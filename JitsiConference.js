@@ -18,6 +18,8 @@ var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 var JitsiConferenceEventManager = require("./JitsiConferenceEventManager");
 var VideoType = require('./service/RTC/VideoType');
 var Transcriber = require("./modules/transcription/transcriber");
+var ParticipantConnectionStatus
+    = require("./modules/connectivity/ParticipantConnectionStatus");
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -92,6 +94,10 @@ JitsiConference.prototype._init = function (options) {
         this.eventManager.setupRTCListeners();
     }
 
+    this.participantConnectionStatus
+        = new ParticipantConnectionStatus(this.rtc, this);
+    this.participantConnectionStatus.init();
+
     if(!this.statistics) {
         this.statistics = new Statistics(this.xmpp, {
             callStatsID: this.options.config.callStatsID,
@@ -150,6 +156,11 @@ JitsiConference.prototype._leaveRoomAndRemoveParticipants = function () {
  */
 JitsiConference.prototype.leave = function () {
     var conference = this;
+
+    if (this.participantConnectionStatus) {
+        this.participantConnectionStatus.dispose();
+        this.participantConnectionStatus = null;
+    }
 
     this.statistics.stopCallStats();
     this.rtc.closeAllDataChannels();

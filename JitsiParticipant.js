@@ -30,6 +30,7 @@ export default class JitsiParticipant {
             video: undefined
         };
         this._hidden = hidden;
+        this._isConnectionActive = true;
         this._properties = {};
     }
 
@@ -46,6 +47,26 @@ export default class JitsiParticipant {
      */
     getProperty(name) {
         return this._properties[name];
+    }
+
+    /**
+     * Updates participant's connection status.
+     * @param {boolean} isActive true if the user's connection is fine or false
+     * when the user is having connectivity issues.
+     * @private
+     */
+    _setIsConnectionActive(isActive) {
+        this._isConnectionActive = isActive;
+    }
+
+    /**
+     * Checks participant's connectivity status.
+     *
+     * @returns {boolean} true if the connection is currently ok or false when
+     * the user is having connectivity issues.
+     */
+    isConnectionActive() {
+        return this._isConnectionActive;
     }
 
     /**

@@ -301,7 +301,7 @@ RTC.prototype.removeLocalTrack = function (track) {
 RTC.prototype.createRemoteTrack = function (event) {
     var ownerJid = event.owner;
     var remoteTrack = new JitsiRemoteTrack(
-        this.conference,  ownerJid, event.stream,    event.track,
+        this, this.conference, ownerJid, event.stream, event.track,
         event.mediaType, event.videoType, event.ssrc, event.muted);
     var resource = Strophe.getResourceFromJid(ownerJid);
     var remoteTracks

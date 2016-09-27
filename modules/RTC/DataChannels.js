@@ -143,6 +143,14 @@ DataChannels.prototype.onDataChannel = function (event) {
                     RTCEvents.ENDPOINT_MESSAGE_RECEIVED, obj.from,
                     obj.msgPayload);
             }
+            else if ("EndpointConnectivityStatusChangeEvent" === colibriClass) {
+                var endpoint = obj.endpoint;
+                var isActive = obj.active === "true";
+                logger.info("Endpoint connection status changed: " + endpoint
+                           + " active ? " + isActive);
+                self.eventEmitter.emit(RTCEvents.ENDPOINT_CONN_STATUS_CHANGED,
+                    endpoint, isActive);
+            }
             else {
                 logger.debug("Data channel JSON-formatted message: ", obj);
                 // The received message appears to be appropriately formatted

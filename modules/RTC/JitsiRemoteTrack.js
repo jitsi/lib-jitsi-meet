@@ -1,6 +1,10 @@
+/* global __filename, module */
+var logger = require("jitsi-meet-logger").getLogger(__filename);
+
 var JitsiTrack = require("./JitsiTrack");
 import * as JitsiTrackEvents from "../../JitsiTrackEvents";
 var RTCBrowserType = require("./RTCBrowserType");
+var RTCEvents = require("../../service/RTC/RTCEvents");
 var Statistics = require("../statistics/statistics");
 var AdapterJS = require("./adapter.screenshare");
 
@@ -9,7 +13,7 @@ var ttfmTrackerVideoAttached = false;
 
 /**
  * Represents a single media track (either audio or video).
- * @param RTC the rtc instance.
+ * @param rtc {RTC} the RTC service instance.
  * @param ownerJid the MUC JID of the track owner
  * @param stream WebRTC MediaStream, parent of the track
  * @param track underlying WebRTC MediaStreamTrack for new JitsiRemoteTrack
@@ -19,21 +23,51 @@ var ttfmTrackerVideoAttached = false;
  * @param muted intial muted state of the JitsiRemoteTrack
  * @constructor
  */
-function JitsiRemoteTrack(conference, ownerJid, stream, track, mediaType, videoType,
+function JitsiRemoteTrack(rtc, conference, ownerJid, stream, track, mediaType, videoType,
                           ssrc, muted) {
     JitsiTrack.call(
         this, conference, stream, track, function () {}, mediaType, videoType, ssrc);
-    this.conference = conference;
+    this.rtc = rtc;
     this.peerjid = ownerJid;
     this.muted = muted;
     // we want to mark whether the track has been ever muted
     // to detect ttfm events for startmuted conferences, as it can significantly
     // increase ttfm values
     this.hasBeenMuted = muted;
+    // Bind 'onmute' and 'onunmute' event handlers
+    if (this.rtc && this.track)
+        this._bindMuteHandlers();
 }
 
 JitsiRemoteTrack.prototype = Object.create(JitsiTrack.prototype);
 JitsiRemoteTrack.prototype.constructor = JitsiRemoteTrack;
+
+JitsiRemoteTrack.prototype._bindMuteHandlers = function() {
+    // Bind 'onmute'
+    // FIXME it would be better to use recently added '_setHandler' method, but
+    // 1. It does not allow to set more than one handler to the event
+    // 2. It does mix MediaStream('inactive') with MediaStreamTrack events
+    // 3. Allowing to bind more than one event handler requires too much
+    //    refactoring around camera issues detection.
+    this.track.addEventListener('mute', function () {
+
+        logger.debug(
+            '"onmute" event(' + Date.now() + '): ',
+            this.getParticipantId(), this.getType(), this.getSSRC());
+
+        this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_MUTE, this);
+    }.bind(this));
+
+    // Bind 'onunmute'
+    this.track.addEventListener('unmute', function () {
+
+        logger.debug(
+            '"onunmute" event(' + Date.now() + '): ',
+            this.getParticipantId(), this.getType(), this.getSSRC());
+
+        this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_UNMUTE, this);
+    }.bind(this));
+};
 
 /**
  * Sets current muted status and fires an events for the change.
@@ -51,7 +85,7 @@ JitsiRemoteTrack.prototype.setMute = function (value) {
         this.stream.muted = value;
 
     this.muted = value;
-    this.eventEmitter.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED);
+    this.eventEmitter.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, this);
 };
 
 /**

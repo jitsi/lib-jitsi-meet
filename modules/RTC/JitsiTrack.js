@@ -150,6 +150,15 @@ JitsiTrack.prototype.isVideoTrack = function () {
 };
 
 /**
+ * Checks whether this is a local track.
+ * @abstract
+ * @return {boolean} 'true' if it's a local track or 'false' otherwise.
+ */
+JitsiTrack.prototype.isLocal = function () {
+    throw new Error("Not implemented by subclass");
+};
+
+/**
  * Returns the WebRTC MediaStream instance.
  */
 JitsiTrack.prototype.getOriginalStream = function() {
