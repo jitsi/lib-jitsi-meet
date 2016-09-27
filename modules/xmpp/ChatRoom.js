@@ -579,19 +579,19 @@ ChatRoom.prototype.onPresenceError = function (pres, from) {
             // result in reconnection from authorized domain.
             // We're either missing Jicofo/Prosody config for anonymous
             // domains or something is wrong.
-            this.eventEmitter.emit(XMPPEvents.ROOM_JOIN_ERROR, pres);
+            this.eventEmitter.emit(XMPPEvents.ROOM_JOIN_ERROR);
 
         } else {
             logger.warn('onPresError ', pres);
-            this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_ERROR, pres);
+            this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_ERROR);
         }
     } else if($(pres).find('>error>service-unavailable').length) {
         logger.warn('Maximum users limit for the room has been reached',
             pres);
-        this.eventEmitter.emit(XMPPEvents.ROOM_MAX_USERS_ERROR, pres);
+        this.eventEmitter.emit(XMPPEvents.ROOM_MAX_USERS_ERROR);
     } else {
         logger.warn('onPresError ', pres);
-        this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_ERROR, pres);
+        this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_ERROR);
     }
 };
 
