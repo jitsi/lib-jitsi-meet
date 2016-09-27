@@ -59,6 +59,12 @@ function JingleSessionPC(me, sid, peerjid, connection,
     this.jingleOfferIq = null;
     this.webrtcIceUdpDisable = !!this.service.options.webrtcIceUdpDisable;
     this.webrtcIceTcpDisable = !!this.service.options.webrtcIceTcpDisable;
+    /**
+     * Flag used to enforce ICE failure through the URL parameter for
+     * the automatic testing purpose.
+     * @type {boolean}
+     */
+    this.failICE = !!this.service.options.failICE;
 
     this.modifySourcesQueue = async.queue(this._modifySources.bind(this), 1);
 }
@@ -212,7 +218,12 @@ JingleSessionPC.prototype.sendIceCandidates = function (candidates) {
                 name: (cands[0].sdpMid? cands[0].sdpMid : mline.media)
             }).c('transport', ice);
             for (var i = 0; i < cands.length; i++) {
-                cand.c('candidate', SDPUtil.candidateToJingle(cands[i].candidate)).up();
+                var candidate = SDPUtil.candidateToJingle(cands[i].candidate);
+                // Mangle ICE candidate if 'failICE' test option is enabled
+                if (this.service.options.failICE) {
+                    candidate.ip = "1.1.1.1";
+                }
+                cand.c('candidate', candidate).up();
             }
             // add fingerprint
             var fingerprint_line = SDPUtil.find_line(this.localSDP.media[mid], 'a=fingerprint:', this.localSDP.session);
@@ -422,6 +433,9 @@ JingleSessionPC.prototype.sendSessionAccept = function (localSDP,
     }
     if (this.webrtcIceUdpDisable) {
         localSDP.removeUdpCandidates = true;
+    }
+    if (this.failICE) {
+        localSDP.failICE = true;
     }
     localSDP.toJingle(
         accept,
@@ -754,6 +768,9 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
         }
         if (this.webrtcIceUdpDisable) {
             sdp.removeUdpCandidates = true;
+        }
+        if (this.failICE) {
+            sdp.failICE = true;
         }
 
         sdp.fromJingle(this.jingleOfferIq);
