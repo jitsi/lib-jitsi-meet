@@ -135,6 +135,7 @@ var XMPPEvents = {
     REMOTE_TRACK_REMOVED: "xmpp.remote_track_removed",
     RESERVATION_ERROR: "xmpp.room_reservation_error",
     ROOM_CONNECT_ERROR: 'xmpp.room_connect_error',
+    ROOM_CONNECT_NOT_ALLOWED_ERROR: 'xmpp.room_connect_error.not_allowed',
     ROOM_JOIN_ERROR: 'xmpp.room_join_error',
     /**
      * Indicates that max users limit has been reached.

@@ -583,7 +583,7 @@ ChatRoom.prototype.onPresenceError = function (pres, from) {
 
         } else {
             logger.warn('onPresError ', pres);
-            this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_ERROR);
+            this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR);
         }
     } else if($(pres).find('>error>service-unavailable').length) {
         logger.warn('Maximum users limit for the room has been reached',

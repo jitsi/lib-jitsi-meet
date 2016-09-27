@@ -118,6 +118,9 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
     this.chatRoomForwarder.forward(XMPPEvents.ROOM_CONNECT_ERROR,
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.CONNECTION_ERROR);
+    this.chatRoomForwarder.forward(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR,
+        JitsiConferenceEvents.CONFERENCE_FAILED,
+        JitsiConferenceErrors.NOT_ALLOWED_ERROR);
 
     this.chatRoomForwarder.forward(XMPPEvents.ROOM_MAX_USERS_ERROR,
         JitsiConferenceEvents.CONFERENCE_FAILED,
