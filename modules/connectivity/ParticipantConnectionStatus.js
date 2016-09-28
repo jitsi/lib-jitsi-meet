@@ -8,13 +8,12 @@ import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 
 /**
- * How long we're going to wait after the RTC video track muted event for
- * the corresponding signalling mute event, before the connection interrupted
- * is fired.
+ * Default value of 1000 milliseconds for
+ * {@link ParticipantConnectionStatus.rtcMuteTimeout}.
  *
- * @type {number} amount of time in milliseconds
+ * @type {number}
  */
-const RTC_MUTE_TIMEOUT = 1000;
+const DEFAULT_RTC_MUTE_TIMEOUT = 1000;
 
 /**
  * Class is responsible for emitting
@@ -23,8 +22,10 @@ const RTC_MUTE_TIMEOUT = 1000;
  * @constructor
  * @param {RTC} rtc the RTC service instance
  * @param {JitsiConference} conference parent conference instance
+ * @param {number} rtcMuteTimeout (optional) custom value for
+ * {@link ParticipantConnectionStatus.rtcMuteTimeout}.
  */
-function ParticipantConnectionStatus(rtc, conference) {
+function ParticipantConnectionStatus(rtc, conference, rtcMuteTimeout) {
     this.rtc = rtc;
     this.conference = conference;
     /**
@@ -34,6 +35,18 @@ function ParticipantConnectionStatus(rtc, conference) {
      * @type {Object.<string, number>}
      */
     this.trackTimers = {};
+    /**
+     * How long we're going to wait after the RTC video track muted event for
+     * the corresponding signalling mute event, before the connection
+     * interrupted is fired. The default value is
+     * {@link DEFAULT_RTC_MUTE_TIMEOUT}.
+     *
+     * @type {number} amount of time in milliseconds
+     */
+    this.rtcMuteTimeout
+        = typeof rtcMuteTimeout === 'number'
+            ? rtcMuteTimeout : DEFAULT_RTC_MUTE_TIMEOUT;
+    logger.info("RtcMuteTimeout set to: " + this.rtcMuteTimeout);
 }
 
 /**
@@ -254,7 +267,7 @@ ParticipantConnectionStatus.prototype.onTrackRtcMuted = function(track) {
                 this._changeConnectionStatus(participantId, false);
             }
             this.clearTimeout(participantId);
-        }.bind(this), RTC_MUTE_TIMEOUT);
+        }.bind(this), this.rtcMuteTimeout);
     }
 };
 
