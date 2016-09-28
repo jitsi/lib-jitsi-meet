@@ -507,7 +507,7 @@ ChatRoom.prototype.onPresenceUnavailable = function (pres, from) {
     }
     // If the status code is 110 this means we're leaving and we would like
     // to remove everyone else from our view, so we trigger the event.
-    else if (Object.keys(this.members).length > 1) {
+    else if (Object.keys(this.members).length > 0) {
         for (var i in this.members) {
             var member = this.members[i];
             delete this.members[i];
