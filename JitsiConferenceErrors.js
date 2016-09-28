@@ -23,6 +23,11 @@ export const CONFERENCE_MAX_USERS = "conference.max_users";
  */
 export const CONNECTION_ERROR = "conference.connectionError";
 /**
+ * Indicates that a connection error is due to not allowed,
+ * occurred when trying to join a conference.
+ */
+export const NOT_ALLOWED_ERROR = "conference.connectionError.notAllowed";
+/**
  * Indicates that focus error happened.
  */
 export const FOCUS_DISCONNECTED = "conference.focusDisconnected";
