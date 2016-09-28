@@ -21,8 +21,8 @@ const RTC_MUTE_TIMEOUT = 1000;
  * JitsiConferenceEvents.PARTICIPANT_CONN_STATUS_CHANGED events.
  *
  * @constructor
- * @param rtc {RTC} the RTC service instance
- * @param conference {JitsiConference} parent conference instance
+ * @param {RTC} rtc the RTC service instance
+ * @param {JitsiConference} conference parent conference instance
  */
 function ParticipantConnectionStatus(rtc, conference) {
     this.rtc = rtc;
@@ -232,7 +232,7 @@ ParticipantConnectionStatus.prototype.onRemoteTrackRemoved
 /**
  * Handles RTC 'onmute' event for the video track.
  *
- * @param track {JitsiRemoteTrack} the video track for which 'onmute' event will
+ * @param {JitsiRemoteTrack} track the video track for which 'onmute' event will
  * be processed.
  */
 ParticipantConnectionStatus.prototype.onTrackRtcMuted = function(track) {
@@ -261,7 +261,7 @@ ParticipantConnectionStatus.prototype.onTrackRtcMuted = function(track) {
 /**
  * Handles RTC 'onunmute' event for the video track.
  *
- * @param track {JitsiRemoteTrack} the video track for which 'onunmute' event
+ * @param {JitsiRemoteTrack} track the video track for which 'onunmute' event
  * will be processed.
  */
 ParticipantConnectionStatus.prototype.onTrackRtcUnmuted = function(track) {
@@ -281,7 +281,7 @@ ParticipantConnectionStatus.prototype.onTrackRtcUnmuted = function(track) {
 /**
  * Here the signalling "mute"/"unmute" events are processed.
  *
- * @param track {JitsiRemoteTrack} the remote video track for which
+ * @param {JitsiRemoteTrack} track the remote video track for which
  * the signalling mute/unmute event will be processed.
  */
 ParticipantConnectionStatus.prototype.onSignallingMuteChanged
