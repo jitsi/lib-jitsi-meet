@@ -16,7 +16,6 @@ export default {
         loaders: [ {
             // Version this build of the lib-jitsi-meet library.
 
-            include: `${__dirname}/JitsiMeetJS.js`,
             loader: 'string-replace',
             query: {
                 flags: 'g',
@@ -33,7 +32,7 @@ export default {
                             .trim(),
                 search: '{#COMMIT_HASH#}'
             },
-            test: /\.js$/
+            test: `${__dirname}/JitsiMeetJS.js`
         }, {
             // Transpile ES2015 (aka ES6) to ES5.
 
