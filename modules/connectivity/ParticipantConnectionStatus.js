@@ -8,12 +8,12 @@ import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 
 /**
- * Default value of 1000 milliseconds for
+ * Default value of 2000 milliseconds for
  * {@link ParticipantConnectionStatus.rtcMuteTimeout}.
  *
  * @type {number}
  */
-const DEFAULT_RTC_MUTE_TIMEOUT = 1000;
+const DEFAULT_RTC_MUTE_TIMEOUT = 2000;
 
 /**
  * Class is responsible for emitting
