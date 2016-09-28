@@ -194,7 +194,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
         JitsiConferenceEvents.CONNECTION_INTERRUPTED);
     chatRoom.addListener(XMPPEvents.CONNECTION_INTERRUPTED,
         function () {
-            Statistics.analytics.sendEvent('connection.interrupted');
+            Statistics.sendEventToAll('connection.interrupted');
         });
 
     this.chatRoomForwarder.forward(XMPPEvents.RECORDER_STATE_CHANGED,
@@ -205,6 +205,10 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
 
     this.chatRoomForwarder.forward(XMPPEvents.CONNECTION_RESTORED,
         JitsiConferenceEvents.CONNECTION_RESTORED);
+    chatRoom.addListener(XMPPEvents.CONNECTION_RESTORED,
+        function () {
+            Statistics.sendEventToAll('connection.restored');
+        });
 
     this.chatRoomForwarder.forward(XMPPEvents.CONFERENCE_SETUP_FAILED,
         JitsiConferenceEvents.CONFERENCE_FAILED,

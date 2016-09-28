@@ -293,12 +293,13 @@ Statistics.prototype.isCallstatsEnabled = function () {
 };
 
 /**
- * Notifies CallStats for ice connection failed
+ * Notifies CallStats and analytics(if present) for ice connection failed
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
 Statistics.prototype.sendIceConnectionFailedEvent = function (pc) {
     if(this.callstats)
         this.callstats.sendIceConnectionFailedEvent(pc, this.callstats);
+    Statistics.analytics.sendEvent('connection.ice_failed');
 };
 
 /**

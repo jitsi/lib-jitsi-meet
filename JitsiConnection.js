@@ -33,6 +33,8 @@ function JitsiConnection(appID, token, options) {
             if(msg)
                 Statistics.analytics.sendEvent(
                     'connection.disconnected.' + msg);
+            Statistics.sendLog(
+                JSON.stringify({id: "connection.disconnected", msg: msg}));
         });
 }
 
