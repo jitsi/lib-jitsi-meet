@@ -173,7 +173,10 @@ ChatRoom.prototype.sendPresence = function (fromJoin) {
     }
 };
 
-
+/**
+ * Sends the presence unavailable, signaling the server
+ * we want to leave the room.
+ */
 ChatRoom.prototype.doLeave = function () {
     logger.log("do leave", this.myroomjid);
     var pres = $pres({to: this.myroomjid, type: 'unavailable' });
@@ -490,10 +493,10 @@ ChatRoom.prototype.onPresenceUnavailable = function (pres, from) {
             reason = reasonSelect.text();
         }
 
-        this.leave();
+        this._dispose();
 
         this.eventEmitter.emit(XMPPEvents.MUC_DESTROYED, reason);
-        delete this.connection.emuc.rooms[Strophe.getBareJidFromJid(from)];
+        this.connection.emuc.doLeave(this.roomjid);
         return true;
     }
 
@@ -510,10 +513,14 @@ ChatRoom.prototype.onPresenceUnavailable = function (pres, from) {
             delete this.members[i];
             this.onParticipantLeft(i, member.isFocus);
         }
+        this.connection.emuc.doLeave(this.roomjid);
+        this.eventEmitter.emit(XMPPEvents.MUC_LEFT);
     }
+
     if ($(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="307"]').length) {
         if (this.myroomjid === from) {
-            this.leave(true);
+            this._dispose();
+            this.connection.emuc.doLeave(this.roomjid);
             this.eventEmitter.emit(XMPPEvents.KICKED);
         }
     }
@@ -946,16 +953,20 @@ ChatRoom.prototype.onMute = function (iq) {
 
 /**
  * Leaves the room. Closes the jingle session.
- * @parama voidSendingPresence avoids sending the presence when leaving
  */
-ChatRoom.prototype.leave = function (avoidSendingPresence) {
+ChatRoom.prototype.leave = function () {
+    this._dispose();
+    this.doLeave();
+};
+
+/**
+ * Disposes the conference, closes the jingle session.
+ */
+ChatRoom.prototype._dispose = function () {
     if (this.session) {
         this.session.close();
     }
     this.eventEmitter.emit(XMPPEvents.DISPOSE_CONFERENCE);
-    if(!avoidSendingPresence)
-        this.doLeave();
-    this.connection.emuc.doLeave(this.roomjid);
 };
 
 module.exports = ChatRoom;

@@ -81,6 +81,8 @@ var XMPPEvents = {
     MUC_MEMBER_JOINED: "xmpp.muc_member_joined",
     // Designates an event indicating that a participant left the XMPP MUC.
     MUC_MEMBER_LEFT: "xmpp.muc_member_left",
+    // Designates an event indicating that local participant left the muc
+    MUC_LEFT: "xmpp.muc_left",
     // Designates an event indicating that the MUC role of a participant has
     // changed.
     MUC_ROLE_CHANGED: "xmpp.muc_role_changed",

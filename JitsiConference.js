@@ -147,8 +147,6 @@ JitsiConference.prototype._leaveRoomAndRemoveParticipants = function () {
     }
 
     this.room = null;
-
-    this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_LEFT);
 }
 /**
  * Leaves the conference.
@@ -721,7 +719,10 @@ JitsiConference.prototype.onMemberLeft = function (jid) {
         this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
     }.bind(this));
 
-    this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant);
+    // there can be no participant in case the member that left is focus
+    if (participant)
+        this.eventEmitter.emit(
+            JitsiConferenceEvents.USER_LEFT, id, participant);
 };
 
 JitsiConference.prototype.onUserRoleChanged = function (jid, role) {
