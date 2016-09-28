@@ -1,7 +1,6 @@
 /* global __dirname */
 
 import child_process from 'child_process'; // eslint-disable-line camelcase
-import path from 'path';
 import process from 'process';
 
 const minimize
@@ -17,13 +16,13 @@ export default {
         loaders: [ {
             // Version this build of the lib-jitsi-meet library.
 
-            include: path.resolve(__dirname, './JitsiMeetJS.js'),
+            include: `${__dirname}/JitsiMeetJS.js`,
             loader: 'string-replace',
             query: {
                 flags: 'g',
                 replace:
                     child_process.execSync( // eslint-disable-line camelcase
-                            path.resolve(__dirname, './get-version.sh'))
+                            `${__dirname}/get-version.sh`)
 
                         // The type of the return value of
                         // child_process.execSync is either Buffer or String.
@@ -39,8 +38,8 @@ export default {
             // Transpile ES2015 (aka ES6) to ES5.
 
             exclude: [
-                path.resolve(__dirname, './modules/RTC/adapter.screenshare.js'),
-                path.resolve(__dirname, './node_modules/')
+                `${__dirname}/modules/RTC/adapter.screenshare.js`,
+                `${__dirname}/node_modules/`
             ],
             loader: 'babel',
             test: /\.js$/
