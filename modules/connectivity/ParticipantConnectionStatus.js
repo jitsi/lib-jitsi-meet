@@ -6,6 +6,7 @@ var RTCEvents = require('../../service/RTC/RTCEvents');
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import Statistics from '../statistics/statistics';
 
 /**
  * Default value of 2000 milliseconds for
@@ -178,10 +179,24 @@ ParticipantConnectionStatus.prototype._changeConnectionStatus
         return;
     }
     if (participant.isConnectionActive() !== newStatus) {
+
         participant._setIsConnectionActive(newStatus);
+
         logger.debug(
             'Emit endpoint conn status(' + Date.now() + '): ',
             endpointId, newStatus);
+
+        // Log the event on CallStats
+        Statistics.sendLog(
+            JSON.stringify({
+                id: 'peer.conn.status',
+                participant: endpointId,
+                status: newStatus
+            }));
+
+        // and analytics
+        Statistics.analytics.sendEvent('peer.conn.status', null, newStatus);
+
         this.conference.eventEmitter.emit(
             JitsiConferenceEvents.PARTICIPANT_CONN_STATUS_CHANGED,
             endpointId, newStatus);
