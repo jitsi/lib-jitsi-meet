@@ -501,7 +501,14 @@ ChatRoom.prototype.onPresenceUnavailable = function (pres, from) {
     }
 
     // Status code 110 indicates that this notification is "self-presence".
-    if (!$(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="110"]').length) {
+    var isSelfPresence = $(pres).find(
+            '>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="110"]'
+        ).length !== 0;
+    var isKick = $(pres).find(
+            '>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="307"]'
+        ).length !== 0;
+
+    if (!isSelfPresence) {
         delete this.members[from];
         this.onParticipantLeft(from, false);
     }
@@ -514,15 +521,16 @@ ChatRoom.prototype.onPresenceUnavailable = function (pres, from) {
             this.onParticipantLeft(i, member.isFocus);
         }
         this.connection.emuc.doLeave(this.roomjid);
-        this.eventEmitter.emit(XMPPEvents.MUC_LEFT);
+
+        // we fire muc_left only if this is not a kick,
+        // kick has both statuses 110 and 307.
+        if (!isKick)
+            this.eventEmitter.emit(XMPPEvents.MUC_LEFT);
     }
 
-    if ($(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="307"]').length) {
-        if (this.myroomjid === from) {
-            this._dispose();
-            this.connection.emuc.doLeave(this.roomjid);
-            this.eventEmitter.emit(XMPPEvents.KICKED);
-        }
+    if (isKick && this.myroomjid === from) {
+        this._dispose();
+        this.eventEmitter.emit(XMPPEvents.KICKED);
     }
 };
 
