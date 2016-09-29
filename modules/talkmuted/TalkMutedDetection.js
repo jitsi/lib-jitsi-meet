@@ -15,6 +15,17 @@ export default class TalkMutedDetection {
     }
 
     /**
+     * Adds local tracks. We are interested only in the audio one.
+     * @param track
+     */
+    addTrack(track) {
+        if (!track.isAudioTrack())
+            return;
+
+        this.audioTrack = track;
+    }
+
+    /**
      * Receives audio level events for all send/receive streams.
      * @param ssrc the ssrc of the stream
      * @param level the current audio level
@@ -42,16 +53,5 @@ export default class TalkMutedDetection {
 
         if (track.isMuted())
             this.eventFired = false;
-    }
-
-    /**
-     * Adds local tracks. We are interested only in the audio one.
-     * @param track
-     */
-    addTrack(track) {
-        if (!track.isAudioTrack())
-            return;
-
-        this.audioTrack = track;
     }
 }

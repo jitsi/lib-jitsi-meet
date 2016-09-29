@@ -119,6 +119,10 @@ export const STARTED_MUTED = "conference.started_muted";
  */
 export const SUBJECT_CHANGED = "conference.subjectChanged";
 /**
+ * Event indicates that local user is talking while he muted himself
+ */
+export const TALK_WHILE_MUTED = "conference.talk_while_muted";
+/**
  * A new media track was added to the conference. The event provides the
  * following parameters to its listeners:
  *
@@ -156,7 +160,3 @@ export const USER_ROLE_CHANGED = "conference.roleChanged";
  * User status changed.
  */
 export const USER_STATUS_CHANGED = "conference.statusChanged";
-/**
- * Event indicates that local user is talking while he muted himself
- */
-export const TALK_WHILE_MUTED = "conference.talk_while_muted";
