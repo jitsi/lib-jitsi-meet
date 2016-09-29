@@ -95,7 +95,9 @@ JitsiConference.prototype._init = function (options) {
     }
 
     this.participantConnectionStatus
-        = new ParticipantConnectionStatus(this.rtc, this);
+        = new ParticipantConnectionStatus(
+                this.rtc, this,
+                options.config.peerDisconnectedThroughRtcTimeout);
     this.participantConnectionStatus.init();
 
     if(!this.statistics) {
