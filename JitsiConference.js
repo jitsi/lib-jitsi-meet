@@ -119,16 +119,9 @@ JitsiConference.prototype._init = function (options) {
     this.eventManager.setupStatisticsListeners();
 
     if (this.options.config.enableTalkWhileMuted) {
-        this.talkMutedDetection
-            = new TalkMutedDetection(() => {
-                this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED);
-            });
-        this.statistics.addAudioLevelListener(
-            this.talkMutedDetection.audioLevelListener
-                .bind(this.talkMutedDetection));
-        this.eventEmitter.on(
-            JitsiConferenceEvents.TRACK_MUTE_CHANGED,
-            this.talkMutedDetection.muteChanged.bind(this.talkMutedDetection));
+        new TalkMutedDetection(this, () => {
+            this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED);
+        });
     }
 }
 
@@ -471,9 +464,6 @@ JitsiConference.prototype.addTrack = function (track) {
             } else {
                 this.room.setVideoMute(track.isMuted());
             }
-
-            if (this.talkMutedDetection && track.isAudioTrack())
-                this.talkMutedDetection.addTrack(track);
 
             track.muteHandler = this._fireMuteChangeEvent.bind(this, track);
             track.audioLevelHandler = this._fireAudioLevelChangeEvent.bind(this);

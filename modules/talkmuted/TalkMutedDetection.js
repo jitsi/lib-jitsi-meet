@@ -1,14 +1,24 @@
-import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
 
 export default class TalkMutedDetection {
     /**
      * Creates TalkMutedDetection
+     * @param conference the JitsiConference instance that created us.
      * @param callback the callback to call when detected local user is talking
      * while its microphone is muted.
      * @constructor
      */
-    constructor(callback) {
+    constructor(conference, callback) {
         this.callback = callback;
+
+        conference.statistics.addAudioLevelListener(
+            this.audioLevelListener.bind(this));
+        conference.eventEmitter.on(
+            JitsiConferenceEvents.TRACK_MUTE_CHANGED,
+            this.muteChanged.bind(this));
+        conference.eventEmitter.on(
+            JitsiConferenceEvents.TRACK_ADDED,
+            this.onTrackAdded.bind(this));
 
         // we track firing the event, in order to avoid sending too many events
         this.eventFired = false;
@@ -18,7 +28,7 @@ export default class TalkMutedDetection {
      * Adds local tracks. We are interested only in the audio one.
      * @param track
      */
-    addTrack(track) {
+    onTrackAdded(track) {
         if (!track.isAudioTrack())
             return;
 
@@ -48,10 +58,7 @@ export default class TalkMutedDetection {
      * @param track the track which mute state has changed.
      */
     muteChanged(track) {
-        if (!track.isLocal() || !track.isAudioTrack())
-            return;
-
-        if (track.isMuted())
+        if (track.isLocal() && track.isAudioTrack() && track.isMuted())
             this.eventFired = false;
     }
 }
