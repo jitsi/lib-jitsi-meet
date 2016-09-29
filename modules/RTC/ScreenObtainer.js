@@ -248,7 +248,7 @@ var ScreenObtainer = {
                         window.setTimeout(function () {
                             doGetStreamFromExtension(self.options,
                                 streamCallback, failCallback);
-                        }, 500);
+                        }, 2000);
                     },
                     this.handleExtensionInstallationError.bind(this,
                         options, streamCallback, failCallback)
