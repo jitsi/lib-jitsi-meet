@@ -4,35 +4,30 @@ export default class TalkMutedDetection {
     /**
      * Creates TalkMutedDetection
      * @param conference the JitsiConference instance that created us.
-     * @param callback the callback to call when detected local user is talking
-     * while its microphone is muted.
+     * @param callback the callback to call when detected that the local user is
+     * talking while her microphone is muted.
      * @constructor
      */
     constructor(conference, callback) {
-        this.callback = callback;
+        /**
+         * The callback to call when detected that the local user is talking
+         * while her microphone is muted.
+         *
+         * @private
+         */
+        this._callback = callback;
 
         conference.statistics.addAudioLevelListener(
             this.audioLevelListener.bind(this));
-        conference.eventEmitter.on(
+        conference.on(
             JitsiConferenceEvents.TRACK_MUTE_CHANGED,
-            this.muteChanged.bind(this));
-        conference.eventEmitter.on(
+            this._trackMuteChanged.bind(this));
+        conference.on(
             JitsiConferenceEvents.TRACK_ADDED,
-            this.onTrackAdded.bind(this));
+            this._trackAdded.bind(this));
 
         // we track firing the event, in order to avoid sending too many events
         this.eventFired = false;
-    }
-
-    /**
-     * Adds local tracks. We are interested only in the audio one.
-     * @param track
-     */
-    onTrackAdded(track) {
-        if (!track.isAudioTrack())
-            return;
-
-        this.audioTrack = track;
     }
 
     /**
@@ -49,15 +44,28 @@ export default class TalkMutedDetection {
 
         if (this.audioTrack.isMuted() && level > 0.6) {
             this.eventFired = true;
-            this.callback();
+            this._callback();
         }
+    }
+
+    /**
+     * Adds local tracks. We are interested only in the audio one.
+     * @param track
+     * @private
+     */
+    _trackAdded(track) {
+        if (!track.isAudioTrack())
+            return;
+
+        this.audioTrack = track;
     }
 
     /**
      * Mute changed for a track.
      * @param track the track which mute state has changed.
+     * @private
      */
-    muteChanged(track) {
+    _trackMuteChanged(track) {
         if (track.isLocal() && track.isAudioTrack() && track.isMuted())
             this.eventFired = false;
     }
