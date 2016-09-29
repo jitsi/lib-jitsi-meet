@@ -752,11 +752,6 @@ StatsCollector.prototype.processAudioLevelReport = function () {
         if (now.type != 'ssrc')
             continue;
 
-        var isLocal = false;
-        if (!getStatValue(now, 'packetsReceived')) {
-            isLocal = true;
-        }
-
         var before = this.baselineAudioLevelsReport[idx];
         var ssrc = getStatValue(now, 'ssrc');
         if (!before) {
@@ -787,6 +782,8 @@ StatsCollector.prototype.processAudioLevelReport = function () {
         }
 
         if (audioLevel) {
+            const isLocal = !getStatValue(now, 'packetsReceived');
+
             // TODO: can't find specs about what this value really is,
             // but it seems to vary between 0 and around 32k.
             audioLevel = audioLevel / 32767;

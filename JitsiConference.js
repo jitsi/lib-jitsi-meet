@@ -18,9 +18,9 @@ var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 var JitsiConferenceEventManager = require("./JitsiConferenceEventManager");
 var VideoType = require('./service/RTC/VideoType');
 var Transcriber = require("./modules/transcription/transcriber");
-var TalkMutedDetection = require("./modules/talkmuted/TalkMutedDetection");
 var ParticipantConnectionStatus
     = require("./modules/connectivity/ParticipantConnectionStatus");
+import TalkMutedDetection from "./modules/talkmuted/TalkMutedDetection";
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -119,9 +119,10 @@ JitsiConference.prototype._init = function (options) {
     this.eventManager.setupStatisticsListeners();
 
     if (this.options.config.enableTalkWhileMuted) {
-        this.talkMutedDetection = new TalkMutedDetection(function () {
-            this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED);
-        }.bind(this));
+        this.talkMutedDetection
+            = new TalkMutedDetection(() => {
+                this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED);
+            });
         this.statistics.addAudioLevelListener(
             this.talkMutedDetection.audioLevelListener
                 .bind(this.talkMutedDetection));
