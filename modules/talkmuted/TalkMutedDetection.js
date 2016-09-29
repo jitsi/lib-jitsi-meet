@@ -54,7 +54,7 @@ export default class TalkMutedDetection {
      * @private
      */
     _trackAdded(track) {
-        if (!track.isAudioTrack())
+        if (!track.isAudioTrack() || !track.isLocal())
             return;
 
         this.audioTrack = track;
