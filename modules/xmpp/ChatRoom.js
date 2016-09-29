@@ -173,7 +173,10 @@ ChatRoom.prototype.sendPresence = function (fromJoin) {
     }
 };
 
-
+/**
+ * Sends the presence unavailable, signaling the server
+ * we want to leave the room.
+ */
 ChatRoom.prototype.doLeave = function () {
     logger.log("do leave", this.myroomjid);
     var pres = $pres({to: this.myroomjid, type: 'unavailable' });
@@ -490,32 +493,44 @@ ChatRoom.prototype.onPresenceUnavailable = function (pres, from) {
             reason = reasonSelect.text();
         }
 
-        this.leave();
+        this._dispose();
 
         this.eventEmitter.emit(XMPPEvents.MUC_DESTROYED, reason);
-        delete this.connection.emuc.rooms[Strophe.getBareJidFromJid(from)];
+        this.connection.emuc.doLeave(this.roomjid);
         return true;
     }
 
     // Status code 110 indicates that this notification is "self-presence".
-    if (!$(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="110"]').length) {
+    var isSelfPresence = $(pres).find(
+            '>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="110"]'
+        ).length !== 0;
+    var isKick = $(pres).find(
+            '>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="307"]'
+        ).length !== 0;
+
+    if (!isSelfPresence) {
         delete this.members[from];
         this.onParticipantLeft(from, false);
     }
     // If the status code is 110 this means we're leaving and we would like
     // to remove everyone else from our view, so we trigger the event.
-    else if (Object.keys(this.members).length > 1) {
+    else if (Object.keys(this.members).length > 0) {
         for (var i in this.members) {
             var member = this.members[i];
             delete this.members[i];
             this.onParticipantLeft(i, member.isFocus);
         }
+        this.connection.emuc.doLeave(this.roomjid);
+
+        // we fire muc_left only if this is not a kick,
+        // kick has both statuses 110 and 307.
+        if (!isKick)
+            this.eventEmitter.emit(XMPPEvents.MUC_LEFT);
     }
-    if ($(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="307"]').length) {
-        if (this.myroomjid === from) {
-            this.leave(true);
-            this.eventEmitter.emit(XMPPEvents.KICKED);
-        }
+
+    if (isKick && this.myroomjid === from) {
+        this._dispose();
+        this.eventEmitter.emit(XMPPEvents.KICKED);
     }
 };
 
@@ -946,16 +961,20 @@ ChatRoom.prototype.onMute = function (iq) {
 
 /**
  * Leaves the room. Closes the jingle session.
- * @parama voidSendingPresence avoids sending the presence when leaving
  */
-ChatRoom.prototype.leave = function (avoidSendingPresence) {
+ChatRoom.prototype.leave = function () {
+    this._dispose();
+    this.doLeave();
+};
+
+/**
+ * Disposes the conference, closes the jingle session.
+ */
+ChatRoom.prototype._dispose = function () {
     if (this.session) {
         this.session.close();
     }
     this.eventEmitter.emit(XMPPEvents.DISPOSE_CONFERENCE);
-    if(!avoidSendingPresence)
-        this.doLeave();
-    this.connection.emuc.doLeave(this.roomjid);
 };
 
 module.exports = ChatRoom;
