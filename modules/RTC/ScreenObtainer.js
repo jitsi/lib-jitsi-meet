@@ -226,7 +226,6 @@ var ScreenObtainer = {
      * 'desktop' stream for returned stream token.
      */
     obtainScreenFromExtension: function(options, streamCallback, failCallback) {
-        var self = this;
         if (chromeExtInstalled) {
             doGetStreamFromExtension(this.options, streamCallback,
                 failCallback);
@@ -240,15 +239,21 @@ var ScreenObtainer = {
             try {
                 chrome.webstore.install(
                     getWebStoreInstallUrl(this.options),
-                    function (arg) {
+                    (arg) => {
                         logger.log("Extension installed successfully", arg);
                         chromeExtInstalled = true;
                         // We need to give a moment for the endpoint to become
                         // available
-                        window.setTimeout(function () {
-                            doGetStreamFromExtension(self.options,
-                                streamCallback, failCallback);
-                        }, 2000);
+                        waitForExtensionAfterInstall(this.options, 200, 10)
+                            .then(() => {
+                                doGetStreamFromExtension(this.options,
+                                    streamCallback, failCallback);
+                            }).catch(() => {
+                                // options param is {} because we won't do
+                                // external install in this case.
+                                this.handleExtensionInstallationError({},
+                                    streamCallback, failCallback);
+                            });
                     },
                     this.handleExtensionInstallationError.bind(this,
                         options, streamCallback, failCallback)
@@ -287,21 +292,16 @@ var ScreenObtainer = {
                 JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR));
             return;
         }
-        var self = this;
-        window.setTimeout(function () {
-            checkChromeExtInstalled(function (installed, updateRequired) {
-                chromeExtInstalled = installed;
-                chromeExtUpdateRequired = updateRequired;
-                if(installed) {
-                    options.listener("extensionFound");
-                    self.obtainScreenFromExtension(options,
-                        streamCallback, failCallback);
-                } else {
-                    self.checkForChromeExtensionOnInterval(options,
-                        streamCallback, failCallback);
-                }
-            }, self.options);
-        }, options.interval);
+        waitForExtensionAfterInstall(this.options, options.interval, 1)
+            .then(() => {
+                chromeExtInstalled = true;
+                options.listener("extensionFound");
+                this.obtainScreenFromExtension(options,
+                    streamCallback, failCallback);
+            }).catch(() => {
+                this.checkForChromeExtensionOnInterval(options,
+                    streamCallback, failCallback);
+            });
     }
 };
 
@@ -485,6 +485,38 @@ function initChromeExtension(options) {
             "Chrome extension installed: " + chromeExtInstalled +
             " updateRequired: " + chromeExtUpdateRequired);
     }, options);
+}
+
+/**
+ * Checks "retries" times on every "waitInterval"ms whether the ext is alive.
+ * @param {Object} options the options passed to ScreanObtainer.obtainStream
+ * @param {int} waitInterval the number of ms between retries
+ * @param {int} retries the number of retries
+ * @returns {Promise} returns promise that will be resolved when the extension
+ * is alive and rejected if the extension is not alive even after "retries"
+ * checks
+ */
+function waitForExtensionAfterInstall(options, waitInterval, retries) {
+    if(retries === 0) {
+        return Promise.reject();
+    }
+    return new Promise((resolve, reject) => {
+        let currentRetries = retries;
+        let interval = window.setInterval(() => {
+            checkChromeExtInstalled( (installed) => {
+                if(installed) {
+                    window.clearInterval(interval);
+                    resolve();
+                } else {
+                    currentRetries--;
+                    if(currentRetries === 0) {
+                        reject();
+                        window.clearInterval(interval);
+                    }
+                }
+            }, options);
+        }, waitInterval);
+    });
 }
 
 /**
