@@ -1,13 +1,13 @@
 /* global require */
-var LocalStats = require("./LocalStatsCollector.js");
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var RTPStats = require("./RTPStatsCollector.js");
-var EventEmitter = require("events");
-var StatisticsEvents = require("../../service/statistics/Events");
 var AnalyticsAdapter = require("./AnalyticsAdapter");
 var CallStats = require("./CallStats");
-var ScriptUtil = require('../util/ScriptUtil');
+var EventEmitter = require("events");
 import JitsiTrackError from "../../JitsiTrackError";
+var logger = require("jitsi-meet-logger").getLogger(__filename);
+var LocalStats = require("./LocalStatsCollector.js");
+var RTPStats = require("./RTPStatsCollector.js");
+var ScriptUtil = require('../util/ScriptUtil');
+import * as StatisticsEvents from "../../service/statistics/Events";
 
 /**
  * True if callstats API is loaded
