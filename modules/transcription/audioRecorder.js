@@ -1,4 +1,5 @@
-/* global APP, MediaRecorder, MediaStream, webkitMediaStream*/
+/* global MediaRecorder, MediaStream, webkitMediaStream */
+
 var RecordingResult = require("./recordingResult");
 
 /**
@@ -297,7 +298,7 @@ function createEmptyStream() {
         return new MediaStream();
     }
     else if(typeof(webkitMediaStream) !== 'undefined') {
-        return new webkitMediaStream();
+        return new webkitMediaStream(); // eslint-disable-line new-cap
     }
     else {
         throw new Error("cannot create a clean mediaStream");

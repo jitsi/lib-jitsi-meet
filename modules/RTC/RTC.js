@@ -1,10 +1,9 @@
-/* global __filename, APP, module */
+/* global Strophe */
+
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var EventEmitter = require("events");
-var RTCBrowserType = require("./RTCBrowserType");
 var RTCEvents = require("../../service/RTC/RTCEvents.js");
 var RTCUtils = require("./RTCUtils.js");
-var JitsiTrack = require("./JitsiTrack");
 var JitsiLocalTrack = require("./JitsiLocalTrack.js");
 import JitsiTrackError from "../../JitsiTrackError";
 import * as JitsiTrackErrors from "../../JitsiTrackErrors";
@@ -184,7 +183,7 @@ RTC.addListener = function (eventType, listener) {
 };
 
 RTC.removeListener = function (eventType, listener) {
-    RTCUtils.removeListener(eventType, listener)
+    RTCUtils.removeListener(eventType, listener);
 };
 
 RTC.isRTCReady = function () {
@@ -548,7 +547,7 @@ RTC.prototype.handleRemoteTrackMute = function (type, isMuted, from) {
     if (track) {
         track.setMute(isMuted);
     }
-}
+};
 
 /**
  * Handles remote track video type events
@@ -560,7 +559,7 @@ RTC.prototype.handleRemoteTrackVideoTypeChanged = function (value, from) {
     if (videoTrack) {
         videoTrack._setVideoType(value);
     }
-}
+};
 
 /**
  * Sends message via the datachannels.
@@ -576,6 +575,6 @@ RTC.prototype.sendDataChannelMessage = function (to, payload) {
     } else {
         throw new Error("Data channels support is disabled!");
     }
-}
+};
 
 module.exports = RTC;

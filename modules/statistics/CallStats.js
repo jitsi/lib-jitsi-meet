@@ -139,7 +139,7 @@ function _try_catch (f) {
 var CallStats = _try_catch(function(jingleSession, Settings, options) {
     try{
         CallStats.feedbackEnabled = false;
-        callStats = new callstats($, io, jsSHA);
+        callStats = new callstats($, io, jsSHA); // eslint-disable-line new-cap
 
         this.session = jingleSession;
         this.peerconnection = jingleSession.peerconnection.peerconnection;

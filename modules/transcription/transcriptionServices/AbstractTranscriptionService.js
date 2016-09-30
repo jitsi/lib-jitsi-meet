@@ -41,6 +41,7 @@ TranscriptionService.prototype.send = function send(recordingResult, callback){
  * @param {function} callback function which will retrieve the answer
  *                            from the service
  */
+// eslint-disable-next-line no-unused-vars
 TranscriptionService.prototype.sendRequest = function(audioBlob, callback) {
     throw new Error("TranscriptionService.sendRequest is abstract");
 };
@@ -60,6 +61,7 @@ TranscriptionService.prototype.sendRequest = function(audioBlob, callback) {
  *                 formatted
  * @return {Array<Word>} an array of Word objects
  */
+// eslint-disable-next-line no-unused-vars
 TranscriptionService.prototype.formatResponse = function(response){
     throw new Error("TranscriptionService.format is abstract");
 };
@@ -70,6 +72,7 @@ TranscriptionService.prototype.formatResponse = function(response){
  * @param response the response from the server
  * @return {boolean} true if response is valid, false otherwise
  */
+// eslint-disable-next-line no-unused-vars
 TranscriptionService.prototype.verify = function(response){
       throw new Error("TranscriptionService.verify is abstract");
 };

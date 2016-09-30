@@ -20,8 +20,10 @@
  * callback is going to receive one parameter which is going to be JS error
  * object with a reason for failure in it.
  */
-function createConnectionExternally(webserviceUrl, success_callback,
-    error_callback) {
+function createConnectionExternally( // eslint-disable-line no-unused-vars
+        webserviceUrl,
+        success_callback,
+        error_callback) {
     if (!window.XMLHttpRequest) {
         error_callback(new Error("XMLHttpRequest is not supported!"));
         return;

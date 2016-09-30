@@ -1,5 +1,4 @@
 /* global require */
-/* jshint -W101 */
 
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 var logger = require("jitsi-meet-logger").getLogger(__filename);
@@ -468,7 +467,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function (keys) {
         // example, if item has a stat property of type function, then it's very
         // likely that whoever defined it wanted you to call it in order to
         // retrieve the value associated with a specific key.
-        itemStatByKey = function (item, key) { return item.stat(key) };
+        itemStatByKey = function (item, key) { return item.stat(key); };
         break;
     case RTCBrowserType.RTC_BROWSER_REACT_NATIVE:
         // The implementation provided by react-native-webrtc follows the
@@ -488,14 +487,14 @@ StatsCollector.prototype._defineGetStatValueMethod = function (keys) {
         };
         break;
     default:
-        itemStatByKey = function (item, key) { return item[key] };
+        itemStatByKey = function (item, key) { return item[key]; };
     }
 
     // Compose the 2 functions defined above to get a function which retrieves
     // the value from a specific report returned by RTCPeerConnection#getStats
     // associated with a specific LibJitsiMeet browser-agnostic name.
     return function (item, name) {
-        return itemStatByKey(item, keyFromName(name))
+        return itemStatByKey(item, keyFromName(name));
     };
 };
 
@@ -540,7 +539,7 @@ StatsCollector.prototype.processStatsReport = function () {
             var conferenceStatsTransport = this.conferenceStats.transport;
             if(!conferenceStatsTransport.some(function (t) { return (
                         t.ip == ip && t.type == type && t.localip == localip
-                    )})) {
+                    );})) {
                 conferenceStatsTransport.push(
                     {ip: ip, type: type, localip: localip});
             }

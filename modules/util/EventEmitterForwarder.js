@@ -1,5 +1,3 @@
-var EventEmitter = require("events");
-
 /**
  * Implements utility to forward events from one eventEmitter to another.
  * @param src {object} instance of EventEmitter or another class that implements

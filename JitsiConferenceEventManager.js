@@ -158,7 +158,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
         });
 
     chatRoom.addListener(XMPPEvents.CONNECTION_ICE_FAILED,
-        function (pc) {
+        function () {
             chatRoom.eventEmitter.emit(
                 XMPPEvents.CONFERENCE_SETUP_FAILED,
                 new Error("ICE fail"));

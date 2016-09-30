@@ -1,4 +1,3 @@
-/* global config */
 /**
  * Provides statistics for the local stream.
  */

@@ -1,5 +1,5 @@
 /* global Strophe, $, Promise */
-/* jshint -W101 */
+
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTC = require("./modules/RTC/RTC");
 var XMPPEvents = require("./service/xmpp/XMPPEvents");
@@ -105,7 +105,6 @@ JitsiConference.prototype._init = function (options) {
         this.statistics = new Statistics(this.xmpp, {
             callStatsID: this.options.config.callStatsID,
             callStatsSecret: this.options.config.callStatsSecret,
-            callStatsSecret: this.options.config.callStatsSecret,
             callStatsCustomScriptUrl:
                 this.options.config.callStatsCustomScriptUrl,
             roomName: this.options.name
@@ -123,7 +122,7 @@ JitsiConference.prototype._init = function (options) {
             this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED);
         });
     }
-}
+};
 
 /**
  * Joins the conference.
@@ -156,7 +155,8 @@ JitsiConference.prototype._leaveRoomAndRemoveParticipants = function () {
     }
 
     this.room = null;
-}
+};
+
 /**
  * Leaves the conference.
  * @returns {Promise}
@@ -534,7 +534,7 @@ JitsiConference.prototype.onTrackRemoved = function (track) {
         this.statistics.sendScreenSharingEvent(false);
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
-}
+};
 
 /**
  * Removes JitsiLocalTrack object to the conference.
@@ -831,7 +831,7 @@ function (jingleSession, jingleOffer, now) {
         jingleSession.initialize(false /* initiator */,this.room);
     } catch (error) {
         GlobalOnErrorHandler.callErrorHandler(error);
-    };
+    }
 
     this.rtc.onIncommingCall(jingleSession);
     // Add local Tracks to the ChatRoom
@@ -999,14 +999,14 @@ JitsiConference.prototype.isRecordingSupported = function () {
  */
 JitsiConference.prototype.getRecordingState = function () {
     return (this.room) ? this.room.getRecordingState() : undefined;
-}
+};
 
 /**
  * Returns the url of the recorded video.
  */
 JitsiConference.prototype.getRecordingURL = function () {
     return (this.room) ? this.room.getRecordingURL() : null;
-}
+};
 
 /**
  * Starts/stops the recording
@@ -1020,7 +1020,7 @@ JitsiConference.prototype.toggleRecording = function (options) {
     this.eventEmitter.emit(
         JitsiConferenceEvents.RECORDER_STATE_CHANGED, "error",
         new Error("The conference is not created yet!"));
-}
+};
 
 /**
  * Returns true if the SIP calls are supported and false otherwise
@@ -1029,7 +1029,7 @@ JitsiConference.prototype.isSIPCallingSupported = function () {
     if(this.room)
         return this.room.isSIPCallingSupported();
     return false;
-}
+};
 
 /**
  * Dials a number.
@@ -1039,8 +1039,8 @@ JitsiConference.prototype.dial = function (number) {
     if(this.room)
         return this.room.dial(number);
     return new Promise(function(resolve, reject){
-        reject(new Error("The conference is not created yet!"))});
-}
+        reject(new Error("The conference is not created yet!"));});
+};
 
 /**
  * Hangup an existing call
@@ -1049,8 +1049,8 @@ JitsiConference.prototype.hangup = function () {
     if(this.room)
         return this.room.hangup();
     return new Promise(function(resolve, reject){
-        reject(new Error("The conference is not created yet!"))});
-}
+        reject(new Error("The conference is not created yet!"));});
+};
 
 /**
  * Returns the phone number for joining the conference.
@@ -1059,7 +1059,7 @@ JitsiConference.prototype.getPhoneNumber = function () {
     if(this.room)
         return this.room.getPhoneNumber();
     return null;
-}
+};
 
 /**
  * Returns the pin for joining the conference with phone.
@@ -1068,7 +1068,7 @@ JitsiConference.prototype.getPhonePin = function () {
     if(this.room)
         return this.room.getPhonePin();
     return null;
-}
+};
 
 /**
  * Returns the connection state for the current room. Its ice connection state
@@ -1078,7 +1078,7 @@ JitsiConference.prototype.getConnectionState = function () {
     if(this.room)
         return this.room.getConnectionState();
     return null;
-}
+};
 
 /**
  * Make all new participants mute their audio/video on join.
@@ -1169,7 +1169,7 @@ JitsiConference.prototype.setLocalParticipantProperty = function(name, value) {
 JitsiConference.prototype.sendFeedback =
 function(overallFeedback, detailedFeedback){
     this.statistics.sendFeedback(overallFeedback, detailedFeedback);
-}
+};
 
 /**
  * Returns true if the callstats integration is enabled, otherwise returns
@@ -1180,7 +1180,7 @@ function(overallFeedback, detailedFeedback){
  */
 JitsiConference.prototype.isCallstatsEnabled = function () {
     return this.statistics.isCallstatsEnabled();
-}
+};
 
 
 /**
@@ -1196,7 +1196,7 @@ JitsiConference.prototype._onTrackAttach = function(track, container) {
     }
     this.statistics.associateStreamWithVideoTag(
         ssrc, track.isLocal(), track.getUsageLabel(), container.id);
-}
+};
 
 /**
  * Reports detected audio problem with the media stream related to the passed
@@ -1252,7 +1252,7 @@ JitsiConference.prototype._reportAudioProblem = function (ssrc) {
             id: mtrack.id,
             label: mtrack.label,
             muted: mtrack.muted
-        }
+        };
         logger.log("enabled: ", mtrack.enabled);
         logger.log("id: ", mtrack.id);
         logger.log("label: ", mtrack.label);
@@ -1334,7 +1334,7 @@ JitsiConference.prototype._fireIncompatibleVersionsEvent = function () {
  */
 JitsiConference.prototype.sendEndpointMessage = function (to, payload) {
     this.rtc.sendDataChannelMessage(to, payload);
-}
+};
 
 /**
  * Sends broadcast message via the datachannels.
@@ -1343,6 +1343,6 @@ JitsiConference.prototype.sendEndpointMessage = function (to, payload) {
  */
 JitsiConference.prototype.broadcastEndpointMessage = function (payload) {
     this.sendEndpointMessage("", payload);
-}
+};
 
 module.exports = JitsiConference;

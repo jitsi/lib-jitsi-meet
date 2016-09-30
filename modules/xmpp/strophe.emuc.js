@@ -1,7 +1,9 @@
-/* jshint -W117 */
 /* a simple MUC connection plugin
  * can only handle a single MUC room
  */
+
+/* global $, Strophe */
+
 import {getLogger} from "jitsi-meet-logger";
 const logger = getLogger(__filename);
 import ChatRoom from "./ChatRoom";
@@ -35,7 +37,6 @@ class MucConnectionPlugin extends ConnectionPlugin {
             const errmsg = "You are already in the room!";
             logger.error(errmsg);
             throw new Error(errmsg);
-            return;
         }
         this.rooms[roomJid] = new ChatRoom(this.connection, jid,
             password, this.xmpp, options, settings);

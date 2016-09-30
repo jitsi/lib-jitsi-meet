@@ -1,5 +1,5 @@
 /* global chrome, $, alert */
-/* jshint -W003 */
+
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
 var AdapterJS = require("./adapter.screenshare");
@@ -40,14 +40,14 @@ var GUM = null;
  * The error returned by chrome when trying to start inline installation from
  * popup.
  */
-var CHROME_EXTENSION_POPUP_ERROR =
-    "Inline installs can not be initiated from pop-up windows.";
+const CHROME_EXTENSION_POPUP_ERROR
+    = "Inline installs can not be initiated from pop-up windows.";
 
 /**
  * The error message returned by chrome when the extension is installed.
  */
-var CHROME_NO_EXTENSION_ERROR_MSG =
-    "Could not establish connection. Receiving end does not exist.";
+const CHROME_NO_EXTENSION_ERROR_MSG // eslint-disable-line no-unused-vars
+    = "Could not establish connection. Receiving end does not exist.";
 
 /**
  * Handles obtaining a stream from a screen capture on different browsers.
