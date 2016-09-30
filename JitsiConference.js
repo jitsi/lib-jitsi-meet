@@ -20,6 +20,7 @@ var VideoType = require('./service/RTC/VideoType');
 var Transcriber = require("./modules/transcription/transcriber");
 var ParticipantConnectionStatus
     = require("./modules/connectivity/ParticipantConnectionStatus");
+import TalkMutedDetection from "./modules/TalkMutedDetection";
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -116,6 +117,12 @@ JitsiConference.prototype._init = function (options) {
     // Always add listeners because on reload we are executing leave and the
     // listeners are removed from statistics module.
     this.eventManager.setupStatisticsListeners();
+
+    if (this.options.config.enableTalkWhileMuted) {
+        new TalkMutedDetection(this, () => {
+            this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED);
+        });
+    }
 }
 
 /**
