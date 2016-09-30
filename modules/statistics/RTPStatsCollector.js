@@ -727,9 +727,9 @@ StatsCollector.prototype.processStatsReport = function () {
             calculatePacketLoss(lostPackets.upload, totalPackets.upload)
     };
     this.eventEmitter.emit(StatisticsEvents.CONNECTION_STATS, {
+            "bandwidth": this.conferenceStats.bandwidth,
             "bitrate": this.conferenceStats.bitrate,
             "packetLoss": this.conferenceStats.packetLoss,
-            "bandwidth": this.conferenceStats.bandwidth,
             "resolution": resolutions,
             "transport": this.conferenceStats.transport
         });

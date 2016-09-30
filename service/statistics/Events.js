@@ -12,15 +12,22 @@ export const AUDIO_LEVEL = "statistics.audioLevel";
 
 /**
  * Notifies about audio problem with remote participant.
+ *
+ * @param ssrc - The synchronization source identifier (SSRC) of the remote
+ * participant whose audio exhibits problems.
  */
 export const AUDIO_NOT_WORKING = "statistics.audio_not_working";
-
-/**
- * An event carrying connection statistics.
- */
-export const CONNECTION_STATS = "statistics.connectionstats";
 
 /**
  * An event carrying all statistics by ssrc.
  */
 export const BYTE_SENT_STATS = "statistics.byte_sent_stats";
+
+/**
+ * An event carrying connection statistics.
+ *
+ * @param {object} connectionStats - The connection statistics carried by the
+ * event such as <tt>bandwidth</tt>, <tt>bitrate</tt>, <tt>packetLoss</tt>,
+ * <tt>resolution</tt>, and <tt>transport</tt>.
+ */
+export const CONNECTION_STATS = "statistics.connectionstats";
