@@ -1,10 +1,10 @@
 /* global require */
 /* jshint -W101 */
 
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("../RTC/RTCBrowserType");
-var StatisticsEvents = require("../../service/statistics/Events");
-var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
+import * as StatisticsEvents from "../../service/statistics/Events";
 
 /* Whether we support the browser we are running into for logging statistics */
 var browserSupported = RTCBrowserType.isChrome() ||
@@ -784,8 +784,8 @@ StatsCollector.prototype.processAudioLevelReport = function () {
         if (audioLevel) {
             const isLocal = !getStatValue(now, 'packetsReceived');
 
-            // TODO: can't find specs about what this value really is,
-            // but it seems to vary between 0 and around 32k.
+            // TODO: Can't find specs about what this value really is, but it
+            // seems to vary between 0 and around 32k.
             audioLevel = audioLevel / 32767;
             ssrcStats.setSsrcAudioLevel(audioLevel);
             this.eventEmitter.emit(
