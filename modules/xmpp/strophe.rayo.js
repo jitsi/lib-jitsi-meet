@@ -42,7 +42,7 @@ class RayoConnectionPlugin extends ConnectionPlugin {
                 value: roomName
             }).up();
 
-            if (roomPass !== null && roomPass.length) {
+            if (roomPass && roomPass.length) {
                 req.c('header', {
                     name: 'JvbRoomPassword',
                     value: roomPass
