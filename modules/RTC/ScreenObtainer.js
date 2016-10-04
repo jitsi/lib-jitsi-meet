@@ -248,9 +248,9 @@ var ScreenObtainer = {
                             .then(() => {
                                 doGetStreamFromExtension(this.options,
                                     streamCallback, failCallback);
-                            }).catch(reason => {
+                            }).catch(() => {
                                 this.handleExtensionInstallationError(options,
-                                    streamCallback, failCallback, reason);
+                                    streamCallback, failCallback);
                             });
                     },
                     this.handleExtensionInstallationError.bind(this,
