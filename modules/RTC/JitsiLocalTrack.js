@@ -536,7 +536,12 @@ JitsiLocalTrack.prototype.getDeviceId = function () {
  */
 JitsiLocalTrack.prototype._setByteSent = function (bytesSent) {
     this._bytesSent = bytesSent;
-    if(this._testByteSent) {
+    // FIXME it's a shame that PeerConnection and ICE status does not belong
+    // to the RTC module and it has to be accessed through
+    // the conference(and through the XMPP chat room ???) instead
+    let iceConnectionState
+        = this.conference ? this.conference.getConnectionState() : null;
+    if(this._testByteSent && "connected" === iceConnectionState) {
         setTimeout(function () {
             if(this._bytesSent <= 0){
                 //we are not receiving anything from the microphone
