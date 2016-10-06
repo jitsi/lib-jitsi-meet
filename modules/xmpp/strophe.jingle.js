@@ -110,7 +110,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     this.terminate(sess.sid);
                 }
                 Statistics.analytics.sendEvent(
-                    'xmpp.session-initiate', now);
+                    'xmpp.session-initiate', {value: now});
                 break;
             }
             case 'session-terminate': {
@@ -130,14 +130,15 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             case 'transport-replace':
                 logger.info("(TIME) Start transport replace", now);
                 Statistics.analytics.sendEvent(
-                    'xmpp.transport-replace.start', now);
+                    'xmpp.transport-replace.start', {value: now});
 
                 sess.replaceTransport($(iq).find('>jingle'), () => {
                     const successTime = window.performance.now();
                     logger.info(
                         "(TIME) Transport replace success!", successTime);
                     Statistics.analytics.sendEvent(
-                        'xmpp.transport-replace.success', successTime);
+                        'xmpp.transport-replace.success',
+                        {value: successTime});
                 }, (error) => {
                     GlobalOnErrorHandler.callErrorHandler(error);
                     logger.error('Transport replace failed', error);

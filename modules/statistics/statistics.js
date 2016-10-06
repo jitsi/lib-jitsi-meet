@@ -478,7 +478,8 @@ Statistics.sendLog = function (m) {
 Statistics.prototype.sendFeedback = function(overall, detailed) {
     if(this.callstats)
         this.callstats.sendFeedback(overall, detailed);
-    Statistics.analytics.sendFeedback({overall, detailed});
+    Statistics.analytics.sendEvent("feedback.rating",
+        {value: overall, detailed: detailed});
 };
 
 Statistics.LOCAL_JID = require("../../service/statistics/constants").LOCAL_JID;
@@ -498,12 +499,12 @@ Statistics.reportGlobalError = function (error) {
 
 /**
  * Sends event to analytics and callstats.
- * @param eventName {string} the event name.
- * @param msg {String} optional event info/messages.
+ * @param {string} eventName the event name.
+ * @param {Object} data the data to be sent.
  */
-Statistics.sendEventToAll = function (eventName, msg) {
-    this.analytics.sendEvent(eventName, null, msg);
-    Statistics.sendLog({name: eventName, msg: msg ? msg : ""});
+Statistics.sendEventToAll = function (eventName, data) {
+    this.analytics.sendEvent(eventName, data);
+    Statistics.sendLog({name: eventName, data});
 };
 
 module.exports = Statistics;

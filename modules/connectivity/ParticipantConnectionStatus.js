@@ -195,7 +195,8 @@ ParticipantConnectionStatus.prototype._changeConnectionStatus
             }));
 
         // and analytics
-        Statistics.analytics.sendEvent('peer.conn.status', null, newStatus);
+        Statistics.analytics.sendEvent('peer.conn.status',
+            {label: newStatus});
 
         this.conference.eventEmitter.emit(
             JitsiConferenceEvents.PARTICIPANT_CONN_STATUS_CHANGED,

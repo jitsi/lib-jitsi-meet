@@ -133,7 +133,7 @@ JingleSessionPC.prototype.doInitialize = function () {
         logger.log("(TIME) ICE " + self.peerconnection.iceConnectionState +
                     ":\t", now);
         Statistics.analytics.sendEvent(
-            'ice.' + self.peerconnection.iceConnectionState, now);
+            'ice.' + self.peerconnection.iceConnectionState, {value: now});
         switch (self.peerconnection.iceConnectionState) {
             case 'connected':
 

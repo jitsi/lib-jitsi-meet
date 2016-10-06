@@ -145,8 +145,8 @@ JitsiLocalTrack.prototype._initNoDataFromSourceHandlers = function () {
                 this._setHandler("track_unmute", () => {
                     this._clearNoDataFromSourceMuteResources();
                     Statistics.sendEventToAll(
-                            this.getType() + ".track_unmute",
-                            window.performance.now() - now);
+                        this.getType() + ".track_unmute",
+                        {value: window.performance.now() - now});
                 });
             }
         });
