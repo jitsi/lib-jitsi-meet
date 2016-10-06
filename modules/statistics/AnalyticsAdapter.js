@@ -5,6 +5,10 @@ NoopAnalytics.prototype.sendEvent = function () {};
 
 function AnalyticsAdapter() {
     this.browserName = RTCBrowserType.getBrowserName();
+    /**
+     * Map of properties that will be added to every event
+     */
+    this.permanentProperties = {};
 }
 
 // some events may happen before init or implementation script download
@@ -13,36 +17,18 @@ AnalyticsAdapter.eventsQueue = [];
 
 /**
  * Sends analytics event.
- * @param action
- * @param data
- * @param label
+ * @param {String} action the name of the event
+ * @param {Object} data can be any JSON object
  */
-AnalyticsAdapter.prototype.sendEvent = function (action, data, label) {
-    if(this._checkAnalyticsAndMaybeCacheEvent(
-        "sendEvent", action, data,label)) {
+AnalyticsAdapter.prototype.sendEvent = function (action, data = {}) {
+    if(this._checkAnalyticsAndMaybeCacheEvent(action, data)) {
+        data.browserName = this.browserName;
         try {
-            this.analytics.sendEvent(action, data, label, this.browserName);
+            this.analytics.sendEvent(action,
+                Object.assign({}, this.permanentProperties, data));
         } catch (ignored) { // eslint-disable-line no-empty
         }
     }
-};
-
-/**
- * Sends feedback.
- * @param {object} data with proprties:
- * - {int} overall an integer between 1 and 5 indicating the user feedback
- * - {string} detailed detailed feedback from the user.
- * @param label
- */
-AnalyticsAdapter.prototype.sendFeedback = function (data, label) {
-    if(this._checkAnalyticsAndMaybeCacheEvent(
-        "sendFeedback", null, data,label)) {
-        try {
-            this.analytics.sendFeedback(data, label, this.browserName);
-        } catch (ignored) { // eslint-disable-line no-empty
-        }
-    }
-
 };
 
 /**
@@ -53,14 +39,11 @@ AnalyticsAdapter.prototype.sendFeedback = function (data, label) {
  * a lazy decision, will wait for loaded or dispose methods to be called.
  * in the meantime we accumulate any events received. We should call this
  * method before trying to send the event.
- * @param {string} method - Identifies which method should we use later for the
- * cached events - "sendEvent" or "sendFeedback".
  * @param action
  * @param data
- * @param label
  */
 AnalyticsAdapter.prototype._checkAnalyticsAndMaybeCacheEvent
-= function (method, action, data, label) {
+= function (action, data) {
     if (this.analytics === null || typeof this.analytics === 'undefined') {
         // missing this.analytics but have window implementation, let's use it
         if (window.Analytics) {
@@ -68,10 +51,8 @@ AnalyticsAdapter.prototype._checkAnalyticsAndMaybeCacheEvent
         }
         else {
             AnalyticsAdapter.eventsQueue.push({
-                method: method,
                 action: action,
-                data: data,
-                label: label
+                data: data
             });
             // stored, lets break here
             return false;
@@ -91,6 +72,15 @@ AnalyticsAdapter.prototype.dispose = function () {
 };
 
 /**
+ * Adds map of properties that will be added to every event.
+ * @param {Object} properties the map of properties
+ */
+AnalyticsAdapter.prototype.addPermanentProperties = function (properties) {
+    this.permanentProperties
+        = Object.assign(this.permanentProperties, properties);
+};
+
+/**
  * Loaded analytics script. Sens queued events.
  */
 AnalyticsAdapter.prototype.loaded = function () {
@@ -101,15 +91,7 @@ AnalyticsAdapter.prototype.loaded = function () {
     // new analytics lets send all events if any
     if (AnalyticsAdapter.eventsQueue.length) {
         AnalyticsAdapter.eventsQueue.forEach(function (event) {
-            switch(event.method) {
-                case "sendEvent":
-                    this.sendEvent(event.action, event.data, event.label);
-                    break;
-                case "sendFeedback":
-                    this.sendFeedback(event.data, event.label);
-                    break;
-            }
-
+            this.sendEvent(event.action, event.data);
         }.bind(this));
         AnalyticsAdapter.eventsQueue.length = 0;
     }

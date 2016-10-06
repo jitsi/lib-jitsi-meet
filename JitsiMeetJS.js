@@ -200,7 +200,7 @@ var LibJitsiMeet = {
                     window.performance.now();
 
                 Statistics.analytics.sendEvent(addDeviceTypeToAnalyticsEvent(
-                    "getUserMedia.success", options), options);
+                    "getUserMedia.success", options), {value: options});
 
                 if(!RTC.options.disableAudioLevels)
                     for(let i = 0; i < tracks.length; i++) {
@@ -277,7 +277,7 @@ var LibJitsiMeet = {
                     Statistics.analytics.sendEvent(
                         addDeviceTypeToAnalyticsEvent(
                             "getUserMedia.failed", options) + '.' + error.name,
-                        options);
+                        {value: options});
                 }
 
                 window.connectionTimes["obtainPermissions.end"] =

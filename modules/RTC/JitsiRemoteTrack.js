@@ -148,7 +148,7 @@ JitsiRemoteTrack.prototype._playCallback = function () {
     var eventName = type +'.ttfm';
     if(this.hasBeenMuted)
         eventName += '.muted';
-    Statistics.analytics.sendEvent(eventName, ttfm);
+    Statistics.analytics.sendEvent(eventName, {value: ttfm});
 };
 
 /**

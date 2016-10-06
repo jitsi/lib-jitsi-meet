@@ -824,9 +824,10 @@ function (jingleSession, jingleOffer, now) {
     var crossRegion = null;
     if (window.jitsiRegionInfo)
         crossRegion = window.jitsiRegionInfo["CrossRegion"];
-    Statistics.analytics.sendEvent("session.initiate",
-        (now - this.room.connectionTimes["muc.joined"]),
-        crossRegion);
+    Statistics.analytics.sendEvent("session.initiate",{
+            value: now - this.room.connectionTimes["muc.joined"],
+            label: crossRegion
+        });
     try{
         jingleSession.initialize(false /* initiator */,this.room);
     } catch (error) {
