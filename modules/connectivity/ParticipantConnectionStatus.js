@@ -118,23 +118,6 @@ ParticipantConnectionStatus.prototype.dispose = function () {
 };
 
 /**
- * Checks whether given <tt>JitsiParticipant</tt> has any muted video
- * <tt>MediaStreamTrack</tt>s.
- *
- * @param {JitsiParticipant} participant to be checked for muted video tracks
- *
- * @return {boolean} <tt>true</tt> if given <tt>participant</tt> contains any
- * video <tt>MediaStreamTrack</tt>s muted according to their 'muted' field.
- */
-var hasRtcMutedVideoTrack = function (participant) {
-    return participant.getTracks().some(function(jitsiTrack) {
-        var rtcTrack = jitsiTrack.getTrack();
-        return jitsiTrack.getType() === MediaType.VIDEO
-            && rtcTrack && rtcTrack.muted === true;
-    });
-};
-
-/**
  * Handles RTCEvents.ENDPOINT_CONN_STATUS_CHANGED triggered when we receive
  * notification over the data channel from the bridge about endpoint's
  * connection status update.
@@ -155,7 +138,7 @@ ParticipantConnectionStatus.prototype.onEndpointConnStatusChanged
         if (isActive
                 && RTCBrowserType.isVideoMuteOnConnInterruptedSupported()
                 && participant
-                && hasRtcMutedVideoTrack(participant)
+                && participant.hasAnyVideoTrackWebRTCMuted()
                 && !participant.isVideoMuted()) {
             logger.debug(
                 'Ignoring RTCEvents.ENDPOINT_CONN_STATUS_CHANGED -'
