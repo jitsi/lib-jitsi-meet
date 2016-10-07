@@ -6,10 +6,7 @@ export const LOCAL_TRACK_STOPPED = "track.stopped";
  * Audio levels of a this track was changed.
  */
 export const TRACK_AUDIO_LEVEL_CHANGED = "track.audioLevelsChanged";
-/**
- * Detects that no audio have been sent.
- */
-export const TRACK_AUDIO_NOT_WORKING = "track.audioNotWorking";
+
 /**
  * The audio output of the track was changed.
  */

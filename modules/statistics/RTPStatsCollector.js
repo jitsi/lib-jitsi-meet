@@ -648,11 +648,6 @@ StatsCollector.prototype.processStatsReport = function () {
             bytesSent = Math.round(((bytesSent * 8) / time) / 1000);
         }
 
-        //detect audio issues (receiving data but audioLevel == 0)
-        if(bytesReceived > 10 && ssrcStats.ssrc2AudioLevel === 0) {
-            this.eventEmitter.emit(StatisticsEvents.AUDIO_NOT_WORKING, ssrc);
-        }
-
         ssrcStats.setSsrcBitrate({
             "download": bytesReceived,
             "upload": bytesSent
