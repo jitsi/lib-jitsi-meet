@@ -669,7 +669,9 @@ ChatRoom.prototype.removePresenceListener = function (name) {
  * Checks if the user identified by given <tt>mucJid</tt> is the conference
  * focus.
  * @param mucJid the full MUC address of the user to be checked.
- * @returns {boolean} <tt>true</tt> if MUC user is the conference focus.
+ * @returns {boolean|null} <tt>true</tt> if MUC user is the conference focus or
+ * <tt>false</tt> if is not. When given <tt>mucJid</tt> does not exist in
+ * the MUC then <tt>null</tt> is returned.
  */
 ChatRoom.prototype.isFocus = function (mucJid) {
     var member = this.members[mucJid];
