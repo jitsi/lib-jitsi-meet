@@ -562,10 +562,11 @@ JitsiConference.prototype.getRole = function () {
 
 /**
  * Check if local user is moderator.
- * @returns {boolean} true if local user is moderator, false otherwise.
+ * @returns {boolean|null} true if local user is moderator, false otherwise. If
+ * we're no longer in the conference room then <tt>null</tt> is returned.
  */
 JitsiConference.prototype.isModerator = function () {
-    return this.room.isModerator();
+    return this.room ? this.room.isModerator() : null;
 };
 
 /**
