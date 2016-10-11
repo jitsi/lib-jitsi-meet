@@ -39,6 +39,12 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
         mediaType, videoType, null /* ssrc */);
     this.dontFireRemoveEvent = false;
     this.resolution = resolution;
+
+    // FIXME: currently firefox is ignoring our constraints about resolutions
+    // so we do not store it, to avoid wrong reporting of local track resolution
+    if (RTCBrowserType.isFirefox())
+        this.resolution = null;
+
     this.deviceId = deviceId;
     this.startMuted = false;
     this.initialMSID = this.getMSID();
@@ -299,9 +305,10 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
             var streamOptions = {
                 cameraDeviceId: this.getDeviceId(),
                 devices: [ MediaType.VIDEO ],
-                facingMode: this.getCameraFacingMode(),
-                resolution: this.resolution
+                facingMode: this.getCameraFacingMode()
             };
+            if (this.resolution)
+                streamOptions.resolution = this.resolution;
 
             promise = RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
                 .then(function (streamsInfo) {
