@@ -34,7 +34,6 @@
     "babel-loader": "*",
     "babel-polyfill": "*",
     "babel-preset-es2015": "*",
-    "babel-register": "*",
     "eslint": "*",
     "jshint": "^2.8.0",
     "precommit-hook": "^3.0.0",
