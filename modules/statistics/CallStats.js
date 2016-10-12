@@ -144,7 +144,10 @@ var CallStats = _try_catch(function(jingleSession, Settings, options) {
         this.session = jingleSession;
         this.peerconnection = jingleSession.peerconnection.peerconnection;
 
-        this.userID = Settings.getCallStatsUserName();
+        this.userID = {
+            userName : Settings.getCallStatsUserName(),
+            aliasName : Strophe.getResourceFromJid(jingleSession.room.myroomjid)
+        };
 
         var location = window.location;
         // The confID is case sensitive!!!
