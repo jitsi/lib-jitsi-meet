@@ -406,11 +406,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
     });
 
     if(conference.statistics) {
-        chatRoom.addListener(XMPPEvents.DISPOSE_CONFERENCE,
-            function () {
-                conference.statistics.dispose();
-            });
-
         chatRoom.addListener(XMPPEvents.CONNECTION_ICE_FAILED,
             function (pc) {
                 conference.statistics.sendIceConnectionFailedEvent(pc);

@@ -216,6 +216,7 @@ Statistics.prototype.removeByteSentStatsListener = function (listener) {
 };
 
 Statistics.prototype.dispose = function () {
+    this.stopCallStats();
     this.stopRemoteStats();
     if(this.eventEmitter)
         this.eventEmitter.removeAllListeners();

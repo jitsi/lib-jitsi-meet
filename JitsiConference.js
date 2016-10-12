@@ -141,51 +141,37 @@ JitsiConference.prototype.isJoined = function () {
 };
 
 /**
- * Leaves the conference and calls onMemberLeft for every participant.
- */
-JitsiConference.prototype._leaveRoomAndRemoveParticipants = function () {
-    // remove all participants
-    this.getParticipants().forEach(function (participant) {
-        this.onMemberLeft(participant.getJid());
-    }.bind(this));
-
-    // leave the conference
-    if (this.room) {
-        this.room.leave();
-    }
-
-    this.room = null;
-};
-
-/**
  * Leaves the conference.
  * @returns {Promise}
  */
 JitsiConference.prototype.leave = function () {
-    var conference = this;
-
     if (this.participantConnectionStatus) {
         this.participantConnectionStatus.dispose();
         this.participantConnectionStatus = null;
     }
 
-    this.statistics.stopCallStats();
-    this.rtc.closeAllDataChannels();
+    this.getLocalTracks().forEach(track => this.onTrackRemoved(track));
 
-    return Promise.all(
-        conference.getLocalTracks().map(function (track) {
-            return conference.removeTrack(track);
-        })
-    ).then(this._leaveRoomAndRemoveParticipants.bind(this))
-    .catch(function (error) {
-        logger.error(error);
-        GlobalOnErrorHandler.callUnhandledRejectionHandler(
-            {promise: this, reason: error});
-        // We are proceeding with leaving the conference because room.leave may
-        // succeed.
-        this._leaveRoomAndRemoveParticipants();
-        return Promise.resolve();
-    }.bind(this));
+    this.rtc.closeAllDataChannels();
+    if(this.statistics)
+        this.statistics.dispose();
+
+    // leave the conference
+    if (this.room) {
+        let room = this.room;
+        this.room = null;
+        return room.leave().catch(() => {
+            // remove all participants because currently the conference won't
+            // be usable anyway. This is done on success automatically by the
+            // ChatRoom instance.
+            this.getParticipants().forEach(
+                participant => this.onMemberLeft(participant.getJid()));
+        });
+    }
+
+    // If this.room == null we are calling second time leave().
+    return Promise.reject(
+        new Error("The conference is has been already left"));
 };
 
 /**
