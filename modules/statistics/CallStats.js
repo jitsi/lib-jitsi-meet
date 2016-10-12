@@ -68,7 +68,7 @@ function initCallback (err, msg) {
 
     if(!fabricInitialized) {
         CallStats.initializeFailed = true;
-        console.log("callstats fabric not initilized", ret.message);
+        logger.log("callstats fabric not initilized", ret.message);
         return;
     }
 
@@ -233,7 +233,9 @@ CallStats.prototype.pcCallback = _try_catch(function (err, msg) {
     if (!callStats) {
         return;
     }
-    logger.log("Monitoring status: "+ err + " msg: " + msg);
+
+    if (err !== 'success')
+        logger.error("Monitoring status: "+ err + " msg: " + msg);
 });
 
 /**
