@@ -240,7 +240,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                         }
                     }
                 });
-                self.ice_config.iceServers = iceservers;
+                this.ice_config.iceServers = iceservers;
             }, (err) => {
                 logger.warn('getting turn credentials failed', err);
                 logger.warn('is mod_turncredentials or similar installed?');
@@ -254,7 +254,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
     getLog () {
         const data = {};
         Object.keys(this.sessions).forEach((sid) => {
-            const session = self.sessions[sid];
+            const session = this.sessions[sid];
             const pc = session.peerconnection;
             if (pc && pc.updateLog) {
                 // FIXME: should probably be a .dump call
