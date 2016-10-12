@@ -139,7 +139,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     Statistics.analytics.sendEvent(
                         'xmpp.transport-replace.success',
                         {value: successTime});
-                }, (error) => {
+                }, error => {
                     GlobalOnErrorHandler.callErrorHandler(error);
                     logger.error('Transport replace failed', error);
                     sess.sendTransportReject();
@@ -191,7 +191,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             $iq({type: 'get', to: this.connection.domain})
                 .c('services', {xmlns: 'urn:xmpp:extdisco:1'})
                 .c('service', {host: 'turn.' + this.connection.domain}),
-            (res) => {
+            res => {
                 let iceservers = [];
                 $(res).find('>services>service').each((idx, el) => {
                     el = $(el);
@@ -240,8 +240,8 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                         }
                     }
                 });
-                self.ice_config.iceServers = iceservers;
-            }, (err) => {
+                this.ice_config.iceServers = iceservers;
+            }, err => {
                 logger.warn('getting turn credentials failed', err);
                 logger.warn('is mod_turncredentials or similar installed?');
             });
@@ -253,8 +253,8 @@ class JingleConnectionPlugin extends ConnectionPlugin {
      */
     getLog () {
         const data = {};
-        Object.keys(this.sessions).forEach((sid) => {
-            const session = self.sessions[sid];
+        Object.keys(this.sessions).forEach(sid => {
+            const session = this.sessions[sid];
             const pc = session.peerconnection;
             if (pc && pc.updateLog) {
                 // FIXME: should probably be a .dump call
