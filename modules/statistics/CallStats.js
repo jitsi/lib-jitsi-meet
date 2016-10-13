@@ -47,6 +47,12 @@ var fabricEvent = {
 
 var callStats = null;
 
+/**
+ * The user id to report to callstats as destination.
+ * @type {string}
+ */
+const DEFAULT_REMOTE_USER = "jitsi";
+
 function initCallback (err, msg) {
     logger.log("CallStats Status: err=" + err + " msg=" + msg);
 
@@ -59,7 +65,7 @@ function initCallback (err, msg) {
     }
 
     var ret = callStats.addNewFabric(this.peerconnection,
-        Strophe.getResourceFromJid(this.session.peerjid),
+        DEFAULT_REMOTE_USER,
         callStats.fabricUsage.multiplex,
         this.confID,
         this.pcCallback.bind(this));
@@ -141,7 +147,6 @@ var CallStats = _try_catch(function(jingleSession, Settings, options) {
         CallStats.feedbackEnabled = false;
         callStats = new callstats($, io, jsSHA); // eslint-disable-line new-cap
 
-        this.session = jingleSession;
         this.peerconnection = jingleSession.peerconnection.peerconnection;
 
         this.userID = {
