@@ -642,7 +642,7 @@ JitsiLocalTrack.prototype._isReceivingData = function () {
     // creation.
     return this.stream.getTracks().some(track =>
         ((!("readyState" in track) || track.readyState === "live")
-            && (!("muted" in track) || track.muted === false)));
+            && (!("muted" in track) || track.muted !== true)));
 };
 
 module.exports = JitsiLocalTrack;
