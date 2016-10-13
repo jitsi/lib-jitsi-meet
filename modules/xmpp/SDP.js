@@ -20,6 +20,14 @@ function SDP(sdp) {
 }
 
 /**
+ * A flag will make {@link transportToJingle} and {@link jingle2media} replace
+ * ICE candidates IPs with invalid value of '1.1.1.1' which will cause ICE
+ * failure. The flag is used in the automated testing.
+ * @type {boolean}
+ */
+SDP.prototype.failICE = false;
+
+/**
  * Whether or not to remove TCP ice candidates when translating from/to jingle.
  * @type {boolean}
  */
@@ -385,6 +393,9 @@ SDP.prototype.transportToJingle = function (mediaindex, elem) {
             var lines = SDPUtil.find_lines(this.media[mediaindex], 'a=candidate:', this.session);
             lines.forEach(function (line) {
                 var candidate = SDPUtil.candidateToJingle(line);
+                if (self.failICE) {
+                    candidate.ip = "1.1.1.1";
+                }
                 var protocol = (candidate &&
                         typeof candidate.protocol === 'string')
                     ? candidate.protocol.toLowerCase() : '';
@@ -598,6 +609,8 @@ SDP.prototype.jingle2media = function (content) {
         if ((self.removeTcpCandidates && protocol === 'tcp') ||
             (self.removeUdpCandidates && protocol === 'udp')) {
             return;
+        } else  if (self.failICE) {
+            this.setAttribute('ip', '1.1.1.1');
         }
 
         media += SDPUtil.candidateFromJingle(this);
