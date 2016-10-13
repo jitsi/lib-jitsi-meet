@@ -43,7 +43,6 @@ var XMPPEvents = {
     // Designates an event indicating that the display name of a participant
     // has changed.
     DISPLAY_NAME_CHANGED: "xmpp.display_name_changed",
-    DISPOSE_CONFERENCE: "xmpp.dispose_conference",
     ETHERPAD: "xmpp.etherpad",
     FOCUS_DISCONNECTED: 'xmpp.focus_disconnected',
     FOCUS_LEFT: "xmpp.focus_left",

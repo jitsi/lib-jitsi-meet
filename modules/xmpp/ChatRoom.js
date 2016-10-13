@@ -958,10 +958,29 @@ ChatRoom.prototype.onMute = function (iq) {
 
 /**
  * Leaves the room. Closes the jingle session.
+ * @returns {Promise} which is resolved if XMPPEvents.MUC_LEFT is received less
+ * than 5s after sending presence unavailable. Otherwise the promise is
+ * rejected.
  */
 ChatRoom.prototype.leave = function () {
     this._dispose();
-    this.doLeave();
+    return new Promise((resolve, reject) => {
+        let timeout = setTimeout(() => onMucLeft(true), 5000);
+        let eventEmitter = this.eventEmitter;
+        function onMucLeft(doReject = false) {
+            eventEmitter.removeListener(XMPPEvents.MUC_LEFT, onMucLeft);
+            clearTimeout(timeout);
+            if(doReject) {
+                // the timeout expired
+                reject(new Error("The timeout for the confirmation about " +
+                    "leaving the room expired."));
+            } else {
+                resolve();
+            }
+        }
+        eventEmitter.on(XMPPEvents.MUC_LEFT, onMucLeft);
+        this.doLeave();
+    });
 };
 
 /**
@@ -971,7 +990,6 @@ ChatRoom.prototype._dispose = function () {
     if (this.session) {
         this.session.close();
     }
-    this.eventEmitter.emit(XMPPEvents.DISPOSE_CONFERENCE);
 };
 
 module.exports = ChatRoom;
