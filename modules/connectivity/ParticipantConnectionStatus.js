@@ -178,8 +178,8 @@ export default class ParticipantConnectionStatus {
             participant._setIsConnectionActive(newStatus);
 
             logger.debug(
-                'Emit endpoint conn status(' + Date.now() + '): ',
-                endpointId, newStatus);
+                'Emit endpoint conn status(' + Date.now() + ') '
+                    + endpointId + ": " + newStatus);
 
             // Log the event on CallStats
             Statistics.sendLog(
@@ -225,8 +225,8 @@ export default class ParticipantConnectionStatus {
                 && remoteTrack.getType() === MediaType.VIDEO) {
 
             logger.debug(
-                'Detector on remote track added: ',
-                remoteTrack.getParticipantId());
+                'Detector on remote track added for: '
+                    + remoteTrack.getParticipantId());
 
             remoteTrack.on(
                 JitsiTrackEvents.TRACK_MUTE_CHANGED,
@@ -244,9 +244,12 @@ export default class ParticipantConnectionStatus {
     onRemoteTrackRemoved(remoteTrack) {
         if (!remoteTrack.isLocal()
                 && remoteTrack.getType() === MediaType.VIDEO) {
+
+            const endpointId = remoteTrack.getParticipantId();
+
             logger.debug(
-                'Detector on remote track removed: ',
-                remoteTrack.getParticipantId());
+                'Detector on remote track removed: ' + endpointId);
+
             remoteTrack.off(
                 JitsiTrackEvents.TRACK_MUTE_CHANGED,
                 this._onSignallingMuteChanged);
@@ -263,7 +266,7 @@ export default class ParticipantConnectionStatus {
     onTrackRtcMuted(track) {
         var participantId = track.getParticipantId();
         var participant = this.conference.getParticipantById(participantId);
-        logger.debug('Detector track RTC muted: ', participantId);
+        logger.debug('Detector track RTC muted: ' + participantId);
         if (!participant) {
             logger.error('No participant for id: ' + participantId);
             return;
