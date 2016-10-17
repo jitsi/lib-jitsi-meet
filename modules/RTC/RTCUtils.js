@@ -16,7 +16,6 @@ var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
 var Resolutions = require("../../service/RTC/Resolutions");
 var RTCEvents = require("../../service/RTC/RTCEvents");
-var AdapterJS = require("./adapter.screenshare");
 var SDPUtil = require("../xmpp/SDPUtil");
 var EventEmitter = require("events");
 var screenObtainer = require("./ScreenObtainer");
@@ -25,6 +24,13 @@ var MediaType = require("../../service/RTC/MediaType");
 var VideoType = require("../../service/RTC/VideoType");
 var CameraFacingMode = require("../../service/RTC/CameraFacingMode");
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
+
+// XXX Don't require Temasys unless it's to be used because it doesn't run on
+// React Native, for example.
+const AdapterJS
+    = RTCBrowserType.isTemasysPluginUsed()
+        ? require("./adapter.screenshare")
+        : undefined;
 
 var eventEmitter = new EventEmitter();
 
