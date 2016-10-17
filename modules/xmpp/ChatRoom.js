@@ -75,7 +75,7 @@ function ChatRoom(connection, jid, password, XMPP, options, settings) {
     this.joined = false;
     this.role = null;
     this.focusMucJid = null;
-    this.bridgeIsDown = false;
+    this.noBridgeAvailable = false;
     this.options = options || {};
     this.moderator = new Moderator(this.roomjid, this.xmpp, this.eventEmitter,
         settings, {connection: this.xmpp.options, conference: this.options});
@@ -366,9 +366,9 @@ ChatRoom.prototype.onPresence = function (pres) {
                     }
                 }
                 break;
-            case "bridgeIsDown":
-                if (member.isFocus && !this.bridgeIsDown) {
-                    this.bridgeIsDown = true;
+            case "bridgeNotAvailable":
+                if (member.isFocus && !this.noBridgeAvailable) {
+                    this.noBridgeAvailable = true;
                     this.eventEmitter.emit(XMPPEvents.BRIDGE_DOWN);
                 }
                 break;
@@ -669,7 +669,9 @@ ChatRoom.prototype.removePresenceListener = function (name) {
  * Checks if the user identified by given <tt>mucJid</tt> is the conference
  * focus.
  * @param mucJid the full MUC address of the user to be checked.
- * @returns {boolean} <tt>true</tt> if MUC user is the conference focus.
+ * @returns {boolean|null} <tt>true</tt> if MUC user is the conference focus or
+ * <tt>false</tt> if is not. When given <tt>mucJid</tt> does not exist in
+ * the MUC then <tt>null</tt> is returned.
  */
 ChatRoom.prototype.isFocus = function (mucJid) {
     var member = this.members[mucJid];
