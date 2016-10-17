@@ -399,7 +399,8 @@ SDP.prototype.transportToJingle = function (mediaindex, elem) {
                 var protocol = (candidate &&
                         typeof candidate.protocol === 'string')
                     ? candidate.protocol.toLowerCase() : '';
-                if ((self.removeTcpCandidates && protocol === 'tcp') ||
+                if ((self.removeTcpCandidates
+                        && (protocol === 'tcp' || protocol === 'ssltcp')) ||
                     (self.removeUdpCandidates && protocol === 'udp')) {
                     return;
                 }
@@ -606,7 +607,8 @@ SDP.prototype.jingle2media = function (content) {
         var protocol = this.getAttribute('protocol');
         protocol = (typeof protocol === 'string') ? protocol.toLowerCase(): '';
 
-        if ((self.removeTcpCandidates && protocol === 'tcp') ||
+        if ((self.removeTcpCandidates
+                && (protocol === 'tcp' || protocol === 'ssltcp')) ||
             (self.removeUdpCandidates && protocol === 'udp')) {
             return;
         } else  if (self.failICE) {
