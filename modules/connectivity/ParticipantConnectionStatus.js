@@ -41,6 +41,13 @@ export default class ParticipantConnectionStatus {
          */
         this.trackTimers = {};
         /**
+         * This map holds the endpoint connection status received from the JVB
+         * (as it might be different than the one stored in JitsiParticipant).
+         * Required for getting back in sync when remote video track is removed.
+         * @type {Object.<string, boolean>}
+         */
+        this.rtcConnStatusCache = { };
+        /**
          * How long we're going to wait after the RTC video track muted event
          * for the corresponding signalling mute event, before the connection
          * interrupted is fired. The default value is
@@ -128,6 +135,9 @@ export default class ParticipantConnectionStatus {
         Object.keys(this.trackTimers).forEach(function (participantId) {
             this.clearTimeout(participantId);
         }.bind(this));
+
+        // Clear RTC connection status cache
+        this.rtcConnStatusCache = {};
     }
 
     /**
@@ -145,6 +155,12 @@ export default class ParticipantConnectionStatus {
 
         // Filter out events for the local JID for now
         if (endpointId !== this.conference.myUserId()) {
+
+            // Cache the status received received over the data channels, as
+            // it will be needed to verify for out of sync when the remote video
+            // track is being removed.
+            this.rtcConnStatusCache[endpointId] = isActive;
+
             var participant = this.conference.getParticipantById(endpointId);
             // Delay the 'active' event until the video track gets
             // the RTC unmuted event
@@ -253,7 +269,64 @@ export default class ParticipantConnectionStatus {
             remoteTrack.off(
                 JitsiTrackEvents.TRACK_MUTE_CHANGED,
                 this._onSignallingMuteChanged);
-            this.clearTimeout(remoteTrack.getParticipantId());
+
+            this.clearTimeout(endpointId);
+
+            // Only if we're using video muted events - check if the JVB status
+            // should be restored from cache.
+            if (RTCBrowserType.isVideoMuteOnConnInterruptedSupported())
+            {
+                this.maybeRestoreCachedStatus(endpointId);
+            }
+        }
+    }
+
+    /**
+     * When RTC video track muted events are taken into account,
+     * at the point when the track is being removed we have to update
+     * to the current connectivity status according to the JVB. That's
+     * because if the current track is muted then the new one which
+     * replaces it is always added as unmuted and there may be no
+     * 'muted'/'unmuted' event sequence if the connection restores in
+     * the meantime.
+     *
+     * XXX See onEndpointConnStatusChanged method where the update is
+     * postponed and which is the cause for this workaround. If we
+     * decide to not wait for video unmuted event and accept the JVB
+     * status immediately then it's fine to remove the code below.
+     */
+    maybeRestoreCachedStatus(endpointId) {
+        var participant = this.conference.getParticipantById(endpointId);
+        if (!participant) {
+            // Probably the participant is no longer in the conference
+            // (at the time of writing this code, participant is
+            // detached from the conference and TRACK_REMOVED events are
+            // fired),
+            // so we don't care, but let's print the warning for
+            // debugging purpose
+            logger.warn(
+                'maybeRestoreCachedStatus - ' +
+                'no participant for endpoint: ' + endpointId);
+            return;
+        }
+
+        const isConnectionActive = participant.isConnectionActive();
+        const hasAnyVideoRTCMuted = participant.hasAnyVideoTrackWebRTCMuted();
+        const isConnActiveByJvb = this.rtcConnStatusCache[endpointId];
+
+        logger.debug(
+            "Remote track removed, is active: " + isConnectionActive
+            + " is active(jvb):" + isConnActiveByJvb
+            + " video RTC muted:" + hasAnyVideoRTCMuted);
+
+        if (!isConnectionActive && isConnActiveByJvb && !hasAnyVideoRTCMuted) {
+            // FIXME adjust the log level or remove the message completely once
+            // the feature gets mature enough.
+            logger.info(
+                "Remote track removed for disconnected" +
+                " participant, when the status according to" +
+                " the JVB is connected. Adjusting to the JVB value.");
+            this._changeConnectionStatus(endpointId, isConnActiveByJvb);
         }
     }
 
