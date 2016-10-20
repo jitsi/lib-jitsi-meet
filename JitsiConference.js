@@ -797,6 +797,17 @@ function (jingleSession, jingleOffer, now) {
                 + jingleSession.peerjid;
         GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
         logger.error(errmsg);
+
+        // Terminate  the jingle session with a reason
+        jingleSession.terminate(
+            'security-error', 'Only focus can start new sessions',
+            null /* success callback => we don't care */,
+            function (error) {
+                logger.warn(
+                    "An error occurred while trying to terminate"
+                        + " invalid Jingle session", error);
+            });
+
         return;
     }
 
