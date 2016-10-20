@@ -14,6 +14,8 @@ var RTC = require("../RTC/RTC");
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 var Statistics = require("../statistics/statistics");
 
+import * as JingleSessionState from "./JingleSessionState";
+
 /**
  * Constant tells how long we're going to wait for IQ response, before timeout
  * error is  triggered.
@@ -280,7 +282,7 @@ JingleSessionPC.prototype.readSsrcInfo = function (contents) {
  */
 JingleSessionPC.prototype.acceptOffer = function(jingleOffer,
                                                  success, failure) {
-    this.state = 'active';
+    this.state = JingleSessionState.ACTIVE;
     this.setOfferCycle(jingleOffer,
         function() {
             // setOfferCycle succeeded, now we have self.localSDP up to date
@@ -541,9 +543,13 @@ JingleSessionPC.prototype.sendTransportReject = function(success, failure) {
         IQ_TIMEOUT);
 };
 
-//FIXME: I think this method is not used!
+/**
+ * @inheritDoc
+ */
 JingleSessionPC.prototype.terminate = function (reason,  text,
                                                 success, failure) {
+    this.state = JingleSessionState.ENDED;
+
     var term = $iq({to: this.peerjid,
         type: 'set'})
         .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
