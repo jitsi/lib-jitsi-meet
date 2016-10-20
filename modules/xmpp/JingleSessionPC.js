@@ -1049,9 +1049,9 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, errorCallba
  */
 JingleSessionPC.prototype.notifyMySSRCUpdate = function (old_sdp, new_sdp) {
 
-    if (!(this.peerconnection.signalingState == 'stable' &&
-        this.peerconnection.iceConnectionState == 'connected')){
-        logger.log("Too early to send updates");
+    if (this.state !== JingleSessionState.ACTIVE){
+        logger.warn(
+            "Skipping SSRC update in \'" + this.state + " \' state.");
         return;
     }
 
