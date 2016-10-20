@@ -102,7 +102,7 @@ JingleSessionPC.prototype.doInitialize = function () {
             var protocol = candidate.protocol;
             if (typeof protocol === 'string') {
                 protocol = protocol.toLowerCase();
-                if (protocol == 'tcp') {
+                if (protocol === 'tcp' || protocol ==='ssltcp') {
                     if (self.webrtcIceTcpDisable)
                         return;
                 } else if (protocol == 'udp') {
