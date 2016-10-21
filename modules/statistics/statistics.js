@@ -505,7 +505,7 @@ Statistics.reportGlobalError = function (error) {
  */
 Statistics.sendEventToAll = function (eventName, data) {
     this.analytics.sendEvent(eventName, data);
-    Statistics.sendLog({name: eventName, data});
+    Statistics.sendLog(JSON.stringify({name: eventName, data}));
 };
 
 module.exports = Statistics;
