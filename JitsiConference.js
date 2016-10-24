@@ -18,8 +18,8 @@ var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 var JitsiConferenceEventManager = require("./JitsiConferenceEventManager");
 var VideoType = require('./service/RTC/VideoType');
 var Transcriber = require("./modules/transcription/transcriber");
-var ParticipantConnectionStatus
-    = require("./modules/connectivity/ParticipantConnectionStatus");
+import ParticipantConnectionStatus
+    from "./modules/connectivity/ParticipantConnectionStatus";
 import TalkMutedDetection from "./modules/TalkMutedDetection";
 
 /**

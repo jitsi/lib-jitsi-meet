@@ -142,6 +142,16 @@ JitsiTrack.prototype.isAudioTrack = function () {
 };
 
 /**
+ * Checks whether the underlying WebRTC <tt>MediaStreamTrack</tt> is muted
+ * according to it's 'muted' field status.
+ * @return {boolean} <tt>true</tt> if the underlying <tt>MediaStreamTrack</tt>
+ * is muted or <tt>false</tt> otherwise.
+ */
+JitsiTrack.prototype.isWebRTCTrackMuted = function () {
+    return this.track && this.track.muted;
+};
+
+/**
  * Check if this is videotrack.
  */
 JitsiTrack.prototype.isVideoTrack = function () {
