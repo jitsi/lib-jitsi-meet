@@ -234,7 +234,7 @@ ChatRoom.prototype.createNonAnonymousRoom = function () {
             return;
         }
 
-        var formSubmit = $iq({to: this.roomjid, type: 'set'})
+        var formSubmit = $iq({to: self.roomjid, type: 'set'})
             .c('query', {xmlns: 'http://jabber.org/protocol/muc#owner'});
 
         formSubmit.c('x', {xmlns: 'jabber:x:data', type: 'submit'});
