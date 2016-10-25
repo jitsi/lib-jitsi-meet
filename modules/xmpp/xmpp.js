@@ -146,19 +146,20 @@ export default class XMPP {
         } else if (status === Strophe.Status.DISCONNECTED) {
             // Stop ping interval
             this.connection.ping.stopInterval();
+            const errMsg = msg ? msg : this.lastErrorMsg;
             this.disconnectInProgress = false;
             if (this.anonymousConnectionFailed) {
                 // prompt user for username and password
-                this.eventEmitter.emit(JitsiConnectionEvents.CONNECTION_FAILED,
+                this.eventEmitter.emit(
+                    JitsiConnectionEvents.CONNECTION_FAILED,
                     JitsiConnectionErrors.PASSWORD_REQUIRED);
             } else if(this.connectionFailed) {
-                this.eventEmitter.emit(JitsiConnectionEvents.CONNECTION_FAILED,
-                    JitsiConnectionErrors.OTHER_ERROR,
-                    msg ? msg : this.lastErrorMsg);
+                this.eventEmitter.emit(
+                    JitsiConnectionEvents.CONNECTION_FAILED,
+                    JitsiConnectionErrors.OTHER_ERROR, errMsg);
             } else {
                 this.eventEmitter.emit(
-                        JitsiConnectionEvents.CONNECTION_DISCONNECTED,
-                        msg ? msg : this.lastErrorMsg);
+                    JitsiConnectionEvents.CONNECTION_DISCONNECTED, errMsg);
             }
         } else if (status === Strophe.Status.AUTHFAIL) {
             // wrong password or username, prompt user
