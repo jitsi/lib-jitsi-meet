@@ -146,19 +146,32 @@ export default class XMPP {
         } else if (status === Strophe.Status.DISCONNECTED) {
             // Stop ping interval
             this.connection.ping.stopInterval();
+            const wasIntentionalDisconnect = this.disconnectInProgress;
+            const errMsg = msg ? msg : this.lastErrorMsg;
             this.disconnectInProgress = false;
             if (this.anonymousConnectionFailed) {
                 // prompt user for username and password
-                this.eventEmitter.emit(JitsiConnectionEvents.CONNECTION_FAILED,
+                this.eventEmitter.emit(
+                    JitsiConnectionEvents.CONNECTION_FAILED,
                     JitsiConnectionErrors.PASSWORD_REQUIRED);
             } else if(this.connectionFailed) {
-                this.eventEmitter.emit(JitsiConnectionEvents.CONNECTION_FAILED,
+                this.eventEmitter.emit(
+                    JitsiConnectionEvents.CONNECTION_FAILED,
+                    JitsiConnectionErrors.OTHER_ERROR, errMsg);
+            } else if (!wasIntentionalDisconnect) {
+                // XXX if Strophe drops the connection while not being asked to,
+                // it means that most likely some serious error has occurred.
+                // One currently known case is when a BOSH request fails for
+                // more than 4 times. The connection is dropped without
+                // supplying a reason(error message/event) through the API.
+                logger.error("XMPP connection dropped!");
+                this.eventEmitter.emit(
+                    JitsiConnectionEvents.CONNECTION_FAILED,
                     JitsiConnectionErrors.OTHER_ERROR,
-                    msg ? msg : this.lastErrorMsg);
+                    errMsg ? errMsg : 'connection-dropped-error');
             } else {
                 this.eventEmitter.emit(
-                        JitsiConnectionEvents.CONNECTION_DISCONNECTED,
-                        msg ? msg : this.lastErrorMsg);
+                    JitsiConnectionEvents.CONNECTION_DISCONNECTED, errMsg);
             }
         } else if (status === Strophe.Status.AUTHFAIL) {
             // wrong password or username, prompt user
