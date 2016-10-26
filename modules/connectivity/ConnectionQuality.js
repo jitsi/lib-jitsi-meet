@@ -1,0 +1,213 @@
+import * as ConnectionQualityEvents
+    from "../../service/connectivity/ConnectionQualityEvents";
+import * as ConferenceEvents from "../../JitsiConferenceEvents";
+
+// webrtc table describing simulcast resolutions and used bandwidth
+// https://chromium.googlesource.com/external/webrtc/+/master/webrtc/media/engine/simulcast.cc#42
+const _bandwidthMap = [
+    { width: 1920, height: 1080, layers:3, max: 5000, min: 800 },
+    { width: 1280, height: 720,  layers:3, max: 2500, min: 600 },
+    { width: 960,  height: 540,  layers:3, max: 900,  min: 450 },
+    { width: 640,  height: 360,  layers:2, max: 700,  min: 150 },
+    { width: 480,  height: 270,  layers:2, max: 450,  min: 150 },
+    { width: 320,  height: 180,  layers:1, max: 200,  min: 30 }
+];
+
+/**
+ * Calculates the quality percent based on passed new and old value.
+ * @param newVal the new value
+ * @param oldVal the old value
+ */
+function calculateQuality(newVal, oldVal) {
+    return (newVal <= oldVal) ? newVal : (9*oldVal + newVal) / 10;
+}
+
+/**
+ * Calculates the quality percentage based on the input resolution height and
+ * the upload reported by the client. The value is based on the interval from
+ * _bandwidthMap.
+ * @param inputHeight the resolution used to open the camera.
+ * @param upload the upload rate reported by client.
+ * @returns {int} the percent of upload based on _bandwidthMap and maximum value
+ * of 100, as values of the map are approximate and clients can stream above
+ * those values. Returns undefined if no result is found.
+ */
+function calculateQualityUsingUpload(inputHeight, upload) {
+    // found resolution from _bandwidthMap which height is equal or less than
+    // the inputHeight
+    let foundResolution = _bandwidthMap.find((r) => (r.height <= inputHeight));
+
+    if (!foundResolution)
+        return undefined;
+
+    if (upload <= foundResolution.min)
+        return 0;
+
+    return Math.min(
+        ((upload - foundResolution.min)*100)
+            / (foundResolution.max - foundResolution.min),
+        100);
+}
+
+export default class ConnectionQuality {
+    constructor(conference, eventEmitter, options) {
+        this.eventEmitter = eventEmitter;
+
+        this.disableQualityBasedOnBandwidth =
+            options.forceQualityBasedOnBandwidth
+                    ? false : !!options.disableSimulcast;
+        /**
+         * local stats
+         * @type {{}}
+         */
+        this.localStats = {};
+
+        /**
+         * remote stats
+         * @type {{}}
+         */
+        this.remoteStats = {};
+
+        /**
+         * Quality percent( 100% - good, 0% - bad.) for the local user.
+         */
+        this.localConnectionQuality = 100;
+
+        /**
+         * Quality percent( 100% - good, 0% - bad.) stored per id.
+         */
+        this.remoteConnectionQuality = {};
+
+        conference.on(ConferenceEvents.CONNECTION_INTERRUPTED,
+                      () => { this._updateLocalConnectionQuality(0); });
+
+        conference.on(ConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
+            (participant, payload) => {
+                // TODO move "stats" to a constant.
+                if(payload.type === "stats") {
+                    let remoteVideo = participant.getTracks()
+                        .find(tr => tr.isVideoTrack());
+                    this.updateRemoteStats(
+                        participant.getId(),
+                        payload.values,
+                        remoteVideo ? remoteVideo.videoType : undefined,
+                        remoteVideo ? remoteVideo.isMuted() : undefined);
+                }
+        });
+    }
+
+    /**
+     * Returns the new quality value based on the input parameters.
+     * Used to calculate remote and local values.
+     * @param data the data
+     * @param lastQualityValue the last value we calculated
+     * @param videoType need to check whether we are screen sharing
+     * @param isMuted is video muted
+     * @param resolution the input resolution used by the camera
+     * @returns {*} the newly calculated value or undefined if no result
+     * @private
+     */
+    _getNewQualityValue(
+        data, lastQualityValue, videoType, isMuted, resolution) {
+        if (this.disableQualityBasedOnBandwidth
+            || isMuted
+            || videoType === 'desktop'
+            || !resolution) {
+            return calculateQuality(
+                100 - data.packetLoss.total,
+                lastQualityValue || 100);
+        } else {
+            return calculateQualityUsingUpload(
+                resolution,
+                data.bitrate.upload);
+        }
+    }
+
+    /**
+     * Updates only the localConnectionQuality value
+     * @param values {int} the new value. should be from 0 - 100.
+     */
+    _updateLocalConnectionQuality(value) {
+        this.localConnectionQuality = value;
+        this.eventEmitter.emit(
+            ConnectionQualityEvents.LOCAL_STATS_UPDATED,
+            this.localConnectionQuality,
+            this.localStats);
+    }
+
+    /**
+     * Updates the local statistics
+     * @param data new statistics
+     * @param dontUpdateLocalConnectionQuality {boolean} if true -
+     * localConnectionQuality wont be recalculated.
+     * @param videoType the local video type
+     * @param isMuted current state of local video, whether it is muted
+     * @param resolution the current resolution used by local video
+     */
+    updateLocalStats(data, dontUpdateLocalConnectionQuality,
+                  videoType, isMuted, resolution) {
+            this.localStats = data;
+            if(!dontUpdateLocalConnectionQuality) {
+                let val = this._getNewQualityValue(
+                    this.localStats,
+                    this.localConnectionQuality,
+                    videoType,
+                    isMuted,
+                    resolution);
+                if (val !== undefined)
+                    this.localConnectionQuality = val;
+            }
+            this.eventEmitter.emit(
+                ConnectionQualityEvents.LOCAL_STATS_UPDATED,
+                this.localConnectionQuality,
+                this.localStats);
+    }
+
+    /**
+     * Updates remote statistics
+     * @param id the id associated with the statistics
+     * @param data the statistics received
+     * @param remoteVideoType the video type of the remote video
+     * @param isRemoteVideoMuted whether remote video is muted
+     */
+    updateRemoteStats(id, data, remoteVideoType, isRemoteVideoMuted) {
+            if (!data ||
+                !("packetLoss" in data) ||
+                !("total" in data.packetLoss)) {
+                this.eventEmitter.emit(
+                    ConnectionQualityEvents.REMOTE_STATS_UPDATED,
+                    id,
+                    null,
+                    null);
+                return;
+            }
+
+            let inputResolution = data.resolution;
+            // Use only the fields we need
+            data = {bitrate: data.bitrate, packetLoss: data.packetLoss};
+
+            this.remoteStats[id] = data;
+
+            let val = this._getNewQualityValue(
+                data,
+                this.remoteConnectionQuality[id],
+                remoteVideoType,
+                isRemoteVideoMuted,
+                inputResolution);
+            if (val !== undefined)
+                this.remoteConnectionQuality[id] = val;
+
+            this.eventEmitter.emit(
+                ConnectionQualityEvents.REMOTE_STATS_UPDATED,
+                id,
+                this.remoteConnectionQuality[id],
+                this.remoteStats[id]);
+    }
+
+    /**
+     * Returns the local statistics.
+     */
+    getStats() {
+        return this.localStats;
+    }
+}

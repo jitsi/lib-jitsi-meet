@@ -7,6 +7,7 @@ import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
 import * as JitsiConnectionErrors from "./JitsiConnectionErrors";
 import * as JitsiConnectionEvents from "./JitsiConnectionEvents";
 import * as JitsiMediaDevicesEvents from "./JitsiMediaDevicesEvents";
+import * as ConnectionQualityEvents from "./service/connectivity/ConnectionQualityEvents";
 import JitsiTrackError from "./JitsiTrackError";
 import * as JitsiTrackErrors from "./JitsiTrackErrors";
 import * as JitsiTrackEvents from "./JitsiTrackEvents";
@@ -76,7 +77,8 @@ var LibJitsiMeet = {
         conference: JitsiConferenceEvents,
         connection: JitsiConnectionEvents,
         track: JitsiTrackEvents,
-        mediaDevices: JitsiMediaDevicesEvents
+        mediaDevices: JitsiMediaDevicesEvents,
+        connectionQuality: ConnectionQualityEvents
     },
     errors: {
         conference: JitsiConferenceErrors,

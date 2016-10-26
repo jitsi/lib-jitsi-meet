@@ -21,6 +21,7 @@ var Transcriber = require("./modules/transcription/transcriber");
 import ParticipantConnectionStatus
     from "./modules/connectivity/ParticipantConnectionStatus";
 import TalkMutedDetection from "./modules/TalkMutedDetection";
+import ConnectionQuality from "./modules/connectivity/ConnectionQuality";
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -64,6 +65,8 @@ function JitsiConference(options) {
     // We need to know if the potential issue happened before or after
     // the restart.
     this.wasStopped = false;
+    this.connectionQuality
+        = new ConnectionQuality(this, this.eventEmitter, options);
 }
 
 /**
