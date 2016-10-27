@@ -114,7 +114,7 @@ export default class ConnectionQuality {
                 // quality and will not depend on localVideo if it is missing
                 this.updateLocalStats(
                     stats,
-                    conference.isConnectionInterrupted(),
+                    !conference.isConnectionInterrupted(),
                     localVideoTrack ? localVideoTrack.videoType : undefined,
                     localVideoTrack ? localVideoTrack.isMuted() : true,
                     localVideoTrack ? localVideoTrack.resolution : null);
@@ -202,11 +202,12 @@ export default class ConnectionQuality {
      */
     updateLocalStats(data, updateLocalConnectionQuality,
                   videoType, isMuted, resolution) {
+            let prevConnectionQuality = this.localStats.connectionQuality || 0;
             this.localStats = data;
             if(updateLocalConnectionQuality) {
                 let val = this._getNewQualityValue(
                     this.localStats,
-                    this.localStats.connectionQuality,
+                    prevConnectionQuality,
                     videoType,
                     isMuted,
                     resolution);
