@@ -1,6 +1,7 @@
 import * as ConnectionQualityEvents
     from "../../service/connectivity/ConnectionQualityEvents";
 import * as ConferenceEvents from "../../JitsiConferenceEvents";
+var MediaType = require('../../service/RTC/MediaType');
 
 // webrtc table describing simulcast resolutions and used bandwidth
 // https://chromium.googlesource.com/external/webrtc/+/master/webrtc/media/engine/simulcast.cc#42
@@ -81,7 +82,8 @@ export default class ConnectionQuality {
         conference.on(ConferenceEvents.CONNECTION_INTERRUPTED,
                       () => { this._updateLocalConnectionQuality(0); });
 
-        conference.on(ConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
+        conference.on(
+            ConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
             (participant, payload) => {
                 // TODO move "stats" to a constant.
                 if(payload.type === "stats") {
@@ -93,6 +95,23 @@ export default class ConnectionQuality {
                         remoteVideo ? remoteVideo.videoType : undefined,
                         remoteVideo ? remoteVideo.isMuted() : undefined);
                 }
+        });
+
+        conference.on(
+            ConferenceEvents.CONNECTION_STATS,
+            (stats) => {
+                let localVideoTracks = conference.getLocalTracks(MediaType.VIDEO);
+                let localVideoTrack
+                    = localVideoTracks.length > 0 ? localVideoTracks[0] : null;
+
+                // if we say video muted we will use old method of calculating
+                // quality and will not depend on localVideo if it is missing
+                this.updateLocalStats(
+                    stats,
+                    conference.isConnectionInterrupted(),
+                    localVideoTrack ? localVideoTrack.videoType : undefined,
+                    localVideoTrack ? localVideoTrack.isMuted() : true,
+                    localVideoTrack ? localVideoTrack.resolution : null);
         });
     }
 
