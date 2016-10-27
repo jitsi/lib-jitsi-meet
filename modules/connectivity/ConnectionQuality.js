@@ -85,12 +85,6 @@ export default class ConnectionQuality {
          */
         this.remoteStats = {};
 
-        /**
-         * Quality percent( 100% - good, 0% - bad.) stored per id.
-         * TODO remove, read from the received remote stats
-         */
-        this.remoteConnectionQuality = {};
-
         conference.on(ConferenceEvents.CONNECTION_INTERRUPTED,
                       () => { this._updateLocalConnectionQuality(0); });
 
@@ -111,7 +105,8 @@ export default class ConnectionQuality {
         conference.on(
             ConferenceEvents.CONNECTION_STATS,
             (stats) => {
-                let localVideoTracks = conference.getLocalTracks(MediaType.VIDEO);
+                let localVideoTracks =
+                    conference.getLocalTracks(MediaType.VIDEO);
                 let localVideoTrack
                     = localVideoTracks.length > 0 ? localVideoTracks[0] : null;
 
@@ -239,30 +234,21 @@ export default class ConnectionQuality {
                 this.eventEmitter.emit(
                     ConnectionQualityEvents.REMOTE_STATS_UPDATED,
                     id,
-                    null,
                     null);
                 return;
             }
 
-            let inputResolution = data.resolution;
             // Use only the fields we need
-            data = {bitrate: data.bitrate, packetLoss: data.packetLoss};
+            this.remoteStats[id] = {
+                bitrate: data.bitrate,
+                packetLoss: data.packetLoss,
+                connectionQuality: data.connectionQuality
+            };
 
-            this.remoteStats[id] = data;
-
-            let val = this._getNewQualityValue(
-                data,
-                this.remoteConnectionQuality[id],
-                remoteVideoType,
-                isRemoteVideoMuted,
-                inputResolution);
-            if (val !== undefined)
-                this.remoteConnectionQuality[id] = val;
 
             this.eventEmitter.emit(
                 ConnectionQualityEvents.REMOTE_STATS_UPDATED,
                 id,
-                this.remoteConnectionQuality[id],
                 this.remoteStats[id]);
     }
 
