@@ -244,16 +244,23 @@ JitsiConference.prototype.getExternalAuthUrl = function (urlForPopup) {
 };
 
 /**
- * Returns the local tracks.
+ * Returns the local tracks of the given media type, or all local tracks if no
+ * specific type is given.
+ * @param mediaType {MediaType} Optional media type (audio or video).
  */
-JitsiConference.prototype.getLocalTracks = function () {
+JitsiConference.prototype.getLocalTracks = function (mediaType) {
+    let tracks = [];
     if (this.rtc) {
-        return this.rtc.localTracks.slice();
-    } else {
-        return [];
+        tracks = this.rtc.localTracks.slice();
     }
+    if (mediaType !== undefined) {
+        tracks = tracks.filter(
+            (track) => {
+                return track && track.getType && track.getType() === mediaType;
+            });
+    }
+    return tracks;
 };
-
 
 /**
  * Attaches a handler for events(For example - "participant joined".) in the conference. All possible event are defined
