@@ -65,8 +65,20 @@ function JitsiConference(options) {
     // We need to know if the potential issue happened before or after
     // the restart.
     this.wasStopped = false;
+
+    /**
+     * The object which monitors local and remote connection statistics (e.g.
+     * sending bitrate) and calculates a number which represents the connection
+     * quality.
+     */
     this.connectionQuality
         = new ConnectionQuality(this, this.eventEmitter, options);
+
+    /**
+     * Indicates whether the connection is interrupted or not.
+     */
+    this.connectionIsInterrupted = false;
+
 }
 
 /**
@@ -1248,6 +1260,10 @@ JitsiConference.prototype.sendEndpointMessage = function (to, payload) {
  */
 JitsiConference.prototype.broadcastEndpointMessage = function (payload) {
     this.sendEndpointMessage("", payload);
+};
+
+JitsiConference.prototype.isConnectionInterrupted = function () {
+    return this.connectionIsInterrupted;
 };
 
 module.exports = JitsiConference;
