@@ -42,6 +42,7 @@ export const CONNECTION_INTERRUPTED = "conference.connectionInterrupted";
 export const CONNECTION_RESTORED = "conference.connectionRestored";
 /**
  * New local connection statistics are received.
+ * @deprecated Use ConnectionQualityEvents.LOCAL_STATS_UPDATED instead.
  */
 export const CONNECTION_STATS = "conference.connectionStats";
 /**
