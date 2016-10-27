@@ -138,16 +138,16 @@ export default class ConnectionQuality {
     /**
      * Updates the local statistics
      * @param data new statistics
-     * @param dontUpdateLocalConnectionQuality {boolean} if true -
-     * localConnectionQuality wont be recalculated.
+     * @param updateLocalConnectionQuality {boolean} weather to recalculate
+     * localConnectionQuality or not.
      * @param videoType the local video type
      * @param isMuted current state of local video, whether it is muted
      * @param resolution the current resolution used by local video
      */
-    updateLocalStats(data, dontUpdateLocalConnectionQuality,
+    updateLocalStats(data, updateLocalConnectionQuality,
                   videoType, isMuted, resolution) {
             this.localStats = data;
-            if(!dontUpdateLocalConnectionQuality) {
+            if(updateLocalConnectionQuality) {
                 let val = this._getNewQualityValue(
                     this.localStats,
                     this.localConnectionQuality,
