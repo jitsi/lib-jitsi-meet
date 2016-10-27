@@ -1,7 +1,18 @@
 import * as ConnectionQualityEvents
     from "../../service/connectivity/ConnectionQualityEvents";
 import * as ConferenceEvents from "../../JitsiConferenceEvents";
+import {getLogger} from "jitsi-meet-logger";
+
+var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 var MediaType = require('../../service/RTC/MediaType');
+
+const logger = getLogger(__filename);
+
+/**
+ * The value to use for the "type" field for messages sent by ConnectionQuality
+ * over the data channel.
+ */
+const STATS_MESSAGE_TYPE = "stats";
 
 // webrtc table describing simulcast resolutions and used bandwidth
 // https://chromium.googlesource.com/external/webrtc/+/master/webrtc/media/engine/simulcast.cc#42
@@ -54,6 +65,11 @@ export default class ConnectionQuality {
     constructor(conference, eventEmitter, options) {
         this.eventEmitter = eventEmitter;
 
+        /**
+         * The owning JitsiConference.
+         */
+        this.conference = conference;
+
         this.disableQualityBasedOnBandwidth =
             options.forceQualityBasedOnBandwidth
                     ? false : !!options.disableSimulcast;
@@ -70,12 +86,8 @@ export default class ConnectionQuality {
         this.remoteStats = {};
 
         /**
-         * Quality percent( 100% - good, 0% - bad.) for the local user.
-         */
-        this.localConnectionQuality = 100;
-
-        /**
          * Quality percent( 100% - good, 0% - bad.) stored per id.
+         * TODO remove, read from the received remote stats
          */
         this.remoteConnectionQuality = {};
 
@@ -85,8 +97,7 @@ export default class ConnectionQuality {
         conference.on(
             ConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
             (participant, payload) => {
-                // TODO move "stats" to a constant.
-                if(payload.type === "stats") {
+                if (payload.type === STATS_MESSAGE_TYPE) {
                     let remoteVideo = participant.getTracks()
                         .find(tr => tr.isVideoTrack());
                     this.updateRemoteStats(
@@ -147,11 +158,42 @@ export default class ConnectionQuality {
      * @param values {int} the new value. should be from 0 - 100.
      */
     _updateLocalConnectionQuality(value) {
-        this.localConnectionQuality = value;
+        this.localStats.connectionQuality = value;
         this.eventEmitter.emit(
             ConnectionQualityEvents.LOCAL_STATS_UPDATED,
-            this.localConnectionQuality,
             this.localStats);
+        this._broadcastLocalStats();
+    }
+
+    /**
+     * Broadcasts the local statistics to all other participants in the
+     * conference.
+     */
+    _broadcastLocalStats() {
+        // Send only the data that remote participants care about.
+        let data = {
+            bitrate: this.localStats.bitrate,
+            packetLoss: this.localStats.packetLoss,
+            connectionQuality: this.localStats.connectionQuality
+        };
+
+        let localVideoTracks = this.conference.getLocalTracks(MediaType.VIDEO);
+        let localVideoTrack
+                    = localVideoTracks.length > 0 ? localVideoTracks[0] : null;
+        if (localVideoTrack && localVideoTrack.resolution) {
+            data.resolution = localVideoTrack.resolution;
+        }
+
+        try {
+            this.conference.broadcastEndpointMessage({
+                type: STATS_MESSAGE_TYPE,
+                values: data });
+        } catch (e) {
+            let errorMsg = "Failed to broadcast local stats";
+            logger.error(errorMsg, e);
+            GlobalOnErrorHandler.callErrorHandler(
+                new Error(errorMsg + ": " + e));
+        }
     }
 
     /**
@@ -169,17 +211,18 @@ export default class ConnectionQuality {
             if(updateLocalConnectionQuality) {
                 let val = this._getNewQualityValue(
                     this.localStats,
-                    this.localConnectionQuality,
+                    this.localStats.connectionQuality,
                     videoType,
                     isMuted,
                     resolution);
-                if (val !== undefined)
-                    this.localConnectionQuality = val;
+                if (val !== undefined) {
+                    this.localStats.connectionQuality = val;
+                }
             }
             this.eventEmitter.emit(
                 ConnectionQualityEvents.LOCAL_STATS_UPDATED,
-                this.localConnectionQuality,
                 this.localStats);
+            this._broadcastLocalStats();
     }
 
     /**
