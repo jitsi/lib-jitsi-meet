@@ -142,6 +142,9 @@ JingleSessionPC.prototype.doInitialize = function () {
                     ":\t", now);
         Statistics.analytics.sendEvent(
             'ice.' + self.peerconnection.iceConnectionState, {value: now});
+        self.room.eventEmitter.emit(
+            XMPPEvents.ICE_CONNECTION_STATE_CHANGED,
+            self.peerconnection.iceConnectionState);
         switch (self.peerconnection.iceConnectionState) {
             case 'connected':
 
@@ -813,7 +816,7 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
      * optional error through (1) logger, (2) GlobalOnErrorHandler, and (3)
      * queueCallback.
      *
-     * @param {string} errmsg the error messsage to report
+     * @param {string} errmsg the error message to report
      * @param {*} error an optional error to report in addition to errmsg
      */
     function reportError(errmsg, err) {
