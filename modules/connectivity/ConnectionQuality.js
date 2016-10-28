@@ -74,14 +74,13 @@ export default class ConnectionQuality {
             options.forceQualityBasedOnBandwidth
                     ? false : !!options.disableSimulcast;
         /**
-         * local stats
-         * @type {{}}
+         * Holds statistics about the local connection quality.
          */
-        this.localStats = {};
+        this.localStats = {connectionQuality: 100};
 
         /**
-         * remote stats
-         * @type {{}}
+         * Maps a participant ID to an object holding connection quality
+         * statistics received from this participant.
          */
         this.remoteStats = {};
 
@@ -92,33 +91,14 @@ export default class ConnectionQuality {
             ConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
             (participant, payload) => {
                 if (payload.type === STATS_MESSAGE_TYPE) {
-                    let remoteVideo = participant.getTracks()
-                        .find(tr => tr.isVideoTrack());
-                    this.updateRemoteStats(
-                        participant.getId(),
-                        payload.values,
-                        remoteVideo ? remoteVideo.videoType : undefined,
-                        remoteVideo ? remoteVideo.isMuted() : undefined);
+                    this._updateRemoteStats(
+                        participant.getId(), payload.values);
                 }
         });
 
         conference.on(
             ConferenceEvents.CONNECTION_STATS,
-            (stats) => {
-                let localVideoTracks =
-                    conference.getLocalTracks(MediaType.VIDEO);
-                let localVideoTrack
-                    = localVideoTracks.length > 0 ? localVideoTracks[0] : null;
-
-                // if we say video muted we will use old method of calculating
-                // quality and will not depend on localVideo if it is missing
-                this.updateLocalStats(
-                    stats,
-                    !conference.isConnectionInterrupted(),
-                    localVideoTrack ? localVideoTrack.videoType : undefined,
-                    localVideoTrack ? localVideoTrack.isMuted() : true,
-                    localVideoTrack ? localVideoTrack.resolution : null);
-        });
+            this._updateLocalStats.bind(this));
     }
 
     /**
@@ -172,9 +152,9 @@ export default class ConnectionQuality {
             connectionQuality: this.localStats.connectionQuality
         };
 
-        let localVideoTracks = this.conference.getLocalTracks(MediaType.VIDEO);
         let localVideoTrack
-                    = localVideoTracks.length > 0 ? localVideoTracks[0] : null;
+            = this.conference.getLocalTracks(MediaType.VIDEO)
+                .find(track => track.isVideoTrack());
         if (localVideoTrack && localVideoTrack.resolution) {
             data.resolution = localVideoTrack.resolution;
         }
@@ -200,52 +180,49 @@ export default class ConnectionQuality {
      * @param isMuted current state of local video, whether it is muted
      * @param resolution the current resolution used by local video
      */
-    updateLocalStats(data, updateLocalConnectionQuality,
-                  videoType, isMuted, resolution) {
-            let prevConnectionQuality = this.localStats.connectionQuality || 0;
-            this.localStats = data;
-            if(updateLocalConnectionQuality) {
-                let val = this._getNewQualityValue(
-                    this.localStats,
-                    prevConnectionQuality,
-                    videoType,
-                    isMuted,
-                    resolution);
-                if (val !== undefined) {
-                    this.localStats.connectionQuality = val;
-                }
+    _updateLocalStats(data) {
+
+        let updateLocalConnectionQuality
+            = !this.conference.isConnectionInterrupted();
+        let localVideoTrack =
+                this.conference.getLocalTracks(MediaType.VIDEO)
+                    .find(track => track.isVideoTrack());
+        let videoType = localVideoTrack ? localVideoTrack.videoType : undefined;
+        let isMuted = localVideoTrack ? localVideoTrack.isMuted() : true;
+        let resolution = localVideoTrack ? localVideoTrack.resolution : null;
+        let prevConnectionQuality = this.localStats.connectionQuality || 0;
+
+        this.localStats = data;
+        if(updateLocalConnectionQuality) {
+            let val = this._getNewQualityValue(
+                this.localStats,
+                prevConnectionQuality,
+                videoType,
+                isMuted,
+                resolution);
+            if (val !== undefined) {
+                this.localStats.connectionQuality = val;
             }
-            this.eventEmitter.emit(
-                ConnectionQualityEvents.LOCAL_STATS_UPDATED,
-                this.localStats);
-            this._broadcastLocalStats();
+        }
+        this.eventEmitter.emit(
+            ConnectionQualityEvents.LOCAL_STATS_UPDATED,
+            this.localStats);
+        this._broadcastLocalStats();
     }
 
     /**
      * Updates remote statistics
-     * @param id the id associated with the statistics
+     * @param id the id of the remote participant
      * @param data the statistics received
-     * @param remoteVideoType the video type of the remote video
      * @param isRemoteVideoMuted whether remote video is muted
      */
-    updateRemoteStats(id, data, remoteVideoType, isRemoteVideoMuted) {
-            if (!data ||
-                !("packetLoss" in data) ||
-                !("total" in data.packetLoss)) {
-                this.eventEmitter.emit(
-                    ConnectionQualityEvents.REMOTE_STATS_UPDATED,
-                    id,
-                    null);
-                return;
-            }
-
+    _updateRemoteStats(id, data) {
             // Use only the fields we need
             this.remoteStats[id] = {
                 bitrate: data.bitrate,
                 packetLoss: data.packetLoss,
                 connectionQuality: data.connectionQuality
             };
-
 
             this.eventEmitter.emit(
                 ConnectionQualityEvents.REMOTE_STATS_UPDATED,
