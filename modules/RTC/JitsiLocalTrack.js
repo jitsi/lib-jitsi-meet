@@ -189,7 +189,13 @@ JitsiLocalTrack.prototype._onNoDataFromSourceError = function () {
  */
 JitsiLocalTrack.prototype._fireNoDataFromSourceEvent = function () {
     this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
-    Statistics.sendEventToAll(this.getType() + ".no_data_from_source");
+    let eventName = this.getType() + ".no_data_from_source";
+    Statistics.analytics.sendEvent(eventName);
+    let log = {name: eventName};
+    if (this.isAudioTrack()) {
+        log.isReceivingData = this._isReceivingData();
+    }
+    Statistics.sendLog(JSON.stringify(log));
 };
 
 /**
