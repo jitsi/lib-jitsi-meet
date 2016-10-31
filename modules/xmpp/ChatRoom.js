@@ -202,7 +202,8 @@ ChatRoom.prototype.discoRoomInfo = function () {
     .c('query', {xmlns: Strophe.NS.DISCO_INFO});
 
   this.connection.sendIQ(getInfo, function (result) {
-    var locked = $(result).find('>query>feature[var="muc_passwordprotected"]').length;
+    var locked = $(result).find('>query>feature[var="muc_passwordprotected"]')
+        .length === 1;
     if (locked != this.locked) {
       this.eventEmitter.emit(XMPPEvents.MUC_LOCK_CHANGED, locked);
       this.locked = locked;
@@ -307,6 +308,11 @@ ChatRoom.prototype.onPresence = function (pres) {
             var now = this.connectionTimes["muc.joined"] =
                 window.performance.now();
             logger.log("(TIME) MUC joined:\t", now);
+
+            // set correct initial state of locked
+            if (this.password)
+                this.locked = true;
+
             this.eventEmitter.emit(XMPPEvents.MUC_JOINED);
         }
     } else if (this.members[from] === undefined) {
