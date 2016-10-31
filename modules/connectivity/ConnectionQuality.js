@@ -95,6 +95,9 @@ function getTarget(simulcast, resolution, millisSinceStart) {
  * video was enabled.
  */
 function rampUp(millisSinceStart) {
+    if (millisSinceStart > 60000) {
+        return Number.MAX_SAFE_INTEGER;
+    }
     // According to GCC the send side bandwidth estimation grows with at most
     // 8% per second.
     // https://tools.ietf.org/html/draft-ietf-rmcat-gcc-02#section-5.5
