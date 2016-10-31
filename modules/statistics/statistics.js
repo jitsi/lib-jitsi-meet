@@ -190,14 +190,6 @@ Statistics.prototype.removeAudioLevelListener = function(listener) {
     this.eventEmitter.removeListener(StatisticsEvents.AUDIO_LEVEL, listener);
 };
 
-/**
- * Adds listener for detected audio problems.
- * @param listener the listener.
- */
-Statistics.prototype.addAudioProblemListener = function (listener) {
-    this.eventEmitter.on(StatisticsEvents.AUDIO_NOT_WORKING, listener);
-};
-
 Statistics.prototype.addConnectionStatsListener = function (listener) {
     this.eventEmitter.on(StatisticsEvents.CONNECTION_STATS, listener);
 };
@@ -443,16 +435,6 @@ Statistics.prototype.sendSetRemoteDescFailed = function (e, pc) {
 Statistics.prototype.sendAddIceCandidateFailed = function (e, pc) {
     if(this.callstats)
         CallStats.sendAddIceCandidateFailed(e, pc, this.callstats);
-};
-
-/**
- * Notifies CallStats that audio problems are detected.
- *
- * @param {Error} e error to send
- */
-Statistics.prototype.sendDetectedAudioProblem = function (e) {
-    if(this.callstats)
-        this.callstats.sendDetectedAudioProblem(e);
 };
 
 /**
