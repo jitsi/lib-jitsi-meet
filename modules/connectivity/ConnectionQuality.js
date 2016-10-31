@@ -42,6 +42,13 @@ var startBitrate = 800;
  * video started.
  */
 function getTarget(simulcast, resolution, millisSinceStart) {
+    // Completely ignore the bitrate in the first 5 seconds, as the first
+    // event seems to fire very early and the value is suspicious and causes
+    // false positives.
+    if (millisSinceStart < 5000) {
+        return 1;
+    }
+
     let target = 0;
     let height = Math.min(resolution.height, resolution.width);
 
@@ -76,9 +83,9 @@ function getTarget(simulcast, resolution, millisSinceStart) {
         }
     }
 
-    // Allow for an additional 3 seconds for ramp up -- delay any initial drop
-    // of connection quality by 3 seconds.
-    return Math.min(target, rampUp(Math.max(0, millisSinceStart - 3000)));
+    // Allow for an additional 1 second for ramp up -- delay any initial drop
+    // of connection quality by 1 second.
+    return Math.min(target, rampUp(Math.max(0, millisSinceStart - 1000)));
 }
 
 /**
