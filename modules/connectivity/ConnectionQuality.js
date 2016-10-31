@@ -5,7 +5,6 @@ import {getLogger} from "jitsi-meet-logger";
 import RTCBrowserType from "../RTC/RTCBrowserType";
 
 var XMPPEvents = require('../../service/xmpp/XMPPEvents');
-var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 var MediaType = require('../../service/RTC/MediaType');
 var VideoType = require('../../service/RTC/VideoType');
 var Resolutions = require("../../service/RTC/Resolutions");
@@ -346,10 +345,15 @@ export default class ConnectionQuality {
                 type: STATS_MESSAGE_TYPE,
                 values: data });
         } catch (e) {
-            let errorMsg = "Failed to broadcast local stats";
-            logger.error(errorMsg, e);
-            GlobalOnErrorHandler.callErrorHandler(
-                new Error(errorMsg + ": " + e));
+            // We often hit this in the beginning of a call, before the data
+            // channel is ready. It is not a big problem, because we will
+            // send the statistics again after a few seconds, and the error is
+            // already logged elsewhere. So just ignore it.
+
+            //let errorMsg = "Failed to broadcast local stats";
+            //logger.error(errorMsg, e);
+            //GlobalOnErrorHandler.callErrorHandler(
+            //    new Error(errorMsg + ": " + e));
         }
     }
 
