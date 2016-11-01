@@ -254,7 +254,7 @@ export default class ConnectionQuality {
 
         let quality = 100;
 
-        if (isMuted || !resolution
+        if (isMuted || !resolution || videoType === VideoType.DESKTOP
             || this._timeIceConnected < 0
             || this._timeVideoUnmuted < 0) {
 
@@ -283,15 +283,13 @@ export default class ConnectionQuality {
         } else {
             // Calculate a value based on the sending bitrate.
 
-            // simulcast is not used for screensharing.
-            let simulcast = (this._simulcast && videoType === VideoType.CAMERA);
-
             // time since sending of video was enabled.
             let millisSinceStart = window.performance.now()
                     - Math.max(this._timeVideoUnmuted, this._timeIceConnected);
 
             // expected sending bitrate in perfect conditions
-            let target = getTarget(simulcast, resolution, millisSinceStart);
+            let target
+                = getTarget(this._simulcast, resolution, millisSinceStart);
             target = 0.9 * target;
 
             quality = 100 * this._localStats.bitrate.upload / target;
