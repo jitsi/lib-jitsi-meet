@@ -21,6 +21,7 @@ var Transcriber = require("./modules/transcription/transcriber");
 import ParticipantConnectionStatus
     from "./modules/connectivity/ParticipantConnectionStatus";
 import TalkMutedDetection from "./modules/TalkMutedDetection";
+import ConnectionQuality from "./modules/connectivity/ConnectionQuality";
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -64,6 +65,20 @@ function JitsiConference(options) {
     // We need to know if the potential issue happened before or after
     // the restart.
     this.wasStopped = false;
+
+    /**
+     * The object which monitors local and remote connection statistics (e.g.
+     * sending bitrate) and calculates a number which represents the connection
+     * quality.
+     */
+    this.connectionQuality
+        = new ConnectionQuality(this, this.eventEmitter, options);
+
+    /**
+     * Indicates whether the connection is interrupted or not.
+     */
+    this.connectionIsInterrupted = false;
+
 }
 
 /**
@@ -229,16 +244,23 @@ JitsiConference.prototype.getExternalAuthUrl = function (urlForPopup) {
 };
 
 /**
- * Returns the local tracks.
+ * Returns the local tracks of the given media type, or all local tracks if no
+ * specific type is given.
+ * @param mediaType {MediaType} Optional media type (audio or video).
  */
-JitsiConference.prototype.getLocalTracks = function () {
+JitsiConference.prototype.getLocalTracks = function (mediaType) {
+    let tracks = [];
     if (this.rtc) {
-        return this.rtc.localTracks.slice();
-    } else {
-        return [];
+        tracks = this.rtc.localTracks.slice();
     }
+    if (mediaType !== undefined) {
+        tracks = tracks.filter(
+            (track) => {
+                return track && track.getType && track.getType() === mediaType;
+            });
+    }
+    return tracks;
 };
-
 
 /**
  * Attaches a handler for events(For example - "participant joined".) in the conference. All possible event are defined
@@ -1245,6 +1267,10 @@ JitsiConference.prototype.sendEndpointMessage = function (to, payload) {
  */
 JitsiConference.prototype.broadcastEndpointMessage = function (payload) {
     this.sendEndpointMessage("", payload);
+};
+
+JitsiConference.prototype.isConnectionInterrupted = function () {
+    return this.connectionIsInterrupted;
 };
 
 module.exports = JitsiConference;

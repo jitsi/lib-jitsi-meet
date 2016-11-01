@@ -147,6 +147,14 @@ var RTCBrowserType = {
      */
     isAndroid: function() {
         return isAndroid;
+    },
+
+    /**
+     * Whether jitsi-meet supports simulcast on the current browser.
+     * @returns {boolean}
+     */
+    supportsSimulcast: function() {
+        return RTCBrowserType.isChrome();
     }
 
     // Add version getters for other browsers when needed
