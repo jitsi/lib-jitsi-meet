@@ -312,7 +312,14 @@ export default class ParticipantConnectionStatus {
 
         const isConnectionActive = participant.isConnectionActive();
         const hasAnyVideoRTCMuted = participant.hasAnyVideoTrackWebRTCMuted();
-        const isConnActiveByJvb = this.rtcConnStatusCache[endpointId];
+        let isConnActiveByJvb = this.rtcConnStatusCache[endpointId];
+
+        // If no status was received from the JVB it means that it's active
+        // (the bridge does not send notification unless there is a problem).
+        if (typeof isConnActiveByJvb !== 'boolean') {
+            logger.debug("Assuming connection active by JVB - no notification");
+            isConnActiveByJvb = true;
+        }
 
         logger.debug(
             "Remote track removed, is active: " + isConnectionActive
