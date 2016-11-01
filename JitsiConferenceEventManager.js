@@ -481,9 +481,16 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function () {
 
     conference.rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
         function (from, payload) {
-            conference.eventEmitter.emit(
-                JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
-                conference.getParticipantById(from), payload);
+            const participant = conference.getParticipantById(from);
+            if (participant) {
+                conference.eventEmitter.emit(
+                    JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
+                    participant, payload);
+            } else {
+                logger.warn(
+                    "Ignored ENDPOINT_MESSAGE_RECEIVED " +
+                    "for not existing participant: " + from, payload);
+            }
         });
 };
 
