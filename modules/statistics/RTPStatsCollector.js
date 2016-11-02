@@ -109,7 +109,7 @@ function acceptReport(id, type) {
  * @constructor
  */
 function PeerStats() {
-    this.ssrc2Loss = {};
+    this.loss = {};
     this.ssrc2AudioLevel = {};
     this.ssrc2bitrate = {
         download: 0,
@@ -124,7 +124,7 @@ function PeerStats() {
  * @param lossRate new packet loss rate value to be set.
  */
 PeerStats.prototype.setSsrcLoss = function (lossRate) {
-    this.ssrc2Loss = lossRate || {};
+    this.loss = lossRate || {};
 };
 
 /**
@@ -686,11 +686,11 @@ StatsCollector.prototype.processStatsReport = function () {
     Object.keys(this.ssrc2stats).forEach(
         function (ssrc) {
             var ssrcStats = this.ssrc2stats[ssrc];
-            // process package loss stats
-            var ssrc2Loss = ssrcStats.ssrc2Loss;
-            var type = ssrc2Loss.isDownloadStream ? "download" : "upload";
-            totalPackets[type] += ssrc2Loss.packetsTotal;
-            lostPackets[type] += ssrc2Loss.packetsLost;
+            // process packet loss stats
+            var loss = ssrcStats.loss;
+            var type = loss.isDownloadStream ? "download" : "upload";
+            totalPackets[type] += loss.packetsTotal;
+            lostPackets[type] += loss.packetsLost;
 
             // process bitrate stats
             var ssrc2bitrate = ssrcStats.ssrc2bitrate;
