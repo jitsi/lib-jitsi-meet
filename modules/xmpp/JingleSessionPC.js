@@ -309,6 +309,35 @@ JingleSessionPC.prototype.acceptOffer = function(jingleOffer,
             this.sendSessionAccept(this.localSDP, success, failure);
         }.bind(this),
         failure);
+    this.notifyIceCandidates(jingleOffer);
+};
+
+/**
+ * Notify information about ICE Candidates
+ * @param jingleOfferIq jQuery selector pointing to the jingle element of
+ *        the offer IQ
+ */
+JingleSessionPC.prototype.notifyIceCandidates = function (jingleOfferIq) {
+    var self = this;
+    var tcpCandidates = jingleOfferIq.find('>content[name="video"]>transport>candidate[port="443"]');
+    var udpCandidates = jingleOfferIq.find('>content[name="video"]>transport>candidate[protocol="udp"]');
+    if (!tcpCandidates.length) {
+        self.room.eventEmitter.emit(XMPPEvents.NO_TCP_ICE_CANDIDATES);
+    }
+    if (!udpCandidates.length) {
+        self.room.eventEmitter.emit(XMPPEvents.NO_UDP_ICE_CANDIDATES);
+    }
+    tcpCandidates.each(function onEachTcpCandidate(_, candidate) {
+        var ip = $(candidate).attr('ip');
+        logger.debug('TCP CANDIDATE', ip, 443);
+        self.room.eventEmitter.emit(XMPPEvents.TCP_ICE_CANDIDATE, ip, 443);
+    });
+    udpCandidates.each(function onEachUdpCandidate(_, candidate) {
+        var ip = $(candidate).attr('ip');
+        var port = $(candidate).attr('port');
+        logger.debug('UDP CANDIDATE', ip, port);
+        self.room.eventEmitter.emit(XMPPEvents.UDP_ICE_CANDIDATE, ip, port);
+    });
 };
 
 /**

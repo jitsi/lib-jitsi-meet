@@ -87,6 +87,12 @@ var XMPPEvents = {
     MUC_ROLE_CHANGED: "xmpp.muc_role_changed",
     // Designates an event indicating that the MUC has been locked or unlocked.
     MUC_LOCK_CHANGED: "xmpp.muc_lock_changed",
+    // Designates an event indicating that among the list of candidates there
+    // were no TCP candidates.
+    NO_TCP_ICE_CANDIDATES: "xmpp.no_tcp_ice_candidates",
+    // Designates an event indicating that among the list of candidates there
+    // were no UDP candidates.
+    NO_UDP_ICE_CANDIDATES: "xmpp.no_udp_ice_candidates",
     // Designates an event indicating that a participant in the XMPP MUC has
     // advertised that they have audio muted (or unmuted).
     PARTICIPANT_AUDIO_MUTED: "xmpp.audio_muted",
@@ -180,6 +186,10 @@ var XMPPEvents = {
     SUBJECT_CHANGED: "xmpp.subject_changed",
     // suspending detected
     SUSPEND_DETECTED: "xmpp.suspend_detected",
+    // Event fired when a TCP ICE candidate is found in the offer
+    TCP_ICE_CANDIDATE: "xmpp.tcp_ice_candidate",
+    // Reports each of the UDP ICE candidates received
+    UDP_ICE_CANDIDATE: "xmpp.udp_ice_candidate",
     // Designates an event indicating that the local ICE username fragment of
     // the jingle session has changed.
     LOCAL_UFRAG_CHANGED: "xmpp.local_ufrag_changed",

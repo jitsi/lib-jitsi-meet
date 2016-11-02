@@ -241,6 +241,15 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
             this.conference.connectionIsInterrupted = false;
         });
 
+    this.chatRoomForwarder.forward(XMPPEvents.NO_TCP_ICE_CANDIDATES,
+        JitsiConferenceEvents.NO_TCP_ICE_CANDIDATES);
+
+    this.chatRoomForwarder.forward(XMPPEvents.TCP_ICE_CANDIDATE,
+        JitsiConferenceEvents.TCP_ICE_CANDIDATE);
+
+    this.chatRoomForwarder.forward(XMPPEvents.UDP_ICE_CANDIDATE,
+        JitsiConferenceEvents.UDP_ICE_CANDIDATE);
+
     this.chatRoomForwarder.forward(XMPPEvents.CONFERENCE_SETUP_FAILED,
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.SETUP_FAILED);
