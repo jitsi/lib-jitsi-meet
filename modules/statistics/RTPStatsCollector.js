@@ -592,9 +592,8 @@ StatsCollector.prototype.processStatsReport = function () {
         var packetsBefore = getStatValue(before, key);
         if (!packetsBefore || packetsBefore < 0)
             packetsBefore = 0;
-        var packetRate = packetsNow - packetsBefore;
-        if (!packetRate || packetRate < 0)
-            packetRate = 0;
+        var packetsDiff = Math.max(0, packetsNow - packetsBefore);
+
         var currentLoss = getStatValue(now, 'packetsLost');
         if (!currentLoss || currentLoss < 0)
             currentLoss = 0;
@@ -604,7 +603,7 @@ StatsCollector.prototype.processStatsReport = function () {
         var lossRate = currentLoss - previousLoss;
         if (!lossRate || lossRate < 0)
             lossRate = 0;
-        var packetsTotal = (packetRate + lossRate);
+        var packetsTotal = (packetsDiff + lossRate);
 
         ssrcStats.setSsrcLoss({
             packetsTotal: packetsTotal,
