@@ -635,16 +635,17 @@ StatsCollector.prototype.processStatsReport = function () {
         }
         bytesSent = Math.max(0, bytesSent);
 
-        var time = (now.timestamp - before.timestamp) / 1000;
-        var bitrateReceived = 0, bitrateSent = 0;
-        if (time > 0) {
-            bitrateReceived = Math.round(((bytesReceived * 8) / time) / 1000);
-            bitrateSent = Math.round(((bytesSent * 8) / time) / 1000);
+        var timeMs = now.timestamp - before.timestamp;
+        var bitrateReceivedKbps = 0, bitrateSentKbps = 0;
+        if (timeMs > 0) {
+            // TODO is there any reason to round here?
+            bitrateReceivedKbps = Math.round((bytesReceived * 8) / timeMs);
+            bitrateSentKbps = Math.round((bytesSent * 8) / timeMs);
         }
 
         ssrcStats.setSsrcBitrate({
-            "download": bitrateReceived,
-            "upload": bitrateSent
+            "download": bitrateReceivedKbps,
+            "upload": bitrateSentKbps
         });
 
         var resolution = {height: null, width: null};
