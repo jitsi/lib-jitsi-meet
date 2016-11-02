@@ -253,32 +253,33 @@ export default class ConnectionQuality {
         let resolution = Resolutions[resolutionName];
 
         let quality = 100;
+        let packetLoss = undefined;
+        // TODO: take into account packet loss for received streams
+        if (this._localStats.packetLoss) {
+            packetLoss = this._localStats.packetLoss.upload;
+        }
 
         if (isMuted || !resolution || videoType === VideoType.DESKTOP
             || this._timeIceConnected < 0
             || this._timeVideoUnmuted < 0) {
 
             // Calculate a value based on packet loss only.
-            if (!this._localStats.packetLoss
-                || this._localStats.packetLoss.total === undefined) {
+            if (packetLoss === undefined) {
                 logger.error("Cannot calculate connection quality, unknown "
                     + "packet loss.");
                 quality = 100;
+            } else if (packetLoss <= 2) {
+                quality = 100; // Full 5 bars.
+            } else if (packetLoss <= 4) {
+                quality = 70; // 4 bars
+            } else if (packetLoss <= 6) {
+                quality = 50; // 3 bars
+            } else if (packetLoss <= 8) {
+                quality = 30; // 2 bars
+            } else if (packetLoss <= 12) {
+                quality = 10; // 1 bars
             } else {
-                let loss = this._localStats.packetLoss.total;
-                if (loss <= 2) {
-                    quality = 100;
-                } else if (loss <= 4) {
-                    quality = 70; // 4 bars
-                } else if (loss <= 6) {
-                    quality = 50; // 3 bars
-                } else if (loss <= 8) {
-                    quality = 30; // 2 bars
-                } else if (loss <= 12) {
-                    quality = 10; // 1 bars
-                } else {
-                    quality = 0; // Still 1 bar, but slower climb-up.
-                }
+                quality = 0; // Still 1 bar, but slower climb-up.
             }
         } else {
             // Calculate a value based on the sending bitrate.
@@ -295,8 +296,7 @@ export default class ConnectionQuality {
             quality = 100 * this._localStats.bitrate.upload / target;
 
             // Whatever the bitrate, drop early if there is significant loss
-            if (this._localStats.packetLoss
-                && this._localStats.packetLoss.total >= 10) {
+            if (packetLoss && packetLoss >= 10) {
                 quality = Math.min(quality, 30);
             }
         }
