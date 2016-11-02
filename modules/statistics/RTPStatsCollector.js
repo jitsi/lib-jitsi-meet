@@ -601,14 +601,13 @@ StatsCollector.prototype.processStatsReport = function () {
         var packetsLostBefore = getStatValue(before, 'packetsLost');
         if (!packetsLostBefore || packetsBefore < 0)
             packetsLostBefore = 0;
-        var lossRate = packetsLostNow - packetsLostBefore;
-        if (!lossRate || lossRate < 0)
-            lossRate = 0;
-        var packetsTotal = (packetsDiff + lossRate);
+        var packetsLostDiff = Math.max(0, packetsLostNow - packetsLostBefore);
+
+        var packetsTotal = packetsDiff + packetsLostDiff;
 
         ssrcStats.setSsrcLoss({
             packetsTotal: packetsTotal,
-            packetsLost: lossRate,
+            packetsLost: packetsLostDiff,
             isDownloadStream: isDownloadStream
         });
 
