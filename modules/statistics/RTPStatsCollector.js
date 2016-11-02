@@ -143,7 +143,7 @@ PeerStats.prototype.addBitrate = function (bitrate) {
  * Resets the bit rate for given <tt>ssrc</tt> that belong to the peer
  * represented by this instance.
  */
-PeerStats.prototype.resetSsrcBitrate = function () {
+PeerStats.prototype.resetBitrate = function () {
     this.bitrate.download = 0;
     this.bitrate.upload = 0;
 };
@@ -678,7 +678,7 @@ StatsCollector.prototype.processStatsReport = function () {
             bitrateDownload += ssrcStats.bitrate.download;
             bitrateUpload += ssrcStats.bitrate.upload;
 
-            ssrcStats.resetSsrcBitrate();
+            ssrcStats.resetBitrate();
 
             // collect resolutions
             resolutions[ssrc] = ssrcStats.resolution;
