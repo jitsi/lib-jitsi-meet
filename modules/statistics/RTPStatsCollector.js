@@ -566,13 +566,9 @@ StatsCollector.prototype.processStatsReport = function () {
 
         var before = this.baselineStatsReport[idx];
         var ssrc = getStatValue(now, 'ssrc');
-        if (!before) {
-            logger.warn(ssrc + ' not enough data');
+        if (!before || !ssrc) {
             continue;
         }
-
-        if(!ssrc)
-            continue;
 
         var ssrcStats
           = this.ssrc2stats[ssrc] || (this.ssrc2stats[ssrc] = new PeerStats());
