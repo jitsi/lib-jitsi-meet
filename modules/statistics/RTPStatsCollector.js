@@ -101,7 +101,7 @@ function acceptReport(id, type) {
 }
 
 /**
- * Peer statistics data holder.
+ * Holds "statistics" for a single SSRC.
  * @constructor
  */
 function PeerStats() {
