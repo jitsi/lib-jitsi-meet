@@ -634,7 +634,7 @@ StatsCollector.prototype.processStatsReport = function () {
             }
         }
 
-        var time = Math.round((now.timestamp - before.timestamp) / 1000);
+        var time = (now.timestamp - before.timestamp) / 1000;
         if (bytesReceived <= 0 || time <= 0) {
             bytesReceived = 0;
         } else {
