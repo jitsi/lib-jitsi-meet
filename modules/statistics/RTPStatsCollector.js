@@ -633,23 +633,18 @@ StatsCollector.prototype.processStatsReport = function () {
                 }
             }
         }
+        bytesSent = Math.max(0, bytesSent);
 
         var time = (now.timestamp - before.timestamp) / 1000;
-        if (bytesReceived <= 0 || time <= 0) {
-            bytesReceived = 0;
-        } else {
-            bytesReceived = Math.round(((bytesReceived * 8) / time) / 1000);
-        }
-
-        if (bytesSent <= 0 || time <= 0) {
-            bytesSent = 0;
-        } else {
-            bytesSent = Math.round(((bytesSent * 8) / time) / 1000);
+        var bitrateReceived = 0, bitrateSent = 0;
+        if (time > 0) {
+            bitrateReceived = Math.round(((bytesReceived * 8) / time) / 1000);
+            bitrateSent = Math.round(((bytesSent * 8) / time) / 1000);
         }
 
         ssrcStats.setSsrcBitrate({
-            "download": bytesReceived,
-            "upload": bytesSent
+            "download": bitrateReceived,
+            "upload": bitrateSent
         });
 
         var resolution = {height: null, width: null};
