@@ -71,6 +71,10 @@ export const DTMF_SUPPORT_CHANGED = "conference.dtmfSupportChanged";
  */
 export const ENDPOINT_MESSAGE_RECEIVED = "conference.endpoint_message_received";
 /**
+ * Indicates that the state of the ICE process had changed.
+ */
+export const ICE_STATE_CHANGED = "conference.ice_state_changed";
+/**
  * You are included / excluded in somebody's last N set
  */
 export const IN_LAST_N_CHANGED = "conference.inLastNChanged";

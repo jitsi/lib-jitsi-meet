@@ -162,6 +162,8 @@ JingleSessionPC.prototype.doInitialize = function () {
                 // Informs interested parties that the connection has been restored.
                 if (self.peerconnection.signalingState === 'stable' && self.isreconnect)
                     self.room.eventEmitter.emit(XMPPEvents.CONNECTION_RESTORED);
+                else if (self.peerconnection.signalingState === 'stable')
+                    self.room.eventEmitter.emit(XMPPEvents.CONNECTION_ESTABLISHED);
                 self.isreconnect = false;
 
                 break;
