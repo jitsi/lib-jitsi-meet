@@ -594,13 +594,14 @@ StatsCollector.prototype.processStatsReport = function () {
             packetsBefore = 0;
         var packetsDiff = Math.max(0, packetsNow - packetsBefore);
 
-        var currentLoss = getStatValue(now, 'packetsLost');
-        if (!currentLoss || currentLoss < 0)
-            currentLoss = 0;
+        var packetsLostNow = getStatValue(now, 'packetsLost');
+        if (!packetsLostNow || packetsLostNow < 0)
+            packetsLostNow = 0;
+
         var previousLoss = getStatValue(before, 'packetsLost');
         if (!previousLoss || previousLoss < 0)
             previousLoss = 0;
-        var lossRate = currentLoss - previousLoss;
+        var lossRate = packetsLostNow - previousLoss;
         if (!lossRate || lossRate < 0)
             lossRate = 0;
         var packetsTotal = (packetsDiff + lossRate);
