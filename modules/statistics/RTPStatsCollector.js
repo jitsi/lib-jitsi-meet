@@ -122,11 +122,10 @@ PeerStats.prototype.setLoss = function (loss) {
 };
 
 /**
- * Sets resolution that belong to the ssrc
- * represented by this instance.
+ * Sets resolution that belong to the ssrc represented by this instance.
  * @param resolution new resolution value to be set.
  */
-PeerStats.prototype.setSsrcResolution = function (resolution) {
+PeerStats.prototype.setResolution = function (resolution) {
     this.resolution = resolution || {};
 };
 
@@ -648,9 +647,9 @@ StatsCollector.prototype.processStatsReport = function () {
         catch(e){/*not supported*/}
 
         if (resolution.height && resolution.width) {
-            ssrcStats.setSsrcResolution(resolution);
+            ssrcStats.setResolution(resolution);
         } else {
-            ssrcStats.setSsrcResolution(null);
+            ssrcStats.setResolution(null);
         }
     }
 
