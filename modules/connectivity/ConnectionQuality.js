@@ -257,6 +257,24 @@ export default class ConnectionQuality {
         // TODO: take into account packet loss for received streams
         if (this._localStats.packetLoss) {
             packetLoss = this._localStats.packetLoss.upload;
+
+            // Ugly Hack Alert (UHA):
+            // The packet loss for the upload direction is calculated based on
+            // incoming RTCP Receiver Reports. Since we don't have RTCP
+            // termination for audio, these reports come from the actual
+            // receivers in the conference and therefore the reported packet
+            // loss includes loss from the bridge to the receiver.
+            // When we are sending video this effect is small, because the
+            // number of video packets is much larger than the number of audio
+            // packets (and our calculation is based on the total number of
+            // received and lost packets).
+            // When video is muted, however, the effect might be significant,
+            // but we don't know what it is. We do know that it is positive, so
+            // as a temporary solution, until RTCP termination is implemented
+            // for the audio streams, we relax the packet loss checks here.
+            if (isMuted) {
+                packetLoss *= 0.5;
+            }
         }
 
         if (isMuted || !resolution || videoType === VideoType.DESKTOP
