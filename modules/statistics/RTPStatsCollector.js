@@ -614,13 +614,14 @@ StatsCollector.prototype.processStatsReport = function () {
             isDownloadStream: isDownloadStream
         });
 
-        var bytesReceived = 0, bytesSent = 0;
-        var nowBytesTransmitted = getStatValue(now, "bytesReceived");
-        if(nowBytesTransmitted) {
-            bytesReceived
-                = nowBytesTransmitted - getStatValue(before, "bytesReceived");
-        }
-        nowBytesTransmitted = getStatValue(now, "bytesSent");
+        var bytesReceivedNow = getNonNegativeStat(now, 'bytesReceived');
+        var bytesReceivedBefore = getNonNegativeStat(before, 'bytesReceived');
+        var bytesReceived = Math.max(0, bytesReceivedNow - bytesReceivedBefore);
+
+        var bytesSent = 0;
+
+        // TODO: clean this mess up!
+        var nowBytesTransmitted = getStatValue(now, "bytesSent");
         if(typeof(nowBytesTransmitted) === "number" ||
             typeof(nowBytesTransmitted) === "string") {
             nowBytesTransmitted = Number(nowBytesTransmitted);
