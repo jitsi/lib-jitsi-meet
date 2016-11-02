@@ -130,11 +130,11 @@ PeerStats.prototype.setResolution = function (resolution) {
 };
 
 /**
- * Sets the bit rate for given <tt>ssrc</tt> that belong to the peer
- * represented by this instance.
- * @param bitrate new bitrate value to be set.
+ * Adds the "download" and "upload" fields from the "bitrate" parameter to
+ * the respective fields of the "bitrate" field of this object.
+ * @param bitrate an object holding the values to add.
  */
-PeerStats.prototype.setSsrcBitrate = function (bitrate) {
+PeerStats.prototype.addBitrate = function (bitrate) {
     this.bitrate.download += bitrate.download;
     this.bitrate.upload += bitrate.upload;
 };
@@ -625,7 +625,7 @@ StatsCollector.prototype.processStatsReport = function () {
             bitrateSentKbps = Math.round((bytesSent * 8) / timeMs);
         }
 
-        ssrcStats.setSsrcBitrate({
+        ssrcStats.addBitrate({
             "download": bitrateReceivedKbps,
             "upload": bitrateSentKbps
         });
