@@ -603,10 +603,8 @@ StatsCollector.prototype.processStatsReport = function () {
             packetsLostBefore = 0;
         var packetsLostDiff = Math.max(0, packetsLostNow - packetsLostBefore);
 
-        var packetsTotal = packetsDiff + packetsLostDiff;
-
         ssrcStats.setSsrcLoss({
-            packetsTotal: packetsTotal,
+            packetsTotal: packetsDiff + packetsLostDiff,
             packetsLost: packetsLostDiff,
             isDownloadStream: isDownloadStream
         });
