@@ -739,10 +739,6 @@ StatsCollector.prototype.processAudioLevelReport = function () {
             continue;
         }
 
-        var ssrcStats
-            = this.ssrc2stats[ssrc]
-                || (this.ssrc2stats[ssrc] = new SsrcStats());
-
         // Audio level
         try {
             var audioLevel
