@@ -507,6 +507,18 @@ StatsCollector.prototype.processStatsReport = function () {
     }
 
     var getStatValue = this._getStatValue;
+    function getNonNegativeStat(report, name) {
+        var value = getStatValue(report, name);
+        if (typeof value !== 'number') {
+            value = Number(value);
+        }
+
+        if (isNaN(value)) {
+            return 0;
+        }
+
+        return Math.max(0, value);
+    }
     var byteSentStats = {};
 
     for (var idx in this.currentStatsReport) {
@@ -589,18 +601,11 @@ StatsCollector.prototype.processStatsReport = function () {
         if (!packetsNow || packetsNow < 0)
             packetsNow = 0;
 
-        var packetsBefore = getStatValue(before, key);
-        if (!packetsBefore || packetsBefore < 0)
-            packetsBefore = 0;
+        var packetsBefore = getNonNegativeStat(before, key);
         var packetsDiff = Math.max(0, packetsNow - packetsBefore);
 
-        var packetsLostNow = getStatValue(now, 'packetsLost');
-        if (!packetsLostNow || packetsLostNow < 0)
-            packetsLostNow = 0;
-
-        var packetsLostBefore = getStatValue(before, 'packetsLost');
-        if (!packetsLostBefore || packetsBefore < 0)
-            packetsLostBefore = 0;
+        var packetsLostNow = getNonNegativeStat(now, 'packetsLost');
+        var packetsLostBefore = getNonNegativeStat(before, 'packetsLost');
         var packetsLostDiff = Math.max(0, packetsLostNow - packetsLostBefore);
 
         ssrcStats.setSsrcLoss({
