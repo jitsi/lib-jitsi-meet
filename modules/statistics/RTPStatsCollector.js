@@ -110,7 +110,7 @@ function PeerStats() {
         download: 0,
         upload: 0
     };
-    this.ssrc2resolution = {};
+    this.resolution = {};
 }
 
 /**
@@ -128,7 +128,7 @@ PeerStats.prototype.setSsrcLoss = function (lossRate) {
  * @param resolution new resolution value to be set.
  */
 PeerStats.prototype.setSsrcResolution = function (resolution) {
-    this.ssrc2resolution = resolution || {};
+    this.resolution = resolution || {};
 };
 
 /**
@@ -683,7 +683,7 @@ StatsCollector.prototype.processStatsReport = function () {
             ssrcStats.resetSsrcBitrate();
 
             // collect resolutions
-            resolutions[ssrc] = ssrcStats.ssrc2resolution;
+            resolutions[ssrc] = ssrcStats.resolution;
         },
         this
     );
