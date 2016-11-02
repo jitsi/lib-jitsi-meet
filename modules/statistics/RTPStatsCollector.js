@@ -67,10 +67,6 @@ function calculatePacketLoss(lostPackets, totalPackets) {
     return Math.round((lostPackets/totalPackets)*100);
 }
 
-function formatAudioLevel(audioLevel) {
-    return Math.min(Math.max(audioLevel, 0), 1);
-}
-
 /**
  * Checks whether a certain record should be included in the logged statistics.
  */
@@ -110,7 +106,6 @@ function acceptReport(id, type) {
  */
 function PeerStats() {
     this.loss = {};
-    this.ssrc2AudioLevel = {};
     this.ssrc2bitrate = {
         download: 0,
         upload: 0
@@ -153,17 +148,6 @@ PeerStats.prototype.setSsrcBitrate = function (bitrate) {
 PeerStats.prototype.resetSsrcBitrate = function () {
     this.ssrc2bitrate.download = 0;
     this.ssrc2bitrate.upload = 0;
-};
-
-/**
- * Sets new audio level(input or output) for given <tt>ssrc</tt> that identifies
- * the stream which belongs to the peer represented by this instance.
- * @param audioLevel the new audio level value to be set. Value is truncated to
- *        fit the range from 0 to 1.
- */
-PeerStats.prototype.setSsrcAudioLevel = function (audioLevel) {
-    // Range limit 0 - 1
-    this.ssrc2AudioLevel = formatAudioLevel(audioLevel);
 };
 
 function ConferenceStats() {
@@ -780,7 +764,6 @@ StatsCollector.prototype.processAudioLevelReport = function () {
             // TODO: Can't find specs about what this value really is, but it
             // seems to vary between 0 and around 32k.
             audioLevel = audioLevel / 32767;
-            ssrcStats.setSsrcAudioLevel(audioLevel);
             this.eventEmitter.emit(
                 StatisticsEvents.AUDIO_LEVEL, ssrc, audioLevel, isLocal);
         }
