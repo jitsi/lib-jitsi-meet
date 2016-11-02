@@ -677,9 +677,8 @@ StatsCollector.prototype.processStatsReport = function () {
             lostPackets[type] += loss.packetsLost;
 
             // process bitrate stats
-            var ssrc2bitrate = ssrcStats.bitrate;
-            bitrateDownload += ssrc2bitrate.download;
-            bitrateUpload += ssrc2bitrate.upload;
+            bitrateDownload += ssrcStats.bitrate.download;
+            bitrateUpload += ssrcStats.bitrate.upload;
 
             ssrcStats.resetSsrcBitrate();
 
