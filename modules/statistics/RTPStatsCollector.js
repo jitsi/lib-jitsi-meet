@@ -243,7 +243,7 @@ function StatsCollector(
     this.baselineAudioLevelsReport = null;
     this.currentAudioLevelsReport = null;
     this.currentStatsReport = null;
-    this.baselineStatsReport = null;
+    this.previousStatsReport = null;
     this.audioLevelsIntervalId = null;
     this.eventEmitter = eventEmitter;
     this.conferenceStats = new ConferenceStats();
@@ -363,7 +363,7 @@ StatsCollector.prototype.start = function (startAudioLevelStats) {
                             logger.error("Unsupported key:" + e, e);
                         }
 
-                        self.baselineStatsReport = self.currentStatsReport;
+                        self.previousStatsReport = self.currentStatsReport;
                     },
                     self.errorCallback
                 );
@@ -502,7 +502,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function (keys) {
  * Stats processing logic.
  */
 StatsCollector.prototype.processStatsReport = function () {
-    if (!this.baselineStatsReport) {
+    if (!this.previousStatsReport) {
         return;
     }
 
@@ -564,7 +564,7 @@ StatsCollector.prototype.processStatsReport = function () {
             continue;
         }
 
-        var before = this.baselineStatsReport[idx];
+        var before = this.previousStatsReport[idx];
         var ssrc = getStatValue(now, 'ssrc');
         if (!before || !ssrc) {
             continue;
