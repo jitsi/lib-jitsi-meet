@@ -117,7 +117,7 @@ function PeerStats() {
  * Sets the "loss" object.
  * @param loss the value to set.
  */
-PeerStats.prototype.setSsrcLoss = function (loss) {
+PeerStats.prototype.setLoss = function (loss) {
     this.loss = loss || {};
 };
 
@@ -591,7 +591,7 @@ StatsCollector.prototype.processStatsReport = function () {
         var packetsLostBefore = getNonNegativeStat(before, 'packetsLost');
         var packetsLostDiff = Math.max(0, packetsLostNow - packetsLostBefore);
 
-        ssrcStats.setSsrcLoss({
+        ssrcStats.setLoss({
             packetsTotal: packetsDiff + packetsLostDiff,
             packetsLost: packetsLostDiff,
             isDownloadStream: isDownloadStream
