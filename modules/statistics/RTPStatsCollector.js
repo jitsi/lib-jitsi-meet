@@ -106,7 +106,7 @@ function acceptReport(id, type) {
  */
 function PeerStats() {
     this.loss = {};
-    this.ssrc2bitrate = {
+    this.bitrate = {
         download: 0,
         upload: 0
     };
@@ -137,8 +137,8 @@ PeerStats.prototype.setSsrcResolution = function (resolution) {
  * @param bitrate new bitrate value to be set.
  */
 PeerStats.prototype.setSsrcBitrate = function (bitrate) {
-    this.ssrc2bitrate.download += bitrate.download;
-    this.ssrc2bitrate.upload += bitrate.upload;
+    this.bitrate.download += bitrate.download;
+    this.bitrate.upload += bitrate.upload;
 };
 
 /**
@@ -146,8 +146,8 @@ PeerStats.prototype.setSsrcBitrate = function (bitrate) {
  * represented by this instance.
  */
 PeerStats.prototype.resetSsrcBitrate = function () {
-    this.ssrc2bitrate.download = 0;
-    this.ssrc2bitrate.upload = 0;
+    this.bitrate.download = 0;
+    this.bitrate.upload = 0;
 };
 
 function ConferenceStats() {
@@ -677,7 +677,7 @@ StatsCollector.prototype.processStatsReport = function () {
             lostPackets[type] += loss.packetsLost;
 
             // process bitrate stats
-            var ssrc2bitrate = ssrcStats.ssrc2bitrate;
+            var ssrc2bitrate = ssrcStats.bitrate;
             bitrateDownload += ssrc2bitrate.download;
             bitrateUpload += ssrc2bitrate.upload;
 
