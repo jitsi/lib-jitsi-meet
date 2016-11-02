@@ -114,12 +114,11 @@ function PeerStats() {
 }
 
 /**
- * Sets packets loss rate for given <tt>ssrc</tt> that belong to the peer
- * represented by this instance.
- * @param lossRate new packet loss rate value to be set.
+ * Sets the "loss" object.
+ * @param loss the value to set.
  */
-PeerStats.prototype.setSsrcLoss = function (lossRate) {
-    this.loss = lossRate || {};
+PeerStats.prototype.setSsrcLoss = function (loss) {
+    this.loss = loss || {};
 };
 
 /**
