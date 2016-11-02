@@ -598,10 +598,10 @@ StatsCollector.prototype.processStatsReport = function () {
         if (!packetsLostNow || packetsLostNow < 0)
             packetsLostNow = 0;
 
-        var previousLoss = getStatValue(before, 'packetsLost');
-        if (!previousLoss || previousLoss < 0)
-            previousLoss = 0;
-        var lossRate = packetsLostNow - previousLoss;
+        var packetsLostBefore = getStatValue(before, 'packetsLost');
+        if (!packetsLostBefore || packetsBefore < 0)
+            packetsLostBefore = 0;
+        var lossRate = packetsLostNow - packetsLostBefore;
         if (!lossRate || lossRate < 0)
             lossRate = 0;
         var packetsTotal = (packetsDiff + lossRate);
