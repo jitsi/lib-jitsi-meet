@@ -104,7 +104,7 @@ function acceptReport(id, type) {
  * Holds "statistics" for a single SSRC.
  * @constructor
  */
-function PeerStats() {
+function SsrcStats() {
     this.loss = {};
     this.bitrate = {
         download: 0,
@@ -117,7 +117,7 @@ function PeerStats() {
  * Sets the "loss" object.
  * @param loss the value to set.
  */
-PeerStats.prototype.setLoss = function (loss) {
+SsrcStats.prototype.setLoss = function (loss) {
     this.loss = loss || {};
 };
 
@@ -125,7 +125,7 @@ PeerStats.prototype.setLoss = function (loss) {
  * Sets resolution that belong to the ssrc represented by this instance.
  * @param resolution new resolution value to be set.
  */
-PeerStats.prototype.setResolution = function (resolution) {
+SsrcStats.prototype.setResolution = function (resolution) {
     this.resolution = resolution || {};
 };
 
@@ -134,7 +134,7 @@ PeerStats.prototype.setResolution = function (resolution) {
  * the respective fields of the "bitrate" field of this object.
  * @param bitrate an object holding the values to add.
  */
-PeerStats.prototype.addBitrate = function (bitrate) {
+SsrcStats.prototype.addBitrate = function (bitrate) {
     this.bitrate.download += bitrate.download;
     this.bitrate.upload += bitrate.upload;
 };
@@ -143,7 +143,7 @@ PeerStats.prototype.addBitrate = function (bitrate) {
  * Resets the bit rate for given <tt>ssrc</tt> that belong to the peer
  * represented by this instance.
  */
-PeerStats.prototype.resetBitrate = function () {
+SsrcStats.prototype.resetBitrate = function () {
     this.bitrate.download = 0;
     this.bitrate.upload = 0;
 };
@@ -178,7 +178,7 @@ function ConferenceStats() {
 /**
  * <tt>StatsCollector</tt> registers for stats updates of given
  * <tt>peerconnection</tt> in given <tt>interval</tt>. On each update particular
- * stats are extracted and put in {@link PeerStats} objects. Once the processing
+ * stats are extracted and put in {@link SsrcStats} objects. Once the processing
  * is done <tt>audioLevelsUpdateCallback</tt> is called with <tt>this</tt>
  * instance as an event source.
  *
@@ -253,7 +253,7 @@ function StatsCollector(
 
     this.statsIntervalId = null;
     this.statsIntervalMilis = statsInterval;
-    // Map of ssrcs to PeerStats
+    // Map of ssrcs to SsrcStats
     this.ssrc2stats = {};
 }
 
@@ -565,7 +565,7 @@ StatsCollector.prototype.processStatsReport = function () {
         }
 
         var ssrcStats
-          = this.ssrc2stats[ssrc] || (this.ssrc2stats[ssrc] = new PeerStats());
+          = this.ssrc2stats[ssrc] || (this.ssrc2stats[ssrc] = new SsrcStats());
 
         var isDownloadStream = true;
         var key = 'packetsReceived';
@@ -741,7 +741,7 @@ StatsCollector.prototype.processAudioLevelReport = function () {
 
         var ssrcStats
             = this.ssrc2stats[ssrc]
-                || (this.ssrc2stats[ssrc] = new PeerStats());
+                || (this.ssrc2stats[ssrc] = new SsrcStats());
 
         // Audio level
         try {
