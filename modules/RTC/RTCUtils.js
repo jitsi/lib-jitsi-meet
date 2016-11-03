@@ -791,10 +791,8 @@ var RTCUtils = {
                     }
                     return SDPUtil.filter_special_chars(id);
                 };
-                /* eslint-disable no-native-reassign */
-                RTCSessionDescription = mozRTCSessionDescription;
-                RTCIceCandidate = mozRTCIceCandidate;
-                /* eslint-enable no-native-reassign */
+                RTCSessionDescription = mozRTCSessionDescription; // eslint-disable-line
+                RTCIceCandidate = mozRTCIceCandidate;             // eslint-disable-line
             } else if (RTCBrowserType.isChrome() ||
                     RTCBrowserType.isOpera() ||
                     RTCBrowserType.isNWJS() ||
