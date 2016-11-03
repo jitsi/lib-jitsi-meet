@@ -253,7 +253,7 @@ export default class ConnectionQuality {
         let resolution = Resolutions[resolutionName];
 
         let quality = 100;
-        let packetLoss = undefined;
+        let packetLoss;
         // TODO: take into account packet loss for received streams
         if (this._localStats.packetLoss) {
             packetLoss = this._localStats.packetLoss.upload;
