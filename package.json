@@ -10,7 +10,8 @@
     "jingle",
     "webrtc",
     "xmpp",
-    "browser"
+    "browser",
+    "jitsi"
   ],
   "author": "",
   "readmeFilename": "README.md",
