@@ -452,7 +452,7 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function () {
     this.rtcForwarder = new EventEmitterForwarder(conference.rtc,
         this.conference.eventEmitter);
 
-    conference.rtc.addListener(RTCEvents.DOMINANTSPEAKER_CHANGED,
+    conference.rtc.addListener(RTCEvents.DOMINANT_SPEAKER_CHANGED,
         function (id) {
             if(conference.lastDominantSpeaker !== id && conference.room) {
                 conference.lastDominantSpeaker = id;
