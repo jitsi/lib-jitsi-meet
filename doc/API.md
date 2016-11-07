@@ -53,6 +53,7 @@ The ```options``` parameter is JS object with the following properties:
     12. disableThirdPartyRequests - if true - callstats will be disabled and the callstats API won't be included.
     13. analyticsScriptUrl - (optional) custom url to search for the analytics lib, if missing js file will be expected to be next to the library file (the location it is sourced from)
     14. callStatsCustomScriptUrl - (optional) custom url to access callstats client script 
+    15. callStatsConfIDNamespace - (optional) a namespace to prepend the callstats conference ID with. Defaults to the window.location.hostname
 
 * ```JitsiMeetJS.JitsiConnection``` - the ```JitsiConnection``` constructor. You can use that to create new server connection.
 

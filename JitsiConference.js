@@ -119,6 +119,8 @@ JitsiConference.prototype._init = function (options) {
         this.statistics = new Statistics(this.xmpp, {
             callStatsID: this.options.config.callStatsID,
             callStatsSecret: this.options.config.callStatsSecret,
+            callStatsConfIDNamespace:
+                this.options.config.callStatsConfIDNamespace || window.location.hostname,
             callStatsCustomScriptUrl:
                 this.options.config.callStatsCustomScriptUrl,
             roomName: this.options.name
