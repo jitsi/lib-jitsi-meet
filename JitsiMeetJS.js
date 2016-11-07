@@ -2,14 +2,15 @@ var logger = require("jitsi-meet-logger").getLogger(__filename);
 var AuthUtil = require("./modules/util/AuthUtil");
 var JitsiConnection = require("./JitsiConnection");
 var JitsiMediaDevices = require("./JitsiMediaDevices");
-var JitsiConferenceEvents = require("./JitsiConferenceEvents");
-var JitsiConnectionEvents = require("./JitsiConnectionEvents");
-var JitsiMediaDevicesEvents = require('./JitsiMediaDevicesEvents');
-var JitsiConnectionErrors = require("./JitsiConnectionErrors");
-var JitsiConferenceErrors = require("./JitsiConferenceErrors");
-var JitsiTrackEvents = require("./JitsiTrackEvents");
-var JitsiTrackErrors = require("./JitsiTrackErrors");
-var JitsiTrackError = require("./JitsiTrackError");
+import * as JitsiConferenceErrors from "./JitsiConferenceErrors";
+import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
+import * as JitsiConnectionErrors from "./JitsiConnectionErrors";
+import * as JitsiConnectionEvents from "./JitsiConnectionEvents";
+import * as JitsiMediaDevicesEvents from "./JitsiMediaDevicesEvents";
+import * as ConnectionQualityEvents from "./service/connectivity/ConnectionQualityEvents";
+import JitsiTrackError from "./JitsiTrackError";
+import * as JitsiTrackErrors from "./JitsiTrackErrors";
+import * as JitsiTrackEvents from "./JitsiTrackEvents";
 var JitsiRecorderErrors = require("./JitsiRecorderErrors");
 var Logger = require("jitsi-meet-logger");
 var MediaType = require("./service/RTC/MediaType");
@@ -31,7 +32,7 @@ function getLowerResolution(resolution) {
     var order = Resolutions[resolution].order;
     var res = null;
     var resName = null;
-    for(var i in Resolutions) {
+    for(let i in Resolutions) {
         var tmp = Resolutions[i];
         if (!res || (res.order < tmp.order && tmp.order < order)) {
             resName = i;
@@ -39,6 +40,29 @@ function getLowerResolution(resolution) {
         }
     }
     return resName;
+}
+
+/**
+ * Checks the available devices in options and concatenate the data to the
+ * name, which will be used as analytics event name. Adds resolution for the
+ * devices.
+ * @param name name of event
+ * @param options gum options
+ * @returns {*}
+ */
+function addDeviceTypeToAnalyticsEvent(name, options) {
+    if (options.devices.indexOf("audio") !== -1) {
+        name += ".audio";
+    }
+    if (options.devices.indexOf("desktop") !== -1) {
+        name += ".desktop";
+    }
+    if (options.devices.indexOf("video") !== -1) {
+        // we have video add resolution
+        name += ".video." + options.resolution;
+    }
+
+    return name;
 }
 
 /**
@@ -53,7 +77,8 @@ var LibJitsiMeet = {
         conference: JitsiConferenceEvents,
         connection: JitsiConnectionEvents,
         track: JitsiTrackEvents,
-        mediaDevices: JitsiMediaDevicesEvents
+        mediaDevices: JitsiMediaDevicesEvents,
+        connectionQuality: ConnectionQualityEvents
     },
     errors: {
         conference: JitsiConferenceErrors,
@@ -66,28 +91,39 @@ var LibJitsiMeet = {
     },
     logLevels: Logger.levels,
     mediaDevices: JitsiMediaDevices,
+    analytics: null,
     init: function (options) {
-        Statistics.audioLevelsEnabled = !options.disableAudioLevels;
-
-        if(typeof options.audioLevelsInterval === 'number') {
-            Statistics.audioLevelsInterval = options.audioLevelsInterval;
-        }
+        let logObject, attr;
+        Statistics.init(options);
+        this.analytics = Statistics.analytics;
 
         if (options.enableWindowOnErrorHandler) {
             GlobalOnErrorHandler.addHandler(
                 this.getGlobalOnErrorHandler.bind(this));
         }
 
-        // Lets send some general stats useful for debugging problems
+        // Log deployment-specific information, if available.
         if (window.jitsiRegionInfo
             && Object.keys(window.jitsiRegionInfo).length > 0) {
-            // remove quotes to make it prettier
-            Statistics.sendLog(
-                JSON.stringify(window.jitsiRegionInfo).replace(/\"/g, ""));
+            logObject = {};
+            for (attr in window.jitsiRegionInfo) {
+                if (window.jitsiRegionInfo.hasOwnProperty(attr)) {
+                    logObject[attr] = window.jitsiRegionInfo[attr];
+                }
+            }
+
+            logObject.id = "deployment_info";
+            Statistics.sendLog(JSON.stringify(logObject));
         }
 
-        if(this.version)
-            Statistics.sendLog("LibJitsiMeet:" + this.version);
+        if(this.version) {
+            logObject = {
+                id: "component_version",
+                component: "lib-jitsi-meet",
+                version: this.version
+            };
+            Statistics.sendLog(JSON.stringify(logObject));
+        }
 
         return RTC.init(options || {});
     },
@@ -112,6 +148,28 @@ var LibJitsiMeet = {
      * will be returned trough the Promise, otherwise JitsiTrack objects will be returned.
      * @param {string} options.cameraDeviceId
      * @param {string} options.micDeviceId
+     * @param {object} options.desktopSharingExtensionExternalInstallation -
+     * enables external installation process for desktop sharing extension if
+     * the inline installation is not posible. The following properties should
+     * be provided:
+     * @param {intiger} interval - the interval (in ms) for
+     * checking whether the desktop sharing extension is installed or not
+     * @param {Function} checkAgain - returns boolean. While checkAgain()==true
+     * createLocalTracks will wait and check on every "interval" ms for the
+     * extension. If the desktop extension is not install and checkAgain()==true
+     * createLocalTracks will finish with rejected Promise.
+     * @param {Function} listener - The listener will be called to notify the
+     * user of lib-jitsi-meet that createLocalTracks is starting external
+     * extension installation process.
+     * NOTE: If the inline installation process is not possible and external
+     * installation is enabled the listener property will be called to notify
+     * the start of external installation process. After that createLocalTracks
+     * will start to check for the extension on every interval ms until the
+     * plugin is installed or until checkAgain return false. If the extension
+     * is found createLocalTracks will try to get the desktop sharing track and
+     * will finish the execution. If checkAgain returns false, createLocalTracks
+     * will finish the execution with rejected Promise.
+     *
      * @param {boolean} (firePermissionPromptIsShownEvent) - if event
      *      JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN should be fired
      * @returns {Promise.<{Array.<JitsiTrack>}, JitsiConferenceError>}
@@ -124,27 +182,31 @@ var LibJitsiMeet = {
         if (firePermissionPromptIsShownEvent === true) {
             window.setTimeout(function () {
                 if (!promiseFulfilled) {
-                    var browser = RTCBrowserType.getBrowserType()
-                        .split('rtc_browser.')[1];
-
-                    if (RTCBrowserType.isAndroid()) {
-                        browser = 'android';
-                    }
-
                     JitsiMediaDevices.emitEvent(
                         JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN,
-                        browser);
+                        RTCBrowserType.getBrowserName());
                 }
             }, USER_MEDIA_PERMISSION_PROMPT_TIMEOUT);
         }
+
+        if(!window.connectionTimes)
+            window.connectionTimes = {};
+        window.connectionTimes["obtainPermissions.start"] =
+            window.performance.now();
 
         return RTC.obtainAudioAndVideoPermissions(options || {})
             .then(function(tracks) {
                 promiseFulfilled = true;
 
+                window.connectionTimes["obtainPermissions.end"] =
+                    window.performance.now();
+
+                Statistics.analytics.sendEvent(addDeviceTypeToAnalyticsEvent(
+                    "getUserMedia.success", options), {value: options});
+
                 if(!RTC.options.disableAudioLevels)
-                    for(var i = 0; i < tracks.length; i++) {
-                        var track = tracks[i];
+                    for(let i = 0; i < tracks.length; i++) {
+                        const track = tracks[i];
                         var mStream = track.getOriginalStream();
                         if(track.getType() === MediaType.AUDIO){
                             Statistics.startLocalStats(mStream,
@@ -156,6 +218,17 @@ var LibJitsiMeet = {
                                 });
                         }
                     }
+
+                // set real device ids
+                var currentlyAvailableMediaDevices
+                    = RTC.getCurrentlyAvailableMediaDevices();
+                if (currentlyAvailableMediaDevices) {
+                    for(let i = 0; i < tracks.length; i++) {
+                        const track = tracks[i];
+                        track._setRealDeviceIdFromDeviceList(
+                            currentlyAvailableMediaDevices);
+                    }
+                }
 
                 return tracks;
             }).catch(function (error) {
@@ -171,6 +244,9 @@ var LibJitsiMeet = {
                         logger.debug("Retry createLocalTracks with resolution",
                             newResolution);
 
+                        Statistics.analytics.sendEvent(
+                            "getUserMedia.fail.resolution." + oldResolution);
+
                         return LibJitsiMeet.createLocalTracks(options);
                     }
                 }
@@ -180,18 +256,43 @@ var LibJitsiMeet = {
                     // User cancelled action is not really an error, so only
                     // log it as an event to avoid having conference classified
                     // as partially failed
-                    Statistics.sendLog(error.message);
+                    const logObject = {
+                        id: "chrome_extension_user_canceled",
+                        message: error.message
+                    };
+                    Statistics.sendLog(JSON.stringify(logObject));
+                    Statistics.analytics.sendEvent(
+                        "getUserMedia.userCancel.extensionInstall");
+                } else if (JitsiTrackErrors.NOT_FOUND === error.name) {
+                    // logs not found devices with just application log to cs
+                    const logObject = {
+                        id: "usermedia_missing_device",
+                        status: error.gum.devices
+                    };
+                    Statistics.sendLog(JSON.stringify(logObject));
+                    Statistics.analytics.sendEvent(
+                        "getUserMedia.deviceNotFound."
+                            + error.gum.devices.join('.'));
                 } else {
                     // Report gUM failed to the stats
                     Statistics.sendGetUserMediaFailed(error);
+                    Statistics.analytics.sendEvent(
+                        addDeviceTypeToAnalyticsEvent(
+                            "getUserMedia.failed", options) + '.' + error.name,
+                        {value: options});
                 }
+
+                window.connectionTimes["obtainPermissions.end"] =
+                    window.performance.now();
 
                 return Promise.reject(error);
             }.bind(this));
     },
     /**
      * Checks if its possible to enumerate available cameras/micropones.
-     * @returns {boolean} true if available, false otherwise.
+     * @returns {Promise<boolean>} a Promise which will be resolved only once
+     * the WebRTC stack is ready, either with true if the device listing is
+     * available available or with false otherwise.
      * @deprecated use JitsiMeetJS.mediaDevices.isDeviceListAvailable instead
      */
     isDeviceListAvailable: function () {
@@ -248,8 +349,5 @@ var LibJitsiMeet = {
         AuthUtil: AuthUtil
     }
 };
-
-//Setups the promise object.
-window.Promise = window.Promise || require("es6-promise").Promise;
 
 module.exports = LibJitsiMeet;

@@ -47,25 +47,40 @@ var fabricEvent = {
 
 var callStats = null;
 
+/**
+ * The user id to report to callstats as destination.
+ * @type {string}
+ */
+const DEFAULT_REMOTE_USER = "jitsi";
+
 function initCallback (err, msg) {
     logger.log("CallStats Status: err=" + err + " msg=" + msg);
 
-    // there is no lib, nothing to report to
-    if (err !== 'success')
-        return;
+    CallStats.initializeInProgress = false;
 
-    CallStats.initialized = true;
+    // there is no lib, nothing to report to
+    if (err !== 'success') {
+        CallStats.initializeFailed = true;
+        return;
+    }
 
     var ret = callStats.addNewFabric(this.peerconnection,
-        Strophe.getResourceFromJid(this.session.peerjid),
+        DEFAULT_REMOTE_USER,
         callStats.fabricUsage.multiplex,
         this.confID,
         this.pcCallback.bind(this));
 
     var fabricInitialized = (ret.status === 'success');
 
-    if(!fabricInitialized)
-        console.log("callstats fabric not initilized", ret.message);
+    if(!fabricInitialized) {
+        CallStats.initializeFailed = true;
+        logger.log("callstats fabric not initilized", ret.message);
+        return;
+    }
+
+    CallStats.initializeFailed = false;
+    CallStats.initialized = true;
+    CallStats.feedbackEnabled = true;
 
     // notify callstats about failures if there were any
     if (CallStats.reportsQueue.length) {
@@ -129,31 +144,33 @@ function _try_catch (f) {
  */
 var CallStats = _try_catch(function(jingleSession, Settings, options) {
     try{
-        //check weather that should work with more than 1 peerconnection
-        if(!callStats) {
-            callStats = new callstats($, io, jsSHA);
-        } else {
-            return;
-        }
+        CallStats.feedbackEnabled = false;
+        callStats = new callstats($, io, jsSHA); // eslint-disable-line new-cap
 
-        this.session = jingleSession;
         this.peerconnection = jingleSession.peerconnection.peerconnection;
 
-        this.userID = Settings.getCallStatsUserName();
-
+        this.userID = {
+            aliasName: Strophe.getResourceFromJid(jingleSession.room.myroomjid),
+            userName: Settings.getCallStatsUserName()
+        };
+        
         // The confID is case sensitive!!!
         this.confID = options.callStatsConfIDNamespace + "/" + options.roomName;
 
+        this.callStatsID = options.callStatsID;
+        this.callStatsSecret = options.callStatsSecret;
+
+        CallStats.initializeInProgress = true;
         //userID is generated or given by the origin server
-        callStats.initialize(options.callStatsID,
-            options.callStatsSecret,
+        callStats.initialize(this.callStatsID,
+            this.callStatsSecret,
             this.userID,
             initCallback.bind(this));
 
     } catch (e) {
-        // The callstats.io API failed to initialize (e.g. because its
-        // download failed to succeed in general or on time). Further
-        // attempts to utilize it cannot possibly succeed.
+        // The callstats.io API failed to initialize (e.g. because its download
+        // did not succeed in general or on time). Further attempts to utilize
+        // it cannot possibly succeed.
         GlobalOnErrorHandler.callErrorHandler(e);
         callStats = null;
         logger.error(e);
@@ -173,6 +190,43 @@ CallStats.reportsQueue = [];
 CallStats.initialized = false;
 
 /**
+ * Whether we are in progress of initializing.
+ * @type {boolean}
+ */
+CallStats.initializeInProgress = false;
+
+/**
+ * Whether we tried to initialize and it failed.
+ * @type {boolean}
+ */
+CallStats.initializeFailed = false;
+
+/**
+ * Shows weather sending feedback is enabled or not
+ * @type {boolean}
+ */
+CallStats.feedbackEnabled = false;
+
+/**
+ * Checks whether we need to re-initialize callstats and starts the process.
+ * @private
+ */
+CallStats._checkInitialize = function () {
+    if (CallStats.initialized || !CallStats.initializeFailed
+        || !callStats || CallStats.initializeInProgress)
+        return;
+
+    // callstats object created, not initialized and it had previously failed,
+    // and there is no init in progress, so lets try initialize it again
+    CallStats.initializeInProgress = true;
+    callStats.initialize(
+        callStats.callStatsID,
+        callStats.callStatsSecret,
+        callStats.userID,
+        initCallback.bind(callStats));
+};
+
+/**
  * Type of pending reports, can be event or an error.
  * @type {{ERROR: string, EVENT: string}}
  */
@@ -183,10 +237,8 @@ var reportType = {
 };
 
 CallStats.prototype.pcCallback = _try_catch(function (err, msg) {
-    if (!callStats) {
-        return;
-    }
-    logger.log("Monitoring status: "+ err + " msg: " + msg);
+    if (callStats && err !== 'success')
+        logger.error("Monitoring status: "+ err + " msg: " + msg);
 });
 
 /**
@@ -206,11 +258,9 @@ function (ssrc, isLocal, usageLabel, containerId) {
     if(!callStats) {
         return;
     }
+
     // 'focus' is default remote user ID for now
-    var callStatsId = 'focus';
-    if (isLocal) {
-        callStatsId = this.userID;
-    }
+    const callStatsId = isLocal ? this.userID : 'focus';
 
     _try_catch(function() {
         logger.debug(
@@ -220,8 +270,7 @@ function (ssrc, isLocal, usageLabel, containerId) {
             this.confID,
             ssrc,
             usageLabel,
-            containerId
-        );
+            containerId);
         if(CallStats.initialized) {
             callStats.associateMstWithUserID(
                 this.peerconnection,
@@ -229,19 +278,19 @@ function (ssrc, isLocal, usageLabel, containerId) {
                 this.confID,
                 ssrc,
                 usageLabel,
-                containerId
-            );
+                containerId);
         }
         else {
             CallStats.reportsQueue.push({
                 type: reportType.MST_WITH_USERID,
                 data: {
-                    callStatsId: callStatsId,
-                    ssrc: ssrc,
-                    usageLabel: usageLabel,
-                    containerId: containerId
+                    callStatsId,
+                    containerId,
+                    ssrc,
+                    usageLabel
                 }
             });
+            CallStats._checkInitialize();
         }
     }).bind(this)();
 };
@@ -253,13 +302,12 @@ function (ssrc, isLocal, usageLabel, containerId) {
  * @param {CallStats} cs callstats instance related to the event
  */
 CallStats.sendMuteEvent = _try_catch(function (mute, type, cs) {
+    let event;
 
-    var event = null;
     if (type === "video") {
-        event = (mute? fabricEvent.videoPause : fabricEvent.videoResume);
-    }
-    else {
-        event = (mute? fabricEvent.audioMute : fabricEvent.audioUnmute);
+        event = mute ? fabricEvent.videoPause : fabricEvent.videoResume;
+    } else {
+        event = mute ? fabricEvent.audioMute : fabricEvent.audioUnmute;
     }
 
     CallStats._reportEvent.call(cs, event);
@@ -272,9 +320,9 @@ CallStats.sendMuteEvent = _try_catch(function (mute, type, cs) {
  * @param {CallStats} cs callstats instance related to the event
  */
 CallStats.sendScreenSharingEvent = _try_catch(function (start, cs) {
-
-    CallStats._reportEvent.call(cs,
-        start? fabricEvent.screenShareStart : fabricEvent.screenShareStop);
+    CallStats._reportEvent.call(
+        cs,
+        start ? fabricEvent.screenShareStart : fabricEvent.screenShareStop);
 });
 
 /**
@@ -282,9 +330,7 @@ CallStats.sendScreenSharingEvent = _try_catch(function (start, cs) {
  * @param {CallStats} cs callstats instance related to the event
  */
 CallStats.sendDominantSpeakerEvent = _try_catch(function (cs) {
-
-    CallStats._reportEvent.call(cs,
-        fabricEvent.dominantSpeaker);
+    CallStats._reportEvent.call(cs, fabricEvent.dominantSpeaker);
 });
 
 /**
@@ -293,7 +339,6 @@ CallStats.sendDominantSpeakerEvent = _try_catch(function (cs) {
  * @param {CallStats} cs callstats instance related to the event
  */
 CallStats.sendActiveDeviceListEvent = _try_catch(function (devicesData, cs) {
-
     CallStats._reportEvent.call(cs, fabricEvent.activeDeviceList, devicesData);
 });
 
@@ -315,6 +360,7 @@ CallStats._reportEvent = function (event, eventData) {
                 type: reportType.EVENT,
                 data: {event: event, eventData: eventData}
             });
+        CallStats._checkInitialize();
     }
 };
 
@@ -328,18 +374,6 @@ CallStats.prototype.sendTerminateEvent = _try_catch(function () {
     callStats.sendFabricEvent(this.peerconnection,
         callStats.fabricEvent.fabricTerminated, this.confID);
 });
-
-/**
- * Notifies CallStats that audio problems are detected.
- *
- * @param {Error} e error to send
- * @param {CallStats} cs callstats instance related to the error (optional)
- */
-CallStats.prototype.sendDetectedAudioProblem = _try_catch(function (e) {
-    CallStats._reportError.call(this, wrtcFuncNames.signalingError, e,
-        this.peerconnection);
-});
-
 
 /**
  * Notifies CallStats for ice connection failed
@@ -360,16 +394,15 @@ CallStats.prototype.sendIceConnectionFailedEvent = _try_catch(function (pc, cs){
  */
 CallStats.prototype.sendFeedback = _try_catch(
 function(overallFeedback, detailedFeedback) {
-    if(!CallStats.initialized) {
+    if(!CallStats.feedbackEnabled) {
         return;
     }
-    var feedbackString =    '{"userID":"' + this.userID + '"' +
-                            ', "overall":' + overallFeedback +
-                            ', "comment": "' + detailedFeedback + '"}';
 
-    var feedbackJSON = JSON.parse(feedbackString);
-
-    callStats.sendUserFeedback(this.confID, feedbackJSON);
+    callStats.sendUserFeedback(this.confID, {
+        userID: this.userID,
+        overall: overallFeedback,
+        comment: detailedFeedback
+    });
 });
 
 /**
@@ -392,6 +425,7 @@ CallStats._reportError = function (type, e, pc) {
             type: reportType.ERROR,
             data: { type: type, error: e, pc: pc}
         });
+        CallStats._checkInitialize();
     }
     // else just ignore it
 };
@@ -468,8 +502,19 @@ CallStats.sendAddIceCandidateFailed = _try_catch(function (e, pc, cs) {
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
 CallStats.sendApplicationLog = _try_catch(function (e, cs) {
-    CallStats._reportError
-        .call(cs, wrtcFuncNames.applicationLog, e, null);
+    CallStats._reportError.call(cs, wrtcFuncNames.applicationLog, e, null);
 });
+
+/**
+ * Clears allocated resources.
+ */
+CallStats.dispose = function () {
+    // The next line is commented because we need to be able to send feedback
+    // even after the conference has been destroyed.
+    // callStats = null;
+    CallStats.initialized = false;
+    CallStats.initializeFailed = false;
+    CallStats.initializeInProgress = false;
+};
 
 module.exports = CallStats;

@@ -1,6 +1,6 @@
-var JitsiTrackErrors = require("./JitsiTrackErrors");
+import * as JitsiTrackErrors from "./JitsiTrackErrors";
 
-var TRACK_ERROR_TO_MESSAGE_MAP = {};
+const TRACK_ERROR_TO_MESSAGE_MAP = {};
 
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.UNSUPPORTED_RESOLUTION]
     = "Video resolution is not supported: ";
@@ -22,102 +22,115 @@ TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.CONSTRAINT_FAILED]
     = "Constraint could not be satisfied: ";
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_IS_DISPOSED]
     = "Track has been already disposed";
+TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_NO_STREAM_FOUND]
+    = "Track does not have an associated Media Stream";
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_MUTE_UNMUTE_IN_PROGRESS]
     = "Track mute/unmute process is currently in progress";
+TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.NO_DATA_FROM_SOURCE]
+    = "The track has stopped receiving data from it's source";
 
 /**
- * Object representing error that happened to a JitsiTrack. Can represent
- * various types of errors. For error descriptions (@see JitsiTrackErrors).
- * @constructor
+ * Represents an error that occurred to a JitsiTrack. Can represent various
+ * types of errors. For error descriptions (@see JitsiTrackErrors).
+ *
  * @extends Error
- * @param {Object|string} error - error object or error name
- * @param {Object|string} (options) - getUserMedia constraints object or error
- *      message
- * @param {('audio'|'video'|'desktop'|'screen'|'audiooutput')[]} (devices) -
- *      list of getUserMedia requested devices
  */
-function JitsiTrackError(error, options, devices) {
-    if (typeof error === "object" && typeof error.name !== "undefined") {
-        /**
-         * Additional information about original getUserMedia error
-         * and constraints.
-         * @type {{
-         *          error: Object,
-         *          constraints: Object,
-         *          devices: Array.<'audio'|'video'|'desktop'|'screen'>
-         *      }}
-         */
-        this.gum = {
-            error: error,
-            constraints: options,
-            devices: devices && Array.isArray(devices)
-                ? devices.slice(0)
-                : undefined
-        };
+export default class JitsiTrackError extends Error {
+    /**
+     * Initializes a new JitsiTrackError instance.
+     *
+     * @constructor
+     * @param {Object|string} error - error object or error name
+     * @param {Object|string} (options) - getUserMedia constraints object or
+     * error message
+     * @param {('audio'|'video'|'desktop'|'screen'|'audiooutput')[]} (devices) -
+     * list of getUserMedia requested devices
+     */
+    constructor(error, options, devices) {
+        super();
 
-        switch (error.name) {
+        if (typeof error === "object" && typeof error.name !== "undefined") {
+            /**
+             * Additional information about original getUserMedia error
+             * and constraints.
+             * @type {{
+             *     error: Object,
+             *     constraints: Object,
+             *     devices: Array.<'audio'|'video'|'desktop'|'screen'>
+             * }}
+             */
+            this.gum = {
+                error,
+                constraints: options,
+                devices: devices && Array.isArray(devices)
+                    ? devices.slice(0)
+                    : undefined
+            };
+
+            switch (error.name) {
             case "PermissionDeniedError":
             case "SecurityError":
                 this.name = JitsiTrackErrors.PERMISSION_DENIED;
-                this.message = TRACK_ERROR_TO_MESSAGE_MAP[
-                        JitsiTrackErrors.PERMISSION_DENIED]
+                this.message
+                    = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
                         + (this.gum.devices || []).join(", ");
                 break;
+            case "DevicesNotFoundError":
             case "NotFoundError":
                 this.name = JitsiTrackErrors.NOT_FOUND;
-                this.message = TRACK_ERROR_TO_MESSAGE_MAP[
-                        JitsiTrackErrors.NOT_FOUND]
+                this.message
+                    = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
                         + (this.gum.devices || []).join(", ");
                 break;
             case "ConstraintNotSatisfiedError":
             case "OverconstrainedError":
                 var constraintName = error.constraintName;
 
-                if (options && options.video
-                    && (devices || []).indexOf('video') > -1
-                    &&
-                    (constraintName === "minWidth" ||
-                        constraintName === "maxWidth" ||
-                        constraintName === "minHeight" ||
-                        constraintName === "maxHeight" ||
-                        constraintName === "width" ||
-                        constraintName === "height")) {
+                if (options
+                        && options.video
+                        && (!devices || devices.indexOf('video') > -1)
+                        && (constraintName === "minWidth"
+                            || constraintName === "maxWidth"
+                            || constraintName === "minHeight"
+                            || constraintName === "maxHeight"
+                            || constraintName === "width"
+                            || constraintName === "height")) {
                     this.name = JitsiTrackErrors.UNSUPPORTED_RESOLUTION;
-                    this.message = TRACK_ERROR_TO_MESSAGE_MAP[
-                            JitsiTrackErrors.UNSUPPORTED_RESOLUTION] +
-                        getResolutionFromFailedConstraint(constraintName,
-                            options);
+                    this.message
+                        = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
+                            + getResolutionFromFailedConstraint(
+                                    constraintName,
+                                    options);
                 } else {
                     this.name = JitsiTrackErrors.CONSTRAINT_FAILED;
-                    this.message = TRACK_ERROR_TO_MESSAGE_MAP[
-                            JitsiTrackErrors.CONSTRAINT_FAILED] +
-                        error.constraintName;
+                    this.message
+                        = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
+                            + error.constraintName;
                 }
                 break;
             default:
                 this.name = JitsiTrackErrors.GENERAL;
-                this.message = error.message ||
-                    TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.GENERAL];
+                this.message
+                    = error.message || TRACK_ERROR_TO_MESSAGE_MAP[this.name];
                 break;
-        }
-    } else if (typeof error === "string") {
-        if (TRACK_ERROR_TO_MESSAGE_MAP[error]) {
-            this.name = error;
-            this.message = options || TRACK_ERROR_TO_MESSAGE_MAP[error];
+            }
+        } else if (typeof error === "string") {
+            if (TRACK_ERROR_TO_MESSAGE_MAP[error]) {
+                this.name = error;
+                this.message = options || TRACK_ERROR_TO_MESSAGE_MAP[error];
+            } else {
+                // this is some generic error that do not fit any of our
+                // pre-defined errors, so don't give it any specific name, just
+                // store message
+                this.message = error;
+            }
         } else {
-            // this is some generic error that do not fit any of our pre-defined
-            // errors, so don't give it any specific name, just store message
-            this.message = error;
+            throw new Error("Invalid arguments");
         }
-    } else {
-        throw new Error("Invalid arguments");
+
+        this.stack = error.stack || (new Error()).stack;
     }
-
-    this.stack = error.stack || (new Error()).stack;
 }
-
-JitsiTrackError.prototype = Object.create(Error.prototype);
-JitsiTrackError.prototype.constructor = JitsiTrackError;
 
 /**
  * Gets failed resolution constraint from corresponding object.
@@ -127,16 +140,15 @@ JitsiTrackError.prototype.constructor = JitsiTrackError;
  */
 function getResolutionFromFailedConstraint(failedConstraintName, constraints) {
     if (constraints && constraints.video && constraints.video.mandatory) {
-        if (failedConstraintName === "width") {
+        switch (failedConstraintName) {
+        case "width":
             return constraints.video.mandatory.minWidth;
-        } else if (failedConstraintName === "height") {
+        case "height":
             return constraints.video.mandatory.minHeight;
-        } else {
+        default:
             return constraints.video.mandatory[failedConstraintName] || "";
         }
     }
 
     return "";
 }
-
-module.exports = JitsiTrackError;

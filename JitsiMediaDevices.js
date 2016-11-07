@@ -2,7 +2,7 @@ var EventEmitter = require("events");
 var RTCEvents = require('./service/RTC/RTCEvents');
 var RTC = require("./modules/RTC/RTC");
 var MediaType = require('./service/RTC/MediaType');
-var JitsiMediaDevicesEvents = require('./JitsiMediaDevicesEvents');
+import * as JitsiMediaDevicesEvents from "./JitsiMediaDevicesEvents";
 var Statistics = require("./modules/statistics/statistics");
 
 var eventEmitter = new EventEmitter();
@@ -46,7 +46,9 @@ var JitsiMediaDevices = {
     },
     /**
      * Checks if its possible to enumerate available cameras/micropones.
-     * @returns {boolean} true if available, false otherwise.
+     * @returns {Promise<boolean>} a Promise which will be resolved only once
+     * the WebRTC stack is ready, either with true if the device listing is
+     * available available or with false otherwise.
      */
     isDeviceListAvailable: function () {
         return RTC.isDeviceListAvailable();
@@ -128,7 +130,7 @@ var JitsiMediaDevices = {
      * Emits an event.
      * @param {string} event - event name
      */
-    emitEvent: function (event) {
+    emitEvent: function (event) { // eslint-disable-line no-unused-vars
         eventEmitter.emit.apply(eventEmitter, arguments);
     }
 };

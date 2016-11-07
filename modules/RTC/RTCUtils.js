@@ -1,23 +1,36 @@
-/* global config, require, attachMediaStream, getUserMedia,
-   RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, MediaStreamTrack,
-   mozRTCPeerConnection, mozRTCSessionDescription, mozRTCIceCandidate,
-   webkitRTCPeerConnection, webkitMediaStream, webkitURL
+/* global $,
+          attachMediaStream,
+          MediaStreamTrack,
+          RTCIceCandidate,
+          RTCPeerConnection,
+          RTCSessionDescription,
+          mozRTCIceCandidate,
+          mozRTCPeerConnection,
+          mozRTCSessionDescription,
+          webkitMediaStream,
+          webkitRTCPeerConnection,
+          webkitURL
 */
-/* jshint -W101 */
 
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
 var Resolutions = require("../../service/RTC/Resolutions");
 var RTCEvents = require("../../service/RTC/RTCEvents");
-var AdapterJS = require("./adapter.screenshare");
 var SDPUtil = require("../xmpp/SDPUtil");
 var EventEmitter = require("events");
 var screenObtainer = require("./ScreenObtainer");
-var JitsiTrackErrors = require("../../JitsiTrackErrors");
-var JitsiTrackError = require("../../JitsiTrackError");
+import JitsiTrackError from "../../JitsiTrackError";
 var MediaType = require("../../service/RTC/MediaType");
 var VideoType = require("../../service/RTC/VideoType");
+var CameraFacingMode = require("../../service/RTC/CameraFacingMode");
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
+
+// XXX Don't require Temasys unless it's to be used because it doesn't run on
+// React Native, for example.
+const AdapterJS
+    = RTCBrowserType.isTemasysPluginUsed()
+        ? require("./adapter.screenshare")
+        : undefined;
 
 var eventEmitter = new EventEmitter();
 
@@ -31,6 +44,8 @@ var devices = {
 // Currently audio output device change is supported only in Chrome and
 // default output always has 'default' device ID
 var audioOutputDeviceId = 'default'; // default device
+// whether user has explicitly set a device to use
+var audioOutputChanged = false;
 // Disables Acoustic Echo Cancellation
 var disableAEC = false;
 // Disables Noise Suppression
@@ -42,20 +57,33 @@ var isAudioOutputDeviceChangeAvailable =
 
 var currentlyAvailableMediaDevices;
 
-var rawEnumerateDevicesWithCallback = navigator.mediaDevices
-    && navigator.mediaDevices.enumerateDevices
+var rawEnumerateDevicesWithCallback = undefined;
+/**
+ * "rawEnumerateDevicesWithCallback" will be initialized only after WebRTC is
+ * ready. Otherwise it is too early to assume that the devices listing is not
+ * supported.
+ */
+function initRawEnumerateDevicesWithCallback() {
+    rawEnumerateDevicesWithCallback = navigator.mediaDevices
+        && navigator.mediaDevices.enumerateDevices
         ? function(callback) {
-            navigator.mediaDevices.enumerateDevices().then(callback, function () {
-                callback([]);
+            navigator.mediaDevices.enumerateDevices().then(
+                callback, function () {
+                    callback([]);
             });
         }
+        // Safari:
+        // "ReferenceError: Can't find variable: MediaStreamTrack"
+        // when Temasys plugin is not installed yet, have to delay this call
+        // until WebRTC is ready.
         : (MediaStreamTrack && MediaStreamTrack.getSources)
-            ? function (callback) {
-                MediaStreamTrack.getSources(function (sources) {
-                    callback(sources.map(convertMediaStreamTrackSource));
-                });
-            }
-            : undefined;
+        ? function (callback) {
+            MediaStreamTrack.getSources(function (sources) {
+                callback(sources.map(convertMediaStreamTrackSource));
+            });
+        }
+        : undefined;
+}
 
 // TODO: currently no browser supports 'devicechange' event even in nightly
 // builds so no feature/browser detection is used at all. However in future this
@@ -103,7 +131,7 @@ function setResolutionConstraints(constraints, resolution) {
  * @param {string} options.desktopStream
  * @param {string} options.cameraDeviceId
  * @param {string} options.micDeviceId
- * @param {'user'|'environment'} options.facingMode
+ * @param {CameraFacingMode} options.facingMode
  * @param {bool} firefox_fake_device
  */
 function getConstraints(um, options) {
@@ -140,12 +168,13 @@ function getConstraints(um, options) {
             // TODO: Maybe use "exact" syntax if options.facingMode is defined,
             // but this probably needs to be decided when updating other
             // constraints, as we currently don't use "exact" syntax anywhere.
-            if (isNewStyleConstraintsSupported) {
-                constraints.video.facingMode = options.facingMode || 'user';
-            }
+            var facingMode = options.facingMode || CameraFacingMode.USER;
 
+            if (isNewStyleConstraintsSupported) {
+                constraints.video.facingMode = facingMode;
+            }
             constraints.video.optional.push({
-                facingMode: options.facingMode || 'user'
+                facingMode: facingMode
             });
         }
 
@@ -280,12 +309,21 @@ function getConstraints(um, options) {
     return constraints;
 }
 
-function setAvailableDevices(um, available) {
+/**
+ * Sets the availbale devices based on the options we requested and the
+ * streams we received.
+ * @param um the options we requested to getUserMedia.
+ * @param stream the stream we received from calling getUserMedia.
+ */
+function setAvailableDevices(um, stream) {
+    var audioTracksReceived = stream && !!stream.getAudioTracks().length;
+    var videoTracksReceived = stream && !!stream.getVideoTracks().length;
+
     if (um.indexOf("video") != -1) {
-        devices.video = available;
+        devices.video = videoTracksReceived;
     }
     if (um.indexOf("audio") != -1) {
-        devices.audio = available;
+        devices.audio = audioTracksReceived;
     }
 
     eventEmitter.emit(RTCEvents.AVAILABLE_DEVICES_CHANGED, devices);
@@ -346,8 +384,8 @@ function pollForAvailableMediaDevices() {
  * @param {MediaDeviceInfo[]} devices - list of media devices.
  * @emits RTCEvents.DEVICE_LIST_CHANGED
  */
-function onMediaDevicesListChanged(devices) {
-    currentlyAvailableMediaDevices = devices.slice(0);
+function onMediaDevicesListChanged(devicesReceived) {
+    currentlyAvailableMediaDevices = devicesReceived.slice(0);
     logger.info('list of media devices has changed:', currentlyAvailableMediaDevices);
 
     var videoInputDevices = currentlyAvailableMediaDevices.filter(function (d) {
@@ -367,15 +405,15 @@ function onMediaDevicesListChanged(devices) {
 
     if (videoInputDevices.length &&
         videoInputDevices.length === videoInputDevicesWithEmptyLabels.length) {
-        setAvailableDevices(['video'], false);
+        devices.video = false;
     }
 
     if (audioInputDevices.length &&
         audioInputDevices.length === audioInputDevicesWithEmptyLabels.length) {
-        setAvailableDevices(['audio'], false);
+        devices.audio = false;
     }
 
-    eventEmitter.emit(RTCEvents.DEVICE_LIST_CHANGED, devices);
+    eventEmitter.emit(RTCEvents.DEVICE_LIST_CHANGED, devicesReceived);
 }
 
 // In case of IE we continue from 'onReady' callback
@@ -385,6 +423,9 @@ function onReady (options, GUM) {
     rtcReady = true;
     eventEmitter.emit(RTCEvents.RTC_READY, true);
     screenObtainer.init(options, GUM);
+
+    // Initialize rawEnumerateDevicesWithCallback
+    initRawEnumerateDevicesWithCallback();
 
     if (RTCUtils.isDeviceListAvailable() && rawEnumerateDevicesWithCallback) {
         rawEnumerateDevicesWithCallback(function (devices) {
@@ -557,6 +598,7 @@ function handleLocalStream(streams, resolution) {
         if (audioVideo) {
             var audioTracks = audioVideo.getAudioTracks();
             if (audioTracks.length) {
+                // eslint-disable-next-line new-cap
                 audioStream = new webkitMediaStream();
                 for (var i = 0; i < audioTracks.length; i++) {
                     audioStream.addTrack(audioTracks[i]);
@@ -565,6 +607,7 @@ function handleLocalStream(streams, resolution) {
 
             var videoTracks = audioVideo.getVideoTracks();
             if (videoTracks.length) {
+                // eslint-disable-next-line new-cap
                 videoStream = new webkitMediaStream();
                 for (var j = 0; j < videoTracks.length; j++) {
                     videoStream.addTrack(videoTracks[j]);
@@ -623,7 +666,9 @@ function wrapAttachMediaStream(origAttachMediaStream) {
         if (stream
                 && RTCUtils.isDeviceChangeAvailable('output')
                 && stream.getAudioTracks
-                && stream.getAudioTracks().length) {
+                && stream.getAudioTracks().length
+                // we skip setting audio output if there was no explicit change
+                && audioOutputChanged) {
             element.setSinkId(RTCUtils.getAudioOutputDevice())
                 .catch(function (ex) {
                     var err = new JitsiTrackError(ex, null, ['audiooutput']);
@@ -639,7 +684,7 @@ function wrapAttachMediaStream(origAttachMediaStream) {
         }
 
         return res;
-    }
+    };
 }
 
 /**
@@ -746,8 +791,8 @@ var RTCUtils = {
                     }
                     return SDPUtil.filter_special_chars(id);
                 };
-                RTCSessionDescription = mozRTCSessionDescription;
-                RTCIceCandidate = mozRTCIceCandidate;
+                RTCSessionDescription = mozRTCSessionDescription; // eslint-disable-line
+                RTCIceCandidate = mozRTCIceCandidate;             // eslint-disable-line
             } else if (RTCBrowserType.isChrome() ||
                     RTCBrowserType.isOpera() ||
                     RTCBrowserType.isNWJS() ||
@@ -811,7 +856,7 @@ var RTCUtils = {
                 //AdapterJS.WebRTCPlugin.setLogLevel(
                 //    AdapterJS.WebRTCPlugin.PLUGIN_LOG_LEVELS.VERBOSE);
                 var self = this;
-                AdapterJS.webRTCReady(function (isPlugin) {
+                AdapterJS.webRTCReady(function () {
 
                     self.peerconnection = RTCPeerConnection;
                     self.getUserMedia = window.getUserMedia;
@@ -844,22 +889,20 @@ var RTCUtils = {
                         return SDPUtil.filter_special_chars(stream.label);
                     };
 
-                    onReady(options, self.getUserMediaWithConstraints);
+                    onReady(options,
+                        self.getUserMediaWithConstraints.bind(self));
                     resolve();
                 });
             } else {
                 var errmsg = 'Browser does not appear to be WebRTC-capable';
-                try {
-                    logger.error(errmsg);
-                } catch (e) {
-                }
+                logger.error(errmsg);
                 reject(new Error(errmsg));
                 return;
             }
 
             // Call onReady() if Temasys plugin is not used
             if (!RTCBrowserType.isTemasysPluginUsed()) {
-                onReady(options, this.getUserMediaWithConstraints);
+                onReady(options, this.getUserMediaWithConstraints.bind(this));
                 resolve();
             }
         }.bind(this));
@@ -878,7 +921,6 @@ var RTCUtils = {
     **/
     getUserMediaWithConstraints: function ( um, success_callback, failure_callback, options) {
         options = options || {};
-        var resolution = options.resolution;
         var constraints = getConstraints(um, options);
 
         logger.info("Get media constraints", constraints);
@@ -887,11 +929,11 @@ var RTCUtils = {
             this.getUserMedia(constraints,
                 function (stream) {
                     logger.log('onUserMediaSuccess');
-                    setAvailableDevices(um, true);
+                    setAvailableDevices(um, stream);
                     success_callback(stream);
                 },
                 function (error) {
-                    setAvailableDevices(um, false);
+                    setAvailableDevices(um, undefined);
                     logger.warn('Failed to get access to local media. Error ',
                         error, constraints);
 
@@ -925,6 +967,7 @@ var RTCUtils = {
         var self = this;
 
         options = options || {};
+        var dsOptions = options.desktopSharingExtensionExternalInstallation;
         return new Promise(function (resolve, reject) {
             var successCallback = function (stream) {
                 resolve(handleLocalStream(stream, options.resolution));
@@ -955,7 +998,8 @@ var RTCUtils = {
 
                 if(screenObtainer.isSupported()){
                     deviceGUM["desktop"] = screenObtainer.obtainStream.bind(
-                        screenObtainer);
+                        screenObtainer,
+                        dsOptions);
                 }
                 // With FF/IE we can't split the stream into audio and video because FF
                 // doesn't support media stream constructors. So, we need to get the
@@ -1007,15 +1051,40 @@ var RTCUtils = {
                                     devices.push("video");
                                 }
 
-                                reject(new JitsiTrackError(
-                                    { name: "UnknownError" },
-                                    getConstraints(options.devices, options),
-                                    devices)
-                                );
+                                // we are missing one of the media we requested
+                                // in order to get the actual error that caused
+                                // this missing media we will call one more time
+                                // getUserMedia so we can obtain the actual
+                                // error (Example usecases are requesting
+                                // audio and video and video device is missing
+                                // or device is denied to be used and chrome is
+                                // set to not ask for permissions)
+                                self.getUserMediaWithConstraints(
+                                    devices,
+                                    function () {
+                                        // we already failed to obtain this
+                                        // media, so we are not supposed in any
+                                        // way to receive success for this call
+                                        // any way we will throw an error to be
+                                        // sure the promise will finish
+                                        reject(new JitsiTrackError(
+                                            { name: "UnknownError" },
+                                            getConstraints(
+                                                options.devices, options),
+                                            devices)
+                                        );
+                                    },
+                                    function (error) {
+                                        // rejects with real error for not
+                                        // obtaining the media
+                                        reject(error);
+                                    },options);
+
                                 return;
                             }
                             if(hasDesktop) {
                                 screenObtainer.obtainStream(
+                                    dsOptions,
                                     function (desktopStream) {
                                         successCallback({audioVideo: stream,
                                             desktopStream: desktopStream});
@@ -1034,6 +1103,7 @@ var RTCUtils = {
                         options);
                 } else if (hasDesktop) {
                     screenObtainer.obtainStream(
+                        dsOptions,
                         function (stream) {
                             successCallback({desktopStream: stream});
                         }, function (error) {
@@ -1055,17 +1125,51 @@ var RTCUtils = {
     isRTCReady: function () {
         return rtcReady;
     },
-    /**
-     * Checks if its possible to enumerate available cameras/micropones.
-     * @returns {boolean} true if available, false otherwise.
-     */
-    isDeviceListAvailable: function () {
+    _isDeviceListAvailable: function () {
+        if (!rtcReady)
+            throw new Error("WebRTC not ready yet");
         var isEnumerateDevicesAvailable
             = navigator.mediaDevices && navigator.mediaDevices.enumerateDevices;
         if (isEnumerateDevicesAvailable) {
             return true;
         }
-        return (MediaStreamTrack && MediaStreamTrack.getSources)? true : false;
+        return (typeof MediaStreamTrack !== "undefined" &&
+            MediaStreamTrack.getSources)? true : false;
+    },
+    /**
+     * Returns a promise which can be used to make sure that the WebRTC stack
+     * has been initialized.
+     *
+     * @returns {Promise} which is resolved only if the WebRTC stack is ready.
+     * Note that currently we do not detect stack initialization failure and
+     * the promise is never rejected(unless unexpected error occurs).
+     */
+    onRTCReady: function() {
+        if (rtcReady) {
+            return Promise.resolve();
+        } else {
+            return new Promise(function (resolve) {
+                var listener = function () {
+                    eventEmitter.removeListener(RTCEvents.RTC_READY, listener);
+                    resolve();
+                };
+                eventEmitter.addListener(RTCEvents.RTC_READY, listener);
+                // We have no failed event, so... it either resolves or nothing
+                // happens
+            });
+        }
+    },
+    /**
+     * Checks if its possible to enumerate available cameras/microphones.
+     *
+     * @returns {Promise<boolean>} a Promise which will be resolved only once
+     * the WebRTC stack is ready, either with true if the device listing is
+     * available available or with false otherwise.
+     */
+    isDeviceListAvailable: function () {
+        return this.onRTCReady().then(function() {
+            return this._isDeviceListAvailable();
+        }.bind(this));
     },
     /**
      * Returns true if changing the input (camera / microphone) or output
@@ -1101,6 +1205,13 @@ var RTCUtils = {
             mediaStream.stop();
         }
 
+        // The MediaStream implementation of the react-native-webrtc project has
+        // an explicit release method that is to be invoked in order to release
+        // used resources such as memory.
+        if (mediaStream.release) {
+            mediaStream.release();
+        }
+
         // if we have done createObjectURL, lets clean it
         var url = mediaStream.jitsiObjectURL;
         if (url) {
@@ -1132,6 +1243,7 @@ var RTCUtils = {
         return featureDetectionAudioEl.setSinkId(deviceId)
             .then(function() {
                 audioOutputDeviceId = deviceId;
+                audioOutputChanged = true;
 
                 logger.log('Audio output device set to ' + deviceId);
 

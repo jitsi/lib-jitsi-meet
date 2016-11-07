@@ -31,6 +31,18 @@ var RTCBrowserType = {
     },
 
     /**
+     * Gets current browser name, split from the type.
+     * @returns {string}
+     */
+    getBrowserName: function () {
+        var browser = currentBrowser.split('rtc_browser.')[1];
+        if (RTCBrowserType.isAndroid()) {
+            browser = 'android';
+        }
+        return browser;
+    },
+
+    /**
      * Checks if current browser is Chrome.
      * @returns {boolean}
      */
@@ -95,6 +107,16 @@ var RTCBrowserType = {
     },
 
     /**
+     * Checks if the current browser triggers 'onmute'/'onunmute' events when
+     * user's connection is interrupted and the video stops playback.
+     * @returns {*|boolean} 'true' if the event is supported or 'false'
+     * otherwise.
+     */
+    isVideoMuteOnConnInterruptedSupported: function () {
+        return RTCBrowserType.isChrome();
+    },
+
+    /**
      * Returns Firefox version.
      * @returns {number|null}
      */
@@ -125,6 +147,14 @@ var RTCBrowserType = {
      */
     isAndroid: function() {
         return isAndroid;
+    },
+
+    /**
+     * Whether jitsi-meet supports simulcast on the current browser.
+     * @returns {boolean}
+     */
+    supportsSimulcast: function() {
+        return RTCBrowserType.isChrome();
     }
 
     // Add version getters for other browsers when needed
@@ -222,13 +252,26 @@ function detectReactNative() {
     var match
         = navigator.userAgent.match(/\b(react[ \t_-]*native)(?:\/(\S+))?/i);
     var version;
-    if (match) {
+    // If we're remote debugging a React Native app, it may be treated as
+    // Chrome. Check navigator.product as well and always return some version
+    // even if we can't get the real one.
+    if (match || navigator.product === 'ReactNative') {
         currentBrowser = RTCBrowserType.RTC_BROWSER_REACT_NATIVE;
-        if (match.length > 2) {
+        var name;
+        if (match && match.length > 2) {
+            name = match[1];
             version = match[2];
         }
-        console.info(
-            "This appears to be " + /* name */ match[1] + ", ver: " + version);
+        if (!name) {
+            name = 'react-native';
+        }
+        if (!version) {
+            version = 'unknown';
+        }
+        console.info('This appears to be ' + name + ', ver: ' + version);
+    } else {
+        // We're not running in a React Native environment.
+        version = null;
     }
     return version;
 }

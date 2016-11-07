@@ -1,8 +1,9 @@
-var logger = require("jitsi-meet-logger").getLogger(__filename);
+import {getLogger} from "jitsi-meet-logger";
+const logger = getLogger(__filename);
 var RTCBrowserType = require("../RTC/RTCBrowserType");
 
 
-SDPUtil = {
+var SDPUtil = {
     filter_special_chars: function (text) {
         // XXX Neither one of the falsy values (e.g. null, undefined, false,
         // "", etc.) "contain" special chars.

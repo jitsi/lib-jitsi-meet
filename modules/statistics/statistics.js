@@ -1,12 +1,18 @@
 /* global require */
-var LocalStats = require("./LocalStatsCollector.js");
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var RTPStats = require("./RTPStatsCollector.js");
-var EventEmitter = require("events");
-var StatisticsEvents = require("../../service/statistics/Events");
+var AnalyticsAdapter = require("./AnalyticsAdapter");
 var CallStats = require("./CallStats");
+var EventEmitter = require("events");
+import JitsiTrackError from "../../JitsiTrackError";
+var logger = require("jitsi-meet-logger").getLogger(__filename);
+var LocalStats = require("./LocalStatsCollector.js");
+var RTPStats = require("./RTPStatsCollector.js");
 var ScriptUtil = require('../util/ScriptUtil');
-var JitsiTrackError = require("../../JitsiTrackError");
+import * as StatisticsEvents from "../../service/statistics/Events";
+
+/**
+ * True if callstats API is loaded
+ */
+ var isCallstatsLoaded = false;
 
 // Since callstats.io is a third party, we cannot guarantee the quality of their
 // service. More specifically, their server may take noticeably long time to
@@ -15,13 +21,41 @@ var JitsiTrackError = require("../../JitsiTrackError");
 // allow it to prevent people from joining a conference) to (1) start
 // downloading their API as soon as possible and (2) do the downloading
 // asynchronously.
-function loadCallStatsAPI() {
-    ScriptUtil.loadScript(
-            'https://api.callstats.io/static/callstats.min.js',
-            /* async */ true,
-            /* prepend */ true);
+function loadCallStatsAPI(customScriptUrl) {
+    if(!isCallstatsLoaded) {
+        ScriptUtil.loadScript(
+                customScriptUrl ? customScriptUrl :
+                    'https://api.callstats.io/static/callstats-ws.min.js',
+                /* async */ true,
+                /* prepend */ true);
+        isCallstatsLoaded = true;
+    }
     // FIXME At the time of this writing, we hope that the callstats.io API will
     // have loaded by the time we needed it (i.e. CallStats.init is invoked).
+}
+
+// Load the integration of a third-party analytics API such as Google Analytics.
+// Since we cannot guarantee the quality of the third-party service (e.g. their
+// server may take noticeably long time to respond), it is in our best interest
+// (in the sense that the intergration of the analytics API is important to us
+// but not enough to allow it to prevent people from joining a conference) to
+// download the API asynchronously. Additionally, Google Analytics will download
+// its implementation asynchronously anyway so it makes sense to append the
+// loading on our side rather than prepend it.
+function loadAnalytics(customScriptUrl) {
+    // if we have a custom script url passed as parameter we don't want to
+    // search it relatively near the library
+    ScriptUtil.loadScript(
+        customScriptUrl ? customScriptUrl : 'analytics.js',
+        /* async */ true,
+        /* prepend */ false,
+        /* relativeURL */ customScriptUrl ? false : true,
+        /* loadCallback */ function () {
+            Statistics.analytics.loaded();
+        },
+        /* errorCallback */ function () {
+            Statistics.analytics.dispose();
+        });
 }
 
 /**
@@ -58,6 +92,25 @@ function formatJitsiTrackErrorForCallStats(error) {
     return err;
 }
 
+/**
+ * Init statistic options
+ * @param options
+ */
+Statistics.init = function (options) {
+    Statistics.audioLevelsEnabled = !options.disableAudioLevels;
+
+    if(typeof options.audioLevelsInterval === 'number') {
+        Statistics.audioLevelsInterval = options.audioLevelsInterval;
+    }
+
+    Statistics.disableThirdPartyRequests = options.disableThirdPartyRequests;
+
+    if (Statistics.disableThirdPartyRequests !== true)
+        loadAnalytics(options.analyticsScriptUrl);
+    else // if not enable make sure we dispose any event that goes in the queue
+        Statistics.analytics.dispose();
+};
+
 function Statistics(xmpp, options) {
     this.rtpStats = null;
     this.eventEmitter = new EventEmitter();
@@ -68,10 +121,13 @@ function Statistics(xmpp, options) {
             // Even though AppID and AppSecret may be specified, the integration
             // of callstats.io may be disabled because of globally-disallowed
             // requests to any third parties.
-            && (this.options.disableThirdPartyRequests !== true);
+            && (Statistics.disableThirdPartyRequests !== true);
     if(this.callStatsIntegrationEnabled)
-        loadCallStatsAPI();
+        loadCallStatsAPI(this.options.callStatsCustomScriptUrl);
     this.callStats = null;
+    // Flag indicates whether or not the CallStats have been started for this
+    // Statistics instance
+    this.callStatsStarted = false;
 
     /**
      * Send the stats already saved in rtpStats to be logged via the focus.
@@ -80,6 +136,8 @@ function Statistics(xmpp, options) {
 }
 Statistics.audioLevelsEnabled = false;
 Statistics.audioLevelsInterval = 200;
+Statistics.disableThirdPartyRequests = false;
+Statistics.analytics = AnalyticsAdapter;
 
 /**
  * Array of callstats instances. Used to call Statistics static methods and
@@ -88,16 +146,13 @@ Statistics.audioLevelsInterval = 200;
 Statistics.callsStatsInstances = [];
 
 Statistics.prototype.startRemoteStats = function (peerconnection) {
-    if(!Statistics.audioLevelsEnabled)
-        return;
-
     this.stopRemoteStats();
 
     try {
         this.rtpStats
             = new RTPStats(peerconnection,
                     Statistics.audioLevelsInterval, 2000, this.eventEmitter);
-        this.rtpStats.start();
+        this.rtpStats.start(Statistics.audioLevelsEnabled);
     } catch (e) {
         this.rtpStats = null;
         logger.error('Failed to start collecting remote statistics: ' + e);
@@ -139,34 +194,24 @@ Statistics.prototype.addConnectionStatsListener = function (listener) {
     this.eventEmitter.on(StatisticsEvents.CONNECTION_STATS, listener);
 };
 
-/**
- * Adds listener for detected audio problems.
- * @param listener the listener.
- */
-Statistics.prototype.addAudioProblemListener = function (listener) {
-    this.eventEmitter.on(StatisticsEvents.AUDIO_NOT_WORKING, listener);
-};
-
 Statistics.prototype.removeConnectionStatsListener = function (listener) {
     this.eventEmitter.removeListener(StatisticsEvents.CONNECTION_STATS, listener);
 };
 
-Statistics.prototype.dispose = function () {
-    if(Statistics.audioLevelsEnabled) {
-        Statistics.stopAllLocalStats();
-        this.stopRemoteStats();
-        if(this.eventEmitter)
-            this.eventEmitter.removeAllListeners();
-    }
+Statistics.prototype.addByteSentStatsListener = function (listener) {
+    this.eventEmitter.on(StatisticsEvents.BYTE_SENT_STATS, listener);
 };
 
-Statistics.stopAllLocalStats = function () {
-    if(!Statistics.audioLevelsEnabled)
-        return;
+Statistics.prototype.removeByteSentStatsListener = function (listener) {
+    this.eventEmitter.removeListener(StatisticsEvents.BYTE_SENT_STATS,
+        listener);
+};
 
-    for(var i = 0; i < this.localStats.length; i++)
-        this.localStats[i].stop();
-    this.localStats = [];
+Statistics.prototype.dispose = function () {
+    this.stopCallStats();
+    this.stopRemoteStats();
+    if(this.eventEmitter)
+        this.eventEmitter.removeAllListeners();
 };
 
 Statistics.stopLocalStats = function (stream) {
@@ -182,7 +227,7 @@ Statistics.stopLocalStats = function (stream) {
 };
 
 Statistics.prototype.stopRemoteStats = function () {
-    if (!Statistics.audioLevelsEnabled || !this.rtpStats) {
+    if (!this.rtpStats) {
         return;
     }
 
@@ -204,9 +249,28 @@ Statistics.prototype.stopRemoteStats = function () {
  * /modules/settings/Settings.js
  */
 Statistics.prototype.startCallStats = function (session, settings) {
-    if(this.callStatsIntegrationEnabled && !this.callstats) {
+    if(this.callStatsIntegrationEnabled && !this.callStatsStarted) {
+        // Here we overwrite the previous instance, but it must be bound to
+        // the new PeerConnection
         this.callstats = new CallStats(session, settings, this.options);
         Statistics.callsStatsInstances.push(this.callstats);
+        this.callStatsStarted = true;
+    }
+};
+
+/**
+ * Removes the callstats.io instances.
+ */
+Statistics.prototype.stopCallStats = function () {
+    if(this.callStatsStarted) {
+        var index = Statistics.callsStatsInstances.indexOf(this.callstats);
+        if(index > -1)
+            Statistics.callsStatsInstances.splice(index, 1);
+        // The next line is commented because we need to be able to send
+        // feedback even after the conference has been destroyed.
+        // this.callstats = null;
+        CallStats.dispose();
+        this.callStatsStarted = false;
     }
 };
 
@@ -222,12 +286,13 @@ Statistics.prototype.isCallstatsEnabled = function () {
 };
 
 /**
- * Notifies CallStats for ice connection failed
+ * Notifies CallStats and analytics(if present) for ice connection failed
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
 Statistics.prototype.sendIceConnectionFailedEvent = function (pc) {
     if(this.callstats)
         this.callstats.sendIceConnectionFailedEvent(pc, this.callstats);
+    Statistics.analytics.sendEvent('connection.ice_failed');
 };
 
 /**
@@ -373,16 +438,6 @@ Statistics.prototype.sendAddIceCandidateFailed = function (e, pc) {
 };
 
 /**
- * Notifies CallStats that audio problems are detected.
- *
- * @param {Error} e error to send
- */
-Statistics.prototype.sendDetectedAudioProblem = function (e) {
-    if(this.callstats)
-        this.callstats.sendDetectedAudioProblem(e);
-};
-
-/**
  * Adds to CallStats an application log.
  *
  * @param {String} a log message to send or an {Error} object to be reported
@@ -406,6 +461,8 @@ Statistics.sendLog = function (m) {
 Statistics.prototype.sendFeedback = function(overall, detailed) {
     if(this.callstats)
         this.callstats.sendFeedback(overall, detailed);
+    Statistics.analytics.sendEvent("feedback.rating",
+        {value: overall, detailed: detailed});
 };
 
 Statistics.LOCAL_JID = require("../../service/statistics/constants").LOCAL_JID;
@@ -421,6 +478,16 @@ Statistics.reportGlobalError = function (error) {
     } else {
         Statistics.sendLog(error);
     }
+};
+
+/**
+ * Sends event to analytics and callstats.
+ * @param {string} eventName the event name.
+ * @param {Object} data the data to be sent.
+ */
+Statistics.sendEventToAll = function (eventName, data) {
+    this.analytics.sendEvent(eventName, data);
+    Statistics.sendLog(JSON.stringify({name: eventName, data}));
 };
 
 module.exports = Statistics;

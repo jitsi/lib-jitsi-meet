@@ -1,14 +1,25 @@
-module.exports = {
-    /**
-     * An event carrying connection statistics.
-     */
-    CONNECTION_STATS: "statistics.connectionstats",
-    /**
-     * FIXME: needs documentation.
-     */
-    AUDIO_LEVEL: "statistics.audioLevel",
-    /**
-     * Notifies about audio problem with remote participant.
-     */
-    AUDIO_NOT_WORKING: "statistics.audio_not_working"
-};
+/**
+ * Notifies about audio level in RTP statistics by SSRC.
+ *
+ * @param ssrc - The synchronization source identifier (SSRC) of the
+ * endpoint/participant whose audio level is being reported.
+ * @param {number} audioLevel - The audio level of <tt>ssrc</tt> according to
+ * RTP statistics.
+ * @param {boolean} isLocal - <tt>true</tt> if <tt>ssrc</tt> identifies the
+ * local endpoint/participant; otherwise, <tt>false</tt>.
+ */
+export const AUDIO_LEVEL = "statistics.audioLevel";
+
+/**
+ * An event carrying all statistics by ssrc.
+ */
+export const BYTE_SENT_STATS = "statistics.byte_sent_stats";
+
+/**
+ * An event carrying connection statistics.
+ *
+ * @param {object} connectionStats - The connection statistics carried by the
+ * event such as <tt>bandwidth</tt>, <tt>bitrate</tt>, <tt>packetLoss</tt>,
+ * <tt>resolution</tt>, and <tt>transport</tt>.
+ */
+export const CONNECTION_STATS = "statistics.connectionstats";
