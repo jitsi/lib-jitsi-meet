@@ -843,13 +843,16 @@ function (jingleSession, jingleOffer, now) {
     }
     // add info whether call is cross-region
     var crossRegion = null;
-    if (window.jitsiRegionInfo)
+    if (window.jitsiRegionInfo) {
         crossRegion = window.jitsiRegionInfo["CrossRegion"];
-    Statistics.analytics.sendEvent("session.initiate",{
+    }
+    Statistics.analytics.sendEvent(
+        "session.initiate",
+        {
             value: now - this.room.connectionTimes["muc.joined"],
             label: crossRegion
         });
-    try{
+    try {
         jingleSession.initialize(false /* initiator */,this.room);
     } catch (error) {
         GlobalOnErrorHandler.callErrorHandler(error);
