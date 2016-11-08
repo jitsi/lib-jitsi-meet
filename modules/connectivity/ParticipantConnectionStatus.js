@@ -332,7 +332,8 @@ export default class ParticipantConnectionStatus {
             logger.info(
                 "Remote track removed for disconnected" +
                 " participant, when the status according to" +
-                " the JVB is connected. Adjusting to the JVB value.");
+                " the JVB is connected. Adjusting to the JVB value for: "
+                + endpointId);
             this._changeConnectionStatus(endpointId, isConnActiveByJvb);
         }
     }
@@ -374,8 +375,8 @@ export default class ParticipantConnectionStatus {
      * event will be processed.
      */
     onTrackRtcUnmuted(track) {
-        logger.debug('Detector track RTC unmuted: ', track);
         var participantId = track.getParticipantId();
+        logger.debug('Detector track RTC unmuted: ' + participantId);
         if (!track.isMuted() &&
             !this.conference.getParticipantById(participantId)
                 .isConnectionActive()) {
@@ -394,11 +395,13 @@ export default class ParticipantConnectionStatus {
      * the signalling mute/unmute event will be processed.
      */
     onSignallingMuteChanged (track) {
-        logger.debug(
-            'Detector on track signalling mute changed: ',
-            track, track.isMuted());
         var isMuted = track.isMuted();
         var participantId = track.getParticipantId();
+
+        logger.debug(
+            'Detector on track signalling mute changed: ',
+            participantId, track.isMuted());
+
         var participant = this.conference.getParticipantById(participantId);
         if (!participant) {
             logger.error('No participant for id: ' + participantId);
