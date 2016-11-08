@@ -178,6 +178,18 @@ function getConstraints(um, options) {
             });
         }
 
+        if (options.minFps || options.maxFps || options.fps) {
+            // for some cameras it might be necessary to request 30fps
+            // so they choose 30fps mjpg over 10fps yuy2
+            if (options.minFps || options.fps) {
+                options.minFps = options.minFps || options.fps; //Fall back to options.fps for backwards compatibility
+                constraints.video.mandatory.minFrameRate = options.minFps;
+            }
+            if (options.maxFps) {
+                constraints.video.mandatory.maxFrameRate = options.maxFps;
+            }
+        }
+
         constraints.video.optional.push({ googLeakyBucket: true });
 
         setResolutionConstraints(constraints, options.resolution);
@@ -277,22 +289,6 @@ function getConstraints(um, options) {
             constraints.video = {mandatory: {}, optional: []};
         }
         constraints.video.optional.push({bandwidth: options.bandwidth});
-    }
-
-    if(options.minFps || options.maxFps || options.fps) {
-        // for some cameras it might be necessary to request 30fps
-        // so they choose 30fps mjpg over 10fps yuy2
-        if (!constraints.video) {
-            // same behaviour as true;
-            constraints.video = {mandatory: {}, optional: []};
-        }
-        if(options.minFps || options.fps) {
-            options.minFps = options.minFps || options.fps; //Fall back to options.fps for backwards compatibility
-            constraints.video.mandatory.minFrameRate = options.minFps;
-        }
-        if(options.maxFps) {
-            constraints.video.mandatory.maxFrameRate = options.maxFps;
-        }
     }
 
     // we turn audio for both audio and video tracks, the fake audio & video seems to work
