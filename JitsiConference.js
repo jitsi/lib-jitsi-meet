@@ -655,6 +655,23 @@ JitsiConference.prototype.getParticipants = function() {
 };
 
 /**
+ * Returns the number of participants in the conference, including the local
+ * participant.
+ * @param countHidden {boolean} Whether or not to include hidden participants
+ * in the count. Default: false.
+ **/
+JitsiConference.prototype.getParticipantCount
+    = function(countHidden = false) {
+
+    let participants = this.getParticipants();
+    if (!countHidden) {
+        participants = participants.filter(p => !p.isHidden());
+    }
+    // Add one for the local participant.
+    return participants.length + 1;
+};
+
+/**
  * @returns {JitsiParticipant} the participant in this conference with the
  * specified id (or undefined if there isn't one).
  * @param id the id of the participant.
