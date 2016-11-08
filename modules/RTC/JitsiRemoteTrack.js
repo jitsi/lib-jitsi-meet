@@ -19,7 +19,7 @@ var ttfmTrackerVideoAttached = false;
  * @param mediaType the MediaType of the JitsiRemoteTrack
  * @param videoType the VideoType of the JitsiRemoteTrack
  * @param ssrc the SSRC number of the Media Stream
- * @param muted intial muted state of the JitsiRemoteTrack
+ * @param muted initial muted state of the JitsiRemoteTrack
  * @constructor
  */
 function JitsiRemoteTrack(rtc, conference, ownerJid, stream, track, mediaType, videoType,

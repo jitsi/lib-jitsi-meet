@@ -645,8 +645,8 @@ JitsiConference.prototype.pinParticipant = function(participantId) {
 };
 
 /**
- * Returns the list of participants for this conference.
- * @return Array<JitsiParticipant> a list of participant identifiers containing all conference participants.
+ * @return Array<JitsiParticipant> an array of all participants in this
+ * conference.
  */
 JitsiConference.prototype.getParticipants = function() {
     return Object.keys(this.participants).map(function (key) {
@@ -655,8 +655,25 @@ JitsiConference.prototype.getParticipants = function() {
 };
 
 /**
- * @returns {JitsiParticipant} the participant in this conference with the specified id (or
- * undefined if there isn't one).
+ * Returns the number of participants in the conference, including the local
+ * participant.
+ * @param countHidden {boolean} Whether or not to include hidden participants
+ * in the count. Default: false.
+ **/
+JitsiConference.prototype.getParticipantCount
+    = function(countHidden = false) {
+
+    let participants = this.getParticipants();
+    if (!countHidden) {
+        participants = participants.filter(p => !p.isHidden());
+    }
+    // Add one for the local participant.
+    return participants.length + 1;
+};
+
+/**
+ * @returns {JitsiParticipant} the participant in this conference with the
+ * specified id (or undefined if there isn't one).
  * @param id the id of the participant.
  */
 JitsiConference.prototype.getParticipantById = function(id) {
@@ -676,8 +693,8 @@ JitsiConference.prototype.kickParticipant = function (id) {
 };
 
 /**
- * Kick participant from this conference.
- * @param {string} id id of the participant to kick
+ * Mutes a participant.
+ * @param {string} id The id of the participant to mute.
  */
 JitsiConference.prototype.muteParticipant = function (id) {
     var participant = this.getParticipantById(id);
@@ -688,13 +705,15 @@ JitsiConference.prototype.muteParticipant = function (id) {
 };
 
 /**
- * Indicates that a participant has joined the conference.
+ * Notifies this JitsiConference that a new member has joined its chat room.
+ *
+ * FIXME This should NOT be exposed!
  *
  * @param jid the jid of the participant in the MUC
  * @param nick the display name of the participant
  * @param role the role of the participant in the MUC
- * @param isHidden indicates if this is a hidden participant (sysem participant,
- * for example a recorder).
+ * @param isHidden indicates if this is a hidden participant (system
+ * participant for example a recorder).
  */
 JitsiConference.prototype.onMemberJoined
     = function (jid, nick, role, isHidden) {
@@ -843,13 +862,15 @@ function (jingleSession, jingleOffer, now) {
     }
     // add info whether call is cross-region
     var crossRegion = null;
-    if (window.jitsiRegionInfo)
+    if (window.jitsiRegionInfo) {
         crossRegion = window.jitsiRegionInfo["CrossRegion"];
-    Statistics.analytics.sendEvent("session.initiate",{
+    }
+    Statistics.analytics.sendEvent(
+        "session.initiate", {
             value: now - this.room.connectionTimes["muc.joined"],
             label: crossRegion
         });
-    try{
+    try {
         jingleSession.initialize(false /* initiator */,this.room);
     } catch (error) {
         GlobalOnErrorHandler.callErrorHandler(error);
@@ -1007,7 +1028,7 @@ JitsiConference.prototype.sendTones = function (tones, duration, pause) {
 };
 
 /**
- * Returns true if the recording is supproted and false if not.
+ * Returns true if recording is supported and false if not.
  */
 JitsiConference.prototype.isRecordingSupported = function () {
     if(this.room)
@@ -1126,7 +1147,7 @@ JitsiConference.prototype.setStartMutedPolicy = function (policy) {
 
 /**
  * Returns current start muted policy
- * @returns {Object} with 2 proprties - audio and video.
+ * @returns {Object} with 2 properties - audio and video.
  */
 JitsiConference.prototype.getStartMutedPolicy = function () {
     return this.startMutedPolicy;
@@ -1252,7 +1273,7 @@ JitsiConference.prototype._fireIncompatibleVersionsEvent = function () {
 };
 
 /**
- * Sends message via the datachannels.
+ * Sends a message via the data channel.
  * @param to {string} the id of the endpoint that should receive the message.
  * If "" the message will be sent to all participants.
  * @param payload {object} the payload of the message.
@@ -1263,7 +1284,7 @@ JitsiConference.prototype.sendEndpointMessage = function (to, payload) {
 };
 
 /**
- * Sends broadcast message via the datachannels.
+ * Sends a broadcast message via the data channel.
  * @param payload {object} the payload of the message.
  * @throws NetworkError or InvalidStateError or Error if the operation fails.
  */
