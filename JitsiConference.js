@@ -866,8 +866,7 @@ function (jingleSession, jingleOffer, now) {
         crossRegion = window.jitsiRegionInfo["CrossRegion"];
     }
     Statistics.analytics.sendEvent(
-        "session.initiate",
-        {
+        "session.initiate", {
             value: now - this.room.connectionTimes["muc.joined"],
             label: crossRegion
         });
