@@ -688,13 +688,15 @@ JitsiConference.prototype.muteParticipant = function (id) {
 };
 
 /**
- * Indicates that a participant has joined the conference.
+ * Notifies this JitsiConference that a new member has joined its chat room.
+ *
+ * FIXME This should NOT be exposed!
  *
  * @param jid the jid of the participant in the MUC
  * @param nick the display name of the participant
  * @param role the role of the participant in the MUC
- * @param isHidden indicates if this is a hidden participant (sysem participant,
- * for example a recorder).
+ * @param isHidden indicates if this is a hidden participant (system
+ * participant for example a recorder).
  */
 JitsiConference.prototype.onMemberJoined
     = function (jid, nick, role, isHidden) {
