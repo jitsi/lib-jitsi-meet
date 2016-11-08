@@ -645,8 +645,8 @@ JitsiConference.prototype.pinParticipant = function(participantId) {
 };
 
 /**
- * Returns the list of participants for this conference.
- * @return Array<JitsiParticipant> a list of participant identifiers containing all conference participants.
+ * @return Array<JitsiParticipant> an array of all participants in this
+ * conference.
  */
 JitsiConference.prototype.getParticipants = function() {
     return Object.keys(this.participants).map(function (key) {
@@ -655,8 +655,8 @@ JitsiConference.prototype.getParticipants = function() {
 };
 
 /**
- * @returns {JitsiParticipant} the participant in this conference with the specified id (or
- * undefined if there isn't one).
+ * @returns {JitsiParticipant} the participant in this conference with the
+ * specified id (or undefined if there isn't one).
  * @param id the id of the participant.
  */
 JitsiConference.prototype.getParticipantById = function(id) {
@@ -676,8 +676,8 @@ JitsiConference.prototype.kickParticipant = function (id) {
 };
 
 /**
- * Kick participant from this conference.
- * @param {string} id id of the participant to kick
+ * Mutes a participant.
+ * @param {string} id The id of the participant to mute.
  */
 JitsiConference.prototype.muteParticipant = function (id) {
     var participant = this.getParticipantById(id);
