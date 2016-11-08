@@ -19,7 +19,7 @@ var VideoType = require('../../service/RTC/VideoType');
  * @param track underlying WebRTC MediaStreamTrack for new JitsiRemoteTrack
  * @param mediaType the MediaType of the JitsiRemoteTrack
  * @param videoType the VideoType of the JitsiRemoteTrack
- * @param resolution the video resoultion if it's a video track
+ * @param resolution the video resolution if it's a video track
  * @param deviceId the ID of the local device for this track
  * @param facingMode the camera facing mode used in getUserMedia call
  * @constructor
@@ -544,7 +544,7 @@ JitsiLocalTrack.prototype.getDeviceId = function () {
 
 /**
  * Sets the value of bytes sent statistic.
- * @param bytesSent {intiger} the new value
+ * @param bytesSent {integer} the new value (FIXME: what is an integer in js?)
  * NOTE: used only for audio tracks to detect audio issues.
  */
 JitsiLocalTrack.prototype._setByteSent = function (bytesSent) {
@@ -628,7 +628,7 @@ JitsiLocalTrack.prototype._checkForCameraIssues = function () {
 };
 
 /**
- * Checks whether the attached MediaStream is reveiving data from source or
+ * Checks whether the attached MediaStream is receiving data from source or
  * not. If the stream property is null(because of mute or another reason) this
  * method will return false.
  * NOTE: This method doesn't indicate problem with the streams directly.

@@ -1029,7 +1029,7 @@ JitsiConference.prototype.sendTones = function (tones, duration, pause) {
 };
 
 /**
- * Returns true if the recording is supproted and false if not.
+ * Returns true if recording is supported and false if not.
  */
 JitsiConference.prototype.isRecordingSupported = function () {
     if(this.room)
@@ -1148,7 +1148,7 @@ JitsiConference.prototype.setStartMutedPolicy = function (policy) {
 
 /**
  * Returns current start muted policy
- * @returns {Object} with 2 proprties - audio and video.
+ * @returns {Object} with 2 properties - audio and video.
  */
 JitsiConference.prototype.getStartMutedPolicy = function () {
     return this.startMutedPolicy;
@@ -1274,7 +1274,7 @@ JitsiConference.prototype._fireIncompatibleVersionsEvent = function () {
 };
 
 /**
- * Sends message via the datachannels.
+ * Sends a message via the data channel.
  * @param to {string} the id of the endpoint that should receive the message.
  * If "" the message will be sent to all participants.
  * @param payload {object} the payload of the message.
@@ -1285,7 +1285,7 @@ JitsiConference.prototype.sendEndpointMessage = function (to, payload) {
 };
 
 /**
- * Sends broadcast message via the datachannels.
+ * Sends a broadcast message via the data channel.
  * @param payload {object} the payload of the message.
  * @throws NetworkError or InvalidStateError or Error if the operation fails.
  */
