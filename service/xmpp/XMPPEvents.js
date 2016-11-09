@@ -178,6 +178,8 @@ var XMPPEvents = {
     // Designates an event indicating that the subject of the XMPP MUC has
     // changed.
     SUBJECT_CHANGED: "xmpp.subject_changed",
+    // suspending detected
+    SUSPEND_DETECTED: "xmpp.suspend_detected",
     // Designates an event indicating that the local ICE username fragment of
     // the jingle session has changed.
     LOCAL_UFRAG_CHANGED: "xmpp.local_ufrag_changed",
