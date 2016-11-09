@@ -971,6 +971,13 @@ JitsiConference.prototype.onCallEnded
     });
 };
 
+/**
+ * Handles the suspend detected event. Leaves the room and fires suspended.
+ */
+JitsiConference.prototype.onSuspendDetected = function () {
+    this.leave();
+    this.eventEmitter.emit(JitsiConferenceEvents.SUSPEND_DETECTED);
+};
 
 JitsiConference.prototype.updateDTMFSupport = function () {
     var somebodySupportsDTMF = false;
