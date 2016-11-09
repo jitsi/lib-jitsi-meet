@@ -1,4 +1,4 @@
-/* global $, $msg, Base64, Strophe */
+/* global $, Strophe */
 
 import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
