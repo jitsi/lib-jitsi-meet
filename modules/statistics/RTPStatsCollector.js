@@ -68,39 +68,6 @@ function calculatePacketLoss(lostPackets, totalPackets) {
 }
 
 /**
- * Checks whether a certain record should be included in the logged statistics.
- */
-function acceptStat(reportId, reportType, statName) {
-    if (reportType == "googCandidatePair") {
-        if (statName == "googChannelId")
-            return false;
-
-    } else if (reportType == "ssrc") {
-        if (statName == "googTrackId" ||
-            statName == "transportId" ||
-            statName == "ssrc")
-            return false;
-    }
-
-    return true;
-}
-
-/**
- * Checks whether a certain record should be included in the logged statistics.
- */
-function acceptReport(id, type) {
-    if (type == "googComponent")
-        return false;
-
-    if (id.substring(0, 15) == "googCertificate" ||
-        id.substring(0, 9) == "googTrack" ||
-        id.substring(0, 20) == "googLibjingleSession")
-        return false;
-
-    return true;
-}
-
-/**
  * Holds "statistics" for a single SSRC.
  * @constructor
  */
@@ -230,24 +197,6 @@ function StatsCollector(
     this.eventEmitter = eventEmitter;
     this.conferenceStats = new ConferenceStats();
 
-    /**
-     * Gather PeerConnection stats once every this many milliseconds.
-     */
-    this.GATHER_INTERVAL = 15000;
-
-    /**
-     * Gather stats and store them in this.statsToBeLogged.
-     */
-    this.gatherStatsIntervalId = null;
-
-    /**
-     * Stores the statistics which will be send to the focus to be logged.
-     */
-    this.statsToBeLogged = {
-        timestamps: [],
-        stats: {}
-    };
-
     // Updates stats interval
     this.audioLevelsIntervalMilis = audioLevelsInterval;
 
@@ -271,11 +220,6 @@ StatsCollector.prototype.stop = function () {
     if (this.statsIntervalId) {
         clearInterval(this.statsIntervalId);
         this.statsIntervalId = null;
-    }
-
-    if (this.gatherStatsIntervalId) {
-        clearInterval(this.gatherStatsIntervalId);
-        this.gatherStatsIntervalId = null;
     }
 };
 
@@ -353,65 +297,6 @@ StatsCollector.prototype.start = function (startAudioLevelStats) {
             self.statsIntervalMilis
         );
     }
-
-    if (browserSupported
-            // logging statistics does not support firefox
-            && this._browserType !== RTCBrowserType.RTC_BROWSER_FIREFOX) {
-        this.gatherStatsIntervalId = setInterval(
-            function () {
-                self.peerconnection.getStats(
-                    function (report) {
-                        self.addStatsToBeLogged(report.result());
-                    },
-                    function () {
-                    }
-                );
-            },
-            this.GATHER_INTERVAL
-        );
-    }
-};
-
-/**
- * Converts the stats to the format used for logging, and saves the data in
- * this.statsToBeLogged.
- * @param reports Reports as given by webkitRTCPerConnection.getStats.
- */
-StatsCollector.prototype.addStatsToBeLogged = function (reports) {
-    var self = this;
-    var num_records = this.statsToBeLogged.timestamps.length;
-    this.statsToBeLogged.timestamps.push(new Date().getTime());
-    reports.forEach(function (report) {
-        if (!acceptReport(report.id, report.type))
-            return;
-        var stat = self.statsToBeLogged.stats[report.id];
-        if (!stat) {
-            stat = self.statsToBeLogged.stats[report.id] = {};
-        }
-        stat.type = report.type;
-        report.names().forEach(function (name) {
-            if (!acceptStat(report.id, report.type, name))
-                return;
-            var values = stat[name];
-            if (!values) {
-                values = stat[name] = [];
-            }
-            while (values.length < num_records) {
-                values.push(null);
-            }
-            values.push(report.stat(name));
-        });
-    });
-};
-
-StatsCollector.prototype.getCollectedStats = function () {
-    return this.statsToBeLogged;
-};
-
-StatsCollector.prototype.clearCollectedStats = function () {
-   // Reset the stats
-   this.statsToBeLogged.stats = {};
-   this.statsToBeLogged.timestamps = [];
 };
 
 /**

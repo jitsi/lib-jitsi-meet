@@ -59,11 +59,6 @@ function loadAnalytics(customScriptUrl) {
 }
 
 /**
- * Log stats via the focus once every this many milliseconds.
- */
-var LOG_INTERVAL = 60000;
-
-/**
  * callstats strips any additional fields from Error except for "name", "stack",
  * "message" and "constraintName". So we need to bundle additional information
  * from JitsiTrackError into error passed to callstats to preserve valuable
@@ -128,11 +123,6 @@ function Statistics(xmpp, options) {
     // Flag indicates whether or not the CallStats have been started for this
     // Statistics instance
     this.callStatsStarted = false;
-
-    /**
-     * Send the stats already saved in rtpStats to be logged via the focus.
-     */
-    this.logStatsIntervalId = null;
 }
 Statistics.audioLevelsEnabled = false;
 Statistics.audioLevelsInterval = 200;
@@ -156,14 +146,6 @@ Statistics.prototype.startRemoteStats = function (peerconnection) {
     } catch (e) {
         this.rtpStats = null;
         logger.error('Failed to start collecting remote statistics: ' + e);
-    }
-    if (this.rtpStats) {
-        this.logStatsIntervalId = setInterval(function () {
-            var stats = this.rtpStats.getCollectedStats();
-            if (this.xmpp.sendLogs(stats)) {
-                this.rtpStats.clearCollectedStats();
-            }
-        }.bind(this), LOG_INTERVAL);
     }
 };
 
@@ -233,11 +215,6 @@ Statistics.prototype.stopRemoteStats = function () {
 
     this.rtpStats.stop();
     this.rtpStats = null;
-
-    if (this.logStatsIntervalId) {
-        clearInterval(this.logStatsIntervalId);
-        this.logStatsIntervalId = null;
-    }
 };
 
 //CALSTATS METHODS
