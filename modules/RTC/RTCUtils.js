@@ -178,8 +178,6 @@ function getConstraints(um, options) {
             });
         }
 
-        constraints.video.optional.push({ googLeakyBucket: true });
-
         setResolutionConstraints(constraints, options.resolution);
     }
     if (um.indexOf('audio') >= 0) {
@@ -228,7 +226,6 @@ function getConstraints(um, options) {
             constraints.video = {
                 mandatory: {
                     chromeMediaSource: "screen",
-                    googLeakyBucket: true,
                     maxWidth: window.screen.width,
                     maxHeight: window.screen.height,
                     maxFrameRate: 3
@@ -262,7 +259,6 @@ function getConstraints(um, options) {
             mandatory: {
                 chromeMediaSource: "desktop",
                 chromeMediaSourceId: options.desktopStream,
-                googLeakyBucket: true,
                 maxWidth: window.screen.width,
                 maxHeight: window.screen.height,
                 maxFrameRate: 3
