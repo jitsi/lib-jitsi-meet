@@ -237,8 +237,10 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
     chatRoom.addListener(XMPPEvents.KICKED,
         function () {
             conference.room = null;
-            conference.leave.bind(conference);
+            conference.leave();
         });
+    chatRoom.addListener(XMPPEvents.SUSPEND_DETECTED,
+        conference.onSuspendDetected.bind(conference));
 
     this.chatRoomForwarder.forward(XMPPEvents.MUC_LOCK_CHANGED,
         JitsiConferenceEvents.LOCK_STATE_CHANGED);

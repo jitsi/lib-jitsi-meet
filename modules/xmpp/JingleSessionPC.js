@@ -121,10 +121,21 @@ JingleSessionPC.prototype.doInitialize = function () {
     this.peerconnection.onremovestream = function (event) {
         self.remoteStreamRemoved(event.stream);
     };
+    // Note there is a change in the spec about closed:
+    // This value moved into the RTCPeerConnectionState enum in the May 13, 2016
+    // draft of the specification, as it reflects the state of the
+    // RTCPeerConnection, not the signaling connection. You now detect a
+    // closed connection by checking for connectionState to be "closed" instead.
+    // I suppose at some point this will be moved to onconnectionstatechange
     this.peerconnection.onsignalingstatechange = function () {
         if (!(self && self.peerconnection)) return;
         if (self.peerconnection.signalingState === 'stable') {
             self.wasstable = true;
+        } else if (
+            (self.peerconnection.signalingState === 'closed'
+                || self.peerconnection.connectionState === 'closed')
+            && !self.closed) {
+                self.room.eventEmitter.emit(XMPPEvents.SUSPEND_DETECTED);
         }
     };
     /**
@@ -1325,7 +1336,13 @@ JingleSessionPC.prototype.getIceConnectionState = function () {
  */
 JingleSessionPC.prototype.close = function () {
     this.closed = true;
-    this.peerconnection && this.peerconnection.close();
+    // do not try to close if already closed.
+    this.peerconnection
+        && ((this.peerconnection.signalingState
+                && this.peerconnection.signalingState !== 'closed')
+            || (this.peerconnection.connectionState
+                && this.peerconnection.connectionState !== 'closed'))
+        && this.peerconnection.close();
 };
 
 

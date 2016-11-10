@@ -120,6 +120,10 @@ export const STARTED_MUTED = "conference.started_muted";
  */
 export const SUBJECT_CHANGED = "conference.subjectChanged";
 /**
+ * Indicates that DTMF support changed.
+ */
+export const SUSPEND_DETECTED = "conference.suspendDetected";
+/**
  * Event indicates that local user is talking while he muted himself
  */
 export const TALK_WHILE_MUTED = "conference.talk_while_muted";
