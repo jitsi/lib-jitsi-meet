@@ -825,16 +825,13 @@ var RTCUtils = {
                             : SDPUtil.filter_special_chars(id));
                 };
                 // DTLS should now be enabled by default but..
-                this.pc_constraints = {'optional': [
-                    {'DtlsSrtpKeyAgreement': 'true'}
-                ]};
+                this.pc_constraints = {'optional': [] };
+
                 if (options.useIPv6) {
                     // https://code.google.com/p/webrtc/issues/detail?id=2828
                     this.pc_constraints.optional.push({googIPv6: true});
                 }
-                if (RTCBrowserType.isAndroid()) {
-                    this.pc_constraints = {}; // disable DTLS on Android
-                }
+
                 if (!webkitMediaStream.prototype.getVideoTracks) {
                     webkitMediaStream.prototype.getVideoTracks = function () {
                         return this.videoTracks;
