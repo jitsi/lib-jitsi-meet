@@ -820,8 +820,13 @@ var RTCUtils = {
                             ? id
                             : SDPUtil.filter_special_chars(id));
                 };
-                // DTLS should now be enabled by default but..
-                this.pc_constraints = {'optional': [] };
+
+                this.pc_constraints = {optional: [] };
+
+                // Allows sending of video to be suspended if the bandwidth
+                // estimation is too low.
+                this.pc_constraints.optional.push(
+                    {googSuspendBelowMinBitrate: true});
 
                 if (options.useIPv6) {
                     // https://code.google.com/p/webrtc/issues/detail?id=2828
