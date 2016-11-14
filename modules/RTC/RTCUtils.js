@@ -190,8 +190,6 @@ function getConstraints(um, options) {
             }
         }
 
-        constraints.video.optional.push({ googLeakyBucket: true });
-
         setResolutionConstraints(constraints, options.resolution);
     }
     if (um.indexOf('audio') >= 0) {
@@ -240,7 +238,6 @@ function getConstraints(um, options) {
             constraints.video = {
                 mandatory: {
                     chromeMediaSource: "screen",
-                    googLeakyBucket: true,
                     maxWidth: window.screen.width,
                     maxHeight: window.screen.height,
                     maxFrameRate: 3
@@ -274,7 +271,6 @@ function getConstraints(um, options) {
             mandatory: {
                 chromeMediaSource: "desktop",
                 chromeMediaSourceId: options.desktopStream,
-                googLeakyBucket: true,
                 maxWidth: window.screen.width,
                 maxHeight: window.screen.height,
                 maxFrameRate: 3
@@ -824,17 +820,19 @@ var RTCUtils = {
                             ? id
                             : SDPUtil.filter_special_chars(id));
                 };
-                // DTLS should now be enabled by default but..
-                this.pc_constraints = {'optional': [
-                    {'DtlsSrtpKeyAgreement': 'true'}
-                ]};
+
+                this.pc_constraints = {optional: [] };
+
+                // Allows sending of video to be suspended if the bandwidth
+                // estimation is too low.
+                this.pc_constraints.optional.push(
+                    {googSuspendBelowMinBitrate: true});
+
                 if (options.useIPv6) {
                     // https://code.google.com/p/webrtc/issues/detail?id=2828
                     this.pc_constraints.optional.push({googIPv6: true});
                 }
-                if (RTCBrowserType.isAndroid()) {
-                    this.pc_constraints = {}; // disable DTLS on Android
-                }
+
                 if (!webkitMediaStream.prototype.getVideoTracks) {
                     webkitMediaStream.prototype.getVideoTracks = function () {
                         return this.videoTracks;
