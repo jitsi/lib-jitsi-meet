@@ -46,7 +46,7 @@ export default class ParticipantConnectionStatus {
          * Required for getting back in sync when remote video track is removed.
          * @type {Object.<string, boolean>}
          */
-        this.rtcConnStatusCache = { };
+        this.connStatusFromJvb = { };
         /**
          * How long we're going to wait after the RTC video track muted event
          * for the corresponding signalling mute event, before the connection
@@ -137,7 +137,7 @@ export default class ParticipantConnectionStatus {
         }.bind(this));
 
         // Clear RTC connection status cache
-        this.rtcConnStatusCache = {};
+        this.connStatusFromJvb = {};
     }
 
     /**
@@ -159,7 +159,7 @@ export default class ParticipantConnectionStatus {
             // Cache the status received received over the data channels, as
             // it will be needed to verify for out of sync when the remote video
             // track is being removed.
-            this.rtcConnStatusCache[endpointId] = isActive;
+            this.connStatusFromJvb[endpointId] = isActive;
 
             var participant = this.conference.getParticipantById(endpointId);
             // Delay the 'active' event until the video track gets
@@ -312,7 +312,7 @@ export default class ParticipantConnectionStatus {
 
         const isConnectionActive = participant.isConnectionActive();
         const hasAnyVideoRTCMuted = participant.hasAnyVideoTrackWebRTCMuted();
-        let isConnActiveByJvb = this.rtcConnStatusCache[endpointId];
+        let isConnActiveByJvb = this.connStatusFromJvb[endpointId];
 
         // If no status was received from the JVB it means that it's active
         // (the bridge does not send notification unless there is a problem).
