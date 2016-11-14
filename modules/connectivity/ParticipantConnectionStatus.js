@@ -58,6 +58,28 @@ export default class ParticipantConnectionStatus {
         this.rtcMuteTimeout
             = typeof rtcMuteTimeout === 'number'
                 ? rtcMuteTimeout : DEFAULT_RTC_MUTE_TIMEOUT;
+        /**
+         * This map holds a timestamp indicating  when participant's video track
+         * was RTC muted (it is assumed that each participant can have only 1
+         * video track at a time). The purpose of storing the timestamp is to
+         * avoid the transition to disconnected status in case of legitimate
+         * video mute operation where the signalling video muted event can
+         * arrive shortly after RTC muted event.
+         *
+         * The key is participant's ID which is the same as endpoint id in
+         * the Colibri conference allocated on the JVB.
+         *
+         * The value is a timestamp measured in milliseconds obtained with
+         * <tt>Date.now()</tt>.
+         *
+         * FIXME merge this logic with NO_DATA_FROM_SOURCE event
+         *       implemented in JitsiLocalTrack by extending the event to
+         *       the remote track and allowing to set different timeout for
+         *       local and remote tracks.
+         *
+         * @type {Object.<string, number>}
+         */
+        this.rtcMutedTimestamp = { };
         logger.info("RtcMuteTimeout set to: " + this.rtcMuteTimeout);
     }
 
@@ -134,6 +156,7 @@ export default class ParticipantConnectionStatus {
 
         Object.keys(this.trackTimers).forEach(function (participantId) {
             this.clearTimeout(participantId);
+            this.clearRtcMutedTimestamp(participantId);
         }.bind(this));
 
         // Clear RTC connection status cache
@@ -155,41 +178,16 @@ export default class ParticipantConnectionStatus {
 
         // Filter out events for the local JID for now
         if (endpointId !== this.conference.myUserId()) {
-
-            // Cache the status received received over the data channels, as
-            // it will be needed to verify for out of sync when the remote video
-            // track is being removed.
+            // Store the status received over the data channels
             this.connStatusFromJvb[endpointId] = isActive;
-
-            var participant = this.conference.getParticipantById(endpointId);
-            // Delay the 'active' event until the video track gets
-            // the RTC unmuted event
-            if (isActive
-                    && RTCBrowserType.isVideoMuteOnConnInterruptedSupported()
-                    && participant
-                    && participant.hasAnyVideoTrackWebRTCMuted()
-                    && !participant.isVideoMuted()) {
-                logger.debug(
-                    'Ignoring RTCEvents.ENDPOINT_CONN_STATUS_CHANGED -'
-                        + ' will wait for unmute event');
-            } else {
-                this._changeConnectionStatus(endpointId, isActive);
-            }
+            this.figureOutConnectionStatus(endpointId);
         }
     }
 
-    _changeConnectionStatus(endpointId, newStatus) {
-        var participant = this.conference.getParticipantById(endpointId);
-        if (!participant) {
-            // This will happen when participant exits the conference with
-            // broken ICE connection and we join after that. The bridge keeps
-            // sending that notification until the conference does not expire.
-            logger.warn(
-                'Missed participant connection status update - ' +
-                    'no participant for endpoint: ' + endpointId);
-            return;
-        }
+    _changeConnectionStatus(participant, newStatus) {
         if (participant.isConnectionActive() !== newStatus) {
+
+            const endpointId = participant.getId();
 
             participant._setIsConnectionActive(newStatus);
 
@@ -227,6 +225,16 @@ export default class ParticipantConnectionStatus {
             window.clearTimeout(this.trackTimers[participantId]);
             this.trackTimers[participantId] = null;
         }
+    }
+
+    /**
+     * Clears the timestamp of the RTC muted event for participant's video track
+     * @param participantId the id of the conference participant which is
+     * the same as the Colibri endpoint ID of the video channel allocated for
+     * the user on the videobridge.
+     */
+    clearRtcMutedTimestamp(participantId) {
+        this.rtcMutedTimestamp[participantId] = null;
     }
 
     /**
@@ -271,32 +279,48 @@ export default class ParticipantConnectionStatus {
                 this._onSignallingMuteChanged);
 
             this.clearTimeout(endpointId);
+            this.clearRtcMutedTimestamp(endpointId);
 
-            // Only if we're using video muted events - check if the JVB status
-            // should be restored from cache.
-            if (RTCBrowserType.isVideoMuteOnConnInterruptedSupported())
-            {
-                this.maybeRestoreCachedStatus(endpointId);
-            }
+            this.figureOutConnectionStatus(endpointId);
         }
     }
 
     /**
-     * When RTC video track muted events are taken into account,
-     * at the point when the track is being removed we have to update
-     * to the current connectivity status according to the JVB. That's
-     * because if the current track is muted then the new one which
-     * replaces it is always added as unmuted and there may be no
-     * 'muted'/'unmuted' event sequence if the connection restores in
-     * the meantime.
+     * Checks if given participant's video is considered frozen.
+     * @param {JitsiParticipant} participant
+     * @return {boolean} <tt>true</tt> if the video has frozen for given
+     * participant or <tt>false</tt> when it's either not considered frozen
+     * (yet) or if freeze detection is not supported by the current browser.
      *
-     * XXX See onEndpointConnStatusChanged method where the update is
-     * postponed and which is the cause for this workaround. If we
-     * decide to not wait for video unmuted event and accept the JVB
-     * status immediately then it's fine to remove the code below.
+     * FIXME merge this logic with NO_DATA_FROM_SOURCE event
+     *       implemented in JitsiLocalTrack by extending the event to
+     *       the remote track and allowing to set different timeout for
+     *       local and remote tracks.
+     *
      */
-    maybeRestoreCachedStatus(endpointId) {
-        var participant = this.conference.getParticipantById(endpointId);
+    isVideoTrackFrozen (participant) {
+        if (!RTCBrowserType.isVideoMuteOnConnInterruptedSupported()) {
+            return false;
+        }
+
+        const hasAnyVideoRTCMuted = participant.hasAnyVideoTrackWebRTCMuted();
+        var rtcMutedTimestamp
+            = this.rtcMutedTimestamp[participant.getId()];
+
+        return hasAnyVideoRTCMuted
+            && typeof rtcMutedTimestamp === 'number'
+            && (Date.now() - rtcMutedTimestamp) >= this.rtcMuteTimeout;
+    }
+
+    /**
+     * Figures out (and updates) the current connectivity status for
+     * the participant identified by the given id.
+     *
+     * @param {string} id the participant's id (MUC nickname or Colibri endpoint
+     * ID).
+     */
+    figureOutConnectionStatus(id) {
+        var participant = this.conference.getParticipantById(id);
         if (!participant) {
             // Probably the participant is no longer in the conference
             // (at the time of writing this code, participant is
@@ -304,38 +328,38 @@ export default class ParticipantConnectionStatus {
             // fired),
             // so we don't care, but let's print the warning for
             // debugging purpose
-            logger.warn(
-                'maybeRestoreCachedStatus - ' +
-                'no participant for endpoint: ' + endpointId);
+            logger.warn('figure out conn status - no participant for: ' + id);
             return;
         }
 
-        const isConnectionActive = participant.isConnectionActive();
-        const hasAnyVideoRTCMuted = participant.hasAnyVideoTrackWebRTCMuted();
-        let isConnActiveByJvb = this.connStatusFromJvb[endpointId];
+        const isVideoMuted = participant.isVideoMuted();
+        const isVideoTrackFrozen = this.isVideoTrackFrozen(participant);
+        let isConnActiveByJvb = this.connStatusFromJvb[id];
 
         // If no status was received from the JVB it means that it's active
         // (the bridge does not send notification unless there is a problem).
         if (typeof isConnActiveByJvb !== 'boolean') {
-            logger.debug("Assuming connection active by JVB - no notification");
+            logger.debug('Assuming connection active by JVB - no notification');
             isConnActiveByJvb = true;
         }
 
-        logger.debug(
-            "Remote track removed, is active: " + isConnectionActive
-            + " is active(jvb):" + isConnActiveByJvb
-            + " video RTC muted:" + hasAnyVideoRTCMuted);
-
-        if (!isConnectionActive && isConnActiveByJvb && !hasAnyVideoRTCMuted) {
-            // FIXME adjust the log level or remove the message completely once
-            // the feature gets mature enough.
-            logger.info(
-                "Remote track removed for disconnected" +
-                " participant, when the status according to" +
-                " the JVB is connected. Adjusting to the JVB value for: "
-                + endpointId);
-            this._changeConnectionStatus(endpointId, isConnActiveByJvb);
+        var isConnectionActive = true;
+        if (!isVideoMuted && (isVideoTrackFrozen || !isConnActiveByJvb)) {
+            // Disconnected when not video muted and either got that status from
+            // JVB or the video track is "RTC muted"
+            isConnectionActive = false;
+        } else if (isVideoMuted && !isConnActiveByJvb){
+            // If is video muted, but JVB reports no data
+            isConnectionActive = false;
         }
+
+        logger.debug(
+            'Figure out conn status, is video muted: ' + isVideoMuted
+                + ' is active(jvb): ' + isConnActiveByJvb
+                + ' video track frozen: ' + isVideoTrackFrozen
+                + ' => ' + isConnectionActive);
+
+        this._changeConnectionStatus(participant, isConnectionActive);
     }
 
     /**
@@ -352,18 +376,16 @@ export default class ParticipantConnectionStatus {
             logger.error('No participant for id: ' + participantId);
             return;
         }
+        this.rtcMutedTimestamp[participantId] = Date.now();
         if (!participant.isVideoMuted()) {
             // If the user is not muted according to the signalling we'll give
             // it some time, before the connection interrupted event is
             // triggered.
+            this.clearTimeout(participantId);
             this.trackTimers[participantId] = window.setTimeout(function () {
-                if (!track.isMuted() && participant.isConnectionActive()) {
-                    logger.info(
-                        'Connection interrupted through the RTC mute: '
-                            + participantId, Date.now());
-                    this._changeConnectionStatus(participantId, false);
-                }
+                logger.debug('RTC mute timeout for: ' + participantId);
                 this.clearTimeout(participantId);
+                this.figureOutConnectionStatus(participantId);
             }.bind(this), this.rtcMuteTimeout);
         }
     }
@@ -376,16 +398,13 @@ export default class ParticipantConnectionStatus {
      */
     onTrackRtcUnmuted(track) {
         var participantId = track.getParticipantId();
+
         logger.debug('Detector track RTC unmuted: ' + participantId);
-        if (!track.isMuted() &&
-            !this.conference.getParticipantById(participantId)
-                .isConnectionActive()) {
-            logger.info(
-                'Detector connection restored through the RTC unmute: '
-                    + participantId, Date.now());
-            this._changeConnectionStatus(participantId, true);
-        }
+
         this.clearTimeout(participantId);
+        this.clearRtcMutedTimestamp(participantId);
+
+        this.figureOutConnectionStatus(participantId);
     }
 
     /**
@@ -395,25 +414,13 @@ export default class ParticipantConnectionStatus {
      * the signalling mute/unmute event will be processed.
      */
     onSignallingMuteChanged (track) {
-        var isMuted = track.isMuted();
-        var participantId = track.getParticipantId();
+        const participantId = track.getParticipantId();
 
         logger.debug(
-            'Detector on track signalling mute changed: ',
-            participantId, track.isMuted());
+            'Detector on track signalling mute changed: '
+                + participantId, track.isMuted());
 
-        var participant = this.conference.getParticipantById(participantId);
-        if (!participant) {
-            logger.error('No participant for id: ' + participantId);
-            return;
-        }
-        var isConnectionActive = participant.isConnectionActive();
-        if (isMuted && isConnectionActive && this.trackTimers[participantId]) {
-            logger.debug(
-                'Signalling got in sync - cancelling task for: '
-                    + participantId);
-            this.clearTimeout(participantId);
-        }
+        this.figureOutConnectionStatus(participantId);
     }
 
 }
