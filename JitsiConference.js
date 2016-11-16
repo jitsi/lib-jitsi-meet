@@ -12,7 +12,6 @@ var JitsiDTMFManager = require('./modules/DTMF/JitsiDTMFManager');
 import JitsiTrackError from "./JitsiTrackError";
 import * as JitsiTrackErrors from "./JitsiTrackErrors";
 import * as JitsiTrackEvents from "./JitsiTrackEvents";
-var Settings = require("./modules/settings/Settings");
 var ComponentsVersions = require("./modules/version/ComponentsVersions");
 var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 var JitsiConferenceEventManager = require("./JitsiConferenceEventManager");
@@ -41,7 +40,6 @@ function JitsiConference(options) {
         throw new Error(errmsg);
     }
     this.eventEmitter = new EventEmitter();
-    this.settings = new Settings();
     this.options = options;
     this.eventManager = new JitsiConferenceEventManager(this);
     this._init(options);
@@ -99,8 +97,7 @@ JitsiConference.prototype._init = function (options) {
         this.eventManager.setupXMPPListeners();
     }
 
-    this.room = this.xmpp.createRoom(this.options.name, this.options.config,
-        this.settings);
+    this.room = this.xmpp.createRoom(this.options.name, this.options.config);
 
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
 
@@ -927,7 +924,7 @@ function (jingleSession, jingleOffer, now) {
     // do not wait for XMPPEvents.PEERCONNECTION_READY, as it may never
     // happen in case if user doesn't have or denied permission to
     // both camera and microphone.
-    this.statistics.startCallStats(jingleSession, this.settings);
+    this.statistics.startCallStats(jingleSession);
     this.statistics.startRemoteStats(jingleSession.peerconnection);
 };
 
