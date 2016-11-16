@@ -1,5 +1,3 @@
-/* global $ */
-
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
 
@@ -22,20 +20,23 @@ var RTCUIHelper = {
      *          container or undefined otherwise.
      */
     findVideoElement: function (containerElement) {
-        var videoElemName = RTCUIHelper.getVideoElementName();
-        if (!RTCBrowserType.isTemasysPluginUsed()) {
-            return $(containerElement).find(videoElemName)[0];
-        } else {
-            var matching = $(containerElement).find(
-                ' ' + videoElemName + '>param[value="video"]');
-            if (matching.length) {
-                if (matching.length > 1) {
-                    logger.warn(
-                        "Container with more than one video elements: ",
-                        containerElement);
-                }
-                return matching.parent()[0];
+        if (!containerElement)
+            return undefined;
+
+        var videoElName = RTCUIHelper.getVideoElementName();
+        var selector
+            = !RTCBrowserType.isTemasysPluginUsed()
+                ? videoElName : ' ' + videoElName + '>param[value="video"]';
+
+        var videoElements = containerElement.querySelectorAll(selector);
+        if (videoElements.length) {
+            if (videoElements.length > 1) {
+                logger.warn(
+                    "Container with more than one video elements: "
+                        + containerElement.id);
             }
+            return !RTCBrowserType.isTemasysPluginUsed()
+                ? videoElements[0] : videoElements[0].parentNode;
         }
         return undefined;
     },
