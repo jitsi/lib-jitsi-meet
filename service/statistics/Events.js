@@ -11,6 +11,13 @@
 export const AUDIO_LEVEL = "statistics.audioLevel";
 
 /**
+ * An event fired just before the statistics module gets disposes and it's
+ * the last chance to submit some logs that will end up in stats services like
+ * CallStats (if enabled).
+ */
+export const BEFORE_DISPOSED = "statistics.before_disposed";
+
+/**
  * An event carrying all statistics by ssrc.
  */
 export const BYTE_SENT_STATS = "statistics.byte_sent_stats";

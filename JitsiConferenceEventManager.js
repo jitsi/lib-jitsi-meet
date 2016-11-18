@@ -548,6 +548,11 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function () {
 
         conference.rtc.setAudioLevel(resource, level);
     });
+    // Forward the "before stats disposed" event
+    conference.statistics.addBeforeDisposedListener(function () {
+        conference.eventEmitter.emit(
+            JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED);
+    });
     conference.statistics.addConnectionStatsListener(function (stats) {
         var ssrc2resolution = stats.resolution;
 
