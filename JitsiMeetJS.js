@@ -143,6 +143,16 @@ var LibJitsiMeet = {
         Logger.setLogLevel(level);
     },
     /**
+     * Sets the log level to the <tt>Logger</tt> instance with given id.
+     * @param {Logger.levels} level the logging level to be set
+     * @param {string} id the logger id to which new logging level will be set.
+     * Usually it's the name of the JavaScript source file including the path
+     * ex. "modules/xmpp/ChatRoom.js"
+     */
+    setLogLevelById: function (level, id) {
+        Logger.setLogLevelById(level, id);
+    },
+    /**
      * Creates the media tracks and returns them trough the callback.
      * @param options Object with properties / settings specifying the tracks which should be created.
      * should be created or some additional configurations about resolution for example.
