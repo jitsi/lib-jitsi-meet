@@ -7,7 +7,11 @@ var RTCEvents = {
     LASTN_ENDPOINT_CHANGED: "rtc.lastn_endpoint_changed",
     AVAILABLE_DEVICES_CHANGED: "rtc.available_devices_changed",
     TRACK_ATTACHED: "rtc.track_attached",
+    // FIXME get rid of this event in favour of NO_DATA_FROM_SOURCE event
+    // (currently implemented for local tracks only)
     REMOTE_TRACK_MUTE: "rtc.remote_track_mute",
+    // FIXME get rid of this event in favour of NO_DATA_FROM_SOURCE event
+    // (currently implemented for local tracks only)
     REMOTE_TRACK_UNMUTE: "rtc.remote_track_unmute",
     AUDIO_OUTPUT_DEVICE_CHANGED: "rtc.audio_output_device_changed",
     DEVICE_LIST_CHANGED: "rtc.device_list_changed",
