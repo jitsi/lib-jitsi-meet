@@ -304,7 +304,7 @@ export default class ParticipantConnectionStatus {
         }
 
         const hasAnyVideoRTCMuted = participant.hasAnyVideoTrackWebRTCMuted();
-        var rtcMutedTimestamp
+        const rtcMutedTimestamp
             = this.rtcMutedTimestamp[participant.getId()];
 
         return hasAnyVideoRTCMuted
@@ -320,7 +320,7 @@ export default class ParticipantConnectionStatus {
      * ID).
      */
     figureOutConnectionStatus(id) {
-        var participant = this.conference.getParticipantById(id);
+        const participant = this.conference.getParticipantById(id);
         if (!participant) {
             // Probably the participant is no longer in the conference
             // (at the time of writing this code, participant is
@@ -343,7 +343,7 @@ export default class ParticipantConnectionStatus {
             isConnActiveByJvb = true;
         }
 
-        var isConnectionActive = true;
+        let isConnectionActive = true;
         if (!isVideoMuted && (isVideoTrackFrozen || !isConnActiveByJvb)) {
             // Disconnected when not video muted and either got that status from
             // JVB or the video track is "RTC muted"
@@ -369,8 +369,8 @@ export default class ParticipantConnectionStatus {
      * will be processed.
      */
     onTrackRtcMuted(track) {
-        var participantId = track.getParticipantId();
-        var participant = this.conference.getParticipantById(participantId);
+        const participantId = track.getParticipantId();
+        const participant = this.conference.getParticipantById(participantId);
         logger.debug('Detector track RTC muted: ' + participantId);
         if (!participant) {
             logger.error('No participant for id: ' + participantId);
@@ -397,7 +397,7 @@ export default class ParticipantConnectionStatus {
      * event will be processed.
      */
     onTrackRtcUnmuted(track) {
-        var participantId = track.getParticipantId();
+        const participantId = track.getParticipantId();
 
         logger.debug('Detector track RTC unmuted: ' + participantId);
 
