@@ -343,15 +343,8 @@ export default class ParticipantConnectionStatus {
             isConnActiveByJvb = true;
         }
 
-        let isConnectionActive = true;
-        if (!isVideoMuted && (isVideoTrackFrozen || !isConnActiveByJvb)) {
-            // Disconnected when not video muted and either got that status from
-            // JVB or the video track is "RTC muted"
-            isConnectionActive = false;
-        } else if (isVideoMuted && !isConnActiveByJvb){
-            // If is video muted, but JVB reports no data
-            isConnectionActive = false;
-        }
+        let isConnectionActive
+            = isConnActiveByJvb && (isVideoMuted || !isVideoTrackFrozen);
 
         logger.debug(
             'Figure out conn status, is video muted: ' + isVideoMuted
