@@ -44,6 +44,8 @@ function JitsiConference(options) {
     this.settings = new Settings();
     this.options = options;
     this.eventManager = new JitsiConferenceEventManager(this);
+    this.startAudioMuted = false;
+    this.startVideoMuted = false;
     this._init(options);
     this.componentsVersions = new ComponentsVersions(this);
     this.participants = {};
@@ -52,8 +54,6 @@ function JitsiConference(options) {
     this.somebodySupportsDTMF = false;
     this.authEnabled = false;
     this.authIdentity;
-    this.startAudioMuted = false;
-    this.startVideoMuted = false;
     this.startMutedPolicy = {audio: false, video: false};
     this.availableDevices = {
         audio: undefined,
@@ -90,13 +90,22 @@ JitsiConference.prototype._init = function (options) {
     if(!options)
         options = {};
 
-    // Override connection and xmpp properties (Usefull if the connection
+    // Override connection and xmpp properties (useful if the connection
     // reloaded)
     if(options.connection) {
         this.connection = options.connection;
         this.xmpp = this.connection.xmpp;
         // Setup XMPP events only if we have new connection object.
         this.eventManager.setupXMPPListeners();
+    }
+
+    // startXXXMuted = N means that participants after the Nth should start
+    // muted. Extend these semantics to N = 0.
+    if (options.config.startAudioMuted == 0) {
+        this.startAudioMuted = true;
+    }
+    if (options.config.startVideoMuted == 0) {
+        this.startVideoMuted = true;
     }
 
     this.room = this.xmpp.createRoom(this.options.name, this.options.config,
