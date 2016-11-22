@@ -1,5 +1,5 @@
 /* global require */
-var AnalyticsAdapter = require("./AnalyticsAdapter");
+import analytics from "./AnalyticsAdapter";
 var CallStats = require("./CallStats");
 var EventEmitter = require("events");
 import JitsiTrackError from "../../JitsiTrackError";
@@ -32,30 +32,6 @@ function loadCallStatsAPI(customScriptUrl) {
     }
     // FIXME At the time of this writing, we hope that the callstats.io API will
     // have loaded by the time we needed it (i.e. CallStats.init is invoked).
-}
-
-// Load the integration of a third-party analytics API such as Google Analytics.
-// Since we cannot guarantee the quality of the third-party service (e.g. their
-// server may take noticeably long time to respond), it is in our best interest
-// (in the sense that the intergration of the analytics API is important to us
-// but not enough to allow it to prevent people from joining a conference) to
-// download the API asynchronously. Additionally, Google Analytics will download
-// its implementation asynchronously anyway so it makes sense to append the
-// loading on our side rather than prepend it.
-function loadAnalytics(customScriptUrl) {
-    // if we have a custom script url passed as parameter we don't want to
-    // search it relatively near the library
-    ScriptUtil.loadScript(
-        customScriptUrl ? customScriptUrl : 'analytics.js',
-        /* async */ true,
-        /* prepend */ false,
-        /* relativeURL */ customScriptUrl ? false : true,
-        /* loadCallback */ function () {
-            Statistics.analytics.loaded();
-        },
-        /* errorCallback */ function () {
-            Statistics.analytics.dispose();
-        });
 }
 
 /**
@@ -100,10 +76,6 @@ Statistics.init = function (options) {
 
     Statistics.disableThirdPartyRequests = options.disableThirdPartyRequests;
 
-    if (Statistics.disableThirdPartyRequests !== true)
-        loadAnalytics(options.analyticsScriptUrl);
-    else // if not enable make sure we dispose any event that goes in the queue
-        Statistics.analytics.dispose();
 };
 
 function Statistics(xmpp, options) {
@@ -127,7 +99,7 @@ function Statistics(xmpp, options) {
 Statistics.audioLevelsEnabled = false;
 Statistics.audioLevelsInterval = 200;
 Statistics.disableThirdPartyRequests = false;
-Statistics.analytics = AnalyticsAdapter;
+Statistics.analytics = analytics;
 
 /**
  * Array of callstats instances. Used to call Statistics static methods and
@@ -222,14 +194,12 @@ Statistics.prototype.stopRemoteStats = function () {
 /**
  * Initializes the callstats.io API.
  * @param peerConnection {JingleSessionPC} the session object
- * @param Settings {Settings} the settings instance. Declared in
- * /modules/settings/Settings.js
  */
-Statistics.prototype.startCallStats = function (session, settings) {
+Statistics.prototype.startCallStats = function (session) {
     if(this.callStatsIntegrationEnabled && !this.callStatsStarted) {
         // Here we overwrite the previous instance, but it must be bound to
         // the new PeerConnection
-        this.callstats = new CallStats(session, settings, this.options);
+        this.callstats = new CallStats(session, this.options);
         Statistics.callsStatsInstances.push(this.callstats);
         this.callStatsStarted = true;
     }

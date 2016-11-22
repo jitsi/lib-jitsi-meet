@@ -251,7 +251,7 @@ export default class XMPP {
         return this._connect(jid, password);
     }
 
-    createRoom (roomName, options, settings) {
+    createRoom (roomName, options) {
         // By default MUC nickname is the resource part of the JID
         let mucNickname = Strophe.getNodeFromJid(this.connection.jid);
         let roomjid = roomName  + "@" + this.options.hosts.muc + "/";
@@ -273,8 +273,7 @@ export default class XMPP {
 
         roomjid += mucNickname;
 
-        return this.connection.emuc.createRoom(roomjid, null, options,
-            settings);
+        return this.connection.emuc.createRoom(roomjid, null, options);
     }
 
     addListener (type, listener) {

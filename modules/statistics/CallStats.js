@@ -1,6 +1,7 @@
 /* global $, Strophe, callstats */
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
+import Settings from "../settings/Settings";
 
 var jsSHA = require('jssha');
 var io = require('socket.io-client');
@@ -138,11 +139,9 @@ function _try_catch (f) {
 /**
  * Creates new CallStats instance that handles all callstats API calls.
  * @param peerConnection {JingleSessionPC} the session object
- * @param Settings {Settings} the settings instance. Declared in
- * /modules/settings/Settings.js
  * @param options {object} credentials for callstats.
  */
-var CallStats = _try_catch(function(jingleSession, Settings, options) {
+var CallStats = _try_catch(function(jingleSession, options) {
     try{
         CallStats.feedbackEnabled = false;
         callStats = new callstats($, io, jsSHA); // eslint-disable-line new-cap
@@ -153,7 +152,7 @@ var CallStats = _try_catch(function(jingleSession, Settings, options) {
             aliasName: Strophe.getResourceFromJid(jingleSession.room.myroomjid),
             userName: Settings.getCallStatsUserName()
         };
-        
+
         // The confID is case sensitive!!!
         this.confID = options.callStatsConfIDNamespace + "/" + options.roomName;
 
