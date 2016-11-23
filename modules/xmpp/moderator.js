@@ -366,12 +366,6 @@ Moderator.prototype._allocateConferenceFocusError = function (error, callback) {
                 () => this.allocateConferenceFocus(callback));
         return;
     }
-    if(this.retries >= this.maxRetries) {
-        this.eventEmitter.emit(
-                XMPPEvents.ALLOCATE_FOCUS_MAX_RETRIES_ERROR);
-        return;
-    }
-    this.retries++;
     var waitMs = this.getNextErrorTimeout();
     var errmsg = "Focus error, retry after "+ waitMs;
     GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
