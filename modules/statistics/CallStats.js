@@ -258,8 +258,8 @@ function (ssrc, isLocal, usageLabel, containerId) {
         return;
     }
 
-    // 'focus' is default remote user ID for now
-    const callStatsId = isLocal ? this.userID : 'focus';
+    // 'jitsi' is default remote user ID for now
+    const callStatsId = isLocal ? this.userID : DEFAULT_REMOTE_USER;
 
     _try_catch(function() {
         logger.debug(
