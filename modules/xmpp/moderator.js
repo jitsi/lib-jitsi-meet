@@ -361,17 +361,9 @@ Moderator.prototype._allocateConferenceFocusError = function (error, callback) {
             //FIXME "is external" should come either from the focus or config.js
             this.externalAuthEnabled = true;
         }
-        this.eventEmitter.emit(
-                XMPPEvents.AUTHENTICATION_REQUIRED,
-                () => this.allocateConferenceFocus(callback));
+        this.eventEmitter.emit(XMPPEvents.AUTHENTICATION_REQUIRED);
         return;
     }
-    if(this.retries >= this.maxRetries) {
-        this.eventEmitter.emit(
-                XMPPEvents.ALLOCATE_FOCUS_MAX_RETRIES_ERROR);
-        return;
-    }
-    this.retries++;
     var waitMs = this.getNextErrorTimeout();
     var errmsg = "Focus error, retry after "+ waitMs;
     GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
