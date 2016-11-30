@@ -144,6 +144,15 @@ Statistics.prototype.removeAudioLevelListener = function(listener) {
     this.eventEmitter.removeListener(StatisticsEvents.AUDIO_LEVEL, listener);
 };
 
+Statistics.prototype.addBeforeDisposedListener = function (listener) {
+    this.eventEmitter.on(StatisticsEvents.BEFORE_DISPOSED, listener);
+};
+
+Statistics.prototype.removeBeforeDisposedListener = function (listener) {
+    this.eventEmitter.removeListener(
+        StatisticsEvents.BEFORE_DISPOSED, listener);
+};
+
 Statistics.prototype.addConnectionStatsListener = function (listener) {
     this.eventEmitter.on(StatisticsEvents.CONNECTION_STATS, listener);
 };
@@ -162,6 +171,9 @@ Statistics.prototype.removeByteSentStatsListener = function (listener) {
 };
 
 Statistics.prototype.dispose = function () {
+    if (this.eventEmitter) {
+        this.eventEmitter.emit(StatisticsEvents.BEFORE_DISPOSED);
+    }
     this.stopCallStats();
     this.stopRemoteStats();
     if(this.eventEmitter)

@@ -121,6 +121,7 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - STARTED_MUTED - notifies that the local user has started muted
         - AVAILABLE_DEVICES_CHANGED - notifies that available participant devices changed (camera or microphone was added or removed) (parameters - id(string), devices(JS object with 2 properties - audio(boolean), video(boolean)))
         - CONNECTION_STATS - New local connection statistics are received. (parameters - stats(object))
+        - BEFORE_STATISTICS_DISPOSED - fired just before the statistics module is disposed and it's the last chance to submit some logs to the statistics service, before it gets disconnected
         - AUTH_STATUS_CHANGED - notifies that authentication is enabled or disabled, or local user authenticated (logged in). (parameters - isAuthEnabled(boolean), authIdentity(string))
         - ENDPOINT_MESSAGE_RECEIVED - notifies that a new message
         from another participant is received on a data channel.
