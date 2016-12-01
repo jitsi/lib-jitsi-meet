@@ -1,10 +1,44 @@
-/* global Strophe */
+/* global __filename, Strophe */
 /**
  * Strophe logger implementation. Logs from level WARN and above.
  */
 import {getLogger} from "jitsi-meet-logger";
 const logger = getLogger(__filename);
 import GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
+
+/**
+ * This is the last HTTP error status captured from Strophe debug logs.
+ * The purpose of storing it is to distinguish between the network and
+ * infrastructure reason for connection being dropped (see connectionHandler in
+ * xmpp.js). The value will be cleared (-1) if the subsequent request succeeds
+ * which means that the failure could be transient.
+ *
+ * FIXME in the latest Strophe (not released on npm) there is API to handle
+ * particular HTTP errors, but there is no way to learn if the subsequent
+ * request succeeded in order to tell if the error was one time incident or if
+ * it was the reason for dropping the connection by Strophe (the connection is
+ * dropped after 5 subsequent failures). Ideally Strophe should provide more
+ * details about the reason on why the connection stopped.
+ *
+ * @type {number}
+ */
+let lastErrorStatus = -1;
+
+/**
+ * A regular expression used to catch Strophe's log message indicating that the
+ * last BOSH request was successful. When there is such message seen the
+ * {@link lastErrorStatus} will be set back to '-1'.
+ * @type {RegExp}
+ */
+const resetLastErrorStatusRegExpr = /request id \d+.\d+ got 200/;
+
+/**
+ * A regular expression used to capture the current value of the BOSH request
+ * error status (HTTP error code or '0' or something else).
+ * @type {RegExp}
+ */
+const lastErrorStatusRegExpr
+    = /request errored, status: (\d+), number of errors: \d+/;
 
 export default function () {
 
@@ -14,14 +48,28 @@ export default function () {
         // Strophe log entry about secondary request timeout does not mean that
         // it's a final failure(the request will be restarted), so we lower it's
         // level here to a warning.
+        logger.trace("Strophe", level, msg);
         if (typeof msg === 'string' &&
                 msg.indexOf("Request ") !== -1 &&
                 msg.indexOf("timed out (secondary), restarting") !== -1) {
             level = Strophe.LogLevel.WARN;
         }
+        /* eslint-disable no-case-declarations */
         switch (level) {
+            case Strophe.LogLevel.DEBUG:
+                if (resetLastErrorStatusRegExpr.test(msg)) {
+                    logger.debug("Reset lastErrorStatus");
+                    lastErrorStatus = -1;
+                }
+                break;
             case Strophe.LogLevel.WARN:
                 logger.warn("Strophe: " + msg);
+                const errStatusCapture = lastErrorStatusRegExpr.exec(msg);
+                if (errStatusCapture && errStatusCapture.length === 2) {
+                    lastErrorStatus = parseInt(errStatusCapture[1]);
+                    logger.debug(
+                        "lastErrorStatus set to: " + lastErrorStatus);
+                }
                 break;
             case Strophe.LogLevel.ERROR:
             case Strophe.LogLevel.FATAL:
@@ -30,6 +78,17 @@ export default function () {
                 logger.error(msg);
                 break;
         }
+        /* eslint-enable no-case-declarations */
+    };
+
+    /**
+     * Returns error status (HTTP error code) of the last BOSH request.
+     *
+     * @return {number} HTTP error code, '0' for unknown or "god knows what"
+     * (this is a hack).
+     */
+    Strophe.getLastErrorStatus = function () {
+        return lastErrorStatus;
     };
 
     Strophe.getStatusString = function (status) {

@@ -164,10 +164,20 @@ export default class XMPP {
                 // more than 4 times. The connection is dropped without
                 // supplying a reason(error message/event) through the API.
                 logger.error("XMPP connection dropped!");
-                this.eventEmitter.emit(
-                    JitsiConnectionEvents.CONNECTION_FAILED,
-                    JitsiConnectionErrors.OTHER_ERROR,
-                    errMsg ? errMsg : 'connection-dropped-error');
+                // XXX if the last request error is within 5xx range it means it
+                // was a server failure
+                const lastErrorStatus = Strophe.getLastErrorStatus();
+                if (lastErrorStatus >= 500 && lastErrorStatus < 600) {
+                    this.eventEmitter.emit(
+                        JitsiConnectionEvents.CONNECTION_FAILED,
+                        JitsiConnectionErrors.SERVER_ERROR,
+                        errMsg ? errMsg : 'server-error');
+                } else {
+                    this.eventEmitter.emit(
+                        JitsiConnectionEvents.CONNECTION_FAILED,
+                        JitsiConnectionErrors.OTHER_ERROR,
+                        errMsg ? errMsg : 'connection-dropped-error');
+                }
             } else {
                 this.eventEmitter.emit(
                     JitsiConnectionEvents.CONNECTION_DISCONNECTED, errMsg);
