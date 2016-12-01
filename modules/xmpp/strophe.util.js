@@ -59,7 +59,8 @@ export default function () {
             case Strophe.LogLevel.DEBUG:
                 // The log message which reports successful status is logged
                 // on Strophe's DEBUG level
-                if (resetLastErrorStatusRegExpr.test(msg)) {
+                if (lastErrorStatus !== -1 &&
+                        resetLastErrorStatusRegExpr.test(msg)) {
                     logger.debug("Reset lastErrorStatus");
                     lastErrorStatus = -1;
                 }
