@@ -57,6 +57,8 @@ export default function () {
         /* eslint-disable no-case-declarations */
         switch (level) {
             case Strophe.LogLevel.DEBUG:
+                // The log message which reports successful status is logged
+                // on Strophe's DEBUG level
                 if (resetLastErrorStatusRegExpr.test(msg)) {
                     logger.debug("Reset lastErrorStatus");
                     lastErrorStatus = -1;
