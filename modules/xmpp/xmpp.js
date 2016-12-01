@@ -175,7 +175,7 @@ export default class XMPP {
                 } else {
                     this.eventEmitter.emit(
                         JitsiConnectionEvents.CONNECTION_FAILED,
-                        JitsiConnectionErrors.OTHER_ERROR,
+                        JitsiConnectionErrors.CONNECTION_DROPPED_ERROR,
                         errMsg ? errMsg : 'connection-dropped-error');
                 }
             } else {
