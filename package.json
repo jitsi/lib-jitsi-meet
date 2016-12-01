@@ -26,8 +26,8 @@
     "sdp-simulcast": "0.1.7",
     "sdp-transform": "1.5.*",
     "socket.io-client": "1.4.5",
-    "strophe": "^1.2.2",
-    "strophejs-plugins": "^0.0.6"
+    "strophe": "1.2.4",
+    "strophejs-plugins": "0.0.7"
   },
   "devDependencies": {
     "babel-core": "*",
