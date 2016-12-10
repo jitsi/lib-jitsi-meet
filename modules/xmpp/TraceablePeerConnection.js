@@ -150,6 +150,128 @@ var dumpSDP = function(description) {
     return 'type: ' + description.type + '\r\n' + description.sdp;
 };
 
+// cachedSsrcInfo = {
+//   <media_type>: {
+//      "groups": [
+//          {
+//              "primarySSRC": ...,
+//              "group": {
+//                  "semantics": "...",
+//                  "ssrcs": "..., ..."
+//              }
+//          },
+//      ],
+//      "ssrcs": [...]
+//   },
+// }
+TraceablePeerConnection.prototype.buildSsrcMap = function(cachedSsrcInfo, newSdp) {
+    var parsedNewDesc = transform.parse(newSdp);
+    var ssrcMap = {};
+
+    var isSimGroup = (group) => group.semantics === "SIM";
+    var isFidGroup = (group) => group.semantics === "FID";
+
+    parsedNewDesc.media.forEach(function(mediaDescription) {
+        if (!cachedSsrcInfo[mediaDescription.type]) {
+            return {};
+        }
+        var cachedMediaSsrcInfo = cachedSsrcInfo[mediaDescription.type];
+        // First map any ssrcs that are not members of groups
+
+        // Find cached ssrcs that aren't in groups
+        let cachedSsrcsNotInGroups = cachedMediaSsrcInfo.ssrcs.filter(function(ssrc) {
+            if (cachedMediaSsrcInfo.groups) {
+                cachedMediaSsrcInfo.groups.map(groupInfo => groupInfo.group).forEach(function(group) {
+                    if (group.ssrcs.indexOf(ssrc) !== -1) {
+                        return false;
+                    }
+                });
+            }
+            return true;
+        });
+
+        // Find new ssrcs that aren't in groups
+        // (mediaDescription.ssrcs is a list of ssrc sdp lines, map and filter it
+        // down to a unique list of ssrcs)
+        let newSsrcs = mediaDescription.ssrcs.map(ssrcInfo => ssrcInfo.id).filter(
+            (ssrc, index, array) => array.indexOf(ssrc) === index);
+        let newSsrcsNotInGroups = newSsrcs.filter(function(ssrc) {
+            if (mediaDescription.ssrcGroups) {
+                mediaDescription.ssrcGroups.forEach(function(group) {
+                    if (group.ssrcs.indexOf(ssrc) !== -1) {
+                        return false;
+                    }
+                });
+            }
+            return true;
+        });
+        if (cachedSsrcsNotInGroups.length !== newSsrcsNotInGroups.length) {
+            logger.warn("Cache has " + cachedSsrcsNotInGroups.length + " ungrouped ssrcs but " +
+                "new sdp has " + newSsrcsNotInGroups.length + " ungrouped ssrcs");
+            return {};
+        }
+        // Now do a dumb match across any ungrouped ssrcs based on the order we found them
+        for (let i = 0; i < newSsrcsNotInGroups.length; ++i) {
+            let newSsrc = newSsrcsNotInGroups[i];
+            let cachedSsrc = cachedSsrcsNotInGroups[i];
+            ssrcMap[newSsrc] = cachedSsrc;
+        }
+
+        cachedMediaSsrcInfo.groups = cachedMediaSsrcInfo.groups || [];
+        // Now match simulcast grouped ssrcs
+        let cachedSimGroups = cachedMediaSsrcInfo.groups.map(groupInfo => groupInfo.group).filter(isSimGroup);
+        if (cachedSimGroups.length) {
+            if (cachedSimGroups.length > 1) {
+                logger.warn("Cache has more than one simulcast group, can't do mappings");
+                return {};
+            }
+            let cachedSimGroup = cachedSimGroups[0];
+            mediaDescription.ssrcGroups = mediaDescription.ssrcGroups || [];
+            let newSimGroups = mediaDescription.ssrcGroups.filter(isSimGroup);
+            if (newSimGroups) {
+                if (newSimGroups.length > 1) {
+                    logger.warn("New description has more than one simulcast group, can't do mappings");
+                    return {};
+                }
+                let newSimGroup = newSimGroups[0];
+                let cachedSimSsrcs = cachedSimGroup.ssrcs.split(" ");
+                let newSimSsrcs = newSimGroup.ssrcs.split(" ");
+                for (let i = 0; i < newSimSsrcs.length; ++i) {
+                    ssrcMap[newSimSsrcs[i]] = cachedSimSsrcs[i];
+                }
+            }
+        }
+        // All primary ssrcs should be mapped at this point, so now do FID groups
+        let cachedFidGroups = cachedMediaSsrcInfo.groups.map(groupInfo => groupInfo.group).filter(isFidGroup);
+        let findFidGroupByPrimarySsrc = function(primarySsrc) {
+            for (let i = 0; i < cachedFidGroups.length; ++i) {
+                if (cachedFidGroups[i].ssrcs.split(" ")[0] === primarySsrc) {
+                    return cachedFidGroups[i];
+                }
+            }
+        };
+        if (cachedFidGroups.length) {
+            let newFidGroups = mediaDescription.ssrcGroups.filter(isFidGroup);
+            for (let i = 0; i < newFidGroups.length; ++i) {
+                let groupPrimarySsrc = newFidGroups[i].ssrcs.split(" ")[0];
+                let groupSecondarySsrc = newFidGroups[i].ssrcs.split(" ")[1];
+                // First map the primary ssrc of this group to its original ssrc
+                let mappedPrimarySsrc = ssrcMap[groupPrimarySsrc];
+                if (mappedPrimarySsrc) {
+                    // Now we can find which ssrc the original is mapped to, and add a mapping from the new
+                    //  secondary ssrc to the original secondary ssrc
+                    var originalFidGroup = findFidGroupByPrimarySsrc(mappedPrimarySsrc);
+                    if (originalFidGroup) {
+                        let originalSecondarySsrc = originalFidGroup.ssrcs.split(" ")[1];
+                        ssrcMap[groupSecondarySsrc] = originalSecondarySsrc;
+                    }
+                }
+            }
+        }
+    });
+    return ssrcMap;
+};
+
 /**
  * Injects receive only SSRC in the sdp if there are not other SSRCs.
  * @param desc the SDP that will be modified.
@@ -175,14 +297,6 @@ TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
 
         modded = true;
         var SSRCs = this.replaceSSRCs[bLine.type].splice(0,1);
-        // Stores all SSRCs that should be used on other SRD/SDL operations.
-        // For every stream that is unmuted we need to replace it SSRC
-        // otherwise we are going to send jingle packet.
-        var permSSRCs = [];
-        //FIXME: The code expects that we have only SIM group or we
-        // don't have any groups and we have only one SSRC per
-        // stream. If we add another groups (FID, etc) this code
-        // must be changed.
         while(SSRCs &&
             SSRCs.length){
             var ssrcOperation = SSRCs[0];
@@ -225,60 +339,24 @@ TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
                     if(!ssrcOperation.ssrc || !ssrcOperation.ssrc.ssrcs ||
                         !ssrcOperation.ssrc.ssrcs.length)
                         break;
-                    var ssrcMap = {};
-                    var ssrcLastIdx = ssrcOperation.ssrc.ssrcs.length - 1;
-                    for(var i = 0; i < bLine.ssrcs.length; i++) {
-                        const ssrc = bLine.ssrcs[i];
-                        if (ssrc.attribute !== 'msid' &&
-                            ssrc.value !== ssrcOperation.msid) {
-                            continue;
-                        }
-                        ssrcMap[ssrc.id] =
-                            ssrcOperation.ssrc.ssrcs[ssrcLastIdx];
-                        ssrcLastIdx--;
-                        if(ssrcLastIdx < 0)
-                            break;
-                    }
-                    const groups = ssrcOperation.ssrc.groups;
-                    if (typeof bLine.ssrcGroups !== 'undefined' &&
-                        Array.isArray(bLine.ssrcGroups) && groups &&
-                        groups.length) {
-                        bLine.ssrcGroups.forEach(function (group) {
-                            if(!group.ssrcs)
-                                return;
-                            var currentSSRCs = group.ssrcs.split(" ");
-                            var newGroup = null;
-                            for(var i = 0; i < groups.length; i++) {
-                                newGroup = groups[i].group;
-                                var newSSRCs = newGroup.ssrcs.split(" ");
-                                if(newGroup.semantics !== group.semantics)
-                                    continue;
-                                var wrongGroup = false;
-                                for(var j = 0; j < currentSSRCs.length; j++) {
-                                    if(newGroup.ssrcs.indexOf(
-                                        ssrcMap[currentSSRCs[j]]) === -1){
-                                        wrongGroup = true;
-                                        break;
-                                    }
-                                }
-                                if(!wrongGroup) {
-                                    for(j = 0; j < newSSRCs.length; j++) {
-                                        ssrcMap[currentSSRCs[j]] = newSSRCs[j];
-                                    }
-                                    break;
-                                }
-                            }
-
-                            group.ssrcs = newGroup.ssrcs;
-                        });
-                    }
+                    var ssrcMap = this.buildSsrcMap({"video": ssrcOperation.ssrc}, desc.sdp);
                     bLine.ssrcs.forEach(function (ssrc) {
                         if(ssrcMap[ssrc.id]) {
                             ssrc.id = ssrcMap[ssrc.id];
                         }
                     });
-                    // Storing the unmuted SSRCs.
-                    permSSRCs.push(ssrcOperation);
+                    if (bLine.ssrcGroups) {
+                        bLine.ssrcGroups.forEach(function (group) {
+                            // semantics and ssrc (string)
+                            //replace the instances of all ssrcs in the groups field with their mappings
+                            Object.keys(ssrcMap).forEach(function(ssrcToReplace) {
+                                let ssrcToReplaceStr = ssrcToReplace + "";
+                                if (group.ssrcs.indexOf(ssrcToReplaceStr) != -1) {
+                                    group.ssrcs = group.ssrcs.replace(ssrcToReplaceStr, ssrcMap[ssrcToReplace]);
+                                }
+                            });
+                        });
+                    }
                     break;
                 }
                 default:
@@ -286,8 +364,6 @@ TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
             }
             SSRCs = this.replaceSSRCs[bLine.type].splice(0,1);
         }
-        // Restoring the unmuted SSRCs.
-        this.replaceSSRCs[bLine.type] = permSSRCs;
 
         if (!Array.isArray(bLine.ssrcs) || bLine.ssrcs.length === 0)
         {
@@ -476,8 +552,9 @@ TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
     this.trace('addStream', stream? stream.id : "null");
     if(stream)
         this.peerconnection.addStream(stream);
-    if(ssrcInfo && this.replaceSSRCs[ssrcInfo.mtype])
+    if(ssrcInfo && this.replaceSSRCs[ssrcInfo.mtype]) {
         this.replaceSSRCs[ssrcInfo.mtype].push(ssrcInfo);
+    }
 };
 
 TraceablePeerConnection.prototype.removeStream = function (stream, stopStreams,
@@ -678,18 +755,43 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
  * - groups - Array of the groups associated with the stream.
  */
 TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
+    var ssrcInfo = {
+        ssrcs: [],
+        groups: []
+    };
+    let generateSsrc = () => RandomUtil.randomInt(1, 0xffffffff);
     if (!this.session.room.options.disableSimulcast
         && this.simulcast.isSupported()) {
-        var ssrcInfo = {ssrcs: [], groups: []};
-        for(var i = 0; i < SIMULCAST_LAYERS; i++)
-            ssrcInfo.ssrcs.push(RandomUtil.randomInt(1, 0xffffffff));
+        ssrcInfo = {ssrcs: [], groups: []};
+        for(var i = 0; i < SIMULCAST_LAYERS; i++) {
+            ssrcInfo.ssrcs.push(generateSsrc());
+        }
         ssrcInfo.groups.push({
             primarySSRC: ssrcInfo.ssrcs[0],
             group: {ssrcs: ssrcInfo.ssrcs.join(" "), semantics: "SIM"}});
-        return ssrcInfo;
     } else {
-        return {ssrcs: [RandomUtil.randomInt(1, 0xffffffff)], groups: []};
+        // If we didn't add any simulcast ssrcs, just add a single one
+        ssrcInfo.ssrcs.push(generateSsrc());
     }
+    if (!this.session.room.options.disableRtx) {
+        // If RTX is enabled, we'll add a corresponding rtx stream for
+        // every generated stream
+        let rtxSsrcs = [];
+        ssrcInfo.ssrcs.forEach(function(ssrc) {
+            let rtxSsrc = generateSsrc();
+            rtxSsrcs.push(rtxSsrc);
+            ssrcInfo.groups.push({
+                primarySSRC: ssrc,
+                group: {
+                    semantics: "FID",
+                    ssrcs: ssrc + " " + rtxSsrc
+                }
+            });
+        });
+        rtxSsrcs.forEach(rtxSsrc => ssrcInfo.ssrcs.push(rtxSsrc));
+    }
+    
+    return ssrcInfo;
 };
 
 module.exports = TraceablePeerConnection;
