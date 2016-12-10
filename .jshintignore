@@ -3,7 +3,6 @@ libs
 lib-jitsi-meet.js
 lib-jitsi-meet.min.js
 lib-jitsi-meet.js.map
-karma.conf.js
 doc
 
 
