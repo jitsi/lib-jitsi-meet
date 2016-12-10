@@ -3,6 +3,7 @@ libs
 lib-jitsi-meet.js
 lib-jitsi-meet.min.js
 lib-jitsi-meet.js.map
+karma.conf.js
 doc
 
 
@@ -30,3 +31,4 @@ JitsiParticipant.js
 JitsiMeetJS.js
 JitsiConnection.js
 JitsiConference.js
+modules/xmpp/SampleSdpStrings.js
