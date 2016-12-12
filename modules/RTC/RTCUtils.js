@@ -788,6 +788,7 @@ var RTCUtils = {
             } else if (RTCBrowserType.isChrome() ||
                     RTCBrowserType.isOpera() ||
                     RTCBrowserType.isNWJS() ||
+                    RTCBrowserType.isElectron() ||
                     RTCBrowserType.isReactNative()) {
                 this.peerconnection = webkitRTCPeerConnection;
                 var getUserMedia = navigator.webkitGetUserMedia.bind(navigator);
@@ -1181,7 +1182,8 @@ var RTCUtils = {
                 RTCBrowserType.isFirefox() ||
                 RTCBrowserType.isOpera() ||
                 RTCBrowserType.isTemasysPluginUsed()||
-                RTCBrowserType.isNWJS();
+                RTCBrowserType.isNWJS() ||
+                RTCBrowserType.isElectron();
     },
     /**
      * A method to handle stopping of the stream.
