@@ -201,6 +201,27 @@ DataChannels.prototype.sendPinnedEndpointMessage = function (endpointId) {
 };
 
 /**
+ * Sends a "pinned endpoints changed" message via the data channel.
+ * @param endpointIdList {array} an array the ids of the pinned endpoints
+ * @throws NetworkError or InvalidStateError from RTCDataChannel#send (@see
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send})
+ * or Error with "No opened data channels found!" message.
+ */
+DataChannels.prototype.sendPinnedEndpointsMessage = function (endpointIdList) {
+    logger.log(
+        'sending pinned endpoints changed notification to the bridge: ',
+        endpointIdList);
+
+    var jsonObject = {};
+
+    jsonObject.colibriClass = 'PinnedEndpointsChangedEvent';
+    jsonObject["pinnedEndpoints"]
+        = (endpointIdList ? endpointIdList : []);
+
+    this.send(jsonObject);
+};
+
+/**
  * Notifies Videobridge about a change in the value of a specific
  * endpoint-related property such as selected endpoint and pinned endpoint.
  *

@@ -172,6 +172,23 @@ export default class RTC extends Listenable {
         }
     }
 
+    /**
+     * Elects the participant(s) to be the pinned participants in
+     * order to always receive video for this participant (even when last n is
+     * enabled).
+     * @param idList {Array} the user id
+     * @throws NetworkError or InvalidStateError or Error if the operation fails.
+     */
+    pinEndpoints (idList) {
+        if(this.dataChannels) {
+            this.dataChannels.sendPinnedEndpointsMessage(idList);
+        } else {
+            // FIXME: cache value while there is no data channel created
+            // and send the cached state once channel is created
+            throw new Error("Data channels support is disabled!");
+        }
+    }
+
     static addListener (eventType, listener) {
         RTCUtils.addListener(eventType, listener);
     }

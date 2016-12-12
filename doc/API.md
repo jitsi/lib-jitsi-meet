@@ -378,6 +378,11 @@ Throws NetworkError or InvalidStateError or Error if the operation fails.
 
 Throws NetworkError or InvalidStateError or Error if the operation fails.
 
+35. pinParticipants(participantIdList) - Elects the participants with the given ids to be pinned in order to always receive video for this participants (even when last n is enabled).
+    - participantIdList - an array of participant identifiers
+
+Throws NetworkError or InvalidStateError or Error if the operation fails.
+
 JitsiTrack
 ======
 The object represents single track - video or audio. They can be remote tracks ( from the other participants in the call) or local tracks (from the devices of the local participant).
