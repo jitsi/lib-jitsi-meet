@@ -120,4 +120,24 @@ describe("TraceablePeerConnection", function() {
         });
     });
 
+    describe("stripRtxGroups", function() {
+        it("should strip rtx groups from the sdp", function() {
+            var newDesc = 
+                TraceablePeerConnection.
+                    stripRtxGroups({sdp: SampleSdps.rtxVideoSdp});
+            // The rtx ssrc (pulled directly from the sample) should no longer
+            // be present anywhere in the sdp
+            expect(newDesc.sdp.indexOf(984899560)).toEqual(-1);
+        });
+        it ("should strip rtx groups from a sim+rtx sdp", function() {
+            var newDesc = 
+                TraceablePeerConnection.
+                    stripRtxGroups({sdp: SampleSdps.simulcastRtxSdp});
+            // The rtx ssrc (pulled directly from the sample) should no longer
+            // be present anywhere in the sdp
+            expect(newDesc.sdp.indexOf(984899560)).toEqual(-1);
+            expect(newDesc.sdp.indexOf(855213044)).toEqual(-1);
+            expect(newDesc.sdp.indexOf(2963867077)).toEqual(-1);
+        });
+    });
 });

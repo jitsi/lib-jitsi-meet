@@ -613,12 +613,41 @@ TraceablePeerConnection.prototype.setLocalDescription
     );
 };
 
+// TODO(brian): maybe this makes sense as an optional "stripRtxGroups" method
+// in interop?
+var stripRtxGroups = function(description) {
+    let parsedDescription = transform.parse(description.sdp);
+    let videoDescription = parsedDescription.media.filter(desc => desc.type === "video")[0];
+    if (videoDescription && videoDescription.ssrcGroups) {
+        let rtxSsrcs = [];
+        videoDescription.ssrcGroups.forEach(function(ssrcGroup) {
+            if (ssrcGroup.semantics === "FID") {
+                rtxSsrcs.push(ssrcGroup.ssrcs.split(" ")[1]);
+            }
+        });
+        videoDescription.ssrcGroups = videoDescription.ssrcGroups.filter(function(ssrcGroup) {
+            return ssrcGroup.semantics !== "FID";
+        });
+        videoDescription.ssrcs = videoDescription.ssrcs.filter(function(ssrcInfo) {
+            return rtxSsrcs.indexOf(ssrcInfo.id + "") === -1;
+        });
+    }
+    description.sdp = transform.write(parsedDescription);
+    return description;
+};
+
 TraceablePeerConnection.prototype.setRemoteDescription
         = function (description, successCallback, failureCallback) {
     this.trace('setRemoteDescription::preTransform', dumpSDP(description));
     // TODO the focus should squeze or explode the remote simulcast
     description = this.simulcast.mungeRemoteDescription(description);
     this.trace('setRemoteDescription::postTransform (simulcast)', dumpSDP(description));
+
+    // if we're running on FF, strip out and RTX groups
+    if (RTCBrowserType.isFirefox()) {
+        description = stripRtxGroups(description);
+        this.trace('setRemoteDescription::postTransform (strip rtx)', dumpSDP(description));
+    }
 
     // if we're running on FF, transform to Plan A first.
     if (RTCBrowserType.usesUnifiedPlan()) {
@@ -795,3 +824,4 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
 };
 
 module.exports = TraceablePeerConnection;
+module.exports.stripRtxGroups = stripRtxGroups;
