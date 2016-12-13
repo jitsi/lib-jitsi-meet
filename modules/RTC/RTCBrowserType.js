@@ -20,6 +20,8 @@ var RTCBrowserType = {
 
     RTC_BROWSER_NWJS: "rtc_browser.nwjs",
 
+    RTC_BROWSER_ELECTRON: "rtc_browser.electron",
+
     RTC_BROWSER_REACT_NATIVE: "rtc_browser.react-native",
 
     /**
@@ -88,6 +90,14 @@ var RTCBrowserType = {
      */
     isNWJS: function () {
         return currentBrowser === RTCBrowserType.RTC_BROWSER_NWJS;
+    },
+
+    /**
+     * Checks if current environment is Electron.
+     * @returns {boolean}
+     */
+    isElectron: function () {
+        return currentBrowser === RTCBrowserType.RTC_BROWSER_ELECTRON;
     },
 
     /**
@@ -237,6 +247,20 @@ function detectIE() {
     return version;
 }
 
+/**
+ * Detects Electron environment.
+ */
+function detectElectron (){
+    var userAgent = navigator.userAgent;
+    if (userAgent.match(/Electron/)) {
+        currentBrowser = RTCBrowserType.RTC_BROWSER_ELECTRON;
+        var version = userAgent.match(/Electron\/([\d.]+)/)[1];
+        logger.info("This appears to be Electron, ver: " + version);
+        return version;
+    }
+    return null;
+}
+
 function detectNWJS (){
     var userAgent = navigator.userAgent;
     if (userAgent.match(/JitsiMeetNW/)) {
@@ -280,6 +304,7 @@ function detectBrowser() {
     var version;
     var detectors = [
         detectReactNative,
+        detectElectron,
         detectNWJS,
         detectOpera,
         detectChrome,

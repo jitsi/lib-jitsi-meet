@@ -113,6 +113,14 @@ var ScreenObtainer = {
                             onFailure(jitsiError);
                     });
             };
+        } else if(RTCBrowserType.isElectron()) {
+            obtainDesktopStream = (options, onSuccess, onFailure) =>
+                window.JitsiMeetElectron.obtainDesktopStream (
+                    streamId =>
+                        onGetStreamResponse({streamId}, onSuccess, onFailure),
+                    err => onFailure(new JitsiTrackError(
+                        JitsiTrackErrors.CHROME_EXTENSION_GENERIC_ERROR, err))
+                );
         } else if (RTCBrowserType.isTemasysPluginUsed()) {
             // XXX Don't require Temasys unless it's to be used because it
             // doesn't run on React Native, for example.
@@ -428,27 +436,7 @@ function doGetStreamFromExtension(options, streamCallback, failCallback) {
                 return;
             }
             logger.log("Response from extension: ", response);
-            if (response.streamId) {
-                GUM(
-                    ['desktop'],
-                    stream => streamCallback(stream),
-                    failCallback,
-                    { desktopStream: response.streamId });
-            } else {
-                // As noted in Chrome Desktop Capture API:
-                // If user didn't select any source (i.e. canceled the prompt)
-                // then the callback is called with an empty streamId.
-                if(response.streamId === "")
-                {
-                    failCallback(new JitsiTrackError(
-                        JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED));
-                    return;
-                }
-
-                failCallback(new JitsiTrackError(
-                    JitsiTrackErrors.CHROME_EXTENSION_GENERIC_ERROR,
-                    response.error));
-            }
+            onGetStreamResponse(response, streamCallback, failCallback);
         }
     );
 }
@@ -511,6 +499,39 @@ function waitForExtensionAfterInstall(options, waitInterval, retries) {
             }, options);
         }, waitInterval);
     });
+}
+
+/**
+ * Handles response from external application / extension and calls GUM to
+ * receive the desktop streams or reports error.
+ * @param {object} response
+ * @param {string} response.streamId - the streamId for the desktop stream
+ * @param {string} response.error - error to be reported.
+ * @param {Function} onSuccess - callback for success.
+ * @param {Function} onFailure - callback for failure.
+ */
+function onGetStreamResponse(response, onSuccess, onFailure) {
+    if (response.streamId) {
+        GUM(
+            ['desktop'],
+            stream => onSuccess(stream),
+            onFailure,
+            { desktopStream: response.streamId });
+    } else {
+        // As noted in Chrome Desktop Capture API:
+        // If user didn't select any source (i.e. canceled the prompt)
+        // then the callback is called with an empty streamId.
+        if(response.streamId === "")
+        {
+            onFailure(new JitsiTrackError(
+                JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED));
+            return;
+        }
+
+        onFailure(new JitsiTrackError(
+            JitsiTrackErrors.CHROME_EXTENSION_GENERIC_ERROR,
+            response.error));
+    }
 }
 
 /**
