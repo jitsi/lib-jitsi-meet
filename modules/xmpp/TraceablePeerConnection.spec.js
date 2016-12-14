@@ -140,4 +140,68 @@ describe("TraceablePeerConnection", function() {
             expect(newDesc.sdp.indexOf(2963867077)).toEqual(-1);
         });
     });
+
+    describe("generateNewStreamSSRCInfo", function() {
+        beforeEach(function() {
+        });
+        it("should generate 1 ssrc if neither sim nor rtx is enabled", 
+        function() {
+            pc.session.room.options = {
+                disableSimulcast: true,
+                disableRtx: true
+            };
+            let ssrcInfo = pc.generateNewStreamSSRCInfo();
+            expect(ssrcInfo.ssrcs.length).toEqual(1);
+            expect(ssrcInfo.groups.length).toEqual(0);
+        });
+        it("should generate 3 ssrcs if simulcast is enabled", function() {
+            pc.session.room.options = {
+                disableSimulcast: false,
+                disableRtx: true
+            };
+            spyOn(pc.simulcast, 'isSupported').and.returnValue(true);
+            let ssrcInfo = pc.generateNewStreamSSRCInfo();
+            expect(ssrcInfo.ssrcs.length).toEqual(3);
+            expect(ssrcInfo.groups.length).toEqual(1);
+            expect(ssrcInfo.groups[0].group.semantics).toEqual("SIM");
+            expect(ssrcInfo.groups[0].group.ssrcs.split(" ").length).toEqual(3);
+            ssrcInfo.ssrcs.forEach(function(ssrc) {
+                expect(ssrcInfo.groups[0].group.ssrcs.indexOf(ssrc + "")).
+                    not.toEqual(-1);
+            });
+        });
+        it("should generate 2 ssrcs if rtx is enabled", function() {
+            pc.session.room.options = {
+                disableSimulcast: true,
+                disableRtx: false
+            };
+            let ssrcInfo = pc.generateNewStreamSSRCInfo();
+            expect(ssrcInfo.ssrcs.length).toEqual(2);
+            expect(ssrcInfo.groups.length).toEqual(1);
+            expect(ssrcInfo.groups[0].group.semantics).toEqual("FID");
+            expect(ssrcInfo.groups[0].group.ssrcs.split(" ").length).toEqual(2);
+            ssrcInfo.ssrcs.forEach(function(ssrc) {
+                expect(ssrcInfo.groups[0].group.ssrcs.indexOf(ssrc + "")).
+                    not.toEqual(-1);
+            });
+        });
+        it("should generate 6 ssrcs if sim and rtx are enabled", function() {
+            pc.session.room.options = {
+                disableSimulcast: false,
+                disableRtx: false
+            };
+            let ssrcInfo = pc.generateNewStreamSSRCInfo();
+            expect(ssrcInfo.ssrcs.length).toEqual(6);
+            expect(ssrcInfo.groups.length).toEqual(4);
+            let simGroups = 
+                ssrcInfo.groups.filter(groupInfo => 
+                    groupInfo.group.semantics === "SIM");
+            expect(simGroups.length).toEqual(1);
+
+            let fidGroups = 
+                ssrcInfo.groups.filter(groupInfo => 
+                    groupInfo.group.semantics === "FID");
+            expect(fidGroups.length).toEqual(3);
+        });
+    });
 });
