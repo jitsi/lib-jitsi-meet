@@ -1049,6 +1049,16 @@ JitsiConference.prototype.getRecordingState = function () {
 };
 
 /**
+ * Obtains the list of recording streams. See YouTubeAPI.getLiveStreams for
+ * the description.
+ * @returns {Promise|null} null is returned if the conference room is not ready
+ * or if the YouTube API is not enabled in the current session.
+ */
+JitsiConference.prototype.getRecordingStreams = function () {
+    return (this.room) ? this.room.getRecordingStreams() : null;
+};
+
+/**
  * Returns the url of the recorded video.
  */
 JitsiConference.prototype.getRecordingURL = function () {
