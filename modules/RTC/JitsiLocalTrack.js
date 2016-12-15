@@ -8,7 +8,7 @@ var logger = require("jitsi-meet-logger").getLogger(__filename);
 var MediaType = require('../../service/RTC/MediaType');
 var RTCBrowserType = require("./RTCBrowserType");
 var RTCEvents = require("../../service/RTC/RTCEvents");
-var RTCUtils = require("./RTCUtils");
+import RTCUtils from "./RTCUtils";
 var Statistics = require("../statistics/statistics");
 var VideoType = require('../../service/RTC/VideoType');
 

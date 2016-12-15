@@ -10,7 +10,7 @@ var SDP = require("./SDP");
 var async = require("async");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var RTCBrowserType = require("../RTC/RTCBrowserType");
-var RTC = require("../RTC/RTC");
+import RTC from "../RTC/RTC";
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 var Statistics = require("../statistics/statistics");
 

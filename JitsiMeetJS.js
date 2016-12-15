@@ -14,7 +14,7 @@ import * as JitsiTrackEvents from "./JitsiTrackEvents";
 var JitsiRecorderErrors = require("./JitsiRecorderErrors");
 var Logger = require("jitsi-meet-logger");
 var MediaType = require("./service/RTC/MediaType");
-var RTC = require("./modules/RTC/RTC");
+import RTC from "./modules/RTC/RTC";
 var RTCUIHelper = require("./modules/RTC/RTCUIHelper");
 var Statistics = require("./modules/statistics/statistics");
 var Resolutions = require("./service/RTC/Resolutions");
