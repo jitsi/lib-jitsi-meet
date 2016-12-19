@@ -1,4 +1,4 @@
-/* global Strophe, $, Promise */
+/* global Strophe, Promise */
 
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 import RTC from "./modules/RTC/RTC";
@@ -722,22 +722,10 @@ JitsiConference.prototype.onMemberJoined
     participant._role = role;
     this.participants[id] = participant;
     this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED, id, participant);
-    // XXX Since disco is checked in multiple places (e.g.
-    // modules/xmpp/strophe.jingle.js, modules/xmpp/strophe.rayo.js), check it
-    // here as well.
-    var disco = this.xmpp.connection.disco;
-    if (disco) {
-        disco.info(
-            jid, "node", function(iq) {
-                participant._supportsDTMF = $(iq).find(
-                    '>query>feature[var="urn:xmpp:jingle:dtmf:0"]').length > 0;
-                this.updateDTMFSupport();
-            }.bind(this)
-        );
-    } else {
-      // FIXME Should participant._supportsDTMF be assigned false here (and
-      // this.updateDTMFSupport invoked)?
-    }
+    this.xmpp.caps.getFeatures(jid).then(features => {
+        participant._supportsDTMF = features.has("urn:xmpp:jingle:dtmf:0");
+        this.updateDTMFSupport();
+    }, error => logger.error(error));
 };
 
 JitsiConference.prototype.onMemberLeft = function (jid) {

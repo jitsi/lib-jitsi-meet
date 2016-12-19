@@ -118,4 +118,26 @@ JitsiConnection.prototype.getConnectionTimes = function () {
     return this.xmpp.connectionTimes;
 };
 
+/**
+ * Adds new feature to the list of supported features for the local
+ * participant.
+ * @param {String} feature the name of the feature.
+ * @param {boolean} submit if true - the new list of features will be
+ * immediately submitted to the others.
+ */
+JitsiConnection.prototype.addFeature = function(feature, submit = false) {
+    return this.xmpp.caps.addFeature(feature, submit);
+};
+
+/**
+ * Removes a feature from the list of supported features for the local
+ * participant
+ * @param {String} feature the name of the feature.
+ * @param {boolean} submit if true - the new list of features will be
+ * immediately submitted to the others.
+ */
+JitsiConnection.prototype.removeFeature = function (feature, submit = false) {
+    return this.xmpp.caps.removeFeature(feature, submit);
+};
+
 module.exports = JitsiConnection;

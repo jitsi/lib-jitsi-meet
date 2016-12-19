@@ -232,6 +232,14 @@ This objects represents the server connection. You can create new ```JitsiConnec
     - event - the event
     - listener - the listener that will be removed.
 
+7. addFeature - Adds new feature to the list of supported features for the local participant
+    - feature - string, the name of the feature
+    - submit - boolean, default false, if true - the new list of features will be immediately submitted to the others.
+
+8. removeFeature - Removes a feature from the list of supported features for the local participant
+    - feature - string, the name of the feature
+    - submit - boolean, default false, if true - the new list of features will be immediately submitted to the others.
+
 JitsiConference
 -----------
 The object represents a conference. We have the following methods to control the conference:

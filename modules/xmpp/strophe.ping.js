@@ -1,4 +1,4 @@
-/* global $, $iq, Strophe */
+/* global $iq, Strophe */
 
 import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
@@ -20,18 +20,21 @@ const PING_TIMEOUT = 15000;
  */
 const PING_THRESHOLD = 3;
 
-
-
-
 /**
  * XEP-0199 ping plugin.
  *
  * Registers "urn:xmpp:ping" namespace under Strophe.NS.PING.
  */
 class PingConnectionPlugin extends ConnectionPlugin {
-    constructor() {
+    /**
+     * Contructs new object
+     * @param {XMPP} xmpp the xmpp module.
+     * @constructor
+     */
+    constructor(xmpp) {
         super();
         this.failedPings = 0;
+        this.xmpp = xmpp;
     }
 
     /**
@@ -65,27 +68,14 @@ class PingConnectionPlugin extends ConnectionPlugin {
      * <tt>true</tt> if XEP-0199 ping is supported by given <tt>jid</tt>
      */
     hasPingSupport (jid, callback) {
-        const disco = this.connection.disco;
-        // XXX The following disco.info was observed to throw a "TypeError:
-        // Cannot read property 'info' of undefined" during porting to React
-        // Native. Since disco is checked in multiple places (e.g.
-        // strophe.jingle.js, strophe.rayo.js), check it here as well.
-        if (disco) {
-            disco.info(jid, null, (result)  => {
-                const ping
-                    = $(result).find('>>feature[var="urn:xmpp:ping"]');
-                callback(ping.length > 0);
-            }, (error) => {
-                const errmsg = "Ping feature discovery error";
-                GlobalOnErrorHandler.callErrorHandler(new Error(
-                    errmsg + ": " + error));
-                logger.error(errmsg, error);
-                callback(false);
-            });
-        } else {
-          // FIXME Should callback be invoked here? Maybe with false as an
-          // argument?
-        }
+        this.xmpp.caps.getFeatures(jid).then(features =>
+            callback(features.has("urn:xmpp:ping")), error => {
+            const errmsg = "Ping feature discovery error";
+            GlobalOnErrorHandler.callErrorHandler(new Error(
+                errmsg + ": " + error));
+            logger.error(errmsg, error);
+            callback(false);
+        });
     }
 
     /**
@@ -138,6 +128,6 @@ class PingConnectionPlugin extends ConnectionPlugin {
     }
 }
 
-export default function () {
-    Strophe.addConnectionPlugin('ping', new PingConnectionPlugin());
+export default function (xmpp) {
+    Strophe.addConnectionPlugin('ping', new PingConnectionPlugin(xmpp));
 }

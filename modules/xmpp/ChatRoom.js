@@ -152,22 +152,14 @@ export default class ChatRoom extends Listenable {
             pres.up();
         }
 
-        // Send XEP-0115 'c' stanza that contains our capabilities info
-        var connection = this.connection;
-        var caps = connection.caps;
-        if (caps) {
-            caps.node = this.xmpp.options.clientNode;
-            pres.c('c', caps.generateCapsAttrs()).up();
-        }
-
         parser.JSON2packet(this.presMap.nodes, pres);
-        connection.send(pres);
+        this.connection.send(pres);
         if (fromJoin) {
             // XXX We're pressed for time here because we're beginning a complex
             // and/or lengthy conference-establishment process which supposedly
             // involves multiple RTTs. We don't have the time to wait for Strophe to
             // decide to send our IQ.
-            connection.flush();
+            this.connection.flush();
         }
     }
 

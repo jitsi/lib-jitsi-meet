@@ -257,4 +257,13 @@ export default class JitsiParticipant {
     supportsDTMF() {
         return this._supportsDTMF;
     }
+
+    /**
+     * Returns a set with the features for the participant.
+     * @param {int} timeout the timeout in ms for reply from the participant.
+     * @returns {Promise<Set<String>, Error>}
+     */
+    getFeatures(timeout = 5000) {
+        return this.conference.xmpp.caps.getFeatures(this._jid, timeout);
+    }
 }
