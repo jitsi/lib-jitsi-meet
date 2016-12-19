@@ -16,7 +16,6 @@ function JitsiConnection(appID, token, options) {
     this.token = token;
     this.options = options;
     this.xmpp = new XMPP(options, token);
-    this.conferences = {};
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
         function (errType, msg) {
@@ -91,10 +90,7 @@ JitsiConnection.prototype.setToken = function (token) {
  * @returns {JitsiConference} returns the new conference object.
  */
 JitsiConnection.prototype.initJitsiConference = function (name, options) {
-    var conference
-        = new JitsiConference({name: name, config: options, connection: this});
-    this.conferences[name] = conference;
-    return conference;
+    return new JitsiConference({name: name, config: options, connection: this});
 };
 
 /**
