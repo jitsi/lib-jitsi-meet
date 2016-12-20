@@ -2,7 +2,7 @@
 
 import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
-var RTC = require('../RTC/RTC');
+import RTC from '../RTC/RTC';
 var RTCBrowserType = require("../RTC/RTCBrowserType.js");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var transform = require('sdp-transform');

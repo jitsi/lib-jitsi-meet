@@ -1,6 +1,6 @@
 var EventEmitter = require("events");
 var RTCEvents = require('./service/RTC/RTCEvents');
-var RTC = require("./modules/RTC/RTC");
+import RTC from "./modules/RTC/RTC";
 var MediaType = require('./service/RTC/MediaType');
 import * as JitsiMediaDevicesEvents from "./JitsiMediaDevicesEvents";
 var Statistics = require("./modules/statistics/statistics");
