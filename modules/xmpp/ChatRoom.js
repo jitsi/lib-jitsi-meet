@@ -696,6 +696,13 @@ export default class ChatRoom extends Listenable {
         this.session = session;
     }
 
+    replaceStream (oldStream, newStream) {
+        if (this.session) {
+            return this.session.replaceStream(oldStream, newStream);
+        }
+        return Promise.resolve();
+    }
+
     /**
      * Remove stream.
      * @param stream stream that will be removed.

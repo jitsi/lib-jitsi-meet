@@ -893,6 +893,65 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
     );
 };
 
+// Cache the current SDP, do a new o/a flow, compare the new
+//  sdp to the old and do any source-add/source-remove necessary
+JingleSessionPC.prototype._renegotiate = function() {
+    let self = this;
+    let media_constraints = this.media_constraints;
+    let oldSdp = this.peerconnection.remote
+    let remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
+    let remoteDescription = new RTCSessionDescription({
+        type: "offer",
+        sdp: remoteSdp.raw
+    });
+
+    return new Promise((resolve, reject) => {
+        this.peerconnection.setRemoteDescription(
+            remoteDescription,
+            () => {
+                self.peerconnection.createAnswer(
+                    (answer) => {
+                        self.peerconnection.setLocalDescription(
+                            answer,
+                            () => { resolve(); },
+                            (error) => { reject(error, "setLocalDescription failed") }
+                        );
+                    },
+                    (error) => { reject(error, "createAnswer failed"); },
+                    media_constraints
+                );
+            },
+            (error) => { reject(error, "setRemoteDescription failed"); }
+        );
+    });
+};
+
+JingleSessionPC.prototype.replaceStream = function (oldStream, newStream) {
+    let oldSdp = new SDP(this.peerconnection.localDescription.sdp);
+    this.removeStreamNoSideEffects(oldStream);
+    this.addStreamNoSideEffects(newStream);
+    return this._renegotiate()
+        .then(() => {
+            var newSdp = new SDP(this.peerconnection.localDescription.sdp);
+
+            this.notifyMySSRCUpdate(oldSdp, newSdp);
+            return Promise.resolve();
+        })
+        .catch((errorMsg, error) => {
+            if (error) {
+                errorMsg = errorMsg + ": " + error;
+            }
+            logger.error(errorMsg);
+            return Promise.reject();
+        });
+};
+
+JingleSessionPC.prototype.addStreamNoSideEffects = function (stream) {
+    if (this.peerconnection) {
+        this.peerconnection.addStreamNoSideEffects(stream);
+    }
+};
+
 /**
  * Adds stream.
  * @param stream new stream that will be added.
@@ -959,6 +1018,18 @@ JingleSessionPC.prototype.addStream = function (stream, callback, errorCallback,
  */
 JingleSessionPC.prototype.generateNewStreamSSRCInfo = function () {
     return this.peerconnection.generateNewStreamSSRCInfo();
+};
+
+JingleSessionPC.prototype.removeStreamNoSideEffects = function (stream) {
+    if (!this.peerconnection) {
+        return;
+    }
+    if (RTCBrowserType.getBrowserType() ===
+            RTCBrowserType.RTC_BROWSER_FIREFOX) {
+        //TODO
+    } else if (stream) {
+        this.peerconnection.removeStreamNoSideEffects(stream);
+    }
 };
 
 /**

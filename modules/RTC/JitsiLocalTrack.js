@@ -430,6 +430,26 @@ JitsiLocalTrack.prototype._sendMuteStatus = function(mute) {
     });
 };
 
+JitsiLocalTrack.prototype.disposeNew = function () {
+    let self = this;
+    if (this.stream) {
+        this._stopMediaStream();
+        this.detach();
+    }
+
+    RTCUtils.removeListener(RTCEvents.DEVICE_LIST_CHANGED,
+        this._onDeviceListChanged);
+
+    if (this._onAudioOutputDeviceChanged) {
+        RTCUtils.removeListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
+            this._onAudioOutputDeviceChanged);
+    }
+
+    // TODO: previously this was blocked until after all the removal
+    //  stuff was done...does it need to wait?
+    JitsiTrack.prototype.dispose.call(self); // super.dispose();
+};
+
 /**
  * @inheritdoc
  *

@@ -472,12 +472,26 @@ Object.keys(getters).forEach(function (prop) {
     );
 });
 
+TraceablePeerConnection.prototype.addStreamNoSideEffects = function (stream) {
+    this.trace('addStream', stream? stream.id : "null");
+    if (stream) {
+        this.peerconnection.addStream(stream.getOriginalStream());
+    }
+};
+
 TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
     this.trace('addStream', stream? stream.id : "null");
     if(stream)
         this.peerconnection.addStream(stream);
     if(ssrcInfo && this.replaceSSRCs[ssrcInfo.mtype])
         this.replaceSSRCs[ssrcInfo.mtype].push(ssrcInfo);
+};
+
+TraceablePeerConnection.prototype.removeStreamNoSideEffects = function (stream) {
+    this.trace('removeStream', stream.id);
+    if (this.peerconnection.removeStream) {
+        this.peerconnection.removeStream(stream.getOriginalStream());
+    }
 };
 
 TraceablePeerConnection.prototype.removeStream = function (stream, stopStreams,

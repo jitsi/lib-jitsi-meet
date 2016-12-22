@@ -536,10 +536,85 @@ JitsiConference.prototype.onTrackRemoved = function (track) {
     // send event for stopping screen sharing
     // FIXME: we assume we have only one screen sharing track
     // if we change this we need to fix this check
-    if (track.isVideoTrack() && track.videoType === VideoType.DESKTOP)
         this.statistics.sendScreenSharingEvent(false);
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
+};
+
+JitsiConference.prototype.replaceStream = function (oldStream, newStream) {
+    // First do the removal of the oldStream at the JitsiConference level
+    this.onTrackRemoved(oldStream);
+    // Now replace the stream at the lower levels
+    let self = this;
+    return this.room.replaceStream (oldStream, newStream)
+        .then(() => {
+            // Now handle the addition of the newStream at the JitsiConference level
+            self._setupNewTrack(newStream);
+            return Promise.resolve();
+        });
+};
+
+JitsiConference.prototype._setupNewTrack = function (newTrack) {
+    newTrack.ssrcHandler = function (conference, ssrcMap) {
+        if(ssrcMap[this.getMSID()]){
+            this._setSSRC(ssrcMap[this.getMSID()]);
+            conference.room.removeListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+                this.ssrcHandler);
+        }
+    }.bind(newTrack, this);
+    this.room.addListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+        newTrack.ssrcHandler);
+    if (newTrack.isAudioTrack() || (newTrack.isVideoTrack() &&
+            newTrack.videoType !== VideoType.DESKTOP)) {
+        // Report active device to statistics
+        var devices = RTC.getCurrentlyAvailableMediaDevices();
+        var device = devices.find(function (d) {
+            return d.kind === newTrack.getTrack().kind + 'input'
+                && d.label === newTrack.getTrack().label;
+        });
+        if (device) {
+            Statistics.sendActiveDeviceListEvent(
+                RTC.getEventDataForActiveDevice(device));
+        }
+    }
+    if (newTrack.isVideoTrack()) {
+        this.removeCommand("videoType");
+        this.sendCommand("videoType", {
+            value: newTrack.videoType,
+            attributes: {
+                xmlns: 'http://jitsi.org/jitmeet/video'
+            }
+        });
+    }
+    this.rtc.addLocalTrack(newTrack);
+
+    if (newTrack.startMuted) {
+        newTrack.mute();
+    }
+
+    // ensure that we're sharing proper "is muted" state
+    if (newTrack.isAudioTrack()) {
+        this.room.setAudioMute(newTrack.isMuted());
+    } else {
+        this.room.setVideoMute(newTrack.isMuted());
+    }
+
+    newTrack.muteHandler = this._fireMuteChangeEvent.bind(this, newTrack);
+    newTrack.audioLevelHandler = this._fireAudioLevelChangeEvent.bind(this);
+    newTrack.addEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED,
+                           newTrack.muteHandler);
+    newTrack.addEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
+                           newTrack.audioLevelHandler);
+
+    newTrack._setConference(this);
+
+    // send event for starting screen sharing
+    // FIXME: we assume we have only one screen sharing track
+    // if we change this we need to fix this check
+    if (newTrack.isVideoTrack() && newTrack.videoType === VideoType.DESKTOP)
+        this.statistics.sendScreenSharingEvent(true);
+
+    this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
 };
 
 /**
