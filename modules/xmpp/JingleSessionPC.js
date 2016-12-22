@@ -898,7 +898,6 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
 JingleSessionPC.prototype._renegotiate = function() {
     let self = this;
     let media_constraints = this.media_constraints;
-    let oldSdp = this.peerconnection.remote
     let remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
     let remoteDescription = new RTCSessionDescription({
         type: "offer",
@@ -914,7 +913,7 @@ JingleSessionPC.prototype._renegotiate = function() {
                         self.peerconnection.setLocalDescription(
                             answer,
                             () => { resolve(); },
-                            (error) => { reject(error, "setLocalDescription failed") }
+                            (error) => { reject(error, "setLocalDescription failed"); }
                         );
                     },
                     (error) => { reject(error, "createAnswer failed"); },
