@@ -43,6 +43,14 @@ var XMPPEvents = {
     // Designates an event indicating that the display name of a participant
     // has changed.
     DISPLAY_NAME_CHANGED: "xmpp.display_name_changed",
+    /**
+     * Chat room instance have been added to Strophe.emuc plugin.
+     */
+    EMUC_ROOM_ADDED: "xmpp.emuc_room_added",
+    /**
+     * Chat room instance have been removed from Strophe.emuc plugin.
+     */
+    EMUC_ROOM_REMOVED: "xmpp.emuc_room_removed",
     ETHERPAD: "xmpp.etherpad",
     FOCUS_DISCONNECTED: 'xmpp.focus_disconnected',
     FOCUS_LEFT: "xmpp.focus_left",
