@@ -1019,13 +1019,51 @@ JingleSessionPC.prototype.generateNewStreamSSRCInfo = function () {
     return this.peerconnection.generateNewStreamSSRCInfo();
 };
 
+JingleSessionPC.prototype._handleFirefoxRemoveStream = function (jitsiStream) {
+    let stream = jitsiStream.getOriginalStream();
+    if (!stream) { //There is nothing to be changed
+        return;
+    }
+    var sender = null;
+    // On Firefox we don't replace MediaStreams as this messes up the
+    // m-lines (which can't be removed in Plan Unified) and brings a lot
+    // of complications. Instead, we use the RTPSender and remove just
+    // the track.
+    var track = null;
+    if (stream.getAudioTracks() && stream.getAudioTracks().length) {
+        track = stream.getAudioTracks()[0];
+    } else if (stream.getVideoTracks() && stream.getVideoTracks().length) {
+        track = stream.getVideoTracks()[0];
+    }
+
+    if (!track) {
+        var msg = "Cannot remove tracks: no tracks.";
+        logger.log(msg);
+        return;
+    }
+
+    // Find the right sender (for audio or video)
+    this.peerconnection.peerconnection.getSenders().some(function (s) {
+        if (s.track === track) {
+            sender = s;
+            return true;
+        }
+    });
+
+    if (sender) {
+        this.peerconnection.peerconnection.removeTrack(sender);
+    } else {
+        logger.log("Cannot remove tracks: no RTPSender.");
+    }
+};
+
 JingleSessionPC.prototype.removeStreamNoSideEffects = function (stream) {
     if (!this.peerconnection) {
         return;
     }
     if (RTCBrowserType.getBrowserType() ===
             RTCBrowserType.RTC_BROWSER_FIREFOX) {
-        //TODO
+        this._handleFirefoxRemoveStream(stream);
     } else if (stream) {
         this.peerconnection.removeStreamNoSideEffects(stream);
     }
