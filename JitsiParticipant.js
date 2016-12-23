@@ -264,6 +264,6 @@ export default class JitsiParticipant {
      * @returns {Promise<Set<String>, Error>}
      */
     getFeatures(timeout = 5000) {
-        return this.conference.xmpp.caps.getFeatures(this._jid, timeout);
+        return this._conference.xmpp.caps.getFeatures(this._jid, timeout);
     }
 }
