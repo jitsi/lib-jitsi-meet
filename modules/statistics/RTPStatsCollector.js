@@ -8,7 +8,7 @@ import * as StatisticsEvents from "../../service/statistics/Events";
 /* Whether we support the browser we are running into for logging statistics */
 var browserSupported = RTCBrowserType.isChrome() ||
         RTCBrowserType.isOpera() || RTCBrowserType.isFirefox() ||
-        RTCBrowserType.isNWJS();
+        RTCBrowserType.isNWJS() || RTCBrowserType.isElectron();
 
 /**
  * The LibJitsiMeet browser-agnostic names of the browser-specific keys reported
@@ -46,6 +46,8 @@ KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME] = {
 KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_OPERA] =
     KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
 KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_NWJS] =
+    KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
+KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_ELECTRON] =
     KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
 KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_IEXPLORER] =
     KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
@@ -327,6 +329,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function (keys) {
     case RTCBrowserType.RTC_BROWSER_CHROME:
     case RTCBrowserType.RTC_BROWSER_OPERA:
     case RTCBrowserType.RTC_BROWSER_NWJS:
+    case RTCBrowserType.RTC_BROWSER_ELECTRON:
         // TODO What about other types of browser which are based on Chrome such
         // as NW.js? Every time we want to support a new type browser we have to
         // go and add more conditions (here and in multiple other places).
