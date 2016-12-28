@@ -1190,7 +1190,8 @@ JingleSessionPC.prototype.remoteStreamAdded = function (stream) {
         return;
     }
     // Bind 'addtrack'/'removetrack' event handlers
-    if (RTCBrowserType.isChrome() || RTCBrowserType.isNWJS()) {
+    if (RTCBrowserType.isChrome() || RTCBrowserType.isNWJS()
+        || RTCBrowserType.isElectron()) {
         stream.onaddtrack = function (event) {
             self.remoteTrackAdded(event.target, event.track);
         };
