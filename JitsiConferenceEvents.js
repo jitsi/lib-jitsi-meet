@@ -71,6 +71,10 @@ export const DTMF_SUPPORT_CHANGED = "conference.dtmfSupportChanged";
  */
 export const ENDPOINT_MESSAGE_RECEIVED = "conference.endpoint_message_received";
 /**
+ * Indicates that the state of the ICE process had changed.
+ */
+export const ICE_STATE_CHANGED = "conference.ice_state_changed";
+/**
  * You are included / excluded in somebody's last N set
  */
 export const IN_LAST_N_CHANGED = "conference.inLastNChanged";
@@ -100,6 +104,14 @@ export const MESSAGE_RECEIVED = "conference.messageReceived";
  */
 export const PARTICIPANT_CONN_STATUS_CHANGED
     = "conference.participant_conn_status_changed";
+/**
+ * Indicates if no TCP ICE candidates were found when accepting an offer.
+ */
+export const NO_TCP_ICE_CANDIDATES = "conference.no_tcp_ice_candidates";
+/**
+ * Indicates if no UDP ICE candidates were found when accepting an offer.
+ */
+export const NO_UDP_ICE_CANDIDATES = "conference.no_udp_ice_candidates";
 /**
  * Indicates that a the value of a specific property of a specific participant
  * has changed.
@@ -135,6 +147,15 @@ export const SUSPEND_DETECTED = "conference.suspendDetected";
  * Event indicates that local user is talking while he muted himself
  */
 export const TALK_WHILE_MUTED = "conference.talk_while_muted";
+/**
+ * Indicates that a TCP ICE candidate was found that if it was reachable via
+ * HTTPS
+ */
+export const TCP_ICE_CANDIDATE = "conference.tcpIceCandidate";
+/**
+ * Reports the ip and port of the UDP ICE candidate
+ */
+export const UDP_ICE_CANDIDATE = "conference.udpIceCandidate";
 /**
  * A new media track was added to the conference. The event provides the
  * following parameters to its listeners:

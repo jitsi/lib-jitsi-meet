@@ -167,6 +167,26 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
             chatRoom.eventEmitter.emit(
                 XMPPEvents.CONFERENCE_SETUP_FAILED,
                 new Error("ICE fail"));
+            conference.eventEmitter.emit(
+                JitsiConferenceEvents.ICE_STATE_CHANGED,
+                conference.myUserId(),
+                "failed");
+        });
+
+    chatRoom.addListener(XMPPEvents.CONNECTION_RESTORED,
+        () => {
+            conference.eventEmitter.emit(
+                JitsiConferenceEvents.ICE_STATE_CHANGED,
+                conference.myUserId(),
+                "restored");
+        });
+
+    chatRoom.addListener(XMPPEvents.CONNECTION_ESTABLISHED,
+        () => {
+            conference.eventEmitter.emit(
+                JitsiConferenceEvents.ICE_STATE_CHANGED,
+                conference.myUserId(),
+                "connected");
         });
 
     this.chatRoomForwarder.forward(XMPPEvents.MUC_DESTROYED,
@@ -201,6 +221,10 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
         () => {
             Statistics.sendEventToAll('connection.interrupted');
             this.conference.connectionIsInterrupted = true;
+            conference.eventEmitter.emit(
+                JitsiConferenceEvents.ICE_STATE_CHANGED,
+                conference.myUserId(),
+                "interrupted");
         });
 
     this.chatRoomForwarder.forward(XMPPEvents.RECORDER_STATE_CHANGED,
@@ -216,6 +240,15 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
             Statistics.sendEventToAll('connection.restored');
             this.conference.connectionIsInterrupted = false;
         });
+
+    this.chatRoomForwarder.forward(XMPPEvents.NO_TCP_ICE_CANDIDATES,
+        JitsiConferenceEvents.NO_TCP_ICE_CANDIDATES);
+
+    this.chatRoomForwarder.forward(XMPPEvents.TCP_ICE_CANDIDATE,
+        JitsiConferenceEvents.TCP_ICE_CANDIDATE);
+
+    this.chatRoomForwarder.forward(XMPPEvents.UDP_ICE_CANDIDATE,
+        JitsiConferenceEvents.UDP_ICE_CANDIDATE);
 
     this.chatRoomForwarder.forward(XMPPEvents.CONFERENCE_SETUP_FAILED,
         JitsiConferenceEvents.CONFERENCE_FAILED,
