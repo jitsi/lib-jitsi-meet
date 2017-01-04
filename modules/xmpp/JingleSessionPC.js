@@ -68,7 +68,6 @@ function JingleSessionPC(me, sid, peerjid, connection,
      */
     this.failICE = !!this.service.options.failICE;
 
-    this.modifySourcesQueue = async.queue(this._modifySources.bind(this), 1);
     this.modificationQueue = async.queue(this._processQueueTasks.bind(this), 1);
 }
 
@@ -328,15 +327,6 @@ JingleSessionPC.prototype.setOfferCycle = function (jingleOfferIq,
         failure(error);
         JingleSessionPC.onJingleFatalError(this, error);
     });
-    /*
-    this.modifySourcesQueue.push(success, function (error) {
-        if(!error)
-            return;
-        if (failure)
-            failure(error);
-        JingleSessionPC.onJingleFatalError(this, error);
-    }.bind(this));
-    */
 };
 
 /**
@@ -680,7 +670,6 @@ JingleSessionPC.prototype.addSource = function (elem) {
         sdp.raw = sdp.session + sdp.media.join('');
     });
 
-    //this.modifySourcesQueue.push(function() {
     this.oldModifySourcesShim(function() {
         // When a source is added and if this is FF, a new channel is allocated
         // for receiving the added source. We need to diffuse the SSRC of this
@@ -762,7 +751,6 @@ JingleSessionPC.prototype.removeSource = function (elem) {
         sdp.raw = sdp.session + sdp.media.join('');
     });
 
-    //this.modifySourcesQueue.push(function() {
     this.oldModifySourcesShim(function() {
         // When a source is removed and if this is FF, the recvonly channel that
         // receives the remote stream is deactivated . We need to diffuse the
@@ -795,7 +783,7 @@ JingleSessionPC.prototype._processQueueTasks = function (task, finishedCallback)
 
 /**
  * The old modifySourcesQueue had all the logic in the processing loop itself,
- *  wrather than embedded in the queued task.  This shim takes all the work
+ *  rather than embedded in the queued task.  This shim takes all the work
  *  that was done in the old processing loop and wraps it in a task to pass
  *  to the new (simpler) processing loop.  The logic has been tweaked
  *  slightly to work with a single 'finished' callback (vs individual
@@ -1167,7 +1155,6 @@ JingleSessionPC.prototype.addStream = function (stream, callback, errorCallback,
 
     this.modifyingLocalStreams = true;
     var self = this;
-    //this.modifySourcesQueue.push(function() {
     this.oldModifySourcesShim(function() {
         logger.log('modify sources done');
         if(ssrcInfo) {
@@ -1319,7 +1306,6 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, errorCallba
 
     this.modifyingLocalStreams = true;
     var self = this;
-    //this.modifySourcesQueue.push(function() {
     this.oldModifySourcesShim(function() {
         logger.log('modify sources done');
 
