@@ -796,8 +796,7 @@ JingleSessionPC.prototype._processQueueTasks = function (task, finishedCallback)
  */
 JingleSessionPC.prototype.oldModifySourcesShim = function (successCallback, errorCallback) {
     let oldModifySourcesWorkFunction = (finishedCallback) => {
-        var sdp = null, 
-            media_constraints;
+        var sdp = null;
 
         if (this.peerconnection.signalingState == 'closed') return;
         if (!(this.addssrc.length || this.removessrc.length
@@ -823,7 +822,6 @@ JingleSessionPC.prototype.oldModifySourcesShim = function (successCallback, erro
             sdp.fromJingle(this.jingleOfferIq);
             this.readSsrcInfo($(this.jingleOfferIq).find(">content"));
             this.jingleOfferIq = null;
-            media_constraints = this.media_constraints;
         } else {
             // Reset switch streams flags
             this.modifyingLocalStreams = false;
@@ -849,67 +847,15 @@ JingleSessionPC.prototype.oldModifySourcesShim = function (successCallback, erro
 
         sdp.raw = sdp.session + sdp.media.join('');
 
-        /**
-         * Implements a failure callback which reports an error message and an
-         * optional error through (1) logger, (2) GlobalOnErrorHandler, and (3)
-         * queueCallback.
-         *
-         * @param {string} errmsg the error message to report
-         * @param {*} error an optional error to report in addition to errmsg
-         */
-        function reportError(errmsg, err) {
-            if (err) {
-               errmsg = errmsg + ': ' + err; // for logger and GlobalOnErrorHandler
-               logger.error(errmsg, err);
-            } else {
-               logger.error(errmsg);
-               err = new Error(errmsg); // for queueCallback
-            }
-            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
-            finishedCallback(err);
-        }
-
-        var ufrag = getUfrag(sdp.raw);
-        if (ufrag != this.remoteUfrag) {
-            this.remoteUfrag = ufrag;
-            this.room.eventEmitter.emit(
-                    XMPPEvents.REMOTE_UFRAG_CHANGED, ufrag);
-        }
-
-        this.peerconnection.setRemoteDescription(
-            new RTCSessionDescription({type: 'offer', sdp: sdp.raw}),
-            () => {
-                if(this.signalingState == 'closed') {
-                    reportError("createAnswer attempt on closed state");
-                    return;
+        this._renegotiate(sdp)
+            .then(() => {
+                finishedCallback();
+            }, (error, errorMsg) => {
+                if (error) {
+                    errorMsg = error + ": " + errorMsg;
                 }
-
-                this.peerconnection.createAnswer(
-                    (answer) => {
-                        // FIXME: pushing down an answer while ice connection state
-                        // is still checking is bad...
-                        //logger.log(this.peerconnection.iceConnectionState);
-
-                        var ufrag = getUfrag(answer.sdp);
-                        if (ufrag != this.localUfrag) {
-                            this.localUfrag = ufrag;
-                            this.room.eventEmitter.emit(
-                                    XMPPEvents.LOCAL_UFRAG_CHANGED, ufrag);
-                        }
-                        this.peerconnection.setLocalDescription(answer,
-                            () => {
-                                finishedCallback();
-                            },
-                            reportError.bind(
-                                undefined,
-                                "modified setLocalDescription failed")
-                        );
-                    }, reportError.bind(undefined, "modified answer failed"),
-                    media_constraints
-                );
-            },
-            reportError.bind(undefined, 'modify failed')
-        );
+                finishedCallback(errorMsg);
+            });
     };
     this.modificationQueue.push(oldModifySourcesWorkFunction, (err) => {
         if (err) {
@@ -920,21 +866,45 @@ JingleSessionPC.prototype.oldModifySourcesShim = function (successCallback, erro
     });
 };
 
-// Do a new o/a flow using the existing remote description
-JingleSessionPC.prototype._renegotiate = function() {
+/**
+ * Do a new o/a flow using the existing remote description
+ * @param sdp: optional remote sdp to use.  if not provided, the remote
+ *  sdp from the peer connection will be used
+ */
+
+JingleSessionPC.prototype._renegotiate = function(optionalRemoteSdp) {
     let media_constraints = this.media_constraints;
-    let remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
+    let remoteSdp = optionalRemoteSdp || new SDP(this.peerconnection.remoteDescription.sdp);
     let remoteDescription = new RTCSessionDescription({
         type: "offer",
         sdp: remoteSdp.raw
     });
 
     return new Promise((resolve, reject) => {
+        //TODO(brian): should this go elsewhere?
+        let remoteUfrag = getUfrag(remoteDescription.sdp);
+        if (remoteUfrag != this.remoteUfrag) {
+            this.remoteUfrag = remoteUfrag;
+            this.room.eventEmitter.emit(
+                    XMPPEvents.REMOTE_UFRAG_CHANGED, remoteUfrag);
+        }
+
         this.peerconnection.setRemoteDescription(
             remoteDescription,
             () => {
+                if (this.signalingState === 'closed') {
+                    logger.error("Attempted to call create answer in closed");
+                    return;
+                }
                 this.peerconnection.createAnswer(
                     (answer) => {
+                        //TODO(brian): should this go elsewhere?
+                        let localUfrag = getUfrag(answer.sdp);
+                        if (localUfrag != this.localUfrag) {
+                            this.localUfrag = localUfrag;
+                            this.room.eventEmitter.emit(
+                                    XMPPEvents.LOCAL_UFRAG_CHANGED, localUfrag);
+                        }
                         this.peerconnection.setLocalDescription(
                             answer,
                             () => { resolve(); },
