@@ -887,13 +887,7 @@ JingleSessionPC.prototype.oldModifySourcesShim = function (successCallback, erro
                         // is still checking is bad...
                         //logger.log(this.peerconnection.iceConnectionState);
 
-                        var modifiedAnswer = new SDP(answer.sdp);
-                        JingleSessionPC._fixAnswerRFC4145Setup(
-                            /* offer */ sdp,
-                            /* answer */ modifiedAnswer);
-                        answer.sdp = modifiedAnswer.raw;
                         this.localSDP = new SDP(answer.sdp);
-                        answer.sdp = this.localSDP.raw;
                         var ufrag = getUfrag(answer.sdp);
                         if (ufrag != this.localUfrag) {
                             this.localUfrag = ufrag;
@@ -924,137 +918,8 @@ JingleSessionPC.prototype.oldModifySourcesShim = function (successCallback, erro
     });
 };
 
-JingleSessionPC.prototype._modifySources = function (successCallback, queueCallback) {
-    var self = this, sdp = null, media_constraints;
-
-    if (this.peerconnection.signalingState == 'closed') return;
-    if (!(this.addssrc.length || this.removessrc.length
-        || this.modifyingLocalStreams || this.jingleOfferIq !== null)){
-        // There is nothing to do since scheduled job might have been
-        // executed by another succeeding call
-        if(successCallback){
-            successCallback();
-        }
-        queueCallback();
-        return;
-    }
-
-    if(this.jingleOfferIq) {
-        sdp = new SDP('');
-        if (this.webrtcIceTcpDisable) {
-            sdp.removeTcpCandidates = true;
-        }
-        if (this.webrtcIceUdpDisable) {
-            sdp.removeUdpCandidates = true;
-        }
-        if (this.failICE) {
-            sdp.failICE = true;
-        }
-
-        sdp.fromJingle(this.jingleOfferIq);
-        this.readSsrcInfo($(this.jingleOfferIq).find(">content"));
-        this.jingleOfferIq = null;
-        media_constraints = this.media_constraints;
-    } else {
-        // Reset switch streams flags
-        this.modifyingLocalStreams = false;
-
-        sdp = new SDP(this.peerconnection.remoteDescription.sdp);
-    }
-
-    // add sources
-    this.addssrc.forEach(function(lines, idx) {
-        sdp.media[idx] += lines;
-    });
-    this.addssrc = [];
-
-    // remove sources
-    this.removessrc.forEach(function(lines, idx) {
-        lines = lines.split('\r\n');
-        lines.pop(); // remove empty last element;
-        lines.forEach(function(line) {
-            sdp.media[idx] = sdp.media[idx].replace(line + '\r\n', '');
-        });
-    });
-    this.removessrc = [];
-
-    sdp.raw = sdp.session + sdp.media.join('');
-
-    /**
-     * Implements a failure callback which reports an error message and an
-     * optional error through (1) logger, (2) GlobalOnErrorHandler, and (3)
-     * queueCallback.
-     *
-     * @param {string} errmsg the error message to report
-     * @param {*} error an optional error to report in addition to errmsg
-     */
-    function reportError(errmsg, err) {
-        if (err) {
-           errmsg = errmsg + ': ' + err; // for logger and GlobalOnErrorHandler
-           logger.error(errmsg, err);
-        } else {
-           logger.error(errmsg);
-           err = new Error(errmsg); // for queueCallback
-        }
-        GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
-        queueCallback(err);
-    }
-
-    var ufrag = getUfrag(sdp.raw);
-    if (ufrag != self.remoteUfrag) {
-        self.remoteUfrag = ufrag;
-        self.room.eventEmitter.emit(
-                XMPPEvents.REMOTE_UFRAG_CHANGED, ufrag);
-    }
-
-    this.peerconnection.setRemoteDescription(
-        new RTCSessionDescription({type: 'offer', sdp: sdp.raw}),
-        () => {
-            if(self.signalingState == 'closed') {
-                reportError("createAnswer attempt on closed state");
-                return;
-            }
-
-            self.peerconnection.createAnswer(
-                (answer) => {
-                    // FIXME: pushing down an answer while ice connection state
-                    // is still checking is bad...
-                    //logger.log(self.peerconnection.iceConnectionState);
-
-                    var modifiedAnswer = new SDP(answer.sdp);
-                    JingleSessionPC._fixAnswerRFC4145Setup(
-                        /* offer */ sdp,
-                        /* answer */ modifiedAnswer);
-                    answer.sdp = modifiedAnswer.raw;
-                    self.localSDP = new SDP(answer.sdp);
-                    answer.sdp = self.localSDP.raw;
-                    var ufrag = getUfrag(answer.sdp);
-                    if (ufrag != self.localUfrag) {
-                        self.localUfrag = ufrag;
-                        self.room.eventEmitter.emit(
-                                XMPPEvents.LOCAL_UFRAG_CHANGED, ufrag);
-                    }
-                    self.peerconnection.setLocalDescription(answer,
-                        () => {
-                            successCallback && successCallback();
-                            queueCallback();
-                        },
-                        reportError.bind(
-                            undefined,
-                            "modified setLocalDescription failed")
-                    );
-                }, reportError.bind(undefined, "modified answer failed"),
-                media_constraints
-            );
-        },
-        reportError.bind(undefined, 'modify failed')
-    );
-};
-
-// Cache the current SDP, do a new o/a flow, compare the new
-//  sdp to the old and do any source-add/source-remove necessary
+// Do a new o/a flow using the existing remote description
 JingleSessionPC.prototype._renegotiate = function() {
-    let self = this;
     let media_constraints = this.media_constraints;
     let remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
     let remoteDescription = new RTCSessionDescription({
@@ -1066,9 +931,9 @@ JingleSessionPC.prototype._renegotiate = function() {
         this.peerconnection.setRemoteDescription(
             remoteDescription,
             () => {
-                self.peerconnection.createAnswer(
+                this.peerconnection.createAnswer(
                     (answer) => {
-                        self.peerconnection.setLocalDescription(
+                        this.peerconnection.setLocalDescription(
                             answer,
                             () => { resolve(); },
                             (error) => { reject(error, "setLocalDescription failed"); }
