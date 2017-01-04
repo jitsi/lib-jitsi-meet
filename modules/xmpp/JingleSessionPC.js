@@ -785,6 +785,50 @@ JingleSessionPC.prototype._processQueueTasks = function (task, finishedCallback)
 };
 
 /**
+ * Assumes there is remote work to be done (this.addssrc, this.removessrc 
+ *  or this.jingleOfferIq has work)
+ */
+JingleSessionPC.prototype._processRemoteChange = function () {
+    let remoteSdp = null;
+    if (this.jingleOfferIq) {
+        remoteSdp = new SDP('');
+        if (this.webrtcIceTcpDisable) {
+            remoteSdp.removeTcpCandidates = true;
+        }
+        if (this.webrtcIceUdpDisable) {
+            remoteSdp.removeUdpCandidates = true;
+        }
+        if (this.failICE) {
+            remoteSdp.failICE = true;
+        }
+
+        remoteSdp.fromJingle(this.jingleOfferIq);
+        this.readSsrcInfo($(this.jingleOfferIq).find(">content"));
+        this.jingleOfferIq = null;
+    } else {
+        remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
+    }
+
+    this.addssrc.forEach(function(lines, idx) {
+        remoteSdp.media[idx] += lines;
+    });
+    this.addssrc = [];
+
+    // remove sources
+    this.removessrc.forEach(function(lines, idx) {
+        lines = lines.split('\r\n');
+        lines.pop(); // remove empty last element;
+        lines.forEach(function(line) {
+            remoteSdp.media[idx] = remoteSdp.media[idx].replace(line + '\r\n', '');
+        });
+    });
+    this.removessrc = [];
+
+    remoteSdp.raw = remoteSdp.session + remoteSdp.media.join('');
+    return this._renegotiate(remoteSdp);
+};
+
+/**
  * The old modifySourcesQueue had all the logic in the processing loop itself,
  *  rather than embedded in the queued task.  This shim takes all the work
  *  that was done in the old processing loop and wraps it in a task to pass
@@ -796,66 +840,37 @@ JingleSessionPC.prototype._processQueueTasks = function (task, finishedCallback)
  */
 JingleSessionPC.prototype.oldModifySourcesShim = function (successCallback, errorCallback) {
     let oldModifySourcesWorkFunction = (finishedCallback) => {
-        var sdp = null;
-
         if (this.peerconnection.signalingState == 'closed') return;
-        if (!(this.addssrc.length || this.removessrc.length
-            || this.modifyingLocalStreams || this.jingleOfferIq !== null)){
-            // There is nothing to do since scheduled job might have been
-            // executed by another succeeding call
-            finishedCallback();
-            return;
-        }
-
-        if(this.jingleOfferIq) {
-            sdp = new SDP('');
-            if (this.webrtcIceTcpDisable) {
-                sdp.removeTcpCandidates = true;
-            }
-            if (this.webrtcIceUdpDisable) {
-                sdp.removeUdpCandidates = true;
-            }
-            if (this.failICE) {
-                sdp.failICE = true;
-            }
-
-            sdp.fromJingle(this.jingleOfferIq);
-            this.readSsrcInfo($(this.jingleOfferIq).find(">content"));
-            this.jingleOfferIq = null;
-        } else {
+        if (this.addssrc.length || this.removessrc.length || this.jingleOfferIq !== null) {
+            this._processRemoteChange()
+                .then(() => {
+                    finishedCallback();
+                }, (error, errorMsg) => {
+                    if (error) {
+                        errorMsg = error + ": " + errorMsg;
+                    }
+                    finishedCallback(errorMsg);
+                });
+        } else if (this.modifyingLocalStreams) {
             // Reset switch streams flags
             this.modifyingLocalStreams = false;
-
-            sdp = new SDP(this.peerconnection.remoteDescription.sdp);
+            this._renegotiate()
+                .then(() => {
+                    finishedCallback();
+                }, (error, errorMsg) => {
+                    if (error) {
+                        errorMsg = error + ": " + errorMsg;
+                   }
+                    finishedCallback(errorMsg);
+                });
+        } else {
+            //TODO(brian): need to think some more about the validity of this
+            // case.  likely what's happening is that multiple operations are
+            // adding to addssrc or removessrc, but they're all getting processed
+            // in a single chunk, so there's a leftover operation scheduled
+            // but with no work to do.
+            finishedCallback();
         }
-
-        // add sources
-        this.addssrc.forEach(function(lines, idx) {
-            sdp.media[idx] += lines;
-        });
-        this.addssrc = [];
-
-        // remove sources
-        this.removessrc.forEach(function(lines, idx) {
-            lines = lines.split('\r\n');
-            lines.pop(); // remove empty last element;
-            lines.forEach(function(line) {
-                sdp.media[idx] = sdp.media[idx].replace(line + '\r\n', '');
-            });
-        });
-        this.removessrc = [];
-
-        sdp.raw = sdp.session + sdp.media.join('');
-
-        this._renegotiate(sdp)
-            .then(() => {
-                finishedCallback();
-            }, (error, errorMsg) => {
-                if (error) {
-                    errorMsg = error + ": " + errorMsg;
-                }
-                finishedCallback(errorMsg);
-            });
     };
     this.modificationQueue.push(oldModifySourcesWorkFunction, (err) => {
         if (err) {
