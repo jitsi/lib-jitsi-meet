@@ -28,7 +28,6 @@ function JingleSessionPC(me, sid, peerjid, connection,
                          media_constraints, ice_config, service, eventEmitter) {
     JingleSession.call(this, me, sid, peerjid, connection,
                        media_constraints, ice_config, service, eventEmitter);
-    this.localSDP = null;
 
     this.lasticecandidate = false;
     this.closed = false;
@@ -186,8 +185,9 @@ JingleSessionPC.prototype.doInitialize = function () {
 
 JingleSessionPC.prototype.sendIceCandidate = function (candidate) {
     var self = this;
+    var localSDP = new SDP(this.peerconnection.localDescription.sdp);
     if (candidate && !this.lasticecandidate) {
-        var ice = SDPUtil.iceparams(this.localSDP.media[candidate.sdpMLineIndex], this.localSDP.session);
+        var ice = SDPUtil.iceparams(localSDP.media[candidate.sdpMLineIndex], localSDP.session);
         var jcand = SDPUtil.candidateToJingle(candidate.candidate);
         if (!(ice && jcand)) {
             var errorMesssage = "failed to get ice && jcand";
@@ -224,11 +224,13 @@ JingleSessionPC.prototype.sendIceCandidates = function (candidates) {
             action: 'transport-info',
             initiator: this.initiator,
             sid: this.sid});
-    for (var mid = 0; mid < this.localSDP.media.length; mid++) {
+
+    var localSDP = new SDP(this.peerconnection.localDescription.sdp);
+    for (var mid = 0; mid < localSDP.media.length; mid++) {
         var cands = candidates.filter(function (el) { return el.sdpMLineIndex == mid; });
-        var mline = SDPUtil.parse_mline(this.localSDP.media[mid].split('\r\n')[0]);
+        var mline = SDPUtil.parse_mline(localSDP.media[mid].split('\r\n')[0]);
         if (cands.length > 0) {
-            var ice = SDPUtil.iceparams(this.localSDP.media[mid], this.localSDP.session);
+            var ice = SDPUtil.iceparams(localSDP.media[mid], localSDP.session);
             ice.xmlns = 'urn:xmpp:jingle:transports:ice-udp:1';
             cand.c('content', {creator: this.initiator == this.me ? 'initiator' : 'responder',
                 name: (cands[0].sdpMid? cands[0].sdpMid : mline.media)
@@ -242,7 +244,7 @@ JingleSessionPC.prototype.sendIceCandidates = function (candidates) {
                 cand.c('candidate', candidate).up();
             }
             // add fingerprint
-            var fingerprint_line = SDPUtil.find_line(this.localSDP.media[mid], 'a=fingerprint:', this.localSDP.session);
+            var fingerprint_line = SDPUtil.find_line(localSDP.media[mid], 'a=fingerprint:', localSDP.session);
             if (fingerprint_line) {
                 var tmp = SDPUtil.parse_fingerprint(fingerprint_line);
                 tmp.required = true;
@@ -304,7 +306,8 @@ JingleSessionPC.prototype.acceptOffer = function(jingleOffer,
             // FIXME we may not care about RESULT packet for session-accept
             // then we should either call 'success' here immediately or
             // modify sendSessionAccept method to do that
-            this.sendSessionAccept(this.localSDP, success, failure);
+            let localSDP = new SDP(this.peerconnection.localDescription.sdp);
+            this.sendSessionAccept(localSDP, success, failure);
         }.bind(this),
         failure);
 };
@@ -887,7 +890,6 @@ JingleSessionPC.prototype.oldModifySourcesShim = function (successCallback, erro
                         // is still checking is bad...
                         //logger.log(this.peerconnection.iceConnectionState);
 
-                        this.localSDP = new SDP(answer.sdp);
                         var ufrag = getUfrag(answer.sdp);
                         if (ufrag != this.localUfrag) {
                             this.localUfrag = ufrag;
