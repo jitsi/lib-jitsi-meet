@@ -32,7 +32,6 @@ function JingleSessionPC(me, sid, peerjid, connection,
     this.lasticecandidate = false;
     this.closed = false;
 
-    this.addssrc = [];
     this.removessrc = [];
     this.modifyingLocalStreams = false;
     this.modifiedSSRCs = {};
@@ -609,32 +608,34 @@ JingleSessionPC.prototype.onTerminated = function (reasonCondition,
 };
 
 /**
+ * Deprecated...shim until i fix the rest of the chain to call
+ *  the new method
+ */
+JingleSessionPC.prototype.addSource = function (elem) {
+    this.addRemoteStream(elem);
+};
+
+/**
  * Handles a Jingle source-add message for this Jingle session.
  * @param elem An array of Jingle "content" elements.
  */
-JingleSessionPC.prototype.addSource = function (elem) {
-    var self = this;
+JingleSessionPC.prototype.addRemoteStream = function (elem) {
     // FIXME: dirty waiting
-    if (!this.peerconnection.localDescription)
-    {
+    if (!this.peerconnection.localDescription) {
         logger.warn("addSource - localDescription not ready yet");
-        setTimeout(function()
-            {
-                self.addSource(elem);
-            },
-            200
-        );
+        setTimeout(() => this.addSource(elem), 200);
         return;
     }
-
-    logger.log('addssrc', new Date().getTime());
-    logger.log('ice', this.peerconnection.iceConnectionState);
+    logger.log('Processing add remote stream');
+    logger.log('ICE connection state: ', this.peerconnection.iceConnectionState);
 
     this.readSsrcInfo(elem);
 
     var sdp = new SDP(this.peerconnection.remoteDescription.sdp);
     var mySdp = new SDP(this.peerconnection.localDescription.sdp);
 
+    let self = this;
+    let addSsrcInfo = [];
     $(elem).each(function (idx, content) {
         var name = $(content).attr('name');
         var lines = '';
@@ -651,7 +652,7 @@ JingleSessionPC.prototype.addSource = function (elem) {
         var tmp = $(content).find('source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]'); // can handle both >source and >description>source
         tmp.each(function () {
             var ssrc = $(this).attr('ssrc');
-            if(mySdp.containsSSRC(ssrc)){
+            if (mySdp.containsSSRC(ssrc)) {
                 /**
                  * This happens when multiple participants change their streams at the same time and
                  * ColibriFocus.modifySources have to wait for stable state. In the meantime multiple
@@ -674,23 +675,28 @@ JingleSessionPC.prototype.addSource = function (elem) {
         sdp.media.forEach(function(media, idx) {
             if (!SDPUtil.find_line(media, 'a=mid:' + name))
                 return;
-            sdp.media[idx] += lines;
-            if (!self.addssrc[idx]) self.addssrc[idx] = '';
-            self.addssrc[idx] += lines;
+            if (!addSsrcInfo[idx]) {
+                addSsrcInfo[idx] = '';
+            }
+            addSsrcInfo[idx] += lines;
         });
-        sdp.raw = sdp.session + sdp.media.join('');
     });
 
-    this.oldModifySourcesShim(function() {
-        // When a source is added and if this is FF, a new channel is allocated
-        // for receiving the added source. We need to diffuse the SSRC of this
-        // new recvonly channel to the rest of the peers.
-        logger.log('modify sources done');
-
-        var newSdp = new SDP(self.peerconnection.localDescription.sdp);
-        logger.log("SDPs", mySdp, newSdp);
-        self.notifyMySSRCUpdate(mySdp, newSdp);
-    });
+    let workFunction = (finishedCallback) => {
+        let newRemoteSdp = this._processRemoteAddSource(addSsrcInfo);
+        this._renegotiate(newRemoteSdp)
+            .then(() => {
+                logger.info("Remote source-add processed");
+                var newSdp = new SDP(self.peerconnection.localDescription.sdp);
+                logger.log("SDPs", mySdp, newSdp);
+                this.notifyMySSRCUpdate(mySdp, newSdp);
+                finishedCallback();
+            }, (error) => {
+                logger.info("Error renegotiating after processing remote source-add: " + error);
+                finishedCallback(error);
+            });
+    };
+    this.modificationQueue.push(workFunction);
 };
 
 /**
@@ -750,12 +756,15 @@ JingleSessionPC.prototype.removeSource = function (elem) {
                 var ssrcLines = SDPUtil.find_lines(media, 'a=ssrc:' + ssrc);
                 if (ssrcLines.length)
                     self.removessrc[idx] += ssrcLines.join("\r\n")+"\r\n";
+                // TODO(brian): because we get rid of the member and process
+                //  each remote change atomically, we'll lose this optimization.
+                //  worth looking into how often it was kicking in anyway.
                 // Clear any pending 'source-add' for this SSRC
-                if (self.addssrc[idx]) {
-                    self.addssrc[idx]
-                        = self.addssrc[idx].replace(
-                            new RegExp('^a=ssrc:'+ssrc+' .*\r\n', 'gm'), '');
-                }
+                //if (self.addssrc[idx]) {
+                //    self.addssrc[idx]
+                //        = self.addssrc[idx].replace(
+                //            new RegExp('^a=ssrc:'+ssrc+' .*\r\n', 'gm'), '');
+                //}
             });
             self.removessrc[idx] += lines;
         });
@@ -812,17 +821,22 @@ JingleSessionPC.prototype._processNewJingleOfferIq = function(offerIq) {
     return remoteSdp;
 };
 
+JingleSessionPC.prototype._processRemoteAddSource = function(addSsrcInfo) {
+    let remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
+    addSsrcInfo.forEach(function(lines, idx) {
+        remoteSdp.media[idx] += lines;
+    });
+    remoteSdp.raw = remoteSdp.session + remoteSdp.media.join('');
+
+    return remoteSdp;
+};
+
 /**
- * Assumes there is remote work to be done (this.addssrc or this.removessrc 
+ * Assumes there is remote work to be done (this.removessrc 
  *  has work)
  */
 JingleSessionPC.prototype._processRemoteChange = function () {
     let remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
-
-    this.addssrc.forEach(function(lines, idx) {
-        remoteSdp.media[idx] += lines;
-    });
-    this.addssrc = [];
 
     // remove sources
     this.removessrc.forEach(function(lines, idx) {
@@ -851,7 +865,7 @@ JingleSessionPC.prototype._processRemoteChange = function () {
 JingleSessionPC.prototype.oldModifySourcesShim = function (successCallback, errorCallback) {
     let oldModifySourcesWorkFunction = (finishedCallback) => {
         if (this.peerconnection.signalingState == 'closed') return;
-        if (this.addssrc.length || this.removessrc.length) {
+        if (this.removessrc.length) {
             this._processRemoteChange()
                 .then(() => {
                     finishedCallback();
