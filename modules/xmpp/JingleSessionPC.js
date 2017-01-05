@@ -32,7 +32,6 @@ function JingleSessionPC(me, sid, peerjid, connection,
     this.lasticecandidate = false;
     this.closed = false;
 
-    this.removessrc = [];
     this.modifyingLocalStreams = false;
     this.modifiedSSRCs = {};
 
@@ -700,10 +699,17 @@ JingleSessionPC.prototype.addRemoteStream = function (elem) {
 };
 
 /**
+ * Deprecated...shim until i fix the rest of the chain
+ */
+JingleSessionPC.prototype.removeSource = function (elem) {
+    this.removeRemoteStream(elem);
+};
+
+/**
  * Handles a Jingle source-remove message for this Jingle session.
  * @param elem An array of Jingle "content" elements.
  */
-JingleSessionPC.prototype.removeSource = function (elem) {
+JingleSessionPC.prototype.removeRemoteStream = function (elem) {
     var self = this;
     // FIXME: dirty waiting
     if (!this.peerconnection.localDescription) {
@@ -716,11 +722,12 @@ JingleSessionPC.prototype.removeSource = function (elem) {
         return;
     }
 
-    logger.log('removessrc', new Date().getTime());
-    logger.log('ice', this.peerconnection.iceConnectionState);
+    logger.log('Remove remote stream');
+    logger.log('ICE connection state: ', this.peerconnection.iceConnectionState);
     var sdp = new SDP(this.peerconnection.remoteDescription.sdp);
     var mySdp = new SDP(this.peerconnection.localDescription.sdp);
 
+    let removeSsrcInfo = [];
     $(elem).each(function (idx, content) {
         var name = $(content).attr('name');
         var lines = '';
@@ -751,11 +758,14 @@ JingleSessionPC.prototype.removeSource = function (elem) {
         sdp.media.forEach(function(media, idx) {
             if (!SDPUtil.find_line(media, 'a=mid:' + name))
                 return;
-            if (!self.removessrc[idx]) self.removessrc[idx] = '';
+            if (!removeSsrcInfo[idx]) {
+                removeSsrcInfo[idx] = '';
+            }
             ssrcs.forEach(function(ssrc) {
                 var ssrcLines = SDPUtil.find_lines(media, 'a=ssrc:' + ssrc);
-                if (ssrcLines.length)
-                    self.removessrc[idx] += ssrcLines.join("\r\n")+"\r\n";
+                if (ssrcLines.length) {
+                    removeSsrcInfo[idx] += ssrcLines.join("\r\n")+"\r\n";
+                }
                 // TODO(brian): because we get rid of the member and process
                 //  each remote change atomically, we'll lose this optimization.
                 //  worth looking into how often it was kicking in anyway.
@@ -766,21 +776,24 @@ JingleSessionPC.prototype.removeSource = function (elem) {
                 //            new RegExp('^a=ssrc:'+ssrc+' .*\r\n', 'gm'), '');
                 //}
             });
-            self.removessrc[idx] += lines;
+            removeSsrcInfo[idx] += lines;
         });
-        sdp.raw = sdp.session + sdp.media.join('');
     });
-
-    this.oldModifySourcesShim(function() {
-        // When a source is removed and if this is FF, the recvonly channel that
-        // receives the remote stream is deactivated . We need to diffuse the
-        // recvonly SSRC removal to the rest of the peers.
-        logger.log('modify sources done');
-
-        var newSdp = new SDP(self.peerconnection.localDescription.sdp);
-        logger.log("SDPs", mySdp, newSdp);
-        self.notifyMySSRCUpdate(mySdp, newSdp);
-    });
+    let workFunction = (finishedCallback) => {
+        let newRemoteSdp = this._processRemoteRemoveSource(removeSsrcInfo);
+        this._renegotiate(newRemoteSdp)
+            .then(() => {
+                logger.info("Remote source-remove processed");
+                var newSdp = new SDP(self.peerconnection.localDescription.sdp);
+                logger.log("SDPs", mySdp, newSdp);
+                this.notifyMySSRCUpdate(mySdp, newSdp);
+                finishedCallback();
+            }, (error) => {
+                logger.info("Error renegotiating after processing remote source-remove: " + error);
+                finishedCallback(error);
+            });
+    };
+    this.modificationQueue.push(workFunction);
 };
 
 /**
@@ -821,7 +834,21 @@ JingleSessionPC.prototype._processNewJingleOfferIq = function(offerIq) {
     return remoteSdp;
 };
 
-JingleSessionPC.prototype._processRemoteAddSource = function(addSsrcInfo) {
+JingleSessionPC.prototype._processRemoteRemoveSource = function (removeSsrcInfo) {
+    let remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
+    removeSsrcInfo.forEach(function(lines, idx) {
+        lines = lines.split('\r\n');
+        lines.pop(); // remove empty last element;
+        lines.forEach(function(line) {
+            remoteSdp.media[idx] = remoteSdp.media[idx].replace(line + '\r\n', '');
+        });
+    });
+    remoteSdp.raw = remoteSdp.session + remoteSdp.media.join('');
+
+    return remoteSdp;
+};
+
+JingleSessionPC.prototype._processRemoteAddSource = function (addSsrcInfo) {
     let remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
     addSsrcInfo.forEach(function(lines, idx) {
         remoteSdp.media[idx] += lines;
@@ -837,16 +864,6 @@ JingleSessionPC.prototype._processRemoteAddSource = function(addSsrcInfo) {
  */
 JingleSessionPC.prototype._processRemoteChange = function () {
     let remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
-
-    // remove sources
-    this.removessrc.forEach(function(lines, idx) {
-        lines = lines.split('\r\n');
-        lines.pop(); // remove empty last element;
-        lines.forEach(function(line) {
-            remoteSdp.media[idx] = remoteSdp.media[idx].replace(line + '\r\n', '');
-        });
-    });
-    this.removessrc = [];
 
     remoteSdp.raw = remoteSdp.session + remoteSdp.media.join('');
     return this._renegotiate(remoteSdp);
@@ -865,17 +882,7 @@ JingleSessionPC.prototype._processRemoteChange = function () {
 JingleSessionPC.prototype.oldModifySourcesShim = function (successCallback, errorCallback) {
     let oldModifySourcesWorkFunction = (finishedCallback) => {
         if (this.peerconnection.signalingState == 'closed') return;
-        if (this.removessrc.length) {
-            this._processRemoteChange()
-                .then(() => {
-                    finishedCallback();
-                }, (error, errorMsg) => {
-                    if (error) {
-                        errorMsg = error + ": " + errorMsg;
-                    }
-                    finishedCallback(errorMsg);
-                });
-        } else if (this.modifyingLocalStreams) {
+        if (this.modifyingLocalStreams) {
             // Reset switch streams flags
             this.modifyingLocalStreams = false;
             this._renegotiate()
