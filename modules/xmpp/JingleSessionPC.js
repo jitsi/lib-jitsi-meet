@@ -57,7 +57,6 @@ function JingleSessionPC(me, sid, peerjid, connection,
      */
     this.ssrcOwners = {};
 
-    this.jingleOfferIq = null;
     this.webrtcIceUdpDisable = !!this.service.options.webrtcIceUdpDisable;
     this.webrtcIceTcpDisable = !!this.service.options.webrtcIceTcpDisable;
     /**
@@ -325,11 +324,20 @@ JingleSessionPC.prototype.acceptOffer = function(jingleOffer,
 JingleSessionPC.prototype.setOfferCycle = function (jingleOfferIq,
                                                           success,
                                                           failure) {
-    this.jingleOfferIq = jingleOfferIq;
-    this.oldModifySourcesShim(success, (error) => {
-        failure(error);
-        JingleSessionPC.onJingleFatalError(this, error);
-    });
+    let workFunction = (finishedCallback) => {
+        let newRemoteSdp = this._processNewJingleOfferIq(jingleOfferIq);
+        this._renegotiate(newRemoteSdp)
+            .then(() => {
+                success();
+                finishedCallback();
+            }, (error) => {
+                logger.info("Error renegotiating after setting new remote offer: " + error);
+                failure(error);
+                JingleSessionPC.onJingleFatalError(this, error);
+                finishedCallback(error);
+            });
+    };
+    this.modificationQueue.push(workFunction);
 };
 
 /**
@@ -785,29 +793,31 @@ JingleSessionPC.prototype._processQueueTasks = function (task, finishedCallback)
 };
 
 /**
- * Assumes there is remote work to be done (this.addssrc, this.removessrc 
- *  or this.jingleOfferIq has work)
+ * Takes in a jingle offer iq, returns the new sdp offer
+ */
+JingleSessionPC.prototype._processNewJingleOfferIq = function(offerIq) {
+    let remoteSdp = new SDP('');
+    if (this.webrtcIceTcpDisable) {
+        remoteSdp.removeTcpCandidates = true;
+    }
+    if (this.webrtcIceUdpDisable) {
+        remoteSdp.removeUdpCandidates = true;
+    }
+    if (this.failICE) {
+        remoteSdp.failICE = true;
+    }
+
+    remoteSdp.fromJingle(offerIq);
+    this.readSsrcInfo($(offerIq).find(">content"));
+    return remoteSdp;
+};
+
+/**
+ * Assumes there is remote work to be done (this.addssrc or this.removessrc 
+ *  has work)
  */
 JingleSessionPC.prototype._processRemoteChange = function () {
-    let remoteSdp = null;
-    if (this.jingleOfferIq) {
-        remoteSdp = new SDP('');
-        if (this.webrtcIceTcpDisable) {
-            remoteSdp.removeTcpCandidates = true;
-        }
-        if (this.webrtcIceUdpDisable) {
-            remoteSdp.removeUdpCandidates = true;
-        }
-        if (this.failICE) {
-            remoteSdp.failICE = true;
-        }
-
-        remoteSdp.fromJingle(this.jingleOfferIq);
-        this.readSsrcInfo($(this.jingleOfferIq).find(">content"));
-        this.jingleOfferIq = null;
-    } else {
-        remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
-    }
+    let remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
 
     this.addssrc.forEach(function(lines, idx) {
         remoteSdp.media[idx] += lines;
@@ -841,7 +851,7 @@ JingleSessionPC.prototype._processRemoteChange = function () {
 JingleSessionPC.prototype.oldModifySourcesShim = function (successCallback, errorCallback) {
     let oldModifySourcesWorkFunction = (finishedCallback) => {
         if (this.peerconnection.signalingState == 'closed') return;
-        if (this.addssrc.length || this.removessrc.length || this.jingleOfferIq !== null) {
+        if (this.addssrc.length || this.removessrc.length) {
             this._processRemoteChange()
                 .then(() => {
                     finishedCallback();
@@ -886,7 +896,6 @@ JingleSessionPC.prototype.oldModifySourcesShim = function (successCallback, erro
  * @param sdp: optional remote sdp to use.  if not provided, the remote
  *  sdp from the peer connection will be used
  */
-
 JingleSessionPC.prototype._renegotiate = function(optionalRemoteSdp) {
     let media_constraints = this.media_constraints;
     let remoteSdp = optionalRemoteSdp || new SDP(this.peerconnection.remoteDescription.sdp);
