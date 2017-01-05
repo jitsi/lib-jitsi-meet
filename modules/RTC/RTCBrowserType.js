@@ -161,10 +161,15 @@ var RTCBrowserType = {
 
     /**
      * Whether jitsi-meet supports simulcast on the current browser.
+     * TODO this is currently NOT used to make a decision of whether to
+     * enable simulcast or not (where we rely on sdp-simulcast instead). We
+     * should use either one or the other.
      * @returns {boolean}
      */
     supportsSimulcast: function() {
-        return RTCBrowserType.isChrome();
+        return RTCBrowserType.isChrome()
+            || RTCBrowserType.isNWJS()
+            || RTCBrowserType.isElectron();
     }
 
     // Add version getters for other browsers when needed

@@ -121,8 +121,10 @@ export default class ConnectionQuality {
 
         /**
          * Whether simulcast is supported. Note that even if supported, it is
-         * currently not used for screensharing, which is why we have an
-         * additional check.
+         * currently not used for screensharing.
+         *
+         * TODO: use a more reliable check for whether simulcast is actually in
+         * use.
          */
         this._simulcast
             = !options.disableSimulcast && RTCBrowserType.supportsSimulcast();
