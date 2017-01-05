@@ -859,17 +859,6 @@ JingleSessionPC.prototype._processRemoteAddSource = function (addSsrcInfo) {
 };
 
 /**
- * Assumes there is remote work to be done (this.removessrc 
- *  has work)
- */
-JingleSessionPC.prototype._processRemoteChange = function () {
-    let remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
-
-    remoteSdp.raw = remoteSdp.session + remoteSdp.media.join('');
-    return this._renegotiate(remoteSdp);
-};
-
-/**
  * The old modifySourcesQueue had all the logic in the processing loop itself,
  *  rather than embedded in the queued task.  This shim takes all the work
  *  that was done in the old processing loop and wraps it in a task to pass
