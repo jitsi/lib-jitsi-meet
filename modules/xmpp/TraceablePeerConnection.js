@@ -491,6 +491,7 @@ TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
     if (ssrcInfo && ssrcInfo.type === "addMuted") {
         SdpConsistency.setPrimarySsrc(ssrcInfo.ssrc.ssrcs[0]);
         this.cachedPrimarySsrc = ssrcInfo.ssrc.ssrcs[0];
+        this.simulcast.setSsrcCache(ssrcInfo.ssrc.ssrcs);
     }
 };
 
