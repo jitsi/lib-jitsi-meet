@@ -1,6 +1,5 @@
-/* jshint -W117 */
+/* global $, APP */
 
-var logger = require("jitsi-meet-logger").getLogger(__filename);
 var SDPUtil = require("./SDPUtil");
 
 // SDP STUFF
@@ -19,6 +18,14 @@ function SDP(sdp) {
     this.raw = session + media.join('');
     this.session = session;
 }
+
+/**
+ * A flag will make {@link transportToJingle} and {@link jingle2media} replace
+ * ICE candidates IPs with invalid value of '1.1.1.1' which will cause ICE
+ * failure. The flag is used in the automated testing.
+ * @type {boolean}
+ */
+SDP.prototype.failICE = false;
 
 /**
  * Whether or not to remove TCP ice candidates when translating from/to jingle.
@@ -128,7 +135,7 @@ SDP.prototype.removeSessionLines = function(prefix) {
     });
     this.raw = this.session + this.media.join('');
     return lines;
-}
+};
 // remove lines matching prefix from a media section specified by mediaindex
 // TODO: non-numeric mediaindex could match mid
 SDP.prototype.removeMediaLines = function(mediaindex, prefix) {
@@ -139,12 +146,10 @@ SDP.prototype.removeMediaLines = function(mediaindex, prefix) {
     });
     this.raw = this.session + this.media.join('');
     return lines;
-}
+};
 
 // add content's to a jingle element
 SDP.prototype.toJingle = function (elem, thecreator) {
-//    logger.log("SSRC" + ssrcs["audio"] + " - " + ssrcs["video"]);
-    var self = this;
     var i, j, k, mline, ssrc, rtpmap, tmp, lines;
     // new bundle plan
     lines = SDPUtil.find_lines(this.session, 'a=group:');
@@ -388,10 +393,14 @@ SDP.prototype.transportToJingle = function (mediaindex, elem) {
             var lines = SDPUtil.find_lines(this.media[mediaindex], 'a=candidate:', this.session);
             lines.forEach(function (line) {
                 var candidate = SDPUtil.candidateToJingle(line);
+                if (self.failICE) {
+                    candidate.ip = "1.1.1.1";
+                }
                 var protocol = (candidate &&
                         typeof candidate.protocol === 'string')
                     ? candidate.protocol.toLowerCase() : '';
-                if ((self.removeTcpCandidates && protocol === 'tcp') ||
+                if ((self.removeTcpCandidates
+                        && (protocol === 'tcp' || protocol === 'ssltcp')) ||
                     (self.removeUdpCandidates && protocol === 'udp')) {
                     return;
                 }
@@ -400,7 +409,7 @@ SDP.prototype.transportToJingle = function (mediaindex, elem) {
         }
     }
     elem.up(); // end of transport
-}
+};
 
 SDP.prototype.rtcpFbToJingle = function (mediaindex, elem, payloadtype) { // XEP-0293
     var lines = SDPUtil.find_lines(this.media[mediaindex], 'a=rtcp-fb:' + payloadtype);
@@ -482,7 +491,6 @@ SDP.prototype.fromJingle = function (jingle) {
 SDP.prototype.jingle2media = function (content) {
     var media = '',
         desc = content.find('description'),
-        ssrc = desc.attr('ssrc'),
         self = this,
         tmp;
     var sctp = content.find(
@@ -599,9 +607,12 @@ SDP.prototype.jingle2media = function (content) {
         var protocol = this.getAttribute('protocol');
         protocol = (typeof protocol === 'string') ? protocol.toLowerCase(): '';
 
-        if ((self.removeTcpCandidates && protocol === 'tcp') ||
+        if ((self.removeTcpCandidates
+                && (protocol === 'tcp' || protocol === 'ssltcp')) ||
             (self.removeUdpCandidates && protocol === 'udp')) {
             return;
+        } else  if (self.failICE) {
+            this.setAttribute('ip', '1.1.1.1');
         }
 
         media += SDPUtil.candidateFromJingle(this);

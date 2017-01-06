@@ -1,7 +1,7 @@
-/* global $, __filename */
+/* global $ */
+
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
-var RTC = require('./RTC');
 
 var RTCUIHelper = {
 
@@ -58,26 +58,8 @@ var RTCUIHelper = {
      */
     setAutoPlay: function (streamElement, autoPlay) {
         if (!RTCBrowserType.isIExplorer()) {
-            streamElement.autoplay = true;
+            streamElement.autoplay = autoPlay;
         }
-    },
-
-    /**
-     * Extract video stream id from the video element.
-     * @param {Element} element
-     * @returns {string} video stream id or empty string
-     */
-    getVideoId: function (element) {
-        var src = RTC.getVideoSrc(element);
-        if (!src) {
-            return "";
-        }
-
-        if (RTCBrowserType.isFirefox()) {
-            return src.id;
-        }
-
-        return src;
     }
 };
 

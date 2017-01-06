@@ -1,6 +1,8 @@
-/* global $ */
-var RTC = require('../RTC/RTC');
-var logger = require("jitsi-meet-logger").getLogger(__filename);
+/* global mozRTCPeerConnection, webkitRTCPeerConnection */
+
+import { getLogger } from "jitsi-meet-logger";
+const logger = getLogger(__filename);
+import RTC from '../RTC/RTC';
 var RTCBrowserType = require("../RTC/RTCBrowserType.js");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var transform = require('sdp-transform');
@@ -186,7 +188,7 @@ TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
             var ssrcOperation = SSRCs[0];
             switch(ssrcOperation.type) {
                 case "mute":
-                case "addMuted":
+                case "addMuted": {
                 //FIXME: If we want to support multiple streams we have to add
                 // recv-only ssrcs for the
                 // muted streams on every change until the stream is unmuted
@@ -194,8 +196,8 @@ TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
                 // in the SDP
                     if(!bLine.ssrcs)
                         bLine.ssrcs = [];
-                    var groups = ssrcOperation.ssrc.groups;
-                    var ssrc = null;
+                    const groups = ssrcOperation.ssrc.groups;
+                    let ssrc = null;
                     if(groups && groups.length) {
                         ssrc = groups[0].primarySSRC;
                     } else if(ssrcOperation.ssrc.ssrcs &&
@@ -218,14 +220,15 @@ TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
                     // only 1 video stream that is muted.
                     this.recvOnlySSRCs[bLine.type] = ssrc;
                     break;
-                case "unmute":
+                }
+                case "unmute": {
                     if(!ssrcOperation.ssrc || !ssrcOperation.ssrc.ssrcs ||
                         !ssrcOperation.ssrc.ssrcs.length)
                         break;
                     var ssrcMap = {};
                     var ssrcLastIdx = ssrcOperation.ssrc.ssrcs.length - 1;
                     for(var i = 0; i < bLine.ssrcs.length; i++) {
-                        var ssrc = bLine.ssrcs[i];
+                        const ssrc = bLine.ssrcs[i];
                         if (ssrc.attribute !== 'msid' &&
                             ssrc.value !== ssrcOperation.msid) {
                             continue;
@@ -236,7 +239,7 @@ TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
                         if(ssrcLastIdx < 0)
                             break;
                     }
-                    var groups = ssrcOperation.ssrc.groups;
+                    const groups = ssrcOperation.ssrc.groups;
                     if (typeof bLine.ssrcGroups !== 'undefined' &&
                         Array.isArray(bLine.ssrcGroups) && groups &&
                         groups.length) {
@@ -277,8 +280,9 @@ TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
                     // Storing the unmuted SSRCs.
                     permSSRCs.push(ssrcOperation);
                     break;
+                }
                 default:
-                break;
+                    break;
             }
             SSRCs = this.replaceSSRCs[bLine.type].splice(0,1);
         }
@@ -287,7 +291,7 @@ TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
 
         if (!Array.isArray(bLine.ssrcs) || bLine.ssrcs.length === 0)
         {
-            var ssrc = this.recvOnlySSRCs[bLine.type]
+            const ssrc = this.recvOnlySSRCs[bLine.type]
                 = this.recvOnlySSRCs[bLine.type] ||
                     RandomUtil.randomInt(1, 0xffffffff);
             bLine.ssrcs = [{
@@ -488,7 +492,7 @@ ssrcInfo) {
         // Removing all cached ssrcs for the streams that are removed or
         // muted.
         if(ssrcInfo && this.replaceSSRCs[ssrcInfo.mtype]) {
-            for(i = 0; i < this.replaceSSRCs[ssrcInfo.mtype].length; i++) {
+            for(var i = 0; i < this.replaceSSRCs[ssrcInfo.mtype].length; i++) {
                 var op = this.replaceSSRCs[ssrcInfo.mtype][i];
                 if(op.type === "unmute" &&
                     op.ssrc.ssrcs.join("_") ===
@@ -584,32 +588,45 @@ TraceablePeerConnection.prototype.createAnswer
     this.trace('createAnswer', JSON.stringify(constraints, null, ' '));
     this.peerconnection.createAnswer(
         function (answer) {
-            self.trace('createAnswerOnSuccess::preTransform', dumpSDP(answer));
-            // if we're running on FF, transform to Plan A first.
-            if (RTCBrowserType.usesUnifiedPlan()) {
-                answer = self.interop.toPlanB(answer);
-                self.trace('createAnswerOnSuccess::postTransform (Plan B)',
-                    dumpSDP(answer));
+            try {
+                self.trace(
+                    'createAnswerOnSuccess::preTransform', dumpSDP(answer));
+                // if we're running on FF, transform to Plan A first.
+                if (RTCBrowserType.usesUnifiedPlan()) {
+                    answer = self.interop.toPlanB(answer);
+                    self.trace('createAnswerOnSuccess::postTransform (Plan B)',
+                        dumpSDP(answer));
+                }
+
+                if (!self.session.room.options.disableSimulcast
+                    && self.simulcast.isSupported()) {
+                    answer = self.simulcast.mungeLocalDescription(answer);
+                    self.trace(
+                        'createAnswerOnSuccess::postTransform (simulcast)',
+                        dumpSDP(answer));
+                }
+
+                if (!RTCBrowserType.isFirefox())
+                {
+                    answer = self.ssrcReplacement(answer);
+                    self.trace('createAnswerOnSuccess::mungeLocalVideoSSRC',
+                        dumpSDP(answer));
+                }
+
+                self.eventEmitter.emit(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+                    extractSSRCMap(answer));
+
+                successCallback(answer);
+            } catch (e) {
+                // there can be error modifying the answer, for example
+                // for ssrcReplacement there was a track with ssrc that is null
+                // and if we do not catch the error no callback is called
+                // at all
+                self.trace('createAnswerOnError', e);
+                self.trace('createAnswerOnError', dumpSDP(answer));
+                logger.error('createAnswerOnError', e, dumpSDP(answer));
+                failureCallback(e);
             }
-
-            if (!self.session.room.options.disableSimulcast
-                && self.simulcast.isSupported()) {
-                answer = self.simulcast.mungeLocalDescription(answer);
-                self.trace('createAnswerOnSuccess::postTransform (simulcast)',
-                    dumpSDP(answer));
-            }
-
-            if (!RTCBrowserType.isFirefox())
-            {
-                answer = self.ssrcReplacement(answer);
-                self.trace('createAnswerOnSuccess::mungeLocalVideoSSRC',
-                    dumpSDP(answer));
-            }
-
-            self.eventEmitter.emit(XMPPEvents.SENDRECV_STREAMS_CHANGED,
-                extractSSRCMap(answer));
-
-            successCallback(answer);
         },
         function(err) {
             self.trace('createAnswerOnFailure', err);
@@ -622,6 +639,7 @@ TraceablePeerConnection.prototype.createAnswer
 };
 
 TraceablePeerConnection.prototype.addIceCandidate
+        // eslint-disable-next-line no-unused-vars
         = function (candidate, successCallback, failureCallback) {
     //var self = this;
     this.trace('addIceCandidate', JSON.stringify(candidate, null, ' '));
