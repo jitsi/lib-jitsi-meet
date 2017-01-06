@@ -809,49 +809,6 @@ JingleSessionPC.prototype._processRemoteAddSource = function (addSsrcInfo) {
 };
 
 /**
- * The old modifySourcesQueue had all the logic in the processing loop itself,
- *  rather than embedded in the queued task.  This shim takes all the work
- *  that was done in the old processing loop and wraps it in a task to pass
- *  to the new (simpler) processing loop.  The logic has been tweaked
- *  slightly to work with a single 'finished' callback (vs individual
- *  success and error callbacks), but this is (for now) made transparent
- *  to the callers (which still pass independent success and error
- *  callbacks)
- */
-JingleSessionPC.prototype.oldModifySourcesShim = function (successCallback, errorCallback) {
-    let oldModifySourcesWorkFunction = (finishedCallback) => {
-        if (this.peerconnection.signalingState == 'closed') return;
-        if (this.modifyingLocalStreams) {
-            // Reset switch streams flags
-            this.modifyingLocalStreams = false;
-            this._renegotiate()
-                .then(() => {
-                    finishedCallback();
-                }, (error, errorMsg) => {
-                    if (error) {
-                        errorMsg = error + ": " + errorMsg;
-                   }
-                    finishedCallback(errorMsg);
-                });
-        } else {
-            //TODO(brian): need to think some more about the validity of this
-            // case.  likely what's happening is that multiple operations are
-            // adding to addssrc or removessrc, but they're all getting processed
-            // in a single chunk, so there's a leftover operation scheduled
-            // but with no work to do.
-            finishedCallback();
-        }
-    };
-    this.modificationQueue.push(oldModifySourcesWorkFunction, (err) => {
-        if (err) {
-            errorCallback(err);
-        } else {
-            successCallback();
-        }
-    });
-};
-
-/**
  * Do a new o/a flow using the existing remote description
  * @param sdp: optional remote sdp to use.  if not provided, the remote
  *  sdp from the peer connection will be used
@@ -1063,86 +1020,36 @@ JingleSessionPC.prototype.removeStreamNoSideEffects = function (stream) {
  */
 JingleSessionPC.prototype.removeStream = function (stream, callback, errorCallback,
     ssrcInfo) {
-    // Conference is not active
-    if(!this.peerconnection) {
-        callback();
-        return;
-    }
-
-    // Remember SDP to figure out added/removed SSRCs
-    var oldSdp = null;
-
-    if(this.peerconnection.localDescription) {
-        oldSdp = new SDP(this.peerconnection.localDescription.sdp);
-    }
-
-    if(!oldSdp) {
-        callback();
-        return;
-    }
-
-    if (RTCBrowserType.getBrowserType() ===
-            RTCBrowserType.RTC_BROWSER_FIREFOX) {
-        if(!stream) {//There is nothing to be changed
+    let workFunction = (finishedCallback) => {
+        if (!this.peerconnection) {
             callback();
+            finishedCallback();
             return;
         }
-        var sender = null;
-        // On Firefox we don't replace MediaStreams as this messes up the
-        // m-lines (which can't be removed in Plan Unified) and brings a lot
-        // of complications. Instead, we use the RTPSender and remove just
-        // the track.
-        var track = null;
-        if(stream.getAudioTracks() && stream.getAudioTracks().length) {
-            track = stream.getAudioTracks()[0];
-        } else if(stream.getVideoTracks() && stream.getVideoTracks().length) {
-            track = stream.getVideoTracks()[0];
-        }
-
-        if(!track) {
-            var msg = "Cannot remove tracks: no tracks.";
-            logger.log(msg);
-            errorCallback(new Error(msg));
+        if (!this.peerconnection.localDescription) {
+            callback();
+            finishedCallback();
             return;
         }
-
-        // Find the right sender (for audio or video)
-        this.peerconnection.peerconnection.getSenders().some(function (s) {
-            if (s.track === track) {
-                sender = s;
-                return true;
-            }
-        });
-
-        if (sender) {
-            this.peerconnection.peerconnection.removeTrack(sender);
-        } else {
-            logger.log("Cannot remove tracks: no RTPSender.");
+        if (RTCBrowserType.getBrowserType() ===
+                RTCBrowserType.RTC_BROWSER_FIREFOX) {
+            this._handleFirefoxRemoveStream(stream);
+        } else if (stream) {
+            this.peerconnection.removeStream(stream, false, ssrcInfo);
         }
-    } else if(stream)
-        this.peerconnection.removeStream(stream, false, ssrcInfo);
-    // else
-    // NOTE: If there is no stream and the browser is not FF we still need to do
-    // some transformation in order to send remove-source for the muted
-    // streams. That's why we aren't calling return here.
-
-    this.modifyingLocalStreams = true;
-    var self = this;
-    this.oldModifySourcesShim(function() {
-        logger.log('modify sources done');
-
-        var newSdp = new SDP(self.peerconnection.localDescription.sdp);
-        if(ssrcInfo) {
-            self.modifiedSSRCs[ssrcInfo.type] =
-                self.modifiedSSRCs[ssrcInfo.type] || [];
-            self.modifiedSSRCs[ssrcInfo.type].push(ssrcInfo);
-        }
-        logger.log("SDPs", oldSdp, newSdp);
-        self.notifyMySSRCUpdate(oldSdp, newSdp);
-        callback();
-    }, function (error) {
-        errorCallback(error);
-    });
+        let oldSdp = new SDP(this.peerconnection.localDescription.sdp);
+        this._renegotiate()
+            .then(() => {
+                let newSdp = new SDP(this.peerconnection.localDescription.sdp);
+                logger.log("SDPs", oldSdp, newSdp);
+                this.notifyMySSRCUpdate(oldSdp, newSdp);
+                callback();
+                finishedCallback();
+            }, (error) => {
+                finishedCallback(error);
+            });
+    };
+    this.modificationQueue.push(workFunction);
 };
 
 /**
