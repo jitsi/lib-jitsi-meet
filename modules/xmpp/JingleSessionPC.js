@@ -675,60 +675,7 @@ JingleSessionPC.prototype.removeRemoteStream = function (elem) {
     var sdp = new SDP(this.peerconnection.remoteDescription.sdp);
     var mySdp = new SDP(this.peerconnection.localDescription.sdp);
 
-    //TODO(brian): move the logic to parse out removeSsrcInfo to a helper method
-    // (can it be a helper that is combined with the logic to get the addssrc info?)
-    let removeSsrcInfo = [];
-    $(elem).each(function (idx, content) {
-        var name = $(content).attr('name');
-        var lines = '';
-        $(content).find('ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]').each(function() {
-            var semantics = this.getAttribute('semantics');
-            var ssrcs = $(this).find('>source').map(function () {
-                return this.getAttribute('ssrc');
-            }).get();
-
-            if (ssrcs.length) {
-                lines += 'a=ssrc-group:' + semantics + ' ' + ssrcs.join(' ') + '\r\n';
-            }
-        });
-        var ssrcs = [];
-        var tmp = $(content).find('source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]'); // can handle both >source and >description>source
-        tmp.each(function () {
-            var ssrc = $(this).attr('ssrc');
-            // This should never happen, but can be useful for bug detection
-            if(mySdp.containsSSRC(ssrc)){
-                var errmsg
-                    = "Got remove stream request for my own ssrc: " + ssrc;
-                GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
-                logger.error(errmsg);
-                return;
-            }
-            ssrcs.push(ssrc);
-        });
-        sdp.media.forEach(function(media, idx) {
-            if (!SDPUtil.find_line(media, 'a=mid:' + name))
-                return;
-            if (!removeSsrcInfo[idx]) {
-                removeSsrcInfo[idx] = '';
-            }
-            ssrcs.forEach(function(ssrc) {
-                var ssrcLines = SDPUtil.find_lines(media, 'a=ssrc:' + ssrc);
-                if (ssrcLines.length) {
-                    removeSsrcInfo[idx] += ssrcLines.join("\r\n")+"\r\n";
-                }
-                // TODO(brian): because we get rid of the member and process
-                //  each remote change atomically, we'll lose this optimization.
-                //  worth looking into how often it was kicking in anyway.
-                // Clear any pending 'source-add' for this SSRC
-                //if (self.addssrc[idx]) {
-                //    self.addssrc[idx]
-                //        = self.addssrc[idx].replace(
-                //            new RegExp('^a=ssrc:'+ssrc+' .*\r\n', 'gm'), '');
-                //}
-            });
-            removeSsrcInfo[idx] += lines;
-        });
-    });
+    let removeSsrcInfo = this._parseSsrcInfoFromSourceRemove(elem, sdp);
     let workFunction = (finishedCallback) => {
         let newRemoteSdp = this._processRemoteRemoveSource(removeSsrcInfo);
         this._renegotiate(newRemoteSdp)
@@ -896,6 +843,45 @@ JingleSessionPC.prototype.addStreamNoSideEffects = function (stream) {
     }
 };
 
+JingleSessionPC.prototype._parseSsrcInfoFromSourceRemove = function (sourceRemoveElem, currentRemoteSdp) {
+    let removeSsrcInfo = [];
+    $(sourceRemoveElem).each(function (idx, content) {
+        var name = $(content).attr('name');
+        var lines = '';
+        $(content).find('ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]').each(function() {
+            var semantics = this.getAttribute('semantics');
+            var ssrcs = $(this).find('>source').map(function () {
+                return this.getAttribute('ssrc');
+            }).get();
+
+            if (ssrcs.length) {
+                lines += 'a=ssrc-group:' + semantics + ' ' + ssrcs.join(' ') + '\r\n';
+            }
+        });
+        var ssrcs = [];
+        var tmp = $(content).find('source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]'); // can handle both >source and >description>source
+        tmp.each(function () {
+            var ssrc = $(this).attr('ssrc');
+            ssrcs.push(ssrc);
+        });
+        currentRemoteSdp.media.forEach(function(media, idx) {
+            if (!SDPUtil.find_line(media, 'a=mid:' + name))
+                return;
+            if (!removeSsrcInfo[idx]) {
+                removeSsrcInfo[idx] = '';
+            }
+            ssrcs.forEach(function(ssrc) {
+                var ssrcLines = SDPUtil.find_lines(media, 'a=ssrc:' + ssrc);
+                if (ssrcLines.length) {
+                    removeSsrcInfo[idx] += ssrcLines.join("\r\n")+"\r\n";
+                }
+            });
+            removeSsrcInfo[idx] += lines;
+        });
+    });
+    return removeSsrcInfo;
+};
+
 /**
  * Adds stream.
  * @param stream new stream that will be added.
@@ -913,12 +899,6 @@ JingleSessionPC.prototype.addStream = function (stream, callback, errorCallback,
         if (!this.peerconnection) {
             errorCallback();
             finishedCallback("Error: tried adding stream with no active peer connection");
-            return;
-        }
-        if (!this.peerconnection.localDescription) {
-            errorCallback();
-            finishedCallback("Error: tried adding stream with " +
-                "no existing local description to compare new changes to");
             return;
         }
         this.peerconnection.addStream(stream, ssrcInfo);
@@ -1026,11 +1006,6 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, errorCallba
             finishedCallback();
             return;
         }
-        if (!this.peerconnection.localDescription) {
-            callback();
-            finishedCallback();
-            return;
-        }
         if (RTCBrowserType.getBrowserType() ===
                 RTCBrowserType.RTC_BROWSER_FIREFOX) {
             this._handleFirefoxRemoveStream(stream);
@@ -1041,6 +1016,11 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, errorCallba
         this._renegotiate()
             .then(() => {
                 let newSdp = new SDP(this.peerconnection.localDescription.sdp);
+                if (ssrcInfo) {
+                    this.modifiedSSRCs[ssrcInfo.type] =
+                        this.modifiedSSRCs[ssrcInfo.type] || [];
+                    this.modifiedSSRCs[ssrcInfo.type].push(ssrcInfo);
+                }
                 logger.log("SDPs", oldSdp, newSdp);
                 this.notifyMySSRCUpdate(oldSdp, newSdp);
                 callback();
