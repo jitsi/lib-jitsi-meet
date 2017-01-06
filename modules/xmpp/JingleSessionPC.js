@@ -560,6 +560,47 @@ JingleSessionPC.prototype.addSource = function (elem) {
     this.addRemoteStream(elem);
 };
 
+JingleSessionPC.prototype._parseSsrcInfoFromSourceAdd = function (sourceAddElem, currentRemoteSdp) {
+    let addSsrcInfo = [];
+    $(sourceAddElem).each(function (idx, content) {
+        var name = $(content).attr('name');
+        var lines = '';
+        $(content).find('ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]').each(function() {
+            var semantics = this.getAttribute('semantics');
+            var ssrcs = $(this).find('>source').map(function () {
+                return this.getAttribute('ssrc');
+            }).get();
+
+            if (ssrcs.length) {
+                lines += 'a=ssrc-group:' + semantics + ' ' + ssrcs.join(' ') + '\r\n';
+            }
+        });
+        var tmp = $(content).find('source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]'); // can handle both >source and >description>source
+        tmp.each(function () {
+            var ssrc = $(this).attr('ssrc');
+            if (currentRemoteSdp.containsSSRC(ssrc)) {
+                logger.warn("Source-add request for existing SSRC: " + ssrc);
+                return;
+            }
+            $(this).find('>parameter').each(function () {
+                lines += 'a=ssrc:' + ssrc + ' ' + $(this).attr('name');
+                if ($(this).attr('value') && $(this).attr('value').length)
+                    lines += ':' + $(this).attr('value');
+                lines += '\r\n';
+            });
+        });
+        currentRemoteSdp.media.forEach(function(media, idx) {
+            if (!SDPUtil.find_line(media, 'a=mid:' + name))
+                return;
+            if (!addSsrcInfo[idx]) {
+                addSsrcInfo[idx] = '';
+            }
+            addSsrcInfo[idx] += lines;
+        });
+    });
+    return addSsrcInfo;
+};
+
 /**
  * Handles a Jingle source-add message for this Jingle session.
  * @param elem An array of Jingle "content" elements.
@@ -576,65 +617,16 @@ JingleSessionPC.prototype.addRemoteStream = function (elem) {
 
     this.readSsrcInfo(elem);
 
-    var sdp = new SDP(this.peerconnection.remoteDescription.sdp);
-    var mySdp = new SDP(this.peerconnection.localDescription.sdp);
-
-    let self = this;
-    //TODO(brian): move the logic to parse out the addSsrcInfo into
-    // a helper method
-    let addSsrcInfo = [];
-    $(elem).each(function (idx, content) {
-        var name = $(content).attr('name');
-        var lines = '';
-        $(content).find('ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]').each(function() {
-            var semantics = this.getAttribute('semantics');
-            var ssrcs = $(this).find('>source').map(function () {
-                return this.getAttribute('ssrc');
-            }).get();
-
-            if (ssrcs.length) {
-                lines += 'a=ssrc-group:' + semantics + ' ' + ssrcs.join(' ') + '\r\n';
-            }
-        });
-        var tmp = $(content).find('source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]'); // can handle both >source and >description>source
-        tmp.each(function () {
-            var ssrc = $(this).attr('ssrc');
-            if (mySdp.containsSSRC(ssrc)) {
-                /**
-                 * This happens when multiple participants change their streams at the same time and
-                 * ColibriFocus.modifySources have to wait for stable state. In the meantime multiple
-                 * addssrc are scheduled for update IQ. See
-                 */
-                logger.warn("Got add stream request for my own ssrc: "+ssrc);
-                return;
-            }
-            if (sdp.containsSSRC(ssrc)) {
-                logger.warn("Source-add request for existing SSRC: " + ssrc);
-                return;
-            }
-            $(this).find('>parameter').each(function () {
-                lines += 'a=ssrc:' + ssrc + ' ' + $(this).attr('name');
-                if ($(this).attr('value') && $(this).attr('value').length)
-                    lines += ':' + $(this).attr('value');
-                lines += '\r\n';
-            });
-        });
-        sdp.media.forEach(function(media, idx) {
-            if (!SDPUtil.find_line(media, 'a=mid:' + name))
-                return;
-            if (!addSsrcInfo[idx]) {
-                addSsrcInfo[idx] = '';
-            }
-            addSsrcInfo[idx] += lines;
-        });
-    });
-
     let workFunction = (finishedCallback) => {
+        var sdp = new SDP(this.peerconnection.remoteDescription.sdp);
+        var mySdp = new SDP(this.peerconnection.localDescription.sdp);
+        let addSsrcInfo = this._parseSsrcInfoFromSourceAdd(elem, sdp);
+
         let newRemoteSdp = this._processRemoteAddSource(addSsrcInfo);
         this._renegotiate(newRemoteSdp)
             .then(() => {
                 logger.info("Remote source-add processed");
-                var newSdp = new SDP(self.peerconnection.localDescription.sdp);
+                var newSdp = new SDP(this.peerconnection.localDescription.sdp);
                 logger.log("SDPs", mySdp, newSdp);
                 this.notifyMySSRCUpdate(mySdp, newSdp);
                 finishedCallback();
@@ -672,11 +664,11 @@ JingleSessionPC.prototype.removeRemoteStream = function (elem) {
 
     logger.log('Remove remote stream');
     logger.log('ICE connection state: ', this.peerconnection.iceConnectionState);
-    var sdp = new SDP(this.peerconnection.remoteDescription.sdp);
-    var mySdp = new SDP(this.peerconnection.localDescription.sdp);
-
-    let removeSsrcInfo = this._parseSsrcInfoFromSourceRemove(elem, sdp);
     let workFunction = (finishedCallback) => {
+        var sdp = new SDP(this.peerconnection.remoteDescription.sdp);
+        var mySdp = new SDP(this.peerconnection.localDescription.sdp);
+        let removeSsrcInfo = this._parseSsrcInfoFromSourceRemove(elem, sdp);
+
         let newRemoteSdp = this._processRemoteRemoveSource(removeSsrcInfo);
         this._renegotiate(newRemoteSdp)
             .then(() => {
