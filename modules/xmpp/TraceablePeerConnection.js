@@ -10,6 +10,7 @@ var RandomUtil = require('../util/RandomUtil');
 var SDP = require("./SDP");
 var SDPUtil = require("./SDPUtil");
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
+var SdpConsistency = require("./sdp-consistency.js");
 
 var SIMULCAST_LAYERS = 3;
 
@@ -487,6 +488,10 @@ TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
         this.peerconnection.addStream(stream);
     if(ssrcInfo && this.replaceSSRCs[ssrcInfo.mtype])
         this.replaceSSRCs[ssrcInfo.mtype].push(ssrcInfo);
+    if (ssrcInfo && ssrcInfo.type === "addMuted") {
+        SdpConsistency.setPrimarySsrc(ssrcInfo.ssrc.ssrcs[0]);
+        this.cachedPrimarySsrc = ssrcInfo.ssrc.ssrcs[0];
+    }
 };
 
 TraceablePeerConnection.prototype.removeStreamNoSideEffects = function (stream) {
@@ -672,19 +677,18 @@ TraceablePeerConnection.prototype.createAnswer
                         dumpSDP(answer));
                 }
 
+                if (!RTCBrowserType.isFirefox()) {
+                    answer.sdp = SdpConsistency.makeVideoPrimarySsrcsConsistent(answer.sdp);
+                    this.trace('createAnswerOnSuccess::postTransform (make primary video ssrcs consistent)',
+                        dumpSDP(answer));
+                }
+
                 // Add simulcast streams if simulcast is enabled
                 if (!this.session.room.options.disableSimulcast
                     && this.simulcast.isSupported()) {
                     answer = this.simulcast.mungeLocalDescription(answer);
                     this.trace(
                         'createAnswerOnSuccess::postTransform (simulcast)',
-                        dumpSDP(answer));
-                }
-
-                if (!RTCBrowserType.isFirefox())
-                {
-                    answer = this.ssrcReplacement(answer);
-                    this.trace('createAnswerOnSuccess::mungeLocalVideoSSRC',
                         dumpSDP(answer));
                 }
 
@@ -700,10 +704,6 @@ TraceablePeerConnection.prototype.createAnswer
 
                 successCallback(answer);
             } catch (e) {
-                // there can be error modifying the answer, for example
-                // for ssrcReplacement there was a track with ssrc that is null
-                // and if we do not catch the error no callback is called
-                // at all
                 this.trace('createAnswerOnError', e);
                 this.trace('createAnswerOnError', dumpSDP(answer));
                 logger.error('createAnswerOnError', e, dumpSDP(answer));
