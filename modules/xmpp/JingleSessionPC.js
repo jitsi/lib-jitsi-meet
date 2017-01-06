@@ -33,6 +33,11 @@ function JingleSessionPC(me, sid, peerjid, connection,
     this.closed = false;
 
     this.modifyingLocalStreams = false;
+    /**
+     * Used to keep state about muted/unmuted video streams
+     *  so we can prevent errant source-add/source-removes 
+     *  from happening
+     */
     this.modifiedSSRCs = {};
 
     /**
@@ -339,65 +344,6 @@ JingleSessionPC.prototype.setOfferCycle = function (jingleOfferIq,
 };
 
 /**
- * Modifies the values of the setup attributes (defined by
- * {@link http://tools.ietf.org/html/rfc4145#section-4}) of a specific SDP
- * answer in order to overcome a delay of 1 second in the connection
- * establishment between Chrome and Videobridge.
- *
- * @param {SDP} offer - the SDP offer to which the specified SDP answer is
- * being prepared to respond
- * @param {SDP} answer - the SDP to modify
- * @private
- */
-JingleSessionPC._fixAnswerRFC4145Setup = function (offer, answer) {
-    if (!RTCBrowserType.isChrome()) {
-        // It looks like Firefox doesn't agree with the fix (at least in its
-        // current implementation) because it effectively remains active even
-        // after we tell it to become passive. Apart from Firefox which I tested
-        // after the fix was deployed, I tested Chrome only. In order to prevent
-        // issues with other browsers, limit the fix to Chrome for the time
-        // being.
-        return;
-    }
-
-    // XXX Videobridge is the (SDP) offerer and WebRTC (e.g. Chrome) is the
-    // answerer (as orchestrated by Jicofo). In accord with
-    // http://tools.ietf.org/html/rfc5245#section-5.2 and because both peers
-    // are ICE FULL agents, Videobridge will take on the controlling role and
-    // WebRTC will take on the controlled role. In accord with
-    // https://tools.ietf.org/html/rfc5763#section-5, Videobridge will use the
-    // setup attribute value of setup:actpass and WebRTC will be allowed to
-    // choose either the setup attribute value of setup:active or
-    // setup:passive. Chrome will by default choose setup:active because it is
-    // RECOMMENDED by the respective RFC since setup:passive adds additional
-    // latency. The case of setup:active allows WebRTC to send a DTLS
-    // ClientHello as soon as an ICE connectivity check of its succeeds.
-    // Unfortunately, Videobridge will be unable to respond immediately because
-    // may not have WebRTC's answer or may have not completed the ICE
-    // connectivity establishment. Even more unfortunate is that in the
-    // described scenario Chrome's DTLS implementation will insist on
-    // retransmitting its ClientHello after a second (the time is in accord
-    // with the respective RFC) and will thus cause the whole connection
-    // establishment to exceed at least 1 second. To work around Chrome's
-    // idiosyncracy, don't allow it to send a ClientHello i.e. change its
-    // default choice of setup:active to setup:passive.
-    if (offer && answer
-            && offer.media && answer.media
-            && offer.media.length == answer.media.length) {
-        answer.media.forEach(function (a, i) {
-            if (SDPUtil.find_line(
-                    offer.media[i],
-                    'a=setup:actpass',
-                    offer.session)) {
-                answer.media[i]
-                    = a.replace(/a=setup:active/g, 'a=setup:passive');
-            }
-        });
-        answer.raw = answer.session + answer.media.join('');
-    }
-};
-
-/**
  * Although it states "replace transport" it does accept full Jingle offer
  * which should contain new ICE transport details.
  * @param jingleOfferElem an element Jingle IQ that contains new offer and
@@ -634,6 +580,8 @@ JingleSessionPC.prototype.addRemoteStream = function (elem) {
     var mySdp = new SDP(this.peerconnection.localDescription.sdp);
 
     let self = this;
+    //TODO(brian): move the logic to parse out the addSsrcInfo into
+    // a helper method
     let addSsrcInfo = [];
     $(elem).each(function (idx, content) {
         var name = $(content).attr('name');
@@ -727,6 +675,8 @@ JingleSessionPC.prototype.removeRemoteStream = function (elem) {
     var sdp = new SDP(this.peerconnection.remoteDescription.sdp);
     var mySdp = new SDP(this.peerconnection.localDescription.sdp);
 
+    //TODO(brian): move the logic to parse out removeSsrcInfo to a helper method
+    // (can it be a helper that is combined with the logic to get the addssrc info?)
     let removeSsrcInfo = [];
     $(elem).each(function (idx, content) {
         var name = $(content).attr('name');
@@ -981,6 +931,8 @@ JingleSessionPC.prototype.replaceStream = function (oldStream, newStream) {
     });
 };
 
+//TODO(brian): find some way to reconcile this and 'addStream'...either
+// a more clear separation or a way to combine them (or a better name)
 JingleSessionPC.prototype.addStreamNoSideEffects = function (stream) {
     if (this.peerconnection) {
         this.peerconnection.addStreamNoSideEffects(stream);
@@ -999,48 +951,45 @@ JingleSessionPC.prototype.addStreamNoSideEffects = function (stream) {
  */
 JingleSessionPC.prototype.addStream = function (stream, callback, errorCallback,
     ssrcInfo, dontModifySources) {
-    // Remember SDP to figure out added/removed SSRCs
-    var oldSdp = null;
-    if(this.peerconnection && this.peerconnection.localDescription) {
-        oldSdp = new SDP(this.peerconnection.localDescription.sdp);
-    }
+    
+    let workFunction = (finishedCallback) => {
+        if (!this.peerconnection) {
+            errorCallback();
+            finishedCallback("Error: tried adding stream with no active peer connection");
+            return;
+        }
+        if (!this.peerconnection.localDescription) {
+            errorCallback();
+            finishedCallback("Error: tried adding stream with " +
+                "no existing local description to compare new changes to");
+            return;
+        }
+        this.peerconnection.addStream(stream, ssrcInfo);
 
-    // Conference is not active
-    if(!oldSdp || !this.peerconnection || dontModifySources) {
-        //when adding muted stream we have to pass the ssrcInfo but we don't
-        //have a stream
-        if(this.peerconnection && (stream || ssrcInfo))
-            this.peerconnection.addStream(stream, ssrcInfo);
-        if(ssrcInfo) {
-            //available only on video unmute or when adding muted stream
+        if (ssrcInfo) {
+            // available only on video mute/unmute
             this.modifiedSSRCs[ssrcInfo.type] =
                 this.modifiedSSRCs[ssrcInfo.type] || [];
             this.modifiedSSRCs[ssrcInfo.type].push(ssrcInfo);
         }
-        callback();
-        return;
-    }
-
-    if(stream || ssrcInfo)
-        this.peerconnection.addStream(stream, ssrcInfo);
-
-    this.modifyingLocalStreams = true;
-    var self = this;
-    this.oldModifySourcesShim(function() {
-        logger.log('modify sources done');
-        if(ssrcInfo) {
-            //available only on video unmute or when adding muted stream
-            self.modifiedSSRCs[ssrcInfo.type] =
-                self.modifiedSSRCs[ssrcInfo.type] || [];
-            self.modifiedSSRCs[ssrcInfo.type].push(ssrcInfo);
+        if (dontModifySources) {
+            callback();
+            finishedCallback();
+            return;
         }
-        var newSdp = new SDP(self.peerconnection.localDescription.sdp);
-        logger.log("SDPs", oldSdp, newSdp);
-        self.notifyMySSRCUpdate(oldSdp, newSdp);
-        callback();
-    }, function (error) {
-        errorCallback(error);
-    });
+        let oldSdp = new SDP(this.peerconnection.localDescription.sdp);
+        this._renegotiate()
+            .then(() => {
+                let newSdp = new SDP(this.peerconnection.localDescription.sdp);
+                logger.log("SDPs", oldSdp, newSdp);
+                this.notifyMySSRCUpdate(oldSdp, newSdp);
+                callback();
+                finishedCallback();
+            }, (error) => {
+                finishedCallback(error);
+            });
+    };
+    this.modificationQueue.push(workFunction);
 };
 
 /**
@@ -1090,6 +1039,8 @@ JingleSessionPC.prototype._handleFirefoxRemoveStream = function (jitsiStream) {
     }
 };
 
+//TODO(brian): find some way to reconcile this and 'addStream'...either
+// a more clear separation or a way to combine them (or a better name)
 JingleSessionPC.prototype.removeStreamNoSideEffects = function (stream) {
     if (!this.peerconnection) {
         return;
