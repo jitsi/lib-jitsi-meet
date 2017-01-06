@@ -1,4 +1,3 @@
-/* global config */
 /**
  * Provides statistics for the local stream.
  */
@@ -23,6 +22,7 @@ var context = null;
 
 if(window.AudioContext) {
     context = new AudioContext();
+    context.suspend();
 }
 
 /**
@@ -90,7 +90,7 @@ LocalStatsCollector.prototype.start = function () {
     if (!context ||
         RTCBrowserType.isTemasysPluginUsed())
         return;
-
+    context.resume();
     var analyser = context.createAnalyser();
     analyser.smoothingTimeConstant = WEBAUDIO_ANALYZER_SMOOTING_TIME;
     analyser.fftSize = WEBAUDIO_ANALYZER_FFT_SIZE;

@@ -1,8 +1,9 @@
 var EventEmitter = require("events");
 var RTCEvents = require('./service/RTC/RTCEvents');
-var RTC = require("./modules/RTC/RTC");
+import RTC from "./modules/RTC/RTC";
 var MediaType = require('./service/RTC/MediaType');
-var JitsiMediaDevicesEvents = require('./JitsiMediaDevicesEvents');
+import * as JitsiMediaDevicesEvents from "./JitsiMediaDevicesEvents";
+var Statistics = require("./modules/statistics/statistics");
 
 var eventEmitter = new EventEmitter();
 
@@ -10,6 +11,30 @@ RTC.addListener(RTCEvents.DEVICE_LIST_CHANGED,
     function (devices) {
         eventEmitter.emit(JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED, devices);
     });
+
+RTC.addListener(RTCEvents.DEVICE_LIST_AVAILABLE,
+    function (devices) {
+        // log output device
+        logOutputDevice(
+            JitsiMediaDevices.getAudioOutputDevice(),
+            devices);
+    });
+
+/**
+ * Gathers data and sends it to statistics.
+ * @param deviceID the device id to log
+ * @param devices list of devices
+ */
+function logOutputDevice (deviceID, devices) {
+    var device = devices.find(function (d) {
+        return d.kind === 'audiooutput' && d.deviceId === deviceID;
+    });
+
+    if (device) {
+        Statistics.sendActiveDeviceListEvent(
+            RTC.getEventDataForActiveDevice(device));
+    }
+}
 
 var JitsiMediaDevices = {
     /**
@@ -21,7 +46,9 @@ var JitsiMediaDevices = {
     },
     /**
      * Checks if its possible to enumerate available cameras/micropones.
-     * @returns {boolean} true if available, false otherwise.
+     * @returns {Promise<boolean>} a Promise which will be resolved only once
+     * the WebRTC stack is ready, either with true if the device listing is
+     * available available or with false otherwise.
      */
     isDeviceListAvailable: function () {
         return RTC.isDeviceListAvailable();
@@ -71,6 +98,16 @@ var JitsiMediaDevices = {
      *      otherwise
      */
     setAudioOutputDevice: function (deviceId) {
+
+        var availableDevices = RTC.getCurrentlyAvailableMediaDevices();
+        if (availableDevices && availableDevices.length > 0)
+        {
+            // if we have devices info report device to stats
+            // normally this will not happen on startup as this method is called
+            // too early. This will happen only on user selection of new device
+            logOutputDevice(deviceId, RTC.getCurrentlyAvailableMediaDevices());
+        }
+
         return RTC.setAudioOutputDevice(deviceId);
     },
     /**
@@ -88,6 +125,13 @@ var JitsiMediaDevices = {
      */
     removeEventListener: function (event, handler) {
         eventEmitter.removeListener(event, handler);
+    },
+    /**
+     * Emits an event.
+     * @param {string} event - event name
+     */
+    emitEvent: function (event) { // eslint-disable-line no-unused-vars
+        eventEmitter.emit.apply(eventEmitter, arguments);
     }
 };
 
