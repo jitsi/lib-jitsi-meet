@@ -8,7 +8,6 @@ doc
 
 modules/xmpp/xmpp.js
 modules/xmpp/strophe.jingle.js
-modules/xmpp/TraceablePeerConnection.js
 modules/xmpp/SDPUtil.js
 modules/xmpp/SDP.js
 modules/xmpp/strophe.emuc.js
@@ -22,6 +21,7 @@ modules/RTC/adapter.screenshare.js
 modules/statistics/statistics.js
 modules/RTC/RTC.js
 modules/RTC/RTCUtils.js
+modules/RTC/TraceablePeerConnection.js
 modules/RTC/DataChannels.js
 modules/RTC/JitsiLocalTrack.js
 modules/RTC/JitsiRemoteTrack.js

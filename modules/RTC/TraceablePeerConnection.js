@@ -1,14 +1,15 @@
-/* global mozRTCPeerConnection, webkitRTCPeerConnection */
+/* global mozRTCPeerConnection, webkitRTCPeerConnection, RTCPeerConnection,
+    RTCSessionDescription */
 
 import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
-import SdpConsistency from "./SdpConsistency.js";
-import RtxModifier from "./RtxModifier.js";
-var RTCBrowserType = require("../RTC/RTCBrowserType.js");
+import SdpConsistency from "../xmpp/SdpConsistency.js";
+import RtxModifier from "../xmpp/RtxModifier.js";
+var RTCBrowserType = require("./RTCBrowserType.js");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var transform = require('sdp-transform');
-var SDP = require("./SDP");
-var SDPUtil = require("./SDPUtil");
+var SDP = require("../xmpp/SDP");
+var SDPUtil = require("../xmpp/SDPUtil");
 
 var SIMULCAST_LAYERS = 3;
 
@@ -44,7 +45,10 @@ function TraceablePeerConnection(ice_config,
     this.updateLog = [];
     this.stats = {};
     this.statsinterval = null;
-    this.maxstats = 0; // limit to 300 values, i.e. 5 minutes; set to 0 to disable
+    /**
+     * @type {number}
+     */
+    this.maxstats = 0;
     var Interop = require('sdp-interop').Interop;
     this.interop = new Interop();
     var Simulcast = require('sdp-simulcast');
@@ -74,8 +78,12 @@ function TraceablePeerConnection(ice_config,
     this.onicecandidate = null;
     this.peerconnection.onicecandidate = function (event) {
         // FIXME: this causes stack overflow with Temasys Plugin
-        if (!RTCBrowserType.isTemasysPluginUsed())
-            self.trace('onicecandidate', JSON.stringify(event.candidate, null, ' '));
+        if (!RTCBrowserType.isTemasysPluginUsed()) {
+            self.trace(
+                'onicecandidate',
+                JSON.stringify(event.candidate, null, ' '));
+        }
+
         if (self.onicecandidate !== null) {
             self.onicecandidate(event);
         }
@@ -259,7 +267,7 @@ var normalizePlanB = function(desc) {
                 });
             }
 
-            if (typeof mLine.ssrcs !== 'undefined' && Array.isArray(mLine.ssrcs)) {
+            if (Array.isArray(mLine.ssrcs)) {
                 var i;
                 for (i = 0; i<mLine.ssrcs.length; i++){
                     if (typeof mLine.ssrcs[i] === 'object'
@@ -315,7 +323,8 @@ var getters = {
         // if we're running on FF, transform to Plan B first.
         if (RTCBrowserType.usesUnifiedPlan()) {
             desc = this.interop.toPlanB(desc);
-            this.trace('getRemoteDescription::postTransform (Plan B)', dumpSDP(desc));
+            this.trace(
+                'getRemoteDescription::postTransform (Plan B)', dumpSDP(desc));
         }
         return desc;
     }
@@ -404,7 +413,9 @@ TraceablePeerConnection.prototype.setRemoteDescription
     this.trace('setRemoteDescription::preTransform', dumpSDP(description));
     // TODO the focus should squeze or explode the remote simulcast
     description = this.simulcast.mungeRemoteDescription(description);
-    this.trace('setRemoteDescription::postTransform (simulcast)', dumpSDP(description));
+    this.trace(
+        'setRemoteDescription::postTransform (simulcast)',
+        dumpSDP(description));
 
     if (this.options.preferH264) {
         const parsedSdp = transform.parse(description.sdp);
@@ -418,7 +429,9 @@ TraceablePeerConnection.prototype.setRemoteDescription
         description.sdp = this.rtxModifier.stripRtx(description.sdp);
         this.trace('setRemoteDescription::postTransform (stripRtx)', dumpSDP(description));
         description = this.interop.toUnifiedPlan(description);
-        this.trace('setRemoteDescription::postTransform (Plan A)', dumpSDP(description));
+        this.trace(
+            'setRemoteDescription::postTransform (Plan A)',
+            dumpSDP(description));
     }
 
     if (RTCBrowserType.usesPlanB()) {
