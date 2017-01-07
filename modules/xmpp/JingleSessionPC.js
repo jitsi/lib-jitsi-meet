@@ -1326,7 +1326,8 @@ JingleSessionPC.prototype.remoteTrackAdded = function (stream, track) {
         track: track,
         mediaType: track.kind, /* 'audio' or 'video' */
         owner: undefined, /* to be determined below */
-        muted: null /* will be set in the ChatRoom */
+        muted: null /* will be obtained from MUC presence */,
+        videoType: undefined /* obtained from MUC presence if video */
     };
     try{
         // look up an associated JID for a stream id
@@ -1368,7 +1369,22 @@ JingleSessionPC.prototype.remoteTrackAdded = function (stream, track) {
         }
         jitsiTrackAddedEvent.ssrc = thessrc;
 
-        this.room.remoteTrackAdded(jitsiTrackAddedEvent);
+        const streamPresenceInfo
+            = this.room.getMediaPresenceInfo(
+                    jitsiTrackAddedEvent.owner,
+                    jitsiTrackAddedEvent.mediaType);
+
+        if (streamPresenceInfo) {
+            jitsiTrackAddedEvent.muted = streamPresenceInfo.muted;
+            jitsiTrackAddedEvent.videoType = streamPresenceInfo.videoType;
+        } else {
+            logger.warn(
+                "No presence info available for: "
+                    + jitsiTrackAddedEvent.owner);
+        }
+
+        this.room.eventEmitter.emit(
+            XMPPEvents.REMOTE_TRACK_ADDED, jitsiTrackAddedEvent);
     } catch (error) {
         GlobalOnErrorHandler.callErrorHandler(error);
     }
