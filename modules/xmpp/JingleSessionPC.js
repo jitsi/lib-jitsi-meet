@@ -552,14 +552,6 @@ JingleSessionPC.prototype.onTerminated = function (reasonCondition,
     this.close();
 };
 
-/**
- * Deprecated...shim until i fix the rest of the chain to call
- *  the new method
- */
-JingleSessionPC.prototype.addSource = function (elem) {
-    this.addRemoteStream(elem);
-};
-
 JingleSessionPC.prototype._parseSsrcInfoFromSourceAdd = function (sourceAddElem, currentRemoteSdp) {
     let addSsrcInfo = [];
     $(sourceAddElem).each(function (idx, content) {
@@ -609,7 +601,7 @@ JingleSessionPC.prototype.addRemoteStream = function (elem) {
     // FIXME: dirty waiting
     if (!this.peerconnection.localDescription) {
         logger.warn("addSource - localDescription not ready yet");
-        setTimeout(() => this.addSource(elem), 200);
+        setTimeout(() => this.addRemoteStream(elem), 200);
         return;
     }
     logger.log('Processing add remote stream');
@@ -639,26 +631,14 @@ JingleSessionPC.prototype.addRemoteStream = function (elem) {
 };
 
 /**
- * Deprecated...shim until i fix the rest of the chain
- */
-JingleSessionPC.prototype.removeSource = function (elem) {
-    this.removeRemoteStream(elem);
-};
-
-/**
  * Handles a Jingle source-remove message for this Jingle session.
  * @param elem An array of Jingle "content" elements.
  */
 JingleSessionPC.prototype.removeRemoteStream = function (elem) {
-    var self = this;
     // FIXME: dirty waiting
     if (!this.peerconnection.localDescription) {
         logger.warn("removeSource - localDescription not ready yet");
-        setTimeout(function() {
-                self.removeSource(elem);
-            },
-            200
-        );
+        setTimeout(() => this.removeRemoteStream(elem), 200);
         return;
     }
 
@@ -673,7 +653,7 @@ JingleSessionPC.prototype.removeRemoteStream = function (elem) {
         this._renegotiate(newRemoteSdp)
             .then(() => {
                 logger.info("Remote source-remove processed");
-                var newSdp = new SDP(self.peerconnection.localDescription.sdp);
+                var newSdp = new SDP(this.peerconnection.localDescription.sdp);
                 logger.log("SDPs", mySdp, newSdp);
                 this.notifyMySSRCUpdate(mySdp, newSdp);
                 finishedCallback();
@@ -809,12 +789,10 @@ JingleSessionPC.prototype.replaceStream = function (oldStream, newStream) {
             this._renegotiate()
                 .then(() => {
                     var newSdp = new SDP(this.peerconnection.localDescription.sdp);
-
                     this.notifyMySSRCUpdate(oldSdp, newSdp);
                     resolve();
                     finishedCallback();
-                })
-                .catch((errorMsg, error) => {
+                }, (errorMsg, error) => {
                     if (error) {
                         errorMsg = errorMsg + ": " + error;
                     }
