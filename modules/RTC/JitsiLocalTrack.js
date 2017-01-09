@@ -430,7 +430,16 @@ JitsiLocalTrack.prototype._sendMuteStatus = function(mute) {
     });
 };
 
-JitsiLocalTrack.prototype.disposeNew = function () {
+/**
+ * @inheritdoc
+ *
+ * Stops sending the media track. And removes it from the HTML.
+ * NOTE: Works for local tracks only.
+ *
+ * @extends JitsiTrack#dispose
+ * @returns {Promise}
+ */
+JitsiLocalTrack.prototype.dispose = function () {
     let self = this;
     if (this.stream) {
         this._stopMediaStream();
@@ -445,45 +454,7 @@ JitsiLocalTrack.prototype.disposeNew = function () {
             this._onAudioOutputDeviceChanged);
     }
 
-    // TODO: previously this was blocked until after all the removal
-    //  stuff was done...does it need to wait?
     JitsiTrack.prototype.dispose.call(self); // super.dispose();
-};
-
-/**
- * @inheritdoc
- *
- * Stops sending the media track. And removes it from the HTML.
- * NOTE: Works for local tracks only.
- *
- * @extends JitsiTrack#dispose
- * @returns {Promise}
- */
-JitsiLocalTrack.prototype.dispose = function () {
-    var self = this;
-    var promise = Promise.resolve();
-
-    if (this.conference){
-        promise = this.conference.removeTrack(this);
-    }
-
-    if (this.stream) {
-        this._stopMediaStream();
-        this.detach();
-    }
-
-    RTCUtils.removeListener(RTCEvents.DEVICE_LIST_CHANGED,
-        this._onDeviceListChanged);
-
-    if (this._onAudioOutputDeviceChanged) {
-        RTCUtils.removeListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
-            this._onAudioOutputDeviceChanged);
-    }
-
-    return promise
-        .then(function() {
-            return JitsiTrack.prototype.dispose.call(self); // super.dispose();
-        });
 };
 
 /**

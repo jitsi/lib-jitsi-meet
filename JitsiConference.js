@@ -536,6 +536,7 @@ JitsiConference.prototype.onTrackRemoved = function (track) {
     // send event for stopping screen sharing
     // FIXME: we assume we have only one screen sharing track
     // if we change this we need to fix this check
+    if (track.isVideoTrack() && track.videoType === VideoType.DESKTOP)
         this.statistics.sendScreenSharingEvent(false);
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
