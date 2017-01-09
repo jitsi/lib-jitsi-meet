@@ -3,12 +3,12 @@
 import {getLogger} from "jitsi-meet-logger";
 const logger = getLogger(__filename);
 var JingleSession = require("./JingleSession");
-var TraceablePeerConnection = require("../RTC/TraceablePeerConnection");
 var SDPDiffer = require("./SDPDiffer");
 var SDPUtil = require("./SDPUtil");
 var SDP = require("./SDP");
 var async = require("async");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
+var RTCEvents = require("../../service/RTC/RTCEvents");
 var RTCBrowserType = require("../RTC/RTCBrowserType");
 import RTC from "../RTC/RTC";
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
@@ -103,20 +103,14 @@ JingleSessionPC.prototype.doInitialize = function () {
     // Set to true if the connection was ever stable
     this.wasstable = false;
 
-    this.peerconnection = new TraceablePeerConnection(
+    this.peerconnection = this.rtc.createPeerConnection(
         this.connection.jingle.ice_config,
-        RTC.getPCConstraints(),
         /* Options */
         {
             disableSimulcast: this.room.options.disableSimulcast,
             disableRtx: this.room.options.disableRtx,
             preferH264: this.room.options.preferH264
-        },
-        // TPC is using room's eventEmitter, so that all XMPPEvents can be
-        // captured from ChatRoom. But at the same time it makes hard
-        // or impossible to deal with more than one TPC instance without
-        // further refactoring.
-        this.room.eventEmitter);
+        });
 
     this.peerconnection.onicecandidate = function (ev) {
         if (!ev) {
@@ -1383,8 +1377,9 @@ JingleSessionPC.prototype.remoteTrackAdded = function (stream, track) {
                     + jitsiTrackAddedEvent.owner);
         }
 
-        this.room.eventEmitter.emit(
-            XMPPEvents.REMOTE_TRACK_ADDED, jitsiTrackAddedEvent);
+        // FIXME to be moved to RTC
+        this.rtc.eventEmitter.emit(
+            RTCEvents.REMOTE_TRACK_ADDED, jitsiTrackAddedEvent);
     } catch (error) {
         GlobalOnErrorHandler.callErrorHandler(error);
     }
@@ -1432,8 +1427,9 @@ JingleSessionPC.prototype.remoteTrackRemoved = function (stream, track) {
             throw new Error("Remote track removal failed - No track ID");
         }
 
-        this.room.eventEmitter.emit(
-            XMPPEvents.REMOTE_TRACK_REMOVED, streamId, trackId);
+        // FIXME to be moved to RTC
+        this.rtc.eventEmitter.emit(
+            RTCEvents.REMOTE_TRACK_REMOVED, streamId, trackId);
     } catch (error) {
         GlobalOnErrorHandler.callErrorHandler(error);
     }
