@@ -3,7 +3,7 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 import RTC from "./modules/RTC/RTC";
 import * as MediaType from "./service/RTC/MediaType";
-var XMPPEvents = require("./service/xmpp/XMPPEvents");
+var RTCEvents = require("./service/RTC/RTCEvents");
 var EventEmitter = require("events");
 import * as JitsiConferenceErrors from "./JitsiConferenceErrors";
 import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
@@ -471,7 +471,7 @@ JitsiConference.prototype.onTrackRemoved = function (track) {
         track.muteHandler);
     track.removeEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
         track.audioLevelHandler);
-    this.room.removeListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+    this.rtc.removeListener(RTCEvents.SENDRECV_STREAMS_CHANGED,
         track.ssrcHandler);
 
     // send event for stopping screen sharing
@@ -519,11 +519,12 @@ JitsiConference.prototype.replaceTrack = function (oldTrack, newTrack) {
         newTrack.ssrcHandler = function (conference, ssrcMap) {
             if (ssrcMap[this.getMSID()]) {
                 this._setSSRC(ssrcMap[this.getMSID()]);
-                conference.room.removeListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+                conference.rtc.removeListener(
+                    RTCEvents.SENDRECV_STREAMS_CHANGED,
                     this.ssrcHandler);
             }
         }.bind(newTrack, this);
-        this.room.addListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+        this.rtc.addListener(RTCEvents.SENDRECV_STREAMS_CHANGED,
             newTrack.ssrcHandler);
     }
     // Now replace the stream at the lower levels
@@ -978,7 +979,7 @@ function (jingleSession, jingleOffer, now) {
             label: crossRegion
         });
     try {
-        jingleSession.initialize(false /* initiator */,this.room);
+        jingleSession.initialize(false /* initiator */, this.room, this.rtc);
     } catch (error) {
         GlobalOnErrorHandler.callErrorHandler(error);
     }
@@ -1086,8 +1087,8 @@ JitsiConference.prototype.onCallEnded
         localTrack._setSSRC(null);
         // Bind the handler to fetch new SSRC, it will un register itself once
         // it reads the values
-        self.room.addListener(
-            XMPPEvents.SENDRECV_STREAMS_CHANGED, localTrack.ssrcHandler);
+        self.rtc.addListener(
+            RTCEvents.SENDRECV_STREAMS_CHANGED, localTrack.ssrcHandler);
     });
 };
 

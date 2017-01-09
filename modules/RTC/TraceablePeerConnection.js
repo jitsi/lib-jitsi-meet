@@ -6,7 +6,7 @@ const logger = getLogger(__filename);
 import SdpConsistency from "../xmpp/SdpConsistency.js";
 import RtxModifier from "../xmpp/RtxModifier.js";
 var RTCBrowserType = require("./RTCBrowserType.js");
-var XMPPEvents = require("../../service/xmpp/XMPPEvents");
+var RTCEvents = require("../../service/RTC/RTCEvents");
 var transform = require('sdp-transform');
 var SDP = require("../xmpp/SDP");
 var SDPUtil = require("../xmpp/SDPUtil");
@@ -16,6 +16,7 @@ var SIMULCAST_LAYERS = 3;
 /**
  * Creates new instance of 'TraceablePeerConnection'.
  *
+ * @param {RTC} rtc the instance of <tt>RTC</tt> service
  * @param {object} ice_config WebRTC 'PeerConnection' ICE config
  * @param {object} constraints WebRTC 'PeerConnection' constraints
  * @param {object} options <tt>TracablePeerConnection</tt> config options.
@@ -24,14 +25,18 @@ var SIMULCAST_LAYERS = 3;
  * @param {boolean} options.disableRtx if set to 'true' will disable the RTX
  * @param {boolean} options.preferH264 if set to 'true' H264 will be preferred
  * over other video codecs.
- * @param {EventEmitter} eventEmitter the emitter which wil be used by the new
- * instance to emit events.
  *
  * @constructor
  */
-function TraceablePeerConnection(ice_config,
-                                 constraints, options, eventEmitter) {
+function TraceablePeerConnection(rtc, ice_config,
+                                 constraints, options) {
     var self = this;
+    /**
+     * The parent instance of RTC service which created this
+     * <tt>TracablePeerConnection</tt>.
+     * @type {RTC}
+     */
+    this.rtc = rtc;
     this.options = options;
     var RTCPeerConnectionType = null;
     if (RTCBrowserType.isFirefox()) {
@@ -55,8 +60,12 @@ function TraceablePeerConnection(ice_config,
     this.simulcast = new Simulcast({numOfLayers: SIMULCAST_LAYERS,
         explodeRemoteSimulcast: false});
     this.sdpConsistency = new SdpConsistency();
+    /**
+     * TracablePeerConnection uses RTC's eventEmitter
+     * @type {EventEmitter}
+     */
+    this.eventEmitter = rtc.eventEmitter;
     this.rtxModifier = new RtxModifier();
-    this.eventEmitter = eventEmitter;
 
     // override as desired
     this.trace = function (what, info) {
@@ -401,7 +410,8 @@ TraceablePeerConnection.prototype.setLocalDescription
         },
         function (err) {
             self.trace('setLocalDescriptionOnFailure', err);
-            self.eventEmitter.emit(XMPPEvents.SET_LOCAL_DESCRIPTION_FAILED,
+            self.eventEmitter.emit(
+                RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
                 err, self.peerconnection);
             failureCallback(err);
         }
@@ -446,7 +456,7 @@ TraceablePeerConnection.prototype.setRemoteDescription
         },
         function (err) {
             self.trace('setRemoteDescriptionOnFailure', err);
-            self.eventEmitter.emit(XMPPEvents.SET_REMOTE_DESCRIPTION_FAILED,
+            self.eventEmitter.emit(RTCEvents.SET_REMOTE_DESCRIPTION_FAILED,
                 err, self.peerconnection);
             failureCallback(err);
         }
@@ -591,7 +601,7 @@ TraceablePeerConnection.prototype.createAnswer
                 _fixAnswerRFC4145Setup(remoteDescription, localDescription);
                 answer.sdp = localDescription.raw;
 
-                this.eventEmitter.emit(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+                this.eventEmitter.emit(RTCEvents.SENDRECV_STREAMS_CHANGED,
                     extractSSRCMap(answer));
 
                 successCallback(answer);
@@ -604,7 +614,7 @@ TraceablePeerConnection.prototype.createAnswer
         },
         (err) => {
             this.trace('createAnswerOnFailure', err);
-            this.eventEmitter.emit(XMPPEvents.CREATE_ANSWER_FAILED, err,
+            this.eventEmitter.emit(RTCEvents.CREATE_ANSWER_FAILED, err,
                 this.peerconnection);
             failureCallback(err);
         },
