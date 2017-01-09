@@ -543,7 +543,9 @@ JitsiConference.prototype.onTrackRemoved = function (track) {
 
 JitsiConference.prototype.replaceStream = function (oldStream, newStream) {
     // First do the removal of the oldStream at the JitsiConference level
-    this.onTrackRemoved(oldStream);
+    if (oldStream) {
+        this.onTrackRemoved(oldStream);
+    }
     // Set up the ssrcHandler for the new track before we add it at the lower levels
     // TODO(brian): it would be nice to do this as part of the creation of the new
     //  stream (part of the initialization), but maybe conference isn't available
