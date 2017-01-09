@@ -829,6 +829,13 @@ JingleSessionPC.prototype.replaceStream = function (oldStream, newStream) {
 
 //TODO(brian): find some way to reconcile this and 'addStream'...either
 // a more clear separation or a way to combine them (or a better name)
+// This gets used when a stream is being added as part of a replace
+/**
+ * Unlike addStream, this method simply adds a stream to the
+ *  peerconnection without any of the other work (doing an o/a
+ *  cycle, 
+ *  doing any other work (such as firing a renegotiation)
+ */
 JingleSessionPC.prototype.addStreamNoSideEffects = function (stream) {
     if (this.peerconnection) {
         this.peerconnection.addStreamNoSideEffects(stream);
@@ -1002,7 +1009,7 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, errorCallba
                 RTCBrowserType.RTC_BROWSER_FIREFOX) {
             this._handleFirefoxRemoveStream(stream);
         } else if (stream) {
-            this.peerconnection.removeStream(stream, false, ssrcInfo);
+            this.peerconnection.removeStream(stream, false);
         }
         let oldSdp = new SDP(this.peerconnection.localDescription.sdp);
         this._renegotiate()
