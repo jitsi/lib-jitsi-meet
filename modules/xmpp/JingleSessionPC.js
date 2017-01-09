@@ -985,7 +985,7 @@ JingleSessionPC.prototype.removeStreamNoSideEffects = function (stream) {
             RTCBrowserType.RTC_BROWSER_FIREFOX) {
         this._handleFirefoxRemoveStream(stream);
     } else if (stream) {
-        this.peerconnection.removeStreamNoSideEffects(stream);
+        this.peerconnection.removeStream(stream.getOriginalStream());
     }
 };
 

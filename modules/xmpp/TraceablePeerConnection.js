@@ -321,13 +321,6 @@ TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
     }
 };
 
-TraceablePeerConnection.prototype.removeStreamNoSideEffects = function (stream) {
-    this.trace('removeStream', stream.id);
-    if (this.peerconnection.removeStream) {
-        this.peerconnection.removeStream(stream.getOriginalStream());
-    }
-};
-
 TraceablePeerConnection.prototype.removeStream = function (stream, stopStreams) {
     this.trace('removeStream', stream.id);
     if (stopStreams) {
