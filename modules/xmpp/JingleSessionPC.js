@@ -804,8 +804,8 @@ JingleSessionPC.prototype.replaceStream = function (oldStream, newStream) {
     return new Promise((resolve, reject) => {
         let workFunction = (finishedCallback) => {
             let oldSdp = new SDP(this.peerconnection.localDescription.sdp);
-            this.removeStreamNoSideEffects(oldStream);
-            this.addStreamNoSideEffects(newStream);
+            this.removeStreamFromPeerConnection(oldStream);
+            this.addStreamToPeerConnection(newStream);
             this._renegotiate()
                 .then(() => {
                     var newSdp = new SDP(this.peerconnection.localDescription.sdp);
@@ -827,18 +827,17 @@ JingleSessionPC.prototype.replaceStream = function (oldStream, newStream) {
     });
 };
 
-//TODO(brian): find some way to reconcile this and 'addStream'...either
-// a more clear separation or a way to combine them (or a better name)
-// This gets used when a stream is being added as part of a replace
 /**
- * Unlike addStream, this method simply adds a stream to the
- *  peerconnection without any of the other work (doing an o/a
- *  cycle, 
- *  doing any other work (such as firing a renegotiation)
+ * Just add the stream to the peerconnection
+ * @param stream either the low-level webrtc MediaStream or 
+ *  a Jitsi mediastream
+ * NOTE: must be called within a work function being executed
+ *  by the modification queue.
  */
-JingleSessionPC.prototype.addStreamNoSideEffects = function (stream) {
+JingleSessionPC.prototype.addStreamToPeerConnection = function (stream, ssrcInfo) {
+    let actualStream = stream && stream.getOriginalStream ? stream.getOriginalStream() : stream;
     if (this.peerconnection) {
-        this.peerconnection.addStream(stream.getOriginalStream());
+        this.peerconnection.addStream(actualStream, ssrcInfo);
     }
 };
 
@@ -900,7 +899,7 @@ JingleSessionPC.prototype.addStream = function (stream, callback, errorCallback,
             finishedCallback("Error: tried adding stream with no active peer connection");
             return;
         }
-        this.peerconnection.addStream(stream, ssrcInfo);
+        this.addStreamToPeerConnection(stream, ssrcInfo);
 
         if (ssrcInfo) {
             // available only on video mute/unmute
@@ -937,8 +936,11 @@ JingleSessionPC.prototype.generateNewStreamSSRCInfo = function () {
     return this.peerconnection.generateNewStreamSSRCInfo();
 };
 
-JingleSessionPC.prototype._handleFirefoxRemoveStream = function (jitsiStream) {
-    let stream = jitsiStream.getOriginalStream();
+/**
+ * Remove stream handling for firefox
+ * @param stream: webrtc media stream
+ */
+JingleSessionPC.prototype._handleFirefoxRemoveStream = function (stream) {
     if (!stream) { //There is nothing to be changed
         return;
     }
@@ -975,17 +977,23 @@ JingleSessionPC.prototype._handleFirefoxRemoveStream = function (jitsiStream) {
     }
 };
 
-//TODO(brian): find some way to reconcile this and 'addStream'...either
-// a more clear separation or a way to combine them (or a better name)
-JingleSessionPC.prototype.removeStreamNoSideEffects = function (stream) {
+/**
+ * Just remove the stream from the peerconnection
+ * @param stream either the low-level webrtc MediaStream or 
+ *  a Jitsi mediastream
+ * NOTE: must be called within a work function being executed
+ *  by the modification queue.
+ */
+JingleSessionPC.prototype.removeStreamFromPeerConnection = function (stream, stopStream) {
+    let actualStream = stream && stream.getOriginalStream ? stream.getOriginalStream() : stream;
     if (!this.peerconnection) {
         return;
     }
     if (RTCBrowserType.getBrowserType() ===
             RTCBrowserType.RTC_BROWSER_FIREFOX) {
-        this._handleFirefoxRemoveStream(stream);
+        this._handleFirefoxRemoveStream(actualStream);
     } else if (stream) {
-        this.peerconnection.removeStream(stream.getOriginalStream());
+        this.peerconnection.removeStream(actualStream, stopStream);
     }
 };
 
@@ -1009,7 +1017,7 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, errorCallba
                 RTCBrowserType.RTC_BROWSER_FIREFOX) {
             this._handleFirefoxRemoveStream(stream);
         } else if (stream) {
-            this.peerconnection.removeStream(stream, false);
+            this.removeStreamFromPeerConnection(stream, false);
         }
         let oldSdp = new SDP(this.peerconnection.localDescription.sdp);
         this._renegotiate()
