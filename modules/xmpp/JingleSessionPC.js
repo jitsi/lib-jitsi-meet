@@ -838,7 +838,7 @@ JingleSessionPC.prototype.replaceStream = function (oldStream, newStream) {
  */
 JingleSessionPC.prototype.addStreamNoSideEffects = function (stream) {
     if (this.peerconnection) {
-        this.peerconnection.addStreamNoSideEffects(stream);
+        this.peerconnection.addStream(stream.getOriginalStream());
     }
 };
 

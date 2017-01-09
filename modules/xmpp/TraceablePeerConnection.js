@@ -311,13 +311,6 @@ Object.keys(getters).forEach(function (prop) {
     );
 });
 
-TraceablePeerConnection.prototype.addStreamNoSideEffects = function (stream) {
-    this.trace('addStream', stream? stream.id : "null");
-    if (stream) {
-        this.peerconnection.addStream(stream.getOriginalStream());
-    }
-};
-
 TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
     this.trace('addStream', stream ? stream.id : "null");
     if (stream)
