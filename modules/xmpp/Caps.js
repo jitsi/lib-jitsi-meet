@@ -1,5 +1,6 @@
 /* global $, b64_sha1, Strophe */
 import XMPPEvents from "../../service/xmpp/XMPPEvents";
+import Listenable from "../util/Listenable";
 
 /**
  * The property
@@ -19,7 +20,7 @@ function compareIdentities(a, b) {
 /**
  * Implements xep-0115 ( http://xmpp.org/extensions/xep-0115.html )
  */
-export default class Caps {
+export default class Caps extends Listenable {
     /**
      * Constructs new Caps instance.
      * @param {Strophe.Connection} connection the strophe connection object
@@ -27,6 +28,7 @@ export default class Caps {
      * that will be sent to the other participants
      */
     constructor(connection = {}, node = "http://jitsi.org/jitsimeet") {
+        super();
         this.node = node;
         this.disco = connection.disco;
         if(!this.disco) {
@@ -193,7 +195,12 @@ export default class Caps {
         const caps = stanza.querySelector("c");
         const version = caps.getAttribute("ver");
         const node = caps.getAttribute("node");
+        const oldVersion = this.jidToVersion[from];
         this.jidToVersion[from] = {version, node};
+        if(oldVersion && oldVersion.version !== version) {
+            this.eventEmitter.emit(XMPPEvents.PARTCIPANT_FEATURES_CHANGED,
+                from);
+        }
         // return true to not remove the handler from Strophe
         return true;
     }

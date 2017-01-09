@@ -106,6 +106,10 @@ var XMPPEvents = {
     // Note: currently this event fires every time we receive presence from
     // someone (regardless of whether or not the "video type" changed).
     PARTICIPANT_VIDEO_TYPE_CHANGED: "xmpp.video_type",
+    /**
+     * Indicates that the features of the participant has been changed.
+     */
+    PARTCIPANT_FEATURES_CHANGED: "xmpp.partcipant_features_changed",
     PASSWORD_REQUIRED: "xmpp.password_required",
     PEERCONNECTION_READY: "xmpp.peerconnection_ready",
     /**
