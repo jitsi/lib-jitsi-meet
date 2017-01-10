@@ -187,7 +187,7 @@ JingleSessionPC.prototype.doInitialize = function () {
 
 JingleSessionPC.prototype.sendIceCandidate = function (candidate) {
     var self = this;
-    var localSDP = new SDP(this.peerconnection.localDescription.sdp);
+    const localSDP = new SDP(this.peerconnection.localDescription.sdp);
     if (candidate && !this.lasticecandidate) {
         var ice = SDPUtil.iceparams(localSDP.media[candidate.sdpMLineIndex], localSDP.session);
         var jcand = SDPUtil.candidateToJingle(candidate.candidate);
@@ -227,7 +227,7 @@ JingleSessionPC.prototype.sendIceCandidates = function (candidates) {
             initiator: this.initiator,
             sid: this.sid});
 
-    var localSDP = new SDP(this.peerconnection.localDescription.sdp);
+    const localSDP = new SDP(this.peerconnection.localDescription.sdp);
     for (var mid = 0; mid < localSDP.media.length; mid++) {
         var cands = candidates.filter(function (el) { return el.sdpMLineIndex == mid; });
         var mline = SDPUtil.parse_mline(localSDP.media[mid].split('\r\n')[0]);

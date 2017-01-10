@@ -34,6 +34,7 @@ function TraceablePeerConnection(ice_config, constraints, session) {
     var Simulcast = require('sdp-simulcast');
     this.simulcast = new Simulcast({numOfLayers: SIMULCAST_LAYERS,
         explodeRemoteSimulcast: false});
+    this.sdpConsistency = new SdpConsistency();
     this.eventEmitter = this.session.room.eventEmitter;
 
     // override as desired
@@ -316,7 +317,7 @@ TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
     if (stream)
         this.peerconnection.addStream(stream);
     if (ssrcInfo && ssrcInfo.type === "addMuted") {
-        SdpConsistency.setPrimarySsrc(ssrcInfo.ssrc.ssrcs[0]);
+        this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrc.ssrcs[0]);
         this.simulcast.setSsrcCache(ssrcInfo.ssrc.ssrcs);
     }
 };
@@ -482,8 +483,17 @@ TraceablePeerConnection.prototype.createAnswer
                         dumpSDP(answer));
                 }
 
+                /**
+                 * We don't keep ssrcs consitent for Firefox because rewriting
+                 *  the ssrcs between createAnswer and setLocalDescription
+                 *  breaks the caching in sdp-interop (sdp-interop must
+                 *  know about all ssrcs, and it updates its cache in
+                 *  toPlanB so if we rewrite them after that, when we
+                 *  try and go back to unified plan it will complain
+                 *  about unmapped ssrcs)
+                 */
                 if (!RTCBrowserType.isFirefox()) {
-                    answer.sdp = SdpConsistency.makeVideoPrimarySsrcsConsistent(answer.sdp);
+                    answer.sdp = this.sdpConsistency.makeVideoPrimarySsrcsConsistent(answer.sdp);
                     this.trace('createAnswerOnSuccess::postTransform (make primary video ssrcs consistent)',
                         dumpSDP(answer));
                 }

@@ -16,6 +16,7 @@ var ComponentsVersions = require("./modules/version/ComponentsVersions");
 var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 var JitsiConferenceEventManager = require("./JitsiConferenceEventManager");
 var VideoType = require('./service/RTC/VideoType');
+var RTCBrowserType = require("./modules/RTC/RTCBrowserType.js");
 var Transcriber = require("./modules/transcription/transcriber");
 import ParticipantConnectionStatus
     from "./modules/connectivity/ParticipantConnectionStatus";
@@ -625,36 +626,6 @@ JitsiConference.prototype._setupNewTrack = function (newTrack) {
 };
 
 /**
- * Removes JitsiLocalTrack object to the conference.
- * @param track the JitsiLocalTrack object.
- * @returns {Promise}
- */
-JitsiConference.prototype.removeTrack = function (track) {
-    if (track.disposed) {
-        return Promise.reject(
-            new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
-    }
-
-    if(!this.room){
-        if(this.rtc) {
-            this.onTrackRemoved(track);
-        }
-        return Promise.resolve();
-    }
-    return new Promise(function (resolve, reject) {
-        this.room.removeStream(track.getOriginalStream(), function(){
-            this.onTrackRemoved(track);
-            resolve();
-        }.bind(this), function (error) {
-            reject(error);
-        }, {
-            mtype: track.getType(),
-            type: "remove",
-            ssrc: track.ssrc});
-    }.bind(this));
-};
-
-/**
  * Get role of the local user.
  * @returns {string} user role: 'moderator' or 'none'
  */
@@ -947,7 +918,17 @@ function (jingleSession, jingleOffer, now) {
     // Add local Tracks to the ChatRoom
     this.rtc.localTracks.forEach(function(localTrack) {
         var ssrcInfo = null;
-        if(localTrack.isVideoTrack() && localTrack.isMuted()) {
+        /**
+         * We don't do this for Firefox because, on Firefox, we keep the 
+         *  stream in the peer connection and just set 'enabled' on the
+         *  track to false (see JitsiLocalTrack::_setMute).  This means
+         *  that if we generated an ssrc here and set it in the cache, it
+         *  would clash with the one firefox generates (since, unlike chrome,
+         *  the stream is still attached to the peer connection) and causes
+         *  problems between sdp-interop and trying to keep the ssrcs
+         *  consistent
+         */
+        if(localTrack.isVideoTrack() && localTrack.isMuted() && !RTCBrowserType.isFirefox()) {
             /**
              * Handles issues when the stream is added before the peerconnection
              * is created. The peerconnection is created when second participant

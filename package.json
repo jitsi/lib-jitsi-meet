@@ -23,7 +23,7 @@
     "jssha": "1.5.0",
     "retry": "0.6.1",
     "sdp-interop": "0.1.11",
-    "sdp-simulcast": "0.1.7",
+    "sdp-simulcast": "0.1.8",
     "sdp-transform": "1.5.*",
     "socket.io-client": "1.4.5",
     "strophe": "1.2.4",
