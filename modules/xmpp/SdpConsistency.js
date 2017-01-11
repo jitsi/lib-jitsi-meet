@@ -67,9 +67,10 @@ class SdpConsistency {
         this.cachedPrimarySsrc = null;
         this.cachedPrimaryRtxSsrc = null;
     }
+
     setPrimarySsrc (primarySsrc) {
         this.cachedPrimarySsrc = primarySsrc;
-    };
+    }
 
     makeVideoPrimarySsrcsConsistent (sdpStr) {
         let parsedSdp = transform.parse(sdpStr);
