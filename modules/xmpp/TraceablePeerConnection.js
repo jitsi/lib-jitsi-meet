@@ -9,7 +9,7 @@ var transform = require('sdp-transform');
 var RandomUtil = require('../util/RandomUtil');
 var SDP = require("./SDP");
 var SDPUtil = require("./SDPUtil");
-var SdpConsistency = require("./sdp-consistency.js");
+var SdpConsistency = require("./SdpConsistency.js");
 
 var SIMULCAST_LAYERS = 3;
 
