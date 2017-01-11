@@ -60,11 +60,11 @@ function SdpConsistency () {
 SdpConsistency.prototype.clearSsrcCache = function() {
     this.cachedPrimarySsrc = null;
     this.cachedPrimaryRtxSsrc = null;
-}
+};
 
 SdpConsistency.prototype.setPrimarySsrc = function(primarySsrc) {
     this.cachedPrimarySsrc = primarySsrc;
-}
+};
 
 SdpConsistency.prototype.makeVideoPrimarySsrcsConsistent = function (sdpStr) {
     let parsedSdp = transform.parse(sdpStr);
