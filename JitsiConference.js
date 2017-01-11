@@ -496,7 +496,11 @@ JitsiConference.prototype.onTrackRemoved = function (track) {
  * @returns {Promise}
  */
 JitsiConference.prototype.removeTrack = function (track) {
-    this.replaceStream (track, null);
+    if (track.disposed) {
+        return Promise.reject(
+            new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
+    }
+    return this.replaceStream (track, null);
 };
 
 /**
