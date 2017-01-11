@@ -440,7 +440,13 @@ JitsiLocalTrack.prototype._sendMuteStatus = function(mute) {
  * @returns {Promise}
  */
 JitsiLocalTrack.prototype.dispose = function () {
-    let self = this;
+    var self = this;
+    var promise = Promise.resolve();
+
+    if (this.conference){
+        promise = this.conference.removeTrack(this);
+    }
+
     if (this.stream) {
         this._stopMediaStream();
         this.detach();
@@ -454,7 +460,10 @@ JitsiLocalTrack.prototype.dispose = function () {
             this._onAudioOutputDeviceChanged);
     }
 
-    JitsiTrack.prototype.dispose.call(self); // super.dispose();
+    return promise
+        .then(function() {
+            return JitsiTrack.prototype.dispose.call(self); // super.dispose();
+        });
 };
 
 /**
