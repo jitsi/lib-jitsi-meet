@@ -51,6 +51,13 @@ function getRtxSsrc (videoMLine, primarySsrc) {
  * End helper functions
  */
 
+/**
+ * Handles the work of keeping video ssrcs consistent across multiple
+ * o/a cycles, making it such that all stream operations can be
+ * kept local and do not need to be signaled.
+ * NOTE: This only keeps the 'primary' video ssrcs consistent: meaning
+ * the primary video stream and an associated RTX stream, if it exists
+ */
 class SdpConsistency {
     constructor () {
         this.clearSsrcCache();

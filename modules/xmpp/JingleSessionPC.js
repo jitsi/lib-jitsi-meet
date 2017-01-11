@@ -780,6 +780,15 @@ JingleSessionPC.prototype._renegotiate = function(optionalRemoteSdp) {
     });
 };
 
+/**
+ * Replaces oldStream with newStream and performs a single offer/answer
+ *  cycle after both operations are done.  Either oldStream or newStream
+ *  can be null; replacing a valid 'oldStream' with a null 'newStream'
+ *  effectively just removes 'oldStream'
+ * @param oldStream the current stream in use to be replaced
+ * @param newStream the new stream to use
+ * @returns {Promise}
+ */
 JingleSessionPC.prototype.replaceStream = function (oldStream, newStream) {
     return new Promise((resolve, reject) => {
         let workFunction = (finishedCallback) => {
