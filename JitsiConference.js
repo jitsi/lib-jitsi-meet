@@ -426,16 +426,6 @@ JitsiConference.prototype.addTrack = function (track) {
         }
     }
 
-    track.ssrcHandler = function (conference, ssrcMap) {
-        if(ssrcMap[this.getMSID()]){
-            this._setSSRC(ssrcMap[this.getMSID()]);
-            conference.room.removeListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
-                this.ssrcHandler);
-        }
-    }.bind(track, this);
-    this.room.addListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
-        track.ssrcHandler);
-
     if(track.isAudioTrack() || (track.isVideoTrack() &&
         track.videoType !== VideoType.DESKTOP)) {
         // Report active device to statistics
@@ -448,51 +438,7 @@ JitsiConference.prototype.addTrack = function (track) {
             Statistics.sendActiveDeviceListEvent(
                 RTC.getEventDataForActiveDevice(device));
     }
-    return new Promise(function (resolve, reject) {
-        this.room.addStream(track.getOriginalStream(), function () {
-            if (track.isVideoTrack()) {
-                this.removeCommand("videoType");
-                this.sendCommand("videoType", {
-                    value: track.videoType,
-                    attributes: {
-                        xmlns: 'http://jitsi.org/jitmeet/video'
-                    }
-                });
-            }
-            this.rtc.addLocalTrack(track);
-
-            if (track.startMuted) {
-                track.mute();
-            }
-
-            // ensure that we're sharing proper "is muted" state
-            if (track.isAudioTrack()) {
-                this.room.setAudioMute(track.isMuted());
-            } else {
-                this.room.setVideoMute(track.isMuted());
-            }
-
-            track.muteHandler = this._fireMuteChangeEvent.bind(this, track);
-            track.audioLevelHandler = this._fireAudioLevelChangeEvent.bind(this);
-            track.addEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED,
-                                   track.muteHandler);
-            track.addEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
-                                   track.audioLevelHandler);
-
-            track._setConference(this);
-
-            // send event for starting screen sharing
-            // FIXME: we assume we have only one screen sharing track
-            // if we change this we need to fix this check
-            if (track.isVideoTrack() && track.videoType === VideoType.DESKTOP)
-                this.statistics.sendScreenSharingEvent(true);
-
-            this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
-            resolve(track);
-        }.bind(this), function (error) {
-            reject(error);
-        });
-    }.bind(this));
+    return this.replaceStream(null, track);
 };
 
 /**
@@ -550,28 +496,7 @@ JitsiConference.prototype.onTrackRemoved = function (track) {
  * @returns {Promise}
  */
 JitsiConference.prototype.removeTrack = function (track) {
-    if (track.disposed) {
-        return Promise.reject(
-            new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
-    }
-
-    if(!this.room){
-        if(this.rtc) {
-            this.onTrackRemoved(track);
-        }
-        return Promise.resolve();
-    }
-    return new Promise(function (resolve, reject) {
-        this.room.removeStream(track.getOriginalStream(), function(){
-            this.onTrackRemoved(track);
-            resolve();
-        }.bind(this), function (error) {
-            reject(error);
-        }, {
-            mtype: track.getType(),
-            type: "remove",
-            ssrc: track.ssrc});
-    }.bind(this));
+    this.replaceStream (track, null);
 };
 
 /**
@@ -588,22 +513,25 @@ JitsiConference.prototype.replaceStream = function (oldStream, newStream) {
     if (oldStream) {
         this.onTrackRemoved(oldStream);
     }
-    // Set up the ssrcHandler for the new track before we add it at the lower levels
-    newStream.ssrcHandler = function (conference, ssrcMap) {
-        if (ssrcMap[this.getMSID()]) {
-            this._setSSRC(ssrcMap[this.getMSID()]);
-            conference.room.removeListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
-                this.ssrcHandler);
-        }
-    }.bind(newStream, this);
-    this.room.addListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
-        newStream.ssrcHandler);
+    if (newStream) {
+        // Set up the ssrcHandler for the new track before we add it at the lower levels
+        newStream.ssrcHandler = function (conference, ssrcMap) {
+            if (ssrcMap[this.getMSID()]) {
+                this._setSSRC(ssrcMap[this.getMSID()]);
+                conference.room.removeListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+                    this.ssrcHandler);
+            }
+        }.bind(newStream, this);
+        this.room.addListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+            newStream.ssrcHandler);
+    }
     // Now replace the stream at the lower levels
-    let self = this;
     return this.room.replaceStream (oldStream, newStream)
         .then(() => {
-            // Now handle the addition of the newStream at the JitsiConference level
-            self._setupNewTrack(newStream);
+            if (newStream) {
+                // Now handle the addition of the newStream at the JitsiConference level
+                this._setupNewTrack(newStream);
+            }
             return Promise.resolve();
         });
 };
