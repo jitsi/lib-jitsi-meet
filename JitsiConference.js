@@ -16,6 +16,7 @@ import * as JitsiTrackEvents from "./JitsiTrackEvents";
 var ComponentsVersions = require("./modules/version/ComponentsVersions");
 var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 var JitsiConferenceEventManager = require("./JitsiConferenceEventManager");
+import MediaType from "./service/RTC/MediaType";
 var VideoType = require('./service/RTC/VideoType');
 var RTCBrowserType = require("./modules/RTC/RTCBrowserType.js");
 var Transcriber = require("./modules/transcription/transcriber");
@@ -401,12 +402,11 @@ JitsiConference.prototype.getTranscriber = function(){
             }
         }.bind(this));
         //and all remote audio tracks
-        // FIXME accessing remoteTracks field directly
-        this.rtc.remoteTracks.forEach(function (remoteTrack){
-            if (remoteTrack.isAudioTrack()){
+        this.rtc.getRemoteTracks(MediaType.AUDIO).forEach(
+            function (remoteTrack){
                 this.transcriber.addTrack(remoteTrack);
-            }
-        }.bind(this));
+            }.bind(this)
+        );
     }
     return this.transcriber;
 };

@@ -69,13 +69,10 @@ export default class RTC extends Listenable {
         if (RTCUtils.isDeviceChangeAvailable('output')) {
             RTCUtils.addListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
                 (deviceId) => {
-                    for (var key in this.remoteTracks) {
-                        if (this.remoteTracks.hasOwnProperty(key)
-                            && this.remoteTracks[key].audio) {
-                            this.remoteTracks[key].audio
-                                .setAudioOutput(deviceId);
-                        }
-                    }
+                    this.getRemoteTracks(MediaType.AUDIO).forEach(
+                        function (track) {
+                            track.setAudioOutput(deviceId);
+                        });
                 });
         }
     }
@@ -275,6 +272,37 @@ export default class RTC extends Listenable {
      */
     getLocalVideoTrack () {
         return this.localVideo;
+    }
+
+    /**
+     * Obtains all remote tracks currently known to this RTC module instance.
+     * @param {MediaType} [mediaType] the remote tracks will be filtered
+     * by their media type if this argument is specified.
+     * @return {Array<JitsiRemoteTrack>}
+     */
+    getRemoteTracks (mediaType) {
+        const remoteTracks = [];
+
+        Object.keys(this.remoteTracks).forEach(
+            function(endpoint) {
+                const endpointTracks = this.remoteTracks[endpoint];
+
+                endpointTracks && Object.keys(endpointTracks).forEach(
+                    function (trackMediaType) {
+
+                        // per media type filtering
+                        if (mediaType && mediaType !== trackMediaType) {
+                            return;
+                        }
+
+                        const mediaTrack = endpointTracks[trackMediaType];
+
+                        if (mediaTrack) {
+                            remoteTracks.push(mediaTrack);
+                        }
+                    });
+            }, this);
+        return remoteTracks;
     }
 
     /**
@@ -623,19 +651,13 @@ export default class RTC extends Listenable {
      * Searches in remoteTracks for the ssrc and returns the corresponding
      * track.
      * @param ssrc the ssrc to check.
+     * @return {JitsiRemoteTrack|undefined} return the first remote tracks that
+     * matches given SSRC or <tt>undefined</tt> if no such track was found.
      */
     getRemoteTrackBySSRC (ssrc) {
-        for (var resource in this.remoteTracks) {
-            var track = this.getRemoteAudioTrack(resource);
-            if(track && track.getSSRC() == ssrc) {
-                return track;
-            }
-            track = this.getRemoteVideoTrack(resource);
-            if(track && track.getSSRC() == ssrc) {
-                return track;
-            }
-        }
-        return null;
+        return this.getRemoteTracks().find(function (remoteTrack) {
+            return ssrc == remoteTrack.getSSRC();
+        });
     }
 
     /**
