@@ -262,15 +262,25 @@ JitsiConference.prototype.getExternalAuthUrl = function (urlForPopup) {
 JitsiConference.prototype.getLocalTracks = function (mediaType) {
     let tracks = [];
     if (this.rtc) {
-        tracks = this.rtc.localTracks.slice();
-    }
-    if (mediaType !== undefined) {
-        tracks = tracks.filter(
-            (track) => {
-                return track && track.getType && track.getType() === mediaType;
-            });
+        tracks = this.rtc.getLocalTracks(mediaType);
     }
     return tracks;
+};
+
+/**
+ * Obtains local audio track.
+ * @return {JitsiLocalTrack|null}
+ */
+JitsiConference.prototype.getLocalAudioTrack = function () {
+    return this.rtc ? this.rtc.getLocalAudioTrack() : null;
+};
+
+/**
+ * Obtains local video track.
+ * @return {JitsiLocalTrack|null}
+ */
+JitsiConference.prototype.getLocalVideoTrack = function () {
+    return this.rtc ? this.rtc.getLocalVideoTrack() : null;
 };
 
 /**
@@ -394,12 +404,10 @@ JitsiConference.prototype.getTranscriber = function(){
     if (this.transcriber === undefined){
         this.transcriber = new Transcriber();
         //add all existing local audio tracks to the transcriber
-        // FIXME accessing localTracks field directly
-        this.rtc.localTracks.forEach(function (localTrack) {
-            if (localTrack.isAudioTrack()){
-                this.transcriber.addTrack(localTrack);
-            }
-        }.bind(this));
+        const localAudioTracks = this.getLocalTracks(MediaType.AUDIO);
+        for (const localAudio of localAudioTracks) {
+            this.transcriber.addTrack(localAudio);
+        }
         //and all remote audio tracks
         const remoteAudioTracks = this.rtc.getRemoteTracks(MediaType.AUDIO);
         for (const remoteTrack of remoteAudioTracks){
@@ -1028,7 +1036,7 @@ function (jingleSession, jingleOffer, now) {
 
     this.rtc.initializeDataChannels(jingleSession.peerconnection);
     // Add local Tracks to the ChatRoom
-    this.rtc.localTracks.forEach(function(localTrack) {
+    this.getLocalTracks().forEach(function(localTrack) {
         var ssrcInfo = null;
         /**
          * We don't do this for Firefox because, on Firefox, we keep the
@@ -1124,7 +1132,7 @@ JitsiConference.prototype.onCallEnded
     // will learn what their SSRC from the new PeerConnection which will be
     // created on incoming call event.
     var self = this;
-    this.rtc.localTracks.forEach(function(localTrack) {
+    this.getLocalTracks().forEach(function(localTrack) {
         // Reset SSRC as it will no longer be valid
         localTrack._setSSRC(null);
         // Bind the handler to fetch new SSRC, it will un register itself once
@@ -1177,21 +1185,25 @@ JitsiConference.prototype.myUserId = function () {
 };
 
 JitsiConference.prototype.sendTones = function (tones, duration, pause) {
+    // FIXME P2P 'dtmfManager' must be cleared, after switching jingleSessions
     if (!this.dtmfManager) {
-        var connection = this.xmpp.connection.jingle.activecall.peerconnection;
-        if (!connection) {
-            logger.warn("cannot sendTones: no conneciton");
+        if (!this.jingleSession) {
+            logger.warn("cannot sendTones: no jingle session");
             return;
         }
 
-        var tracks = this.getLocalTracks().filter(function (track) {
-            return track.isAudioTrack();
-        });
-        if (!tracks.length) {
+        const peerConnection = this.jingleSession.peerconnection;
+        if (!peerConnection) {
+            logger.warn("cannot sendTones: no peer connection");
+            return;
+        }
+
+        const localAudio = this.getLocalAudioTrack();
+        if (!localAudio) {
             logger.warn("cannot sendTones: no local audio stream");
             return;
         }
-        this.dtmfManager = new JitsiDTMFManager(tracks[0], connection);
+        this.dtmfManager = new JitsiDTMFManager(localAudio, peerConnection);
     }
 
     this.dtmfManager.sendTones(tones, duration, pause);

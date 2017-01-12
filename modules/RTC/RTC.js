@@ -55,8 +55,6 @@ export default class RTC extends Listenable {
         this.localTracks = [];
         //FIXME: We should support multiple streams per jid.
         this.remoteTracks = {};
-        this.localAudio = null;
-        this.localVideo = null;
         this.options = options;
         // A flag whether we had received that the data channel had opened
         // we can get this flag out of sync if for some reason data channel got
@@ -259,20 +257,39 @@ export default class RTC extends Listenable {
         this.localTracks.push(track);
 
         track.conference = this.conference;
-
-        if (track.isAudioTrack()) {
-            this.localAudio = track;
-        } else {
-            this.localVideo = track;
-        }
     }
 
     /**
      * Get local video track.
-     * @returns {JitsiLocalTrack}
+     * @returns {JitsiLocalTrack|undefined}
      */
     getLocalVideoTrack () {
-        return this.localVideo;
+        const localVideo = this.getLocalTracks(MediaType.VIDEO);
+        return localVideo.length ? localVideo[0] : undefined;
+    }
+
+    /**
+     * Get local audio track.
+     * @returns {JitsiLocalTrack|undefined}
+     */
+    getLocalAudioTrack () {
+        const localAudio = this.getLocalTracks(MediaType.AUDIO);
+        return localAudio.length ? localAudio[0] : undefined;
+    }
+
+    /**
+     * Returns the local tracks of the given media type, or all local tracks if
+     * no specific type is given.
+     * @param {MediaType} [mediaType] optional media type filter
+     * (audio or video).
+     */
+    getLocalTracks (mediaType) {
+        let tracks = this.localTracks.slice();
+        if (mediaType !== undefined) {
+            tracks = tracks.filter(
+                (track) => { return track.getType() === mediaType; });
+        }
+        return tracks;
     }
 
     /**
@@ -344,32 +361,22 @@ export default class RTC extends Listenable {
      * @returns {Promise}
      */
     setAudioMute (value) {
-        var mutePromises = [];
-        for(var i = 0; i < this.localTracks.length; i++) {
-            var track = this.localTracks[i];
-            if(track.getType() !== MediaType.AUDIO) {
-                continue;
-            }
+        const mutePromises = [];
+        this.getLocalTracks(MediaType.AUDIO).forEach(function(audioTrack){
             // this is a Promise
-            mutePromises.push(value ? track.mute() : track.unmute());
-        }
+            mutePromises.push(value ? audioTrack.mute() : audioTrack.unmute());
+        });
         // we return a Promise from all Promises so we can wait for their execution
         return Promise.all(mutePromises);
     }
 
     removeLocalTrack (track) {
-        var pos = this.localTracks.indexOf(track);
+        const pos = this.localTracks.indexOf(track);
         if (pos === -1) {
             return;
         }
 
         this.localTracks.splice(pos, 1);
-
-        if (track.isAudioTrack()) {
-            this.localAudio = null;
-        } else {
-            this.localVideo = null;
-        }
     }
 
     /**
@@ -636,13 +643,13 @@ export default class RTC extends Listenable {
      * @param ssrc the ssrc to check.
      */
     getResourceBySSRC (ssrc) {
-        if((this.localVideo && ssrc == this.localVideo.getSSRC())
-            || (this.localAudio && ssrc == this.localAudio.getSSRC())) {
+        if (this.getLocalTracks().find(
+                localTrack => { return localTrack.getSSRC() == ssrc; })) {
             return this.conference.myUserId();
         }
 
-        var track = this.getRemoteTrackBySSRC(ssrc);
-        return track? track.getParticipantId() : null;
+        const track = this.getRemoteTrackBySSRC(ssrc);
+        return track ? track.getParticipantId() : null;
     }
 
     /**

@@ -573,9 +573,9 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function () {
     });
 
     conference.statistics.addByteSentStatsListener(function (stats) {
-        conference.getLocalTracks().forEach(function (track) {
-            var ssrc = track.getSSRC();
-            if(!track.isAudioTrack() || !ssrc || !stats.hasOwnProperty(ssrc))
+        conference.getLocalTracks(MediaType.AUDIO).forEach(function (track) {
+            const ssrc = track.getSSRC();
+            if (!ssrc || !stats.hasOwnProperty(ssrc))
                 return;
 
             track._setByteSent(stats[ssrc]);
