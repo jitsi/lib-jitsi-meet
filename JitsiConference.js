@@ -170,7 +170,7 @@ JitsiConference.prototype.leave = function () {
         this.participantConnectionStatus = null;
     }
 
-    this.getLocalTracks().forEach(track => this.onTrackRemoved(track));
+    this.getLocalTracks().forEach(track => this.onLocalTrackRemoved(track));
 
     this.rtc.closeAllDataChannels();
     if (this.statistics)
@@ -394,12 +394,14 @@ JitsiConference.prototype.getTranscriber = function(){
     if (this.transcriber === undefined){
         this.transcriber = new Transcriber();
         //add all existing local audio tracks to the transcriber
+        // FIXME accessing localTracks field directly
         this.rtc.localTracks.forEach(function (localTrack) {
             if (localTrack.isAudioTrack()){
                 this.transcriber.addTrack(localTrack);
             }
         }.bind(this));
         //and all remote audio tracks
+        // FIXME accessing remoteTracks field directly
         this.rtc.remoteTracks.forEach(function (remoteTrack){
             if (remoteTrack.isAudioTrack()){
                 this.transcriber.addTrack(remoteTrack);
@@ -463,7 +465,7 @@ JitsiConference.prototype._fireMuteChangeEvent = function (track) {
  * Clear JitsiLocalTrack properties and listeners.
  * @param track the JitsiLocalTrack object.
  */
-JitsiConference.prototype.onTrackRemoved = function (track) {
+JitsiConference.prototype.onLocalTrackRemoved = function (track) {
     track._setSSRC(null);
     track._setConference(null);
     this.rtc.removeLocalTrack(track);
@@ -531,7 +533,7 @@ JitsiConference.prototype.replaceTrack = function (oldTrack, newTrack) {
     return this._doReplaceTrack(oldTrack, newTrack)
         .then(() => {
             if (oldTrack) {
-                this.onTrackRemoved(oldTrack);
+                this.onLocalTrackRemoved(oldTrack);
             }
             if (newTrack) {
                 // Now handle the addition of the newTrack at the JitsiConference level
@@ -896,16 +898,17 @@ JitsiConference.prototype.onDisplayNameChanged = function (jid, displayName) {
 };
 
 /**
- * Notifies this JitsiConference that a JitsiRemoteTrack was added (into the
- * ChatRoom of this JitsiConference).
+ * Notifies this JitsiConference that a JitsiRemoteTrack was added into
+ * the conference.
  *
  * @param {JitsiRemoteTrack} track the JitsiRemoteTrack which was added to this
  * JitsiConference
  */
-JitsiConference.prototype.onTrackAdded = function (track) {
-    var id = track.getParticipantId();
-    var participant = this.getParticipantById(id);
+JitsiConference.prototype.onRemoteTrackAdded = function (track) {
+    const id = track.getParticipantId();
+    const participant = this.getParticipantById(id);
     if (!participant) {
+        logger.error("No participant found for id: " + id);
         return;
     }
 
@@ -916,7 +919,7 @@ JitsiConference.prototype.onTrackAdded = function (track) {
         this.transcriber.addTrack(track);
     }
 
-    var emitter = this.eventEmitter;
+    const emitter = this.eventEmitter;
     track.addEventListener(
         JitsiTrackEvents.TRACK_MUTE_CHANGED,
         function () {
@@ -934,6 +937,47 @@ JitsiConference.prototype.onTrackAdded = function (track) {
     );
 
     emitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+};
+
+/**
+ * Notifies this JitsiConference that a JitsiRemoteTrack was removed from
+ * the conference.
+ *
+ * @param {JitsiRemoteTrack} removedTrack
+ */
+JitsiConference.prototype.onRemoteTrackRemoved = function (removedTrack) {
+    let consumed = false;
+
+    this.getParticipants().forEach(function(participant) {
+        const tracks = participant.getTracks();
+
+        for(let i = 0; i < tracks.length; i++) {
+            if(tracks[i] === removedTrack) {
+                // Since the tracks have been compared and are
+                // considered equal the result of splice can be ignored.
+                participant._tracks.splice(i, 1);
+
+                this.eventEmitter.emit(
+                    JitsiConferenceEvents.TRACK_REMOVED, removedTrack);
+
+                if(this.transcriber){
+                    this.transcriber.removeTrack(removedTrack);
+                }
+
+                consumed = true;
+
+                break;
+            }
+        }
+    }, this);
+
+    if (!consumed) {
+        logger.error(
+            "Failed to match remote track on remove"
+                + " with any of the participants",
+            removedTrack.getStreamId(),
+            removedTrack.getParticipantId());
+    }
 };
 
 /**
