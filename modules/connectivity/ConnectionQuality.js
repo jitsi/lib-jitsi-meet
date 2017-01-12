@@ -5,7 +5,6 @@ import {getLogger} from "jitsi-meet-logger";
 import RTCBrowserType from "../RTC/RTCBrowserType";
 
 var XMPPEvents = require('../../service/xmpp/XMPPEvents');
-var MediaType = require('../../service/RTC/MediaType');
 var VideoType = require('../../service/RTC/VideoType');
 var Resolutions = require("../../service/RTC/Resolutions");
 
@@ -359,8 +358,7 @@ export default class ConnectionQuality {
         // about the resolution, and they look at their local rendered
         // resolution instead. Consider removing this.
         let localVideoTrack
-            = this._conference.getLocalTracks(MediaType.VIDEO)
-                .find(track => track.isVideoTrack());
+            = this._conference.getLocalVideoTrack();
         if (localVideoTrack && localVideoTrack.resolution) {
             data.resolution = localVideoTrack.resolution;
         }
@@ -390,9 +388,8 @@ export default class ConnectionQuality {
         let key;
         let updateLocalConnectionQuality
             = !this._conference.isConnectionInterrupted();
-        let localVideoTrack =
-                this._conference.getLocalTracks(MediaType.VIDEO)
-                    .find(track => track.isVideoTrack());
+        let localVideoTrack
+            = this._conference.getLocalVideoTrack();
         let videoType = localVideoTrack ? localVideoTrack.videoType : undefined;
         let isMuted = localVideoTrack ? localVideoTrack.isMuted() : true;
         let resolution = localVideoTrack ? localVideoTrack.resolution : null;

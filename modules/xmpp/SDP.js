@@ -251,12 +251,14 @@ SDP.prototype.toJingle = function (elem, thecreator) {
                     elem.c('parameter');
                     elem.attrs({name: "cname", value:Math.random().toString(36).substring(7)});
                     elem.up();
-                    var msid = null;
-                    if(mline.media == "audio") {
-                        // FIXME what is this ? global APP.RTC in SDP ?
-                        msid = APP.RTC.localAudio._getId();
-                    } else {
-                        msid = APP.RTC.localVideo._getId();
+                    // FIXME what case does this code handle ? remove ???
+                    let msid = null;
+                    // FIXME what is this ? global APP.RTC in SDP ?
+                    const localTrack = APP.RTC.getLocalTracks(mline.media);
+                    if(localTrack) {
+                        // FIXME before this changes the track id was accessed,
+                        // but msid stands for the stream id, makes no sense ?
+                        msid = localTrack.getTrackId();
                     }
                     if(msid != null) {
                         msid = SDPUtil.filter_special_chars(msid);
