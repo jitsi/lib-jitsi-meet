@@ -20,6 +20,7 @@ var SIMULCAST_LAYERS = 3;
  * Creates new instance of 'TraceablePeerConnection'.
  *
  * @param {RTC} rtc the instance of <tt>RTC</tt> service
+ * @param {number} id the peer connection id assigned by the parent RTC module.
  * @param {SignallingLayer} signallingLayer the signalling layer instance
  * @param {object} ice_config WebRTC 'PeerConnection' ICE config
  * @param {object} constraints WebRTC 'PeerConnection' constraints
@@ -37,7 +38,7 @@ var SIMULCAST_LAYERS = 3;
  *
  * @constructor
  */
-function TraceablePeerConnection(rtc, signallingLayer, ice_config,
+function TraceablePeerConnection(rtc, id, signallingLayer, ice_config,
                                  constraints, options) {
     var self = this;
     /**
@@ -46,6 +47,11 @@ function TraceablePeerConnection(rtc, signallingLayer, ice_config,
      * @type {RTC}
      */
     this.rtc = rtc;
+    /**
+     * The peer connection identifier assigned by the RTC module.
+     * @type {number}
+     */
+    this.id = id;
     /**
      * The signalling layer which operates this peer connection.
      * @type {SignallingLayer}
@@ -683,6 +689,9 @@ TraceablePeerConnection.prototype.generateRecvonlySsrc = function() {
 
 TraceablePeerConnection.prototype.close = function () {
     this.trace('stop');
+    if (!this.rtc._removePeerConnection(this)) {
+        logger.error("RTC._removePeerConnection returned false");
+    }
     if (this.statsinterval !== null) {
         window.clearInterval(this.statsinterval);
         this.statsinterval = null;

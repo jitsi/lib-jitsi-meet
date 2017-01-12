@@ -41,6 +41,17 @@ export default class RTC extends Listenable {
     constructor(conference, options = {}) {
         super();
         this.conference = conference;
+        /**
+         * A map of active <tt>TraceablePeerConnection</tt>.
+         * @type {Map.<number, TraceablePeerConnection>}
+         */
+        this.peerConnections = new Map();
+        /**
+         * The counter used to generated id numbers assigned to peer connections
+         * @type {number}
+         */
+        this.peerConnectionIdCounter = 1;
+
         this.localTracks = [];
         //FIXME: We should support multiple streams per jid.
         this.remoteTracks = {};
@@ -214,8 +225,33 @@ export default class RTC extends Listenable {
      * @return {TraceablePeerConnection}
      */
     createPeerConnection (signalling, iceConfig, options) {
-        return new TraceablePeerConnection(
-            this, signalling, iceConfig, RTC.getPCConstraints(), options);
+        const newConnection
+            = new TraceablePeerConnection(
+                this,
+                this.peerConnectionIdCounter,
+                signalling, iceConfig, RTC.getPCConstraints(), options);
+
+        this.peerConnections.set(newConnection.id, newConnection);
+        this.peerConnectionIdCounter += 1;
+        return newConnection;
+    }
+
+    /**
+     * Removed given peer connection from this RTC module instance.
+     * @param {TraceablePeerConnection} traceablePeerConnection
+     * @return {boolean} <tt>true</tt> if the given peer connection was removed
+     * successfully or <tt>false</tt> if there was no peer connection mapped in
+     * this RTC instance.
+     */
+    _removePeerConnection (traceablePeerConnection) {
+        const id = traceablePeerConnection.id;
+        if (this.peerConnections.has(id)) {
+            // NOTE Remote tracks are not removed here.
+            this.peerConnections.delete(id);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     addLocalTrack (track) {
