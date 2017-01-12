@@ -3,11 +3,14 @@
 
 import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
+import * as GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
 import SdpConsistency from "../xmpp/SdpConsistency.js";
 import RtxModifier from "../xmpp/RtxModifier.js";
+import RTC from "./RTC";
 var RTCBrowserType = require("./RTCBrowserType.js");
 var RTCEvents = require("../../service/RTC/RTCEvents");
 var transform = require('sdp-transform');
+// FIXME SDP tools should end up in some kind of util module
 var SDP = require("../xmpp/SDP");
 var SDPUtil = require("../xmpp/SDPUtil");
 
@@ -17,6 +20,7 @@ var SIMULCAST_LAYERS = 3;
  * Creates new instance of 'TraceablePeerConnection'.
  *
  * @param {RTC} rtc the instance of <tt>RTC</tt> service
+ * @param {SignallingLayer} signallingLayer the signalling layer instance
  * @param {object} ice_config WebRTC 'PeerConnection' ICE config
  * @param {object} constraints WebRTC 'PeerConnection' constraints
  * @param {object} options <tt>TracablePeerConnection</tt> config options.
@@ -26,9 +30,14 @@ var SIMULCAST_LAYERS = 3;
  * @param {boolean} options.preferH264 if set to 'true' H264 will be preferred
  * over other video codecs.
  *
+ * FIXME: initially the purpose of TraceablePeerConnection was to be able to
+ * debug the peer connection. Since many other responsibilities have been added
+ * it would make sense to extract a separate class from it and come up with
+ * a more suitable name.
+ *
  * @constructor
  */
-function TraceablePeerConnection(rtc, ice_config,
+function TraceablePeerConnection(rtc, signallingLayer, ice_config,
                                  constraints, options) {
     var self = this;
     /**
@@ -37,6 +46,11 @@ function TraceablePeerConnection(rtc, ice_config,
      * @type {RTC}
      */
     this.rtc = rtc;
+    /**
+     * The signalling layer which operates this peer connection.
+     * @type {SignallingLayer}
+     */
+    this.signallingLayer = signallingLayer;
     this.options = options;
     var RTCPeerConnectionType = null;
     if (RTCBrowserType.isFirefox()) {
@@ -111,6 +125,12 @@ function TraceablePeerConnection(rtc, ice_config,
             self.onremovestream(event);
         }
     };
+    this.peerconnection.onaddstream = function (event) {
+        self._remoteStreamAdded(event.stream);
+    };
+    this.peerconnection.onremovestream = function (event) {
+        self._remoteStreamRemoved(event.stream);
+    };
     this.onsignalingstatechange = null;
     this.peerconnection.onsignalingstatechange = function (event) {
         self.trace('onsignalingstatechange', self.signalingState);
@@ -180,6 +200,187 @@ var dumpSDP = function(description) {
     }
 
     return 'type: ' + description.type + '\r\n' + description.sdp;
+};
+
+/**
+ * Called when new remote MediaStream is added to the PeerConnection.
+ * @param {MediaStream} stream the WebRTC MediaStream for remote participant
+ */
+TraceablePeerConnection.prototype._remoteStreamAdded = function (stream) {
+    if (!RTC.isUserStream(stream)) {
+        logger.info(
+            "Ignored remote 'stream added' event for non-user stream", stream);
+        return;
+    }
+    // Bind 'addtrack'/'removetrack' event handlers
+    if (RTCBrowserType.isChrome() || RTCBrowserType.isNWJS()
+        || RTCBrowserType.isElectron()) {
+        stream.onaddtrack = (event) => {
+            this._remoteTrackAdded(event.target, event.track);
+        };
+        stream.onremovetrack = (event) => {
+            this._remoteTrackRemoved(event.target, event.track);
+        };
+    }
+    // Call remoteTrackAdded for each track in the stream
+    const streamAudioTracks = stream.getAudioTracks();
+    for (const audioTrack of streamAudioTracks) {
+        this._remoteTrackAdded(stream, audioTrack);
+    }
+    const streamVideoTracks = stream.getVideoTracks();
+    for (const videoTrack of streamVideoTracks) {
+        this._remoteTrackAdded(stream, videoTrack);
+    }
+};
+
+
+/**
+ * Called on "track added" and "stream added" PeerConnection events (because we
+ * handle streams on per track basis). Finds the owner and the SSRC for
+ * the track and passes that to ChatRoom for further processing.
+ * @param {MediaStream} stream the WebRTC MediaStream instance which is
+ * the parent of the track
+ * @param {MediaStreamTrack} track the WebRTC MediaStreamTrack added for remote
+ * participant
+ */
+TraceablePeerConnection.prototype._remoteTrackAdded = function (stream, track) {
+    const streamId = RTC.getStreamID(stream);
+    const mediaType = track.kind;
+
+    logger.info("Remote track added", streamId, mediaType);
+
+    // look up an associated JID for a stream id
+    if (!mediaType) {
+        GlobalOnErrorHandler.callErrorHandler(
+            new Error(
+                `MediaType undefined for remote track, stream id: ${streamId}`
+            ));
+        // Abort
+        return;
+    }
+
+    const remoteSDP = new SDP(this.remoteDescription.sdp);
+    const mediaLines = remoteSDP.media.filter(
+        function (mediaLines){
+            return mediaLines.startsWith("m=" + mediaType);
+        });
+    if (!mediaLines.length) {
+        GlobalOnErrorHandler.callErrorHandler(
+            new Error(
+                "No media lines for type " + mediaType
+                    + " found in remote SDP for remote track: " + streamId));
+        // Abort
+        return;
+    }
+
+    let ssrcLines = SDPUtil.find_lines(mediaLines[0], 'a=ssrc:');
+
+    ssrcLines = ssrcLines.filter(
+        function (line) {
+            const msid
+                = RTCBrowserType.isTemasysPluginUsed() ? 'mslabel' : 'msid';
+            return line.indexOf(msid + ':' + streamId) !== -1;
+        });
+    if (!ssrcLines.length) {
+        GlobalOnErrorHandler.callErrorHandler(
+            new Error(
+                "No SSRC lines for streamId " + streamId
+                    + " for remote track, media type: " + mediaType));
+        // Abort
+        return;
+    }
+
+    // FIXME the length of ssrcLines[0] not verified, but it will fail
+    // with global error handler anyway
+    let trackSsrc = ssrcLines[0].substring(7).split(' ')[0];
+    const owner = this.signallingLayer.getSSRCOwner(trackSsrc);
+
+    if (!owner) {
+        GlobalOnErrorHandler.callErrorHandler(
+            new Error(
+                "No SSRC owner known for: " + trackSsrc
+                    + " for remote track, msid: " + streamId
+                    + " media type: " + mediaType));
+        // Abort
+        return;
+    }
+
+    logger.log('associated ssrc', owner, trackSsrc);
+
+    const peerMediaInfo
+        = this.signallingLayer.getPeerMediaInfo(owner, mediaType);
+
+    if (!peerMediaInfo) {
+        GlobalOnErrorHandler.callErrorHandler(
+            new Error("No peer media info available for: " + owner));
+        // Abort
+        return;
+    }
+
+    const muted = peerMediaInfo.muted;
+    const videoType = peerMediaInfo.videoType; // can be undefined
+
+    this.rtc._createRemoteTrack(
+        owner, stream, track, mediaType, videoType, trackSsrc, muted);
+};
+
+/**
+ * Handles remote stream removal.
+ * @param stream the WebRTC MediaStream object which is being removed from the
+ * PeerConnection
+ */
+TraceablePeerConnection.prototype._remoteStreamRemoved = function (stream) {
+    if (!RTC.isUserStream(stream)) {
+        const id = RTC.getStreamID(stream);
+        logger.info(
+            `Ignored remote 'stream removed' event for non-user stream ${id}`);
+        return;
+    }
+    // Call remoteTrackRemoved for each track in the stream
+    const streamVideoTracks = stream.getVideoTracks();
+    for (const videoTrack of streamVideoTracks) {
+        this._remoteTrackRemoved(stream, videoTrack);
+    }
+    const streamAudioTracks = stream.getAudioTracks();
+    for (const audioTrack of streamAudioTracks) {
+        this._remoteTrackRemoved(stream, audioTrack);
+    }
+};
+
+/**
+ * Handles remote media track removal.
+ * @param {MediaStream} stream WebRTC MediaStream instance which is the parent
+ * of the track.
+ * @param {MediaStreamTrack} track the WebRTC MediaStreamTrack which has been
+ * removed from the PeerConnection.
+ */
+TraceablePeerConnection.prototype._remoteTrackRemoved
+= function (stream, track) {
+    const streamId = RTC.getStreamID(stream);
+    const trackId = track && track.id;
+
+    logger.info("Remote track removed", streamId, trackId);
+
+    if (!streamId) {
+        GlobalOnErrorHandler.callErrorHandler(
+            new Error("Remote track removal failed - no stream ID"));
+        // Abort
+        return;
+    }
+
+    if (!trackId) {
+        GlobalOnErrorHandler.callErrorHandler(
+            new Error("Remote track removal failed - no track ID"));
+        // Abort
+        return;
+    }
+
+    if (!this.rtc._removeRemoteTrack(streamId, trackId)) {
+        GlobalOnErrorHandler.callErrorHandler(
+            new Error(
+                "Removed track not found for msid: " + streamId
+                    + "track id: " + trackId));
+    }
 };
 
 /**

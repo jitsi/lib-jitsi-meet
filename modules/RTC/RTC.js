@@ -1,4 +1,4 @@
-/* global Strophe */
+/* global */
 
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCEvents = require("../../service/RTC/RTCEvents.js");
@@ -200,6 +200,9 @@ export default class RTC extends Listenable {
 
     /**
      * Creates new <tt>TraceablePeerConnection</tt>
+     * @param {SignallingLayer} signalling the signalling layer that will
+     * provide information about the media or participants which is not carried
+     * over SDP.
      * @param {Object} iceConfig an object describing the ICE config like
      * defined in the WebRTC specification.
      * @param {Object} options the config options
@@ -210,9 +213,9 @@ export default class RTC extends Listenable {
      * preferred over other video codecs.
      * @return {TraceablePeerConnection}
      */
-    createPeerConnection (iceConfig, options) {
+    createPeerConnection (signalling, iceConfig, options) {
         return new TraceablePeerConnection(
-            this, iceConfig, RTC.getPCConstraints(), options);
+            this, signalling, iceConfig, RTC.getPCConstraints(), options);
     }
 
     addLocalTrack (track) {
@@ -307,65 +310,114 @@ export default class RTC extends Listenable {
     }
 
     /**
-     * Initializes a new JitsiRemoteTrack instance with the data provided by (a)
-     * ChatRoom to XMPPEvents.REMOTE_TRACK_ADDED.
+     * Initializes a new JitsiRemoteTrack instance with the data provided by
+     * the signalling layer and SDP.
      *
-     * @param {Object} event the data provided by (a) ChatRoom to
-     * XMPPEvents.REMOTE_TRACK_ADDED to (a)
+     * @param {string} owner
+     * @param {MediaStream} stream
+     * @param {MediaStreamTrack} track
+     * @param {MediaType} mediaType
+     * @param {VideoType|undefined} videoType
+     * @param {string} ssrc
+     * @param {boolean} muted
      */
-    createRemoteTrack (event) {
-        var ownerJid = event.owner;
-        var remoteTrack = new JitsiRemoteTrack(
-            this, this.conference, ownerJid, event.stream, event.track,
-            event.mediaType, event.videoType, event.ssrc, event.muted);
-        var resource = Strophe.getResourceFromJid(ownerJid);
-        var remoteTracks
-            = this.remoteTracks[resource] || (this.remoteTracks[resource] = {});
-        var mediaType = remoteTrack.getType();
+    _createRemoteTrack (owner,
+                        stream, track, mediaType, videoType, ssrc, muted) {
+        const remoteTrack
+            = new JitsiRemoteTrack(
+                this, this.conference, owner, stream, track,
+                mediaType, videoType, ssrc, muted);
+        const remoteTracks
+            = this.remoteTracks[owner] || (this.remoteTracks[owner] = {});
+
         if (remoteTracks[mediaType]) {
-            logger.warn("Overwriting remote track!", resource, mediaType);
+            logger.error("Overwriting remote track!", owner, mediaType);
         }
         remoteTracks[mediaType] = remoteTrack;
-        return remoteTrack;
+
+        this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack);
     }
 
     /**
-     * Removes all JitsiRemoteTracks associated with given MUC nickname (resource
-     * part of the JID). Returns array of removed tracks.
+     * Removes all JitsiRemoteTracks associated with given MUC nickname
+     * (resource part of the JID). Returns array of removed tracks.
      *
-     * @param {string} resource - The resource part of the MUC JID.
+     * @param {string} owner - The resource part of the MUC JID.
      * @returns {JitsiRemoteTrack[]}
      */
-    removeRemoteTracks (resource) {
-        var removedTracks = [];
-        var removedAudioTrack = this.removeRemoteTrack(resource, MediaType.AUDIO);
-        var removedVideoTrack = this.removeRemoteTrack(resource, MediaType.VIDEO);
+    removeRemoteTracks (owner) {
+        const removedTracks = [];
 
-        removedAudioTrack && removedTracks.push(removedAudioTrack);
-        removedVideoTrack && removedTracks.push(removedVideoTrack);
+        if (this.remoteTracks[owner]) {
+            const removedAudioTrack
+                = this.remoteTracks[owner][MediaType.AUDIO];
+            const removedVideoTrack
+                = this.remoteTracks[owner][MediaType.VIDEO];
 
-        delete this.remoteTracks[resource];
+            removedAudioTrack && removedTracks.push(removedAudioTrack);
+            removedVideoTrack && removedTracks.push(removedVideoTrack);
 
+            delete this.remoteTracks[owner];
+        }
         return removedTracks;
     }
 
     /**
-     * Removes specified track type associated with given MUC nickname
-     * (resource part of the JID). Returns removed track if any.
-     *
-     * @param {string} resource - The resource part of the MUC JID.
-     * @param {string} mediaType - Type of track to remove.
-     * @returns {JitsiRemoteTrack|undefined}
+     * Finds remote track by it's stream and track ids.
+     * @param {string} streamId the media stream id as defined by the WebRTC
+     * @param {string} trackId the media track id as defined by the WebRTC
+     * @return {JitsiRemoteTrack|undefined}
+     * @private
      */
-    removeRemoteTrack (resource, mediaType) {
-        var remoteTracksForResource = this.remoteTracks[resource];
+    _getRemoteTrackById (streamId, trackId) {
+        let result = undefined;
 
-        if (remoteTracksForResource && remoteTracksForResource[mediaType]) {
-            var track = remoteTracksForResource[mediaType];
-            track.dispose();
-            delete remoteTracksForResource[mediaType];
-            return track;
+        // .find will break the loop once the first match is found
+        Object.keys(this.remoteTracks).find((endpoint) => {
+            const endpointTracks = this.remoteTracks[endpoint];
+
+            return endpointTracks && Object.keys(endpointTracks).find(
+                (mediaType) => {
+                    const mediaTrack = endpointTracks[mediaType];
+
+                    if (mediaTrack
+                        && mediaTrack.getStreamId() == streamId
+                        && mediaTrack.getTrackId() == trackId) {
+                        result = mediaTrack;
+                        return true;
+                    } else {
+                        return false;
+                    }
+                });
+        });
+
+        return result;
+    }
+
+    /**
+     * Removes <tt>JitsiRemoteTrack</tt> identified by given stream and track
+     * ids.
+     *
+     * @param {string} streamId media stream id as defined by the WebRTC
+     * @param {string} trackId media track id as defined by the WebRTC
+     * @returns {JitsiRemoteTrack|undefined} the track which has been removed or
+     * <tt>undefined</tt> if no track matching given stream and track ids was
+     * found.
+     */
+    _removeRemoteTrack (streamId, trackId) {
+        const toBeRemoved = this._getRemoteTrackById(streamId, trackId);
+
+        if (toBeRemoved) {
+            toBeRemoved.dispose();
+
+            delete this.remoteTracks[
+                toBeRemoved.getParticipantId()][toBeRemoved.getType()];
+
+            this.rtc.eventEmitter.emit(
+                RTCEvents.REMOTE_TRACK_REMOVED, toBeRemoved);
         }
+
+        return toBeRemoved;
     }
 
     static getPCConstraints () {
@@ -445,11 +497,26 @@ export default class RTC extends Listenable {
      * "streams/channels/tracks" for receiving remote stream/tracks, as opposed
      * to Plan B where there are only 3 channels: audio, video and data.
      *
-     * @param stream WebRTC MediaStream instance
+     * @param {MediaStream} stream the WebRTC MediaStream instance
      * @returns {boolean}
      */
     static isUserStream (stream) {
-        var streamId = RTCUtils.getStreamID(stream);
+        return RTC.isUserStreamById(RTCUtils.getStreamID(stream));
+    }
+
+    /**
+     * Returns <tt>true<tt/> if a WebRTC MediaStream identified by given stream
+     * ID is considered a valid "user" stream which means that it's not a
+     * "receive only" stream nor a "mixed" JVB stream.
+     *
+     * Clients that implement Unified Plan, such as Firefox use recvonly
+     * "streams/channels/tracks" for receiving remote stream/tracks, as opposed
+     * to Plan B where there are only 3 channels: audio, video and data.
+     *
+     * @param {string} streamId the id of WebRTC MediaStream
+     * @returns {boolean}
+     */
+    static isUserStreamById (streamId) {
         return (streamId && streamId !== "mixedmslabel"
             && streamId !== "default");
     }

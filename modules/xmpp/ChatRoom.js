@@ -747,26 +747,19 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     * An object that carries the info portion about specific media type
-     * advertised by participant in MUC presence.
-     * @typedef {Object} MediaPresenceInfo
-     * @property {boolean} muted indicates if the media is currently muted
-     * @property {VideoType|undefined} videoType the type of the video if applicable
-     */
-    /**
      * Obtains the info about given media advertised in the MUC presence of
-     * the participant identified by the given MUC JID.
-     * @param {string} peerjid the MUC jid of the participant for whom
-     * {@link MediaPresenceInfo} will be obtained.
+     * the participant identified by the given endpoint JID.
+     * @param {string} endpointId the endpoint ID mapped to the participant
+     * which corresponds to MUC nickname.
      * @param {MediaType} mediaType the type of the media for which presence
      * info will be obtained.
-     * @return {MediaPresenceInfo} presenceInfo an object with media presence
-     * info or <tt>null</tt> either if there is no presence available for given
-     * JID or if the media type given is invalid.
+     * @return {PeerMediaInfo} presenceInfo an object with media presence
+     * info or <tt>null</tt> either if there is no presence available or if
+     * the media type given is invalid.
      */
-    getMediaPresenceInfo (peerjid, mediaType) {
+    getMediaPresenceInfo (endpointId, mediaType) {
         // Will figure out current muted status by looking up owner's presence
-        const pres = this.lastPresences[peerjid];
+        const pres = this.lastPresences[this.roomjid + "/" + endpointId];
         if (!pres) {
             // No presence available
             return null;

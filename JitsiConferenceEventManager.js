@@ -400,43 +400,13 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function () {
     this.rtcForwarder
         = new EventEmitterForwarder(rtc, this.conference.eventEmitter);
 
-    // FIXME REMOTE_TRACK_ADDED could come with JitsiRemoteTrack instance
-    rtc.addListener(RTCEvents.REMOTE_TRACK_ADDED,
-        function (data) {
-            const track = rtc.createRemoteTrack(data);
-            if (track) {
-                conference.onTrackAdded(track);
-            }
-        }
-    );
-    rtc.addListener(RTCEvents.REMOTE_TRACK_REMOVED,
-        function (streamId, trackId) {
-            conference.getParticipants().forEach(function(participant) {
-                const tracks = participant.getTracks();
-                for(let i = 0; i < tracks.length; i++) {
-                    if(tracks[i]
-                        && tracks[i].getStreamId() == streamId
-                        && tracks[i].getTrackId() == trackId) {
-                        const track = participant._tracks.splice(i, 1)[0];
+    rtc.addListener(
+        RTCEvents.REMOTE_TRACK_ADDED,
+        conference.onRemoteTrackAdded.bind(conference));
 
-                        // FIXME this can be done in RTC directly,
-                        // before firing the event
-                        rtc.removeRemoteTrack(
-                            participant.getId(), track.getType());
-
-                        conference.eventEmitter.emit(
-                            JitsiConferenceEvents.TRACK_REMOVED, track);
-
-                        if(conference.transcriber){
-                            conference.transcriber.removeTrack(track);
-                        }
-
-                        return;
-                    }
-                }
-            });
-        }
-    );
+    rtc.addListener(
+        RTCEvents.REMOTE_TRACK_REMOVED,
+        conference.onRemoteTrackRemoved.bind(conference));
 
     rtc.addListener(RTCEvents.DOMINANT_SPEAKER_CHANGED,
         function (id) {
