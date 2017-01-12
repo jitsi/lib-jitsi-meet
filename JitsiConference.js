@@ -401,12 +401,10 @@ JitsiConference.prototype.getTranscriber = function(){
             }
         }.bind(this));
         //and all remote audio tracks
-        // FIXME accessing remoteTracks field directly
-        this.rtc.remoteTracks.forEach(function (remoteTrack){
-            if (remoteTrack.isAudioTrack()){
-                this.transcriber.addTrack(remoteTrack);
-            }
-        }.bind(this));
+        const remoteAudioTracks = this.rtc.getRemoteTracks(MediaType.AUDIO);
+        for (const remoteTrack of remoteAudioTracks){
+            this.transcriber.addTrack(remoteTrack);
+        }
     }
     return this.transcriber;
 };
