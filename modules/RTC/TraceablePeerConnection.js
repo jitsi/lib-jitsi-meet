@@ -382,10 +382,19 @@ TraceablePeerConnection.prototype._remoteTrackRemoved
     }
 
     if (!this.rtc._removeRemoteTrack(streamId, trackId)) {
-        GlobalOnErrorHandler.callErrorHandler(
-            new Error(
-                "Removed track not found for msid: " + streamId
-                    + "track id: " + trackId));
+        // NOTE this warning is always printed when user leaves the room,
+        // because we remove remote tracks manually on MUC member left event,
+        // before the SSRCs are removed by Jicofo. In most cases it is fine to
+        // ignore this warning, but still it's better to keep it printed for
+        // debugging purposes.
+        //
+        // We could change the behaviour to emit track removed only from here,
+        // but the order of the events will change and consuming apps could
+        // behave unexpectedly (the "user left" event would come before "track
+        // removed" events).
+        logger.warn(
+            `Removed track not found for msid: ${streamId},
+             track id: ${trackId}`);
     }
 };
 
