@@ -4,7 +4,7 @@ var RTCBrowserType = require("./RTCBrowserType");
 import RTCUtils from "./RTCUtils";
 import * as JitsiTrackEvents from "../../JitsiTrackEvents";
 var EventEmitter = require("events");
-var MediaType = require("../../service/RTC/MediaType");
+import * as MediaType from "../../service/RTC/MediaType";
 
 /**
  * Maps our handler types to MediaStreamTrack properties.

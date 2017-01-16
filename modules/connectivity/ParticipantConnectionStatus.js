@@ -1,6 +1,6 @@
 /* global __filename, module, require */
 var logger = require('jitsi-meet-logger').getLogger(__filename);
-var MediaType = require('../../service/RTC/MediaType');
+import * as MediaType from '../../service/RTC/MediaType';
 var RTCBrowserType = require('../RTC/RTCBrowserType');
 var RTCEvents = require('../../service/RTC/RTCEvents');
 

@@ -4,7 +4,7 @@ import {getLogger} from "jitsi-meet-logger";
 const logger = getLogger(__filename);
 import Listenable from "../util/Listenable";
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
-var MediaType = require("../../service/RTC/MediaType");
+import * as MediaType from "../../service/RTC/MediaType";
 var Moderator = require("./moderator");
 var Recorder = require("./recording");
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
