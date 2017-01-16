@@ -26,14 +26,7 @@ const RTCEvents = {
 
     /**
      * Event fired when we remote track is added to the conference.
-     * The following structure is passed as an argument:
-     * {
-     *   stream: the WebRTC MediaStream instance
-     *   track: the WebRTC MediaStreamTrack
-     *   mediaType: the MediaType instance
-     *   owner: the MUC JID of the stream owner
-     *   muted: a boolean indicating initial 'muted' status of the track or
-      *         'null' if unknown
+     * 1st event argument is the added <tt>JitsiRemoteTrack</tt> instance.
      **/
     REMOTE_TRACK_ADDED: 'rtc.remote_track_added',
 
@@ -43,9 +36,7 @@ const RTCEvents = {
 
     /**
      * Indicates that the remote track has been removed from the conference.
-     * 1st event argument is the ID of the parent WebRTC stream to which
-     * the track being removed belongs to.
-     * 2nd event argument is the ID of the removed track.
+     * 1st event argument is the removed {@link JitsiRemoteTrack} instance.
      */
     REMOTE_TRACK_REMOVED: 'rtc.remote_track_removed',
 

@@ -404,25 +404,11 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         }
     });
 
-    chatRoom.addPresenceListener('videomuted', (values, from) => {
-        conference.rtc.handleRemoteTrackMute(MediaType.VIDEO,
-            values.value === 'true', from);
-    });
-
-    chatRoom.addPresenceListener('audiomuted', (values, from) => {
-        conference.rtc.handleRemoteTrackMute(MediaType.AUDIO,
-            values.value === 'true', from);
-    });
-
-    chatRoom.addPresenceListener('videoType', (data, from) => {
-        conference.rtc.handleRemoteTrackVideoTypeChanged(data.value, from);
-    });
-
     chatRoom.addPresenceListener('devices', (data, from) => {
         let isAudioAvailable = false;
         let isVideoAvailable = false;
 
-        data.children.forEach(config => {
+        data.children.forEach((config) => {
             if (config.tagName === 'audio') {
                 isAudioAvailable = config.value === 'true';
             }
@@ -624,13 +610,7 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
     }
 
     conference.statistics.addAudioLevelListener((ssrc, level) => {
-        const resource = conference.rtc.getResourceBySSRC(ssrc);
-
-        if (!resource) {
-            return;
-        }
-
-        conference.rtc.setAudioLevel(resource, level);
+        conference.rtc.setAudioLevel(ssrc, level);
     });
 
     // Forward the "before stats disposed" event

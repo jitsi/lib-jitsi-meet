@@ -563,6 +563,15 @@ JitsiLocalTrack.prototype.getDeviceId = function() {
 };
 
 /**
+ * Returns the participant id which owns the track.
+ * @returns {string} the id of the participants. It corresponds to the Colibri
+ * endpoint id/MUC nickname in case of Jitsi-meet.
+ */
+JitsiLocalTrack.prototype.getParticipantId = function() {
+    return this.conference ? this.conference.myUserId() : undefined;
+};
+
+/**
  * Sets the value of bytes sent statistic.
  * @param bytesSent {integer} the new value (FIXME: what is an integer in js?)
  * NOTE: used only for audio tracks to detect audio issues.

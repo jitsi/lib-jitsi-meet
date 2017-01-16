@@ -3,6 +3,8 @@
 
 import { getLogger } from 'jitsi-meet-logger';
 import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import JitsiRemoteTrack from "./JitsiRemoteTrack";
+import * as MediaType from "../../service/RTC/MediaType";
 import RTC from './RTC';
 import RTCBrowserType from './RTCBrowserType.js';
 import RTCEvents from '../../service/RTC/RTCEvents';
@@ -12,6 +14,7 @@ import RtxModifier from '../xmpp/RtxModifier.js';
 import SDP from '../xmpp/SDP';
 import SdpConsistency from '../xmpp/SdpConsistency.js';
 import SDPUtil from '../xmpp/SDPUtil';
+import * as SignallingEvents from '../../service/RTC/SignallingEvents';
 import transform from 'sdp-transform';
 
 const logger = getLogger(__filename);
@@ -62,11 +65,28 @@ function TraceablePeerConnection(
      */
     this.id = id;
 
+    //FIXME: We should support multiple streams per jid.
+    /**
+     * The map holds remote tracks associated with this peer connection.
+     * @type {Object.<MediaType, JitsiRemoteTrack>}
+     */
+    this.remoteTracks = {};
+
     /**
      * The signaling layer which operates this peer connection.
      * @type {SignalingLayer}
      */
     this.signalingLayer = signalingLayer;
+    // SignallingLayer listeners
+    this._peerVideoTypeChanged = this._peerVideoTypeChanged.bind(this);
+    this.signalingLayer.on(
+        SignallingEvents.PEER_VIDEO_TYPE_CHANGED,
+        this._peerVideoTypeChanged);
+
+    this._peerMutedChanged = this._peerMutedChanged.bind(this);
+    this.signalingLayer.on(
+        SignallingEvents.PEER_MUTED_CHANGED,
+        this._peerMutedChanged);
     this.options = options;
     let RTCPeerConnectionType = null;
 
@@ -228,6 +248,82 @@ const dumpSDP = function(description) {
 };
 
 /**
+ * Handles {@link SignallingEvents.PEER_VIDEO_TYPE_CHANGED}
+ * @param {string} endpointId the video owner's ID (MUC nickname)
+ * @param {VideoType} videoType the new value
+ * @private
+ */
+TraceablePeerConnection.prototype._peerVideoTypeChanged
+= function (endpointId, videoType) {
+    // Check if endpointId has a value to avoid action on random track
+    if (!endpointId) {
+        logger.error("No endpointID on peerVideoTypeChanged");
+        return;
+    }
+    const videoTrack = this.getRemoteTracks(endpointId, MediaType.VIDEO);
+    if (videoTrack.length) {
+        // NOTE 1 track per media type is assumed
+        videoTrack[0]._setVideoType(videoType);
+    }
+};
+
+/**
+ * Handles remote track mute / unmute events.
+ * @param {string} endpointId the track owner's identifier (MUC nickname)
+ * @param {MediaType} mediaType "audio" or "video"
+ * @param {boolean} isMuted the new mute state
+ * @private
+ */
+TraceablePeerConnection.prototype._peerMutedChanged
+= function (endpointId, mediaType, isMuted) {
+    // Check if endpointId is a value to avoid doing action on all remote tracks
+    if (!endpointId) {
+        logger.error("On peerMuteChanged - no endpoint ID");
+        return;
+    }
+    const track = this.getRemoteTracks(endpointId, mediaType);
+    if (track.length) {
+        // NOTE 1 track per media type is assumed
+        track[0].setMute(isMuted);
+    }
+};
+
+/**
+ * Obtains all remote tracks currently known to this PeerConnection instance.
+ * @param {string} endpointId the track owner's identifier (MUC nickname)
+ * @param {MediaType} [mediaType] the remote tracks will be filtered
+ * by their media type if this argument is specified.
+ * @return {Array<JitsiRemoteTrack>}
+ */
+ TraceablePeerConnection.prototype.getRemoteTracks
+= function (endpointId, mediaType) {
+     const remoteTracks = [];
+     const endpoints
+         = endpointId ? [endpointId] : Object.keys(this.remoteTracks);
+
+     endpoints.forEach(
+         function(endpoint) {
+             const endpointTracks = this.remoteTracks[endpoint];
+
+             endpointTracks && Object.keys(endpointTracks).forEach(
+                 function (trackMediaType) {
+
+                     // per media type filtering
+                     if (mediaType && mediaType !== trackMediaType) {
+                         return;
+                     }
+
+                     const mediaTrack = endpointTracks[trackMediaType];
+
+                     if (mediaTrack) {
+                         remoteTracks.push(mediaTrack);
+                     }
+                 });
+         }, this);
+     return remoteTracks;
+ };
+
+/**
  * Called when new remote MediaStream is added to the PeerConnection.
  * @param {MediaStream} stream the WebRTC MediaStream for remote participant
  */
@@ -357,8 +453,38 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
     const muted = peerMediaInfo.muted;
     const videoType = peerMediaInfo.videoType; // can be undefined
 
-    this.rtc._createRemoteTrack(
+    this._createRemoteTrack(
         ownerEndpointId, stream, track, mediaType, videoType, trackSsrc, muted);
+};
+
+/**
+ * Initializes a new JitsiRemoteTrack instance with the data provided by
+ * the signalling layer and SDP.
+ *
+ * @param {string} owner the owner's endpoint ID (MUC nickname)
+ * @param {MediaStream} stream the WebRTC stream instance
+ * @param {MediaStreamTrack} track the WebRTC track instance
+ * @param {MediaType} mediaType the track's type of the media
+ * @param {VideoType} [videoType] the track's type of the video (if applicable)
+ * @param {string} ssrc the track's main SSRC number
+ * @param {boolean} muted the initial muted status
+ */
+TraceablePeerConnection.prototype._createRemoteTrack
+= function (owner, stream, track, mediaType, videoType, ssrc, muted) {
+    const remoteTrack
+        = new JitsiRemoteTrack(
+            this.rtc, this.rtc.conference,
+            owner, stream, track, mediaType, videoType, ssrc, muted);
+    const remoteTracks
+        = this.remoteTracks[owner] || (this.remoteTracks[owner] = { });
+
+    if (remoteTracks[mediaType]) {
+        logger.error("Overwriting remote track!", owner, mediaType);
+    }
+    remoteTracks[mediaType] = remoteTrack;
+
+    // FIXME not cool to use RTC's eventEmitter
+    this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack);
 };
 
 /**
@@ -419,7 +545,7 @@ TraceablePeerConnection.prototype._remoteTrackRemoved
         return;
     }
 
-    if (!this.rtc._removeRemoteTrack(streamId, trackId)) {
+    if (!this._removeRemoteTrack(streamId, trackId)) {
         // NOTE this warning is always printed when user leaves the room,
         // because we remove remote tracks manually on MUC member left event,
         // before the SSRCs are removed by Jicofo. In most cases it is fine to
@@ -434,6 +560,190 @@ TraceablePeerConnection.prototype._remoteTrackRemoved
             `Removed track not found for msid: ${streamId},
              track id: ${trackId}`);
     }
+};
+
+/**
+ * Finds remote track by it's stream and track ids.
+ * @param {string} streamId the media stream id as defined by the WebRTC
+ * @param {string} trackId the media track id as defined by the WebRTC
+ * @return {JitsiRemoteTrack|undefined} the track's instance or
+ * <tt>undefined</tt> if not found.
+ * @private
+ */
+TraceablePeerConnection.prototype._getRemoteTrackById
+    = function (streamId, trackId) {
+    let result;
+
+    // .find will break the loop once the first match is found
+    Object.keys(this.remoteTracks).find(function(endpoint) {
+        const endpointTracks = this.remoteTracks[endpoint];
+
+        return endpointTracks && Object.keys(endpointTracks).find(
+                function (mediaType) {
+                    const mediaTrack = endpointTracks[mediaType];
+
+                    if (mediaTrack
+                        && mediaTrack.getStreamId() == streamId
+                        && mediaTrack.getTrackId() == trackId) {
+                        result = mediaTrack;
+                        return true;
+                    } else {
+                        return false;
+                    }
+                });
+    }, this);
+
+    return result;
+};
+
+/**
+ * Removes and disposes <tt>JitsiRemoteTrack</tt> identified by given stream and
+ * track ids.
+ *
+ * @param {string} streamId the media stream id as defined by the WebRTC
+ * @param {string} trackId the media track id as defined by the WebRTC
+ * @returns {JitsiRemoteTrack|undefined} the track which has been removed or
+ * <tt>undefined</tt> if no track matching given stream and track ids was
+ * found.
+ */
+TraceablePeerConnection.prototype._removeRemoteTrack
+    = function (streamId, trackId) {
+
+    const toBeRemoved = this._getRemoteTrackById(streamId, trackId);
+
+    if (toBeRemoved) {
+        toBeRemoved.dispose();
+
+        delete this.remoteTracks[
+            toBeRemoved.getParticipantId()][toBeRemoved.getType()];
+
+        // FIXME not cool to use RTC's eventEmitter
+        this.rtc.eventEmitter.emit(
+            RTCEvents.REMOTE_TRACK_REMOVED, toBeRemoved);
+    }
+
+    return toBeRemoved;
+};
+
+/**
+ * Removes all JitsiRemoteTracks associated with given MUC nickname
+ * (resource part of the JID). Returns array of removed tracks.
+ *
+ * @param {string} owner - The resource part of the MUC JID.
+ * @returns {JitsiRemoteTrack[]}
+ */
+TraceablePeerConnection.prototype.removeRemoteTracks = function (owner) {
+    const removedTracks = [];
+
+    if (this.remoteTracks[owner]) {
+        const removedAudioTrack
+            = this.remoteTracks[owner][MediaType.AUDIO];
+        const removedVideoTrack
+            = this.remoteTracks[owner][MediaType.VIDEO];
+
+        removedAudioTrack && removedTracks.push(removedAudioTrack);
+        removedVideoTrack && removedTracks.push(removedVideoTrack);
+
+        delete this.remoteTracks[owner];
+    }
+
+    logger.debug(
+        "Removed remote tracks for " + owner
+            + " count: " + removedTracks.length);
+
+    return removedTracks;
+};
+
+/**
+ * Finds remote track by it's stream and track ids.
+ * @param {string} streamId the media stream id as defined by the WebRTC
+ * @param {string} trackId the media track id as defined by the WebRTC
+ * @return {JitsiRemoteTrack|undefined} the track's instance or
+ * <tt>undefined</tt> if not found.
+ * @private
+ */
+TraceablePeerConnection.prototype._getRemoteTrackById
+= function (streamId, trackId) {
+    let result;
+
+    // .find will break the loop once the first match is found
+    Object.keys(this.remoteTracks).find(function(endpoint) {
+        const endpointTracks = this.remoteTracks[endpoint];
+
+        return endpointTracks && Object.keys(endpointTracks).find(
+                function (mediaType) {
+                    const mediaTrack = endpointTracks[mediaType];
+
+                    if (mediaTrack
+                            && mediaTrack.getStreamId() == streamId
+                            && mediaTrack.getTrackId() == trackId) {
+                        result = mediaTrack;
+                        return true;
+                    } else {
+                        return false;
+                    }
+                });
+    }, this);
+
+    return result;
+};
+
+/**
+ * Removes and disposes <tt>JitsiRemoteTrack</tt> identified by given stream and
+ * track ids.
+ *
+ * @param {string} streamId the media stream id as defined by the WebRTC
+ * @param {string} trackId the media track id as defined by the WebRTC
+ * @returns {JitsiRemoteTrack|undefined} the track which has been removed or
+ * <tt>undefined</tt> if no track matching given stream and track ids was
+ * found.
+ */
+TraceablePeerConnection.prototype._removeRemoteTrack
+= function (streamId, trackId) {
+
+    const toBeRemoved = this._getRemoteTrackById(streamId, trackId);
+
+    if (toBeRemoved) {
+        toBeRemoved.dispose();
+
+        delete this.remoteTracks[
+            toBeRemoved.getParticipantId()][toBeRemoved.getType()];
+
+        // FIXME not cool to use RTC's eventEmitter
+        this.rtc.eventEmitter.emit(
+            RTCEvents.REMOTE_TRACK_REMOVED, toBeRemoved);
+    }
+
+    return toBeRemoved;
+};
+
+/**
+ * Removes all JitsiRemoteTracks associated with given MUC nickname
+ * (resource part of the JID). Returns array of removed tracks.
+ *
+ * @param {string} owner - The resource part of the MUC JID.
+ * @returns {JitsiRemoteTrack[]}
+ */
+TraceablePeerConnection.prototype.removeRemoteTracks = function (owner) {
+    const removedTracks = [];
+
+    if (this.remoteTracks[owner]) {
+        const removedAudioTrack
+            = this.remoteTracks[owner][MediaType.AUDIO];
+        const removedVideoTrack
+            = this.remoteTracks[owner][MediaType.VIDEO];
+
+        removedAudioTrack && removedTracks.push(removedAudioTrack);
+        removedVideoTrack && removedTracks.push(removedVideoTrack);
+
+        delete this.remoteTracks[owner];
+    }
+
+    logger.debug(
+        "Removed remote tracks for " + owner
+            + " count: " + removedTracks.length);
+
+    return removedTracks;
 };
 
 /**
@@ -814,6 +1124,13 @@ TraceablePeerConnection.prototype.clearRecvonlySsrc = function() {
 
 TraceablePeerConnection.prototype.close = function() {
     this.trace('stop');
+
+    // Off SignallingEvents
+    this.signallingLayer.off(
+        SignallingEvents.PEER_MUTED_CHANGED, this._peerMutedChanged);
+    this.signallingLayer.off(
+        SignallingEvents.PEER_VIDEO_TYPE_CHANGED, this._peerVideoTypeChanged);
+
     if (!this.rtc._removePeerConnection(this)) {
         logger.error('RTC._removePeerConnection returned false');
     }

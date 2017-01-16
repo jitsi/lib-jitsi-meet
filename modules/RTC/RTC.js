@@ -3,7 +3,6 @@ import DataChannels from './DataChannels';
 import { getLogger } from 'jitsi-meet-logger';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import JitsiLocalTrack from './JitsiLocalTrack.js';
-import JitsiRemoteTrack from './JitsiRemoteTrack.js';
 import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
 import Listenable from '../util/Listenable';
@@ -73,8 +72,6 @@ export default class RTC extends Listenable {
 
         this.localTracks = [];
 
-        // FIXME: We should support multiple streams per jid.
-        this.remoteTracks = {};
         this.options = options;
 
         // A flag whether we had received that the data channel had opened
@@ -356,68 +353,36 @@ export default class RTC extends Listenable {
     }
 
     /**
+     * Runs a callback on each PeerConnection currently stored in the RTC
+     * module. If callback return any non-null value during execution
+     * the execution loop will be aborted and the result will be returned.
+     * @param {function(TraceablePeerConnection)} callback the function to be
+     * executed
+     * @return {*} any first non-null nor undefined value returned by
+     * the callback.
+     * @private
+     */
+    _iteratePeerConnections (callback) {
+        return Array.from(this.peerConnections.values()).find((pc) => {
+            return callback.apply(this, [pc]);
+        }, this);
+    }
+
+    /**
      * Obtains all remote tracks currently known to this RTC module instance.
      * @param {MediaType} [mediaType] the remote tracks will be filtered
      * by their media type if this argument is specified.
      * @return {Array<JitsiRemoteTrack>}
      */
     getRemoteTracks(mediaType) {
-        const remoteTracks = [];
-        const remoteEndpoints = Object.keys(this.remoteTracks);
-
-        for (const endpoint of remoteEndpoints) {
-            const endpointMediaTypes = Object.keys(this.remoteTracks[endpoint]);
-
-            for (const trackMediaType of endpointMediaTypes) {
-                // per media type filtering
-                if (!mediaType || mediaType === trackMediaType) {
-                    const mediaTrack
-                        = this.remoteTracks[endpoint][trackMediaType];
-
-                    if (mediaTrack) {
-                        remoteTracks.push(mediaTrack);
-                    }
-                }
+        let remoteTracks = [];
+        this._iteratePeerConnections((pc) => {
+            const pcRemoteTracks = pc.getRemoteTracks(undefined, mediaType);
+            if (pcRemoteTracks) {
+                remoteTracks = remoteTracks.concat(pcRemoteTracks);
             }
-        }
-
+        });
         return remoteTracks;
-    }
-
-    /**
-     * Gets JitsiRemoteTrack for the passed MediaType associated with given MUC
-     * nickname (resource part of the JID).
-     * @param type audio or video.
-     * @param resource the resource part of the MUC JID
-     * @returns {JitsiRemoteTrack|null}
-     */
-    getRemoteTrackByType(type, resource) {
-        if (this.remoteTracks[resource]) {
-            return this.remoteTracks[resource][type];
-        }
-
-        return null;
-
-    }
-
-    /**
-     * Gets JitsiRemoteTrack for AUDIO MediaType associated with given MUC
-     * nickname (resource part of the JID).
-     * @param resource the resource part of the MUC JID
-     * @returns {JitsiRemoteTrack|null}
-     */
-    getRemoteAudioTrack(resource) {
-        return this.getRemoteTrackByType(MediaType.AUDIO, resource);
-    }
-
-    /**
-     * Gets JitsiRemoteTrack for VIDEO MediaType associated with given MUC
-     * nickname (resource part of the JID).
-     * @param resource the resource part of the MUC JID
-     * @returns {JitsiRemoteTrack|null}
-     */
-    getRemoteVideoTrack(resource) {
-        return this.getRemoteTrackByType(MediaType.VIDEO, resource);
     }
 
     /**
@@ -452,56 +417,6 @@ export default class RTC extends Listenable {
         this.localTracks.splice(pos, 1);
     }
 
-    /* eslint-disable max-params */
-
-    /**
-     * Initializes a new JitsiRemoteTrack instance with the data provided by
-     * the signaling layer and SDP.
-     *
-     * @param {string} ownerEndpointId
-     * @param {MediaStream} stream
-     * @param {MediaStreamTrack} track
-     * @param {MediaType} mediaType
-     * @param {VideoType|undefined} videoType
-     * @param {string} ssrc
-     * @param {boolean} muted
-     */
-    _createRemoteTrack(
-            ownerEndpointId,
-            stream,
-            track,
-            mediaType,
-            videoType,
-            ssrc,
-            muted) {
-        const remoteTrack
-            = new JitsiRemoteTrack(
-                this,
-                this.conference,
-                ownerEndpointId,
-                stream,
-                track,
-                mediaType,
-                videoType,
-                ssrc,
-                muted);
-        const remoteTracks
-            = this.remoteTracks[ownerEndpointId]
-                || (this.remoteTracks[ownerEndpointId] = {});
-
-        if (remoteTracks[mediaType]) {
-            logger.error(
-                'Overwriting remote track!',
-                ownerEndpointId,
-                mediaType);
-        }
-        remoteTracks[mediaType] = remoteTrack;
-
-        this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack);
-    }
-
-    /* eslint-enable max-params */
-
     /**
      * Removes all JitsiRemoteTracks associated with given MUC nickname
      * (resource part of the JID). Returns array of removed tracks.
@@ -510,81 +425,18 @@ export default class RTC extends Listenable {
      * @returns {JitsiRemoteTrack[]}
      */
     removeRemoteTracks(owner) {
-        const removedTracks = [];
+        let removedTracks = [];
 
-        if (this.remoteTracks[owner]) {
-            const removedAudioTrack
-                = this.remoteTracks[owner][MediaType.AUDIO];
-            const removedVideoTrack
-                = this.remoteTracks[owner][MediaType.VIDEO];
-
-            removedAudioTrack && removedTracks.push(removedAudioTrack);
-            removedVideoTrack && removedTracks.push(removedVideoTrack);
-
-            delete this.remoteTracks[owner];
-        }
-
-        return removedTracks;
-    }
-
-    /**
-     * Finds remote track by it's stream and track ids.
-     * @param {string} streamId the media stream id as defined by the WebRTC
-     * @param {string} trackId the media track id as defined by the WebRTC
-     * @return {JitsiRemoteTrack|undefined}
-     * @private
-     */
-    _getRemoteTrackById(streamId, trackId) {
-        let result;
-
-        // .find will break the loop once the first match is found
-        Object.keys(this.remoteTracks).find(endpoint => {
-            const endpointTracks = this.remoteTracks[endpoint];
-
-            return endpointTracks && Object.keys(endpointTracks).find(
-                mediaType => {
-                    const mediaTrack = endpointTracks[mediaType];
-
-                    if (mediaTrack
-                        && mediaTrack.getStreamId() === streamId
-                        && mediaTrack.getTrackId() === trackId) {
-                        result = mediaTrack;
-
-                        return true;
-                    }
-
-                    return false;
-
-                });
+        this._iteratePeerConnections(function (pc) {
+            const pcRemovedTracks = pc.removeRemoteTracks(owner);
+            removedTracks = removedTracks.concat(pcRemovedTracks);
         });
 
-        return result;
-    }
+        logger.debug(
+            `Removed remote tracks for ${owner}`
+                + ` count: ${removedTracks.length}`);
 
-    /**
-     * Removes <tt>JitsiRemoteTrack</tt> identified by given stream and track
-     * ids.
-     *
-     * @param {string} streamId media stream id as defined by the WebRTC
-     * @param {string} trackId media track id as defined by the WebRTC
-     * @returns {JitsiRemoteTrack|undefined} the track which has been removed or
-     * <tt>undefined</tt> if no track matching given stream and track ids was
-     * found.
-     */
-    _removeRemoteTrack(streamId, trackId) {
-        const toBeRemoved = this._getRemoteTrackById(streamId, trackId);
-
-        if (toBeRemoved) {
-            toBeRemoved.dispose();
-
-            delete this.remoteTracks[
-                toBeRemoved.getParticipantId()][toBeRemoved.getType()];
-
-            this.eventEmitter.emit(
-                RTCEvents.REMOTE_TRACK_REMOVED, toBeRemoved);
-        }
-
-        return toBeRemoved;
+        return removedTracks;
     }
 
     /**
@@ -740,15 +592,18 @@ export default class RTC extends Listenable {
      * @param resource
      * @param audioLevel
      */
-    setAudioLevel(resource, audioLevel) {
-        if (!resource) {
+    setAudioLevel(ssrc, audioLevel) {
+        const track = this._getTrackBySSRC(ssrc);
+
+        if (!track) {
             return;
         }
-        const audioTrack = this.getRemoteAudioTrack(resource);
-
-        if (audioTrack) {
-            audioTrack.setAudioLevel(audioLevel);
+        if (!track.isAudioTrack()) {
+            logger.warn(`Received audio level for non-audio track: ${ssrc}`);
+            return;
         }
+
+        track.setAudioLevel(audioLevel);
     }
 
     /**
@@ -757,20 +612,29 @@ export default class RTC extends Listenable {
      * @param ssrc the ssrc to check.
      */
     getResourceBySSRC(ssrc) {
+        const track = this._getTrackBySSRC(ssrc);
+        return track ? track.getParticipantId() : null;
+    }
 
-        // FIXME: Convert the SSRCs in whole project to use the same type.
-        // Now we are using number and string.
-        if (this.getLocalTracks().find(
-
-            // eslint-disable-next-line eqeqeq
-                localTrack => localTrack.getSSRC() == ssrc)) {
-            return this.conference.myUserId();
+    /**
+     *
+     * @private
+     */
+    _getTrackBySSRC (ssrc) {
+        let track
+            = this.getLocalTracks().find(
+                (localTrack) => {
+                    // It is important that SSRC is not compared with ===,
+                    // because the code calling this method is inconsistent
+                    // about string vs number types
+                    return Array.from(this.peerConnections.values())
+                        .find(pc => pc.getLocalSSRC(localTrack) == ssrc);
+                });
+        if (!track) {
+            track = this._getRemoteTrackBySSRC(ssrc);
         }
 
-        const track = this.getRemoteTrackBySSRC(ssrc);
-
-
-        return track ? track.getParticipantId() : null;
+        return track;
     }
 
     /**
@@ -779,40 +643,14 @@ export default class RTC extends Listenable {
      * @param ssrc the ssrc to check.
      * @return {JitsiRemoteTrack|undefined} return the first remote track that
      * matches given SSRC or <tt>undefined</tt> if no such track was found.
+     * @private
      */
-    getRemoteTrackBySSRC(ssrc) {
-
+    _getRemoteTrackBySSRC (ssrc) {
         // FIXME: Convert the SSRCs in whole project to use the same type.
         // Now we are using number and string.
         // eslint-disable-next-line eqeqeq
-        return this.getRemoteTracks().find(t => ssrc == t.getSSRC());
-    }
-
-    /**
-     * Handles remote track mute / unmute events.
-     * @param type {string} "audio" or "video"
-     * @param isMuted {boolean} the new mute state
-     * @param from {string} user id
-     */
-    handleRemoteTrackMute(type, isMuted, from) {
-        const track = this.getRemoteTrackByType(type, from);
-
-        if (track) {
-            track.setMute(isMuted);
-        }
-    }
-
-    /**
-     * Handles remote track video type events
-     * @param value {string} the new video type
-     * @param from {string} user id
-     */
-    handleRemoteTrackVideoTypeChanged(value, from) {
-        const videoTrack = this.getRemoteVideoTrack(from);
-
-        if (videoTrack) {
-            videoTrack._setVideoType(value);
-        }
+        return this.getRemoteTracks().find(
+            remoteTrack => ssrc == remoteTrack.getSSRC());
     }
 
     /**
