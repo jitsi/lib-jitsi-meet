@@ -6,10 +6,10 @@ import RTC from '../RTC/RTC';
 var RTCBrowserType = require("../RTC/RTCBrowserType.js");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var transform = require('sdp-transform');
-var RandomUtil = require('../util/RandomUtil');
 var SDP = require("./SDP");
 var SDPUtil = require("./SDPUtil");
 var SdpConsistency = require("./SdpConsistency.js");
+var RtxModifier = require("./RtxModifier.js");
 
 var SIMULCAST_LAYERS = 3;
 
@@ -35,6 +35,7 @@ function TraceablePeerConnection(ice_config, constraints, session) {
     this.simulcast = new Simulcast({numOfLayers: SIMULCAST_LAYERS,
         explodeRemoteSimulcast: false});
     this.sdpConsistency = new SdpConsistency();
+    this.rtxModifier = new RtxModifier();
     this.eventEmitter = this.session.room.eventEmitter;
 
     // override as desired
@@ -318,7 +319,29 @@ TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
         this.peerconnection.addStream(stream);
     if (ssrcInfo && ssrcInfo.type === "addMuted") {
         this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrc.ssrcs[0]);
-        this.simulcast.setSsrcCache(ssrcInfo.ssrc.ssrcs);
+        let simGroup = 
+            ssrcInfo.ssrc.groups.find(groupInfo => {
+                return groupInfo.group.semantics === "SIM";
+            });
+        if (simGroup) {
+            let simSsrcs = simGroup.group.ssrcs
+                .split(" ")
+                .map(ssrcStr => parseInt(ssrcStr));
+            this.simulcast.setSsrcCache(simSsrcs);
+        }
+        let fidGroups =
+            ssrcInfo.ssrc.groups.filter(groupInfo => {
+                return groupInfo.group.semantics === "FID";
+            });
+        if (fidGroups) {
+            let rtxSsrcMapping = {};
+            fidGroups.forEach(fidGroup => {
+                let primarySsrc = fidGroup.group.ssrcs.split(" ")[0];
+                let rtxSsrc = fidGroup.group.ssrcs.split(" ")[1];
+                rtxSsrcMapping[primarySsrc] = rtxSsrc;
+            });
+            this.rtxModifier.setSsrcCache(rtxSsrcMapping);
+        }
     }
 };
 
@@ -369,6 +392,9 @@ TraceablePeerConnection.prototype.setRemoteDescription
     // TODO the focus should squeze or explode the remote simulcast
     description = this.simulcast.mungeRemoteDescription(description);
     this.trace('setRemoteDescription::postTransform (simulcast)', dumpSDP(description));
+
+    description.sdp = this.rtxModifier.implodeRemoteRtxSsrcs(description.sdp);
+    this.trace('setRemoteDescription::postTransform (implodeRemoteRtxSsrcs)', dumpSDP(description));
 
     // if we're running on FF, transform to Plan A first.
     if (RTCBrowserType.usesUnifiedPlan()) {
@@ -507,6 +533,13 @@ TraceablePeerConnection.prototype.createAnswer
                         dumpSDP(answer));
                 }
 
+                if (!this.session.room.options.disableRtx) {
+                    answer.sdp = this.rtxModifier.modifyRtxSsrcs(answer.sdp);
+                    this.trace(
+                        'createAnswerOnSuccess::postTransform (rtx modifier)',
+                        dumpSDP(answer));
+                }
+
                 // Fix the setup attribute (see _fixAnswerRFC4145Setup for
                 //  details)
                 let remoteDescription = new SDP(this.remoteDescription.sdp);
@@ -575,18 +608,35 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
  * - groups - Array of the groups associated with the stream.
  */
 TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
+    let ssrcInfo = {ssrcs: [], groups: []};
     if (!this.session.room.options.disableSimulcast
         && this.simulcast.isSupported()) {
-        var ssrcInfo = {ssrcs: [], groups: []};
-        for(var i = 0; i < SIMULCAST_LAYERS; i++)
-            ssrcInfo.ssrcs.push(RandomUtil.randomInt(1, 0xffffffff));
+        for (let i = 0; i < SIMULCAST_LAYERS; i++) {
+            ssrcInfo.ssrcs.push(SDPUtil.generateSsrc());
+        }
         ssrcInfo.groups.push({
             primarySSRC: ssrcInfo.ssrcs[0],
             group: {ssrcs: ssrcInfo.ssrcs.join(" "), semantics: "SIM"}});
-        return ssrcInfo;
+        ssrcInfo;
     } else {
-        return {ssrcs: [RandomUtil.randomInt(1, 0xffffffff)], groups: []};
+        ssrcInfo = {ssrcs: [SDPUtil.generateSsrc()], groups: []};
     }
+    if (!this.session.room.options.disableRtx) {
+        let currNumSsrcs = ssrcInfo.ssrcs.length;
+        for (let i = 0; i < currNumSsrcs; ++i) {
+            let primarySsrc = ssrcInfo.ssrcs[i];
+            let rtxSsrc = SDPUtil.generateSsrc();
+            ssrcInfo.ssrcs.push(rtxSsrc);
+            ssrcInfo.groups.push({
+                primarySSRC: primarySsrc,
+                group: { 
+                    ssrcs: primarySsrc + " " + rtxSsrc,
+                    semantics: "FID"
+                }
+            });
+        }
+    }
+    return ssrcInfo;
 };
 
 module.exports = TraceablePeerConnection;
