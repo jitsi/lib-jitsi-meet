@@ -36,17 +36,6 @@ function getPrimarySsrc (videoMLine) {
     }
 }
 
-function getRtxSsrc (videoMLine, primarySsrc) {
-    if (videoMLine.ssrcGroups) {
-        return videoMLine
-            .ssrcGroups
-            .filter(ssrcGroup => ssrcGroup.semantics === "FID")
-            .filter(ssrcGroup => 
-                parseInt(ssrcGroup.ssrcs.split(" ")[0]) === primarySsrc)
-            .map(ssrcGroup => ssrcGroup.ssrcs.split(" ")[1])
-            .map(ssrcStr => parseInt(ssrcStr))[0];
-    }
-}
 /**
  * End helper functions
  */
@@ -55,8 +44,8 @@ function getRtxSsrc (videoMLine, primarySsrc) {
  * Handles the work of keeping video ssrcs consistent across multiple
  * o/a cycles, making it such that all stream operations can be
  * kept local and do not need to be signaled.
- * NOTE: This only keeps the 'primary' video ssrcs consistent: meaning
- * the primary video stream and an associated RTX stream, if it exists
+ * NOTE: This only keeps the 'primary' video ssrc consistent: meaning
+ * the primary video stream
  */
 class SdpConsistency {
     constructor () {
@@ -65,7 +54,6 @@ class SdpConsistency {
 
     clearSsrcCache () {
         this.cachedPrimarySsrc = null;
-        this.cachedPrimaryRtxSsrc = null;
     }
 
     setPrimarySsrc (primarySsrc) {
@@ -96,25 +84,16 @@ class SdpConsistency {
                 console.log("Sdp-consistency couldn't parse new primary ssrc");
                 return sdpStr;
             }
-            let newPrimaryRtxSsrc = 
-                getRtxSsrc(videoMLine, newPrimarySsrc);
             if (!this.cachedPrimarySsrc) {
                 this.cachedPrimarySsrc = newPrimarySsrc;
-                this.cachedPrimaryRtxSsrc = newPrimaryRtxSsrc;
                 console.log("Sdp-consistency caching primary ssrc " + 
-                    this.cachedPrimarySsrc + " and rtx " + 
-                    this.cachedPrimaryRtxSsrc);
+                    this.cachedPrimarySsrc);
             } else {
                 console.log("Sdp-consistency replacing new ssrc " + 
-                    newPrimarySsrc + " with cached " + this.cachedPrimarySsrc + 
-                    " and new rtx " + newPrimaryRtxSsrc + " with cached " + 
-                    this.cachedPrimaryRtxSsrc);
-                let self = this;
+                    newPrimarySsrc + " with cached " + this.cachedPrimarySsrc);
                 videoMLine.ssrcs.forEach(ssrcInfo => {
                     if (ssrcInfo.id === newPrimarySsrc) {
-                        ssrcInfo.id = self.cachedPrimarySsrc;
-                    } else if (ssrcInfo.id === newPrimaryRtxSsrc) {
-                        ssrcInfo.id = self.cachedPrimaryRtxSsrc;
+                        ssrcInfo.id = this.cachedPrimarySsrc;
                     }
                 });
                 if (videoMLine.ssrcGroups) {
@@ -122,10 +101,12 @@ class SdpConsistency {
                         if (group.semantics === "FID") {
                             let primarySsrc = 
                                 parseInt(group.ssrcs.split(" ")[0]);
-                            if (primarySsrc == self.cachedPrimarySsrc) {
+                            let rtxSsrc = 
+                                parseInt(group.ssrcs.split(" ")[1]);
+                            if (primarySsrc === newPrimarySsrc) {
                                 group.ssrcs = 
-                                    self.cachedPrimarySsrc + " " + 
-                                        self.cachedPrimaryRtxSsrc;
+                                    this.cachedPrimarySsrc + " " + 
+                                        rtxSsrc;
                             }
                         }
                     });
