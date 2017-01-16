@@ -3,14 +3,14 @@
 import {getLogger} from "jitsi-meet-logger";
 const logger = getLogger(__filename);
 import JingleSession from "./JingleSession";
-var SDPDiffer = require("./SDPDiffer");
-var SDPUtil = require("./SDPUtil");
-var SDP = require("./SDP");
-var async = require("async");
-var XMPPEvents = require("../../service/xmpp/XMPPEvents");
-var RTCBrowserType = require("../RTC/RTCBrowserType");
-var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
-var Statistics = require("../statistics/statistics");
+const SDPDiffer = require("./SDPDiffer");
+const SDPUtil = require("./SDPUtil");
+const SDP = require("./SDP");
+const async = require("async");
+const XMPPEvents = require("../../service/xmpp/XMPPEvents");
+const RTCBrowserType = require("../RTC/RTCBrowserType");
+const GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
+const Statistics = require("../statistics/statistics");
 
 import * as JingleSessionState from "./JingleSessionState";
 
@@ -19,7 +19,7 @@ import * as JingleSessionState from "./JingleSessionState";
  * error is  triggered.
  * @type {number}
  */
-var IQ_TIMEOUT = 10000;
+const IQ_TIMEOUT = 10000;
 
 export default class JingleSessionPC extends JingleSession {
 
@@ -95,7 +95,7 @@ constructor(me, sid, peerjid, connection,
 }
 
 doInitialize () {
-    var self = this;
+    const self = this;
     this.lasticecandidate = false;
     // True if reconnect is in progress
     this.isreconnect = false;
@@ -122,10 +122,10 @@ doInitialize () {
             return;
         }
         // XXX this is broken, candidate is not parsed.
-        var candidate = ev.candidate;
+        const candidate = ev.candidate;
         if (candidate) {
             // Discard candidates of disabled protocols.
-            var protocol = candidate.protocol;
+            let protocol = candidate.protocol;
             if (typeof protocol === 'string') {
                 protocol = protocol.toLowerCase();
                 if (protocol === 'tcp' || protocol ==='ssltcp') {
@@ -164,7 +164,7 @@ doInitialize () {
      */
     this.peerconnection.oniceconnectionstatechange = function () {
         if (!(self && self.peerconnection)) return;
-        var now = window.performance.now();
+        const now = window.performance.now();
         self.room.connectionTimes["ice.state." +
             self.peerconnection.iceConnectionState] = now;
         logger.log("(TIME) ICE " + self.peerconnection.iceConnectionState +
@@ -203,13 +203,13 @@ doInitialize () {
 }
 
 sendIceCandidate (candidate) {
-    var self = this;
+    const self = this;
     const localSDP = new SDP(this.peerconnection.localDescription.sdp);
     if (candidate && !this.lasticecandidate) {
-        var ice = SDPUtil.iceparams(localSDP.media[candidate.sdpMLineIndex], localSDP.session);
-        var jcand = SDPUtil.candidateToJingle(candidate.candidate);
+        const ice = SDPUtil.iceparams(localSDP.media[candidate.sdpMLineIndex], localSDP.session);
+        const jcand = SDPUtil.candidateToJingle(candidate.candidate);
         if (!(ice && jcand)) {
-            var errorMesssage = "failed to get ice && jcand";
+            const errorMesssage = "failed to get ice && jcand";
             GlobalOnErrorHandler.callErrorHandler(new Error(errorMesssage));
             logger.error(errorMesssage);
             return;
@@ -238,24 +238,24 @@ sendIceCandidate (candidate) {
 
 sendIceCandidates (candidates) {
     logger.log('sendIceCandidates', candidates);
-    var cand = $iq({to: this.peerjid, type: 'set'})
+    const cand = $iq({to: this.peerjid, type: 'set'})
         .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
             action: 'transport-info',
             initiator: this.initiator,
             sid: this.sid});
 
     const localSDP = new SDP(this.peerconnection.localDescription.sdp);
-    for (var mid = 0; mid < localSDP.media.length; mid++) {
-        var cands = candidates.filter(function (el) { return el.sdpMLineIndex == mid; });
-        var mline = SDPUtil.parse_mline(localSDP.media[mid].split('\r\n')[0]);
+    for (let mid = 0; mid < localSDP.media.length; mid++) {
+        const cands = candidates.filter(function (el) { return el.sdpMLineIndex == mid; });
+        const mline = SDPUtil.parse_mline(localSDP.media[mid].split('\r\n')[0]);
         if (cands.length > 0) {
-            var ice = SDPUtil.iceparams(localSDP.media[mid], localSDP.session);
+            const ice = SDPUtil.iceparams(localSDP.media[mid], localSDP.session);
             ice.xmlns = 'urn:xmpp:jingle:transports:ice-udp:1';
             cand.c('content', {creator: this.initiator == this.me ? 'initiator' : 'responder',
                 name: (cands[0].sdpMid? cands[0].sdpMid : mline.media)
             }).c('transport', ice);
-            for (var i = 0; i < cands.length; i++) {
-                var candidate = SDPUtil.candidateToJingle(cands[i].candidate);
+            for (let i = 0; i < cands.length; i++) {
+                const candidate = SDPUtil.candidateToJingle(cands[i].candidate);
                 // Mangle ICE candidate if 'failICE' test option is enabled
                 if (this.failICE) {
                     candidate.ip = "1.1.1.1";
@@ -263,9 +263,9 @@ sendIceCandidates (candidates) {
                 cand.c('candidate', candidate).up();
             }
             // add fingerprint
-            var fingerprint_line = SDPUtil.find_line(localSDP.media[mid], 'a=fingerprint:', localSDP.session);
+            const fingerprint_line = SDPUtil.find_line(localSDP.media[mid], 'a=fingerprint:', localSDP.session);
             if (fingerprint_line) {
-                var tmp = SDPUtil.parse_fingerprint(fingerprint_line);
+                const tmp = SDPUtil.parse_fingerprint(fingerprint_line);
                 tmp.required = true;
                 cand.c(
                     'fingerprint',
@@ -289,11 +289,11 @@ sendIceCandidates (candidates) {
 }
 
 readSsrcInfo (contents) {
-    var self = this;
+    const self = this;
     $(contents).each(function (idx, content) {
-        var ssrcs = $(content).find('description>source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
+        const ssrcs = $(content).find('description>source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
         ssrcs.each(function () {
-            var ssrc = this.getAttribute('ssrc');
+            const ssrc = this.getAttribute('ssrc');
             $(this).find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]').each(
                 function () {
                     const owner = this.getAttribute('owner');
@@ -357,13 +357,15 @@ acceptOffer (jingleOffer, success, failure) {
  *        at any point during setRD, createAnswer, setLD.
  */
 setOfferCycle(jingleOfferIq, success, failure) {
-    let workFunction = (finishedCallback) => {
-        let newRemoteSdp = this._processNewJingleOfferIq(jingleOfferIq);
+    const workFunction = (finishedCallback) => {
+        const newRemoteSdp = this._processNewJingleOfferIq(jingleOfferIq);
         this._renegotiate(newRemoteSdp)
             .then(() => {
                 finishedCallback();
             }, (error) => {
-                logger.error("Error renegotiating after setting new remote offer: " + error);
+                logger.error(
+                    "Error renegotiating after setting new remote offer: "
+                        + error);
                 JingleSessionPC.onJingleFatalError(this, error);
                 finishedCallback(error);
             });
@@ -394,7 +396,7 @@ replaceTransport (jingleOfferElem, success, failure) {
     // stack cleaned up. After that the original offer is set to have the SCTP
     // connection established with the new bridge.
     this.room.eventEmitter.emit(XMPPEvents.ICE_RESTARTING);
-    var originalOffer = jingleOfferElem.clone();
+    const originalOffer = jingleOfferElem.clone();
     jingleOfferElem.find(">content[name='data']").remove();
 
     // First set an offer without the 'data' section
@@ -425,8 +427,8 @@ replaceTransport (jingleOfferElem, success, failure) {
 sendSessionAccept (success, failure) {
     // NOTE: since we're just reading from it, we don't need to be within
     //  the modification queue to access the local description
-    let localSDP = new SDP(this.peerconnection.localDescription.sdp);
-    var accept = $iq({to: this.peerjid,
+    const localSDP = new SDP(this.peerconnection.localDescription.sdp);
+    let accept = $iq({to: this.peerjid,
         type: 'set'})
         .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
             action: 'session-accept',
@@ -451,7 +453,7 @@ sendSessionAccept (success, failure) {
     // Calling tree() to print something useful
     accept = accept.tree();
     logger.info("Sending session-accept", accept);
-    var self = this;
+    const self = this;
     this.connection.sendIQ(accept,
         success,
         this.newJingleErrorHandler(accept, function (error) {
@@ -491,15 +493,15 @@ sendSessionAccept (success, failure) {
  *        when the request has timed out.
  */
 sendTransportAccept (localSDP, success, failure) {
-    var self = this;
-    var tAccept = $iq({to: this.peerjid, type: 'set'})
+    const self = this;
+    let tAccept = $iq({to: this.peerjid, type: 'set'})
         .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
             action: 'transport-accept',
             initiator: this.initiator,
             sid: this.sid});
 
     localSDP.media.forEach(function(medialines, idx){
-        var mline = SDPUtil.parse_mline(medialines.split('\r\n')[0]);
+        const mline = SDPUtil.parse_mline(medialines.split('\r\n')[0]);
         tAccept.c('content',
             { creator: self.initiator == self.me ? 'initiator' : 'responder',
               name: mline.media
@@ -511,7 +513,7 @@ sendTransportAccept (localSDP, success, failure) {
 
     // Calling tree() to print something useful to the logger
     tAccept = tAccept.tree();
-    console.info("Sending transport-accept: ", tAccept);
+    logger.info("Sending transport-accept: ", tAccept);
 
     self.connection.sendIQ(tAccept,
         success,
@@ -530,7 +532,7 @@ sendTransportAccept (localSDP, success, failure) {
 sendTransportReject (success, failure) {
     // Send 'transport-reject', so that the focus will
     // know that we've failed
-    var tReject = $iq({to: this.peerjid, type: 'set'})
+    let tReject = $iq({to: this.peerjid, type: 'set'})
         .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
             action: 'transport-reject',
             initiator: this.initiator,
@@ -551,7 +553,7 @@ sendTransportReject (success, failure) {
 terminate (reason,  text, success, failure) {
     this.state = JingleSessionState.ENDED;
 
-    var term = $iq({to: this.peerjid,
+    let term = $iq({to: this.peerjid,
         type: 'set'})
         .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
             action: 'session-terminate',
@@ -599,11 +601,11 @@ onTerminated (reasonCondition, reasonText) {
 _parseSsrcInfoFromSourceAdd (sourceAddElem, currentRemoteSdp) {
     let addSsrcInfo = [];
     $(sourceAddElem).each(function (idx, content) {
-        var name = $(content).attr('name');
-        var lines = '';
+        const name = $(content).attr('name');
+        let lines = '';
         $(content).find('ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]').each(function() {
-            var semantics = this.getAttribute('semantics');
-            var ssrcs = $(this).find('>source').map(function () {
+            const semantics = this.getAttribute('semantics');
+            const ssrcs = $(this).find('>source').map(function () {
                 return this.getAttribute('ssrc');
             }).get();
 
@@ -611,9 +613,9 @@ _parseSsrcInfoFromSourceAdd (sourceAddElem, currentRemoteSdp) {
                 lines += 'a=ssrc-group:' + semantics + ' ' + ssrcs.join(' ') + '\r\n';
             }
         });
-        var tmp = $(content).find('source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]'); // can handle both >source and >description>source
+        const tmp = $(content).find('source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]'); // can handle both >source and >description>source
         tmp.each(function () {
-            var ssrc = $(this).attr('ssrc');
+            const ssrc = $(this).attr('ssrc');
             if (currentRemoteSdp.containsSSRC(ssrc)) {
                 logger.warn("Source-add request for existing SSRC: " + ssrc);
                 return;
@@ -653,16 +655,16 @@ addRemoteStream (elem) {
 
     this.readSsrcInfo(elem);
 
-    let workFunction = (finishedCallback) => {
-        var sdp = new SDP(this.peerconnection.remoteDescription.sdp);
-        var mySdp = new SDP(this.peerconnection.localDescription.sdp);
-        let addSsrcInfo = this._parseSsrcInfoFromSourceAdd(elem, sdp);
+    const workFunction = (finishedCallback) => {
+        const sdp = new SDP(this.peerconnection.remoteDescription.sdp);
+        const mySdp = new SDP(this.peerconnection.localDescription.sdp);
+        const addSsrcInfo = this._parseSsrcInfoFromSourceAdd(elem, sdp);
 
-        let newRemoteSdp = this._processRemoteAddSource(addSsrcInfo);
+        const newRemoteSdp = this._processRemoteAddSource(addSsrcInfo);
         this._renegotiate(newRemoteSdp)
             .then(() => {
                 logger.info("Remote source-add processed");
-                var newSdp = new SDP(this.peerconnection.localDescription.sdp);
+                const newSdp = new SDP(this.peerconnection.localDescription.sdp);
                 logger.log("SDPs", mySdp, newSdp);
                 this.notifyMySSRCUpdate(mySdp, newSdp);
                 finishedCallback();
@@ -688,16 +690,16 @@ removeRemoteStream (elem) {
 
     logger.log('Remove remote stream');
     logger.log('ICE connection state: ', this.peerconnection.iceConnectionState);
-    let workFunction = (finishedCallback) => {
-        var sdp = new SDP(this.peerconnection.remoteDescription.sdp);
-        var mySdp = new SDP(this.peerconnection.localDescription.sdp);
-        let removeSsrcInfo = this._parseSsrcInfoFromSourceRemove(elem, sdp);
+    const workFunction = (finishedCallback) => {
+        const sdp = new SDP(this.peerconnection.remoteDescription.sdp);
+        const mySdp = new SDP(this.peerconnection.localDescription.sdp);
+        const removeSsrcInfo = this._parseSsrcInfoFromSourceRemove(elem, sdp);
 
-        let newRemoteSdp = this._processRemoteRemoveSource(removeSsrcInfo);
+        const newRemoteSdp = this._processRemoteRemoveSource(removeSsrcInfo);
         this._renegotiate(newRemoteSdp)
             .then(() => {
                 logger.info("Remote source-remove processed");
-                var newSdp = new SDP(this.peerconnection.localDescription.sdp);
+                const newSdp = new SDP(this.peerconnection.localDescription.sdp);
                 logger.log("SDPs", mySdp, newSdp);
                 this.notifyMySSRCUpdate(mySdp, newSdp);
                 finishedCallback();
@@ -733,7 +735,7 @@ _processQueueTasks (task, finishedCallback) {
  * @returns {SDP object} the jingle offer translated to SDP
  */
 _processNewJingleOfferIq (offerIq) {
-    let remoteSdp = new SDP('');
+    const remoteSdp = new SDP('');
     if (this.webrtcIceTcpDisable) {
         remoteSdp.removeTcpCandidates = true;
     }
@@ -757,7 +759,7 @@ _processNewJingleOfferIq (offerIq) {
  *  in removeSsrcInfo
  */
 _processRemoteRemoveSource (removeSsrcInfo) {
-    let remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
+    const remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
     removeSsrcInfo.forEach(function(lines, idx) {
         lines = lines.split('\r\n');
         lines.pop(); // remove empty last element;
@@ -778,7 +780,7 @@ _processRemoteRemoveSource (removeSsrcInfo) {
  *  in removeSsrcInfo
  */
 _processRemoteAddSource (addSsrcInfo) {
-    let remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
+    const remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
     addSsrcInfo.forEach(function(lines, idx) {
         remoteSdp.media[idx] += lines;
     });
@@ -797,9 +799,9 @@ _processRemoteAddSource (addSsrcInfo) {
  *  rejects with an error {string}
  */
 _renegotiate (optionalRemoteSdp) {
-    let media_constraints = this.media_constraints;
-    let remoteSdp = optionalRemoteSdp || new SDP(this.peerconnection.remoteDescription.sdp);
-    let remoteDescription = new RTCSessionDescription({
+    const media_constraints = this.media_constraints;
+    const remoteSdp = optionalRemoteSdp || new SDP(this.peerconnection.remoteDescription.sdp);
+    const remoteDescription = new RTCSessionDescription({
         type: "offer",
         sdp: remoteSdp.raw
     });
@@ -812,7 +814,7 @@ _renegotiate (optionalRemoteSdp) {
     //  logic below could listen to that and be separated from
     //  core flows like this.
     return new Promise((resolve, reject) => {
-        let remoteUfrag = JingleSessionPC.getUfrag(remoteDescription.sdp);
+        const remoteUfrag = JingleSessionPC.getUfrag(remoteDescription.sdp);
         if (remoteUfrag != this.remoteUfrag) {
             this.remoteUfrag = remoteUfrag;
             this.room.eventEmitter.emit(
@@ -866,13 +868,13 @@ _renegotiate (optionalRemoteSdp) {
  */
 replaceTrack (oldTrack, newTrack) {
     return new Promise((resolve, reject) => {
-        let workFunction = (finishedCallback) => {
-            let oldSdp = new SDP(this.peerconnection.localDescription.sdp);
+        const workFunction = (finishedCallback) => {
+            const oldSdp = new SDP(this.peerconnection.localDescription.sdp);
             this.removeStreamFromPeerConnection(oldTrack);
             this.addStreamToPeerConnection(newTrack);
             this._renegotiate()
                 .then(() => {
-                    var newSdp = new SDP(this.peerconnection.localDescription.sdp);
+                    const newSdp = new SDP(this.peerconnection.localDescription.sdp);
                     this.notifyMySSRCUpdate(oldSdp, newSdp);
                     finishedCallback();
                 }, (error) => {
@@ -901,41 +903,43 @@ replaceTrack (oldTrack, newTrack) {
  *  by the modification queue.
  */
 addStreamToPeerConnection (stream, ssrcInfo) {
-    let actualStream = stream && stream.getOriginalStream ? stream.getOriginalStream() : stream;
+    const actualStream = stream && stream.getOriginalStream ? stream.getOriginalStream() : stream;
     if (this.peerconnection) {
         this.peerconnection.addStream(actualStream, ssrcInfo);
     }
 }
 
-/**
- * Parse the information from the xml sourceRemoveElem and translate it
- *  into sdp lines
- * @param {jquery xml element} sourceRemoveElem the source-remove
- *  element from jingle
- * @param {SDP object} currentRemoteSdp the current remote
- *  sdp (as of this new source-remove)
- * @returns {list} a list of SDP line strings that should
- *  be removed from the remote SDP
- */
-_parseSsrcInfoFromSourceRemove (sourceRemoveElem, currentRemoteSdp) {
-    let removeSsrcInfo = [];
-    $(sourceRemoveElem).each(function (idx, content) {
-        var name = $(content).attr('name');
-        var lines = '';
-        $(content).find('ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]').each(function() {
-            var semantics = this.getAttribute('semantics');
-            var ssrcs = $(this).find('>source').map(function () {
-                return this.getAttribute('ssrc');
-            }).get();
+    /**
+     * Parse the information from the xml sourceRemoveElem and translate it
+     *  into sdp lines
+     * @param {jquery xml element} sourceRemoveElem the source-remove
+     *  element from jingle
+     * @param {SDP object} currentRemoteSdp the current remote
+     *  sdp (as of this new source-remove)
+     * @returns {list} a list of SDP line strings that should
+     *  be removed from the remote SDP
+     */
+    _parseSsrcInfoFromSourceRemove(sourceRemoveElem, currentRemoteSdp) {
+        const removeSsrcInfo = [];
+        $(sourceRemoveElem).each(function (idx, content) {
+            const name = $(content).attr('name');
+            let lines = '';
+            $(content)
+                .find('ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
+                .each(function() {
+                    const semantics = this.getAttribute('semantics');
+                    const ssrcs = $(this).find('>source').map(function () {
+                        return this.getAttribute('ssrc');
+                    }).get();
 
             if (ssrcs.length) {
                 lines += 'a=ssrc-group:' + semantics + ' ' + ssrcs.join(' ') + '\r\n';
             }
         });
-        var ssrcs = [];
-        var tmp = $(content).find('source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]'); // can handle both >source and >description>source
+        const ssrcs = [];
+        const tmp = $(content).find('source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]'); // can handle both >source and >description>source
         tmp.each(function () {
-            var ssrc = $(this).attr('ssrc');
+            const ssrc = $(this).attr('ssrc');
             ssrcs.push(ssrc);
         });
         currentRemoteSdp.media.forEach(function(media, idx) {
@@ -945,7 +949,7 @@ _parseSsrcInfoFromSourceRemove (sourceRemoveElem, currentRemoteSdp) {
                 removeSsrcInfo[idx] = '';
             }
             ssrcs.forEach(function(ssrc) {
-                var ssrcLines = SDPUtil.find_lines(media, 'a=ssrc:' + ssrc);
+                const ssrcLines = SDPUtil.find_lines(media, 'a=ssrc:' + ssrc);
                 if (ssrcLines.length) {
                     removeSsrcInfo[idx] += ssrcLines.join("\r\n")+"\r\n";
                 }
@@ -975,7 +979,7 @@ _parseSsrcInfoFromSourceRemove (sourceRemoveElem, currentRemoteSdp) {
  */
 addStream (stream, callback, errorCallback, ssrcInfo, dontModifySources) {
 
-    let workFunction = (finishedCallback) => {
+    const workFunction = (finishedCallback) => {
         if (!this.peerconnection) {
             finishedCallback("Error: tried adding stream with no active peer connection");
             return;
@@ -992,10 +996,10 @@ addStream (stream, callback, errorCallback, ssrcInfo, dontModifySources) {
             finishedCallback();
             return;
         }
-        let oldSdp = new SDP(this.peerconnection.localDescription.sdp);
+        const oldSdp = new SDP(this.peerconnection.localDescription.sdp);
         this._renegotiate()
             .then(() => {
-                let newSdp = new SDP(this.peerconnection.localDescription.sdp);
+                const newSdp = new SDP(this.peerconnection.localDescription.sdp);
                 logger.log("SDPs", oldSdp, newSdp);
                 this.notifyMySSRCUpdate(oldSdp, newSdp);
                 finishedCallback();
@@ -1032,12 +1036,12 @@ _handleFirefoxRemoveStream (stream) {
     if (!stream) { //There is nothing to be changed
         return;
     }
-    var sender = null;
+    let sender = null;
     // On Firefox we don't replace MediaStreams as this messes up the
     // m-lines (which can't be removed in Plan Unified) and brings a lot
     // of complications. Instead, we use the RTPSender and remove just
     // the track.
-    var track = null;
+    let track = null;
     if (stream.getAudioTracks() && stream.getAudioTracks().length) {
         track = stream.getAudioTracks()[0];
     } else if (stream.getVideoTracks() && stream.getVideoTracks().length) {
@@ -1045,7 +1049,7 @@ _handleFirefoxRemoveStream (stream) {
     }
 
     if (!track) {
-        var msg = "Cannot remove tracks: no tracks.";
+        const msg = "Cannot remove tracks: no tracks.";
         logger.log(msg);
         return;
     }
@@ -1072,7 +1076,7 @@ _handleFirefoxRemoveStream (stream) {
  *  by the modification queue.
  */
 removeStreamFromPeerConnection (stream) {
-    let actualStream
+    const actualStream
         = stream && stream.getOriginalStream
             ? stream.getOriginalStream() : stream;
     if (!this.peerconnection) {
@@ -1095,7 +1099,7 @@ removeStreamFromPeerConnection (stream) {
  * stream.
  */
 removeStream (stream, callback, errorCallback, ssrcInfo) {
-    let workFunction = (finishedCallback) => {
+    const workFunction = (finishedCallback) => {
         if (!this.peerconnection) {
             finishedCallback();
             return;
@@ -1106,10 +1110,10 @@ removeStream (stream, callback, errorCallback, ssrcInfo) {
         } else if (stream) {
             this.removeStreamFromPeerConnection(stream);
         }
-        let oldSdp = new SDP(this.peerconnection.localDescription.sdp);
+        const oldSdp = new SDP(this.peerconnection.localDescription.sdp);
         this._renegotiate()
             .then(() => {
-                let newSdp = new SDP(this.peerconnection.localDescription.sdp);
+                const newSdp = new SDP(this.peerconnection.localDescription.sdp);
                 if (ssrcInfo) {
                     this.modifiedSSRCs[ssrcInfo.type] =
                         this.modifiedSSRCs[ssrcInfo.type] || [];
@@ -1148,8 +1152,8 @@ notifyMySSRCUpdate (old_sdp, new_sdp) {
     }
 
     // send source-remove IQ.
-    sdpDiffer = new SDPDiffer(new_sdp, old_sdp);
-    var remove = $iq({to: this.peerjid, type: 'set'})
+    let sdpDiffer = new SDPDiffer(new_sdp, old_sdp);
+    const remove = $iq({to: this.peerjid, type: 'set'})
         .c('jingle', {
             xmlns: 'urn:xmpp:jingle:1',
             action: 'source-remove',
@@ -1158,7 +1162,7 @@ notifyMySSRCUpdate (old_sdp, new_sdp) {
         }
     );
     sdpDiffer.toJingle(remove);
-    var removed = this.fixJingle(remove);
+    const removed = this.fixJingle(remove);
 
     if (removed && remove) {
         logger.info("Sending source-remove", remove.tree());
@@ -1172,8 +1176,8 @@ notifyMySSRCUpdate (old_sdp, new_sdp) {
     }
 
     // send source-add IQ.
-    var sdpDiffer = new SDPDiffer(old_sdp, new_sdp);
-    var add = $iq({to: this.peerjid, type: 'set'})
+    sdpDiffer = new SDPDiffer(old_sdp, new_sdp);
+    const add = $iq({to: this.peerjid, type: 'set'})
         .c('jingle', {
             xmlns: 'urn:xmpp:jingle:1',
             action: 'source-add',
@@ -1183,7 +1187,7 @@ notifyMySSRCUpdate (old_sdp, new_sdp) {
     );
 
     sdpDiffer.toJingle(add);
-    var added = this.fixJingle(add);
+    const added = this.fixJingle(add);
 
     if (added && add) {
         logger.info("Sending source-add", add.tree());
@@ -1218,13 +1222,13 @@ notifyMySSRCUpdate (old_sdp, new_sdp) {
 newJingleErrorHandler (request, failureCb) {
     return function (errResponse) {
 
-        var error = { };
+        const error = { };
 
         // Get XMPP error code and condition(reason)
-        var errorElSel = $(errResponse).find('error');
+        const errorElSel = $(errResponse).find('error');
         if (errorElSel.length) {
             error.code = errorElSel.attr('code');
-            var errorReasonSel = $(errResponse).find('error :first');
+            const errorReasonSel = $(errResponse).find('error :first');
             if (errorReasonSel.length)
                 error.reason = errorReasonSel[0].tagName;
         }
@@ -1250,8 +1254,7 @@ newJingleErrorHandler (request, failureCb) {
     }.bind(this);
 }
 
-static onJingleFatalError (session, error)
-{
+static onJingleFatalError (session, error) {
     if (this.room) {
         this.room.eventEmitter.emit(XMPPEvents.CONFERENCE_SETUP_FAILED, error);
         this.room.eventEmitter.emit(XMPPEvents.JINGLE_FATAL_ERROR, session, error);
@@ -1302,7 +1305,8 @@ close () {
  * @returns {boolean} true if the jingle has to be sent and false otherwise.
  */
 fixJingle (jingle) {
-    var action = $(jingle.nodeTree).find("jingle").attr("action");
+    /* eslint-disable no-case-declarations */
+    const action = $(jingle.nodeTree).find("jingle").attr("action");
     switch (action) {
         case "source-add":
         case "session-accept":
@@ -1312,13 +1316,14 @@ fixJingle (jingle) {
             this.fixSourceRemoveJingle(jingle);
             break;
         default:
-            var errmsg = "Unknown jingle action!";
+            const errmsg = "Unknown jingle action!";
             GlobalOnErrorHandler.callErrorHandler(errmsg);
             logger.error(errmsg);
             return false;
     }
+    /* eslint-enable no-case-declarations */
 
-    var sources = $(jingle.tree()).find(">jingle>content>description>source");
+    const sources = $(jingle.tree()).find(">jingle>content>description>source");
     return sources && sources.length > 0;
 }
 
@@ -1329,21 +1334,21 @@ fixJingle (jingle) {
  * @returns {boolean} true if the jingle has to be sent and false otherwise.
  */
 fixSourceAddJingle (jingle) {
-    var ssrcs = this.modifiedSSRCs["unmute"];
+    let ssrcs = this.modifiedSSRCs["unmute"];
     this.modifiedSSRCs["unmute"] = [];
     if(ssrcs && ssrcs.length) {
         ssrcs.forEach(function (ssrcObj) {
-            var desc = $(jingle.tree()).find(">jingle>content[name=\"" +
+            const desc = $(jingle.tree()).find(">jingle>content[name=\"" +
                 ssrcObj.mtype + "\"]>description");
             if(!desc || !desc.length)
                 return;
             ssrcObj.ssrc.ssrcs.forEach(function (ssrc) {
-                var sourceNode = desc.find(">source[ssrc=\"" +
+                const sourceNode = desc.find(">source[ssrc=\"" +
                     ssrc + "\"]");
                 sourceNode.remove();
             });
             ssrcObj.ssrc.groups.forEach(function (group) {
-                var groupNode = desc.find(">ssrc-group[semantics=\"" +
+                const groupNode = desc.find(">ssrc-group[semantics=\"" +
                     group.group.semantics + "\"]:has(source[ssrc=\"" +
                     group.primarySSRC +
                      "\"])");
@@ -1356,13 +1361,13 @@ fixSourceAddJingle (jingle) {
     this.modifiedSSRCs["addMuted"] = [];
     if(ssrcs && ssrcs.length) {
         ssrcs.forEach(function (ssrcObj) {
-            var desc
+            const desc
                 = JingleSessionPC.createDescriptionNode(jingle, ssrcObj.mtype);
-            var cname = Math.random().toString(36).substring(2);
+            const cname = Math.random().toString(36).substring(2);
             ssrcObj.ssrc.ssrcs.forEach(function (ssrc) {
-                var sourceNode = desc.find(">source[ssrc=\"" +ssrc + "\"]");
+                const sourceNode = desc.find(">source[ssrc=\"" +ssrc + "\"]");
                 sourceNode.remove();
-                var sourceXML = "<source " +
+                const sourceXML = "<source " +
                     "xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\" ssrc=\"" +
                     ssrc + "\">" +
                     "<parameter xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\"" +
@@ -1372,7 +1377,7 @@ fixSourceAddJingle (jingle) {
                 desc.append(sourceXML);
             });
             ssrcObj.ssrc.groups.forEach(function (group) {
-                var groupNode = desc.find(">ssrc-group[semantics=\"" +
+                const groupNode = desc.find(">ssrc-group[semantics=\"" +
                     group.group.semantics + "\"]:has(source[ssrc=\"" + group.primarySSRC +
                     "\"])");
                 groupNode.remove();
@@ -1393,18 +1398,18 @@ fixSourceAddJingle (jingle) {
  * @returns {boolean} true if the jingle has to be sent and false otherwise.
  */
 fixSourceRemoveJingle (jingle) {
-    var ssrcs = this.modifiedSSRCs["mute"];
+    let ssrcs = this.modifiedSSRCs["mute"];
     this.modifiedSSRCs["mute"] = [];
     if(ssrcs && ssrcs.length)
         ssrcs.forEach(function (ssrcObj) {
             ssrcObj.ssrc.ssrcs.forEach(function (ssrc) {
-                var sourceNode = $(jingle.tree()).find(">jingle>content[name=\"" +
+                const sourceNode = $(jingle.tree()).find(">jingle>content[name=\"" +
                     ssrcObj.mtype + "\"]>description>source[ssrc=\"" +
                     ssrc + "\"]");
                 sourceNode.remove();
             });
             ssrcObj.ssrc.groups.forEach(function (group) {
-                var groupNode = $(jingle.tree()).find(">jingle>content[name=\"" +
+                const groupNode = $(jingle.tree()).find(">jingle>content[name=\"" +
                     ssrcObj.mtype + "\"]>description>ssrc-group[semantics=\"" +
                     group.group.semantics + "\"]:has(source[ssrc=\"" + group.primarySSRC +
                      "\"])");
@@ -1416,10 +1421,10 @@ fixSourceRemoveJingle (jingle) {
     this.modifiedSSRCs["remove"] = [];
     if(ssrcs && ssrcs.length)
         ssrcs.forEach(function (ssrcObj) {
-            var desc
+            const desc
                 = JingleSessionPC.createDescriptionNode(jingle, ssrcObj.mtype);
             ssrcObj.ssrc.ssrcs.forEach(function (ssrc) {
-                var sourceNode = desc.find(">source[ssrc=\"" +ssrc + "\"]");
+                const sourceNode = desc.find(">source[ssrc=\"" +ssrc + "\"]");
                 if(!sourceNode || !sourceNode.length) {
                     //Maybe we have to include cname, msid, etc here?
                     desc.append("<source " +
@@ -1428,7 +1433,7 @@ fixSourceRemoveJingle (jingle) {
                 }
             });
             ssrcObj.ssrc.groups.forEach(function (group) {
-                var groupNode = desc.find(">ssrc-group[semantics=\"" +
+                const groupNode = desc.find(">ssrc-group[semantics=\"" +
                     group.group.semantics + "\"]:has(source[ssrc=\"" + group.primarySSRC +
                      "\"])");
                 if(!groupNode || !groupNode.length) {
@@ -1449,7 +1454,7 @@ fixSourceRemoveJingle (jingle) {
  * @param mtype - the content type(audio, video, etc.)
  */
 static createDescriptionNode(jingle, mtype) {
-    var content = $(jingle.tree()).find(">jingle>content[name=\"" +
+    let content = $(jingle.tree()).find(">jingle>content[name=\"" +
         mtype + "\"]");
 
     if(!content || !content.length) {
@@ -1459,7 +1464,7 @@ static createDescriptionNode(jingle, mtype) {
             mtype + "\"]");
     }
 
-    var desc = content.find(">description");
+    let desc = content.find(">description");
     if(!desc || !desc.length) {
         content.append("<description " +
             "xmlns=\"urn:xmpp:jingle:apps:rtp:1\" media=\"" +
@@ -1473,7 +1478,7 @@ static createDescriptionNode(jingle, mtype) {
  * Extracts the ice username fragment from an SDP string.
  */
 static getUfrag(sdp) {
-    var ufragLines = sdp.split('\n').filter(function(line) {
+    const ufragLines = sdp.split('\n').filter(function(line) {
         return line.startsWith("a=ice-ufrag:");});
     if (ufragLines.length > 0) {
         return ufragLines[0].substr("a=ice-ufrag:".length);
