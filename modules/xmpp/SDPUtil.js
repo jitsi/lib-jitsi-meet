@@ -1,7 +1,7 @@
 import {getLogger} from "jitsi-meet-logger";
 const logger = getLogger(__filename);
 var RTCBrowserType = require("../RTC/RTCBrowserType");
-
+var RandomUtil = require('../util/RandomUtil');
 
 var SDPUtil = {
     filter_special_chars: function (text) {
@@ -362,6 +362,51 @@ var SDPUtil = {
         line += ' ';
         line += cand.getAttribute('generation') || '0';
         return line + '\r\n';
+    },
+
+    parsePrimaryVideoSsrc: function(videoMLine) {
+        let numSsrcs = videoMLine.ssrcs
+            .map(ssrcInfo => ssrcInfo.id)
+            .filter((ssrc, index, array) => array.indexOf(ssrc) === index)
+            .length;
+        let numGroups = (videoMLine.ssrcGroups && videoMLine.ssrcGroups.length) || 0;
+        if (numSsrcs > 1 && numGroups === 0) {
+            // Ambiguous, can't figure out the primary
+            return;
+        }
+        let primarySsrc = null;
+        if (numSsrcs === 1) {
+            primarySsrc = videoMLine.ssrcs[0].id;
+        } else {
+            if (numSsrcs === 2) {
+                // Can figure it out if there's an FID group
+                let fidGroup = videoMLine.ssrcGroups
+                    .find(group => group.semantics === "FID");
+                if (fidGroup) {
+                    primarySsrc = fidGroup.ssrcs.split(" ")[0];
+                }
+            } else if (numSsrcs >= 3) {
+                // Can figure it out if there's a sim group
+                let simGroup = videoMLine.ssrcGroups
+                    .find(group => group.semantics === "SIM");
+                if (simGroup) {
+                    primarySsrc = simGroup.ssrcs.split(" ")[0];
+                }
+            }
+        }
+        return primarySsrc;
+    },
+
+    generateSsrc: function() {
+        return RandomUtil.randomInt(1, 0xffffffff);
+    },
+
+    getSsrcAttribute: function (mLine, ssrc, attributeName) {
+        return mLine
+            .ssrcs
+            .filter(ssrcInfo => ssrcInfo.id === ssrc)
+            .filter(ssrcInfo => ssrcInfo.attribute === attributeName)
+            .map(ssrcInfo => ssrcInfo.value)[0];
     }
 };
 
