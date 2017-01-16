@@ -16,7 +16,6 @@ import * as JitsiTrackEvents from "./JitsiTrackEvents";
 var ComponentsVersions = require("./modules/version/ComponentsVersions");
 var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 var JitsiConferenceEventManager = require("./JitsiConferenceEventManager");
-import MediaType from "./service/RTC/MediaType";
 var VideoType = require('./service/RTC/VideoType');
 var RTCBrowserType = require("./modules/RTC/RTCBrowserType.js");
 var Transcriber = require("./modules/transcription/transcriber");

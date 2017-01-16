@@ -8,7 +8,7 @@ import JitsiTrackError from "../../JitsiTrackError";
 import * as JitsiTrackErrors from "../../JitsiTrackErrors";
 var DataChannels = require("./DataChannels");
 var JitsiRemoteTrack = require("./JitsiRemoteTrack.js");
-var MediaType = require("../../service/RTC/MediaType");
+import * as MediaType from "../../service/RTC/MediaType";
 var TraceablePeerConnection = require("./TraceablePeerConnection");
 var VideoType = require("../../service/RTC/VideoType");
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");

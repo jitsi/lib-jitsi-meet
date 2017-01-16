@@ -5,7 +5,7 @@ import JitsiTrackError from "../../JitsiTrackError";
 import * as JitsiTrackErrors from "../../JitsiTrackErrors";
 import * as JitsiTrackEvents from "../../JitsiTrackEvents";
 var logger = require("jitsi-meet-logger").getLogger(__filename);
-var MediaType = require('../../service/RTC/MediaType');
+import * as MediaType from '../../service/RTC/MediaType';
 var RTCBrowserType = require("./RTCBrowserType");
 var RTCEvents = require("../../service/RTC/RTCEvents");
 import RTCUtils from "./RTCUtils";

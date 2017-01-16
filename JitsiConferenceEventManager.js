@@ -8,7 +8,7 @@ import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
 var AuthenticationEvents =
     require("./service/authentication/AuthenticationEvents");
 var Statistics = require("./modules/statistics/statistics");
-var MediaType = require("./service/RTC/MediaType");
+import * as MediaType from "./service/RTC/MediaType";
 
 /**
  * Setups all event listeners related to conference
