@@ -2,7 +2,7 @@
 
 import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
-import JingleSession from "./JingleSessionPC";
+import JingleSessionPC from "./JingleSessionPC";
 import XMPPEvents from "../../service/xmpp/XMPPEvents";
 import GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
 import Statistics from "../statistics/statistics";
@@ -85,7 +85,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     this.eventEmitter.emit(XMPPEvents.START_MUTED_FROM_FOCUS,
                             audioMuted === "true", videoMuted === "true");
                 }
-                sess = new JingleSession(
+                sess = new JingleSessionPC(
                         $(iq).attr('to'), $(iq).find('jingle').attr('sid'),
                         fromJid,
                         this.connection,
