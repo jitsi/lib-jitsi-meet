@@ -26,8 +26,8 @@ function getPrimaryVideoSsrcs (videoMLine) {
             if (ssrcGroupInfo.semantics === "FID") {
                 // secondary FID streams should be filtered out
                 let secondarySsrc = ssrcGroupInfo.ssrcs.split(" ")[1];
-                videoSsrcs
-                    .splice(videoSsrcs.indexOf(parseInt(secondarySsrc)), 1);
+                videoSsrcs.splice(
+                  videoSsrcs.indexOf(parseInt(secondarySsrc)), 1);
             }
         });
     }
@@ -93,6 +93,7 @@ function updateAssociatedRtxStream (videoMLine, primarySsrcInfo, rtxSsrc) {
         attribute: "msid",
         value: primarySsrcMsid
     });
+    videoMLine.ssrcGroups = videoMLine.ssrcGroups || [];
     videoMLine.ssrcGroups.push({
         semantics: "FID",
         ssrcs: primarySsrc + " " + rtxSsrc
@@ -140,6 +141,10 @@ class RtxModifier {
             logger.info("RtxModifier doing nothing, video " +
                 "m line is inactive or recvonly");
             return sdpStr;
+        }
+        if (!videoMLine.ssrcs) {
+          logger.info("RtxModifier doing nothing, no video ssrcs present");
+          return sdpStr;
         }
         logger.info("Current ssrc mapping: ", this.correspondingRtxSsrcs);
         let primaryVideoSsrcs = getPrimaryVideoSsrcs(videoMLine);
@@ -210,7 +215,8 @@ class RtxModifier {
         // Returns true if the given ssrc is present
         //  in the mLine's ssrc list
         let ssrcExists = (ssrcToFind) => {
-            return videoMLine.ssrcs.find((ssrc) => ssrc.id + "" === ssrcToFind);
+            return videoMLine.ssrcs.
+              find((ssrc) => ssrc.id + "" === ssrcToFind);
         };
         let ssrcsToRemove = [];
         videoMLine.ssrcGroups.forEach(group => {
