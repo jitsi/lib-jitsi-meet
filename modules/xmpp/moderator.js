@@ -165,15 +165,13 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: value
             }).up();
     }
-    // TODO: re-enable once rtx is stable
-    //if (this.options.conference.disableRtx !== undefined) {
+    if (this.options.conference.disableRtx !== undefined) {
         elem.c(
             'property', {
                 name: 'disableRtx',
-                //value: this.options.conference.disableRtx
-                value: true
+                value: this.options.conference.disableRtx
             }).up();
-    //}
+    }
     elem.c(
         'property', {
             name: 'enableLipSync',
