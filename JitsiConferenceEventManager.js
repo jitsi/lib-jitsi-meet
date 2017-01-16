@@ -320,20 +320,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
         }
     });
 
-    chatRoom.addPresenceListener("videomuted", function (values, from) {
-        conference.rtc.handleRemoteTrackMute(MediaType.VIDEO,
-            values.value == "true", from);
-    });
-
-    chatRoom.addPresenceListener("audiomuted", function (values, from) {
-        conference.rtc.handleRemoteTrackMute(MediaType.AUDIO,
-            values.value == "true", from);
-    });
-
-    chatRoom.addPresenceListener("videoType", function(data, from) {
-        conference.rtc.handleRemoteTrackVideoTypeChanged(data.value, from);
-    });
-
     chatRoom.addPresenceListener("devices", function (data, from) {
         var isAudioAvailable = false;
         var isVideoAvailable = false;
@@ -532,13 +518,10 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function () {
     if(!conference.statistics)
         return;
 
-    conference.statistics.addAudioLevelListener(function (ssrc, level) {
-        var resource = conference.rtc.getResourceBySSRC(ssrc);
-        if (!resource)
-            return;
-
-        conference.rtc.setAudioLevel(resource, level);
-    });
+    conference.statistics.addAudioLevelListener(
+        function (ssrc, level) {
+            conference.rtc.setAudioLevel(ssrc, level);
+        });
     // Forward the "before stats disposed" event
     conference.statistics.addBeforeDisposedListener(function () {
         conference.eventEmitter.emit(

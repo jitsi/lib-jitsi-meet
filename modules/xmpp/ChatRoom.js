@@ -669,6 +669,9 @@ export default class ChatRoom extends Listenable {
     }
 
     addPresenceListener (name, handler) {
+        if (this.presHandlers[name]) {
+            logger.error("Overwriting presence handler for: " + name);
+        }
         this.presHandlers[name] = handler;
     }
 
