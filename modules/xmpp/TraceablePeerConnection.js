@@ -3,13 +3,13 @@
 import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
 import RTC from '../RTC/RTC';
+import SdpConsistency from "./SdpConsistency.js";
 var RTCBrowserType = require("../RTC/RTCBrowserType.js");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var transform = require('sdp-transform');
 var RandomUtil = require('../util/RandomUtil');
 var SDP = require("./SDP");
 var SDPUtil = require("./SDPUtil");
-var SdpConsistency = require("./SdpConsistency.js");
 
 var SIMULCAST_LAYERS = 3;
 

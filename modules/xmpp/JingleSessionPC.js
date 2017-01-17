@@ -552,6 +552,16 @@ JingleSessionPC.prototype.onTerminated = function (reasonCondition,
     this.close();
 };
 
+/**
+ * Parse the information from the xml sourceAddElem and translate it 
+ *  into sdp lines
+ * @param @type {jquery xml element} sourceAddElem the source-add 
+ *  element from jingle
+ * @param @type {SDP object} currentRemoteSdp the current remote 
+ *  sdp (as of this new source-add)
+ * @returns @type {list} a list of SDP line strings that should 
+ *  be added to the remote SDP
+ */
 JingleSessionPC.prototype._parseSsrcInfoFromSourceAdd = function (sourceAddElem, currentRemoteSdp) {
     let addSsrcInfo = [];
     $(sourceAddElem).each(function (idx, content) {
@@ -685,6 +695,8 @@ JingleSessionPC.prototype._processQueueTasks = function (task, finishedCallback)
 
 /**
  * Takes in a jingle offer iq, returns the new sdp offer
+ * @param @type {jquery xml element} offerIq the incoming offer
+ * @returns @type {SDP object} the jingle offer translated to SDP
  */
 JingleSessionPC.prototype._processNewJingleOfferIq = function(offerIq) {
     let remoteSdp = new SDP('');
@@ -703,6 +715,13 @@ JingleSessionPC.prototype._processNewJingleOfferIq = function(offerIq) {
     return remoteSdp;
 };
 
+/**
+ * Remove the given ssrc lines from the current remote sdp
+ * @param @type {list} removeSsrcInfo a list of SDP line strings that 
+ *  should be removed from the remote SDP
+ * @returns type {SDP Object} the new remote SDP (after removing the lines 
+ *  in removeSsrcInfo
+ */
 JingleSessionPC.prototype._processRemoteRemoveSource = function (removeSsrcInfo) {
     let remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
     removeSsrcInfo.forEach(function(lines, idx) {
@@ -717,6 +736,13 @@ JingleSessionPC.prototype._processRemoteRemoveSource = function (removeSsrcInfo)
     return remoteSdp;
 };
 
+/**
+ * Add the given ssrc lines to the current remote sdp
+ * @param @type {list} addSsrcInfo a list of SDP line strings that 
+ *  should be added to the remote SDP
+ * @returns type {SDP Object} the new remote SDP (after removing the lines 
+ *  in removeSsrcInfo
+ */
 JingleSessionPC.prototype._processRemoteAddSource = function (addSsrcInfo) {
     let remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
     addSsrcInfo.forEach(function(lines, idx) {
@@ -729,8 +755,11 @@ JingleSessionPC.prototype._processRemoteAddSource = function (addSsrcInfo) {
 
 /**
  * Do a new o/a flow using the existing remote description
- * @param sdp: optional remote sdp to use.  if not provided, the remote
- *  sdp from the peer connection will be used
+ * @param @type {SDP object} optionalRemoteSdp optional remote sdp 
+ *  to use.  If not provided, the remote sdp from the 
+ *  peerconnection will be used
+ * @returns @type {Promise} promise that completes when the
+ *  o/a flow is complete
  */
 JingleSessionPC.prototype._renegotiate = function(optionalRemoteSdp) {
     let media_constraints = this.media_constraints;
@@ -768,14 +797,14 @@ JingleSessionPC.prototype._renegotiate = function(optionalRemoteSdp) {
                         this.peerconnection.setLocalDescription(
                             answer,
                             () => { resolve(); },
-                            (error) => { reject(error, "setLocalDescription failed"); }
+                            (error) => { reject("setLocalDescription failed: " + error); }
                         );
                     },
-                    (error) => { reject(error, "createAnswer failed"); },
+                    (error) => { reject("createAnswer failed: " + error); },
                     media_constraints
                 );
             },
-            (error) => { reject(error, "setRemoteDescription failed"); }
+            (error) => { reject("setRemoteDescription failed: " + error); }
         );
     });
 };
@@ -828,6 +857,16 @@ JingleSessionPC.prototype.addStreamToPeerConnection = function (stream, ssrcInfo
     }
 };
 
+/**
+ * Parse the information from the xml sourceRemoveElem and translate it 
+ *  into sdp lines
+ * @param @type {jquery xml element} sourceRemoveElem the source-remove 
+ *  element from jingle
+ * @param @type {SDP object} currentRemoteSdp the current remote 
+ *  sdp (as of this new source-remove)
+ * @returns @type {list} a list of SDP line strings that should 
+ *  be removed from the remote SDP
+ */
 JingleSessionPC.prototype._parseSsrcInfoFromSourceRemove = function (sourceRemoveElem, currentRemoteSdp) {
     let removeSsrcInfo = [];
     $(sourceRemoveElem).each(function (idx, content) {

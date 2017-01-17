@@ -406,11 +406,6 @@ JitsiConference.prototype.getTranscriber = function(){
  * another video track in the conference.
  */
 JitsiConference.prototype.addTrack = function (track) {
-    if (track.disposed) {
-        return Promise.reject(
-            new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
-    }
-
     if (track.isVideoTrack()) {
         // Ensure there's exactly 1 local video track in the conference.
         var localVideoTrack = this.rtc.getLocalVideoTrack();
@@ -426,18 +421,6 @@ JitsiConference.prototype.addTrack = function (track) {
         }
     }
 
-    if(track.isAudioTrack() || (track.isVideoTrack() &&
-        track.videoType !== VideoType.DESKTOP)) {
-        // Report active device to statistics
-        var devices = RTC.getCurrentlyAvailableMediaDevices();
-        var device = devices.find(function (d) {
-            return d.kind === track.getTrack().kind + 'input'
-                && d.label === track.getTrack().label;
-        });
-        if(device)
-            Statistics.sendActiveDeviceListEvent(
-                RTC.getEventDataForActiveDevice(device));
-    }
     return this.replaceStream(null, track);
 };
 
@@ -496,10 +479,6 @@ JitsiConference.prototype.onTrackRemoved = function (track) {
  * @returns {Promise}
  */
 JitsiConference.prototype.removeTrack = function (track) {
-    if (track.disposed) {
-        return Promise.reject(
-            new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
-    }
     return this.replaceStream (track, null);
 };
 
@@ -508,16 +487,24 @@ JitsiConference.prototype.removeTrack = function (track) {
  *  cycle after both operations are done.  Either oldStream or newStream
  *  can be null; replacing a valid 'oldStream' with a null 'newStream'
  *  effectively just removes 'oldStream'
- * @param oldStream the current stream in use to be replaced
- * @param newStream the new stream to use
- * @returns {Promise}
+ * @param @type {JitsiLocalTrack} oldStream the current stream in use to be replaced
+ * @param @type {JitsiLocalTrack} newStream the new stream to use
+ * @returns {Promise} resolves when the replacement is finished
  */
 JitsiConference.prototype.replaceStream = function (oldStream, newStream) {
     // First do the removal of the oldStream at the JitsiConference level
     if (oldStream) {
-        this.onTrackRemoved(oldStream);
+        if (oldStream.disposed) {
+            return Promise.reject(
+                new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
+        }
+        //this.onTrackRemoved(oldStream);
     }
     if (newStream) {
+        if (newStream.disposed) {
+            return Promise.reject(
+                new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
+        }
         // Set up the ssrcHandler for the new track before we add it at the lower levels
         newStream.ssrcHandler = function (conference, ssrcMap) {
             if (ssrcMap[this.getMSID()]) {
@@ -532,6 +519,9 @@ JitsiConference.prototype.replaceStream = function (oldStream, newStream) {
     // Now replace the stream at the lower levels
     return this.room.replaceStream (oldStream, newStream)
         .then(() => {
+            if (oldStream) {
+                this.onTrackRemoved(oldStream);
+            }
             if (newStream) {
                 // Now handle the addition of the newStream at the JitsiConference level
                 this._setupNewTrack(newStream);
@@ -540,6 +530,10 @@ JitsiConference.prototype.replaceStream = function (oldStream, newStream) {
         });
 };
 
+/**
+ * Operations related to creating a new track
+ * @param @type {JitsiLocalTrack} newTrack the new track being created
+ */
 JitsiConference.prototype._setupNewTrack = function (newTrack) {
     if (newTrack.isAudioTrack() || (newTrack.isVideoTrack() &&
             newTrack.videoType !== VideoType.DESKTOP)) {
