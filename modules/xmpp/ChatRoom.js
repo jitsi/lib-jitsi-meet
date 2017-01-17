@@ -534,14 +534,17 @@ export default class ChatRoom extends Listenable {
         // make sure we catch all errors coming from any handler
         // otherwise we can remove the presence handler from strophe
         try {
-            let tagHandler = this.presHandlers[node.tagName];
+            let tagHandlers = this.presHandlers[node.tagName];
 
             if (node.tagName.startsWith('jitsi_participant_')) {
-                tagHandler = this.participantPropertyListener;
+                // NOTE should we allow more than one handler ?
+                tagHandlers = [this.participantPropertyListener];
             }
 
-            if (tagHandler) {
-                tagHandler(node, Strophe.getResourceFromJid(from), from);
+            if (tagHandlers) {
+                tagHandlers.forEach((handler) => {
+                    handler(node, Strophe.getResourceFromJid(from), from);
+                });
             }
         } catch (e) {
             GlobalOnErrorHandler.callErrorHandler(e);
@@ -893,15 +896,34 @@ export default class ChatRoom extends Listenable {
      * @param handler
      */
     addPresenceListener(name, handler) {
-        this.presHandlers[name] = handler;
+        if (typeof handler !== 'function') {
+            throw new Error("'handler' is not a function");
+        }
+        let tagHandlers = this.presHandlers[name];
+
+        if (!tagHandlers) {
+            this.presHandlers[name] = tagHandlers = [];
+        }
+        if (tagHandlers.indexOf(handler) == -1) {
+            tagHandlers.push(handler);
+        } else {
+            logger.warn(
+                "Trying to add the same handler more than once for: " + name);
+        }
     }
 
     /**
      *
      * @param name
      */
-    removePresenceListener(name) {
-        delete this.presHandlers[name];
+    removePresenceListener(name, handler) {
+        const tagHandlers = this.presHandlers[name];
+        const handlerIdx = tagHandlers ? tagHandlers.indexOf(handler) : -1;
+        if (handlerIdx !== -1) {
+            tagHandlers.splice(handlerIdx, 1);
+        } else {
+            logger.warn("Handler for: " + name + " was not registered");
+        }
     }
 
     /**
