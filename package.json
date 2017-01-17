@@ -35,15 +35,15 @@
     "babel-polyfill": "*",
     "babel-preset-es2015": "*",
     "eslint": ">=3",
-    "jshint": "^2.8.0",
-    "precommit-hook": "^3.0.0",
-    "string-replace-loader": "*",
-    "webpack": "*",
     "jasmine-core": "^2.2.0",
+    "jshint": "^2.8.0",
     "karma": "^0.13.2",
     "karma-chrome-launcher": "^0.2.0",
     "karma-jasmine": "^0.3.6",
-    "karma-webpack": "^1.6.0"
+    "karma-webpack": "^1.6.0",
+    "precommit-hook": "^3.0.0",
+    "string-replace-loader": "*",
+    "webpack": "^1.14.0"
   },
   "scripts": {
     "install": "webpack -p",
