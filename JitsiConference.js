@@ -487,8 +487,8 @@ JitsiConference.prototype.removeTrack = function (track) {
  *  cycle after both operations are done.  Either oldStream or newStream
  *  can be null; replacing a valid 'oldStream' with a null 'newStream'
  *  effectively just removes 'oldStream'
- * @param @type {JitsiLocalTrack} oldStream the current stream in use to be replaced
- * @param @type {JitsiLocalTrack} newStream the new stream to use
+ * @param {JitsiLocalTrack} oldStream the current stream in use to be replaced
+ * @param {JitsiLocalTrack} newStream the new stream to use
  * @returns {Promise} resolves when the replacement is finished
  */
 JitsiConference.prototype.replaceStream = function (oldStream, newStream) {
@@ -532,7 +532,7 @@ JitsiConference.prototype.replaceStream = function (oldStream, newStream) {
 
 /**
  * Operations related to creating a new track
- * @param @type {JitsiLocalTrack} newTrack the new track being created
+ * @param {JitsiLocalTrack} newTrack the new track being created
  */
 JitsiConference.prototype._setupNewTrack = function (newTrack) {
     if (newTrack.isAudioTrack() || (newTrack.isVideoTrack() &&

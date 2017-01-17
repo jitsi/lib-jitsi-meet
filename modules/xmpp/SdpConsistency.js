@@ -6,9 +6,9 @@ import * as transform from 'sdp-transform';
 /**
  * Given a video mline (as parsed from transform.parse),
  *  return the single primary video ssrcs
- * @param @type {object} videoMLine the video MLine from which to extract the
+ * @param {object} videoMLine the video MLine from which to extract the
  *  primary video ssrc
- * @returns @type {number} the primary video ssrc
+ * @returns {number} the primary video ssrc
  */
 function getPrimarySsrc (videoMLine) {
     if (!videoMLine.ssrcs) {
@@ -47,11 +47,11 @@ function getPrimarySsrc (videoMLine) {
  * Given a video mline (as parsed from transform.parse),
  *  and a primary ssrc, return the corresponding rtx ssrc
  *  (if there is one) for that video ssrc
- * @param @type {object} videoMLine the video MLine from which to extract the
+ * @param {object} videoMLine the video MLine from which to extract the
  *  rtx video ssrc
- * @param @type {number} primarySsrc the video ssrc for which to find the
+ * @param {number} primarySsrc the video ssrc for which to find the
  *  corresponding rtx ssrc
- * @returns @type {number} the rtx ssrc (or undefined if there isn't one)
+ * @returns {number} the rtx ssrc (or undefined if there isn't one)
  */
 function getRtxSsrc (videoMLine, primarySsrc) {
     if (videoMLine.ssrcGroups) {
@@ -93,7 +93,7 @@ export default class SdpConsistency {
     /**
      * Explicitly set the primary ssrc to be used in
      *  makeVideoPrimarySsrcsConsistent
-     * @param @type {number} primarySsrc the primarySsrc to be used
+     * @param {number} primarySsrc the primarySsrc to be used
      *  in future calls to makeVideoPrimarySsrcsConsistent
      */
     setPrimarySsrc (primarySsrc) {
@@ -106,9 +106,9 @@ export default class SdpConsistency {
      *   used in future calls to makeVideoPrimarySsrcsConsistent or
      *  2) change the primary and primary rtx ssrcs in the given sdp
      *   to match the ones previously cached
-     * @param @type {string} sdpStr the sdp string to (potentially)
+     * @param {string} sdpStr the sdp string to (potentially)
      *  change to make the video ssrcs consistent
-     * @returns @type {string} a (potentially) modified sdp string
+     * @returns {string} a (potentially) modified sdp string
      *  with ssrcs consistent with this class' cache
      */
     makeVideoPrimarySsrcsConsistent (sdpStr) {

@@ -555,11 +555,11 @@ JingleSessionPC.prototype.onTerminated = function (reasonCondition,
 /**
  * Parse the information from the xml sourceAddElem and translate it 
  *  into sdp lines
- * @param @type {jquery xml element} sourceAddElem the source-add 
+ * @param {jquery xml element} sourceAddElem the source-add 
  *  element from jingle
- * @param @type {SDP object} currentRemoteSdp the current remote 
+ * @param {SDP object} currentRemoteSdp the current remote 
  *  sdp (as of this new source-add)
- * @returns @type {list} a list of SDP line strings that should 
+ * @returns {list} a list of SDP line strings that should 
  *  be added to the remote SDP
  */
 JingleSessionPC.prototype._parseSsrcInfoFromSourceAdd = function (sourceAddElem, currentRemoteSdp) {
@@ -695,8 +695,8 @@ JingleSessionPC.prototype._processQueueTasks = function (task, finishedCallback)
 
 /**
  * Takes in a jingle offer iq, returns the new sdp offer
- * @param @type {jquery xml element} offerIq the incoming offer
- * @returns @type {SDP object} the jingle offer translated to SDP
+ * @param {jquery xml element} offerIq the incoming offer
+ * @returns {SDP object} the jingle offer translated to SDP
  */
 JingleSessionPC.prototype._processNewJingleOfferIq = function(offerIq) {
     let remoteSdp = new SDP('');
@@ -717,7 +717,7 @@ JingleSessionPC.prototype._processNewJingleOfferIq = function(offerIq) {
 
 /**
  * Remove the given ssrc lines from the current remote sdp
- * @param @type {list} removeSsrcInfo a list of SDP line strings that 
+ * @param {list} removeSsrcInfo a list of SDP line strings that 
  *  should be removed from the remote SDP
  * @returns type {SDP Object} the new remote SDP (after removing the lines 
  *  in removeSsrcInfo
@@ -738,7 +738,7 @@ JingleSessionPC.prototype._processRemoteRemoveSource = function (removeSsrcInfo)
 
 /**
  * Add the given ssrc lines to the current remote sdp
- * @param @type {list} addSsrcInfo a list of SDP line strings that 
+ * @param {list} addSsrcInfo a list of SDP line strings that 
  *  should be added to the remote SDP
  * @returns type {SDP Object} the new remote SDP (after removing the lines 
  *  in removeSsrcInfo
@@ -755,10 +755,10 @@ JingleSessionPC.prototype._processRemoteAddSource = function (addSsrcInfo) {
 
 /**
  * Do a new o/a flow using the existing remote description
- * @param @type {SDP object} optionalRemoteSdp optional remote sdp 
+ * @param {SDP object} optionalRemoteSdp optional remote sdp 
  *  to use.  If not provided, the remote sdp from the 
  *  peerconnection will be used
- * @returns @type {Promise} promise that completes when the
+ * @returns {Promise} promise that completes when the
  *  o/a flow is complete
  */
 JingleSessionPC.prototype._renegotiate = function(optionalRemoteSdp) {
@@ -860,11 +860,11 @@ JingleSessionPC.prototype.addStreamToPeerConnection = function (stream, ssrcInfo
 /**
  * Parse the information from the xml sourceRemoveElem and translate it 
  *  into sdp lines
- * @param @type {jquery xml element} sourceRemoveElem the source-remove 
+ * @param {jquery xml element} sourceRemoveElem the source-remove 
  *  element from jingle
- * @param @type {SDP object} currentRemoteSdp the current remote 
+ * @param {SDP object} currentRemoteSdp the current remote 
  *  sdp (as of this new source-remove)
- * @returns @type {list} a list of SDP line strings that should 
+ * @returns {list} a list of SDP line strings that should 
  *  be removed from the remote SDP
  */
 JingleSessionPC.prototype._parseSsrcInfoFromSourceRemove = function (sourceRemoveElem, currentRemoteSdp) {
