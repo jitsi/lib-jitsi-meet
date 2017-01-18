@@ -374,7 +374,7 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function () {
         self.conference.room.addStream(
             self.stream,
             resolve,
-            reject,
+            (error) => reject(new Error(error)),
             {
                 mtype: self.type,
                 type: "unmute",
@@ -400,7 +400,7 @@ function (successCallback, errorCallback) {
     this.conference.room.removeStream(
         this.stream,
         successCallback,
-        errorCallback,
+        (error) => errorCallback(new Error(error)),
         {
             mtype: this.type,
             type: "mute",

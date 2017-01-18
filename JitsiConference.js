@@ -527,7 +527,7 @@ JitsiConference.prototype.replaceTrack = function (oldTrack, newTrack) {
             }
             return Promise.resolve();
         }, (error) => {
-            return Promise.reject(error);
+            return Promise.reject(new Error(error));
         });
 };
 
