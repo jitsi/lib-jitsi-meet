@@ -498,7 +498,6 @@ JitsiConference.prototype.replaceStream = function (oldStream, newStream) {
             return Promise.reject(
                 new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
         }
-        //this.onTrackRemoved(oldStream);
     }
     if (newStream) {
         if (newStream.disposed) {

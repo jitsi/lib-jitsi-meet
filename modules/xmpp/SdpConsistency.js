@@ -15,14 +15,11 @@ function getPrimarySsrc (videoMLine) {
         return;
     }
     let numSsrcs = videoMLine.ssrcs
-        .filter(ssrcInfo => ssrcInfo.attribute === "msid")
         .map(ssrcInfo => ssrcInfo.id)
         .filter((ssrc, index, array) => array.indexOf(ssrc) === index)
         .length;
     if (numSsrcs === 1) {
-        return videoMLine.ssrcs
-            .filter(ssrcInfo => ssrcInfo.attribute === "msid")
-            .map(ssrcInfo => ssrcInfo.id)[0];
+        return videoMLine.ssrcs[0].id;
     } else {
         let findGroup = (mLine, groupName) => {
             return mLine
@@ -55,13 +52,15 @@ function getPrimarySsrc (videoMLine) {
  */
 function getRtxSsrc (videoMLine, primarySsrc) {
     if (videoMLine.ssrcGroups) {
-        return videoMLine
-            .ssrcGroups
-            .filter(ssrcGroup => ssrcGroup.semantics === "FID")
-            .filter(ssrcGroup => 
-                parseInt(ssrcGroup.ssrcs.split(" ")[0]) === primarySsrc)
-            .map(ssrcGroup => ssrcGroup.ssrcs.split(" ")[1])
-            .map(ssrcStr => parseInt(ssrcStr))[0];
+                let fidGroup = videoMLine.ssrcGroups.find(group => {
+            if (group.semantics === "FID") {
+              let groupPrimarySsrc = parseInt(group.ssrcs.split(" ")[0]);
+              return groupPrimarySsrc === primarySsrc;
+            }
+        });
+        if (fidGroup) {
+          return parseInt(fidGroup.ssrcs.split(" ")[1]);
+        }
     }
 }
 /**
