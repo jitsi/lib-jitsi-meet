@@ -13,3 +13,6 @@ modules/RTC/adapter.screenshare.js
 # not seem to be a reason why we will want to risk being inconsistent with our
 # remaining JavaScript source code.
 !.eslintrc.js
+
+# Test helper files that don't make sense to lint
+modules/xmpp/SampleSdpStrings.js

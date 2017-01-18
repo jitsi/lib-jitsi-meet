@@ -30,3 +30,4 @@ JitsiParticipant.js
 JitsiMeetJS.js
 JitsiConnection.js
 JitsiConference.js
+modules/xmpp/SampleSdpStrings.js
