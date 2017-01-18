@@ -52,10 +52,10 @@ function getPrimarySsrc (videoMLine) {
  */
 function getRtxSsrc (videoMLine, primarySsrc) {
     if (videoMLine.ssrcGroups) {
-                let fidGroup = videoMLine.ssrcGroups.find(group => {
+        let fidGroup = videoMLine.ssrcGroups.find(group => {
             if (group.semantics === "FID") {
-              let groupPrimarySsrc = parseInt(group.ssrcs.split(" ")[0]);
-              return groupPrimarySsrc === primarySsrc;
+                let groupPrimarySsrc = parseInt(group.ssrcs.split(" ")[0]);
+                return groupPrimarySsrc === primarySsrc;
             }
         });
         if (fidGroup) {
@@ -75,6 +75,9 @@ function getRtxSsrc (videoMLine, primarySsrc) {
  * the primary video stream and an associated RTX stream, if it exists
  */
 export default class SdpConsistency {
+    /**
+     * Constructor
+     */
     constructor () {
         this.clearSsrcCache();
     }

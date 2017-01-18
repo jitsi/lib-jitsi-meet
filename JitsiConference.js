@@ -421,7 +421,7 @@ JitsiConference.prototype.addTrack = function (track) {
         }
     }
 
-    return this.replaceStream(null, track);
+    return this.replaceTrack(null, track);
 };
 
 /**
@@ -479,53 +479,55 @@ JitsiConference.prototype.onTrackRemoved = function (track) {
  * @returns {Promise}
  */
 JitsiConference.prototype.removeTrack = function (track) {
-    return this.replaceStream (track, null);
+    return this.replaceTrack (track, null);
 };
 
 /**
- * Replaces oldStream with newStream and performs a single offer/answer
- *  cycle after both operations are done.  Either oldStream or newStream
- *  can be null; replacing a valid 'oldStream' with a null 'newStream'
- *  effectively just removes 'oldStream'
- * @param {JitsiLocalTrack} oldStream the current stream in use to be replaced
- * @param {JitsiLocalTrack} newStream the new stream to use
+ * Replaces oldTrack with newTrack and performs a single offer/answer
+ *  cycle after both operations are done.  Either oldTrack or newTrack
+ *  can be null; replacing a valid 'oldTrack' with a null 'newTrack'
+ *  effectively just removes 'oldTrack'
+ * @param {JitsiLocalTrack} oldTrack the current stream in use to be replaced
+ * @param {JitsiLocalTrack} newTrack the new stream to use
  * @returns {Promise} resolves when the replacement is finished
  */
-JitsiConference.prototype.replaceStream = function (oldStream, newStream) {
-    // First do the removal of the oldStream at the JitsiConference level
-    if (oldStream) {
-        if (oldStream.disposed) {
+JitsiConference.prototype.replaceTrack = function (oldTrack, newTrack) {
+    // First do the removal of the oldTrack at the JitsiConference level
+    if (oldTrack) {
+        if (oldTrack.disposed) {
             return Promise.reject(
                 new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
         }
     }
-    if (newStream) {
-        if (newStream.disposed) {
+    if (newTrack) {
+        if (newTrack.disposed) {
             return Promise.reject(
                 new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
         }
         // Set up the ssrcHandler for the new track before we add it at the lower levels
-        newStream.ssrcHandler = function (conference, ssrcMap) {
+        newTrack.ssrcHandler = function (conference, ssrcMap) {
             if (ssrcMap[this.getMSID()]) {
                 this._setSSRC(ssrcMap[this.getMSID()]);
                 conference.room.removeListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
                     this.ssrcHandler);
             }
-        }.bind(newStream, this);
+        }.bind(newTrack, this);
         this.room.addListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
-            newStream.ssrcHandler);
+            newTrack.ssrcHandler);
     }
     // Now replace the stream at the lower levels
-    return this.room.replaceStream (oldStream, newStream)
+    return this.room.replaceStream (oldTrack, newTrack)
         .then(() => {
-            if (oldStream) {
-                this.onTrackRemoved(oldStream);
+            if (oldTrack) {
+                this.onTrackRemoved(oldTrack);
             }
-            if (newStream) {
-                // Now handle the addition of the newStream at the JitsiConference level
-                this._setupNewTrack(newStream);
+            if (newTrack) {
+                // Now handle the addition of the newTrack at the JitsiConference level
+                this._setupNewTrack(newTrack);
             }
             return Promise.resolve();
+        }, (error) => {
+            return Promise.reject(error);
         });
 };
 
