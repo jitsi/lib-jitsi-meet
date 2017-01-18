@@ -10,7 +10,8 @@
     "jingle",
     "webrtc",
     "xmpp",
-    "browser"
+    "browser",
+    "jitsi"
   ],
   "author": "",
   "readmeFilename": "README.md",
@@ -20,30 +21,35 @@
     "events": "*",
     "jitsi-meet-logger": "jitsi/jitsi-meet-logger",
     "jssha": "1.5.0",
-    "pako": "*",
     "retry": "0.6.1",
     "sdp-interop": "0.1.11",
     "sdp-simulcast": "0.1.7",
     "sdp-transform": "1.5.*",
     "socket.io-client": "1.4.5",
-    "strophe": "^1.2.2",
-    "strophejs-plugins": "^0.0.6"
+    "strophe": "1.2.4",
+    "strophejs-plugins": "0.0.7"
   },
   "devDependencies": {
     "babel-core": "*",
     "babel-loader": "*",
     "babel-polyfill": "*",
     "babel-preset-es2015": "*",
-    "eslint": "*",
+    "eslint": ">=3",
+    "jasmine-core": "^2.2.0",
     "jshint": "^2.8.0",
+    "karma": "^0.13.2",
+    "karma-chrome-launcher": "^0.2.0",
+    "karma-jasmine": "^0.3.6",
+    "karma-webpack": "^1.6.0",
     "precommit-hook": "^3.0.0",
     "string-replace-loader": "*",
-    "webpack": "*"
+    "webpack": "^1.14.0"
   },
   "scripts": {
     "install": "webpack -p",
     "lint": "jshint . && eslint .",
-    "validate": "npm ls"
+    "validate": "npm ls",
+    "test": "./node_modules/karma/bin/karma start karma.conf.js"
   },
   "pre-commit": [
     "lint"

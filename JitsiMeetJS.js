@@ -7,19 +7,21 @@ import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
 import * as JitsiConnectionErrors from "./JitsiConnectionErrors";
 import * as JitsiConnectionEvents from "./JitsiConnectionEvents";
 import * as JitsiMediaDevicesEvents from "./JitsiMediaDevicesEvents";
+import * as ConnectionQualityEvents from "./service/connectivity/ConnectionQualityEvents";
 import JitsiTrackError from "./JitsiTrackError";
 import * as JitsiTrackErrors from "./JitsiTrackErrors";
 import * as JitsiTrackEvents from "./JitsiTrackEvents";
 var JitsiRecorderErrors = require("./JitsiRecorderErrors");
 var Logger = require("jitsi-meet-logger");
 var MediaType = require("./service/RTC/MediaType");
-var RTC = require("./modules/RTC/RTC");
+import RTC from "./modules/RTC/RTC";
 var RTCUIHelper = require("./modules/RTC/RTCUIHelper");
 var Statistics = require("./modules/statistics/statistics");
 var Resolutions = require("./service/RTC/Resolutions");
 var ScriptUtil = require("./modules/util/ScriptUtil");
 var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 var RTCBrowserType = require("./modules/RTC/RTCBrowserType");
+import Settings from "./modules/settings/Settings";
 
 // The amount of time to wait until firing
 // JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN event
@@ -76,7 +78,8 @@ var LibJitsiMeet = {
         conference: JitsiConferenceEvents,
         connection: JitsiConnectionEvents,
         track: JitsiTrackEvents,
-        mediaDevices: JitsiMediaDevicesEvents
+        mediaDevices: JitsiMediaDevicesEvents,
+        connectionQuality: ConnectionQualityEvents
     },
     errors: {
         conference: JitsiConferenceErrors,
@@ -93,7 +96,11 @@ var LibJitsiMeet = {
     init: function (options) {
         let logObject, attr;
         Statistics.init(options);
+
         this.analytics = Statistics.analytics;
+        if(options.enableAnalyticsLogging === true) {
+            this.analytics.init(RTCBrowserType.getBrowserName());
+        }
 
         if (options.enableWindowOnErrorHandler) {
             GlobalOnErrorHandler.addHandler(
@@ -134,6 +141,32 @@ var LibJitsiMeet = {
     },
     setLogLevel: function (level) {
         Logger.setLogLevel(level);
+    },
+    /**
+     * Sets the log level to the <tt>Logger</tt> instance with given id.
+     * @param {Logger.levels} level the logging level to be set
+     * @param {string} id the logger id to which new logging level will be set.
+     * Usually it's the name of the JavaScript source file including the path
+     * ex. "modules/xmpp/ChatRoom.js"
+     */
+    setLogLevelById: function (level, id) {
+        Logger.setLogLevelById(level, id);
+    },
+    /**
+     * Registers new global logger transport to the library logging framework.
+     * @param globalTransport
+     * @see Logger.addGlobalTransport
+     */
+    addGlobalLogTransport: function (globalTransport) {
+        Logger.addGlobalTransport(globalTransport);
+    },
+    /**
+     * Removes global logging transport from the library logging framework.
+     * @param globalTransport
+     * @see Logger.removeGlobalTransport
+     */
+    removeGlobalLogTransport: function (globalTransport) {
+        Logger.removeGlobalTransport(globalTransport);
     },
     /**
      * Creates the media tracks and returns them trough the callback.
@@ -335,6 +368,14 @@ var LibJitsiMeet = {
             'Column: ' + colno,
             'StackTrace: ', error);
         Statistics.reportGlobalError(error);
+    },
+
+    /**
+     * Returns current machine id saved from the local storage.
+     * @returns {string} the machine id
+     */
+    getMachineId: function() {
+        return Settings.getMachineId();
     },
 
     /**

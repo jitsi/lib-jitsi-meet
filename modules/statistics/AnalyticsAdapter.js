@@ -1,100 +1,110 @@
-var RTCBrowserType = require("../RTC/RTCBrowserType");
-
-function NoopAnalytics() {}
-NoopAnalytics.prototype.sendEvent = function () {};
-
-function AnalyticsAdapter() {
-    this.browserName = RTCBrowserType.getBrowserName();
-    /**
-     * Map of properties that will be added to every event
-     */
-    this.permanentProperties = {};
+/**
+ * Interface for analytics handlers.
+ */
+class AnalyticsAbstract {
+    sendEvent() {}
 }
 
-// some events may happen before init or implementation script download
-// in this case we accumulate them in this array and send them on init
-AnalyticsAdapter.eventsQueue = [];
-
 /**
- * Sends analytics event.
- * @param {String} action the name of the event
- * @param {Object} data can be any JSON object
+ * Handler that caches all the events.
+ * @extends AnalyticsAbstract
  */
-AnalyticsAdapter.prototype.sendEvent = function (action, data = {}) {
-    if(this._checkAnalyticsAndMaybeCacheEvent(action, data)) {
-        data.browserName = this.browserName;
-        try {
-            this.analytics.sendEvent(action,
-                Object.assign({}, this.permanentProperties, data));
-        } catch (ignored) { // eslint-disable-line no-empty
-        }
+class CacheAnalytics extends AnalyticsAbstract {
+    constructor() {
+        super();
+        // some events may happen before init or implementation script download
+        // in this case we accumulate them in this array and send them on init
+        this.eventCache = [];
     }
-};
 
-/**
- * Since we asynchronously load the integration of the analytics API and the
- * analytics API may asynchronously load its implementation (e.g. Google
- * Analytics), we cannot make the decision with respect to which analytics
- * implementation we will use here and we have to postpone it i.e. we will make
- * a lazy decision, will wait for loaded or dispose methods to be called.
- * in the meantime we accumulate any events received. We should call this
- * method before trying to send the event.
- * @param action
- * @param data
- */
-AnalyticsAdapter.prototype._checkAnalyticsAndMaybeCacheEvent
-= function (action, data) {
-    if (this.analytics === null || typeof this.analytics === 'undefined') {
-        // missing this.analytics but have window implementation, let's use it
-        if (window.Analytics) {
-            this.loaded();
-        }
-        else {
-            AnalyticsAdapter.eventsQueue.push({
-                action: action,
-                data: data
-            });
-            // stored, lets break here
-            return false;
-        }
+    /**
+     * Cache analytics event.
+     * @param {String} action the name of the event
+     * @param {Object} data can be any JSON object
+     */
+    sendEvent(action, data = {}) {
+        this.eventCache.push({
+            action: action,
+            data: data
+        });
     }
-    return true;
-};
 
-
-/**
- * Dispose analytics. Clears any available queue element and sets
- * NoopAnalytics to be used.
- */
-AnalyticsAdapter.prototype.dispose = function () {
-    this.analytics = new NoopAnalytics();
-    AnalyticsAdapter.eventsQueue.length = 0;
-};
-
-/**
- * Adds map of properties that will be added to every event.
- * @param {Object} properties the map of properties
- */
-AnalyticsAdapter.prototype.addPermanentProperties = function (properties) {
-    this.permanentProperties
-        = Object.assign(this.permanentProperties, properties);
-};
-
-/**
- * Loaded analytics script. Sens queued events.
- */
-AnalyticsAdapter.prototype.loaded = function () {
-    var AnalyticsImpl = window.Analytics || NoopAnalytics;
-
-    this.analytics = new AnalyticsImpl();
-
-    // new analytics lets send all events if any
-    if (AnalyticsAdapter.eventsQueue.length) {
-        AnalyticsAdapter.eventsQueue.forEach(function (event) {
-            this.sendEvent(event.action, event.data);
-        }.bind(this));
-        AnalyticsAdapter.eventsQueue.length = 0;
+    /**
+     * Clears the cached events.
+     * @returns {Array} with the cached events.
+     */
+    drainCachedEvents() {
+        let eventCacheCopy = this.eventCache.slice();
+        this.eventCache = [];
+        return eventCacheCopy;
     }
-};
 
-module.exports = new AnalyticsAdapter();
+}
+
+let cacheAnalytics = new CacheAnalytics();
+
+/**
+ * This class will store and manage the handlers that are going to be used.
+ */
+class AnalyticsAdapter {
+    constructor() {
+        this.analyticsHandlers = new Set();
+
+        /**
+         * Map of properties that will be added to every event
+         */
+        this.permanentProperties = Object.create(null);
+    }
+
+    /**
+     * Initializes the AnalyticsAdapter. Adds the cacheAnalytics handler to
+     * cache all the events until we have other handlers that are going to send
+     * them.
+     */
+    init(browserName) {
+        this.browserName = browserName;
+        this.analyticsHandlers.add(cacheAnalytics);
+    }
+
+    /**
+     * Sends analytics event.
+     * @param {String} action the name of the event
+     * @param {Object} data can be any JSON object
+     */
+    sendEvent(action, data = {}) {
+        let modifiedData = Object.assign(
+            {browserName: this.browserName}, this.permanentProperties, data);
+        this.analyticsHandlers.forEach(
+            analytics => analytics.sendEvent(action, modifiedData));
+    }
+
+    /**
+     * Dispose analytics. Clears all handlers.
+     */
+    dispose() {
+        cacheAnalytics.drainCachedEvents();
+        this.analyticsHandlers.clear();
+    }
+
+    /**
+     * Sets the handlers that are going to be used to send analytics and send
+     * the cached events.
+     * @param {Array} handlers the handlers
+     */
+    setAnalyticsHandlers (handlers) {
+        this.analyticsHandlers = new Set(handlers);
+        cacheAnalytics.drainCachedEvents().forEach(
+            ev => this.sendEvent(ev.action, ev.data));
+    }
+
+    /**
+     * Adds map of properties that will be added to every event.
+     * @param {Object} properties the map of properties
+     */
+    addPermanentProperties (properties) {
+        this.permanentProperties
+            = Object.assign(this.permanentProperties, properties);
+    }
+}
+
+export default new AnalyticsAdapter();

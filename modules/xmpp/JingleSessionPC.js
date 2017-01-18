@@ -10,9 +10,11 @@ var SDP = require("./SDP");
 var async = require("async");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var RTCBrowserType = require("../RTC/RTCBrowserType");
-var RTC = require("../RTC/RTC");
+import RTC from "../RTC/RTC";
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 var Statistics = require("../statistics/statistics");
+
+import * as JingleSessionState from "./JingleSessionState";
 
 /**
  * Constant tells how long we're going to wait for IQ response, before timeout
@@ -102,7 +104,7 @@ JingleSessionPC.prototype.doInitialize = function () {
             var protocol = candidate.protocol;
             if (typeof protocol === 'string') {
                 protocol = protocol.toLowerCase();
-                if (protocol == 'tcp') {
+                if (protocol === 'tcp' || protocol ==='ssltcp') {
                     if (self.webrtcIceTcpDisable)
                         return;
                 } else if (protocol == 'udp') {
@@ -119,10 +121,21 @@ JingleSessionPC.prototype.doInitialize = function () {
     this.peerconnection.onremovestream = function (event) {
         self.remoteStreamRemoved(event.stream);
     };
+    // Note there is a change in the spec about closed:
+    // This value moved into the RTCPeerConnectionState enum in the May 13, 2016
+    // draft of the specification, as it reflects the state of the
+    // RTCPeerConnection, not the signaling connection. You now detect a
+    // closed connection by checking for connectionState to be "closed" instead.
+    // I suppose at some point this will be moved to onconnectionstatechange
     this.peerconnection.onsignalingstatechange = function () {
         if (!(self && self.peerconnection)) return;
         if (self.peerconnection.signalingState === 'stable') {
             self.wasstable = true;
+        } else if (
+            (self.peerconnection.signalingState === 'closed'
+                || self.peerconnection.connectionState === 'closed')
+            && !self.closed) {
+                self.room.eventEmitter.emit(XMPPEvents.SUSPEND_DETECTED);
         }
     };
     /**
@@ -140,6 +153,9 @@ JingleSessionPC.prototype.doInitialize = function () {
                     ":\t", now);
         Statistics.analytics.sendEvent(
             'ice.' + self.peerconnection.iceConnectionState, {value: now});
+        self.room.eventEmitter.emit(
+            XMPPEvents.ICE_CONNECTION_STATE_CHANGED,
+            self.peerconnection.iceConnectionState);
         switch (self.peerconnection.iceConnectionState) {
             case 'connected':
 
@@ -280,7 +296,7 @@ JingleSessionPC.prototype.readSsrcInfo = function (contents) {
  */
 JingleSessionPC.prototype.acceptOffer = function(jingleOffer,
                                                  success, failure) {
-    this.state = 'active';
+    this.state = JingleSessionState.ACTIVE;
     this.setOfferCycle(jingleOffer,
         function() {
             // setOfferCycle succeeded, now we have self.localSDP up to date
@@ -541,9 +557,13 @@ JingleSessionPC.prototype.sendTransportReject = function(success, failure) {
         IQ_TIMEOUT);
 };
 
-//FIXME: I think this method is not used!
+/**
+ * @inheritDoc
+ */
 JingleSessionPC.prototype.terminate = function (reason,  text,
                                                 success, failure) {
+    this.state = JingleSessionState.ENDED;
+
     var term = $iq({to: this.peerjid,
         type: 'set'})
         .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
@@ -807,7 +827,7 @@ JingleSessionPC.prototype._modifySources = function (successCallback, queueCallb
      * optional error through (1) logger, (2) GlobalOnErrorHandler, and (3)
      * queueCallback.
      *
-     * @param {string} errmsg the error messsage to report
+     * @param {string} errmsg the error message to report
      * @param {*} error an optional error to report in addition to errmsg
      */
     function reportError(errmsg, err) {
@@ -1043,9 +1063,9 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, errorCallba
  */
 JingleSessionPC.prototype.notifyMySSRCUpdate = function (old_sdp, new_sdp) {
 
-    if (!(this.peerconnection.signalingState == 'stable' &&
-        this.peerconnection.iceConnectionState == 'connected')){
-        logger.log("Too early to send updates");
+    if (this.state !== JingleSessionState.ACTIVE){
+        logger.warn(
+            "Skipping SSRC update in \'" + this.state + " \' state.");
         return;
     }
 
@@ -1170,7 +1190,8 @@ JingleSessionPC.prototype.remoteStreamAdded = function (stream) {
         return;
     }
     // Bind 'addtrack'/'removetrack' event handlers
-    if (RTCBrowserType.isChrome() || RTCBrowserType.isNWJS()) {
+    if (RTCBrowserType.isChrome() || RTCBrowserType.isNWJS()
+        || RTCBrowserType.isElectron()) {
         stream.onaddtrack = function (event) {
             self.remoteTrackAdded(event.target, event.track);
         };
@@ -1316,7 +1337,13 @@ JingleSessionPC.prototype.getIceConnectionState = function () {
  */
 JingleSessionPC.prototype.close = function () {
     this.closed = true;
-    this.peerconnection && this.peerconnection.close();
+    // do not try to close if already closed.
+    this.peerconnection
+        && ((this.peerconnection.signalingState
+                && this.peerconnection.signalingState !== 'closed')
+            || (this.peerconnection.connectionState
+                && this.peerconnection.connectionState !== 'closed'))
+        && this.peerconnection.close();
 };
 
 

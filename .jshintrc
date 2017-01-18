@@ -15,5 +15,6 @@
     "node": true, // Node.js
     "trailing": true,
     "undef": true, // true: Require all non-global variables to be declared (prevents global leaks)
-    "white": true
+    "white": true,
+    "jasmine": true
 }

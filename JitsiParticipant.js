@@ -50,6 +50,21 @@ export default class JitsiParticipant {
     }
 
     /**
+     * Checks whether this <tt>JitsiParticipant</tt> has any video tracks which
+     * are muted according to their underlying WebRTC <tt>MediaStreamTrack</tt>
+     * muted status.
+     * @return {boolean} <tt>true</tt> if this <tt>participant</tt> contains any
+     * video <tt>JitsiTrack</tt>s which are muted as defined in
+     * {@link JitsiTrack.isWebRTCTrackMuted}.
+     */
+    hasAnyVideoTrackWebRTCMuted() {
+        return this.getTracks().some(function(jitsiTrack) {
+            return jitsiTrack.getType() === MediaType.VIDEO
+                && jitsiTrack.isWebRTCTrackMuted();
+        });
+    }
+
+    /**
      * Updates participant's connection status.
      * @param {boolean} isActive true if the user's connection is fine or false
      * when the user is having connectivity issues.
@@ -241,5 +256,14 @@ export default class JitsiParticipant {
 
     supportsDTMF() {
         return this._supportsDTMF;
+    }
+
+    /**
+     * Returns a set with the features for the participant.
+     * @param {int} timeout the timeout in ms for reply from the participant.
+     * @returns {Promise<Set<String>, Error>}
+     */
+    getFeatures(timeout = 5000) {
+        return this._conference.xmpp.caps.getFeatures(this._jid, timeout);
     }
 }

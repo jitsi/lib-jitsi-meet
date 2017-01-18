@@ -94,21 +94,8 @@ class JingleConnectionPlugin extends ConnectionPlugin {
 
                 this.sessions[sess.sid] = sess;
 
-                let jingleOffer = $(iq).find('>jingle');
-                // FIXME there's no nice way with event to get the reason
-                // why the call was rejected
                 this.eventEmitter.emit(XMPPEvents.CALL_INCOMING,
-                    sess, jingleOffer, now);
-                if (!sess.active())
-                {
-                    // Call not accepted
-                    ack.attrs({ type: 'error' });
-                    ack.c('error', {type: 'cancel'})
-                       .c('bad-request',
-                        { xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas' })
-                        .up();
-                    this.terminate(sess.sid);
-                }
+                    sess, $(iq).find('>jingle'), now);
                 Statistics.analytics.sendEvent(
                     'xmpp.session-initiate', {value: now});
                 break;

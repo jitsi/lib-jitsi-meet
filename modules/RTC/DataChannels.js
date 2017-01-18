@@ -95,7 +95,8 @@ DataChannels.prototype.onDataChannel = function (event) {
                 logger.info(
                     "Data channel new dominant speaker event: ",
                     dominantSpeakerEndpoint);
-                self.eventEmitter.emit(RTCEvents.DOMINANTSPEAKER_CHANGED, dominantSpeakerEndpoint);
+                self.eventEmitter.emit(RTCEvents.DOMINANT_SPEAKER_CHANGED,
+                  dominantSpeakerEndpoint);
             }
             else if ("InLastNChangeEvent" === colibriClass) {
                 var oldValue = obj.oldValue;

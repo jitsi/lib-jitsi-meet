@@ -7,9 +7,10 @@
 import {getLogger} from "jitsi-meet-logger";
 const logger = getLogger(__filename);
 import ChatRoom from "./ChatRoom";
-import ConnectionPlugin from "./ConnectionPlugin";
+import {ConnectionPluginListenable} from "./ConnectionPlugin";
+import XMPPEvents from "../../service/xmpp/XMPPEvents";
 
-class MucConnectionPlugin extends ConnectionPlugin {
+class MucConnectionPlugin extends ConnectionPluginListenable {
     constructor(xmpp) {
         super();
         this.xmpp = xmpp;
@@ -31,7 +32,7 @@ class MucConnectionPlugin extends ConnectionPlugin {
             'http://jitsi.org/jitmeet/audio', 'iq', 'set',null,null);
     }
 
-    createRoom (jid, password, options, settings) {
+    createRoom (jid, password, options) {
         const roomJid = Strophe.getBareJidFromJid(jid);
         if (this.rooms[roomJid]) {
             const errmsg = "You are already in the room!";
@@ -39,11 +40,15 @@ class MucConnectionPlugin extends ConnectionPlugin {
             throw new Error(errmsg);
         }
         this.rooms[roomJid] = new ChatRoom(this.connection, jid,
-            password, this.xmpp, options, settings);
+            password, this.xmpp, options);
+        this.eventEmitter.emit(
+            XMPPEvents.EMUC_ROOM_ADDED, this.rooms[roomJid]);
         return this.rooms[roomJid];
     }
 
     doLeave (jid) {
+        this.eventEmitter.emit(
+            XMPPEvents.EMUC_ROOM_REMOVED, this.rooms[jid]);
         delete this.rooms[jid];
     }
 

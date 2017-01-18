@@ -1,7 +1,7 @@
 /* global __filename, module */
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCBrowserType = require("./RTCBrowserType");
-var RTCUtils = require("./RTCUtils");
+import RTCUtils from "./RTCUtils";
 import * as JitsiTrackEvents from "../../JitsiTrackEvents";
 var EventEmitter = require("events");
 var MediaType = require("../../service/RTC/MediaType");
@@ -135,14 +135,24 @@ JitsiTrack.prototype.getType = function() {
 };
 
 /**
- * Check if this is audiotrack.
+ * Check if this is an audio track.
  */
 JitsiTrack.prototype.isAudioTrack = function () {
     return this.getType() === MediaType.AUDIO;
 };
 
 /**
- * Check if this is videotrack.
+ * Checks whether the underlying WebRTC <tt>MediaStreamTrack</tt> is muted
+ * according to it's 'muted' field status.
+ * @return {boolean} <tt>true</tt> if the underlying <tt>MediaStreamTrack</tt>
+ * is muted or <tt>false</tt> otherwise.
+ */
+JitsiTrack.prototype.isWebRTCTrackMuted = function () {
+    return this.track && this.track.muted;
+};
+
+/**
+ * Check if this is a video track.
  */
 JitsiTrack.prototype.isVideoTrack = function () {
     return this.getType() === MediaType.VIDEO;
@@ -319,7 +329,7 @@ JitsiTrack.prototype.getId = function () {
 };
 
 /**
- * Checks whether the MediaStream is avtive/not ended.
+ * Checks whether the MediaStream is active/not ended.
  * When there is no check for active we don't have information and so
  * will return that stream is active (in case of FF).
  * @returns {boolean} whether MediaStream is active.

@@ -1,6 +1,7 @@
 /* global $, Strophe, callstats */
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
+import Settings from "../settings/Settings";
 
 var jsSHA = require('jssha');
 var io = require('socket.io-client');
@@ -138,11 +139,9 @@ function _try_catch (f) {
 /**
  * Creates new CallStats instance that handles all callstats API calls.
  * @param peerConnection {JingleSessionPC} the session object
- * @param Settings {Settings} the settings instance. Declared in
- * /modules/settings/Settings.js
  * @param options {object} credentials for callstats.
  */
-var CallStats = _try_catch(function(jingleSession, Settings, options) {
+var CallStats = _try_catch(function(jingleSession, options) {
     try{
         CallStats.feedbackEnabled = false;
         callStats = new callstats($, io, jsSHA); // eslint-disable-line new-cap
@@ -154,9 +153,8 @@ var CallStats = _try_catch(function(jingleSession, Settings, options) {
             userName: Settings.getCallStatsUserName()
         };
 
-        const location = window.location;
         // The confID is case sensitive!!!
-        this.confID = location.hostname + "/" + options.roomName;
+        this.confID = options.callStatsConfIDNamespace + "/" + options.roomName;
 
         this.callStatsID = options.callStatsID;
         this.callStatsSecret = options.callStatsSecret;
@@ -260,8 +258,8 @@ function (ssrc, isLocal, usageLabel, containerId) {
         return;
     }
 
-    // 'focus' is default remote user ID for now
-    const callStatsId = isLocal ? this.userID : 'focus';
+    // 'jitsi' is default remote user ID for now
+    const callStatsId = isLocal ? this.userID : DEFAULT_REMOTE_USER;
 
     _try_catch(function() {
         logger.debug(
@@ -375,18 +373,6 @@ CallStats.prototype.sendTerminateEvent = _try_catch(function () {
     callStats.sendFabricEvent(this.peerconnection,
         callStats.fabricEvent.fabricTerminated, this.confID);
 });
-
-/**
- * Notifies CallStats that audio problems are detected.
- *
- * @param {Error} e error to send
- * @param {CallStats} cs callstats instance related to the error (optional)
- */
-CallStats.prototype.sendDetectedAudioProblem = _try_catch(function (e) {
-    CallStats._reportError.call(this, wrtcFuncNames.applicationLog, e,
-        this.peerconnection);
-});
-
 
 /**
  * Notifies CallStats for ice connection failed

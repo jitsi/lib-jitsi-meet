@@ -9,10 +9,6 @@ const RAYO_XMLNS = 'urn:xmpp:rayo:1';
 class RayoConnectionPlugin extends ConnectionPlugin {
     init (connection) {
         super.init(connection);
-        const disco = this.connection.disco;
-        if (disco) {
-            disco.addFeature('urn:xmpp:rayo:client:1');
-        }
 
         this.connection.addHandler(
             this.onRayo.bind(this), RAYO_XMLNS, 'iq', 'set', null, null);

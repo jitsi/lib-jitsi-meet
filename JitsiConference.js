@@ -1,7 +1,7 @@
-/* global Strophe, $, Promise */
+/* global Strophe, Promise */
 
 var logger = require("jitsi-meet-logger").getLogger(__filename);
-var RTC = require("./modules/RTC/RTC");
+import RTC from "./modules/RTC/RTC";
 var XMPPEvents = require("./service/xmpp/XMPPEvents");
 var EventEmitter = require("events");
 import * as JitsiConferenceErrors from "./JitsiConferenceErrors";
@@ -12,15 +12,15 @@ var JitsiDTMFManager = require('./modules/DTMF/JitsiDTMFManager');
 import JitsiTrackError from "./JitsiTrackError";
 import * as JitsiTrackErrors from "./JitsiTrackErrors";
 import * as JitsiTrackEvents from "./JitsiTrackEvents";
-var Settings = require("./modules/settings/Settings");
 var ComponentsVersions = require("./modules/version/ComponentsVersions");
 var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 var JitsiConferenceEventManager = require("./JitsiConferenceEventManager");
 var VideoType = require('./service/RTC/VideoType');
 var Transcriber = require("./modules/transcription/transcriber");
-var ParticipantConnectionStatus
-    = require("./modules/connectivity/ParticipantConnectionStatus");
+import ParticipantConnectionStatus
+    from "./modules/connectivity/ParticipantConnectionStatus";
 import TalkMutedDetection from "./modules/TalkMutedDetection";
+import ConnectionQuality from "./modules/connectivity/ConnectionQuality";
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -40,7 +40,6 @@ function JitsiConference(options) {
         throw new Error(errmsg);
     }
     this.eventEmitter = new EventEmitter();
-    this.settings = new Settings();
     this.options = options;
     this.eventManager = new JitsiConferenceEventManager(this);
     this._init(options);
@@ -59,12 +58,25 @@ function JitsiConference(options) {
         video: undefined
     };
     this.isMutedByFocus = false;
-    this.reportedAudioSSRCs = {};
     // Flag indicates if the 'onCallEnded' method was ever called on this
     // instance. Used to log extra analytics event for debugging purpose.
     // We need to know if the potential issue happened before or after
     // the restart.
     this.wasStopped = false;
+
+    /**
+     * The object which monitors local and remote connection statistics (e.g.
+     * sending bitrate) and calculates a number which represents the connection
+     * quality.
+     */
+    this.connectionQuality
+        = new ConnectionQuality(this, this.eventEmitter, options);
+
+    /**
+     * Indicates whether the connection is interrupted or not.
+     */
+    this.connectionIsInterrupted = false;
+
 }
 
 /**
@@ -85,8 +97,7 @@ JitsiConference.prototype._init = function (options) {
         this.eventManager.setupXMPPListeners();
     }
 
-    this.room = this.xmpp.createRoom(this.options.name, this.options.config,
-        this.settings);
+    this.room = this.xmpp.createRoom(this.options.name, this.options.config);
 
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
 
@@ -105,6 +116,8 @@ JitsiConference.prototype._init = function (options) {
         this.statistics = new Statistics(this.xmpp, {
             callStatsID: this.options.config.callStatsID,
             callStatsSecret: this.options.config.callStatsSecret,
+            callStatsConfIDNamespace:
+                this.options.config.callStatsConfIDNamespace || window.location.hostname,
             callStatsCustomScriptUrl:
                 this.options.config.callStatsCustomScriptUrl,
             roomName: this.options.name
@@ -230,16 +243,23 @@ JitsiConference.prototype.getExternalAuthUrl = function (urlForPopup) {
 };
 
 /**
- * Returns the local tracks.
+ * Returns the local tracks of the given media type, or all local tracks if no
+ * specific type is given.
+ * @param mediaType {MediaType} Optional media type (audio or video).
  */
-JitsiConference.prototype.getLocalTracks = function () {
+JitsiConference.prototype.getLocalTracks = function (mediaType) {
+    let tracks = [];
     if (this.rtc) {
-        return this.rtc.localTracks.slice();
-    } else {
-        return [];
+        tracks = this.rtc.localTracks.slice();
     }
+    if (mediaType !== undefined) {
+        tracks = tracks.filter(
+            (track) => {
+                return track && track.getType && track.getType() === mediaType;
+            });
+    }
+    return tracks;
 };
-
 
 /**
  * Attaches a handler for events(For example - "participant joined".) in the conference. All possible event are defined
@@ -622,8 +642,8 @@ JitsiConference.prototype.pinParticipant = function(participantId) {
 };
 
 /**
- * Returns the list of participants for this conference.
- * @return Array<JitsiParticipant> a list of participant identifiers containing all conference participants.
+ * @return Array<JitsiParticipant> an array of all participants in this
+ * conference.
  */
 JitsiConference.prototype.getParticipants = function() {
     return Object.keys(this.participants).map(function (key) {
@@ -632,8 +652,25 @@ JitsiConference.prototype.getParticipants = function() {
 };
 
 /**
- * @returns {JitsiParticipant} the participant in this conference with the specified id (or
- * undefined if there isn't one).
+ * Returns the number of participants in the conference, including the local
+ * participant.
+ * @param countHidden {boolean} Whether or not to include hidden participants
+ * in the count. Default: false.
+ **/
+JitsiConference.prototype.getParticipantCount
+    = function(countHidden = false) {
+
+    let participants = this.getParticipants();
+    if (!countHidden) {
+        participants = participants.filter(p => !p.isHidden());
+    }
+    // Add one for the local participant.
+    return participants.length + 1;
+};
+
+/**
+ * @returns {JitsiParticipant} the participant in this conference with the
+ * specified id (or undefined if there isn't one).
  * @param id the id of the participant.
  */
 JitsiConference.prototype.getParticipantById = function(id) {
@@ -653,8 +690,8 @@ JitsiConference.prototype.kickParticipant = function (id) {
 };
 
 /**
- * Kick participant from this conference.
- * @param {string} id id of the participant to kick
+ * Mutes a participant.
+ * @param {string} id The id of the participant to mute.
  */
 JitsiConference.prototype.muteParticipant = function (id) {
     var participant = this.getParticipantById(id);
@@ -665,13 +702,15 @@ JitsiConference.prototype.muteParticipant = function (id) {
 };
 
 /**
- * Indicates that a participant has joined the conference.
+ * Notifies this JitsiConference that a new member has joined its chat room.
+ *
+ * FIXME This should NOT be exposed!
  *
  * @param jid the jid of the participant in the MUC
  * @param nick the display name of the participant
  * @param role the role of the participant in the MUC
- * @param isHidden indicates if this is a hidden participant (sysem participant,
- * for example a recorder).
+ * @param isHidden indicates if this is a hidden participant (system
+ * participant for example a recorder).
  */
 JitsiConference.prototype.onMemberJoined
     = function (jid, nick, role, isHidden) {
@@ -683,22 +722,10 @@ JitsiConference.prototype.onMemberJoined
     participant._role = role;
     this.participants[id] = participant;
     this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED, id, participant);
-    // XXX Since disco is checked in multiple places (e.g.
-    // modules/xmpp/strophe.jingle.js, modules/xmpp/strophe.rayo.js), check it
-    // here as well.
-    var disco = this.xmpp.connection.disco;
-    if (disco) {
-        disco.info(
-            jid, "node", function(iq) {
-                participant._supportsDTMF = $(iq).find(
-                    '>query>feature[var="urn:xmpp:jingle:dtmf:0"]').length > 0;
-                this.updateDTMFSupport();
-            }.bind(this)
-        );
-    } else {
-      // FIXME Should participant._supportsDTMF be assigned false here (and
-      // this.updateDTMFSupport invoked)?
-    }
+    this.xmpp.caps.getFeatures(jid).then(features => {
+        participant._supportsDTMF = features.has("urn:xmpp:jingle:dtmf:0");
+        this.updateDTMFSupport();
+    }, error => logger.error(error));
 };
 
 JitsiConference.prototype.onMemberLeft = function (jid) {
@@ -797,6 +824,17 @@ function (jingleSession, jingleOffer, now) {
                 + jingleSession.peerjid;
         GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
         logger.error(errmsg);
+
+        // Terminate  the jingle session with a reason
+        jingleSession.terminate(
+            'security-error', 'Only focus can start new sessions',
+            null /* success callback => we don't care */,
+            function (error) {
+                logger.warn(
+                    "An error occurred while trying to terminate"
+                        + " invalid Jingle session", error);
+            });
+
         return;
     }
 
@@ -809,13 +847,15 @@ function (jingleSession, jingleOffer, now) {
     }
     // add info whether call is cross-region
     var crossRegion = null;
-    if (window.jitsiRegionInfo)
+    if (window.jitsiRegionInfo) {
         crossRegion = window.jitsiRegionInfo["CrossRegion"];
-    Statistics.analytics.sendEvent("session.initiate",{
+    }
+    Statistics.analytics.sendEvent(
+        "session.initiate", {
             value: now - this.room.connectionTimes["muc.joined"],
             label: crossRegion
         });
-    try{
+    try {
         jingleSession.initialize(false /* initiator */,this.room);
     } catch (error) {
         GlobalOnErrorHandler.callErrorHandler(error);
@@ -872,7 +912,7 @@ function (jingleSession, jingleOffer, now) {
     // do not wait for XMPPEvents.PEERCONNECTION_READY, as it may never
     // happen in case if user doesn't have or denied permission to
     // both camera and microphone.
-    this.statistics.startCallStats(jingleSession, this.settings);
+    this.statistics.startCallStats(jingleSession);
     this.statistics.startRemoteStats(jingleSession.peerconnection);
 };
 
@@ -916,6 +956,13 @@ JitsiConference.prototype.onCallEnded
     });
 };
 
+/**
+ * Handles the suspend detected event. Leaves the room and fires suspended.
+ */
+JitsiConference.prototype.onSuspendDetected = function () {
+    this.leave();
+    this.eventEmitter.emit(JitsiConferenceEvents.SUSPEND_DETECTED);
+};
 
 JitsiConference.prototype.updateDTMFSupport = function () {
     var somebodySupportsDTMF = false;
@@ -973,7 +1020,7 @@ JitsiConference.prototype.sendTones = function (tones, duration, pause) {
 };
 
 /**
- * Returns true if the recording is supproted and false if not.
+ * Returns true if recording is supported and false if not.
  */
 JitsiConference.prototype.isRecordingSupported = function () {
     if(this.room)
@@ -1092,7 +1139,7 @@ JitsiConference.prototype.setStartMutedPolicy = function (policy) {
 
 /**
  * Returns current start muted policy
- * @returns {Object} with 2 proprties - audio and video.
+ * @returns {Object} with 2 properties - audio and video.
  */
 JitsiConference.prototype.getStartMutedPolicy = function () {
     return this.startMutedPolicy;
@@ -1187,104 +1234,6 @@ JitsiConference.prototype._onTrackAttach = function(track, container) {
 };
 
 /**
- * Reports detected audio problem with the media stream related to the passed
- * ssrc.
- * @param ssrc {string} the ssrc
- * NOTE: all logger.log calls are there only to be able to see the info in
- * torture
- */
-JitsiConference.prototype._reportAudioProblem = function (ssrc) {
-    if(this.reportedAudioSSRCs[ssrc])
-        return;
-    var track = this.rtc.getRemoteTrackBySSRC(ssrc);
-    if(!track || !track.isAudioTrack())
-        return;
-
-    var id = track.getParticipantId();
-    var displayName = null;
-    if(id) {
-        var participant = this.getParticipantById(id);
-        if(participant) {
-            displayName = participant.getDisplayName();
-        }
-    }
-    this.reportedAudioSSRCs[ssrc] = true;
-    var errorContent = {
-        errMsg: "The audio is received but not played",
-        ssrc: ssrc,
-        jid: id,
-        displayName: displayName
-    };
-
-    logger.log("=================The audio is received but not played" +
-        "======================");
-    logger.log("ssrc: ", ssrc);
-    logger.log("jid: ", id);
-    logger.log("displayName: ", displayName);
-
-    var mstream = track.stream, mtrack = track.track;
-    if(mstream) {
-        logger.log("MediaStream:");
-        errorContent.MediaStream = {
-            active: mstream.active,
-            id: mstream.id
-        };
-        logger.log("active: ", mstream.active);
-        logger.log("id: ", mstream.id);
-    }
-
-    if(mtrack) {
-        logger.log("MediaStreamTrack:");
-        errorContent.MediaStreamTrack = {
-            enabled: mtrack.enabled,
-            id: mtrack.id,
-            label: mtrack.label,
-            muted: mtrack.muted
-        };
-        logger.log("enabled: ", mtrack.enabled);
-        logger.log("id: ", mtrack.id);
-        logger.log("label: ", mtrack.label);
-        logger.log("muted: ", mtrack.muted);
-    }
-
-    if(track.containers) {
-        errorContent.containers = [];
-        logger.log("Containers:");
-        track.containers.forEach(function (container) {
-            logger.log("Container:");
-            errorContent.containers.push({
-                autoplay: container.autoplay,
-                muted: container.muted,
-                src: container.src,
-                volume: container.volume,
-                id: container.id,
-                ended: container.ended,
-                paused: container.paused,
-                readyState: container.readyState
-            });
-            logger.log("autoplay: ", container.autoplay);
-            logger.log("muted: ", container.muted);
-            logger.log("src: ", container.src);
-            logger.log("volume: ", container.volume);
-            logger.log("id: ", container.id);
-            logger.log("ended: ", container.ended);
-            logger.log("paused: ", container.paused);
-            logger.log("readyState: ", container.readyState);
-        });
-    }
-
-    // Prints JSON.stringify(errorContent) to be able to see all properties of
-    // errorContent from torture
-    logger.error("Audio problem detected. The audio is received but not played",
-        errorContent);
-
-    delete errorContent.displayName;
-
-    this.statistics.sendDetectedAudioProblem(
-        new Error(JSON.stringify(errorContent)));
-};
-
-/**
  * Logs an "application log" message.
  * @param message {string} The message to log. Note that while this can be a
  * generic string, the convention used by lib-jitsi-meet and jitsi-meet is to
@@ -1316,7 +1265,7 @@ JitsiConference.prototype._fireIncompatibleVersionsEvent = function () {
 };
 
 /**
- * Sends message via the datachannels.
+ * Sends a message via the data channel.
  * @param to {string} the id of the endpoint that should receive the message.
  * If "" the message will be sent to all participants.
  * @param payload {object} the payload of the message.
@@ -1327,12 +1276,16 @@ JitsiConference.prototype.sendEndpointMessage = function (to, payload) {
 };
 
 /**
- * Sends broadcast message via the datachannels.
+ * Sends a broadcast message via the data channel.
  * @param payload {object} the payload of the message.
  * @throws NetworkError or InvalidStateError or Error if the operation fails.
  */
 JitsiConference.prototype.broadcastEndpointMessage = function (payload) {
     this.sendEndpointMessage("", payload);
+};
+
+JitsiConference.prototype.isConnectionInterrupted = function () {
+    return this.connectionIsInterrupted;
 };
 
 module.exports = JitsiConference;

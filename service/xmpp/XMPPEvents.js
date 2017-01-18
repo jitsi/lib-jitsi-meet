@@ -43,6 +43,14 @@ var XMPPEvents = {
     // Designates an event indicating that the display name of a participant
     // has changed.
     DISPLAY_NAME_CHANGED: "xmpp.display_name_changed",
+    /**
+     * Chat room instance have been added to Strophe.emuc plugin.
+     */
+    EMUC_ROOM_ADDED: "xmpp.emuc_room_added",
+    /**
+     * Chat room instance have been removed from Strophe.emuc plugin.
+     */
+    EMUC_ROOM_REMOVED: "xmpp.emuc_room_removed",
     ETHERPAD: "xmpp.etherpad",
     FOCUS_DISCONNECTED: 'xmpp.focus_disconnected',
     FOCUS_LEFT: "xmpp.focus_left",
@@ -98,6 +106,10 @@ var XMPPEvents = {
     // Note: currently this event fires every time we receive presence from
     // someone (regardless of whether or not the "video type" changed).
     PARTICIPANT_VIDEO_TYPE_CHANGED: "xmpp.video_type",
+    /**
+     * Indicates that the features of the participant has been changed.
+     */
+    PARTCIPANT_FEATURES_CHANGED: "xmpp.partcipant_features_changed",
     PASSWORD_REQUIRED: "xmpp.password_required",
     PEERCONNECTION_READY: "xmpp.peerconnection_ready",
     /**
@@ -178,11 +190,16 @@ var XMPPEvents = {
     // Designates an event indicating that the subject of the XMPP MUC has
     // changed.
     SUBJECT_CHANGED: "xmpp.subject_changed",
+    // suspending detected
+    SUSPEND_DETECTED: "xmpp.suspend_detected",
     // Designates an event indicating that the local ICE username fragment of
     // the jingle session has changed.
     LOCAL_UFRAG_CHANGED: "xmpp.local_ufrag_changed",
     // Designates an event indicating that the local ICE username fragment of
     // the jingle session has changed.
-    REMOTE_UFRAG_CHANGED: "xmpp.remote_ufrag_changed"
+    REMOTE_UFRAG_CHANGED: "xmpp.remote_ufrag_changed",
+    // Designates an event indicating that the local ICE connection state has
+    // changed.
+    ICE_CONNECTION_STATE_CHANGED: "xmpp.ice_connection_state_changed"
 };
 module.exports = XMPPEvents;

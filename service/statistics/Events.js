@@ -11,12 +11,11 @@
 export const AUDIO_LEVEL = "statistics.audioLevel";
 
 /**
- * Notifies about audio problem with remote participant.
- *
- * @param ssrc - The synchronization source identifier (SSRC) of the remote
- * participant whose audio exhibits problems.
+ * An event fired just before the statistics module gets disposes and it's
+ * the last chance to submit some logs that will end up in stats services like
+ * CallStats (if enabled).
  */
-export const AUDIO_NOT_WORKING = "statistics.audio_not_working";
+export const BEFORE_DISPOSED = "statistics.before_disposed";
 
 /**
  * An event carrying all statistics by ssrc.

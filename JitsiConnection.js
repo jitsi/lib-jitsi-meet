@@ -16,7 +16,6 @@ function JitsiConnection(appID, token, options) {
     this.token = token;
     this.options = options;
     this.xmpp = new XMPP(options, token);
-    this.conferences = {};
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
         function (errType, msg) {
@@ -91,10 +90,7 @@ JitsiConnection.prototype.setToken = function (token) {
  * @returns {JitsiConference} returns the new conference object.
  */
 JitsiConnection.prototype.initJitsiConference = function (name, options) {
-    var conference
-        = new JitsiConference({name: name, config: options, connection: this});
-    this.conferences[name] = conference;
-    return conference;
+    return new JitsiConference({name: name, config: options, connection: this});
 };
 
 /**
@@ -120,6 +116,28 @@ JitsiConnection.prototype.removeEventListener = function (event, listener) {
  */
 JitsiConnection.prototype.getConnectionTimes = function () {
     return this.xmpp.connectionTimes;
+};
+
+/**
+ * Adds new feature to the list of supported features for the local
+ * participant.
+ * @param {String} feature the name of the feature.
+ * @param {boolean} submit if true - the new list of features will be
+ * immediately submitted to the others.
+ */
+JitsiConnection.prototype.addFeature = function(feature, submit = false) {
+    return this.xmpp.caps.addFeature(feature, submit);
+};
+
+/**
+ * Removes a feature from the list of supported features for the local
+ * participant
+ * @param {String} feature the name of the feature.
+ * @param {boolean} submit if true - the new list of features will be
+ * immediately submitted to the others.
+ */
+JitsiConnection.prototype.removeFeature = function (feature, submit = false) {
+    return this.xmpp.caps.removeFeature(feature, submit);
 };
 
 module.exports = JitsiConnection;
