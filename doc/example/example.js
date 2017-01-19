@@ -208,10 +208,10 @@ $(window).bind('unload', unload);
 // JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
 var initOptions = {
     disableAudioLevels: true,
-    // Desktop sharing method. Can be set to 'ext', 'webrtc' or false to disable.
-    desktopSharingChromeMethod: 'ext',
     // The ID of the jidesha extension for Chrome.
     desktopSharingChromeExtId: 'mbocklcggfhnbahlnepmldehdhpjfcjp',
+    // Whether desktop sharing should be disabled on Chrome.
+    desktopSharingChromeDisabled: false,
     // The media sources to use when using screen sharing with the Chrome
     // extension.
     desktopSharingChromeSources: ['screen', 'window'],
