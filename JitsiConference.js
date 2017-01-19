@@ -16,6 +16,7 @@ var ComponentsVersions = require("./modules/version/ComponentsVersions");
 var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 var JitsiConferenceEventManager = require("./JitsiConferenceEventManager");
 var VideoType = require('./service/RTC/VideoType');
+var RTCBrowserType = require("./modules/RTC/RTCBrowserType.js");
 var Transcriber = require("./modules/transcription/transcriber");
 import ParticipantConnectionStatus
     from "./modules/connectivity/ParticipantConnectionStatus";
@@ -405,11 +406,6 @@ JitsiConference.prototype.getTranscriber = function(){
  * another video track in the conference.
  */
 JitsiConference.prototype.addTrack = function (track) {
-    if (track.disposed) {
-        return Promise.reject(
-            new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
-    }
-
     if (track.isVideoTrack()) {
         // Ensure there's exactly 1 local video track in the conference.
         var localVideoTrack = this.rtc.getLocalVideoTrack();
@@ -425,73 +421,7 @@ JitsiConference.prototype.addTrack = function (track) {
         }
     }
 
-    track.ssrcHandler = function (conference, ssrcMap) {
-        if(ssrcMap[this.getMSID()]){
-            this._setSSRC(ssrcMap[this.getMSID()]);
-            conference.room.removeListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
-                this.ssrcHandler);
-        }
-    }.bind(track, this);
-    this.room.addListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
-        track.ssrcHandler);
-
-    if(track.isAudioTrack() || (track.isVideoTrack() &&
-        track.videoType !== VideoType.DESKTOP)) {
-        // Report active device to statistics
-        var devices = RTC.getCurrentlyAvailableMediaDevices();
-        var device = devices.find(function (d) {
-            return d.kind === track.getTrack().kind + 'input'
-                && d.label === track.getTrack().label;
-        });
-        if(device)
-            Statistics.sendActiveDeviceListEvent(
-                RTC.getEventDataForActiveDevice(device));
-    }
-    return new Promise(function (resolve, reject) {
-        this.room.addStream(track.getOriginalStream(), function () {
-            if (track.isVideoTrack()) {
-                this.removeCommand("videoType");
-                this.sendCommand("videoType", {
-                    value: track.videoType,
-                    attributes: {
-                        xmlns: 'http://jitsi.org/jitmeet/video'
-                    }
-                });
-            }
-            this.rtc.addLocalTrack(track);
-
-            if (track.startMuted) {
-                track.mute();
-            }
-
-            // ensure that we're sharing proper "is muted" state
-            if (track.isAudioTrack()) {
-                this.room.setAudioMute(track.isMuted());
-            } else {
-                this.room.setVideoMute(track.isMuted());
-            }
-
-            track.muteHandler = this._fireMuteChangeEvent.bind(this, track);
-            track.audioLevelHandler = this._fireAudioLevelChangeEvent.bind(this);
-            track.addEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED,
-                                   track.muteHandler);
-            track.addEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
-                                   track.audioLevelHandler);
-
-            track._setConference(this);
-
-            // send event for starting screen sharing
-            // FIXME: we assume we have only one screen sharing track
-            // if we change this we need to fix this check
-            if (track.isVideoTrack() && track.videoType === VideoType.DESKTOP)
-                this.statistics.sendScreenSharingEvent(true);
-
-            this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
-            resolve(track);
-        }.bind(this), function (error) {
-            reject(error);
-        });
-    }.bind(this));
+    return this.replaceTrack(null, track);
 };
 
 /**
@@ -543,33 +473,120 @@ JitsiConference.prototype.onTrackRemoved = function (track) {
 };
 
 /**
- * Removes JitsiLocalTrack object to the conference.
+ * Removes JitsiLocalTrack from the conference and performs
+ * a new offer/answer cycle.
  * @param track the JitsiLocalTrack object.
  * @returns {Promise}
  */
 JitsiConference.prototype.removeTrack = function (track) {
-    if (track.disposed) {
-        return Promise.reject(
-            new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
+    return this.replaceTrack (track, null);
+};
+
+/**
+ * Replaces oldTrack with newTrack and performs a single offer/answer
+ *  cycle after both operations are done.  Either oldTrack or newTrack
+ *  can be null; replacing a valid 'oldTrack' with a null 'newTrack'
+ *  effectively just removes 'oldTrack'
+ * @param {JitsiLocalTrack} oldTrack the current stream in use to be replaced
+ * @param {JitsiLocalTrack} newTrack the new stream to use
+ * @returns {Promise} resolves when the replacement is finished
+ */
+JitsiConference.prototype.replaceTrack = function (oldTrack, newTrack) {
+    // First do the removal of the oldTrack at the JitsiConference level
+    if (oldTrack) {
+        if (oldTrack.disposed) {
+            return Promise.reject(
+                new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
+        }
+    }
+    if (newTrack) {
+        if (newTrack.disposed) {
+            return Promise.reject(
+                new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
+        }
+        // Set up the ssrcHandler for the new track before we add it at the lower levels
+        newTrack.ssrcHandler = function (conference, ssrcMap) {
+            if (ssrcMap[this.getMSID()]) {
+                this._setSSRC(ssrcMap[this.getMSID()]);
+                conference.room.removeListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+                    this.ssrcHandler);
+            }
+        }.bind(newTrack, this);
+        this.room.addListener(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+            newTrack.ssrcHandler);
+    }
+    // Now replace the stream at the lower levels
+    return this.room.replaceStream (oldTrack, newTrack)
+        .then(() => {
+            if (oldTrack) {
+                this.onTrackRemoved(oldTrack);
+            }
+            if (newTrack) {
+                // Now handle the addition of the newTrack at the JitsiConference level
+                this._setupNewTrack(newTrack);
+            }
+            return Promise.resolve();
+        }, (error) => {
+            return Promise.reject(new Error(error));
+        });
+};
+
+/**
+ * Operations related to creating a new track
+ * @param {JitsiLocalTrack} newTrack the new track being created
+ */
+JitsiConference.prototype._setupNewTrack = function (newTrack) {
+    if (newTrack.isAudioTrack() || (newTrack.isVideoTrack() &&
+            newTrack.videoType !== VideoType.DESKTOP)) {
+        // Report active device to statistics
+        var devices = RTC.getCurrentlyAvailableMediaDevices();
+        var device = devices.find(function (d) {
+            return d.kind === newTrack.getTrack().kind + 'input'
+                && d.label === newTrack.getTrack().label;
+        });
+        if (device) {
+            Statistics.sendActiveDeviceListEvent(
+                RTC.getEventDataForActiveDevice(device));
+        }
+    }
+    if (newTrack.isVideoTrack()) {
+        this.removeCommand("videoType");
+        this.sendCommand("videoType", {
+            value: newTrack.videoType,
+            attributes: {
+                xmlns: 'http://jitsi.org/jitmeet/video'
+            }
+        });
+    }
+    this.rtc.addLocalTrack(newTrack);
+
+    if (newTrack.startMuted) {
+        newTrack.mute();
     }
 
-    if(!this.room){
-        if(this.rtc) {
-            this.onTrackRemoved(track);
-        }
-        return Promise.resolve();
+    // ensure that we're sharing proper "is muted" state
+    if (newTrack.isAudioTrack()) {
+        this.room.setAudioMute(newTrack.isMuted());
+    } else {
+        this.room.setVideoMute(newTrack.isMuted());
     }
-    return new Promise(function (resolve, reject) {
-        this.room.removeStream(track.getOriginalStream(), function(){
-            this.onTrackRemoved(track);
-            resolve();
-        }.bind(this), function (error) {
-            reject(error);
-        }, {
-            mtype: track.getType(),
-            type: "remove",
-            ssrc: track.ssrc});
-    }.bind(this));
+
+    newTrack.muteHandler = this._fireMuteChangeEvent.bind(this, newTrack);
+    newTrack.audioLevelHandler = this._fireAudioLevelChangeEvent.bind(this);
+    newTrack.addEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED,
+                           newTrack.muteHandler);
+    newTrack.addEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
+                           newTrack.audioLevelHandler);
+
+    newTrack._setConference(this);
+
+    // send event for starting screen sharing
+    // FIXME: we assume we have only one screen sharing track
+    // if we change this we need to fix this check
+    if (newTrack.isVideoTrack() && newTrack.videoType === VideoType.DESKTOP)
+        this.statistics.sendScreenSharingEvent(true);
+
+    this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
 };
 
 /**
@@ -865,7 +882,17 @@ function (jingleSession, jingleOffer, now) {
     // Add local Tracks to the ChatRoom
     this.rtc.localTracks.forEach(function(localTrack) {
         var ssrcInfo = null;
-        if(localTrack.isVideoTrack() && localTrack.isMuted()) {
+        /**
+         * We don't do this for Firefox because, on Firefox, we keep the 
+         *  stream in the peer connection and just set 'enabled' on the
+         *  track to false (see JitsiLocalTrack::_setMute).  This means
+         *  that if we generated an ssrc here and set it in the cache, it
+         *  would clash with the one firefox generates (since, unlike chrome,
+         *  the stream is still attached to the peer connection) and causes
+         *  problems between sdp-interop and trying to keep the ssrcs
+         *  consistent
+         */
+        if(localTrack.isVideoTrack() && localTrack.isMuted() && !RTCBrowserType.isFirefox()) {
             /**
              * Handles issues when the stream is added before the peerconnection
              * is created. The peerconnection is created when second participant

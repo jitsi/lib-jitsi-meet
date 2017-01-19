@@ -134,11 +134,11 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                 break;
             case 'addsource': // FIXME: proprietary, un-jingleish
             case 'source-add': // FIXME: proprietary
-                sess.addSource($(iq).find('>jingle>content'));
+                sess.addRemoteStream($(iq).find('>jingle>content'));
                 break;
             case 'removesource': // FIXME: proprietary, un-jingleish
             case 'source-remove': // FIXME: proprietary
-                sess.removeSource($(iq).find('>jingle>content'));
+                sess.removeRemoteStream($(iq).find('>jingle>content'));
                 break;
             default:
                 logger.warn('jingle action not implemented', action);

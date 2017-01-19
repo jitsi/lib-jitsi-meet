@@ -3,22 +3,19 @@
 import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
 import RTC from '../RTC/RTC';
+import SdpConsistency from "./SdpConsistency.js";
 var RTCBrowserType = require("../RTC/RTCBrowserType.js");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 var transform = require('sdp-transform');
 var RandomUtil = require('../util/RandomUtil');
-var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
+var SDP = require("./SDP");
+var SDPUtil = require("./SDPUtil");
 
 var SIMULCAST_LAYERS = 3;
 
 function TraceablePeerConnection(ice_config, constraints, session) {
     var self = this;
     this.session = session;
-    this.replaceSSRCs = {
-        "audio": [],
-        "video": []
-    };
-    this.recvOnlySSRCs = {};
     var RTCPeerConnectionType = null;
     if (RTCBrowserType.isFirefox()) {
         RTCPeerConnectionType = mozRTCPeerConnection;
@@ -37,6 +34,7 @@ function TraceablePeerConnection(ice_config, constraints, session) {
     var Simulcast = require('sdp-simulcast');
     this.simulcast = new Simulcast({numOfLayers: SIMULCAST_LAYERS,
         explodeRemoteSimulcast: false});
+    this.sdpConsistency = new SdpConsistency();
     this.eventEmitter = this.session.room.eventEmitter;
 
     // override as desired
@@ -148,164 +146,6 @@ var dumpSDP = function(description) {
     }
 
     return 'type: ' + description.type + '\r\n' + description.sdp;
-};
-
-/**
- * Injects receive only SSRC in the sdp if there are not other SSRCs.
- * @param desc the SDP that will be modified.
- * @returns the modified SDP.
- */
-TraceablePeerConnection.prototype.ssrcReplacement = function (desc) {
-    if (typeof desc !== 'object' || desc === null ||
-        typeof desc.sdp !== 'string') {
-        logger.warn('An empty description was passed as an argument.');
-        return desc;
-    }
-
-    var session = transform.parse(desc.sdp);
-    if (!Array.isArray(session.media))
-    {
-        return;
-    }
-
-    var modded = false;
-    session.media.forEach(function (bLine) {
-        if(!this.replaceSSRCs[bLine.type])
-            return;
-
-        modded = true;
-        var SSRCs = this.replaceSSRCs[bLine.type].splice(0,1);
-        // Stores all SSRCs that should be used on other SRD/SDL operations.
-        // For every stream that is unmuted we need to replace it SSRC
-        // otherwise we are going to send jingle packet.
-        var permSSRCs = [];
-        //FIXME: The code expects that we have only SIM group or we
-        // don't have any groups and we have only one SSRC per
-        // stream. If we add another groups (FID, etc) this code
-        // must be changed.
-        while(SSRCs &&
-            SSRCs.length){
-            var ssrcOperation = SSRCs[0];
-            switch(ssrcOperation.type) {
-                case "mute":
-                case "addMuted": {
-                //FIXME: If we want to support multiple streams we have to add
-                // recv-only ssrcs for the
-                // muted streams on every change until the stream is unmuted
-                // or removed. Otherwise the recv-only streams won't be included
-                // in the SDP
-                    if(!bLine.ssrcs)
-                        bLine.ssrcs = [];
-                    const groups = ssrcOperation.ssrc.groups;
-                    let ssrc = null;
-                    if(groups && groups.length) {
-                        ssrc = groups[0].primarySSRC;
-                    } else if(ssrcOperation.ssrc.ssrcs &&
-                        ssrcOperation.ssrc.ssrcs.length) {
-                        ssrc = ssrcOperation.ssrc.ssrcs[0];
-                    } else {
-                        GlobalOnErrorHandler.callErrorHandler(
-                            new Error("SSRC replacement error!"));
-                        logger.error("SSRC replacement error!");
-                        break;
-                    }
-                    bLine.ssrcs.push({
-                        id: ssrc,
-                        attribute: 'cname',
-                        value: ['recvonly-', ssrc].join('')
-                    });
-                    // If this is executed for another reason we are going to
-                    // include that ssrc as receive only again instead of
-                    // generating new one. Here we are assuming that we have
-                    // only 1 video stream that is muted.
-                    this.recvOnlySSRCs[bLine.type] = ssrc;
-                    break;
-                }
-                case "unmute": {
-                    if(!ssrcOperation.ssrc || !ssrcOperation.ssrc.ssrcs ||
-                        !ssrcOperation.ssrc.ssrcs.length)
-                        break;
-                    var ssrcMap = {};
-                    var ssrcLastIdx = ssrcOperation.ssrc.ssrcs.length - 1;
-                    for(var i = 0; i < bLine.ssrcs.length; i++) {
-                        const ssrc = bLine.ssrcs[i];
-                        if (ssrc.attribute !== 'msid' &&
-                            ssrc.value !== ssrcOperation.msid) {
-                            continue;
-                        }
-                        ssrcMap[ssrc.id] =
-                            ssrcOperation.ssrc.ssrcs[ssrcLastIdx];
-                        ssrcLastIdx--;
-                        if(ssrcLastIdx < 0)
-                            break;
-                    }
-                    const groups = ssrcOperation.ssrc.groups;
-                    if (typeof bLine.ssrcGroups !== 'undefined' &&
-                        Array.isArray(bLine.ssrcGroups) && groups &&
-                        groups.length) {
-                        bLine.ssrcGroups.forEach(function (group) {
-                            if(!group.ssrcs)
-                                return;
-                            var currentSSRCs = group.ssrcs.split(" ");
-                            var newGroup = null;
-                            for(var i = 0; i < groups.length; i++) {
-                                newGroup = groups[i].group;
-                                var newSSRCs = newGroup.ssrcs.split(" ");
-                                if(newGroup.semantics !== group.semantics)
-                                    continue;
-                                var wrongGroup = false;
-                                for(var j = 0; j < currentSSRCs.length; j++) {
-                                    if(newGroup.ssrcs.indexOf(
-                                        ssrcMap[currentSSRCs[j]]) === -1){
-                                        wrongGroup = true;
-                                        break;
-                                    }
-                                }
-                                if(!wrongGroup) {
-                                    for(j = 0; j < newSSRCs.length; j++) {
-                                        ssrcMap[currentSSRCs[j]] = newSSRCs[j];
-                                    }
-                                    break;
-                                }
-                            }
-
-                            group.ssrcs = newGroup.ssrcs;
-                        });
-                    }
-                    bLine.ssrcs.forEach(function (ssrc) {
-                        if(ssrcMap[ssrc.id]) {
-                            ssrc.id = ssrcMap[ssrc.id];
-                        }
-                    });
-                    // Storing the unmuted SSRCs.
-                    permSSRCs.push(ssrcOperation);
-                    break;
-                }
-                default:
-                    break;
-            }
-            SSRCs = this.replaceSSRCs[bLine.type].splice(0,1);
-        }
-        // Restoring the unmuted SSRCs.
-        this.replaceSSRCs[bLine.type] = permSSRCs;
-
-        if (!Array.isArray(bLine.ssrcs) || bLine.ssrcs.length === 0)
-        {
-            const ssrc = this.recvOnlySSRCs[bLine.type]
-                = this.recvOnlySSRCs[bLine.type] ||
-                    RandomUtil.randomInt(1, 0xffffffff);
-            bLine.ssrcs = [{
-                id: ssrc,
-                attribute: 'cname',
-                value: ['recvonly-', ssrc].join('')
-            }];
-        }
-    }.bind(this));
-
-    return (!modded) ? desc : new RTCSessionDescription({
-        type: desc.type,
-        sdp: transform.write(session),
-    });
 };
 
 /**
@@ -473,36 +313,23 @@ Object.keys(getters).forEach(function (prop) {
 });
 
 TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
-    this.trace('addStream', stream? stream.id : "null");
-    if(stream)
+    this.trace('addStream', stream ? stream.id : "null");
+    if (stream)
         this.peerconnection.addStream(stream);
-    if(ssrcInfo && this.replaceSSRCs[ssrcInfo.mtype])
-        this.replaceSSRCs[ssrcInfo.mtype].push(ssrcInfo);
+    if (ssrcInfo && ssrcInfo.type === "addMuted") {
+        this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrc.ssrcs[0]);
+        this.simulcast.setSsrcCache(ssrcInfo.ssrc.ssrcs);
+    }
 };
 
-TraceablePeerConnection.prototype.removeStream = function (stream, stopStreams,
-ssrcInfo) {
+TraceablePeerConnection.prototype.removeStream = function (stream, stopStreams) {
     this.trace('removeStream', stream.id);
-    if(stopStreams) {
+    if (stopStreams) {
         RTC.stopMediaStream(stream);
     }
     // FF doesn't support this yet.
     if (this.peerconnection.removeStream) {
         this.peerconnection.removeStream(stream);
-        // Removing all cached ssrcs for the streams that are removed or
-        // muted.
-        if(ssrcInfo && this.replaceSSRCs[ssrcInfo.mtype]) {
-            for(var i = 0; i < this.replaceSSRCs[ssrcInfo.mtype].length; i++) {
-                var op = this.replaceSSRCs[ssrcInfo.mtype][i];
-                if(op.type === "unmute" &&
-                    op.ssrc.ssrcs.join("_") ===
-                    ssrcInfo.ssrc.ssrcs.join("_")) {
-                    this.replaceSSRCs[ssrcInfo.mtype].splice(i, 1);
-                    break;
-                }
-            }
-            this.replaceSSRCs[ssrcInfo.mtype].push(ssrcInfo);
-        }
     }
 };
 
@@ -582,56 +409,126 @@ TraceablePeerConnection.prototype.close = function () {
     this.peerconnection.close();
 };
 
+/**
+ * Modifies the values of the setup attributes (defined by
+ * {@link http://tools.ietf.org/html/rfc4145#section-4}) of a specific SDP
+ * answer in order to overcome a delay of 1 second in the connection
+ * establishment between Chrome and Videobridge.
+ *
+ * @param {SDP} offer - the SDP offer to which the specified SDP answer is
+ * being prepared to respond
+ * @param {SDP} answer - the SDP to modify
+ * @private
+ */
+var _fixAnswerRFC4145Setup = function (offer, answer) {
+    if (!RTCBrowserType.isChrome()) {
+        // It looks like Firefox doesn't agree with the fix (at least in its
+        // current implementation) because it effectively remains active even
+        // after we tell it to become passive. Apart from Firefox which I tested
+        // after the fix was deployed, I tested Chrome only. In order to prevent
+        // issues with other browsers, limit the fix to Chrome for the time
+        // being.
+        return;
+    }
+
+    // XXX Videobridge is the (SDP) offerer and WebRTC (e.g. Chrome) is the
+    // answerer (as orchestrated by Jicofo). In accord with
+    // http://tools.ietf.org/html/rfc5245#section-5.2 and because both peers
+    // are ICE FULL agents, Videobridge will take on the controlling role and
+    // WebRTC will take on the controlled role. In accord with
+    // https://tools.ietf.org/html/rfc5763#section-5, Videobridge will use the
+    // setup attribute value of setup:actpass and WebRTC will be allowed to
+    // choose either the setup attribute value of setup:active or
+    // setup:passive. Chrome will by default choose setup:active because it is
+    // RECOMMENDED by the respective RFC since setup:passive adds additional
+    // latency. The case of setup:active allows WebRTC to send a DTLS
+    // ClientHello as soon as an ICE connectivity check of its succeeds.
+    // Unfortunately, Videobridge will be unable to respond immediately because
+    // may not have WebRTC's answer or may have not completed the ICE
+    // connectivity establishment. Even more unfortunate is that in the
+    // described scenario Chrome's DTLS implementation will insist on
+    // retransmitting its ClientHello after a second (the time is in accord
+    // with the respective RFC) and will thus cause the whole connection
+    // establishment to exceed at least 1 second. To work around Chrome's
+    // idiosyncracy, don't allow it to send a ClientHello i.e. change its
+    // default choice of setup:active to setup:passive.
+    if (offer && answer
+            && offer.media && answer.media
+            && offer.media.length == answer.media.length) {
+        answer.media.forEach(function (a, i) {
+            if (SDPUtil.find_line(
+                    offer.media[i],
+                    'a=setup:actpass',
+                    offer.session)) {
+                answer.media[i]
+                    = a.replace(/a=setup:active/g, 'a=setup:passive');
+            }
+        });
+        answer.raw = answer.session + answer.media.join('');
+    }
+};
+
 TraceablePeerConnection.prototype.createAnswer
         = function (successCallback, failureCallback, constraints) {
-    var self = this;
     this.trace('createAnswer', JSON.stringify(constraints, null, ' '));
     this.peerconnection.createAnswer(
-        function (answer) {
+        (answer) => {
             try {
-                self.trace(
+                this.trace(
                     'createAnswerOnSuccess::preTransform', dumpSDP(answer));
                 // if we're running on FF, transform to Plan A first.
                 if (RTCBrowserType.usesUnifiedPlan()) {
-                    answer = self.interop.toPlanB(answer);
-                    self.trace('createAnswerOnSuccess::postTransform (Plan B)',
+                    answer = this.interop.toPlanB(answer);
+                    this.trace('createAnswerOnSuccess::postTransform (Plan B)',
                         dumpSDP(answer));
                 }
 
-                if (!self.session.room.options.disableSimulcast
-                    && self.simulcast.isSupported()) {
-                    answer = self.simulcast.mungeLocalDescription(answer);
-                    self.trace(
+                /**
+                 * We don't keep ssrcs consitent for Firefox because rewriting
+                 *  the ssrcs between createAnswer and setLocalDescription
+                 *  breaks the caching in sdp-interop (sdp-interop must
+                 *  know about all ssrcs, and it updates its cache in
+                 *  toPlanB so if we rewrite them after that, when we
+                 *  try and go back to unified plan it will complain
+                 *  about unmapped ssrcs)
+                 */
+                if (!RTCBrowserType.isFirefox()) {
+                    answer.sdp = this.sdpConsistency.makeVideoPrimarySsrcsConsistent(answer.sdp);
+                    this.trace('createAnswerOnSuccess::postTransform (make primary video ssrcs consistent)',
+                        dumpSDP(answer));
+                }
+
+                // Add simulcast streams if simulcast is enabled
+                if (!this.session.room.options.disableSimulcast
+                    && this.simulcast.isSupported()) {
+                    answer = this.simulcast.mungeLocalDescription(answer);
+                    this.trace(
                         'createAnswerOnSuccess::postTransform (simulcast)',
                         dumpSDP(answer));
                 }
 
-                if (!RTCBrowserType.isFirefox())
-                {
-                    answer = self.ssrcReplacement(answer);
-                    self.trace('createAnswerOnSuccess::mungeLocalVideoSSRC',
-                        dumpSDP(answer));
-                }
+                // Fix the setup attribute (see _fixAnswerRFC4145Setup for
+                //  details)
+                let remoteDescription = new SDP(this.remoteDescription.sdp);
+                let localDescription = new SDP(answer.sdp);
+                _fixAnswerRFC4145Setup(remoteDescription, localDescription);
+                answer.sdp = localDescription.raw;
 
-                self.eventEmitter.emit(XMPPEvents.SENDRECV_STREAMS_CHANGED,
+                this.eventEmitter.emit(XMPPEvents.SENDRECV_STREAMS_CHANGED,
                     extractSSRCMap(answer));
 
                 successCallback(answer);
             } catch (e) {
-                // there can be error modifying the answer, for example
-                // for ssrcReplacement there was a track with ssrc that is null
-                // and if we do not catch the error no callback is called
-                // at all
-                self.trace('createAnswerOnError', e);
-                self.trace('createAnswerOnError', dumpSDP(answer));
+                this.trace('createAnswerOnError', e);
+                this.trace('createAnswerOnError', dumpSDP(answer));
                 logger.error('createAnswerOnError', e, dumpSDP(answer));
                 failureCallback(e);
             }
         },
-        function(err) {
-            self.trace('createAnswerOnFailure', err);
-            self.eventEmitter.emit(XMPPEvents.CREATE_ANSWER_FAILED, err,
-                self.peerconnection);
+        (err) => {
+            this.trace('createAnswerOnFailure', err);
+            this.eventEmitter.emit(XMPPEvents.CREATE_ANSWER_FAILED, err,
+                this.peerconnection);
             failureCallback(err);
         },
         constraints
