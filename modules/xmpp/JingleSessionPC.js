@@ -35,7 +35,7 @@ function JingleSessionPC(me, sid, peerjid, connection,
     this.modifyingLocalStreams = false;
     /**
      * Used to keep state about muted/unmuted video streams
-     *  so we can prevent errant source-add/source-removes 
+     *  so we can prevent errant source-add/source-removes
      *  from happening
      */
     this.modifiedSSRCs = {};
@@ -339,7 +339,7 @@ JingleSessionPC.prototype.setOfferCycle = function (jingleOfferIq,
             });
     };
     this.modificationQueue.push(
-        workFunction, 
+        workFunction,
         (error) => {
             if (!error) {
                 success();
@@ -562,13 +562,13 @@ JingleSessionPC.prototype.onTerminated = function (reasonCondition,
 };
 
 /**
- * Parse the information from the xml sourceAddElem and translate it 
+ * Parse the information from the xml sourceAddElem and translate it
  *  into sdp lines
- * @param {jquery xml element} sourceAddElem the source-add 
+ * @param {jquery xml element} sourceAddElem the source-add
  *  element from jingle
- * @param {SDP object} currentRemoteSdp the current remote 
+ * @param {SDP object} currentRemoteSdp the current remote
  *  sdp (as of this new source-add)
- * @returns {list} a list of SDP line strings that should 
+ * @returns {list} a list of SDP line strings that should
  *  be added to the remote SDP
  */
 JingleSessionPC.prototype._parseSsrcInfoFromSourceAdd = function (sourceAddElem, currentRemoteSdp) {
@@ -726,9 +726,9 @@ JingleSessionPC.prototype._processNewJingleOfferIq = function(offerIq) {
 
 /**
  * Remove the given ssrc lines from the current remote sdp
- * @param {list} removeSsrcInfo a list of SDP line strings that 
+ * @param {list} removeSsrcInfo a list of SDP line strings that
  *  should be removed from the remote SDP
- * @returns type {SDP Object} the new remote SDP (after removing the lines 
+ * @returns type {SDP Object} the new remote SDP (after removing the lines
  *  in removeSsrcInfo
  */
 JingleSessionPC.prototype._processRemoteRemoveSource = function (removeSsrcInfo) {
@@ -747,9 +747,9 @@ JingleSessionPC.prototype._processRemoteRemoveSource = function (removeSsrcInfo)
 
 /**
  * Add the given ssrc lines to the current remote sdp
- * @param {list} addSsrcInfo a list of SDP line strings that 
+ * @param {list} addSsrcInfo a list of SDP line strings that
  *  should be added to the remote SDP
- * @returns type {SDP Object} the new remote SDP (after removing the lines 
+ * @returns type {SDP Object} the new remote SDP (after removing the lines
  *  in removeSsrcInfo
  */
 JingleSessionPC.prototype._processRemoteAddSource = function (addSsrcInfo) {
@@ -764,8 +764,8 @@ JingleSessionPC.prototype._processRemoteAddSource = function (addSsrcInfo) {
 
 /**
  * Do a new o/a flow using the existing remote description
- * @param {SDP object} optionalRemoteSdp optional remote sdp 
- *  to use.  If not provided, the remote sdp from the 
+ * @param {SDP object} optionalRemoteSdp optional remote sdp
+ *  to use.  If not provided, the remote sdp from the
  *  peerconnection will be used
  * @returns {Promise} promise which resolves when the
  *  o/a flow is complete with no arguments or
@@ -818,8 +818,8 @@ JingleSessionPC.prototype._renegotiate = function(optionalRemoteSdp) {
                     media_constraints
                 );
             },
-            (error) => { 
-                reject("setRemoteDescription failed: " + error); 
+            (error) => {
+                reject("setRemoteDescription failed: " + error);
             }
         );
     });
@@ -832,7 +832,7 @@ JingleSessionPC.prototype._renegotiate = function(optionalRemoteSdp) {
  *  effectively just removes 'oldStream'
  * @param oldStream the current stream in use to be replaced
  * @param newStream the new stream to use
- * @returns {Promise} which resolves once the replacement is complete 
+ * @returns {Promise} which resolves once the replacement is complete
  *  with no arguments or rejects with an error {string}
  */
 JingleSessionPC.prototype.replaceStream = function (oldStream, newStream) {
@@ -866,7 +866,7 @@ JingleSessionPC.prototype.replaceStream = function (oldStream, newStream) {
 
 /**
  * Just add the stream to the peerconnection
- * @param stream either the low-level webrtc MediaStream or 
+ * @param stream either the low-level webrtc MediaStream or
  *  a Jitsi mediastream
  * NOTE: must be called within a work function being executed
  *  by the modification queue.
@@ -879,13 +879,13 @@ JingleSessionPC.prototype.addStreamToPeerConnection = function (stream, ssrcInfo
 };
 
 /**
- * Parse the information from the xml sourceRemoveElem and translate it 
+ * Parse the information from the xml sourceRemoveElem and translate it
  *  into sdp lines
- * @param {jquery xml element} sourceRemoveElem the source-remove 
+ * @param {jquery xml element} sourceRemoveElem the source-remove
  *  element from jingle
- * @param {SDP object} currentRemoteSdp the current remote 
+ * @param {SDP object} currentRemoteSdp the current remote
  *  sdp (as of this new source-remove)
- * @returns {list} a list of SDP line strings that should 
+ * @returns {list} a list of SDP line strings that should
  *  be removed from the remote SDP
  */
 JingleSessionPC.prototype._parseSsrcInfoFromSourceRemove = function (sourceRemoveElem, currentRemoteSdp) {
@@ -938,7 +938,7 @@ JingleSessionPC.prototype._parseSsrcInfoFromSourceRemove = function (sourceRemov
  * Used for streams added before the call start.
  * NOTE(brian): there is a decent amount of overlap here with replaceStream that
  *  could be re-used...however we can't leverage that currently because the
- *  extra work we do here must be in the work function context and if we 
+ *  extra work we do here must be in the work function context and if we
  *  then called replaceStream we'd be adding another task on the queue
  *  from within a task which would then deadlock.  The 'replaceStream' core
  *  logic should be moved into a helper function that could be called within
@@ -946,7 +946,7 @@ JingleSessionPC.prototype._parseSsrcInfoFromSourceRemove = function (sourceRemov
  */
 JingleSessionPC.prototype.addStream = function (stream, callback, errorCallback,
     ssrcInfo, dontModifySources) {
-    
+
     let workFunction = (finishedCallback) => {
         if (!this.peerconnection) {
             finishedCallback("Error: tried adding stream with no active peer connection");
