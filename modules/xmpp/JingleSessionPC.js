@@ -1043,16 +1043,18 @@ JingleSessionPC.prototype._handleFirefoxRemoveStream = function (stream) {
  * NOTE: must be called within a work function being executed
  *  by the modification queue.
  */
-JingleSessionPC.prototype.removeStreamFromPeerConnection = function (stream, stopStream) {
-    let actualStream = stream && stream.getOriginalStream ? stream.getOriginalStream() : stream;
+JingleSessionPC.prototype.removeStreamFromPeerConnection = function (stream) {
+    let actualStream
+        = stream && stream.getOriginalStream
+            ? stream.getOriginalStream() : stream;
     if (!this.peerconnection) {
         return;
     }
     if (RTCBrowserType.getBrowserType() ===
             RTCBrowserType.RTC_BROWSER_FIREFOX) {
         this._handleFirefoxRemoveStream(actualStream);
-    } else if (stream) {
-        this.peerconnection.removeStream(actualStream, stopStream);
+    } else if (actualStream) {
+        this.peerconnection.removeStream(actualStream);
     }
 };
 
@@ -1075,7 +1077,7 @@ JingleSessionPC.prototype.removeStream = function (stream, callback, errorCallba
                 RTCBrowserType.RTC_BROWSER_FIREFOX) {
             this._handleFirefoxRemoveStream(stream);
         } else if (stream) {
-            this.removeStreamFromPeerConnection(stream, false);
+            this.removeStreamFromPeerConnection(stream);
         }
         let oldSdp = new SDP(this.peerconnection.localDescription.sdp);
         this._renegotiate()
