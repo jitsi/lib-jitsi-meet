@@ -274,6 +274,7 @@ export default class ChatRoom extends Listenable {
         parser.packet2JSON(pres, nodes);
         this.lastPresences[from] = nodes;
         let jibri = null;
+        member.properties = {};
         // process nodes to extract data needed for MUC_JOINED and MUC_MEMBER_JOINED
         // events
         for(let i = 0; i < nodes.length; i++)
@@ -287,6 +288,10 @@ export default class ChatRoom extends Listenable {
                 case "userId":
                     member.id = node.value;
                     break;
+            }
+            //basic member properties
+            if(node.tagName.startsWith("jitsi_participant_")){
+                member.properties[node.tagName.substring(18)] = node.value;
             }
         }
 
@@ -317,7 +322,7 @@ export default class ChatRoom extends Listenable {
             } else {
                 this.eventEmitter.emit(
                     XMPPEvents.MUC_MEMBER_JOINED,
-                    from, member.nick, member.role, member.isHiddenDomain);
+                    from, member.nick, member.role, member.isHiddenDomain, member.properties);
             }
         } else {
             // Presence update for existing participant
