@@ -713,12 +713,15 @@ JitsiConference.prototype.muteParticipant = function (id) {
  * participant for example a recorder).
  */
 JitsiConference.prototype.onMemberJoined
-    = function (jid, nick, role, isHidden) {
+    = function (jid, nick, role, isHidden, properties) {
     var id = Strophe.getResourceFromJid(jid);
     if (id === 'focus' || this.myUserId() === id) {
        return;
     }
     var participant = new JitsiParticipant(jid, this, nick, isHidden);
+    if(typeof properties == "object"){
+        participant._properties = properties
+    }
     participant._role = role;
     this.participants[id] = participant;
     this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED, id, participant);
