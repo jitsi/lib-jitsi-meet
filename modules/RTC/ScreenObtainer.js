@@ -58,13 +58,6 @@ var ScreenObtainer = {
      * Initializes the function used to obtain a screen capture
      * (this.obtainStream).
      *
-     * If the browser is Chrome, it uses the value of
-     * 'options.desktopSharingChromeMethod' (or 'options.desktopSharing') to
-     * decide whether to use the a Chrome extension (if the value is 'ext'),
-     * use the "screen" media source (if the value is 'webrtc'),
-     * or disable screen capture (if the value is other).
-     * Note that for the "screen" media source to work the
-     * 'chrome://flags/#enable-usermedia-screen-capture' flag must be set.
      * @param options {object}
      * @param gum {Function} GUM method
      */
@@ -75,10 +68,6 @@ var ScreenObtainer = {
 
         if (RTCBrowserType.isFirefox())
             initFirefoxExtensionDetection(options);
-
-        // TODO remove this, options.desktopSharing is deprecated.
-        var chromeMethod =
-            (options.desktopSharingChromeMethod || options.desktopSharing);
 
         if (RTCBrowserType.isNWJS()) {
             obtainDesktopStream = (options, onSuccess, onFailure) => {
@@ -138,18 +127,18 @@ var ScreenObtainer = {
                 logger.info("Using Temasys plugin for desktop sharing");
             }
         } else if (RTCBrowserType.isChrome()) {
-            if (chromeMethod == "ext") {
-                if (RTCBrowserType.getChromeVersion() >= 34) {
-                    obtainDesktopStream =
-                        this.obtainScreenFromExtension;
-                    logger.info("Using Chrome extension for desktop sharing");
-                    initChromeExtension(options);
-                } else {
-                    logger.info("Chrome extension not supported until ver 34");
-                }
-            } else if (chromeMethod == "webrtc") {
-                obtainDesktopStream = obtainWebRTCScreen;
-                logger.info("Using Chrome WebRTC for desktop sharing");
+            if (options.desktopSharingChromeDisabled ||
+                options.desktopSharingChromeMethod === false ||
+                !options.desktopSharingChromeExtId) {
+                // TODO: desktopSharingChromeMethod is deprecated, remove.
+                obtainDesktopStream = null;
+            } else if (RTCBrowserType.getChromeVersion() >= 34) {
+                obtainDesktopStream =
+                    this.obtainScreenFromExtension;
+                logger.info("Using Chrome extension for desktop sharing");
+                initChromeExtension(options);
+            } else {
+                logger.info("Chrome extension not supported until ver 34");
             }
         } else if (RTCBrowserType.isFirefox()) {
             if (options.desktopSharingFirefoxDisabled) {
@@ -331,14 +320,13 @@ function obtainWebRTCScreen(options, streamCallback, failCallback) {
 /**
  * Constructs inline install URL for Chrome desktop streaming extension.
  * The 'chromeExtensionId' must be defined in options parameter.
- * @param options supports "desktopSharingChromeExtId" and "chromeExtensionId"
+ * @param options supports "desktopSharingChromeExtId"
  * @returns {string}
  */
 function getWebStoreInstallUrl(options)
 {
-    //TODO remove chromeExtensionId (deprecated)
     return "https://chrome.google.com/webstore/detail/" +
-        (options.desktopSharingChromeExtId || options.chromeExtensionId);
+        options.desktopSharingChromeExtId;
 }
 
 /**
@@ -387,8 +375,7 @@ function checkChromeExtInstalled(callback, options) {
         return;
     }
     chrome.runtime.sendMessage(
-        //TODO: remove chromeExtensionId (deprecated)
-        (options.desktopSharingChromeExtId || options.chromeExtensionId),
+        options.desktopSharingChromeExtId,
         { getVersion: true },
         response => {
             if (!response || !response.version) {
@@ -401,11 +388,9 @@ function checkChromeExtInstalled(callback, options) {
             // Check installed extension version
             var extVersion = response.version;
             logger.log('Extension version is: ' + extVersion);
-            //TODO: remove minChromeExtVersion (deprecated)
             var updateRequired
                 = isUpdateRequired(
-                    (options.desktopSharingChromeMinExtVersion ||
-                        options.minChromeExtVersion),
+                    options.desktopSharingChromeMinExtVersion,
                     extVersion);
             callback(!updateRequired, updateRequired);
         }
@@ -416,13 +401,10 @@ function doGetStreamFromExtension(options, streamCallback, failCallback) {
     // Sends 'getStream' msg to the extension.
     // Extension id must be defined in the config.
     chrome.runtime.sendMessage(
-        //TODO: remove chromeExtensionId (deprecated)
-        (options.desktopSharingChromeExtId || options.chromeExtensionId),
+        options.desktopSharingChromeExtId,
         {
             getStream: true,
-            //TODO: remove desktopSharingSources (deprecated).
-            sources: (options.desktopSharingChromeSources ||
-                options.desktopSharingSources)
+            sources: options.desktopSharingChromeSources
         },
         response => {
             if (!response) {
@@ -445,7 +427,7 @@ function doGetStreamFromExtension(options, streamCallback, failCallback) {
  * Initializes <link rel=chrome-webstore-item /> with extension id set in
  * config.js to support inline installs. Host site must be selected as main
  * website of published extension.
- * @param options supports "desktopSharingChromeExtId" and "chromeExtensionId"
+ * @param options supports "desktopSharingChromeExtId"
  */
 function initInlineInstalls(options)
 {
@@ -537,7 +519,7 @@ function onGetStreamResponse(response, onSuccess, onFailure) {
 /**
  * Starts the detection of an installed jidesha extension for firefox.
  * @param options supports "desktopSharingFirefoxDisabled",
- * "desktopSharingFirefoxExtId" and "chromeExtensionId"
+ * "desktopSharingFirefoxExtId"
  */
 function initFirefoxExtensionDetection(options) {
     if (options.desktopSharingFirefoxDisabled) {
