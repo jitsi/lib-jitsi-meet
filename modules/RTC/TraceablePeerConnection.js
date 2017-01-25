@@ -729,15 +729,15 @@ function extractSSRCMap(desc) {
         return;
     }
 
-    session.media.forEach(function (bLine) {
-        if (!Array.isArray(bLine.ssrcs))
+    session.media.forEach(function (mLine) {
+        if (!Array.isArray(mLine.ssrcs))
         {
             return;
         }
 
-        if (typeof bLine.ssrcGroups !== 'undefined' &&
-            Array.isArray(bLine.ssrcGroups)) {
-            bLine.ssrcGroups.forEach(function (group) {
+        if (typeof mLine.ssrcGroups !== 'undefined' &&
+            Array.isArray(mLine.ssrcGroups)) {
+            mLine.ssrcGroups.forEach(function (group) {
                 if (typeof group.semantics !== 'undefined' &&
                     typeof group.ssrcs !== 'undefined') {
                     var primarySSRC = Number(group.ssrcs.split(' ')[0]);
@@ -746,7 +746,7 @@ function extractSSRCMap(desc) {
                 }
             });
         }
-        bLine.ssrcs.forEach(function (ssrc) {
+        mLine.ssrcs.forEach(function (ssrc) {
             if(ssrc.attribute !== 'msid')
                 return;
             ssrcList[ssrc.value] = ssrcList[ssrc.value] ||
