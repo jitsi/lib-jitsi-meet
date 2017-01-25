@@ -377,7 +377,8 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function () {
             {
                 mtype: self.type,
                 type: "unmute",
-                ssrc: self.ssrc,
+                ssrcs: self.ssrc ? self.ssrc.ssrcs : undefined,
+                groups: self.ssrc ? self.ssrc.groups: undefined,
                 msid: self.getMSID()
             });
     });
@@ -403,7 +404,8 @@ function (successCallback, errorCallback) {
         {
             mtype: this.type,
             type: "mute",
-            ssrc: this.ssrc
+            ssrcs: this.ssrc ? this.ssrc.ssrcs : undefined,
+            groups: this.ssrc ? this.ssrc.groups : undefined
         });
 };
 
@@ -518,7 +520,7 @@ JitsiLocalTrack.prototype._setConference = function(conference) {
  */
 JitsiLocalTrack.prototype.getSSRC = function () {
     if(this.ssrc && this.ssrc.groups && this.ssrc.groups.length)
-        return this.ssrc.groups[0].primarySSRC;
+        return this.ssrc.groups[0].ssrcs[0];
     else if(this.ssrc && this.ssrc.ssrcs && this.ssrc.ssrcs.length)
         return this.ssrc.ssrcs[0];
     else

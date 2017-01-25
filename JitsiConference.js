@@ -1037,7 +1037,7 @@ function (jingleSession, jingleOffer, now) {
     this.rtc.initializeDataChannels(jingleSession.peerconnection);
     // Add local Tracks to the ChatRoom
     this.getLocalTracks().forEach(function(localTrack) {
-        var ssrcInfo = null;
+        let ssrcInfo = null;
         /**
          * We don't do this for Firefox because, on Firefox, we keep the
          *  stream in the peer connection and just set 'enabled' on the
@@ -1068,7 +1068,8 @@ function (jingleSession, jingleOffer, now) {
             ssrcInfo = {
                 mtype: localTrack.getType(),
                 type: "addMuted",
-                ssrc: localTrack.ssrc,
+                ssrcs: localTrack.ssrc.ssrcs,
+                groups: localTrack.ssrc.groups,
                 msid: localTrack.initialMSID
             };
         }
