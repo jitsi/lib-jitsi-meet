@@ -1351,11 +1351,12 @@ export default class JingleSessionPC extends JingleSession {
             case "source-remove":
                 this.fixSourceRemoveJingle(jingle);
                 break;
-            default:
+            default: {
                 const errmsg = "Unknown jingle action!";
                 GlobalOnErrorHandler.callErrorHandler(errmsg);
                 logger.error(errmsg);
                 return false;
+            }
         }
 
         const sources

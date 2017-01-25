@@ -1,6 +1,7 @@
 /* global mozRTCPeerConnection, webkitRTCPeerConnection, RTCPeerConnection,
     RTCSessionDescription */
 
+import * as GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
 import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
 const JitsiRemoteTrack = require("./JitsiRemoteTrack.js");
@@ -222,8 +223,8 @@ function TraceablePeerConnection(rtc, id, signallingLayer, ice_config,
 /**
  * Returns a string representation of a SessionDescription object.
  */
-var dumpSDP = function(description) {
-    if (typeof description === 'undefined' || description == null) {
+const dumpSDP = function(description) {
+    if (typeof description === 'undefined' || description === null) {
         return '';
     }
 
@@ -1111,8 +1112,12 @@ TraceablePeerConnection.prototype.createAnswer
                  *  about unmapped ssrcs)
                  */
                 if (!RTCBrowserType.isFirefox()) {
-                    answer.sdp = this.sdpConsistency.makeVideoPrimarySsrcsConsistent(answer.sdp);
-                    this.trace('createAnswerOnSuccess::postTransform (make primary video ssrcs consistent)',
+                    answer.sdp
+                        = this.sdpConsistency.makeVideoPrimarySsrcsConsistent(
+                            answer.sdp);
+                    this.trace(
+                        'createAnswerOnSuccess::postTransform '
+                            + '(make primary video ssrcs consistent)',
                         dumpSDP(answer));
                 }
 
