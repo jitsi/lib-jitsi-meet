@@ -428,7 +428,12 @@ function extractSSRCMap(desc) {
             bLine.ssrcGroups.forEach(function (group) {
                 if (typeof group.semantics !== 'undefined' &&
                     typeof group.ssrcs !== 'undefined') {
-                    var primarySSRC = Number(group.ssrcs.split(' ')[0]);
+                    // Parse SSRCs and store as numbers
+                    const groupSSRCs
+                        = group.ssrcs.split(' ').map(
+                            (ssrcStr) => { return Number(ssrcStr); });
+                    const primarySSRC = groupSSRCs[0];
+                    group.ssrcs = groupSSRCs;
                     ssrcGroups[primarySSRC] = ssrcGroups[primarySSRC] || [];
                     ssrcGroups[primarySSRC].push(group);
                 }
@@ -437,13 +442,12 @@ function extractSSRCMap(desc) {
         bLine.ssrcs.forEach(function (ssrc) {
             if(ssrc.attribute !== 'msid')
                 return;
-            ssrcList[ssrc.value] = ssrcList[ssrc.value] ||
-                {groups: [], ssrcs: []};
+            ssrcList[ssrc.value]
+                = ssrcList[ssrc.value] || { groups: [], ssrcs: [] };
             ssrcList[ssrc.value].ssrcs.push(ssrc.id);
             if(ssrcGroups[ssrc.id]){
                 ssrcGroups[ssrc.id].forEach(function (group) {
-                    ssrcList[ssrc.value].groups.push(
-                        {primarySSRC: ssrc.id, group: group});
+                    ssrcList[ssrc.value].groups.push(group);
                 });
             }
         });
@@ -568,26 +572,23 @@ TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
     if (stream)
         this.peerconnection.addStream(stream);
     if (ssrcInfo && ssrcInfo.type === "addMuted") {
-        this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrc.ssrcs[0]);
+        this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrcs[0]);
         const simGroup =
-            ssrcInfo.ssrc.groups.find(groupInfo => {
-                return groupInfo.group.semantics === "SIM";
+            ssrcInfo.groups.find(groupInfo => {
+                return groupInfo.semantics === "SIM";
             });
         if (simGroup) {
-            const simSsrcs = SDPUtil.parseGroupSsrcs(simGroup.group);
-            this.simulcast.setSsrcCache(simSsrcs);
+            this.simulcast.setSsrcCache(simGroup.ssrcs);
         }
         const fidGroups =
-            ssrcInfo.ssrc.groups.filter(groupInfo => {
-                return groupInfo.group.semantics === "FID";
+            ssrcInfo.groups.filter(groupInfo => {
+                return groupInfo.semantics === "FID";
             });
         if (fidGroups) {
             const rtxSsrcMapping = new Map();
             fidGroups.forEach(fidGroup => {
-                const fidGroupSsrcs =
-                    SDPUtil.parseGroupSsrcs(fidGroup.group);
-                const primarySsrc = fidGroupSsrcs[0];
-                const rtxSsrc = fidGroupSsrcs[1];
+                const primarySsrc = fidGroup.ssrcs[0];
+                const rtxSsrc = fidGroup.ssrcs[1];
                 rtxSsrcMapping.set(primarySsrc, rtxSsrc);
             });
             this.rtxModifier.setSsrcCache(rtxSsrcMapping);
@@ -887,10 +888,8 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
         for (let i = 0; i < SIMULCAST_LAYERS; i++) {
             ssrcInfo.ssrcs.push(SDPUtil.generateSsrc());
         }
-        ssrcInfo.groups.push({
-            primarySSRC: ssrcInfo.ssrcs[0],
-            group: {ssrcs: ssrcInfo.ssrcs.join(" "), semantics: "SIM"}});
-        ssrcInfo;
+        ssrcInfo.groups.push(
+            { ssrcs: ssrcInfo.ssrcs.slice(), semantics: "SIM" });
     } else {
         ssrcInfo = {ssrcs: [SDPUtil.generateSsrc()], groups: []};
     }
@@ -905,11 +904,8 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
             const rtxSsrc = SDPUtil.generateSsrc();
             ssrcInfo.ssrcs.push(rtxSsrc);
             ssrcInfo.groups.push({
-                primarySSRC: primarySsrc,
-                group: {
-                    ssrcs: primarySsrc + " " + rtxSsrc,
-                    semantics: "FID"
-                }
+                ssrcs: [primarySsrc, rtxSsrc],
+                semantics: "FID"
             });
         }
     }

@@ -1412,16 +1412,15 @@ export default class JingleSessionPC extends JingleSession {
                     ssrcObj.mtype + "\"]>description");
                 if (!desc || !desc.length)
                     return;
-                ssrcObj.ssrc.ssrcs.forEach(function (ssrc) {
+                ssrcObj.ssrcs.forEach(function (ssrc) {
                     const sourceNode = desc.find(">source[ssrc=\"" +
                         ssrc + "\"]");
                     sourceNode.remove();
                 });
-                ssrcObj.ssrc.groups.forEach(function (group) {
+                ssrcObj.groups.forEach(function (group) {
                     const groupNode = desc.find(">ssrc-group[semantics=\"" +
-                        group.group.semantics + "\"]:has(source[ssrc=\"" +
-                        group.primarySSRC +
-                        "\"])");
+                        group.semantics + "\"]:has(source[ssrc=\"" +
+                        group.ssrcs[0] + "\"])");
                     groupNode.remove();
                 });
             });
@@ -1435,7 +1434,7 @@ export default class JingleSessionPC extends JingleSession {
                     = JingleSessionPC.createDescriptionNode(
                         jingle, ssrcObj.mtype);
                 const cname = Math.random().toString(36).substring(2);
-                ssrcObj.ssrc.ssrcs.forEach(function (ssrc) {
+                ssrcObj.ssrcs.forEach(function (ssrc) {
                     const sourceNode
                         = desc.find(">source[ssrc=\"" + ssrc + "\"]");
                     sourceNode.remove();
@@ -1449,18 +1448,18 @@ export default class JingleSessionPC extends JingleSession {
                         "</source>";
                     desc.append(sourceXML);
                 });
-                ssrcObj.ssrc.groups.forEach(function (group) {
+                ssrcObj.groups.forEach(function (group) {
                     const groupNode
                         = desc.find(">ssrc-group[semantics=\"" +
-                            group.group.semantics + "\"]:has(source[ssrc=\""
-                            + group.primarySSRC + "\"])");
+                            group.semantics + "\"]:has(source[ssrc=\""
+                            + group.ssrcs[0] + "\"])");
                     groupNode.remove();
                     desc.append(
-                        "<ssrc-group semantics=\"" + group.group.semantics +
+                        "<ssrc-group semantics=\"" + group.semantics +
                         "\" xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\">" +
                         "<source ssrc=\"" +
-                            group.group.ssrcs.split(" ")
-                                .join("\"/>" + "<source ssrc=\"") + "\"/>" +
+                            group.ssrcs.join("\"/>" + "<source ssrc=\"") +
+                            "\"/>" +
                         "</ssrc-group>");
                 });
             });
@@ -1478,20 +1477,20 @@ export default class JingleSessionPC extends JingleSession {
         this.modifiedSSRCs["mute"] = [];
         if (ssrcs && ssrcs.length)
             ssrcs.forEach(function (ssrcObj) {
-                ssrcObj.ssrc.ssrcs.forEach(function (ssrc) {
+                ssrcObj.ssrcs.forEach(function (ssrc) {
                     const sourceNode
                         = $(jingle.tree()).find(">jingle>content[name=\"" +
                             ssrcObj.mtype + "\"]>description>source[ssrc=\"" +
                             ssrc + "\"]");
                     sourceNode.remove();
                 });
-                ssrcObj.ssrc.groups.forEach(function (group) {
+                ssrcObj.groups.forEach(function (group) {
                     const groupNode
                         = $(jingle.tree()).find(
                             ">jingle>content[name=\"" + ssrcObj.mtype +
                             "\"]>description>ssrc-group[semantics=\"" +
-                            group.group.semantics + "\"]:has(source[ssrc=\"" +
-                            group.primarySSRC + "\"])");
+                            group.semantics + "\"]:has(source[ssrc=\"" +
+                            group.ssrcs[0] + "\"])");
                     groupNode.remove();
                 });
             });
@@ -1503,7 +1502,7 @@ export default class JingleSessionPC extends JingleSession {
                 const desc
                     = JingleSessionPC.createDescriptionNode(
                         jingle, ssrcObj.mtype);
-                ssrcObj.ssrc.ssrcs.forEach(function (ssrc) {
+                ssrcObj.ssrcs.forEach(function (ssrc) {
                     const sourceNode
                         = desc.find(">source[ssrc=\"" + ssrc + "\"]");
                     if (!sourceNode || !sourceNode.length) {
@@ -1514,18 +1513,18 @@ export default class JingleSessionPC extends JingleSession {
                             "ssrc=\"" + ssrc + "\"></source>");
                     }
                 });
-                ssrcObj.ssrc.groups.forEach(function (group) {
+                ssrcObj.groups.forEach(function (group) {
                     const groupNode
                         = desc.find(">ssrc-group[semantics=\"" +
-                            group.group.semantics + "\"]:has(source[ssrc=\"" +
-                            group.primarySSRC + "\"])");
+                            group.semantics + "\"]:has(source[ssrc=\"" +
+                            group.ssrcs[0] + "\"])");
                     if (!groupNode || !groupNode.length) {
                         desc.append("<ssrc-group semantics=\"" +
-                            group.group.semantics +
+                            group.semantics +
                             "\" xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\">" +
                             "<source ssrc=\"" +
-                                group.group.ssrcs.split(" ")
-                                    .join("\"/><source ssrc=\"") + "\"/>" +
+                                group.ssrcs.join("\"/><source ssrc=\"") +
+                                "\"/>" +
                             "</ssrc-group>");
                     }
                 });
