@@ -2,7 +2,6 @@
 
 import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
-import RTC from '../RTC/RTC';
 import SdpConsistency from "./SdpConsistency.js";
 var RTCBrowserType = require("../RTC/RTCBrowserType.js");
 var XMPPEvents = require("../../service/xmpp/XMPPEvents");
@@ -322,11 +321,8 @@ TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
     }
 };
 
-TraceablePeerConnection.prototype.removeStream = function (stream, stopStreams) {
+TraceablePeerConnection.prototype.removeStream = function (stream) {
     this.trace('removeStream', stream.id);
-    if (stopStreams) {
-        RTC.stopMediaStream(stream);
-    }
     // FF doesn't support this yet.
     if (this.peerconnection.removeStream) {
         this.peerconnection.removeStream(stream);
