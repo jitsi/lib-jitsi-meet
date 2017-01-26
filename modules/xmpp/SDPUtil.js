@@ -402,11 +402,13 @@ var SDPUtil = {
     },
 
     getSsrcAttribute: function (mLine, ssrc, attributeName) {
-        return mLine
-            .ssrcs
-            .filter(ssrcInfo => ssrcInfo.id === ssrc)
-            .filter(ssrcInfo => ssrcInfo.attribute === attributeName)
-            .map(ssrcInfo => ssrcInfo.value)[0];
+        for (let i = 0; i < mLine.ssrcs.length; ++i) {
+            let ssrcLine = mLine.ssrcs[i];
+            if (ssrcLine.id === ssrc &&
+                ssrcLine.attribute === attributeName) {
+                return ssrcLine.value;
+            }
+        }
     }
 };
 

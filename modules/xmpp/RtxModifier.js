@@ -1,6 +1,6 @@
 import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
-var transform = require('sdp-transform');
+import * as transform from 'sdp-transform';
 var SDPUtil = require("./SDPUtil");
 
 /**
@@ -10,8 +10,8 @@ var SDPUtil = require("./SDPUtil");
  * Given a videoMLine, returns a list of the video
  *  ssrcs (those used to actually send video, not
  *  any associated secondary streams)
- * @param videoMLine media line object from transform.parse
- * @returns list of ssrcs (as strings)
+ * @param {object} videoMLine media line object from transform.parse
+ * @returns {list<string>} list of primary video ssrcs
  */
 function getPrimaryVideoSsrcs (videoMLine) {
     let videoSsrcs = videoMLine.ssrcs
@@ -34,13 +34,28 @@ function getPrimaryVideoSsrcs (videoMLine) {
     return videoSsrcs;
 }
 
-function getAssociatedRtxStream (videoMLine, primarySsrc) {
-    return  videoMLine.ssrcGroups && 
-        videoMLine.ssrcGroups
-            .filter(group => group.semantics === "FID")
-            .filter(group => group.ssrcs.split(" ")[0] === primarySsrc + "")
-            .map(groupInfo => groupInfo.ssrcs.split(" ")[1])
-            .map(ssrc => parseInt(ssrc))[0];
+/**
+ * Given a video mline (as parsed from transform.parse),
+ *  and a primary ssrc, return the corresponding rtx ssrc
+ *  (if there is one) for that video ssrc
+ * @param {object} videoMLine the video MLine from which to extract the
+ *  rtx video ssrc
+ * @param {number} primarySsrc the video ssrc for which to find the
+ *  corresponding rtx ssrc
+ * @returns {number} the rtx ssrc (or undefined if there isn't one)
+ */
+function getRtxSsrc (videoMLine, primarySsrc) {
+    if (videoMLine.ssrcGroups) {
+        let fidGroup = videoMLine.ssrcGroups.find(group => {
+            if (group.semantics === "FID") {
+                let groupPrimarySsrc = parseInt(group.ssrcs.split(" ")[0]);
+                return groupPrimarySsrc === primarySsrc;
+            }
+        });
+        if (fidGroup) {
+          return parseInt(fidGroup.ssrcs.split(" ")[1]);
+        }
+    }
 }
 
 /**
@@ -48,34 +63,34 @@ function getAssociatedRtxStream (videoMLine, primarySsrc) {
  *  the given rtxSsrc.  If no rtx ssrc for primarySsrc currently exists, it will
  *  add the appropriate ssrc and ssrc group lines.  If primarySsrc already has
  *  an rtx ssrc, the appropriate ssrc and group lines will be updated
- * @param videoMLine video mline object that will be updated (in place)
- * @param primarySsrcInfo the info (ssrc, msid & cname) for the primary ssrc
- * @param rtxSsrc the rtx ssrc to associate with the primary ssrc
+ * @param {object} videoMLine video mline object that will be updated (in place)
+ * @param {object} primarySsrcInfo the info (ssrc, msid & cname) for the primary ssrc
+ * @param {number} rtxSsrc the rtx ssrc to associate with the primary ssrc
  */
 function updateAssociatedRtxStream (videoMLine, primarySsrcInfo, rtxSsrc) {
-    console.log("Updating mline to associate " + rtxSsrc + 
+    logger.info("Updating mline to associate " + rtxSsrc + 
         " rtx ssrc with primary stream ", primarySsrcInfo.id);
     let primarySsrc = primarySsrcInfo.id;
     let primarySsrcMsid = primarySsrcInfo.msid;
     let primarySsrcCname = primarySsrcInfo.cname;
 
     let previousAssociatedRtxStream = 
-        getAssociatedRtxStream (videoMLine, primarySsrc);
+        getRtxSsrc (videoMLine, primarySsrc);
     if (previousAssociatedRtxStream === rtxSsrc) {
-        console.log(rtxSsrc + " was already associated with " +
+        logger.info(rtxSsrc + " was already associated with " +
             primarySsrc);
         return;
     }
     if (previousAssociatedRtxStream) {
-        console.log(primarySsrc + " was previously assocaited with rtx " +
+        logger.info(primarySsrc + " was previously assocaited with rtx " +
             previousAssociatedRtxStream + ", removing all references to it");
         // Stream already had an rtx ssrc that is different than the one given,
         //  remove all trace of the old one
         videoMLine.ssrcs = videoMLine.ssrcs
             .filter(ssrcInfo => ssrcInfo.id !== previousAssociatedRtxStream);
-        console.log("groups before filtering for " + 
+        logger.info("groups before filtering for " + 
             previousAssociatedRtxStream);
-        console.log(JSON.stringify(videoMLine.ssrcGroups));
+        logger.info(JSON.stringify(videoMLine.ssrcGroups));
         videoMLine.ssrcGroups = videoMLine.ssrcGroups
             .filter(groupInfo => {
                 return groupInfo
@@ -99,7 +114,6 @@ function updateAssociatedRtxStream (videoMLine, primarySsrcInfo, rtxSsrc) {
         ssrcs: primarySsrc + " " + rtxSsrc
     });
 }
-
 /**
  * End helper functions
  */
@@ -108,7 +122,10 @@ function updateAssociatedRtxStream (videoMLine, primarySsrcInfo, rtxSsrc) {
  * Adds any missing RTX streams for video streams
  *  and makes sure that they remain consistent
  */
-class RtxModifier {
+export default class RtxModifier {
+    /**
+     * Constructor
+     */
     constructor () {
         /**
          * Map of video ssrc to corresponding RTX
@@ -117,10 +134,21 @@ class RtxModifier {
         this.correspondingRtxSsrcs = {};
     }
 
+    /**
+     * Clear the cached map of primary video ssrcs to
+     *  their corresponding rtx ssrcs so that they will
+     *  not be used for the next call to modifyRtxSsrcs
+     */
     clearSsrcCache () {
         this.correspondingRtxSsrcs = {};
     }
 
+    /**
+     * Explicitly set the primary video ssrc -> rtx ssrc
+     *  mapping to be used in modifyRtxSsrcs
+     * @param {object} ssrcMapping a mapping of primary video
+     *  ssrcs to their corresponding rtx ssrcs
+     */
     setSsrcCache (ssrcMapping) {
         logger.info("Setting ssrc cache to ", ssrcMapping);
         this.correspondingRtxSsrcs = ssrcMapping;
@@ -131,6 +159,7 @@ class RtxModifier {
      *  already have them.  If the video ssrc has been
      *  seen before, and already had an RTX ssrc generated,
      *  the same RTX ssrc will be used again.
+     * @param {string} sdpStr sdp in raw string format
      */
     modifyRtxSsrcs (sdpStr) {
         let parsedSdp = transform.parse(sdpStr);
@@ -164,7 +193,7 @@ class RtxModifier {
                 // If there's one in the sdp already for it, we'll just set
                 //  that as the corresponding one
                 let previousAssociatedRtxStream = 
-                    getAssociatedRtxStream (videoMLine, ssrc);
+                    getRtxSsrc (videoMLine, ssrc);
                 if (previousAssociatedRtxStream) {
                     logger.info("Rtx stream " + previousAssociatedRtxStream + 
                         " already existed in the sdp as an rtx stream for " +
@@ -194,8 +223,9 @@ class RtxModifier {
     /**
      * Remove all reference to any rtx ssrcs that 
      *  don't correspond to the primary stream.
-     * Must be called *after* extra simulcast streams
-     *  have been removed.
+     * Must be called *after* any simulcast streams
+     *  have been imploded
+     * @param {string} sdpStr sdp in raw string format
      */
     implodeRemoteRtxSsrcs (sdpStr) {
         let parsedSdp = transform.parse(sdpStr);
@@ -242,7 +272,4 @@ class RtxModifier {
             });
         return transform.write(parsedSdp);
     }
-
 }
-
-module.exports = RtxModifier;

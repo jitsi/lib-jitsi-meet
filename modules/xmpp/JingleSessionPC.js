@@ -654,10 +654,7 @@ JingleSessionPC.prototype.addRemoteStream = function (elem) {
                 logger.log("SDPs", mySdp, newSdp);
                 this.notifyMySSRCUpdate(mySdp, newSdp);
                 finishedCallback();
-            }, (error, errorMsg) => {
-                if (errorMsg) {
-                    error = error + "(" + errorMsg + ")";
-                }
+            }, (error) => {
                 logger.error("Error renegotiating after processing remote source-add: " + error);
                 finishedCallback(error);
             });
