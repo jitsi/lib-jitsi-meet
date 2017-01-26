@@ -64,7 +64,8 @@ function getRtxSsrc (videoMLine, primarySsrc) {
  *  add the appropriate ssrc and ssrc group lines.  If primarySsrc already has
  *  an rtx ssrc, the appropriate ssrc and group lines will be updated
  * @param {object} videoMLine video mline object that will be updated (in place)
- * @param {object} primarySsrcInfo the info (ssrc, msid & cname) for the primary ssrc
+ * @param {object} primarySsrcInfo the info (ssrc, msid & cname) for the 
+ *  primary ssrc
  * @param {number} rtxSsrc the rtx ssrc to associate with the primary ssrc
  */
 function updateAssociatedRtxStream (videoMLine, primarySsrcInfo, rtxSsrc) {
