@@ -62,7 +62,7 @@ function JitsiLocalTrack(
 
     this.deviceId = deviceId;
     this.startMuted = false;
-    this.initialMSID = this.getMSID();
+    this.storedMSID = this.getMSID();
     this.inMuteOrUnmuteProgress = false;
 
     /**
@@ -235,6 +235,17 @@ JitsiLocalTrack.prototype._setRealDeviceIdFromDeviceList = function(devices) {
     if (device) {
         this._realDeviceId = device.deviceId;
     }
+};
+
+/**
+ * Sets the stream property of JitsiLocalTrack object and sets all stored
+ * handlers to it.
+ * @param {MediaStream} stream the new stream.
+ */
+JitsiLocalTrack.prototype._setStream = function (stream) {
+    JitsiTrack.prototype._setStream.call(this, stream);
+    // Store the MSID for video mute/unmute purposes
+    this.storedMSID = this.getMSID();
 };
 
 /**
