@@ -288,6 +288,19 @@ JingleSessionPC.prototype.readSsrcInfo = function (contents) {
 };
 
 /**
+ * Makes the underlying TraceablePeerConnection generate new SSRC for
+ * the recvonly video stream.
+ * @deprecated
+ */
+JingleSessionPC.prototype.generateRecvonlySsrc = function() {
+    if (this.peerconnection) {
+        this.peerconnection.generateRecvonlySsrc();
+    } else {
+        logger.error("Unable to generate recvonly SSRC - no peerconnection");
+    }
+};
+
+/**
  * Does accept incoming Jingle 'session-initiate' and should send
  * 'session-accept' in result.
  * @param jingleOffer jQuery selector pointing to the jingle element of

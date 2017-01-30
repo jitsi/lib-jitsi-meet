@@ -425,6 +425,19 @@ export default class ChatRoom extends Listenable {
         this.participantPropertyListener = listener;
     }
 
+    /**
+     * Makes the underlying JingleSession generate new SSRC for the recvonly
+     * video stream.
+     * @deprecated
+     */
+    generateRecvonlySsrc() {
+        if (this.session) {
+            this.session.generateRecvonlySsrc();
+        } else {
+            logger.warn("Unable to generate recvonly SSRC - no session");
+        }
+    }
+
     processNode (node, from) {
         // make sure we catch all errors coming from any handler
         // otherwise we can remove the presence handler from strophe

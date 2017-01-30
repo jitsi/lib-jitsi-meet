@@ -115,7 +115,7 @@ export default class SdpConsistency {
      */
     makeVideoPrimarySsrcsConsistent (sdpStr) {
         let parsedSdp = transform.parse(sdpStr);
-        let videoMLine = 
+        let videoMLine =
             parsedSdp.media.find(mLine => mLine.type === "video");
         if (videoMLine.direction === "inactive") {
             console.log("Sdp-consistency doing nothing, " +
@@ -126,29 +126,33 @@ export default class SdpConsistency {
             // If the mline is recvonly, we'll add the primary
             //  ssrc as a recvonly ssrc
             videoMLine.ssrcs = videoMLine.ssrcs || [];
-            videoMLine.ssrcs.push({
-                id: this.cachedPrimarySsrc,
-                attribute: "cname",
-                value: "recvonly-" + this.cachedPrimarySsrc
-            });
+            if (this.cachedPrimarySsrc) {
+                videoMLine.ssrcs.push({
+                    id: this.cachedPrimarySsrc,
+                    attribute: "cname",
+                    value: "recvonly-" + this.cachedPrimarySsrc
+                });
+            } else {
+                console.error("No SSRC found for the recvonly video stream!");
+            }
         } else {
             let newPrimarySsrc = getPrimarySsrc(videoMLine);
             if (!newPrimarySsrc) {
                 console.log("Sdp-consistency couldn't parse new primary ssrc");
                 return sdpStr;
             }
-            let newPrimaryRtxSsrc = 
+            let newPrimaryRtxSsrc =
                 getRtxSsrc(videoMLine, newPrimarySsrc);
             if (!this.cachedPrimarySsrc) {
                 this.cachedPrimarySsrc = newPrimarySsrc;
                 this.cachedPrimaryRtxSsrc = newPrimaryRtxSsrc;
-                console.log("Sdp-consistency caching primary ssrc " + 
-                    this.cachedPrimarySsrc + " and rtx " + 
+                console.log("Sdp-consistency caching primary ssrc " +
+                    this.cachedPrimarySsrc + " and rtx " +
                     this.cachedPrimaryRtxSsrc);
             } else {
-                console.log("Sdp-consistency replacing new ssrc " + 
-                    newPrimarySsrc + " with cached " + this.cachedPrimarySsrc + 
-                    " and new rtx " + newPrimaryRtxSsrc + " with cached " + 
+                console.log("Sdp-consistency replacing new ssrc " +
+                    newPrimarySsrc + " with cached " + this.cachedPrimarySsrc +
+                    " and new rtx " + newPrimaryRtxSsrc + " with cached " +
                     this.cachedPrimaryRtxSsrc);
                 let self = this;
                 videoMLine.ssrcs.forEach(ssrcInfo => {
@@ -161,11 +165,11 @@ export default class SdpConsistency {
                 if (videoMLine.ssrcGroups) {
                     videoMLine.ssrcGroups.forEach(group => {
                         if (group.semantics === "FID") {
-                            let primarySsrc = 
+                            let primarySsrc =
                                 parseInt(group.ssrcs.split(" ")[0]);
                             if (primarySsrc == self.cachedPrimarySsrc) {
-                                group.ssrcs = 
-                                    self.cachedPrimarySsrc + " " + 
+                                group.ssrcs =
+                                    self.cachedPrimarySsrc + " " +
                                         self.cachedPrimaryRtxSsrc;
                             }
                         }

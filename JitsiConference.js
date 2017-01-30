@@ -2,6 +2,7 @@
 
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 import RTC from "./modules/RTC/RTC";
+import * as MediaType from "./service/RTC/MediaType";
 var XMPPEvents = require("./service/xmpp/XMPPEvents");
 var EventEmitter = require("events");
 import * as JitsiConferenceErrors from "./JitsiConferenceErrors";
@@ -246,7 +247,7 @@ JitsiConference.prototype.getExternalAuthUrl = function (urlForPopup) {
 /**
  * Returns the local tracks of the given media type, or all local tracks if no
  * specific type is given.
- * @param mediaType {MediaType} Optional media type (audio or video).
+ * @param {MediaType} [mediaType] Optional media type (audio or video).
  */
 JitsiConference.prototype.getLocalTracks = function (mediaType) {
     let tracks = [];
@@ -883,7 +884,7 @@ function (jingleSession, jingleOffer, now) {
     this.rtc.localTracks.forEach(function(localTrack) {
         var ssrcInfo = null;
         /**
-         * We don't do this for Firefox because, on Firefox, we keep the 
+         * We don't do this for Firefox because, on Firefox, we keep the
          *  stream in the peer connection and just set 'enabled' on the
          *  track to false (see JitsiLocalTrack::_setMute).  This means
          *  that if we generated an ssrc here and set it in the cache, it
@@ -926,6 +927,10 @@ function (jingleSession, jingleOffer, now) {
             logger.error(e);
         }
     }.bind(this));
+    // Generate the 'recvonly' SSRC in case there are no video tracks
+    if (!this.getLocalTracks(MediaType.VIDEO).length) {
+        this.room.generateRecvonlySsrc();
+    }
 
     jingleSession.acceptOffer(jingleOffer, null,
         function (error) {
