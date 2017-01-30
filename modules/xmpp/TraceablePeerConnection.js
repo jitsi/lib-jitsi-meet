@@ -396,6 +396,18 @@ TraceablePeerConnection.prototype.setRemoteDescription
      */
 };
 
+/**
+ * Makes the underlying TraceablePeerConnection generate new SSRC for
+ * the recvonly video stream.
+ * @deprecated
+ */
+TraceablePeerConnection.prototype.generateRecvonlySsrc = function() {
+    // FIXME replace with SDPUtil.generateSsrc (when it's added)
+    const newSSRC = this.generateNewStreamSSRCInfo().ssrcs[0];
+    logger.info("Generated new recvonly SSRC: " + newSSRC);
+    this.sdpConsistency.setPrimarySsrc(newSSRC);
+};
+
 TraceablePeerConnection.prototype.close = function () {
     this.trace('stop');
     if (this.statsinterval !== null) {
