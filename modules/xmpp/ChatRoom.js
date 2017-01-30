@@ -207,6 +207,22 @@ export default class ChatRoom extends Listenable {
       }.bind(this));
     }
 
+    /***
+     * Executes custom command on mediaproxy server
+     * @param commandName
+     * @returns {Promise}
+     */
+    executeCommand(commandName, args){
+        return new Promise((resolve, reject) => {
+            var getInfo = $iq({type: 'get', to: this.roomjid}).
+                c("query", {xmlns: "http://proficonf.com/mediaproxy", command: commandName, args: encodeURIComponent(JSON.stringify(args))});
+            this.connection.sendIQ(getInfo, function (result) {
+                return resolve(result);
+            }.bind(this), function (error) {
+                return reject(error);
+            }.bind(this));
+        });
+    }
 
     createNonAnonymousRoom () {
         // http://xmpp.org/extensions/xep-0045.html#createroom-reserved

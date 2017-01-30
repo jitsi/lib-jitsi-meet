@@ -319,6 +319,20 @@ JitsiConference.prototype.sendTextMessage = function (message) {
         this.room.sendMessage(message);
 };
 
+/***
+ * Executes command on mediaproxy
+ * @param commandName {String}
+ * @param args {*}
+ * @returns {Promise}
+ */
+JitsiConference.prototype.executeCommand = function(commandName, args){
+    if(this.room)
+        return this.room.executeCommand(commandName, args);
+    else
+        return Promise.reject("Room is not ready");
+};
+
+
 /**
  * Send presence command.
  * @param name {String} the name of the command.
