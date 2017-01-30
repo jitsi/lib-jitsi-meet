@@ -661,7 +661,8 @@ StatsCollector.prototype.processStatsReport = function() {
         this
     );
 
-    this.eventEmitter.emit(StatisticsEvents.BYTE_SENT_STATS, byteSentStats);
+    this.eventEmitter.emit(
+        StatisticsEvents.BYTE_SENT_STATS, this.peerconnection, byteSentStats);
 
     this.conferenceStats.bitrate
       = { 'upload': bitrateUpload,

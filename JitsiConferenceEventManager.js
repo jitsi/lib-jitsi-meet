@@ -627,7 +627,7 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
             JitsiConferenceEvents.CONNECTION_STATS, stats);
     });
 
-    conference.statistics.addByteSentStatsListener(stats => {
+    conference.statistics.addByteSentStatsListener((tPeerConn, stats) => {
         conference.getLocalTracks(MediaType.AUDIO).forEach(track => {
             const ssrc = track.getSSRC();
 
