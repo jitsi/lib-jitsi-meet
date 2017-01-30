@@ -323,9 +323,7 @@ TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
                 return groupInfo.group.semantics === "SIM";
             });
         if (simGroup) {
-            let simSsrcs = simGroup.group.ssrcs
-                .split(" ")
-                .map(ssrcStr => parseInt(ssrcStr));
+            let simSsrcs = SDPUtil.parseGroupSsrcs(simGroup);
             this.simulcast.setSsrcCache(simSsrcs);
         }
         let fidGroups =
@@ -335,8 +333,9 @@ TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
         if (fidGroups) {
             let rtxSsrcMapping = {};
             fidGroups.forEach(fidGroup => {
-                let primarySsrc = fidGroup.group.ssrcs.split(" ")[0];
-                let rtxSsrc = fidGroup.group.ssrcs.split(" ")[1];
+                let fidGroupSsrcs = SDPUtil.parseGroupSsrcs(fidGroup);
+                let primarySsrc = fidGroupSsrcs[0] + "";
+                let rtxSsrc = fidGroupSsrcs[1] + "";
                 rtxSsrcMapping[primarySsrc] = rtxSsrc;
             });
             this.rtxModifier.setSsrcCache(rtxSsrcMapping);

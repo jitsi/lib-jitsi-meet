@@ -409,7 +409,22 @@ var SDPUtil = {
                 return ssrcLine.value;
             }
         }
-    }
+    },
+
+    /**
+     * Parses the ssrcs from the group sdp line and
+     *  returns them as a list of numbers
+     * @param {object} the ssrcGroup object as parsed from
+     *  sdp-transform
+     * @returns {list<number>} a list of the ssrcs in the group
+     *  parsed as numbers
+     */
+    parseGroupSsrcs: function (ssrcGroup) {
+        return ssrcGroup
+            .ssrcs
+            .split(" ")
+            .map(ssrcStr => parseInt(ssrcStr));
+    },
 };
 
 module.exports = SDPUtil;

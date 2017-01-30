@@ -48,7 +48,7 @@ function getRtxSsrc (videoMLine, primarySsrc) {
     if (videoMLine.ssrcGroups) {
         let fidGroup = videoMLine.ssrcGroups.find(group => {
             if (group.semantics === "FID") {
-                let groupPrimarySsrc = parseInt(group.ssrcs.split(" ")[0]);
+                let groupPrimarySsrc = SDPUtil.parseGroupSsrcs(group)[0];
                 return groupPrimarySsrc === primarySsrc;
             }
         });

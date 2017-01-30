@@ -1,4 +1,5 @@
 import * as transform from 'sdp-transform';
+var SDPUtil = require("./SDPUtil");
 
 /**
  * Begin helper functions
@@ -30,11 +31,11 @@ function getPrimarySsrc (videoMLine) {
         if (videoMLine.ssrcGroups) {
             let simGroup = findGroup(videoMLine, "SIM");
             if (simGroup) {
-                return parseInt(simGroup.ssrcs.split(" ")[0]);
+                return SDPUtil.parseGroupSsrcs(simGroup)[0];
             }
             let fidGroup = findGroup(videoMLine, "FID");
             if (fidGroup) {
-                return parseInt(fidGroup.ssrcs.split(" ")[0]);
+                return SDPUtil.parseGroupSsrcs(fidGroup)[0];
             }
         }
     }
@@ -132,10 +133,9 @@ export default class SdpConsistency {
                 if (videoMLine.ssrcGroups) {
                     videoMLine.ssrcGroups.forEach(group => {
                         if (group.semantics === "FID") {
-                            let primarySsrc =
-                                parseInt(group.ssrcs.split(" ")[0]);
-                            let rtxSsrc = 
-                                parseInt(group.ssrcs.split(" ")[1]);
+                            let fidGroupSsrcs = SDPUtil.parseGroupSsrcs(group);
+                            let primarySsrc = fidGroupSsrcs[0];
+                            let rtxSsrc = fidGroupSsrcs[1];
                             if (primarySsrc === newPrimarySsrc) {
                                 group.ssrcs = 
                                     this.cachedPrimarySsrc + " " + 
