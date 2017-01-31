@@ -1026,10 +1026,6 @@ function (jingleSession, jingleOffer, now) {
             logger.error(e);
         }
     }.bind(this));
-    // Generate the 'recvonly' SSRC in case there are no video tracks
-    if (!this.getLocalTracks(MediaType.VIDEO).length) {
-        this.room.generateRecvonlySsrc();
-    }
 
     jingleSession.acceptOffer(jingleOffer, null,
         function (error) {
