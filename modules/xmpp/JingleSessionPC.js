@@ -9,7 +9,6 @@ const SDP = require("./SDP");
 import SignallingLayerImpl from "./SignallingLayerImpl";
 const async = require("async");
 const XMPPEvents = require("../../service/xmpp/XMPPEvents");
-const RTCBrowserType = require("../RTC/RTCBrowserType");
 const GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 const Statistics = require("../statistics/statistics");
 
@@ -54,14 +53,6 @@ export default class JingleSessionPC extends JingleSession {
 
         this.lasticecandidate = false;
         this.closed = false;
-
-        this.modifyingLocalStreams = false;
-        /**
-         * Used to keep state about muted/unmuted video streams
-         *  so we can prevent errant source-add/source-removes
-         *  from happening
-         */
-        this.modifiedSSRCs = {};
 
         /**
          * The local ICE username fragment for this session.
@@ -452,7 +443,6 @@ export default class JingleSessionPC extends JingleSession {
             accept,
             this.initiator == this.me ? 'initiator' : 'responder',
             null);
-        this.fixJingle(accept);
 
         // Calling tree() to print something useful
         accept = accept.tree();
@@ -888,6 +878,7 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * FIXME update docs
      * Replaces oldStream with newStream and performs a single offer/answer
      *  cycle after both operations are done.  Either oldStream or newStream
      *  can be null; replacing a valid 'oldStream' with a null 'newStream'
@@ -903,8 +894,12 @@ export default class JingleSessionPC extends JingleSession {
             const workFunction = (finishedCallback) => {
                 const oldSdp
                     = new SDP(this.peerconnection.localDescription.sdp);
-                this.removeStreamFromPeerConnection(oldTrack);
-                this.addStreamToPeerConnection(newTrack);
+                if (oldTrack) {
+                    this.peerconnection.removeStream(oldTrack);
+                }
+                if (newTrack) {
+                    this.peerconnection.addStream(newTrack);
+                }
                 this._renegotiate()
                     .then(() => {
                         const newSdp
@@ -928,22 +923,6 @@ export default class JingleSessionPC extends JingleSession {
                 }
             );
         });
-    }
-
-    /**
-     * Just add the stream to the peerconnection
-     * @param stream either the low-level webrtc MediaStream or
-     *  a Jitsi mediastream
-     * NOTE: must be called within a work function being executed
-     *  by the modification queue.
-     */
-    addStreamToPeerConnection (stream, ssrcInfo) {
-        const actualStream
-            = stream && stream.getOriginalStream
-                ? stream.getOriginalStream() : stream;
-        if (this.peerconnection) {
-            this.peerconnection.addStream(actualStream, ssrcInfo);
-        }
     }
 
     /**
@@ -1003,6 +982,7 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * FIXME update docs
      * Adds stream.
      * @param stream new stream that will be added.
      * @param callback callback executed after successful stream addition.
@@ -1020,7 +1000,12 @@ export default class JingleSessionPC extends JingleSession {
      *  logic should be moved into a helper function that could be called within
      *  the 'doReplaceStream' task or the 'doAddStream' task (for example)
      */
-    addStream (stream, callback, errorCallback, ssrcInfo, dontModifySources) {
+    addStream (stream, callback, errorCallback, dontModifySources) {
+
+        if (!stream) {
+            errorCallback("invalid 'stream' argument value");
+            return;
+        }
 
         const workFunction = (finishedCallback) => {
             if (!this.peerconnection) {
@@ -1029,14 +1014,8 @@ export default class JingleSessionPC extends JingleSession {
                         + "tried adding stream with no active peer connection");
                 return;
             }
-            this.addStreamToPeerConnection(stream, ssrcInfo);
+            this.peerconnection.addStream(stream);
 
-            if (ssrcInfo) {
-                // available only on video mute/unmute
-                this.modifiedSSRCs[ssrcInfo.type] =
-                    this.modifiedSSRCs[ssrcInfo.type] || [];
-                this.modifiedSSRCs[ssrcInfo.type].push(ssrcInfo);
-            }
             if (dontModifySources) {
                 finishedCallback();
                 return;
@@ -1067,104 +1046,81 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Generate ssrc info object for a stream with the following properties:
-     * - ssrcs - Array of the ssrcs associated with the stream.
-     * - groups - Array of the groups associated with the stream.
+     * FIXME docs
+     * @param stream
+     * @param callback
+     * @param errorCallback
+     * @param dontModifySources
      */
-    generateNewStreamSSRCInfo() {
-        return this.peerconnection.generateNewStreamSSRCInfo();
-    }
+    addStreamAsUnmute (stream, callback, errorCallback, dontModifySources) {
 
-    /**
-     * Remove stream handling for firefox
-     * @param stream: webrtc media stream
-     */
-    _handleFirefoxRemoveStream (stream) {
-        if (!stream) { //There is nothing to be changed
-            return;
-        }
-        let sender = null;
-        // On Firefox we don't replace MediaStreams as this messes up the
-        // m-lines (which can't be removed in Plan Unified) and brings a lot
-        // of complications. Instead, we use the RTPSender and remove just
-        // the track.
-        let track = null;
-        if (stream.getAudioTracks() && stream.getAudioTracks().length) {
-            track = stream.getAudioTracks()[0];
-        } else if (stream.getVideoTracks() && stream.getVideoTracks().length) {
-            track = stream.getVideoTracks()[0];
-        }
-
-        if (!track) {
-            const msg = "Cannot remove tracks: no tracks.";
-            logger.log(msg);
+        if (!stream) {
+            errorCallback("invalid 'stream' argument value");
             return;
         }
 
-        // Find the right sender (for audio or video)
-        this.peerconnection.peerconnection.getSenders().some(function (s) {
-            if (s.track === track) {
-                sender = s;
-                return true;
-            }
-        });
-
-        if (sender) {
-            this.peerconnection.peerconnection.removeTrack(sender);
-        } else {
-            logger.log("Cannot remove tracks: no RTPSender.");
-        }
-    }
-
-    /**
-     * Just remove the stream from the peerconnection
-     * @param {JitsiLocalTrack|MediaStream} stream the stream to remove
-     * NOTE: must be called within a work function being executed
-     *  by the modification queue.
-     */
-    removeStreamFromPeerConnection (stream) {
-        const actualStream = stream && stream.getOriginalStream ? stream.getOriginalStream() : stream;
-        if (!this.peerconnection) {
-            return;
-        }
-        if (RTCBrowserType.getBrowserType() ===
-                RTCBrowserType.RTC_BROWSER_FIREFOX) {
-            this._handleFirefoxRemoveStream(actualStream);
-        } else if (actualStream) {
-            this.peerconnection.removeStream(actualStream);
-        }
-    }
-
-    /**
-     * Remove streams.
-     * @param stream stream that will be removed.
-     * @param callback callback executed after successful stream addition.
-     * @param errorCallback callback executed if stream addition fail.
-     * @param ssrcInfo object with information about the SSRCs associated with
-     *        the stream.
-     */
-    removeStream (stream, callback, errorCallback, ssrcInfo) {
         const workFunction = (finishedCallback) => {
             if (!this.peerconnection) {
-                finishedCallback();
+                finishedCallback(
+                    "Error: "
+                    + "tried adding stream with no active peer connection");
                 return;
             }
-            if (RTCBrowserType.getBrowserType() ===
-                    RTCBrowserType.RTC_BROWSER_FIREFOX) {
-                this._handleFirefoxRemoveStream(stream);
-            } else if (stream) {
-                this.removeStreamFromPeerConnection(stream);
+            this.peerconnection.addStreamUnmute(stream);
+
+            if (dontModifySources) {
+                finishedCallback();
+                return;
             }
             const oldSdp = new SDP(this.peerconnection.localDescription.sdp);
             this._renegotiate()
                 .then(() => {
                     const newSdp
                         = new SDP(this.peerconnection.localDescription.sdp);
-                    if (ssrcInfo) {
-                        this.modifiedSSRCs[ssrcInfo.type] =
-                            this.modifiedSSRCs[ssrcInfo.type] || [];
-                        this.modifiedSSRCs[ssrcInfo.type].push(ssrcInfo);
-                    }
+                    // FIXME objects should not be logged
+                    logger.log("SDPs", oldSdp, newSdp);
+                    this.notifyMySSRCUpdate(oldSdp, newSdp);
+                    finishedCallback();
+                }, (error) => {
+                    finishedCallback(error);
+                });
+        };
+        this.modificationQueue.push(
+            workFunction,
+            (error) => {
+                if (!error) {
+                    callback();
+                } else {
+                    errorCallback(error);
+                }
+            }
+        );
+    }
+
+    /**
+     * FIXME update docs
+     * Remove streams.
+     * @param stream stream that will be removed.
+     * @param callback callback executed after successful stream addition.
+     * @param errorCallback callback executed if stream addition fail.
+     */
+    removeTrackAsMute (stream, callback, errorCallback) {
+        if (!stream) {
+            errorCallback("invalid 'stream' argument value");
+            return;
+        }
+
+        const workFunction = (finishedCallback) => {
+            if (!this.peerconnection) {
+                finishedCallback();
+                return;
+            }
+            this.peerconnection.removeStreamMute(stream);
+            const oldSdp = new SDP(this.peerconnection.localDescription.sdp);
+            this._renegotiate()
+                .then(() => {
+                    const newSdp
+                        = new SDP(this.peerconnection.localDescription.sdp);
                     logger.log("SDPs", oldSdp, newSdp);
                     this.notifyMySSRCUpdate(oldSdp, newSdp);
                     finishedCallback();
@@ -1207,10 +1163,9 @@ export default class JingleSessionPC extends JingleSession {
                     sid: this.sid
                 }
             );
-        sdpDiffer.toJingle(remove);
-        const removed = this.fixJingle(remove);
+        const removedAnySSRCs = sdpDiffer.toJingle(remove);
 
-        if (removed && remove) {
+        if (removedAnySSRCs) {
             logger.info("Sending source-remove", remove.tree());
             this.connection.sendIQ(
                 remove, null,
@@ -1233,10 +1188,9 @@ export default class JingleSessionPC extends JingleSession {
                 }
             );
 
-        sdpDiffer.toJingle(add);
-        const added = this.fixJingle(add);
+        const containsNewSSRCs = sdpDiffer.toJingle(add);
 
-        if (added && add) {
+        if (containsNewSSRCs) {
             logger.info("Sending source-add", add.tree());
             this.connection.sendIQ(
                 add, null, this.newJingleErrorHandler(add, function (error) {
@@ -1336,192 +1290,12 @@ export default class JingleSessionPC extends JingleSession {
 
 
     /**
-     * Fixes the outgoing jingle packets by removing the nodes related to the
-     * muted/unmuted streams, handles removing of muted stream, etc.
-     * @param jingle the jingle packet that is going to be sent
-     * @returns {boolean} true if the jingle has to be sent and false otherwise.
+     * FIXME docs
      */
-    fixJingle (jingle) {
-        const action = $(jingle.nodeTree).find("jingle").attr("action");
-        switch (action) {
-            case "source-add":
-            case "session-accept":
-                this.fixSourceAddJingle(jingle);
-                break;
-            case "source-remove":
-                this.fixSourceRemoveJingle(jingle);
-                break;
-            default: {
-                const errmsg = "Unknown jingle action!";
-                GlobalOnErrorHandler.callErrorHandler(errmsg);
-                logger.error(errmsg);
-                return false;
-            }
-        }
-
+    static containsSSRCs (jingle) {
         const sources
             = $(jingle.tree()).find(">jingle>content>description>source");
         return sources && sources.length > 0;
-    }
-
-    /**
-     * Fixes the outgoing jingle packets with action source-add by removing the
-     * nodes related to the unmuted streams
-     * @param jingle the jingle packet that is going to be sent
-     * @returns {boolean} true if the jingle has to be sent and false otherwise.
-     */
-    fixSourceAddJingle (jingle) {
-        let ssrcs = this.modifiedSSRCs["unmute"];
-        this.modifiedSSRCs["unmute"] = [];
-        if (ssrcs && ssrcs.length) {
-            ssrcs.forEach(function (ssrcObj) {
-                const desc = $(jingle.tree()).find(">jingle>content[name=\"" +
-                    ssrcObj.mtype + "\"]>description");
-                if (!desc || !desc.length)
-                    return;
-                ssrcObj.ssrcs.forEach(function (ssrc) {
-                    const sourceNode = desc.find(">source[ssrc=\"" +
-                        ssrc + "\"]");
-                    sourceNode.remove();
-                });
-                ssrcObj.groups.forEach(function (group) {
-                    const groupNode = desc.find(">ssrc-group[semantics=\"" +
-                        group.semantics + "\"]:has(source[ssrc=\"" +
-                        group.ssrcs[0] + "\"])");
-                    groupNode.remove();
-                });
-            });
-        }
-
-        ssrcs = this.modifiedSSRCs["addMuted"];
-        this.modifiedSSRCs["addMuted"] = [];
-        if (ssrcs && ssrcs.length) {
-            ssrcs.forEach(function (ssrcObj) {
-                const desc
-                    = JingleSessionPC.createDescriptionNode(
-                        jingle, ssrcObj.mtype);
-                const cname = Math.random().toString(36).substring(2);
-                ssrcObj.ssrcs.forEach(function (ssrc) {
-                    const sourceNode
-                        = desc.find(">source[ssrc=\"" + ssrc + "\"]");
-                    sourceNode.remove();
-                    const sourceXML = "<source " +
-                        "xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\" ssrc=\"" +
-                        ssrc + "\">" +
-                        "<parameter xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\"" +
-                        " value=\"" + ssrcObj.msid + "\" name=\"msid\"/>" +
-                        "<parameter xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\"" +
-                        " value=\"" + cname + "\" name=\"cname\" />" + "</source>";
-                    desc.append(sourceXML);
-                });
-                ssrcObj.groups.forEach(function (group) {
-                    const groupNode
-                        = desc.find(">ssrc-group[semantics=\"" +
-                            group.semantics + "\"]:has(source[ssrc=\""
-                            + group.ssrcs[0] + "\"])");
-                    groupNode.remove();
-                    desc.append(
-                        "<ssrc-group semantics=\"" + group.semantics +
-                        "\" xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\">" +
-                        "<source ssrc=\"" +
-                            group.ssrcs.join("\"/>" + "<source ssrc=\"") +
-                            "\"/>" +
-                        "</ssrc-group>");
-                });
-            });
-        }
-    }
-
-    /**
-     * Fixes the outgoing jingle packets with action source-remove by removing
-     * the nodes related to the muted streams, handles removing of muted stream
-     * @param jingle the jingle packet that is going to be sent
-     * @returns {boolean} true if the jingle has to be sent and false otherwise.
-     */
-    fixSourceRemoveJingle (jingle) {
-        let ssrcs = this.modifiedSSRCs["mute"];
-        this.modifiedSSRCs["mute"] = [];
-        if (ssrcs && ssrcs.length)
-            ssrcs.forEach(function (ssrcObj) {
-                ssrcObj.ssrcs.forEach(function (ssrc) {
-                    const sourceNode
-                        = $(jingle.tree()).find(">jingle>content[name=\"" +
-                            ssrcObj.mtype + "\"]>description>source[ssrc=\"" +
-                            ssrc + "\"]");
-                    sourceNode.remove();
-                });
-                ssrcObj.groups.forEach(function (group) {
-                    const groupNode
-                        = $(jingle.tree()).find(
-                            ">jingle>content[name=\"" + ssrcObj.mtype +
-                            "\"]>description>ssrc-group[semantics=\"" +
-                            group.semantics + "\"]:has(source[ssrc=\"" +
-                            group.ssrcs[0] + "\"])");
-                    groupNode.remove();
-                });
-            });
-
-        ssrcs = this.modifiedSSRCs["remove"];
-        this.modifiedSSRCs["remove"] = [];
-        if (ssrcs && ssrcs.length)
-            ssrcs.forEach(function (ssrcObj) {
-                const desc
-                    = JingleSessionPC.createDescriptionNode(
-                        jingle, ssrcObj.mtype);
-                ssrcObj.ssrcs.forEach(function (ssrc) {
-                    const sourceNode
-                        = desc.find(">source[ssrc=\"" + ssrc + "\"]");
-                    if (!sourceNode || !sourceNode.length) {
-                        //Maybe we have to include cname, msid, etc here?
-                        desc.append(
-                            "<source " +
-                            "xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\" " +
-                            "ssrc=\"" + ssrc + "\"></source>");
-                    }
-                });
-                ssrcObj.groups.forEach(function (group) {
-                    const groupNode
-                        = desc.find(">ssrc-group[semantics=\"" +
-                            group.semantics + "\"]:has(source[ssrc=\"" +
-                            group.ssrcs[0] + "\"])");
-                    if (!groupNode || !groupNode.length) {
-                        desc.append("<ssrc-group semantics=\"" +
-                            group.semantics +
-                            "\" xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\">" +
-                            "<source ssrc=\"" +
-                                group.ssrcs.join("\"/><source ssrc=\"") +
-                                "\"/>" +
-                            "</ssrc-group>");
-                    }
-                });
-            });
-    }
-
-    /**
-     * Returns the description node related to the passed content type. If the
-     * node doesn't exists it will be created.
-     * @param jingle - the jingle packet
-     * @param mtype - the content type(audio, video, etc.)
-     */
-    static createDescriptionNode(jingle, mtype) {
-        let content = $(jingle.tree()).find(">jingle>content[name=\"" +
-            mtype + "\"]");
-
-        if (!content || !content.length) {
-            $(jingle.tree()).find(">jingle").append(
-                "<content name=\"" + mtype + "\"></content>");
-            content = $(jingle.tree()).find(">jingle>content[name=\"" +
-                mtype + "\"]");
-        }
-
-        let desc = content.find(">description");
-        if (!desc || !desc.length) {
-            content.append("<description " +
-                "xmlns=\"urn:xmpp:jingle:apps:rtp:1\" media=\"" +
-                mtype + "\"></description>");
-            desc = content.find(">description");
-        }
-        return desc;
     }
 
     /**

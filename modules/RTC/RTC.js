@@ -3,6 +3,7 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 var RTCEvents = require("../../service/RTC/RTCEvents.js");
 import RTCUtils from "./RTCUtils.js";
+import {getValues} from "../util/JSUtil";
 var JitsiLocalTrack = require("./JitsiLocalTrack.js");
 import JitsiTrackError from "../../JitsiTrackError";
 import * as JitsiTrackErrors from "../../JitsiTrackErrors";
@@ -13,6 +14,8 @@ var VideoType = require("../../service/RTC/VideoType");
 var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 import Listenable from "../util/Listenable";
 
+let rtcTrackIdCounter = 0;
+
 function createLocalTracks(tracksInfo, options) {
     var newTracks = [];
     var deviceId = null;
@@ -22,8 +25,10 @@ function createLocalTracks(tracksInfo, options) {
         } else if (trackInfo.videoType === VideoType.CAMERA){
             deviceId = options.cameraDeviceId;
         }
+        rtcTrackIdCounter += 1;
         var localTrack
             = new JitsiLocalTrack(
+                rtcTrackIdCounter,
                 trackInfo.stream,
                 trackInfo.track,
                 trackInfo.mediaType,
@@ -533,7 +538,10 @@ export default class RTC extends Listenable {
     _getTrackBySSRC (ssrc) {
         let track
             = this.getLocalTracks().find(
-                function(localTrack){ return localTrack.getSSRC() == ssrc; });
+                (localTrack) => {
+                    return getValues(this.peerConnections)
+                        .find(pc => pc.getLocalSSRC(localTrack) === ssrc);
+                });
         if (!track) {
             track = this._getRemoteTrackBySSRC(ssrc);
         }

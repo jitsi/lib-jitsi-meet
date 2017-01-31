@@ -60,10 +60,9 @@ function addMediaStreamInactiveHandler(mediaStream, handler) {
  *        onended/oninactive events of the stream.
  * @param trackMediaType the media type of the JitsiTrack
  * @param videoType the VideoType for this track if any
- * @param ssrc the SSRC of this track if known
  */
-function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMediaType,
-                    videoType, ssrc)
+function JitsiTrack(conference, stream, track, streamInactiveHandler,
+                    trackMediaType, videoType)
 {
     /**
      * Array with the HTML elements that are displaying the streams.
@@ -72,7 +71,6 @@ function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMedia
     this.containers = [];
     this.conference = conference;
     this.stream = stream;
-    this.ssrc = ssrc;
     this.eventEmitter = new EventEmitter();
     this.audioLevel = -1;
     this.type = trackMediaType;

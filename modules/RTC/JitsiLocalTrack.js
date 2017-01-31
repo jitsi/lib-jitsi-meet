@@ -24,10 +24,10 @@ var VideoType = require('../../service/RTC/VideoType');
  * @param facingMode the camera facing mode used in getUserMedia call
  * @constructor
  */
-function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
+function JitsiLocalTrack(rtcId, stream, track, mediaType, videoType, resolution,
                          deviceId, facingMode) {
     var self = this;
-
+    this.rtcId = rtcId;
     JitsiTrack.call(this,
         null /* RTC */, stream, track,
         function () {
@@ -36,7 +36,7 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
                     JitsiTrackEvents.LOCAL_TRACK_STOPPED);
             this.dontFireRemoveEvent = false;
         }.bind(this) /* inactiveHandler */,
-        mediaType, videoType, null /* ssrc */);
+        mediaType, videoType);
     this.dontFireRemoveEvent = false;
     this.resolution = resolution;
 
@@ -224,7 +224,11 @@ JitsiLocalTrack.prototype._setRealDeviceIdFromDeviceList = function (devices) {
 JitsiLocalTrack.prototype._setStream = function (stream) {
     JitsiTrack.prototype._setStream.call(this, stream);
     // Store the MSID for video mute/unmute purposes
-    this.storedMSID = this.getMSID();
+    if (stream) {
+        this.storedMSID = this.getMSID();
+        logger.debug(
+            "Setting new MSID: " + this.storedMSID + " on: " + this.rtcId);
+    }
 };
 
 /**
@@ -378,20 +382,10 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function () {
         return Promise.resolve();
     }
 
-    var self = this;
-
-    return new Promise(function(resolve, reject) {
-        self.conference._addLocalStream(
-            self.stream,
-            resolve,
-            (error) => reject(new Error(error)),
-            {
-                mtype: self.type,
-                type: "unmute",
-                ssrcs: self.ssrc ? self.ssrc.ssrcs : undefined,
-                groups: self.ssrc ? self.ssrc.groups: undefined,
-                msid: self.getMSID()
-            });
+    // FIXME deal with unmute (should be done by the traceable peer connection)
+    return new Promise((resolve, reject) => {
+        this.conference.addLocalWebRTCStreamAsUnmute(
+            this, resolve, (error) => reject(new Error(error)));
     });
 };
 
@@ -407,17 +401,11 @@ function (successCallback, errorCallback) {
         successCallback();
         return;
     }
-
-    this.conference.removeLocalStream(
-        this.stream,
+    // FXIME make removeLocalWebRTCStream accept callbacks
+    this.conference.removeTrackAsMute(
+        this,
         successCallback,
-        (error) => errorCallback(new Error(error)),
-        {
-            mtype: this.type,
-            type: "mute",
-            ssrcs: this.ssrc ? this.ssrc.ssrcs : undefined,
-            groups: this.ssrc ? this.ssrc.groups : undefined
-        });
+        (error) => errorCallback(new Error(error)));
 };
 
 /**
@@ -496,15 +484,6 @@ JitsiLocalTrack.prototype.isMuted = function () {
 };
 
 /**
- * Updates the SSRC associated with the MediaStream in JitsiLocalTrack object.
- * @ssrc the new ssrc
- */
-JitsiLocalTrack.prototype._setSSRC = function (ssrc) {
-    this.ssrc = ssrc;
-};
-
-
-/**
  * Sets the JitsiConference object associated with the track. This is temp
  * solution.
  * @param conference the JitsiConference object
@@ -520,22 +499,6 @@ JitsiLocalTrack.prototype._setConference = function(conference) {
     {
         this._maybeFireTrackAttached(this.containers[i]);
     }
-};
-
-/**
- * Gets the SSRC of this local track if it's available already or <tt>null</tt>
- * otherwise. That's because we don't know the SSRC until local description is
- * created.
- * In case of video and simulcast returns the the primarySSRC.
- * @returns {string} or {null}
- */
-JitsiLocalTrack.prototype.getSSRC = function () {
-    if(this.ssrc && this.ssrc.groups && this.ssrc.groups.length)
-        return this.ssrc.groups[0].ssrcs[0];
-    else if(this.ssrc && this.ssrc.ssrcs && this.ssrc.ssrcs.length)
-        return this.ssrc.ssrcs[0];
-    else
-        return null;
 };
 
 /**

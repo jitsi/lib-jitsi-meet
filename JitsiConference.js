@@ -3,7 +3,6 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 import RTC from "./modules/RTC/RTC";
 import * as MediaType from "./service/RTC/MediaType";
-var RTCEvents = require("./service/RTC/RTCEvents");
 var EventEmitter = require("events");
 import * as JitsiConferenceErrors from "./JitsiConferenceErrors";
 import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
@@ -17,7 +16,6 @@ var ComponentsVersions = require("./modules/version/ComponentsVersions");
 var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
 var JitsiConferenceEventManager = require("./JitsiConferenceEventManager");
 var VideoType = require('./service/RTC/VideoType');
-var RTCBrowserType = require("./modules/RTC/RTCBrowserType.js");
 var Transcriber = require("./modules/transcription/transcriber");
 import ParticipantConnectionStatus
     from "./modules/connectivity/ParticipantConnectionStatus";
@@ -472,15 +470,12 @@ JitsiConference.prototype._fireMuteChangeEvent = function (track) {
  * @param track the JitsiLocalTrack object.
  */
 JitsiConference.prototype.onLocalTrackRemoved = function (track) {
-    track._setSSRC(null);
     track._setConference(null);
     this.rtc.removeLocalTrack(track);
     track.removeEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED,
         track.muteHandler);
     track.removeEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
         track.audioLevelHandler);
-    this.rtc.removeListener(RTCEvents.SENDRECV_STREAMS_CHANGED,
-        track.ssrcHandler);
 
     // send event for stopping screen sharing
     // FIXME: we assume we have only one screen sharing track
@@ -523,17 +518,6 @@ JitsiConference.prototype.replaceTrack = function (oldTrack, newTrack) {
             return Promise.reject(
                 new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
         }
-        // Set up the ssrcHandler for the new track before we add it at the lower levels
-        newTrack.ssrcHandler = function (conference, ssrcMap) {
-            if (ssrcMap[this.getMSID()]) {
-                this._setSSRC(ssrcMap[this.getMSID()]);
-                conference.rtc.removeListener(
-                    RTCEvents.SENDRECV_STREAMS_CHANGED,
-                    this.ssrcHandler);
-            }
-        }.bind(newTrack, this);
-        this.rtc.addListener(RTCEvents.SENDRECV_STREAMS_CHANGED,
-            newTrack.ssrcHandler);
     }
     // Now replace the stream at the lower levels
     return this._doReplaceTrack(oldTrack, newTrack)
@@ -630,7 +614,7 @@ JitsiConference.prototype._setupNewTrack = function (newTrack) {
 
 /**
  * Adds loca WebRTC stream to the conference.
- * @param {MediaStream} stream new stream that will be added.
+ * @param {JitsiLocalTrack} track new stream that will be added.
  * @param {function} callback callback executed after successful stream addition.
  * @param {function(error)} errorCallback callback executed if stream addition fail.
  * @param {object} ssrcInfo object with information about the SSRCs associated with the
@@ -640,13 +624,25 @@ JitsiConference.prototype._setupNewTrack = function (newTrack) {
  * started. That is before the 'session-accept' is sent.
  */
 JitsiConference.prototype._addLocalStream
-    = function (stream, callback, errorCallback, ssrcInfo, dontModifySources) {
+    = function (track, callback, errorCallback, dontModifySources) {
     if (this.jingleSession) {
         this.jingleSession.addStream(
-            stream, callback, errorCallback, ssrcInfo, dontModifySources);
+            track, callback, errorCallback, dontModifySources);
     } else {
         // We are done immediately
         logger.warn("Add local MediaStream - no JingleSession started yet");
+        callback();
+    }
+};
+
+JitsiConference.prototype.addLocalWebRTCStreamAsUnmute
+    = function (track, callback, errorCallback, dontModifySources) {
+    if(this.jingleSession) {
+        this.jingleSession.addStreamAsUnmute(
+            track, callback, errorCallback, dontModifySources);
+    } else {
+        // We are done immediately
+        logger.warn("Add local MediaStream as unmute - no JingleSession started yet");
         callback();
     }
 };
@@ -656,33 +652,17 @@ JitsiConference.prototype._addLocalStream
  * @param {MediaStream} stream the stream that will be removed.
  * @param {function} callback callback executed after successful stream removal.
  * @param {function} errorCallback callback executed if stream removal fail.
- * @param {object} ssrcInfo object with information about the SSRCs associated
- * with the stream.
  */
-JitsiConference.prototype.removeLocalStream
-    = function (stream, callback, errorCallback, ssrcInfo) {
-    if (this.jingleSession) {
-        this.jingleSession.removeStream(
-            stream, callback, errorCallback, ssrcInfo);
+JitsiConference.prototype.removeTrackAsMute
+    = function (stream, callback, errorCallback) {
+    if(this.jingleSession) {
+        this.jingleSession.removeTrackAsMute(
+            stream, callback, errorCallback);
     } else {
         // We are done immediately
         logger.warn("Remove local MediaStream - no JingleSession started yet");
         callback();
     }
-};
-
-/**
- * Generate ssrc info object for a stream with the following properties:
- * - ssrcs - Array of the ssrcs associated with the stream.
- * - groups - Array of the groups associated with the stream.
- */
-JitsiConference.prototype._generateNewStreamSSRCInfo = function () {
-    if (!this.jingleSession) {
-        logger.warn("The call haven't been started. " +
-            "Cannot generate ssrc info at the moment!");
-        return null;
-    }
-    return this.jingleSession.generateNewStreamSSRCInfo();
 };
 
 /**
@@ -1037,46 +1017,10 @@ function (jingleSession, jingleOffer, now) {
     this.rtc.initializeDataChannels(jingleSession.peerconnection);
     // Add local Tracks to the ChatRoom
     this.getLocalTracks().forEach(function(localTrack) {
-        let ssrcInfo = null;
-        /**
-         * We don't do this for Firefox because, on Firefox, we keep the
-         *  stream in the peer connection and just set 'enabled' on the
-         *  track to false (see JitsiLocalTrack::_setMute).  This means
-         *  that if we generated an ssrc here and set it in the cache, it
-         *  would clash with the one firefox generates (since, unlike chrome,
-         *  the stream is still attached to the peer connection) and causes
-         *  problems between sdp-interop and trying to keep the ssrcs
-         *  consistent
-         */
-        if (localTrack.isVideoTrack() && localTrack.isMuted() && !RTCBrowserType.isFirefox()) {
-            /**
-             * Handles issues when the stream is added before the peerconnection
-             * is created. The peerconnection is created when second participant
-             * enters the call. In that use case the track doesn't have
-             * information about it's ssrcs and no jingle packets are sent. That
-             * can cause inconsistent behavior later.
-             *
-             * For example:
-             * If we mute the stream and than second participant enter it's
-             * remote SDP won't include that track. On unmute we are not sending
-             * any jingle packets which will brake the unmute.
-             *
-             * In order to solve issues like the above one here we have to
-             * generate the ssrc information for the track .
-             */
-            localTrack._setSSRC(this._generateNewStreamSSRCInfo());
-            ssrcInfo = {
-                mtype: localTrack.getType(),
-                type: "addMuted",
-                ssrcs: localTrack.ssrc.ssrcs,
-                groups: localTrack.ssrc.groups,
-                msid: localTrack.storedMSID
-            };
-        }
         try {
             this._addLocalStream(
-                localTrack.getOriginalStream(), function () {}, function () {},
-                ssrcInfo, true /* don't modify SSRCs */);
+                localTrack, function () {}, function () {},
+                true /* don't modify SSRCs */);
         } catch(e) {
             GlobalOnErrorHandler.callErrorHandler(e);
             logger.error(e);
@@ -1126,21 +1070,6 @@ JitsiConference.prototype.onCallEnded
     this.jingleSession = null;
     // Let the RTC service do any cleanups
     this.rtc.onCallEnded();
-    // PeerConnection has been closed which means that SSRCs stored in
-    // JitsiLocalTrack will not match those assigned by the old PeerConnection
-    // and SSRC replacement logic will not work as expected.
-    // We want to re-register 'ssrcHandler' of our local tracks, so that they
-    // will learn what their SSRC from the new PeerConnection which will be
-    // created on incoming call event.
-    var self = this;
-    this.getLocalTracks().forEach(function(localTrack) {
-        // Reset SSRC as it will no longer be valid
-        localTrack._setSSRC(null);
-        // Bind the handler to fetch new SSRC, it will un register itself once
-        // it reads the values
-        self.rtc.addListener(
-            RTCEvents.SENDRECV_STREAMS_CHANGED, localTrack.ssrcHandler);
-    });
 };
 
 /**
@@ -1414,16 +1343,27 @@ JitsiConference.prototype.isCallstatsEnabled = function () {
 /**
  * Handles track attached to container (Calls associateStreamWithVideoTag method
  * from statistics module)
- * @param track the track
+ * @param {JitsiLocalTrack|JitsiRemoteTrack} track the track
  * @param container the container
  */
 JitsiConference.prototype._onTrackAttach = function(track, container) {
-    var ssrc = track.getSSRC();
+    const isLocal = track.isLocal();
+    let ssrc = null;
+    if (isLocal) {
+        // Local tracks have SSRC stored on per peer connection basis
+        const peerConnection
+            = this.jingleSession && this.jingleSession.peerconnection;
+        if (peerConnection) {
+            ssrc = peerConnection.getLocalSSRC(track);
+        }
+    } else {
+        ssrc = track.getSSRC();
+    }
     if (!container.id || !ssrc) {
         return;
     }
     this.statistics.associateStreamWithVideoTag(
-        ssrc, track.isLocal(), track.getUsageLabel(), container.id);
+        ssrc, isLocal, track.getUsageLabel(), container.id);
 };
 
 /**

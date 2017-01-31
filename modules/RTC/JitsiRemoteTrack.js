@@ -28,8 +28,9 @@ var ttfmTrackerVideoAttached = false;
 function JitsiRemoteTrack(rtc, conference, owner, stream, track, mediaType, videoType,
                           ssrc, muted) {
     JitsiTrack.call(
-        this, conference, stream, track, function () {}, mediaType, videoType, ssrc);
+        this, conference, stream, track, function () {}, mediaType, videoType);
     this.rtc = rtc;
+    this.ssrc = ssrc;
     this.owner = owner;
     this.muted = muted;
     // we want to mark whether the track has been ever muted
