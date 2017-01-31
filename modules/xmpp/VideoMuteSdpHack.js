@@ -2,8 +2,8 @@
 
 import {getLogger} from "jitsi-meet-logger";
 const logger = getLogger(__filename);
-import {getValues} from "../util/JSUtil";
 import {SdpTransformWrap} from "./SdpTransformUtil";
+import * as MediaType from "../../service/RTC/MediaType";
 
 export default class VideoMuteSdpHack {
 
@@ -11,48 +11,145 @@ export default class VideoMuteSdpHack {
         this.pc = traceablePeerConnection;
     }
 
-    maybeHackLocalSdp (desc) {
-        // Go over each video tracks and check if the SDP has to be changed
-        const localVideos
-            = getValues(this.pc.localTracks)
-                .filter(track => track.isVideoTrack());
-        if (!localVideos.length)
-            return;
+    /**
+     *
+     * @param {SdpTransformWrap} transformer
+     * @return {boolean}
+     * @private
+     */
+    _describeLocalAudioTracks(transformer) {
 
-        const transformer = new SdpTransformWrap(desc.sdp);
+        const localAudio = this.pc.getLocalTracks(MediaType.AUDIO);
+        if (!localAudio.length)
+            return false;
 
-        if (!transformer.selectMedia("video")) {
+        if (!transformer.selectMedia("audio")) {
             logger.error(
-                "Unable to hack local video track SDP - no 'video' media");
-            return;
+                "Unable to hack local audio track SDP - no 'audio' media");
+            return false;
         }
+
+        let modified = false;
 
         // FIXME not sure about this directions
         if (["sendrecv", "recvonly", "sendonly"]
                 .indexOf(transformer.mediaDirection) !== -1) {
 
             logger.info(
-                "Localtracks/videos", this.pc.localTracks, localVideos);
+                "Localtracks/audio", this.pc.localTracks, localAudio);
 
-            let modified = false;
+            localAudio.forEach((audioTrack) => {
+                const trackRtcId = audioTrack.rtcId;
+                const isAttached = audioTrack._isAttachedToPC(this.pc);
+                const shouldFake = !isAttached;
+
+                logger.info(
+                    "isAttached: " + isAttached
+                    + " => should fake audio SDP ?:" + shouldFake,
+                    trackRtcId);
+                if (shouldFake) {
+                    // We need to fake sendrecv
+                    transformer.mediaDirection = "sendrecv";
+                    // Inject removed SSRCs
+                    let audioSSRC = this.pc.getLocalSSRC(audioTrack);
+                    if (!audioSSRC) {
+                        logger.error(
+                            "Can't fake SDP for "
+                                + audioTrack + " - no SSRC stored");
+                        // Aborts the forEach on this particular track,
+                        // but will continue with the other ones
+                        return;
+                    }
+
+                    const audioCName = "injected-" + audioSSRC;
+
+                    // FIXME come up with a message
+                    // when there should not be audio SSRC anymore
+                    if (transformer.getSSRCCount() > 0) {
+                        logger.debug(
+                            "Doing nothing - audio SSRCs are still there");
+                        // audio SSRCs are still there
+                        return;
+                    }
+
+                    modified = true;
+
+                    logger.debug("Injecting audio SSRC: " + audioSSRC);
+                    transformer.addSSRCAttribute({
+                        id: audioSSRC,
+                        attribute: 'cname',
+                        value: audioCName
+                    });
+                    transformer.addSSRCAttribute({
+                        id: audioSSRC,
+                        attribute: 'msid',
+                        value: audioTrack.storedMSID
+                    });
+                }
+            });
+        } else {
+            logger.error(
+                "Not doing local audio transform for direction: "
+                + transformer.mediaDirection);
+        }
+
+        return modified;
+    }
+
+    /**
+     * NOTE 1 video track is assumed
+     * @param {SdpTransformWrap} transformer
+     * @return {boolean}
+     * @private
+     */
+    _describeLocalVideoTracks(transformer) {
+
+        // Go over each video tracks and check if the SDP has to be changed
+        const localVideos = this.pc.getLocalTracks(MediaType.VIDEO);
+        if (!localVideos.length) {
+            return false;
+        } else if (localVideos.length !== 1) {
+            logger.error(
+                "There is more than 1 video track ! "
+                    + "Strange things may happen !", localVideos);
+        }
+
+        if (!transformer.selectMedia("video")) {
+            logger.error(
+                "Unable to hack local video track SDP - no 'video' media");
+            return false;
+        }
+
+        let modified = false;
+
+        // FIXME not sure about this directions
+        if (["sendrecv", "recvonly", "sendonly"]
+                .indexOf(transformer.mediaDirection) !== -1) {
+
             localVideos.forEach((videoTrack) => {
                 const isMuted = videoTrack.isMuted();
                 const muteInProgress = videoTrack.inMuteOrUnmuteProgress;
-                logger.info(
+                const isAttached = videoTrack._isAttachedToPC(this.pc);
+                const shouldFakeSdp = isMuted || muteInProgress || !isAttached;
+                logger.debug(
                     "isMuted: " + isMuted
-                    + " in progress: " + muteInProgress,
+                    + ", is mute in progress: " + muteInProgress
+                    + ", is attached ? : " + isAttached
+                    +" => should fake sdp ? : " + shouldFakeSdp,
                     videoTrack.rtcId);
-                if (isMuted || muteInProgress) {
+                if (shouldFakeSdp) {
                     // We need to fake sendrecv
                     transformer.mediaDirection = "sendrecv";
                     // Inject removed SSRCs
                     const trackRtcId = videoTrack.rtcId;
                     let requiredSSRCs
-                        = this.pc.options.disableSimulcast
+                        = (this.pc.options.disableSimulcast || this.pc.isP2P)
                         ? [this.pc.sdpConsistency.cachedPrimarySsrc]
                         : this.pc.simulcast.ssrcCache;
                     if (!requiredSSRCs.length) {
-                        logger.error("No SSRCs stored for: " + trackRtcId);
+                        logger.error(
+                            "No SSRCs stored for: "
+                                + trackRtcId + " in " + this.pc.id);
                         return;
                     }
                     if (!transformer.getSSRCCount()) {
@@ -73,14 +170,6 @@ export default class VideoMuteSdpHack {
                     // an update should be sent
                     const primaryCname = "injected-" + primarySSRC;
 
-                    if (transformer.removeSSRCAttribute(
-                            primarySSRC, "mslabel")) {
-                        logger.debug("Removed primary SSRC's 'mslabel'");
-                    }
-                    if (transformer.removeSSRCAttribute(
-                            primarySSRC, "label")) {
-                        logger.debug("Removed primary SSRC's 'label'");
-                    }
                     requiredSSRCs.forEach((ssrcNum) => {
                         // Inject
                         //if (!transformer.containsSSRC(ssrcNum)) {
@@ -98,7 +187,6 @@ export default class VideoMuteSdpHack {
                             attribute: 'msid',
                             value: videoTrack.storedMSID
                         });
-                        //}
                     });
                     if (requiredSSRCs.length > 1) {
                         const group = {
@@ -136,17 +224,16 @@ export default class VideoMuteSdpHack {
                                         value: primaryCname
                                     });
                                     const rtxGroup = {
-                                        ssrcs: ssrcObj.id +
-                                                " " + correspondingSSRC,
+                                        ssrcs: ssrcObj.id + " " + correspondingSSRC,
                                         semantics: "FID"
                                     };
                                     if (!transformer.findGroup(
-                                            "FID", rtxGroup)) {
+                                            "FID", rtxGroup.ssrcs)) {
                                         transformer.addSSRCGroup(rtxGroup);
                                         logger.debug(
-                                            "Injecting RTX SSRC and groups" +
+                                            "Injecting RTX group" +
                                             " for: " + ssrcObj.id,
-                                            correspondingSSRC);
+                                            rtxGroup);
                                     }
                                 } else {
                                     // FIXME explain better
@@ -161,15 +248,31 @@ export default class VideoMuteSdpHack {
                     }
                 }
             });
-            if (modified) {
-                // Write
-                desc.sdp = transformer.toRawSDP();
-                logger.debug("Post TRANSFORM: ", desc.sdp);
-            }
         } else {
-            logger.debug(
-                "Not doing transform for direction: "
+            logger.error(
+                "Not doing local video transform for direction: "
                     + transformer.mediaDirection);
+        }
+
+        return modified;
+    }
+
+    maybeHackLocalSdp (desc) {
+        // Nothing to be done in early stage when localDescription
+        // is not available yet
+        if (!this.pc.peerconnection.localDescription.sdp) {
+            return;
+        }
+
+        const transformer = new SdpTransformWrap(desc.sdp);
+        let modified = this._describeLocalAudioTracks(transformer);
+        if (this._describeLocalVideoTracks(transformer)) {
+            modified = true;
+        }
+        if (modified) {
+            // Write
+            desc.sdp = transformer.toRawSDP();
+            //logger.info("Post TRANSFORM: ", desc.sdp);
         }
     }
 }
