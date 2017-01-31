@@ -853,47 +853,59 @@ class RTCUtils extends Listenable {
             }
             // Detect IE/Safari
             else if (RTCBrowserType.isTemasysPluginUsed()) {
+                var self = this;
+                var pluginInstalledCallback = function() {
+                    AdapterJS.webRTCReady(function () {
+                        self.peerconnection = RTCPeerConnection;
+                        self.getUserMedia = window.getUserMedia;
+                        self.enumerateDevices = enumerateDevicesThroughMediaStreamTrack;
+                        self.attachMediaStream = wrapAttachMediaStream(function (element, stream) {
+                            if (stream) {
+                                if (stream.id === "dummyAudio"
+                                    || stream.id === "dummyVideo") {
+                                    return;
+                                }
+
+                                // The container must be visible in order to play or
+                                // attach the stream when Temasys plugin is in use
+                                var containerSel = $(element);
+                                if (RTCBrowserType.isTemasysPluginUsed()
+                                    && !containerSel.is(':visible')) {
+                                    containerSel.show();
+                                }
+                                var video = !!stream.getVideoTracks().length;
+                                if (video && !$(element).is(':visible')) {
+                                    throw new Error(
+                                        'video element must be visible to attach'
+                                        + ' video stream');
+                                }
+                            }
+
+                            return attachMediaStream(element, stream);
+                        });
+                        self.getStreamID = function (stream) {
+                            return SDPUtil.filter_special_chars(stream.label);
+                        };
+
+                        onReady(options,
+                            self.getUserMediaWithConstraints.bind(self));
+                        resolve();
+                    });
+                };
 
                 //AdapterJS.WebRTCPlugin.setLogLevel(
                 //    AdapterJS.WebRTCPlugin.PLUGIN_LOG_LEVELS.VERBOSE);
-                var self = this;
-                AdapterJS.webRTCReady(function () {
 
-                    self.peerconnection = RTCPeerConnection;
-                    self.getUserMedia = window.getUserMedia;
-                    self.enumerateDevices = enumerateDevicesThroughMediaStreamTrack;
-                    self.attachMediaStream = wrapAttachMediaStream(function (element, stream) {
-                        if (stream) {
-                            if (stream.id === "dummyAudio"
-                                    || stream.id === "dummyVideo") {
-                                return;
-                            }
-
-                            // The container must be visible in order to play or
-                            // attach the stream when Temasys plugin is in use
-                            var containerSel = $(element);
-                            if (RTCBrowserType.isTemasysPluginUsed()
-                                    && !containerSel.is(':visible')) {
-                                containerSel.show();
-                            }
-                            var video = !!stream.getVideoTracks().length;
-                            if (video && !$(element).is(':visible')) {
-                                throw new Error(
-                                    'video element must be visible to attach'
-                                        + ' video stream');
-                            }
-                        }
-
-                        return attachMediaStream(element, stream);
+                // Try to detect the plugin and act accordingly
+                AdapterJS.WebRTCPlugin.isPluginInstalled(
+                    AdapterJS.WebRTCPlugin.pluginInfo.prefix,
+                    AdapterJS.WebRTCPlugin.pluginInfo.plugName,
+                    AdapterJS.WebRTCPlugin.pluginInfo.type,
+                    pluginInstalledCallback,
+                    function () {
+                        reject(new Error('Temasys plugin is not installed'));
                     });
-                    self.getStreamID = function (stream) {
-                        return SDPUtil.filter_special_chars(stream.label);
-                    };
 
-                    onReady(options,
-                        self.getUserMediaWithConstraints.bind(self));
-                    resolve();
-                });
             } else {
                 var errmsg = 'Browser does not appear to be WebRTC-capable';
                 logger.error(errmsg);
