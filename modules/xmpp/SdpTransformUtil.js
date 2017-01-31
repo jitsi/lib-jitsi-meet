@@ -356,8 +356,10 @@ class MLineWrap {
         // mLine must be selected !
         this._assertMLineSelected();
 
-        const ssrcsCopy = this.selectedMLine.ssrcs.slice();
-        ssrcsCopy.forEach(callback);
+        if (this.selectedMLine.ssrcs) {
+            const ssrcsCopy = this.selectedMLine.ssrcs.slice();
+            ssrcsCopy.forEach(callback);
+        }
     }
 }
 

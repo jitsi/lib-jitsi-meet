@@ -1292,6 +1292,55 @@ export default class JingleSessionPC extends JingleSession {
     /* eslint-disable max-params */
 
     /**
+     * FIXME docs
+     * @param localTrack
+     * @param dontModifySources
+     * @return {Promise}
+     */
+    attachStream (localTrack, dontModifySources) {
+
+        if (!localTrack) {
+            return Promise.reject("invalid 'stream' argument value");
+        }
+        return new Promise((resolve, reject) => {
+        const workFunction = (finishedCallback) => {
+            if (!this.peerconnection) {
+                finishedCallback(
+                    "Error: "
+                        + "tried adding stream with no active peer connection");
+                return;
+            }
+            this.peerconnection.attachTrack(localTrack);
+            if (dontModifySources) {
+                finishedCallback();
+                return;
+            }
+            const oldSdp = new SDP(this.peerconnection.localDescription.sdp);
+            this._renegotiate()
+                .then(() => {
+                    const newSdp
+                        = new SDP(this.peerconnection.localDescription.sdp);
+                    // FIXME objects should not be logged
+                    logger.log("SDPs", oldSdp, newSdp);
+                    this.notifyMySSRCUpdate(oldSdp, newSdp);
+                    finishedCallback();
+                }, (error) => {
+                    finishedCallback(error);
+                });
+        };
+        this.modificationQueue.push(
+            workFunction,
+            (error) => {
+                if (!error) {
+                    resolve();
+                } else {
+                    reject(error);
+                }
+            });
+        });
+    }
+
+    /**
      * FIXME update docs
      * Remove streams.
      * @param stream stream that will be removed.
@@ -1334,6 +1383,50 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /* eslint-enable max-params */
+
+    /**
+     * FIXME update docs
+     * Remove streams.
+     * @param stream stream that will be removed.
+     * @return {Promise}
+     */
+    detachTrack (stream) {
+        if (!stream) {
+            return Promise.reject("invalid 'stream' argument value");
+        }
+
+        return new Promise((resolve, reject) =>{
+            const workFunction = (finishedCallback) => {
+                if (!this.peerconnection) {
+                    finishedCallback();
+                    return;
+                }
+                this.peerconnection.detachTrack(stream);
+                const oldSdp
+                    = new SDP(this.peerconnection.localDescription.sdp);
+                this._renegotiate()
+                    .then(() => {
+                        const newSdp
+                            = new SDP(this.peerconnection.localDescription.sdp);
+                        logger.log("SDPs", oldSdp, newSdp);
+                        this.notifyMySSRCUpdate(oldSdp, newSdp);
+                        finishedCallback();
+                    }, (error) => {
+                        finishedCallback(error);
+                    });
+            };
+            this.modificationQueue.push(
+                workFunction,
+                (error) => {
+                    if (!error) {
+                        resolve();
+                    } else {
+                        reject(error);
+                    }
+                }
+            );
+        });
+    }
 
     /**
      * Figures out added/removed ssrcs and send update IQs.
