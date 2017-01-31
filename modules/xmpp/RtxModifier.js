@@ -1,7 +1,7 @@
 import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
 import * as transform from 'sdp-transform';
-var SDPUtil = require("./SDPUtil");
+const SDPUtil = require("./SDPUtil");
 
 /**
  * Begin helper functions
@@ -53,7 +53,7 @@ function getRtxSsrc (videoMLine, primarySsrc) {
             }
         });
         if (fidGroup) {
-          return parseInt(fidGroup.ssrcs.split(" ")[1]);
+          return SDPUtil.parseGroupSsrcs(fidGroup)[1];
         }
     }
 }
