@@ -630,10 +630,13 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
         ssrcInfo = {ssrcs: [SDPUtil.generateSsrc()], groups: []};
     }
     if (!this.session.room.options.disableRtx) {
-        //let currNumSsrcs = ssrcInfo.ssrcs.length;
-        //for (let i = 0; i < currNumSsrcs; ++i) {
-        for (let primarySsrc of ssrcInfo.ssrcs) {
-            //let primarySsrc = ssrcInfo.ssrcs[i];
+        // Specifically use a for loop here because we'll
+        //  be adding to the list we're iterating over, so we
+        //  only want to iterate through the items originally
+        //  on the list
+        let currNumSsrcs = ssrcInfo.ssrcs.length;
+        for (let i = 0; i < currNumSsrcs; ++i) {
+            let primarySsrc = ssrcInfo.ssrcs[i];
             let rtxSsrc = SDPUtil.generateSsrc();
             ssrcInfo.ssrcs.push(rtxSsrc);
             ssrcInfo.groups.push({
