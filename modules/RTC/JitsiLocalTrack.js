@@ -538,6 +538,7 @@ JitsiLocalTrack.prototype._setByteSent = function (bytesSent) {
     // the conference(and through the XMPP chat room ???) instead
     let iceConnectionState
         = this.conference ? this.conference.getConnectionState() : null;
+    // FIXME take "completed" into account for P2P
     if(this._testByteSent && "connected" === iceConnectionState) {
         setTimeout(function () {
             if(this._bytesSent <= 0){
