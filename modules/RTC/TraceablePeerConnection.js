@@ -295,6 +295,15 @@ TraceablePeerConnection.prototype._peerMutedChanged
     }
 };
 
+TraceablePeerConnection.prototype.getLocalTracks = function(mediaType) {
+    let tracks = getValues(this.localTracks);
+    if (mediaType !== undefined) {
+        tracks = tracks.filter(
+            (track) => { return track.getType() === mediaType; });
+    }
+    return tracks;
+};
+
 /**
  * Obtains all remote tracks currently known to this PeerConnection instance.
  * @param {string} endpointId the track owner's identifier (MUC nickname)
@@ -1364,12 +1373,17 @@ TraceablePeerConnection.prototype.createAnswer
                  *  about unmapped ssrcs)
                  */
                 if (!RTCBrowserType.isFirefox()) {
+                    // If there are no local video tracks, then a
+                    if (!this.getLocalTracks(MediaType.VIDEO).length) {
+                        this.sdpConsistency.setPrimarySsrc(
+                            SDPUtil.generateSsrc());
+                    }
                     answer.sdp
                         = this.sdpConsistency.makeVideoPrimarySsrcsConsistent(
                             answer.sdp);
                     this.trace(
                         'createAnswerOnSuccess::postTransform (make primary'
-                          + ' video ssrcs consistent)',
+                            + ' video ssrcs consistent)',
                         dumpSDP(answer));
                 }
 

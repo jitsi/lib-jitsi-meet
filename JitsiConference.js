@@ -1114,11 +1114,6 @@ JitsiConference.prototype.onIncomingCall
         }
     });
 
-    // Generate the 'recvonly' SSRC in case there are no video tracks
-    if (!this.getLocalTracks(MediaType.VIDEO).length) {
-        jingleSession.generateRecvonlySsrc();
-    }
-
     jingleSession.acceptOffer(jingleOffer, null,
         error => {
             GlobalOnErrorHandler.callErrorHandler(error);
