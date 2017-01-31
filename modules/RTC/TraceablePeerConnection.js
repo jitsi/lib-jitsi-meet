@@ -2,6 +2,7 @@
     RTCPeerConnection, RTCSessionDescription */
 
 import { getLogger } from 'jitsi-meet-logger';
+import { getValues } from '../util/JSUtil';
 import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import JitsiRemoteTrack from "./JitsiRemoteTrack";
 import * as MediaType from "../../service/RTC/MediaType";
@@ -16,6 +17,7 @@ import SdpConsistency from '../xmpp/SdpConsistency.js';
 import SDPUtil from '../xmpp/SDPUtil';
 import * as SignallingEvents from '../../service/RTC/SignallingEvents';
 import transform from 'sdp-transform';
+import VideoMuteSdpHack from '../xmpp/VideoMuteSdpHack';
 
 const logger = getLogger(__filename);
 const SIMULCAST_LAYERS = 3;
@@ -72,6 +74,10 @@ function TraceablePeerConnection(
      */
     this.remoteTracks = {};
 
+    this.localTracks = {};
+
+    this.localSSRCs = {};
+
     /**
      * The signaling layer which operates this peer connection.
      * @type {SignalingLayer}
@@ -114,6 +120,7 @@ function TraceablePeerConnection(
     this.simulcast = new Simulcast({ numOfLayers: SIMULCAST_LAYERS,
         explodeRemoteSimulcast: false });
     this.sdpConsistency = new SdpConsistency();
+    this.localVideoHack = new VideoMuteSdpHack(this);
 
     /**
      * TracablePeerConnection uses RTC's eventEmitter
@@ -825,7 +832,8 @@ function extractSSRCMap(desc) {
             if (!ssrcInfo) {
                 ssrcInfo = {
                     ssrcs: [],
-                    groups: []
+                    groups: [],
+                    msid: msid
                 };
                 ssrcMap.set(msid, ssrcInfo);
             }
@@ -922,7 +930,17 @@ const normalizePlanB = function(desc) {
     });
 };
 
-const getters = {
+/**
+ *
+ * @param {JitsiLocalTrack} localTrack
+ */
+TraceablePeerConnection.prototype.getLocalSSRC = function(localTrack) {
+    const ssrcInfo = this._getSSRC(localTrack.rtcId);
+    return ssrcInfo ? ssrcInfo.ssrcs[0] : undefined;
+};
+
+
+var getters = {
     signalingState() {
         return this.peerconnection.signalingState;
     },
@@ -939,6 +957,14 @@ const getters = {
             desc = this.interop.toPlanB(desc);
             this.trace('getLocalDescription::postTransform (Plan B)',
                 dumpSDP(desc));
+        }
+
+        // FIXME replace with a feature
+        if (!RTCBrowserType.isFirefox()) {
+            this.localVideoHack.maybeHackLocalSdp(desc);
+            logger.debug(
+                'getLocalDescription::postTransform '
+                    + '(local video mute hack)', desc);
         }
 
         return desc;
@@ -968,12 +994,32 @@ Object.keys(getters).forEach(prop => {
     );
 });
 
-TraceablePeerConnection.prototype.addStream = function(stream, ssrcInfo) {
-    this.trace('addStream', stream ? stream.id : 'null');
-    if (stream) {
-        this.peerconnection.addStream(stream);
+TraceablePeerConnection.prototype._getSSRC = function(rtcId) {
+    return this.localSSRCs[rtcId];
+};
+
+TraceablePeerConnection.prototype.addStream = function(stream) {
+    const rtcId = stream.rtcId;
+
+    this.trace('addLocalTrack', rtcId);
+
+    if (this.localTracks[rtcId]) {
+        logger.error(
+            `Local track already in the PeerConnection: ${rtcId}`);
+        return;
     }
-    if (ssrcInfo && ssrcInfo.type === 'addMuted') {
+
+    this.localTracks[rtcId] = stream;
+
+    const webrtcStream = stream.getOriginalStream();
+    if (webrtcStream)
+        this.peerconnection.addStream(webrtcStream);
+    else
+        logger.warn(`No WebRTC stream for: ${rtcId}`);
+
+    // Muted video tracks do not have WebRTC stream
+    if (stream.isVideoTrack() && stream.isMuted()) {
+        const ssrcInfo = this.generateNewStreamSSRCInfo(stream);
         this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrcs[0]);
         const simGroup
             = ssrcInfo.groups.find(groupInfo => groupInfo.semantics === 'SIM');
@@ -999,12 +1045,103 @@ TraceablePeerConnection.prototype.addStream = function(stream, ssrcInfo) {
     }
 };
 
-TraceablePeerConnection.prototype.removeStream = function(stream) {
-    this.trace('removeStream', stream.id);
+TraceablePeerConnection.prototype.addStreamUnmute = function(stream) {
+    this.peerconnection.addStream(stream.getOriginalStream());
+};
 
-    // FF doesn't support this yet.
-    if (this.peerconnection.removeStream) {
-        this.peerconnection.removeStream(stream);
+/**
+ *
+ * @param {JitsiLocalTrack} localTrack
+ */
+TraceablePeerConnection.prototype.removeStream = function(localTrack) {
+    const webRtcStream = localTrack.getOriginalStream();
+    this.trace(
+        'removeStream',
+        localTrack.rtcId, webRtcStream ? webRtcStream.id : undefined);
+
+    if (!this.localTracks[localTrack.rtcId]) {
+        logger.error(
+            `Local track[${localTrack.rtcId}]`
+             + `does not belong to this TPC[${this.id}]!`);
+        return;
+    }
+    delete this.localTracks[localTrack.rtcId];
+    delete this.localSSRCs[localTrack.rtcId];
+
+    if (webRtcStream) {
+        if (RTCBrowserType.getBrowserType()
+                === RTCBrowserType.RTC_BROWSER_FIREFOX) {
+            this._handleFirefoxRemoveStream(webRtcStream);
+        } else {
+            this.peerconnection.removeStream(webRtcStream);
+        }
+    }
+};
+
+/**
+ *
+ * @param {JitsiLocalTrack} localTrack
+ */
+TraceablePeerConnection.prototype.removeStreamMute = function (localTrack) {
+    const webRtcStream = localTrack.getOriginalStream();
+    this.trace('removeStreamMute', localTrack.rtcId, webRtcStream.id);
+
+    // FIXME duplicated
+    if (!this.localTracks[localTrack.rtcId]) {
+        logger.error(
+            "Local track[" + localTrack.rtcId
+            + "] does not belong to this TPC[" + this.id + "]!");
+        return;
+    }
+
+    if (webRtcStream) {
+        if (RTCBrowserType.getBrowserType()
+            === RTCBrowserType.RTC_BROWSER_FIREFOX) {
+            this._handleFirefoxRemoveStream(webRtcStream);
+        } else {
+            this.peerconnection.removeStream(webRtcStream);
+        }
+    }
+};
+
+/**
+ * Remove stream handling for firefox
+ * @param stream: webrtc media stream
+ */
+TraceablePeerConnection.prototype._handleFirefoxRemoveStream = function (stream) {
+    if (!stream) { //There is nothing to be changed
+        return;
+    }
+    let sender = null;
+    // On Firefox we don't replace MediaStreams as this messes up the
+    // m-lines (which can't be removed in Plan Unified) and brings a lot
+    // of complications. Instead, we use the RTPSender and remove just
+    // the track.
+    let track = null;
+    if (stream.getAudioTracks() && stream.getAudioTracks().length) {
+        track = stream.getAudioTracks()[0];
+    } else if (stream.getVideoTracks() && stream.getVideoTracks().length) {
+        track = stream.getVideoTracks()[0];
+    }
+
+    if (!track) {
+        const msg = "Cannot remove tracks: no tracks.";
+        logger.log(msg);
+        return;
+    }
+
+    // Find the right sender (for audio or video)
+    this.peerconnection.getSenders().some(function (s) {
+        if (s.track === track) {
+            sender = s;
+            return true;
+        }
+    });
+
+    if (sender) {
+        this.peerconnection.removeTrack(sender);
+    } else {
+        logger.log("Cannot remove tracks: no RTPSender.");
     }
 };
 
@@ -1262,8 +1399,12 @@ TraceablePeerConnection.prototype.createAnswer
                 _fixAnswerRFC4145Setup(remoteDescription, localDescription);
                 answer.sdp = localDescription.raw;
 
-                this.eventEmitter.emit(RTCEvents.SENDRECV_STREAMS_CHANGED,
-                    extractSSRCMap(answer));
+                let ssrcMap = extractSSRCMap(answer);
+
+                logger.info('Got SSRC MAP: ', ssrcMap);
+                // Set up the ssrcHandler for the new track before we add it at
+                // the lower levels
+                this._applyLocalSSRCMap(ssrcMap);
 
                 successCallback(answer);
             } catch (e) {
@@ -1281,6 +1422,54 @@ TraceablePeerConnection.prototype.createAnswer
         },
         constraints);
     };
+
+function extractSSRC(ssrcObj) {
+    if(ssrcObj && ssrcObj.groups && ssrcObj.groups.length)
+        return ssrcObj.groups[0].ssrcs[0];
+    else if(ssrcObj && ssrcObj.ssrcs && ssrcObj.ssrcs.length)
+        return ssrcObj.ssrcs[0];
+    else
+        return null;
+}
+
+/**
+ * Applies SSRC map extracted from the latest local description to local tracks.
+ * @param {Map<string,TrackSSRCInfo>} ssrcMap
+ * @private
+ */
+TraceablePeerConnection.prototype._applyLocalSSRCMap = function(ssrcMap) {
+    getValues(this.localTracks).forEach(function (track) {
+        const trackMSID = track.getMSID();
+        if(ssrcMap.has(trackMSID)){
+            const newSSRC = ssrcMap.get(trackMSID);
+            if (!newSSRC) {
+                logger.error(`No SSRC found for: ${trackMSID)}`;
+                return;
+            }
+            const oldSSRC = this.localSSRCs[track.rtcId];
+            const newSSRCNum = extractSSRC(newSSRC);
+            const oldSSRCNum = extractSSRC(oldSSRC);
+            if (newSSRCNum != oldSSRCNum) {
+                if (oldSSRCNum !== null) {
+                    logger.error(
+                        `Overwriting SSRC for local track: ${trackMSID} with: `,
+                        newSSRC);
+                } else {
+                    logger.info(
+                        `Setting new local SSRC for: ${track.rtcId}`,
+                        newSSRC);
+                }
+                this.localSSRCs[track.rtcId] = newSSRC;
+            } else {
+                logger.debug(
+                    `Not updating local SSRC for: ${trackMSID}`
+                        + `to: ${newSSRCNum}`);
+            }
+        } else {
+            logger.warn(`No local track matched with: ${trackMSID}`);
+        }
+    }.bind(this));
+};
 
 TraceablePeerConnection.prototype.addIceCandidate
 
@@ -1326,12 +1515,16 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
  * - ssrcs - Array of the ssrcs associated with the stream.
  * - groups - Array of the groups associated with the stream.
  */
-TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function() {
-    let ssrcInfo = { ssrcs: [],
-        groups: [] };
+TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {
+    const rtcId = track.rtcId;
+    let ssrcInfo = this._getSSRC(rtcId);
 
+    if (ssrcInfo) {
+        logger.error(`Will overwrite local SSRCs for track ID: ${rtcId}`);
+    }
     if (!this.options.disableSimulcast
         && this.simulcast.isSupported()) {
+        ssrcInfo = {ssrcs: [], groups: []};
         for (let i = 0; i < SIMULCAST_LAYERS; i++) {
             ssrcInfo.ssrcs.push(SDPUtil.generateSsrc());
         }
@@ -1363,6 +1556,8 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function() {
             });
         }
     }
+    ssrcInfo.msid = track.storedMSID;
+    this.localSSRCs[rtcId] = ssrcInfo;
 
     return ssrcInfo;
 };

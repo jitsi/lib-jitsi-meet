@@ -629,7 +629,7 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
 
     conference.statistics.addByteSentStatsListener((tPeerConn, stats) => {
         conference.getLocalTracks(MediaType.AUDIO).forEach(track => {
-            const ssrc = track.getSSRC();
+            const ssrc = tPeerConn.getLocalSSRC(track);
 
             if (!ssrc || !stats.hasOwnProperty(ssrc)) {
                 return;

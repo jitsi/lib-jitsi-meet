@@ -45,9 +45,9 @@ function JitsiRemoteTrack(
             // Nothing to do if the track is inactive.
         },
         mediaType,
-        videoType,
-        ssrc);
+        videoType);
     this.rtc = rtc;
+    this.ssrc = ssrc;
     this.ownerEndpointId = ownerEndpointId;
     this.muted = muted;
 

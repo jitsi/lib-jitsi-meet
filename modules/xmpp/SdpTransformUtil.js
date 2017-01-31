@@ -346,6 +346,19 @@ class MLineWrap {
     addSSRCGroup(group) {
         this.ssrcGroups.push(group);
     }
+
+    /**
+     * Executes callback on every SSRC attribute of the currently selected media
+     * @param {function(object)} callback a method which takes as an argument
+     * the SSRC object as defined by the 'sdp-transform' lib.
+     */
+    forEachSSRCAttr(callback) {
+        // mLine must be selected !
+        this._assertMLineSelected();
+
+        const ssrcsCopy = this.selectedMLine.ssrcs.slice();
+        ssrcsCopy.forEach(callback);
+    }
 }
 
 /**

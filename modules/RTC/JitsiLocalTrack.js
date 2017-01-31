@@ -30,6 +30,7 @@ const logger = getLogger(__filename);
  * @constructor
  */
 function JitsiLocalTrack(
+        rtcId,
         stream,
         track,
         mediaType,
@@ -37,6 +38,7 @@ function JitsiLocalTrack(
         resolution,
         deviceId,
         facingMode) {
+    this.rtcId = rtcId;
     JitsiTrack.call(
         this,
         null /* RTC */,
@@ -49,8 +51,7 @@ function JitsiLocalTrack(
             this.dontFireRemoveEvent = false;
         } /* inactiveHandler */,
         mediaType,
-        videoType,
-        null /* ssrc */);
+        videoType);
     this.dontFireRemoveEvent = false;
     this.resolution = resolution;
 
@@ -245,7 +246,11 @@ JitsiLocalTrack.prototype._setRealDeviceIdFromDeviceList = function(devices) {
 JitsiLocalTrack.prototype._setStream = function (stream) {
     JitsiTrack.prototype._setStream.call(this, stream);
     // Store the MSID for video mute/unmute purposes
-    this.storedMSID = this.getMSID();
+    if (stream) {
+        this.storedMSID = this.getMSID();
+        logger.debug(
+            `Setting new MSID: ${this.storedMSID} on: ${this.rtcId}`);
+    }
 };
 
 /**
@@ -398,18 +403,10 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function() {
         return Promise.resolve();
     }
 
+    // FIXME deal with unmute (should be done by the traceable peer connection)
     return new Promise((resolve, reject) => {
-        this.conference._addLocalStream(
-            this.stream,
-            resolve,
-            error => reject(new Error(error)),
-            {
-                mtype: this.type,
-                type: 'unmute',
-                ssrcs: this.ssrc && this.ssrc.ssrcs,
-                groups: this.ssrc && this.ssrc.groups,
-                msid: this.getMSID()
-            });
+        this.conference.addLocalWebRTCStreamAsUnmute(
+            this, resolve, (error) => reject(new Error(error)));
     });
 };
 
@@ -426,17 +423,11 @@ JitsiLocalTrack.prototype._removeStreamFromConferenceAsMute
 
         return;
     }
-
-    this.conference.removeLocalStream(
-        this.stream,
+    // FXIME make removeLocalWebRTCStream accept callbacks
+    this.conference.removeTrackAsMute(
+        this,
         successCallback,
-        error => errorCallback(new Error(error)),
-        {
-            mtype: this.type,
-            type: 'mute',
-            ssrcs: this.ssrc && this.ssrc.ssrcs,
-            groups: this.ssrc && this.ssrc.groups
-        });
+        (error) => errorCallback(new Error(error)));
 };
 
 /**
@@ -514,15 +505,6 @@ JitsiLocalTrack.prototype.isMuted = function() {
 };
 
 /**
- * Updates the SSRC associated with the MediaStream in JitsiLocalTrack object.
- * @ssrc the new ssrc
- */
-JitsiLocalTrack.prototype._setSSRC = function(ssrc) {
-    this.ssrc = ssrc;
-};
-
-
-/**
  * Sets the JitsiConference object associated with the track. This is temp
  * solution.
  * @param conference the JitsiConference object
@@ -537,24 +519,6 @@ JitsiLocalTrack.prototype._setConference = function(conference) {
     for (let i = 0; i < this.containers.length; i++) {
         this._maybeFireTrackAttached(this.containers[i]);
     }
-};
-
-/**
- * Gets the SSRC of this local track if it's available already or <tt>null</tt>
- * otherwise. That's because we don't know the SSRC until local description is
- * created.
- * In case of video and simulcast returns the the primarySSRC.
- * @returns {string} or {null}
- */
-JitsiLocalTrack.prototype.getSSRC = function() {
-    if (this.ssrc && this.ssrc.groups && this.ssrc.groups.length) {
-        return this.ssrc.groups[0].ssrcs[0];
-    } else if (this.ssrc && this.ssrc.ssrcs && this.ssrc.ssrcs.length) {
-        return this.ssrc.ssrcs[0];
-    }
-
-    return null;
-
 };
 
 /**

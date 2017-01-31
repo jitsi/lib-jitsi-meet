@@ -14,6 +14,8 @@ import VideoType from '../../service/RTC/VideoType';
 
 const logger = getLogger(__filename);
 
+let rtcTrackIdCounter = 0;
+
 /**
  *
  * @param tracksInfo
@@ -29,8 +31,10 @@ function createLocalTracks(tracksInfo, options) {
         } else if (trackInfo.videoType === VideoType.CAMERA) {
             deviceId = options.cameraDeviceId;
         }
+        rtcTrackIdCounter += 1;
         const localTrack
             = new JitsiLocalTrack(
+                rtcTrackIdCounter,
                 trackInfo.stream,
                 trackInfo.track,
                 trackInfo.mediaType,

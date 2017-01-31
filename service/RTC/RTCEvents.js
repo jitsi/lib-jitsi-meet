@@ -10,12 +10,6 @@ const RTCEvents = {
      */
     CREATE_OFFER_FAILED: 'rtc.create_offer_failed',
     RTC_READY: 'rtc.ready',
-
-    /**
-     * FIXME: rename to something closer to "local streams SDP changed"
-     * Indicates that the local sendrecv streams in local SDP are changed.
-     */
-    SENDRECV_STREAMS_CHANGED: 'rtc.sendrecv_streams_changed',
     DATA_CHANNEL_OPEN: 'rtc.data_channel_open',
     ENDPOINT_CONN_STATUS_CHANGED: 'rtc.endpoint_conn_status_changed',
     LASTN_CHANGED: 'rtc.lastn_changed',
