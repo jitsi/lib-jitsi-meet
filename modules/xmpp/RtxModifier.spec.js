@@ -1,11 +1,11 @@
 /*eslint-disable max-len*/
 /*jshint maxlen:false*/
-var RtxModifier = require("./RtxModifier.js");
+import RtxModifier from "./RtxModifier.js";
 var SampleSdpStrings = require("./SampleSdpStrings.js");
 var transform = require('sdp-transform');
 var SDPUtil = require("./SDPUtil.js");
 
-var numVideoSsrcs = function (parsedSdp) {
+var numVideoSsrcs = (parsedSdp) => {
   let videoMLine = parsedSdp.media.find(m => m.type === "video");
   return videoMLine.ssrcs
     .map(ssrcInfo => ssrcInfo.id)
@@ -14,7 +14,8 @@ var numVideoSsrcs = function (parsedSdp) {
 };
 
 var getPrimaryVideoSsrc = function (parsedSdp) {
-  return getPrimaryVideoSsrcs(parsedSdp)[0];
+  let videoMLine = parsedSdp.media.find(m => m.type === "video");
+  return parseInt(SDPUtil.parsePrimaryVideoSsrc(videoMLine));
 };
 
 // Only handles parsing 2 scenarios right now:
@@ -115,8 +116,8 @@ describe ("RtxModifier", function() {
           // Call modifyRtxSsrcs
           // -->The rtx ssrc used should be the one we set
           let forcedRtxSsrc = 123456;
-          let ssrcCache = {};
-          ssrcCache[this.primaryVideoSsrc] = forcedRtxSsrc;
+          let ssrcCache = new Map();
+          ssrcCache.set(this.primaryVideoSsrc, forcedRtxSsrc);
           this.rtxModifier.setSsrcCache(ssrcCache);
           let newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(this.singleVideoSdp));
           let newSdp = transform.parse(newSdpStr);
@@ -158,14 +159,14 @@ describe ("RtxModifier", function() {
           let newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(this.multipleVideoSdp));
           let newSdp = transform.parse(newSdpStr);
 
-          let rtxMapping = {};
+          let rtxMapping = new Map();
           let fidGroups = getVideoGroups(newSdp, "FID");
           // Save the first mapping that is made
           fidGroups.forEach(fidGroup => {
             let fidSsrcs = SDPUtil.parseGroupSsrcs(fidGroup);
             let fidGroupPrimarySsrc = fidSsrcs[0];
             let fidGroupRtxSsrc = fidSsrcs[1];
-            rtxMapping[fidGroupPrimarySsrc] = fidGroupRtxSsrc;
+            rtxMapping.set(fidGroupPrimarySsrc, fidGroupRtxSsrc);
           });
           // Now pass the original sdp through again and make sure we get the same mapping
           newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(this.multipleVideoSdp));
@@ -175,8 +176,8 @@ describe ("RtxModifier", function() {
             let fidSsrcs = SDPUtil.parseGroupSsrcs(fidGroup);
             let fidGroupPrimarySsrc = fidSsrcs[0];
             let fidGroupRtxSsrc = fidSsrcs[1];
-            expect(rtxMapping[fidGroupPrimarySsrc]).toBeTruthy();
-            expect(rtxMapping[fidGroupPrimarySsrc]).toEqual(fidGroupRtxSsrc);
+            expect(rtxMapping.has(fidGroupPrimarySsrc)).toBe(true);
+            expect(rtxMapping.get(fidGroupPrimarySsrc)).toEqual(fidGroupRtxSsrc);
           });
         });
 
@@ -188,14 +189,14 @@ describe ("RtxModifier", function() {
           let newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(this.multipleVideoSdp));
           let newSdp = transform.parse(newSdpStr);
 
-          let rtxMapping = {};
+          let rtxMapping = new Map();
           let fidGroups = getVideoGroups(newSdp, "FID");
           // Save the first mapping that is made
           fidGroups.forEach(fidGroup => {
             let fidSsrcs = SDPUtil.parseGroupSsrcs(fidGroup);
             let fidGroupPrimarySsrc = fidSsrcs[0];
             let fidGroupRtxSsrc = fidSsrcs[1];
-            rtxMapping[fidGroupPrimarySsrc] = fidGroupRtxSsrc;
+            rtxMapping.set(fidGroupPrimarySsrc, fidGroupRtxSsrc);
           });
 
           this.rtxModifier.clearSsrcCache();
@@ -207,8 +208,8 @@ describe ("RtxModifier", function() {
             let fidSsrcs = SDPUtil.parseGroupSsrcs(fidGroup);
             let fidGroupPrimarySsrc = fidSsrcs[0];
             let fidGroupRtxSsrc = fidSsrcs[1];
-            expect(rtxMapping[fidGroupPrimarySsrc]).toBeTruthy();
-            expect(rtxMapping[fidGroupPrimarySsrc]).not.toEqual(fidGroupRtxSsrc);
+            expect(rtxMapping.has(fidGroupPrimarySsrc)).toBe(true);
+            expect(rtxMapping.get(fidGroupPrimarySsrc)).not.toEqual(fidGroupRtxSsrc);
           });
         });
 
@@ -216,9 +217,9 @@ describe ("RtxModifier", function() {
           // Manually set an rtx ssrc mapping in the cache
           // Call modifyRtxSsrcs
           // -->The rtx ssrc used should be the one we set
-          let rtxMapping = {};
+          let rtxMapping = new Map();
           this.primaryVideoSsrcs.forEach(ssrc => {
-            rtxMapping[ssrc] = SDPUtil.generateSsrc();
+            rtxMapping.set(ssrc, SDPUtil.generateSsrc());
           });
           this.rtxModifier.setSsrcCache(rtxMapping);
 
@@ -230,8 +231,8 @@ describe ("RtxModifier", function() {
             let fidSsrcs = SDPUtil.parseGroupSsrcs(fidGroup);
             let fidGroupPrimarySsrc = fidSsrcs[0];
             let fidGroupRtxSsrc = fidSsrcs[1];
-            expect(rtxMapping[fidGroupPrimarySsrc]).toBeTruthy();
-            expect(rtxMapping[fidGroupPrimarySsrc]).toEqual(fidGroupRtxSsrc);
+            expect(rtxMapping.has(fidGroupPrimarySsrc)).toBe(true);
+            expect(rtxMapping.get(fidGroupPrimarySsrc)).toEqual(fidGroupRtxSsrc);
           });
         });
       });

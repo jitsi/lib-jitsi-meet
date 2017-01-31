@@ -1,7 +1,7 @@
 import {getLogger} from "jitsi-meet-logger";
 const logger = getLogger(__filename);
+import RandomUtil from "../util/RandomUtil";
 var RTCBrowserType = require("../RTC/RTCBrowserType");
-var RandomUtil = require('../util/RandomUtil');
 
 var SDPUtil = {
     filter_special_chars: function (text) {

@@ -132,7 +132,7 @@ export default class RtxModifier {
          * Map of video ssrc to corresponding RTX
          *  ssrc
          */
-        this.correspondingRtxSsrcs = {};
+        this.correspondingRtxSsrcs = new Map();
     }
 
     /**
@@ -141,13 +141,13 @@ export default class RtxModifier {
      *  not be used for the next call to modifyRtxSsrcs
      */
     clearSsrcCache () {
-        this.correspondingRtxSsrcs = {};
+        this.correspondingRtxSsrcs.clear();
     }
 
     /**
      * Explicitly set the primary video ssrc -> rtx ssrc
      *  mapping to be used in modifyRtxSsrcs
-     * @param {object} ssrcMapping a mapping of primary video
+     * @param {Map} ssrcMapping a mapping of primary video
      *  ssrcs to their corresponding rtx ssrcs
      */
     setSsrcCache (ssrcMapping) {
@@ -183,7 +183,7 @@ export default class RtxModifier {
         primaryVideoSsrcs.forEach(ssrc => {
             let msid = SDPUtil.getSsrcAttribute(videoMLine, ssrc, "msid");
             let cname = SDPUtil.getSsrcAttribute(videoMLine, ssrc, "cname");
-            let correspondingRtxSsrc = this.correspondingRtxSsrcs[ssrc];
+            let correspondingRtxSsrc = this.correspondingRtxSsrcs.get(ssrc);
             if (correspondingRtxSsrc) {
                 logger.info("Already have an associated rtx ssrc for " +
                     " video ssrc " + ssrc + ": " + 
@@ -207,7 +207,7 @@ export default class RtxModifier {
                 }
                 logger.info("Caching rtx ssrc " + correspondingRtxSsrc + 
                     " for video ssrc " + ssrc);
-                this.correspondingRtxSsrcs[ssrc] = correspondingRtxSsrc;
+                this.correspondingRtxSsrcs.set(ssrc, correspondingRtxSsrc);
             }
             updateAssociatedRtxStream(
                 videoMLine, 
