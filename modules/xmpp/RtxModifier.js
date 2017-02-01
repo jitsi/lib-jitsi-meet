@@ -1,7 +1,7 @@
 import { getLogger } from "jitsi-meet-logger";
 const logger = getLogger(__filename);
 import * as transform from 'sdp-transform';
-const SDPUtil = require("./SDPUtil");
+import * as SDPUtil from "./SDPUtil";
 
 /**
  * Begin helper functions

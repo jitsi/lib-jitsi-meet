@@ -364,6 +364,11 @@ var SDPUtil = {
         return line + '\r\n';
     },
 
+    /**
+     * Parse the 'most' primary video ssrc from the given m line
+     * @param {object} mLine object as parsed from transform.parse
+     * @return {number} the primary video ssrc from the given m line
+     */
     parsePrimaryVideoSsrc: function(videoMLine) {
         let numSsrcs = videoMLine.ssrcs
             .map(ssrcInfo => ssrcInfo.id)
@@ -397,10 +402,23 @@ var SDPUtil = {
         return primarySsrc;
     },
 
+    /**
+     * Generate an ssrc
+     * @returns {number} an ssrc
+     */
     generateSsrc: function() {
         return RandomUtil.randomInt(1, 0xffffffff);
     },
 
+    /**
+     * Get an attribute for the given ssrc with the given attributeName
+     *  from the given mline
+     * @param {object} mLine an mLine object as parsed from transform.parse
+     * @param {number} ssrc the ssrc for which an attribtue is desired
+     * @param {string} attributeName the name of the desired attribute
+     * @returns {string} the value corresponding to the given ssrc
+     *  and attributeName
+     */
     getSsrcAttribute: function (mLine, ssrc, attributeName) {
         for (let i = 0; i < mLine.ssrcs.length; ++i) {
             let ssrcLine = mLine.ssrcs[i];

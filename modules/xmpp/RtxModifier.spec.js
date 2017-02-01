@@ -1,27 +1,42 @@
 /*eslint-disable max-len*/
 /*jshint maxlen:false*/
 import RtxModifier from "./RtxModifier.js";
-var SampleSdpStrings = require("./SampleSdpStrings.js");
-var transform = require('sdp-transform');
-var SDPUtil = require("./SDPUtil.js");
+import * as SampleSdpStrings from "./SampleSdpStrings.js";
+import * as transform from 'sdp-transform';
+import * as SDPUtil from "./SDPUtil";
 
-var numVideoSsrcs = (parsedSdp) => {
+/**
+ * Returns the number of video ssrcs in the given sdp
+ * @param {object} parsedSdp the sdp as parsed by transform.parse
+ * @returns {number} the number of video ssrcs in the given sdp
+ */
+function numVideoSsrcs (parsedSdp) {
   let videoMLine = parsedSdp.media.find(m => m.type === "video");
   return videoMLine.ssrcs
     .map(ssrcInfo => ssrcInfo.id)
     .filter((ssrc, index, array) => array.indexOf(ssrc) === index)
     .length;
-};
+}
 
-var getPrimaryVideoSsrc = function (parsedSdp) {
+/**
+ * Return the (single) primary video ssrc in the given sdp
+ * @param {object} parsedSdp the sdp as parsed by transform.parse
+ * @returns {number} the primary video ssrc in the given sdp
+ */
+function getPrimaryVideoSsrc (parsedSdp) {
   let videoMLine = parsedSdp.media.find(m => m.type === "video");
   return parseInt(SDPUtil.parsePrimaryVideoSsrc(videoMLine));
-};
+}
 
-// Only handles parsing 2 scenarios right now:
-// 1) Single video ssrc
-// 2) Multiple video ssrcs in a single simulcast group
-var getPrimaryVideoSsrcs = function (parsedSdp) {
+/**
+ * Get the primary video ssrc(s) in the given sdp.
+ * Only handles parsing 2 scenarios right now:
+ * 1) Single video ssrc
+ * 2) Multiple video ssrcs in a single simulcast group
+ * @param {object} parsedSdp the sdp as parsed by transform.parse
+ * @returns {list<number>} the primary video ssrcs in the given sdp
+ */
+function getPrimaryVideoSsrcs (parsedSdp) {
   let videoMLine = parsedSdp.media.find(m => m.type === "video");
   if (numVideoSsrcs(parsedSdp) === 1) {
     return [videoMLine.ssrcs[0].id];
@@ -33,14 +48,23 @@ var getPrimaryVideoSsrcs = function (parsedSdp) {
     let simGroup = simGroups[0];
     return SDPUtil.parseGroupSsrcs(simGroup);
   }
-};
+}
 
-var getVideoGroups = function (parsedSdp, groupSemantics) {
+/**
+ * Get the video groups that match the passed semantics from the
+ *  given sdp
+ * @param {object} parsedSDp the sdp as parsed by transform.parse
+ * @param {string} groupSemantics the semantics string of the groups
+ *  the caller is interested in
+ * @returns {list<object>} a list of the groups from the given sdp
+ *  that matched the passed semantics
+ */
+function getVideoGroups (parsedSdp, groupSemantics) {
   let videoMLine = parsedSdp.media.find(m => m.type === "video");
   videoMLine.ssrcGroups = videoMLine.ssrcGroups || [];
   return videoMLine.ssrcGroups
     .filter(g => g.semantics === groupSemantics);
-};
+}
 
 describe ("RtxModifier", function() {
     beforeEach(function() {

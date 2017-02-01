@@ -1,5 +1,7 @@
+import { getLogger } from "jitsi-meet-logger";
+const logger = getLogger(__filename);
 import * as transform from 'sdp-transform';
-var SDPUtil = require("./SDPUtil");
+import * as SDPUtil from "./SDPUtil";
 
 /**
  * Begin helper functions
@@ -95,7 +97,7 @@ export default class SdpConsistency {
         let videoMLine =
             parsedSdp.media.find(mLine => mLine.type === "video");
         if (videoMLine.direction === "inactive") {
-            console.log("Sdp-consistency doing nothing, " +
+            logger.info("Sdp-consistency doing nothing, " +
                 "video mline is inactive");
             return sdpStr;
         }
@@ -110,20 +112,20 @@ export default class SdpConsistency {
                     value: "recvonly-" + this.cachedPrimarySsrc
                 });
             } else {
-                console.error("No SSRC found for the recvonly video stream!");
+                logger.error("No SSRC found for the recvonly video stream!");
             }
         } else {
             let newPrimarySsrc = getPrimarySsrc(videoMLine);
             if (!newPrimarySsrc) {
-                console.log("Sdp-consistency couldn't parse new primary ssrc");
+                logger.info("Sdp-consistency couldn't parse new primary ssrc");
                 return sdpStr;
             }
             if (!this.cachedPrimarySsrc) {
                 this.cachedPrimarySsrc = newPrimarySsrc;
-                console.log("Sdp-consistency caching primary ssrc " + 
+                logger.info("Sdp-consistency caching primary ssrc " + 
                     this.cachedPrimarySsrc);
             } else {
-                console.log("Sdp-consistency replacing new ssrc " + 
+                logger.info("Sdp-consistency replacing new ssrc " + 
                     newPrimarySsrc + " with cached " + this.cachedPrimarySsrc);
                 videoMLine.ssrcs.forEach(ssrcInfo => {
                     if (ssrcInfo.id === newPrimarySsrc) {

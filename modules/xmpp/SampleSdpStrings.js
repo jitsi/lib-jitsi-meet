@@ -1,7 +1,8 @@
 /*eslint-disable max-len*/
 /*jshint maxlen:false*/
-var transform = require('sdp-transform');
+import * as transform from 'sdp-transform';
 
+// A generic sdp session block
 var baseSessionSdp = "" +
 "v=0\r\n" +
 "o=- 814997227879783433 5 IN IP4 127.0.0.1\r\n" +
@@ -10,6 +11,7 @@ var baseSessionSdp = "" +
 "a=msid-semantic: WMS 0836cc8e-a7bb-47e9-affb-0599414bc56d\r\n" +
 "a=group:BUNDLE audio video data\r\n";
 
+// A basic sdp audio mline with a single stream
 var baseAudioMLineSdp = "" +
 "m=audio 54405 RTP/SAVPF 111 103 104 126\r\n" +
 "c=IN IP4 172.29.32.39\r\n" +
@@ -34,6 +36,7 @@ var baseAudioMLineSdp = "" +
 "a=ssrc:124723944 label:40abf2d3-a415-4c68-8c17-2a038e8bebcf\r\n" +
 "a=rtcp-mux\r\n";
 
+// A basic sdp application mline
 var baseDataMLineSdp = "" +
 "m=application 9 DTLS/SCTP 5000\r\n" +
 "c=IN IP4 0.0.0.0\r\n" +
@@ -45,6 +48,7 @@ var baseDataMLineSdp = "" +
 "a=fingerprint:sha-256 6A:39:DE:11:24:AD:2E:4E:63:D6:69:D3:85:05:53:C7:3C:38:A4:B7:91:74:C0:91:44:FC:94:63:7F:01:AB:A9\r\n" +
 "a=sctpmap:5000 webrtc-datachannel 1024\r\n";
 
+// A basic sdp video mline with a single stream
 var plainVideoMLineSdp = "" +
 "m=video 9 RTP/SAVPF 100\r\n" +
 "c=IN IP4 0.0.0.0\r\n" +
@@ -65,6 +69,7 @@ var plainVideoMLineSdp = "" +
 "a=ssrc:1757014965 cname:peDGrDD6WsxUOki/\r\n" +
 "a=rtcp-mux\r\n";
 
+// An sdp video mline with 3 simulcast streams
 var simulcastVideoMLineSdp = "" +
 "m=video 9 RTP/SAVPF 100\r\n" +
 "c=IN IP4 0.0.0.0\r\n" +
@@ -90,6 +95,8 @@ var simulcastVideoMLineSdp = "" +
 "a=ssrc-group:SIM 1757014965 1479742055 1089111804\r\n" +
 "a=rtcp-mux\r\n";
 
+// An sdp video mline with a single video stream and a
+//  corresponding rtx stream
 var rtxVideoMLineSdp = "" +
 "m=video 9 RTP/SAVPF 100 96\r\n" +
 "c=IN IP4 0.0.0.0\r\n" +
@@ -114,6 +121,7 @@ var rtxVideoMLineSdp = "" +
 "a=ssrc-group:FID 1757014965 984899560\r\n" +
 "a=rtcp-mux\r\n";
 
+// An sdp video mline with 3 simulcast streams and 3 rtx streams
 var simulcastRtxVideoMLineSdp = "" +
 "m=video 9 RTP/SAVPF 100 96\r\n" +
 "c=IN IP4 0.0.0.0\r\n" +
@@ -149,9 +157,13 @@ var simulcastRtxVideoMLineSdp = "" +
 "a=ssrc-group:SIM 1757014965 1479742055 1089111804\r\n" +
 "a=rtcp-mux\r\n";
 
+// A full sdp string representing a client doing simulcast
 var simulcastSdp = baseSessionSdp + baseAudioMLineSdp + simulcastVideoMLineSdp + baseDataMLineSdp;
+// A full sdp string representing a client doing simulcast and rtx
 var simulcastRtxSdp = baseSessionSdp + baseAudioMLineSdp + simulcastRtxVideoMLineSdp + baseDataMLineSdp;
+// A full sdp string representing a client doing a single video stream
 var plainVideoSdp = baseSessionSdp + baseAudioMLineSdp + plainVideoMLineSdp + baseDataMLineSdp;
+// A full sdp string representing a client doing a single video stream with rtx
 var rtxVideoSdp = baseSessionSdp + baseAudioMLineSdp + rtxVideoMLineSdp + baseDataMLineSdp;
 
 exports.simulcastSdp = transform.parse(simulcastSdp);

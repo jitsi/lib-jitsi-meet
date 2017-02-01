@@ -318,26 +318,26 @@ TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
         this.peerconnection.addStream(stream);
     if (ssrcInfo && ssrcInfo.type === "addMuted") {
         this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrc.ssrcs[0]);
-        let simGroup = 
+        const simGroup = 
             ssrcInfo.ssrc.groups.find(groupInfo => {
                 return groupInfo.group.semantics === "SIM";
             });
         if (simGroup) {
-            let simSsrcs = SDPUtil.parseGroupSsrcs(simGroup.group);
+            const simSsrcs = SDPUtil.parseGroupSsrcs(simGroup.group);
             this.simulcast.setSsrcCache(simSsrcs);
         }
-        let fidGroups =
+        const fidGroups =
             ssrcInfo.ssrc.groups.filter(groupInfo => {
                 return groupInfo.group.semantics === "FID";
             });
         if (fidGroups) {
-            let rtxSsrcMapping = {};
+            const rtxSsrcMapping = new Map();
             fidGroups.forEach(fidGroup => {
-                let fidGroupSsrcs = 
+                const fidGroupSsrcs = 
                     SDPUtil.parseGroupSsrcs(fidGroup.group);
-                let primarySsrc = fidGroupSsrcs[0] + "";
-                let rtxSsrc = fidGroupSsrcs[1] + "";
-                rtxSsrcMapping[primarySsrc] = rtxSsrc;
+                const primarySsrc = fidGroupSsrcs[0];
+                const rtxSsrc = fidGroupSsrcs[1];
+                rtxSsrcMapping.set(primarySsrc, rtxSsrc);
             });
             this.rtxModifier.setSsrcCache(rtxSsrcMapping);
         }
@@ -634,10 +634,10 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
         //  be adding to the list we're iterating over, so we
         //  only want to iterate through the items originally
         //  on the list
-        let currNumSsrcs = ssrcInfo.ssrcs.length;
+        const currNumSsrcs = ssrcInfo.ssrcs.length;
         for (let i = 0; i < currNumSsrcs; ++i) {
-            let primarySsrc = ssrcInfo.ssrcs[i];
-            let rtxSsrc = SDPUtil.generateSsrc();
+            const primarySsrc = ssrcInfo.ssrcs[i];
+            const rtxSsrc = SDPUtil.generateSsrc();
             ssrcInfo.ssrcs.push(rtxSsrc);
             ssrcInfo.groups.push({
                 primarySSRC: primarySsrc,
