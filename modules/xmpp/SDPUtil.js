@@ -1,7 +1,7 @@
 import {getLogger} from "jitsi-meet-logger";
 const logger = getLogger(__filename);
+import RandomUtil from "../util/RandomUtil";
 var RTCBrowserType = require("../RTC/RTCBrowserType");
-
 
 var SDPUtil = {
     filter_special_chars: function (text) {
@@ -362,7 +362,87 @@ var SDPUtil = {
         line += ' ';
         line += cand.getAttribute('generation') || '0';
         return line + '\r\n';
-    }
+    },
+
+    /**
+     * Parse the 'most' primary video ssrc from the given m line
+     * @param {object} mLine object as parsed from transform.parse
+     * @return {number} the primary video ssrc from the given m line
+     */
+    parsePrimaryVideoSsrc: function(videoMLine) {
+        let numSsrcs = videoMLine.ssrcs
+            .map(ssrcInfo => ssrcInfo.id)
+            .filter((ssrc, index, array) => array.indexOf(ssrc) === index)
+            .length;
+        let numGroups = (videoMLine.ssrcGroups && videoMLine.ssrcGroups.length) || 0;
+        if (numSsrcs > 1 && numGroups === 0) {
+            // Ambiguous, can't figure out the primary
+            return;
+        }
+        let primarySsrc = null;
+        if (numSsrcs === 1) {
+            primarySsrc = videoMLine.ssrcs[0].id;
+        } else {
+            if (numSsrcs === 2) {
+                // Can figure it out if there's an FID group
+                let fidGroup = videoMLine.ssrcGroups
+                    .find(group => group.semantics === "FID");
+                if (fidGroup) {
+                    primarySsrc = fidGroup.ssrcs.split(" ")[0];
+                }
+            } else if (numSsrcs >= 3) {
+                // Can figure it out if there's a sim group
+                let simGroup = videoMLine.ssrcGroups
+                    .find(group => group.semantics === "SIM");
+                if (simGroup) {
+                    primarySsrc = simGroup.ssrcs.split(" ")[0];
+                }
+            }
+        }
+        return primarySsrc;
+    },
+
+    /**
+     * Generate an ssrc
+     * @returns {number} an ssrc
+     */
+    generateSsrc: function() {
+        return RandomUtil.randomInt(1, 0xffffffff);
+    },
+
+    /**
+     * Get an attribute for the given ssrc with the given attributeName
+     *  from the given mline
+     * @param {object} mLine an mLine object as parsed from transform.parse
+     * @param {number} ssrc the ssrc for which an attribtue is desired
+     * @param {string} attributeName the name of the desired attribute
+     * @returns {string} the value corresponding to the given ssrc
+     *  and attributeName
+     */
+    getSsrcAttribute: function (mLine, ssrc, attributeName) {
+        for (let i = 0; i < mLine.ssrcs.length; ++i) {
+            let ssrcLine = mLine.ssrcs[i];
+            if (ssrcLine.id === ssrc &&
+                ssrcLine.attribute === attributeName) {
+                return ssrcLine.value;
+            }
+        }
+    },
+
+    /**
+     * Parses the ssrcs from the group sdp line and
+     *  returns them as a list of numbers
+     * @param {object} the ssrcGroup object as parsed from
+     *  sdp-transform
+     * @returns {list<number>} a list of the ssrcs in the group
+     *  parsed as numbers
+     */
+    parseGroupSsrcs: function (ssrcGroup) {
+        return ssrcGroup
+            .ssrcs
+            .split(" ")
+            .map(ssrcStr => parseInt(ssrcStr));
+    },
 };
 
 module.exports = SDPUtil;
