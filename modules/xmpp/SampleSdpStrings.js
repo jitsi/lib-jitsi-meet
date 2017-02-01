@@ -3,7 +3,7 @@
 import * as transform from 'sdp-transform';
 
 // A generic sdp session block
-var baseSessionSdp = "" +
+const baseSessionSdp = "" +
 "v=0\r\n" +
 "o=- 814997227879783433 5 IN IP4 127.0.0.1\r\n" +
 "s=-\r\n" +
@@ -12,7 +12,7 @@ var baseSessionSdp = "" +
 "a=group:BUNDLE audio video data\r\n";
 
 // A basic sdp audio mline with a single stream
-var baseAudioMLineSdp = "" +
+const baseAudioMLineSdp = "" +
 "m=audio 54405 RTP/SAVPF 111 103 104 126\r\n" +
 "c=IN IP4 172.29.32.39\r\n" +
 "a=rtpmap:111 opus/48000/2\r\n" +
@@ -37,7 +37,7 @@ var baseAudioMLineSdp = "" +
 "a=rtcp-mux\r\n";
 
 // A basic sdp application mline
-var baseDataMLineSdp = "" +
+const baseDataMLineSdp = "" +
 "m=application 9 DTLS/SCTP 5000\r\n" +
 "c=IN IP4 0.0.0.0\r\n" +
 "b=AS:30\r\n" +
@@ -49,7 +49,7 @@ var baseDataMLineSdp = "" +
 "a=sctpmap:5000 webrtc-datachannel 1024\r\n";
 
 // A basic sdp video mline with a single stream
-var plainVideoMLineSdp = "" +
+const plainVideoMLineSdp = "" +
 "m=video 9 RTP/SAVPF 100\r\n" +
 "c=IN IP4 0.0.0.0\r\n" +
 "a=rtpmap:100 VP8/90000\r\n" +
@@ -70,7 +70,7 @@ var plainVideoMLineSdp = "" +
 "a=rtcp-mux\r\n";
 
 // An sdp video mline with 3 simulcast streams
-var simulcastVideoMLineSdp = "" +
+const simulcastVideoMLineSdp = "" +
 "m=video 9 RTP/SAVPF 100\r\n" +
 "c=IN IP4 0.0.0.0\r\n" +
 "a=rtpmap:100 VP8/90000\r\n" +
@@ -97,7 +97,7 @@ var simulcastVideoMLineSdp = "" +
 
 // An sdp video mline with a single video stream and a
 //  corresponding rtx stream
-var rtxVideoMLineSdp = "" +
+const rtxVideoMLineSdp = "" +
 "m=video 9 RTP/SAVPF 100 96\r\n" +
 "c=IN IP4 0.0.0.0\r\n" +
 "a=rtpmap:100 VP8/90000\r\n" +
@@ -122,7 +122,7 @@ var rtxVideoMLineSdp = "" +
 "a=rtcp-mux\r\n";
 
 // An sdp video mline with 3 simulcast streams and 3 rtx streams
-var simulcastRtxVideoMLineSdp = "" +
+const simulcastRtxVideoMLineSdp = "" +
 "m=video 9 RTP/SAVPF 100 96\r\n" +
 "c=IN IP4 0.0.0.0\r\n" +
 "a=rtpmap:100 VP8/90000\r\n" +
@@ -158,17 +158,17 @@ var simulcastRtxVideoMLineSdp = "" +
 "a=rtcp-mux\r\n";
 
 // A full sdp string representing a client doing simulcast
-var simulcastSdp = baseSessionSdp + baseAudioMLineSdp + simulcastVideoMLineSdp + baseDataMLineSdp;
+const simulcastSdpStr = baseSessionSdp + baseAudioMLineSdp + simulcastVideoMLineSdp + baseDataMLineSdp;
 // A full sdp string representing a client doing simulcast and rtx
-var simulcastRtxSdp = baseSessionSdp + baseAudioMLineSdp + simulcastRtxVideoMLineSdp + baseDataMLineSdp;
+const simulcastRtxSdpStr = baseSessionSdp + baseAudioMLineSdp + simulcastRtxVideoMLineSdp + baseDataMLineSdp;
 // A full sdp string representing a client doing a single video stream
-var plainVideoSdp = baseSessionSdp + baseAudioMLineSdp + plainVideoMLineSdp + baseDataMLineSdp;
+const plainVideoSdpStr = baseSessionSdp + baseAudioMLineSdp + plainVideoMLineSdp + baseDataMLineSdp;
 // A full sdp string representing a client doing a single video stream with rtx
-var rtxVideoSdp = baseSessionSdp + baseAudioMLineSdp + rtxVideoMLineSdp + baseDataMLineSdp;
+const rtxVideoSdpStr = baseSessionSdp + baseAudioMLineSdp + rtxVideoMLineSdp + baseDataMLineSdp;
 
-exports.simulcastSdp = transform.parse(simulcastSdp);
-exports.simulcastRtxSdp = transform.parse(simulcastRtxSdp);
-exports.plainVideoSdp = transform.parse(plainVideoSdp);
-exports.rtxVideoSdp = transform.parse(rtxVideoSdp);
+export const simulcastSdp = transform.parse(simulcastSdpStr);
+export const simulcastRtxSdp = transform.parse(simulcastRtxSdpStr);
+export const plainVideoSdp = transform.parse(plainVideoSdpStr);
+export const rtxVideoSdp = transform.parse(rtxVideoSdpStr);
 
 /*eslint-enable max-len*/
