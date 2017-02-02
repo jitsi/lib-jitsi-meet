@@ -748,11 +748,13 @@ class RTCUtils extends Listenable {
             if (RTCBrowserType.isFirefox()) {
                 var FFversion = RTCBrowserType.getFirefoxVersion();
                 if (FFversion < 40) {
-                    logger.error(
-                            "Firefox version too old: " + FFversion +
-                            ". Required >= 40.");
-                    reject(new Error("Firefox version too old: " + FFversion +
-                    ". Required >= 40."));
+                    const errText = `Firefox version too old: ${ FFversion }. Required >= 40.`;
+                    const error = new Error(errText);
+
+                    logger.error(errText);
+                    error.isOldBrowser = true;
+
+                    reject(error);
                     return;
                 }
                 this.peerconnection = mozRTCPeerConnection;
@@ -794,6 +796,7 @@ class RTCUtils extends Listenable {
                     RTCBrowserType.isNWJS() ||
                     RTCBrowserType.isElectron() ||
                     RTCBrowserType.isReactNative()) {
+
                 this.peerconnection = webkitRTCPeerConnection;
                 var getUserMedia = navigator.webkitGetUserMedia.bind(navigator);
                 if (navigator.mediaDevices) {
@@ -903,13 +906,21 @@ class RTCUtils extends Listenable {
                     AdapterJS.WebRTCPlugin.pluginInfo.type,
                     pluginInstalledCallback,
                     function () {
-                        reject(new Error('Temasys plugin is not installed'));
+                        console.log('plugin is not installed');
+                        const error = new Error('Temasys plugin is not installed');
+
+                        error.isOldBrowser = false;
+                        reject(error);
                     });
 
             } else {
-                var errmsg = 'Browser does not appear to be WebRTC-capable';
+                const errmsg = 'Browser does not appear to be WebRTC-capable';
+                const error = new Error(errmsg);
+
+                error.isOldBrowser = true;
                 logger.error(errmsg);
-                reject(new Error(errmsg));
+
+                reject(error);
                 return;
             }
 
