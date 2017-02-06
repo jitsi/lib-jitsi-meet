@@ -286,8 +286,7 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
     this.dontFireRemoveEvent = false;
 
     // FIXME FF does not support 'removeStream' method used to mute
-    if (window.location.protocol !== "https:" ||
-        this.isAudioTrack() ||
+    if (this.isAudioTrack() ||
         this.videoType === VideoType.DESKTOP ||
         RTCBrowserType.isFirefox()) {
         if(this.track)
