@@ -156,9 +156,7 @@ JitsiLocalTrack.prototype._addPeerConnection = function(tpc) {
         this.peerConnections.push(tpc);
     } else {
         logger.error(
-            "PeerConnection[" + tpc.id
-                + " is associated with the local track already["
-                + this.rtcId + "]");
+            `${tpc} has been associated with ${this} already !`);
     }
 };
 
@@ -167,10 +165,7 @@ JitsiLocalTrack.prototype._removePeerConnection = function (tpc) {
         this.peerConnections.splice(
             this.peerConnections.indexOf(tpc), 1);
     } else {
-        logger.error(
-            "PeerConnection[" + tpc.id
-                + " is not associated with this local track["
-                + this.rtcId + "]");
+        logger.error(`${tpc} is not associated with ${this}`);
     }
 };
 
@@ -289,8 +284,9 @@ JitsiLocalTrack.prototype._setStream = function (stream) {
     // Store the MSID for video mute/unmute purposes
     if (stream) {
         this.storedMSID = this.getMSID();
-        logger.debug(
-            `Setting new MSID: ${this.storedMSID} on: ${this.rtcId}`);
+        logger.debug(`Setting new MSID: ${this.storedMSID} on ${this}`);
+    } else {
+        logger.debug(`Setting 'null' stream on ${this}`);
     }
 };
 
@@ -363,16 +359,21 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
 
     this.dontFireRemoveEvent = false;
 
+    // A function that will print info about muted status transition
+    const loggerMuteInfo = () => { logger.info("Mute " + this + ": " + mute); };
+
     // FIXME FF does not support 'removeStream' method used to mute
     if (this.isAudioTrack()
         || this.videoType === VideoType.DESKTOP
         || RTCBrowserType.isFirefox()) {
+        loggerMuteInfo();
         if (this.track) {
             this.track.enabled = !mute;
         }
     } else if (mute) {
         this.dontFireRemoveEvent = true;
         promise = new Promise((resolve, reject) => {
+            loggerMuteInfo();
             this._removeStreamFromConferenceAsMute(() => {
                 // FIXME: Maybe here we should set the SRC for the containers
                 // to something
@@ -384,6 +385,7 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
             });
         });
     } else {
+        loggerMuteInfo();
         // This path is only for camera.
         const streamOptions = {
             cameraDeviceId: this.getDeviceId(),
@@ -409,7 +411,7 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
                     // unmute, but let's not crash here
                     if (self.videoType !== streamInfo.videoType) {
                         logger.warn(
-                            'Video type has changed after unmute!',
+                            `${this}: video type has changed after unmute!`,
                             self.videoType, streamInfo.videoType);
                         self.videoType = streamInfo.videoType;
                     }
@@ -604,6 +606,7 @@ JitsiLocalTrack.prototype._setByteSent = function(bytesSent) {
     if (this._testByteSent && iceConnectionState === 'connected') {
         setTimeout(() => {
             if (this._bytesSent <= 0) {
+                logger.warn(`${this} 'bytes sent' <= 0: ${this._bytesSent}`);
                 // we are not receiving anything from the microphone
                 this._fireNoDataFromSourceEvent();
             }
@@ -699,6 +702,14 @@ JitsiLocalTrack.prototype._isReceivingData = function() {
     return this.stream.getTracks().some(track =>
         (!('readyState' in track) || track.readyState === 'live')
             && (!('muted' in track) || track.muted !== true));
+};
+
+/**
+ * Creates a text representation of this local track instance.
+ * @return {string}
+ */
+JitsiLocalTrack.prototype.toString = function () {
+    return "LocalTrack[" + this.rtcId + "," + this.getType() + "]";
 };
 
 module.exports = JitsiLocalTrack;
