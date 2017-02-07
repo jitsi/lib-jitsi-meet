@@ -906,11 +906,13 @@ class RTCUtils extends Listenable {
                     AdapterJS.WebRTCPlugin.pluginInfo.type,
                     pluginInstalledCallback,
                     function () {
-                        console.log('plugin is not installed');
                         const error = new Error('Temasys plugin is not installed');
 
                         error.isOldBrowser = false;
                         reject(error);
+
+                        // Inform user about required plugin installation.
+                        AdapterJS.WebRTCPlugin.pluginNeededButNotInstalledCb();
                     });
 
             } else {
