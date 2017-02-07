@@ -43,6 +43,13 @@ const CHROME_EXTENSION_POPUP_ERROR
     = "Inline installs can not be initiated from pop-up windows.";
 
 /**
+ * The error returned by chrome when trying to start inline installation from
+ * iframe.
+ */
+const CHROME_EXTENSION_IFRAME_ERROR
+    = "Chrome Web Store installations can only be started by the top frame.";
+
+/**
  * The error message returned by chrome when the extension is installed.
  */
 const CHROME_NO_EXTENSION_ERROR_MSG // eslint-disable-line no-unused-vars
@@ -266,7 +273,8 @@ var ScreenObtainer = {
     handleExtensionInstallationError(options, streamCallback, failCallback, e) {
         const webStoreInstallUrl = getWebStoreInstallUrl(this.options);
 
-        if (CHROME_EXTENSION_POPUP_ERROR === e
+        if ((CHROME_EXTENSION_POPUP_ERROR === e
+             || CHROME_EXTENSION_IFRAME_ERROR === e)
                 && options.interval > 0
                 && typeof(options.checkAgain) === "function"
                 && typeof(options.listener) === "function") {
