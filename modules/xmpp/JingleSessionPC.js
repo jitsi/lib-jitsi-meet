@@ -403,8 +403,10 @@ export default class JingleSessionPC extends JingleSession {
                 this.setOfferCycle(
                     originalOffer,
                     () => {
+                        const localSDP
+                            = new SDP(this.peerconnection.localDescription);
                         // Set local description OK, now localSDP up to date
-                        this.sendTransportAccept(this.localSDP, success, failure);
+                        this.sendTransportAccept(localSDP, success, failure);
                     },
                     failure);
             },
