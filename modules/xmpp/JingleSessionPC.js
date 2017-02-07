@@ -792,26 +792,10 @@ export default class JingleSessionPC extends JingleSession {
 
         const workFunction = finishedCallback => {
             const sdp = new SDP(this.peerconnection.remoteDescription.sdp);
-            const mySdp = new SDP(this.peerconnection.localDescription.sdp);
             const addSsrcInfo = this._parseSsrcInfoFromSourceAdd(elem, sdp);
 
             const newRemoteSdp = this._processRemoteAddSource(addSsrcInfo);
-
-            this._renegotiate(newRemoteSdp)
-                .then(() => {
-                    logger.info('Remote source-add processed');
-                    const newSdp
-                        = new SDP(this.peerconnection.localDescription.sdp);
-
-                    logger.log('SDPs', mySdp, newSdp);
-                    this.notifyMySSRCUpdate(mySdp, newSdp);
-                    finishedCallback();
-                }, error => {
-                    logger.error(
-                        'Error renegotiating after processing remote'
-                            + ` source-add: ${error}`);
-                    finishedCallback(error);
-                });
+            this._doRenegotiate('source-add', finishedCallback, newRemoteSdp);
         };
 
         this.modificationQueue.push(workFunction);
@@ -835,28 +819,13 @@ export default class JingleSessionPC extends JingleSession {
             'ICE connection state: ', this.peerconnection.iceConnectionState);
         const workFunction = finishedCallback => {
             const sdp = new SDP(this.peerconnection.remoteDescription.sdp);
-            const mySdp = new SDP(this.peerconnection.localDescription.sdp);
             const removeSsrcInfo
                 = this._parseSsrcInfoFromSourceRemove(elem, sdp);
-
             const newRemoteSdp
                 = this._processRemoteRemoveSource(removeSsrcInfo);
 
-            this._renegotiate(newRemoteSdp)
-                .then(() => {
-                    logger.info('Remote source-remove processed');
-                    const newSdp
-                        = new SDP(this.peerconnection.localDescription.sdp);
-
-                    logger.log('SDPs', mySdp, newSdp);
-                    this.notifyMySSRCUpdate(mySdp, newSdp);
-                    finishedCallback();
-                }, error => {
-                    logger.error(
-                        'Error renegotiating after processing remote'
-                          + ` source-remove: ${error}`);
-                    finishedCallback(error);
-                });
+            this._doRenegotiate(
+                'source-remove', finishedCallback, newRemoteSdp);
         };
 
         this.modificationQueue.push(workFunction);
@@ -1029,13 +998,12 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * FIXME update docs
-     * Replaces oldStream with newStream and performs a single offer/answer
-     *  cycle after both operations are done.  Either oldStream or newStream
-     *  can be null; replacing a valid 'oldStream' with a null 'newStream'
-     *  effectively just removes 'oldStream'
-     * @param {JitsiLocalTrack|null} oldTrack the current track in use to be
-     * replaced
+     * Replaces <tt>oldTrack</tt> with <tt>newTrack</tt> and performs a single
+     * offer/answer cycle after both operations are done. Either
+     * <tt>oldTrack</tt> or <tt>newTrack</tt> can be null; replacing a valid
+     * <tt>oldTrack</tt> with a null <tt>newTrack</tt> effectively just removes
+     * <tt>oldTrack</tt>
+     * @param {JitsiLocalTrack|null} oldTrack the current track in use to be replaced
      * @param {JitsiLocalTrack|null} newTrack the new track to use
      * @returns {Promise} which resolves once the replacement is complete
      *  with no arguments or rejects with an error {string}
@@ -1043,9 +1011,6 @@ export default class JingleSessionPC extends JingleSession {
     replaceTrack(oldTrack, newTrack) {
         return new Promise((resolve, reject) => {
             const workFunction = finishedCallback => {
-                const oldSdp
-                    = new SDP(this.peerconnection.localDescription.sdp);
-
                 // NOTE the code below assumes that no more than 1 video track
                 // can be added to the peer connection.
                 // Transition from no video to video (possibly screen sharing)
@@ -1068,23 +1033,12 @@ export default class JingleSessionPC extends JingleSession {
                     this.peerconnection.generateRecvonlySsrc();
                 }
                 if (oldTrack) {
-                    this.peerconnection.removeStream(oldTrack);
+                    this.peerconnection.removeTrack(oldTrack);
                 }
                 if (newTrack) {
-                    this.peerconnection.addStream(newTrack);
+                    this.peerconnection.addTrack(newTrack);
                 }
-                this._renegotiate()
-                    .then(() => {
-                        const newSdp
-                            = new SDP(this.peerconnection.localDescription.sdp);
-
-                        this.notifyMySSRCUpdate(oldSdp, newSdp);
-                        finishedCallback();
-                    }, error => {
-                        logger.error(
-                            `replaceTrack renegotiation failed: ${error}`);
-                        finishedCallback(error);
-                    });
+                this._doRenegotiate('replaceTrack', finishedCallback);
             };
 
             this.modificationQueue.push(
@@ -1171,17 +1125,11 @@ export default class JingleSessionPC extends JingleSession {
     /* eslint-disable max-params */
 
     /**
-     * FIXME update docs
-     * Adds stream.
-     * @param stream new stream that will be added.
-     * @param callback callback executed after successful stream addition.
-     * @param errorCallback callback executed if stream addition fail.
-     * @param ssrcInfo object with information about the SSRCs associated with
-     *        the stream.
-     * @param dontModifySources {boolean} if true _modifySources won't be
-     *        called.
-     * Used for streams added before the call start.
-     * NOTE(brian): there is a decent amount of overlap here with replaceTrack
+     * Adds <tt>JitsiLocalTrack</tt>s to this session.
+     * @param {JitsiLocalTrack[]} tracks new local tracks that will be added.
+     * @return {Promise} a promise that will resolve once all local tracks are
+     * added. Will be rejected with a <tt>string</tt> which describes the error.
+     * NOTE(brian): there is a decent amount of overlap here with replaceStream
      *  that could be re-used...however we can't leverage that currently because
      *  the extra work we do here must be in the work function context and if we
      *  then called replaceTrack we'd be adding another task on the queue
@@ -1189,13 +1137,7 @@ export default class JingleSessionPC extends JingleSession {
      *  logic should be moved into a helper function that could be called within
      *  the 'doReplaceStream' task or the 'doAddStream' task (for example)
      */
-    addStream(stream, callback, errorCallback, dontModifySources) {
-
-        if (!stream) {
-            errorCallback('invalid "stream" argument value');
-            return;
-        }
-
+    addLocalTracks(tracks) {
         const workFunction = (finishedCallback) => {
             if (!this.peerconnection) {
                 finishedCallback(
@@ -1204,129 +1146,103 @@ export default class JingleSessionPC extends JingleSession {
 
                 return;
             }
-            this.peerconnection.addStream(stream);
-
-            if (dontModifySources) {
-                finishedCallback();
-
-                return;
+            for (let stream of tracks) {
+                this.peerconnection.addTrack(stream);
             }
-            const oldSdp = new SDP(this.peerconnection.localDescription.sdp);
 
-            this._renegotiate()
-                .then(() => {
-                    const newSdp
-                        = new SDP(this.peerconnection.localDescription.sdp);
-
-                    // FIXME objects should not be logged
-
-                    logger.log('SDPs', oldSdp, newSdp);
-                    this.notifyMySSRCUpdate(oldSdp, newSdp);
-                    finishedCallback();
-                }, error => {
-                    finishedCallback(error);
-                });
+            this._doRenegotiate('addStreams', finishedCallback);
         };
-
-        this.modificationQueue.push(
-            workFunction,
-            error => {
-                error ? errorCallback(error) : callback();
-            });
+        return new Promise((resolve, reject) => {
+            this.modificationQueue.push(
+                workFunction,
+                (error) => {
+                    if (!error) {
+                        resolve();
+                    } else {
+                        reject(error);
+                    }
+                }
+            );
+        });
     }
 
     /* eslint-enable max-params */
 
     /**
-     * FIXME docs
-     * @param stream
-     * @param callback
-     * @param errorCallback
-     * @param dontModifySources
+     * Adds local track back to this session, as part of the unmute operation.
+     * @param {JitsiLocalTrack} track
+     * @return {Promise} a promise that will resolve once the local track is
+     * added back to this session and renegotiation succeeds. Will be rejected
+     * with a <tt>string</tt> that provides some error details in case something
+     * goes wrong.
      */
-    addStreamAsUnmute (stream, callback, errorCallback, dontModifySources) {
-
-        if (!stream) {
-            errorCallback('invalid "stream" argument value');
-            return;
+    addTrackAsUnmute (track) {
+        if (!track) {
+            return Promise.reject('invalid "track" argument value');
         }
-
-        const workFunction = (finishedCallback) => {
-            if (!this.peerconnection) {
-                finishedCallback(
-                    'Error: '
-                    + 'tried adding stream with no active peer connection');
-                return;
-            }
-            this.peerconnection.addStreamUnmute(stream);
-
-            if (dontModifySources) {
-                finishedCallback();
-                return;
-            }
-            const oldSdp = new SDP(this.peerconnection.localDescription.sdp);
-            this._renegotiate()
-                .then(() => {
-                    const newSdp
-                        = new SDP(this.peerconnection.localDescription.sdp);
-                    // FIXME objects should not be logged
-                    logger.log('SDPs', oldSdp, newSdp);
-                    this.notifyMySSRCUpdate(oldSdp, newSdp);
-                    finishedCallback();
-                }, (error) => {
-                    finishedCallback(error);
-                });
-        };
-        this.modificationQueue.push(
-            workFunction,
-            (error) => {
-                if (!error) {
-                    callback();
-                } else {
-                    errorCallback(error);
+        return new Promise((resolve, reject) => {
+            const workFunction = (finishedCallback) => {
+                if (!this.peerconnection) {
+                    finishedCallback(
+                        'Error: '
+                        + 'tried adding track with no active peer connection');
+                    return;
                 }
-            }
-        );
+                const changed = this.peerconnection.addTrackUnmute(track);
+                if (changed)
+                    this._doRenegotiate('addStreamAsUnmute', finishedCallback);
+                else
+                    finishedCallback();
+            };
+            this.modificationQueue.push(
+                workFunction,
+                (error) => {
+                    if (!error) {
+                        resolve();
+                    } else {
+                        reject(error);
+                    }
+                }
+            );
+        });
     }
 
     /* eslint-disable max-params */
 
     /**
-     * FIXME docs
-     * @param localTrack
-     * @param dontModifySources
-     * @return {Promise}
+     * Attached previously detached local tracks back to this session.
+     * @param {JitsiLocalTrack[]} localTracks
+     * @return {Promise} a promise that will be resolved once the local tracks
+     * are attached back to this session and the renegotiation is performed.
+     * Will be rejected with a <tt>string</tt> describing the error if anything
+     * goes wrong.
      */
-    attachStream (localTrack, dontModifySources) {
+    attachLocalTracks (localTracks) {
 
-        if (!localTrack) {
-            return Promise.reject("invalid 'stream' argument value");
+        if (!localTracks) {
+            return Promise.reject('invalid "localTracks" argument value');
         }
         return new Promise((resolve, reject) => {
         const workFunction = (finishedCallback) => {
             if (!this.peerconnection) {
                 finishedCallback(
-                    "Error: "
-                        + "tried adding stream with no active peer connection");
+                    'Error: '
+                        + 'tried adding stream with no active peer connection');
                 return;
             }
-            this.peerconnection.attachTrack(localTrack);
-            if (dontModifySources) {
-                finishedCallback();
-                return;
+
+            // A snapshot of local SDP needs to be taken prior attaching
+            // the tracks (local description is faked in
+            // the TraceablePeerConnection, based on the current tracks
+            // state).
+            const oldSdp = this.peerconnection.localDescription.sdp;
+
+            for (let track of localTracks) {
+                this.peerconnection.attachTrack(track);
             }
-            const oldSdp = new SDP(this.peerconnection.localDescription.sdp);
-            this._renegotiate()
-                .then(() => {
-                    const newSdp
-                        = new SDP(this.peerconnection.localDescription.sdp);
-                    // FIXME objects should not be logged
-                    logger.log("SDPs", oldSdp, newSdp);
-                    this.notifyMySSRCUpdate(oldSdp, newSdp);
-                    finishedCallback();
-                }, (error) => {
-                    finishedCallback(error);
-                });
+            this._doRenegotiate(
+                "attachTracks", finishedCallback,
+                undefined /* remote SDP */, oldSdp /* "old" local SDP */);
         };
         this.modificationQueue.push(
             workFunction,
@@ -1341,58 +1257,120 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * FIXME update docs
-     * Remove streams.
-     * @param stream stream that will be removed.
-     * @param callback callback executed after successful stream addition.
-     * @param errorCallback callback executed if stream addition fail.
+     * Remove local track as part of the mute operation.
+     * @param {JitsiLocalTrack} track the local track to be removed
+     * @return {Promise} a promise which will be resolved once the local track
+     * is removed from this session and the renegotiation is performed.
+     * The promise will be rejected with a <tt>string</tt> that the describes
+     * the error if anything goes wrong.
      */
-    removeTrackAsMute(stream, callback, errorCallback) {
-        if (!stream) {
-            errorCallback("invalid 'stream' argument value");
-            return;
+    removeTrackAsMute(track) {
+        if (!track) {
+            return Promise.reject('invalid "stream" argument value');
         }
 
-        const workFunction = (finishedCallback) => {
-            if (!this.peerconnection) {
-                finishedCallback();
+        return new Promise((resolve, reject) => {
+            const workFunction = (finishedCallback) => {
+                if (!this.peerconnection) {
+                    finishedCallback();
+                    return;
+                }
+                if (this.peerconnection.removeTrackMute(track)){
+                    this._doRenegotiate('remove-as-mute', finishedCallback);
+                } else {
+                    finishedCallback();
+                }
+            };
+            this.modificationQueue.push(
+                workFunction,
+                (error) => {
+                    if (!error) {
+                        resolve();
+                    } else {
+                        reject(error);
+                    }
+                }
+            );
+        });
+    }
 
-                return;
-            }
-            this.peerconnection.removeStreamMute(stream);
-            const oldSdp = new SDP(this.peerconnection.localDescription.sdp);
-
-            this._renegotiate()
+    /**
+     * Does the logic of doing the session renegotiation by updating local and
+     * remote session descriptions. Will compare the local description, before
+     * and after the renegotiation to update local streams description (sends
+     * "source-add"/"source-remove" notifications).
+     * @param {string} actionName the name of the action which will appear in
+     * the events logged to the logger.
+     * @param {function(string)} finishedCallback a callback that will be called
+     * once the renegotiation completes. It has the same semantics as
+     * the callback passed to {@link _renegotiate}.
+     * @param {object} [remoteSdp] the SDP object consumable by
+     * the PeerConnection, as defined by the WebRTC standard. If defined will be
+     * used as the remote description for the renegotiation.
+     * @param {object} [oldSdp] the SDP object consumable by the PeerConnection,
+     * as defined by the WebRTC standard. Stand for the "old local SDP" and will
+     * be used to compare changes in the local description, before and after the
+     * renegotiation.
+     * @private
+     */
+    _doRenegotiate (actionName, finishedCallback, remoteSdp, oldSdp) {
+        let dontModifySources = false;
+        if (!this.peerconnection.localDescription.sdp) {
+            logger.info(
+                this + ": " + actionName + " - will NOT modify sources, "
+                     + "because there is no local SDP yet");
+            dontModifySources = true;
+        } else if (!this.peerconnection.remoteDescription.sdp) {
+            logger.info(
+                this + ": " + actionName + " - will NOT modify sources, "
+                     + "because there is no remote SDP yet");
+            dontModifySources = true;
+        }
+        if (!dontModifySources) {
+            if (oldSdp)
+                oldSdp = new SDP(oldSdp);
+            else
+                oldSdp = new SDP(this.peerconnection.localDescription.sdp);
+            this._renegotiate(remoteSdp)
                 .then(() => {
                     const newSdp
                         = new SDP(this.peerconnection.localDescription.sdp);
 
-                    logger.log('SDPs', oldSdp, newSdp);
+                    logger.log(`${actionName} - OK, SDPs: `, oldSdp, newSdp);
                     this.notifyMySSRCUpdate(oldSdp, newSdp);
                     finishedCallback();
-                }, error => {
+                }, (error) => {
+                    logger.error(`${actionName} renegotiate failed: `, error);
                     finishedCallback(error);
                 });
-        };
-
-        this.modificationQueue.push(
-            workFunction,
-            error => {
-                error ? errorCallback(error) : callback();
-            });
+        } else {
+            finishedCallback();
+        }
     }
 
     /* eslint-enable max-params */
 
     /**
-     * FIXME update docs
-     * Remove streams.
-     * @param stream stream that will be removed.
+     * Detaches local track from this session. A detached track does no longer
+     * stream any media to the remote participant, but is logically bound to
+     * this session and is still advertised to other conference participants and
+     * handles "mute"/"unmute" actions.
+     * @param {JitsiLocalTrack} track the local track to be detached.
      * @return {Promise}
      */
-    detachTrack (stream) {
-        if (!stream) {
-            return Promise.reject("invalid 'stream' argument value");
+    detachLocalTrack (track) {
+        return this.detachLocalTracks([track]);
+    }
+
+    /**
+     * Detaches multiple local tracks in one operation. See
+     * {@link detachLocalTrack}.
+     * @param {JitsiLocalTrack[]} tracks an array of local tracks to be detached
+     * @return {Promise} the same as in {@link detachLocalTrack}.
+     */
+    detachLocalTracks (tracks) {
+        if (!tracks) {
+            return Promise.reject("invalid 'tracks' argument value");
         }
 
         return new Promise((resolve, reject) =>{
@@ -1401,19 +1379,17 @@ export default class JingleSessionPC extends JingleSession {
                     finishedCallback();
                     return;
                 }
-                this.peerconnection.detachTrack(stream);
-                const oldSdp
-                    = new SDP(this.peerconnection.localDescription.sdp);
-                this._renegotiate()
-                    .then(() => {
-                        const newSdp
-                            = new SDP(this.peerconnection.localDescription.sdp);
-                        logger.log("SDPs", oldSdp, newSdp);
-                        this.notifyMySSRCUpdate(oldSdp, newSdp);
-                        finishedCallback();
-                    }, (error) => {
-                        finishedCallback(error);
-                    });
+                // A snapshot of local SDP needs to be taken prior detaching
+                // the tracks (local description is faked in
+                // the TraceablePeerConnection, based on the current tracks
+                // state).
+                const oldSdp = this.peerconnection.localDescription.sdp;
+                for (let track of tracks) {
+                    this.peerconnection.detachTrack(track);
+                }
+                this._doRenegotiate(
+                    "detach tracks", finishedCallback,
+                    undefined /* remote SDP */, oldSdp /* "old" local SDP */);
             };
             this.modificationQueue.push(
                 workFunction,

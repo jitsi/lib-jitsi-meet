@@ -448,7 +448,7 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function() {
 
     // FIXME deal with unmute (should be done by the traceable peer connection)
     return new Promise((resolve, reject) => {
-        this.conference.addLocalWebRTCStreamAsUnmute(
+        this.conference._addLocalTrackAsUnmute(
             this, resolve, (error) => reject(new Error(error)));
     });
 };
@@ -467,7 +467,7 @@ JitsiLocalTrack.prototype._removeStreamFromConferenceAsMute
         return;
     }
     // FXIME make removeLocalWebRTCStream accept callbacks
-    this.conference.removeTrackAsMute(
+    this.conference._removeTrackAsMute(
         this,
         successCallback,
         (error) => errorCallback(new Error(error)));
