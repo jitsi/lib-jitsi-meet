@@ -4013,24 +4013,21 @@ if ( (navigator.mozGetUserMedia ||
     }
 
     var downloadLink = AdapterJS.WebRTCPlugin.pluginInfo.downloadLink;
-
-    // If should show download link.
-    if (downloadLink) {
+    if(downloadLink) { // if download link
       var popupString;
-
-      // Check if portal link for the plugin is provided.
-      if (AdapterJS.WebRTCPlugin.pluginInfo.portalLink) {
+      if (AdapterJS.WebRTCPlugin.pluginInfo.portalLink) { // is portal link
        popupString = 'This website requires you to install the ' +
         ' <a href="' + AdapterJS.WebRTCPlugin.pluginInfo.portalLink +
         '" target="_blank">' + AdapterJS.WebRTCPlugin.pluginInfo.companyName +
         ' WebRTC Plugin</a>' +
         ' to work on this browser.';
-      } else {
-          // Generic explanation if there is no portal link
-          popupString = AdapterJS.TEXT.PLUGIN.REQUIRE_INSTALLATION;
+      } else { // no portal link, just print a generic explanation
+       popupString = AdapterJS.TEXT.PLUGIN.REQUIRE_INSTALLATION;
       }
 
       AdapterJS.renderNotificationBar(popupString, AdapterJS.TEXT.PLUGIN.BUTTON, downloadLink);
+    } else { // no download link, just print a generic explanation
+      AdapterJS.renderNotificationBar(AdapterJS.TEXT.PLUGIN.NOT_SUPPORTED);
     }
   };
 
