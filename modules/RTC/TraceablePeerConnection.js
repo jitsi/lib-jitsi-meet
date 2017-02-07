@@ -929,28 +929,32 @@ TraceablePeerConnection.prototype._getSSRC = function(rtcId) {
     return this.localSSRCs[rtcId];
 };
 
-TraceablePeerConnection.prototype.addStream = function (stream) {
-    const rtcId = stream.rtcId;
+/**
+ * Add {@link JitsiLocalTrack} to this TPC.
+ * @param {JitsiLocalTrack} track
+ */
+TraceablePeerConnection.prototype.addTrack = function (track) {
+    const rtcId = track.rtcId;
 
-    logger.info("add " + stream + " to: " + this);
+    logger.info("add " + track + " to: " + this);
 
     if (this.localTracks[rtcId]) {
-        logger.error(stream + " is already in " + this);
+        logger.error(track + " is already in " + this);
         return;
     }
 
-    this.localTracks[rtcId] = stream;
-    stream._addPeerConnection(this);
+    this.localTracks[rtcId] = track;
+    track._addPeerConnection(this);
 
-    const webrtcStream = stream.getOriginalStream();
+    const webrtcStream = track.getOriginalStream();
     if (webrtcStream)
-        this.peerconnection.addStream(webrtcStream);
+        this._addStream(webrtcStream);
     else
-        logger.warn(this + " no WebRTC stream for: " + stream);
+        logger.warn(this + " no WebRTC stream for: " + track);
 
     // Muted video tracks do not have WebRTC stream
-    if (stream.isVideoTrack() && stream.isMuted()) {
-        const ssrcInfo = this.generateNewStreamSSRCInfo(stream);
+    if (track.isVideoTrack() && track.isMuted()) {
+        const ssrcInfo = this.generateNewStreamSSRCInfo(track);
         this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrcs[0]);
         const simGroup =
             ssrcInfo.groups.find(groupInfo => {
@@ -975,14 +979,58 @@ TraceablePeerConnection.prototype.addStream = function (stream) {
     }
 };
 
-TraceablePeerConnection.prototype.addStreamUnmute = function (stream) {
+/**
+ * Adds local track as part of the unmute operation.
+ * @param {JitsiLocalTrack} track the track to be added as part of the unmute
+ * operation
+ * @return {boolean} <tt>true</tt> if the state of underlying PC has changed and
+ * the renegotiation is required or <tt>false</tt> otherwise.
+ */
+TraceablePeerConnection.prototype.addTrackUnmute = function (track) {
 
-    if (!this._assertTrackBelongs("addStreamUnmute", stream)) {
+    if (!this._assertTrackBelongs("addTrackUnmute", track)) {
         // Abort
-        return;
+        return false;
     }
 
-    this.peerconnection.addStream(stream.getOriginalStream());
+    if (track._isAttachedToPC(this)) {
+        logger.info(
+            "Adding " + track + " as unmute to " + this);
+        const webRtcStream = track.getOriginalStream();
+        if (!webRtcStream) {
+            logger.error(
+                "Unable to add " + track
+                + " as unmute to " + this + " - no WebRTC stream");
+            return false;
+        }
+        this._addStream(webRtcStream);
+        return true;
+    } else {
+        logger.info(
+            "Not adding detached " + track + " as unmute to " + this);
+        return false;
+    }
+};
+
+/**
+ * Adds WebRTC media stream to the underlying PeerConnection
+ * @param {MediaStream} mediaStream
+ * @private
+ */
+TraceablePeerConnection.prototype._addStream = function (mediaStream) {
+    this.peerconnection.addStream(mediaStream);
+};
+
+/**
+ * Removes WebRTC media stream from the underlying PeerConection
+ * @param {MediaStream} mediaStream
+ */
+TraceablePeerConnection.prototype._removeStream = function (mediaStream) {
+    if (RTCBrowserType.getBrowserType() === RTCBrowserType.RTC_BROWSER_FIREFOX) {
+        this._handleFirefoxRemoveStream(mediaStream);
+    } else {
+        this.peerconnection.removeStream(mediaStream);
+    }
 };
 
 /**
@@ -1033,11 +1081,27 @@ TraceablePeerConnection.prototype.detachTrack = function (localTrack) {
     if (!this._assertTrackBelongs("detachTrack", localTrack)) {
         // Abort
         return;
+    } else if (!localTrack._isAttachedToPC(this)) {
+        // Abort
+        logger.error(
+            "An attempt to detach a not-attached "
+                + localTrack + " from " + this + " was made");
+        return;
+    }
+
+    const webRtcStream = localTrack.getOriginalStream();
+    // Muted video track will not have WebRTC stream
+    if (webRtcStream) {
+        this._removeStream(webRtcStream);
+    } else if(localTrack.isVideoTrack() && localTrack.isMuted()) {
+        // It is normal that muted video track does not have WebRTC stream
+    } else {
+        logger.error(this + " detach " + localTrack + " - no WebRTC stream");
     }
 
     localTrack._removePeerConnection(this);
 
-    this.removeStreamMute(localTrack);
+    logger.debug("Detached " + localTrack + " from " + this);
 };
 
 /**
@@ -1052,18 +1116,40 @@ TraceablePeerConnection.prototype.attachTrack = function (localTrack) {
     if (!this._assertTrackBelongs("attachTrack", localTrack)) {
         // Abort
         return;
+    } else if (localTrack._isAttachedToPC(this)) {
+        // Abort
+        logger.error(
+            "An attempt to attach an already attached "
+            + localTrack + " to " + this + " was made");
+        return;
     }
 
     localTrack._addPeerConnection(this);
 
-    this.addStreamUnmute(localTrack);
+    logger.debug("Attached " + localTrack + " to " + this);
+
+    // Muted video tracks are not added to the PeerConnection
+    if (!localTrack.isVideoTrack() || !localTrack.isMuted()) {
+        const webRtcStream = localTrack.getOriginalStream();
+        if (webRtcStream) {
+            this._addStream(webRtcStream);
+            return true;
+        } else {
+            logger.error(
+                this + " attach - no WebRTC stream for: " + localTrack);
+            return false;
+        }
+    } else {
+        logger.debug(this + " attach " + localTrack + " - not adding to PC");
+        return false;
+    }
 };
 
 /**
- *
- * @param {JitsiLocalTrack} localTrack
+ * Remove local track from this TPC.
+ * @param {JitsiLocalTrack} localTrack the track to be removed from this TPC.
  */
-TraceablePeerConnection.prototype.removeStream = function (localTrack) {
+TraceablePeerConnection.prototype.removeTrack = function (localTrack) {
     const webRtcStream = localTrack.getOriginalStream();
     this.trace(
         'removeStream',
@@ -1091,25 +1177,37 @@ TraceablePeerConnection.prototype.removeStream = function (localTrack) {
 };
 
 /**
- *
- * @param {JitsiLocalTrack} localTrack
+ * Removes local track as part of the unmute operation.
+ * @param {JitsiLocalTrack} localTrack the local track to be remove as part of
+ * the mute operation.
+ * @return {boolean} <tt>true</tt> if the underlying PeerConnection's state has
+ * changed and the renegotiation is required or <tt>false</tt> otherwise.
  */
-TraceablePeerConnection.prototype.removeStreamMute = function (localTrack) {
+TraceablePeerConnection.prototype.removeTrackMute = function (localTrack) {
     const webRtcStream = localTrack.getOriginalStream();
-    this.trace('removeStreamMute', localTrack.rtcId, webRtcStream.id);
+    this.trace(
+        'removeStreamMute',
+        localTrack.rtcId, webRtcStream ? webRtcStream.id : null);
 
     if (!this._assertTrackBelongs("removeStreamMute", localTrack)) {
         // Abort - nothing to be done here
-        return;
+        return false;
+    } else if (!localTrack._isAttachedToPC(this)) {
+        // Abort - nothing to be done here
+        logger.warn(
+            "Not removing detached " + localTrack + " as unmute from " + this);
+        return false;
     }
 
     if (webRtcStream) {
-        if (RTCBrowserType.getBrowserType()
-            === RTCBrowserType.RTC_BROWSER_FIREFOX) {
-            this._handleFirefoxRemoveStream(webRtcStream);
-        } else {
-            this.peerconnection.removeStream(webRtcStream);
-        }
+        logger.info(
+            "Removing " + localTrack + " as mute from " + this);
+        this._removeStream(webRtcStream);
+        return true;
+    } else {
+        logger.error(
+            "removeStreamMute - no WebRTC stream for " + localTrack);
+        return false;
     }
 };
 

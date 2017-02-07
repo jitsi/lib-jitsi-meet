@@ -613,51 +613,37 @@ JitsiConference.prototype._setupNewTrack = function (newTrack) {
 };
 
 /**
- * Adds loca WebRTC stream to the conference.
- * @param {JitsiLocalTrack} track new stream that will be added.
- * @param {function} callback callback executed after successful stream addition.
- * @param {function(error)} errorCallback callback executed if stream addition fail.
- * @param {object} ssrcInfo object with information about the SSRCs associated with the
- * stream.
- * @param {boolean} [dontModifySources] if <tt>true</tt> _modifySources won't be
- * called. The option is used for adding stream, before the Jingle call is
- * started. That is before the 'session-accept' is sent.
+ * Add track stream.
+ * @param {JitsiLocalTrack} track the local track that will be added as part of
+ * the unmute operation.
+ * @param {function} callback callback executed, after successful stream
+ * addition.
+ * @param {function} errorCallback callback executed if stream addition fails.
  */
-JitsiConference.prototype._addLocalStream
-    = function (track, callback, errorCallback, dontModifySources) {
+JitsiConference.prototype._addLocalTrackAsUnmute
+    = function (track, callback, errorCallback) {
     if (this.jingleSession) {
-        this.jingleSession.addStream(
-            track, callback, errorCallback, dontModifySources);
+        this.jingleSession.addTrackAsUnmute(track)
+            .then(callback).catch(errorCallback);
     } else {
         // We are done immediately
-        logger.warn("Add local MediaStream - no JingleSession started yet");
-        callback();
-    }
-};
-
-JitsiConference.prototype.addLocalWebRTCStreamAsUnmute
-    = function (track, callback, errorCallback, dontModifySources) {
-    if(this.jingleSession) {
-        this.jingleSession.addStreamAsUnmute(
-            track, callback, errorCallback, dontModifySources);
-    } else {
-        // We are done immediately
-        logger.warn("Add local MediaStream as unmute - no JingleSession started yet");
+        logger.warn(
+            "Add local MediaStream as unmute - no JingleSession started yet");
         callback();
     }
 };
 
 /**
- * Remove local WebRTC media stream.
- * @param {MediaStream} stream the stream that will be removed.
- * @param {function} callback callback executed after successful stream removal.
- * @param {function} errorCallback callback executed if stream removal fail.
+ * Removes given local track, as part of the mute operation.
+ * @param {JitsiLocalTrack} track the local track that will be removed.
+ * @param {function} callback callback executed after successful track removal.
+ * @param {function} errorCallback callback executed if track removal fails.
  */
-JitsiConference.prototype.removeTrackAsMute
-    = function (stream, callback, errorCallback) {
-    if(this.jingleSession) {
-        this.jingleSession.removeTrackAsMute(
-            stream, callback, errorCallback);
+JitsiConference.prototype._removeTrackAsMute
+    = function (track, callback, errorCallback) {
+    if (this.jingleSession) {
+        this.jingleSession.removeTrackAsMute(track)
+            .then(callback).catch(errorCallback);
     } else {
         // We are done immediately
         logger.warn("Remove local MediaStream - no JingleSession started yet");
@@ -1015,32 +1001,28 @@ function (jingleSession, jingleOffer, now) {
     }
 
     this.rtc.initializeDataChannels(jingleSession.peerconnection);
-    // Add local Tracks to the ChatRoom
-    this.getLocalTracks().forEach(function(localTrack) {
-        try {
-            this._addLocalStream(
-                localTrack, function () {}, function () {},
-                true /* don't modify SSRCs */);
-        } catch(e) {
-            GlobalOnErrorHandler.callErrorHandler(e);
-            logger.error(e);
-        }
-    }.bind(this));
+    // Add local tracks to the session
+    try {
+        jingleSession.addLocalTracks(this.getLocalTracks()).then(() => {
+            jingleSession.acceptOffer(jingleOffer, null,
+                function (error) {
+                    GlobalOnErrorHandler.callErrorHandler(error);
+                    logger.error(
+                        "Failed to accept incoming Jingle session", error);
+                }
+            );
 
-    jingleSession.acceptOffer(jingleOffer, null,
-        function (error) {
-            GlobalOnErrorHandler.callErrorHandler(error);
-            logger.error(
-                "Failed to accept incoming Jingle session", error);
-        }
-    );
-
-    // Start callstats as soon as peerconnection is initialized,
-    // do not wait for XMPPEvents.PEERCONNECTION_READY, as it may never
-    // happen in case if user doesn't have or denied permission to
-    // both camera and microphone.
-    this.statistics.startCallStats(jingleSession);
-    this.statistics.startRemoteStats(jingleSession.peerconnection);
+            // Start callstats as soon as peerconnection is initialized,
+            // do not wait for XMPPEvents.PEERCONNECTION_READY, as it may never
+            // happen in case if user doesn't have or denied permission to
+            // both camera and microphone.
+            this.statistics.startCallStats(jingleSession);
+            this.statistics.startRemoteStats(jingleSession.peerconnection);
+        });
+    } catch(e) {
+        GlobalOnErrorHandler.callErrorHandler(e);
+        logger.error(e);
+    }
 };
 
 /**
