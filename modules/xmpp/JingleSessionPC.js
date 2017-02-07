@@ -667,14 +667,18 @@ export default class JingleSessionPC extends JingleSession {
 
         this.readSsrcInfo(elem);
 
-        let workFunction = (finishedCallback) => {
+        const workFunction = () => {
             const sdp = new SDP(this.peerconnection.remoteDescription.sdp);
             const addSsrcInfo = this._parseSsrcInfoFromSourceAdd(elem, sdp);
 
             const newRemoteSdp = this._processRemoteAddSource(addSsrcInfo);
-            this._doRenegotiate("source-add", finishedCallback, newRemoteSdp);
+            return newRemoteSdp;
+
         };
-        this.modificationQueue.push(workFunction);
+        // Queue and execute
+        this._doRenegotiate("source-add", workFunction)
+            .then(() => { logger.info("source-add - done!"); })
+            .catch((error) => { logger.error("source-add error:", error); });
     }
 
     /**
@@ -689,19 +693,23 @@ export default class JingleSessionPC extends JingleSession {
             return;
         }
 
-        logger.log('Remove remote stream');
-        logger.log(
-            'ICE connection state: ', this.peerconnection.iceConnectionState);
-        const workFunction = (finishedCallback) => {
+        const workFunction = () => {
+            logger.log('Remove remote stream');
+            logger.log(
+                'ICE connection state: ',
+                this.peerconnection.iceConnectionState);
+
             const sdp = new SDP(this.peerconnection.remoteDescription.sdp);
             const removeSsrcInfo
                 = this._parseSsrcInfoFromSourceRemove(elem, sdp);
             const newRemoteSdp
                 = this._processRemoteRemoveSource(removeSsrcInfo);
-            this._doRenegotiate(
-                "source-remove", finishedCallback, newRemoteSdp);
+            return newRemoteSdp;
         };
-        this.modificationQueue.push(workFunction);
+        // Queue and execute
+        this._doRenegotiate("source-remove", workFunction)
+            .then(() => { logger.info("source-remove - done!"); })
+            .catch((error) => { logger.error("source-remove error:", error); });
     }
 
     /**
@@ -865,27 +873,16 @@ export default class JingleSessionPC extends JingleSession {
      *  with no arguments or rejects with an error {string}
      */
     replaceTrack (oldTrack, newTrack) {
-        return new Promise((resolve, reject) => {
-            const workFunction = (finishedCallback) => {
-                if (oldTrack) {
-                    this.peerconnection.removeTrack(oldTrack);
-                }
-                if (newTrack) {
-                    this.peerconnection.addTrack(newTrack);
-                }
-                this._doRenegotiate("replaceTrack", finishedCallback);
-            };
-            this.modificationQueue.push(
-                workFunction,
-                (error) => {
-                    if (!error) {
-                        resolve();
-                    } else {
-                        reject(error);
-                    }
-                }
-            );
-        });
+        const workFunction = () => {
+            if (oldTrack) {
+                this.peerconnection.removeTrack(oldTrack);
+            }
+            if (newTrack) {
+                this.peerconnection.addTrack(newTrack);
+            }
+            return true; // Try to renegotiate
+        };
+        return this._doRenegotiate("replaceTrack", workFunction);
     }
 
     /**
@@ -958,31 +955,17 @@ export default class JingleSessionPC extends JingleSession {
      *  the 'doReplaceStream' task or the 'doAddStream' task (for example)
      */
     addLocalTracks (tracks) {
-        const workFunction = (finishedCallback) => {
+        const workFunction = () => {
             if (!this.peerconnection) {
-                finishedCallback(
-                    "Error: "
-                        + "tried adding stream with no active peer connection");
-                return;
+                return "Error: "
+                     + "tried adding stream with no active peer connection";
             }
-            for (let stream of tracks) {
-                this.peerconnection.addTrack(stream);
+            for (let track of tracks) {
+                this.peerconnection.addTrack(track);
             }
-
-            this._doRenegotiate("addStreams", finishedCallback);
+            return true;
         };
-        return new Promise((resolve, reject) => {
-            this.modificationQueue.push(
-                workFunction,
-                (error) => {
-                    if (!error) {
-                        resolve();
-                    } else {
-                        reject(error);
-                    }
-                }
-            );
-        });
+        return this._doRenegotiate("addStreams", workFunction);
     }
 
     /**
@@ -997,31 +980,14 @@ export default class JingleSessionPC extends JingleSession {
         if (!track) {
             return Promise.reject("invalid 'track' argument value");
         }
-        return new Promise((resolve, reject) => {
-            const workFunction = (finishedCallback) => {
-                if (!this.peerconnection) {
-                    finishedCallback(
-                        "Error: "
-                        + "tried adding track with no active peer connection");
-                    return;
-                }
-                const changed = this.peerconnection.addTrackUnmute(track);
-                if (changed)
-                    this._doRenegotiate("addStreamAsUnmute", finishedCallback);
-                else
-                    finishedCallback();
-            };
-            this.modificationQueue.push(
-                workFunction,
-                (error) => {
-                    if (!error) {
-                        resolve();
-                    } else {
-                        reject(error);
-                    }
-                }
-            );
-        });
+        const workFunction = () => {
+            if (!this.peerconnection) {
+                return "Error: "
+                    + "tried adding track with no active peer connection";
+            }
+            return this.peerconnection.addTrackUnmute(track);
+        };
+        return this._doRenegotiate("addStreamAsUnmute", workFunction);
     }
 
     /**
@@ -1033,42 +999,20 @@ export default class JingleSessionPC extends JingleSession {
      * goes wrong.
      */
     attachLocalTracks (localTracks) {
-
         if (!localTracks) {
             return Promise.reject("invalid 'localTracks' argument value");
         }
-        return new Promise((resolve, reject) => {
-        const workFunction = (finishedCallback) => {
+        const workFunction = () => {
             if (!this.peerconnection) {
-                finishedCallback(
-                    "Error: "
-                        + "tried adding stream with no active peer connection");
-                return;
+                return "Error: "
+                    + "tried adding stream with no active peer connection";
             }
-
-            // A snapshot of local SDP needs to be taken prior attaching
-            // the tracks (local description is faked in
-            // the TraceablePeerConnection, based on the current tracks
-            // state).
-            const oldSdp = this.peerconnection.localDescription.sdp;
-
             for (let track of localTracks) {
                 this.peerconnection.attachTrack(track);
             }
-            this._doRenegotiate(
-                "attachTracks", finishedCallback,
-                undefined /* remote SDP */, oldSdp /* "old" local SDP */);
+            return true;
         };
-        this.modificationQueue.push(
-            workFunction,
-            (error) => {
-                if (!error) {
-                    resolve();
-                } else {
-                    reject(error);
-                }
-            });
-        });
+        return this._doRenegotiate("attachTracks", workFunction);
     }
 
     /**
@@ -1081,34 +1025,34 @@ export default class JingleSessionPC extends JingleSession {
      */
     removeTrackAsMute (track) {
         if (!track) {
-            return Promise.reject("invalid 'stream' argument value");
+            return Promise.reject("invalid 'track' argument value");
         }
-
-        return new Promise((resolve, reject) => {
-            const workFunction = (finishedCallback) => {
-                if (!this.peerconnection) {
-                    finishedCallback();
-                    return;
-                }
-                if (this.peerconnection.removeTrackMute(track)){
-                    this._doRenegotiate("remove-as-mute", finishedCallback);
-                } else {
-                    finishedCallback();
-                }
-            };
-            this.modificationQueue.push(
-                workFunction,
-                (error) => {
-                    if (!error) {
-                        resolve();
-                    } else {
-                        reject(error);
-                    }
-                }
-            );
-        });
+        const workFunction = () => {
+            if (!this.peerconnection) {
+                return false;
+            }
+            return this.peerconnection.removeTrackMute(track);
+        };
+        return this._doRenegotiate("remove-as-mute", workFunction);
     }
 
+    /**
+     * A worker function that is scheduled and executed on the
+     * {@link modificationQueue}. Local SDPs from before and after the function
+     * is executed are compared and 'source-add'/'source-remove' notifications
+     * are being sent to remote participants (to propagate changes in local
+     * streams description).
+     * @name JingleSessionPC~WorkerFunction
+     * @function
+     * @returns {boolean|string|SDP} there are several things that this
+     * function can return:
+     * <tt>true</tt> if the renegotiation should follow the function execution
+     * <tt>false</tt> if there should be no renegotiation
+     * <tt>SDP</tt> that will be set as the remote description in the
+     * renegotiation process
+     * <tt>string</tt> which stands for the error description, no renegotiation
+     * will be done in that case it's returned
+     */
     /**
      * Does the logic of doing the session renegotiation by updating local and
      * remote session descriptions. Will compare the local description, before
@@ -1116,36 +1060,45 @@ export default class JingleSessionPC extends JingleSession {
      * "source-add"/"source-remove" notifications).
      * @param {string} actionName the name of the action which will appear in
      * the events logged to the logger.
-     * @param {function(string)} finishedCallback a callback that will be called
-     * once the renegotiation completes. It has the same semantics as
-     * the callback passed to {@link _renegotiate}.
-     * @param {object} [remoteSdp] the SDP object consumable by
-     * the PeerConnection, as defined by the WebRTC standard. If defined will be
-     * used as the remote description for the renegotiation.
-     * @param {object} [oldSdp] the SDP object consumable by the PeerConnection,
-     * as defined by the WebRTC standard. Stand for the "old local SDP" and will
-     * be used to compare changes in the local description, before and after the
-     * renegotiation.
+     * @param {WorkerFunction} workFunction a function that will be executed on
+     * the queue. See type description for moe info.
      * @private
      */
-    _doRenegotiate (actionName, finishedCallback, remoteSdp, oldSdp) {
-        let dontModifySources = false;
-        if (!this.peerconnection.localDescription.sdp) {
-            logger.info(
-                this + ": " + actionName + " - will NOT modify sources, "
-                     + "because there is no local SDP yet");
-            dontModifySources = true;
-        } else if (!this.peerconnection.remoteDescription.sdp) {
-            logger.info(
-                this + ": " + actionName + " - will NOT modify sources, "
-                     + "because there is no remote SDP yet");
-            dontModifySources = true;
-        }
-        if (!dontModifySources) {
-            if (oldSdp)
-                oldSdp = new SDP(oldSdp);
-            else
-                oldSdp = new SDP(this.peerconnection.localDescription.sdp);
+    _doRenegotiate (actionName, workFunction) {
+        const workFunctionWrap = (finishedCallback) => {
+            // Remember localSDP from before any modifications are done, by
+            // the worker function
+            let oldSdp = this.peerconnection.localDescription.sdp;
+            let remoteSdp = null;
+
+            let modifySources = workFunction();
+            // workFunction can return error description
+            if (typeof modifySources === 'string') {
+                finishedCallback(modifySources);
+                return;
+            } else if (typeof modifySources === 'object') {
+                remoteSdp = modifySources;
+                modifySources = true;
+            }
+
+            if (!oldSdp) {
+                logger.info(
+                    this + ": " + actionName + " - will NOT modify sources, "
+                    + "because there is no local SDP yet");
+                modifySources = false;
+            } else if (!this.peerconnection.remoteDescription.sdp) {
+                logger.info(
+                    this + ": " + actionName + " - will NOT modify sources, "
+                    + "because there is no remote SDP yet");
+                modifySources = false;
+            }
+            if (!modifySources) {
+                // ABORT
+                finishedCallback();
+                return;
+            }
+            // Convert to SDP object
+            oldSdp = new SDP(oldSdp);
             this._renegotiate(remoteSdp)
                 .then(() => {
                     const newSdp
@@ -1158,9 +1111,19 @@ export default class JingleSessionPC extends JingleSession {
                     logger.error(actionName + " renegotiate failed: ", error);
                     finishedCallback(error);
                 });
-        } else {
-            finishedCallback();
-        }
+        };
+        return new Promise((resolve, reject) => {
+            this.modificationQueue.push(
+                workFunctionWrap,
+                (error) => {
+                    if (!error) {
+                        resolve();
+                    } else {
+                        reject(error);
+                    }
+                }
+            );
+        });
     }
 
     /**
@@ -1185,36 +1148,18 @@ export default class JingleSessionPC extends JingleSession {
         if (!tracks) {
             return Promise.reject("invalid 'tracks' argument value");
         }
-
-        return new Promise((resolve, reject) =>{
-            const workFunction = (finishedCallback) => {
-                if (!this.peerconnection) {
-                    finishedCallback();
-                    return;
-                }
-                // A snapshot of local SDP needs to be taken prior detaching
-                // the tracks (local description is faked in
-                // the TraceablePeerConnection, based on the current tracks
-                // state).
-                const oldSdp = this.peerconnection.localDescription.sdp;
-                for (let track of tracks) {
-                    this.peerconnection.detachTrack(track);
-                }
-                this._doRenegotiate(
-                    "detach tracks", finishedCallback,
-                    undefined /* remote SDP */, oldSdp /* "old" local SDP */);
-            };
-            this.modificationQueue.push(
-                workFunction,
-                (error) => {
-                    if (!error) {
-                        resolve();
-                    } else {
-                        reject(error);
-                    }
-                }
-            );
-        });
+        const workFunction = () => {
+            if (!this.peerconnection) {
+                return false; // Do not renegotiate
+            }
+            for (let track of tracks) {
+                this.peerconnection.detachTrack(track);
+            }
+            // FIXME it would be possible to optimise by making detach return
+            // true only if any modifications were done
+            return true;
+        };
+        return this._doRenegotiate("detach track", workFunction);
     }
 
     /**
