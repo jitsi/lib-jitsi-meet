@@ -2,10 +2,31 @@
 
 var child_process = require('child_process'); // eslint-disable-line camelcase
 var process = require('process');
+var webpack = require('webpack');
 
 var minimize
     = process.argv.indexOf('-p') !== -1
         || process.argv.indexOf('--optimize-minimize') !== -1;
+var plugins = [];
+
+if (minimize) {
+    // While webpack will automatically insert UglifyJsPlugin when minimize is
+    // true, the defaults of UglifyJsPlugin in webpack 1 and webpack 2 are
+    // different. Explicitly state what we want even if we want defaults in
+    // order to prepare for webpack 2.
+    plugins.push(new webpack.optimize.UglifyJsPlugin({
+        compress: {
+            // It is nice to see warnings from UglifyJsPlugin that something is
+            // unused and, consequently, is removed. The default is false in
+            // webpack 2.
+            warnings: true
+        },
+
+        // Use the source map to map error message locations to modules. The
+        // default is false in webpack 2.
+        sourceMap: true
+    }));
+}
 
 module.exports = {
     devtool: 'source-map',
@@ -16,7 +37,7 @@ module.exports = {
         loaders: [ {
             // Version this build of the lib-jitsi-meet library.
 
-            loader: 'string-replace',
+            loader: 'string-replace-loader',
             query: {
                 flags: 'g',
                 replace:
@@ -40,7 +61,7 @@ module.exports = {
                 __dirname + '/modules/RTC/adapter.screenshare.js',
                 __dirname + '/node_modules/'
             ],
-            loader: 'babel',
+            loader: 'babel-loader',
             query: {
                 presets: [
                     'es2015'
@@ -60,5 +81,6 @@ module.exports = {
         library: 'JitsiMeetJS',
         libraryTarget: 'umd',
         sourceMapFilename: '[name].' + (minimize ? 'min' : 'js') + '.map'
-    }
+    },
+    plugins: plugins
 };
