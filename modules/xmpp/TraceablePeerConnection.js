@@ -541,7 +541,7 @@ TraceablePeerConnection.prototype.createAnswer
                         dumpSDP(answer));
                 }
 
-                if (!this.session.room.options.disableRtx) {
+                if (!this.session.room.options.disableRtx && !RTCBrowserType.isFirefox()) {
                     answer.sdp = this.rtxModifier.modifyRtxSsrcs(answer.sdp);
                     this.trace(
                         'createAnswerOnSuccess::postTransform (rtx modifier)',
