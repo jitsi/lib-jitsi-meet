@@ -287,6 +287,21 @@ describe ("RtxModifier", function() {
         });
       });
     });
+
+    describe("stripRtx", function() {
+        beforeEach(function() {
+            this.sdpStr = transform.write(SampleSdpStrings.rtxVideoSdp);
+        });
+        it ("should strip all rtx streams from an sdp with rtx", function() {
+            const newSdpStr = this.rtxModifier.stripRtx(this.sdpStr);
+            const newSdp = transform.parse(newSdpStr);
+            const fidGroups = getVideoGroups(newSdp, "FID");
+            expect(fidGroups.length).toEqual(0);
+            const videoMLine = SDPUtil.getMedia(newSdp, "video");
+            expect(videoMLine.ssrcs.length).toEqual(1);
+
+        });
+    });
 });
 
 /*eslint-enable max-len*/

@@ -443,6 +443,16 @@ var SDPUtil = {
             .split(" ")
             .map(ssrcStr => parseInt(ssrcStr));
     },
+
+    /**
+     * Get the mline of the given type from the given sdp
+     * @param {object} sdp sdp as parsed from transform.parse
+     * @param {string} type the type of the desired mline (e.g. "video")
+     * @returns {object} a media object
+     */
+    getMedia: function (sdp, type) {
+        return sdp.media.find(m => m.type === type);
+    },
 };
 
 module.exports = SDPUtil;

@@ -222,15 +222,13 @@ export default class RtxModifier {
     }
 
     /**
-     * Remove all reference to any rtx ssrcs that 
-     *  don't correspond to the primary stream.
-     * Must be called *after* any simulcast streams
-     *  have been imploded
+     * Strip all rtx streams from the given sdp
      * @param {string} sdpStr sdp in raw string format
+     * @returns {string} sdp string with all rtx streams stripped
      */
-    implodeRemoteRtxSsrcs (sdpStr) {
-        let parsedSdp = transform.parse(sdpStr);
-        let videoMLine = 
+    stripRtx (sdpStr) {
+        const parsedSdp = transform.parse(sdpStr);
+        const videoMLine = 
             parsedSdp.media.find(mLine => mLine.type === "video");
         if (videoMLine.direction === "inactive" ||
                 videoMLine.direction === "recvonly") {
@@ -238,39 +236,25 @@ export default class RtxModifier {
                 "m line is inactive or recvonly");
             return sdpStr;
         }
-        if (!videoMLine.ssrcGroups) {
-            // Nothing to do
-            return sdpStr;
+        if (!videoMLine.ssrcs) {
+          logger.info("RtxModifier doing nothing, no video ssrcs present");
+          return sdpStr;
         }
-
-        // Returns true if the given ssrc is present
-        //  in the mLine's ssrc list
-        let ssrcExists = (ssrcToFind) => {
-            return videoMLine.ssrcs.
-              find((ssrc) => ssrc.id + "" === ssrcToFind);
-        };
-        let ssrcsToRemove = [];
-        videoMLine.ssrcGroups.forEach(group => {
-            if (group.semantics === "FID") {
-                let primarySsrc = group.ssrcs.split(" ")[0];
-                let rtxSsrc = group.ssrcs.split(" ")[1];
-                if (!ssrcExists(primarySsrc)) {
-                    ssrcsToRemove.push(rtxSsrc);
-                }
-            }
+        const fidGroups = videoMLine.ssrcGroups
+            .filter(group => group.semantics === "FID");
+        // Remove the fid groups from the mline
+        videoMLine.ssrcGroups = videoMLine.ssrcGroups
+            .filter(group => group.semantics !== "FID");
+        // Get the rtx ssrcs and remove them from the mline
+        const ssrcsToRemove = [];
+        fidGroups.forEach(fidGroup => {
+            const groupSsrcs = SDPUtil.parseGroupSsrcs(fidGroup);
+            const rtxSsrc = groupSsrcs[1];
+            ssrcsToRemove.push(rtxSsrc);
         });
         videoMLine.ssrcs = videoMLine.ssrcs
-            .filter(ssrc => ssrcsToRemove.indexOf(ssrc.id + "") === -1);
-        videoMLine.ssrcGroups = videoMLine.ssrcGroups
-            .filter(group => {
-                let ssrcs = group.ssrcs.split(" ");
-                for (let i = 0; i < ssrcs.length; ++i) {
-                    if (ssrcsToRemove.indexOf(ssrcs[i]) !== -1) {
-                        return false;
-                    }
-                }
-                return true;
-            });
+            .filter(line => ssrcsToRemove.indexOf(line.id) === -1);
+        
         return transform.write(parsedSdp);
     }
 }
