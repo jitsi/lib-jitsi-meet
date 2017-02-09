@@ -456,7 +456,10 @@ var SDPUtil = {
     /**
      * Sets the given codecName as the preferred codec by
      *  moving it to the beginning of the payload types
-     *  list (modifies the given mline in place)
+     *  list (modifies the given mline in place).  If there
+     *  are multiple options within the same codec (multiple h264
+     *  profiles, for instance), this will prefer the first one
+     *  that is found.
      * @param {object} videoMLine the video mline object from
      *  an sdp as parsed by transform.parse
      * @param {string} the name of the preferred codec
@@ -469,7 +472,7 @@ var SDPUtil = {
             }
         });
         if (payloadType) {
-            let payloadTypes = videoMLine.payloads.split(" ").map(p => parseInt(p));
+            const payloadTypes = videoMLine.payloads.split(" ").map(p => parseInt(p));
             const payloadIndex = payloadTypes.indexOf(payloadType);
             payloadTypes.splice(payloadIndex, 1);
             payloadTypes.unshift(payloadType);
