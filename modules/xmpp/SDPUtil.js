@@ -466,11 +466,13 @@ var SDPUtil = {
      */
     preferVideoCodec: function(videoMLine, codecName) {
         let payloadType = null;
-        videoMLine.rtp.forEach(rtp => {
-            if (rtp.codec === codecName) {
-                payloadType = rtp.payload;
-            }
-        });
+        for (let i = 0; i < videoMLine.rtp.length; ++i) {
+          const rtp = videoMLine.rtp[i];
+          if (rtp.codec === codecName) {
+              payloadType = rtp.payload;
+              break;
+          }
+        }
         if (payloadType) {
             const payloadTypes = videoMLine.payloads.split(" ").map(p => parseInt(p));
             const payloadIndex = payloadTypes.indexOf(payloadType);
