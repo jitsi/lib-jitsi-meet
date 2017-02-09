@@ -1,6 +1,5 @@
 import * as SDPUtil from "./SDPUtil";
 import * as SampleSdpStrings from "./SampleSdpStrings.js";
-import * as transform from 'sdp-transform';
 
 describe("SDPUtil", function() {
     it("should parse an ice ufrag correctly", function() {
