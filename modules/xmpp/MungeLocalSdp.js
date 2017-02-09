@@ -153,7 +153,7 @@ export default class MungeLocalSdp {
                 if (shouldFakeSdp) {
                     // Inject removed SSRCs
                     let requiredSSRCs
-                        = (this.pc.options.disableSimulcast || this.pc.isP2P)
+                        = (!this.pc.isSimulcastOn())
                             ? [this.pc.sdpConsistency.cachedPrimarySsrc]
                             : this.pc.simulcast.ssrcCache;
                     if (!requiredSSRCs.length) {

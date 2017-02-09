@@ -262,6 +262,15 @@ const dumpSDP = function(description) {
 };
 
 /**
+ * Tells whether or not this TPC instance is using Simulcast.
+ * @return {boolean} <tt>true</tt> if simulcast is enabled and active or
+ * <tt>false</tt> if it's turned off.
+ */
+TraceablePeerConnection.prototype.isSimulcastOn = function () {
+    return !this.options.disableSimulcast && this.simulcast.isSupported();
+};
+
+/**
  * Handles {@link SignallingEvents.PEER_VIDEO_TYPE_CHANGED}
  * @param {string} endpointId the video owner's ID (MUC nickname)
  * @param {VideoType} videoType the new value
@@ -1572,8 +1581,7 @@ TraceablePeerConnection.prototype.createAnswer
                 }
 
                 // Add simulcast streams if simulcast is enabled
-                if (!this.options.disableSimulcast
-                        && this.simulcast.isSupported()) {
+                if (this.isSimulcastOn()) {
 
                     // eslint-disable-next-line no-param-reassign
                     answer = this.simulcast.mungeLocalDescription(answer);
@@ -1720,8 +1728,7 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {
     if (ssrcInfo) {
         logger.error(`Will overwrite local SSRCs for track ID: ${rtcId}`);
     }
-    if (!this.options.disableSimulcast
-        && this.simulcast.isSupported()) {
+    if (this.isSimulcastOn()) {
         ssrcInfo = {ssrcs: [], groups: []};
         for (let i = 0; i < SIMULCAST_LAYERS; i++) {
             ssrcInfo.ssrcs.push(SDPUtil.generateSsrc());
