@@ -5,16 +5,30 @@ const logger = getLogger(__filename);
 import {SdpTransformWrap} from "./SdpTransformUtil";
 import * as MediaType from "../../service/RTC/MediaType";
 
-export default class VideoMuteSdpHack {
+/**
+ * Fakes local SDP, so that it will reflect current local tracks status inside
+ * of the <tt>TraceablePeerConnection<tt/> and make operations like
+ * attach/detach and video mute/unmute local operations. That means it prevents
+ * from SSRC updates being sent to Jicofo/remote peer, so that there is no
+ * sRD/sLD cycle on the remote side.
+ */
+export default class MungeLocalSdp {
 
+    /**
+     * Creates new <tt>MungeLocalSdp</tt> instance.
+     *
+     * @param {TraceablePeerConnection} traceablePeerConnection
+     */
     constructor(traceablePeerConnection) {
         this.pc = traceablePeerConnection;
     }
 
     /**
-     *
-     * @param {SdpTransformWrap} transformer
-     * @return {boolean}
+     * Makes sure local SDP for audio media reflects current local tracks status
+     * of the parent TPC.
+     * @param {SdpTransformWrap} transformer the transformer instance which will
+     * be used to process the SDP.
+     * @return {boolean} <tt>true</tt> if any modification were made.
      * @private
      */
     _describeLocalAudioTracks(transformer) {
@@ -35,21 +49,14 @@ export default class VideoMuteSdpHack {
         if (["sendrecv", "recvonly", "sendonly"]
                 .indexOf(transformer.mediaDirection) !== -1) {
 
-            logger.info(
-                "Localtracks/audio", this.pc.localTracks, localAudio);
-
             localAudio.forEach((audioTrack) => {
-                const trackRtcId = audioTrack.rtcId;
                 const isAttached = audioTrack._isAttachedToPC(this.pc);
                 const shouldFake = !isAttached;
 
-                logger.info(
-                    "isAttached: " + isAttached
-                    + " => should fake audio SDP ?:" + shouldFake,
-                    trackRtcId);
+                logger.debug(
+                    audioTrack + " isAttached: " + isAttached
+                               + " => should fake audio SDP ?:" + shouldFake);
                 if (shouldFake) {
-                    // We need to fake sendrecv
-                    transformer.mediaDirection = "sendrecv";
                     // Inject removed SSRCs
                     let audioSSRC = this.pc.getLocalSSRC(audioTrack);
                     if (!audioSSRC) {
@@ -60,8 +67,6 @@ export default class VideoMuteSdpHack {
                         // but will continue with the other ones
                         return;
                     }
-
-                    const audioCName = "injected-" + audioSSRC;
 
                     // FIXME come up with a message
                     // when there should not be audio SSRC anymore
@@ -74,11 +79,14 @@ export default class VideoMuteSdpHack {
 
                     modified = true;
 
+                    // We need to fake sendrecv
+                    transformer.mediaDirection = "sendrecv";
+
                     logger.debug("Injecting audio SSRC: " + audioSSRC);
                     transformer.addSSRCAttribute({
                         id: audioSSRC,
                         attribute: 'cname',
-                        value: audioCName
+                        value: "injected-" + audioSSRC
                     });
                     transformer.addSSRCAttribute({
                         id: audioSSRC,
@@ -97,9 +105,14 @@ export default class VideoMuteSdpHack {
     }
 
     /**
+     * Makes sure local SDP for video media reflects current local tracks status
+     * of the parent TPC.
+     *
      * NOTE 1 video track is assumed
-     * @param {SdpTransformWrap} transformer
-     * @return {boolean}
+     *
+     * @param {SdpTransformWrap} transformer the transformer instance which will
+     * be used to process the SDP.
+     * @return {boolean} <tt>true</tt> if any modification were made.
      * @private
      */
     _describeLocalVideoTracks(transformer) {
@@ -132,34 +145,34 @@ export default class VideoMuteSdpHack {
                 const isAttached = videoTrack._isAttachedToPC(this.pc);
                 const shouldFakeSdp = isMuted || muteInProgress || !isAttached;
                 logger.debug(
-                    "isMuted: " + isMuted
+                    videoTrack
+                    + " isMuted: " + isMuted
                     + ", is mute in progress: " + muteInProgress
                     + ", is attached ? : " + isAttached
-                    +" => should fake sdp ? : " + shouldFakeSdp,
-                    videoTrack.rtcId);
+                    +" => should fake sdp ? : " + shouldFakeSdp);
                 if (shouldFakeSdp) {
-                    // We need to fake sendrecv
-                    transformer.mediaDirection = "sendrecv";
                     // Inject removed SSRCs
-                    const trackRtcId = videoTrack.rtcId;
                     let requiredSSRCs
                         = (this.pc.options.disableSimulcast || this.pc.isP2P)
-                        ? [this.pc.sdpConsistency.cachedPrimarySsrc]
-                        : this.pc.simulcast.ssrcCache;
+                            ? [this.pc.sdpConsistency.cachedPrimarySsrc]
+                            : this.pc.simulcast.ssrcCache;
                     if (!requiredSSRCs.length) {
                         logger.error(
                             "No SSRCs stored for: "
-                                + trackRtcId + " in " + this.pc.id);
+                                + videoTrack + " in " + this.pc);
                         return;
                     }
                     if (!transformer.getSSRCCount()) {
                         logger.error(
                             "No video SSRCs found "
-                            + "(should be at least the recv-only one");
+                                + "(should be at least the recv-only one");
                         return;
                     }
 
                     modified = true;
+
+                    // We need to fake sendrecv
+                    transformer.mediaDirection = "sendrecv";
 
                     // Check if the recvonly has MSID
                     const primarySSRC = requiredSSRCs[0];
@@ -171,12 +184,12 @@ export default class VideoMuteSdpHack {
                     const primaryCname = "injected-" + primarySSRC;
 
                     requiredSSRCs.forEach((ssrcNum) => {
-                        // Inject
-                        //if (!transformer.containsSSRC(ssrcNum)) {
                         // Remove old attributes
                         transformer.removeSSRC(ssrcNum);
+                        // Inject
                         logger.debug(
-                            "Injecting video SSRC: " + ssrcNum);
+                            "Injecting video SSRC: " + ssrcNum
+                                + " for " + videoTrack);
                         transformer.addSSRCAttribute({
                             id: ssrcNum,
                             attribute: 'cname',
@@ -196,11 +209,14 @@ export default class VideoMuteSdpHack {
                         if (!transformer.findGroup(
                                 group.semantics, group.ssrcs)) {
                             // Inject the group
-                            logger.debug("Injecting SIM group", group);
+                            logger.debug(
+                                "Injecting SIM group for " + videoTrack, group);
                             transformer.addSSRCGroup(group);
                         }
                     }
                     // Insert RTX
+                    // FIXME in P2P RTX is used by Chrome regardless of this
+                    // option status
                     if (!this.pc.options.disableRtx) {
                         const rtxSSRCs
                             = this.pc.rtxModifier.correspondingRtxSsrcs;
@@ -224,7 +240,8 @@ export default class VideoMuteSdpHack {
                                         value: primaryCname
                                     });
                                     const rtxGroup = {
-                                        ssrcs: ssrcObj.id + " " + correspondingSSRC,
+                                        ssrcs: ssrcObj.id
+                                                + " " + correspondingSSRC,
                                         semantics: "FID"
                                     };
                                     if (!transformer.findGroup(
@@ -257,7 +274,7 @@ export default class VideoMuteSdpHack {
         return modified;
     }
 
-    maybeHackLocalSdp (desc) {
+    maybeMungeLocalSdp (desc) {
         // Nothing to be done in early stage when localDescription
         // is not available yet
         if (!this.pc.peerconnection.localDescription.sdp) {

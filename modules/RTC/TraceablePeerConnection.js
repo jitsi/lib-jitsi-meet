@@ -4,8 +4,9 @@
 import { getLogger } from 'jitsi-meet-logger';
 import { getValues } from '../util/JSUtil';
 import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
-import JitsiRemoteTrack from "./JitsiRemoteTrack";
-import * as MediaType from "../../service/RTC/MediaType";
+import JitsiRemoteTrack from './JitsiRemoteTrack';
+import * as MediaType from '../../service/RTC/MediaType';
+import MungeLocalSdp from '../xmpp/MungeLocalSdp';
 import RTC from './RTC';
 import RTCBrowserType from './RTCBrowserType.js';
 import RTCEvents from '../../service/RTC/RTCEvents';
@@ -17,7 +18,6 @@ import SdpConsistency from '../xmpp/SdpConsistency.js';
 import SDPUtil from '../xmpp/SDPUtil';
 import * as SignallingEvents from '../../service/RTC/SignallingEvents';
 import transform from 'sdp-transform';
-import VideoMuteSdpHack from '../xmpp/VideoMuteSdpHack';
 
 const logger = getLogger(__filename);
 const SIMULCAST_LAYERS = 3;
@@ -120,7 +120,12 @@ function TraceablePeerConnection(
     this.simulcast = new Simulcast({ numOfLayers: SIMULCAST_LAYERS,
         explodeRemoteSimulcast: false });
     this.sdpConsistency = new SdpConsistency();
-    this.localVideoHack = new VideoMuteSdpHack(this);
+    /**
+     * Munges local SDP provided to the Jingle Session in order to prevent from
+     * sending SSRC updates on attach/detach and mute/unmute (for video).
+     * @type {MungeLocalSdp}
+     */
+    this.mungeLocalSdp = new MungeLocalSdp(this);
 
     /**
      * TracablePeerConnection uses RTC's eventEmitter
@@ -974,7 +979,7 @@ var getters = {
 
         // FIXME replace with a feature
         if (!RTCBrowserType.isFirefox()) {
-            this.localVideoHack.maybeHackLocalSdp(desc);
+            this.mungeLocalSdp.maybeMungeLocalSdp(desc);
             logger.debug(
                 'getLocalDescription::postTransform '
                     + '(local video mute hack)', desc);
