@@ -14,7 +14,6 @@ describe("SDPUtil", function() {
         it("should move a preferred codec to the front", function() {
             const sdp = SampleSdpStrings.multiCodecVideoSdp;
             const videoMLine = sdp.media.find(m => m.type === "video");
-            debugger;
             SDPUtil.preferVideoCodec(videoMLine, "H264");
             const newPayloadTypesOrder = 
                 videoMLine.payloads.split(" ").map(ptStr => parseInt(ptStr));
