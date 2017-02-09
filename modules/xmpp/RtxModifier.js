@@ -240,6 +240,10 @@ export default class RtxModifier {
           logger.info("RtxModifier doing nothing, no video ssrcs present");
           return sdpStr;
         }
+        if (!videoMLine.ssrcGroups) {
+          logger.info("RtxModifier doing nothing, no video ssrcGroups present");
+          return sdpStr;
+        }
         const fidGroups = videoMLine.ssrcGroups
             .filter(group => group.semantics === "FID");
         // Remove the fid groups from the mline

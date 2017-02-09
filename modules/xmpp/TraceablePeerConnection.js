@@ -389,11 +389,10 @@ TraceablePeerConnection.prototype.setRemoteDescription
     description = this.simulcast.mungeRemoteDescription(description);
     this.trace('setRemoteDescription::postTransform (simulcast)', dumpSDP(description));
 
-    //description.sdp = this.rtxModifier.implodeRemoteRtxSsrcs(description.sdp);
-    //this.trace('setRemoteDescription::postTransform (implodeRemoteRtxSsrcs)', dumpSDP(description));
-
     // if we're running on FF, transform to Plan A first.
     if (RTCBrowserType.usesUnifiedPlan()) {
+        description.sdp = this.rtxModifier.stripRtx(description.sdp);
+        this.trace('setRemoteDescription::postTransform (stripRtx)', dumpSDP(description));
         description = this.interop.toUnifiedPlan(description);
         this.trace('setRemoteDescription::postTransform (Plan A)', dumpSDP(description));
     }
