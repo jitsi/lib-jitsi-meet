@@ -241,7 +241,8 @@ export default class RtxModifier {
           return sdpStr;
         }
         if (!videoMLine.ssrcGroups) {
-          logger.debug("RtxModifier doing nothing, no video ssrcGroups present");
+          logger.debug("RtxModifier doing nothing, " + 
+              "no video ssrcGroups present");
           return sdpStr;
         }
         const fidGroups = videoMLine.ssrcGroups
