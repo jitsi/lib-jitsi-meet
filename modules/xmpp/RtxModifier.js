@@ -69,7 +69,7 @@ function getRtxSsrc (videoMLine, primarySsrc) {
  * @param {number} rtxSsrc the rtx ssrc to associate with the primary ssrc
  */
 function updateAssociatedRtxStream (videoMLine, primarySsrcInfo, rtxSsrc) {
-    logger.info("Updating mline to associate " + rtxSsrc + 
+    logger.debug("Updating mline to associate " + rtxSsrc + 
         " rtx ssrc with primary stream ", primarySsrcInfo.id);
     let primarySsrc = primarySsrcInfo.id;
     let primarySsrcMsid = primarySsrcInfo.msid;
@@ -78,20 +78,20 @@ function updateAssociatedRtxStream (videoMLine, primarySsrcInfo, rtxSsrc) {
     let previousAssociatedRtxStream = 
         getRtxSsrc (videoMLine, primarySsrc);
     if (previousAssociatedRtxStream === rtxSsrc) {
-        logger.info(rtxSsrc + " was already associated with " +
+        logger.debug(rtxSsrc + " was already associated with " +
             primarySsrc);
         return;
     }
     if (previousAssociatedRtxStream) {
-        logger.info(primarySsrc + " was previously assocaited with rtx " +
+        logger.debug(primarySsrc + " was previously assocaited with rtx " +
             previousAssociatedRtxStream + ", removing all references to it");
         // Stream already had an rtx ssrc that is different than the one given,
         //  remove all trace of the old one
         videoMLine.ssrcs = videoMLine.ssrcs
             .filter(ssrcInfo => ssrcInfo.id !== previousAssociatedRtxStream);
-        logger.info("groups before filtering for " + 
+        logger.debug("groups before filtering for " + 
             previousAssociatedRtxStream);
-        logger.info(JSON.stringify(videoMLine.ssrcGroups));
+        logger.debug(JSON.stringify(videoMLine.ssrcGroups));
         videoMLine.ssrcGroups = videoMLine.ssrcGroups
             .filter(groupInfo => {
                 return groupInfo
@@ -151,7 +151,7 @@ export default class RtxModifier {
      *  ssrcs to their corresponding rtx ssrcs
      */
     setSsrcCache (ssrcMapping) {
-        logger.info("Setting ssrc cache to ", ssrcMapping);
+        logger.debug("Setting ssrc cache to ", ssrcMapping);
         this.correspondingRtxSsrcs = ssrcMapping;
     }
 
@@ -168,44 +168,44 @@ export default class RtxModifier {
             parsedSdp.media.find(mLine => mLine.type === "video");
         if (videoMLine.direction === "inactive" ||
                 videoMLine.direction === "recvonly") {
-            logger.info("RtxModifier doing nothing, video " +
+            logger.debug("RtxModifier doing nothing, video " +
                 "m line is inactive or recvonly");
             return sdpStr;
         }
         if (!videoMLine.ssrcs) {
-          logger.info("RtxModifier doing nothing, no video ssrcs present");
+          logger.debug("RtxModifier doing nothing, no video ssrcs present");
           return sdpStr;
         }
-        logger.info("Current ssrc mapping: ", this.correspondingRtxSsrcs);
+        logger.debug("Current ssrc mapping: ", this.correspondingRtxSsrcs);
         let primaryVideoSsrcs = getPrimaryVideoSsrcs(videoMLine);
-        logger.info("Parsed primary video ssrcs ", primaryVideoSsrcs, " " +
+        logger.debug("Parsed primary video ssrcs ", primaryVideoSsrcs, " " +
             "making sure all have rtx streams");
         primaryVideoSsrcs.forEach(ssrc => {
             let msid = SDPUtil.getSsrcAttribute(videoMLine, ssrc, "msid");
             let cname = SDPUtil.getSsrcAttribute(videoMLine, ssrc, "cname");
             let correspondingRtxSsrc = this.correspondingRtxSsrcs.get(ssrc);
             if (correspondingRtxSsrc) {
-                logger.info("Already have an associated rtx ssrc for " +
+                logger.debug("Already have an associated rtx ssrc for " +
                     " video ssrc " + ssrc + ": " + 
                     correspondingRtxSsrc);
             } else {
-                logger.info("No previously associated rtx ssrc for " +
+                logger.debug("No previously associated rtx ssrc for " +
                     " video ssrc " + ssrc);
                 // If there's one in the sdp already for it, we'll just set
                 //  that as the corresponding one
                 let previousAssociatedRtxStream = 
                     getRtxSsrc (videoMLine, ssrc);
                 if (previousAssociatedRtxStream) {
-                    logger.info("Rtx stream " + previousAssociatedRtxStream + 
+                    logger.debug("Rtx stream " + previousAssociatedRtxStream + 
                         " already existed in the sdp as an rtx stream for " +
                         ssrc);
                     correspondingRtxSsrc = previousAssociatedRtxStream;
                 } else {
                     correspondingRtxSsrc = SDPUtil.generateSsrc();
-                    logger.info("Generated rtx ssrc " + correspondingRtxSsrc + 
+                    logger.debug("Generated rtx ssrc " + correspondingRtxSsrc + 
                         " for ssrc " + ssrc);
                 }
-                logger.info("Caching rtx ssrc " + correspondingRtxSsrc + 
+                logger.debug("Caching rtx ssrc " + correspondingRtxSsrc + 
                     " for video ssrc " + ssrc);
                 this.correspondingRtxSsrcs.set(ssrc, correspondingRtxSsrc);
             }
@@ -222,55 +222,44 @@ export default class RtxModifier {
     }
 
     /**
-     * Remove all reference to any rtx ssrcs that 
-     *  don't correspond to the primary stream.
-     * Must be called *after* any simulcast streams
-     *  have been imploded
+     * Strip all rtx streams from the given sdp
      * @param {string} sdpStr sdp in raw string format
+     * @returns {string} sdp string with all rtx streams stripped
      */
-    implodeRemoteRtxSsrcs (sdpStr) {
-        let parsedSdp = transform.parse(sdpStr);
-        let videoMLine = 
+    stripRtx (sdpStr) {
+        const parsedSdp = transform.parse(sdpStr);
+        const videoMLine = 
             parsedSdp.media.find(mLine => mLine.type === "video");
         if (videoMLine.direction === "inactive" ||
                 videoMLine.direction === "recvonly") {
-            logger.info("RtxModifier doing nothing, video " +
+            logger.debug("RtxModifier doing nothing, video " +
                 "m line is inactive or recvonly");
             return sdpStr;
         }
-        if (!videoMLine.ssrcGroups) {
-            // Nothing to do
-            return sdpStr;
+        if (!videoMLine.ssrcs) {
+          logger.debug("RtxModifier doing nothing, no video ssrcs present");
+          return sdpStr;
         }
-
-        // Returns true if the given ssrc is present
-        //  in the mLine's ssrc list
-        let ssrcExists = (ssrcToFind) => {
-            return videoMLine.ssrcs.
-              find((ssrc) => ssrc.id + "" === ssrcToFind);
-        };
-        let ssrcsToRemove = [];
-        videoMLine.ssrcGroups.forEach(group => {
-            if (group.semantics === "FID") {
-                let primarySsrc = group.ssrcs.split(" ")[0];
-                let rtxSsrc = group.ssrcs.split(" ")[1];
-                if (!ssrcExists(primarySsrc)) {
-                    ssrcsToRemove.push(rtxSsrc);
-                }
-            }
+        if (!videoMLine.ssrcGroups) {
+          logger.debug("RtxModifier doing nothing, " + 
+              "no video ssrcGroups present");
+          return sdpStr;
+        }
+        const fidGroups = videoMLine.ssrcGroups
+            .filter(group => group.semantics === "FID");
+        // Remove the fid groups from the mline
+        videoMLine.ssrcGroups = videoMLine.ssrcGroups
+            .filter(group => group.semantics !== "FID");
+        // Get the rtx ssrcs and remove them from the mline
+        const ssrcsToRemove = [];
+        fidGroups.forEach(fidGroup => {
+            const groupSsrcs = SDPUtil.parseGroupSsrcs(fidGroup);
+            const rtxSsrc = groupSsrcs[1];
+            ssrcsToRemove.push(rtxSsrc);
         });
         videoMLine.ssrcs = videoMLine.ssrcs
-            .filter(ssrc => ssrcsToRemove.indexOf(ssrc.id + "") === -1);
-        videoMLine.ssrcGroups = videoMLine.ssrcGroups
-            .filter(group => {
-                let ssrcs = group.ssrcs.split(" ");
-                for (let i = 0; i < ssrcs.length; ++i) {
-                    if (ssrcsToRemove.indexOf(ssrcs[i]) !== -1) {
-                        return false;
-                    }
-                }
-                return true;
-            });
+            .filter(line => ssrcsToRemove.indexOf(line.id) === -1);
+        
         return transform.write(parsedSdp);
     }
 }
