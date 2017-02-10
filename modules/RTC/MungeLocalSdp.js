@@ -2,7 +2,7 @@
 
 import {getLogger} from "jitsi-meet-logger";
 const logger = getLogger(__filename);
-import {SdpTransformWrap} from "./SdpTransformUtil";
+import {SdpTransformWrap} from "../xmpp/SdpTransformUtil";
 import * as MediaType from "../../service/RTC/MediaType";
 
 /**
