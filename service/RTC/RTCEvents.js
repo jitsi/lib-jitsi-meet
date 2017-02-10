@@ -55,8 +55,25 @@ const RTCEvents = {
      * Indicates that a message from another participant is received on
      * data channel.
      */
-    ENDPOINT_MESSAGE_RECEIVED:
-        'rtc.endpoint_message_received'
+    ENDPOINT_MESSAGE_RECEIVED: 'rtc.endpoint_message_received',
+
+    /**
+     * Designates an event indicating that the local ICE username fragment of
+     * the jingle session has changed.
+     * The first argument of the vent is <tt>TraceablePeerConnection</tt> which
+     * is the source of the event.
+     * The second argument is the actual "ufrag" string.
+     */
+    LOCAL_UFRAG_CHANGED: 'rtc.local_ufrag_changed',
+
+    /**
+     * Designates an event indicating that the local ICE username fragment of
+     * the jingle session has changed.
+     * The first argument of the vent is <tt>TraceablePeerConnection</tt> which
+     * is the source of the event.
+     * The second argument is the actual "ufrag" string.
+     */
+    REMOTE_UFRAG_CHANGED: 'rtc.remote_ufrag_changed'
 };
 
 module.exports = RTCEvents;

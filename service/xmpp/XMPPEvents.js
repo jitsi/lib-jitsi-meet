@@ -184,14 +184,6 @@ const XMPPEvents = {
     // suspending detected
     SUSPEND_DETECTED: 'xmpp.suspend_detected',
 
-    // Designates an event indicating that the local ICE username fragment of
-    // the jingle session has changed.
-    LOCAL_UFRAG_CHANGED: 'xmpp.local_ufrag_changed',
-
-    // Designates an event indicating that the local ICE username fragment of
-    // the jingle session has changed.
-    REMOTE_UFRAG_CHANGED: 'xmpp.remote_ufrag_changed',
-
     // Designates an event indicating that the local ICE connection state has
     // changed.
     ICE_CONNECTION_STATE_CHANGED: 'xmpp.ice_connection_state_changed'

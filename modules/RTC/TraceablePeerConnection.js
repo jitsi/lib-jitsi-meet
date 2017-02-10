@@ -25,6 +25,19 @@ const SIMULCAST_LAYERS = 3;
 /* eslint-disable max-params */
 
 /**
+ * Extracts the ICE username fragment from an SDP string.
+ * @param {string} sdp the SDP in raw text format
+ */
+function getUfrag(sdp) {
+    const ufragLines = sdp.split('\n').filter(function (line) {
+        return line.startsWith("a=ice-ufrag:");
+    });
+    if (ufragLines.length > 0) {
+        return ufragLines[0].substr("a=ice-ufrag:".length);
+    }
+}
+
+/**
  * Creates new instance of 'TraceablePeerConnection'.
  *
  * @param {RTC} rtc the instance of <tt>RTC</tt> service
@@ -77,6 +90,16 @@ function TraceablePeerConnection(
     this.localTracks = {};
 
     this.localSSRCs = {};
+
+    /**
+     * The local ICE username fragment for this session.
+     */
+    this.localUfrag = null;
+
+    /**
+     * The remote ICE username fragment for this session.
+     */
+    this.remoteUfrag = null;
 
     /**
      * The signaling layer which operates this peer connection.
@@ -1367,23 +1390,26 @@ TraceablePeerConnection.prototype.setLocalDescription
                 dumpSDP(d));
         }
 
-        const self = this;
-
-        this.peerconnection.setLocalDescription(
-            d,
-            () => {
-                self.trace('setLocalDescriptionOnSuccess');
-                successCallback();
-            },
-            err => {
-                self.trace('setLocalDescriptionOnFailure', err);
-                self.eventEmitter.emit(
-                    RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
-                    err, self.peerconnection);
-                failureCallback(err);
+    this.peerconnection.setLocalDescription(description,
+        () => {
+            this.trace('setLocalDescriptionOnSuccess');
+            let localUfrag = getUfrag(description.sdp);
+            if (localUfrag != this.localUfrag) {
+                this.localUfrag = localUfrag;
+                this.rtc.eventEmitter.emit(
+                    RTCEvents.LOCAL_UFRAG_CHANGED, this, localUfrag);
             }
-        );
-    };
+            successCallback();
+        },
+        err => {
+            this.trace('setLocalDescriptionOnFailure', err);
+            this.eventEmitter.emit(
+                RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
+                err, this.peerconnection);
+            failureCallback(err);
+        }
+    );
+};
 
 TraceablePeerConnection.prototype.setRemoteDescription
     = function(description, successCallback, failureCallback) {
@@ -1426,6 +1452,12 @@ TraceablePeerConnection.prototype.setRemoteDescription
             description,
             () => {
                 this.trace('setRemoteDescriptionOnSuccess');
+                let remoteUfrag = getUfrag(description.sdp);
+                if (remoteUfrag != this.remoteUfrag) {
+                    this.remoteUfrag = remoteUfrag;
+                    this.rtc.eventEmitter.emit(
+                        RTCEvents.REMOTE_UFRAG_CHANGED, this, remoteUfrag);
+                }
                 successCallback();
             },
             err => {
@@ -1436,7 +1468,13 @@ TraceablePeerConnection.prototype.setRemoteDescription
                     this.peerconnection);
                 failureCallback(err);
             });
-    };
+
+        /*
+         if (this.statsinterval === null && this.maxstats > 0) {
+         // start gathering stats
+         }
+         */
+};
 
 /**
  * Makes the underlying TraceablePeerConnection generate new SSRC for
