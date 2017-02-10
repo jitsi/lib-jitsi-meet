@@ -4,7 +4,7 @@
 import * as GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
 import { getLogger } from "jitsi-meet-logger";
 import {getValues} from "../util/JSUtil";
-import MungeLocalSdp from "../xmpp/MungeLocalSdp";
+import MungeLocalSdp from "./MungeLocalSdp";
 const logger = getLogger(__filename);
 const JitsiRemoteTrack = require("./JitsiRemoteTrack.js");
 import * as MediaType from "../../service/RTC/MediaType";
