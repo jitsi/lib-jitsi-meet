@@ -271,17 +271,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
                 JitsiConferenceEvents.USER_STATUS_CHANGED, id, status);
         });
 
-    conference.room.addListener(XMPPEvents.LOCAL_UFRAG_CHANGED,
-        function (ufrag) {
-            Statistics.sendLog(
-                JSON.stringify({id: "local_ufrag", value: ufrag}));
-        });
-    conference.room.addListener(XMPPEvents.REMOTE_UFRAG_CHANGED,
-        function (ufrag) {
-            Statistics.sendLog(
-                JSON.stringify({id: "remote_ufrag", value: ufrag}));
-        });
-
     chatRoom.addPresenceListener("startmuted", function (data, from) {
         var isModerator = false;
         if (conference.myUserId() === from && conference.isModerator()) {
@@ -438,6 +427,18 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function () {
                     "Ignored ENDPOINT_MESSAGE_RECEIVED " +
                     "for not existing participant: " + from, payload);
             }
+        });
+
+    // FIXME probably should be ignored from P2P ?
+    rtc.addListener(RTCEvents.LOCAL_UFRAG_CHANGED,
+        function (tpc, ufrag) {
+            Statistics.sendLog(
+                JSON.stringify({id: "local_ufrag", value: ufrag}));
+        });
+    rtc.addListener(RTCEvents.REMOTE_UFRAG_CHANGED,
+        function (tpc, ufrag) {
+            Statistics.sendLog(
+                JSON.stringify({id: "remote_ufrag", value: ufrag}));
         });
 
     if(conference.statistics) {

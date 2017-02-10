@@ -55,16 +55,6 @@ export default class JingleSessionPC extends JingleSession {
         this.closed = false;
 
         /**
-         * The local ICE username fragment for this session.
-         */
-        this.localUfrag = null;
-
-        /**
-         * The remote ICE username fragment for this session.
-         */
-        this.remoteUfrag = null;
-
-        /**
          * The signalling layer implementation.
          * @type {SignallingLayerImpl}
          */
@@ -818,12 +808,6 @@ export default class JingleSessionPC extends JingleSession {
         //  logic below could listen to that and be separated from
         //  core flows like this.
         return new Promise((resolve, reject) => {
-            let remoteUfrag = JingleSessionPC.getUfrag(remoteDescription.sdp);
-            if (remoteUfrag != this.remoteUfrag) {
-                this.remoteUfrag = remoteUfrag;
-                this.room.eventEmitter.emit(
-                        XMPPEvents.REMOTE_UFRAG_CHANGED, remoteUfrag);
-            }
 
             logger.debug("Renegotiate: setting remote description");
             this.peerconnection.setRemoteDescription(
@@ -836,12 +820,6 @@ export default class JingleSessionPC extends JingleSession {
                     logger.debug("Renegotiate: creating answer");
                     this.peerconnection.createAnswer(
                         (answer) => {
-                            let localUfrag = JingleSessionPC.getUfrag(answer.sdp);
-                            if (localUfrag != this.localUfrag) {
-                                this.localUfrag = localUfrag;
-                                this.room.eventEmitter.emit(
-                                        XMPPEvents.LOCAL_UFRAG_CHANGED, localUfrag);
-                            }
                             logger.debug("Renegotiate: setting local description");
                             this.peerconnection.setLocalDescription(
                                 answer,
@@ -1309,17 +1287,4 @@ export default class JingleSessionPC extends JingleSession {
                     && this.peerconnection.connectionState !== 'closed'))
             && this.peerconnection.close();
     }
-
-    /**
-     * Extracts the ice username fragment from an SDP string.
-     */
-    static getUfrag(sdp) {
-        const ufragLines = sdp.split('\n').filter(function (line) {
-            return line.startsWith("a=ice-ufrag:");
-        });
-        if (ufragLines.length > 0) {
-            return ufragLines[0].substr("a=ice-ufrag:".length);
-        }
-    }
-
 }

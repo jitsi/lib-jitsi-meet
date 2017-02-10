@@ -22,6 +22,19 @@ var SDPUtil = require("../xmpp/SDPUtil");
 var SIMULCAST_LAYERS = 3;
 
 /**
+ * Extracts the ICE username fragment from an SDP string.
+ * @param {string} sdp the SDP in raw text format
+ */
+function getUfrag(sdp) {
+    const ufragLines = sdp.split('\n').filter(function (line) {
+        return line.startsWith("a=ice-ufrag:");
+    });
+    if (ufragLines.length > 0) {
+        return ufragLines[0].substr("a=ice-ufrag:".length);
+    }
+}
+
+/**
  * Creates new instance of 'TraceablePeerConnection'.
  *
  * @param {RTC} rtc the instance of <tt>RTC</tt> service
@@ -68,6 +81,16 @@ function TraceablePeerConnection(rtc, id, signallingLayer, ice_config,
     this.localTracks = {};
 
     this.localSSRCs = {};
+
+    /**
+     * The local ICE username fragment for this session.
+     */
+    this.localUfrag = null;
+
+    /**
+     * The remote ICE username fragment for this session.
+     */
+    this.remoteUfrag = null;
 
     /**
      * The signalling layer which operates this peer connection.
@@ -1281,17 +1304,22 @@ TraceablePeerConnection.prototype.setLocalDescription
             dumpSDP(description));
     }
 
-    var self = this;
     this.peerconnection.setLocalDescription(description,
-        function () {
-            self.trace('setLocalDescriptionOnSuccess');
+        () => {
+            this.trace('setLocalDescriptionOnSuccess');
+            let localUfrag = getUfrag(description.sdp);
+            if (localUfrag != this.localUfrag) {
+                this.localUfrag = localUfrag;
+                this.rtc.eventEmitter.emit(
+                    RTCEvents.LOCAL_UFRAG_CHANGED, this, localUfrag);
+            }
             successCallback();
         },
-        function (err) {
-            self.trace('setLocalDescriptionOnFailure', err);
-            self.eventEmitter.emit(
+        (err) => {
+            this.trace('setLocalDescriptionOnFailure', err);
+            this.eventEmitter.emit(
                 RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
-                err, self.peerconnection);
+                err, this.peerconnection);
             failureCallback(err);
         }
     );
@@ -1327,16 +1355,22 @@ TraceablePeerConnection.prototype.setRemoteDescription
         description = normalizePlanB(description);
     }
 
-    var self = this;
     this.peerconnection.setRemoteDescription(description,
-        function () {
-            self.trace('setRemoteDescriptionOnSuccess');
+        () => {
+            this.trace('setRemoteDescriptionOnSuccess');
+            let remoteUfrag = getUfrag(description.sdp);
+            if (remoteUfrag != this.remoteUfrag) {
+                this.remoteUfrag = remoteUfrag;
+                this.rtc.eventEmitter.emit(
+                    RTCEvents.REMOTE_UFRAG_CHANGED, this, remoteUfrag);
+            }
             successCallback();
         },
-        function (err) {
-            self.trace('setRemoteDescriptionOnFailure', err);
-            self.eventEmitter.emit(RTCEvents.SET_REMOTE_DESCRIPTION_FAILED,
-                err, self.peerconnection);
+        (err) => {
+            this.trace('setRemoteDescriptionOnFailure', err);
+            this.eventEmitter.emit(
+                RTCEvents.SET_REMOTE_DESCRIPTION_FAILED,
+                err, this.peerconnection);
             failureCallback(err);
         }
     );
