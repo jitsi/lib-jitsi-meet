@@ -453,6 +453,34 @@ var SDPUtil = {
     getMedia: function (sdp, type) {
         return sdp.media.find(m => m.type === type);
     },
+    /**
+     * Sets the given codecName as the preferred codec by
+     *  moving it to the beginning of the payload types
+     *  list (modifies the given mline in place).  If there
+     *  are multiple options within the same codec (multiple h264
+     *  profiles, for instance), this will prefer the first one
+     *  that is found.
+     * @param {object} videoMLine the video mline object from
+     *  an sdp as parsed by transform.parse
+     * @param {string} the name of the preferred codec
+     */
+    preferVideoCodec: function(videoMLine, codecName) {
+        let payloadType = null;
+        for (let i = 0; i < videoMLine.rtp.length; ++i) {
+          const rtp = videoMLine.rtp[i];
+          if (rtp.codec === codecName) {
+              payloadType = rtp.payload;
+              break;
+          }
+        }
+        if (payloadType) {
+            const payloadTypes = videoMLine.payloads.split(" ").map(p => parseInt(p));
+            const payloadIndex = payloadTypes.indexOf(payloadType);
+            payloadTypes.splice(payloadIndex, 1);
+            payloadTypes.unshift(payloadType);
+            videoMLine.payloads = payloadTypes.join(" ");
+        }
+    },
 };
 
 module.exports = SDPUtil;

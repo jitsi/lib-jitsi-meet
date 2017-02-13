@@ -69,6 +69,31 @@ const plainVideoMLineSdp = "" +
 "a=ssrc:1757014965 cname:peDGrDD6WsxUOki/\r\n" +
 "a=rtcp-mux\r\n";
 
+// A basic sdp video mline with a single stream and multiple codecs
+const multiCodecVideoMLine = "" +
+"m=video 9 RTP/SAVPF 100 126 97\r\n" +
+"c=IN IP4 0.0.0.0\r\n" +
+"a=rtpmap:100 VP8/90000\r\n" +
+"a=rtpmap:126 H264/90000\r\n" +
+"a=rtpmap:97 H264/90000\r\n" +
+"a=rtcp:9 IN IP4 0.0.0.0\r\n" +
+"a=rtcp-fb:100 ccm fir\r\n" +
+"a=rtcp-fb:100 nack\r\n" +
+"a=rtcp-fb:100 nack pli\r\n" +
+"a=rtcp-fb:100 goog-remb\r\n" +
+"a=fmtp:126 profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1\r\n" +
+"a=fmtp:97 profile-level-id=42e01f;level-asymmetry-allowed=1\r\n" +
+"a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\n" +
+"a=setup:passive\r\n" +
+"a=mid:video\r\n" +
+"a=sendrecv\r\n" +
+"a=ice-ufrag:adPg\r\n" +
+"a=ice-pwd:Xsr05Mq8S7CR44DAnusZE26F\r\n" +
+"a=fingerprint:sha-256 6A:39:DE:11:24:AD:2E:4E:63:D6:69:D3:85:05:53:C7:3C:38:A4:B7:91:74:C0:91:44:FC:94:63:7F:01:AB:A9\r\n" +
+"a=ssrc:1757014965 msid:0836cc8e-a7bb-47e9-affb-0599414bc56d bdbd2c0a-7959-4578-8db5-9a6a1aec4ecf\r\n" +
+"a=ssrc:1757014965 cname:peDGrDD6WsxUOki/\r\n" +
+"a=rtcp-mux\r\n";
+
 // An sdp video mline with 3 simulcast streams
 const simulcastVideoMLineSdp = "" +
 "m=video 9 RTP/SAVPF 100\r\n" +
@@ -165,10 +190,13 @@ const simulcastRtxSdpStr = baseSessionSdp + baseAudioMLineSdp + simulcastRtxVide
 const plainVideoSdpStr = baseSessionSdp + baseAudioMLineSdp + plainVideoMLineSdp + baseDataMLineSdp;
 // A full sdp string representing a client doing a single video stream with rtx
 const rtxVideoSdpStr = baseSessionSdp + baseAudioMLineSdp + rtxVideoMLineSdp + baseDataMLineSdp;
+// A full sdp string representing a client doing a single video stream with multiple codec options
+const multiCodecVideoSdpStr = baseSessionSdp + baseAudioMLineSdp + multiCodecVideoMLine + baseDataMLineSdp;
 
 export const simulcastSdp = transform.parse(simulcastSdpStr);
 export const simulcastRtxSdp = transform.parse(simulcastRtxSdpStr);
 export const plainVideoSdp = transform.parse(plainVideoSdpStr);
 export const rtxVideoSdp = transform.parse(rtxVideoSdpStr);
+export const multiCodecVideoSdp = transform.parse(multiCodecVideoSdpStr);
 
 /*eslint-enable max-len*/

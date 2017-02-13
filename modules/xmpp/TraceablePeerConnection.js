@@ -389,6 +389,13 @@ TraceablePeerConnection.prototype.setRemoteDescription
     description = this.simulcast.mungeRemoteDescription(description);
     this.trace('setRemoteDescription::postTransform (simulcast)', dumpSDP(description));
 
+    if (this.session.room.options.preferH264) {
+        const parsedSdp = transform.parse(description.sdp);
+        const videoMLine = parsedSdp.media.find(m => m.type === "video");
+        SDPUtil.preferVideoCodec(videoMLine, "h264");
+        description.sdp = transform.write(parsedSdp);
+    }
+
     // if we're running on FF, transform to Plan A first.
     if (RTCBrowserType.usesUnifiedPlan()) {
         description.sdp = this.rtxModifier.stripRtx(description.sdp);

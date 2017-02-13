@@ -54,6 +54,8 @@ The ```options``` parameter is JS object with the following properties:
     14. enableAnalyticsLogging - boolean property (default false). Enables/disables analytics logging.
     15. callStatsCustomScriptUrl - (optional) custom url to access callstats client script
     16. callStatsConfIDNamespace - (optional) a namespace to prepend the callstats conference ID with. Defaults to the window.location.hostname
+    17. disableRtx - (optional) boolean property (default to false).  Enables/disable the use of RTX.
+    18. preferH264 - (optional) boolean property (default to false).  Enables/disable preferring the first instance of an h264 codec in an offer by moving it to the front of the codec list.
 
 * ```JitsiMeetJS.JitsiConnection``` - the ```JitsiConnection``` constructor. You can use that to create new server connection.
 
