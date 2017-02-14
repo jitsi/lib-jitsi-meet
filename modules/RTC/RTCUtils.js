@@ -728,6 +728,24 @@ function defaultSetVideoSrc(element, stream) {
     element.src = src || '';
 }
 
+/**
+ * Utility function hiding notification bar if it's present.
+ *
+ * @private
+ * @returns {void}
+ */
+function hideNotificationBarIfRequired() {
+    // XXX: Adapter JS doesn't provide the way to hide notification bar
+    // Therefore it's done via cancel button click simulation
+    const iFrame = document.querySelector('[name="adapterjs-alert"]');
+    if (iFrame) {
+        const cancelButton = iFrame.contentDocument.getElementById('cancel');
+        if (cancelButton) {
+            cancelButton.click();
+        }
+    }
+}
+
 //Options parameter is to pass config options. Currently uses only "useIPv6".
 class RTCUtils extends Listenable {
     constructor() {
@@ -856,65 +874,67 @@ class RTCUtils extends Listenable {
             }
             // Detect IE/Safari
             else if (RTCBrowserType.isTemasysPluginUsed()) {
-                var self = this;
-                var pluginInstalledCallback = function() {
-                    AdapterJS.webRTCReady(function () {
-                        self.peerconnection = RTCPeerConnection;
-                        self.getUserMedia = window.getUserMedia;
-                        self.enumerateDevices = enumerateDevicesThroughMediaStreamTrack;
-                        self.attachMediaStream = wrapAttachMediaStream(function (element, stream) {
-                            if (stream) {
-                                if (stream.id === "dummyAudio"
-                                    || stream.id === "dummyVideo") {
-                                    return;
-                                }
-
-                                // The container must be visible in order to play or
-                                // attach the stream when Temasys plugin is in use
-                                var containerSel = $(element);
-                                if (RTCBrowserType.isTemasysPluginUsed()
-                                    && !containerSel.is(':visible')) {
-                                    containerSel.show();
-                                }
-                                var video = !!stream.getVideoTracks().length;
-                                if (video && !$(element).is(':visible')) {
-                                    throw new Error(
-                                        'video element must be visible to attach'
-                                        + ' video stream');
-                                }
+                const webRTCReadyCb = () => {
+                    this.peerconnection = RTCPeerConnection;
+                    this.getUserMedia = window.getUserMedia;
+                    this.enumerateDevices = enumerateDevicesThroughMediaStreamTrack;
+                    this.attachMediaStream = wrapAttachMediaStream(function (element, stream) {
+                        if (stream) {
+                            if (stream.id === "dummyAudio"
+                                || stream.id === "dummyVideo") {
+                                return;
                             }
 
-                            return attachMediaStream(element, stream);
-                        });
-                        self.getStreamID = function (stream) {
-                            return SDPUtil.filter_special_chars(stream.label);
-                        };
+                            // The container must be visible in order to play or
+                            // attach the stream when Temasys plugin is in use
+                            var containerSel = $(element);
+                            if (RTCBrowserType.isTemasysPluginUsed()
+                                && !containerSel.is(':visible')) {
+                                containerSel.show();
+                            }
+                            var video = !!stream.getVideoTracks().length;
+                            if (video && !$(element).is(':visible')) {
+                                throw new Error(
+                                    'video element must be visible to attach'
+                                    + ' video stream');
+                            }
+                        }
 
-                        onReady(options,
-                            self.getUserMediaWithConstraints.bind(self));
+                        return attachMediaStream(element, stream);
+                    });
+                    this.getStreamID = function (stream) {
+                        return SDPUtil.filter_special_chars(stream.label);
+                    };
+
+                    onReady(options,
+                        this.getUserMediaWithConstraints.bind(this));
+                };
+                const webRTCReadyPromise = new Promise((resolve) => {
+                        AdapterJS.webRTCReady(() => resolve());
+                });
+                const pluginInstalledCb = () => {
+                    webRTCReadyPromise.then(() => {
+                        hideNotificationBarIfRequired();
+                        webRTCReadyCb();
                         resolve();
                     });
                 };
+                const pluginIsNotInstalledCb = () => {
+                    const error = new Error('Temasys plugin is not installed');
 
-                //AdapterJS.WebRTCPlugin.setLogLevel(
-                //    AdapterJS.WebRTCPlugin.PLUGIN_LOG_LEVELS.VERBOSE);
+                    error.isOldBrowser = false;
+                    error.isPluginRequired = true;
+                    error.webRTCReadyPromise = webRTCReadyPromise;
+                    reject(error);
+                };
 
                 // Try to detect the plugin and act accordingly
                 AdapterJS.WebRTCPlugin.isPluginInstalled(
                     AdapterJS.WebRTCPlugin.pluginInfo.prefix,
                     AdapterJS.WebRTCPlugin.pluginInfo.plugName,
                     AdapterJS.WebRTCPlugin.pluginInfo.type,
-                    pluginInstalledCallback,
-                    function () {
-                        const error = new Error('Temasys plugin is not installed');
-
-                        error.isOldBrowser = false;
-                        reject(error);
-
-                        // Inform user about required plugin installation.
-                        AdapterJS.WebRTCPlugin.pluginNeededButNotInstalledCb();
-                    });
-
+                    pluginInstalledCb,
+                    pluginIsNotInstalledCb);
             } else {
                 const errmsg = 'Browser does not appear to be WebRTC-capable';
                 const error = new Error(errmsg);
