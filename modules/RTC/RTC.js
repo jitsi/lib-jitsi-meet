@@ -267,14 +267,17 @@ export default class RTC extends Listenable {
      * @param {boolean} options.disableRtx if set to 'true' will disable the RTX
      * @param {boolean} options.preferH264 if set to 'true' H264 will be
      * preferred over other video codecs.
+     * @param {boolean} options.disableRtx <tt>true</tt> to disable RTX
+     * @param {boolean} isP2P indicates whether or not the new TPC will be used
+     * in a peer to peer type of session
      * @return {TraceablePeerConnection}
      */
-    createPeerConnection(signaling, iceConfig, options) {
+    createPeerConnection(signaling, iceConfig, options, isP2P) {
         const newConnection
             = new TraceablePeerConnection(
                 this,
                 this.peerConnectionIdCounter,
-                signaling, iceConfig, RTC.getPCConstraints(), options);
+                signaling, iceConfig, RTC.getPCConstraints(), options, isP2P);
 
         this.peerConnections.set(newConnection.id, newConnection);
         this.peerConnectionIdCounter += 1;

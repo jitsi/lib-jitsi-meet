@@ -101,6 +101,10 @@ export default class ParticipantConnectionStatus {
             RTCEvents.ENDPOINT_CONN_STATUS_CHANGED,
             this._onEndpointConnStatusChanged);
 
+        // Handles P2P status changes
+        this._onP2PStatus = this.refreshStatusForAll.bind(this);
+        this.conference.on(JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
+
         // On some browsers MediaStreamTrack trigger "onmute"/"onunmute"
         // events for video type tracks when they stop receiving data which is
         // often a sign that remote user is having connectivity issues
@@ -158,6 +162,9 @@ export default class ParticipantConnectionStatus {
                 JitsiConferenceEvents.TRACK_REMOVED,
                 this._onRemoteTrackRemoved);
         }
+
+        this.conference.off(
+            JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
 
         Object.keys(this.trackTimers).forEach(participantId => {
             this.clearTimeout(participantId);
@@ -322,6 +329,17 @@ export default class ParticipantConnectionStatus {
     }
 
     /**
+     * Goes over every participant and updates connectivity status.
+     * Should be called when parameter which affects all of the participants
+     * is changed (P2P for example).
+     */
+    refreshStatusForAll() {
+        for (const participant of this.conference.getParticipants()) {
+            this.figureOutConnectionStatus(participant.getId());
+        }
+    }
+
+    /**
      * Figures out (and updates) the current connectivity status for
      * the participant identified by the given id.
      *
@@ -347,9 +365,12 @@ export default class ParticipantConnectionStatus {
         const isVideoTrackFrozen = this.isVideoTrackFrozen(participant);
         let isConnActiveByJvb = this.connStatusFromJvb[id];
 
-        // If no status was received from the JVB it means that it's active
-        // (the bridge does not send notification unless there is a problem).
-        if (typeof isConnActiveByJvb !== 'boolean') {
+        if (this.conference.isP2PEstablished()) {
+            logger.debug('Assuming connection active by JVB - in P2P mode');
+            isConnActiveByJvb = true;
+        } else if (typeof isConnActiveByJvb !== 'boolean') {
+            // If no status was received from the JVB it means that it's active
+            // (the bridge does not send notification unless there is a problem)
             logger.debug('Assuming connection active by JVB - no notification');
             isConnActiveByJvb = true;
         }

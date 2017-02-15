@@ -1,11 +1,13 @@
-/* global $, $iq, Strophe */
+/* global $, $iq, __filename, Strophe */
 
 import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 
 import JingleSessionPC from './JingleSessionPC';
+import * as JingleSessionState from './JingleSessionState';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import RandomUtil from '../util/RandomUtil';
 import Statistics from '../statistics/statistics';
 import ConnectionPlugin from './ConnectionPlugin';
 
@@ -27,7 +29,14 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         this.xmpp = xmpp;
         this.eventEmitter = eventEmitter;
         this.sessions = {};
-        this.iceConfig = { iceServers: [] };
+        // FIXME make configurable and use STUN only in P2Pthis.iceConfig = {iceServers: [{ urls: "stun:stun.l.google.com:19302" },
+        this.iceConfig = {
+            iceServers: [
+                { urls: "stun:stun.l.google.com:19302" },
+                { urls: "stun:stun1.l.google.com:19302" },
+                { urls: "stun:stun2.l.google.com:19302" }
+            ]
+        };
         this.mediaConstraints = {
             mandatory: {
                 'OfferToReceiveAudio': true,
@@ -126,17 +135,27 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             if (startMuted && startMuted.length > 0) {
                 const audioMuted = startMuted.attr('audio');
                 const videoMuted = startMuted.attr('video');
-
                 this.eventEmitter.emit(XMPPEvents.START_MUTED_FROM_FOCUS,
-                            audioMuted === 'true', videoMuted === 'true');
+                        audioMuted === 'true', videoMuted === 'true');
             }
+
+            // FIXME that should work most of the time, but we'd have to
+            // think how secure it is to assume that user with "focus"
+            // nickname is Jicofo.
+            const isP2P = 'focus' !== Strophe.getResourceFromJid(fromJid);
+
+            logger.info(
+                "Marking session from " + fromJid
+                    + (isP2P ? ' as P2P' : ' as *not* P2P'));
             sess = new JingleSessionPC(
                         $(iq).find('jingle').attr('sid'),
                         $(iq).attr('to'),
                         fromJid,
                         this.connection,
                         this.mediaConstraints,
-                        this.iceConfig, this.xmpp.options);
+                        this.iceConfig,
+                        isP2P /* P2P */, false /* initiator */,
+                        this.xmpp.options);
 
             this.sessions[sess.sid] = sess;
 
@@ -144,6 +163,16 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     sess, $(iq).find('>jingle'), now);
             Statistics.analytics.sendEvent(
                     'xmpp.session-initiate', { value: now });
+            break;
+        }
+        case 'session-accept': {
+            this.eventEmitter.emit(
+                XMPPEvents.CALL_ACCEPTED, sess, $(iq).find('>jingle'));
+            break;
+        }
+        case 'transport-info': {
+            this.eventEmitter.emit(
+                XMPPEvents.TRANSPORT_INFO, sess, $(iq).find('>jingle'));
             break;
         }
         case 'session-terminate': {
@@ -156,10 +185,11 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     = $(iq).find('>jingle>reason>:first')[0].tagName;
                 reasonText = $(iq).find('>jingle>reason>text').text();
             }
+            sess.state = JingleSessionState.ENDED;
             this.terminate(sess.sid, reasonCondition, reasonText);
             this.eventEmitter.emit(XMPPEvents.CALL_ENDED,
-                    sess, reasonCondition, reasonText);
-            break;
+                sess, reasonCondition, reasonText);
+        break;
         }
         case 'transport-replace':
             logger.info('(TIME) Start transport replace', now);
@@ -200,6 +230,29 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         this.connection.send(ack);
 
         return true;
+    }
+
+    /**
+     * Creates new <tt>JingleSessionPC</tt> meant to be used in a direct P2P
+     * connection, configured as 'initiator'.
+     * @param {string} me our JID
+     * @param {string} peer remote participant's JID
+     * @return {JingleSessionPC}
+     */
+    newJingleSession(me, peer) {
+        const sess
+            = new JingleSessionPC(
+                    me,
+                    RandomUtil.randomHexString(12),
+                    peer,
+                    this.connection,
+                    this.media_constraints,
+                    this.ice_config,
+                    true /* P2P */, true /* initiator */,
+                    this.xmpp.options);
+
+        this.sessions[sess.sid] = sess;
+        return sess;
     }
 
     /**

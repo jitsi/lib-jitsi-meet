@@ -516,22 +516,25 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
             }
         });
 
-    // FIXME probably should be ignored from P2P ?
     rtc.addListener(RTCEvents.LOCAL_UFRAG_CHANGED,
         (tpc, ufrag) => {
-            Statistics.sendLog(
-                JSON.stringify({
+            if (!tpc.isP2P) {
+                Statistics.sendLog(
+                    JSON.stringify({
                     id: 'local_ufrag',
                     value: ufrag
                 }));
+            }
         });
     rtc.addListener(RTCEvents.REMOTE_UFRAG_CHANGED,
         (tpc, ufrag) => {
-            Statistics.sendLog(
-                JSON.stringify({
+            if (!tpc.isP2P) {
+                Statistics.sendLog(
+                    JSON.stringify({
                     id: 'remote_ufrag',
                     value: ufrag
                 }));
+            }
         });
 
     if (conference.statistics) {
@@ -578,6 +581,12 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
     conference.xmpp.addListener(
         XMPPEvents.CALL_INCOMING,
         conference.onIncomingCall.bind(conference));
+    conference.xmpp.addListener(
+        XMPPEvents.CALL_ACCEPTED,
+        conference.onCallAccepted.bind(conference));
+    conference.xmpp.addListener(
+        XMPPEvents.TRANSPORT_INFO,
+        conference.onTransportInfo.bind(conference));
     conference.xmpp.addListener(
         XMPPEvents.CALL_ENDED,
         conference.onCallEnded.bind(conference));
