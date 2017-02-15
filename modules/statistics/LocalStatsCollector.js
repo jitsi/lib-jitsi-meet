@@ -22,7 +22,16 @@ var context = null;
 
 if(window.AudioContext) {
     context = new AudioContext();
-    context.suspend();
+
+    // XXX Not all browsers define a suspend method on AudioContext. As the
+    // invocation is at the (ES6 module) global execution level, it breaks the
+    // loading of the lib-jitsi-meet library in such browsers and, consequently,
+    // the loading of the very Web app that uses the lib-jitsi-meet library. For
+    // example, Google Chrome 40 on Android does not define the method but we
+    // still want to be able to load the lib-jitsi-meet library there and
+    // display a page which notifies the user that the Web app is not supported
+    // there.
+    context.suspend && context.suspend();
 }
 
 /**
