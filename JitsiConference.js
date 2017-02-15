@@ -550,13 +550,15 @@ JitsiConference.prototype.replaceTrack = function (oldTrack, newTrack) {
  * the process or <tt>null</t> if the method should act as "add track"
  * @param {JitsiLocalTrack|null} newTrack the new track to be added or
  * <tt>null</tt> if the method should act as "remove track"
- * @return {Promise}
+ * @return {Promise} resolved when the process is done or rejected with a string
+ * which describes the error.
  * @private
  */
 JitsiConference.prototype._doReplaceTrack = function (oldTrack, newTrack) {
     if (this.jingleSession) {
         return this.jingleSession.replaceTrack(oldTrack, newTrack);
     } else {
+        logger.info("_doReplaceTrack - no JVB JingleSession");
         return Promise.resolve();
     }
 };
@@ -623,38 +625,33 @@ JitsiConference.prototype._setupNewTrack = function (newTrack) {
  * Add track stream.
  * @param {JitsiLocalTrack} track the local track that will be added as part of
  * the unmute operation.
- * @param {function} callback callback executed, after successful stream
- * addition.
- * @param {function} errorCallback callback executed if stream addition fails.
+ * @return {Promise} resolved when the process is done or rejected with a string
+ * which describes the error.
  */
-JitsiConference.prototype._addLocalTrackAsUnmute
-    = function (track, callback, errorCallback) {
+JitsiConference.prototype._addLocalTrackAsUnmute = function (track) {
     if (this.jingleSession) {
-        this.jingleSession.addTrackAsUnmute(track)
-            .then(callback).catch(errorCallback);
+        return this.jingleSession.addTrackAsUnmute(track);
     } else {
         // We are done immediately
         logger.warn(
             "Add local MediaStream as unmute - no JingleSession started yet");
-        callback();
+        return Promise.resolve();
     }
 };
 
 /**
  * Removes given local track, as part of the mute operation.
  * @param {JitsiLocalTrack} track the local track that will be removed.
- * @param {function} callback callback executed after successful track removal.
- * @param {function} errorCallback callback executed if track removal fails.
+ * @return {Promise}
  */
-JitsiConference.prototype._removeTrackAsMute
-    = function (track, callback, errorCallback) {
+JitsiConference.prototype._removeTrackAsMute = function (track) {
     if (this.jingleSession) {
-        this.jingleSession.removeTrackAsMute(track)
-            .then(callback).catch(errorCallback);
+        return this.jingleSession.removeTrackAsMute(track);
     } else {
         // We are done immediately
-        logger.warn("Remove local MediaStream - no JingleSession started yet");
-        callback();
+        logger.warn(
+            "Remove local MediaStream - no JVB JingleSession started yet");
+        return Promise.resolve();
     }
 };
 

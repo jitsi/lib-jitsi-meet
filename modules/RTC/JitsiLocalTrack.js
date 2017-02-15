@@ -331,6 +331,10 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
     // Local track can be used out of conference, so we need to handle that
     // case and mark that track should start muted or not when added to
     // conference.
+    // Pawel: track's muted status should be taken into account when track is
+    // being added to the conference/JingleSessionPC/TraceablePeerConnection.
+    // There's no need to add such fields. It is logical that when muted track
+    // is being added to a conference it "starts muted"...
     if(!this.conference || !this.conference.room) {
         this.startMuted = mute;
     }
@@ -425,10 +429,18 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function () {
         return Promise.resolve();
     }
 
-    // FIXME deal with unmute (should be done by the traceable peer connection)
+    // FIXME it would be good to not included conference as part of this process
+    // Only TraceablePeerConnections to which the track is attached should care
+    // about this action. The TPCs to which the track is not attached can sync
+    // up when track is re-attached.
+    // A problem with that is that the "modify sources" queue is part of
+    // the JingleSessionPC and it would be excluded from the process. One
+    // solution would be to extract class between TPC and JingleSessionPC which
+    // would contain the queue and would notify the signalling layer when local
+    // SSRCs are changed. This would help to separate XMPP from the RTC module.
     return new Promise((resolve, reject) => {
-        this.conference._addLocalTrackAsUnmute(
-            this, resolve, (error) => reject(new Error(error)));
+        this.conference._addLocalTrackAsUnmute(this)
+            .then(resolve, (error) => reject(new Error(error)));
     });
 };
 
@@ -444,9 +456,7 @@ function (successCallback, errorCallback) {
         successCallback();
         return;
     }
-    // FXIME make removeLocalWebRTCStream accept callbacks
-    this.conference._removeTrackAsMute(
-        this,
+    this.conference._removeTrackAsMute(this).then(
         successCallback,
         (error) => errorCallback(new Error(error)));
 };
