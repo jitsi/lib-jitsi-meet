@@ -48,6 +48,8 @@ function getUfrag(sdp) {
  * @param {boolean} options.disableRtx if set to 'true' will disable the RTX
  * @param {boolean} options.preferH264 if set to 'true' H264 will be preferred
  * over other video codecs.
+ * @param {boolean} isP2P indicates whether or not the new instance will be used
+ * in a peer to peer connection
  *
  * FIXME: initially the purpose of TracablePeerConnection was to be able to
  * debug the peer connection. Since many other responsibilities have been added
@@ -57,7 +59,7 @@ function getUfrag(sdp) {
  * @constructor
  */
 function TraceablePeerConnection(rtc, id, signallingLayer, ice_config,
-                                 constraints, options) {
+                                 constraints, options, isP2P) {
     var self = this;
     /**
      * The parent instance of RTC service which created this
@@ -70,6 +72,12 @@ function TraceablePeerConnection(rtc, id, signallingLayer, ice_config,
      * @type {number}
      */
     this.id = id;
+    /**
+     * Indicates whether or not this instance is used in a peer to peer
+     * connection.
+     * @type {boolean}
+     */
+    this.isP2P = isP2P;
 
     //FIXME: We should support multiple streams per jid.
     /**
@@ -274,7 +282,9 @@ const dumpSDP = function(description) {
  * <tt>false</tt> if it's turned off.
  */
 TraceablePeerConnection.prototype.isSimulcastOn = function () {
-    return !this.options.disableSimulcast && this.simulcast.isSupported();
+    return !this.options.disableSimulcast
+        && this.simulcast.isSupported()
+        && !this.isP2P;
 };
 
 /**
@@ -502,7 +512,8 @@ TraceablePeerConnection.prototype._createRemoteTrack
     const remoteTrack
         = new JitsiRemoteTrack(
             this.rtc, this.rtc.conference,
-            owner, stream, track, mediaType, videoType, ssrc, muted);
+            owner,
+            stream, track, mediaType, videoType, ssrc, muted, this.isP2P);
     const remoteTracks
         = this.remoteTracks[owner] || (this.remoteTracks[owner] = { });
 
@@ -1472,18 +1483,41 @@ var _fixAnswerRFC4145Setup = function (offer, answer) {
 };
 
 TraceablePeerConnection.prototype.createAnswer
-        = function (successCallback, failureCallback, constraints) {
-    this.trace('createAnswer', JSON.stringify(constraints, null, ' '));
-    this.peerconnection.createAnswer(
-        (answer) => {
+    = function (successCallback, failureCallback, constraints) {
+    this._createOfferOrAnswer(
+        false /* answer */, successCallback, failureCallback, constraints);
+};
+
+TraceablePeerConnection.prototype.createOffer
+    = function (successCallback, failureCallback, constraints) {
+    this._createOfferOrAnswer(
+        true /* offer */, successCallback, failureCallback, constraints);
+};
+
+TraceablePeerConnection.prototype._createOfferOrAnswer
+        = function (isOffer, successCallback, failureCallback, constraints) {
+    const logName = isOffer ? 'Offer' : 'Answer';
+
+    this.trace('create' + logName, JSON.stringify(constraints, null, ' '));
+
+    const offerOrAnswerMethod
+        = isOffer
+            ? this.peerconnection.createOffer.bind(this.peerconnection)
+            : this.peerconnection.createAnswer.bind(this.peerconnection);
+
+    offerOrAnswerMethod(
+        (resultSdp) => {
             try {
                 this.trace(
-                    'createAnswerOnSuccess::preTransform', dumpSDP(answer));
+                    'create' + logName + 'OnSuccess::preTransform',
+                    dumpSDP(resultSdp));
                 // if we're running on FF, transform to Plan A first.
                 if (RTCBrowserType.usesUnifiedPlan()) {
-                    answer = this.interop.toPlanB(answer);
-                    this.trace('createAnswerOnSuccess::postTransform (Plan B)',
-                        dumpSDP(answer));
+                    resultSdp = this.interop.toPlanB(resultSdp);
+                    this.trace(
+                        'create' + logName
+                                 + 'OnSuccess::postTransform (Plan B)',
+                        dumpSDP(resultSdp));
                 }
 
                 /**
@@ -1501,55 +1535,64 @@ TraceablePeerConnection.prototype.createAnswer
                         this.sdpConsistency.setPrimarySsrc(
                             SDPUtil.generateSsrc());
                     }
-                    answer.sdp
+                    resultSdp.sdp
                         = this.sdpConsistency.makeVideoPrimarySsrcsConsistent(
-                            answer.sdp);
+                            resultSdp.sdp);
                     this.trace(
-                        'createAnswerOnSuccess::postTransform '
-                            + '(make primary video ssrcs consistent)',
-                        dumpSDP(answer));
+                        'create' + logName + 'OnSuccess::postTransform '
+                                 + '(make primary video ssrcs consistent)',
+                        dumpSDP(resultSdp));
                 }
 
                 // Add simulcast streams if simulcast is enabled
                 if (this.isSimulcastOn()) {
-                    answer = this.simulcast.mungeLocalDescription(answer);
+                    resultSdp = this.simulcast.mungeLocalDescription(resultSdp);
                     this.trace(
-                        'createAnswerOnSuccess::postTransform (simulcast)',
-                        dumpSDP(answer));
+                        'create' + logName
+                                 + 'OnSuccess::postTransform (simulcast)',
+                        dumpSDP(resultSdp));
                 }
 
                 if (!this.options.disableRtx && !RTCBrowserType.isFirefox()) {
-                    answer.sdp = this.rtxModifier.modifyRtxSsrcs(answer.sdp);
+                    resultSdp.sdp
+                        = this.rtxModifier.modifyRtxSsrcs(resultSdp.sdp);
                     this.trace(
-                        'createAnswerOnSuccess::postTransform (rtx modifier)',
-                        dumpSDP(answer));
+                        'create' + logName
+                                 + 'OnSuccess::postTransform (rtx modifier)',
+                        dumpSDP(resultSdp));
                 }
 
                 // Fix the setup attribute (see _fixAnswerRFC4145Setup for
                 //  details)
-                let remoteDescription = new SDP(this.remoteDescription.sdp);
-                let localDescription = new SDP(answer.sdp);
-                _fixAnswerRFC4145Setup(remoteDescription, localDescription);
-                answer.sdp = localDescription.raw;
+                if (!isOffer) {
+                    let remoteDescription = new SDP(this.remoteDescription.sdp);
+                    let localDescription = new SDP(resultSdp.sdp);
+                    _fixAnswerRFC4145Setup(remoteDescription, localDescription);
+                    resultSdp.sdp = localDescription.raw;
+                }
 
-                let ssrcMap = extractSSRCMap(answer);
+                let ssrcMap = extractSSRCMap(resultSdp);
                 logger.info("Got SSRC MAP: ", ssrcMap);
                 // Set up the ssrcHandler for the new track before we add it at
                 // the lower levels
                 this._applyLocalSSRCMap(ssrcMap);
 
-                successCallback(answer);
+                successCallback(resultSdp);
             } catch (e) {
-                this.trace('createAnswerOnError', e);
-                this.trace('createAnswerOnError', dumpSDP(answer));
-                logger.error('createAnswerOnError', e, dumpSDP(answer));
+                this.trace('create' + logName + 'OnError', e);
+                this.trace('create' + logName + 'OnError', dumpSDP(resultSdp));
+                logger.error(
+                    'create' + logName + 'OnError', e, dumpSDP(resultSdp));
                 failureCallback(e);
             }
         },
         (err) => {
-            this.trace('createAnswerOnFailure', err);
-            this.eventEmitter.emit(RTCEvents.CREATE_ANSWER_FAILED, err,
-                this.peerconnection);
+            this.trace('create' + logName + 'OnFailure', err);
+            const eventType
+                = isOffer
+                    ? RTCEvents.CREATE_OFFER_FAILED
+                    : RTCEvents.CREATE_ANSWER_FAILED;
+            this.eventEmitter.emit(eventType, err, this.peerconnection);
             failureCallback(err);
         },
         constraints
@@ -1599,11 +1642,11 @@ TraceablePeerConnection.prototype._applyLocalSSRCMap = function (ssrcMap) {
 };
 
 TraceablePeerConnection.prototype.addIceCandidate
-        // eslint-disable-next-line no-unused-vars
         = function (candidate, successCallback, failureCallback) {
     //var self = this;
     this.trace('addIceCandidate', JSON.stringify(candidate, null, ' '));
-    this.peerconnection.addIceCandidate(candidate);
+    this.peerconnection.addIceCandidate(
+        candidate, successCallback, failureCallback);
     /* maybe later
      this.peerconnection.addIceCandidate(candidate,
      function () {
@@ -1680,7 +1723,7 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function (track) {
  * @return {string}
  */
 TraceablePeerConnection.prototype.toString = function () {
-    return "TPC[" + this.id + "]";
+    return "TPC[" + this.id + ",p2p:" + this.isP2P + "]";
 };
 
 module.exports = TraceablePeerConnection;

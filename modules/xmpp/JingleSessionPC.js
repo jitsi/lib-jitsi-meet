@@ -35,6 +35,13 @@ export default class JingleSessionPC extends JingleSession {
      * createOffer/Answer, as defined by the WebRTC standard
      * @param ice_config the ICE servers config object as defined by the WebRTC
      * standard.
+     * FIXME remove 'undefined' once the corresponding fixme in strophe.jingle
+     * is fixed.
+     * @param {boolean|undefined} isP2P indicates whether this instance is
+     * meant to be used in a direct, peer to peer connection or <tt>false</tt>
+     * if it's a JVB connection.
+     * @param {boolean} isInitiator indicates whether or not we are the side
+     * which sends the 'session-intiate'.
      * @param {object} options a set of config options
      * @param {boolean} options.webrtcIceUdpDisable <tt>true</tt> to block UDP
      * candidates.
@@ -42,17 +49,40 @@ export default class JingleSessionPC extends JingleSession {
      * candidates.
      * @param {boolean} options.failICE it's an option used in the tests. Set to
      * <tt>true</tt> to block any real candidates and make the ICE fail.
-     *
      * @constructor
      *
      * @implements {SignallingLayer}
      */
     constructor(me, sid, peerjid, connection,
-                media_constraints, ice_config, options) {
+                media_constraints, ice_config, isP2P, isInitiator, options) {
         super(me, sid, peerjid, connection, media_constraints, ice_config);
+
+        /**
+         * Stores "delayed" ICE candidates which are added to the PC once
+         * the first sRD/sLD cycle is done.
+         * @type {Array} an array of ICE candidate lines which can be added
+         * directly to the PC
+         */
+        this.candidiates = [];
 
         this.lasticecandidate = false;
         this.closed = false;
+
+        /**
+         * Indicates whether this instance is an initiator or an answerer of
+         * the Jingle session.
+         * @type {boolean}
+         */
+        this.isInitiator = isInitiator;
+
+        /**
+         * Indicates whether or not this <tt>JingleSessionPC</tt> is used in
+         * a peer to peer type of session.
+         * FIXME remove undefined once fixme in strophe.jingle.js is fixed
+         * @type {boolean|undefined} <tt>true</tt> if it's a peer to peer
+         * session or <tt>false</tt> if it's a JVB session
+         */
+        this.isP2P = isP2P;
 
         /**
          * The signalling layer implementation.
@@ -72,11 +102,64 @@ export default class JingleSessionPC extends JingleSession {
         this.modificationQueue = async.queue(this._processQueueTasks.bind(this), 1);
 
         /**
+         * This is the MUC JID which will be used to add "owner" extension to
+         * each of the local SSRCs signalled over Jingle.
+         * Usually those are added automatically by Jicofo, but it is not
+         * involved in a P2P session.
+         * @type {string}
+         */
+        this.ssrcOwnerJid = null;
+
+        /**
          * Flag used to guarantee that the connection established event is
          * triggered just once.
          * @type {boolean}
          */
         this.wasConnected = false;
+    }
+
+    /**
+     * Adds all "delayed" ICE candidates to the PeerConnection.
+     * @private
+     */
+    _dequeIceCandidates () {
+        this.candidiates.forEach((candidate) => {
+            const line = candidate.candidate;
+            this.peerconnection.addIceCandidate(
+                candidate,
+                () => {
+                    logger.debug("Add ICE candidate OK " + this + ": " + line);
+                },
+                (error) => {
+                    logger.error(
+                        "Add ICE candidate failed " + this + ": " + line,
+                        error);
+                });
+        });
+        this.candidiates = [];
+    }
+
+    /**
+     * Finds all "source" elements under RTC "description" in given Jingle IQ
+     * and adds 'ssrc-info' with the owner attribute set to
+     * {@link ssrcOwnerJid}.
+     * @param jingleIq the IQ to be modified
+     * @private
+     */
+    _markAsSSRCOwner(jingleIq) {
+        $(jingleIq).find("description source").append(
+            "<ssrc-info xmlns=\"http://jitsi.org/jitmeet\" "
+            + "owner=\"" + this.ssrcOwnerJid + "\">" +
+            "</ssrc-info>");
+    }
+
+    /**
+     * Sets the JID which will be as an owner value for the local SSRCs
+     * signalled over Jingle. Should be our MUC JID.
+     * @param {string} ownerJid
+     */
+    setSSRCOwnerJid(ownerJid) {
+        this.ssrcOwnerJid = ownerJid;
     }
 
     doInitialize () {
@@ -90,13 +173,14 @@ export default class JingleSessionPC extends JingleSession {
         this.peerconnection
             = this.rtc.createPeerConnection(
                 this.signallingLayer,
-                this.connection.jingle.ice_config,
+                this.ice_config,
                 /* Options */
                 {
                     disableSimulcast: this.room.options.disableSimulcast,
                     disableRtx: this.room.options.disableRtx,
                     preferH264: this.room.options.preferH264
-                });
+                },
+                this.isP2P);
 
         this.peerconnection.onicecandidate = function (ev) {
             if (!ev) {
@@ -155,7 +239,7 @@ export default class JingleSessionPC extends JingleSession {
             self.room.connectionTimes["ice.state." +
             self.peerconnection.iceConnectionState] = now;
             logger.log("(TIME) ICE " + self.peerconnection.iceConnectionState +
-                ":\t", now);
+                "(P2P: " + self.isP2P + "):\t", now);
             Statistics.analytics.sendEvent(
                 'ice.' + self.peerconnection.iceConnectionState, {value: now});
             self.room.eventEmitter.emit(
@@ -299,6 +383,43 @@ export default class JingleSessionPC extends JingleSession {
             }), IQ_TIMEOUT);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    addIceCandidates(elem) {
+        if (this.peerconnection.signalingState == 'closed') {
+            logger.warn("Ignored add ICE candidate when in closed state");
+            return;
+        }
+        // NOTE operates on each content element, can't use () =>
+        elem.each((contentIdx, content) => {
+            $(content).find('transport>candidate').each((idx, candidate) => {
+                let line = SDPUtil.candidateFromJingle(candidate);
+                line = line.replace("\r\n", "").replace("a=", "");
+                // FIXME this code does not care to handle non-bundle transport
+                const rtcCandidate = new RTCIceCandidate({
+                    sdpMLineIndex: 0,
+                    sdpMid: "audio",
+                    candidate: line
+                });
+                // Will delay the addition until the remoteDescription is set
+                if (this.peerconnection.remoteDescription.sdp) {
+                    logger.debug("Trying to add ICE candidate: " + line);
+                    this.peerconnection.addIceCandidate(
+                        rtcCandidate,
+                        () => { logger.debug("addIceCandidate ok: " + line); },
+                        (error) => {
+                            logger.error(
+                                "addIceCandidate failed: " + line, error);
+                        });
+                } else {
+                    logger.debug("Delaying ICE candidate: " + line);
+                    this.candidiates.push(rtcCandidate);
+                }
+            });
+        });
+    }
+
     readSsrcInfo (contents) {
         const self = this;
         $(contents).each(function (idx, content) {
@@ -330,10 +451,10 @@ export default class JingleSessionPC extends JingleSession {
      *        details about the error.
      */
     acceptOffer (jingleOffer, success, failure) {
-        this.state = JingleSessionState.ACTIVE;
-        this.setOfferCycle(
+        this.setOfferAnswerCycle(
             jingleOffer,
             () => {
+                this.state = JingleSessionState.ACTIVE;
                 // setOfferCycle succeeded, now we have self.localSDP up to date
                 // Let's send an answer !
                 // FIXME we may not care about RESULT packet for session-accept
@@ -345,24 +466,96 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Creates an offer and sends Jingle 'session-initiate' to the remote peer.
+     */
+    invite() {
+        if (!this.isInitiator) {
+            throw new Error("Trying to invite from the responder session");
+        }
+        this.peerconnection.createOffer(
+            this.sendSessionInitiate.bind(this),
+            (error) => {
+                logger.error("Failed to create offer", error);
+            },
+            this.media_constraints);
+    }
+
+    /**
+     * Sends 'session-initiate' to the remote peer.
+     * @param {object} sdp the local session description object as defined by
+     * the WebRTC standard.
+     */
+    sendSessionInitiate (sdp) {
+        logger.log('createdOffer', sdp);
+        const sendJingle = () => {
+            let init = $iq({to: this.peerjid,
+                type: 'set'})
+                .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
+                    action: 'session-initiate',
+                    initiator: this.initiator,
+                    sid: this.sid});
+            let localSDP = new SDP(this.peerconnection.localDescription.sdp);
+            localSDP.toJingle(
+                init,
+                this.initiator == this.me ? 'initiator' : 'responder');
+            init = init.tree();
+            this._markAsSSRCOwner(init);
+            logger.info("Session-initiate: ", init);
+            this.connection.sendIQ(init,
+                () => {
+                    logger.info("Got RESULT for 'session-initiate'");
+                },
+                (error) => {
+                    logger.error("'session-initiate' error", error);
+                },
+                IQ_TIMEOUT);
+        };
+        this.peerconnection.setLocalDescription(
+            sdp, sendJingle,
+            (error) => {
+                logger.error('session-init setLocalDescription failed', error);
+            }
+        );
+    }
+
+    /**
+     * Sets the answer received from the remote peer.
+     * @param jingleAnswer
+     */
+    setAnswer(jingleAnswer) {
+        if (!this.isInitiator) {
+            throw new Error("Trying to set an answer on the responder session");
+        }
+        this.setOfferAnswerCycle(
+            jingleAnswer,
+            () => {
+                this.state = JingleSessionState.ACTIVE;
+                logger.info("setAnswer - succeeded");
+            },
+            (error) => { logger.error("setAnswer failed: ", error); });
+    }
+
+    /**
      * This is a setRemoteDescription/setLocalDescription cycle which starts at
      * converting Strophe Jingle IQ into remote offer SDP. Once converted
      * setRemoteDescription, createAnswer and setLocalDescription calls follow.
-     * @param jingleOfferIq jQuery selector pointing to the jingle element of
-     *        the offer IQ
+     * @param jingleOfferAnswerIq jQuery selector pointing to the jingle element
+     *        of the offer (or answer) IQ
      * @param success callback called when sRD/sLD cycle finishes successfully.
      * @param failure callback called with an error object as an argument if we
      *        fail at any point during setRD, createAnswer, setLD.
      */
-    setOfferCycle(jingleOfferIq, success, failure) {
+    setOfferAnswerCycle(jingleOfferAnswerIq, success, failure) {
         const workFunction = (finishedCallback) => {
-            const newRemoteSdp = this._processNewJingleOfferIq(jingleOfferIq);
+            const newRemoteSdp
+                = this._processNewJingleOfferIq(jingleOfferAnswerIq);
             this._renegotiate(newRemoteSdp)
                 .then(() => {
                     finishedCallback();
                 }, (error) => {
                     logger.error(
-                        "Error renegotiating after setting new remote offer: "
+                        "Error renegotiating after setting new remote "
+                            + (this.isInitiator ? "answer: " : "offer: ")
                             + error);
                     JingleSessionPC.onJingleFatalError(this, error);
                     finishedCallback(error);
@@ -398,11 +591,11 @@ export default class JingleSessionPC extends JingleSession {
         jingleOfferElem.find(">content[name='data']").remove();
 
         // First set an offer without the 'data' section
-        this.setOfferCycle(
+        this.setOfferAnswerCycle(
             jingleOfferElem,
             () => {
                 // Now set the original offer(with the 'data' section)
-                this.setOfferCycle(
+                this.setOfferAnswerCycle(
                     originalOffer,
                     () => {
                         const localSDP
@@ -450,6 +643,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // Calling tree() to print something useful
         accept = accept.tree();
+        this._markAsSSRCOwner(accept);
         logger.info("Sending session-accept", accept);
         const self = this;
         this.connection.sendIQ(accept,
@@ -555,8 +749,6 @@ export default class JingleSessionPC extends JingleSession {
      * @inheritDoc
      */
     terminate (reason, text, success, failure) {
-        this.state = JingleSessionState.ENDED;
-
         let term = $iq({ to: this.peerjid, type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
@@ -584,7 +776,7 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     onTerminated (reasonCondition, reasonText) {
-        this.state = 'ended';
+        this.state = JingleSessionState.ENDED;
 
         // Do something with reason and reasonCondition when we start to care
         //this.reasonCondition = reasonCondition;
@@ -808,19 +1000,14 @@ export default class JingleSessionPC extends JingleSession {
             = optionalRemoteSdp
                 || new SDP(this.peerconnection.remoteDescription.sdp);
         const remoteDescription = new RTCSessionDescription({
-            type: "offer",
+            type: this.isInitiator ? "answer" : "offer",
             sdp: remoteSdp.raw
         });
 
-        //TODO(brian): in the code below there are 2 chunks of code that relate
-        //  to observing changes in local and remove ufrags.  since they
-        //  just need to read and observe the SDPs, we should create the
-        //  notion of an SDP observer in TraceablePeerConnection that
-        //  gets notified of all SDP changes.  Code like the ufrag
-        //  logic below could listen to that and be separated from
-        //  core flows like this.
         return new Promise((resolve, reject) => {
 
+            // FIXME adjust indentation
+            if (!this.isInitiator) {
             logger.debug("Renegotiate: setting remote description");
             this.peerconnection.setRemoteDescription(
                 remoteDescription,
@@ -835,7 +1022,10 @@ export default class JingleSessionPC extends JingleSession {
                             logger.debug("Renegotiate: setting local description");
                             this.peerconnection.setLocalDescription(
                                 answer,
-                                () => { resolve(); },
+                                () => {
+                                    this._dequeIceCandidates();
+                                    resolve();
+                                },
                                 (error) => {
                                     reject(
                                         "setLocalDescription failed: " + error);
@@ -848,6 +1038,35 @@ export default class JingleSessionPC extends JingleSession {
                 },
                 (error) => { reject("setRemoteDescription failed: " + error); }
             );
+            } else {
+                logger.debug("Renegotiate: creating offer");
+                this.peerconnection.createOffer((offer) => {
+                    logger.debug("Renegotiate: setting local description");
+                    this.peerconnection.setLocalDescription(offer,
+                        () => {
+                            logger.debug(
+                                "Renegotiate: setting remote description");
+                            this.peerconnection.setRemoteDescription(
+                                remoteDescription,
+                                () => {
+                                    this._dequeIceCandidates();
+                                    resolve();
+                                },
+                                (error) => {
+                                    reject(
+                                        "setRemoteDescription failed: "
+                                            + error);
+                                });
+                        },
+                        (error) => {
+                            reject("setLocalDescription failed: ", error);
+                        });
+                    },
+                    (error) => {
+                        reject("createOffer failed: " + error);
+                    },
+                    media_constraints);
+            }
         });
     }
 

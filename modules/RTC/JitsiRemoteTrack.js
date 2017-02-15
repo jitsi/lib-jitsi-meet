@@ -23,16 +23,19 @@ var ttfmTrackerVideoAttached = false;
  * @param {VideoType} videoType the type of the video if applicable
  * @param {string} ssrc the SSRC number of the Media Stream
  * @param {boolean} muted the initial muted state
+ * @param {boolean} isP2P indicates whether or not this track belongs to a P2P
+ * session
  * @constructor
  */
 function JitsiRemoteTrack(rtc, conference, owner, stream, track, mediaType, videoType,
-                          ssrc, muted) {
+                          ssrc, muted, isP2P) {
     JitsiTrack.call(
         this, conference, stream, track, function () {}, mediaType, videoType);
     this.rtc = rtc;
     this.ssrc = ssrc;
     this.owner = owner;
     this.muted = muted;
+    this.isP2P = isP2P;
     // we want to mark whether the track has been ever muted
     // to detect ttfm events for startmuted conferences, as it can significantly
     // increase ttfm values
@@ -191,7 +194,8 @@ JitsiRemoteTrack.prototype._attachTTFMTracker = function (container) {
  * @return {string}
  */
 JitsiRemoteTrack.prototype.toString = function () {
-    return "RemoteTrack[" + this.owner + ", " + this.getType() + "]";
+    return "RemoteTrack[" + this.owner + ", " + this.getType()
+                          + ", p2p: " + this.isP2P + "]";
 };
 
 module.exports = JitsiRemoteTrack;
