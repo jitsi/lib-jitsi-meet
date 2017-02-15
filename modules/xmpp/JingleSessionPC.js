@@ -70,6 +70,13 @@ export default class JingleSessionPC extends JingleSession {
         this.failICE = !!options.failICE;
 
         this.modificationQueue = async.queue(this._processQueueTasks.bind(this), 1);
+
+        /**
+         * Flag used to guarantee that the connection established event is
+         * triggered just once.
+         * @type {boolean}
+         */
+        this.wasConnected = false;
     }
 
     doInitialize () {
@@ -158,10 +165,15 @@ export default class JingleSessionPC extends JingleSession {
                 case 'connected':
                     // Informs interested parties that the connection has been
                     // restored.
-                    if (self.peerconnection.signalingState === 'stable'
-                            && self.isreconnect) {
-                        self.room.eventEmitter.emit(
-                            XMPPEvents.CONNECTION_RESTORED);
+                    if (self.peerconnection.signalingState === 'stable') {
+                        if (self.isreconnect) {
+                            self.room.eventEmitter.emit(
+                                XMPPEvents.CONNECTION_RESTORED, self);
+                        } else if (!self.wasConnected) {
+                            self.room.eventEmitter.emit(
+                                XMPPEvents.CONNECTION_ESTABLISHED, self);
+                        }
+                        self.wasConnected = true;
                     }
                     self.isreconnect = false;
 
