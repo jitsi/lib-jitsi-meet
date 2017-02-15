@@ -84,6 +84,13 @@ export default class JingleSessionPC extends JingleSession {
 
         this.modificationQueue
             = async.queue(this._processQueueTasks.bind(this), 1);
+
+        /**
+         * Flag used to guarantee that the connection established event is
+         * triggered just once.
+         * @type {boolean}
+         */
+        this.wasConnected = false;
     }
 
     /* eslint-enable max-params */
@@ -194,12 +201,17 @@ export default class JingleSessionPC extends JingleSession {
             case 'connected':
                     // Informs interested parties that the connection has been
                     // restored.
-                if (this.peerconnection.signalingState === 'stable'
-                            && this.isreconnect) {
-                    this.room.eventEmitter.emit(
-                            XMPPEvents.CONNECTION_RESTORED);
-                }
-                this.isreconnect = false;
+                    if (this.peerconnection.signalingState === 'stable') {
+                        if ( this.isreconnect) {
+                            this.room.eventEmitter.emit(
+                                XMPPEvents.CONNECTION_RESTORED, this);
+                        } else if (!this.wasConnected) {
+                            this.room.eventEmitter.emit(
+                                XMPPEvents.CONNECTION_ESTABLISHED, this);
+                        }
+                        this.wasConnected = true;
+                    }
+                    this.isreconnect = false;
 
                 break;
             case 'disconnected':

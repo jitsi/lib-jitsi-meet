@@ -22,6 +22,11 @@ const XMPPEvents = {
     CHAT_ERROR_RECEIVED: 'xmpp.chat_error_received',
     CONFERENCE_SETUP_FAILED: 'xmpp.conference_setup_failed',
 
+    /**
+     * This event is when the ICE connects for the first time.
+     */
+    CONNECTION_ESTABLISHED: 'xmpp.connection.connected',
+
     // Designates an event indicating that the connection to the XMPP server
     // failed.
     CONNECTION_FAILED: 'xmpp.connection.failed',
