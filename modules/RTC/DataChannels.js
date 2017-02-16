@@ -283,4 +283,18 @@ DataChannels.prototype.sendDataChannelMessage = function (to, payload) {
     });
 };
 
+/**
+ * Sends a "lastN value changed" message via the data channel.
+ * @param value {int} The new value for lastN. -1 means unlimited.
+ */
+DataChannels.prototype.sendSetLastNMessage = function (value) {
+    const jsonObject = {
+        colibriClass : 'LastNChangedEvent',
+        lastN : value
+    };
+
+    this.send(jsonObject);
+    logger.log('Channel lastN set to: ' + value);
+};
+
 module.exports = DataChannels;

@@ -552,4 +552,19 @@ export default class RTC extends Listenable {
             throw new Error("Data channels support is disabled!");
         }
     }
+
+    /**
+     * Selects a new value for "lastN". The requested amount of videos are going
+     * to be delivered after the value is in effect. Set to -1 for unlimited or
+     * all available videos.
+     * @param value {int} the new value for lastN.
+     * @trows Error if there is no data channel created.
+     */
+    setLastN (value) {
+        if (this.dataChannels) {
+            this.dataChannels.sendSetLastNMessage(value);
+        } else {
+            throw new Error("Data channels support is disabled!");
+        }
+    }
 }
