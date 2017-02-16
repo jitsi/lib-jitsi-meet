@@ -24,7 +24,10 @@ import TalkMutedDetection from './modules/TalkMutedDetection';
 import Transcriber from './modules/transcription/transcriber';
 import VideoType from './service/RTC/VideoType';
 
+import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
+
 const logger = getLogger(__filename);
+
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -93,6 +96,10 @@ function JitsiConference(options) {
      */
     this.connectionIsInterrupted = false;
 
+    /**
+     * The object which tracks active speaker times
+     */
+    this.speakerStatsCollector = new SpeakerStatsCollector(this);
 }
 
 /**
@@ -1624,6 +1631,14 @@ JitsiConference.prototype.broadcastEndpointMessage = function(payload) {
 
 JitsiConference.prototype.isConnectionInterrupted = function() {
     return this.connectionIsInterrupted;
+};
+
+/**
+ * Get a summary of how long current participants have been the dominant speaker
+ * @returns {object}
+ */
+JitsiConference.prototype.getSpeakerStats = function() {
+    return this.speakerStatsCollector.getStats();
 };
 
 module.exports = JitsiConference;
