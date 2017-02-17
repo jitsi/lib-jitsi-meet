@@ -221,8 +221,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
         conference.onDisplayNameChanged.bind(conference));
 
     chatRoom.addListener(XMPPEvents.LOCAL_ROLE_CHANGED, function (role) {
-        conference.eventEmitter.emit(JitsiConferenceEvents.USER_ROLE_CHANGED,
-            conference.myUserId(), role);
+        conference.onLocalRoleChanged(role);
 
         // log all events for the recorder operated by the moderator
         if (conference.statistics && conference.isModerator()) {

@@ -851,6 +851,17 @@ JitsiConference.prototype.onMemberLeft = function (jid) {
             JitsiConferenceEvents.USER_LEFT, id, participant);
 };
 
+/**
+ * Method called on local MUC role change.
+ * @param {string} role the name of new user's role as defined by XMPP MUC.
+ */
+JitsiConference.prototype.onLocalRoleChanged = function (role) {
+    // Emit role changed for local  JID
+    this.eventEmitter.emit(
+        JitsiConferenceEvents.USER_ROLE_CHANGED,
+        this.myUserId(), role);
+};
+
 JitsiConference.prototype.onUserRoleChanged = function (jid, role) {
     var id = Strophe.getResourceFromJid(jid);
     var participant = this.getParticipantById(id);
@@ -1057,21 +1068,38 @@ function (jingleSession, jingleOffer, now) {
  * @param {JingleSessionPC} jingleSession the session instance to be rejected.
  * @private
  */
-JitsiConference.prototype._rejectIncomingCall = function (jingleSession) {
-    // Error cause this should never happen unless something is wrong!
-    const errMsg
-        = "Rejecting session-initiate from non-focus and non-moderator user: "
-            + jingleSession.peerjid;
-    GlobalOnErrorHandler.callErrorHandler(new Error(errMsg));
+JitsiConference.prototype._rejectIncomingCallNonModerator
+= function (jingleSession) {
+    this._rejectIncomingCall(
+        jingleSession,
+        "security-error", "Only focus can start new sessions",
+        "Rejecting session-initiate from non-focus and non-moderator user: "
+            + jingleSession.peerjid);
+};
+
+/**
+ * Rejects incoming Jingle call.
+ * @param {JingleSessionPC} jingleSession the session instance to be rejected.
+ * @param {string} reasonTag the name of the reason element as defined by Jingle
+ * @param {string} reasonMsg the reason description which will be included in
+ * Jingle 'session-terminate' message.
+ * @param {string} [errorMsg] optional error message to be logged on global
+ * error handler
+ * @private
+ */
+JitsiConference.prototype._rejectIncomingCall
+    = function (jingleSession, reasonTag, reasonMsg, errorMsg) {
+    if (errorMsg)
+        GlobalOnErrorHandler.callErrorHandler(new Error(errorMsg));
 
     // Terminate  the jingle session with a reason
     jingleSession.terminate(
-        'security-error', 'Only focus can start new sessions',
+        reasonTag, reasonMsg,
         null /* success callback => we don't care */,
         (error) => {
             logger.warn(
                 "An error occurred while trying to terminate"
-                    + " invalid Jingle session", error);
+                + " invalid Jingle session", error);
         });
 };
 
@@ -1104,6 +1132,13 @@ JitsiConference.prototype.isP2PEstablished = function () {
  */
 JitsiConference.prototype.onCallEnded
 = function (JingleSession, reasonCondition, reasonText) {
+    if (JingleSession !== this.jingleSession) {
+        logger.error(
+            "Received onCallEnded for invalid session",
+            reasonCondition,
+            reasonText);
+        return;
+    }
     logger.info("JVB call ended: " + reasonCondition + " - " + reasonText);
     this.wasStopped = true;
     // Send session.terminate event
