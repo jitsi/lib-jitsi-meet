@@ -147,13 +147,6 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: this.options.conference.channelLastN
             }).up();
     }
-    if (this.options.conference.adaptiveLastN !== undefined) {
-        elem.c(
-            'property', {
-                name: 'adaptiveLastN',
-                value: this.options.conference.adaptiveLastN
-            }).up();
-    }
     if (this.options.conference.disableAdaptiveSimulcast !== undefined ||
         this.options.conference.disableSimulcast) {
         // disableSimulcast implies disableAdaptiveSimulcast.
