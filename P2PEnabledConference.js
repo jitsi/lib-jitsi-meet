@@ -40,12 +40,6 @@ export default class P2PEnabledConference extends JitsiConference {
     constructor(options) {
         super(options);
         /**
-         * In case this instance is P2P initiator this flag will be used to mark
-         * that the invite has been sent already.
-         * @type {boolean}
-         */
-        this.inviteSent = false;
-        /**
          * Flag set to <tt>true</tt> when P2P session has been established
          * (ICE has been connected).
          * @type {boolean}
@@ -234,18 +228,6 @@ export default class P2PEnabledConference extends JitsiConference {
     }
 
     /**
-     * Called when P2P PeerConnection is ready. Will send 'session-initiate'.
-     * @private
-     */
-    _onP2PPeerConnectionReady () {
-        if (this.peerToPeerSession.isInitiator && !this.inviteSent) {
-            logger.info("About to send P2P 'session-initiate'...");
-            this.peerToPeerSession.invite();
-            this.inviteSent = true;
-        }
-    }
-
-    /**
      * Detaches local tracks from the JVB connection.
      * @private
      */
@@ -368,14 +350,13 @@ export default class P2PEnabledConference extends JitsiConference {
             logger.info("Auto P2P disabled");
             return;
         }
-        // FIXME what if everyone is a moderator ?
         const peers = this.getParticipants();
         const peerCount = peers.length;
         const isModerator = this.isModerator();
         // FIXME 1 peer and it must *support* P2P switching
         const shouldBeInP2P = peerCount === 1;
 
-        logger.info(
+        logger.debug(
             "P2P? isModerator: " + isModerator
             + ", peerCount: " + peerCount + " => " + shouldBeInP2P);
 
@@ -395,6 +376,8 @@ export default class P2PEnabledConference extends JitsiConference {
                     return;
                 } else if (myId == peersId) {
                     logger.error("The same IDs ? ", myId, peersId);
+                    // Abort
+                    return;
                 }
             }
             const jid = peer.getJid();
@@ -567,14 +550,23 @@ export default class P2PEnabledConference extends JitsiConference {
             } else {
                 // Accept incoming P2P call
                 this._acceptP2PIncomingCall(jingleSession, jingleOffer);
-            } else {
-                // Reject incoming P2P call
-                this._rejectIncomingCall(jingleSession);
             }
         } else {
             // Let the JitsiConference deal with the JVB session
             super.onIncomingCall(jingleSession, jingleOffer, now);
         }
+    }
+
+    /**
+     * Local role change may trigger new P2P session if 'everyone's a moderator'
+     * plugin is enabled.
+     * @inheritDoc
+     * @override
+     */
+    onLocalRoleChanged (newRole) {
+        super.onLocalRoleChanged(newRole);
+        // Maybe start P2P
+        this._startStopP2PSession();
     }
 
     /**
@@ -700,9 +692,7 @@ class FakeChatRoomLayer {
         return {
             emit: function (type) {
                 logger.debug("Fake emit: ", type, arguments);
-                if (type === XMPPEvents.PEERCONNECTION_READY) {
-                    self.p2pConf._onP2PPeerConnectionReady();
-                } else if (type === XMPPEvents.CONNECTION_ESTABLISHED) {
+                if (type === XMPPEvents.CONNECTION_ESTABLISHED) {
                     self.p2pConf._onP2PConnectionEstablished(arguments[1]);
                 }
             }
