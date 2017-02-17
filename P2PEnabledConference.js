@@ -40,6 +40,23 @@ export default class P2PEnabledConference extends JitsiConference {
     constructor(options) {
         super(options);
         /**
+         * Stores reference to deferred start P2P task. It's created when 3rd
+         * participant leaves the room in order to avoid ping pong effect (it
+         * could be just a page reload).
+         * @type {number|null}
+         */
+        this.deferredStartP2P = null;
+
+        const delay = parseInt(options.config.backToP2PDelay);
+        /**
+         * A delay given in seconds, before the conference switches back to P2P
+         * after the 3rd participant has left.
+         * @type {number}
+         */
+        this.backToP2PDelay = isNaN(delay) ? 5 : delay;
+        logger.info("backToP2PDelay: " + this.backToP2PDelay);
+
+        /**
          * Flag set to <tt>true</tt> when P2P session has been established
          * (ICE has been connected).
          * @type {boolean}
@@ -305,7 +322,7 @@ export default class P2PEnabledConference extends JitsiConference {
      */
     _startPeer2PeerSession(peerJid) {
         if (this.deferredStartP2P) {
-            // Make not that the task has been executed
+            // Make note that the task has been executed
             this.deferredStartP2P = null;
         }
         if (this.p2pJingleSession) {
@@ -345,9 +362,11 @@ export default class P2PEnabledConference extends JitsiConference {
     /**
      * Method when called will decide whether it's the time to start or stop the
      * P2P session.
+     * @param {boolean} userLeftEvent if <tt>true</tt> it means that the call
+     * originates from the user left event.
      * @private
      */
-    _startStopP2PSession () {
+    _startStopP2PSession (userLeftEvent) {
         if (this.options.config.disableAutoP2P) {
             logger.info("Auto P2P disabled");
             return;
@@ -362,6 +381,12 @@ export default class P2PEnabledConference extends JitsiConference {
             "P2P? isModerator: " + isModerator
             + ", peerCount: " + peerCount + " => " + shouldBeInP2P);
 
+        // Clear deferred "start P2P" task
+        if (!shouldBeInP2P && this.deferredStartP2P) {
+            logger.info("Cleared deferred start P2P task");
+            window.clearTimeout(this.deferredStartP2P);
+            this.deferredStartP2P = null;
+        }
         // Start peer to peer session
         if (isModerator && !this.p2pJingleSession && shouldBeInP2P) {
             const peer = peerCount && peers[0];
@@ -596,7 +621,7 @@ export default class P2PEnabledConference extends JitsiConference {
     onMemberLeft (jid) {
         super.onMemberLeft(jid);
 
-        this._startStopP2PSession();
+        this._startStopP2PSession(true /* triggered by user left event */);
     }
 
     /**
