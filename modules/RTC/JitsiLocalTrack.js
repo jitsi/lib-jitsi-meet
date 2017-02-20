@@ -15,6 +15,7 @@ var VideoType = require('../../service/RTC/VideoType');
 /**
  * Represents a single media track(either audio or video).
  * One <tt>JitsiLocalTrack</tt> corresponds to one WebRTC MediaStreamTrack.
+ * @param {number} rtcId the ID assigned by the RTC module
  * @param stream WebRTC MediaStream, parent of the track
  * @param track underlying WebRTC MediaStreamTrack for new JitsiRemoteTrack
  * @param mediaType the MediaType of the JitsiRemoteTrack
@@ -27,6 +28,10 @@ var VideoType = require('../../service/RTC/VideoType');
 function JitsiLocalTrack(rtcId, stream, track, mediaType, videoType, resolution,
                          deviceId, facingMode) {
     var self = this;
+    /**
+     * The ID assigned by the RTC module on instance creation.
+     * @type {number}
+     */
     this.rtcId = rtcId;
     JitsiTrack.call(this,
         null /* RTC */, stream, track,
