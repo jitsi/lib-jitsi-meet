@@ -941,12 +941,11 @@ var getters = {
                 dumpSDP(desc));
         }
 
-        // FIXME replace with a feature
-        if (!RTCBrowserType.isFirefox()) {
+        if (RTCBrowserType.doesVideoMuteByStreamRemove()) {
             this.mungeLocalSdp.maybeMungeLocalSdp(desc);
             logger.debug(
                 'getLocalDescription::postTransform '
-                    + '(local video mute hack)', desc);
+                    + '(munge local SDP)', desc);
         }
 
         return desc ? desc : {};
