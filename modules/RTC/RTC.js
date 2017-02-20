@@ -542,8 +542,11 @@ export default class RTC extends Listenable {
         let track
             = this.getLocalTracks().find(
                 (localTrack) => {
+                    // It is important that SSRC is not compared with ===,
+                    // because the code calling this method is inconsistent
+                    // about string vs number types
                     return getValues(this.peerConnections)
-                        .find(pc => pc.getLocalSSRC(localTrack) === ssrc);
+                        .find(pc => pc.getLocalSSRC(localTrack) == ssrc);
                 });
         if (!track) {
             track = this._getRemoteTrackBySSRC(ssrc);
