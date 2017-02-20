@@ -422,8 +422,12 @@ StatsCollector.prototype.processStatsReport = function () {
             if(!conferenceStatsTransport.some(function (t) { return (
                         t.ip == ip && t.type == type && t.localip == localip
                     );})) {
-                conferenceStatsTransport.push(
-                    {ip: ip, type: type, localip: localip});
+                conferenceStatsTransport.push({
+                    ip: ip,
+                    type: type,
+                    localip: localip,
+                    p2p: this.peerconnection.isP2P
+                });
             }
             continue;
         }
@@ -437,7 +441,8 @@ StatsCollector.prototype.processStatsReport = function () {
             this.conferenceStats.transport.push({
                 ip: remote.ipAddress + ":" + remote.portNumber,
                 type: local.transport,
-                localip: local.ipAddress + ":" + local.portNumber
+                localip: local.ipAddress + ":" + local.portNumber,
+                p2p: this.peerconnection.isP2P
             });
         }
 
