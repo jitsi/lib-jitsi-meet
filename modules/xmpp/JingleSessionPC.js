@@ -399,7 +399,10 @@ export default class JingleSessionPC extends JingleSession {
                 // FIXME this code does not care to handle non-bundle transport
                 const rtcCandidate = new RTCIceCandidate({
                     sdpMLineIndex: 0,
-                    sdpMid: "audio",
+                    // FF comes up with more complex names like audio-23423,
+                    // Given that it works on both Chrome and FF without
+                    // providing it, let's leave it like this for the time being
+                    //sdpMid: "audio",
                     candidate: line
                 });
                 // Will delay the addition until the remoteDescription is set
