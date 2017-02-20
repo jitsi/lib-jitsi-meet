@@ -219,13 +219,6 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: this.options.conference.stereo
             }).up();
     }
-
-    elem.c(
-        'property', {
-            name: 'simulcastMode',
-            value: 'rewriting'
-        }).up();
-
     if (this.options.conference.useRoomAsSharedDocumentName !== undefined) {
         elem.c(
             'property', {
