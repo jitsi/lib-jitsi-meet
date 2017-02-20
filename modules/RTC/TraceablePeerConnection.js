@@ -1028,7 +1028,7 @@ var getters = {
                     + '(local video mute hack)', desc);
         }
 
-        return desc;
+        return desc ? desc : {};
     },
     remoteDescription() {
         let desc = this.peerconnection.remoteDescription;
@@ -1042,7 +1042,7 @@ var getters = {
                 'getRemoteDescription::postTransform (Plan B)', dumpSDP(desc));
         }
 
-        return desc;
+        return desc ? desc : { };
     }
 };
 
