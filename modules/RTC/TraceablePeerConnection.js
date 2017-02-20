@@ -949,7 +949,7 @@ var getters = {
                     + '(local video mute hack)', desc);
         }
 
-        return desc;
+        return desc ? desc : {};
     },
     remoteDescription:  function() {
         var desc = this.peerconnection.remoteDescription;
@@ -961,7 +961,7 @@ var getters = {
             this.trace(
                 'getRemoteDescription::postTransform (Plan B)', dumpSDP(desc));
         }
-        return desc;
+        return desc ? desc : { };
     }
 };
 Object.keys(getters).forEach(function (prop) {
