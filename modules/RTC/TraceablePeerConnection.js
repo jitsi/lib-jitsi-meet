@@ -95,8 +95,29 @@ function TraceablePeerConnection(
      */
     this.remoteTracks = {};
 
+    /**
+     * A map which stores local tracks mapped by {@link JitsiLocalTrack.rtcId}
+     * @type {Object.<string, JitsiLocalTrack>}
+     */
     this.localTracks = {};
 
+    /**
+     * @typedef {Object} TPCGroupInfo
+     * @property {string} semantics the SSRC groups semantics
+     * @property {Array<number>} ssrcs group's SSRCs in order where the first
+     * one is group's primary SSRC, the second one is secondary (RTX) and so
+     * on...
+     */
+    /**
+     * @typedef {Object} TPCSSRCInfo
+     * @property {Array<number>} ssrcs an array which holds all track's SSRCs
+     * @property {Array<TPCGroupInfo>} an array stores all track's SSRC groups
+     */
+    /**
+     * Holds the info about local track's SSRCs mapped per their
+     * {@link JitsiLocalTrack.rtcId}
+     * @type {Object.<string, TPCSSRCInfo>}
+     */
     this.localSSRCs = {};
 
     /**

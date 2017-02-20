@@ -20,6 +20,7 @@ const logger = getLogger(__filename);
 /**
  * Represents a single media track(either audio or video).
  * One <tt>JitsiLocalTrack</tt> corresponds to one WebRTC MediaStreamTrack.
+ * @param {number} rtcId the ID assigned by the RTC module
  * @param stream WebRTC MediaStream, parent of the track
  * @param track underlying WebRTC MediaStreamTrack for new JitsiRemoteTrack
  * @param mediaType the MediaType of the JitsiRemoteTrack
@@ -38,6 +39,11 @@ function JitsiLocalTrack(
         resolution,
         deviceId,
         facingMode) {
+
+    /**
+     * The ID assigned by the RTC module on instance creation.
+     * @type {number}
+     */
     this.rtcId = rtcId;
     JitsiTrack.call(
         this,
