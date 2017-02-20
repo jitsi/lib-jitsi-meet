@@ -471,14 +471,17 @@ StatsCollector.prototype.processStatsReport = function() {
             // Save the address unless it has been saved already.
             const conferenceStatsTransport = this.conferenceStats.transport;
 
-            if (!conferenceStatsTransport.some(
-                    t =>
-                        t.ip === ip
-                        && t.type === type
-                        && t.localip === localip)) {
-                conferenceStatsTransport.push({ ip,
+            if(!conferenceStatsTransport.some(
+                    t=>
+                       t.ip === ip
+                       && t.type === type
+                       && t.localip === localip)) {
+                conferenceStatsTransport.push({
+                    ip,
                     type,
-                    localip });
+                    localip,
+                    p2p: this.peerconnection.isP2P
+                });
             }
             continue;
         }
@@ -495,7 +498,8 @@ StatsCollector.prototype.processStatsReport = function() {
             this.conferenceStats.transport.push({
                 ip: `${remote.ipAddress}:${remote.portNumber}`,
                 type: local.transport,
-                localip: `${local.ipAddress}:${local.portNumber}`
+                localip: `${local.ipAddress}:${local.portNumber}`,
+                p2p: this.peerconnection.isP2P
             });
         }
 
