@@ -25,6 +25,17 @@ const RTCBrowserType = {
     RTC_BROWSER_REACT_NATIVE: 'rtc_browser.react-native',
 
     /**
+     * Tells whether or not the <tt>MediaStream/tt> is removed from
+     * the <tt>PeerConnection</tt> and disposed on video mute (in order to turn
+     * off the camera device).
+     * @return {boolean} <tt>true</tt> if the current browser supports this
+     * strategy or <tt>false</tt> otherwise.
+     */
+    doesVideoMuteByStreamRemove: function () {
+        return !RTCBrowserType.isFirefox();
+    },
+
+    /**
      * Gets current browser type.
      * @returns {string}
      */
