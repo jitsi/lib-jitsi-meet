@@ -66,6 +66,15 @@ export const RESERVATION_ERROR = "conference.reservationError";
  */
 export const SETUP_FAILED = "conference.setup_failed";
 /**
+ * Indicates that the conference init failed because Temasys plugin is
+ * not installed.
+ */
+export const PLUGIN_REQUIRED = 'conference.pluginRequired';
+/**
  * Indicates that there is no available videobridge.
  */
 export const VIDEOBRIDGE_NOT_AVAILABLE = "conference.videobridgeNotAvailable";
+/**
+ * Indicates that browser doesn't support WebRTC at all.
+ */
+export const WEBRTC_IS_NOT_SUPPORTED = 'conference.webRTCIsNotSupported';

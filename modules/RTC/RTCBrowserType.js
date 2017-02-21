@@ -120,7 +120,7 @@ var RTCBrowserType = {
             return true;
         }
 
-        return RTCBrowserType.isSafari() || false;
+        return RTCBrowserType.isSafari();
     },
 
     /**

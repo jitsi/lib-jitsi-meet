@@ -20,6 +20,10 @@ var SDPUtil = require("../xmpp/SDPUtil");
 var EventEmitter = require("events");
 var screenObtainer = require("./ScreenObtainer");
 import JitsiTrackError from "../../JitsiTrackError";
+import {
+    PLUGIN_REQUIRED,
+    WEBRTC_IS_NOT_SUPPORTED
+} from "./../../JitsiConferenceErrors";
 var MediaType = require("../../service/RTC/MediaType");
 var VideoType = require("../../service/RTC/VideoType");
 var CameraFacingMode = require("../../service/RTC/CameraFacingMode");
@@ -728,24 +732,6 @@ function defaultSetVideoSrc(element, stream) {
     element.src = src || '';
 }
 
-/**
- * Utility function hiding notification bar if it's present.
- *
- * @private
- * @returns {void}
- */
-function hideNotificationBarIfRequired() {
-    // XXX: Adapter JS doesn't provide the way to hide notification bar
-    // Therefore it's done via cancel button click simulation
-    const iFrame = document.querySelector('[name="adapterjs-alert"]');
-    if (iFrame) {
-        const cancelButton = iFrame.contentDocument.getElementById('cancel');
-        if (cancelButton) {
-            cancelButton.click();
-        }
-    }
-}
-
 //Options parameter is to pass config options. Currently uses only "useIPv6".
 class RTCUtils extends Listenable {
     constructor() {
@@ -770,7 +756,7 @@ class RTCUtils extends Listenable {
                     const error = new Error(errText);
 
                     logger.error(errText);
-                    error.isOldBrowser = true;
+                    error.status = WEBRTC_IS_NOT_SUPPORTED;
 
                     reject(error);
                     return;
@@ -881,7 +867,7 @@ class RTCUtils extends Listenable {
                     this.attachMediaStream = wrapAttachMediaStream(function (element, stream) {
                         if (stream) {
                             if (stream.id === "dummyAudio"
-                                || stream.id === "dummyVideo") {
+                                    || stream.id === "dummyVideo") {
                                 return;
                             }
 
@@ -889,14 +875,14 @@ class RTCUtils extends Listenable {
                             // attach the stream when Temasys plugin is in use
                             var containerSel = $(element);
                             if (RTCBrowserType.isTemasysPluginUsed()
-                                && !containerSel.is(':visible')) {
+                                    && !containerSel.is(':visible')) {
                                 containerSel.show();
                             }
                             var video = !!stream.getVideoTracks().length;
                             if (video && !$(element).is(':visible')) {
                                 throw new Error(
                                     'video element must be visible to attach'
-                                    + ' video stream');
+                                        + ' video stream');
                             }
                         }
 
@@ -910,11 +896,10 @@ class RTCUtils extends Listenable {
                         this.getUserMediaWithConstraints.bind(this));
                 };
                 const webRTCReadyPromise = new Promise((resolve) => {
-                        AdapterJS.webRTCReady(() => resolve());
+                    AdapterJS.webRTCReady(() => resolve());
                 });
                 const pluginInstalledCb = () => {
                     webRTCReadyPromise.then(() => {
-                        hideNotificationBarIfRequired();
                         webRTCReadyCb();
                         resolve();
                     });
@@ -922,8 +907,7 @@ class RTCUtils extends Listenable {
                 const pluginIsNotInstalledCb = () => {
                     const error = new Error('Temasys plugin is not installed');
 
-                    error.isOldBrowser = false;
-                    error.isPluginRequired = true;
+                    error.status = PLUGIN_REQUIRED;
                     error.webRTCReadyPromise = webRTCReadyPromise;
                     reject(error);
                 };
@@ -939,7 +923,7 @@ class RTCUtils extends Listenable {
                 const errmsg = 'Browser does not appear to be WebRTC-capable';
                 const error = new Error(errmsg);
 
-                error.isOldBrowser = true;
+                error.status = WEBRTC_IS_NOT_SUPPORTED;
                 logger.error(errmsg);
 
                 reject(error);
