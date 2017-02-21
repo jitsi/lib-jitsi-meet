@@ -21,6 +21,7 @@ import ParticipantConnectionStatus
     from "./modules/connectivity/ParticipantConnectionStatus";
 import TalkMutedDetection from "./modules/TalkMutedDetection";
 import ConnectionQuality from "./modules/connectivity/ConnectionQuality";
+import * as XMPPEvents from "./service/xmpp/XMPPEvents";
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -106,6 +107,16 @@ JitsiConference.prototype._init = function (options) {
 
     this.room = this.xmpp.createRoom(this.options.name, this.options.config);
 
+    // Connection interrupted/restored listeners
+    this._onIceConnectionInterrupted
+        = this._onIceConnectionInterrupted.bind(this);
+    this.room.addListener(
+        XMPPEvents.CONNECTION_INTERRUPTED, this._onIceConnectionInterrupted);
+
+    this._onIceConnectionRestored = this._onIceConnectionRestored.bind(this);
+    this.room.addListener(
+        XMPPEvents.CONNECTION_RESTORED, this._onIceConnectionRestored);
+
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
 
     if (!this.rtc) {
@@ -179,6 +190,15 @@ JitsiConference.prototype.leave = function () {
     // leave the conference
     if (this.room) {
         let room = this.room;
+
+        // Unregister connection state listeners
+        room.removeListener(
+            XMPPEvents.CONNECTION_INTERRUPTED,
+            this._onIceConnectionInterrupted);
+        room.removeListener(
+            XMPPEvents.CONNECTION_RESTORED,
+            this._onIceConnectionRestored);
+
         this.room = null;
         return room.leave().catch(() => {
             // remove all participants because currently the conference won't
@@ -1501,6 +1521,24 @@ JitsiConference.prototype.broadcastEndpointMessage = function (payload) {
 
 JitsiConference.prototype.isConnectionInterrupted = function () {
     return this.connectionIsInterrupted;
+};
+
+/**
+ * Handles {@link XMPPEvents.CONNECTION_INTERRUPTED}
+ * @private
+ */
+JitsiConference.prototype._onIceConnectionInterrupted = function () {
+    this.connectionIsInterrupted = true;
+    this.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_INTERRUPTED);
+};
+
+/**
+ * Handles {@link XMPPEvents.CONNECTION_RESTORED}
+ * @private
+ */
+JitsiConference.prototype._onIceConnectionRestored = function () {
+    this.connectionIsInterrupted = false;
+    this.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_RESTORED);
 };
 
 module.exports = JitsiConference;

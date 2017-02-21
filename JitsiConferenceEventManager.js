@@ -25,6 +25,12 @@ function JitsiConferenceEventManager(conference) {
             conference.statistics.sendMuteEvent(track.isMuted(),
                 track.getType());
         });
+    conference.on(
+        JitsiConferenceEvents.CONNECTION_INTERRUPTED,
+        Statistics.sendEventToAll.bind(Statistics, 'connection.interrupted'));
+    conference.on(
+        JitsiConferenceEvents.CONNECTION_RESTORED,
+        Statistics.sendEventToAll.bind(Statistics, 'connection.restored'));
 }
 
 /**
@@ -160,27 +166,11 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
     chatRoom.addListener(XMPPEvents.SESSION_ACCEPT_TIMEOUT,
         eventLogHandler.bind(null, "sessionAcceptTimeout"));
 
-    this.chatRoomForwarder.forward(XMPPEvents.CONNECTION_INTERRUPTED,
-        JitsiConferenceEvents.CONNECTION_INTERRUPTED);
-    chatRoom.addListener(XMPPEvents.CONNECTION_INTERRUPTED,
-        () => {
-            Statistics.sendEventToAll('connection.interrupted');
-            this.conference.connectionIsInterrupted = true;
-        });
-
     this.chatRoomForwarder.forward(XMPPEvents.RECORDER_STATE_CHANGED,
         JitsiConferenceEvents.RECORDER_STATE_CHANGED);
 
     this.chatRoomForwarder.forward(XMPPEvents.PHONE_NUMBER_CHANGED,
         JitsiConferenceEvents.PHONE_NUMBER_CHANGED);
-
-    this.chatRoomForwarder.forward(XMPPEvents.CONNECTION_RESTORED,
-        JitsiConferenceEvents.CONNECTION_RESTORED);
-    chatRoom.addListener(XMPPEvents.CONNECTION_RESTORED,
-        () => {
-            Statistics.sendEventToAll('connection.restored');
-            this.conference.connectionIsInterrupted = false;
-        });
 
     this.chatRoomForwarder.forward(XMPPEvents.CONFERENCE_SETUP_FAILED,
         JitsiConferenceEvents.CONFERENCE_FAILED,
