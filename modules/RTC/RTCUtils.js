@@ -20,6 +20,10 @@ var SDPUtil = require("../xmpp/SDPUtil");
 var EventEmitter = require("events");
 var screenObtainer = require("./ScreenObtainer");
 import JitsiTrackError from "../../JitsiTrackError";
+import {
+    PLUGIN_REQUIRED,
+    WEBRTC_IS_NOT_SUPPORTED
+} from "./../../JitsiConferenceErrors";
 var MediaType = require("../../service/RTC/MediaType");
 var VideoType = require("../../service/RTC/VideoType");
 var CameraFacingMode = require("../../service/RTC/CameraFacingMode");
@@ -748,11 +752,13 @@ class RTCUtils extends Listenable {
             if (RTCBrowserType.isFirefox()) {
                 var FFversion = RTCBrowserType.getFirefoxVersion();
                 if (FFversion < 40) {
-                    logger.error(
-                            "Firefox version too old: " + FFversion +
-                            ". Required >= 40.");
-                    reject(new Error("Firefox version too old: " + FFversion +
-                    ". Required >= 40."));
+                    const errText = `Firefox version too old: ${ FFversion }. Required >= 40.`;
+                    const error = new Error(errText);
+
+                    logger.error(errText);
+                    error.status = WEBRTC_IS_NOT_SUPPORTED;
+
+                    reject(error);
                     return;
                 }
                 this.peerconnection = mozRTCPeerConnection;
@@ -794,6 +800,7 @@ class RTCUtils extends Listenable {
                     RTCBrowserType.isNWJS() ||
                     RTCBrowserType.isElectron() ||
                     RTCBrowserType.isReactNative()) {
+
                 this.peerconnection = webkitRTCPeerConnection;
                 var getUserMedia = navigator.webkitGetUserMedia.bind(navigator);
                 if (navigator.mediaDevices) {
@@ -853,16 +860,11 @@ class RTCUtils extends Listenable {
             }
             // Detect IE/Safari
             else if (RTCBrowserType.isTemasysPluginUsed()) {
-
-                //AdapterJS.WebRTCPlugin.setLogLevel(
-                //    AdapterJS.WebRTCPlugin.PLUGIN_LOG_LEVELS.VERBOSE);
-                var self = this;
-                AdapterJS.webRTCReady(function () {
-
-                    self.peerconnection = RTCPeerConnection;
-                    self.getUserMedia = window.getUserMedia;
-                    self.enumerateDevices = enumerateDevicesThroughMediaStreamTrack;
-                    self.attachMediaStream = wrapAttachMediaStream(function (element, stream) {
+                const webRTCReadyCb = () => {
+                    this.peerconnection = RTCPeerConnection;
+                    this.getUserMedia = window.getUserMedia;
+                    this.enumerateDevices = enumerateDevicesThroughMediaStreamTrack;
+                    this.attachMediaStream = wrapAttachMediaStream(function (element, stream) {
                         if (stream) {
                             if (stream.id === "dummyAudio"
                                     || stream.id === "dummyVideo") {
@@ -886,18 +888,45 @@ class RTCUtils extends Listenable {
 
                         return attachMediaStream(element, stream);
                     });
-                    self.getStreamID = function (stream) {
+                    this.getStreamID = function (stream) {
                         return SDPUtil.filter_special_chars(stream.label);
                     };
 
                     onReady(options,
-                        self.getUserMediaWithConstraints.bind(self));
-                    resolve();
+                        this.getUserMediaWithConstraints.bind(this));
+                };
+                const webRTCReadyPromise = new Promise((resolve) => {
+                    AdapterJS.webRTCReady(() => resolve());
                 });
+                const pluginInstalledCb = () => {
+                    webRTCReadyPromise.then(() => {
+                        webRTCReadyCb();
+                        resolve();
+                    });
+                };
+                const pluginIsNotInstalledCb = () => {
+                    const error = new Error('Temasys plugin is not installed');
+
+                    error.status = PLUGIN_REQUIRED;
+                    error.webRTCReadyPromise = webRTCReadyPromise;
+                    reject(error);
+                };
+
+                // Try to detect the plugin and act accordingly
+                AdapterJS.WebRTCPlugin.isPluginInstalled(
+                    AdapterJS.WebRTCPlugin.pluginInfo.prefix,
+                    AdapterJS.WebRTCPlugin.pluginInfo.plugName,
+                    AdapterJS.WebRTCPlugin.pluginInfo.type,
+                    pluginInstalledCb,
+                    pluginIsNotInstalledCb);
             } else {
-                var errmsg = 'Browser does not appear to be WebRTC-capable';
+                const errmsg = 'Browser does not appear to be WebRTC-capable';
+                const error = new Error(errmsg);
+
+                error.status = WEBRTC_IS_NOT_SUPPORTED;
                 logger.error(errmsg);
-                reject(new Error(errmsg));
+
+                reject(error);
                 return;
             }
 
