@@ -836,12 +836,19 @@ class FakeChatRoomLayer {
         return {
             emit: function (type) {
                 logger.debug("Fake emit: ", type, arguments);
-                if (type === XMPPEvents.CONNECTION_ESTABLISHED) {
-                    self.p2pConf._onP2PConnectionEstablished(arguments[1]);
-                } else if (type === XMPPEvents.CONNECTION_INTERRUPTED) {
-                    self.p2pConf.onP2PIceConnectionInterrupted();
-                } else if (type === XMPPEvents.CONNECTION_RESTORED) {
-                    self.p2pConf.onP2PIceConnectionRestored();
+                switch (type) {
+                    case XMPPEvents.CONNECTION_ESTABLISHED:
+                        self.p2pConf._onP2PConnectionEstablished(arguments[1]);
+                        break;
+                    case XMPPEvents.CONNECTION_INTERRUPTED:
+                        self.p2pConf.onP2PIceConnectionInterrupted();
+                        break;
+                    case XMPPEvents.CONNECTION_RESTORED:
+                        self.p2pConf.onP2PIceConnectionRestored();
+                        break;
+                    case XMPPEvents.CONNECTION_ICE_FAILED:
+                        self.p2pConf._stopPeer2PeerSession();
+                        break;
                 }
             }
         };
