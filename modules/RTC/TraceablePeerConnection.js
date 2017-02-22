@@ -102,7 +102,8 @@ function TraceablePeerConnection(rtc, id, signallingLayer, ice_config,
     /**
      * @typedef {Object} TPCSSRCInfo
      * @property {Array<number>} ssrcs an array which holds all track's SSRCs
-     * @property {Array<TPCGroupInfo>} an array stores all track's SSRC groups
+     * @property {Array<TPCGroupInfo>} groups an array stores all track's SSRC
+     * groups
      */
     /**
      * Holds the info about local track's SSRCs mapped per their
@@ -1022,6 +1023,8 @@ TraceablePeerConnection.prototype.addTrack = function (track) {
 
     // Muted video tracks do not have WebRTC stream
     if (track.isVideoTrack() && track.isMuted()) {
+        // FIXME it should detect whether the current browser removes
+        // media stream on mute, otherwise SSRCs are obtained from local SDP
         const ssrcInfo = this.generateNewStreamSSRCInfo(track);
         this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrcs[0]);
         const simGroup =
@@ -1696,9 +1699,11 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
 };
 
 /**
- * Generate ssrc info object for a stream with the following properties:
- * - ssrcs - Array of the ssrcs associated with the stream.
- * - groups - Array of the groups associated with the stream.
+ * Generates and stores new SSRC info object for given local track.
+ * The method should be called only for a video track being added to this TPC
+ * in the muted state (given that the current browser uses this strategy).
+ * @param {JitsiLocalTrack} track
+ * @return {TPCSSRCInfo}
  */
 TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function (track) {
     const rtcId = track.rtcId;
