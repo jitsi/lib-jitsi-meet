@@ -660,6 +660,24 @@ JitsiConference.prototype.pinParticipant = function(participantId) {
 };
 
 /**
+ * Selects a new value for "lastN". The requested amount of videos are going
+ * to be delivered after the value is in effect. Set to -1 for unlimited or
+ * all available videos.
+ * @param lastN the new number of videos the user would like to receive.
+ * @throws Error or RangeError if the given value is not a number or is smaller
+ * than -1.
+ */
+JitsiConference.prototype.setLastN = function(lastN) {
+    if (!Number.isInteger(lastN) && !Number.parseInt(lastN)) {
+        throw new Error('Invalid value for lastN: ' + lastN);
+    }
+    if (lastN < -1) {
+        throw new RangeError('lastN cannot be smaller than -1');
+    }
+    this.rtc.setLastN(lastN | 0);
+};
+
+/**
  * @return Array<JitsiParticipant> an array of all participants in this
  * conference.
  */
