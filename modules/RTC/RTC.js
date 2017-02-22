@@ -93,9 +93,13 @@ export default class RTC extends Listenable {
         });
     }
 
-    onIncommingCall (event) {
+    /**
+     * Initializes the data channels of this instance.
+     * @param peerconnection the associated PeerConnection.
+     */
+    initializeDataChannels (peerconnection) {
         if(this.options.config.openSctp) {
-            this.dataChannels = new DataChannels(event.peerconnection,
+            this.dataChannels = new DataChannels(peerconnection,
                 this.eventEmitter);
             this._dataChannelOpenListener = () => {
                 // mark that dataChannel is opened
