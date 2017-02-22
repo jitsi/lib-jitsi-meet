@@ -113,7 +113,14 @@ var RTCBrowserType = {
      * @returns {boolean}
      */
     isTemasysPluginUsed: function () {
-        return RTCBrowserType.isIExplorer() || RTCBrowserType.isSafari();
+        // Temasys do not support Microsoft Edge:
+        // http://support.temasys.com.sg/support/solutions/articles/5000654345-can-the-temasys-webrtc-plugin-be-used-with-microsoft-edge-
+        if (RTCBrowserType.isIExplorer()
+                && RTCBrowserType.getIExplorerVersion() < 12) {
+            return true;
+        }
+
+        return RTCBrowserType.isSafari();
     },
 
     /**
@@ -140,6 +147,15 @@ var RTCBrowserType = {
      */
     getChromeVersion: function () {
         return RTCBrowserType.isChrome() ? browserVersion : null;
+    },
+
+    /**
+     * Returns Internet Explorer version.
+     *
+     * @returns {number|null}
+     */
+    getIExplorerVersion: function () {
+        return RTCBrowserType.isIExplorer() ? browserVersion : null;
     },
 
     usesPlanB: function() {
