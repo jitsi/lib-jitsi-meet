@@ -1016,15 +1016,18 @@ TraceablePeerConnection.prototype.addTrack = function (track) {
     track._addPeerConnection(this);
 
     const webrtcStream = track.getOriginalStream();
-    if (webrtcStream)
+    if (webrtcStream) {
         this._addStream(webrtcStream);
-    else
-        logger.warn(this + " no WebRTC stream for: " + track);
+    // It's not ok for a track to not have a WebRTC stream if:
+    } else if (!RTCBrowserType.doesVideoMuteByStreamRemove()
+                || track.isAudioTrack()
+                || (track.isVideoTrack() && !track.isMuted())) {
+        logger.error(this + " no WebRTC stream for: " + track);
+    }
 
     // Muted video tracks do not have WebRTC stream
-    if (track.isVideoTrack() && track.isMuted()) {
-        // FIXME it should detect whether the current browser removes
-        // media stream on mute, otherwise SSRCs are obtained from local SDP
+    if (RTCBrowserType.doesVideoMuteByStreamRemove()
+            && track.isVideoTrack() && track.isMuted()) {
         const ssrcInfo = this.generateNewStreamSSRCInfo(track);
         this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrcs[0]);
         const simGroup =
