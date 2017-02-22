@@ -372,10 +372,9 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
     // A function that will print info about muted status transition
     const loggerMuteInfo = () => { logger.info("Mute " + this + ": " + mute); };
 
-    // FIXME FF does not support 'removeStream' method used to mute
     if (this.isAudioTrack()
         || this.videoType === VideoType.DESKTOP
-        || RTCBrowserType.isFirefox()) {
+        || !RTCBrowserType.doesVideoMuteByStreamRemove()) {
         loggerMuteInfo();
         if (this.track) {
             this.track.enabled = !mute;
