@@ -581,26 +581,14 @@ export default class P2PEnabledConference extends JitsiConference {
     }
 
     /**
-     * @inheritDoc
-     * @override
-     */
-    getConnectionState () {
-        const p2pState = this.getP2PConnectionState();
-        if (p2pState) {
-            return p2pState;
-        } else {
-            return super.getConnectionState();
-        }
-    }
-
-    /**
      * Returns the current ICE state of the P2P connection.
+     * NOTE: method is used by the jitsi-meet-torture tests.
      * @return {string|null} an ICE state or <tt>null</tt> if there's currently
      * no P2P connection.
      */
     getP2PConnectionState() {
         if (this.p2pEstablished && this.p2pJingleSession) {
-            return this.p2pJingleSession.getIceConnectionState();
+            return this.p2pJingleSession.peerconnection.getConnectionState();
         } else {
             return null;
         }

@@ -298,6 +298,24 @@ const dumpSDP = function(description) {
     return 'type: ' + description.type + '\r\n' + description.sdp;
 };
 
+
+/**
+ * Forwards the {@link peerconnection.iceConnectionState} state except that it
+ * will convert "completed" into "connected" where both mean that the ICE has
+ * succeeded and is up and running. We never see "completed" state for
+ * the JVB connection, but it started appearing for the P2P one. This method
+ * allows to adapt old logic to this new situation.
+ * @return {string}
+ */
+TraceablePeerConnection.prototype.getConnectionState = function () {
+    let state = this.peerconnection.iceConnectionState;
+    if ("completed" === state) {
+        return "connected";
+    } else {
+        return state;
+    }
+};
+
 /**
  * Tells whether or not this TPC instance is using Simulcast.
  * @return {boolean} <tt>true</tt> if simulcast is enabled and active or

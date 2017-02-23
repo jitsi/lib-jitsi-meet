@@ -1329,13 +1329,14 @@ JitsiConference.prototype.getActivePeerConnection = function () {
 /**
  * Returns the connection state for the current room. Its ice connection state
  * for its session.
+ * NOTE that "completed" ICE state which can appear on the P2P connection will
+ * be converted to "connected".
+ * @return {string|null} ICE state name or <tt>null</tt> if there is no active
+ * peer connection at this time.
  */
 JitsiConference.prototype.getConnectionState = function () {
-    if (this.jvbJingleSession) {
-        return this.jvbJingleSession.getIceConnectionState();
-    } else {
-        return null;
-    }
+    const peerConnection = this.getActivePeerConnection();
+    return peerConnection ? peerConnection.getConnectionState() : null;
 };
 
 /**
