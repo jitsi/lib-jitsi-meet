@@ -100,26 +100,20 @@ var isDeviceChangeEventSupported = false;
 var rtcReady = false;
 
 function setResolutionConstraints(constraints, resolution) {
-    var isAndroid = RTCBrowserType.isAndroid();
+    // XXX Google Chrome has been observed to fall down to 240x135 which is an
+    // odd resolution and odd resolutions may cause crashes in WebRTC on Android
+    // at least:
+    // - https://bugs.chromium.org/p/webrtc/issues/detail?id=6651
+    // - https://bugs.chromium.org/p/webrtc/issues/detail?id=7206
+    // As a mitigation, do not fall bellow the following minimal resolution.
+    // TODO Odd resolutions may still occur, for example, in desktop sharing.
+    constraints.video.mandatory.minHeight = 180;
+    constraints.video.mandatory.minWidth = 320;
 
     if (Resolutions[resolution]) {
-        constraints.video.mandatory.minWidth = Resolutions[resolution].width;
-        constraints.video.mandatory.minHeight = Resolutions[resolution].height;
+        constraints.video.mandatory.maxHeight = Resolutions[resolution].height;
+        constraints.video.mandatory.maxWidth = Resolutions[resolution].width;
     }
-    else if (isAndroid) {
-        // FIXME can't remember if the purpose of this was to always request
-        //       low resolution on Android ? if yes it should be moved up front
-        constraints.video.mandatory.minWidth = 320;
-        constraints.video.mandatory.minHeight = 180;
-        constraints.video.mandatory.maxFrameRate = 15;
-    }
-
-    if (constraints.video.mandatory.minWidth)
-        constraints.video.mandatory.maxWidth =
-            constraints.video.mandatory.minWidth;
-    if (constraints.video.mandatory.minHeight)
-        constraints.video.mandatory.maxHeight =
-            constraints.video.mandatory.minHeight;
 }
 
 /**
