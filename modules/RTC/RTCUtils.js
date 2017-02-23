@@ -748,11 +748,11 @@ class RTCUtils extends Listenable {
             if (RTCBrowserType.isFirefox()) {
                 var FFversion = RTCBrowserType.getFirefoxVersion();
                 if (FFversion < 40) {
-                    logger.error(
-                            "Firefox version too old: " + FFversion +
-                            ". Required >= 40.");
-                    reject(new Error("Firefox version too old: " + FFversion +
-                    ". Required >= 40."));
+                    rejectWithWebRTCNotSupported(
+                        `Firefox version too old: ${FFversion}.`
+                            + ' Required >= 40.',
+                        reject);
+
                     return;
                 }
                 this.peerconnection = mozRTCPeerConnection;
@@ -895,9 +895,10 @@ class RTCUtils extends Listenable {
                     resolve();
                 });
             } else {
-                var errmsg = 'Browser does not appear to be WebRTC-capable';
-                logger.error(errmsg);
-                reject(new Error(errmsg));
+                rejectWithWebRTCNotSupported(
+                    'Browser does not appear to be WebRTC-capable',
+                    reject);
+
                 return;
             }
 
@@ -1290,6 +1291,32 @@ class RTCUtils extends Listenable {
         devices.push(deviceData);
         return { deviceList: devices };
     }
+}
+
+/**
+ * Rejects a Promise because WebRTC is not supported.
+ *
+ * @param {string} errorMessage - The human-readable message of the Error which
+ * is the reason for the rejection.
+ * @param {Function} reject - The reject function of the Promise.
+ * @returns {void}
+ */
+function rejectWithWebRTCNotSupported(errorMessage, reject) {
+    const error = new Error(errorMessage);
+
+    // WebRTC is not supported either natively or via a known plugin such as
+    // Temasys.
+    // XXX The Error class already has a property name which is commonly used to
+    // detail the represented error in a non-human-readable way (in contrast to
+    // the human-readable property message). I explicitly did not want to
+    // introduce a new specific property.
+    // FIXME None of the existing JitsiXXXErrors seemed to be appropriate
+    // recipients of the constant WEBRTC_NOT_SUPPORTED so I explicitly chose to
+    // leave it as a magic string at the time of this writing.
+    error.name = 'WEBRTC_NOT_SUPPORTED';
+
+    logger.error(errorMessage);
+    reject(error);
 }
 
 const rtcUtils = new RTCUtils();
