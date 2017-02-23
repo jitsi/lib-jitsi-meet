@@ -348,6 +348,8 @@ export default class P2PEnabledConference extends JitsiConference {
         } else {
             logger.info("Peer to peer connection closed!");
         }
+        // Clear dtmfManager, so that it can be recreated with new connection
+        this.dtmfManager = null;
         // Update P2P status
         this.eventEmitter.emit(
             JitsiConferenceEvents.P2P_STATUS, this, this.p2pEstablished);
