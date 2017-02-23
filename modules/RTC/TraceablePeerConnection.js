@@ -82,7 +82,7 @@ function TraceablePeerConnection(rtc, id, signallingLayer, ice_config,
     //FIXME: We should support multiple streams per jid.
     /**
      * The map holds remote tracks associated with this peer connection.
-     * @type {Object.<MediaType, JitsiRemoteTrack>}
+     * @type {Object<string, Object.<MediaType, JitsiRemoteTrack>>}
      */
     this.remoteTracks = {};
 
@@ -539,7 +539,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function (stream, track) {
  * Initializes a new JitsiRemoteTrack instance with the data provided by
  * the signalling layer and SDP.
  *
- * @param {string} owner the owner's endpoint ID (MUC nickname)
+ * @param {string} ownerEndpointId the owner's endpoint ID (MUC nickname)
  * @param {MediaStream} stream the WebRTC stream instance
  * @param {MediaStreamTrack} track the WebRTC track instance
  * @param {MediaType} mediaType the track's type of the media
@@ -548,19 +548,20 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function (stream, track) {
  * @param {boolean} muted the initial muted status
  */
 TraceablePeerConnection.prototype._createRemoteTrack
-= function (owner, stream, track, mediaType, videoType, ssrc, muted) {
+= function (ownerEndpointId, stream, track, mediaType, videoType, ssrc, muted) {
     const remoteTrack
         = new JitsiRemoteTrack(
             this.rtc, this.rtc.conference,
-            owner,
+            ownerEndpointId,
             stream, track, mediaType, videoType, ssrc, muted, this.isP2P);
     const remoteTracks
-        = this.remoteTracks[owner] || (this.remoteTracks[owner] = { });
+        = this.remoteTracks[ownerEndpointId]
+            || (this.remoteTracks[ownerEndpointId] = { });
 
     if (remoteTracks[mediaType]) {
         logger.error(
             this + " overwriting remote track! " + remoteTrack,
-            owner, mediaType);
+            ownerEndpointId, mediaType);
     }
     remoteTracks[mediaType] = remoteTrack;
 
