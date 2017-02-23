@@ -25,6 +25,13 @@ function createConnection(token, bosh = '/http-bind') {
 }
 
 export default class XMPP extends Listenable {
+    /**
+     * FIXME describe all options
+     * @param {Object} options
+     * @param {Array<Object>} options.p2pStunServers see
+     * {@link JingleConnectionPlugin} for more details.
+     * @param token
+     */
     constructor(options, token) {
         super();
         this.connection = null;
@@ -370,7 +377,7 @@ export default class XMPP extends Listenable {
 
     _initStrophePlugins() {
         initEmuc(this);
-        initJingle(this, this.eventEmitter);
+        initJingle(this, this.eventEmitter, this.options.p2pStunServers);
         initStropheUtil();
         initPing(this);
         initRayo();
