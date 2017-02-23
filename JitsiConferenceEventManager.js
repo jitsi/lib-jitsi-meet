@@ -638,7 +638,7 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
                 return;
             }
 
-            track._setByteSent(stats[ssrc]);
+            track._setByteSent(tPeerConn, stats[ssrc]);
         });
     });
 };

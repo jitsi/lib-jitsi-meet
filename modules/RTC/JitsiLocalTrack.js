@@ -606,17 +606,13 @@ JitsiLocalTrack.prototype.getParticipantId = function() {
 
 /**
  * Sets the value of bytes sent statistic.
- * @param bytesSent {integer} the new value (FIXME: what is an integer in js?)
+ * @param {TraceablePeerConnection} tpc the source of the "bytes sent" stat
+ * @param {number} bytesSent the new value
  * NOTE: used only for audio tracks to detect audio issues.
  */
-JitsiLocalTrack.prototype._setByteSent = function(bytesSent) {
+JitsiLocalTrack.prototype._setByteSent = function(tpc, bytesSent) {
     this._bytesSent = bytesSent;
-
-    // FIXME it's a shame that PeerConnection and ICE status does not belong
-    // to the RTC module and it has to be accessed through
-    // the conference(and through the XMPP chat room ???) instead
-    const iceConnectionState
-        = this.conference ? this.conference.getConnectionState() : null;
+    const iceConnectionState = tpc.getConnectionState();
 
     if (this._testByteSent && iceConnectionState === 'connected') {
         setTimeout(() => {
