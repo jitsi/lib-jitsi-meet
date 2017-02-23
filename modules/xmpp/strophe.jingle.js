@@ -20,23 +20,24 @@ import ConnectionPlugin from './ConnectionPlugin';
  */
 class JingleConnectionPlugin extends ConnectionPlugin {
     /**
-     *
-     * @param xmpp
-     * @param eventEmitter
+     * Creates new <tt>JingleConnectionPlugin</tt>
+     * @param {XMPP} xmpp
+     * @param {EventEmitter} eventEmitter
+     * @param {Array<Object>} p2pStunServers an array which is part of the ice
+     * config passed to the <tt>PeerConnection</tt> with the structure defined
+     * by the WebRTC standard.
      */
-    constructor(xmpp, eventEmitter) {
+    constructor(xmpp, eventEmitter, p2pStunServers) {
         super();
         this.xmpp = xmpp;
         this.eventEmitter = eventEmitter;
         this.sessions = {};
-        // FIXME make configurable and use STUN only in P2Pthis.iceConfig = {iceServers: [{ urls: "stun:stun.l.google.com:19302" },
-        this.iceConfig = {
-            iceServers: [
-                { urls: "stun:stun.l.google.com:19302" },
-                { urls: "stun:stun1.l.google.com:19302" },
-                { urls: "stun:stun2.l.google.com:19302" }
-            ]
-        };
+        this.jvbIceConfig = { iceServers: [ ] };
+        this.p2pIceConfig = { iceServers: [ ] };
+        if (Array.isArray(p2pStunServers)) {
+            logger.info('Configured STUN servers: ', p2pStunServers);
+            this.p2pIceConfig.iceServers = p2pStunServers;
+        }
         this.mediaConstraints = {
             mandatory: {
                 'OfferToReceiveAudio': true,
@@ -153,7 +154,8 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                         fromJid,
                         this.connection,
                         this.mediaConstraints,
-                        this.iceConfig,
+                        // Only P2P makes use of the ICE config
+                        isP2P ? this.p2pIceConfig : this.jvbIceConfig,
                         isP2P /* P2P */, false /* initiator */,
                         this.xmpp.options);
 
@@ -246,8 +248,8 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     RandomUtil.randomHexString(12),
                     peer,
                     this.connection,
-                    this.media_constraints,
-                    this.ice_config,
+                    this.mediaConstraints,
+                    this.p2pIceConfig,
                     true /* P2P */, true /* initiator */,
                     this.xmpp.options);
 
@@ -349,7 +351,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     }
                     }
                 });
-                this.iceConfig.iceServers = iceservers;
+                this.jvbIceConfig.iceServers = iceservers;
             }, err => {
                 logger.warn('getting turn credentials failed', err);
                 logger.warn('is mod_turncredentials or similar installed?');
@@ -384,8 +386,8 @@ class JingleConnectionPlugin extends ConnectionPlugin {
 
 /* eslint-enable newline-per-chained-call */
 
-module.exports = function(XMPP, eventEmitter) {
+module.exports = function(XMPP, eventEmitter, p2pStunServers) {
     Strophe.addConnectionPlugin(
         'jingle',
-        new JingleConnectionPlugin(XMPP, eventEmitter));
+        new JingleConnectionPlugin(XMPP, eventEmitter, p2pStunServers));
 };
