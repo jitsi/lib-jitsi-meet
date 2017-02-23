@@ -1122,8 +1122,10 @@ JitsiConference.prototype._rejectIncomingCall
  * @private
  */
 JitsiConference.prototype._startRemoteStats = function () {
-    if (this.jvbJingleSession)
-        this.statistics.startRemoteStats(this.jvbJingleSession.peerconnection);
+    const activePeerConnection = this.getActivePeerConnection();
+    if (activePeerConnection) {
+        this.statistics.startRemoteStats(activePeerConnection);
+    }
 };
 
 /**
@@ -1212,12 +1214,7 @@ JitsiConference.prototype.myUserId = function () {
 JitsiConference.prototype.sendTones = function (tones, duration, pause) {
     // FIXME P2P 'dtmfManager' must be cleared, after switching jingleSessions
     if (!this.dtmfManager) {
-        if (!this.jvbJingleSession) {
-            logger.warn("cannot sendTones: no jingle session");
-            return;
-        }
-
-        const peerConnection = this.jvbJingleSession.peerconnection;
+        const peerConnection = this.getActivePeerConnection();
         if (!peerConnection) {
             logger.warn("cannot sendTones: no peer connection");
             return;
@@ -1318,6 +1315,16 @@ JitsiConference.prototype.getPhonePin = function () {
     if (this.room)
         return this.room.getPhonePin();
     return null;
+};
+
+/**
+ * Obtains currently active <tt>TraceablePeerConnection</tt> (if any).
+ * @return {TraceablePeerConnection|null}
+ * @protected
+ */
+JitsiConference.prototype.getActivePeerConnection = function () {
+    return this.jvbJingleSession
+        ? this.jvbJingleSession.peerconnection : null;
 };
 
 /**
