@@ -148,7 +148,7 @@ export default class P2PEnabledConference extends JitsiConference {
         const localTracks = this.getLocalTracks();
 
         logger.info("Attaching " + localTracks + " to JVB");
-        this.jingleSession.attachLocalTracks(localTracks).then(
+        this.jvbJingleSession.attachLocalTracks(localTracks).then(
             () => {
                 logger.info("Attach " + localTracks + " to JVB success!");
             },
@@ -163,7 +163,7 @@ export default class P2PEnabledConference extends JitsiConference {
      * @private
      */
     _addRemoteJVBTracks () {
-        this._addRemoteTracks("JVB", this.jingleSession);
+        this._addRemoteTracks("JVB", this.jvbJingleSession);
     }
 
     /**
@@ -282,7 +282,7 @@ export default class P2PEnabledConference extends JitsiConference {
     _detachLocalTracksFromJvbSession() {
         const localTracks = this.getLocalTracks();
         logger.info("Detaching local tracks from JVB: " + localTracks);
-        this.jingleSession.detachLocalTracks(localTracks)
+        this.jvbJingleSession.detachLocalTracks(localTracks)
             .then(() => {
                 logger.info(
                     "Detach local tracks from JVB done!" + localTracks);
@@ -299,7 +299,7 @@ export default class P2PEnabledConference extends JitsiConference {
      * @private
      */
     _removeRemoteJVBTracks () {
-        this._removeRemoteTracks("JVB", this.jingleSession);
+        this._removeRemoteTracks("JVB", this.jvbJingleSession);
     }
 
     /**

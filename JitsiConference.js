@@ -47,10 +47,10 @@ function JitsiConference(options) {
     this.componentsVersions = new ComponentsVersions(this);
     this.participants = {};
     /**
-     * Jingle Session instance
+     * Jingle session instance for the JVB connection.
      * @type {JingleSessionPC}
      */
-    this.jingleSession = null;
+    this.jvbJingleSession = null;
     this.lastDominantSpeaker = null;
     this.dtmfManager = null;
     this.somebodySupportsDTMF = false;
@@ -207,9 +207,9 @@ JitsiConference.prototype.leave = function () {
             this.getParticipants().forEach(
                 participant => this.onMemberLeft(participant.getJid()));
             // Close the JingleSession
-            if (this.jingleSession) {
-                this.jingleSession.close();
-                this.jingleSession = null;
+            if (this.jvbJingleSession) {
+                this.jvbJingleSession.close();
+                this.jvbJingleSession = null;
             }
         });
     }
@@ -570,8 +570,8 @@ JitsiConference.prototype.replaceTrack = function (oldTrack, newTrack) {
  * @private
  */
 JitsiConference.prototype._doReplaceTrack = function (oldTrack, newTrack) {
-    if (this.jingleSession) {
-        return this.jingleSession.replaceTrack(oldTrack, newTrack);
+    if (this.jvbJingleSession) {
+        return this.jvbJingleSession.replaceTrack(oldTrack, newTrack);
     } else {
         logger.info("_doReplaceTrack - no JVB JingleSession");
         return Promise.resolve();
@@ -644,8 +644,8 @@ JitsiConference.prototype._setupNewTrack = function (newTrack) {
  * which describes the error.
  */
 JitsiConference.prototype._addLocalTrackAsUnmute = function (track) {
-    if (this.jingleSession) {
-        return this.jingleSession.addTrackAsUnmute(track);
+    if (this.jvbJingleSession) {
+        return this.jvbJingleSession.addTrackAsUnmute(track);
     } else {
         // We are done immediately
         logger.warn(
@@ -660,8 +660,8 @@ JitsiConference.prototype._addLocalTrackAsUnmute = function (track) {
  * @return {Promise}
  */
 JitsiConference.prototype._removeTrackAsMute = function (track) {
-    if (this.jingleSession) {
-        return this.jingleSession.removeTrackAsMute(track);
+    if (this.jvbJingleSession) {
+        return this.jvbJingleSession.removeTrackAsMute(track);
     } else {
         // We are done immediately
         logger.warn(
@@ -1028,7 +1028,7 @@ function (jingleSession, jingleOffer, now) {
     }
 
     // Accept incoming call
-    this.jingleSession = jingleSession;
+    this.jvbJingleSession = jingleSession;
     this.room.connectionTimes["session.initiate"] = now;
     // Log "session.restart"
     if (this.wasStopped) {
@@ -1145,7 +1145,7 @@ JitsiConference.prototype.isP2PEstablished = function () {
  */
 JitsiConference.prototype.onCallEnded
 = function (JingleSession, reasonCondition, reasonText) {
-    if (JingleSession !== this.jingleSession) {
+    if (JingleSession !== this.jvbJingleSession) {
         logger.error(
             "Received onCallEnded for invalid session",
             reasonCondition,
@@ -1162,7 +1162,7 @@ JitsiConference.prototype.onCallEnded
         this.statistics.stopCallStats();
     }
     // Current JingleSession is invalid so set it to null on the room
-    this.jingleSession = null;
+    this.jvbJingleSession = null;
     // Let the RTC service do any cleanups
     this.rtc.onCallEnded();
 };
@@ -1212,12 +1212,12 @@ JitsiConference.prototype.myUserId = function () {
 JitsiConference.prototype.sendTones = function (tones, duration, pause) {
     // FIXME P2P 'dtmfManager' must be cleared, after switching jingleSessions
     if (!this.dtmfManager) {
-        if (!this.jingleSession) {
+        if (!this.jvbJingleSession) {
             logger.warn("cannot sendTones: no jingle session");
             return;
         }
 
-        const peerConnection = this.jingleSession.peerconnection;
+        const peerConnection = this.jvbJingleSession.peerconnection;
         if (!peerConnection) {
             logger.warn("cannot sendTones: no peer connection");
             return;
@@ -1325,8 +1325,8 @@ JitsiConference.prototype.getPhonePin = function () {
  * for its session.
  */
 JitsiConference.prototype.getConnectionState = function () {
-    if (this.jingleSession) {
-        return this.jingleSession.getIceConnectionState();
+    if (this.jvbJingleSession) {
+        return this.jvbJingleSession.getIceConnectionState();
     } else {
         return null;
     }
@@ -1447,7 +1447,7 @@ JitsiConference.prototype._onTrackAttach = function(track, container) {
     if (isLocal) {
         // Local tracks have SSRC stored on per peer connection basis
         const peerConnection
-            = this.jingleSession && this.jingleSession.peerconnection;
+            = this.jvbJingleSession && this.jvbJingleSession.peerconnection;
         if (peerConnection) {
             ssrc = peerConnection.getLocalSSRC(track);
         }
