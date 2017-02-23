@@ -94,17 +94,20 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     this.eventEmitter.emit(XMPPEvents.START_MUTED_FROM_FOCUS,
                             audioMuted === "true", videoMuted === "true");
                 }
-                // FIXME Not this plugin nor the XMPP module has enough
-                // knowledge to tell if the user is a conference focus.
-                // The conference has to set the 'isP2P' field of
-                // the JingleSession during incoming call processing.
+                // FIXME that should work most of the time, but we'd have to
+                // think how secure it is to assume that user with "focus"
+                // nickname is Jicofo.
+                const isP2P = "focus" !== Strophe.getResourceFromJid(fromJid);
+                logger.info(
+                    "Marking session from " + fromJid
+                        + (isP2P ? " as P2P" : " as *not* P2P"));
                 sess = new JingleSessionPC(
                         $(iq).attr('to'), $(iq).find('jingle').attr('sid'),
                         fromJid,
                         this.connection,
                         this.media_constraints,
                         this.ice_config,
-                        undefined /* P2P */, false /* initiator */,
+                        isP2P /* P2P */, false /* initiator */,
                         this.xmpp.options);
 
                 this.sessions[sess.sid] = sess;

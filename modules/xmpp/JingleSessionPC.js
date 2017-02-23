@@ -35,9 +35,7 @@ export default class JingleSessionPC extends JingleSession {
      * createOffer/Answer, as defined by the WebRTC standard
      * @param ice_config the ICE servers config object as defined by the WebRTC
      * standard.
-     * FIXME remove 'undefined' once the corresponding fixme in strophe.jingle
-     * is fixed.
-     * @param {boolean|undefined} isP2P indicates whether this instance is
+     * @param {boolean} isP2P indicates whether this instance is
      * meant to be used in a direct, peer to peer connection or <tt>false</tt>
      * if it's a JVB connection.
      * @param {boolean} isInitiator indicates whether or not we are the side
@@ -78,8 +76,7 @@ export default class JingleSessionPC extends JingleSession {
         /**
          * Indicates whether or not this <tt>JingleSessionPC</tt> is used in
          * a peer to peer type of session.
-         * FIXME remove undefined once fixme in strophe.jingle.js is fixed
-         * @type {boolean|undefined} <tt>true</tt> if it's a peer to peer
+         * @type {boolean} <tt>true</tt> if it's a peer to peer
          * session or <tt>false</tt> if it's a JVB session
          */
         this.isP2P = isP2P;
