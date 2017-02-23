@@ -45,9 +45,7 @@ export default class MungeLocalSdp {
 
         let modified = false;
 
-        // FIXME not sure about this directions
-        if (["sendrecv", "recvonly", "sendonly"]
-                .indexOf(transformer.mediaDirection) !== -1) {
+        if ("inactive" !== transformer.mediaDirection) {
 
             localAudio.forEach((audioTrack) => {
                 const isAttached = audioTrack._isAttachedToPC(this.pc);
@@ -135,9 +133,7 @@ export default class MungeLocalSdp {
 
         let modified = false;
 
-        // FIXME not sure about this directions
-        if (["sendrecv", "recvonly", "sendonly"]
-                .indexOf(transformer.mediaDirection) !== -1) {
+        if ("inactive" !== transformer.mediaDirection) {
 
             localVideos.forEach((videoTrack) => {
                 const isMuted = videoTrack.isMuted();
