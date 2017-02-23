@@ -1161,7 +1161,7 @@ JitsiConference.prototype.onCallEnded
         this.statistics.stopRemoteStats();
         this.statistics.stopCallStats();
     }
-    // Current JingleSession is invalid so set it to null on the room
+    // Current JVB JingleSession is no longer valid, so set it to null
     this.jvbJingleSession = null;
     // Let the RTC service do any cleanups
     this.rtc.onCallEnded();
