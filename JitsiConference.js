@@ -553,13 +553,6 @@ JitsiConference.prototype.replaceTrack = function (oldTrack, newTrack) {
             }
             return Promise.resolve();
         }, (error) => {
-            if (newTrack) {
-                // NOTE It's is unclear from this method perspective on where is
-                // the local track added, but it is added in _setupNewTrack
-
-                // Remove the local stream if the process fails
-                this.rtc.removeLocalTrack(newTrack);
-            }
             return Promise.reject(new Error(error));
         });
 };
