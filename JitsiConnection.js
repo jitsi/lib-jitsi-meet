@@ -1,8 +1,8 @@
 import JitsiConference from "./JitsiConference";
 import * as JitsiConnectionEvents from "./JitsiConnectionEvents";
 import P2PEnabledConference from "./P2PEnabledConference";
+import Statistics from "./modules/statistics/statistics";
 import XMPP from "./modules/xmpp/xmpp";
-var Statistics = require("./modules/statistics/statistics");
 
 /**
  * Creates new connection object for the Jitsi Meet server side video conferencing service. Provides access to the
