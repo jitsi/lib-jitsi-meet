@@ -1160,14 +1160,14 @@ JitsiConference.prototype.isP2PEstablished = function () {
 
 /**
  * Handles the call ended event.
- * @param {JingleSessionPC} JingleSession the jingle session which has been
+ * @param {JingleSessionPC} jingleSession the jingle session which has been
  * terminated.
  * @param {String} reasonCondition the Jingle reason condition.
  * @param {String|null} reasonText human readable reason text which may provide
  * more details about why the call has been terminated.
  */
 JitsiConference.prototype.onCallEnded
-= function(JingleSession, reasonCondition, reasonText) {
+= function(jingleSession, reasonCondition, reasonText) {
     logger.info(`JVB call ended: ${reasonCondition} - ${reasonText}`);
     this.wasStopped = true;
 
