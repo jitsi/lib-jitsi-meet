@@ -161,10 +161,11 @@ export default class ParticipantConnectionStatus {
         this.conference.off(
             JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
 
-        Object.keys(this.trackTimers).forEach(function (participantId) {
+        const participantIds = Object.keys(this.trackTimers);
+        for(const participantId of participantIds) {
             this.clearTimeout(participantId);
             this.clearRtcMutedTimestamp(participantId);
-        }.bind(this));
+        }
 
         // Clear RTC connection status cache
         this.connStatusFromJvb = {};
@@ -321,14 +322,14 @@ export default class ParticipantConnectionStatus {
 
     /**
      * Goes over every participant and updates connectivity status.
-     * Should be called when parameter which affects all of the participants
+     * Should be called when a parameter which affects all of the participants
      * is changed (P2P for example).
      */
     refreshStatusForAll() {
-        this.conference.getParticipants().forEach(
-            function(participant){
-                this.figureOutConnectionStatus(participant.getId());
-            }, this);
+        const participants = this.conference.getParticipants();
+        for (const participant of participants) {
+            this.figureOutConnectionStatus(participant.getId());
+        }
     }
 
     /**
@@ -397,11 +398,11 @@ export default class ParticipantConnectionStatus {
             // it some time, before the connection interrupted event is
             // triggered.
             this.clearTimeout(participantId);
-            this.trackTimers[participantId] = window.setTimeout(function () {
+            this.trackTimers[participantId] = window.setTimeout(() => {
                 logger.debug('RTC mute timeout for: ' + participantId);
                 this.clearTimeout(participantId);
                 this.figureOutConnectionStatus(participantId);
-            }.bind(this), this.rtcMuteTimeout);
+            }, this.rtcMuteTimeout);
         }
     }
 
