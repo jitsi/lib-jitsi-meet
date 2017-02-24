@@ -629,7 +629,7 @@ JitsiConference.prototype._setupNewTrack = function (newTrack) {
  * @param {boolean} [dontModifySources] if true _modifySources won't be called.
  * Used for streams added before the call start.
  */
-JitsiConference.prototype.addLocalWebRTCStream
+JitsiConference.prototype.addLocalStream
     = function (stream, callback, errorCallback, ssrcInfo, dontModifySources) {
     if(this.jingleSession) {
         this.jingleSession.addStream(
@@ -649,7 +649,7 @@ JitsiConference.prototype.addLocalWebRTCStream
  * @param {object} ssrcInfo object with information about the SSRCs associated
  * with the stream.
  */
-JitsiConference.prototype.removeLocalWebRTCStream
+JitsiConference.prototype.removeLocalStream
     = function (stream, callback, errorCallback, ssrcInfo) {
     if(this.jingleSession) {
         this.jingleSession.removeStream(
@@ -1021,7 +1021,7 @@ function (jingleSession, jingleOffer, now) {
             };
         }
         try {
-            this.addLocalWebRTCStream(
+            this.addLocalStream(
                 localTrack.getOriginalStream(), function () {}, function () {},
                 ssrcInfo, true /* don't modify SSRCs */);
         } catch(e) {

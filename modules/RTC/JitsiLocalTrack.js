@@ -370,7 +370,7 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function () {
     var self = this;
 
     return new Promise(function(resolve, reject) {
-        self.conference.addLocalWebRTCStream(
+        self.conference.addLocalStream(
             self.stream,
             resolve,
             (error) => reject(new Error(error)),
@@ -396,7 +396,7 @@ function (successCallback, errorCallback) {
         return;
     }
 
-    this.conference.removeLocalWebRTCStream(
+    this.conference.removeLocalStream(
         this.stream,
         successCallback,
         (error) => errorCallback(new Error(error)),
