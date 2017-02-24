@@ -147,17 +147,6 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: this.options.conference.channelLastN
             }).up();
     }
-    if (this.options.conference.disableAdaptiveSimulcast !== undefined ||
-        this.options.conference.disableSimulcast) {
-        // disableSimulcast implies disableAdaptiveSimulcast.
-        var value = this.options.conference.disableSimulcast ? true :
-            this.options.conference.disableAdaptiveSimulcast;
-        elem.c(
-            'property', {
-                name: 'disableAdaptiveSimulcast',
-                value: value
-            }).up();
-    }
     if (this.options.conference.disableRtx !== undefined) {
         elem.c(
             'property', {
