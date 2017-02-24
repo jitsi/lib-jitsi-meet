@@ -1244,9 +1244,11 @@ JitsiConference.prototype.getPhonePin = function () {
  * for its session.
  */
 JitsiConference.prototype.getConnectionState = function () {
-    if(this.jingleSession)
+    if(this.jingleSession) {
         return this.jingleSession.getIceConnectionState();
-    return null;
+    } else {
+        return null;
+    }
 };
 
 /**
