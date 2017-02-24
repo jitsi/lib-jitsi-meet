@@ -166,10 +166,11 @@ export default class ParticipantConnectionStatus {
         this.conference.off(
             JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
 
-        Object.keys(this.trackTimers).forEach(participantId => {
+        const participantIds = Object.keys(this.trackTimers);
+        for(const participantId of participantIds) {
             this.clearTimeout(participantId);
             this.clearRtcMutedTimestamp(participantId);
-        });
+        }
 
         // Clear RTC connection status cache
         this.connStatusFromJvb = {};
@@ -330,11 +331,12 @@ export default class ParticipantConnectionStatus {
 
     /**
      * Goes over every participant and updates connectivity status.
-     * Should be called when parameter which affects all of the participants
+     * Should be called when a parameter which affects all of the participants
      * is changed (P2P for example).
      */
     refreshStatusForAll() {
-        for (const participant of this.conference.getParticipants()) {
+        const participants = this.conference.getParticipants();
+        for (const participant of participants) {
             this.figureOutConnectionStatus(participant.getId());
         }
     }
