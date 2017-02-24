@@ -18,29 +18,31 @@ import * as SDPUtil from "./SDPUtil";
  * @param {number} rtxSsrc the rtx ssrc to associate with the primary ssrc
  */
 function updateAssociatedRtxStream (sdpTransformer, primarySsrcInfo, rtxSsrc) {
-    logger.debug("Updating mline to associate " + rtxSsrc +
+    logger.debug(
+        "Updating mline to associate " + rtxSsrc +
         " rtx ssrc with primary stream ", primarySsrcInfo.id);
     let primarySsrc = primarySsrcInfo.id;
     let primarySsrcMsid = primarySsrcInfo.msid;
     let primarySsrcCname = primarySsrcInfo.cname;
 
-    let previousAssociatedRtxStream
-        = sdpTransformer.getRtxSSRC(primarySsrc);
-    if (previousAssociatedRtxStream === rtxSsrc) {
-        logger.debug(rtxSsrc + " was already associated with " +
-            primarySsrc);
+    let previousRtxSSRC = sdpTransformer.getRtxSSRC(primarySsrc);
+    if (previousRtxSSRC === rtxSsrc) {
+        logger.debug(rtxSsrc + " was already associated with " + primarySsrc);
         return;
     }
-    if (previousAssociatedRtxStream) {
-        logger.debug(primarySsrc + " was previously assocaited with rtx " +
-            previousAssociatedRtxStream + ", removing all references to it");
+    if (previousRtxSSRC) {
+        logger.debug(
+            primarySsrc + " was previously assocaited with rtx " +
+            previousRtxSSRC + ", removing all references to it");
+
         // Stream already had an rtx ssrc that is different than the one given,
         //  remove all trace of the old one
-        sdpTransformer.removeSSRC(previousAssociatedRtxStream);
-        logger.debug("groups before filtering for " +
-            previousAssociatedRtxStream);
+        sdpTransformer.removeSSRC(previousRtxSSRC);
+
+        logger.debug("groups before filtering for " + previousRtxSSRC);
         logger.debug(sdpTransformer.dumpSSRCGroups());
-        sdpTransformer.removeGroupsWithSSRC(previousAssociatedRtxStream);
+
+        sdpTransformer.removeGroupsWithSSRC(previousRtxSSRC);
     }
     sdpTransformer.addSSRCAttribute({
         id: rtxSsrc,
