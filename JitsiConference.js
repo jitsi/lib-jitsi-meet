@@ -897,7 +897,7 @@ function (jingleSession, jingleOffer, now) {
         GlobalOnErrorHandler.callErrorHandler(error);
     }
 
-    this.rtc.onIncommingCall(jingleSession);
+    this.rtc.initializeDataChannels(jingleSession.peerconnection);
     // Add local Tracks to the ChatRoom
     this.rtc.localTracks.forEach(function(localTrack) {
         var ssrcInfo = null;
