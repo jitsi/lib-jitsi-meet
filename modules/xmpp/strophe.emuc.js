@@ -106,14 +106,6 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         return true;
     }
 
-    setJingleSession (from, session) {
-        const room = this.rooms[Strophe.getBareJidFromJid(from)];
-        if(!room)
-            return;
-
-        room.setJingleSession(session);
-    }
-
     onMute(iq) {
         const from = iq.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];

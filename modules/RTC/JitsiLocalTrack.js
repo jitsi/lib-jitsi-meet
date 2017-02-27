@@ -363,14 +363,14 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
  * @returns {Promise}
  */
 JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function () {
-    if (!this.conference || !this.conference.room) {
+    if (!this.conference) {
         return Promise.resolve();
     }
 
     var self = this;
 
     return new Promise(function(resolve, reject) {
-        self.conference.room.addStream(
+        self.conference._addLocalStream(
             self.stream,
             resolve,
             (error) => reject(new Error(error)),
@@ -391,12 +391,12 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function () {
  */
 JitsiLocalTrack.prototype._removeStreamFromConferenceAsMute =
 function (successCallback, errorCallback) {
-    if (!this.conference || !this.conference.room) {
+    if (!this.conference) {
         successCallback();
         return;
     }
 
-    this.conference.room.removeStream(
+    this.conference.removeLocalStream(
         this.stream,
         successCallback,
         (error) => errorCallback(new Error(error)),

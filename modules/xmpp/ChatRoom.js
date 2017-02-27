@@ -81,7 +81,6 @@ export default class ChatRoom extends Listenable {
         this.moderator = new Moderator(this.roomjid, this.xmpp, this.eventEmitter,
             {connection: this.xmpp.options, conference: this.options});
         this.initPresenceMap();
-        this.session = null;
         this.lastPresences = {};
         this.phoneNumber = null;
         this.phonePin = null;
@@ -705,78 +704,6 @@ export default class ChatRoom extends Listenable {
         return null;
     }
 
-    setJingleSession (session){
-        this.session = session;
-    }
-
-    /**
-     * Replaces oldStream with newStream and performs a single offer/answer
-     *  cycle after both operations are done.  Either oldStream or newStream
-     *  can be null; replacing a valid 'oldStream' with a null 'newStream'
-     *  effectively just removes 'oldStream'
-     * @param oldStream the current stream in use to be replaced
-     * @param newStream the new stream to use
-     * @returns {Promise}
-     */
-    replaceStream (oldStream, newStream) {
-        if (this.session) {
-            return this.session.replaceStream(oldStream, newStream);
-        }
-        return Promise.resolve();
-    }
-
-    /**
-     * Remove stream.
-     * @param stream stream that will be removed.
-     * @param callback callback executed after successful stream removal.
-     * @param errorCallback callback executed if stream removal fail.
-     * @param ssrcInfo object with information about the SSRCs associated with the
-     * stream.
-     */
-    removeStream (stream, callback, errorCallback, ssrcInfo) {
-        if(!this.session) {
-            callback();
-            return;
-        }
-        this.session.removeStream(stream, callback, errorCallback, ssrcInfo);
-    }
-
-    /**
-     * Adds stream.
-     * @param stream new stream that will be added.
-     * @param callback callback executed after successful stream addition.
-     * @param errorCallback callback executed if stream addition fail.
-     * @param ssrcInfo object with information about the SSRCs associated with the
-     * stream.
-     * @param dontModifySources {boolean} if true _modifySources won't be called.
-     * Used for streams added before the call start.
-     */
-    addStream (stream, callback, errorCallback, ssrcInfo, dontModifySources) {
-        if(this.session) {
-            // FIXME: will block switchInProgress on true value in case of exception
-            this.session.addStream(stream, callback, errorCallback, ssrcInfo,
-                dontModifySources);
-        } else {
-            // We are done immediately
-            logger.warn("No conference handler or conference not started yet");
-            callback();
-        }
-    }
-
-    /**
-     * Generate ssrc info object for a stream with the following properties:
-     * - ssrcs - Array of the ssrcs associated with the stream.
-     * - groups - Array of the groups associated with the stream.
-     */
-    generateNewStreamSSRCInfo () {
-        if(!this.session) {
-            logger.warn("The call haven't been started. " +
-                "Cannot generate ssrc info at the moment!");
-            return null;
-        }
-        return this.session.generateNewStreamSSRCInfo();
-    }
-
     setVideoMute (mute, callback) {
         this.sendVideoInfoPresence(mute);
         if(callback)
@@ -927,15 +854,6 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     * Returns the connection state for the current session.
-     */
-    getConnectionState () {
-        if(!this.session)
-            return null;
-        return this.session.getIceConnectionState();
-    }
-
-    /**
      * Mutes remote participant.
      * @param jid of the participant
      * @param mute
@@ -982,7 +900,6 @@ export default class ChatRoom extends Listenable {
      * rejected.
      */
     leave () {
-        this._dispose();
         return new Promise((resolve, reject) => {
             let timeout = setTimeout(() => onMucLeft(true), 5000);
             let eventEmitter = this.eventEmitter;
@@ -1000,14 +917,5 @@ export default class ChatRoom extends Listenable {
             eventEmitter.on(XMPPEvents.MUC_LEFT, onMucLeft);
             this.doLeave();
         });
-    }
-
-    /**
-     * Disposes the conference, closes the jingle session.
-     */
-    _dispose () {
-        if (this.session) {
-            this.session.close();
-        }
     }
 }
