@@ -34,7 +34,7 @@ import ConnectionQuality from "./modules/connectivity/ConnectionQuality";
  * @constructor
  */
 function JitsiConference(options) {
-    if(!options.name || options.name.toLowerCase() !== options.name) {
+    if (!options.name || options.name.toLowerCase() !== options.name) {
         var errmsg
             = "Invalid conference name (no conference name passed or it "
                 + "contains invalid characters like capital letters)!";
@@ -92,12 +92,12 @@ function JitsiConference(options) {
  * @param connection {JitsiConnection} overrides this.connection
  */
 JitsiConference.prototype._init = function (options) {
-    if(!options)
+    if (!options)
         options = {};
 
     // Override connection and xmpp properties (Usefull if the connection
     // reloaded)
-    if(options.connection) {
+    if (options.connection) {
         this.connection = options.connection;
         this.xmpp = this.connection.xmpp;
         // Setup XMPP events only if we have new connection object.
@@ -108,7 +108,7 @@ JitsiConference.prototype._init = function (options) {
 
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
 
-    if(!this.rtc) {
+    if (!this.rtc) {
         this.rtc = new RTC(this, options);
         this.eventManager.setupRTCListeners();
     }
@@ -119,7 +119,7 @@ JitsiConference.prototype._init = function (options) {
                 options.config.peerDisconnectedThroughRtcTimeout);
     this.participantConnectionStatus.init();
 
-    if(!this.statistics) {
+    if (!this.statistics) {
         this.statistics = new Statistics(this.xmpp, {
             callStatsID: this.options.config.callStatsID,
             callStatsSecret: this.options.config.callStatsSecret,
@@ -149,7 +149,7 @@ JitsiConference.prototype._init = function (options) {
  * @param password {string} the password
  */
 JitsiConference.prototype.join = function (password) {
-    if(this.room)
+    if (this.room)
         this.room.join(password);
 };
 
@@ -173,7 +173,7 @@ JitsiConference.prototype.leave = function () {
     this.getLocalTracks().forEach(track => this.onTrackRemoved(track));
 
     this.rtc.closeAllDataChannels();
-    if(this.statistics)
+    if (this.statistics)
         this.statistics.dispose();
 
     // leave the conference
@@ -282,7 +282,7 @@ JitsiConference.prototype.getLocalTracks = function (mediaType) {
  * Note: consider adding eventing functionality by extending an EventEmitter impl, instead of rolling ourselves
  */
 JitsiConference.prototype.on = function (eventId, handler) {
-    if(this.eventEmitter)
+    if (this.eventEmitter)
         this.eventEmitter.on(eventId, handler);
 };
 
@@ -294,7 +294,7 @@ JitsiConference.prototype.on = function (eventId, handler) {
  * Note: consider adding eventing functionality by extending an EventEmitter impl, instead of rolling ourselves
  */
 JitsiConference.prototype.off = function (eventId, handler) {
-    if(this.eventEmitter)
+    if (this.eventEmitter)
         this.eventEmitter.removeListener(eventId, handler);
 };
 
@@ -309,7 +309,7 @@ JitsiConference.prototype.removeEventListener = JitsiConference.prototype.off;
  * @param handler {Function} handler for the command
  */
  JitsiConference.prototype.addCommandListener = function (command, handler) {
-    if(this.room)
+    if (this.room)
         this.room.addPresenceListener(command, handler);
  };
 
@@ -318,7 +318,7 @@ JitsiConference.prototype.removeEventListener = JitsiConference.prototype.off;
   * @param command {String} the name of the command
   */
  JitsiConference.prototype.removeCommandListener = function (command) {
-    if(this.room)
+    if (this.room)
         this.room.removePresenceListener(command);
  };
 
@@ -327,7 +327,7 @@ JitsiConference.prototype.removeEventListener = JitsiConference.prototype.off;
  * @param message the text message.
  */
 JitsiConference.prototype.sendTextMessage = function (message) {
-    if(this.room)
+    if (this.room)
         this.room.sendMessage(message);
 };
 
@@ -337,7 +337,7 @@ JitsiConference.prototype.sendTextMessage = function (message) {
  * @param values {Object} with keys and values that will be sent.
  **/
 JitsiConference.prototype.sendCommand = function (name, values) {
-    if(this.room) {
+    if (this.room) {
         this.room.addToPresence(name, values);
         this.room.sendPresence();
     }
@@ -358,7 +358,7 @@ JitsiConference.prototype.sendCommandOnce = function (name, values) {
  * @param name {String} the name of the command.
  **/
 JitsiConference.prototype.removeCommand = function (name) {
-    if(this.room)
+    if (this.room)
         this.room.removeFromPresence(name);
 };
 
@@ -367,7 +367,7 @@ JitsiConference.prototype.removeCommand = function (name) {
  * @param name the display name to set
  */
 JitsiConference.prototype.setDisplayName = function(name) {
-    if(this.room){
+    if (this.room){
         // remove previously set nickname
         this.room.removeFromPresence("nick");
 
@@ -391,17 +391,17 @@ JitsiConference.prototype.setSubject = function (subject) {
  * @return {Transcriber} the transcriber object
  */
 JitsiConference.prototype.getTranscriber = function(){
-    if(this.transcriber === undefined){
+    if (this.transcriber === undefined){
         this.transcriber = new Transcriber();
         //add all existing local audio tracks to the transcriber
         this.rtc.localTracks.forEach(function (localTrack) {
-            if(localTrack.isAudioTrack()){
+            if (localTrack.isAudioTrack()){
                 this.transcriber.addTrack(localTrack);
             }
         }.bind(this));
         //and all remote audio tracks
         this.rtc.remoteTracks.forEach(function (remoteTrack){
-            if(remoteTrack.isAudioTrack()){
+            if (remoteTrack.isAudioTrack()){
                 this.transcriber.addTrack(remoteTrack);
             }
         }.bind(this));
@@ -632,7 +632,7 @@ JitsiConference.prototype._setupNewTrack = function (newTrack) {
  */
 JitsiConference.prototype._addLocalStream
     = function (stream, callback, errorCallback, ssrcInfo, dontModifySources) {
-    if(this.jingleSession) {
+    if (this.jingleSession) {
         this.jingleSession.addStream(
             stream, callback, errorCallback, ssrcInfo, dontModifySources);
     } else {
@@ -652,7 +652,7 @@ JitsiConference.prototype._addLocalStream
  */
 JitsiConference.prototype.removeLocalStream
     = function (stream, callback, errorCallback, ssrcInfo) {
-    if(this.jingleSession) {
+    if (this.jingleSession) {
         this.jingleSession.removeStream(
             stream, callback, errorCallback, ssrcInfo);
     } else {
@@ -668,7 +668,7 @@ JitsiConference.prototype.removeLocalStream
  * - groups - Array of the groups associated with the stream.
  */
 JitsiConference.prototype._generateNewStreamSSRCInfo = function () {
-    if(!this.jingleSession) {
+    if (!this.jingleSession) {
         logger.warn("The call haven't been started. " +
             "Cannot generate ssrc info at the moment!");
         return null;
@@ -911,7 +911,7 @@ JitsiConference.prototype.onTrackAdded = function (track) {
     // Add track to JitsiParticipant.
     participant._tracks.push(track);
 
-    if(this.transcriber){
+    if (this.transcriber){
         this.transcriber.addTrack(track);
     }
 
@@ -997,7 +997,7 @@ function (jingleSession, jingleOffer, now) {
          *  problems between sdp-interop and trying to keep the ssrcs
          *  consistent
          */
-        if(localTrack.isVideoTrack() && localTrack.isMuted() && !RTCBrowserType.isFirefox()) {
+        if (localTrack.isVideoTrack() && localTrack.isMuted() && !RTCBrowserType.isFirefox()) {
             /**
              * Handles issues when the stream is added before the peerconnection
              * is created. The peerconnection is created when second participant
@@ -1158,7 +1158,7 @@ JitsiConference.prototype.sendTones = function (tones, duration, pause) {
  * Returns true if recording is supported and false if not.
  */
 JitsiConference.prototype.isRecordingSupported = function () {
-    if(this.room)
+    if (this.room)
         return this.room.isRecordingSupported();
     return false;
 };
@@ -1182,7 +1182,7 @@ JitsiConference.prototype.getRecordingURL = function () {
  * Starts/stops the recording
  */
 JitsiConference.prototype.toggleRecording = function (options) {
-    if(this.room)
+    if (this.room)
         return this.room.toggleRecording(options, function (status, error) {
             this.eventEmitter.emit(
                 JitsiConferenceEvents.RECORDER_STATE_CHANGED, status, error);
@@ -1196,7 +1196,7 @@ JitsiConference.prototype.toggleRecording = function (options) {
  * Returns true if the SIP calls are supported and false otherwise
  */
 JitsiConference.prototype.isSIPCallingSupported = function () {
-    if(this.room)
+    if (this.room)
         return this.room.isSIPCallingSupported();
     return false;
 };
@@ -1206,7 +1206,7 @@ JitsiConference.prototype.isSIPCallingSupported = function () {
  * @param number the number
  */
 JitsiConference.prototype.dial = function (number) {
-    if(this.room)
+    if (this.room)
         return this.room.dial(number);
     return new Promise(function(resolve, reject){
         reject(new Error("The conference is not created yet!"));});
@@ -1216,7 +1216,7 @@ JitsiConference.prototype.dial = function (number) {
  * Hangup an existing call
  */
 JitsiConference.prototype.hangup = function () {
-    if(this.room)
+    if (this.room)
         return this.room.hangup();
     return new Promise(function(resolve, reject){
         reject(new Error("The conference is not created yet!"));});
@@ -1226,7 +1226,7 @@ JitsiConference.prototype.hangup = function () {
  * Returns the phone number for joining the conference.
  */
 JitsiConference.prototype.getPhoneNumber = function () {
-    if(this.room)
+    if (this.room)
         return this.room.getPhoneNumber();
     return null;
 };
@@ -1235,7 +1235,7 @@ JitsiConference.prototype.getPhoneNumber = function () {
  * Returns the pin for joining the conference with phone.
  */
 JitsiConference.prototype.getPhonePin = function () {
-    if(this.room)
+    if (this.room)
         return this.room.getPhonePin();
     return null;
 };
@@ -1245,7 +1245,7 @@ JitsiConference.prototype.getPhonePin = function () {
  * for its session.
  */
 JitsiConference.prototype.getConnectionState = function () {
-    if(this.jingleSession) {
+    if (this.jingleSession) {
         return this.jingleSession.getIceConnectionState();
     } else {
         return null;
