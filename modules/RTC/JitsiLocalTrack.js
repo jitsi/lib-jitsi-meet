@@ -370,7 +370,7 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function () {
     var self = this;
 
     return new Promise(function(resolve, reject) {
-        self.conference.addLocalStream(
+        self.conference._addLocalStream(
             self.stream,
             resolve,
             (error) => reject(new Error(error)),

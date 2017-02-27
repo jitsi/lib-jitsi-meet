@@ -626,10 +626,11 @@ JitsiConference.prototype._setupNewTrack = function (newTrack) {
  * @param {function(error)} errorCallback callback executed if stream addition fail.
  * @param {object} ssrcInfo object with information about the SSRCs associated with the
  * stream.
- * @param {boolean} [dontModifySources] if true _modifySources won't be called.
- * Used for streams added before the call start.
+ * @param {boolean} [dontModifySources] if <tt>true</tt> _modifySources won't be
+ * called. The option is used for adding stream, before the Jingle call is
+ * started. That is before the 'session-accept' is sent.
  */
-JitsiConference.prototype.addLocalStream
+JitsiConference.prototype._addLocalStream
     = function (stream, callback, errorCallback, ssrcInfo, dontModifySources) {
     if(this.jingleSession) {
         this.jingleSession.addStream(
@@ -1021,7 +1022,7 @@ function (jingleSession, jingleOffer, now) {
             };
         }
         try {
-            this.addLocalStream(
+            this._addLocalStream(
                 localTrack.getOriginalStream(), function () {}, function () {},
                 ssrcInfo, true /* don't modify SSRCs */);
         } catch(e) {
