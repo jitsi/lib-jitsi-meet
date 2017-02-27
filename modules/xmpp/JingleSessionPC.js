@@ -104,10 +104,19 @@ JingleSessionPC.prototype.doInitialize = function () {
     this.wasstable = false;
 
     this.peerconnection = new TraceablePeerConnection(
-            this.connection.jingle.ice_config,
-            RTC.getPCConstraints(),
-            this.room.options,
-            this.room.eventEmitter);
+        this.connection.jingle.ice_config,
+        RTC.getPCConstraints(),
+        /* Options */
+        {
+            disableSimulcast: this.room.options.disableSimulcast,
+            disableRtx: this.room.options.disableRtx,
+            preferH264: this.room.options.preferH264
+        },
+        // TPC is using room's eventEmitter, so that all XMPPEvents can be
+        // captured from ChatRoom. But at the same time it makes hard
+        // or impossible to deal with more than one TPC instance without
+        // further refactoring.
+        this.room.eventEmitter);
 
     this.peerconnection.onicecandidate = function (ev) {
         if (!ev) {
