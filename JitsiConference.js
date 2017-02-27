@@ -486,7 +486,7 @@ JitsiConference.prototype.onTrackRemoved = function (track) {
 /**
  * Removes JitsiLocalTrack from the conference and performs
  * a new offer/answer cycle.
- * @param track the JitsiLocalTrack object.
+ * @param {JitsiLocalTrack} track
  * @returns {Promise}
  */
 JitsiConference.prototype.removeTrack = function (track) {
@@ -548,14 +548,14 @@ JitsiConference.prototype.replaceTrack = function (oldTrack, newTrack) {
  * currently no JingleSession started.
  * @param {JitsiLocalTrack|null} oldTrack the track to be removed during
  * the process or <tt>null</t> if the method should act as "add track"
- * @param {JitsiLocalTrackn|null} newTrack the new track to be added or
+ * @param {JitsiLocalTrack|null} newTrack the new track to be added or
  * <tt>null</tt> if the method should act as "remove track"
  * @return {Promise}
  * @private
  */
 JitsiConference.prototype._doReplaceTrack = function (oldTrack, newTrack) {
     if (this.jingleSession) {
-        return this.jingleSession.replaceStream(oldTrack, newTrack);
+        return this.jingleSession.replaceTrack(oldTrack, newTrack);
     } else {
         return Promise.resolve();
     }

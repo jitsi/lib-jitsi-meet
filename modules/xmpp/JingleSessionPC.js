@@ -866,24 +866,25 @@ JingleSessionPC.prototype._renegotiate = function(optionalRemoteSdp) {
  *  cycle after both operations are done.  Either oldStream or newStream
  *  can be null; replacing a valid 'oldStream' with a null 'newStream'
  *  effectively just removes 'oldStream'
- * @param oldStream the current stream in use to be replaced
- * @param newStream the new stream to use
+ * @param {JitsiLocalTrack|null} oldTrack the current track in use to be
+ * replaced
+ * @param {JitsiLocalTrack|null} newTrack the new track to use
  * @returns {Promise} which resolves once the replacement is complete
  *  with no arguments or rejects with an error {string}
  */
-JingleSessionPC.prototype.replaceStream = function (oldStream, newStream) {
+JingleSessionPC.prototype.replaceTrack = function (oldTrack, newTrack) {
     return new Promise((resolve, reject) => {
         let workFunction = (finishedCallback) => {
             let oldSdp = new SDP(this.peerconnection.localDescription.sdp);
-            this.removeStreamFromPeerConnection(oldStream);
-            this.addStreamToPeerConnection(newStream);
+            this.removeStreamFromPeerConnection(oldTrack);
+            this.addStreamToPeerConnection(newTrack);
             this._renegotiate()
                 .then(() => {
                     var newSdp = new SDP(this.peerconnection.localDescription.sdp);
                     this.notifyMySSRCUpdate(oldSdp, newSdp);
                     finishedCallback();
                 }, (error) => {
-                    logger.error("replaceStream renegotiation failed: " + error);
+                    logger.error("replaceTrack renegotiation failed: " + error);
                     finishedCallback(error);
                 });
         };
@@ -972,11 +973,11 @@ JingleSessionPC.prototype._parseSsrcInfoFromSourceRemove = function (sourceRemov
  * stream.
  * @param dontModifySources {boolean} if true _modifySources won't be called.
  * Used for streams added before the call start.
- * NOTE(brian): there is a decent amount of overlap here with replaceStream that
+ * NOTE(brian): there is a decent amount of overlap here with replaceTrack that
  *  could be re-used...however we can't leverage that currently because the
  *  extra work we do here must be in the work function context and if we
- *  then called replaceStream we'd be adding another task on the queue
- *  from within a task which would then deadlock.  The 'replaceStream' core
+ *  then called replaceTrack we'd be adding another task on the queue
+ *  from within a task which would then deadlock.  The 'replaceTrack' core
  *  logic should be moved into a helper function that could be called within
  *  the 'doReplaceStream' task or the 'doAddStream' task (for example)
  */
