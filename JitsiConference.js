@@ -1,28 +1,30 @@
-/* global Strophe, Promise */
+/* global __filename, Strophe, Promise */
 
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-import RTC from "./modules/RTC/RTC";
-import * as MediaType from "./service/RTC/MediaType";
-var RTCEvents = require("./service/RTC/RTCEvents");
-var EventEmitter = require("events");
+import ComponentsVersions from "./modules/version/ComponentsVersions";
+import ConnectionQuality from "./modules/connectivity/ConnectionQuality";
+import { getLogger } from "jitsi-meet-logger";
+import GlobalOnErrorHandler from "./modules/util/GlobalOnErrorHandler";
+import EventEmitter from "events";
 import * as JitsiConferenceErrors from "./JitsiConferenceErrors";
+import JitsiConferenceEventManager from "./JitsiConferenceEventManager";
 import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
+import JitsiDTMFManager from './modules/DTMF/JitsiDTMFManager';
 import JitsiParticipant from "./JitsiParticipant";
-var Statistics = require("./modules/statistics/statistics");
-var JitsiDTMFManager = require('./modules/DTMF/JitsiDTMFManager');
 import JitsiTrackError from "./JitsiTrackError";
 import * as JitsiTrackErrors from "./JitsiTrackErrors";
 import * as JitsiTrackEvents from "./JitsiTrackEvents";
-var ComponentsVersions = require("./modules/version/ComponentsVersions");
-var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
-var JitsiConferenceEventManager = require("./JitsiConferenceEventManager");
-var VideoType = require('./service/RTC/VideoType');
-var RTCBrowserType = require("./modules/RTC/RTCBrowserType.js");
-var Transcriber = require("./modules/transcription/transcriber");
+import * as MediaType from "./service/RTC/MediaType";
 import ParticipantConnectionStatus
     from "./modules/connectivity/ParticipantConnectionStatus";
+import RTC from "./modules/RTC/RTC";
+import RTCBrowserType from "./modules/RTC/RTCBrowserType.js";
+import * as RTCEvents from "./service/RTC/RTCEvents";
+import Statistics from "./modules/statistics/statistics";
 import TalkMutedDetection from "./modules/TalkMutedDetection";
-import ConnectionQuality from "./modules/connectivity/ConnectionQuality";
+import Transcriber from "./modules/transcription/transcriber";
+import VideoType from './service/RTC/VideoType';
+
+const logger = getLogger(__filename);
 
 /**
  * Creates a JitsiConference object with the given name and properties.
