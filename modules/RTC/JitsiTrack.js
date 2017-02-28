@@ -309,15 +309,6 @@ JitsiTrack.prototype.isScreenSharing = function() {
 };
 
 /**
- * FIXME remove hack in SDP.js and this method
- * Returns id of the track.
- * @returns {string|null} id of the track or null if this is fake track.
- */
-JitsiTrack.prototype._getId = function () {
-    return this.getTrackId();
-};
-
-/**
  * Returns id of the track.
  * @returns {string|null} id of the track or null if this is fake track.
  */

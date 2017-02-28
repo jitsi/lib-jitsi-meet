@@ -746,34 +746,47 @@ export default class ChatRoom extends Listenable {
         this.sendPresence();
     }
 
-    remoteTrackAdded (data) {
+    /**
+     * Obtains the info about given media advertised in the MUC presence of
+     * the participant identified by the given endpoint JID.
+     * @param {string} endpointId the endpoint ID mapped to the participant
+     * which corresponds to MUC nickname.
+     * @param {MediaType} mediaType the type of the media for which presence
+     * info will be obtained.
+     * @return {PeerMediaInfo} presenceInfo an object with media presence
+     * info or <tt>null</tt> either if there is no presence available or if
+     * the media type given is invalid.
+     */
+    getMediaPresenceInfo (endpointId, mediaType) {
         // Will figure out current muted status by looking up owner's presence
-        var pres = this.lastPresences[data.owner];
-        if(pres) {
-            var mediaType = data.mediaType;
-            var mutedNode = null;
-            if (mediaType === MediaType.AUDIO) {
-                mutedNode = filterNodeFromPresenceJSON(pres, "audiomuted");
-            } else if (mediaType === MediaType.VIDEO) {
-                mutedNode = filterNodeFromPresenceJSON(pres, "videomuted");
-                var videoTypeNode = filterNodeFromPresenceJSON(pres, "videoType");
-                if(videoTypeNode
-                    && videoTypeNode.length > 0
-                    && videoTypeNode[0])
-                    data.videoType = videoTypeNode[0]["value"];
-            } else {
-                logger.warn("Unsupported media type: " + mediaType);
-                data.muted = null;
-            }
+        const pres = this.lastPresences[this.roomjid + "/" + endpointId];
+        if (!pres) {
+            // No presence available
+            return null;
+        }
+        const data = {
+            muted: false, // unmuted by default
+            videoType: undefined // no video type by default
+        };
+        let mutedNode = null;
 
-            if (mutedNode) {
-                data.muted = mutedNode.length > 0 &&
-                             mutedNode[0] &&
-                             mutedNode[0]["value"] === "true";
+        if (mediaType === MediaType.AUDIO) {
+            mutedNode = filterNodeFromPresenceJSON(pres, "audiomuted");
+        } else if (mediaType === MediaType.VIDEO) {
+            mutedNode = filterNodeFromPresenceJSON(pres, "videomuted");
+            let videoTypeNode = filterNodeFromPresenceJSON(pres, "videoType");
+
+            if(videoTypeNode.length > 0) {
+                data.videoType = videoTypeNode[0]["value"];
             }
+        } else {
+            logger.error("Unsupported media type: " + mediaType);
+            return null;
         }
 
-        this.eventEmitter.emit(XMPPEvents.REMOTE_TRACK_ADDED, data);
+        data.muted = mutedNode.length > 0 && mutedNode[0]["value"] === "true";
+
+        return data;
     }
 
     /**

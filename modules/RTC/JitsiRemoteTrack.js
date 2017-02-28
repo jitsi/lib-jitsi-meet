@@ -1,4 +1,4 @@
-/* global Strophe */
+/* global */
 
 var JitsiTrack = require("./JitsiTrack");
 import * as JitsiTrackEvents from "../../JitsiTrackEvents";
@@ -12,22 +12,25 @@ var ttfmTrackerVideoAttached = false;
 
 /**
  * Represents a single media track (either audio or video).
- * @param rtc {RTC} the RTC service instance.
- * @param ownerJid the MUC JID of the track owner
- * @param stream WebRTC MediaStream, parent of the track
- * @param track underlying WebRTC MediaStreamTrack for new JitsiRemoteTrack
- * @param mediaType the MediaType of the JitsiRemoteTrack
- * @param videoType the VideoType of the JitsiRemoteTrack
- * @param ssrc the SSRC number of the Media Stream
- * @param muted initial muted state of the JitsiRemoteTrack
+ * @param {RTC} rtc the RTC service instance.
+ * @param {JitsiConference} conference the conference to which this track
+ *        belongs to
+ * @param {string} ownerEndpointId the endpoint ID of the track owner
+ * @param {MediaStream} stream WebRTC MediaStream, parent of the track
+ * @param {MediaStreamTrack} track underlying WebRTC MediaStreamTrack for
+ *        the new JitsiRemoteTrack
+ * @param {MediaType} mediaType the type of the media
+ * @param {VideoType} videoType the type of the video if applicable
+ * @param {string} ssrc the SSRC number of the Media Stream
+ * @param {boolean} muted the initial muted state
  * @constructor
  */
-function JitsiRemoteTrack(rtc, conference, ownerJid, stream, track, mediaType, videoType,
-                          ssrc, muted) {
+function JitsiRemoteTrack(rtc, conference, ownerEndpointId, stream, track,
+                          mediaType, videoType, ssrc, muted) {
     JitsiTrack.call(
         this, conference, stream, track, function () {}, mediaType, videoType, ssrc);
     this.rtc = rtc;
-    this.peerjid = ownerJid;
+    this.ownerEndpointId = ownerEndpointId;
     this.muted = muted;
     // we want to mark whether the track has been ever muted
     // to detect ttfm events for startmuted conferences, as it can significantly
@@ -98,10 +101,11 @@ JitsiRemoteTrack.prototype.isMuted = function () {
 
 /**
  * Returns the participant id which owns the track.
- * @returns {string} the id of the participants.
+ * @returns {string} the id of the participants. It corresponds to the Colibri
+ * endpoint id/MUC nickname in case of Jitsi-meet.
  */
 JitsiRemoteTrack.prototype.getParticipantId = function() {
-    return Strophe.getResourceFromJid(this.peerjid);
+    return this.ownerEndpointId;
 };
 
 /**

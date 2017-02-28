@@ -43,41 +43,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
         conference.rtc.closeAllDataChannels();
     });
 
-    chatRoom.addListener(XMPPEvents.REMOTE_TRACK_ADDED,
-        function (data) {
-            var track = conference.rtc.createRemoteTrack(data);
-            if (track) {
-                conference.onTrackAdded(track);
-            }
-        }
-    );
-    chatRoom.addListener(XMPPEvents.REMOTE_TRACK_REMOVED,
-        function (streamId, trackId) {
-            conference.getParticipants().forEach(function(participant) {
-                var tracks = participant.getTracks();
-                for(var i = 0; i < tracks.length; i++) {
-                    if(tracks[i]
-                        && tracks[i].getStreamId() == streamId
-                        && tracks[i].getTrackId() == trackId) {
-                        var track = participant._tracks.splice(i, 1)[0];
-
-                        conference.rtc.removeRemoteTrack(
-                            participant.getId(), track.getType());
-
-                        conference.eventEmitter.emit(
-                            JitsiConferenceEvents.TRACK_REMOVED, track);
-
-                        if(conference.transcriber){
-                            conference.transcriber.removeTrack(track);
-                        }
-
-                        return;
-                    }
-                }
-            });
-        }
-    );
-
     chatRoom.addListener(XMPPEvents.AUDIO_MUTED_BY_FOCUS,
         function (value) {
             // set isMutedByFocus when setAudioMute Promise ends
@@ -413,31 +378,11 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
     });
 
     if(conference.statistics) {
+        // FIXME ICE related events should end up in RTCEvents eventually
         chatRoom.addListener(XMPPEvents.CONNECTION_ICE_FAILED,
             function (pc) {
                 conference.statistics.sendIceConnectionFailedEvent(pc);
             });
-
-        chatRoom.addListener(XMPPEvents.CREATE_OFFER_FAILED,
-            function (e, pc) {
-                conference.statistics.sendCreateOfferFailed(e, pc);
-            });
-
-        chatRoom.addListener(XMPPEvents.CREATE_ANSWER_FAILED,
-            function (e, pc) {
-                conference.statistics.sendCreateAnswerFailed(e, pc);
-            });
-
-        chatRoom.addListener(XMPPEvents.SET_LOCAL_DESCRIPTION_FAILED,
-            function (e, pc) {
-                conference.statistics.sendSetLocalDescFailed(e, pc);
-            });
-
-        chatRoom.addListener(XMPPEvents.SET_REMOTE_DESCRIPTION_FAILED,
-            function (e, pc) {
-                conference.statistics.sendSetRemoteDescFailed(e, pc);
-            });
-
         chatRoom.addListener(XMPPEvents.ADD_ICE_CANDIDATE_FAILED,
             function (e, pc) {
                 conference.statistics.sendAddIceCandidateFailed(e, pc);
@@ -449,12 +394,21 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
  * Setups event listeners related to conference.rtc
  */
 JitsiConferenceEventManager.prototype.setupRTCListeners = function () {
-    var conference = this.conference;
+    const conference = this.conference;
+    const rtc = conference.rtc;
 
-    this.rtcForwarder = new EventEmitterForwarder(conference.rtc,
-        this.conference.eventEmitter);
+    this.rtcForwarder
+        = new EventEmitterForwarder(rtc, this.conference.eventEmitter);
 
-    conference.rtc.addListener(RTCEvents.DOMINANT_SPEAKER_CHANGED,
+    rtc.addListener(
+        RTCEvents.REMOTE_TRACK_ADDED,
+        conference.onRemoteTrackAdded.bind(conference));
+
+    rtc.addListener(
+        RTCEvents.REMOTE_TRACK_REMOVED,
+        conference.onRemoteTrackRemoved.bind(conference));
+
+    rtc.addListener(RTCEvents.DOMINANT_SPEAKER_CHANGED,
         function (id) {
             if(conference.lastDominantSpeaker !== id && conference.room) {
                 conference.lastDominantSpeaker = id;
@@ -467,7 +421,7 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function () {
             }
         });
 
-    conference.rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, function () {
+    rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, function () {
         var now = window.performance.now();
         logger.log("(TIME) data channel opened ", now);
         conference.room.connectionTimes["data.channel.opened"] = now;
@@ -481,12 +435,12 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function () {
     this.rtcForwarder.forward(RTCEvents.LASTN_ENDPOINT_CHANGED,
         JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED);
 
-    conference.rtc.addListener(RTCEvents.AVAILABLE_DEVICES_CHANGED,
+    rtc.addListener(RTCEvents.AVAILABLE_DEVICES_CHANGED,
         function (devices) {
             conference.room.updateDeviceAvailability(devices);
         });
 
-    conference.rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
+    rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
         function (from, payload) {
             const participant = conference.getParticipantById(from);
             if (participant) {
@@ -499,6 +453,28 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function () {
                     "for not existing participant: " + from, payload);
             }
         });
+
+    if (conference.statistics) {
+        rtc.addListener(RTCEvents.CREATE_ANSWER_FAILED,
+            (e, pc) => {
+                conference.statistics.sendCreateAnswerFailed(e, pc);
+            });
+
+        rtc.addListener(RTCEvents.CREATE_OFFER_FAILED,
+            (e, pc) => {
+                conference.statistics.sendCreateOfferFailed(e, pc);
+            });
+
+        rtc.addListener(RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
+            (e, pc) => {
+                conference.statistics.sendSetLocalDescFailed(e, pc);
+            });
+
+        rtc.addListener(RTCEvents.SET_REMOTE_DESCRIPTION_FAILED,
+            (e, pc) => {
+                conference.statistics.sendSetRemoteDescFailed(e, pc);
+            });
+    }
 };
 
 /**
@@ -597,9 +573,9 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function () {
     });
 
     conference.statistics.addByteSentStatsListener(function (stats) {
-        conference.getLocalTracks().forEach(function (track) {
-            var ssrc = track.getSSRC();
-            if(!track.isAudioTrack() || !ssrc || !stats.hasOwnProperty(ssrc))
+        conference.getLocalTracks(MediaType.AUDIO).forEach(function (track) {
+            const ssrc = track.getSSRC();
+            if (!ssrc || !stats.hasOwnProperty(ssrc))
                 return;
 
             track._setByteSent(stats[ssrc]);
