@@ -43,7 +43,7 @@ var IQ_TIMEOUT = 10000;
  *
  * @constructor
  *
- * @implements {SignallingLayer}
+ * @implements {SignalingLayer}
  */
 function JingleSessionPC(me, sid, peerjid, connection,
                          media_constraints, ice_config, options) {

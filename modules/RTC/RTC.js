@@ -207,7 +207,7 @@ export default class RTC extends Listenable {
 
     /**
      * Creates new <tt>TraceablePeerConnection</tt>
-     * @param {SignallingLayer} signalling the signalling layer that will
+     * @param {SignalingLayer} signaling the signaling layer that will
      * provide information about the media or participants which is not carried
      * over SDP.
      * @param {Object} iceConfig an object describing the ICE config like
@@ -220,12 +220,12 @@ export default class RTC extends Listenable {
      * preferred over other video codecs.
      * @return {TraceablePeerConnection}
      */
-    createPeerConnection (signalling, iceConfig, options) {
+    createPeerConnection (signaling, iceConfig, options) {
         const newConnection
             = new TraceablePeerConnection(
                 this,
                 this.peerConnectionIdCounter,
-                signalling, iceConfig, RTC.getPCConstraints(), options);
+                signaling, iceConfig, RTC.getPCConstraints(), options);
 
         this.peerConnections.set(newConnection.id, newConnection);
         this.peerConnectionIdCounter += 1;
@@ -381,7 +381,7 @@ export default class RTC extends Listenable {
 
     /**
      * Initializes a new JitsiRemoteTrack instance with the data provided by
-     * the signalling layer and SDP.
+     * the signaling layer and SDP.
      *
      * @param {string} ownerEndpointId
      * @param {MediaStream} stream

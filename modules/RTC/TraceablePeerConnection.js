@@ -21,7 +21,7 @@ var SIMULCAST_LAYERS = 3;
  *
  * @param {RTC} rtc the instance of <tt>RTC</tt> service
  * @param {number} id the peer connection id assigned by the parent RTC module.
- * @param {SignallingLayer} signallingLayer the signalling layer instance
+ * @param {SignalingLayer} signalingLayer the signaling layer instance
  * @param {object} ice_config WebRTC 'PeerConnection' ICE config
  * @param {object} constraints WebRTC 'PeerConnection' constraints
  * @param {object} options <tt>TracablePeerConnection</tt> config options.
@@ -38,7 +38,7 @@ var SIMULCAST_LAYERS = 3;
  *
  * @constructor
  */
-function TraceablePeerConnection(rtc, id, signallingLayer, ice_config,
+function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
                                  constraints, options) {
     var self = this;
     /**
@@ -53,10 +53,10 @@ function TraceablePeerConnection(rtc, id, signallingLayer, ice_config,
      */
     this.id = id;
     /**
-     * The signalling layer which operates this peer connection.
-     * @type {SignallingLayer}
+     * The signaling layer which operates this peer connection.
+     * @type {SignalingLayer}
      */
-    this.signallingLayer = signallingLayer;
+    this.signalingLayer = signalingLayer;
     this.options = options;
     var RTCPeerConnectionType = null;
     if (RTCBrowserType.isFirefox()) {
@@ -299,7 +299,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function (stream, track) {
     // FIXME the length of ssrcLines[0] not verified, but it will fail
     // with global error handler anyway
     let trackSsrc = ssrcLines[0].substring(7).split(' ')[0];
-    const ownerEndpointId = this.signallingLayer.getSSRCOwner(trackSsrc);
+    const ownerEndpointId = this.signalingLayer.getSSRCOwner(trackSsrc);
 
     if (!ownerEndpointId) {
         GlobalOnErrorHandler.callErrorHandler(
@@ -314,7 +314,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function (stream, track) {
     logger.log('associated ssrc', ownerEndpointId, trackSsrc);
 
     const peerMediaInfo
-        = this.signallingLayer.getPeerMediaInfo(ownerEndpointId, mediaType);
+        = this.signalingLayer.getPeerMediaInfo(ownerEndpointId, mediaType);
 
     if (!peerMediaInfo) {
         GlobalOnErrorHandler.callErrorHandler(

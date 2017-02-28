@@ -11,9 +11,9 @@
  * Interface used to expose the information carried over the signalling channel
  * which is not available to the RTC module in the media SDP.
  *
- * @interface SignallingLayer
+ * @interface SignalingLayer
  */
-export default class SignallingLayer {
+export default class SignalingLayer {
 
     /**
      * Obtains the endpoint ID for given SSRC.
