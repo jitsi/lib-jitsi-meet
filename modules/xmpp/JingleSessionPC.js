@@ -7,7 +7,7 @@ import JingleSession from './JingleSession';
 const SDPDiffer = require('./SDPDiffer');
 const SDPUtil = require('./SDPUtil');
 const SDP = require('./SDP');
-import SignallingLayerImpl from "./SignallingLayerImpl";
+import SignalingLayerImpl from "./SignalingLayerImpl";
 const async = require('async');
 const XMPPEvents = require('../../service/xmpp/XMPPEvents');
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
@@ -97,10 +97,10 @@ export default class JingleSessionPC extends JingleSession {
         this.isP2P = isP2P;
 
         /**
-         * The signalling layer implementation.
-         * @type {SignallingLayerImpl}
+         * The signaling layer implementation.
+         * @type {SignalingLayerImpl}
          */
-        this.signallingLayer = new SignallingLayerImpl();
+        this.signalingLayer = new SignalingLayerImpl();
 
         this.webrtcIceUdpDisable = Boolean(options.webrtcIceUdpDisable);
         this.webrtcIceTcpDisable = Boolean(options.webrtcIceTcpDisable);
@@ -117,7 +117,7 @@ export default class JingleSessionPC extends JingleSession {
 
         /**
          * This is the MUC JID which will be used to add "owner" extension to
-         * each of the local SSRCs signalled over Jingle.
+         * each of the local SSRCs signaled over Jingle.
          * Usually those are added automatically by Jicofo, but it is not
          * involved in a P2P session.
          * @type {string}
@@ -168,7 +168,7 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Sets the JID which will be as an owner value for the local SSRCs
-     * signalled over Jingle. Should be our MUC JID.
+     * signaled over Jingle. Should be our MUC JID.
      * @param {string} ownerJid
      */
     setSSRCOwnerJid(ownerJid) {
@@ -193,7 +193,7 @@ export default class JingleSessionPC extends JingleSession {
         // Create new peer connection instance
         this.peerconnection
             = this.rtc.createPeerConnection(
-                this.signallingLayer,
+                this.signalingLayer,
                 this.iceConfig,
                 /* Options */
                 {
@@ -321,8 +321,8 @@ export default class JingleSessionPC extends JingleSession {
         this.peerconnection.onnegotiationneeded = () => {
             this.room.eventEmitter.emit(XMPPEvents.PEERCONNECTION_READY, this);
         };
-        // The signalling layer will bind it's listeners at this point
-        this.signallingLayer.setChatRoom(this.room);
+        // The signaling layer will bind it's listeners at this point
+        this.signalingLayer.setChatRoom(this.room);
     }
 
     /**
@@ -507,7 +507,7 @@ export default class JingleSessionPC extends JingleSession {
                         const owner = ssrcInfoElement.getAttribute('owner');
 
                         if (owner && owner.length) {
-                            this.signallingLayer.setSSRCOwner(
+                            this.signalingLayer.setSSRCOwner(
                                 ssrc, Strophe.getResourceFromJid(owner));
                         }
                     }
@@ -1742,8 +1742,8 @@ export default class JingleSessionPC extends JingleSession {
     close() {
         this.closed = true;
 
-        // The signalling layer will remove it's listeners
-        this.signallingLayer.setChatRoom(null);
+        // The signaling layer will remove it's listeners
+        this.signalingLayer.setChatRoom(null);
         // do not try to close if already closed.
         this.peerconnection
             && ((this.peerconnection.signalingState

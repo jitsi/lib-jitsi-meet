@@ -136,7 +136,7 @@ function TraceablePeerConnection(
      * @type {SignalingLayer}
      */
     this.signalingLayer = signalingLayer;
-    // SignallingLayer listeners
+    // SignalingLayer listeners
     this._peerVideoTypeChanged = this._peerVideoTypeChanged.bind(this);
     this.signalingLayer.on(
         SignallingEvents.PEER_VIDEO_TYPE_CHANGED,
@@ -566,7 +566,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
 
 /**
  * Initializes a new JitsiRemoteTrack instance with the data provided by
- * the signalling layer and SDP.
+ * the signaling layer and SDP.
  *
  * @param {string} ownerEndpointId the owner's endpoint ID (MUC nickname)
  * @param {MediaStream} stream the WebRTC stream instance
@@ -1245,7 +1245,7 @@ TraceablePeerConnection.prototype._isTrackAttached = function (localTrack) {
  * be removed from the underlying <tt>PeerConnection</tt>, but it will remain
  * associated with this TPC. The {@link MungeLocalSdp} module will fake the
  * local description exposed to {@link JingleSessionPC} in the way that track's
- * SSRC will be still on place. It will prevent from any signalling updates and
+ * SSRC will be still on place. It will prevent from any signaling updates and
  * make other participants think that the track is still there even though they
  * will receive no data for the underlying media stream.
  * @param {JitsiLocalTrack} localTrack
@@ -1558,10 +1558,10 @@ TraceablePeerConnection.prototype.clearRecvonlySsrc = function() {
 TraceablePeerConnection.prototype.close = function() {
     this.trace('stop');
 
-    // Off SignallingEvents
-    this.signallingLayer.off(
+    // Off SignalingEvents
+    this.signalingLayer.off(
         SignallingEvents.PEER_MUTED_CHANGED, this._peerMutedChanged);
-    this.signallingLayer.off(
+    this.signalingLayer.off(
         SignallingEvents.PEER_VIDEO_TYPE_CHANGED, this._peerVideoTypeChanged);
 
     if (!this.rtc._removePeerConnection(this)) {

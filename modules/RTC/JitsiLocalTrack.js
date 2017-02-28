@@ -462,7 +462,7 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function() {
     // A problem with that is that the "modify sources" queue is part of
     // the JingleSessionPC and it would be excluded from the process. One
     // solution would be to extract class between TPC and JingleSessionPC which
-    // would contain the queue and would notify the signalling layer when local
+    // would contain the queue and would notify the signaling layer when local
     // SSRCs are changed. This would help to separate XMPP from the RTC module.
     return new Promise((resolve, reject) => {
         this.conference._addLocalTrackAsUnmute(this)

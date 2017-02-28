@@ -4,14 +4,14 @@ import {getLogger} from "jitsi-meet-logger";
 const logger = getLogger(__filename);
 
 import * as MediaType from "../../service/RTC/MediaType";
-import SignallingLayer from "../../service/RTC/SignallingLayer";
+import SignalingLayer from "../../service/RTC/SignalingLayer";
 import * as SignallingEvents from "../../service/RTC/SignallingEvents";
 
 /**
- * Default XMPP implementation of the {@link SignallingLayer} interface. Obtains
+ * Default XMPP implementation of the {@link SignalingLayer} interface. Obtains
  * the data from the MUC presence.
  */
-export default class SignallingLayerImpl extends SignallingLayer {
+export default class SignalingLayerImpl extends SignalingLayer {
     /**
      * Creates new instance.
      */
@@ -52,7 +52,7 @@ export default class SignallingLayerImpl extends SignallingLayer {
                 "videoType", this._videoTypeHandler);
         }
         if (room) {
-            // SignallingEvents
+            // SignalingEvents
             this._audioMuteHandler = function (node, from) {
                 this.eventEmitter.emit(
                     SignallingEvents.PEER_MUTED_CHANGED,

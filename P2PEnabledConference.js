@@ -18,7 +18,7 @@ const logger = getLogger(__filename);
  * When the conference is being switched from one mode to another the local
  * tracks are detached from inactive session (through JingleSessionPC). It means
  * that locally those tracks are removed from the underlying PeerConnection, but
- * are still signalled to the remote participants. No data is being sent for
+ * are still signaled to the remote participants. No data is being sent for
  * those tracks.
  * As for the remote tracks those are replaced by generating fake "remote track
  * added/removed" events.
@@ -840,7 +840,7 @@ class FakeChatRoomLayer {
     }
 
     /**
-     * @see SignallingLayer.addPresenceListener
+     * @see SignalingLayer.addPresenceListener
      */
     addPresenceListener (name, handler) {
         // Forward to origin ChatRoom
@@ -850,7 +850,7 @@ class FakeChatRoomLayer {
     }
 
     /**
-     * @see SignallingLayer.getMediaPresenceInfo
+     * @see SignalingLayer.getMediaPresenceInfo
      */
     getMediaPresenceInfo (endpointId, mediaType) {
         let result = null;
@@ -861,7 +861,7 @@ class FakeChatRoomLayer {
     }
 
     /**
-     * @see SignallingLayer.removePresenceListener
+     * @see SignalingLayer.removePresenceListener
      */
     removePresenceListener (name) {
         this._forwardToChatRoom(room => room.removePresenceListener(name));
