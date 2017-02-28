@@ -550,6 +550,19 @@ TraceablePeerConnection.prototype.createAnswer
                  *  about unmapped ssrcs)
                  */
                 if (!RTCBrowserType.isFirefox()) {
+                    // If there were no video streams added to
+                    // the PeerConnection, there would be no primary SSRC cached
+                    if (!this.sdpConsistency.cachedPrimarySsrc) {
+                        const newPrimarySSRC
+                            = RandomUtil.randomInt(1, 0xffffffff);
+                        this.sdpConsistency.setPrimarySsrc(newPrimarySSRC);
+                        // FIXME an error could be printed here if there *are*
+                        // video tracks added, but TPC doesn't have enough info
+                        logger.warn(
+                            "Generated 'recvonly' SSRC: "
+                            + newPrimarySSRC + " (it is fine only if there are"
+                            + " no local video streams)");
+                    }
                     answer.sdp = this.sdpConsistency.makeVideoPrimarySsrcsConsistent(answer.sdp);
                     this.trace('createAnswerOnSuccess::postTransform (make primary video ssrcs consistent)',
                         dumpSDP(answer));
