@@ -383,7 +383,7 @@ export default class RTC extends Listenable {
      * Initializes a new JitsiRemoteTrack instance with the data provided by
      * the signalling layer and SDP.
      *
-     * @param {string} owner
+     * @param {string} ownerEndpointId
      * @param {MediaStream} stream
      * @param {MediaStreamTrack} track
      * @param {MediaType} mediaType
@@ -391,17 +391,19 @@ export default class RTC extends Listenable {
      * @param {string} ssrc
      * @param {boolean} muted
      */
-    _createRemoteTrack (owner,
+    _createRemoteTrack (ownerEndpointId,
                         stream, track, mediaType, videoType, ssrc, muted) {
         const remoteTrack
             = new JitsiRemoteTrack(
-                this, this.conference, owner, stream, track,
+                this, this.conference, ownerEndpointId, stream, track,
                 mediaType, videoType, ssrc, muted);
         const remoteTracks
-            = this.remoteTracks[owner] || (this.remoteTracks[owner] = {});
+            = this.remoteTracks[ownerEndpointId]
+                || (this.remoteTracks[ownerEndpointId] = {});
 
         if (remoteTracks[mediaType]) {
-            logger.error("Overwriting remote track!", owner, mediaType);
+            logger.error(
+                "Overwriting remote track!", ownerEndpointId, mediaType);
         }
         remoteTracks[mediaType] = remoteTrack;
 

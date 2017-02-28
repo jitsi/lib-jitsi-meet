@@ -15,7 +15,7 @@ var ttfmTrackerVideoAttached = false;
  * @param {RTC} rtc the RTC service instance.
  * @param {JitsiConference} conference the conference to which this track
  *        belongs to
- * @param {string} owner the endpoint ID of the track owner
+ * @param {string} ownerEndpointId the endpoint ID of the track owner
  * @param {MediaStream} stream WebRTC MediaStream, parent of the track
  * @param {MediaStreamTrack} track underlying WebRTC MediaStreamTrack for
  *        the new JitsiRemoteTrack
@@ -25,12 +25,12 @@ var ttfmTrackerVideoAttached = false;
  * @param {boolean} muted the initial muted state
  * @constructor
  */
-function JitsiRemoteTrack(rtc, conference, owner, stream, track, mediaType, videoType,
-                          ssrc, muted) {
+function JitsiRemoteTrack(rtc, conference, ownerEndpointId, stream, track,
+                          mediaType, videoType, ssrc, muted) {
     JitsiTrack.call(
         this, conference, stream, track, function () {}, mediaType, videoType, ssrc);
     this.rtc = rtc;
-    this.owner = owner;
+    this.ownerEndpointId = ownerEndpointId;
     this.muted = muted;
     // we want to mark whether the track has been ever muted
     // to detect ttfm events for startmuted conferences, as it can significantly
@@ -105,7 +105,7 @@ JitsiRemoteTrack.prototype.isMuted = function () {
  * endpoint id/MUC nickname in case of Jitsi-meet.
  */
 JitsiRemoteTrack.prototype.getParticipantId = function() {
-    return this.owner;
+    return this.ownerEndpointId;
 };
 
 /**

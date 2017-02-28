@@ -299,9 +299,9 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function (stream, track) {
     // FIXME the length of ssrcLines[0] not verified, but it will fail
     // with global error handler anyway
     let trackSsrc = ssrcLines[0].substring(7).split(' ')[0];
-    const owner = this.signallingLayer.getSSRCOwner(trackSsrc);
+    const ownerEndpointId = this.signallingLayer.getSSRCOwner(trackSsrc);
 
-    if (!owner) {
+    if (!ownerEndpointId) {
         GlobalOnErrorHandler.callErrorHandler(
             new Error(
                 "No SSRC owner known for: " + trackSsrc
@@ -311,14 +311,14 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function (stream, track) {
         return;
     }
 
-    logger.log('associated ssrc', owner, trackSsrc);
+    logger.log('associated ssrc', ownerEndpointId, trackSsrc);
 
     const peerMediaInfo
-        = this.signallingLayer.getPeerMediaInfo(owner, mediaType);
+        = this.signallingLayer.getPeerMediaInfo(ownerEndpointId, mediaType);
 
     if (!peerMediaInfo) {
         GlobalOnErrorHandler.callErrorHandler(
-            new Error("No peer media info available for: " + owner));
+            new Error("No peer media info available for: " + ownerEndpointId));
         // Abort
         return;
     }
@@ -327,7 +327,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function (stream, track) {
     const videoType = peerMediaInfo.videoType; // can be undefined
 
     this.rtc._createRemoteTrack(
-        owner, stream, track, mediaType, videoType, trackSsrc, muted);
+        ownerEndpointId, stream, track, mediaType, videoType, trackSsrc, muted);
 };
 
 /**
