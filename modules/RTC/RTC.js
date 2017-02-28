@@ -311,7 +311,7 @@ export default class RTC extends Listenable {
                     continue;
                 }
 
-                const mediaTrack = endpointMediaTypes[trackMediaType];
+                const mediaTrack = this.remoteTracks[endpoint][trackMediaType];
 
                 if (mediaTrack) {
                     remoteTracks.push(mediaTrack);
