@@ -8,6 +8,10 @@ var XMPPEvents = {
     AUDIO_MUTED_BY_FOCUS: "xmpp.audio_muted_by_focus",
     AUTHENTICATION_REQUIRED: "xmpp.authentication_required",
     BRIDGE_DOWN: "xmpp.bridge_down",
+    /**
+     * Triggered when 'session-accept' is received from the responder.
+     */
+    CALL_ACCEPTED: "xmpp.callaccepted.jingle",
     // Designates an event indicating that an offer (e.g. Jingle
     // session-initiate) was received.
     CALL_INCOMING: "xmpp.callincoming.jingle",
@@ -18,6 +22,10 @@ var XMPPEvents = {
     CALL_ENDED: "xmpp.callended.jingle",
     CHAT_ERROR_RECEIVED: "xmpp.chat_error_received",
     CONFERENCE_SETUP_FAILED: "xmpp.conference_setup_failed",
+    /**
+     * This event is when the ICE connects for the first time.
+     */
+    CONNECTION_ESTABLISHED: "xmpp.connection.connected",
     // Designates an event indicating that the connection to the XMPP server
     // failed.
     CONNECTION_FAILED: "xmpp.connection.failed",
@@ -30,16 +38,6 @@ var XMPPEvents = {
     // Designates an event indicating that the media (ICE) connection failed.
     // This should go to the RTC module.
     CONNECTION_ICE_FAILED: "xmpp.connection.ice.failed",
-    // TODO: only used in a hack, should probably be removed.
-    CREATE_ANSWER_ERROR: 'xmpp.create_answer_error',
-    /**
-     * Indicates error while create answer call.
-     */
-    CREATE_ANSWER_FAILED: "xmpp.create_answer_failed",
-    /**
-     * Indicates error while create offer call.
-     */
-    CREATE_OFFER_FAILED: "xmpp.create_offer_failed",
     // Designates an event indicating that the display name of a participant
     // has changed.
     DISPLAY_NAME_CHANGED: "xmpp.display_name_changed",
@@ -111,6 +109,7 @@ var XMPPEvents = {
      */
     PARTCIPANT_FEATURES_CHANGED: "xmpp.partcipant_features_changed",
     PASSWORD_REQUIRED: "xmpp.password_required",
+    // FIXME is this event used ?
     PEERCONNECTION_READY: "xmpp.peerconnection_ready",
     /**
      * Indicates that phone number changed.
@@ -127,25 +126,6 @@ var XMPPEvents = {
     // Designates an event indicating that we received statistics from a
     // participant in the MUC.
     REMOTE_STATS: "xmpp.remote_stats",
-    /**
-     * Event fired when we remote track is added to the conference.
-     * The following structure is passed as an argument:
-     * {
-     *   stream: the WebRTC MediaStream instance
-     *   track: the WebRTC MediaStreamTrack
-     *   mediaType: the MediaType instance
-     *   owner: the MUC JID of the stream owner
-     *   muted: a boolean indicating initial 'muted' status of the track or
-      *         'null' if unknown
-     **/
-    REMOTE_TRACK_ADDED: "xmpp.remote_track_added",
-    /**
-     * Indicates that the remote track has been removed from the conference.
-     * 1st event argument is the ID of the parent WebRTC stream to which
-     * the track being removed belongs to.
-     * 2nd event argument is the ID of the removed track.
-     */
-    REMOTE_TRACK_REMOVED: "xmpp.remote_track_removed",
     RESERVATION_ERROR: "xmpp.room_reservation_error",
     ROOM_CONNECT_ERROR: 'xmpp.room_connect_error',
     ROOM_CONNECT_NOT_ALLOWED_ERROR: 'xmpp.room_connect_error.not_allowed',
@@ -157,10 +137,6 @@ var XMPPEvents = {
     // Designates an event indicating that we sent an XMPP message to the MUC.
     SENDING_CHAT_MESSAGE: "xmpp.sending_chat_message",
     /**
-     * Indicates that the local sendrecv streams in local SDP are changed.
-     */
-    SENDRECV_STREAMS_CHANGED: "xmpp.sendrecv_streams_changed",
-    /**
      * Event fired when we do not get our 'session-accept' acknowledged by
      * Jicofo. It most likely means that there is serious problem with our
      * connection or XMPP server and we should reload the conference.
@@ -171,19 +147,6 @@ var XMPPEvents = {
      * packets means that most likely it has never seen our IQ.
      */
     SESSION_ACCEPT_TIMEOUT: "xmpp.session_accept_timeout",
-    // TODO: only used in a hack, should probably be removed.
-    SET_LOCAL_DESCRIPTION_ERROR: 'xmpp.set_local_description_error',
-
-    /**
-     * Indicates error while set local description.
-     */
-    SET_LOCAL_DESCRIPTION_FAILED: "xmpp.set_local_description_failed",
-    // TODO: only used in a hack, should probably be removed.
-    SET_REMOTE_DESCRIPTION_ERROR: 'xmpp.set_remote_description_error',
-    /**
-     * Indicates error while set remote description.
-     */
-    SET_REMOTE_DESCRIPTION_FAILED: "xmpp.set_remote_description_failed",
     // Designates an event indicating that we should join the conference with
     // audio and/or video muted.
     START_MUTED_FROM_FOCUS: "xmpp.start_muted_from_focus",
@@ -192,12 +155,10 @@ var XMPPEvents = {
     SUBJECT_CHANGED: "xmpp.subject_changed",
     // suspending detected
     SUSPEND_DETECTED: "xmpp.suspend_detected",
-    // Designates an event indicating that the local ICE username fragment of
-    // the jingle session has changed.
-    LOCAL_UFRAG_CHANGED: "xmpp.local_ufrag_changed",
-    // Designates an event indicating that the local ICE username fragment of
-    // the jingle session has changed.
-    REMOTE_UFRAG_CHANGED: "xmpp.remote_ufrag_changed",
+    /**
+     * Event fired when 'transport-info' with new ICE candidates is received.
+     */
+    TRANSPORT_INFO: "xmpp.transportinfo.jingle",
     // Designates an event indicating that the local ICE connection state has
     // changed.
     ICE_CONNECTION_STATE_CHANGED: "xmpp.ice_connection_state_changed"

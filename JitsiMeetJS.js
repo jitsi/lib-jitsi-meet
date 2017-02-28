@@ -13,7 +13,7 @@ import * as JitsiTrackErrors from "./JitsiTrackErrors";
 import * as JitsiTrackEvents from "./JitsiTrackEvents";
 var JitsiRecorderErrors = require("./JitsiRecorderErrors");
 var Logger = require("jitsi-meet-logger");
-var MediaType = require("./service/RTC/MediaType");
+import * as MediaType from "./service/RTC/MediaType";
 import RTC from "./modules/RTC/RTC";
 var RTCUIHelper = require("./modules/RTC/RTCUIHelper");
 var Statistics = require("./modules/statistics/statistics");

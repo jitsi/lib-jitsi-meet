@@ -1,7 +1,8 @@
-var JitsiConference = require("./JitsiConference");
+import JitsiConference from "./JitsiConference";
 import * as JitsiConnectionEvents from "./JitsiConnectionEvents";
+import P2PEnabledConference from "./P2PEnabledConference";
+import Statistics from "./modules/statistics/statistics";
 import XMPP from "./modules/xmpp/xmpp";
-var Statistics = require("./modules/statistics/statistics");
 
 /**
  * Creates new connection object for the Jitsi Meet server side video conferencing service. Provides access to the
@@ -90,7 +91,13 @@ JitsiConnection.prototype.setToken = function (token) {
  * @returns {JitsiConference} returns the new conference object.
  */
 JitsiConnection.prototype.initJitsiConference = function (name, options) {
-    return new JitsiConference({name: name, config: options, connection: this});
+    if (options.enableP2P) {
+        return new P2PEnabledConference(
+            {name: name, config: options, connection: this });
+    } else {
+        return new JitsiConference(
+            {name: name, config: options, connection: this });
+    }
 };
 
 /**

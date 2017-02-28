@@ -4,7 +4,7 @@ var RTCBrowserType = require("./RTCBrowserType");
 import RTCUtils from "./RTCUtils";
 import * as JitsiTrackEvents from "../../JitsiTrackEvents";
 var EventEmitter = require("events");
-var MediaType = require("../../service/RTC/MediaType");
+import * as MediaType from "../../service/RTC/MediaType";
 
 /**
  * Maps our handler types to MediaStreamTrack properties.
@@ -60,10 +60,9 @@ function addMediaStreamInactiveHandler(mediaStream, handler) {
  *        onended/oninactive events of the stream.
  * @param trackMediaType the media type of the JitsiTrack
  * @param videoType the VideoType for this track if any
- * @param ssrc the SSRC of this track if known
  */
-function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMediaType,
-                    videoType, ssrc)
+function JitsiTrack(conference, stream, track, streamInactiveHandler,
+                    trackMediaType, videoType)
 {
     /**
      * Array with the HTML elements that are displaying the streams.
@@ -72,7 +71,6 @@ function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMedia
     this.containers = [];
     this.conference = conference;
     this.stream = stream;
-    this.ssrc = ssrc;
     this.eventEmitter = new EventEmitter();
     this.audioLevel = -1;
     this.type = trackMediaType;
@@ -306,15 +304,6 @@ JitsiTrack.prototype.dispose = function () {
  * screen capture as opposed to a camera.
  */
 JitsiTrack.prototype.isScreenSharing = function() {
-};
-
-/**
- * FIXME remove hack in SDP.js and this method
- * Returns id of the track.
- * @returns {string|null} id of the track or null if this is fake track.
- */
-JitsiTrack.prototype._getId = function () {
-    return this.getTrackId();
 };
 
 /**

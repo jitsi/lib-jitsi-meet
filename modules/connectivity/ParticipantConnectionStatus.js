@@ -1,6 +1,6 @@
 /* global __filename, module, require */
 var logger = require('jitsi-meet-logger').getLogger(__filename);
-var MediaType = require('../../service/RTC/MediaType');
+import * as MediaType from '../../service/RTC/MediaType';
 var RTCBrowserType = require('../RTC/RTCBrowserType');
 var RTCEvents = require('../../service/RTC/RTCEvents');
 
@@ -96,6 +96,10 @@ export default class ParticipantConnectionStatus {
             RTCEvents.ENDPOINT_CONN_STATUS_CHANGED,
             this._onEndpointConnStatusChanged);
 
+        // Handles P2P status changes
+        this._onP2PStatus = this.refreshStatusForAll.bind(this);
+        this.conference.on(JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
+
         // On some browsers MediaStreamTrack trigger "onmute"/"onunmute"
         // events for video type tracks when they stop receiving data which is
         // often a sign that remote user is having connectivity issues
@@ -154,10 +158,14 @@ export default class ParticipantConnectionStatus {
                 this._onRemoteTrackRemoved);
         }
 
-        Object.keys(this.trackTimers).forEach(function (participantId) {
+        this.conference.off(
+            JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
+
+        const participantIds = Object.keys(this.trackTimers);
+        for(const participantId of participantIds) {
             this.clearTimeout(participantId);
             this.clearRtcMutedTimestamp(participantId);
-        }.bind(this));
+        }
 
         // Clear RTC connection status cache
         this.connStatusFromJvb = {};
@@ -313,6 +321,18 @@ export default class ParticipantConnectionStatus {
     }
 
     /**
+     * Goes over every participant and updates connectivity status.
+     * Should be called when a parameter which affects all of the participants
+     * is changed (P2P for example).
+     */
+    refreshStatusForAll() {
+        const participants = this.conference.getParticipants();
+        for (const participant of participants) {
+            this.figureOutConnectionStatus(participant.getId());
+        }
+    }
+
+    /**
      * Figures out (and updates) the current connectivity status for
      * the participant identified by the given id.
      *
@@ -336,9 +356,12 @@ export default class ParticipantConnectionStatus {
         const isVideoTrackFrozen = this.isVideoTrackFrozen(participant);
         let isConnActiveByJvb = this.connStatusFromJvb[id];
 
-        // If no status was received from the JVB it means that it's active
-        // (the bridge does not send notification unless there is a problem).
-        if (typeof isConnActiveByJvb !== 'boolean') {
+        if (this.conference.isP2PEstablished()) {
+            logger.debug('Assuming connection active by JVB - in P2P mode');
+            isConnActiveByJvb = true;
+        } else if (typeof isConnActiveByJvb !== 'boolean') {
+            // If no status was received from the JVB it means that it's active
+            // (the bridge does not send notification unless there is a problem)
             logger.debug('Assuming connection active by JVB - no notification');
             isConnActiveByJvb = true;
         }
@@ -375,11 +398,11 @@ export default class ParticipantConnectionStatus {
             // it some time, before the connection interrupted event is
             // triggered.
             this.clearTimeout(participantId);
-            this.trackTimers[participantId] = window.setTimeout(function () {
+            this.trackTimers[participantId] = window.setTimeout(() => {
                 logger.debug('RTC mute timeout for: ' + participantId);
                 this.clearTimeout(participantId);
                 this.figureOutConnectionStatus(participantId);
-            }.bind(this), this.rtcMuteTimeout);
+            }, this.rtcMuteTimeout);
         }
     }
 
