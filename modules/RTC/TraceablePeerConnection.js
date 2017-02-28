@@ -1,20 +1,20 @@
-/* global mozRTCPeerConnection, webkitRTCPeerConnection, RTCPeerConnection,
-    RTCSessionDescription */
+/* global __filename, mozRTCPeerConnection, webkitRTCPeerConnection,
+    RTCPeerConnection, RTCSessionDescription */
 
 import { getLogger } from "jitsi-meet-logger";
-const logger = getLogger(__filename);
 import * as GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
-import SdpConsistency from "../xmpp/SdpConsistency.js";
-import RtxModifier from "../xmpp/RtxModifier.js";
 import RTC from "./RTC";
-var RTCBrowserType = require("./RTCBrowserType.js");
-var RTCEvents = require("../../service/RTC/RTCEvents");
-var transform = require('sdp-transform');
+import RTCBrowserType from "./RTCBrowserType.js";
+import RTCEvents from "../../service/RTC/RTCEvents";
+import RtxModifier from "../xmpp/RtxModifier.js";
 // FIXME SDP tools should end up in some kind of util module
-var SDP = require("../xmpp/SDP");
-var SDPUtil = require("../xmpp/SDPUtil");
+import SDP from "../xmpp/SDP";
+import SdpConsistency from "../xmpp/SdpConsistency.js";
+import SDPUtil from "../xmpp/SDPUtil";
+import transform from "sdp-transform";
 
-var SIMULCAST_LAYERS = 3;
+const logger = getLogger(__filename);
+const SIMULCAST_LAYERS = 3;
 
 /**
  * Creates new instance of 'TraceablePeerConnection'.
