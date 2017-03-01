@@ -76,8 +76,8 @@ export default class JingleSessionPC extends JingleSession {
          * A map that stores SSRCs of remote streams. And is used only locally
          * We store the mapping when jingle is received, and later is used
          * onaddstream webrtc event where we have only the ssrc
-         * FIXME: This map got filled and never cleaned and can grow durring long
-         * conference
+         * FIXME: This map got filled and never cleaned and can grow during
+         * long conference
          * @type {{}} maps SSRC number to jid
          */
         this.ssrcOwners = {};
@@ -91,7 +91,8 @@ export default class JingleSessionPC extends JingleSession {
          */
         this.failICE = !!options.failICE;
 
-        this.modificationQueue = async.queue(this._processQueueTasks.bind(this), 1);
+        this.modificationQueue
+            = async.queue(this._processQueueTasks.bind(this), 1);
     }
 
     doInitialize () {
@@ -115,11 +116,11 @@ export default class JingleSessionPC extends JingleSession {
 
         this.peerconnection.onicecandidate = function (ev) {
             if (!ev) {
-                // There was an incomplete check for ev before which left the last
-                // line of the function unprotected from a potential throw of an
-                // exception. Consequently, it may be argued that the check is
-                // unnecessary. Anyway, I'm leaving it and making the check
-                // complete.
+                // There was an incomplete check for ev before which left
+                // the last line of the function unprotected from a potential
+                // throw of an exception. Consequently, it may be argued that
+                // the check is unnecessary. Anyway, I'm leaving it and making
+                // the check complete.
                 return;
             }
             // XXX this is broken, candidate is not parsed.
@@ -192,7 +193,8 @@ export default class JingleSessionPC extends JingleSession {
                     if (self.closed)
                         break;
                     self.isreconnect = true;
-                    // Informs interested parties that the connection has been interrupted.
+                    // Informs interested parties that the connection has been
+                    // interrupted.
                     if (self.wasstable)
                         self.room.eventEmitter.emit(
                             XMPPEvents.CONNECTION_INTERRUPTED);
@@ -264,7 +266,8 @@ export default class JingleSessionPC extends JingleSession {
                     = SDPUtil.iceparams(localSDP.media[mid], localSDP.session);
                 ice.xmlns = 'urn:xmpp:jingle:transports:ice-udp:1';
                 cand.c('content', {
-                    creator: this.initiator == this.me ? 'initiator' : 'responder',
+                    creator: this.initiator == this.me
+                                    ? 'initiator' : 'responder',
                     name: (cands[0].sdpMid ? cands[0].sdpMid : mline.media)
                 }).c('transport', ice);
                 for (let i = 0; i < cands.length; i++) {
@@ -310,11 +313,15 @@ export default class JingleSessionPC extends JingleSession {
     readSsrcInfo (contents) {
         const self = this;
         $(contents).each(function (idx, content) {
-            const ssrcs = $(content).find('description>source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
+            const ssrcs
+                = $(content).find(
+                    'description>' +
+                    'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
             ssrcs.each(function () {
                 const ssrc = this.getAttribute('ssrc');
-                $(this).find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]').each(
-                    function () {
+                $(this)
+                    .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
+                    .each(function () {
                         const owner = this.getAttribute('owner');
                         if (owner && owner.length) {
                             self.ssrcOwners[ssrc]
@@ -1140,7 +1147,9 @@ export default class JingleSessionPC extends JingleSession {
      *  by the modification queue.
      */
     removeStreamFromPeerConnection (stream) {
-        const actualStream = stream && stream.getOriginalStream ? stream.getOriginalStream() : stream;
+        const actualStream
+            = stream && stream.getOriginalStream
+                ? stream.getOriginalStream() : stream;
         if (!this.peerconnection) {
             return;
         }
@@ -1441,7 +1450,8 @@ export default class JingleSessionPC extends JingleSession {
                         "<parameter xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\"" +
                         " value=\"" + ssrcObj.msid + "\" name=\"msid\"/>" +
                         "<parameter xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\"" +
-                        " value=\"" + cname + "\" name=\"cname\" />" + "</source>";
+                        " value=\"" + cname + "\" name=\"cname\" />" +
+                        "</source>";
                     desc.append(sourceXML);
                 });
                 ssrcObj.ssrc.groups.forEach(function (group) {
