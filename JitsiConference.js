@@ -343,6 +343,20 @@ JitsiConference.prototype.sendTextMessage = function (message) {
         this.room.sendMessage(message);
 };
 
+/***
+ * Executes command on mediaproxy
+ * @param commandName {String}
+ * @param args {*}
+ * @returns {Promise}
+ */
+JitsiConference.prototype.executeCommand = function(commandName, args){
+    if(this.room)
+        return this.room.executeCommand(commandName, args);
+    else
+        return Promise.reject("Room is not ready");
+};
+
+
 /**
  * Send presence command.
  * @param name {String} the name of the command.
@@ -846,12 +860,15 @@ JitsiConference.prototype.muteParticipant = function (id) {
  * participant for example a recorder).
  */
 JitsiConference.prototype.onMemberJoined
-    = function (jid, nick, role, isHidden) {
+    = function (jid, nick, role, isHidden, properties) {
     var id = Strophe.getResourceFromJid(jid);
     if (id === 'focus' || this.myUserId() === id) {
        return;
     }
     var participant = new JitsiParticipant(jid, this, nick, isHidden);
+    if(typeof properties == "object"){
+        participant._properties = properties
+    }
     participant._role = role;
     this.participants[id] = participant;
     this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED, id, participant);
