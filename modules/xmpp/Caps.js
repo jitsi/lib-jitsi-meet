@@ -113,6 +113,8 @@ export default class Caps extends Listenable {
                         $(response).find(">query>feature").each((idx, el) =>
                             features.add(el.getAttribute("var")));
                         if(user) {
+                            // TODO: Maybe use the version + node + hash
+                            // as keys?
                             this.versionToCapabilities[user.version]
                                 = features;
                         }
@@ -178,10 +180,10 @@ export default class Caps extends Listenable {
             identities.reduce(
                 (accumulatedValue, identity) => {
                     return IDENTITY_PROPERTIES.reduce((tmp, key, idx) => {
-                        return (idx === 0 ? "" : "/") + identity[key];
+                        return tmp + (idx === 0 ? "" : "/") + identity[key];
                     }, "") + "<";
                 }, ""
-            ) + features.reduce((tmp, feature) => feature + "<", "")
+            ) + features.reduce((tmp, feature) => tmp + feature + "<", "")
         );
         this._notifyVersionChanged();
     }
