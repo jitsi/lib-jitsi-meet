@@ -412,8 +412,9 @@ JingleSessionPC.prototype.replaceTransport = function (jingleOfferElem,
             this.setOfferCycle(
                 originalOffer,
                 () => {
-                    // Set local description OK, now localSDP up to date
-                    this.sendTransportAccept(this.localSDP, success, failure);
+                    const localSDP
+                        = new SDP(this.peerconnection.localDescription.sdp);
+                    this.sendTransportAccept(localSDP, success, failure);
                 },
                 failure);
         },
