@@ -522,7 +522,7 @@ export default class JingleSessionPC extends JingleSession {
      */
     sendTransportAccept(localSDP, success, failure) {
         const self = this;
-        let tAccept = $iq({to: this.peerjid, type: 'set'})
+        let transportAccept = $iq({to: this.peerjid, type: 'set'})
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'transport-accept',
@@ -532,23 +532,23 @@ export default class JingleSessionPC extends JingleSession {
 
         localSDP.media.forEach(function (medialines, idx) {
             const mline = SDPUtil.parse_mline(medialines.split('\r\n')[0]);
-            tAccept.c('content',
+            transportAccept.c('content',
                 {
                     creator: self.initiator == self.localJid ? 'initiator' : 'responder',
                     name: mline.media
                 }
             );
-            localSDP.transportToJingle(idx, tAccept);
-            tAccept.up();
+            localSDP.transportToJingle(idx, transportAccept);
+            transportAccept.up();
         });
 
         // Calling tree() to print something useful to the logger
-        tAccept = tAccept.tree();
-        logger.info("Sending transport-accept: ", tAccept);
+        transportAccept = transportAccept.tree();
+        logger.info("Sending transport-accept: ", transportAccept);
 
-        self.connection.sendIQ(tAccept,
+        self.connection.sendIQ(transportAccept,
             success,
-            self.newJingleErrorHandler(tAccept, failure),
+            self.newJingleErrorHandler(transportAccept, failure),
             IQ_TIMEOUT);
     }
 
@@ -563,7 +563,7 @@ export default class JingleSessionPC extends JingleSession {
     sendTransportReject(success, failure) {
         // Send 'transport-reject', so that the focus will
         // know that we've failed
-        let tReject = $iq({to: this.peerjid, type: 'set'})
+        let transportReject = $iq({to: this.peerjid, type: 'set'})
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'transport-reject',
@@ -571,12 +571,12 @@ export default class JingleSessionPC extends JingleSession {
                 sid: this.sid
             });
 
-        tReject = tReject.tree();
-        logger.info("Sending 'transport-reject", tReject);
+        transportReject = transportReject.tree();
+        logger.info("Sending 'transport-reject", transportReject);
 
-        this.connection.sendIQ(tReject,
+        this.connection.sendIQ(transportReject,
             success,
-            this.newJingleErrorHandler(tReject, failure),
+            this.newJingleErrorHandler(transportReject, failure),
             IQ_TIMEOUT);
     }
 
@@ -586,7 +586,7 @@ export default class JingleSessionPC extends JingleSession {
     terminate(reason, text, success, failure) {
         this.state = JingleSessionState.ENDED;
 
-        let term = $iq({ to: this.peerjid, type: 'set' })
+        let sessionTerminate = $iq({ to: this.peerjid, type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'session-terminate',
@@ -597,16 +597,17 @@ export default class JingleSessionPC extends JingleSession {
             .c(reason || 'success');
 
         if (text) {
-            term.up().c('text').t(text);
+            sessionTerminate.up().c('text').t(text);
         }
 
         // Calling tree() to print something useful
-        term = term.tree();
-        logger.info("Sending session-terminate", term);
+        sessionTerminate = sessionTerminate.tree();
+        logger.info("Sending session-terminate", sessionTerminate);
 
         this.connection.sendIQ(
-            term,
-            success, this.newJingleErrorHandler(term, failure), IQ_TIMEOUT);
+            sessionTerminate,
+            success,
+            this.newJingleErrorHandler(sessionTerminate, failure), IQ_TIMEOUT);
 
         // this should result in 'onTerminated' being called by strope.jingle.js
         this.connection.jingle.terminate(this.sid);
