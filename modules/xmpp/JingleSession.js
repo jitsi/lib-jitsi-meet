@@ -87,6 +87,7 @@ export default class JingleSession {
     /**
      * The implementing class finishes initialization here. Called at the end of
      * {@link initialize}.
+     * @protected
      */
     doInitialize() {
 
