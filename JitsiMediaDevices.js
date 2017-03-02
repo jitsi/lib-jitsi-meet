@@ -1,11 +1,11 @@
-var EventEmitter = require("events");
-var RTCEvents = require('./service/RTC/RTCEvents');
-import RTC from "./modules/RTC/RTC";
-import * as MediaType from './service/RTC/MediaType';
+import EventEmitter from "events";
 import * as JitsiMediaDevicesEvents from "./JitsiMediaDevicesEvents";
-var Statistics = require("./modules/statistics/statistics");
+import * as MediaType from './service/RTC/MediaType';
+import RTC from "./modules/RTC/RTC";
+import RTCEvents from "./service/RTC/RTCEvents";
+import Statistics from "./modules/statistics/statistics";
 
-var eventEmitter = new EventEmitter();
+const eventEmitter = new EventEmitter();
 
 RTC.addListener(RTCEvents.DEVICE_LIST_CHANGED,
     function (devices) {
