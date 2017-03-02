@@ -99,7 +99,7 @@ export default class JingleSession {
      * Note: currently only used on transport-info
      */
     // eslint-disable-next-line no-unused-vars
-    addIceCandidates (contents) {
+    addIceCandidates(contents) {
 
     }
 
@@ -107,7 +107,7 @@ export default class JingleSession {
      * Returns current state of this <tt>JingleSession</tt> instance.
      * @returns {JingleSessionState} the current state of this session instance.
      */
-    getState () {
+    getState() {
         return this.state;
     }
 
@@ -117,7 +117,7 @@ export default class JingleSession {
      * @param contents an array of Jingle 'content' elements.
      */
     // eslint-disable-next-line no-unused-vars
-    addSources (contents) {
+    addSources(contents) {
 
     }
 
@@ -127,7 +127,7 @@ export default class JingleSession {
      * @param contents an array of Jingle 'content' elements.
      */
     // eslint-disable-next-line no-unused-vars
-    removeSources (contents) {
+    removeSources(contents) {
 
     }
 
@@ -141,7 +141,7 @@ export default class JingleSession {
      * response is received.
      */
     // eslint-disable-next-line no-unused-vars
-    terminate (reason, text, success, failure) {
+    terminate(reason, text, success, failure) {
 
     }
 
@@ -156,7 +156,7 @@ export default class JingleSession {
      *        unrecoverable anyway)
      */
     // eslint-disable-next-line no-unused-vars
-    acceptOffer (jingle, success, failure) {
+    acceptOffer(jingle, success, failure) {
 
     }
 }
