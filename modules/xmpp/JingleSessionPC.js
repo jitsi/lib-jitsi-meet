@@ -713,8 +713,9 @@ export default class JingleSessionPC extends JingleSession {
                     this.notifyMySSRCUpdate(mySdp, newSdp);
                     finishedCallback();
                 }, (error) => {
-                    logger.error("Error renegotiating after processing"
-                                + " remote source-add: " + error);
+                    logger.error(
+                        `Error renegotiating after processing remote source-add:
+                        ${error}`);
                     finishedCallback(error);
                 });
         };
