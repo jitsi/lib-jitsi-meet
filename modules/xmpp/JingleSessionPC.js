@@ -680,7 +680,7 @@ export default class JingleSessionPC extends JingleSession {
      * @param elem An array of Jingle "content" elements.
      */
     addRemoteStream(elem) {
-        // FIXME: dirty waiting
+        // FIXME there is not stop condition for this wait !!!
         if (!this.peerconnection.localDescription) {
             logger.warn("addSource - localDescription not ready yet");
             setTimeout(() => this.addRemoteStream(elem), 200);
@@ -721,7 +721,7 @@ export default class JingleSessionPC extends JingleSession {
      * @param elem An array of Jingle "content" elements.
      */
     removeRemoteStream(elem) {
-        // FIXME: dirty waiting
+        // FIXME there is no stop condition for this wait !
         if (!this.peerconnection.localDescription) {
             logger.warn("removeSource - localDescription not ready yet");
             setTimeout(() => this.removeRemoteStream(elem), 200);
