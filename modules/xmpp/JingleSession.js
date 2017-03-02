@@ -71,8 +71,8 @@ export default class JingleSession {
     initialize(isInitiator, room, rtc) {
         if (this.state !== null) {
             const errmsg
-                = 'attempt to initiate on session ' + this.sid + 'in state '
-                    + this.state;
+                = `attempt to initiate on session ${this.sid}
+                   in state ${this.state}`;
             logger.error(errmsg);
             throw new Error(errmsg);
         }
