@@ -96,7 +96,6 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     doInitialize() {
-        const self = this;
         this.lasticecandidate = false;
         // True if reconnect is in progress
         this.isreconnect = false;
@@ -114,7 +113,7 @@ export default class JingleSessionPC extends JingleSession {
                     preferH264: this.room.options.preferH264
                 });
 
-        this.peerconnection.onicecandidate = function (ev) {
+        this.peerconnection.onicecandidate = (ev) => {
             if (!ev) {
                 // There was an incomplete check for ev before which left
                 // the last line of the function unprotected from a potential
@@ -131,15 +130,15 @@ export default class JingleSessionPC extends JingleSession {
                 if (typeof protocol === 'string') {
                     protocol = protocol.toLowerCase();
                     if (protocol === 'tcp' || protocol === 'ssltcp') {
-                        if (self.webrtcIceTcpDisable)
+                        if (this.webrtcIceTcpDisable)
                             return;
                     } else if (protocol == 'udp') {
-                        if (self.webrtcIceUdpDisable)
+                        if (this.webrtcIceUdpDisable)
                             return;
                     }
                 }
             }
-            self.sendIceCandidate(candidate);
+            this.sendIceCandidate(candidate);
         };
         // Note there is a change in the spec about closed:
         // This value moved into the RTCPeerConnectionState enum in
@@ -148,15 +147,15 @@ export default class JingleSessionPC extends JingleSession {
         // detect a closed connection by checking for connectionState to be
         // "closed" instead.
         // I suppose at some point this will be moved to onconnectionstatechange
-        this.peerconnection.onsignalingstatechange = function () {
-            if (!(self && self.peerconnection)) return;
-            if (self.peerconnection.signalingState === 'stable') {
-                self.wasstable = true;
+        this.peerconnection.onsignalingstatechange = () => {
+            if (!this.peerconnection) return;
+            if (this.peerconnection.signalingState === 'stable') {
+                this.wasstable = true;
             } else if (
-                (self.peerconnection.signalingState === 'closed'
-                || self.peerconnection.connectionState === 'closed')
-                && !self.closed) {
-                self.room.eventEmitter.emit(XMPPEvents.SUSPEND_DETECTED);
+                (this.peerconnection.signalingState === 'closed'
+                || this.peerconnection.connectionState === 'closed')
+                && !this.closed) {
+                this.room.eventEmitter.emit(XMPPEvents.SUSPEND_DETECTED);
             }
         };
         /**
@@ -165,53 +164,52 @@ export default class JingleSessionPC extends JingleSession {
          * is received by this RTCPeerConnection. Such an event is sent when
          * the value of RTCPeerConnection.iceConnectionState changes.
          */
-        this.peerconnection.oniceconnectionstatechange = function () {
-            if (!(self && self.peerconnection)) return;
+        this.peerconnection.oniceconnectionstatechange = () => {
+            if (!this.peerconnection) return;
             const now = window.performance.now();
-            self.room.connectionTimes["ice.state." +
-            self.peerconnection.iceConnectionState] = now;
-            logger.log("(TIME) ICE " + self.peerconnection.iceConnectionState +
+            this.room.connectionTimes["ice.state." +
+            this.peerconnection.iceConnectionState] = now;
+            logger.log("(TIME) ICE " + this.peerconnection.iceConnectionState +
                 ":\t", now);
             Statistics.analytics.sendEvent(
-                'ice.' + self.peerconnection.iceConnectionState, {value: now});
-            self.room.eventEmitter.emit(
+                'ice.' + this.peerconnection.iceConnectionState, {value: now});
+            this.room.eventEmitter.emit(
                 XMPPEvents.ICE_CONNECTION_STATE_CHANGED,
-                self.peerconnection.iceConnectionState);
-            switch (self.peerconnection.iceConnectionState) {
+                this.peerconnection.iceConnectionState);
+            switch (this.peerconnection.iceConnectionState) {
                 case 'connected':
                     // Informs interested parties that the connection has been
                     // restored.
-                    if (self.peerconnection.signalingState === 'stable'
-                            && self.isreconnect) {
-                        self.room.eventEmitter.emit(
+                    if (this.peerconnection.signalingState === 'stable'
+                            && this.isreconnect) {
+                        this.room.eventEmitter.emit(
                             XMPPEvents.CONNECTION_RESTORED);
                     }
-                    self.isreconnect = false;
+                    this.isreconnect = false;
 
                     break;
                 case 'disconnected':
-                    if (self.closed)
+                    if (this.closed)
                         break;
-                    self.isreconnect = true;
+                    this.isreconnect = true;
                     // Informs interested parties that the connection has been
                     // interrupted.
-                    if (self.wasstable)
-                        self.room.eventEmitter.emit(
+                    if (this.wasstable)
+                        this.room.eventEmitter.emit(
                             XMPPEvents.CONNECTION_INTERRUPTED);
                     break;
                 case 'failed':
-                    self.room.eventEmitter.emit(
-                        XMPPEvents.CONNECTION_ICE_FAILED, self.peerconnection);
+                    this.room.eventEmitter.emit(
+                        XMPPEvents.CONNECTION_ICE_FAILED, this.peerconnection);
                     break;
             }
         };
-        this.peerconnection.onnegotiationneeded = function () {
-            self.room.eventEmitter.emit(XMPPEvents.PEERCONNECTION_READY, self);
+        this.peerconnection.onnegotiationneeded = () => {
+            this.room.eventEmitter.emit(XMPPEvents.PEERCONNECTION_READY, this);
         };
     }
 
     sendIceCandidate(candidate) {
-        const self = this;
         const localSDP = new SDP(this.peerconnection.localDescription.sdp);
         if (candidate && !this.lasticecandidate) {
             const ice
@@ -229,15 +227,15 @@ export default class JingleSessionPC extends JingleSession {
             if (this.usedrip) {
                 if (this.drip_container.length === 0) {
                     // start 20ms callout
-                    window.setTimeout(function () {
-                        if (self.drip_container.length === 0) return;
-                        self.sendIceCandidates(self.drip_container);
-                        self.drip_container = [];
+                    window.setTimeout(() => {
+                        if (this.drip_container.length === 0) return;
+                        this.sendIceCandidates(this.drip_container);
+                        this.drip_container = [];
                     }, 20);
                 }
                 this.drip_container.push(candidate);
             } else {
-                self.sendIceCandidates([candidate]);
+                this.sendIceCandidates([candidate]);
             }
         } else {
             logger.log('sendIceCandidate: last candidate.');
@@ -311,20 +309,19 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     readSsrcInfo(contents) {
-        const self = this;
-        $(contents).each(function (idx, content) {
+        $(contents).each((idx, content) => {
             const ssrcs
                 = $(content).find(
                     'description>' +
                     'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
-            ssrcs.each(function () {
-                const ssrc = this.getAttribute('ssrc');
-                $(this)
+            ssrcs.each((idx, ssrcElement) => {
+                const ssrc = ssrcElement.getAttribute('ssrc');
+                $(ssrcElement)
                     .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
-                    .each(function () {
-                        const owner = this.getAttribute('owner');
+                    .each((idx, ssrcInfoElement) => {
+                        const owner = ssrcInfoElement.getAttribute('owner');
                         if (owner && owner.length) {
-                            self.ssrcOwners[ssrc]
+                            this.ssrcOwners[ssrc]
                                 = Strophe.getResourceFromJid(owner);
                         }
                     }
@@ -363,8 +360,6 @@ export default class JingleSessionPC extends JingleSession {
         this.setOfferCycle(
             jingleOffer,
             () => {
-                // setOfferCycle succeeded, now we have self.localSDP up to date
-                // Let's send an answer !
                 // FIXME we may not care about RESULT packet for session-accept
                 // then we should either call 'success' here immediately or
                 // modify sendSessionAccept method to do that
@@ -480,14 +475,13 @@ export default class JingleSessionPC extends JingleSession {
         // Calling tree() to print something useful
         accept = accept.tree();
         logger.info("Sending session-accept", accept);
-        const self = this;
         this.connection.sendIQ(accept,
             success,
-            this.newJingleErrorHandler(accept, function (error) {
+            this.newJingleErrorHandler(accept, (error) => {
                 failure(error);
                 // 'session-accept' is a critical timeout and we'll
                 // have to restart
-                self.room.eventEmitter.emit(XMPPEvents.SESSION_ACCEPT_TIMEOUT);
+                this.room.eventEmitter.emit(XMPPEvents.SESSION_ACCEPT_TIMEOUT);
             }),
             IQ_TIMEOUT);
         // XXX Videobridge needs WebRTC's answer (ICE ufrag and pwd, DTLS
@@ -521,7 +515,6 @@ export default class JingleSessionPC extends JingleSession {
      *        or when the request has timed out.
      */
     sendTransportAccept(localSDP, success, failure) {
-        const self = this;
         let transportAccept = $iq({to: this.peerjid, type: 'set'})
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
@@ -530,11 +523,11 @@ export default class JingleSessionPC extends JingleSession {
                 sid: this.sid
             });
 
-        localSDP.media.forEach(function (medialines, idx) {
+        localSDP.media.forEach((medialines, idx) => {
             const mline = SDPUtil.parse_mline(medialines.split('\r\n')[0]);
             transportAccept.c('content',
                 {
-                    creator: self.initiator == self.localJid ? 'initiator' : 'responder',
+                    creator: this.initiator == this.localJid ? 'initiator' : 'responder',
                     name: mline.media
                 }
             );
@@ -546,9 +539,9 @@ export default class JingleSessionPC extends JingleSession {
         transportAccept = transportAccept.tree();
         logger.info("Sending transport-accept: ", transportAccept);
 
-        self.connection.sendIQ(transportAccept,
+        this.connection.sendIQ(transportAccept,
             success,
-            self.newJingleErrorHandler(transportAccept, failure),
+            this.newJingleErrorHandler(transportAccept, failure),
             IQ_TIMEOUT);
     }
 
