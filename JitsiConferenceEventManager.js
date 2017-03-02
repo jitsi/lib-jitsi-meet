@@ -1,14 +1,17 @@
-/* global Strophe */
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var EventEmitterForwarder = require("./modules/util/EventEmitterForwarder");
-var XMPPEvents = require("./service/xmpp/XMPPEvents");
-var RTCEvents = require("./service/RTC/RTCEvents");
+/* global __filename, Strophe */
+
+import AuthenticationEvents
+    from "./service/authentication/AuthenticationEvents";
+import EventEmitterForwarder from "./modules/util/EventEmitterForwarder";
+import { getLogger } from "jitsi-meet-logger";
 import * as JitsiConferenceErrors from "./JitsiConferenceErrors";
 import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
-var AuthenticationEvents =
-    require("./service/authentication/AuthenticationEvents");
-var Statistics = require("./modules/statistics/statistics");
 import * as MediaType from "./service/RTC/MediaType";
+import RTCEvents from "./service/RTC/RTCEvents";
+import Statistics from "./modules/statistics/statistics";
+import XMPPEvents from "./service/xmpp/XMPPEvents";
+
+const logger = getLogger(__filename);
 
 /**
  * Setups all event listeners related to conference
