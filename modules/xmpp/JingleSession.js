@@ -13,8 +13,8 @@ export default class JingleSession {
 
     /**
      * Creates new <tt>JingleSession</tt>.
-     * @param {string} me our JID
      * @param {string} sid the Jingle session identifier
+     * @param {string} me our JID
      * @param {string} peerjid the JID of the remote peer
      * @param {Strophe.Connection} connection the XMPP connection
      * @param {Object} media_constraints the media constraints object passed to
@@ -22,9 +22,9 @@ export default class JingleSession {
      * @param {Object} ice_config the ICE servers config object as defined by
      * the WebRTC. Passed to the PeerConnection's constructor.
      */
-    constructor(me, sid, peerjid, connection, media_constraints, ice_config) {
-        this.me = me;
+    constructor(sid, me, peerjid, connection, media_constraints, ice_config) {
         this.sid = sid;
+        this.me = me;
         this.peerjid = peerjid;
         this.connection = connection;
         this.media_constraints = media_constraints;

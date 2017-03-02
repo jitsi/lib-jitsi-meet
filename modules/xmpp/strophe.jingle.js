@@ -86,7 +86,8 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                             audioMuted === "true", videoMuted === "true");
                 }
                 sess = new JingleSessionPC(
-                        $(iq).attr('to'), $(iq).find('jingle').attr('sid'),
+                        $(iq).find('jingle').attr('sid'),
+                        $(iq).attr('to'),
                         fromJid,
                         this.connection,
                         this.media_constraints,

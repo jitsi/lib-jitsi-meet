@@ -25,9 +25,9 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Creates new <tt>JingleSessionPC</tt>
-     * @param {string} me our JID
      * @param {string} sid the Jingle Session ID - random string which
      * identifies the session
+     * @param {string} me our JID
      * @param {string} peerjid remote peer JID
      * @param {Strophe.Connection} connection Strophe XMPP connection instance
      * used to send packets.
@@ -47,9 +47,9 @@ export default class JingleSessionPC extends JingleSession {
      *
      * @implements {SignalingLayer}
      */
-    constructor(me, sid, peerjid, connection,
+    constructor(sid, me, peerjid, connection,
                 media_constraints, ice_config, options) {
-        super(me, sid, peerjid, connection, media_constraints, ice_config);
+        super(sid, me, peerjid, connection, media_constraints, ice_config);
 
         this.lasticecandidate = false;
         this.closed = false;
