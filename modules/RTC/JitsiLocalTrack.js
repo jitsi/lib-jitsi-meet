@@ -1,16 +1,19 @@
 /* global __filename, Promise */
-var CameraFacingMode = require('../../service/RTC/CameraFacingMode');
-var JitsiTrack = require("./JitsiTrack");
+
+import CameraFacingMode from "../../service/RTC/CameraFacingMode";
+import { getLogger } from "jitsi-meet-logger";
+import JitsiTrack from "./JitsiTrack";
 import JitsiTrackError from "../../JitsiTrackError";
 import * as JitsiTrackErrors from "../../JitsiTrackErrors";
 import * as JitsiTrackEvents from "../../JitsiTrackEvents";
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-import * as MediaType from '../../service/RTC/MediaType';
-var RTCBrowserType = require("./RTCBrowserType");
-var RTCEvents = require("../../service/RTC/RTCEvents");
+import * as MediaType from "../../service/RTC/MediaType";
+import RTCBrowserType from "./RTCBrowserType";
+import RTCEvents from "../../service/RTC/RTCEvents";
 import RTCUtils from "./RTCUtils";
-var Statistics = require("../statistics/statistics");
-var VideoType = require('../../service/RTC/VideoType');
+import Statistics from "../statistics/statistics";
+import VideoType from "../../service/RTC/VideoType";
+
+const logger = getLogger(__filename);
 
 /**
  * Represents a single media track(either audio or video).
