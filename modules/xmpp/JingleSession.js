@@ -151,9 +151,8 @@ export default class JingleSession {
      * @param success callback called when we the incoming session has been
      * accepted
      * @param failure callback called when we fail for any reason, will supply
-     *        error object with details(which is meant more to be printed to
-     *        the logger than analysed in the code, as the error is
-     *        unrecoverable anyway)
+     * error object with details(which is meant more to be printed to the logger
+     * than analysed in the code, as the error is unrecoverable anyway)
      */
     // eslint-disable-next-line no-unused-vars
     acceptOffer(jingle, success, failure) {
