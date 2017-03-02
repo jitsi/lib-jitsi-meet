@@ -266,7 +266,7 @@ export default class JingleSessionPC extends JingleSession {
                     = SDPUtil.iceparams(localSDP.media[mid], localSDP.session);
                 ice.xmlns = 'urn:xmpp:jingle:transports:ice-udp:1';
                 cand.c('content', {
-                    creator: this.initiator == this.me
+                    creator: this.initiator == this.localJid
                                     ? 'initiator' : 'responder',
                     name: (cands[0].sdpMid ? cands[0].sdpMid : mline.media)
                 }).c('transport', ice);
@@ -473,7 +473,7 @@ export default class JingleSessionPC extends JingleSession {
         }
         localSDP.toJingle(
             accept,
-            this.initiator == this.me ? 'initiator' : 'responder',
+            this.initiator == this.localJid ? 'initiator' : 'responder',
             null);
         this.fixJingle(accept);
 
@@ -534,7 +534,7 @@ export default class JingleSessionPC extends JingleSession {
             const mline = SDPUtil.parse_mline(medialines.split('\r\n')[0]);
             tAccept.c('content',
                 {
-                    creator: self.initiator == self.me ? 'initiator' : 'responder',
+                    creator: self.initiator == self.localJid ? 'initiator' : 'responder',
                     name: mline.media
                 }
             );
