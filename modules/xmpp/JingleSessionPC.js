@@ -227,7 +227,7 @@ export default class JingleSessionPC extends JingleSession {
             if (this.usedrip) {
                 if (this.drip_container.length === 0) {
                     // start 20ms callout
-                    window.setTimeout(() => {
+                    setTimeout(() => {
                         if (this.drip_container.length === 0) return;
                         this.sendIceCandidates(this.drip_container);
                         this.drip_container = [];
