@@ -1,13 +1,13 @@
-/* global Strophe, $, $pres, $iq, $msg */
-
-import {getLogger} from "jitsi-meet-logger";
-const logger = getLogger(__filename);
+/* global $, $pres, $iq, $msg, __filename, Strophe */
+import { getLogger } from "jitsi-meet-logger";
+import GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
 import Listenable from "../util/Listenable";
-var XMPPEvents = require("../../service/xmpp/XMPPEvents");
 import * as MediaType from "../../service/RTC/MediaType";
-var Moderator = require("./moderator");
-var Recorder = require("./recording");
-var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
+import Moderator from "./moderator";
+import Recorder from "./recording";
+import XMPPEvents from "../../service/xmpp/XMPPEvents";
+
+const logger = getLogger(__filename);
 
 var parser = {
     packet2JSON: function (packet, nodes) {
