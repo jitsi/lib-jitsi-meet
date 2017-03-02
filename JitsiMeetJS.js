@@ -1,27 +1,30 @@
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var AuthUtil = require("./modules/util/AuthUtil");
-var JitsiConnection = require("./JitsiConnection");
-var JitsiMediaDevices = require("./JitsiMediaDevices");
+/* global __filename */
+
+import AuthUtil from "./modules/util/AuthUtil";
+import * as ConnectionQualityEvents from "./service/connectivity/ConnectionQualityEvents";
+import GlobalOnErrorHandler from "./modules/util/GlobalOnErrorHandler";
 import * as JitsiConferenceErrors from "./JitsiConferenceErrors";
 import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
+import JitsiConnection from "./JitsiConnection";
 import * as JitsiConnectionErrors from "./JitsiConnectionErrors";
 import * as JitsiConnectionEvents from "./JitsiConnectionEvents";
+import JitsiMediaDevices from "./JitsiMediaDevices";
 import * as JitsiMediaDevicesEvents from "./JitsiMediaDevicesEvents";
-import * as ConnectionQualityEvents from "./service/connectivity/ConnectionQualityEvents";
+import JitsiRecorderErrors from "./JitsiRecorderErrors";
 import JitsiTrackError from "./JitsiTrackError";
 import * as JitsiTrackErrors from "./JitsiTrackErrors";
 import * as JitsiTrackEvents from "./JitsiTrackEvents";
-var JitsiRecorderErrors = require("./JitsiRecorderErrors");
-var Logger = require("jitsi-meet-logger");
-var MediaType = require("./service/RTC/MediaType");
+import Logger from "jitsi-meet-logger";
+import * as MediaType from "./service/RTC/MediaType";
+import Resolutions from "./service/RTC/Resolutions";
 import RTC from "./modules/RTC/RTC";
-var RTCUIHelper = require("./modules/RTC/RTCUIHelper");
-var Statistics = require("./modules/statistics/statistics");
-var Resolutions = require("./service/RTC/Resolutions");
-var ScriptUtil = require("./modules/util/ScriptUtil");
-var GlobalOnErrorHandler = require("./modules/util/GlobalOnErrorHandler");
-var RTCBrowserType = require("./modules/RTC/RTCBrowserType");
+import RTCBrowserType from "./modules/RTC/RTCBrowserType";
+import RTCUIHelper from "./modules/RTC/RTCUIHelper";
+import ScriptUtil from "./modules/util/ScriptUtil";
 import Settings from "./modules/settings/Settings";
+import Statistics from "./modules/statistics/statistics";
+
+const logger = Logger.getLogger(__filename);
 
 // The amount of time to wait until firing
 // JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN event

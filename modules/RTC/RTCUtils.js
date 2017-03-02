@@ -1,4 +1,5 @@
 /* global $,
+          __filename,
           attachMediaStream,
           MediaStreamTrack,
           RTCIceCandidate,
@@ -11,20 +12,21 @@
           webkitRTCPeerConnection,
           webkitURL
 */
-
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var RTCBrowserType = require("./RTCBrowserType");
-var Resolutions = require("../../service/RTC/Resolutions");
-var RTCEvents = require("../../service/RTC/RTCEvents");
-var SDPUtil = require("../xmpp/SDPUtil");
-var EventEmitter = require("events");
-var screenObtainer = require("./ScreenObtainer");
+import CameraFacingMode from "../../service/RTC/CameraFacingMode";
+import EventEmitter from "events";
+import { getLogger } from "jitsi-meet-logger";
+import GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
 import JitsiTrackError from "../../JitsiTrackError";
-var MediaType = require("../../service/RTC/MediaType");
-var VideoType = require("../../service/RTC/VideoType");
-var CameraFacingMode = require("../../service/RTC/CameraFacingMode");
-var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 import Listenable from "../util/Listenable";
+import * as MediaType from "../../service/RTC/MediaType";
+import Resolutions from "../../service/RTC/Resolutions";
+import RTCBrowserType from "./RTCBrowserType";
+import RTCEvents from "../../service/RTC/RTCEvents";
+import screenObtainer from "./ScreenObtainer";
+import SDPUtil from "../xmpp/SDPUtil";
+import VideoType from "../../service/RTC/VideoType";
+
+const logger = getLogger(__filename);
 
 // XXX Don't require Temasys unless it's to be used because it doesn't run on
 // React Native, for example.

@@ -1,18 +1,19 @@
-/* global */
-
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var RTCEvents = require("../../service/RTC/RTCEvents.js");
-import RTCUtils from "./RTCUtils.js";
-var JitsiLocalTrack = require("./JitsiLocalTrack.js");
+/* global __filename */
+import DataChannels from "./DataChannels";
+import { getLogger } from "jitsi-meet-logger";
+import GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
+import JitsiLocalTrack from "./JitsiLocalTrack.js";
+import JitsiRemoteTrack from "./JitsiRemoteTrack.js";
 import JitsiTrackError from "../../JitsiTrackError";
 import * as JitsiTrackErrors from "../../JitsiTrackErrors";
-var DataChannels = require("./DataChannels");
-var JitsiRemoteTrack = require("./JitsiRemoteTrack.js");
-var MediaType = require("../../service/RTC/MediaType");
-var TraceablePeerConnection = require("./TraceablePeerConnection");
-var VideoType = require("../../service/RTC/VideoType");
-var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
 import Listenable from "../util/Listenable";
+import * as MediaType from "../../service/RTC/MediaType";
+import RTCEvents from "../../service/RTC/RTCEvents.js";
+import RTCUtils from "./RTCUtils.js";
+import TraceablePeerConnection from "./TraceablePeerConnection";
+import VideoType from "../../service/RTC/VideoType";
+
+const logger = getLogger(__filename);
 
 function createLocalTracks(tracksInfo, options) {
     var newTracks = [];

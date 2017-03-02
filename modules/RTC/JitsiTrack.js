@@ -1,10 +1,12 @@
 /* global __filename, module */
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var RTCBrowserType = require("./RTCBrowserType");
-import RTCUtils from "./RTCUtils";
+import EventEmitter from "events";
+import { getLogger } from "jitsi-meet-logger";
 import * as JitsiTrackEvents from "../../JitsiTrackEvents";
-var EventEmitter = require("events");
-var MediaType = require("../../service/RTC/MediaType");
+import * as MediaType from "../../service/RTC/MediaType";
+import RTCBrowserType from "./RTCBrowserType";
+import RTCUtils from "./RTCUtils";
+
+const logger = getLogger(__filename);
 
 /**
  * Maps our handler types to MediaStreamTrack properties.
