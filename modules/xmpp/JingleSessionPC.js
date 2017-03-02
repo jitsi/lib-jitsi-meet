@@ -348,7 +348,7 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Does accept incoming Jingle 'session-initiate' and should send
+     * Accepts incoming Jingle 'session-initiate' and should send
      * 'session-accept' in result.
      * @param jingleOffer jQuery selector pointing to the jingle element of
      *        the offer IQ
