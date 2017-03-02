@@ -34,7 +34,6 @@ export default class JingleSession {
         /**
          * Whether to use dripping or not. Dripping is sending trickle
          * candidates not one-by-one.
-         * Note: currently we do not support 'false'.
          */
         this.usedrip = true;
 
