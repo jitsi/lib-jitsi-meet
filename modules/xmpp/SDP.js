@@ -49,9 +49,11 @@ SDP.prototype.getMediaSsrcMap = function() {
     for (var mediaindex = 0; mediaindex < self.media.length; mediaindex++) {
         tmp = SDPUtil.find_lines(self.media[mediaindex], 'a=ssrc:');
         var mid = SDPUtil.parse_mid(SDPUtil.find_line(self.media[mediaindex], 'a=mid:'));
+        var direction = SDPUtil.parse_direction(self.media[mediaindex], self.session);
         var media = {
             mediaindex: mediaindex,
             mid: mid,
+            direction: direction,
             ssrcs: {},
             ssrcGroups: []
         };

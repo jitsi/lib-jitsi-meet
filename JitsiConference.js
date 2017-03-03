@@ -542,6 +542,10 @@ JitsiConference.prototype.replaceTrack = function (oldTrack, newTrack) {
         .then(() => {
             if (oldTrack) {
                 this.onLocalTrackRemoved(oldTrack);
+                if(!newTrack && oldTrack.isVideoTrack() && oldTrack.videoType === VideoType.DESKTOP) {
+                    this.removeCommand("videoType");
+                    this.room.sendPresence();
+                }
             }
             if (newTrack) {
                 // Now handle the addition of the newTrack at the JitsiConference level
