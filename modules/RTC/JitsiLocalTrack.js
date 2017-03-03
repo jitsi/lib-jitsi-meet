@@ -380,8 +380,8 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function () {
             {
                 mtype: self.type,
                 type: "unmute",
-                ssrcs: self.ssrc ? self.ssrc.ssrcs : undefined,
-                groups: self.ssrc ? self.ssrc.groups: undefined,
+                ssrcs: self.ssrc && self.ssrc.ssrcs,
+                groups: self.ssrc && self.ssrc.groups,
                 msid: self.getMSID()
             });
     });
