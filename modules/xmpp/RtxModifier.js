@@ -126,7 +126,7 @@ export default class RtxModifier {
         let primaryVideoSsrcs = sdpTransformer.getPrimaryVideoSSRCs();
         logger.debug("Parsed primary video ssrcs ", primaryVideoSsrcs, " " +
             "making sure all have rtx streams");
-        primaryVideoSsrcs.forEach(ssrc => {
+        for (const ssrc of primaryVideoSsrcs) {
             let msid = sdpTransformer.getSSRCAttrValue(ssrc, "msid");
             let cname = sdpTransformer.getSSRCAttrValue(ssrc, "cname");
             let correspondingRtxSsrc = this.correspondingRtxSsrcs.get(ssrc);
@@ -163,7 +163,7 @@ export default class RtxModifier {
                     msid: msid
                 },
                 correspondingRtxSsrc);
-        });
+        }
         return sdpTransformer.toRawSDP();
     }
 
@@ -197,10 +197,10 @@ export default class RtxModifier {
         // Remove the fid groups from the mline
         sdpTransformer.removeGroupsBySemantics("FID");
         // Get the rtx ssrcs and remove them from the mline
-        fidGroups.forEach(fidGroup => {
+        for (const fidGroup of fidGroups) {
             const rtxSsrc = parseSecondarySSRC(fidGroup);
             sdpTransformer.removeSSRC(rtxSsrc);
-        });
+        }
 
         return sdpTransformer.toRawSDP();
     }
