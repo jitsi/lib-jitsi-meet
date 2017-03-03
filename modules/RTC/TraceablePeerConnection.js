@@ -696,6 +696,13 @@ TraceablePeerConnection.prototype.generateRecvonlySsrc = function() {
     this.sdpConsistency.setPrimarySsrc(newSSRC);
 };
 
+/**
+ * Clear the ssrc cache
+ */
+TraceablePeerConnection.prototype.clearSsrcCache = function() {
+    this.sdpConsistency.clearSsrcCache();
+};
+
 TraceablePeerConnection.prototype.close = function () {
     this.trace('stop');
     if (!this.rtc._removePeerConnection(this)) {

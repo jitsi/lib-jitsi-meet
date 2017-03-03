@@ -222,19 +222,6 @@ var SDPUtil = {
         data.params = parts;
         return data;
     },
-    parse_direction: function (mediasection, sessionpart) {
-        var direction = null;
-        if (this.find_line(mediasection, 'a=sendrecv', sessionpart)) {
-            direction = 'sendrecv';
-        } else if (this.find_line(mediasection, 'a=sendonly', sessionpart)) {
-            direction = 'senvonly';
-        } else if (this.find_line(mediasection, 'a=recvonly', sessionpart)) {
-            direction = 'recvonly';
-        } else if (this.find_line(mediasection, 'a=inactive', sessionpart)) {
-            direction = 'inactive';
-        }
-        return direction;
-    },
     find_line: function (haystack, needle, sessionpart) {
         var lines = haystack.split('\r\n');
         for (var i = 0; i < lines.length; i++) {

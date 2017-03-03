@@ -44,8 +44,7 @@ SDPDiffer.prototype.getNewMedia = function() {
     Object.keys(othersMedias).forEach(function(othersMediaIdx) {
         var myMedia = myMedias[othersMediaIdx];
         var othersMedia = othersMedias[othersMediaIdx];
-        if((!myMedia && othersMedia) ||
-                (myMedia && myMedia.direction !== othersMedia.direction)) {
+        if(!myMedia && othersMedia) {
             // Add whole channel
             newMedia[othersMediaIdx] = othersMedia;
             return;
