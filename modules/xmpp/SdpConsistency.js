@@ -1,9 +1,11 @@
 /* global __filename */
 
-import {getLogger} from "jitsi-meet-logger";
+import { getLogger } from "jitsi-meet-logger";
+import { parsePrimarySSRC,
+         parseSecondarySSRC,
+         SdpTransformWrap } from './SdpTransformUtil';
+
 const logger = getLogger(__filename);
-import { SdpTransformWrap,
-         parsePrimarySSRC, parseSecondarySSRC } from './SdpTransformUtil';
 
 /**
  * Handles the work of keeping video ssrcs consistent across multiple
