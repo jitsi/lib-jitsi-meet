@@ -1,7 +1,10 @@
+/* global __filename */
+
 import { getLogger } from "jitsi-meet-logger";
-const logger = getLogger(__filename);
-import { SdpTransformWrap, parseSecondarySSRC } from './SdpTransformUtil';
+import { parseSecondarySSRC, SdpTransformWrap  } from './SdpTransformUtil';
 import * as SDPUtil from "./SDPUtil";
+
+const logger = getLogger(__filename);
 
 /**
  * Begin helper functions
