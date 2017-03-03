@@ -17,39 +17,38 @@
   "readmeFilename": "README.md",
   "dependencies": {
     "async": "0.9.0",
-    "current-executing-script": "*",
-    "events": "*",
+    "current-executing-script": "0.1.3",
     "jitsi-meet-logger": "jitsi/jitsi-meet-logger",
     "jssha": "1.5.0",
     "retry": "0.6.1",
     "sdp-interop": "0.1.11",
     "sdp-simulcast": "0.1.11",
-    "sdp-transform": "1.5.*",
+    "sdp-transform": "1.5.3",
     "socket.io-client": "1.4.5",
     "strophe": "1.2.4",
     "strophejs-plugins": "0.0.7"
   },
   "devDependencies": {
-    "babel-core": "*",
-    "babel-loader": "*",
-    "babel-polyfill": "*",
-    "babel-preset-es2015": "*",
-    "eslint": ">=3",
-    "jasmine-core": "^2.2.0",
-    "jshint": "^2.8.0",
-    "karma": "^0.13.2",
-    "karma-chrome-launcher": "^0.2.0",
-    "karma-jasmine": "^0.3.6",
-    "karma-webpack": "^1.6.0",
-    "precommit-hook": "^3.0.0",
-    "string-replace-loader": "*",
-    "webpack": "^1.14.0"
+    "babel-core": "6.23.1",
+    "babel-loader": "6.3.2",
+    "babel-polyfill": "6.23.0",
+    "babel-preset-es2015": "6.22.0",
+    "eslint": "3.16.1",
+    "jasmine-core": "2.5.2",
+    "jshint": "2.9.4",
+    "karma": "0.13.22",
+    "karma-chrome-launcher": "0.2.3",
+    "karma-jasmine": "0.3.8",
+    "karma-webpack": "1.8.1",
+    "precommit-hook": "3.0.0",
+    "string-replace-loader": "1.0.5",
+    "webpack": "1.14.0"
   },
   "scripts": {
     "install": "webpack -p",
     "lint": "jshint . && eslint .",
-    "validate": "npm ls",
-    "test": "./node_modules/karma/bin/karma start karma.conf.js"
+    "test": "karma start karma.conf.js",
+    "validate": "npm ls"
   },
   "pre-commit": [
     "lint"
