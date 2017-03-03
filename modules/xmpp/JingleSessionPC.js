@@ -922,6 +922,25 @@ export default class JingleSessionPC extends JingleSession {
             const workFunction = (finishedCallback) => {
                 const oldSdp
                     = new SDP(this.peerconnection.localDescription.sdp);
+                // NOTE the code below assumes that no more than 1 video track
+                // can be added to the peer connection.
+                // Transition from no video to video (possibly screen sharing)
+                if (!oldTrack && newTrack && newTrack.isVideoTrack()) {
+                    // Clearing current primary SSRC will make
+                    // the SdpConsistency generate a new one which will result
+                    // with:
+                    // 1. source-remove for the recvonly
+                    // 2. source-add for the new video stream
+                    this.peerconnection.clearRecvonlySsrc();
+                // Transition from video to no video
+                } else if (oldTrack && oldTrack.isVideoTrack() && !newTrack) {
+                    // Clearing current primary SSRC and generating the recvonly
+                    // will result in:
+                    // 1. source-remove for the old video stream
+                    // 2. source-add for the recvonly stream
+                    this.peerconnection.clearRecvonlySsrc();
+                    this.peerconnection.generateRecvonlySsrc();
+                }
                 this.removeStreamFromPeerConnection(oldTrack);
                 this.addStreamToPeerConnection(newTrack);
                 this._renegotiate()
