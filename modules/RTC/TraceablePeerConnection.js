@@ -894,7 +894,7 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
     } else {
         ssrcInfo = {ssrcs: [SDPUtil.generateSsrc()], groups: []};
     }
-    if (!this.options.disableRtx) {
+    if (!this.options.disableRtx && !RTCBrowserType.isFirefox()) {
         // Specifically use a for loop here because we'll
         //  be adding to the list we're iterating over, so we
         //  only want to iterate through the items originally

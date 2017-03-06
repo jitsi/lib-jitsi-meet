@@ -147,13 +147,11 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: this.options.conference.channelLastN
             }).up();
     }
-    if (this.options.conference.disableRtx !== undefined) {
-        elem.c(
-            'property', {
-                name: 'disableRtx',
-                value: this.options.conference.disableRtx
-            }).up();
-    }
+    elem.c(
+        'property', {
+            name: 'disableRtx',
+            value: !!this.options.conference.disableRtx
+        }).up();
     elem.c(
         'property', {
             name: 'enableLipSync',
