@@ -920,6 +920,10 @@ export default class JingleSessionPC extends JingleSession {
     replaceTrack(oldTrack, newTrack) {
         return new Promise((resolve, reject) => {
             const workFunction = (finishedCallback) => {
+                //clear the ssrc cache if we actually adding or removing a track
+                if(!oldTrack || !newTrack) {
+                    this.peerconnection.clearSsrcCache();
+                }
                 const oldSdp
                     = new SDP(this.peerconnection.localDescription.sdp);
                 this.removeStreamFromPeerConnection(oldTrack);
