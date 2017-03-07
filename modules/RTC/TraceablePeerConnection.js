@@ -696,6 +696,16 @@ TraceablePeerConnection.prototype.generateRecvonlySsrc = function() {
     this.sdpConsistency.setPrimarySsrc(newSSRC);
 };
 
+/**
+ * Makes the underlying TraceablePeerConnection forget the current primary video
+ * SSRC.
+ * @deprecated
+ */
+TraceablePeerConnection.prototype.clearRecvonlySsrc = function () {
+    logger.info("Clearing primary video SSRC!");
+    this.sdpConsistency.clearSsrcCache();
+};
+
 TraceablePeerConnection.prototype.close = function () {
     this.trace('stop');
     if (!this.rtc._removePeerConnection(this)) {
