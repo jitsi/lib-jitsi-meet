@@ -57,20 +57,21 @@ export default class SdpConsistency {
      */
     makeVideoPrimarySsrcsConsistent (sdpStr) {
         const sdpTransformer = new SdpTransformWrap(sdpStr);
-        if (!sdpTransformer.selectMedia("video")) {
+        const videoMLine = sdpTransformer.selectMedia("video");
+        if (!videoMLine) {
             logger.error("No 'video' media found in the sdp: " + sdpStr);
             return sdpStr;
         }
-        if (sdpTransformer.mediaDirection === "inactive") {
+        if (videoMLine.direction === "inactive") {
             logger.info("Sdp-consistency doing nothing, " +
                 "video mline is inactive");
             return sdpStr;
         }
-        if (sdpTransformer.mediaDirection === "recvonly") {
+        if (videoMLine.direction === "recvonly") {
             // If the mline is recvonly, we'll add the primary
             //  ssrc as a recvonly ssrc
             if (this.cachedPrimarySsrc) {
-                sdpTransformer.addSSRCAttribute({
+                videoMLine.addSSRCAttribute({
                     id: this.cachedPrimarySsrc,
                     attribute: "cname",
                     value: "recvonly-" + this.cachedPrimarySsrc
@@ -79,7 +80,7 @@ export default class SdpConsistency {
                 logger.error("No SSRC found for the recvonly video stream!");
             }
         } else {
-            let newPrimarySsrc = sdpTransformer.getPrimaryVideoSsrc();
+            let newPrimarySsrc = videoMLine.getPrimaryVideoSsrc();
             if (!newPrimarySsrc) {
                 logger.info("Sdp-consistency couldn't parse new primary ssrc");
                 return sdpStr;
@@ -91,9 +92,9 @@ export default class SdpConsistency {
             } else {
                 logger.info("Sdp-consistency replacing new ssrc " +
                     newPrimarySsrc + " with cached " + this.cachedPrimarySsrc);
-                sdpTransformer.replaceSSRC(
+                videoMLine.replaceSSRC(
                     newPrimarySsrc, this.cachedPrimarySsrc);
-                sdpTransformer.forEachSSRCGroup(
+                videoMLine.forEachSSRCGroup(
                     group => {
                         if (group.semantics === "FID") {
                             let primarySsrc = parsePrimarySSRC(group);

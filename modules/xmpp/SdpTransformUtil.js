@@ -65,49 +65,60 @@ export class SdpTransformWrap {
      */
     constructor(rawSDP) {
         this.parsedSDP = transform.parse(rawSDP);
-        this.selectedMLine = null;
-    }
-
-    /**
-     * Returns the direction of currently selected media.
-     * @return {string} the media direction name as defined in the SDP.
-     */
-    get mediaDirection() {
-        // mLine must be selected !
-        this._assertMLineSelected();
-
-        return this.selectedMLine.direction;
-    }
-
-    /**
-     * Modifies the direction of currently selected media.
-     * @param {string} direction the new direction to be set
-     */
-    set mediaDirection (direction) {
-        // mLine must be selected !
-        this._assertMLineSelected();
-
-        this.selectedMLine.direction = direction;
     }
 
     /**
      * Selects the first media SDP of given name.
      * @param {string} mediaType the name of the media e.g. 'audio', 'video',
      * 'data'.
-     * @return {boolean} <tt>true</tt> if the media of given type has been found
-     * and selected or <tt>false</tt> otherwise.
+     * @return {MLineWrap|null}
      */
     selectMedia(mediaType) {
-        this.selectedMLine
+        const selectedMLine
             = this.parsedSDP.media.find(mLine => mLine.type === mediaType);
-        return !!(this.selectedMLine);
+        return selectedMLine ? new MLineWrap(selectedMLine) : null;
+    }
+
+    /**
+     * Converts the currently stored SDP state in this instance to raw text SDP
+     * format.
+     * @return {string}
+     */
+    toRawSDP() {
+        return transform.write(this.parsedSDP);
+    }
+}
+
+class MLineWrap {
+    constructor(mLine) {
+        if (!mLine) {
+            throw new Error("mLine is undefined");
+        }
+
+        this.mLine = mLine;
     }
 
     get _ssrcs () {
-        if (!this.selectedMLine.ssrcs) {
-            this.selectedMLine.ssrcs = [];
+        if (!this.mLine.ssrcs) {
+            this.mLine.ssrcs = [];
         }
-        return this.selectedMLine.ssrcs;
+        return this.mLine.ssrcs;
+    }
+
+    /**
+     * Returns the direction of currently selected media.
+     * @return {string} the media direction name as defined in the SDP.
+     */
+    get direction() {
+        return this.mLine.direction;
+    }
+
+    /**
+     * Modifies the direction of currently selected media.
+     * @param {string} direction the new direction to be set
+     */
+    set direction (direction) {
+        this.mLine.direction = direction;
     }
 
     /**
@@ -118,9 +129,6 @@ export class SdpTransformWrap {
      * <tt>false</tt> otherwise.
      */
     containsSSRC(ssrcNumber) {
-        // mLine must be selected !
-        this._assertMLineSelected();
-
         return !!this._ssrcs.find(
             (ssrcObj) =>{ return ssrcObj.id == ssrcNumber; });
     }
@@ -134,12 +142,9 @@ export class SdpTransformWrap {
      * <tt>undefined</tt> if no such attribute exists.
      */
     getSSRCAttrValue(ssrcNumber, attrName) {
-        // mLine must be selected !
-        this._assertMLineSelected();
-
         const attribute = this._ssrcs.find(
             ssrcObj => ssrcObj.id == ssrcNumber
-                && ssrcObj.attribute === attrName);
+            && ssrcObj.attribute === attrName);
         return attribute ? attribute.value : undefined;
     }
 
@@ -149,16 +154,13 @@ export class SdpTransformWrap {
      * removed.
      */
     removeSSRC(ssrcNum) {
-        // mLine must be selected !
-        this._assertMLineSelected();
-
-        if (!this.selectedMLine.ssrcs || !this.selectedMLine.ssrcs.length) {
+        if (!this.mLine.ssrcs || !this.mLine.ssrcs.length) {
             return;
         }
 
         // FIXME it should be possible to remove those values more efficiently
         // than with splice ?
-        this.selectedMLine.ssrcs = this.selectedMLine.ssrcs
+        this.mLine.ssrcs = this.mLine.ssrcs
             .filter((ssrcObj) => ssrcObj.id !== ssrcNum);
     }
 
@@ -168,9 +170,6 @@ export class SdpTransformWrap {
      * the 'sdp-transform' lib.
      */
     addSSRCAttribute(ssrcObj) {
-        // mLine must be selected !
-        this._assertMLineSelected();
-
         this._ssrcs.push(ssrcObj);
     }
 
@@ -183,10 +182,7 @@ export class SdpTransformWrap {
      * not found.
      */
     findGroup(semantics, ssrcs) {
-        // mLine must be selected !
-        this._assertMLineSelected();
-
-        return findGroup(this.selectedMLine, semantics, ssrcs);
+        return findGroup(this.mLine, semantics, ssrcs);
     }
 
     /**
@@ -196,10 +192,7 @@ export class SdpTransformWrap {
      * the 'sdp-transform' lib.
      */
     findGroups(semantics) {
-        // mLine must be selected !
-        this._assertMLineSelected();
-
-        return this.selectedMLine.ssrcGroups.filter(
+        return this.mLine.ssrcGroups.filter(
             group => group.semantics === semantics);
     }
 
@@ -211,11 +204,8 @@ export class SdpTransformWrap {
      * the 'sdp-transform' lib.
      */
     findGroupByPrimarySSRC(semantics, primarySSRC) {
-        // mLine must be selected !
-        this._assertMLineSelected();
-
         return findGroupByPrimarySSRC(
-            this.selectedMLine, semantics, primarySSRC);
+            this.mLine, semantics, primarySSRC);
     }
 
     /**
@@ -223,10 +213,7 @@ export class SdpTransformWrap {
      * @return {number}
      */
     getSSRCCount() {
-        // mLine must be selected !
-        this._assertMLineSelected();
-
-        return getSSRCCount(this.selectedMLine);
+        return getSSRCCount(this.mLine);
     }
 
     /**
@@ -235,7 +222,7 @@ export class SdpTransformWrap {
      * <tt>false</tt> otherwise.
      */
     containsAnySSRCGroups() {
-        return !!this.selectedMLine.ssrcGroups;
+        return !!this.mLine.ssrcGroups;
     }
 
     /**
@@ -244,23 +231,20 @@ export class SdpTransformWrap {
      * @returns {number|undefined} the primary video ssrc
      */
     getPrimaryVideoSsrc () {
-        // mLine must be selected !
-        this._assertMLineSelected();
-
-        const mediaType = this.selectedMLine.type;
+        const mediaType = this.mLine.type;
 
         if (mediaType !== 'video') {
             throw new Error(
                 "getPrimarySsrc doesn't work with '" + mediaType +"'");
         }
 
-        let numSsrcs = getSSRCCount(this.selectedMLine);
+        let numSsrcs = getSSRCCount(this.mLine);
         if (numSsrcs === 1) {
             // Not using _ssrcs on purpose here
-            return this.selectedMLine.ssrcs[0].id;
+            return this.mLine.ssrcs[0].id;
         } else {
             // Look for a SIM or FID group
-            if (this.selectedMLine.ssrcGroups) {
+            if (this.mLine.ssrcGroups) {
                 let simGroup = this.findGroup("SIM");
                 if (simGroup) {
                     return parsePrimarySSRC(simGroup);
@@ -282,8 +266,6 @@ export class SdpTransformWrap {
      * one)
      */
     getRtxSSRC (primarySsrc) {
-        this._assertMLineSelected();
-
         let fidGroup = this.findGroupByPrimarySSRC("FID", primarySsrc);
         return fidGroup ? parseSecondarySSRC(fidGroup) : undefined;
     }
@@ -293,8 +275,6 @@ export class SdpTransformWrap {
      * @return {Array.<number>} an array with all SSRC as numbers.
      */
     getSSRCs () {
-        this._assertMLineSelected();
-
         return this._ssrcs
             .map(ssrcInfo => ssrcInfo.id)
             .filter((ssrc, index, array) => array.indexOf(ssrc) === index);
@@ -305,9 +285,7 @@ export class SdpTransformWrap {
      * @return {Array.<number>} an array of all primary video SSRCs as numbers.
      */
     getPrimaryVideoSSRCs () {
-        this._assertMLineSelected();
-
-        const mediaType = this.selectedMLine.type;
+        const mediaType = this.mLine.type;
 
         if (mediaType !== 'video') {
             throw new Error(
@@ -331,23 +309,10 @@ export class SdpTransformWrap {
     }
 
     /**
-     * Checks if there is currently any media selected or throws
-     * an <tt>Error</tt> otherwise.
-     * @private
-     */
-    _assertMLineSelected() {
-        // FIXME if possible wrap all methods instead of adding this call to
-        // almost every method
-        if (!this.selectedMLine) {
-            throw new Error("No media line selected");
-        }
-    }
-
-    /**
      * Dumps all SSRC groups of the currently selected media line to JSON.
      */
     dumpSSRCGroups() {
-        return JSON.stringify(this.selectedMLine.ssrcGroups);
+        return JSON.stringify(this.mLine.ssrcGroups);
     }
 
     /**
@@ -356,13 +321,11 @@ export class SdpTransformWrap {
      * removed.
      */
     removeGroupsWithSSRC(ssrc) {
-        this._assertMLineSelected();
-
-        if (!this.selectedMLine.ssrcGroups) {
+        if (!this.mLine.ssrcGroups) {
             return;
         }
 
-        this.selectedMLine.ssrcGroups = this.selectedMLine.ssrcGroups
+        this.mLine.ssrcGroups = this.mLine.ssrcGroups
             .filter(groupInfo => groupInfo.ssrcs.indexOf(ssrc + "") === -1);
     }
 
@@ -371,14 +334,12 @@ export class SdpTransformWrap {
      * @param {string} semantics e.g. "SIM" or "FID"
      */
     removeGroupsBySemantics(semantics) {
-        this._assertMLineSelected();
-
-        if (!this.selectedMLine.ssrcGroups) {
+        if (!this.mLine.ssrcGroups) {
             return;
         }
 
-        this.selectedMLine.ssrcGroups
-            = this.selectedMLine.ssrcGroups
+        this.mLine.ssrcGroups
+            = this.mLine.ssrcGroups
                   .filter(groupInfo => groupInfo.semantics !== semantics);
     }
 
@@ -388,11 +349,8 @@ export class SdpTransformWrap {
      * @param {number} newSSRC the new SSRC number
      */
     replaceSSRC(oldSSRC, newSSRC) {
-        // mLine must be selected !
-        this._assertMLineSelected();
-
-        if (this.selectedMLine.ssrcs) {
-            this.selectedMLine.ssrcs.forEach(ssrcInfo => {
+        if (this.mLine.ssrcs) {
+            this.mLine.ssrcs.forEach(ssrcInfo => {
                 if (ssrcInfo.id === oldSSRC) {
                     ssrcInfo.id = newSSRC;
                 }
@@ -405,35 +363,19 @@ export class SdpTransformWrap {
      * @param {function(object)} callback
      */
     forEachSSRCGroup(callback) {
-        // mLine must be selected !
-        this._assertMLineSelected();
-
-        if (this.selectedMLine.ssrcGroups) {
-            this.selectedMLine.ssrcGroups.forEach(callback);
+        if (this.mLine.ssrcGroups) {
+            this.mLine.ssrcGroups.forEach(callback);
         }
     }
-
-    /**
-     * Converts the currently stored SDP state in this instance to raw text SDP
-     * format.
-     * @return {string}
-     */
-    toRawSDP() {
-        return transform.write(this.parsedSDP);
-    }
-
     /**
      * Adds given SSRC group to the currently selected media.
      * @param {object} group the SSRC group object as defined by
      * the 'sdp-transform' lib.
      */
     addSSRCGroup(group) {
-        // mLine must be selected !
-        this._assertMLineSelected();
-
-        if (!this.selectedMLine.ssrcGroups) {
-            this.selectedMLine.ssrcGroups = [];
+        if (!this.mLine.ssrcGroups) {
+            this.mLine.ssrcGroups = [];
         }
-        this.selectedMLine.ssrcGroups.push(group);
+        this.mLine.ssrcGroups.push(group);
     }
 }

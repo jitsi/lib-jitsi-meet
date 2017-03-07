@@ -14,13 +14,12 @@ const logger = getLogger(__filename);
  *  the given rtxSsrc.  If no rtx ssrc for primarySsrc currently exists, it will
  *  add the appropriate ssrc and ssrc group lines.  If primarySsrc already has
  *  an rtx ssrc, the appropriate ssrc and group lines will be updated
- * @param {SdpTransformWrap} sdpTransformer the transformer instance which will
- * be used to modify video media description
+ * @param {MLineWrap} mLine
  * @param {object} primarySsrcInfo the info (ssrc, msid & cname) for the
  *  primary ssrc
  * @param {number} rtxSsrc the rtx ssrc to associate with the primary ssrc
  */
-function updateAssociatedRtxStream (sdpTransformer, primarySsrcInfo, rtxSsrc) {
+function updateAssociatedRtxStream (mLine, primarySsrcInfo, rtxSsrc) {
     logger.debug(
         "Updating mline to associate " + rtxSsrc +
         " rtx ssrc with primary stream ", primarySsrcInfo.id);
@@ -28,7 +27,7 @@ function updateAssociatedRtxStream (sdpTransformer, primarySsrcInfo, rtxSsrc) {
     let primarySsrcMsid = primarySsrcInfo.msid;
     let primarySsrcCname = primarySsrcInfo.cname;
 
-    let previousRtxSSRC = sdpTransformer.getRtxSSRC(primarySsrc);
+    let previousRtxSSRC = mLine.getRtxSSRC(primarySsrc);
     if (previousRtxSSRC === rtxSsrc) {
         logger.debug(rtxSsrc + " was already associated with " + primarySsrc);
         return;
@@ -40,24 +39,24 @@ function updateAssociatedRtxStream (sdpTransformer, primarySsrcInfo, rtxSsrc) {
 
         // Stream already had an rtx ssrc that is different than the one given,
         //  remove all trace of the old one
-        sdpTransformer.removeSSRC(previousRtxSSRC);
+        mLine.removeSSRC(previousRtxSSRC);
 
         logger.debug("groups before filtering for " + previousRtxSSRC);
-        logger.debug(sdpTransformer.dumpSSRCGroups());
+        logger.debug(mLine.dumpSSRCGroups());
 
-        sdpTransformer.removeGroupsWithSSRC(previousRtxSSRC);
+        mLine.removeGroupsWithSSRC(previousRtxSSRC);
     }
-    sdpTransformer.addSSRCAttribute({
+    mLine.addSSRCAttribute({
         id: rtxSsrc,
         attribute: "cname",
         value: primarySsrcCname
     });
-    sdpTransformer.addSSRCAttribute({
+    mLine.addSSRCAttribute({
         id: rtxSsrc,
         attribute: "msid",
         value: primarySsrcMsid
     });
-    sdpTransformer.addSSRCGroup({
+    mLine.addSSRCGroup({
         semantics: "FID",
         ssrcs: primarySsrc + " " + rtxSsrc
     });
@@ -111,27 +110,28 @@ export default class RtxModifier {
      */
     modifyRtxSsrcs (sdpStr) {
         const sdpTransformer = new SdpTransformWrap(sdpStr);
-        if (!sdpTransformer.selectMedia("video")) {
+        const videoMLine = sdpTransformer.selectMedia("video");
+        if (!videoMLine) {
             logger.error("No 'video' media found in the sdp: " + sdpStr);
             return sdpStr;
         }
-        const direction = sdpTransformer.mediaDirection;
-        if (direction === "inactive" || direction === "recvonly") {
+        if (videoMLine.direction === "inactive"
+                || videoMLine.direction === "recvonly") {
             logger.debug("RtxModifier doing nothing, video " +
                 "m line is inactive or recvonly");
             return sdpStr;
         }
-        if (sdpTransformer.getSSRCCount() < 1) {
+        if (videoMLine.getSSRCCount() < 1) {
           logger.debug("RtxModifier doing nothing, no video ssrcs present");
           return sdpStr;
         }
         logger.debug("Current ssrc mapping: ", this.correspondingRtxSsrcs);
-        let primaryVideoSsrcs = sdpTransformer.getPrimaryVideoSSRCs();
+        let primaryVideoSsrcs = videoMLine.getPrimaryVideoSSRCs();
         logger.debug("Parsed primary video ssrcs ", primaryVideoSsrcs, " " +
             "making sure all have rtx streams");
         for (const ssrc of primaryVideoSsrcs) {
-            let msid = sdpTransformer.getSSRCAttrValue(ssrc, "msid");
-            let cname = sdpTransformer.getSSRCAttrValue(ssrc, "cname");
+            let msid = videoMLine.getSSRCAttrValue(ssrc, "msid");
+            let cname = videoMLine.getSSRCAttrValue(ssrc, "cname");
             let correspondingRtxSsrc = this.correspondingRtxSsrcs.get(ssrc);
             if (correspondingRtxSsrc) {
                 logger.debug("Already have an associated rtx ssrc for " +
@@ -142,8 +142,7 @@ export default class RtxModifier {
                     " video ssrc " + ssrc);
                 // If there's one in the sdp already for it, we'll just set
                 //  that as the corresponding one
-                let previousAssociatedRtxStream
-                    = sdpTransformer.getRtxSSRC(ssrc);
+                let previousAssociatedRtxStream = videoMLine.getRtxSSRC(ssrc);
                 if (previousAssociatedRtxStream) {
                     logger.debug("Rtx stream " + previousAssociatedRtxStream +
                         " already existed in the sdp as an rtx stream for " +
@@ -159,7 +158,7 @@ export default class RtxModifier {
                 this.correspondingRtxSsrcs.set(ssrc, correspondingRtxSsrc);
             }
             updateAssociatedRtxStream(
-                sdpTransformer,
+                videoMLine,
                 {
                     id: ssrc,
                     cname: cname,
@@ -177,32 +176,33 @@ export default class RtxModifier {
      */
     stripRtx (sdpStr) {
         const sdpTransformer = new SdpTransformWrap(sdpStr);
-        if (!sdpTransformer.selectMedia("video")) {
+        const videoMLine = sdpTransformer.selectMedia("video");
+        if (!videoMLine) {
             logger.error("No 'video' media found in the sdp: " + sdpStr);
             return sdpStr;
         }
-        const direction = sdpTransformer.mediaDirection;
-        if (direction === "inactive" || direction === "recvonly") {
+        if (videoMLine.direction === "inactive"
+                || videoMLine.direction === "recvonly") {
             logger.debug("RtxModifier doing nothing, video " +
                 "m line is inactive or recvonly");
             return sdpStr;
         }
-        if (sdpTransformer.getSSRCCount() < 1) {
+        if (videoMLine.getSSRCCount() < 1) {
           logger.debug("RtxModifier doing nothing, no video ssrcs present");
           return sdpStr;
         }
-        if (!sdpTransformer.containsAnySSRCGroups()) {
+        if (!videoMLine.containsAnySSRCGroups()) {
           logger.debug("RtxModifier doing nothing, " +
               "no video ssrcGroups present");
           return sdpStr;
         }
-        const fidGroups = sdpTransformer.findGroups("FID");
+        const fidGroups = videoMLine.findGroups("FID");
         // Remove the fid groups from the mline
-        sdpTransformer.removeGroupsBySemantics("FID");
+        videoMLine.removeGroupsBySemantics("FID");
         // Get the rtx ssrcs and remove them from the mline
         for (const fidGroup of fidGroups) {
             const rtxSsrc = parseSecondarySSRC(fidGroup);
-            sdpTransformer.removeSSRC(rtxSsrc);
+            videoMLine.removeSSRC(rtxSsrc);
         }
 
         return sdpTransformer.toRawSDP();
