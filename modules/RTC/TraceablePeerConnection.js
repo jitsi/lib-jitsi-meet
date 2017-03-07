@@ -406,52 +406,49 @@ function extractSSRCMap(desc) {
     if (typeof desc !== 'object' || desc === null ||
         typeof desc.sdp !== 'string') {
         logger.warn('An empty description was passed as an argument.');
-        return desc;
-    }
-
-    var ssrcList = {};
-    var ssrcGroups = {};
-    var session = transform.parse(desc.sdp);
-    if (!Array.isArray(session.media))
-    {
         return;
     }
 
-    session.media.forEach(function (mLine) {
-        if (!Array.isArray(mLine.ssrcs))
-        {
-            return;
+    const ssrcList = { };
+    const ssrcGroups = { };
+    const session = transform.parse(desc.sdp);
+    if (!Array.isArray(session.media)) {
+        return;
+    }
+
+    for (const mLine of session.media) {
+        if (!Array.isArray(mLine.ssrcs)) {
+            continue;
         }
 
-        if (typeof mLine.ssrcGroups !== 'undefined' &&
-            Array.isArray(mLine.ssrcGroups)) {
-            mLine.ssrcGroups.forEach(function (group) {
+        if (Array.isArray(mLine.ssrcGroups)) {
+            for (const group of mLine.ssrcGroups) {
                 if (typeof group.semantics !== 'undefined' &&
                     typeof group.ssrcs !== 'undefined') {
                     // Parse SSRCs and store as numbers
                     const groupSSRCs
-                        = group.ssrcs.split(' ').map(
-                            (ssrcStr) => { return Number(ssrcStr); });
+                        = group.ssrcs.split(' ')
+                                     .map(ssrcStr => parseInt(ssrcStr));
                     const primarySSRC = groupSSRCs[0];
                     group.ssrcs = groupSSRCs;
                     ssrcGroups[primarySSRC] = ssrcGroups[primarySSRC] || [];
                     ssrcGroups[primarySSRC].push(group);
                 }
-            });
+            }
         }
-        mLine.ssrcs.forEach(function (ssrc) {
-            if(ssrc.attribute !== 'msid')
-                return;
+        for (const ssrc of mLine.ssrcs) {
+            if (ssrc.attribute !== 'msid')
+                continue;
             ssrcList[ssrc.value]
                 = ssrcList[ssrc.value] || { groups: [], ssrcs: [] };
             ssrcList[ssrc.value].ssrcs.push(ssrc.id);
-            if(ssrcGroups[ssrc.id]){
-                ssrcGroups[ssrc.id].forEach(function (group) {
+            if (ssrcGroups[ssrc.id]) {
+                for (const group of ssrcGroups[ssrc.id]) {
                     ssrcList[ssrc.value].groups.push(group);
-                });
+                }
             }
-        });
-    });
+        }
+    }
 
     return ssrcList;
 }
@@ -573,17 +570,14 @@ TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
         this.peerconnection.addStream(stream);
     if (ssrcInfo && ssrcInfo.type === "addMuted") {
         this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrcs[0]);
-        const simGroup =
-            ssrcInfo.groups.find(groupInfo => {
-                return groupInfo.semantics === "SIM";
-            });
+        const simGroup
+            = ssrcInfo.groups.find(groupInfo => groupInfo.semantics === "SIM");
         if (simGroup) {
             this.simulcast.setSsrcCache(simGroup.ssrcs);
         }
-        const fidGroups =
-            ssrcInfo.groups.filter(groupInfo => {
-                return groupInfo.semantics === "FID";
-            });
+        const fidGroups
+            = ssrcInfo.groups.filter(
+                groupInfo => groupInfo.semantics === "FID");
         if (fidGroups) {
             const rtxSsrcMapping = new Map();
             fidGroups.forEach(fidGroup => {
