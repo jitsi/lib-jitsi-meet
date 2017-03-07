@@ -1,9 +1,8 @@
 /* global __filename */
 
 import { getLogger } from "jitsi-meet-logger";
-import { parsePrimarySSRC,
-         parseSecondarySSRC,
-         SdpTransformWrap } from './SdpTransformUtil';
+import * as transform from "sdp-transform";
+import SdpTransformUtil from './SdpTransformUtil';
 
 const logger = getLogger(__filename);
 
@@ -56,30 +55,33 @@ export default class SdpConsistency {
      *  with ssrcs consistent with this class' cache
      */
     makeVideoPrimarySsrcsConsistent (sdpStr) {
-        const sdpTransformer = new SdpTransformWrap(sdpStr);
-        if (!sdpTransformer.selectMedia("video")) {
+        const sdp = transform.parse(sdpStr);
+        const mLine = SdpTransformUtil.getMLine(sdp, "video");
+        if (!mLine) {
             logger.error("No 'video' media found in the sdp: " + sdpStr);
             return sdpStr;
         }
-        if (sdpTransformer.mediaDirection === "inactive") {
+        if (mLine.direction === "inactive") {
             logger.info("Sdp-consistency doing nothing, " +
                 "video mline is inactive");
             return sdpStr;
         }
-        if (sdpTransformer.mediaDirection === "recvonly") {
+        if (mLine.direction === "recvonly") {
             // If the mline is recvonly, we'll add the primary
             //  ssrc as a recvonly ssrc
             if (this.cachedPrimarySsrc) {
-                sdpTransformer.addSSRCAttribute({
-                    id: this.cachedPrimarySsrc,
-                    attribute: "cname",
-                    value: "recvonly-" + this.cachedPrimarySsrc
-                });
+                SdpTransformUtil.addSSRCAttribute(
+                    mLine,
+                    {
+                        id: this.cachedPrimarySsrc,
+                        attribute: "cname",
+                        value: "recvonly-" + this.cachedPrimarySsrc
+                    });
             } else {
                 logger.error("No SSRC found for the recvonly video stream!");
             }
         } else {
-            let newPrimarySsrc = sdpTransformer.getPrimaryVideoSsrc();
+            let newPrimarySsrc = SdpTransformUtil.getPrimaryVideoSsrc(mLine);
             if (!newPrimarySsrc) {
                 logger.info("Sdp-consistency couldn't parse new primary ssrc");
                 return sdpStr;
@@ -91,22 +93,26 @@ export default class SdpConsistency {
             } else {
                 logger.info("Sdp-consistency replacing new ssrc " +
                     newPrimarySsrc + " with cached " + this.cachedPrimarySsrc);
-                sdpTransformer.replaceSSRC(
-                    newPrimarySsrc, this.cachedPrimarySsrc);
-                sdpTransformer.forEachSSRCGroup(
-                    group => {
+                SdpTransformUtil.replaceSSRC(
+                    mLine, newPrimarySsrc, this.cachedPrimarySsrc);
+                const ssrcGroups = mLine.ssrcGroups;
+                if (ssrcGroups) {
+                    for (const group of ssrcGroups) {
                         if (group.semantics === "FID") {
-                            let primarySsrc = parsePrimarySSRC(group);
-                            let rtxSsrc = parseSecondarySSRC(group);
+                            let primarySsrc
+                                = SdpTransformUtil.parsePrimarySSRC(group);
+                            let rtxSsrc
+                                = SdpTransformUtil.parseSecondarySSRC(group);
                             if (primarySsrc === newPrimarySsrc) {
                                 group.ssrcs =
                                     this.cachedPrimarySsrc + " " +
-                                        rtxSsrc;
+                                    rtxSsrc;
                             }
                         }
-                    });
+                    }
+                }
             }
         }
-        return sdpTransformer.toRawSDP();
+        return transform.write(sdp);
     }
 }
