@@ -882,10 +882,15 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
         for (let i = 0; i < SIMULCAST_LAYERS; i++) {
             ssrcInfo.ssrcs.push(SDPUtil.generateSsrc());
         }
-        ssrcInfo.groups.push(
-            { ssrcs: ssrcInfo.ssrcs.slice(), semantics: "SIM" });
+        ssrcInfo.groups.push({
+            ssrcs: ssrcInfo.ssrcs.slice(),
+            semantics: "SIM"
+        });
     } else {
-        ssrcInfo = {ssrcs: [SDPUtil.generateSsrc()], groups: []};
+        ssrcInfo = {
+            ssrcs: [SDPUtil.generateSsrc()],
+            groups: []
+        };
     }
     if (!this.options.disableRtx) {
         // Specifically use a for loop here because we'll
