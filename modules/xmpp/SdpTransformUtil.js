@@ -18,18 +18,41 @@ export function parseSecondarySSRC(group) {
     return parseInt(group.ssrcs.split(" ")[1]);
 }
 
+/**
+ * Finds SSRC group for given semantics and SSRCs (optional)
+ * @param {Object} mLine the media line object as defined by 'sdp-transform' lib
+ * @param {string} groupSemantics
+ * @param {string} ssrcs the list of group SSRCs as a string e.g. "10 20 30"
+ * @return {Object|undefined} an SSRC group object as defined by
+ * the 'sdp-transform' lib which matches given criteria or <tt>undefined</tt>
+ * otherwise.
+ */
 function findGroup(mLine, groupSemantics, ssrcs) {
     return mLine.ssrcGroups && mLine.ssrcGroups.find(
             (group) => group.semantics === groupSemantics
                             && !ssrcs || ssrcs === group.ssrcs);
 }
 
+/**
+ * Finds group that matches given smenatics and primary SSRC.
+ * @param {Object} mLine the media line object as defined by 'sdp-transform' lib
+ * @param {string} groupSemantics
+ * @param {number} primarySsrc
+ * @return {Object|undefined} an SSRC group object as defined by
+ * the 'sdp-transform' lib which matches given criteria or <tt>undefined</tt>
+ * otherwise.
+ */
 function findGroupByPrimarySSRC(mLine, groupSemantics, primarySsrc) {
     return mLine.ssrcGroups && mLine.ssrcGroups.find(
             (group) => group.semantics === groupSemantics
                             && parsePrimarySSRC(group) === primarySsrc);
 }
 
+/**
+ * Tells how many distinct SSRCs are contained in given media line.
+ * @param {Object} mLine the media line object as defined by 'sdp-transform' lib
+ * @return {number}
+ */
 function getSSRCCount(mLine) {
     if (!mLine.ssrcs) {
         return 0;
@@ -47,8 +70,9 @@ function getSSRCCount(mLine) {
  * Typical use usage scenario:
  *
  * const transformer = new SdpTransformWrap(rawSdp);
- * if (transformer.selectMedia('video)) {
- *     transformer.addSSRCAttribute({
+ * const videoMLine = transformer.selectMedia('video);
+ * if (videoMLine) {
+ *     videoMLiner.addSSRCAttribute({
  *         id: 2342343,
  *         attribute: "cname",
  *         value: "someCname"
@@ -71,7 +95,10 @@ export class SdpTransformWrap {
      * Selects the first media SDP of given name.
      * @param {string} mediaType the name of the media e.g. 'audio', 'video',
      * 'data'.
-     * @return {MLineWrap|null}
+     * @return {MLineWrap|null} return {@link MLineWrap} instance for the media
+     * line or <tt>null</tt> if not found. The object returned references
+     * the underlying SDP state held by this <tt>SdpTransformWrap</tt> instance
+     * (it's not a copy).
      */
     selectMedia(mediaType) {
         const selectedMLine
@@ -89,7 +116,17 @@ export class SdpTransformWrap {
     }
 }
 
+/**
+ * A wrapper around 'sdp-transform' media description object which provides
+ * utility methods for common SDP/SSRC related operations.
+ */
 class MLineWrap {
+
+    /**
+     * Creates new <tt>MLineWrap</t>>
+     * @param {Object} mLine the media line object as defined by 'sdp-transform'
+     * lib.
+     */
     constructor(mLine) {
         if (!mLine) {
             throw new Error("mLine is undefined");
@@ -106,7 +143,7 @@ class MLineWrap {
     }
 
     /**
-     * Returns the direction of currently selected media.
+     * Returns the direction of the underlying media description.
      * @return {string} the media direction name as defined in the SDP.
      */
     get direction() {
@@ -114,7 +151,7 @@ class MLineWrap {
     }
 
     /**
-     * Modifies the direction of currently selected media.
+     * Modifies the direction of the underlying media description.
      * @param {string} direction the new direction to be set
      */
     set direction (direction) {
@@ -122,8 +159,8 @@ class MLineWrap {
     }
 
     /**
-     * Checks whether the currently selected media description contains given
-     * SSRC number
+     * Checks whether the underlying media description contains given SSRC
+     * number.
      * @param {string} ssrcNumber
      * @return {boolean} <tt>true</tt> if given SSRC has been found or
      * <tt>false</tt> otherwise.
@@ -135,7 +172,7 @@ class MLineWrap {
 
     /**
      * Obtains value from SSRC attribute.
-     * @param {number} ssrcNumber the SSRC number for whcih attribute is to be
+     * @param {number} ssrcNumber the SSRC number for which attribute is to be
      * found
      * @param {string} attrName the name of the SSRC attribute to be found.
      * @return {string|undefined} the value of SSRC attribute or
@@ -209,7 +246,7 @@ class MLineWrap {
     }
 
     /**
-     * Gets the SSRC count for the currently selected media.
+     * Gets the SSRC count for the underlying media description.
      * @return {number}
      */
     getSSRCCount() {
@@ -217,7 +254,7 @@ class MLineWrap {
     }
 
     /**
-     * Checks whether the currently selected media contains any SSRC groups.
+     * Checks whether the underlying media description contains any SSRC groups.
      * @return {boolean} <tt>true</tt> if there are any SSRC groups or
      * <tt>false</tt> otherwise.
      */
@@ -226,9 +263,9 @@ class MLineWrap {
     }
 
     /**
-     * Finds the primary video SSRC. Currently selected media type must be
-     * 'video'.
+     * Finds the primary video SSRC.
      * @returns {number|undefined} the primary video ssrc
+     * @throws Error if the underlying media description is not a video
      */
     getPrimaryVideoSsrc () {
         const mediaType = this.mLine.type;
@@ -258,7 +295,7 @@ class MLineWrap {
     }
 
     /**
-     * Obtains RTX SSRC from the currently selected video media line (the
+     * Obtains RTX SSRC from the underlying video description (the
      * secondary SSRC of the first "FID" group found)
      * @param {number} primarySsrc the video ssrc for which to find the
      * corresponding rtx ssrc
@@ -271,7 +308,7 @@ class MLineWrap {
     }
 
     /**
-     * Obtains all SSRCs of the currently selected media line.
+     * Obtains all SSRCs contained in the underlying media description.
      * @return {Array.<number>} an array with all SSRC as numbers.
      */
     getSSRCs () {
@@ -281,8 +318,9 @@ class MLineWrap {
     }
 
     /**
-     * Obtains primary video SSRCs (video media line must be selected).
+     * Obtains primary video SSRCs.
      * @return {Array.<number>} an array of all primary video SSRCs as numbers.
+     * @throws Error if the wrapped media description is not a video.
      */
     getPrimaryVideoSSRCs () {
         const mediaType = this.mLine.type;
@@ -309,7 +347,7 @@ class MLineWrap {
     }
 
     /**
-     * Dumps all SSRC groups of the currently selected media line to JSON.
+     * Dumps all SSRC groups of this media description to JSON.
      */
     dumpSSRCGroups() {
         return JSON.stringify(this.mLine.ssrcGroups);
@@ -368,7 +406,7 @@ class MLineWrap {
         }
     }
     /**
-     * Adds given SSRC group to the currently selected media.
+     * Adds given SSRC group to this media description.
      * @param {object} group the SSRC group object as defined by
      * the 'sdp-transform' lib.
      */
