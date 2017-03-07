@@ -29,7 +29,7 @@ export function parseSecondarySSRC(group) {
  */
 function findGroup(mLine, groupSemantics, ssrcs) {
     return mLine.ssrcGroups && mLine.ssrcGroups.find(
-            (group) => group.semantics === groupSemantics
+            group => group.semantics === groupSemantics
                             && !ssrcs || ssrcs === group.ssrcs);
 }
 
@@ -44,7 +44,7 @@ function findGroup(mLine, groupSemantics, ssrcs) {
  */
 function findGroupByPrimarySSRC(mLine, groupSemantics, primarySsrc) {
     return mLine.ssrcGroups && mLine.ssrcGroups.find(
-            (group) => group.semantics === groupSemantics
+            group => group.semantics === groupSemantics
                             && parsePrimarySSRC(group) === primarySsrc);
 }
 
@@ -167,7 +167,7 @@ class MLineWrap {
      */
     containsSSRC(ssrcNumber) {
         return !!this._ssrcs.find(
-            (ssrcObj) =>{ return ssrcObj.id == ssrcNumber; });
+            ssrcObj => { return ssrcObj.id == ssrcNumber; });
     }
 
     /**
@@ -198,7 +198,7 @@ class MLineWrap {
         // FIXME it should be possible to remove those values more efficiently
         // than with splice ?
         this.mLine.ssrcs = this.mLine.ssrcs
-            .filter((ssrcObj) => ssrcObj.id !== ssrcNum);
+            .filter(ssrcObj => ssrcObj.id !== ssrcNum);
     }
 
     /**
@@ -275,18 +275,18 @@ class MLineWrap {
                 "getPrimarySsrc doesn't work with '" + mediaType +"'");
         }
 
-        let numSsrcs = getSSRCCount(this.mLine);
+        const numSsrcs = getSSRCCount(this.mLine);
         if (numSsrcs === 1) {
             // Not using _ssrcs on purpose here
             return this.mLine.ssrcs[0].id;
         } else {
             // Look for a SIM or FID group
             if (this.mLine.ssrcGroups) {
-                let simGroup = this.findGroup("SIM");
+                const simGroup = this.findGroup("SIM");
                 if (simGroup) {
                     return parsePrimarySSRC(simGroup);
                 }
-                let fidGroup = this.findGroup("FID");
+                const fidGroup = this.findGroup("FID");
                 if (fidGroup) {
                     return parsePrimarySSRC(fidGroup);
                 }
@@ -303,8 +303,8 @@ class MLineWrap {
      * one)
      */
     getRtxSSRC (primarySsrc) {
-        let fidGroup = this.findGroupByPrimarySSRC("FID", primarySsrc);
-        return fidGroup ? parseSecondarySSRC(fidGroup) : undefined;
+        const fidGroup = this.findGroupByPrimarySSRC("FID", primarySsrc);
+        return fidGroup && parseSecondarySSRC(fidGroup);
     }
 
     /**
@@ -327,18 +327,18 @@ class MLineWrap {
 
         if (mediaType !== 'video') {
             throw new Error(
-                "getPrimaryVideoSSRCs doesn't work with '" + mediaType +"'");
+                `getPrimaryVideoSSRCs doesn't work with ${mediaType}`);
         }
 
-        let videoSSRCs = this.getSSRCs();
+        const videoSSRCs = this.getSSRCs();
 
-        this.forEachSSRCGroup((ssrcGroupInfo) => {
+        this.forEachSSRCGroup(ssrcGroupInfo => {
             // Right now, FID groups are the only ones we parse to
             // disqualify streams.  If/when others arise we'll
             // need to add support for them here
             if (ssrcGroupInfo.semantics === "FID") {
                 // secondary FID streams should be filtered out
-                let secondarySsrc = parseSecondarySSRC(ssrcGroupInfo);
+                const secondarySsrc = parseSecondarySSRC(ssrcGroupInfo);
                 videoSSRCs.splice(
                     videoSSRCs.indexOf(secondarySsrc), 1);
             }
