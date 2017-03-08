@@ -42,7 +42,7 @@ function findGroup(mLine, groupSemantics, ssrcs) {
  * the 'sdp-transform' lib which matches given criteria or <tt>undefined</tt>
  * otherwise.
  */
-function findGroupByPrimarySSRC(mLine, groupSemantics, primarySsrc) {
+function _findGroupByPrimarySSRC(mLine, groupSemantics, primarySsrc) {
     return mLine.ssrcGroups && mLine.ssrcGroups.find(
             group => group.semantics === groupSemantics
                             && parsePrimarySSRC(group) === primarySsrc);
@@ -53,7 +53,7 @@ function findGroupByPrimarySSRC(mLine, groupSemantics, primarySsrc) {
  * @param {Object} mLine the media line object as defined by 'sdp-transform' lib
  * @return {number}
  */
-function getSSRCCount(mLine) {
+function _getSSRCCount(mLine) {
     if (!mLine.ssrcs) {
         return 0;
     } else {
@@ -182,7 +182,7 @@ class MLineWrap {
         const attribute = this._ssrcs.find(
             ssrcObj => ssrcObj.id == ssrcNumber
             && ssrcObj.attribute === attrName);
-        return attribute ? attribute.value : undefined;
+        return attribute && attribute.value;
     }
 
     /**
@@ -195,10 +195,8 @@ class MLineWrap {
             return;
         }
 
-        // FIXME it should be possible to remove those values more efficiently
-        // than with splice ?
-        this.mLine.ssrcs = this.mLine.ssrcs
-            .filter(ssrcObj => ssrcObj.id !== ssrcNum);
+        this.mLine.ssrcs
+            = this.mLine.ssrcs.filter(ssrcObj => ssrcObj.id !== ssrcNum);
     }
 
     /**
@@ -237,11 +235,10 @@ class MLineWrap {
      * Finds all groups matching given semantic's name and group's primary SSRC.
      * @param {string} semantics the name of the semantics
      * @param {number} primarySSRC the primary SSRC number to be matched
-     * @return {Array.<object>} an array of SSRC group objects as defined by
-     * the 'sdp-transform' lib.
+     * @return {Object} SSRC group object as defined by the 'sdp-transform' lib.
      */
     findGroupByPrimarySSRC(semantics, primarySSRC) {
-        return findGroupByPrimarySSRC(
+        return _findGroupByPrimarySSRC(
             this.mLine, semantics, primarySSRC);
     }
 
@@ -250,7 +247,7 @@ class MLineWrap {
      * @return {number}
      */
     getSSRCCount() {
-        return getSSRCCount(this.mLine);
+        return _getSSRCCount(this.mLine);
     }
 
     /**
@@ -272,10 +269,10 @@ class MLineWrap {
 
         if (mediaType !== 'video') {
             throw new Error(
-                "getPrimarySsrc doesn't work with '" + mediaType +"'");
+                `getPrimarySsrc doesn't work with '${mediaType}'`);
         }
 
-        const numSsrcs = getSSRCCount(this.mLine);
+        const numSsrcs = _getSSRCCount(this.mLine);
         if (numSsrcs === 1) {
             // Not using _ssrcs on purpose here
             return this.mLine.ssrcs[0].id;
