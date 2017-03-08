@@ -370,19 +370,17 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function () {
         return Promise.resolve();
     }
 
-    var self = this;
-
-    return new Promise(function(resolve, reject) {
-        self.conference._addLocalStream(
-            self.stream,
+    return new Promise((resolve, reject) => {
+        this.conference._addLocalStream(
+            this.stream,
             resolve,
             (error) => reject(new Error(error)),
             {
-                mtype: self.type,
+                mtype: this.type,
                 type: "unmute",
-                ssrcs: self.ssrc && self.ssrc.ssrcs,
-                groups: self.ssrc && self.ssrc.groups,
-                msid: self.getMSID()
+                ssrcs: this.ssrc && this.ssrc.ssrcs,
+                groups: this.ssrc && this.ssrc.groups,
+                msid: this.getMSID()
             });
     });
 };
@@ -407,8 +405,8 @@ function (successCallback, errorCallback) {
         {
             mtype: this.type,
             type: "mute",
-            ssrcs: this.ssrc ? this.ssrc.ssrcs : undefined,
-            groups: this.ssrc ? this.ssrc.groups : undefined
+            ssrcs: this.ssrc && this.ssrc.ssrcs,
+            groups: this.ssrc && this.ssrc.groups
         });
 };
 
@@ -424,11 +422,9 @@ JitsiLocalTrack.prototype._sendMuteStatus = function(mute) {
         return Promise.resolve();
     }
 
-    var self = this;
-
-    return new Promise(function(resolve) {
-        self.conference.room[
-            self.isAudioTrack()
+    return new Promise((resolve) => {
+        this.conference.room[
+            this.isAudioTrack()
                 ? 'setAudioMute'
                 : 'setVideoMute'](mute, resolve);
     });
