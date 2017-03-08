@@ -19,36 +19,6 @@ export function parseSecondarySSRC(group) {
 }
 
 /**
- * Finds SSRC group for given semantics and SSRCs (optional)
- * @param {Object} mLine the media line object as defined by 'sdp-transform' lib
- * @param {string} groupSemantics
- * @param {string} ssrcs the list of group SSRCs as a string e.g. "10 20 30"
- * @return {Object|undefined} an SSRC group object as defined by
- * the 'sdp-transform' lib which matches given criteria or <tt>undefined</tt>
- * otherwise.
- */
-function findGroup(mLine, groupSemantics, ssrcs) {
-    return mLine.ssrcGroups && mLine.ssrcGroups.find(
-            group => group.semantics === groupSemantics
-                            && !ssrcs || ssrcs === group.ssrcs);
-}
-
-/**
- * Finds group that matches given smenatics and primary SSRC.
- * @param {Object} mLine the media line object as defined by 'sdp-transform' lib
- * @param {string} groupSemantics
- * @param {number} primarySsrc
- * @return {Object|undefined} an SSRC group object as defined by
- * the 'sdp-transform' lib which matches given criteria or <tt>undefined</tt>
- * otherwise.
- */
-function _findGroupByPrimarySSRC(mLine, groupSemantics, primarySsrc) {
-    return mLine.ssrcGroups && mLine.ssrcGroups.find(
-            group => group.semantics === groupSemantics
-                            && parsePrimarySSRC(group) === primarySsrc);
-}
-
-/**
  * Tells how many distinct SSRCs are contained in given media line.
  * @param {Object} mLine the media line object as defined by 'sdp-transform' lib
  * @return {number}
@@ -159,6 +129,26 @@ class MLineWrap {
     }
 
     /**
+     * Exposes the SSRC group array of the underlying media description object.
+     * @return {Array.<Object>}
+     */
+    get ssrcGroups () {
+        if (!this.mLine.ssrcGroups) {
+            this.mLine.ssrcGroups = [];
+        }
+        return this.mLine.ssrcGroups;
+    }
+
+    /**
+     * Modifies the SSRC groups array of the underlying media description
+     * object.
+     * @param {Array.<Object>} ssrcGroups
+     */
+    set ssrcGroups (ssrcGroups) {
+        this.mLine.ssrcGroups = ssrcGroups;
+    }
+
+    /**
      * Checks whether the underlying media description contains given SSRC
      * number.
      * @param {string} ssrcNumber
@@ -217,7 +207,9 @@ class MLineWrap {
      * not found.
      */
     findGroup(semantics, ssrcs) {
-        return findGroup(this.mLine, semantics, ssrcs);
+        return this.ssrcGroups.find(
+            group => group.semantics === semantics
+                && !ssrcs || ssrcs === group.ssrcs);
     }
 
     /**
@@ -227,7 +219,7 @@ class MLineWrap {
      * the 'sdp-transform' lib.
      */
     findGroups(semantics) {
-        return this.mLine.ssrcGroups.filter(
+        return this.ssrcGroups.filter(
             group => group.semantics === semantics);
     }
 
@@ -238,8 +230,9 @@ class MLineWrap {
      * @return {Object} SSRC group object as defined by the 'sdp-transform' lib.
      */
     findGroupByPrimarySSRC(semantics, primarySSRC) {
-        return _findGroupByPrimarySSRC(
-            this.mLine, semantics, primarySSRC);
+        return this.ssrcGroups.find(
+            group => group.semantics === semantics
+                && parsePrimarySSRC(group) === primarySSRC);
     }
 
     /**
@@ -329,7 +322,7 @@ class MLineWrap {
 
         const videoSSRCs = this.getSSRCs();
 
-        this.forEachSSRCGroup(ssrcGroupInfo => {
+        for (const ssrcGroupInfo of this.ssrcGroups) {
             // Right now, FID groups are the only ones we parse to
             // disqualify streams.  If/when others arise we'll
             // need to add support for them here
@@ -339,7 +332,7 @@ class MLineWrap {
                 videoSSRCs.splice(
                     videoSSRCs.indexOf(secondarySsrc), 1);
             }
-        });
+        }
         return videoSSRCs;
     }
 
@@ -394,23 +387,11 @@ class MLineWrap {
     }
 
     /**
-     * Executes given call back for each SSRC group
-     * @param {function(object)} callback
-     */
-    forEachSSRCGroup(callback) {
-        if (this.mLine.ssrcGroups) {
-            this.mLine.ssrcGroups.forEach(callback);
-        }
-    }
-    /**
      * Adds given SSRC group to this media description.
      * @param {object} group the SSRC group object as defined by
      * the 'sdp-transform' lib.
      */
     addSSRCGroup(group) {
-        if (!this.mLine.ssrcGroups) {
-            this.mLine.ssrcGroups = [];
-        }
-        this.mLine.ssrcGroups.push(group);
+        this.ssrcGroups.push(group);
     }
 }

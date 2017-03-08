@@ -97,18 +97,17 @@ export default class SdpConsistency {
                     `${newPrimarySsrc} with cached ${this.cachedPrimarySsrc}`);
                 videoMLine.replaceSSRC(
                     newPrimarySsrc, this.cachedPrimarySsrc);
-                videoMLine.forEachSSRCGroup(
-                    group => {
-                        if (group.semantics === "FID") {
-                            let primarySsrc = parsePrimarySSRC(group);
-                            let rtxSsrc = parseSecondarySSRC(group);
-                            if (primarySsrc === newPrimarySsrc) {
-                                group.ssrcs =
-                                    this.cachedPrimarySsrc + " " +
-                                        rtxSsrc;
-                            }
+                for (const group of videoMLine.ssrcGroups) {
+                    if (group.semantics === "FID") {
+                        let primarySsrc = parsePrimarySSRC(group);
+                        let rtxSsrc = parseSecondarySSRC(group);
+                        if (primarySsrc === newPrimarySsrc) {
+                            group.ssrcs =
+                                this.cachedPrimarySsrc + " " +
+                                    rtxSsrc;
                         }
-                    });
+                    }
+                }
             }
         }
         return sdpTransformer.toRawSDP();
