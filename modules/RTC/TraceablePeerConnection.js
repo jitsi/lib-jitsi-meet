@@ -399,21 +399,42 @@ TraceablePeerConnection.prototype._remoteTrackRemoved
 };
 
 /**
- * Returns map with keys msid and values ssrc.
- * @param desc the SDP that will be modified.
+ * @typedef {Object} SSRCGroupInfo
+ * @property {Array<number>} ssrcs group's SSRCs
+ * @property {string} semantics
+ */
+/**
+ * @typedef {Object} TrackSSRCInfo
+ * @property {Array<number>} ssrcs track's SSRCs
+ * @property {Array<SSRCGroupInfo>} groups track's SSRC groups
+ */
+/**
+ * Returns map with keys msid and <tt>TrackSSRCInfo</tt> values.
+ * @param {Object} desc the WebRTC SDP instance.
+ * @return {Map<string,TrackSSRCInfo>}
  */
 function extractSSRCMap(desc) {
+    /**
+     * Track SSRC infos mapped by stream ID (msid)
+     * @type {Map<string,TrackSSRCInfo>}
+     */
+    const ssrcMap = new Map();
+    /**
+     * Groups mapped by primary SSRC number
+     * @type {Map<number,SSRCGroupInfo>}
+     */
+    const ssrcGroups = new Map();
+
     if (typeof desc !== 'object' || desc === null ||
         typeof desc.sdp !== 'string') {
         logger.warn('An empty description was passed as an argument.');
-        return;
+        return ssrcMap;
     }
 
-    const ssrcList = { };
-    const ssrcGroups = { };
     const session = transform.parse(desc.sdp);
+
     if (!Array.isArray(session.media)) {
-        return;
+        return ssrcMap;
     }
 
     for (const mLine of session.media) {
@@ -430,27 +451,44 @@ function extractSSRCMap(desc) {
                         = group.ssrcs.split(' ')
                                      .map(ssrcStr => parseInt(ssrcStr));
                     const primarySSRC = groupSSRCs[0];
+                    // Note that group.semantics is already present
                     group.ssrcs = groupSSRCs;
-                    ssrcGroups[primarySSRC] = ssrcGroups[primarySSRC] || [];
-                    ssrcGroups[primarySSRC].push(group);
+                    if (!ssrcGroups.has(primarySSRC)) {
+                        ssrcGroups.set(primarySSRC, []);
+                    }
+                    ssrcGroups.get(primarySSRC).push(group);
                 }
             }
         }
         for (const ssrc of mLine.ssrcs) {
-            if (ssrc.attribute !== 'msid')
+            if (ssrc.attribute !== 'msid') {
                 continue;
-            ssrcList[ssrc.value]
-                = ssrcList[ssrc.value] || { groups: [], ssrcs: [] };
-            ssrcList[ssrc.value].ssrcs.push(ssrc.id);
-            if (ssrcGroups[ssrc.id]) {
-                for (const group of ssrcGroups[ssrc.id]) {
-                    ssrcList[ssrc.value].groups.push(group);
+            }
+
+            const msid = ssrc.value;
+            let ssrcInfo = ssrcMap.get(msid);
+
+            if (!ssrcInfo) {
+                ssrcInfo = {
+                    ssrcs: [],
+                    groups: []
+                };
+                ssrcMap.set(msid, ssrcInfo);
+            }
+
+            const ssrcNumber = ssrc.id;
+
+            ssrcInfo.ssrcs.push(ssrcNumber);
+
+            if (ssrcGroups.has(ssrcNumber)) {
+                for (const group of ssrcGroups[ssrcNumber]) {
+                    ssrcInfo.groups.push(group);
                 }
             }
         }
     }
 
-    return ssrcList;
+    return ssrcMap;
 }
 
 /**
