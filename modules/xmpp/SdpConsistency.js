@@ -36,6 +36,7 @@ export default class SdpConsistency {
      *  makeVideoPrimarySsrcsConsistent
      * @param {number} primarySsrc the primarySsrc to be used
      *  in future calls to makeVideoPrimarySsrcsConsistent
+     * @throws Error if <tt>primarySsrc</tt> is not a number
      */
     setPrimarySsrc (primarySsrc) {
         if (typeof primarySsrc !== 'number') {
