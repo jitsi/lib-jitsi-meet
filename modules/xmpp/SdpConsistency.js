@@ -59,12 +59,12 @@ export default class SdpConsistency {
         const sdpTransformer = new SdpTransformWrap(sdpStr);
         const videoMLine = sdpTransformer.selectMedia("video");
         if (!videoMLine) {
-            logger.error("No 'video' media found in the sdp: " + sdpStr);
+            logger.error(`No 'video' media found in the sdp: ${sdpStr}`);
             return sdpStr;
         }
         if (videoMLine.direction === "inactive") {
-            logger.info("Sdp-consistency doing nothing, " +
-                "video mline is inactive");
+            logger.info(
+                "Sdp-consistency doing nothing, video mline is inactive");
             return sdpStr;
         }
         if (videoMLine.direction === "recvonly") {
@@ -74,7 +74,7 @@ export default class SdpConsistency {
                 videoMLine.addSSRCAttribute({
                     id: this.cachedPrimarySsrc,
                     attribute: "cname",
-                    value: "recvonly-" + this.cachedPrimarySsrc
+                    value: `recvonly-${this.cachedPrimarySsrc}`
                 });
             } else {
                 logger.error("No SSRC found for the recvonly video stream!");
@@ -87,11 +87,13 @@ export default class SdpConsistency {
             }
             if (!this.cachedPrimarySsrc) {
                 this.cachedPrimarySsrc = newPrimarySsrc;
-                logger.info("Sdp-consistency caching primary ssrc " +
-                    this.cachedPrimarySsrc);
+                logger.info(
+                    "Sdp-consistency caching primary ssrc "
+                    + this.cachedPrimarySsrc);
             } else {
-                logger.info("Sdp-consistency replacing new ssrc " +
-                    newPrimarySsrc + " with cached " + this.cachedPrimarySsrc);
+                logger.info(
+                    `Sdp-consistency replacing new ssrc ` +
+                    `${newPrimarySsrc} with cached ${this.cachedPrimarySsrc}`);
                 videoMLine.replaceSSRC(
                     newPrimarySsrc, this.cachedPrimarySsrc);
                 videoMLine.forEachSSRCGroup(
