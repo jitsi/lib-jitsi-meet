@@ -421,9 +421,9 @@ function extractSSRCMap(desc) {
     const ssrcMap = new Map();
     /**
      * Groups mapped by primary SSRC number
-     * @type {Map<number,SSRCGroupInfo>}
+     * @type {Map<number,Array<SSRCGroupInfo>>}
      */
-    const ssrcGroups = new Map();
+    const groupsMap = new Map();
 
     if (typeof desc !== 'object' || desc === null ||
         typeof desc.sdp !== 'string') {
@@ -453,10 +453,10 @@ function extractSSRCMap(desc) {
                     const primarySSRC = groupSSRCs[0];
                     // Note that group.semantics is already present
                     group.ssrcs = groupSSRCs;
-                    if (!ssrcGroups.has(primarySSRC)) {
-                        ssrcGroups.set(primarySSRC, []);
+                    if (!groupsMap.has(primarySSRC)) {
+                        groupsMap.set(primarySSRC, []);
                     }
-                    ssrcGroups.get(primarySSRC).push(group);
+                    groupsMap.get(primarySSRC).push(group);
                 }
             }
         }
@@ -480,8 +480,10 @@ function extractSSRCMap(desc) {
 
             ssrcInfo.ssrcs.push(ssrcNumber);
 
-            if (ssrcGroups.has(ssrcNumber)) {
-                for (const group of ssrcGroups[ssrcNumber]) {
+            if (groupsMap.has(ssrcNumber)) {
+                const ssrcGroups = groupsMap.get(ssrcNumber);
+
+                for (const group of ssrcGroups) {
                     ssrcInfo.groups.push(group);
                 }
             }
