@@ -527,8 +527,9 @@ JitsiConference.prototype.replaceTrack = function (oldTrack, newTrack) {
         }
         // Set up the ssrcHandler for the new track before we add it at the lower levels
         newTrack.ssrcHandler = function (conference, ssrcMap) {
-            if (ssrcMap[this.getMSID()]) {
-                this._setSSRC(ssrcMap[this.getMSID()]);
+            const trackSSRCInfo = ssrcMap.get(this.getMSID());
+            if (trackSSRCInfo) {
+                this._setSSRC(trackSSRCInfo);
                 conference.rtc.removeListener(
                     RTCEvents.SENDRECV_STREAMS_CHANGED,
                     this.ssrcHandler);
