@@ -345,6 +345,7 @@ export default class ParticipantConnectionStatus {
 
         const isVideoMuted = participant.isVideoMuted();
         const isVideoTrackFrozen = this.isVideoTrackFrozen(participant);
+        const isInLastN = this.rtc.isInLastN(id);
         let isConnActiveByJvb = this.connStatusFromJvb[id];
 
         // If no status was received from the JVB it means that it's active
@@ -355,12 +356,14 @@ export default class ParticipantConnectionStatus {
         }
 
         const isConnectionActive
-            = isConnActiveByJvb && (isVideoMuted || !isVideoTrackFrozen);
+            = isConnActiveByJvb
+                && (isVideoMuted || !isVideoTrackFrozen || isInLastN);
 
         logger.debug(
             `Figure out conn status, is video muted: ${isVideoMuted
                  } is active(jvb): ${isConnActiveByJvb
                  } video track frozen: ${isVideoTrackFrozen
+                 } is in last N: ${isInLastN}
                  } => ${isConnectionActive}`);
 
         this._changeConnectionStatus(participant, isConnectionActive);

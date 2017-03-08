@@ -845,4 +845,15 @@ export default class RTC extends Listenable {
             throw new Error('Data channels support is disabled!');
         }
     }
+
+    /**
+     * Indicates if the endpoint id is currently included in the last N.
+     *
+     * @param id the endpoint id that we check for last N
+     * @returns {boolean} {true} if the endpoint id is in the last N or if we
+     * don't have data channel support, otherwise we return {false}
+     */
+    isInLastN (id) {
+        return (this.dataChannels) ? this.dataChannels.isInLastN(id) : true;
+    }
 }
