@@ -23,11 +23,11 @@ function updateAssociatedRtxStream (mLine, primarySsrcInfo, rtxSsrc) {
     logger.debug(
         `Updating mline to associate ${rtxSsrc}` +
         `rtx ssrc with primary stream, ${primarySsrcInfo.id}`);
-    let primarySsrc = primarySsrcInfo.id;
-    let primarySsrcMsid = primarySsrcInfo.msid;
-    let primarySsrcCname = primarySsrcInfo.cname;
+    const primarySsrc = primarySsrcInfo.id;
+    const primarySsrcMsid = primarySsrcInfo.msid;
+    const primarySsrcCname = primarySsrcInfo.cname;
 
-    let previousRtxSSRC = mLine.getRtxSSRC(primarySsrc);
+    const previousRtxSSRC = mLine.getRtxSSRC(primarySsrc);
     if (previousRtxSSRC === rtxSsrc) {
         logger.debug(`${rtxSsrc} was already associated with ${primarySsrc}`);
         return;
@@ -126,7 +126,7 @@ export default class RtxModifier {
           return sdpStr;
         }
         logger.debug("Current ssrc mapping: ", this.correspondingRtxSsrcs);
-        let primaryVideoSsrcs = videoMLine.getPrimaryVideoSSRCs();
+        const primaryVideoSsrcs = videoMLine.getPrimaryVideoSSRCs();
         logger.debug("Parsed primary video ssrcs ", primaryVideoSsrcs,
             " making sure all have rtx streams");
         for (const ssrc of primaryVideoSsrcs) {
