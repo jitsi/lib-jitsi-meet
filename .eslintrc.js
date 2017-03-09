@@ -36,7 +36,6 @@ module.exports = {
         'no-console': 0,
         'semi': [ 'error', 'always' ],
 
-<<<<<<< HEAD
         'no-cond-assign': 2,
         'no-constant-condition': 2,
         'no-control-regex': 2,
@@ -53,6 +52,7 @@ module.exports = {
             { 'nestedBinaryExpressions': false }
         ],
 
+        'template-curly-spacing': 2,
         'yield-star-spacing': 2,
 
         'import/no-duplicates': 2
