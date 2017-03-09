@@ -242,8 +242,8 @@ export default class XMPP extends Listenable {
 
     connect (jid, password) {
         this.connectParams = {
-            jid: jid,
-            password: password
+            jid,
+            password
         };
         if (!jid) {
             let configDomain

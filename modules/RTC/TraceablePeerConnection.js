@@ -563,13 +563,13 @@ var normalizePlanB = function(desc) {
 };
 
 var getters = {
-    signalingState: function () {
+    signalingState () {
         return this.peerconnection.signalingState;
     },
-    iceConnectionState: function () {
+    iceConnectionState () {
         return this.peerconnection.iceConnectionState;
     },
-    localDescription:  function() {
+    localDescription() {
         var desc = this.peerconnection.localDescription;
 
         this.trace('getLocalDescription::preTransform', dumpSDP(desc));
@@ -582,7 +582,7 @@ var getters = {
         }
         return desc;
     },
-    remoteDescription:  function() {
+    remoteDescription() {
         var desc = this.peerconnection.remoteDescription;
         this.trace('getRemoteDescription::preTransform', dumpSDP(desc));
 

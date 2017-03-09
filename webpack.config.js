@@ -82,5 +82,5 @@ module.exports = {
         libraryTarget: 'umd',
         sourceMapFilename: '[name].' + (minimize ? 'min' : 'js') + '.map'
     },
-    plugins: plugins
+    plugins
 };

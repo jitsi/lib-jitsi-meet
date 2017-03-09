@@ -24,8 +24,8 @@ class CacheAnalytics extends AnalyticsAbstract {
      */
     sendEvent(action, data = {}) {
         this.eventCache.push({
-            action: action,
-            data: data
+            action,
+            data
         });
     }
 

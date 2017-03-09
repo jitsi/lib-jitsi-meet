@@ -133,8 +133,8 @@ SDPDiffer.prototype.toJingle = function(modify) {
                     var nv = kv.split(':', 2);
                     var name = nv[0];
                     var value = SDPUtil.filter_special_chars(nv[1]);
-                    modify.attrs({ name: name });
-                    modify.attrs({ value: value });
+                    modify.attrs({ name });
+                    modify.attrs({ value });
                 }
                 modify.up(); // end of parameter
             });
@@ -151,7 +151,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
                 });
 
                 ssrcGroup.ssrcs.forEach(function (ssrc) {
-                    modify.c('source', { ssrc: ssrc })
+                    modify.c('source', { ssrc })
                         .up(); // end of source
                 });
                 modify.up(); // end of ssrc-group

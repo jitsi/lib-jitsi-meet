@@ -10,12 +10,12 @@ import XMPPEvents from "../../service/xmpp/XMPPEvents";
 const logger = getLogger(__filename);
 
 var parser = {
-    packet2JSON: function (packet, nodes) {
+    packet2JSON (packet, nodes) {
         var self = this;
         $(packet).children().each(function () {
             var tagName = $(this).prop("tagName");
             const node = {
-                tagName: tagName
+                tagName
             };
             node.attributes = {};
             $($(this)[0].attributes).each(function( index, attr ) {
@@ -30,7 +30,7 @@ var parser = {
             self.packet2JSON($(this), node.children);
         });
     },
-    json2packet: function (nodes, packet) {
+    json2packet (nodes, packet) {
         for(let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
             if(!node || node === null){
@@ -135,7 +135,7 @@ export default class ChatRoom extends Listenable {
             return;
         }
 
-        var pres = $pres({to: to });
+        var pres = $pres({to });
 
         // xep-0045 defines: "including in the initial presence stanza an empty
         // <x/> element qualified by the 'http://jabber.org/protocol/muc' namespace"
@@ -864,7 +864,7 @@ export default class ChatRoom extends Listenable {
             {to: this.focusMucJid, type: 'set'})
             .c('mute', {
                 xmlns: 'http://jitsi.org/jitmeet/audio',
-                jid: jid
+                jid
             })
             .t(mute.toString())
             .up();

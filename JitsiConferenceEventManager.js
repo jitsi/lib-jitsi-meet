@@ -75,12 +75,12 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
             for (key in chatRoom.connectionTimes){
                 value = chatRoom.connectionTimes[key];
                 Statistics.analytics.sendEvent('conference.' + key,
-                    {value: value});
+                    {value});
             }
             for (key in chatRoom.xmpp.connectionTimes){
                 value = chatRoom.xmpp.connectionTimes[key];
                 Statistics.analytics.sendEvent('xmpp.' + key,
-                    {value: value});
+                    {value});
             }
     });
 
@@ -233,7 +233,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
                 function (status, error) {
                     var logObject = {
                         id: "recorder_status",
-                        status: status
+                        status
                     };
                     if (error) {
                         logObject.error = error;

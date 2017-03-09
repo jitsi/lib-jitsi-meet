@@ -423,7 +423,7 @@ StatsCollector.prototype.processStatsReport = function () {
                         t.ip == ip && t.type == type && t.localip == localip
                     );})) {
                 conferenceStatsTransport.push(
-                    {ip: ip, type: type, localip: localip});
+                    {ip, type, localip});
             }
             continue;
         }
@@ -481,7 +481,7 @@ StatsCollector.prototype.processStatsReport = function () {
         ssrcStats.setLoss({
             packetsTotal: packetsDiff + packetsLostDiff,
             packetsLost: packetsLostDiff,
-            isDownloadStream: isDownloadStream
+            isDownloadStream
         });
 
         var bytesReceivedNow = getNonNegativeStat(now, 'bytesReceived');

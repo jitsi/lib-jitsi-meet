@@ -52,6 +52,11 @@ module.exports = {
             { 'nestedBinaryExpressions': false }
         ],
 
+        'object-shorthand': [
+            'error',
+            'always',
+            { 'avoidQuotes': true }
+        ],
         'prefer-const': 2,
         'prefer-reflect': 0,
         'prefer-spread': 2,

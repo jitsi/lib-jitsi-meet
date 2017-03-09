@@ -21,7 +21,7 @@ var ScriptUtil = {
      * @param loadCallback on load callback function
      * @param errorCallback callback to be called on error loading the script
      */
-    loadScript: function (src, async, prepend, relativeURL,
+    loadScript (src, async, prepend, relativeURL,
                           loadCallback, errorCallback) {
         var d = document;
         var tagName = 'script';

@@ -69,7 +69,7 @@ ComponentsVersions.prototype.processPresence =
             log.push({
                 id: "component_version",
                 component: componentName,
-                version: version});
+                version});
         }
     }.bind(this));
 

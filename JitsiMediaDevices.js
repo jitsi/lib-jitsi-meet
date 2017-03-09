@@ -41,7 +41,7 @@ var JitsiMediaDevices = {
      * Executes callback with list of media devices connected.
      * @param {function} callback
      */
-    enumerateDevices: function (callback) {
+    enumerateDevices (callback) {
         RTC.enumerateDevices(callback);
     },
     /**
@@ -50,7 +50,7 @@ var JitsiMediaDevices = {
      * the WebRTC stack is ready, either with true if the device listing is
      * available available or with false otherwise.
      */
-    isDeviceListAvailable: function () {
+    isDeviceListAvailable () {
         return RTC.isDeviceListAvailable();
     },
     /**
@@ -60,7 +60,7 @@ var JitsiMediaDevices = {
      *      undefined or 'input', 'output' - for audio output device change.
      * @returns {boolean} true if available, false otherwise.
      */
-    isDeviceChangeAvailable: function (deviceType) {
+    isDeviceChangeAvailable (deviceType) {
         return RTC.isDeviceChangeAvailable(deviceType);
     },
     /**
@@ -69,7 +69,7 @@ var JitsiMediaDevices = {
      *      undefined stands for both 'audio' and 'video' together
      * @returns {boolean}
      */
-    isDevicePermissionGranted: function (type) {
+    isDevicePermissionGranted (type) {
         var permissions = RTC.getDeviceAvailability();
 
         switch(type) {
@@ -86,7 +86,7 @@ var JitsiMediaDevices = {
      * for default device
      * @returns {string}
      */
-    getAudioOutputDevice: function () {
+    getAudioOutputDevice () {
         return RTC.getAudioOutputDevice();
     },
     /**
@@ -97,7 +97,7 @@ var JitsiMediaDevices = {
      * @returns {Promise} - resolves when audio output is changed, is rejected
      *      otherwise
      */
-    setAudioOutputDevice: function (deviceId) {
+    setAudioOutputDevice (deviceId) {
 
         var availableDevices = RTC.getCurrentlyAvailableMediaDevices();
         if (availableDevices && availableDevices.length > 0)
@@ -115,7 +115,7 @@ var JitsiMediaDevices = {
      * @param {string} event - event name
      * @param {function} handler - event handler
      */
-    addEventListener: function (event, handler) {
+    addEventListener (event, handler) {
         eventEmitter.addListener(event, handler);
     },
     /**
@@ -123,14 +123,14 @@ var JitsiMediaDevices = {
      * @param {string} event - event name
      * @param {function} handler - event handler
      */
-    removeEventListener: function (event, handler) {
+    removeEventListener (event, handler) {
         eventEmitter.removeListener(event, handler);
     },
     /**
      * Emits an event.
      * @param {string} event - event name
      */
-    emitEvent: function (event) { // eslint-disable-line no-unused-vars
+    emitEvent (event) { // eslint-disable-line no-unused-vars
         eventEmitter.emit(...arguments);
     }
 };

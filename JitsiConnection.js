@@ -33,7 +33,7 @@ function JitsiConnection(appID, token, options) {
                 Statistics.analytics.sendEvent(
                     'connection.disconnected.' + msg);
             Statistics.sendLog(
-                JSON.stringify({id: "connection.disconnected", msg: msg}));
+                JSON.stringify({id: "connection.disconnected", msg}));
         });
 }
 
@@ -90,7 +90,7 @@ JitsiConnection.prototype.setToken = function (token) {
  * @returns {JitsiConference} returns the new conference object.
  */
 JitsiConnection.prototype.initJitsiConference = function (name, options) {
-    return new JitsiConference({name: name, config: options, connection: this});
+    return new JitsiConference({name, config: options, connection: this});
 };
 
 /**
