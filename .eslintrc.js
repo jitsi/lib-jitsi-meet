@@ -72,6 +72,7 @@ module.exports = {
         // Best Practices group
         'accessor-pairs': 0,
         'array-callback-return': 2,
+        'block-scoped-var': 0,
 
         'prefer-spread': 2,
         'require-yield': 2,
