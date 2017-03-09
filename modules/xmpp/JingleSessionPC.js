@@ -130,11 +130,11 @@ export default class JingleSessionPC extends JingleSession {
                 if (typeof protocol === 'string') {
                     protocol = protocol.toLowerCase();
                     if (protocol === 'tcp' || protocol === 'ssltcp') {
-                        if (this.webrtcIceTcpDisable)                            {
+                        if (this.webrtcIceTcpDisable) {
                             return;
                         }
                     } else if (protocol == 'udp') {
-                        if (this.webrtcIceUdpDisable)                            {
+                        if (this.webrtcIceUdpDisable) {
                             return;
                         }
                     }
@@ -195,13 +195,13 @@ export default class JingleSessionPC extends JingleSession {
 
                 break;
             case 'disconnected':
-                if (this.closed)                        {
+                if (this.closed) {
                     break;
                 }
                 this.isreconnect = true;
                     // Informs interested parties that the connection has been
                     // interrupted.
-                if (this.wasstable)                        {
+                if (this.wasstable) {
                     this.room.eventEmitter.emit(
                             XMPPEvents.CONNECTION_INTERRUPTED);
                 }
@@ -668,14 +668,14 @@ export default class JingleSessionPC extends JingleSession {
                 }
                 $(this).find('>parameter').each(function () {
                     lines += 'a=ssrc:' + ssrc + ' ' + $(this).attr('name');
-                    if ($(this).attr('value') && $(this).attr('value').length)                        {
+                    if ($(this).attr('value') && $(this).attr('value').length) {
                         lines += ':' + $(this).attr('value');
                     }
                     lines += '\r\n';
                 });
             });
             currentRemoteSdp.media.forEach(function(media, idx) {
-                if (!SDPUtil.find_line(media, 'a=mid:' + name))                    {
+                if (!SDPUtil.find_line(media, 'a=mid:' + name)) {
                     return;
                 }
                 if (!addSsrcInfo[idx]) {
@@ -1040,7 +1040,7 @@ export default class JingleSessionPC extends JingleSession {
                 ssrcs.push(ssrc);
             });
             currentRemoteSdp.media.forEach(function(media, idx) {
-                if (!SDPUtil.find_line(media, 'a=mid:' + name))                    {
+                if (!SDPUtil.find_line(media, 'a=mid:' + name)) {
                     return;
                 }
                 if (!removeSsrcInfo[idx]) {
@@ -1336,7 +1336,7 @@ export default class JingleSessionPC extends JingleSession {
             if (errorElSel.length) {
                 error.code = errorElSel.attr('code');
                 const errorReasonSel = $(errResponse).find('error :first');
-                if (errorReasonSel.length)                    {
+                if (errorReasonSel.length) {
                     error.reason = errorReasonSel[0].tagName;
                 }
             }
@@ -1450,7 +1450,7 @@ export default class JingleSessionPC extends JingleSession {
             ssrcs.forEach(function (ssrcObj) {
                 const desc = $(jingle.tree()).find(">jingle>content[name=\"" +
                     ssrcObj.mtype + "\"]>description");
-                if (!desc || !desc.length)                    {
+                if (!desc || !desc.length) {
                     return;
                 }
                 ssrcObj.ssrcs.forEach(function (ssrc) {
@@ -1516,7 +1516,7 @@ export default class JingleSessionPC extends JingleSession {
     fixSourceRemoveJingle(jingle) {
         let ssrcs = this.modifiedSSRCs["mute"];
         this.modifiedSSRCs["mute"] = [];
-        if (ssrcs && ssrcs.length)            {
+        if (ssrcs && ssrcs.length) {
             ssrcs.forEach(function (ssrcObj) {
                 ssrcObj.ssrcs.forEach(function (ssrc) {
                     const sourceNode
@@ -1539,7 +1539,7 @@ export default class JingleSessionPC extends JingleSession {
 
         ssrcs = this.modifiedSSRCs["remove"];
         this.modifiedSSRCs["remove"] = [];
-        if (ssrcs && ssrcs.length)            {
+        if (ssrcs && ssrcs.length) {
             ssrcs.forEach(function (ssrcObj) {
                 const desc
                     = JingleSessionPC.createDescriptionNode(

@@ -66,7 +66,7 @@ var SDPUtil = {
      * @param line eg. "a=sctpmap:5000 webrtc-datachannel"
      * @returns [SCTP port number, protocol, streams]
      */
-    parse_sctpmap: function (line)    {
+    parse_sctpmap: function (line) {
         var parts = line.substring(10).split(' ');
         var sctpPort = parts[0];
         var protocol = parts[1];
@@ -244,7 +244,7 @@ var SDPUtil = {
         var lines = haystack.split('\r\n'),
             needles = [];
         for (var i = 0; i < lines.length; i++) {
-            if (lines[i].substring(0, needle.length) == needle)                {
+            if (lines[i].substring(0, needle.length) == needle) {
                 needles.push(lines[i]);
             }
         }

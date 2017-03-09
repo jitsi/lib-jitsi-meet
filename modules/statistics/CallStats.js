@@ -211,7 +211,7 @@ CallStats.feedbackEnabled = false;
  */
 CallStats._checkInitialize = function () {
     if (CallStats.initialized || !CallStats.initializeFailed
-        || !callStats || CallStats.initializeInProgress)        {
+        || !callStats || CallStats.initializeInProgress) {
         return;
     }
 
@@ -236,7 +236,7 @@ var reportType = {
 };
 
 CallStats.prototype.pcCallback = _try_catch(function (err, msg) {
-    if (callStats && err !== 'success')        {
+    if (callStats && err !== 'success') {
         logger.error("Monitoring status: "+ err + " msg: " + msg);
     }
 });
@@ -279,7 +279,7 @@ function (ssrc, isLocal, usageLabel, containerId) {
                 ssrc,
                 usageLabel,
                 containerId);
-        }        else {
+        } else {
             CallStats.reportsQueue.push({
                 type: reportType.MST_WITH_USERID,
                 data: {

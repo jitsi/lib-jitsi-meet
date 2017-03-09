@@ -22,7 +22,7 @@ function JitsiGlobalErrorHandler(message, source, lineno, colno, error) {
     handlers.forEach(function (handler) {
         handler(message, source, lineno, colno, error);
     });
-    if (oldOnErrorHandler)        {
+    if (oldOnErrorHandler) {
         oldOnErrorHandler(message, source, lineno, colno, error);
     }
 }
@@ -38,7 +38,7 @@ function JitsiGlobalUnhandledRejection(event) {
     handlers.forEach(function (handler) {
         handler(null, null, null, null, event.reason);
     });
-    if(oldOnUnhandledRejection)        {
+    if(oldOnUnhandledRejection) {
         oldOnUnhandledRejection(event);
     }
 }
@@ -62,7 +62,7 @@ var GlobalOnErrorHandler = {
      */
     callErrorHandler: function (error) {
         var errHandler = window.onerror;
-        if(!errHandler)            {
+        if(!errHandler) {
             return;
         }
         errHandler(null, null, null, null, error);
@@ -73,7 +73,7 @@ var GlobalOnErrorHandler = {
      */
     callUnhandledRejectionHandler: function (error) {
         var errHandler = window.onunhandledrejection;
-        if(!errHandler)            {
+        if(!errHandler) {
             return;
         }
         errHandler(error);

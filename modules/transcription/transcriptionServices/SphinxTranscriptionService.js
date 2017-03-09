@@ -85,7 +85,7 @@ SphinxService.prototype.verify = function(response){
     var json;
     try{
         json = JSON.parse(response);
-    }    catch (error){
+    } catch (error){
         console.log(error);
         return false;
     }
@@ -113,11 +113,11 @@ function getURL() {
     "Sphinx4 https server";
     if(config.sphinxURL === undefined){
         console.log(message);
-    }    else {
+    } else {
         var toReturn = config.sphinxURL;
         if(toReturn.includes !== undefined && toReturn.includes("https://")){
             return toReturn;
-        }        else{
+        } else{
             console.log(message);
         }
     }

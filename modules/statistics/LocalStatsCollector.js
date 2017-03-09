@@ -46,7 +46,7 @@ function timeDomainDataToAudioLevel(samples) {
     var length = samples.length;
 
     for (var i = 0; i < length; i++) {
-        if (maxVolume < samples[i])            {
+        if (maxVolume < samples[i]) {
             maxVolume = samples[i];
         }
     }
@@ -65,9 +65,9 @@ function animateLevel(newLevel, lastLevel) {
     var diff = lastLevel - newLevel;
     if(diff > 0.2) {
         value = lastLevel - 0.2;
-    }    else if(diff < -0.4) {
+    } else if(diff < -0.4) {
         value = lastLevel + 0.4;
-    }    else {
+    } else {
         value = newLevel;
     }
 
@@ -96,7 +96,7 @@ function LocalStatsCollector(stream, interval, callback) {
  */
 LocalStatsCollector.prototype.start = function () {
     if (!context ||
-        RTCBrowserType.isTemasysPluginUsed())        {
+        RTCBrowserType.isTemasysPluginUsed()) {
         return;
     }
     context.resume();

@@ -59,7 +59,7 @@ export default class TalkMutedDetection {
     _audioLevel(ssrc, audioLevel, isLocal) {
         // We are interested in the local audio stream only and if event is not
         // sent yet.
-        if (!isLocal || !this.audioTrack || this._eventFired)            {
+        if (!isLocal || !this.audioTrack || this._eventFired) {
             return;
         }
 
@@ -92,7 +92,7 @@ export default class TalkMutedDetection {
      * @private
      */
     _trackAdded(track) {
-        if (this._isLocalAudioTrack(track))            {
+        if (this._isLocalAudioTrack(track)) {
             this.audioTrack = track;
         }
     }
@@ -106,7 +106,7 @@ export default class TalkMutedDetection {
      * @private
      */
     _trackMuteChanged(track) {
-        if (this._isLocalAudioTrack(track) && track.isMuted())            {
+        if (this._isLocalAudioTrack(track) && track.isMuted()) {
             this._eventFired = false;
         }
     }

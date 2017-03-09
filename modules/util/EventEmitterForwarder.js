@@ -7,7 +7,7 @@
  */
 function EventEmitterForwarder (src, dest) {
     if (!src || !dest || typeof src.addListener !== "function" ||
-        typeof dest.emit !== "function")        {
+        typeof dest.emit !== "function") {
         throw new Error("Invalid arguments passed to EventEmitterForwarder");
     }
     this.src = src;

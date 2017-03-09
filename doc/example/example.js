@@ -21,7 +21,7 @@ var isJoined = false;
  */
 function onLocalTracks(tracks){
     localTracks = tracks;
-    for(var i = 0; i < localTracks.length; i++)    {
+    for(var i = 0; i < localTracks.length; i++) {
         localTracks[i].addEventListener(JitsiMeetJS.events.track.TRACK_AUDIO_LEVEL_CHANGED,
             function (audioLevel) {
                 console.log("Audio Level local: " + audioLevel);
@@ -45,7 +45,7 @@ function onLocalTracks(tracks){
             $("body").append("<audio autoplay='1' muted='true' id='localAudio" + i + "' />");
             localTracks[i].attach($("#localAudio" + i)[0]);
         }
-        if(isJoined)            {
+        if(isJoined) {
             room.addTrack(localTracks[i]);
         }
     }
@@ -56,11 +56,11 @@ function onLocalTracks(tracks){
  * @param track JitsiTrack object
  */
 function onRemoteTrack(track) {
-    if(track.isLocal())        {
+    if(track.isLocal()) {
         return;
     }
     var participant = track.getParticipantId();
-    if(!remoteTracks[participant])        {
+    if(!remoteTracks[participant]) {
         remoteTracks[participant] = [];
     }
     var idx = remoteTracks[participant].push(track);
@@ -95,18 +95,18 @@ function onRemoteTrack(track) {
 function onConferenceJoined () {
     console.log("conference joined!");
     isJoined = true;
-    for(var i = 0; i < localTracks.length; i++)        {
+    for(var i = 0; i < localTracks.length; i++) {
         room.addTrack(localTracks[i]);
     }
 }
 
 function onUserLeft(id) {
     console.log("user left");
-    if(!remoteTracks[id])        {
+    if(!remoteTracks[id]) {
         return;
     }
     var tracks = remoteTracks[id];
-    for(var i = 0; i< tracks.length; i++)        {
+    for(var i = 0; i< tracks.length; i++) {
         tracks[i].detach($("#" + id + tracks[i].getType()));
     }
 }
@@ -173,7 +173,7 @@ function disconnect(){
 }
 
 function unload() {
-    for(var i = 0; i < localTracks.length; i++)        {
+    for(var i = 0; i < localTracks.length; i++) {
         localTracks[i].stop();
     }
     room.leave();

@@ -37,10 +37,10 @@ var parser = {
                 continue;
             }
             packet.c(node.tagName, node.attributes);
-            if(node.value)                {
+            if(node.value) {
                 packet.t(node.value);
             }
-            if(node.children)                {
+            if(node.children) {
                 this.json2packet(node.children, packet);
             }
             packet.up();
@@ -56,8 +56,8 @@ var parser = {
  */
 function filterNodeFromPresenceJSON(pres, nodeName){
     var res = [];
-    for(let i = 0; i < pres.length; i++)        {
-        if(pres[i].tagName === nodeName)            {
+    for(let i = 0; i < pres.length; i++) {
+        if(pres[i].tagName === nodeName) {
             res.push(pres[i]);
         }
     }
@@ -279,9 +279,9 @@ export default class ChatRoom extends Listenable {
         let jibri = null;
         // process nodes to extract data needed for MUC_JOINED and MUC_MEMBER_JOINED
         // events
-        for(let i = 0; i < nodes.length; i++)        {
+        for(let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
-            switch(node.tagName)            {
+            switch(node.tagName) {
             case "nick":
                 member.nick = node.value;
                 break;
@@ -304,7 +304,7 @@ export default class ChatRoom extends Listenable {
                 logger.log("(TIME) MUC joined:\t", now);
 
                 // set correct initial state of locked
-                if (this.password)                    {
+                if (this.password) {
                     this.locked = true;
                 }
 
@@ -345,16 +345,16 @@ export default class ChatRoom extends Listenable {
             }
 
             // store the new display name
-            if(member.displayName)                {
+            if(member.displayName) {
                 memberOfThis.displayName = member.displayName;
             }
         }
 
         // after we had fired member or room joined events, lets fire events
         // for the rest info we got in presence
-        for(let i = 0; i < nodes.length; i++)        {
+        for(let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
-            switch(node.tagName)            {
+            switch(node.tagName) {
             case "nick":
                 if(!member.isFocus) {
                     var displayName = this.xmpp.options.displayJids
@@ -377,7 +377,7 @@ export default class ChatRoom extends Listenable {
                 break;
             case "call-control":
                 var att = node.attributes;
-                if(!att)                        {
+                if(!att) {
                     break;
                 }
                 this.phoneNumber = att.phone || null;
@@ -394,9 +394,9 @@ export default class ChatRoom extends Listenable {
             this.eventEmitter.emit(XMPPEvents.PRESENCE_STATUS, from, member.status);
         }
 
-        if(jibri)        {
+        if(jibri) {
             this.lastJibri = jibri;
-            if(this.recording)                {
+            if(this.recording) {
                 this.recording.handleJibriPresence(jibri);
             }
         }
@@ -413,7 +413,7 @@ export default class ChatRoom extends Listenable {
             this.recording = new Recorder(this.options.recordingType,
                 this.eventEmitter, this.connection, this.focusMucJid,
                 this.options.jirecon, this.roomjid);
-            if(this.lastJibri)                {
+            if(this.lastJibri) {
                 this.recording.handleJibriPresence(this.lastJibri);
             }
         }
@@ -472,7 +472,7 @@ export default class ChatRoom extends Listenable {
 
         delete this.lastPresences[jid];
 
-        if(skipEvents)            {
+        if(skipEvents) {
             return;
         }
 
@@ -524,7 +524,7 @@ export default class ChatRoom extends Listenable {
 
             // we fire muc_left only if this is not a kick,
             // kick has both statuses 110 and 307.
-            if (!isKick)                {
+            if (!isKick) {
                 this.eventEmitter.emit(XMPPEvents.MUC_LEFT);
             }
         }
@@ -700,7 +700,7 @@ export default class ChatRoom extends Listenable {
 
     setVideoMute (mute, callback) {
         this.sendVideoInfoPresence(mute);
-        if(callback)            {
+        if(callback) {
             callback(mute);
         }
     }
@@ -717,12 +717,12 @@ export default class ChatRoom extends Listenable {
                 value: mute.toString()});
     }
 
-    sendAudioInfoPresence  (mute, callback) {
+    sendAudioInfoPresence (mute, callback) {
         this.addAudioInfoToPresence(mute);
         if(this.connection) {
             this.sendPresence();
         }
-        if(callback)            {
+        if(callback) {
             callback();
         }
     }
@@ -737,7 +737,7 @@ export default class ChatRoom extends Listenable {
 
     sendVideoInfoPresence (mute) {
         this.addVideoInfoToPresence(mute);
-        if(!this.connection)            {
+        if(!this.connection) {
             return;
         }
         this.sendPresence();
@@ -790,7 +790,7 @@ export default class ChatRoom extends Listenable {
      * Returns true if the recording is supproted and false if not.
      */
     isRecordingSupported () {
-        if(this.recording)            {
+        if(this.recording) {
             return this.recording.isSupported();
         }
         return false;
@@ -817,7 +817,7 @@ export default class ChatRoom extends Listenable {
      * @param statusChangeHandler {function} receives the new status as argument.
      */
     toggleRecording (options, statusChangeHandler) {
-        if(this.recording)            {
+        if(this.recording) {
             return this.recording.toggleRecording(options, statusChangeHandler);
         }
 
@@ -829,7 +829,7 @@ export default class ChatRoom extends Listenable {
      * Returns true if the SIP calls are supported and false otherwise
      */
     isSIPCallingSupported () {
-        if(this.moderator)            {
+        if(this.moderator) {
             return this.moderator.isSipGatewayEnabled();
         }
         return false;

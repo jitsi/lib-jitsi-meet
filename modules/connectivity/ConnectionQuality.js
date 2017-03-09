@@ -21,11 +21,11 @@ const STATS_MESSAGE_TYPE = "stats";
  */
 const kSimulcastFormats = [
     { width: 1920, height: 1080, layers:3, max: 5000, target: 4000, min: 800 },
-    { width: 1280, height: 720,  layers:3, max: 2500, target: 2500, min: 600 },
-    { width: 960,  height: 540,  layers:3, max: 900,  target: 900, min: 450 },
-    { width: 640,  height: 360,  layers:2, max: 700,  target: 500, min: 150 },
-    { width: 480,  height: 270,  layers:2, max: 450,  target: 350, min: 150 },
-    { width: 320,  height: 180,  layers:1, max: 200,  target: 150, min: 30 }
+    { width: 1280, height: 720, layers:3, max: 2500, target: 2500, min: 600 },
+    { width: 960, height: 540, layers:3, max: 900, target: 900, min: 450 },
+    { width: 640, height: 360, layers:2, max: 700, target: 500, min: 150 },
+    { width: 480, height: 270, layers:2, max: 450, target: 350, min: 150 },
+    { width: 320, height: 180, layers:1, max: 200, target: 150, min: 30 }
 ];
 
 /**
@@ -74,7 +74,7 @@ function getTarget(simulcast, resolution, millisSinceStart) {
         if (pixels <= 320 * 240) {
             target = 600;
         } else if (pixels <= 640 * 480) {
-            target =  1700;
+            target = 1700;
         } else if (pixels <= 960 * 540) {
             target = 2000;
         } else {
@@ -218,7 +218,7 @@ export default class ConnectionQuality {
         conference.on(
             ConferenceEvents.TRACK_ADDED,
             (track) => {
-                if (track.isVideoTrack() && !track.isMuted())                {
+                if (track.isVideoTrack() && !track.isMuted()) {
                     this._maybeUpdateUnmuteTime();
                 }
             });
@@ -317,7 +317,7 @@ export default class ConnectionQuality {
         }
 
         // Make sure that the quality doesn't climb quickly
-        if (this._lastConnectionQualityUpdate > 0)        {
+        if (this._lastConnectionQualityUpdate > 0) {
             const maxIncreasePerSecond = 2;
             const prevConnectionQuality = this._localStats.connectionQuality;
             const diffSeconds

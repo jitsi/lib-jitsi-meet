@@ -121,14 +121,14 @@ export default class XMPP extends Listenable {
             this.connection.ping.hasPingSupport(
                 pingJid,
                 function (hasPing) {
-                    if (hasPing)                        {
+                    if (hasPing) {
                         this.connection.ping.startInterval(pingJid);
-                    }                    else                        {
+                    } else {
                         logger.warn("Ping NOT supported by " + pingJid);
                     }
                 }.bind(this));
 
-            if (password)                {
+            if (password) {
                 this.authenticatedUser = true;
             }
             if (this.connection && this.connection.connected &&
@@ -268,7 +268,7 @@ export default class XMPP extends Listenable {
     createRoom (roomName, options) {
         // By default MUC nickname is the resource part of the JID
         let mucNickname = Strophe.getNodeFromJid(this.connection.jid);
-        let roomjid = roomName  + "@" + this.options.hosts.muc + "/";
+        let roomjid = roomName + "@" + this.options.hosts.muc + "/";
         const cfgNickname
             = options.useNicks && options.nick ? options.nick : null;
 

@@ -606,7 +606,7 @@ Object.keys(getters).forEach(function (prop) {
 
 TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
     this.trace('addStream', stream ? stream.id : "null");
-    if (stream)        {
+    if (stream) {
         this.peerconnection.addStream(stream);
     }
     if (ssrcInfo && ssrcInfo.type === "addMuted") {
@@ -913,7 +913,7 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
             || RTCBrowserType.isTemasysPluginUsed()
             || RTCBrowserType.isReactNative()) {
         // ignore for now...
-        if(!errback)            {
+        if(!errback) {
             errback = function () {};
         }
         this.peerconnection.getStats(null, callback, errback);

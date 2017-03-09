@@ -26,7 +26,7 @@ var trackHandler2Prop = {
 function implementOnEndedHandling(jitsiTrack) {
     var stream = jitsiTrack.getOriginalStream();
 
-    if(!stream)        {
+    if(!stream) {
         return;
     }
 
@@ -46,9 +46,9 @@ function implementOnEndedHandling(jitsiTrack) {
  */
 function addMediaStreamInactiveHandler(mediaStream, handler) {
     // Temasys will use onended
-    if(typeof mediaStream.active !== "undefined")        {
+    if(typeof mediaStream.active !== "undefined") {
         mediaStream.oninactive = handler;
-    }    else        {
+    } else {
         mediaStream.onended = handler;
     }
 }
@@ -102,7 +102,7 @@ function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMedia
  */
 JitsiTrack.prototype._setHandler = function (type, handler) {
     this.handlers[type] = handler;
-    if(!this.stream)        {
+    if(!this.stream) {
         return;
     }
 
@@ -317,9 +317,9 @@ JitsiTrack.prototype.isScreenSharing = function() {
  * @returns {string|null} id of the track or null if this is fake track.
  */
 JitsiTrack.prototype.getId = function () {
-    if(this.stream)        {
+    if(this.stream) {
         return RTCUtils.getStreamID(this.stream);
-    }    else        {
+    } else {
         return null;
     }
 };
@@ -331,9 +331,9 @@ JitsiTrack.prototype.getId = function () {
  * @returns {boolean} whether MediaStream is active.
  */
 JitsiTrack.prototype.isActive = function () {
-    if(typeof this.stream.active !== "undefined")        {
+    if(typeof this.stream.active !== "undefined") {
         return this.stream.active;
-    }    else        {
+    } else {
         return true;
     }
 };
@@ -345,7 +345,7 @@ JitsiTrack.prototype.isActive = function () {
  * @param handler handler for the event.
  */
 JitsiTrack.prototype.on = function (eventId, handler) {
-    if(this.eventEmitter)        {
+    if(this.eventEmitter) {
         this.eventEmitter.on(eventId, handler);
     }
 };
@@ -356,7 +356,7 @@ JitsiTrack.prototype.on = function (eventId, handler) {
  * @param [handler] optional, the specific handler to unbind
  */
 JitsiTrack.prototype.off = function (eventId, handler) {
-    if(this.eventEmitter)        {
+    if(this.eventEmitter) {
         this.eventEmitter.removeListener(eventId, handler);
     }
 };

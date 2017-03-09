@@ -31,7 +31,7 @@ const logger = Logger.getLogger(__filename);
 var USER_MEDIA_PERMISSION_PROMPT_TIMEOUT = 500;
 
 function getLowerResolution(resolution) {
-    if(!Resolutions[resolution])        {
+    if(!Resolutions[resolution]) {
         return null;
     }
     var order = Resolutions[resolution].order;
@@ -224,7 +224,7 @@ var LibJitsiMeet = {
             }, USER_MEDIA_PERMISSION_PROMPT_TIMEOUT);
         }
 
-        if(!window.connectionTimes)            {
+        if(!window.connectionTimes) {
             window.connectionTimes = {};
         }
         window.connectionTimes["obtainPermissions.start"] =
@@ -240,7 +240,7 @@ var LibJitsiMeet = {
                 Statistics.analytics.sendEvent(addDeviceTypeToAnalyticsEvent(
                     "getUserMedia.success", options), {value: options});
 
-                if(!RTC.options.disableAudioLevels)                    {
+                if(!RTC.options.disableAudioLevels) {
                     for(let i = 0; i < tracks.length; i++) {
                         const track = tracks[i];
                         var mStream = track.getOriginalStream();

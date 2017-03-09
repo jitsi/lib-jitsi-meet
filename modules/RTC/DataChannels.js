@@ -76,7 +76,7 @@ DataChannels.prototype.onDataChannel = function (event) {
 
         try {
             obj = JSON.parse(data);
-        }        catch (e) {
+        } catch (e) {
             GlobalOnErrorHandler.callErrorHandler(e);
             logger.error(
                 "Failed to parse data channel message as JSON: ",
@@ -96,7 +96,7 @@ DataChannels.prototype.onDataChannel = function (event) {
                     dominantSpeakerEndpoint);
                 self.eventEmitter.emit(RTCEvents.DOMINANT_SPEAKER_CHANGED,
                   dominantSpeakerEndpoint);
-            }            else if ("InLastNChangeEvent" === colibriClass) {
+            } else if ("InLastNChangeEvent" === colibriClass) {
                 var oldValue = obj.oldValue;
                 var newValue = obj.newValue;
 
@@ -119,7 +119,7 @@ DataChannels.prototype.onDataChannel = function (event) {
                 }
 
                 self.eventEmitter.emit(RTCEvents.LASTN_CHANGED, oldValue, newValue);
-            }            else if ("LastNEndpointsChangeEvent" === colibriClass) {
+            } else if ("LastNEndpointsChangeEvent" === colibriClass) {
                 // The new/latest list of last-n endpoint IDs.
                 var lastNEndpoints = obj.lastNEndpoints;
                 // The list of endpoint IDs which are entering the list of
@@ -136,14 +136,14 @@ DataChannels.prototype.onDataChannel = function (event) {
                 self.eventEmitter.emit(
                     RTCEvents.ENDPOINT_MESSAGE_RECEIVED, obj.from,
                     obj.msgPayload);
-            }            else if ("EndpointConnectivityStatusChangeEvent" === colibriClass) {
+            } else if ("EndpointConnectivityStatusChangeEvent" === colibriClass) {
                 var endpoint = obj.endpoint;
                 var isActive = obj.active === "true";
                 logger.info("Endpoint connection status changed: " + endpoint
                            + " active ? " + isActive);
                 self.eventEmitter.emit(RTCEvents.ENDPOINT_CONN_STATUS_CHANGED,
                     endpoint, isActive);
-            }            else {
+            } else {
                 logger.debug("Data channel JSON-formatted message: ", obj);
                 // The received message appears to be appropriately formatted
                 // (i.e. is a JSON object which assigns a value to the mandatory
@@ -157,7 +157,7 @@ DataChannels.prototype.onDataChannel = function (event) {
     dataChannel.onclose = function () {
         logger.info("The Data Channel closed", dataChannel);
         var idx = self._dataChannels.indexOf(dataChannel);
-        if (idx > -1)            {
+        if (idx > -1) {
             self._dataChannels = self._dataChannels.splice(idx, 1);
         }
     };
@@ -235,9 +235,9 @@ DataChannels.prototype._some = function (callback, thisArg) {
     var dataChannels = this._dataChannels;
 
     if (dataChannels && dataChannels.length !== 0) {
-        if (thisArg)            {
+        if (thisArg) {
             return dataChannels.some(callback, thisArg);
-        }        else            {
+        } else {
             return dataChannels.some(callback);
         }
     } else {

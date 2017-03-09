@@ -74,7 +74,7 @@ ComponentsVersions.prototype.processPresence =
         }.bind(this));
 
     // logs versions to stats
-        if (log.length > 0)        {
+        if (log.length > 0) {
             Statistics.sendLog(JSON.stringify(log));
         }
     };

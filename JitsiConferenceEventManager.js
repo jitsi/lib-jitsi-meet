@@ -23,7 +23,7 @@ function JitsiConferenceEventManager(conference) {
     //Listeners related to the conference only
     conference.on(JitsiConferenceEvents.TRACK_MUTE_CHANGED,
         function (track) {
-            if(!track.isLocal() || !conference.statistics)                {
+            if(!track.isLocal() || !conference.statistics) {
                 return;
             }
             conference.statistics.sendMuteEvent(track.isMuted(),
@@ -528,13 +528,13 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function () {
  */
 JitsiConferenceEventManager.prototype.setupStatisticsListeners = function () {
     var conference = this.conference;
-    if(!conference.statistics)        {
+    if(!conference.statistics) {
         return;
     }
 
     conference.statistics.addAudioLevelListener(function (ssrc, level) {
         var resource = conference.rtc.getResourceBySSRC(ssrc);
-        if (!resource)            {
+        if (!resource) {
             return;
         }
 
@@ -581,7 +581,7 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function () {
     conference.statistics.addByteSentStatsListener(function (stats) {
         conference.getLocalTracks(MediaType.AUDIO).forEach(function (track) {
             const ssrc = track.getSSRC();
-            if (!ssrc || !stats.hasOwnProperty(ssrc))                {
+            if (!ssrc || !stats.hasOwnProperty(ssrc)) {
                 return;
             }
 

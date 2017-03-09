@@ -61,7 +61,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         }
 
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
-        if(!room)            {
+        if(!room) {
             return;
         }
 
@@ -79,7 +79,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
     onPresenceUnavailable (pres) {
         const from = pres.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
-        if(!room)            {
+        if(!room) {
             return;
         }
 
@@ -90,7 +90,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
     onPresenceError (pres) {
         const from = pres.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
-        if(!room)            {
+        if(!room) {
             return;
         }
 
@@ -102,7 +102,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         // FIXME: this is a hack. but jingle on muc makes nickchanges hard
         const from = msg.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
-        if(!room)            {
+        if(!room) {
             return;
         }
 
@@ -113,7 +113,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
     onMute(iq) {
         const from = iq.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
-        if(!room)            {
+        if(!room) {
             return;
         }
 

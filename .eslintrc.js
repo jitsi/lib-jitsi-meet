@@ -76,6 +76,7 @@ module.exports = {
         'complexity': 0,
         'consistent-return': 0,
         'curly': 2,
+        'no-multi-spaces': 2,
 
         // Stylistic issues group
         'brace-style': 2,

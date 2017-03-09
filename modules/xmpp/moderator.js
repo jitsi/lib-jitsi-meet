@@ -62,16 +62,16 @@ function Moderator(roomName, xmpp, emitter, options) {
     }
 }
 
-Moderator.prototype.isExternalAuthEnabled =  function () {
+Moderator.prototype.isExternalAuthEnabled = function () {
     return this.externalAuthEnabled;
 };
 
-Moderator.prototype.isSipGatewayEnabled =  function () {
+Moderator.prototype.isSipGatewayEnabled = function () {
     return this.sipGatewayEnabled;
 };
 
 
-Moderator.prototype.onMucMemberLeft =  function (jid) {
+Moderator.prototype.onMucMemberLeft = function (jid) {
     logger.info("Someone left is it focus ? " + jid);
     var resource = Strophe.getResourceFromJid(jid);
     if (resource === 'focus') {
@@ -82,7 +82,7 @@ Moderator.prototype.onMucMemberLeft =  function (jid) {
 };
 
 
-Moderator.prototype.setFocusUserJid =  function (focusJid) {
+Moderator.prototype.setFocusUserJid = function (focusJid) {
     if (!this.focusUserJid) {
         this.focusUserJid = focusJid;
         logger.info("Focus jid set to:  " + this.focusUserJid);
@@ -90,11 +90,11 @@ Moderator.prototype.setFocusUserJid =  function (focusJid) {
 };
 
 
-Moderator.prototype.getFocusUserJid =  function () {
+Moderator.prototype.getFocusUserJid = function () {
     return this.focusUserJid;
 };
 
-Moderator.prototype.getFocusComponent =  function () {
+Moderator.prototype.getFocusComponent = function () {
     // Get focus component address
     var focusComponent = this.options.connection.hosts.focus;
     // If not specified use default:  'focus.domain'
@@ -104,7 +104,7 @@ Moderator.prototype.getFocusComponent =  function () {
     return focusComponent;
 };
 
-Moderator.prototype.createConferenceIq =  function () {
+Moderator.prototype.createConferenceIq = function () {
     // Generate create conference IQ
     var elem = $iq({to: this.getFocusComponent(), type: 'set'});
 
@@ -218,7 +218,7 @@ Moderator.prototype.createConferenceIq =  function () {
 };
 
 
-Moderator.prototype.parseSessionId =  function (resultIq) {
+Moderator.prototype.parseSessionId = function (resultIq) {
     var sessionId = $(resultIq).find('conference').attr('session-id');
     if (sessionId) {
         logger.info('Received sessionId:  ' + sessionId);
@@ -226,7 +226,7 @@ Moderator.prototype.parseSessionId =  function (resultIq) {
     }
 };
 
-Moderator.prototype.parseConfigOptions =  function (resultIq) {
+Moderator.prototype.parseConfigOptions = function (resultIq) {
 
     this.setFocusUserJid(
         $(resultIq).find('conference').attr('focusjid'));
@@ -274,7 +274,7 @@ Moderator.prototype.parseConfigOptions =  function (resultIq) {
  * @param {Function} callback - the function to be called back upon the
  * successful allocation of the conference focus
  */
-Moderator.prototype.allocateConferenceFocus =  function (callback) {
+Moderator.prototype.allocateConferenceFocus = function (callback) {
     // Try to use focus user JID from the config
     this.setFocusUserJid(this.options.connection.focusUserJid);
     // Send create conference IQ
@@ -454,7 +454,7 @@ Moderator.prototype.getPopupLoginUrl = function (urlCallback, failureCallback) {
     this._getLoginUrl(/* popup */ true, urlCallback, failureCallback);
 };
 
-Moderator.prototype.logout =  function (callback) {
+Moderator.prototype.logout = function (callback) {
     var iq = $iq({to: this.getFocusComponent(), type: 'set'});
     var sessionId = Settings.getSessionId();
     if (!sessionId) {

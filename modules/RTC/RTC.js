@@ -164,7 +164,7 @@ export default class RTC extends Listenable {
     selectEndpoint (id) {
         // cache the value if channel is missing, till we open it
         this.selectedEndpoint = id;
-        if(this.dataChannels && this.dataChannelsOpen)            {
+        if(this.dataChannels && this.dataChannelsOpen) {
             this.dataChannels.sendSelectedEndpointMessage(id);
         }
     }
@@ -253,7 +253,7 @@ export default class RTC extends Listenable {
     }
 
     addLocalTrack (track) {
-        if (!track)            {
+        if (!track) {
             throw new Error('track must not be null nor undefined');
         }
 
@@ -334,9 +334,9 @@ export default class RTC extends Listenable {
      * @returns {JitsiRemoteTrack|null}
      */
     getRemoteTrackByType (type, resource) {
-        if (this.remoteTracks[resource])            {
+        if (this.remoteTracks[resource]) {
             return this.remoteTracks[resource][type];
-        }        else            {
+        } else {
             return null;
         }
     }
@@ -637,7 +637,7 @@ export default class RTC extends Listenable {
     dispose () { }
 
     setAudioLevel (resource, audioLevel) {
-        if(!resource)            {
+        if(!resource) {
             return;
         }
         var audioTrack = this.getRemoteAudioTrack(resource);

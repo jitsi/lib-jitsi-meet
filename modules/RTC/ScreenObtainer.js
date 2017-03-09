@@ -73,7 +73,7 @@ var ScreenObtainer = {
         this.options = options = options || {};
         gumFunction = gum;
 
-        if (RTCBrowserType.isFirefox())            {
+        if (RTCBrowserType.isFirefox()) {
             initFirefoxExtensionDetection(options);
         }
 
@@ -207,7 +207,7 @@ var ScreenObtainer = {
         if (firefoxExtInstalled === null) {
             window.setTimeout(
                 () => {
-                    if (firefoxExtInstalled === null)                        {
+                    if (firefoxExtInstalled === null) {
                         firefoxExtInstalled = false;
                     }
                     this.obtainScreenOnFirefox(callback, errorCallback);
@@ -354,10 +354,10 @@ function isUpdateRequired(minVersion, extVersion) {
             var n1 = 0,
                 n2 = 0;
 
-            if (i < s1.length)                {
+            if (i < s1.length) {
                 n1 = parseInt(s1[i]);
             }
-            if (i < s2.length)                {
+            if (i < s2.length) {
                 n2 = parseInt(s2[i]);
             }
 
@@ -371,7 +371,7 @@ function isUpdateRequired(minVersion, extVersion) {
         // will happen if both versions have identical numbers in
         // their components (even if one of them is longer, has more components)
         return false;
-    }    catch (e) {
+    } catch (e) {
         GlobalOnErrorHandler.callErrorHandler(e);
         logger.error("Failed to parse extension version", e);
         return true;
@@ -512,7 +512,7 @@ function onGetStreamResponse(response, onSuccess, onFailure) {
         // As noted in Chrome Desktop Capture API:
         // If user didn't select any source (i.e. canceled the prompt)
         // then the callback is called with an empty streamId.
-        if(response.streamId === "")        {
+        if(response.streamId === "") {
             onFailure(new JitsiTrackError(
                 JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED));
             return;
@@ -533,7 +533,7 @@ function initFirefoxExtensionDetection(options) {
     if (options.desktopSharingFirefoxDisabled) {
         return;
     }
-    if (firefoxExtInstalled === false || firefoxExtInstalled === true)        {
+    if (firefoxExtInstalled === false || firefoxExtInstalled === true) {
         return;
     }
     if (!options.desktopSharingFirefoxExtId) {

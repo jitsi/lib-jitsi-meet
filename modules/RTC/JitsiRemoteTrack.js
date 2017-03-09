@@ -37,7 +37,7 @@ function JitsiRemoteTrack(rtc, conference, ownerEndpointId, stream, track,
     // increase ttfm values
     this.hasBeenMuted = muted;
     // Bind 'onmute' and 'onunmute' event handlers
-    if (this.rtc && this.track)        {
+    if (this.rtc && this.track) {
         this._bindMuteHandlers();
     }
 }
@@ -77,16 +77,16 @@ JitsiRemoteTrack.prototype._bindMuteHandlers = function() {
  * @param value the muted status.
  */
 JitsiRemoteTrack.prototype.setMute = function (value) {
-    if(this.muted === value)        {
+    if(this.muted === value) {
         return;
     }
 
-    if(value)        {
+    if(value) {
         this.hasBeenMuted = true;
     }
 
     // we can have a fake video stream
-    if(this.stream)        {
+    if(this.stream) {
         this.stream.muted = value;
     }
 
@@ -132,7 +132,7 @@ JitsiRemoteTrack.prototype.getSSRC = function () {
  * @param type the new video type("camera", "desktop")
  */
 JitsiRemoteTrack.prototype._setVideoType = function (type) {
-    if(this.videoType === type)        {
+    if(this.videoType === type) {
         return;
     }
     this.videoType = type;
@@ -154,7 +154,7 @@ JitsiRemoteTrack.prototype._playCallback = function () {
     this.conference.getConnectionTimes()[type + ".ttfm"] = ttfm;
     console.log("(TIME) TTFM " + type + ":\t", ttfm);
     var eventName = type +'.ttfm';
-    if(this.hasBeenMuted)        {
+    if(this.hasBeenMuted) {
         eventName += '.muted';
     }
     Statistics.analytics.sendEvent(eventName, {value: ttfm});
@@ -170,14 +170,14 @@ JitsiRemoteTrack.prototype._playCallback = function () {
  */
 JitsiRemoteTrack.prototype._attachTTFMTracker = function (container) {
     if((ttfmTrackerAudioAttached && this.isAudioTrack())
-        || (ttfmTrackerVideoAttached && this.isVideoTrack()))        {
+        || (ttfmTrackerVideoAttached && this.isVideoTrack())) {
         return;
     }
 
-    if (this.isAudioTrack())        {
+    if (this.isAudioTrack()) {
         ttfmTrackerAudioAttached = true;
     }
-    if (this.isVideoTrack())        {
+    if (this.isVideoTrack()) {
         ttfmTrackerVideoAttached = true;
     }
 
@@ -188,7 +188,7 @@ JitsiRemoteTrack.prototype._attachTTFMTracker = function (container) {
 
         // FIXME: this is not working for IE11
         AdapterJS.addEvent(container, 'play', this._playCallback.bind(this));
-    }    else {
+    } else {
         container.addEventListener("canplay", this._playCallback.bind(this));
     }
 };

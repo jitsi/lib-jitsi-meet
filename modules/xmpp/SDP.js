@@ -92,7 +92,7 @@ SDP.prototype.containsSSRC = function (ssrc) {
     var medias = this.getMediaSsrcMap();
     var result = false;
     Object.keys(medias).forEach(function (mediaindex) {
-        if (result)            {
+        if (result) {
             return;
         }
         if (medias[mediaindex].ssrcs[ssrc]) {
@@ -109,7 +109,7 @@ SDP.prototype.mangle = function () {
         lines = this.media[i].split('\r\n');
         lines.pop(); // remove empty last element
         mline = SDPUtil.parse_mline(lines.shift());
-        if (mline.media != 'audio')            {
+        if (mline.media != 'audio') {
             continue;
         }
         newdesc = '';
@@ -117,7 +117,7 @@ SDP.prototype.mangle = function () {
         for (j = 0; j < lines.length; j++) {
             if (lines[j].substr(0, 9) == 'a=rtpmap:') {
                 rtpmap = SDPUtil.parse_rtpmap(lines[j]);
-                if (rtpmap.name == 'CN' || rtpmap.name == 'ISAC')                    {
+                if (rtpmap.name == 'CN' || rtpmap.name == 'ISAC') {
                     continue;
                 }
                 mline.fmt.push(rtpmap.id);
@@ -371,7 +371,7 @@ SDP.prototype.transportToJingle = function (mediaindex, elem) {
             protocol: sctpAttrs[1] /* protocol */
         });
         // Optional stream count attribute
-        if (sctpAttrs.length > 2)            {
+        if (sctpAttrs.length > 2) {
             elem.attrs({ streams: sctpAttrs[2]});
         }
         elem.up();
@@ -526,15 +526,15 @@ SDP.prototype.jingle2media = function (content) {
             ' ' + sctp.attr('protocol');
 
         var streamCount = sctp.attr('streams');
-        if (streamCount)            {
+        if (streamCount) {
             media += ' ' + streamCount + '\r\n';
-        }        else            {
+        } else {
             media += '\r\n';
         }
     }
 
     media += 'c=IN IP4 0.0.0.0\r\n';
-    if (!sctp.length)        {
+    if (!sctp.length) {
         media += 'a=rtcp:1 IN IP4 0.0.0.0\r\n';
     }
     tmp = content.find('>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]');
@@ -621,7 +621,7 @@ SDP.prototype.jingle2media = function (content) {
                 && (protocol === 'tcp' || protocol === 'ssltcp')) ||
             (self.removeUdpCandidates && protocol === 'udp')) {
             return;
-        } else  if (self.failICE) {
+        } else if (self.failICE) {
             this.setAttribute('ip', '1.1.1.1');
         }
 
@@ -648,7 +648,7 @@ SDP.prototype.jingle2media = function (content) {
             var value = this.getAttribute('value');
             value = SDPUtil.filter_special_chars(value);
             media += 'a=ssrc:' + ssrc + ' ' + name;
-            if (value && value.length)                {
+            if (value && value.length) {
                 media += ':' + value;
             }
             media += '\r\n';

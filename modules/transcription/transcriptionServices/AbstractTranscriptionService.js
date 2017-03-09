@@ -24,7 +24,7 @@ TranscriptionService.prototype.send = function send(recordingResult, callback){
                    " is not valid!");
             recordingResult.wordArray = [];
             callback(recordingResult);
-        }        else{
+        } else{
             recordingResult.wordArray = t.formatResponse(response);
             callback(recordingResult);
         }

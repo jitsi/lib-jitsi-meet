@@ -21,7 +21,7 @@ var transcriber = function() {
     //the object which can record all audio in the conference
     this.audioRecorder = new AudioRecorder();
     //this object can send the recorder audio to a speech-to-text service
-    this.transcriptionService =  new SphinxService();
+    this.transcriptionService = new SphinxService();
     //holds a counter to keep track if merging can start
     this.counter = null;
     //holds the date when transcription started which makes it possible
@@ -31,7 +31,7 @@ var transcriber = function() {
     this.transcription = null;
     //this will be a method which will be called once the transcription is done
     //with the transcription as parameter
-    this.callback =  null;
+    this.callback = null;
     //stores all the retrieved speech-to-text results to merge together
     //this value will store an Array<Word> object
     this.results = [];
@@ -255,7 +255,7 @@ var hasPopulatedArrays = function(twoDimensionalArray){
 var pushWordToSortedArray = function(array, word){
     if(array.length === 0) {
         array.push(word);
-    }    else{
+    } else{
         if(array[array.length - 1].begin <= word.begin){
             array.push(word);
             return;

@@ -335,7 +335,7 @@ function detectBrowser() {
     // Try all browser detectors
     for (var i = 0; i < detectors.length; i++) {
         version = detectors[i]();
-        if (version)            {
+        if (version) {
             return version;
         }
     }

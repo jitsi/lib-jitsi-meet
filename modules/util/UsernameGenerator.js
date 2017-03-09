@@ -433,7 +433,7 @@ function generateUsername () {
     var name = RandomUtil.randomElement(names);
     var suffix = RandomUtil.randomAlphanumStr(3);
 
-    return name + '-' +  suffix;
+    return name + '-' + suffix;
 }
 
 module.exports = {
