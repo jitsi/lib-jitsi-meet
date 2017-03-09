@@ -30,6 +30,7 @@ module.exports = {
         'new-cap': 2,
         'no-console': 0,
         'semi': [ 'error', 'always' ],
-        'no-cond-assign': 2
+        'no-cond-assign': 2,
+        'no-constant-condition': 2
     }
 };
