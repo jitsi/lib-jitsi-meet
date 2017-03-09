@@ -294,10 +294,10 @@ audioRecorder.prototype.getFileType = function () {
  */
 function createEmptyStream() {
     // Firefox supports the MediaStream object, Chrome webkitMediaStream
-    if(typeof(MediaStream) !== 'undefined') {
+    if(typeof MediaStream !== 'undefined') {
         return new MediaStream();
     }
-    else if(typeof(webkitMediaStream) !== 'undefined') {
+    else if(typeof webkitMediaStream !== 'undefined') {
         return new webkitMediaStream(); // eslint-disable-line new-cap
     }
     else {

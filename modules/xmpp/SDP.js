@@ -398,8 +398,8 @@ SDP.prototype.transportToJingle = function (mediaindex, elem) {
                 if (self.failICE) {
                     candidate.ip = "1.1.1.1";
                 }
-                var protocol = (candidate &&
-                        typeof candidate.protocol === 'string')
+                var protocol = candidate &&
+                        typeof candidate.protocol === 'string'
                     ? candidate.protocol.toLowerCase() : '';
                 if ((self.removeTcpCandidates
                         && (protocol === 'tcp' || protocol === 'ssltcp')) ||
@@ -587,7 +587,7 @@ SDP.prototype.jingle2media = function (content) {
             media += 'a=fmtp:' + this.getAttribute('id') + ' ';
             media += $(this).find('parameter').map(function () {
                 return (this.getAttribute('name')
-                        ? (this.getAttribute('name') + '=') : '') +
+                        ? this.getAttribute('name') + '=' : '') +
                     this.getAttribute('value');
             }).get().join('; ');
             media += '\r\n';
@@ -607,7 +607,7 @@ SDP.prototype.jingle2media = function (content) {
 
     content.find('>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]>candidate').each(function () {
         var protocol = this.getAttribute('protocol');
-        protocol = (typeof protocol === 'string') ? protocol.toLowerCase(): '';
+        protocol = typeof protocol === 'string' ? protocol.toLowerCase(): '';
 
         if ((self.removeTcpCandidates
                 && (protocol === 'tcp' || protocol === 'ssltcp')) ||

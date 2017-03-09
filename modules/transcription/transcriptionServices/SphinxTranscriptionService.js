@@ -79,7 +79,7 @@ SphinxService.prototype.formatResponse = function(response) {
 SphinxService.prototype.verify = function(response){
     console.log("response from server:" + response.toString());
     //test if server responded with a string object
-    if(typeof(response) !== "string"){
+    if(typeof response !== "string"){
         return false;
     }
     //test if the string can be parsed into valid JSON

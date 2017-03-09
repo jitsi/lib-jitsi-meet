@@ -266,7 +266,7 @@ export default class JingleSessionPC extends JingleSession {
                 cand.c('content', {
                     creator: this.initiator == this.localJid
                                     ? 'initiator' : 'responder',
-                    name: (cands[0].sdpMid ? cands[0].sdpMid : mline.media)
+                    name: cands[0].sdpMid ? cands[0].sdpMid : mline.media
                 }).c('transport', ice);
                 for (let i = 0; i < cands.length; i++) {
                     const candidate

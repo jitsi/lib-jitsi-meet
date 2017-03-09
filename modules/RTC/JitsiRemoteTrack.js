@@ -135,7 +135,7 @@ JitsiRemoteTrack.prototype._setVideoType = function (type) {
 };
 
 JitsiRemoteTrack.prototype._playCallback = function () {
-    var type = (this.isVideoTrack() ? 'video' : 'audio');
+    var type = this.isVideoTrack() ? 'video' : 'audio';
 
     var now = window.performance.now();
     console.log("(TIME) Render " + type + ":\t", now);

@@ -124,7 +124,7 @@ JitsiTrack.prototype._setHandler = function (type, handler) {
 JitsiTrack.prototype._setStream = function (stream) {
     this.stream = stream;
     Object.keys(this.handlers).forEach(function (type) {
-        typeof(this.handlers[type]) === "function" &&
+        typeof this.handlers[type] === "function" &&
             this._setHandler(type, this.handlers[type]);
     }, this);
 };
@@ -378,7 +378,7 @@ JitsiTrack.prototype.setAudioLevel = function (audioLevel) {
 JitsiTrack.prototype.getMSID = function () {
     var streamId = this.getStreamId();
     var trackId = this.getTrackId();
-    return (streamId && trackId) ? (streamId + " " + trackId) : null;
+    return streamId && trackId ? streamId + " " + trackId : null;
 };
 
 /**

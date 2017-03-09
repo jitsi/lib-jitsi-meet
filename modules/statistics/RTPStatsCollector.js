@@ -492,8 +492,8 @@ StatsCollector.prototype.processStatsReport = function () {
 
         // TODO: clean this mess up!
         var nowBytesTransmitted = getStatValue(now, "bytesSent");
-        if(typeof(nowBytesTransmitted) === "number" ||
-            typeof(nowBytesTransmitted) === "string") {
+        if(typeof nowBytesTransmitted === "number" ||
+            typeof nowBytesTransmitted === "string") {
             nowBytesTransmitted = Number(nowBytesTransmitted);
             if(!isNaN(nowBytesTransmitted)){
                 byteSentStats[ssrc] = nowBytesTransmitted;

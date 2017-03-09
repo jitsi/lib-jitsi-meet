@@ -71,7 +71,7 @@ function initCallback (err, msg) {
         this.confID,
         this.pcCallback.bind(this));
 
-    var fabricInitialized = (ret.status === 'success');
+    var fabricInitialized = ret.status === 'success';
 
     if(!fabricInitialized) {
         CallStats.initializeFailed = true;

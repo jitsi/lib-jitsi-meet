@@ -590,8 +590,8 @@ export default class RTC extends Listenable {
      * @returns {boolean}
      */
     static isUserStreamById (streamId) {
-        return (streamId && streamId !== "mixedmslabel"
-            && streamId !== "default");
+        return streamId && streamId !== "mixedmslabel"
+            && streamId !== "default";
     }
 
     /**

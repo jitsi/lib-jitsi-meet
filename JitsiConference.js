@@ -1185,7 +1185,7 @@ JitsiConference.prototype.isDTMFSupported = function () {
  * @return {string} local user's ID
  */
 JitsiConference.prototype.myUserId = function () {
-    return (this.room && this.room.myroomjid)? Strophe.getResourceFromJid(this.room.myroomjid) : null;
+    return this.room && this.room.myroomjid? Strophe.getResourceFromJid(this.room.myroomjid) : null;
 };
 
 JitsiConference.prototype.sendTones = function (tones, duration, pause) {
@@ -1227,14 +1227,14 @@ JitsiConference.prototype.isRecordingSupported = function () {
  * and "off" if the recording is not started.
  */
 JitsiConference.prototype.getRecordingState = function () {
-    return (this.room) ? this.room.getRecordingState() : undefined;
+    return this.room ? this.room.getRecordingState() : undefined;
 };
 
 /**
  * Returns the url of the recorded video.
  */
 JitsiConference.prototype.getRecordingURL = function () {
-    return (this.room) ? this.room.getRecordingURL() : null;
+    return this.room ? this.room.getRecordingURL() : null;
 };
 
 /**

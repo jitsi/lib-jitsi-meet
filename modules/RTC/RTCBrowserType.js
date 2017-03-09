@@ -232,7 +232,7 @@ function detectFirefox() {
 }
 
 function detectSafari() {
-    if ((/^((?!chrome).)*safari/i.test(navigator.userAgent))) {
+    if (/^((?!chrome).)*safari/i.test(navigator.userAgent)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_SAFARI;
         logger.info("This appears to be Safari");
         // FIXME detect Safari version when needed

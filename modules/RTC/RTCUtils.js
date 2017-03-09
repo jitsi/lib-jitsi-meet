@@ -79,7 +79,7 @@ function initRawEnumerateDevicesWithCallback() {
         // "ReferenceError: Can't find variable: MediaStreamTrack"
         // when Temasys plugin is not installed yet, have to delay this call
         // until WebRTC is ready.
-        : (MediaStreamTrack && MediaStreamTrack.getSources)
+        : MediaStreamTrack && MediaStreamTrack.getSources
         ? function (callback) {
             MediaStreamTrack.getSources(function (sources) {
                 callback(sources.map(convertMediaStreamTrackSource));
@@ -538,7 +538,7 @@ function convertMediaStreamTrackSource(source) {
         // not return 'audiooutput' devices but let's handle it in any
         // case
         kind: kind
-            ? (kind === 'audiooutput' ? kind : kind + 'input')
+            ? kind === 'audiooutput' ? kind : kind + 'input'
             : null,
         deviceId: source.id,
         groupId: source.groupId || null
@@ -737,11 +737,11 @@ class RTCUtils extends Listenable {
     }
 
     init(options) {
-        if (typeof(options.disableAEC) === "boolean") {
+        if (typeof options.disableAEC === "boolean") {
             disableAEC = options.disableAEC;
             logger.info("Disable AEC: " + disableAEC);
         }
-        if (typeof(options.disableNS) === "boolean") {
+        if (typeof options.disableNS === "boolean") {
             disableNS = options.disableNS;
             logger.info("Disable NS: " + disableNS);
         }
@@ -824,7 +824,7 @@ class RTCUtils extends Listenable {
                     // semicolon insertion (ASI). No line terminator is allowed
                     // between the return keyword and the expression.
                     return (
-                        (typeof id === 'number')
+                        typeof id === 'number'
                             ? id
                             : SDPUtil.filter_special_chars(id));
                 };
@@ -1154,8 +1154,8 @@ class RTCUtils extends Listenable {
         if (isEnumerateDevicesAvailable) {
             return true;
         }
-        return (typeof MediaStreamTrack !== "undefined" &&
-            MediaStreamTrack.getSources)? true : false;
+        return typeof MediaStreamTrack !== "undefined" &&
+            MediaStreamTrack.getSources? true : false;
     }
 
     /**

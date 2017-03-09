@@ -12,5 +12,5 @@ function JitsiDTMFManager (localAudio, peerConnection) {
 
 
 JitsiDTMFManager.prototype.sendTones = function (tones, duration, pause) {
-    this.dtmfSender.insertDTMF(tones, (duration || 200), (pause || 200));
+    this.dtmfSender.insertDTMF(tones, duration || 200, pause || 200);
 };

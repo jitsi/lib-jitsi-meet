@@ -790,14 +790,14 @@ export default class ChatRoom extends Listenable {
      * and "off" if the recording is not started.
      */
     getRecordingState () {
-        return (this.recording) ? this.recording.getState() : undefined;
+        return this.recording ? this.recording.getState() : undefined;
     }
 
     /**
      * Returns the url of the recorded video.
      */
     getRecordingURL () {
-        return (this.recording) ? this.recording.getURL() : null;
+        return this.recording ? this.recording.getURL() : null;
     }
 
     /**

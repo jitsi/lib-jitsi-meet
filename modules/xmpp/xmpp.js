@@ -266,7 +266,7 @@ export default class XMPP extends Listenable {
         let mucNickname = Strophe.getNodeFromJid(this.connection.jid);
         let roomjid = roomName  + "@" + this.options.hosts.muc + "/";
         let cfgNickname
-            = (options.useNicks && options.nick) ? options.nick : null;
+            = options.useNicks && options.nick ? options.nick : null;
 
         if (cfgNickname) {
             // Use nick if it's defined

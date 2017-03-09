@@ -105,7 +105,7 @@ var ScreenObtainer = {
                             jitsiError = new JitsiTrackError(
                                 error, constraints, ["desktop"]);
                         }
-                        (typeof(onFailure) === "function") &&
+                        (typeof onFailure === "function") &&
                             onFailure(jitsiError);
                     });
             };
@@ -276,8 +276,8 @@ var ScreenObtainer = {
         if ((CHROME_EXTENSION_POPUP_ERROR === e
              || CHROME_EXTENSION_IFRAME_ERROR === e)
                 && options.interval > 0
-                && typeof(options.checkAgain) === "function"
-                && typeof(options.listener) === "function") {
+                && typeof options.checkAgain === "function"
+                && typeof options.listener === "function") {
             options.listener("waitingForExtension", webStoreInstallUrl);
             this.checkForChromeExtensionOnInterval(options, streamCallback,
                 failCallback, e);
@@ -555,7 +555,7 @@ function initFirefoxExtensionDetection(options) {
     // Where EXT_ID is the ID of the extension with "@" replaced by ".", and
     // DOMAIN is a domain whitelisted by the extension.
     var src = "chrome://" +
-        (options.desktopSharingFirefoxExtId.replace('@', '.')) +
+        options.desktopSharingFirefoxExtId.replace('@', '.') +
         "/content/" + document.location.hostname + ".png";
     img.setAttribute('src', src);
 }

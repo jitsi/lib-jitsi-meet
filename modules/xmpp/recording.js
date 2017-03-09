@@ -17,9 +17,9 @@ function Recording(type, eventEmitter, connection, focusMucJid, jirecon,
     this.url = null;
     this.type = type;
     this._isSupported
-        = ( type === Recording.types.JIRECON && !this.jirecon
+        =  type === Recording.types.JIRECON && !this.jirecon
             || (type !== Recording.types.JIBRI
-                && type !== Recording.types.COLIBRI))
+                && type !== Recording.types.COLIBRI)
             ? false : true;
 
     /**
@@ -94,7 +94,7 @@ Recording.prototype.setRecordingJibri
     var iq = $iq({to: this.focusMucJid, type: 'set'})
         .c('jibri', {
         "xmlns": 'http://jitsi.org/protocol/jibri',
-        "action": (state === Recording.status.ON)
+        "action": state === Recording.status.ON
                     ? Recording.action.START
                     : Recording.action.STOP,
         "streamid": options.streamId,
@@ -124,7 +124,7 @@ Recording.prototype.setRecordingJirecon =
 
     var iq = $iq({to: this.jirecon, type: 'set'})
         .c('recording', {xmlns: 'http://jitsi.org/protocol/jirecon',
-            action: (state === Recording.status.ON)
+            action: state === Recording.status.ON
                 ? Recording.action.START
                 : Recording.action.STOP,
             mucjid: this.roomjid});
@@ -141,7 +141,7 @@ Recording.prototype.setRecordingJirecon =
             // provisional?
             self.jireconRid = $(result).find('recording').attr('rid');
             logger.log('Recording ' +
-                ((state === Recording.status.ON) ? 'started' : 'stopped') +
+                (state === Recording.status.ON ? 'started' : 'stopped') +
                 '(jirecon)' + result);
             self.state = state;
             if (state === Recording.status.OFF){
@@ -244,8 +244,8 @@ Recording.prototype.toggleRecording = function (options, statusChangeHandler) {
         return;
     }
 
-    var newState = (oldState === Recording.status.AVAILABLE
-                    || oldState === Recording.status.OFF)
+    var newState = oldState === Recording.status.AVAILABLE
+                    || oldState === Recording.status.OFF
                     ? Recording.status.ON
                     : Recording.status.OFF;
 

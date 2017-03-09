@@ -85,7 +85,7 @@ DataChannels.prototype.onDataChannel = function (event) {
                 dataChannel,
                 e);
         }
-        if (('undefined' !== typeof(obj)) && (null !== obj)) {
+        if (('undefined' !== typeof obj) && (null !== obj)) {
             var colibriClass = obj.colibriClass;
 
             if ("DominantSpeakerEndpointChangeEvent" === colibriClass) {
@@ -107,14 +107,14 @@ DataChannels.prototype.onDataChannel = function (event) {
 
                 if ((type = typeof oldValue) !== 'boolean') {
                     if (type === 'string') {
-                        oldValue = (oldValue == "true");
+                        oldValue = oldValue == "true";
                     } else {
                         oldValue = new Boolean(oldValue).valueOf();
                     }
                 }
                 if ((type = typeof newValue) !== 'boolean') {
                     if (type === 'string') {
-                        newValue = (newValue == "true");
+                        newValue = newValue == "true";
                     } else {
                         newValue = new Boolean(newValue).valueOf();
                     }
@@ -225,9 +225,9 @@ DataChannels.prototype._onXXXEndpointChanged = function (xxx, userResource) {
 
     var jsonObject = {};
 
-    jsonObject.colibriClass = (upper + 'EndpointChangedEvent');
+    jsonObject.colibriClass = upper + 'EndpointChangedEvent';
     jsonObject[lower + "Endpoint"]
-        = (userResource ? userResource : null);
+        = userResource ? userResource : null;
 
     this.send(jsonObject);
 
