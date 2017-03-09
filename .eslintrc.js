@@ -67,6 +67,8 @@ module.exports = {
         'no-unsafe-finally': 2,
         'use-isnan': 2,
 
+        'valid-typeof': 2,
+
         'prefer-spread': 2,
         'require-yield': 2,
         'rest-spread-spacing': 2,
