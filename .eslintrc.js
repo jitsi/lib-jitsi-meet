@@ -73,6 +73,7 @@ module.exports = {
         'accessor-pairs': 0,
         'array-callback-return': 2,
         'block-scoped-var': 0,
+        'complexity': 0,
 
         'prefer-const': 2,
         'prefer-reflect': 0,
