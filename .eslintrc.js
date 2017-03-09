@@ -36,6 +36,7 @@ module.exports = {
         'no-console': 0,
         'semi': [ 'error', 'always' ],
 
+        // Possible Errors group
         'no-cond-assign': 2,
         'no-constant-condition': 2,
         'no-control-regex': 2,
@@ -51,6 +52,27 @@ module.exports = {
             'all',
             { 'nestedBinaryExpressions': false }
         ],
+        'no-extra-semi': 2,
+        'no-func-assign': 2,
+        'no-inner-declarations': 2,
+        'no-invalid-regexp': 2,
+        'no-irregular-whitespace': 2,
+        'no-negated-in-lhs': 2,
+        'no-obj-calls': 2,
+        'no-prototype-builtins': 0,
+        'no-regex-spaces': 2,
+        'no-sparse-arrays': 2,
+        'no-unexpected-multiline': 2,
+        'no-unreachable': 2,
+        'no-unsafe-finally': 2,
+        'use-isnan': 2,
+
+        'valid-typeof': 2,
+
+        // Best Practices group
+        'accessor-pairs': 0,
+        'array-callback-return': 2,
+        'block-scoped-var': 0,
 
         'object-shorthand': [
             'error',
