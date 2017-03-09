@@ -70,7 +70,7 @@ JitsiConnection.prototype.disconnect = function () {
     // provide the implementation with finer-grained context.
     var x = this.xmpp;
 
-    x.disconnect.apply(x, arguments);
+    x.disconnect(...arguments);
 };
 
 /**

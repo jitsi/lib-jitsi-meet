@@ -131,7 +131,7 @@ var JitsiMediaDevices = {
      * @param {string} event - event name
      */
     emitEvent: function (event) { // eslint-disable-line no-unused-vars
-        eventEmitter.emit.apply(eventEmitter, arguments);
+        eventEmitter.emit(...arguments);
     }
 };
 
