@@ -370,18 +370,17 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function () {
         return Promise.resolve();
     }
 
-    var self = this;
-
-    return new Promise(function(resolve, reject) {
-        self.conference._addLocalStream(
-            self.stream,
+    return new Promise((resolve, reject) => {
+        this.conference._addLocalStream(
+            this.stream,
             resolve,
             (error) => reject(new Error(error)),
             {
-                mtype: self.type,
+                mtype: this.type,
                 type: "unmute",
-                ssrc: self.ssrc,
-                msid: self.getMSID()
+                ssrcs: this.ssrc && this.ssrc.ssrcs,
+                groups: this.ssrc && this.ssrc.groups,
+                msid: this.getMSID()
             });
     });
 };
@@ -406,7 +405,8 @@ function (successCallback, errorCallback) {
         {
             mtype: this.type,
             type: "mute",
-            ssrc: this.ssrc
+            ssrcs: this.ssrc && this.ssrc.ssrcs,
+            groups: this.ssrc && this.ssrc.groups
         });
 };
 
@@ -422,11 +422,9 @@ JitsiLocalTrack.prototype._sendMuteStatus = function(mute) {
         return Promise.resolve();
     }
 
-    var self = this;
-
-    return new Promise(function(resolve) {
-        self.conference.room[
-            self.isAudioTrack()
+    return new Promise((resolve) => {
+        this.conference.room[
+            this.isAudioTrack()
                 ? 'setAudioMute'
                 : 'setVideoMute'](mute, resolve);
     });
@@ -521,7 +519,7 @@ JitsiLocalTrack.prototype._setConference = function(conference) {
  */
 JitsiLocalTrack.prototype.getSSRC = function () {
     if(this.ssrc && this.ssrc.groups && this.ssrc.groups.length)
-        return this.ssrc.groups[0].primarySSRC;
+        return this.ssrc.groups[0].ssrcs[0];
     else if(this.ssrc && this.ssrc.ssrcs && this.ssrc.ssrcs.length)
         return this.ssrc.ssrcs[0];
     else

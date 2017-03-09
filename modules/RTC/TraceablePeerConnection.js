@@ -399,57 +399,98 @@ TraceablePeerConnection.prototype._remoteTrackRemoved
 };
 
 /**
- * Returns map with keys msid and values ssrc.
- * @param desc the SDP that will be modified.
+ * @typedef {Object} SSRCGroupInfo
+ * @property {Array<number>} ssrcs group's SSRCs
+ * @property {string} semantics
+ */
+/**
+ * @typedef {Object} TrackSSRCInfo
+ * @property {Array<number>} ssrcs track's SSRCs
+ * @property {Array<SSRCGroupInfo>} groups track's SSRC groups
+ */
+/**
+ * Returns map with keys msid and <tt>TrackSSRCInfo</tt> values.
+ * @param {Object} desc the WebRTC SDP instance.
+ * @return {Map<string,TrackSSRCInfo>}
  */
 function extractSSRCMap(desc) {
+    /**
+     * Track SSRC infos mapped by stream ID (msid)
+     * @type {Map<string,TrackSSRCInfo>}
+     */
+    const ssrcMap = new Map();
+    /**
+     * Groups mapped by primary SSRC number
+     * @type {Map<number,Array<SSRCGroupInfo>>}
+     */
+    const groupsMap = new Map();
+
     if (typeof desc !== 'object' || desc === null ||
         typeof desc.sdp !== 'string') {
         logger.warn('An empty description was passed as an argument.');
-        return desc;
+        return ssrcMap;
     }
 
-    var ssrcList = {};
-    var ssrcGroups = {};
-    var session = transform.parse(desc.sdp);
-    if (!Array.isArray(session.media))
-    {
-        return;
+    const session = transform.parse(desc.sdp);
+
+    if (!Array.isArray(session.media)) {
+        return ssrcMap;
     }
 
-    session.media.forEach(function (bLine) {
-        if (!Array.isArray(bLine.ssrcs))
-        {
-            return;
+    for (const mLine of session.media) {
+        if (!Array.isArray(mLine.ssrcs)) {
+            continue;
         }
 
-        if (typeof bLine.ssrcGroups !== 'undefined' &&
-            Array.isArray(bLine.ssrcGroups)) {
-            bLine.ssrcGroups.forEach(function (group) {
+        if (Array.isArray(mLine.ssrcGroups)) {
+            for (const group of mLine.ssrcGroups) {
                 if (typeof group.semantics !== 'undefined' &&
                     typeof group.ssrcs !== 'undefined') {
-                    var primarySSRC = Number(group.ssrcs.split(' ')[0]);
-                    ssrcGroups[primarySSRC] = ssrcGroups[primarySSRC] || [];
-                    ssrcGroups[primarySSRC].push(group);
+                    // Parse SSRCs and store as numbers
+                    const groupSSRCs
+                        = group.ssrcs.split(' ')
+                                     .map(ssrcStr => parseInt(ssrcStr));
+                    const primarySSRC = groupSSRCs[0];
+                    // Note that group.semantics is already present
+                    group.ssrcs = groupSSRCs;
+                    if (!groupsMap.has(primarySSRC)) {
+                        groupsMap.set(primarySSRC, []);
+                    }
+                    groupsMap.get(primarySSRC).push(group);
                 }
-            });
-        }
-        bLine.ssrcs.forEach(function (ssrc) {
-            if(ssrc.attribute !== 'msid')
-                return;
-            ssrcList[ssrc.value] = ssrcList[ssrc.value] ||
-                {groups: [], ssrcs: []};
-            ssrcList[ssrc.value].ssrcs.push(ssrc.id);
-            if(ssrcGroups[ssrc.id]){
-                ssrcGroups[ssrc.id].forEach(function (group) {
-                    ssrcList[ssrc.value].groups.push(
-                        {primarySSRC: ssrc.id, group: group});
-                });
             }
-        });
-    });
+        }
+        for (const ssrc of mLine.ssrcs) {
+            if (ssrc.attribute !== 'msid') {
+                continue;
+            }
 
-    return ssrcList;
+            const msid = ssrc.value;
+            let ssrcInfo = ssrcMap.get(msid);
+
+            if (!ssrcInfo) {
+                ssrcInfo = {
+                    ssrcs: [],
+                    groups: []
+                };
+                ssrcMap.set(msid, ssrcInfo);
+            }
+
+            const ssrcNumber = ssrc.id;
+
+            ssrcInfo.ssrcs.push(ssrcNumber);
+
+            if (groupsMap.has(ssrcNumber)) {
+                const ssrcGroups = groupsMap.get(ssrcNumber);
+
+                for (const group of ssrcGroups) {
+                    ssrcInfo.groups.push(group);
+                }
+            }
+        }
+    }
+
+    return ssrcMap;
 }
 
 /**
@@ -568,26 +609,20 @@ TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
     if (stream)
         this.peerconnection.addStream(stream);
     if (ssrcInfo && ssrcInfo.type === "addMuted") {
-        this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrc.ssrcs[0]);
-        const simGroup =
-            ssrcInfo.ssrc.groups.find(groupInfo => {
-                return groupInfo.group.semantics === "SIM";
-            });
+        this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrcs[0]);
+        const simGroup
+            = ssrcInfo.groups.find(groupInfo => groupInfo.semantics === "SIM");
         if (simGroup) {
-            const simSsrcs = SDPUtil.parseGroupSsrcs(simGroup.group);
-            this.simulcast.setSsrcCache(simSsrcs);
+            this.simulcast.setSsrcCache(simGroup.ssrcs);
         }
-        const fidGroups =
-            ssrcInfo.ssrc.groups.filter(groupInfo => {
-                return groupInfo.group.semantics === "FID";
-            });
+        const fidGroups
+            = ssrcInfo.groups.filter(
+                groupInfo => groupInfo.semantics === "FID");
         if (fidGroups) {
             const rtxSsrcMapping = new Map();
             fidGroups.forEach(fidGroup => {
-                const fidGroupSsrcs =
-                    SDPUtil.parseGroupSsrcs(fidGroup.group);
-                const primarySsrc = fidGroupSsrcs[0];
-                const rtxSsrc = fidGroupSsrcs[1];
+                const primarySsrc = fidGroup.ssrcs[0];
+                const rtxSsrc = fidGroup.ssrcs[1];
                 rtxSsrcMapping.set(primarySsrc, rtxSsrc);
             });
             this.rtxModifier.setSsrcCache(rtxSsrcMapping);
@@ -898,11 +933,14 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
             ssrcInfo.ssrcs.push(SDPUtil.generateSsrc());
         }
         ssrcInfo.groups.push({
-            primarySSRC: ssrcInfo.ssrcs[0],
-            group: {ssrcs: ssrcInfo.ssrcs.join(" "), semantics: "SIM"}});
-        ssrcInfo;
+            ssrcs: ssrcInfo.ssrcs.slice(),
+            semantics: "SIM"
+        });
     } else {
-        ssrcInfo = {ssrcs: [SDPUtil.generateSsrc()], groups: []};
+        ssrcInfo = {
+            ssrcs: [SDPUtil.generateSsrc()],
+            groups: []
+        };
     }
     if (!this.options.disableRtx && !RTCBrowserType.isFirefox()) {
         // Specifically use a for loop here because we'll
@@ -915,11 +953,8 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
             const rtxSsrc = SDPUtil.generateSsrc();
             ssrcInfo.ssrcs.push(rtxSsrc);
             ssrcInfo.groups.push({
-                primarySSRC: primarySsrc,
-                group: {
-                    ssrcs: primarySsrc + " " + rtxSsrc,
-                    semantics: "FID"
-                }
+                ssrcs: [primarySsrc, rtxSsrc],
+                semantics: "FID"
             });
         }
     }

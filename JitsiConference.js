@@ -527,8 +527,9 @@ JitsiConference.prototype.replaceTrack = function (oldTrack, newTrack) {
         }
         // Set up the ssrcHandler for the new track before we add it at the lower levels
         newTrack.ssrcHandler = function (conference, ssrcMap) {
-            if (ssrcMap[this.getMSID()]) {
-                this._setSSRC(ssrcMap[this.getMSID()]);
+            const trackSSRCInfo = ssrcMap.get(this.getMSID());
+            if (trackSSRCInfo) {
+                this._setSSRC(trackSSRCInfo);
                 conference.rtc.removeListener(
                     RTCEvents.SENDRECV_STREAMS_CHANGED,
                     this.ssrcHandler);
@@ -1039,7 +1040,7 @@ function (jingleSession, jingleOffer, now) {
     this.rtc.initializeDataChannels(jingleSession.peerconnection);
     // Add local Tracks to the ChatRoom
     this.getLocalTracks().forEach(function(localTrack) {
-        var ssrcInfo = null;
+        let ssrcInfo = null;
         /**
          * We don't do this for Firefox because, on Firefox, we keep the
          *  stream in the peer connection and just set 'enabled' on the
@@ -1070,7 +1071,8 @@ function (jingleSession, jingleOffer, now) {
             ssrcInfo = {
                 mtype: localTrack.getType(),
                 type: "addMuted",
-                ssrc: localTrack.ssrc,
+                ssrcs: localTrack.ssrc.ssrcs,
+                groups: localTrack.ssrc.groups,
                 msid: localTrack.initialMSID
             };
         }
