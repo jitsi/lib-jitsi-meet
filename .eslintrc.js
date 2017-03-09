@@ -69,6 +69,9 @@ module.exports = {
 
         'valid-typeof': 2,
 
+        // Best Practices group
+        'accessor-pairs': 0,
+
         'prefer-spread': 2,
         'require-yield': 2,
         'rest-spread-spacing': 2,
