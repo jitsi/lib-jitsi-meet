@@ -36,6 +36,7 @@ module.exports = {
         'no-console': 0,
         'semi': [ 'error', 'always' ],
 
+<<<<<<< HEAD
         'no-cond-assign': 2,
         'no-constant-condition': 2,
         'no-control-regex': 2,
@@ -51,6 +52,8 @@ module.exports = {
             'all',
             { 'nestedBinaryExpressions': false }
         ],
+
+        'yield-star-spacing': 2,
 
         'import/no-duplicates': 2
     }
