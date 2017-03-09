@@ -82,6 +82,11 @@ module.exports = {
         'brace-style': 2,
         'indent': [ 'error', 4, { 'SwitchCase': 0 } ],
 
+        'object-shorthand': [
+            'error',
+            'always',
+            { 'avoidQuotes': true }
+        ],
         'prefer-const': 2,
         'prefer-reflect': 0,
         'prefer-spread': 2,

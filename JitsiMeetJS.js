@@ -77,7 +77,7 @@ var LibJitsiMeet = {
 
     version: '{#COMMIT_HASH#}',
 
-    JitsiConnection: JitsiConnection,
+    JitsiConnection,
     events: {
         conference: JitsiConferenceEvents,
         connection: JitsiConnectionEvents,
@@ -92,12 +92,12 @@ var LibJitsiMeet = {
         track: JitsiTrackErrors
     },
     errorTypes: {
-        JitsiTrackError: JitsiTrackError
+        JitsiTrackError
     },
     logLevels: Logger.levels,
     mediaDevices: JitsiMediaDevices,
     analytics: null,
-    init: function (options) {
+    init (options) {
         let logObject, attr;
         Statistics.init(options);
 
@@ -140,10 +140,10 @@ var LibJitsiMeet = {
      * Returns whether the desktop sharing is enabled or not.
      * @returns {boolean}
      */
-    isDesktopSharingEnabled: function () {
+    isDesktopSharingEnabled () {
         return RTC.isDesktopSharingEnabled();
     },
-    setLogLevel: function (level) {
+    setLogLevel (level) {
         Logger.setLogLevel(level);
     },
     /**
@@ -153,7 +153,7 @@ var LibJitsiMeet = {
      * Usually it's the name of the JavaScript source file including the path
      * ex. "modules/xmpp/ChatRoom.js"
      */
-    setLogLevelById: function (level, id) {
+    setLogLevelById (level, id) {
         Logger.setLogLevelById(level, id);
     },
     /**
@@ -161,7 +161,7 @@ var LibJitsiMeet = {
      * @param globalTransport
      * @see Logger.addGlobalTransport
      */
-    addGlobalLogTransport: function (globalTransport) {
+    addGlobalLogTransport (globalTransport) {
         Logger.addGlobalTransport(globalTransport);
     },
     /**
@@ -169,7 +169,7 @@ var LibJitsiMeet = {
      * @param globalTransport
      * @see Logger.removeGlobalTransport
      */
-    removeGlobalLogTransport: function (globalTransport) {
+    removeGlobalLogTransport (globalTransport) {
         Logger.removeGlobalTransport(globalTransport);
     },
     /**
@@ -211,7 +211,7 @@ var LibJitsiMeet = {
      *     A promise that returns an array of created JitsiTracks if resolved,
      *     or a JitsiConferenceError if rejected.
      */
-    createLocalTracks: function (options, firePermissionPromptIsShownEvent) {
+    createLocalTracks (options, firePermissionPromptIsShownEvent) {
         var promiseFulfilled = false;
 
         if (firePermissionPromptIsShownEvent === true) {
@@ -332,7 +332,7 @@ var LibJitsiMeet = {
      * available available or with false otherwise.
      * @deprecated use JitsiMeetJS.mediaDevices.isDeviceListAvailable instead
      */
-    isDeviceListAvailable: function () {
+    isDeviceListAvailable () {
         logger.warn('This method is deprecated, use ' +
             'JitsiMeetJS.mediaDevices.isDeviceListAvailable instead');
         return this.mediaDevices.isDeviceListAvailable();
@@ -345,7 +345,7 @@ var LibJitsiMeet = {
      * @returns {boolean} true if available, false otherwise.
      * @deprecated use JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead
      */
-    isDeviceChangeAvailable: function (deviceType) {
+    isDeviceChangeAvailable (deviceType) {
         logger.warn('This method is deprecated, use ' +
             'JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead');
         return this.mediaDevices.isDeviceChangeAvailable(deviceType);
@@ -355,7 +355,7 @@ var LibJitsiMeet = {
      * @param {function} callback
      * @deprecated use JitsiMeetJS.mediaDevices.enumerateDevices instead
      */
-    enumerateDevices: function (callback) {
+    enumerateDevices (callback) {
         logger.warn('This method is deprecated, use ' +
             'JitsiMeetJS.mediaDevices.enumerateDevices instead');
         this.mediaDevices.enumerateDevices(callback);
@@ -366,7 +366,7 @@ var LibJitsiMeet = {
      * the function used by the lib.
      * (function(message, source, lineno, colno, error)).
      */
-    getGlobalOnErrorHandler: function (message, source, lineno, colno, error) {
+    getGlobalOnErrorHandler (message, source, lineno, colno, error) {
         logger.error(
             'UnhandledError: ' + message,
             'Script: ' + source,
@@ -380,7 +380,7 @@ var LibJitsiMeet = {
      * Returns current machine id saved from the local storage.
      * @returns {string} the machine id
      */
-    getMachineId: function() {
+    getMachineId() {
         return Settings.getMachineId();
     },
 
@@ -389,9 +389,9 @@ var LibJitsiMeet = {
      * interest to LibJitsiMeet clients.
      */
     util: {
-        ScriptUtil: ScriptUtil,
-        RTCUIHelper: RTCUIHelper,
-        AuthUtil: AuthUtil
+        ScriptUtil,
+        RTCUIHelper,
+        AuthUtil
     }
 };
 

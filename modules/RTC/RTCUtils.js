@@ -178,7 +178,7 @@ function getConstraints(um, options) {
                 constraints.video.facingMode = facingMode;
             }
             constraints.video.optional.push({
-                facingMode: facingMode
+                facingMode
             });
         }
 
@@ -639,7 +639,7 @@ function handleLocalStream(streams, resolution) {
             track: videoStream.getVideoTracks()[0],
             mediaType: MediaType.VIDEO,
             videoType: VideoType.CAMERA,
-            resolution: resolution
+            resolution
         });
     }
 
@@ -1034,9 +1034,9 @@ class RTCUtils extends Listenable {
                 obtainDevices({
                     devices: options.devices,
                     streams: [],
-                    successCallback: successCallback,
+                    successCallback,
                     errorCallback: reject,
-                    deviceGUM: deviceGUM
+                    deviceGUM
                 });
             } else {
                 var hasDesktop = options.devices.indexOf('desktop') > -1;
@@ -1108,7 +1108,7 @@ class RTCUtils extends Listenable {
                                     dsOptions,
                                     function (desktopStream) {
                                         successCallback({audioVideo: stream,
-                                            desktopStream: desktopStream});
+                                            desktopStream});
                                     }, function (error) {
                                         self.stopMediaStream(stream);
 

@@ -162,8 +162,8 @@ export default class RtxModifier {
                 videoMLine,
                 {
                     id: ssrc,
-                    cname: cname,
-                    msid: msid
+                    cname,
+                    msid
                 },
                 correspondingRtxSsrc);
         }

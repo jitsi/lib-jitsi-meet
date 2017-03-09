@@ -166,7 +166,7 @@ function (state, callback, errCallback, options) {
     elem.c('conference', {
         xmlns: 'http://jitsi.org/protocol/colibri'
     });
-    elem.c('recording', {state: state, token: options.token});
+    elem.c('recording', {state, token: options.token});
 
     var self = this;
     this.connection.sendIQ(elem,

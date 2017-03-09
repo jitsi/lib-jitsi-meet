@@ -50,8 +50,8 @@ SDP.prototype.getMediaSsrcMap = function() {
         tmp = SDPUtil.find_lines(self.media[mediaindex], 'a=ssrc:');
         var mid = SDPUtil.parse_mid(SDPUtil.find_line(self.media[mediaindex], 'a=mid:'));
         var media = {
-            mediaindex: mediaindex,
-            mid: mid,
+            mediaindex,
+            mid,
             ssrcs: {},
             ssrcGroups: []
         };
@@ -74,8 +74,8 @@ SDP.prototype.getMediaSsrcMap = function() {
             var ssrcs = line.substr(14 + semantics.length).split(' ');
             if (ssrcs.length) {
                 media.ssrcGroups.push({
-                    semantics: semantics,
-                    ssrcs: ssrcs
+                    semantics,
+                    ssrcs
                 });
             }
         });
@@ -160,7 +160,7 @@ SDP.prototype.toJingle = function (elem, thecreator) {
         for (i = 0; i < lines.length; i++) {
             tmp = lines[i].split(' ');
             var semantics = tmp.shift().substr(8);
-            elem.c('group', {xmlns: 'urn:xmpp:jingle:apps:grouping:0', semantics:semantics});
+            elem.c('group', {xmlns: 'urn:xmpp:jingle:apps:grouping:0', semantics});
             for (j = 0; j < tmp.length; j++) {
                 elem.c('content', {name: tmp[j]}).up();
             }
@@ -194,7 +194,7 @@ SDP.prototype.toJingle = function (elem, thecreator) {
                 {xmlns: 'urn:xmpp:jingle:apps:rtp:1',
                     media: mline.media });
             if (ssrc) {
-                elem.attrs({ssrc: ssrc});
+                elem.attrs({ssrc});
             }
             for (j = 0; j < mline.fmt.length; j++) {
                 rtpmap = SDPUtil.find_line(this.media[i], 'a=rtpmap:' + mline.fmt[j]);
@@ -222,7 +222,7 @@ SDP.prototype.toJingle = function (elem, thecreator) {
 
             if (ssrc) {
                 // new style mapping
-                elem.c('source', { ssrc: ssrc, xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
+                elem.c('source', { ssrc, xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
                 // FIXME: group by ssrc and support multiple different ssrcs
                 var ssrclines = SDPUtil.find_lines(this.media[i], 'a=ssrc:');
                 if(ssrclines.length > 0) {
@@ -232,7 +232,7 @@ SDP.prototype.toJingle = function (elem, thecreator) {
                         if (linessrc != ssrc) {
                             elem.up();
                             ssrc = linessrc;
-                            elem.c('source', { ssrc: ssrc, xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
+                            elem.c('source', { ssrc, xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
                         }
                         var kv = line.substr(idx + 1);
                         elem.c('parameter');
@@ -250,7 +250,7 @@ SDP.prototype.toJingle = function (elem, thecreator) {
                     });
                 } else {
                     elem.up();
-                    elem.c('source', { ssrc: ssrc, xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
+                    elem.c('source', { ssrc, xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
                     elem.c('parameter');
                     elem.attrs({name: "cname", value:Math.random().toString(36).substring(7)});
                     elem.up();
@@ -285,9 +285,9 @@ SDP.prototype.toJingle = function (elem, thecreator) {
                     var semantics = line.substr(0, idx).substr(13);
                     var ssrcs = line.substr(14 + semantics.length).split(' ');
                     if (ssrcs.length) {
-                        elem.c('ssrc-group', { semantics: semantics, xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
+                        elem.c('ssrc-group', { semantics, xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
                         ssrcs.forEach(function(ssrc) {
-                            elem.c('source', { ssrc: ssrc })
+                            elem.c('source', { ssrc })
                                 .up();
                         });
                         elem.up();

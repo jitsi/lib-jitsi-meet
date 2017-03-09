@@ -30,8 +30,8 @@ class RayoConnectionPlugin extends ConnectionPlugin {
             });
             req.c('dial', {
                 xmlns: RAYO_XMLNS,
-                to: to,
-                from: from
+                to,
+                from
             });
             req.c('header', {
                 name: 'JvbRoomName',

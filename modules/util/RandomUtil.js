@@ -52,23 +52,23 @@ var RandomUtil = {
      * Returns a random hex digit.
      * @returns {*}
      */
-    randomHexDigit: function() {
+    randomHexDigit() {
         return randomElement(HEX_DIGITS);
     },
     /**
      * Returns a random string of hex digits with length 'len'.
      * @param len the length.
      */
-    randomHexString: function (len) {
+    randomHexString (len) {
         var ret = '';
         while (len--) {
             ret += this.randomHexDigit();
         }
         return ret;
     },
-    randomElement: randomElement,
-    randomAlphanumStr: randomAlphanumStr,
-    randomInt: randomInt
+    randomElement,
+    randomAlphanumStr,
+    randomInt
 };
 
 module.exports = RandomUtil;

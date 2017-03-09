@@ -1409,7 +1409,7 @@ JitsiConference.prototype.getConnectionTimes = function () {
  * Sets a property for the local participant.
  */
 JitsiConference.prototype.setLocalParticipantProperty = function(name, value) {
-    this.sendCommand("jitsi_participant_" + name, {value: value});
+    this.sendCommand("jitsi_participant_" + name, {value});
 };
 
 /**

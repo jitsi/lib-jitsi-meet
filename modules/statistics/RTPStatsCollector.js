@@ -427,7 +427,7 @@ StatsCollector.prototype.processStatsReport = function () {
                 );
             })) {
                 conferenceStatsTransport.push(
-                    {ip: ip, type: type, localip: localip});
+                    {ip, type, localip});
             }
             continue;
         }
@@ -487,7 +487,7 @@ StatsCollector.prototype.processStatsReport = function () {
         ssrcStats.setLoss({
             packetsTotal: packetsDiff + packetsLostDiff,
             packetsLost: packetsLostDiff,
-            isDownloadStream: isDownloadStream
+            isDownloadStream
         });
 
         var bytesReceivedNow = getNonNegativeStat(now, 'bytesReceived');

@@ -437,5 +437,5 @@ function generateUsername () {
 }
 
 module.exports = {
-    generateUsername: generateUsername
+    generateUsername
 };

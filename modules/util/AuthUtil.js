@@ -20,7 +20,7 @@ var AuthUtil = {
      * <tt>null</tt> if 'urlPattern' is not a string and the URL can not be
      * constructed.
      */
-    getTokenAuthUrl: function (urlPattern, roomName, roleUpgrade) {
+    getTokenAuthUrl (urlPattern, roomName, roleUpgrade) {
         var url = urlPattern;
         if (typeof url !== "string") {
             return null;

@@ -275,7 +275,7 @@ DataChannels.prototype.send = function (jsonObject) {
 DataChannels.prototype.sendDataChannelMessage = function (to, payload) {
     this.send({
         colibriClass: "EndpointMessage",
-        to: to,
+        to,
         msgPayload: payload
     });
 };
