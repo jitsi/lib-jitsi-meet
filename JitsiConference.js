@@ -180,7 +180,7 @@ JitsiConference.prototype.leave = function () {
 
     // leave the conference
     if (this.room) {
-        let room = this.room;
+        const room = this.room;
         this.room = null;
         return room.leave().catch(() => {
             // remove all participants because currently the conference won't

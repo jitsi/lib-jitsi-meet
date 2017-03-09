@@ -265,7 +265,7 @@ export default class XMPP extends Listenable {
         // By default MUC nickname is the resource part of the JID
         let mucNickname = Strophe.getNodeFromJid(this.connection.jid);
         let roomjid = roomName  + "@" + this.options.hosts.muc + "/";
-        let cfgNickname
+        const cfgNickname
             = options.useNicks && options.nick ? options.nick : null;
 
         if (cfgNickname) {

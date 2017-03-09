@@ -34,14 +34,14 @@ class CacheAnalytics extends AnalyticsAbstract {
      * @returns {Array} with the cached events.
      */
     drainCachedEvents() {
-        let eventCacheCopy = this.eventCache.slice();
+        const eventCacheCopy = this.eventCache.slice();
         this.eventCache = [];
         return eventCacheCopy;
     }
 
 }
 
-let cacheAnalytics = new CacheAnalytics();
+const cacheAnalytics = new CacheAnalytics();
 
 /**
  * This class will store and manage the handlers that are going to be used.
@@ -72,7 +72,7 @@ class AnalyticsAdapter {
      * @param {Object} data can be any JSON object
      */
     sendEvent(action, data = {}) {
-        let modifiedData = Object.assign(
+        const modifiedData = Object.assign(
             {browserName: this.browserName}, this.permanentProperties, data);
         this.analyticsHandlers.forEach(
             analytics => analytics.sendEvent(action, modifiedData));

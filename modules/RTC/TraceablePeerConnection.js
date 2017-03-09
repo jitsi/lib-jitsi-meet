@@ -298,7 +298,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function (stream, track) {
 
     // FIXME the length of ssrcLines[0] not verified, but it will fail
     // with global error handler anyway
-    let trackSsrc = ssrcLines[0].substring(7).split(' ')[0];
+    const trackSsrc = ssrcLines[0].substring(7).split(' ')[0];
     const ownerEndpointId = this.signalingLayer.getSSRCOwner(trackSsrc);
 
     if (!ownerEndpointId) {
@@ -860,8 +860,8 @@ TraceablePeerConnection.prototype.createAnswer
 
                 // Fix the setup attribute (see _fixAnswerRFC4145Setup for
                 //  details)
-                let remoteDescription = new SDP(this.remoteDescription.sdp);
-                let localDescription = new SDP(answer.sdp);
+                const remoteDescription = new SDP(this.remoteDescription.sdp);
+                const localDescription = new SDP(answer.sdp);
                 _fixAnswerRFC4145Setup(remoteDescription, localDescription);
                 answer.sdp = localDescription.raw;
 

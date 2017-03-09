@@ -180,10 +180,10 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                 .c('services', {xmlns: 'urn:xmpp:extdisco:1'})
                 .c('service', {host: 'turn.' + this.connection.domain}),
             res => {
-                let iceservers = [];
+                const iceservers = [];
                 $(res).find('>services>service').each((idx, el) => {
                     el = $(el);
-                    let dict = {};
+                    const dict = {};
                     const type = el.attr('type');
                     switch (type) {
                         case 'stun':

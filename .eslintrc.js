@@ -52,6 +52,7 @@ module.exports = {
             { 'nestedBinaryExpressions': false }
         ],
 
+        'prefer-const': 2,
         'prefer-reflect': 0,
         'prefer-spread': 2,
         'require-yield': 2,

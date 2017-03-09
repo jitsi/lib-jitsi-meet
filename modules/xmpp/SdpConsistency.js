@@ -81,7 +81,7 @@ export default class SdpConsistency {
                 logger.error("No SSRC found for the recvonly video stream!");
             }
         } else {
-            let newPrimarySsrc = videoMLine.getPrimaryVideoSsrc();
+            const newPrimarySsrc = videoMLine.getPrimaryVideoSsrc();
             if (!newPrimarySsrc) {
                 logger.info("Sdp-consistency couldn't parse new primary ssrc");
                 return sdpStr;
@@ -99,8 +99,8 @@ export default class SdpConsistency {
                     newPrimarySsrc, this.cachedPrimarySsrc);
                 for (const group of videoMLine.ssrcGroups) {
                     if (group.semantics === "FID") {
-                        let primarySsrc = parsePrimarySSRC(group);
-                        let rtxSsrc = parseSecondarySSRC(group);
+                        const primarySsrc = parsePrimarySSRC(group);
+                        const rtxSsrc = parseSecondarySSRC(group);
                         if (primarySsrc === newPrimarySsrc) {
                             group.ssrcs =
                                 this.cachedPrimarySsrc + " " +

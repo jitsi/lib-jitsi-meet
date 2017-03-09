@@ -10,7 +10,7 @@ import UsernameGenerator from "../util/UsernameGenerator";
  * @returns {Storage} the local Storage object (if any)
  */
 function getLocalStorage() {
-    let global = typeof window == 'undefined' ? this : window;
+    const global = typeof window == 'undefined' ? this : window;
     return global.localStorage;
 }
 
@@ -27,7 +27,7 @@ function generateUniqueId() {
  * @returns {string} random unique id
  */
 function generateJitsiMeetId() {
-    let jitsiMeetId = generateUniqueId();
+    const jitsiMeetId = generateUniqueId();
     logger.log("generated id", jitsiMeetId);
 
     return jitsiMeetId;
@@ -38,7 +38,7 @@ function generateJitsiMeetId() {
  * @returns {string} fake random username
  */
 function generateCallStatsUsername() {
-    let username = UsernameGenerator.generateUsername();
+    const username = UsernameGenerator.generateUsername();
     logger.log('generated callstats uid', username);
 
     return username;
@@ -97,7 +97,7 @@ class Settings {
      * @param {string} sessionId session id
      */
     setSessionId (sessionId) {
-        let localStorage = getLocalStorage();
+        const localStorage = getLocalStorage();
         if (localStorage) {
             if (sessionId) {
                 localStorage.setItem('sessionId', sessionId);
@@ -121,7 +121,7 @@ class Settings {
     getSessionId () {
         // We may update sessionId in localStorage from another JitsiConference
         // instance and that's why we should always re-read it.
-        let localStorage = getLocalStorage();
+        const localStorage = getLocalStorage();
         return localStorage ? localStorage.getItem('sessionId') : undefined;
     }
 }

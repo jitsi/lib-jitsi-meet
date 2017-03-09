@@ -628,7 +628,7 @@ export default class JingleSessionPC extends JingleSession {
      *  be added to the remote SDP
      */
     _parseSsrcInfoFromSourceAdd(sourceAddElem, currentRemoteSdp) {
-        let addSsrcInfo = [];
+        const addSsrcInfo = [];
         $(sourceAddElem).each(function (idx, content) {
             const name = $(content).attr('name');
             let lines = '';
@@ -881,7 +881,7 @@ export default class JingleSessionPC extends JingleSession {
                     logger.debug("Renegotiate: creating answer");
                     this.peerconnection.createAnswer(
                         (answer) => {
-                            let localUfrag = JingleSessionPC.getUfrag(answer.sdp);
+                            const localUfrag = JingleSessionPC.getUfrag(answer.sdp);
                             if (localUfrag != this.localUfrag) {
                                 this.localUfrag = localUfrag;
                                 this.room.eventEmitter.emit(

@@ -761,7 +761,7 @@ export default class ChatRoom extends Listenable {
             mutedNode = filterNodeFromPresenceJSON(pres, "audiomuted");
         } else if (mediaType === MediaType.VIDEO) {
             mutedNode = filterNodeFromPresenceJSON(pres, "videomuted");
-            let videoTypeNode = filterNodeFromPresenceJSON(pres, "videoType");
+            const videoTypeNode = filterNodeFromPresenceJSON(pres, "videoType");
 
             if(videoTypeNode.length > 0) {
                 data.videoType = videoTypeNode[0]["value"];
@@ -901,8 +901,8 @@ export default class ChatRoom extends Listenable {
      */
     leave () {
         return new Promise((resolve, reject) => {
-            let timeout = setTimeout(() => onMucLeft(true), 5000);
-            let eventEmitter = this.eventEmitter;
+            const timeout = setTimeout(() => onMucLeft(true), 5000);
+            const eventEmitter = this.eventEmitter;
             function onMucLeft(doReject = false) {
                 eventEmitter.removeListener(XMPPEvents.MUC_LEFT, onMucLeft);
                 clearTimeout(timeout);

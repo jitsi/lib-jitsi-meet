@@ -144,11 +144,11 @@ JitsiLocalTrack.prototype.isEnded = function () {
  */
 JitsiLocalTrack.prototype._initNoDataFromSourceHandlers = function () {
     if(this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
-        let _onNoDataFromSourceError
+        const _onNoDataFromSourceError
             = this._onNoDataFromSourceError.bind(this);
         this._setHandler("track_mute", () => {
             if(this._checkForCameraIssues()) {
-                let now = window.performance.now();
+                const now = window.performance.now();
                 this._noDataFromSourceTimeout
                     = setTimeout(_onNoDataFromSourceError, 3000);
                 this._setHandler("track_unmute", () => {
@@ -192,9 +192,9 @@ JitsiLocalTrack.prototype._onNoDataFromSourceError = function () {
  */
 JitsiLocalTrack.prototype._fireNoDataFromSourceEvent = function () {
     this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
-    let eventName = this.getType() + ".no_data_from_source";
+    const eventName = this.getType() + ".no_data_from_source";
     Statistics.analytics.sendEvent(eventName);
-    let log = {name: eventName};
+    const log = {name: eventName};
     if (this.isAudioTrack()) {
         log.isReceivingData = this._isReceivingData();
     }
@@ -552,7 +552,7 @@ JitsiLocalTrack.prototype._setByteSent = function (bytesSent) {
     // FIXME it's a shame that PeerConnection and ICE status does not belong
     // to the RTC module and it has to be accessed through
     // the conference(and through the XMPP chat room ???) instead
-    let iceConnectionState
+    const iceConnectionState
         = this.conference ? this.conference.getConnectionState() : null;
     if(this._testByteSent && "connected" === iceConnectionState) {
         setTimeout(function () {

@@ -370,11 +370,11 @@ var SDPUtil = {
      * @return {number} the primary video ssrc from the given m line
      */
     parsePrimaryVideoSsrc: function(videoMLine) {
-        let numSsrcs = videoMLine.ssrcs
+        const numSsrcs = videoMLine.ssrcs
             .map(ssrcInfo => ssrcInfo.id)
             .filter((ssrc, index, array) => array.indexOf(ssrc) === index)
             .length;
-        let numGroups = (videoMLine.ssrcGroups && videoMLine.ssrcGroups.length) || 0;
+        const numGroups = (videoMLine.ssrcGroups && videoMLine.ssrcGroups.length) || 0;
         if (numSsrcs > 1 && numGroups === 0) {
             // Ambiguous, can't figure out the primary
             return;
@@ -385,14 +385,14 @@ var SDPUtil = {
         } else {
             if (numSsrcs === 2) {
                 // Can figure it out if there's an FID group
-                let fidGroup = videoMLine.ssrcGroups
+                const fidGroup = videoMLine.ssrcGroups
                     .find(group => group.semantics === "FID");
                 if (fidGroup) {
                     primarySsrc = fidGroup.ssrcs.split(" ")[0];
                 }
             } else if (numSsrcs >= 3) {
                 // Can figure it out if there's a sim group
-                let simGroup = videoMLine.ssrcGroups
+                const simGroup = videoMLine.ssrcGroups
                     .find(group => group.semantics === "SIM");
                 if (simGroup) {
                     primarySsrc = simGroup.ssrcs.split(" ")[0];
@@ -421,7 +421,7 @@ var SDPUtil = {
      */
     getSsrcAttribute: function (mLine, ssrc, attributeName) {
         for (let i = 0; i < mLine.ssrcs.length; ++i) {
-            let ssrcLine = mLine.ssrcs[i];
+            const ssrcLine = mLine.ssrcs[i];
             if (ssrcLine.id === ssrc &&
                 ssrcLine.attribute === attributeName) {
                 return ssrcLine.value;
