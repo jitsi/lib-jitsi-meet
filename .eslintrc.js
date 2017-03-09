@@ -53,6 +53,7 @@ module.exports = {
         ],
         'no-extra-semi': 2,
         'no-func-assign': 2,
+        'no-inner-declarations': 2,
 
         'prefer-spread': 2,
         'require-yield': 2,
