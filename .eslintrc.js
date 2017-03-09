@@ -59,6 +59,7 @@ module.exports = {
         'no-negated-in-lhs': 2,
         'no-obj-calls': 2,
         'no-prototype-builtins': 0,
+        'no-regex-spaces': 2,
 
         'prefer-spread': 2,
         'require-yield': 2,
