@@ -74,6 +74,7 @@ module.exports = {
         'consistent-return': 0,
         'curly': 2,
         'default-case': 0,
+        'dot-location': [ 'error', 'property' ],
         'no-caller': 2,
         'no-case-declarations': 2,
         'no-div-regex': 0,

@@ -187,8 +187,8 @@ function switchVideo() { // eslint-disable-line no-unused-vars
         localTracks[1].dispose();
         localTracks.pop();
     }
-    JitsiMeetJS.createLocalTracks({devices: isVideo ? ['video'] : ['desktop']}).
-        then(function(tracks) {
+    JitsiMeetJS.createLocalTracks({devices: isVideo ? ['video'] : ['desktop']})
+        .then(function(tracks) {
             localTracks.push(tracks[0]);
             localTracks[1].addEventListener(JitsiMeetJS.events.track.TRACK_MUTE_CHANGED,
                 function() {
@@ -249,8 +249,8 @@ JitsiMeetJS.init(initOptions).then(function() {
     JitsiMeetJS.mediaDevices.addEventListener(JitsiMeetJS.events.mediaDevices.DEVICE_LIST_CHANGED, onDeviceListChanged);
 
     connection.connect();
-    JitsiMeetJS.createLocalTracks({devices: ['audio', 'video']}).
-        then(onLocalTracks).catch(function(error) {
+    JitsiMeetJS.createLocalTracks({devices: ['audio', 'video']})
+        .then(onLocalTracks).catch(function(error) {
             throw error;
         });
 }).catch(function(error) {
@@ -260,7 +260,7 @@ JitsiMeetJS.init(initOptions).then(function() {
 if (JitsiMeetJS.mediaDevices.isDeviceChangeAvailable('output')) {
     JitsiMeetJS.mediaDevices.enumerateDevices(function(devices) {
         var audioOutputDevices = devices.filter(function(d) {
-            return d.kind === 'audiooutput'; 
+            return d.kind === 'audiooutput';
         });
 
         if (audioOutputDevices.length > 1) {
