@@ -74,6 +74,7 @@ module.exports = {
         'array-callback-return': 2,
         'block-scoped-var': 0,
         'complexity': 0,
+        'consistent-return': 0,
 
         'prefer-const': 2,
         'prefer-reflect': 0,
