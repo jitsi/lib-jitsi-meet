@@ -1145,6 +1145,7 @@ export default class JingleSessionPC extends JingleSession {
                 sender = s;
                 return true;
             }
+            return false;
         });
 
         if (sender) {
