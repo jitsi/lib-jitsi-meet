@@ -30,8 +30,8 @@ function JitsiConnection(appID, token, options) {
             // and then there are no msgs, but we want to log only disconnects
             // when there is real error
             if(msg)
-                Statistics.analytics.sendEvent(
-                    'connection.disconnected.' + msg);
+                {Statistics.analytics.sendEvent(
+                    'connection.disconnected.' + msg);}
             Statistics.sendLog(
                 JSON.stringify({id: "connection.disconnected", msg: msg}));
         });
@@ -44,7 +44,7 @@ function JitsiConnection(appID, token, options) {
  */
 JitsiConnection.prototype.connect = function (options) {
     if(!options)
-        options = {};
+        {options = {};}
 
     this.xmpp.connect(options.id, options.password);
 };

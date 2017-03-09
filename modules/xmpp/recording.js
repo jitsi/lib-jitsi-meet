@@ -56,13 +56,13 @@ Recording.action = {
 Recording.prototype.handleJibriPresence = function (jibri) {
     var attributes = jibri.attributes;
     if(!attributes)
-        return;
+        {return;}
 
     var newState = attributes.status;
     logger.log("Handle jibri presence : ", newState);
 
     if (newState === this.state)
-        return;
+        {return;}
 
     if (newState === "undefined") {
         this.state = Recording.status.UNAVAILABLE;
@@ -71,9 +71,9 @@ Recording.prototype.handleJibriPresence = function (jibri) {
         if (!this.state
             || this.state === "undefined"
             || this.state === Recording.status.UNAVAILABLE)
-            this.state = Recording.status.AVAILABLE;
+            {this.state = Recording.status.AVAILABLE;}
         else
-            this.state = Recording.status.OFF;
+            {this.state = Recording.status.OFF;}
     }
     else {
         this.state = newState;
@@ -225,11 +225,11 @@ Recording.prototype.toggleRecording = function (options, statusChangeHandler) {
     // If the recorder is currently unavailable we throw an error.
     if (oldState === Recording.status.UNAVAILABLE
         || oldState === Recording.status.FAILED)
-        statusChangeHandler(Recording.status.FAILED,
-                            JitsiRecorderErrors.RECORDER_UNAVAILABLE);
+        {statusChangeHandler(Recording.status.FAILED,
+                            JitsiRecorderErrors.RECORDER_UNAVAILABLE);}
     else if (oldState === Recording.status.BUSY)
-        statusChangeHandler(Recording.status.BUSY,
-                            JitsiRecorderErrors.RECORDER_BUSY);
+        {statusChangeHandler(Recording.status.BUSY,
+                            JitsiRecorderErrors.RECORDER_BUSY);}
 
     // If we're about to turn ON the recording we need either a streamId or
     // an authentication token depending on the recording type. If we don't

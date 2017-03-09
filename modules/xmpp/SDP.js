@@ -93,7 +93,7 @@ SDP.prototype.containsSSRC = function (ssrc) {
     var result = false;
     Object.keys(medias).forEach(function (mediaindex) {
         if (result)
-            return;
+            {return;}
         if (medias[mediaindex].ssrcs[ssrc]) {
             result = true;
         }
@@ -109,14 +109,14 @@ SDP.prototype.mangle = function () {
         lines.pop(); // remove empty last element
         mline = SDPUtil.parse_mline(lines.shift());
         if (mline.media != 'audio')
-            continue;
+            {continue;}
         newdesc = '';
         mline.fmt.length = 0;
         for (j = 0; j < lines.length; j++) {
             if (lines[j].substr(0, 9) == 'a=rtpmap:') {
                 rtpmap = SDPUtil.parse_rtpmap(lines[j]);
                 if (rtpmap.name == 'CN' || rtpmap.name == 'ISAC')
-                    continue;
+                    {continue;}
                 mline.fmt.push(rtpmap.id);
             }
             newdesc += lines[j] + '\r\n';
@@ -369,7 +369,7 @@ SDP.prototype.transportToJingle = function (mediaindex, elem) {
             });
         // Optional stream count attribute
         if (sctpAttrs.length > 2)
-            elem.attrs({ streams: sctpAttrs[2]});
+            {elem.attrs({ streams: sctpAttrs[2]});}
         elem.up();
     }
     // XEP-0320
@@ -521,14 +521,14 @@ SDP.prototype.jingle2media = function (content) {
 
         var streamCount = sctp.attr('streams');
         if (streamCount)
-            media += ' ' + streamCount + '\r\n';
+            {media += ' ' + streamCount + '\r\n';}
         else
-            media += '\r\n';
+            {media += '\r\n';}
     }
 
     media += 'c=IN IP4 0.0.0.0\r\n';
     if (!sctp.length)
-        media += 'a=rtcp:1 IN IP4 0.0.0.0\r\n';
+        {media += 'a=rtcp:1 IN IP4 0.0.0.0\r\n';}
     tmp = content.find('>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]');
     if (tmp.length) {
         if (tmp.attr('ufrag')) {
@@ -641,7 +641,7 @@ SDP.prototype.jingle2media = function (content) {
             value = SDPUtil.filter_special_chars(value);
             media += 'a=ssrc:' + ssrc + ' ' + name;
             if (value && value.length)
-                media += ':' + value;
+                {media += ':' + value;}
             media += '\r\n';
         });
     });

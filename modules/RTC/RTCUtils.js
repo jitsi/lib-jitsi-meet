@@ -117,11 +117,11 @@ function setResolutionConstraints(constraints, resolution) {
     }
 
     if (constraints.video.mandatory.minWidth)
-        constraints.video.mandatory.maxWidth =
-            constraints.video.mandatory.minWidth;
+        {constraints.video.mandatory.maxWidth =
+            constraints.video.mandatory.minWidth;}
     if (constraints.video.mandatory.minHeight)
-        constraints.video.mandatory.maxHeight =
-            constraints.video.mandatory.minHeight;
+        {constraints.video.mandatory.maxHeight =
+            constraints.video.mandatory.minHeight;}
 }
 
 /**
@@ -772,7 +772,7 @@ class RTCUtils extends Listenable {
                     if (element) {
                         defaultSetVideoSrc(element, stream);
                         if (stream)
-                            element.play();
+                            {element.play();}
                     }
                     return element;
                 });
@@ -1146,7 +1146,7 @@ class RTCUtils extends Listenable {
 
     _isDeviceListAvailable () {
         if (!rtcReady)
-            throw new Error("WebRTC not ready yet");
+            {throw new Error("WebRTC not ready yet");}
         var isEnumerateDevicesAvailable
             = navigator.mediaDevices && navigator.mediaDevices.enumerateDevices;
         if (isEnumerateDevicesAvailable) {

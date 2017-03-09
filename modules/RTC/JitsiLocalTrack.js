@@ -35,8 +35,8 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
         null /* RTC */, stream, track,
         function () {
             if(!this.dontFireRemoveEvent)
-                this.eventEmitter.emit(
-                    JitsiTrackEvents.LOCAL_TRACK_STOPPED);
+                {this.eventEmitter.emit(
+                    JitsiTrackEvents.LOCAL_TRACK_STOPPED);}
             this.dontFireRemoveEvent = false;
         }.bind(this) /* inactiveHandler */,
         mediaType, videoType, null /* ssrc */);
@@ -46,7 +46,7 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
     // FIXME: currently firefox is ignoring our constraints about resolutions
     // so we do not store it, to avoid wrong reporting of local track resolution
     if (RTCBrowserType.isFirefox())
-        this.resolution = null;
+        {this.resolution = null;}
 
     this.deviceId = deviceId;
     this.startMuted = false;
@@ -183,7 +183,7 @@ JitsiLocalTrack.prototype._clearNoDataFromSourceMuteResources = function () {
 JitsiLocalTrack.prototype._onNoDataFromSourceError = function () {
     this._clearNoDataFromSourceMuteResources();
     if(this._checkForCameraIssues())
-        this._fireNoDataFromSourceEvent();
+        {this._fireNoDataFromSourceEvent();}
 };
 
 /**
@@ -293,7 +293,7 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
         this.videoType === VideoType.DESKTOP ||
         RTCBrowserType.isFirefox()) {
         if(this.track)
-            this.track.enabled = !mute;
+            {this.track.enabled = !mute;}
     } else {
         if(mute) {
             this.dontFireRemoveEvent = true;
@@ -316,7 +316,7 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
                 facingMode: this.getCameraFacingMode()
             };
             if (this.resolution)
-                streamOptions.resolution = this.resolution;
+                {streamOptions.resolution = this.resolution;}
 
             promise = RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
                 .then(function (streamsInfo) {
@@ -475,7 +475,7 @@ JitsiLocalTrack.prototype.dispose = function () {
 JitsiLocalTrack.prototype.isMuted = function () {
     // this.stream will be null when we mute local video on Chrome
     if (!this.stream)
-        return true;
+        {return true;}
     if (this.isVideoTrack() && !this.isActive()) {
         return true;
     } else {
@@ -519,11 +519,11 @@ JitsiLocalTrack.prototype._setConference = function(conference) {
  */
 JitsiLocalTrack.prototype.getSSRC = function () {
     if(this.ssrc && this.ssrc.groups && this.ssrc.groups.length)
-        return this.ssrc.groups[0].ssrcs[0];
+        {return this.ssrc.groups[0].ssrcs[0];}
     else if(this.ssrc && this.ssrc.ssrcs && this.ssrc.ssrcs.length)
-        return this.ssrc.ssrcs[0];
+        {return this.ssrc.ssrcs[0];}
     else
-        return null;
+        {return null;}
 };
 
 /**
@@ -622,7 +622,7 @@ JitsiLocalTrack.prototype._stopMediaStream = function () {
 JitsiLocalTrack.prototype._checkForCameraIssues = function () {
     if(!this.isVideoTrack() || this.stopStreamInProgress ||
         this.videoType === VideoType.DESKTOP)
-        return false;
+        {return false;}
 
     return !this._isReceivingData();
 };
@@ -638,7 +638,7 @@ JitsiLocalTrack.prototype._checkForCameraIssues = function () {
  */
 JitsiLocalTrack.prototype._isReceivingData = function () {
     if(!this.stream)
-        return false;
+        {return false;}
     // In older version of the spec there is no muted property and
     // readyState can have value muted. In the latest versions
     // readyState can have values "live" and "ended" and there is

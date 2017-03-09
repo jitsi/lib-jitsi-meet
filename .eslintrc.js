@@ -75,6 +75,7 @@ module.exports = {
         'block-scoped-var': 0,
         'complexity': 0,
         'consistent-return': 0,
+        'curly': 2,
 
         'prefer-const': 2,
         'prefer-reflect': 0,

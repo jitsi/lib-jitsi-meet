@@ -246,7 +246,7 @@ var SDPUtil = {
             needles = [];
         for (var i = 0; i < lines.length; i++) {
             if (lines[i].substring(0, needle.length) == needle)
-                needles.push(lines[i]);
+                {needles.push(lines[i]);}
         }
         if (needles.length || !sessionpart) {
             return needles;
@@ -271,7 +271,7 @@ var SDPUtil = {
             return null;
         }
         if (line.substring(line.length - 2) == '\r\n') // chomp it
-            line = line.substring(0, line.length - 2);
+            {line = line.substring(0, line.length - 2);}
         var candidate = {},
             elems = line.split(' '),
             i;

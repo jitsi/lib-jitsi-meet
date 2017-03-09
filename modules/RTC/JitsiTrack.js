@@ -27,7 +27,7 @@ function implementOnEndedHandling(jitsiTrack) {
     var stream = jitsiTrack.getOriginalStream();
 
     if(!stream)
-        return;
+        {return;}
 
     var originalStop = stream.stop;
     stream.stop = function () {
@@ -46,9 +46,9 @@ function implementOnEndedHandling(jitsiTrack) {
 function addMediaStreamInactiveHandler(mediaStream, handler) {
     // Temasys will use onended
     if(typeof mediaStream.active !== "undefined")
-        mediaStream.oninactive = handler;
+        {mediaStream.oninactive = handler;}
     else
-        mediaStream.onended = handler;
+        {mediaStream.onended = handler;}
 }
 
 /**
@@ -102,7 +102,7 @@ function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMedia
 JitsiTrack.prototype._setHandler = function (type, handler) {
     this.handlers[type] = handler;
     if(!this.stream)
-        return;
+        {return;}
 
     if(type === "inactive") {
         if (RTCBrowserType.isFirefox()) {
@@ -316,9 +316,9 @@ JitsiTrack.prototype.isScreenSharing = function() {
  */
 JitsiTrack.prototype.getId = function () {
     if(this.stream)
-        return RTCUtils.getStreamID(this.stream);
+        {return RTCUtils.getStreamID(this.stream);}
     else
-        return null;
+        {return null;}
 };
 
 /**
@@ -329,9 +329,9 @@ JitsiTrack.prototype.getId = function () {
  */
 JitsiTrack.prototype.isActive = function () {
     if(typeof this.stream.active !== "undefined")
-        return this.stream.active;
+        {return this.stream.active;}
     else
-        return true;
+        {return true;}
 };
 
 /**
@@ -342,7 +342,7 @@ JitsiTrack.prototype.isActive = function () {
  */
 JitsiTrack.prototype.on = function (eventId, handler) {
     if(this.eventEmitter)
-        this.eventEmitter.on(eventId, handler);
+        {this.eventEmitter.on(eventId, handler);}
 };
 
 /**
@@ -352,7 +352,7 @@ JitsiTrack.prototype.on = function (eventId, handler) {
  */
 JitsiTrack.prototype.off = function (eventId, handler) {
     if(this.eventEmitter)
-        this.eventEmitter.removeListener(eventId, handler);
+        {this.eventEmitter.removeListener(eventId, handler);}
 };
 
 // Common aliases for event emitter

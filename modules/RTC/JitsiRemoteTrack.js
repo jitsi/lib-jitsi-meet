@@ -38,7 +38,7 @@ function JitsiRemoteTrack(rtc, conference, ownerEndpointId, stream, track,
     this.hasBeenMuted = muted;
     // Bind 'onmute' and 'onunmute' event handlers
     if (this.rtc && this.track)
-        this._bindMuteHandlers();
+        {this._bindMuteHandlers();}
 }
 
 JitsiRemoteTrack.prototype = Object.create(JitsiTrack.prototype);
@@ -77,14 +77,14 @@ JitsiRemoteTrack.prototype._bindMuteHandlers = function() {
  */
 JitsiRemoteTrack.prototype.setMute = function (value) {
     if(this.muted === value)
-        return;
+        {return;}
 
     if(value)
-        this.hasBeenMuted = true;
+        {this.hasBeenMuted = true;}
 
     // we can have a fake video stream
     if(this.stream)
-        this.stream.muted = value;
+        {this.stream.muted = value;}
 
     this.muted = value;
     this.eventEmitter.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, this);
@@ -129,7 +129,7 @@ JitsiRemoteTrack.prototype.getSSRC = function () {
  */
 JitsiRemoteTrack.prototype._setVideoType = function (type) {
     if(this.videoType === type)
-        return;
+        {return;}
     this.videoType = type;
     this.eventEmitter.emit(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, type);
 };
@@ -150,7 +150,7 @@ JitsiRemoteTrack.prototype._playCallback = function () {
     console.log("(TIME) TTFM " + type + ":\t", ttfm);
     var eventName = type +'.ttfm';
     if(this.hasBeenMuted)
-        eventName += '.muted';
+        {eventName += '.muted';}
     Statistics.analytics.sendEvent(eventName, {value: ttfm});
 };
 
@@ -165,12 +165,12 @@ JitsiRemoteTrack.prototype._playCallback = function () {
 JitsiRemoteTrack.prototype._attachTTFMTracker = function (container) {
     if((ttfmTrackerAudioAttached && this.isAudioTrack())
         || (ttfmTrackerVideoAttached && this.isVideoTrack()))
-        return;
+        {return;}
 
     if (this.isAudioTrack())
-        ttfmTrackerAudioAttached = true;
+        {ttfmTrackerAudioAttached = true;}
     if (this.isVideoTrack())
-        ttfmTrackerVideoAttached = true;
+        {ttfmTrackerVideoAttached = true;}
 
     if (RTCBrowserType.isTemasysPluginUsed()) {
         // XXX Don't require Temasys unless it's to be used because it doesn't

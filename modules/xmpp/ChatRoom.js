@@ -38,9 +38,9 @@ var parser = {
             }
             packet.c(node.tagName, node.attributes);
             if(node.value)
-                packet.t(node.value);
+                {packet.t(node.value);}
             if(node.children)
-                this.json2packet(node.children, packet);
+                {this.json2packet(node.children, packet);}
             packet.up();
         }
         // packet.up();
@@ -55,8 +55,8 @@ var parser = {
 function filterNodeFromPresenceJSON(pres, nodeName){
     var res = [];
     for(let i = 0; i < pres.length; i++)
-        if(pres[i].tagName === nodeName)
-            res.push(pres[i]);
+        {if(pres[i].tagName === nodeName)
+            {res.push(pres[i]);}}
 
     return res;
 }
@@ -303,7 +303,7 @@ export default class ChatRoom extends Listenable {
 
                 // set correct initial state of locked
                 if (this.password)
-                    this.locked = true;
+                    {this.locked = true;}
 
                 this.eventEmitter.emit(XMPPEvents.MUC_JOINED);
             }
@@ -343,7 +343,7 @@ export default class ChatRoom extends Listenable {
 
             // store the new display name
             if(member.displayName)
-                memberOfThis.displayName = member.displayName;
+                {memberOfThis.displayName = member.displayName;}
         }
 
         // after we had fired member or room joined events, lets fire events
@@ -376,7 +376,7 @@ export default class ChatRoom extends Listenable {
                 case "call-control":
                     var att = node.attributes;
                     if(!att)
-                        break;
+                        {break;}
                     this.phoneNumber = att.phone || null;
                     this.phonePin = att.pin || null;
                     this.eventEmitter.emit(XMPPEvents.PHONE_NUMBER_CHANGED);
@@ -395,7 +395,7 @@ export default class ChatRoom extends Listenable {
         {
             this.lastJibri = jibri;
             if(this.recording)
-                this.recording.handleJibriPresence(jibri);
+                {this.recording.handleJibriPresence(jibri);}
         }
     }
 
@@ -411,7 +411,7 @@ export default class ChatRoom extends Listenable {
                 this.eventEmitter, this.connection, this.focusMucJid,
                 this.options.jirecon, this.roomjid);
             if(this.lastJibri)
-                this.recording.handleJibriPresence(this.lastJibri);
+                {this.recording.handleJibriPresence(this.lastJibri);}
         }
         logger.info("Ignore focus: " + from + ", real JID: " + mucJid);
     }
@@ -469,7 +469,7 @@ export default class ChatRoom extends Listenable {
         delete this.lastPresences[jid];
 
         if(skipEvents)
-            return;
+            {return;}
 
         this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, jid);
 
@@ -520,7 +520,7 @@ export default class ChatRoom extends Listenable {
             // we fire muc_left only if this is not a kick,
             // kick has both statuses 110 and 307.
             if (!isKick)
-                this.eventEmitter.emit(XMPPEvents.MUC_LEFT);
+                {this.eventEmitter.emit(XMPPEvents.MUC_LEFT);}
         }
 
         if (isKick && this.myroomjid === from) {
@@ -694,7 +694,7 @@ export default class ChatRoom extends Listenable {
     setVideoMute (mute, callback) {
         this.sendVideoInfoPresence(mute);
         if(callback)
-            callback(mute);
+            {callback(mute);}
     }
 
     setAudioMute (mute, callback) {
@@ -715,7 +715,7 @@ export default class ChatRoom extends Listenable {
             this.sendPresence();
         }
         if(callback)
-            callback();
+            {callback();}
     }
 
     addVideoInfoToPresence (mute) {
@@ -729,7 +729,7 @@ export default class ChatRoom extends Listenable {
     sendVideoInfoPresence (mute) {
         this.addVideoInfoToPresence(mute);
         if(!this.connection)
-            return;
+            {return;}
         this.sendPresence();
     }
 
@@ -781,7 +781,7 @@ export default class ChatRoom extends Listenable {
      */
     isRecordingSupported () {
         if(this.recording)
-            return this.recording.isSupported();
+            {return this.recording.isSupported();}
         return false;
     }
 
@@ -807,7 +807,7 @@ export default class ChatRoom extends Listenable {
      */
     toggleRecording (options, statusChangeHandler) {
         if(this.recording)
-            return this.recording.toggleRecording(options, statusChangeHandler);
+            {return this.recording.toggleRecording(options, statusChangeHandler);}
 
         return statusChangeHandler("error",
             new Error("The conference is not created yet!"));
@@ -818,7 +818,7 @@ export default class ChatRoom extends Listenable {
      */
     isSIPCallingSupported () {
         if(this.moderator)
-            return this.moderator.isSipGatewayEnabled();
+            {return this.moderator.isSipGatewayEnabled();}
         return false;
     }
 

@@ -24,7 +24,7 @@ function JitsiConferenceEventManager(conference) {
     conference.on(JitsiConferenceEvents.TRACK_MUTE_CHANGED,
         function (track) {
             if(!track.isLocal() || !conference.statistics)
-                return;
+                {return;}
             conference.statistics.sendMuteEvent(track.isMuted(),
                 track.getType());
         });
@@ -528,12 +528,12 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function () {
 JitsiConferenceEventManager.prototype.setupStatisticsListeners = function () {
     var conference = this.conference;
     if(!conference.statistics)
-        return;
+        {return;}
 
     conference.statistics.addAudioLevelListener(function (ssrc, level) {
         var resource = conference.rtc.getResourceBySSRC(ssrc);
         if (!resource)
-            return;
+            {return;}
 
         conference.rtc.setAudioLevel(resource, level);
     });
@@ -579,7 +579,7 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function () {
         conference.getLocalTracks(MediaType.AUDIO).forEach(function (track) {
             const ssrc = track.getSSRC();
             if (!ssrc || !stats.hasOwnProperty(ssrc))
-                return;
+                {return;}
 
             track._setByteSent(stats[ssrc]);
         });

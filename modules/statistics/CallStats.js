@@ -213,7 +213,7 @@ CallStats.feedbackEnabled = false;
 CallStats._checkInitialize = function () {
     if (CallStats.initialized || !CallStats.initializeFailed
         || !callStats || CallStats.initializeInProgress)
-        return;
+        {return;}
 
     // callstats object created, not initialized and it had previously failed,
     // and there is no init in progress, so lets try initialize it again
@@ -237,7 +237,7 @@ var reportType = {
 
 CallStats.prototype.pcCallback = _try_catch(function (err, msg) {
     if (callStats && err !== 'success')
-        logger.error("Monitoring status: "+ err + " msg: " + msg);
+        {logger.error("Monitoring status: "+ err + " msg: " + msg);}
 });
 
 /**

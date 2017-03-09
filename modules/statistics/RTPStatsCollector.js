@@ -65,7 +65,7 @@ KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_REACT_NATIVE] =
  */
 function calculatePacketLoss(lostPackets, totalPackets) {
     if(!totalPackets || totalPackets <= 0 || !lostPackets || lostPackets <= 0)
-        return 0;
+        {return 0;}
     return Math.round((lostPackets/totalPackets)*100);
 }
 
@@ -180,7 +180,7 @@ function StatsCollector(
     this._browserType = RTCBrowserType.getBrowserType();
     var keys = KEYS_BY_BROWSER_TYPE[this._browserType];
     if (!keys)
-        throw "The browser type '" + this._browserType + "' isn't supported!";
+        {throw "The browser type '" + this._browserType + "' isn't supported!";}
     /**
      * The function which is to be used to retrieve the value associated in a
      * report returned by RTCPeerConnection#getStats with a LibJitsiMeet
@@ -316,9 +316,9 @@ StatsCollector.prototype._defineGetStatValueMethod = function (keys) {
     var keyFromName = function (name) {
         var key = keys[name];
         if (key)
-            return key;
+            {return key;}
         else
-            throw "The property '" + name + "' isn't supported!";
+            {throw "The property '" + name + "' isn't supported!";}
     };
 
     // Define the function which retrieves the value from a specific report
@@ -416,7 +416,7 @@ StatsCollector.prototype.processStatsReport = function () {
             }
             catch(e){/*not supported*/}
             if(!ip || !type || !localip || active != "true")
-                continue;
+                {continue;}
             // Save the address unless it has been saved already.
             var conferenceStatsTransport = this.conferenceStats.transport;
             if(!conferenceStatsTransport.some(function (t) { return (
@@ -430,7 +430,7 @@ StatsCollector.prototype.processStatsReport = function () {
 
         if(now.type == "candidatepair") {
             if(now.state == "succeeded")
-                continue;
+                {continue;}
 
             var local = this.currentStatsReport[now.localCandidateId];
             var remote = this.currentStatsReport[now.remoteCandidateId];
@@ -469,7 +469,7 @@ StatsCollector.prototype.processStatsReport = function () {
             }
         }
         if (!packetsNow || packetsNow < 0)
-            packetsNow = 0;
+            {packetsNow = 0;}
 
         var packetsBefore = getNonNegativeStat(before, key);
         var packetsDiff = Math.max(0, packetsNow - packetsBefore);
@@ -612,7 +612,7 @@ StatsCollector.prototype.processAudioLevelReport = function () {
         var now = this.currentAudioLevelsReport[idx];
 
         if (now.type != 'ssrc')
-            continue;
+            {continue;}
 
         var before = this.baselineAudioLevelsReport[idx];
         var ssrc = getStatValue(now, 'ssrc');
@@ -623,7 +623,7 @@ StatsCollector.prototype.processAudioLevelReport = function () {
 
         if (!ssrc) {
             if ((Date.now() - now.timestamp) < 3000)
-                logger.warn("No ssrc: ");
+                {logger.warn("No ssrc: ");}
             continue;
         }
 
