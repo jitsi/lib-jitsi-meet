@@ -38,6 +38,7 @@ module.exports = {
         'no-duplicate-case': 2,
         'no-empty': 2,
         'no-empty-character-class': 2,
-        'no-ex-assign': 2
+        'no-ex-assign': 2,
+        'no-extra-boolean-cast': 2
     }
 };
