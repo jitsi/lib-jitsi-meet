@@ -175,9 +175,9 @@ transcriber.prototype.merge = function() {
         //first select the lowest array;
         lowestWordArray = arrays[0];
         arrays.forEach(function(wordArray){
-           if(wordArray[0].begin < lowestWordArray[0].begin){
-               lowestWordArray = wordArray;
-           }
+            if(wordArray[0].begin < lowestWordArray[0].begin){
+                lowestWordArray = wordArray;
+            }
         });
         //put the word in the transcription
         wordToAdd = lowestWordArray.shift();

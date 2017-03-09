@@ -131,12 +131,12 @@ export default class JingleSessionPC extends JingleSession {
                     protocol = protocol.toLowerCase();
                     if (protocol === 'tcp' || protocol === 'ssltcp') {
                         if (this.webrtcIceTcpDisable)                            {
-return;
-}
+                            return;
+                        }
                     } else if (protocol == 'udp') {
                         if (this.webrtcIceUdpDisable)                            {
-return;
-}
+                            return;
+                        }
                     }
                 }
             }
@@ -151,8 +151,8 @@ return;
         // I suppose at some point this will be moved to onconnectionstatechange
         this.peerconnection.onsignalingstatechange = () => {
             if (!this.peerconnection) {
-return;
-}
+                return;
+            }
             if (this.peerconnection.signalingState === 'stable') {
                 this.wasstable = true;
             } else if (
@@ -170,8 +170,8 @@ return;
          */
         this.peerconnection.oniceconnectionstatechange = () => {
             if (!this.peerconnection) {
-return;
-}
+                return;
+            }
             const now = window.performance.now();
             this.room.connectionTimes["ice.state." +
             this.peerconnection.iceConnectionState] = now;
@@ -183,33 +183,33 @@ return;
                 XMPPEvents.ICE_CONNECTION_STATE_CHANGED,
                 this.peerconnection.iceConnectionState);
             switch (this.peerconnection.iceConnectionState) {
-                case 'connected':
+            case 'connected':
                     // Informs interested parties that the connection has been
                     // restored.
-                    if (this.peerconnection.signalingState === 'stable'
+                if (this.peerconnection.signalingState === 'stable'
                             && this.isreconnect) {
-                        this.room.eventEmitter.emit(
+                    this.room.eventEmitter.emit(
                             XMPPEvents.CONNECTION_RESTORED);
-                    }
-                    this.isreconnect = false;
+                }
+                this.isreconnect = false;
 
+                break;
+            case 'disconnected':
+                if (this.closed)                        {
                     break;
-                case 'disconnected':
-                    if (this.closed)                        {
-break;
-}
-                    this.isreconnect = true;
+                }
+                this.isreconnect = true;
                     // Informs interested parties that the connection has been
                     // interrupted.
-                    if (this.wasstable)                        {
-this.room.eventEmitter.emit(
-                            XMPPEvents.CONNECTION_INTERRUPTED);
-}
-                    break;
-                case 'failed':
+                if (this.wasstable)                        {
                     this.room.eventEmitter.emit(
+                            XMPPEvents.CONNECTION_INTERRUPTED);
+                }
+                break;
+            case 'failed':
+                this.room.eventEmitter.emit(
                         XMPPEvents.CONNECTION_ICE_FAILED, this.peerconnection);
-                    break;
+                break;
             }
         };
         this.peerconnection.onnegotiationneeded = () => {
@@ -237,8 +237,8 @@ this.room.eventEmitter.emit(
                     // start 20ms callout
                     setTimeout(() => {
                         if (this.drip_container.length === 0) {
-return;
-}
+                            return;
+                        }
                         this.sendIceCandidates(this.drip_container);
                         this.drip_container = [];
                     }, 20);
@@ -654,7 +654,7 @@ return;
                         lines += 'a=ssrc-group:' + semantics
                             + ' ' + ssrcs.join(' ') + '\r\n';
                     }
-            });
+                });
             // handles both >source and >description>source
             const tmp
                 = $(content).find(
@@ -669,15 +669,15 @@ return;
                 $(this).find('>parameter').each(function () {
                     lines += 'a=ssrc:' + ssrc + ' ' + $(this).attr('name');
                     if ($(this).attr('value') && $(this).attr('value').length)                        {
-lines += ':' + $(this).attr('value');
-}
+                        lines += ':' + $(this).attr('value');
+                    }
                     lines += '\r\n';
                 });
             });
             currentRemoteSdp.media.forEach(function(media, idx) {
                 if (!SDPUtil.find_line(media, 'a=mid:' + name))                    {
-return;
-}
+                    return;
+                }
                 if (!addSsrcInfo[idx]) {
                     addSsrcInfo[idx] = '';
                 }
@@ -903,8 +903,8 @@ return;
                             this.peerconnection.setLocalDescription(
                                 answer,
                                 () => {
- resolve(); 
-},
+                                    resolve(); 
+                                },
                                 (error) => {
                                     reject(
                                         "setLocalDescription failed: " + error);
@@ -912,14 +912,14 @@ return;
                             );
                         },
                         (error) => {
- reject("createAnswer failed: " + error); 
-},
+                            reject("createAnswer failed: " + error); 
+                        },
                         media_constraints
                     );
                 },
                 (error) => {
- reject("setRemoteDescription failed: " + error); 
-}
+                    reject("setRemoteDescription failed: " + error); 
+                }
             );
         });
     }
@@ -1029,7 +1029,7 @@ return;
                         lines += 'a=ssrc-group:' + semantics
                             + ' ' + ssrcs.join(' ') + '\r\n';
                     }
-            });
+                });
             const ssrcs = [];
             // handles both >source and >description>source versions
             const tmp
@@ -1041,8 +1041,8 @@ return;
             });
             currentRemoteSdp.media.forEach(function(media, idx) {
                 if (!SDPUtil.find_line(media, 'a=mid:' + name))                    {
-return;
-}
+                    return;
+                }
                 if (!removeSsrcInfo[idx]) {
                     removeSsrcInfo[idx] = '';
                 }
@@ -1261,11 +1261,11 @@ return;
         let sdpDiffer = new SDPDiffer(new_sdp, old_sdp);
         const remove = $iq({to: this.peerjid, type: 'set'})
             .c('jingle', {
-                    xmlns: 'urn:xmpp:jingle:1',
-                    action: 'source-remove',
-                    initiator: this.initiator,
-                    sid: this.sid
-                }
+                xmlns: 'urn:xmpp:jingle:1',
+                action: 'source-remove',
+                initiator: this.initiator,
+                sid: this.sid
+            }
             );
         sdpDiffer.toJingle(remove);
         const removed = this.fixJingle(remove);
@@ -1286,11 +1286,11 @@ return;
         sdpDiffer = new SDPDiffer(old_sdp, new_sdp);
         const add = $iq({to: this.peerjid, type: 'set'})
             .c('jingle', {
-                    xmlns: 'urn:xmpp:jingle:1',
-                    action: 'source-add',
-                    initiator: this.initiator,
-                    sid: this.sid
-                }
+                xmlns: 'urn:xmpp:jingle:1',
+                action: 'source-add',
+                initiator: this.initiator,
+                sid: this.sid
+            }
             );
 
         sdpDiffer.toJingle(add);
@@ -1337,8 +1337,8 @@ return;
                 error.code = errorElSel.attr('code');
                 const errorReasonSel = $(errResponse).find('error :first');
                 if (errorReasonSel.length)                    {
-error.reason = errorReasonSel[0].tagName;
-}
+                    error.reason = errorReasonSel[0].tagName;
+                }
             }
 
             if (!errResponse) {
@@ -1418,18 +1418,18 @@ error.reason = errorReasonSel[0].tagName;
         /* eslint-disable no-case-declarations */
         const action = $(jingle.nodeTree).find("jingle").attr("action");
         switch (action) {
-            case "source-add":
-            case "session-accept":
-                this.fixSourceAddJingle(jingle);
-                break;
-            case "source-remove":
-                this.fixSourceRemoveJingle(jingle);
-                break;
-            default:
-                const errmsg = "Unknown jingle action!";
-                GlobalOnErrorHandler.callErrorHandler(errmsg);
-                logger.error(errmsg);
-                return false;
+        case "source-add":
+        case "session-accept":
+            this.fixSourceAddJingle(jingle);
+            break;
+        case "source-remove":
+            this.fixSourceRemoveJingle(jingle);
+            break;
+        default:
+            const errmsg = "Unknown jingle action!";
+            GlobalOnErrorHandler.callErrorHandler(errmsg);
+            logger.error(errmsg);
+            return false;
         }/* eslint-enable no-case-declarations */
 
         const sources
@@ -1451,8 +1451,8 @@ error.reason = errorReasonSel[0].tagName;
                 const desc = $(jingle.tree()).find(">jingle>content[name=\"" +
                     ssrcObj.mtype + "\"]>description");
                 if (!desc || !desc.length)                    {
-return;
-}
+                    return;
+                }
                 ssrcObj.ssrcs.forEach(function (ssrc) {
                     const sourceNode = desc.find(">source[ssrc=\"" +
                         ssrc + "\"]");
@@ -1517,7 +1517,7 @@ return;
         let ssrcs = this.modifiedSSRCs["mute"];
         this.modifiedSSRCs["mute"] = [];
         if (ssrcs && ssrcs.length)            {
-ssrcs.forEach(function (ssrcObj) {
+            ssrcs.forEach(function (ssrcObj) {
                 ssrcObj.ssrcs.forEach(function (ssrc) {
                     const sourceNode
                         = $(jingle.tree()).find(">jingle>content[name=\"" +
@@ -1535,12 +1535,12 @@ ssrcs.forEach(function (ssrcObj) {
                     groupNode.remove();
                 });
             });
-}
+        }
 
         ssrcs = this.modifiedSSRCs["remove"];
         this.modifiedSSRCs["remove"] = [];
         if (ssrcs && ssrcs.length)            {
-ssrcs.forEach(function (ssrcObj) {
+            ssrcs.forEach(function (ssrcObj) {
                 const desc
                     = JingleSessionPC.createDescriptionNode(
                         jingle, ssrcObj.mtype);
@@ -1571,7 +1571,7 @@ ssrcs.forEach(function (ssrcObj) {
                     }
                 });
             });
-}
+        }
     }
 
     /**

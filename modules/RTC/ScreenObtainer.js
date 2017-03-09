@@ -74,8 +74,8 @@ var ScreenObtainer = {
         gumFunction = gum;
 
         if (RTCBrowserType.isFirefox())            {
-initFirefoxExtensionDetection(options);
-}
+            initFirefoxExtensionDetection(options);
+        }
 
         if (RTCBrowserType.isNWJS()) {
             obtainDesktopStream = (options, onSuccess, onFailure) => {
@@ -208,8 +208,8 @@ initFirefoxExtensionDetection(options);
             window.setTimeout(
                 () => {
                     if (firefoxExtInstalled === null)                        {
-firefoxExtInstalled = false;
-}
+                        firefoxExtInstalled = false;
+                    }
                     this.obtainScreenOnFirefox(callback, errorCallback);
                 },
                 300);
@@ -355,11 +355,11 @@ function isUpdateRequired(minVersion, extVersion) {
                 n2 = 0;
 
             if (i < s1.length)                {
-n1 = parseInt(s1[i]);
-}
+                n1 = parseInt(s1[i]);
+            }
             if (i < s2.length)                {
-n2 = parseInt(s2[i]);
-}
+                n2 = parseInt(s2[i]);
+            }
 
             if (isNaN(n1) || isNaN(n2)) {
                 return true;
@@ -534,8 +534,8 @@ function initFirefoxExtensionDetection(options) {
         return;
     }
     if (firefoxExtInstalled === false || firefoxExtInstalled === true)        {
-return;
-}
+        return;
+    }
     if (!options.desktopSharingFirefoxExtId) {
         firefoxExtInstalled = false;
         return;

@@ -56,15 +56,15 @@ Recording.action = {
 Recording.prototype.handleJibriPresence = function (jibri) {
     var attributes = jibri.attributes;
     if(!attributes)        {
-return;
-}
+        return;
+    }
 
     var newState = attributes.status;
     logger.log("Handle jibri presence : ", newState);
 
     if (newState === this.state)        {
-return;
-}
+        return;
+    }
 
     if (newState === "undefined") {
         this.state = Recording.status.UNAVAILABLE;
@@ -72,10 +72,10 @@ return;
         if (!this.state
             || this.state === "undefined"
             || this.state === Recording.status.UNAVAILABLE)            {
-this.state = Recording.status.AVAILABLE;
-}        else            {
-this.state = Recording.status.OFF;
-}
+            this.state = Recording.status.AVAILABLE;
+        }        else            {
+            this.state = Recording.status.OFF;
+        }
     }    else {
         this.state = newState;
     }
@@ -86,24 +86,24 @@ this.state = Recording.status.OFF;
 Recording.prototype.setRecordingJibri
     = function (state, callback, errCallback, options) {
 
-    if (state == this.state){
-        errCallback(JitsiRecorderErrors.INVALID_STATE);
-    }
-    options = options || {};
+        if (state == this.state){
+            errCallback(JitsiRecorderErrors.INVALID_STATE);
+        }
+        options = options || {};
 
     // FIXME jibri does not accept IQ without 'url' attribute set ?
-    var iq = $iq({to: this.focusMucJid, type: 'set'})
+        var iq = $iq({to: this.focusMucJid, type: 'set'})
         .c('jibri', {
-        "xmlns": 'http://jitsi.org/protocol/jibri',
-        "action": state === Recording.status.ON
+            "xmlns": 'http://jitsi.org/protocol/jibri',
+            "action": state === Recording.status.ON
                     ? Recording.action.START
                     : Recording.action.STOP,
-        "streamid": options.streamId,
+            "streamid": options.streamId,
         }).up();
 
-    logger.log('Set jibri recording: ' + state, iq.nodeTree);
-    logger.log(iq.nodeTree);
-    this.connection.sendIQ(
+        logger.log('Set jibri recording: ' + state, iq.nodeTree);
+        logger.log(iq.nodeTree);
+        this.connection.sendIQ(
         iq,
         function (result) {
             logger.log("Result", result);
@@ -114,28 +114,28 @@ Recording.prototype.setRecordingJibri
             logger.log('Failed to start recording, error: ', error);
             errCallback(error);
         });
-};
+    };
 
 Recording.prototype.setRecordingJirecon =
     function (state, callback, errCallback) {
 
-    if (state == this.state){
-        errCallback(new Error("Invalid state!"));
-    }
+        if (state == this.state){
+            errCallback(new Error("Invalid state!"));
+        }
 
-    var iq = $iq({to: this.jirecon, type: 'set'})
+        var iq = $iq({to: this.jirecon, type: 'set'})
         .c('recording', {xmlns: 'http://jitsi.org/protocol/jirecon',
             action: state === Recording.status.ON
                 ? Recording.action.START
                 : Recording.action.STOP,
             mucjid: this.roomjid});
-    if (state === 'off'){
-        iq.attrs({rid: this.jireconRid});
-    }
+        if (state === 'off'){
+            iq.attrs({rid: this.jireconRid});
+        }
 
-    logger.log('Start recording');
-    var self = this;
-    this.connection.sendIQ(
+        logger.log('Start recording');
+        var self = this;
+        this.connection.sendIQ(
         iq,
         function (result) {
             // TODO wait for an IQ with the real status, since this is
@@ -155,7 +155,7 @@ Recording.prototype.setRecordingJirecon =
             logger.log('Failed to start recording, error: ', error);
             errCallback(error);
         });
-};
+    };
 
 // Sends a COLIBRI message which enables or disables (according to 'state')
 // the recording on the bridge. Waits for the result IQ and calls 'callback'
@@ -198,20 +198,20 @@ function (state, callback, errCallback, options) {
 Recording.prototype.setRecording =
 function (state, callback, errCallback, options) {
     switch(this.type){
-        case Recording.types.JIRECON:
-            this.setRecordingJirecon(state, callback, errCallback, options);
-            break;
-        case Recording.types.COLIBRI:
-            this.setRecordingColibri(state, callback, errCallback, options);
-            break;
-        case Recording.types.JIBRI:
-            this.setRecordingJibri(state, callback, errCallback, options);
-            break;
-        default:
-            var errmsg = "Unknown recording type!";
-            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
-            logger.error(errmsg);
-            return;
+    case Recording.types.JIRECON:
+        this.setRecordingJirecon(state, callback, errCallback, options);
+        break;
+    case Recording.types.COLIBRI:
+        this.setRecordingColibri(state, callback, errCallback, options);
+        break;
+    case Recording.types.JIBRI:
+        this.setRecordingJibri(state, callback, errCallback, options);
+        break;
+    default:
+        var errmsg = "Unknown recording type!";
+        GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
+        logger.error(errmsg);
+        return;
     }
 };
 
@@ -226,12 +226,12 @@ Recording.prototype.toggleRecording = function (options, statusChangeHandler) {
     // If the recorder is currently unavailable we throw an error.
     if (oldState === Recording.status.UNAVAILABLE
         || oldState === Recording.status.FAILED)        {
-statusChangeHandler(Recording.status.FAILED,
+        statusChangeHandler(Recording.status.FAILED,
                             JitsiRecorderErrors.RECORDER_UNAVAILABLE);
-}    else if (oldState === Recording.status.BUSY)        {
-statusChangeHandler(Recording.status.BUSY,
+    }    else if (oldState === Recording.status.BUSY)        {
+        statusChangeHandler(Recording.status.BUSY,
                             JitsiRecorderErrors.RECORDER_BUSY);
-}
+    }
 
     // If we're about to turn ON the recording we need either a streamId or
     // an authentication token depending on the recording type. If we don't

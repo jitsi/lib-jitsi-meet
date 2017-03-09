@@ -23,8 +23,8 @@ function JitsiGlobalErrorHandler(message, source, lineno, colno, error) {
         handler(message, source, lineno, colno, error);
     });
     if (oldOnErrorHandler)        {
-oldOnErrorHandler(message, source, lineno, colno, error);
-}
+        oldOnErrorHandler(message, source, lineno, colno, error);
+    }
 }
 
 // If an old handler exists, also fire its events.
@@ -39,8 +39,8 @@ function JitsiGlobalUnhandledRejection(event) {
         handler(null, null, null, null, event.reason);
     });
     if(oldOnUnhandledRejection)        {
-oldOnUnhandledRejection(event);
-}
+        oldOnUnhandledRejection(event);
+    }
 }
 
 // Setting the custom error handlers.
@@ -63,8 +63,8 @@ var GlobalOnErrorHandler = {
     callErrorHandler: function (error) {
         var errHandler = window.onerror;
         if(!errHandler)            {
-return;
-}
+            return;
+        }
         errHandler(null, null, null, null, error);
     },
     /**
@@ -74,8 +74,8 @@ return;
     callUnhandledRejectionHandler: function (error) {
         var errHandler = window.onunhandledrejection;
         if(!errHandler)            {
-return;
-}
+            return;
+        }
         errHandler(error);
     }
 };

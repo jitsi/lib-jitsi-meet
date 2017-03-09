@@ -108,17 +108,17 @@ export default class Caps extends Listenable {
             const node = user? user.node + "#" + user.version : null;
             return new Promise ( (resolve, reject) =>
                 this.disco.info(jid, node, response => {
-                        const features = new Set();
-                        $(response).find(">query>feature").each((idx, el) =>
+                    const features = new Set();
+                    $(response).find(">query>feature").each((idx, el) =>
                             features.add(el.getAttribute("var")));
-                        if(user) {
+                    if(user) {
                             // TODO: Maybe use the version + node + hash
                             // as keys?
-                            this.versionToCapabilities[user.version]
+                        this.versionToCapabilities[user.version]
                                 = features;
-                        }
-                        resolve(features);
-                    }, reject , timeout)
+                    }
+                    resolve(features);
+                }, reject , timeout)
             );
         }
         return Promise.resolve(this.versionToCapabilities[user.version]);

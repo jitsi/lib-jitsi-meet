@@ -607,8 +607,8 @@ Object.keys(getters).forEach(function (prop) {
 TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
     this.trace('addStream', stream ? stream.id : "null");
     if (stream)        {
-this.peerconnection.addStream(stream);
-}
+        this.peerconnection.addStream(stream);
+    }
     if (ssrcInfo && ssrcInfo.type === "addMuted") {
         this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrcs[0]);
         const simGroup
@@ -646,16 +646,16 @@ TraceablePeerConnection.prototype.createDataChannel = function (label, opts) {
 
 TraceablePeerConnection.prototype.setLocalDescription
         = function (description, successCallback, failureCallback) {
-    this.trace('setLocalDescription::preTransform', dumpSDP(description));
+            this.trace('setLocalDescription::preTransform', dumpSDP(description));
     // if we're running on FF, transform to Plan A first.
-    if (RTCBrowserType.usesUnifiedPlan()) {
-        description = this.interop.toUnifiedPlan(description);
-        this.trace('setLocalDescription::postTransform (Plan A)',
+            if (RTCBrowserType.usesUnifiedPlan()) {
+                description = this.interop.toUnifiedPlan(description);
+                this.trace('setLocalDescription::postTransform (Plan A)',
             dumpSDP(description));
-    }
+            }
 
-    var self = this;
-    this.peerconnection.setLocalDescription(description,
+            var self = this;
+            this.peerconnection.setLocalDescription(description,
         function () {
             self.trace('setLocalDescriptionOnSuccess');
             successCallback();
@@ -668,40 +668,40 @@ TraceablePeerConnection.prototype.setLocalDescription
             failureCallback(err);
         }
     );
-};
+        };
 
 TraceablePeerConnection.prototype.setRemoteDescription
         = function (description, successCallback, failureCallback) {
-    this.trace('setRemoteDescription::preTransform', dumpSDP(description));
+            this.trace('setRemoteDescription::preTransform', dumpSDP(description));
     // TODO the focus should squeze or explode the remote simulcast
-    description = this.simulcast.mungeRemoteDescription(description);
-    this.trace(
+            description = this.simulcast.mungeRemoteDescription(description);
+            this.trace(
         'setRemoteDescription::postTransform (simulcast)',
         dumpSDP(description));
 
-    if (this.options.preferH264) {
-        const parsedSdp = transform.parse(description.sdp);
-        const videoMLine = parsedSdp.media.find(m => m.type === "video");
-        SDPUtil.preferVideoCodec(videoMLine, "h264");
-        description.sdp = transform.write(parsedSdp);
-    }
+            if (this.options.preferH264) {
+                const parsedSdp = transform.parse(description.sdp);
+                const videoMLine = parsedSdp.media.find(m => m.type === "video");
+                SDPUtil.preferVideoCodec(videoMLine, "h264");
+                description.sdp = transform.write(parsedSdp);
+            }
 
     // if we're running on FF, transform to Plan A first.
-    if (RTCBrowserType.usesUnifiedPlan()) {
-        description.sdp = this.rtxModifier.stripRtx(description.sdp);
-        this.trace('setRemoteDescription::postTransform (stripRtx)', dumpSDP(description));
-        description = this.interop.toUnifiedPlan(description);
-        this.trace(
+            if (RTCBrowserType.usesUnifiedPlan()) {
+                description.sdp = this.rtxModifier.stripRtx(description.sdp);
+                this.trace('setRemoteDescription::postTransform (stripRtx)', dumpSDP(description));
+                description = this.interop.toUnifiedPlan(description);
+                this.trace(
             'setRemoteDescription::postTransform (Plan A)',
             dumpSDP(description));
-    }
+            }
 
-    if (RTCBrowserType.usesPlanB()) {
-        description = normalizePlanB(description);
-    }
+            if (RTCBrowserType.usesPlanB()) {
+                description = normalizePlanB(description);
+            }
 
-    var self = this;
-    this.peerconnection.setRemoteDescription(description,
+            var self = this;
+            this.peerconnection.setRemoteDescription(description,
         function () {
             self.trace('setRemoteDescriptionOnSuccess');
             successCallback();
@@ -718,7 +718,7 @@ TraceablePeerConnection.prototype.setRemoteDescription
      // start gathering stats
      }
      */
-};
+        };
 
 /**
  * Makes the underlying TraceablePeerConnection generate new SSRC for
@@ -815,8 +815,8 @@ var _fixAnswerRFC4145Setup = function (offer, answer) {
 
 TraceablePeerConnection.prototype.createAnswer
         = function (successCallback, failureCallback, constraints) {
-    this.trace('createAnswer', JSON.stringify(constraints, null, ' '));
-    this.peerconnection.createAnswer(
+            this.trace('createAnswer', JSON.stringify(constraints, null, ' '));
+            this.peerconnection.createAnswer(
         (answer) => {
             try {
                 this.trace(
@@ -885,14 +885,14 @@ TraceablePeerConnection.prototype.createAnswer
         },
         constraints
     );
-};
+        };
 
 TraceablePeerConnection.prototype.addIceCandidate
         // eslint-disable-next-line no-unused-vars
         = function (candidate, successCallback, failureCallback) {
     //var self = this;
-    this.trace('addIceCandidate', JSON.stringify(candidate, null, ' '));
-    this.peerconnection.addIceCandidate(candidate);
+            this.trace('addIceCandidate', JSON.stringify(candidate, null, ' '));
+            this.peerconnection.addIceCandidate(candidate);
     /* maybe later
      this.peerconnection.addIceCandidate(candidate,
      function () {
@@ -905,7 +905,7 @@ TraceablePeerConnection.prototype.addIceCandidate
      }
      );
      */
-};
+        };
 
 TraceablePeerConnection.prototype.getStats = function(callback, errback) {
     // TODO: Is this the correct way to handle Opera, Temasys?
@@ -914,8 +914,8 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
             || RTCBrowserType.isReactNative()) {
         // ignore for now...
         if(!errback)            {
-errback = function () {};
-}
+            errback = function () {};
+        }
         this.peerconnection.getStats(null, callback, errback);
     } else {
         this.peerconnection.getStats(callback);

@@ -95,8 +95,8 @@ function JitsiConference(options) {
  */
 JitsiConference.prototype._init = function (options) {
     if (!options)        {
-options = {};
-}
+        options = {};
+    }
 
     // Override connection and xmpp properties (Usefull if the connection
     // reloaded)
@@ -153,8 +153,8 @@ options = {};
  */
 JitsiConference.prototype.join = function (password) {
     if (this.room)        {
-this.room.join(password);
-}
+        this.room.join(password);
+    }
 };
 
 /**
@@ -178,8 +178,8 @@ JitsiConference.prototype.leave = function () {
 
     this.rtc.closeAllDataChannels();
     if (this.statistics)        {
-this.statistics.dispose();
-}
+        this.statistics.dispose();
+    }
 
     // leave the conference
     if (this.room) {
@@ -298,8 +298,8 @@ JitsiConference.prototype.getLocalVideoTrack = function () {
  */
 JitsiConference.prototype.on = function (eventId, handler) {
     if (this.eventEmitter)        {
-this.eventEmitter.on(eventId, handler);
-}
+        this.eventEmitter.on(eventId, handler);
+    }
 };
 
 /**
@@ -311,8 +311,8 @@ this.eventEmitter.on(eventId, handler);
  */
 JitsiConference.prototype.off = function (eventId, handler) {
     if (this.eventEmitter)        {
-this.eventEmitter.removeListener(eventId, handler);
-}
+        this.eventEmitter.removeListener(eventId, handler);
+    }
 };
 
 // Common aliases for event emitter
@@ -325,21 +325,21 @@ JitsiConference.prototype.removeEventListener = JitsiConference.prototype.off;
  * @param command {String} the name of the command
  * @param handler {Function} handler for the command
  */
- JitsiConference.prototype.addCommandListener = function (command, handler) {
+JitsiConference.prototype.addCommandListener = function (command, handler) {
     if (this.room)        {
-this.room.addPresenceListener(command, handler);
-}
- };
+        this.room.addPresenceListener(command, handler);
+    }
+};
 
 /**
   * Removes command  listener
   * @param command {String} the name of the command
   */
- JitsiConference.prototype.removeCommandListener = function (command) {
+JitsiConference.prototype.removeCommandListener = function (command) {
     if (this.room)        {
-this.room.removePresenceListener(command);
-}
- };
+        this.room.removePresenceListener(command);
+    }
+};
 
 /**
  * Sends text message to the other participants in the conference
@@ -347,8 +347,8 @@ this.room.removePresenceListener(command);
  */
 JitsiConference.prototype.sendTextMessage = function (message) {
     if (this.room)        {
-this.room.sendMessage(message);
-}
+        this.room.sendMessage(message);
+    }
 };
 
 /**
@@ -379,8 +379,8 @@ JitsiConference.prototype.sendCommandOnce = function (name, values) {
  **/
 JitsiConference.prototype.removeCommand = function (name) {
     if (this.room)        {
-this.room.removeFromPresence(name);
-}
+        this.room.removeFromPresence(name);
+    }
 };
 
 /**
@@ -497,8 +497,8 @@ JitsiConference.prototype.onLocalTrackRemoved = function (track) {
     // FIXME: we assume we have only one screen sharing track
     // if we change this we need to fix this check
     if (track.isVideoTrack() && track.videoType === VideoType.DESKTOP)        {
-this.statistics.sendScreenSharingEvent(false);
-}
+        this.statistics.sendScreenSharingEvent(false);
+    }
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
 };
@@ -636,8 +636,8 @@ JitsiConference.prototype._setupNewTrack = function (newTrack) {
     // FIXME: we assume we have only one screen sharing track
     // if we change this we need to fix this check
     if (newTrack.isVideoTrack() && newTrack.videoType === VideoType.DESKTOP)        {
-this.statistics.sendScreenSharingEvent(true);
-}
+        this.statistics.sendScreenSharingEvent(true);
+    }
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
 };
@@ -655,15 +655,15 @@ this.statistics.sendScreenSharingEvent(true);
  */
 JitsiConference.prototype._addLocalStream
     = function (stream, callback, errorCallback, ssrcInfo, dontModifySources) {
-    if (this.jingleSession) {
-        this.jingleSession.addStream(
+        if (this.jingleSession) {
+            this.jingleSession.addStream(
             stream, callback, errorCallback, ssrcInfo, dontModifySources);
-    } else {
+        } else {
         // We are done immediately
-        logger.warn("Add local MediaStream - no JingleSession started yet");
-        callback();
-    }
-};
+            logger.warn("Add local MediaStream - no JingleSession started yet");
+            callback();
+        }
+    };
 
 /**
  * Remove local WebRTC media stream.
@@ -675,15 +675,15 @@ JitsiConference.prototype._addLocalStream
  */
 JitsiConference.prototype.removeLocalStream
     = function (stream, callback, errorCallback, ssrcInfo) {
-    if (this.jingleSession) {
-        this.jingleSession.removeStream(
+        if (this.jingleSession) {
+            this.jingleSession.removeStream(
             stream, callback, errorCallback, ssrcInfo);
-    } else {
+        } else {
         // We are done immediately
-        logger.warn("Remove local MediaStream - no JingleSession started yet");
-        callback();
-    }
-};
+            logger.warn("Remove local MediaStream - no JingleSession started yet");
+            callback();
+        }
+    };
 
 /**
  * Generate ssrc info object for a stream with the following properties:
@@ -722,20 +722,20 @@ JitsiConference.prototype.isModerator = function () {
  * @returns {Promise}
  */
 JitsiConference.prototype.lock = function (password) {
-  if (!this.isModerator()) {
-    return Promise.reject();
-  }
+    if (!this.isModerator()) {
+        return Promise.reject();
+    }
 
-  var conference = this;
-  return new Promise(function (resolve, reject) {
-    conference.room.lockRoom(password || "", function () {
-      resolve();
-    }, function (err) {
-      reject(err);
-    }, function () {
-      reject(JitsiConferenceErrors.PASSWORD_NOT_SUPPORTED);
+    var conference = this;
+    return new Promise(function (resolve, reject) {
+        conference.room.lockRoom(password || "", function () {
+            resolve();
+        }, function (err) {
+            reject(err);
+        }, function () {
+            reject(JitsiConferenceErrors.PASSWORD_NOT_SUPPORTED);
+        });
     });
-  });
 };
 
 /**
@@ -743,7 +743,7 @@ JitsiConference.prototype.lock = function (password) {
  * @returns {Promise}
  */
 JitsiConference.prototype.unlock = function () {
-  return this.lock();
+    return this.lock();
 };
 
 /**
@@ -805,13 +805,13 @@ JitsiConference.prototype.getParticipants = function() {
 JitsiConference.prototype.getParticipantCount
     = function(countHidden = false) {
 
-    let participants = this.getParticipants();
-    if (!countHidden) {
-        participants = participants.filter(p => !p.isHidden());
-    }
+        let participants = this.getParticipants();
+        if (!countHidden) {
+            participants = participants.filter(p => !p.isHidden());
+        }
     // Add one for the local participant.
-    return participants.length + 1;
-};
+        return participants.length + 1;
+    };
 
 /**
  * @returns {JitsiParticipant} the participant in this conference with the
@@ -859,24 +859,24 @@ JitsiConference.prototype.muteParticipant = function (id) {
  */
 JitsiConference.prototype.onMemberJoined
     = function (jid, nick, role, isHidden) {
-    var id = Strophe.getResourceFromJid(jid);
-    if (id === 'focus' || this.myUserId() === id) {
-       return;
-    }
-    var participant = new JitsiParticipant(jid, this, nick, isHidden);
-    participant._role = role;
-    this.participants[id] = participant;
-    this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED, id, participant);
-    this.xmpp.caps.getFeatures(jid).then(features => {
-        participant._supportsDTMF = features.has("urn:xmpp:jingle:dtmf:0");
-        this.updateDTMFSupport();
-    }, error => logger.error(error));
-};
+        var id = Strophe.getResourceFromJid(jid);
+        if (id === 'focus' || this.myUserId() === id) {
+            return;
+        }
+        var participant = new JitsiParticipant(jid, this, nick, isHidden);
+        participant._role = role;
+        this.participants[id] = participant;
+        this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED, id, participant);
+        this.xmpp.caps.getFeatures(jid).then(features => {
+            participant._supportsDTMF = features.has("urn:xmpp:jingle:dtmf:0");
+            this.updateDTMFSupport();
+        }, error => logger.error(error));
+    };
 
 JitsiConference.prototype.onMemberLeft = function (jid) {
     var id = Strophe.getResourceFromJid(jid);
     if (id === 'focus' || this.myUserId() === id) {
-       return;
+        return;
     }
     var participant = this.participants[id];
     delete this.participants[id];
@@ -889,9 +889,9 @@ JitsiConference.prototype.onMemberLeft = function (jid) {
 
     // there can be no participant in case the member that left is focus
     if (participant)        {
-this.eventEmitter.emit(
+        this.eventEmitter.emit(
             JitsiConferenceEvents.USER_LEFT, id, participant);
-}
+    }
 };
 
 JitsiConference.prototype.onUserRoleChanged = function (jid, role) {
@@ -912,8 +912,8 @@ JitsiConference.prototype.onDisplayNameChanged = function (jid, displayName) {
     }
 
     if (participant._displayName === displayName)        {
-return;
-}
+        return;
+    }
 
     participant._displayName = displayName;
     this.eventEmitter.emit(JitsiConferenceEvents.DISPLAY_NAME_CHANGED, id, displayName);
@@ -1231,8 +1231,8 @@ JitsiConference.prototype.sendTones = function (tones, duration, pause) {
  */
 JitsiConference.prototype.isRecordingSupported = function () {
     if (this.room)        {
-return this.room.isRecordingSupported();
-}
+        return this.room.isRecordingSupported();
+    }
     return false;
 };
 
@@ -1256,11 +1256,11 @@ JitsiConference.prototype.getRecordingURL = function () {
  */
 JitsiConference.prototype.toggleRecording = function (options) {
     if (this.room)        {
-return this.room.toggleRecording(options, function (status, error) {
+        return this.room.toggleRecording(options, function (status, error) {
             this.eventEmitter.emit(
                 JitsiConferenceEvents.RECORDER_STATE_CHANGED, status, error);
         }.bind(this));
-}
+    }
     this.eventEmitter.emit(
         JitsiConferenceEvents.RECORDER_STATE_CHANGED, "error",
         new Error("The conference is not created yet!"));
@@ -1271,8 +1271,8 @@ return this.room.toggleRecording(options, function (status, error) {
  */
 JitsiConference.prototype.isSIPCallingSupported = function () {
     if (this.room)        {
-return this.room.isSIPCallingSupported();
-}
+        return this.room.isSIPCallingSupported();
+    }
     return false;
 };
 
@@ -1282,11 +1282,11 @@ return this.room.isSIPCallingSupported();
  */
 JitsiConference.prototype.dial = function (number) {
     if (this.room)        {
-return this.room.dial(number);
-}
+        return this.room.dial(number);
+    }
     return new Promise(function(resolve, reject){
         reject(new Error("The conference is not created yet!"));
-});
+    });
 };
 
 /**
@@ -1294,11 +1294,11 @@ return this.room.dial(number);
  */
 JitsiConference.prototype.hangup = function () {
     if (this.room)        {
-return this.room.hangup();
-}
+        return this.room.hangup();
+    }
     return new Promise(function(resolve, reject){
         reject(new Error("The conference is not created yet!"));
-});
+    });
 };
 
 /**
@@ -1306,8 +1306,8 @@ return this.room.hangup();
  */
 JitsiConference.prototype.getPhoneNumber = function () {
     if (this.room)        {
-return this.room.getPhoneNumber();
-}
+        return this.room.getPhoneNumber();
+    }
     return null;
 };
 
@@ -1316,8 +1316,8 @@ return this.room.getPhoneNumber();
  */
 JitsiConference.prototype.getPhonePin = function () {
     if (this.room)        {
-return this.room.getPhonePin();
-}
+        return this.room.getPhonePin();
+    }
     return null;
 };
 

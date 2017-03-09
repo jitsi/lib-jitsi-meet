@@ -79,6 +79,7 @@ module.exports = {
 
         // Stylistic issues group
         'brace-style': 2,
+        'indent': [ 'error', 4, { 'SwitchCase': 0 } ],
 
         'prefer-const': 2,
         'prefer-reflect': 0,

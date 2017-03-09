@@ -135,20 +135,20 @@ var SDPUtil = {
         candidate.generation = 0; // default value, may be overwritten below
         for (var i = 8; i < elems.length; i += 2) {
             switch (elems[i]) {
-                case 'raddr':
-                    candidate['rel-addr'] = elems[i + 1];
-                    break;
-                case 'rport':
-                    candidate['rel-port'] = elems[i + 1];
-                    break;
-                case 'generation':
-                    candidate.generation = elems[i + 1];
-                    break;
-                case 'tcptype':
-                    candidate.tcptype = elems[i + 1];
-                    break;
-                default: // TODO
-                    logger.log('parse_icecandidate not translating "' + elems[i] + '" = "' + elems[i + 1] + '"');
+            case 'raddr':
+                candidate['rel-addr'] = elems[i + 1];
+                break;
+            case 'rport':
+                candidate['rel-port'] = elems[i + 1];
+                break;
+            case 'generation':
+                candidate.generation = elems[i + 1];
+                break;
+            case 'tcptype':
+                candidate.tcptype = elems[i + 1];
+                break;
+            default: // TODO
+                logger.log('parse_icecandidate not translating "' + elems[i] + '" = "' + elems[i + 1] + '"');
             }
         }
         candidate.network = '1';
@@ -159,20 +159,20 @@ var SDPUtil = {
         var line = ['a=candidate:' + cand.foundation, cand.component, cand.protocol, cand.priority, cand.ip, cand.port, 'typ', cand.type].join(' ');
         line += ' ';
         switch (cand.type) {
-            case 'srflx':
-            case 'prflx':
-            case 'relay':
-                if (cand.hasOwnAttribute('rel-addr') && cand.hasOwnAttribute('rel-port')) {
-                    line += 'raddr';
-                    line += ' ';
-                    line += cand['rel-addr'];
-                    line += ' ';
-                    line += 'rport';
-                    line += ' ';
-                    line += cand['rel-port'];
-                    line += ' ';
-                }
-                break;
+        case 'srflx':
+        case 'prflx':
+        case 'relay':
+            if (cand.hasOwnAttribute('rel-addr') && cand.hasOwnAttribute('rel-port')) {
+                line += 'raddr';
+                line += ' ';
+                line += cand['rel-addr'];
+                line += ' ';
+                line += 'rport';
+                line += ' ';
+                line += cand['rel-port'];
+                line += ' ';
+            }
+            break;
         }
         if (cand.hasOwnAttribute('tcptype')) {
             line += 'tcptype';
@@ -245,8 +245,8 @@ var SDPUtil = {
             needles = [];
         for (var i = 0; i < lines.length; i++) {
             if (lines[i].substring(0, needle.length) == needle)                {
-needles.push(lines[i]);
-}
+                needles.push(lines[i]);
+            }
         }
         if (needles.length || !sessionpart) {
             return needles;
@@ -293,20 +293,20 @@ needles.push(lines[i]);
         candidate.generation = '0'; // default, may be overwritten below
         for (i = 8; i < elems.length; i += 2) {
             switch (elems[i]) {
-                case 'raddr':
-                    candidate['rel-addr'] = elems[i + 1];
-                    break;
-                case 'rport':
-                    candidate['rel-port'] = elems[i + 1];
-                    break;
-                case 'generation':
-                    candidate.generation = elems[i + 1];
-                    break;
-                case 'tcptype':
-                    candidate.tcptype = elems[i + 1];
-                    break;
-                default: // TODO
-                    logger.log('not translating "' + elems[i] + '" = "' + elems[i + 1] + '"');
+            case 'raddr':
+                candidate['rel-addr'] = elems[i + 1];
+                break;
+            case 'rport':
+                candidate['rel-port'] = elems[i + 1];
+                break;
+            case 'generation':
+                candidate.generation = elems[i + 1];
+                break;
+            case 'tcptype':
+                candidate.tcptype = elems[i + 1];
+                break;
+            default: // TODO
+                logger.log('not translating "' + elems[i] + '" = "' + elems[i + 1] + '"');
             }
         }
         candidate.network = '1';
@@ -338,20 +338,20 @@ needles.push(lines[i]);
         line += ' ' + cand.getAttribute('type');
         line += ' ';
         switch (cand.getAttribute('type')) {
-            case 'srflx':
-            case 'prflx':
-            case 'relay':
-                if (cand.getAttribute('rel-addr') && cand.getAttribute('rel-port')) {
-                    line += 'raddr';
-                    line += ' ';
-                    line += cand.getAttribute('rel-addr');
-                    line += ' ';
-                    line += 'rport';
-                    line += ' ';
-                    line += cand.getAttribute('rel-port');
-                    line += ' ';
-                }
-                break;
+        case 'srflx':
+        case 'prflx':
+        case 'relay':
+            if (cand.getAttribute('rel-addr') && cand.getAttribute('rel-port')) {
+                line += 'raddr';
+                line += ' ';
+                line += cand.getAttribute('rel-addr');
+                line += ' ';
+                line += 'rport';
+                line += ' ';
+                line += cand.getAttribute('rel-port');
+                line += ' ';
+            }
+            break;
         }
         if (protocol.toLowerCase() == 'tcp') {
             line += 'tcptype';
@@ -468,11 +468,11 @@ needles.push(lines[i]);
     preferVideoCodec: function(videoMLine, codecName) {
         let payloadType = null;
         for (let i = 0; i < videoMLine.rtp.length; ++i) {
-          const rtp = videoMLine.rtp[i];
-          if (rtp.codec === codecName) {
-              payloadType = rtp.payload;
-              break;
-          }
+            const rtp = videoMLine.rtp[i];
+            if (rtp.codec === codecName) {
+                payloadType = rtp.payload;
+                break;
+            }
         }
         if (payloadType) {
             const payloadTypes = videoMLine.payloads.split(" ").map(p => parseInt(p));

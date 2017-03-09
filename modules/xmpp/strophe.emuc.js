@@ -62,8 +62,8 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
 
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
         if(!room)            {
-return;
-}
+            return;
+        }
 
         // Parse status.
         if ($(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]' +
@@ -80,8 +80,8 @@ return;
         const from = pres.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
         if(!room)            {
-return;
-}
+            return;
+        }
 
         room.onPresenceUnavailable(pres, from);
         return true;
@@ -91,8 +91,8 @@ return;
         const from = pres.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
         if(!room)            {
-return;
-}
+            return;
+        }
 
         room.onPresenceError(pres, from);
         return true;
@@ -103,8 +103,8 @@ return;
         const from = msg.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
         if(!room)            {
-return;
-}
+            return;
+        }
 
         room.onMessage(msg, from);
         return true;
@@ -114,8 +114,8 @@ return;
         const from = iq.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
         if(!room)            {
-return;
-}
+            return;
+        }
 
         room.onMute(iq);
         return true;

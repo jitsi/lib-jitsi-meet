@@ -122,8 +122,8 @@ export default class RtxModifier {
             return sdpStr;
         }
         if (videoMLine.getSSRCCount() < 1) {
-          logger.debug("RtxModifier doing nothing, no video ssrcs present");
-          return sdpStr;
+            logger.debug("RtxModifier doing nothing, no video ssrcs present");
+            return sdpStr;
         }
         logger.debug("Current ssrc mapping: ", this.correspondingRtxSsrcs);
         const primaryVideoSsrcs = videoMLine.getPrimaryVideoSSRCs();
@@ -189,13 +189,13 @@ export default class RtxModifier {
             return sdpStr;
         }
         if (videoMLine.getSSRCCount() < 1) {
-          logger.debug("RtxModifier doing nothing, no video ssrcs present");
-          return sdpStr;
+            logger.debug("RtxModifier doing nothing, no video ssrcs present");
+            return sdpStr;
         }
         if (!videoMLine.containsAnySSRCGroups()) {
-          logger.debug("RtxModifier doing nothing, " +
+            logger.debug("RtxModifier doing nothing, " +
               "no video ssrcGroups present");
-          return sdpStr;
+            return sdpStr;
         }
         const fidGroups = videoMLine.findGroups("FID");
         // Remove the fid groups from the mline

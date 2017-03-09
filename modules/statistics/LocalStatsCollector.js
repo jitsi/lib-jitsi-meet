@@ -47,8 +47,8 @@ function timeDomainDataToAudioLevel(samples) {
 
     for (var i = 0; i < length; i++) {
         if (maxVolume < samples[i])            {
-maxVolume = samples[i];
-}
+            maxVolume = samples[i];
+        }
     }
 
     return parseFloat(((maxVolume - 127) / 128).toFixed(3));
@@ -97,8 +97,8 @@ function LocalStatsCollector(stream, interval, callback) {
 LocalStatsCollector.prototype.start = function () {
     if (!context ||
         RTCBrowserType.isTemasysPluginUsed())        {
-return;
-}
+        return;
+    }
     context.resume();
     var analyser = context.createAnalyser();
     analyser.smoothingTimeConstant = WEBAUDIO_ANALYZER_SMOOTING_TIME;

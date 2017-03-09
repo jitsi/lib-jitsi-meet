@@ -24,8 +24,8 @@ function JitsiConferenceEventManager(conference) {
     conference.on(JitsiConferenceEvents.TRACK_MUTE_CHANGED,
         function (track) {
             if(!track.isLocal() || !conference.statistics)                {
-return;
-}
+                return;
+            }
             conference.statistics.sendMuteEvent(track.isMuted(),
                 track.getType());
         });
@@ -83,7 +83,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function () {
                 Statistics.analytics.sendEvent('xmpp.' + key,
                     {value: value});
             }
-    });
+        });
 
     this.chatRoomForwarder.forward(XMPPEvents.ROOM_JOIN_ERROR,
         JitsiConferenceEvents.CONFERENCE_FAILED,
@@ -510,12 +510,12 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function () {
             // Jicofo
             conference.getLocalTracks().forEach(function (track) {
                 switch (track.getType()) {
-                    case MediaType.AUDIO:
-                        conference.startAudioMuted && track.mute();
-                        break;
-                    case MediaType.VIDEO:
-                        conference.startVideoMuted && track.mute();
-                        break;
+                case MediaType.AUDIO:
+                    conference.startAudioMuted && track.mute();
+                    break;
+                case MediaType.VIDEO:
+                    conference.startVideoMuted && track.mute();
+                    break;
                 }
             });
 
@@ -529,14 +529,14 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function () {
 JitsiConferenceEventManager.prototype.setupStatisticsListeners = function () {
     var conference = this.conference;
     if(!conference.statistics)        {
-return;
-}
+        return;
+    }
 
     conference.statistics.addAudioLevelListener(function (ssrc, level) {
         var resource = conference.rtc.getResourceBySSRC(ssrc);
         if (!resource)            {
-return;
-}
+            return;
+        }
 
         conference.rtc.setAudioLevel(resource, level);
     });
@@ -582,8 +582,8 @@ return;
         conference.getLocalTracks(MediaType.AUDIO).forEach(function (track) {
             const ssrc = track.getSSRC();
             if (!ssrc || !stats.hasOwnProperty(ssrc))                {
-return;
-}
+                return;
+            }
 
             track._setByteSent(stats[ssrc]);
         });

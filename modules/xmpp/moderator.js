@@ -418,8 +418,8 @@ Moderator.prototype._getLoginUrl = function (popup, urlCb, failureCb) {
     };
     var str = 'auth url'; // for logger
     if (popup) {
-       attrs.popup = true;
-       str = 'POPUP ' + str;
+        attrs.popup = true;
+        str = 'POPUP ' + str;
     }
     iq.c('login-url', attrs);
     /**

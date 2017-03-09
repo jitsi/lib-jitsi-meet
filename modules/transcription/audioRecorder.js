@@ -226,7 +226,7 @@ audioRecorder.prototype.stop = function() {
     this.isRecording = false;
     //stop all recorders
     this.recorders.forEach(function(trackRecorder){
-       stopRecorder(trackRecorder);
+        stopRecorder(trackRecorder);
     });
     console.log("stopped recording");
 };

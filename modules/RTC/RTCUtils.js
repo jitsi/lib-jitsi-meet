@@ -73,7 +73,7 @@ function initRawEnumerateDevicesWithCallback() {
             navigator.mediaDevices.enumerateDevices().then(
                 callback, function () {
                     callback([]);
-            });
+                });
         }
         // Safari:
         // "ReferenceError: Can't find variable: MediaStreamTrack"
@@ -116,13 +116,13 @@ function setResolutionConstraints(constraints, resolution) {
     }
 
     if (constraints.video.mandatory.minWidth)        {
-constraints.video.mandatory.maxWidth =
+        constraints.video.mandatory.maxWidth =
             constraints.video.mandatory.minWidth;
-}
+    }
     if (constraints.video.mandatory.minHeight)        {
-constraints.video.mandatory.maxHeight =
+        constraints.video.mandatory.maxHeight =
             constraints.video.mandatory.minHeight;
-}
+    }
 }
 
 /**
@@ -450,12 +450,12 @@ function onReady (options, GUM) {
  * @param {Array} [args=[]] arguments for function
  */
 function maybeApply(fn, args) {
-  fn && fn(...args);
+    fn && fn(...args);
 }
 
 var getUserMediaStatus = {
-  initialized: false,
-  callbacks: []
+    initialized: false,
+    callbacks: []
 };
 
 /**
@@ -465,20 +465,20 @@ var getUserMediaStatus = {
  * @returns {Function} wrapped function
  */
 function wrapGetUserMedia(getUserMedia) {
-  return function (constraints, successCallback, errorCallback) {
-    getUserMedia(constraints, function (stream) {
-      maybeApply(successCallback, [stream]);
-      if (!getUserMediaStatus.initialized) {
-        getUserMediaStatus.initialized = true;
-        getUserMediaStatus.callbacks.forEach(function (callback) {
-          callback();
+    return function (constraints, successCallback, errorCallback) {
+        getUserMedia(constraints, function (stream) {
+            maybeApply(successCallback, [stream]);
+            if (!getUserMediaStatus.initialized) {
+                getUserMediaStatus.initialized = true;
+                getUserMediaStatus.callbacks.forEach(function (callback) {
+                    callback();
+                });
+                getUserMediaStatus.callbacks.length = 0;
+            }
+        }, function (error) {
+            maybeApply(errorCallback, [error]);
         });
-        getUserMediaStatus.callbacks.length = 0;
-      }
-    }, function (error) {
-      maybeApply(errorCallback, [error]);
-    });
-  };
+    };
 }
 
 /**
@@ -552,10 +552,10 @@ function obtainDevices(options) {
     var devices = [];
     devices.push(device);
     options.deviceGUM[device](function (stream) {
-            options.streams = options.streams || {};
-            options.streams[device] = stream;
-            obtainDevices(options);
-        },
+        options.streams = options.streams || {};
+        options.streams[device] = stream;
+        obtainDevices(options);
+    },
         function (error) {
             Object.keys(options.streams).forEach(function(device) {
                 rtcUtils.stopMediaStream(options.streams[device]);
@@ -610,8 +610,8 @@ function handleLocalStream(streams, resolution) {
           // On other types of browser (e.g. Firefox) we choose (namely,
           // obtainAudioAndVideoPermissions) to call getUsermedia per device
           // (type).
-          audioStream = streams.audio;
-          videoStream = streams.video;
+            audioStream = streams.audio;
+            videoStream = streams.video;
         }
         // Again, different choices on different types of browser.
         desktopStream = streams.desktopStream || streams.desktop;
@@ -772,8 +772,8 @@ class RTCUtils extends Listenable {
                     if (element) {
                         defaultSetVideoSrc(element, stream);
                         if (stream)                            {
-element.play();
-}
+                            element.play();
+                        }
                     }
                     return element;
                 });
@@ -1145,8 +1145,8 @@ element.play();
 
     _isDeviceListAvailable () {
         if (!rtcReady)            {
-throw new Error("WebRTC not ready yet");
-}
+            throw new Error("WebRTC not ready yet");
+        }
         var isEnumerateDevicesAvailable
             = navigator.mediaDevices && navigator.mediaDevices.enumerateDevices;
         if (isEnumerateDevicesAvailable) {

@@ -99,7 +99,7 @@ export default class RTC extends Listenable {
                     !track._isReceivingData())? tracks
                         : Promise.reject(new JitsiTrackError(
                             JitsiTrackErrors.NO_DATA_FROM_SOURCE));
-        });
+            });
     }
 
     /**
@@ -165,8 +165,8 @@ export default class RTC extends Listenable {
         // cache the value if channel is missing, till we open it
         this.selectedEndpoint = id;
         if(this.dataChannels && this.dataChannelsOpen)            {
-this.dataChannels.sendSelectedEndpointMessage(id);
-}
+            this.dataChannels.sendSelectedEndpointMessage(id);
+        }
     }
 
     /**
@@ -254,8 +254,8 @@ this.dataChannels.sendSelectedEndpointMessage(id);
 
     addLocalTrack (track) {
         if (!track)            {
-throw new Error('track must not be null nor undefined');
-}
+            throw new Error('track must not be null nor undefined');
+        }
 
         this.localTracks.push(track);
 
@@ -291,8 +291,8 @@ throw new Error('track must not be null nor undefined');
         if (mediaType !== undefined) {
             tracks = tracks.filter(
                 (track) => {
- return track.getType() === mediaType; 
-});
+                    return track.getType() === mediaType; 
+                });
         }
         return tracks;
     }
@@ -335,10 +335,10 @@ throw new Error('track must not be null nor undefined');
      */
     getRemoteTrackByType (type, resource) {
         if (this.remoteTracks[resource])            {
-return this.remoteTracks[resource][type];
-}        else            {
-return null;
-}
+            return this.remoteTracks[resource][type];
+        }        else            {
+            return null;
+        }
     }
 
     /**
@@ -638,8 +638,8 @@ return null;
 
     setAudioLevel (resource, audioLevel) {
         if(!resource)            {
-return;
-}
+            return;
+        }
         var audioTrack = this.getRemoteAudioTrack(resource);
         if(audioTrack) {
             audioTrack.setAudioLevel(audioLevel);
@@ -654,8 +654,8 @@ return;
     getResourceBySSRC (ssrc) {
         if (this.getLocalTracks().find(
                 localTrack => {
- return localTrack.getSSRC() == ssrc; 
-})) {
+                    return localTrack.getSSRC() == ssrc; 
+                })) {
             return this.conference.myUserId();
         }
 

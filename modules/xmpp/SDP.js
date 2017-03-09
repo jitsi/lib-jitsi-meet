@@ -93,8 +93,8 @@ SDP.prototype.containsSSRC = function (ssrc) {
     var result = false;
     Object.keys(medias).forEach(function (mediaindex) {
         if (result)            {
-return;
-}
+            return;
+        }
         if (medias[mediaindex].ssrcs[ssrc]) {
             result = true;
         }
@@ -110,16 +110,16 @@ SDP.prototype.mangle = function () {
         lines.pop(); // remove empty last element
         mline = SDPUtil.parse_mline(lines.shift());
         if (mline.media != 'audio')            {
-continue;
-}
+            continue;
+        }
         newdesc = '';
         mline.fmt.length = 0;
         for (j = 0; j < lines.length; j++) {
             if (lines[j].substr(0, 9) == 'a=rtpmap:') {
                 rtpmap = SDPUtil.parse_rtpmap(lines[j]);
                 if (rtpmap.name == 'CN' || rtpmap.name == 'ISAC')                    {
-continue;
-}
+                    continue;
+                }
                 mline.fmt.push(rtpmap.id);
             }
             newdesc += lines[j] + '\r\n';
@@ -312,18 +312,18 @@ SDP.prototype.toJingle = function (elem, thecreator) {
                         id: tmp.value });
                     if (tmp.hasOwnProperty('direction')) {
                         switch (tmp.direction) {
-                            case 'sendonly':
-                                elem.attrs({senders: 'responder'});
-                                break;
-                            case 'recvonly':
-                                elem.attrs({senders: 'initiator'});
-                                break;
-                            case 'sendrecv':
-                                elem.attrs({senders: 'both'});
-                                break;
-                            case 'inactive':
-                                elem.attrs({senders: 'none'});
-                                break;
+                        case 'sendonly':
+                            elem.attrs({senders: 'responder'});
+                            break;
+                        case 'recvonly':
+                            elem.attrs({senders: 'initiator'});
+                            break;
+                        case 'sendrecv':
+                            elem.attrs({senders: 'both'});
+                            break;
+                        case 'inactive':
+                            elem.attrs({senders: 'none'});
+                            break;
                         }
                     }
                     // TODO: handle params
@@ -366,14 +366,14 @@ SDP.prototype.transportToJingle = function (mediaindex, elem) {
     if (sctpmap) {
         sctpAttrs = SDPUtil.parse_sctpmap(sctpmap);
         elem.c('sctpmap', {
-                xmlns: 'urn:xmpp:jingle:transports:dtls-sctp:1',
-                number: sctpAttrs[0], /* SCTP port */
-                protocol: sctpAttrs[1] /* protocol */
-            });
+            xmlns: 'urn:xmpp:jingle:transports:dtls-sctp:1',
+            number: sctpAttrs[0], /* SCTP port */
+            protocol: sctpAttrs[1] /* protocol */
+        });
         // Optional stream count attribute
         if (sctpAttrs.length > 2)            {
-elem.attrs({ streams: sctpAttrs[2]});
-}
+            elem.attrs({ streams: sctpAttrs[2]});
+        }
         elem.up();
     }
     // XEP-0320
@@ -517,8 +517,8 @@ SDP.prototype.jingle2media = function (content) {
     if (!sctp.length) {
         tmp.fmt = desc.find('payload-type').map(
             function () {
- return this.getAttribute('id');
-}).get();
+                return this.getAttribute('id');
+            }).get();
         media += SDPUtil.build_mline(tmp) + '\r\n';
     } else {
         media += 'm=application 1 DTLS/SCTP ' + sctp.attr('number') + '\r\n';
@@ -527,16 +527,16 @@ SDP.prototype.jingle2media = function (content) {
 
         var streamCount = sctp.attr('streams');
         if (streamCount)            {
-media += ' ' + streamCount + '\r\n';
-}        else            {
-media += '\r\n';
-}
+            media += ' ' + streamCount + '\r\n';
+        }        else            {
+            media += '\r\n';
+        }
     }
 
     media += 'c=IN IP4 0.0.0.0\r\n';
     if (!sctp.length)        {
-media += 'a=rtcp:1 IN IP4 0.0.0.0\r\n';
-}
+        media += 'a=rtcp:1 IN IP4 0.0.0.0\r\n';
+    }
     tmp = content.find('>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]');
     if (tmp.length) {
         if (tmp.attr('ufrag')) {
@@ -556,18 +556,18 @@ media += 'a=rtcp:1 IN IP4 0.0.0.0\r\n';
         });
     }
     switch (content.attr('senders')) {
-        case 'initiator':
-            media += 'a=sendonly\r\n';
-            break;
-        case 'responder':
-            media += 'a=recvonly\r\n';
-            break;
-        case 'none':
-            media += 'a=inactive\r\n';
-            break;
-        case 'both':
-            media += 'a=sendrecv\r\n';
-            break;
+    case 'initiator':
+        media += 'a=sendonly\r\n';
+        break;
+    case 'responder':
+        media += 'a=recvonly\r\n';
+        break;
+    case 'none':
+        media += 'a=inactive\r\n';
+        break;
+    case 'both':
+        media += 'a=sendrecv\r\n';
+        break;
     }
     media += 'a=mid:' + content.attr('name') + '\r\n';
 
@@ -649,8 +649,8 @@ media += 'a=rtcp:1 IN IP4 0.0.0.0\r\n';
             value = SDPUtil.filter_special_chars(value);
             media += 'a=ssrc:' + ssrc + ' ' + name;
             if (value && value.length)                {
-media += ':' + value;
-}
+                media += ':' + value;
+            }
             media += '\r\n';
         });
     });

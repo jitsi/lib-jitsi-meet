@@ -73,12 +73,12 @@ var JitsiMediaDevices = {
         var permissions = RTC.getDeviceAvailability();
 
         switch(type) {
-            case MediaType.VIDEO:
-                return permissions.video === true;
-            case MediaType.AUDIO:
-                return permissions.audio === true;
-            default:
-                return permissions.video === true && permissions.audio === true;
+        case MediaType.VIDEO:
+            return permissions.video === true;
+        case MediaType.AUDIO:
+            return permissions.audio === true;
+        default:
+            return permissions.video === true && permissions.audio === true;
         }
     },
     /**

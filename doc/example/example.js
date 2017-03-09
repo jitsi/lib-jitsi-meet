@@ -46,8 +46,8 @@ function onLocalTracks(tracks){
             localTracks[i].attach($("#localAudio" + i)[0]);
         }
         if(isJoined)            {
-room.addTrack(localTracks[i]);
-}
+            room.addTrack(localTracks[i]);
+        }
     }
 }
 
@@ -57,12 +57,12 @@ room.addTrack(localTracks[i]);
  */
 function onRemoteTrack(track) {
     if(track.isLocal())        {
-return;
-}
+        return;
+    }
     var participant = track.getParticipantId();
     if(!remoteTracks[participant])        {
-remoteTracks[participant] = [];
-}
+        remoteTracks[participant] = [];
+    }
     var idx = remoteTracks[participant].push(track);
     track.addEventListener(JitsiMeetJS.events.track.TRACK_AUDIO_LEVEL_CHANGED,
         function (audioLevel) {
@@ -96,19 +96,19 @@ function onConferenceJoined () {
     console.log("conference joined!");
     isJoined = true;
     for(var i = 0; i < localTracks.length; i++)        {
-room.addTrack(localTracks[i]);
-}
+        room.addTrack(localTracks[i]);
+    }
 }
 
 function onUserLeft(id) {
     console.log("user left");
     if(!remoteTracks[id])        {
-return;
-}
+        return;
+    }
     var tracks = remoteTracks[id];
     for(var i = 0; i< tracks.length; i++)        {
-tracks[i].detach($("#" + id + tracks[i].getType()));
-}
+        tracks[i].detach($("#" + id + tracks[i].getType()));
+    }
 }
 
 /**
@@ -122,8 +122,8 @@ function onConnectionSuccess(){
     });
     room.on(JitsiMeetJS.events.conference.CONFERENCE_JOINED, onConferenceJoined);
     room.on(JitsiMeetJS.events.conference.USER_JOINED, function(id){
- console.log("user join");remoteTracks[id] = [];
-});
+        console.log("user join");remoteTracks[id] = [];
+    });
     room.on(JitsiMeetJS.events.conference.USER_LEFT, onUserLeft);
     room.on(JitsiMeetJS.events.conference.TRACK_MUTE_CHANGED, function (track) {
         console.log(track.getType() + " - " + track.isMuted());
@@ -174,8 +174,8 @@ function disconnect(){
 
 function unload() {
     for(var i = 0; i < localTracks.length; i++)        {
-localTracks[i].stop();
-}
+        localTracks[i].stop();
+    }
     room.leave();
     connection.disconnect();
 }
@@ -260,8 +260,8 @@ JitsiMeetJS.init(initOptions).then(function(){
 if (JitsiMeetJS.mediaDevices.isDeviceChangeAvailable('output')) {
     JitsiMeetJS.mediaDevices.enumerateDevices(function(devices) {
         var audioOutputDevices = devices.filter(function(d) {
- return d.kind === 'audiooutput'; 
-});
+            return d.kind === 'audiooutput'; 
+        });
 
         if (audioOutputDevices.length > 1) {
             $('#audioOutputSelect').html(

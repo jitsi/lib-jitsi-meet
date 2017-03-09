@@ -56,30 +56,30 @@ export default function () {
         }
         /* eslint-disable no-case-declarations */
         switch (level) {
-            case Strophe.LogLevel.DEBUG:
+        case Strophe.LogLevel.DEBUG:
                 // The log message which reports successful status is logged
                 // on Strophe's DEBUG level
-                if (lastErrorStatus !== -1 &&
+            if (lastErrorStatus !== -1 &&
                         resetLastErrorStatusRegExpr.test(msg)) {
-                    logger.debug("Reset lastErrorStatus");
-                    lastErrorStatus = -1;
-                }
-                break;
-            case Strophe.LogLevel.WARN:
-                logger.warn("Strophe: " + msg);
-                const errStatusCapture = lastErrorStatusRegExpr.exec(msg);
-                if (errStatusCapture && errStatusCapture.length === 2) {
-                    lastErrorStatus = parseInt(errStatusCapture[1]);
-                    logger.debug(
+                logger.debug("Reset lastErrorStatus");
+                lastErrorStatus = -1;
+            }
+            break;
+        case Strophe.LogLevel.WARN:
+            logger.warn("Strophe: " + msg);
+            const errStatusCapture = lastErrorStatusRegExpr.exec(msg);
+            if (errStatusCapture && errStatusCapture.length === 2) {
+                lastErrorStatus = parseInt(errStatusCapture[1]);
+                logger.debug(
                         "lastErrorStatus set to: " + lastErrorStatus);
-                }
-                break;
-            case Strophe.LogLevel.ERROR:
-            case Strophe.LogLevel.FATAL:
-                msg = "Strophe: " + msg;
-                GlobalOnErrorHandler.callErrorHandler(new Error(msg));
-                logger.error(msg);
-                break;
+            }
+            break;
+        case Strophe.LogLevel.ERROR:
+        case Strophe.LogLevel.FATAL:
+            msg = "Strophe: " + msg;
+            GlobalOnErrorHandler.callErrorHandler(new Error(msg));
+            logger.error(msg);
+            break;
         }
         /* eslint-enable no-case-declarations */
     };
@@ -96,26 +96,26 @@ export default function () {
 
     Strophe.getStatusString = function (status) {
         switch (status) {
-            case Strophe.Status.ERROR:
-                return "ERROR";
-            case Strophe.Status.CONNECTING:
-                return "CONNECTING";
-            case Strophe.Status.CONNFAIL:
-                return "CONNFAIL";
-            case Strophe.Status.AUTHENTICATING:
-                return "AUTHENTICATING";
-            case Strophe.Status.AUTHFAIL:
-                return "AUTHFAIL";
-            case Strophe.Status.CONNECTED:
-                return "CONNECTED";
-            case Strophe.Status.DISCONNECTED:
-                return "DISCONNECTED";
-            case Strophe.Status.DISCONNECTING:
-                return "DISCONNECTING";
-            case Strophe.Status.ATTACHED:
-                return "ATTACHED";
-            default:
-                return "unknown";
+        case Strophe.Status.ERROR:
+            return "ERROR";
+        case Strophe.Status.CONNECTING:
+            return "CONNECTING";
+        case Strophe.Status.CONNFAIL:
+            return "CONNFAIL";
+        case Strophe.Status.AUTHENTICATING:
+            return "AUTHENTICATING";
+        case Strophe.Status.AUTHFAIL:
+            return "AUTHFAIL";
+        case Strophe.Status.CONNECTED:
+            return "CONNECTED";
+        case Strophe.Status.DISCONNECTED:
+            return "DISCONNECTED";
+        case Strophe.Status.DISCONNECTING:
+            return "DISCONNECTING";
+        case Strophe.Status.ATTACHED:
+            return "ATTACHED";
+        default:
+            return "unknown";
         }
     };
 }

@@ -32,8 +32,8 @@ var USER_MEDIA_PERMISSION_PROMPT_TIMEOUT = 500;
 
 function getLowerResolution(resolution) {
     if(!Resolutions[resolution])        {
-return null;
-}
+        return null;
+    }
     var order = Resolutions[resolution].order;
     var res = null;
     var resName = null;
@@ -225,8 +225,8 @@ var LibJitsiMeet = {
         }
 
         if(!window.connectionTimes)            {
-window.connectionTimes = {};
-}
+            window.connectionTimes = {};
+        }
         window.connectionTimes["obtainPermissions.start"] =
             window.performance.now();
 
@@ -241,7 +241,7 @@ window.connectionTimes = {};
                     "getUserMedia.success", options), {value: options});
 
                 if(!RTC.options.disableAudioLevels)                    {
-for(let i = 0; i < tracks.length; i++) {
+                    for(let i = 0; i < tracks.length; i++) {
                         const track = tracks[i];
                         var mStream = track.getOriginalStream();
                         if(track.getType() === MediaType.AUDIO){
@@ -254,7 +254,7 @@ for(let i = 0; i < tracks.length; i++) {
                                 });
                         }
                     }
-}
+                }
 
                 // set real device ids
                 var currentlyAvailableMediaDevices

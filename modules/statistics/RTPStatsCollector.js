@@ -65,8 +65,8 @@ KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_REACT_NATIVE] =
  */
 function calculatePacketLoss(lostPackets, totalPackets) {
     if(!totalPackets || totalPackets <= 0 || !lostPackets || lostPackets <= 0)        {
-return 0;
-}
+        return 0;
+    }
     return Math.round((lostPackets/totalPackets)*100);
 }
 
@@ -181,8 +181,8 @@ function StatsCollector(
     this._browserType = RTCBrowserType.getBrowserType();
     var keys = KEYS_BY_BROWSER_TYPE[this._browserType];
     if (!keys)        {
-throw "The browser type '" + this._browserType + "' isn't supported!";
-}
+        throw "The browser type '" + this._browserType + "' isn't supported!";
+    }
     /**
      * The function which is to be used to retrieve the value associated in a
      * report returned by RTCPeerConnection#getStats with a LibJitsiMeet
@@ -315,10 +315,10 @@ StatsCollector.prototype._defineGetStatValueMethod = function (keys) {
     var keyFromName = function (name) {
         var key = keys[name];
         if (key)            {
-return key;
-}        else            {
-throw "The property '" + name + "' isn't supported!";
-}
+            return key;
+        }        else            {
+            throw "The property '" + name + "' isn't supported!";
+        }
     };
 
     // Define the function which retrieves the value from a specific report
@@ -338,8 +338,8 @@ throw "The property '" + name + "' isn't supported!";
         // likely that whoever defined it wanted you to call it in order to
         // retrieve the value associated with a specific key.
         itemStatByKey = function (item, key) {
- return item.stat(key); 
-};
+            return item.stat(key); 
+        };
         break;
     case RTCBrowserType.RTC_BROWSER_REACT_NATIVE:
         // The implementation provided by react-native-webrtc follows the
@@ -360,8 +360,8 @@ throw "The property '" + name + "' isn't supported!";
         break;
     default:
         itemStatByKey = function (item, key) {
- return item[key]; 
-};
+            return item[key]; 
+        };
     }
 
     // Compose the 2 functions defined above to get a function which retrieves
@@ -417,15 +417,15 @@ StatsCollector.prototype.processStatsReport = function () {
                 active = getStatValue(now, "activeConnection");
             }            catch(e){/*not supported*/}
             if(!ip || !type || !localip || active != "true")                {
-continue;
-}
+                continue;
+            }
             // Save the address unless it has been saved already.
             var conferenceStatsTransport = this.conferenceStats.transport;
             if(!conferenceStatsTransport.some(function (t) {
- return (
+                return (
                         t.ip == ip && t.type == type && t.localip == localip
-                    );
-})) {
+                );
+            })) {
                 conferenceStatsTransport.push(
                     {ip: ip, type: type, localip: localip});
             }
@@ -434,8 +434,8 @@ continue;
 
         if(now.type == "candidatepair") {
             if(now.state == "succeeded")                {
-continue;
-}
+                continue;
+            }
 
             var local = this.currentStatsReport[now.localCandidateId];
             var remote = this.currentStatsReport[now.remoteCandidateId];
@@ -474,8 +474,8 @@ continue;
             }
         }
         if (!packetsNow || packetsNow < 0)            {
-packetsNow = 0;
-}
+            packetsNow = 0;
+        }
 
         var packetsBefore = getNonNegativeStat(before, key);
         var packetsDiff = Math.max(0, packetsNow - packetsBefore);
@@ -593,12 +593,12 @@ packetsNow = 0;
             calculatePacketLoss(lostPackets.upload, totalPackets.upload)
     };
     this.eventEmitter.emit(StatisticsEvents.CONNECTION_STATS, {
-            "bandwidth": this.conferenceStats.bandwidth,
-            "bitrate": this.conferenceStats.bitrate,
-            "packetLoss": this.conferenceStats.packetLoss,
-            "resolution": resolutions,
-            "transport": this.conferenceStats.transport
-        });
+        "bandwidth": this.conferenceStats.bandwidth,
+        "bitrate": this.conferenceStats.bitrate,
+        "packetLoss": this.conferenceStats.packetLoss,
+        "resolution": resolutions,
+        "transport": this.conferenceStats.transport
+    });
     this.conferenceStats.transport = [];
 };
 
@@ -616,8 +616,8 @@ StatsCollector.prototype.processAudioLevelReport = function () {
         var now = this.currentAudioLevelsReport[idx];
 
         if (now.type != 'ssrc')            {
-continue;
-}
+            continue;
+        }
 
         var before = this.baselineAudioLevelsReport[idx];
         var ssrc = getStatValue(now, 'ssrc');
@@ -628,8 +628,8 @@ continue;
 
         if (!ssrc) {
             if ((Date.now() - now.timestamp) < 3000)                {
-logger.warn("No ssrc: ");
-}
+                logger.warn("No ssrc: ");
+            }
             continue;
         }
 

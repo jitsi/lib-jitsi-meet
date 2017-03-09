@@ -188,7 +188,7 @@ export default class ConnectionQuality {
                     this._updateRemoteStats(
                         participant.getId(), payload.values);
                 }
-        });
+            });
 
         // Listen to local statistics events originating from the RTC module
         // and update the _localStats field.
@@ -426,13 +426,13 @@ export default class ConnectionQuality {
      */
     _updateRemoteStats(id, data) {
             // Use only the fields we need
-            this._remoteStats[id] = {
-                bitrate: data.bitrate,
-                packetLoss: data.packetLoss,
-                connectionQuality: data.connectionQuality
-            };
+        this._remoteStats[id] = {
+            bitrate: data.bitrate,
+            packetLoss: data.packetLoss,
+            connectionQuality: data.connectionQuality
+        };
 
-            this.eventEmitter.emit(
+        this.eventEmitter.emit(
                 ConnectionQualityEvents.REMOTE_STATS_UPDATED,
                 id,
                 this._remoteStats[id]);

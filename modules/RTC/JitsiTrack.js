@@ -27,8 +27,8 @@ function implementOnEndedHandling(jitsiTrack) {
     var stream = jitsiTrack.getOriginalStream();
 
     if(!stream)        {
-return;
-}
+        return;
+    }
 
     var originalStop = stream.stop;
     stream.stop = function () {
@@ -47,10 +47,10 @@ return;
 function addMediaStreamInactiveHandler(mediaStream, handler) {
     // Temasys will use onended
     if(typeof mediaStream.active !== "undefined")        {
-mediaStream.oninactive = handler;
-}    else        {
-mediaStream.onended = handler;
-}
+        mediaStream.oninactive = handler;
+    }    else        {
+        mediaStream.onended = handler;
+    }
 }
 
 /**
@@ -103,8 +103,8 @@ function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMedia
 JitsiTrack.prototype._setHandler = function (type, handler) {
     this.handlers[type] = handler;
     if(!this.stream)        {
-return;
-}
+        return;
+    }
 
     if(type === "inactive") {
         if (RTCBrowserType.isFirefox()) {
@@ -318,10 +318,10 @@ JitsiTrack.prototype.isScreenSharing = function() {
  */
 JitsiTrack.prototype.getId = function () {
     if(this.stream)        {
-return RTCUtils.getStreamID(this.stream);
-}    else        {
-return null;
-}
+        return RTCUtils.getStreamID(this.stream);
+    }    else        {
+        return null;
+    }
 };
 
 /**
@@ -332,10 +332,10 @@ return null;
  */
 JitsiTrack.prototype.isActive = function () {
     if(typeof this.stream.active !== "undefined")        {
-return this.stream.active;
-}    else        {
-return true;
-}
+        return this.stream.active;
+    }    else        {
+        return true;
+    }
 };
 
 /**
@@ -346,8 +346,8 @@ return true;
  */
 JitsiTrack.prototype.on = function (eventId, handler) {
     if(this.eventEmitter)        {
-this.eventEmitter.on(eventId, handler);
-}
+        this.eventEmitter.on(eventId, handler);
+    }
 };
 
 /**
@@ -357,8 +357,8 @@ this.eventEmitter.on(eventId, handler);
  */
 JitsiTrack.prototype.off = function (eventId, handler) {
     if(this.eventEmitter)        {
-this.eventEmitter.removeListener(eventId, handler);
-}
+        this.eventEmitter.removeListener(eventId, handler);
+    }
 };
 
 // Common aliases for event emitter
@@ -375,7 +375,7 @@ JitsiTrack.prototype.setAudioLevel = function (audioLevel) {
             audioLevel);
         this.audioLevel = audioLevel;
     }
- };
+};
 
 /**
  * Returns the msid of the stream attached to the JitsiTrack object or null if

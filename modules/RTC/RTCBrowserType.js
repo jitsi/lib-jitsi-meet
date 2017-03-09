@@ -336,8 +336,8 @@ function detectBrowser() {
     for (var i = 0; i < detectors.length; i++) {
         version = detectors[i]();
         if (version)            {
-return version;
-}
+            return version;
+        }
     }
     logger.warn("Browser type defaults to Safari ver 1");
     currentBrowser = RTCBrowserType.RTC_BROWSER_SAFARI;

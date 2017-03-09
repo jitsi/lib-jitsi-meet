@@ -37,47 +37,47 @@ function ComponentsVersions(conference) {
 ComponentsVersions.prototype.processPresence =
     function(node, mucResource, mucJid) {
 
-    if (node.attributes.xmlns !== 'http://jitsi.org/jitmeet') {
-        logger.warn("Ignored presence versions node - invalid xmlns", node);
-        return;
-    }
-
-    if (!this.conference._isFocus(mucJid)) {
-        logger.warn(
-            "Received versions not from the focus user: " + node, mucJid);
-        return;
-    }
-
-    var log = [];
-    node.children.forEach(function(item){
-
-        var componentName = item.attributes.name;
-        if (componentName !== ComponentsVersions.FOCUS_COMPONENT &&
-            componentName !== ComponentsVersions.XMPP_SERVER_COMPONENT &&
-            componentName !== ComponentsVersions.VIDEOBRIDGE_COMPONENT) {
-            logger.warn(
-                "Received version for not supported component name: "
-                    + componentName);
+        if (node.attributes.xmlns !== 'http://jitsi.org/jitmeet') {
+            logger.warn("Ignored presence versions node - invalid xmlns", node);
             return;
         }
 
-        var version = item.value;
-        if (this.versions[componentName] !== version) {
-            this.versions[componentName] = version;
-            logger.info("Got " + componentName + " version: " + version);
-
-            log.push({
-                id: "component_version",
-                component: componentName,
-                version: version});
+        if (!this.conference._isFocus(mucJid)) {
+            logger.warn(
+            "Received versions not from the focus user: " + node, mucJid);
+            return;
         }
-    }.bind(this));
+
+        var log = [];
+        node.children.forEach(function(item){
+
+            var componentName = item.attributes.name;
+            if (componentName !== ComponentsVersions.FOCUS_COMPONENT &&
+            componentName !== ComponentsVersions.XMPP_SERVER_COMPONENT &&
+            componentName !== ComponentsVersions.VIDEOBRIDGE_COMPONENT) {
+                logger.warn(
+                "Received version for not supported component name: "
+                    + componentName);
+                return;
+            }
+
+            var version = item.value;
+            if (this.versions[componentName] !== version) {
+                this.versions[componentName] = version;
+                logger.info("Got " + componentName + " version: " + version);
+
+                log.push({
+                    id: "component_version",
+                    component: componentName,
+                    version: version});
+            }
+        }.bind(this));
 
     // logs versions to stats
-    if (log.length > 0)        {
-Statistics.sendLog(JSON.stringify(log));
-}
-};
+        if (log.length > 0)        {
+            Statistics.sendLog(JSON.stringify(log));
+        }
+    };
 
 /**
  * Obtains the version of conferencing system component.

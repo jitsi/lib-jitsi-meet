@@ -39,17 +39,17 @@ var ScriptUtil = {
                 var baseScriptSrc
                     = scriptSrc.substring(0, scriptSrc.lastIndexOf('/') + 1);
                 if (scriptSrc && baseScriptSrc)                    {
-src = baseScriptSrc + src;
-}
+                    src = baseScriptSrc + src;
+                }
             }
         }
 
         if (loadCallback)            {
-script.onload = loadCallback;
-}
+            script.onload = loadCallback;
+        }
         if (errorCallback)            {
-script.onerror = errorCallback;
-}
+            script.onerror = errorCallback;
+        }
 
         script.src = src;
         if (prepend) {

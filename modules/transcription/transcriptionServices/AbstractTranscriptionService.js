@@ -20,7 +20,7 @@ TranscriptionService.prototype.send = function send(recordingResult, callback){
     var t = this;
     this.sendRequest(recordingResult.blob, function(response){
         if(!t.verify(response)){
-               console.log("the retrieved response from the server" +
+            console.log("the retrieved response from the server" +
                    " is not valid!");
             recordingResult.wordArray = [];
             callback(recordingResult);
@@ -73,7 +73,7 @@ TranscriptionService.prototype.formatResponse = function(response){
  */
 // eslint-disable-next-line no-unused-vars
 TranscriptionService.prototype.verify = function(response){
-      throw new Error("TranscriptionService.verify is abstract");
+    throw new Error("TranscriptionService.verify is abstract");
 };
 
 module.exports = TranscriptionService;

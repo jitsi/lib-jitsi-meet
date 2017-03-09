@@ -158,8 +158,8 @@ DataChannels.prototype.onDataChannel = function (event) {
         logger.info("The Data Channel closed", dataChannel);
         var idx = self._dataChannels.indexOf(dataChannel);
         if (idx > -1)            {
-self._dataChannels = self._dataChannels.splice(idx, 1);
-}
+            self._dataChannels = self._dataChannels.splice(idx, 1);
+        }
     };
     this._dataChannels.push(dataChannel);
 };
@@ -236,10 +236,10 @@ DataChannels.prototype._some = function (callback, thisArg) {
 
     if (dataChannels && dataChannels.length !== 0) {
         if (thisArg)            {
-return dataChannels.some(callback, thisArg);
-}        else            {
-return dataChannels.some(callback);
-}
+            return dataChannels.some(callback, thisArg);
+        }        else            {
+            return dataChannels.some(callback);
+        }
     } else {
         return false;
     }
@@ -255,7 +255,7 @@ return dataChannels.some(callback);
 DataChannels.prototype.send = function (jsonObject) {
     if(!this._some(function (dataChannel) {
         if (dataChannel.readyState == 'open') {
-                dataChannel.send(JSON.stringify(jsonObject));
+            dataChannel.send(JSON.stringify(jsonObject));
             return true;
         }
     })) {

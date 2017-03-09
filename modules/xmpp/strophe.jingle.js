@@ -76,16 +76,16 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         const now = window.performance.now();
         // see http://xmpp.org/extensions/xep-0166.html#concepts-session
         switch (action) {
-            case 'session-initiate': {
-                logger.log("(TIME) received session-initiate:\t", now);
-                const startMuted = $(iq).find('jingle>startmuted');
-                if (startMuted && startMuted.length > 0) {
-                    const audioMuted = startMuted.attr("audio");
-                    const videoMuted = startMuted.attr("video");
-                    this.eventEmitter.emit(XMPPEvents.START_MUTED_FROM_FOCUS,
+        case 'session-initiate': {
+            logger.log("(TIME) received session-initiate:\t", now);
+            const startMuted = $(iq).find('jingle>startmuted');
+            if (startMuted && startMuted.length > 0) {
+                const audioMuted = startMuted.attr("audio");
+                const videoMuted = startMuted.attr("video");
+                this.eventEmitter.emit(XMPPEvents.START_MUTED_FROM_FOCUS,
                             audioMuted === "true", videoMuted === "true");
-                }
-                sess = new JingleSessionPC(
+            }
+            sess = new JingleSessionPC(
                         $(iq).find('jingle').attr('sid'),
                         $(iq).attr('to'),
                         fromJid,
@@ -93,62 +93,62 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                         this.media_constraints,
                         this.ice_config, this.xmpp.options);
 
-                this.sessions[sess.sid] = sess;
+            this.sessions[sess.sid] = sess;
 
-                this.eventEmitter.emit(XMPPEvents.CALL_INCOMING,
+            this.eventEmitter.emit(XMPPEvents.CALL_INCOMING,
                     sess, $(iq).find('>jingle'), now);
-                Statistics.analytics.sendEvent(
+            Statistics.analytics.sendEvent(
                     'xmpp.session-initiate', {value: now});
-                break;
-            }
-            case 'session-terminate': {
-                logger.log('terminating...', sess.sid);
-                let reasonCondition = null;
-                let reasonText = null;
-                if ($(iq).find('>jingle>reason').length) {
-                    reasonCondition
+            break;
+        }
+        case 'session-terminate': {
+            logger.log('terminating...', sess.sid);
+            let reasonCondition = null;
+            let reasonText = null;
+            if ($(iq).find('>jingle>reason').length) {
+                reasonCondition
                         = $(iq).find('>jingle>reason>:first')[0].tagName;
-                    reasonText = $(iq).find('>jingle>reason>text').text();
-                }
-                this.terminate(sess.sid, reasonCondition, reasonText);
-                this.eventEmitter.emit(XMPPEvents.CALL_ENDED,
-                    sess, reasonCondition, reasonText);
-                break;
+                reasonText = $(iq).find('>jingle>reason>text').text();
             }
-            case 'transport-replace':
-                logger.info("(TIME) Start transport replace", now);
-                Statistics.analytics.sendEvent(
+            this.terminate(sess.sid, reasonCondition, reasonText);
+            this.eventEmitter.emit(XMPPEvents.CALL_ENDED,
+                    sess, reasonCondition, reasonText);
+            break;
+        }
+        case 'transport-replace':
+            logger.info("(TIME) Start transport replace", now);
+            Statistics.analytics.sendEvent(
                     'xmpp.transport-replace.start', {value: now});
 
-                sess.replaceTransport($(iq).find('>jingle'), () => {
-                    const successTime = window.performance.now();
-                    logger.info(
+            sess.replaceTransport($(iq).find('>jingle'), () => {
+                const successTime = window.performance.now();
+                logger.info(
                         "(TIME) Transport replace success!", successTime);
-                    Statistics.analytics.sendEvent(
+                Statistics.analytics.sendEvent(
                         'xmpp.transport-replace.success',
                         {value: successTime});
-                }, error => {
-                    GlobalOnErrorHandler.callErrorHandler(error);
-                    logger.error('Transport replace failed', error);
-                    sess.sendTransportReject();
-                });
-                break;
-            case 'addsource': // FIXME: proprietary, un-jingleish
-            case 'source-add': // FIXME: proprietary
-                sess.addRemoteStream($(iq).find('>jingle>content'));
-                break;
-            case 'removesource': // FIXME: proprietary, un-jingleish
-            case 'source-remove': // FIXME: proprietary
-                sess.removeRemoteStream($(iq).find('>jingle>content'));
-                break;
-            default:
-                logger.warn('jingle action not implemented', action);
-                ack.attrs({ type: 'error' });
-                ack.c('error', {type: 'cancel'})
+            }, error => {
+                GlobalOnErrorHandler.callErrorHandler(error);
+                logger.error('Transport replace failed', error);
+                sess.sendTransportReject();
+            });
+            break;
+        case 'addsource': // FIXME: proprietary, un-jingleish
+        case 'source-add': // FIXME: proprietary
+            sess.addRemoteStream($(iq).find('>jingle>content'));
+            break;
+        case 'removesource': // FIXME: proprietary, un-jingleish
+        case 'source-remove': // FIXME: proprietary
+            sess.removeRemoteStream($(iq).find('>jingle>content'));
+            break;
+        default:
+            logger.warn('jingle action not implemented', action);
+            ack.attrs({ type: 'error' });
+            ack.c('error', {type: 'cancel'})
                     .c('bad-request',
                         { xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas' })
                     .up();
-                break;
+            break;
         }
         this.connection.send(ack);
         return true;
@@ -186,46 +186,46 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     const dict = {};
                     const type = el.attr('type');
                     switch (type) {
-                        case 'stun':
-                            dict.url = 'stun:' + el.attr('host');
-                            if (el.attr('port')) {
-                                dict.url += ':' + el.attr('port');
-                            }
-                            iceservers.push(dict);
-                            break;
-                        case 'turn':
-                        case 'turns': {
-                            dict.url = type + ':';
-                            const username = el.attr('username');
+                    case 'stun':
+                        dict.url = 'stun:' + el.attr('host');
+                        if (el.attr('port')) {
+                            dict.url += ':' + el.attr('port');
+                        }
+                        iceservers.push(dict);
+                        break;
+                    case 'turn':
+                    case 'turns': {
+                        dict.url = type + ':';
+                        const username = el.attr('username');
                             // https://code.google.com/p/webrtc/issues/detail?id=1508
-                            if (username) {
-                                if (navigator.userAgent.match(
+                        if (username) {
+                            if (navigator.userAgent.match(
                                     /Chrom(e|ium)\/([0-9]+)\./)
                                     && parseInt(
                                         navigator.userAgent.match(
                                             /Chrom(e|ium)\/([0-9]+)\./)[2],
                                             10) < 28) {
-                                    dict.url += username + '@';
-                                } else {
+                                dict.url += username + '@';
+                            } else {
                                     // only works in M28
-                                    dict.username = username;
-                                }
+                                dict.username = username;
                             }
-                            dict.url += el.attr('host');
-                            const port = el.attr('port');
-                            if (port && port != '3478') {
-                                dict.url += ':' + el.attr('port');
-                            }
-                            const transport = el.attr('transport');
-                            if (transport && transport != 'udp') {
-                                dict.url += '?transport=' + transport;
-                            }
-
-                            dict.credential = el.attr('password')
-                                || dict.credential;
-                            iceservers.push(dict);
-                            break;
                         }
+                        dict.url += el.attr('host');
+                        const port = el.attr('port');
+                        if (port && port != '3478') {
+                            dict.url += ':' + el.attr('port');
+                        }
+                        const transport = el.attr('transport');
+                        if (transport && transport != 'udp') {
+                            dict.url += '?transport=' + transport;
+                        }
+
+                        dict.credential = el.attr('password')
+                                || dict.credential;
+                        iceservers.push(dict);
+                        break;
+                    }
                     }
                 });
                 this.ice_config.iceServers = iceservers;

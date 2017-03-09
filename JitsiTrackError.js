@@ -132,7 +132,7 @@ function JitsiTrackError(error, options, devices) {
 }
 
 JitsiTrackError.prototype = Object.create(Error.prototype);
- JitsiTrackError.prototype.constructor = JitsiTrackError;
+JitsiTrackError.prototype.constructor = JitsiTrackError;
 
 /**
  * Gets failed resolution constraint from corresponding object.
