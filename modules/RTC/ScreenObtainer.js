@@ -33,7 +33,7 @@ var firefoxExtInstalled = null;
  */
 var reDetectFirefoxExtension = false;
 
-var GUM = null;
+var gumFunction = null;
 
 /**
  * The error returned by chrome when trying to start inline installation from
@@ -71,7 +71,7 @@ var ScreenObtainer = {
     init(options, gum) {
         var obtainDesktopStream = null;
         this.options = options = options || {};
-        GUM = gum;
+        gumFunction = gum;
 
         if (RTCBrowserType.isFirefox())
             initFirefoxExtensionDetection(options);
@@ -322,7 +322,7 @@ var ScreenObtainer = {
  * 'about:config'.
  */
 function obtainWebRTCScreen(options, streamCallback, failCallback) {
-    GUM(['screen'], streamCallback, failCallback);
+    gumFunction(['screen'], streamCallback, failCallback);
 }
 
 /**
@@ -502,7 +502,7 @@ function waitForExtensionAfterInstall(options, waitInterval, retries) {
  */
 function onGetStreamResponse(response, onSuccess, onFailure) {
     if (response.streamId) {
-        GUM(
+        gumFunction(
             ['desktop'],
             stream => onSuccess(stream),
             onFailure,

@@ -30,7 +30,7 @@ var parser = {
             self.packet2JSON($(this), node.children);
         });
     },
-    JSON2packet: function (nodes, packet) {
+    json2packet: function (nodes, packet) {
         for(let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
             if(!node || node === null){
@@ -40,7 +40,7 @@ var parser = {
             if(node.value)
                 packet.t(node.value);
             if(node.children)
-                this.JSON2packet(node.children, packet);
+                this.json2packet(node.children, packet);
             packet.up();
         }
         // packet.up();
@@ -151,7 +151,7 @@ export default class ChatRoom extends Listenable {
             pres.up();
         }
 
-        parser.JSON2packet(this.presMap.nodes, pres);
+        parser.json2packet(this.presMap.nodes, pres);
         this.connection.send(pres);
         if (fromJoin) {
             // XXX We're pressed for time here because we're beginning a complex
