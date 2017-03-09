@@ -51,6 +51,7 @@ module.exports = {
             'all',
             { 'nestedBinaryExpressions': false }
         ],
+        'no-extra-semi': 2,
 
         'prefer-spread': 2,
         'require-yield': 2,
