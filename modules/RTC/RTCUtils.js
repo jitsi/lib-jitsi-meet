@@ -450,9 +450,7 @@ function onReady (options, GUM) {
  * @param {Array} [args=[]] arguments for function
  */
 function maybeApply(fn, args) {
-  if (fn) {
-    fn.apply(null, args || []);
-  }
+  fn && fn(...args);
 }
 
 var getUserMediaStatus = {
