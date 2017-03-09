@@ -29,6 +29,7 @@ module.exports = {
     'rules': {
         'new-cap': 2,
         'no-console': 0,
-        'semi': [ 'error', 'always' ]
+        'semi': [ 'error', 'always' ],
+        'no-cond-assign': 2
     }
 };
