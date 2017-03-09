@@ -61,6 +61,7 @@ module.exports = {
         'no-prototype-builtins': 0,
         'no-regex-spaces': 2,
         'no-sparse-arrays': 2,
+        'no-unexpected-multiline': 2,
 
         'prefer-spread': 2,
         'require-yield': 2,
