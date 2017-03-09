@@ -5,7 +5,10 @@ module.exports = {
         'es6': true,
         'jasmine': true
     },
-    'extends': 'eslint:recommended',
+    'extends': [
+        'eslint:recommended',
+        'plugin:flowtype/recommended'
+    ],
     'globals': {
         // The globals that (1) are accessed but not defined within many of our
         // files, (2) are certainly defined, and (3) we would like to use
@@ -13,9 +16,13 @@ module.exports = {
         // files.
         '__filename': false
     },
+    'parser': 'babel-eslint',
     'parserOptions': {
         'sourceType': 'module'
     },
+    'plugins': [
+        'flowtype'
+    ],
     'rules': {
         'new-cap': [
             'error',

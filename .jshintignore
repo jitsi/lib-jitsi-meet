@@ -1,32 +1,35 @@
-node_modules
-doc/example/libs
+# The following do not need to be checked because they do not represent JS
+# source code.
+doc/
+node_modules/
 lib-jitsi-meet.js
-lib-jitsi-meet.min.js
 lib-jitsi-meet.js.map
-doc
+lib-jitsi-meet.min.js
 
+# The following are checked by ESLint and take advantage of advanced language
+# features such as Facebook Flow which are not supported by JSHint.
+flow-typed/
 
-modules/xmpp/xmpp.js
-modules/xmpp/strophe.jingle.js
-modules/xmpp/SDPUtil.js
-modules/xmpp/SDP.js
-modules/xmpp/strophe.emuc.js
-modules/xmpp/JingleSessionPC.js
-modules/xmpp/LocalSSRCReplacement.js
-modules/xmpp/ChatRoom.js
-modules/xmpp/ChatRoom.js
-modules/statistics/RTPStatsCollector.js
-modules/statistics/LocalStatsCollector.js
-modules/RTC/adapter.screenshare.js
-modules/statistics/statistics.js
-modules/RTC/RTC.js
-modules/RTC/RTCUtils.js
-modules/RTC/TraceablePeerConnection.js
-modules/RTC/DataChannels.js
+JitsiConference.js
+JitsiConnection.js
+JitsiMeetJS.js
+JitsiParticipant.js
 modules/RTC/JitsiLocalTrack.js
 modules/RTC/JitsiRemoteTrack.js
 modules/RTC/JitsiTrack.js
-JitsiParticipant.js
-JitsiMeetJS.js
-JitsiConnection.js
-JitsiConference.js
+modules/RTC/DataChannels.js
+modules/RTC/adapter.screenshare.js
+modules/RTC/RTC.js
+modules/RTC/RTCUtils.js
+modules/RTC/TraceablePeerConnection.js
+modules/statistics/LocalStatsCollector.js
+modules/statistics/RTPStatsCollector.js
+modules/statistics/statistics.js
+modules/xmpp/ChatRoom.js
+modules/xmpp/JingleSessionPC.js
+modules/xmpp/LocalSSRCReplacement.js
+modules/xmpp/SDP.js
+modules/xmpp/SDPUtil.js
+modules/xmpp/strophe.emuc.js
+modules/xmpp/strophe.jingle.js
+modules/xmpp/xmpp.js
