@@ -130,8 +130,8 @@ export default class RtxModifier {
         logger.debug("Parsed primary video ssrcs ", primaryVideoSsrcs,
             " making sure all have rtx streams");
         for (const ssrc of primaryVideoSsrcs) {
-            let msid = videoMLine.getSSRCAttrValue(ssrc, "msid");
-            let cname = videoMLine.getSSRCAttrValue(ssrc, "cname");
+            const msid = videoMLine.getSSRCAttrValue(ssrc, "msid");
+            const cname = videoMLine.getSSRCAttrValue(ssrc, "cname");
             let correspondingRtxSsrc = this.correspondingRtxSsrcs.get(ssrc);
             if (correspondingRtxSsrc) {
                 logger.debug(
@@ -142,7 +142,7 @@ export default class RtxModifier {
                     `No previously associated rtx ssrc for video ssrc ${ssrc}`);
                 // If there's one in the sdp already for it, we'll just set
                 //  that as the corresponding one
-                let previousAssociatedRtxStream = videoMLine.getRtxSSRC(ssrc);
+                const previousAssociatedRtxStream = videoMLine.getRtxSSRC(ssrc);
                 if (previousAssociatedRtxStream) {
                     logger.debug(
                         `Rtx stream ${previousAssociatedRtxStream} ` +

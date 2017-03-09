@@ -344,7 +344,7 @@ export default class ParticipantConnectionStatus {
             isConnActiveByJvb = true;
         }
 
-        let isConnectionActive
+        const isConnectionActive
             = isConnActiveByJvb && (isVideoMuted || !isVideoTrackFrozen);
 
         logger.debug(

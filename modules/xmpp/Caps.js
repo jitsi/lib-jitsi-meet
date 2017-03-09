@@ -47,7 +47,7 @@ export default class Caps extends Listenable {
             room => this._addChatRoom(room));
         emuc.addListener(XMPPEvents.EMUC_ROOM_REMOVED,
             room => this._removeChatRoom(room));
-        for(let jid in emuc.rooms) {
+        for(const jid in emuc.rooms) {
             this._addChatRoom(this.emuc.rooms[jid]);
         }
 
@@ -102,7 +102,7 @@ export default class Caps extends Listenable {
      * @returns {Promise<Set<String>, Error>}
      */
     getFeatures(jid, timeout = 5000) {
-        let user
+        const user
             = jid in this.jidToVersion ? this.jidToVersion[jid] : null;
         if(!user || !(user.version in this.versionToCapabilities))
         {

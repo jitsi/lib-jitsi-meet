@@ -70,7 +70,7 @@ function getTarget(simulcast, resolution, millisSinceStart) {
     } else {
         // See GetMaxDefaultVideoBitrateKbps in
         // media/engine/webrtcvideoengine2.cc from webrtc.org
-        let pixels = resolution.width * resolution.height;
+        const pixels = resolution.width * resolution.height;
         if (pixels <= 320 * 240) {
             target = 600;
         } else if (pixels <= 640 * 480) {
@@ -248,7 +248,7 @@ export default class ConnectionQuality {
 
         // resolutionName is an index into Resolutions (where "720" is
         // "1280x720" and "960" is "960x720" ...).
-        let resolution = Resolutions[resolutionName];
+        const resolution = Resolutions[resolutionName];
 
         let quality = 100;
         let packetLoss;
@@ -301,7 +301,7 @@ export default class ConnectionQuality {
             // Calculate a value based on the sending bitrate.
 
             // time since sending of video was enabled.
-            let millisSinceStart = window.performance.now()
+            const millisSinceStart = window.performance.now()
                     - Math.max(this._timeVideoUnmuted, this._timeIceConnected);
 
             // expected sending bitrate in perfect conditions
@@ -320,9 +320,9 @@ export default class ConnectionQuality {
         // Make sure that the quality doesn't climb quickly
         if (this._lastConnectionQualityUpdate > 0)
         {
-            let maxIncreasePerSecond = 2;
-            let prevConnectionQuality = this._localStats.connectionQuality;
-            let diffSeconds
+            const maxIncreasePerSecond = 2;
+            const prevConnectionQuality = this._localStats.connectionQuality;
+            const diffSeconds
                 = (window.performance.now()
                     - this._lastConnectionQualityUpdate) / 1000;
             quality = Math.min(
@@ -348,7 +348,7 @@ export default class ConnectionQuality {
      */
     _broadcastLocalStats() {
         // Send only the data that remote participants care about.
-        let data = {
+        const data = {
             bitrate: this._localStats.bitrate,
             packetLoss: this._localStats.packetLoss,
             connectionQuality: this._localStats.connectionQuality
@@ -357,7 +357,7 @@ export default class ConnectionQuality {
         // TODO: It looks like the remote participants don't really "care"
         // about the resolution, and they look at their local rendered
         // resolution instead. Consider removing this.
-        let localVideoTrack
+        const localVideoTrack
             = this._conference.getLocalVideoTrack();
         if (localVideoTrack && localVideoTrack.resolution) {
             data.resolution = localVideoTrack.resolution;
@@ -386,13 +386,14 @@ export default class ConnectionQuality {
      */
     _updateLocalStats(data) {
         let key;
-        let updateLocalConnectionQuality
+        const updateLocalConnectionQuality
             = !this._conference.isConnectionInterrupted();
-        let localVideoTrack
+        const localVideoTrack
             = this._conference.getLocalVideoTrack();
-        let videoType = localVideoTrack ? localVideoTrack.videoType : undefined;
-        let isMuted = localVideoTrack ? localVideoTrack.isMuted() : true;
-        let resolution = localVideoTrack ? localVideoTrack.resolution : null;
+        const videoType
+            = localVideoTrack ? localVideoTrack.videoType : undefined;
+        const isMuted = localVideoTrack ? localVideoTrack.isMuted() : true;
+        const resolution = localVideoTrack ? localVideoTrack.resolution : null;
 
         if (!isMuted) {
             this._maybeUpdateUnmuteTime();

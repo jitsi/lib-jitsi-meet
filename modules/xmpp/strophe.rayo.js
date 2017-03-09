@@ -48,7 +48,7 @@ class RayoConnectionPlugin extends ConnectionPlugin {
             this.connection.sendIQ(req, (result) => {
                 logger.info('Dial result ', result);
 
-                let resource = $(result).find('ref').attr('uri');
+                const resource = $(result).find('ref').attr('uri');
                 this.call_resource =
                     resource.substr('xmpp:'.length);
                 logger.info("Received call resource: " + this.call_resource);
