@@ -36,6 +36,7 @@ module.exports = {
         'no-console': 0,
         'semi': [ 'error', 'always' ],
 
+        // Possible Errors group
         'no-cond-assign': 2,
         'no-constant-condition': 2,
         'no-control-regex': 2,
@@ -64,6 +65,7 @@ module.exports = {
         'no-unexpected-multiline': 2,
         'no-unreachable': 2,
         'no-unsafe-finally': 2,
+        'use-isnan': 2,
 
         'prefer-spread': 2,
         'require-yield': 2,
