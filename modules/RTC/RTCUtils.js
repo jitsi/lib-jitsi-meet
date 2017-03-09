@@ -1014,7 +1014,7 @@ class RTCUtils extends Listenable {
                 };
 
                 if(screenObtainer.isSupported()) {
-                    deviceGUM['desktop'] = screenObtainer.obtainStream.bind(
+                    deviceGUM.desktop = screenObtainer.obtainStream.bind(
                         screenObtainer,
                         dsOptions);
                 }

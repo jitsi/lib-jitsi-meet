@@ -1035,7 +1035,7 @@ JitsiConference.prototype.onIncomingCall
     // add info whether call is cross-region
     var crossRegion = null;
     if (window.jitsiRegionInfo) {
-        crossRegion = window.jitsiRegionInfo['CrossRegion'];
+        crossRegion = window.jitsiRegionInfo.CrossRegion;
     }
     Statistics.analytics.sendEvent(
         'session.initiate', {

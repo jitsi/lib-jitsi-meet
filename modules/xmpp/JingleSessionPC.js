@@ -903,7 +903,7 @@ export default class JingleSessionPC extends JingleSession {
                             this.peerconnection.setLocalDescription(
                                 answer,
                                 () => {
-                                    resolve(); 
+                                    resolve();
                                 },
                                 error => {
                                     reject(
@@ -912,13 +912,13 @@ export default class JingleSessionPC extends JingleSession {
                             );
                         },
                         error => {
-                            reject('createAnswer failed: ' + error); 
+                            reject('createAnswer failed: ' + error);
                         },
                         media_constraints
                     );
                 },
                 error => {
-                    reject('setRemoteDescription failed: ' + error); 
+                    reject('setRemoteDescription failed: ' + error);
                 }
             );
         });
@@ -1444,8 +1444,8 @@ export default class JingleSessionPC extends JingleSession {
      * @returns {boolean} true if the jingle has to be sent and false otherwise.
      */
     fixSourceAddJingle(jingle) {
-        let ssrcs = this.modifiedSSRCs['unmute'];
-        this.modifiedSSRCs['unmute'] = [];
+        let ssrcs = this.modifiedSSRCs.unmute;
+        this.modifiedSSRCs.unmute = [];
         if (ssrcs && ssrcs.length) {
             ssrcs.forEach(function(ssrcObj) {
                 const desc = $(jingle.tree()).find('>jingle>content[name="'
@@ -1467,8 +1467,8 @@ export default class JingleSessionPC extends JingleSession {
             });
         }
 
-        ssrcs = this.modifiedSSRCs['addMuted'];
-        this.modifiedSSRCs['addMuted'] = [];
+        ssrcs = this.modifiedSSRCs.addMuted;
+        this.modifiedSSRCs.addMuted = [];
         if (ssrcs && ssrcs.length) {
             ssrcs.forEach(function(ssrcObj) {
                 const desc
@@ -1514,8 +1514,8 @@ export default class JingleSessionPC extends JingleSession {
      * @returns {boolean} true if the jingle has to be sent and false otherwise.
      */
     fixSourceRemoveJingle(jingle) {
-        let ssrcs = this.modifiedSSRCs['mute'];
-        this.modifiedSSRCs['mute'] = [];
+        let ssrcs = this.modifiedSSRCs.mute;
+        this.modifiedSSRCs.mute = [];
         if (ssrcs && ssrcs.length) {
             ssrcs.forEach(function(ssrcObj) {
                 ssrcObj.ssrcs.forEach(function(ssrc) {
@@ -1537,8 +1537,8 @@ export default class JingleSessionPC extends JingleSession {
             });
         }
 
-        ssrcs = this.modifiedSSRCs['remove'];
-        this.modifiedSSRCs['remove'] = [];
+        ssrcs = this.modifiedSSRCs.remove;
+        this.modifiedSSRCs.remove = [];
         if (ssrcs && ssrcs.length) {
             ssrcs.forEach(function(ssrcObj) {
                 const desc

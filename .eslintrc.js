@@ -75,6 +75,7 @@ module.exports = {
         'curly': 2,
         'default-case': 0,
         'dot-location': [ 'error', 'property' ],
+        'dot-notation': 2,
         'no-caller': 2,
         'no-case-declarations': 2,
         'no-div-regex': 0,

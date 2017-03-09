@@ -93,7 +93,7 @@ export default class XMPP extends Listenable {
     }
 
     getConnection() {
-        return this.connection; 
+        return this.connection;
     }
 
     /**
@@ -237,7 +237,7 @@ export default class XMPP extends Listenable {
      * @param options {object} connecting options - rid, sid, jid and password.
      */
     attach(options) {
-        const now = this.connectionTimes['attaching'] = window.performance.now();
+        const now = this.connectionTimes.attaching = window.performance.now();
         logger.log('(TIME) Strophe Attaching\t:' + now);
         this.connection.attach(options.jid, options.sid,
             parseInt(options.rid,10) + 1,

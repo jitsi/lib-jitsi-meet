@@ -95,10 +95,10 @@ export default class ChatRoom extends Listenable {
     }
 
     initPresenceMap() {
-        this.presMap['to'] = this.myroomjid;
-        this.presMap['xns'] = 'http://jabber.org/protocol/muc';
-        this.presMap['nodes'] = [];
-        this.presMap['nodes'].push({
+        this.presMap.to = this.myroomjid;
+        this.presMap.xns = 'http://jabber.org/protocol/muc';
+        this.presMap.nodes = [];
+        this.presMap.nodes.push({
             'tagName': 'user-agent',
             'value': navigator.userAgent,
             'attributes': {xmlns: 'http://jitsi.org/jitmeet/user-agent'}
@@ -109,7 +109,7 @@ export default class ChatRoom extends Listenable {
     }
 
     updateDeviceAvailability(devices) {
-        this.presMap['nodes'].push({
+        this.presMap.nodes.push({
             'tagName': 'devices',
             'children': [
                 {
@@ -133,7 +133,7 @@ export default class ChatRoom extends Listenable {
     }
 
     sendPresence(fromJoin) {
-        var to = this.presMap['to'];
+        var to = this.presMap.to;
         if (!to || (!this.joined && !fromJoin)) {
             // Too early to send presence - not initialized
             return;
@@ -147,7 +147,7 @@ export default class ChatRoom extends Listenable {
         // as joining, and server can send us the message history for the room on
         // every presence
         if (fromJoin) {
-            pres.c('x', {xmlns: this.presMap['xns']});
+            pres.c('x', {xmlns: this.presMap.xns});
 
             if (this.password) {
                 pres.c('password').t(this.password).up();
@@ -774,14 +774,14 @@ export default class ChatRoom extends Listenable {
             const videoTypeNode = filterNodeFromPresenceJSON(pres, 'videoType');
 
             if(videoTypeNode.length > 0) {
-                data.videoType = videoTypeNode[0]['value'];
+                data.videoType = videoTypeNode[0].value;
             }
         } else {
             logger.error('Unsupported media type: ' + mediaType);
             return null;
         }
 
-        data.muted = mutedNode.length > 0 && mutedNode[0]['value'] === 'true';
+        data.muted = mutedNode.length > 0 && mutedNode[0].value === 'true';
 
         return data;
     }
