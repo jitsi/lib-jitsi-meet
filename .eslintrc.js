@@ -52,6 +52,7 @@ module.exports = {
             { 'nestedBinaryExpressions': false }
         ],
 
+        'sort-imports': 0,
         'template-curly-spacing': 2,
         'yield-star-spacing': 2,
 
