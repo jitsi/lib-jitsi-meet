@@ -52,6 +52,7 @@ module.exports = {
             { 'nestedBinaryExpressions': false }
         ],
         'no-extra-semi': 2,
+        'no-func-assign': 2,
 
         'prefer-spread': 2,
         'require-yield': 2,
