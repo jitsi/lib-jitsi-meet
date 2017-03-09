@@ -55,6 +55,7 @@ module.exports = {
         'no-func-assign': 2,
         'no-inner-declarations': 2,
         'no-invalid-regexp': 2,
+        'no-irregular-whitespace': 2,
 
         'prefer-spread': 2,
         'require-yield': 2,
