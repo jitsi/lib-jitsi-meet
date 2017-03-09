@@ -94,8 +94,9 @@ function JitsiConference(options) {
  * @param connection {JitsiConnection} overrides this.connection
  */
 JitsiConference.prototype._init = function (options) {
-    if (!options)
-        {options = {};}
+    if (!options)        {
+options = {};
+}
 
     // Override connection and xmpp properties (Usefull if the connection
     // reloaded)
@@ -151,8 +152,9 @@ JitsiConference.prototype._init = function (options) {
  * @param password {string} the password
  */
 JitsiConference.prototype.join = function (password) {
-    if (this.room)
-        {this.room.join(password);}
+    if (this.room)        {
+this.room.join(password);
+}
 };
 
 /**
@@ -175,8 +177,9 @@ JitsiConference.prototype.leave = function () {
     this.getLocalTracks().forEach(track => this.onLocalTrackRemoved(track));
 
     this.rtc.closeAllDataChannels();
-    if (this.statistics)
-        {this.statistics.dispose();}
+    if (this.statistics)        {
+this.statistics.dispose();
+}
 
     // leave the conference
     if (this.room) {
@@ -294,8 +297,9 @@ JitsiConference.prototype.getLocalVideoTrack = function () {
  * Note: consider adding eventing functionality by extending an EventEmitter impl, instead of rolling ourselves
  */
 JitsiConference.prototype.on = function (eventId, handler) {
-    if (this.eventEmitter)
-        {this.eventEmitter.on(eventId, handler);}
+    if (this.eventEmitter)        {
+this.eventEmitter.on(eventId, handler);
+}
 };
 
 /**
@@ -306,8 +310,9 @@ JitsiConference.prototype.on = function (eventId, handler) {
  * Note: consider adding eventing functionality by extending an EventEmitter impl, instead of rolling ourselves
  */
 JitsiConference.prototype.off = function (eventId, handler) {
-    if (this.eventEmitter)
-        {this.eventEmitter.removeListener(eventId, handler);}
+    if (this.eventEmitter)        {
+this.eventEmitter.removeListener(eventId, handler);
+}
 };
 
 // Common aliases for event emitter
@@ -321,8 +326,9 @@ JitsiConference.prototype.removeEventListener = JitsiConference.prototype.off;
  * @param handler {Function} handler for the command
  */
  JitsiConference.prototype.addCommandListener = function (command, handler) {
-    if (this.room)
-        {this.room.addPresenceListener(command, handler);}
+    if (this.room)        {
+this.room.addPresenceListener(command, handler);
+}
  };
 
 /**
@@ -330,8 +336,9 @@ JitsiConference.prototype.removeEventListener = JitsiConference.prototype.off;
   * @param command {String} the name of the command
   */
  JitsiConference.prototype.removeCommandListener = function (command) {
-    if (this.room)
-        {this.room.removePresenceListener(command);}
+    if (this.room)        {
+this.room.removePresenceListener(command);
+}
  };
 
 /**
@@ -339,8 +346,9 @@ JitsiConference.prototype.removeEventListener = JitsiConference.prototype.off;
  * @param message the text message.
  */
 JitsiConference.prototype.sendTextMessage = function (message) {
-    if (this.room)
-        {this.room.sendMessage(message);}
+    if (this.room)        {
+this.room.sendMessage(message);
+}
 };
 
 /**
@@ -370,8 +378,9 @@ JitsiConference.prototype.sendCommandOnce = function (name, values) {
  * @param name {String} the name of the command.
  **/
 JitsiConference.prototype.removeCommand = function (name) {
-    if (this.room)
-        {this.room.removeFromPresence(name);}
+    if (this.room)        {
+this.room.removeFromPresence(name);
+}
 };
 
 /**
@@ -487,8 +496,9 @@ JitsiConference.prototype.onLocalTrackRemoved = function (track) {
     // send event for stopping screen sharing
     // FIXME: we assume we have only one screen sharing track
     // if we change this we need to fix this check
-    if (track.isVideoTrack() && track.videoType === VideoType.DESKTOP)
-        {this.statistics.sendScreenSharingEvent(false);}
+    if (track.isVideoTrack() && track.videoType === VideoType.DESKTOP)        {
+this.statistics.sendScreenSharingEvent(false);
+}
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
 };
@@ -625,8 +635,9 @@ JitsiConference.prototype._setupNewTrack = function (newTrack) {
     // send event for starting screen sharing
     // FIXME: we assume we have only one screen sharing track
     // if we change this we need to fix this check
-    if (newTrack.isVideoTrack() && newTrack.videoType === VideoType.DESKTOP)
-        {this.statistics.sendScreenSharingEvent(true);}
+    if (newTrack.isVideoTrack() && newTrack.videoType === VideoType.DESKTOP)        {
+this.statistics.sendScreenSharingEvent(true);
+}
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
 };
@@ -877,9 +888,10 @@ JitsiConference.prototype.onMemberLeft = function (jid) {
     }.bind(this));
 
     // there can be no participant in case the member that left is focus
-    if (participant)
-        {this.eventEmitter.emit(
-            JitsiConferenceEvents.USER_LEFT, id, participant);}
+    if (participant)        {
+this.eventEmitter.emit(
+            JitsiConferenceEvents.USER_LEFT, id, participant);
+}
 };
 
 JitsiConference.prototype.onUserRoleChanged = function (jid, role) {
@@ -899,8 +911,9 @@ JitsiConference.prototype.onDisplayNameChanged = function (jid, displayName) {
         return;
     }
 
-    if (participant._displayName === displayName)
-        {return;}
+    if (participant._displayName === displayName)        {
+return;
+}
 
     participant._displayName = displayName;
     this.eventEmitter.emit(JitsiConferenceEvents.DISPLAY_NAME_CHANGED, id, displayName);
@@ -1217,8 +1230,9 @@ JitsiConference.prototype.sendTones = function (tones, duration, pause) {
  * Returns true if recording is supported and false if not.
  */
 JitsiConference.prototype.isRecordingSupported = function () {
-    if (this.room)
-        {return this.room.isRecordingSupported();}
+    if (this.room)        {
+return this.room.isRecordingSupported();
+}
     return false;
 };
 
@@ -1241,11 +1255,12 @@ JitsiConference.prototype.getRecordingURL = function () {
  * Starts/stops the recording
  */
 JitsiConference.prototype.toggleRecording = function (options) {
-    if (this.room)
-        {return this.room.toggleRecording(options, function (status, error) {
+    if (this.room)        {
+return this.room.toggleRecording(options, function (status, error) {
             this.eventEmitter.emit(
                 JitsiConferenceEvents.RECORDER_STATE_CHANGED, status, error);
-        }.bind(this));}
+        }.bind(this));
+}
     this.eventEmitter.emit(
         JitsiConferenceEvents.RECORDER_STATE_CHANGED, "error",
         new Error("The conference is not created yet!"));
@@ -1255,8 +1270,9 @@ JitsiConference.prototype.toggleRecording = function (options) {
  * Returns true if the SIP calls are supported and false otherwise
  */
 JitsiConference.prototype.isSIPCallingSupported = function () {
-    if (this.room)
-        {return this.room.isSIPCallingSupported();}
+    if (this.room)        {
+return this.room.isSIPCallingSupported();
+}
     return false;
 };
 
@@ -1265,28 +1281,33 @@ JitsiConference.prototype.isSIPCallingSupported = function () {
  * @param number the number
  */
 JitsiConference.prototype.dial = function (number) {
-    if (this.room)
-        {return this.room.dial(number);}
+    if (this.room)        {
+return this.room.dial(number);
+}
     return new Promise(function(resolve, reject){
-        reject(new Error("The conference is not created yet!"));});
+        reject(new Error("The conference is not created yet!"));
+});
 };
 
 /**
  * Hangup an existing call
  */
 JitsiConference.prototype.hangup = function () {
-    if (this.room)
-        {return this.room.hangup();}
+    if (this.room)        {
+return this.room.hangup();
+}
     return new Promise(function(resolve, reject){
-        reject(new Error("The conference is not created yet!"));});
+        reject(new Error("The conference is not created yet!"));
+});
 };
 
 /**
  * Returns the phone number for joining the conference.
  */
 JitsiConference.prototype.getPhoneNumber = function () {
-    if (this.room)
-        {return this.room.getPhoneNumber();}
+    if (this.room)        {
+return this.room.getPhoneNumber();
+}
     return null;
 };
 
@@ -1294,8 +1315,9 @@ JitsiConference.prototype.getPhoneNumber = function () {
  * Returns the pin for joining the conference with phone.
  */
 JitsiConference.prototype.getPhonePin = function () {
-    if (this.room)
-        {return this.room.getPhonePin();}
+    if (this.room)        {
+return this.room.getPhonePin();
+}
     return null;
 };
 

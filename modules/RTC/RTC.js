@@ -164,8 +164,9 @@ export default class RTC extends Listenable {
     selectEndpoint (id) {
         // cache the value if channel is missing, till we open it
         this.selectedEndpoint = id;
-        if(this.dataChannels && this.dataChannelsOpen)
-            {this.dataChannels.sendSelectedEndpointMessage(id);}
+        if(this.dataChannels && this.dataChannelsOpen)            {
+this.dataChannels.sendSelectedEndpointMessage(id);
+}
     }
 
     /**
@@ -252,8 +253,9 @@ export default class RTC extends Listenable {
     }
 
     addLocalTrack (track) {
-        if (!track)
-            {throw new Error('track must not be null nor undefined');}
+        if (!track)            {
+throw new Error('track must not be null nor undefined');
+}
 
         this.localTracks.push(track);
 
@@ -288,7 +290,9 @@ export default class RTC extends Listenable {
         let tracks = this.localTracks.slice();
         if (mediaType !== undefined) {
             tracks = tracks.filter(
-                (track) => { return track.getType() === mediaType; });
+                (track) => {
+ return track.getType() === mediaType; 
+});
         }
         return tracks;
     }
@@ -330,10 +334,11 @@ export default class RTC extends Listenable {
      * @returns {JitsiRemoteTrack|null}
      */
     getRemoteTrackByType (type, resource) {
-        if (this.remoteTracks[resource])
-            {return this.remoteTracks[resource][type];}
-        else
-            {return null;}
+        if (this.remoteTracks[resource])            {
+return this.remoteTracks[resource][type];
+}        else            {
+return null;
+}
     }
 
     /**
@@ -632,8 +637,9 @@ export default class RTC extends Listenable {
     dispose () { }
 
     setAudioLevel (resource, audioLevel) {
-        if(!resource)
-            {return;}
+        if(!resource)            {
+return;
+}
         var audioTrack = this.getRemoteAudioTrack(resource);
         if(audioTrack) {
             audioTrack.setAudioLevel(audioLevel);
@@ -647,7 +653,9 @@ export default class RTC extends Listenable {
      */
     getResourceBySSRC (ssrc) {
         if (this.getLocalTracks().find(
-                localTrack => { return localTrack.getSSRC() == ssrc; })) {
+                localTrack => {
+ return localTrack.getSSRC() == ssrc; 
+})) {
             return this.conference.myUserId();
         }
 

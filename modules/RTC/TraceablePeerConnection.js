@@ -606,8 +606,9 @@ Object.keys(getters).forEach(function (prop) {
 
 TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
     this.trace('addStream', stream ? stream.id : "null");
-    if (stream)
-        {this.peerconnection.addStream(stream);}
+    if (stream)        {
+this.peerconnection.addStream(stream);
+}
     if (ssrcInfo && ssrcInfo.type === "addMuted") {
         this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrcs[0]);
         const simGroup
@@ -912,8 +913,9 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
             || RTCBrowserType.isTemasysPluginUsed()
             || RTCBrowserType.isReactNative()) {
         // ignore for now...
-        if(!errback)
-            {errback = function () {};}
+        if(!errback)            {
+errback = function () {};
+}
         this.peerconnection.getStats(null, callback, errback);
     } else {
         this.peerconnection.getStats(callback);

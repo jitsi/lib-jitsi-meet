@@ -19,11 +19,9 @@ var isJoined = false;
  * Handles local tracks.
  * @param tracks Array with JitsiTrack objects
  */
-function onLocalTracks(tracks)
-{
+function onLocalTracks(tracks){
     localTracks = tracks;
-    for(var i = 0; i < localTracks.length; i++)
-    {
+    for(var i = 0; i < localTracks.length; i++)    {
         localTracks[i].addEventListener(JitsiMeetJS.events.track.TRACK_AUDIO_LEVEL_CHANGED,
             function (audioLevel) {
                 console.log("Audio Level local: " + audioLevel);
@@ -47,8 +45,9 @@ function onLocalTracks(tracks)
             $("body").append("<audio autoplay='1' muted='true' id='localAudio" + i + "' />");
             localTracks[i].attach($("#localAudio" + i)[0]);
         }
-        if(isJoined)
-            {room.addTrack(localTracks[i]);}
+        if(isJoined)            {
+room.addTrack(localTracks[i]);
+}
     }
 }
 
@@ -57,11 +56,13 @@ function onLocalTracks(tracks)
  * @param track JitsiTrack object
  */
 function onRemoteTrack(track) {
-    if(track.isLocal())
-        {return;}
+    if(track.isLocal())        {
+return;
+}
     var participant = track.getParticipantId();
-    if(!remoteTracks[participant])
-        {remoteTracks[participant] = [];}
+    if(!remoteTracks[participant])        {
+remoteTracks[participant] = [];
+}
     var idx = remoteTracks[participant].push(track);
     track.addEventListener(JitsiMeetJS.events.track.TRACK_AUDIO_LEVEL_CHANGED,
         function (audioLevel) {
@@ -94,17 +95,20 @@ function onRemoteTrack(track) {
 function onConferenceJoined () {
     console.log("conference joined!");
     isJoined = true;
-    for(var i = 0; i < localTracks.length; i++)
-        {room.addTrack(localTracks[i]);}
+    for(var i = 0; i < localTracks.length; i++)        {
+room.addTrack(localTracks[i]);
+}
 }
 
 function onUserLeft(id) {
     console.log("user left");
-    if(!remoteTracks[id])
-        {return;}
+    if(!remoteTracks[id])        {
+return;
+}
     var tracks = remoteTracks[id];
-    for(var i = 0; i< tracks.length; i++)
-        {tracks[i].detach($("#" + id + tracks[i].getType()));}
+    for(var i = 0; i< tracks.length; i++)        {
+tracks[i].detach($("#" + id + tracks[i].getType()));
+}
 }
 
 /**
@@ -117,7 +121,9 @@ function onConnectionSuccess(){
         console.log("track removed!!!" + track);
     });
     room.on(JitsiMeetJS.events.conference.CONFERENCE_JOINED, onConferenceJoined);
-    room.on(JitsiMeetJS.events.conference.USER_JOINED, function(id){ console.log("user join");remoteTracks[id] = [];});
+    room.on(JitsiMeetJS.events.conference.USER_JOINED, function(id){
+ console.log("user join");remoteTracks[id] = [];
+});
     room.on(JitsiMeetJS.events.conference.USER_LEFT, onUserLeft);
     room.on(JitsiMeetJS.events.conference.TRACK_MUTE_CHANGED, function (track) {
         console.log(track.getType() + " - " + track.isMuted());
@@ -167,8 +173,9 @@ function disconnect(){
 }
 
 function unload() {
-    for(var i = 0; i < localTracks.length; i++)
-        {localTracks[i].stop();}
+    for(var i = 0; i < localTracks.length; i++)        {
+localTracks[i].stop();
+}
     room.leave();
     connection.disconnect();
 }
@@ -252,7 +259,9 @@ JitsiMeetJS.init(initOptions).then(function(){
 
 if (JitsiMeetJS.mediaDevices.isDeviceChangeAvailable('output')) {
     JitsiMeetJS.mediaDevices.enumerateDevices(function(devices) {
-        var audioOutputDevices = devices.filter(function(d) { return d.kind === 'audiooutput'; });
+        var audioOutputDevices = devices.filter(function(d) {
+ return d.kind === 'audiooutput'; 
+});
 
         if (audioOutputDevices.length > 1) {
             $('#audioOutputSelect').html(

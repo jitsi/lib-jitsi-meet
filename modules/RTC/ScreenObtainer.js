@@ -73,8 +73,9 @@ var ScreenObtainer = {
         this.options = options = options || {};
         gumFunction = gum;
 
-        if (RTCBrowserType.isFirefox())
-            {initFirefoxExtensionDetection(options);}
+        if (RTCBrowserType.isFirefox())            {
+initFirefoxExtensionDetection(options);
+}
 
         if (RTCBrowserType.isNWJS()) {
             obtainDesktopStream = (options, onSuccess, onFailure) => {
@@ -206,8 +207,9 @@ var ScreenObtainer = {
         if (firefoxExtInstalled === null) {
             window.setTimeout(
                 () => {
-                    if (firefoxExtInstalled === null)
-                        {firefoxExtInstalled = false;}
+                    if (firefoxExtInstalled === null)                        {
+firefoxExtInstalled = false;
+}
                     this.obtainScreenOnFirefox(callback, errorCallback);
                 },
                 300);
@@ -331,8 +333,7 @@ function obtainWebRTCScreen(options, streamCallback, failCallback) {
  * @param options supports "desktopSharingChromeExtId"
  * @returns {string}
  */
-function getWebStoreInstallUrl(options)
-{
+function getWebStoreInstallUrl(options){
     return "https://chrome.google.com/webstore/detail/" +
         options.desktopSharingChromeExtId;
 }
@@ -353,10 +354,12 @@ function isUpdateRequired(minVersion, extVersion) {
             var n1 = 0,
                 n2 = 0;
 
-            if (i < s1.length)
-                {n1 = parseInt(s1[i]);}
-            if (i < s2.length)
-                {n2 = parseInt(s2[i]);}
+            if (i < s1.length)                {
+n1 = parseInt(s1[i]);
+}
+            if (i < s2.length)                {
+n2 = parseInt(s2[i]);
+}
 
             if (isNaN(n1) || isNaN(n2)) {
                 return true;
@@ -368,8 +371,7 @@ function isUpdateRequired(minVersion, extVersion) {
         // will happen if both versions have identical numbers in
         // their components (even if one of them is longer, has more components)
         return false;
-    }
-    catch (e) {
+    }    catch (e) {
         GlobalOnErrorHandler.callErrorHandler(e);
         logger.error("Failed to parse extension version", e);
         return true;
@@ -437,8 +439,7 @@ function doGetStreamFromExtension(options, streamCallback, failCallback) {
  * website of published extension.
  * @param options supports "desktopSharingChromeExtId"
  */
-function initInlineInstalls(options)
-{
+function initInlineInstalls(options){
     if($("link[rel=chrome-webstore-item]").length === 0) {
         $("head").append("<link rel=\"chrome-webstore-item\">");
     }
@@ -511,8 +512,7 @@ function onGetStreamResponse(response, onSuccess, onFailure) {
         // As noted in Chrome Desktop Capture API:
         // If user didn't select any source (i.e. canceled the prompt)
         // then the callback is called with an empty streamId.
-        if(response.streamId === "")
-        {
+        if(response.streamId === "")        {
             onFailure(new JitsiTrackError(
                 JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED));
             return;
@@ -533,8 +533,9 @@ function initFirefoxExtensionDetection(options) {
     if (options.desktopSharingFirefoxDisabled) {
         return;
     }
-    if (firefoxExtInstalled === false || firefoxExtInstalled === true)
-        {return;}
+    if (firefoxExtInstalled === false || firefoxExtInstalled === true)        {
+return;
+}
     if (!options.desktopSharingFirefoxExtId) {
         firefoxExtInstalled = false;
         return;

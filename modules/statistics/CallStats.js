@@ -90,11 +90,10 @@ function initCallback (err, msg) {
                 var error = report.data;
                 CallStats._reportError.call(this, error.type, error.error,
                     error.pc);
-            }
-            // if we have and event to report and we failed to add fabric
-            // this event will not be reported anyway, returning an error
-            else if (report.type === reportType.EVENT
+            } else if (report.type === reportType.EVENT
                 && fabricInitialized) {
+                // if we have and event to report and we failed to add fabric
+                // this event will not be reported anyway, returning an error
                 var eventData = report.data;
                 callStats.sendFabricEvent(
                     this.peerconnection,
@@ -212,8 +211,9 @@ CallStats.feedbackEnabled = false;
  */
 CallStats._checkInitialize = function () {
     if (CallStats.initialized || !CallStats.initializeFailed
-        || !callStats || CallStats.initializeInProgress)
-        {return;}
+        || !callStats || CallStats.initializeInProgress)        {
+return;
+}
 
     // callstats object created, not initialized and it had previously failed,
     // and there is no init in progress, so lets try initialize it again
@@ -236,8 +236,9 @@ var reportType = {
 };
 
 CallStats.prototype.pcCallback = _try_catch(function (err, msg) {
-    if (callStats && err !== 'success')
-        {logger.error("Monitoring status: "+ err + " msg: " + msg);}
+    if (callStats && err !== 'success')        {
+logger.error("Monitoring status: "+ err + " msg: " + msg);
+}
 });
 
 /**
@@ -278,8 +279,7 @@ function (ssrc, isLocal, usageLabel, containerId) {
                 ssrc,
                 usageLabel,
                 containerId);
-        }
-        else {
+        }        else {
             CallStats.reportsQueue.push({
                 type: reportType.MST_WITH_USERID,
                 data: {

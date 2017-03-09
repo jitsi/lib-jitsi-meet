@@ -91,11 +91,9 @@ function instantiateTrackRecorder(track) {
 function determineCorrectFileType() {
     if(MediaRecorder.isTypeSupported(AUDIO_WEBM)) {
         return AUDIO_WEBM;
-    }
-    else if(MediaRecorder.isTypeSupported(AUDIO_OGG)) {
+    }    else if(MediaRecorder.isTypeSupported(AUDIO_OGG)) {
         return AUDIO_OGG;
-    }
-    else {
+    }    else {
         throw new Error("unable to create a MediaRecorder with the" +
             "right mimetype!");
     }
@@ -169,8 +167,7 @@ audioRecorder.prototype.removeTrack = function(track){
             var recorderToRemove = array[i];
             if(this.isRecording){
                 stopRecorder(recorderToRemove);
-            }
-            else {
+            }            else {
                 //remove the TrackRecorder from the array
                 array.splice(i, 1);
             }
@@ -191,8 +188,7 @@ audioRecorder.prototype.updateNames = function(){
     this.recorders.forEach(function(trackRecorder){
         if(trackRecorder.track.isLocal()){
             trackRecorder.name = "the transcriber";
-        }
-        else {
+        }        else {
             var id = trackRecorder.track.getParticipantId();
             var participant = conference.getParticipantById(id);
             var newName = participant.getDisplayName();
@@ -296,11 +292,9 @@ function createEmptyStream() {
     // Firefox supports the MediaStream object, Chrome webkitMediaStream
     if(typeof MediaStream !== 'undefined') {
         return new MediaStream();
-    }
-    else if(typeof webkitMediaStream !== 'undefined') {
+    }    else if(typeof webkitMediaStream !== 'undefined') {
         return new webkitMediaStream(); // eslint-disable-line new-cap
-    }
-    else {
+    }    else {
         throw new Error("cannot create a clean mediaStream");
     }
 }

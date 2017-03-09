@@ -107,8 +107,7 @@ function setResolutionConstraints(constraints, resolution) {
     if (Resolutions[resolution]) {
         constraints.video.mandatory.minWidth = Resolutions[resolution].width;
         constraints.video.mandatory.minHeight = Resolutions[resolution].height;
-    }
-    else if (isAndroid) {
+    }    else if (isAndroid) {
         // FIXME can't remember if the purpose of this was to always request
         //       low resolution on Android ? if yes it should be moved up front
         constraints.video.mandatory.minWidth = 320;
@@ -116,12 +115,14 @@ function setResolutionConstraints(constraints, resolution) {
         constraints.video.mandatory.maxFrameRate = 15;
     }
 
-    if (constraints.video.mandatory.minWidth)
-        {constraints.video.mandatory.maxWidth =
-            constraints.video.mandatory.minWidth;}
-    if (constraints.video.mandatory.minHeight)
-        {constraints.video.mandatory.maxHeight =
-            constraints.video.mandatory.minHeight;}
+    if (constraints.video.mandatory.minWidth)        {
+constraints.video.mandatory.maxWidth =
+            constraints.video.mandatory.minWidth;
+}
+    if (constraints.video.mandatory.minHeight)        {
+constraints.video.mandatory.maxHeight =
+            constraints.video.mandatory.minHeight;
+}
 }
 
 /**
@@ -293,8 +294,7 @@ function getConstraints(um, options) {
     // we turn audio for both audio and video tracks, the fake audio & video seems to work
     // only when enabled in one getUserMedia call, we cannot get fake audio separate by fake video
     // this later can be a problem with some of the tests
-    if(RTCBrowserType.isFirefox() && options.firefox_fake_device)
-    {
+    if(RTCBrowserType.isFirefox() && options.firefox_fake_device)    {
         // seems to be fixed now, removing this experimental fix, as having
         // multiple audio tracks brake the tests
         //constraints.audio = true;
@@ -771,8 +771,9 @@ class RTCUtils extends Listenable {
                     // https://github.com/webrtc/samples/issues/302
                     if (element) {
                         defaultSetVideoSrc(element, stream);
-                        if (stream)
-                            {element.play();}
+                        if (stream)                            {
+element.play();
+}
                     }
                     return element;
                 });
@@ -851,9 +852,8 @@ class RTCUtils extends Listenable {
                         return this.audioTracks;
                     };
                 }
-            }
-            // Detect IE/Safari
-            else if (RTCBrowserType.isTemasysPluginUsed()) {
+            } else if (RTCBrowserType.isTemasysPluginUsed()) {
+                // Detect IE/Safari
                 const webRTCReadyCb = () => {
                     this.peerconnection = RTCPeerConnection;
                     this.getUserMedia = window.getUserMedia;
@@ -1054,8 +1054,7 @@ class RTCUtils extends Listenable {
                             var videoTracksReceived = !!stream.getVideoTracks().length;
 
                             if((audioDeviceRequested && !audioTracksReceived) ||
-                                (videoDeviceRequested && !videoTracksReceived))
-                            {
+                                (videoDeviceRequested && !videoTracksReceived))                            {
                                 self.stopMediaStream(stream);
 
                                 // We are getting here in case if we requested
@@ -1145,8 +1144,9 @@ class RTCUtils extends Listenable {
     }
 
     _isDeviceListAvailable () {
-        if (!rtcReady)
-            {throw new Error("WebRTC not ready yet");}
+        if (!rtcReady)            {
+throw new Error("WebRTC not ready yet");
+}
         var isEnumerateDevicesAvailable
             = navigator.mediaDevices && navigator.mediaDevices.enumerateDevices;
         if (isEnumerateDevicesAvailable) {

@@ -29,9 +29,10 @@ function JitsiConnection(appID, token, options) {
             // we can see disconnects from normal tab closing of the browser
             // and then there are no msgs, but we want to log only disconnects
             // when there is real error
-            if(msg)
-                {Statistics.analytics.sendEvent(
-                    'connection.disconnected.' + msg);}
+            if(msg)                {
+Statistics.analytics.sendEvent(
+                    'connection.disconnected.' + msg);
+}
             Statistics.sendLog(
                 JSON.stringify({id: "connection.disconnected", msg: msg}));
         });
@@ -43,8 +44,9 @@ function JitsiConnection(appID, token, options) {
  * (for example authentications parameters).
  */
 JitsiConnection.prototype.connect = function (options) {
-    if(!options)
-        {options = {};}
+    if(!options)        {
+options = {};
+}
 
     this.xmpp.connect(options.id, options.password);
 };

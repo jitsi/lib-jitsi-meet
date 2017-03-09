@@ -92,7 +92,9 @@ export default class XMPP extends Listenable {
         }
     }
 
-    getConnection () { return this.connection; }
+    getConnection () {
+ return this.connection; 
+}
 
     /**
      * Receive connection status changes and handles them.
@@ -119,14 +121,16 @@ export default class XMPP extends Listenable {
             this.connection.ping.hasPingSupport(
                 pingJid,
                 function (hasPing) {
-                    if (hasPing)
-                        {this.connection.ping.startInterval(pingJid);}
-                    else
-                        {logger.warn("Ping NOT supported by " + pingJid);}
+                    if (hasPing)                        {
+this.connection.ping.startInterval(pingJid);
+}                    else                        {
+logger.warn("Ping NOT supported by " + pingJid);
+}
                 }.bind(this));
 
-            if (password)
-                {this.authenticatedUser = true;}
+            if (password)                {
+this.authenticatedUser = true;
+}
             if (this.connection && this.connection.connected &&
                 Strophe.getResourceFromJid(this.connection.jid)) {
                 // .connected is true while connecting?

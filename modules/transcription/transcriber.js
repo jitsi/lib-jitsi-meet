@@ -255,8 +255,7 @@ var hasPopulatedArrays = function(twoDimensionalArray){
 var pushWordToSortedArray = function(array, word){
     if(array.length === 0) {
         array.push(word);
-    }
-    else{
+    }    else{
         if(array[array.length - 1].begin <= word.begin){
             array.push(word);
             return;

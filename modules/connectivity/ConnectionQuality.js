@@ -218,8 +218,7 @@ export default class ConnectionQuality {
         conference.on(
             ConferenceEvents.TRACK_ADDED,
             (track) => {
-                if (track.isVideoTrack() && !track.isMuted())
-                {
+                if (track.isVideoTrack() && !track.isMuted())                {
                     this._maybeUpdateUnmuteTime();
                 }
             });
@@ -318,8 +317,7 @@ export default class ConnectionQuality {
         }
 
         // Make sure that the quality doesn't climb quickly
-        if (this._lastConnectionQualityUpdate > 0)
-        {
+        if (this._lastConnectionQualityUpdate > 0)        {
             const maxIncreasePerSecond = 2;
             const prevConnectionQuality = this._localStats.connectionQuality;
             const diffSeconds

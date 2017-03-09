@@ -26,8 +26,9 @@ var trackHandler2Prop = {
 function implementOnEndedHandling(jitsiTrack) {
     var stream = jitsiTrack.getOriginalStream();
 
-    if(!stream)
-        {return;}
+    if(!stream)        {
+return;
+}
 
     var originalStop = stream.stop;
     stream.stop = function () {
@@ -45,10 +46,11 @@ function implementOnEndedHandling(jitsiTrack) {
  */
 function addMediaStreamInactiveHandler(mediaStream, handler) {
     // Temasys will use onended
-    if(typeof mediaStream.active !== "undefined")
-        {mediaStream.oninactive = handler;}
-    else
-        {mediaStream.onended = handler;}
+    if(typeof mediaStream.active !== "undefined")        {
+mediaStream.oninactive = handler;
+}    else        {
+mediaStream.onended = handler;
+}
 }
 
 /**
@@ -65,8 +67,7 @@ function addMediaStreamInactiveHandler(mediaStream, handler) {
  * @param ssrc the SSRC of this track if known
  */
 function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMediaType,
-                    videoType, ssrc)
-{
+                    videoType, ssrc){
     /**
      * Array with the HTML elements that are displaying the streams.
      * @type {Array}
@@ -101,8 +102,9 @@ function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMedia
  */
 JitsiTrack.prototype._setHandler = function (type, handler) {
     this.handlers[type] = handler;
-    if(!this.stream)
-        {return;}
+    if(!this.stream)        {
+return;
+}
 
     if(type === "inactive") {
         if (RTCBrowserType.isFirefox()) {
@@ -315,10 +317,11 @@ JitsiTrack.prototype.isScreenSharing = function() {
  * @returns {string|null} id of the track or null if this is fake track.
  */
 JitsiTrack.prototype.getId = function () {
-    if(this.stream)
-        {return RTCUtils.getStreamID(this.stream);}
-    else
-        {return null;}
+    if(this.stream)        {
+return RTCUtils.getStreamID(this.stream);
+}    else        {
+return null;
+}
 };
 
 /**
@@ -328,10 +331,11 @@ JitsiTrack.prototype.getId = function () {
  * @returns {boolean} whether MediaStream is active.
  */
 JitsiTrack.prototype.isActive = function () {
-    if(typeof this.stream.active !== "undefined")
-        {return this.stream.active;}
-    else
-        {return true;}
+    if(typeof this.stream.active !== "undefined")        {
+return this.stream.active;
+}    else        {
+return true;
+}
 };
 
 /**
@@ -341,8 +345,9 @@ JitsiTrack.prototype.isActive = function () {
  * @param handler handler for the event.
  */
 JitsiTrack.prototype.on = function (eventId, handler) {
-    if(this.eventEmitter)
-        {this.eventEmitter.on(eventId, handler);}
+    if(this.eventEmitter)        {
+this.eventEmitter.on(eventId, handler);
+}
 };
 
 /**
@@ -351,8 +356,9 @@ JitsiTrack.prototype.on = function (eventId, handler) {
  * @param [handler] optional, the specific handler to unbind
  */
 JitsiTrack.prototype.off = function (eventId, handler) {
-    if(this.eventEmitter)
-        {this.eventEmitter.removeListener(eventId, handler);}
+    if(this.eventEmitter)        {
+this.eventEmitter.removeListener(eventId, handler);
+}
 };
 
 // Common aliases for event emitter

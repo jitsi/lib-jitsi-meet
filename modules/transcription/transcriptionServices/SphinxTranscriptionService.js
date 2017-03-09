@@ -34,11 +34,10 @@ SphinxService.prototype.sendRequest = function(audioFileBlob, callback) {
     console.log("the audio file being sent: " + audioFileBlob);
     var request = new XMLHttpRequest();
     request.onreadystatechange = function() {
-        if(request.readyState === XMLHttpRequest.DONE && request.status === 200)
-        {
+        if(request.readyState === XMLHttpRequest.DONE
+            && request.status === 200) {
             callback(request.responseText);
-        }
-        else if (request.readyState === XMLHttpRequest.DONE) {
+        } else if (request.readyState === XMLHttpRequest.DONE) {
             throw new Error("unable to accept response from sphinx server." +
                 "status: " + request.status);
         }
@@ -86,8 +85,7 @@ SphinxService.prototype.verify = function(response){
     var json;
     try{
         json = JSON.parse(response);
-    }
-    catch (error){
+    }    catch (error){
         console.log(error);
         return false;
     }
@@ -115,13 +113,11 @@ function getURL() {
     "Sphinx4 https server";
     if(config.sphinxURL === undefined){
         console.log(message);
-    }
-    else {
+    }    else {
         var toReturn = config.sphinxURL;
         if(toReturn.includes !== undefined && toReturn.includes("https://")){
             return toReturn;
-        }
-        else{
+        }        else{
             console.log(message);
         }
     }

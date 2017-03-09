@@ -38,15 +38,18 @@ var ScriptUtil = {
                 var scriptSrc = scriptEl.src;
                 var baseScriptSrc
                     = scriptSrc.substring(0, scriptSrc.lastIndexOf('/') + 1);
-                if (scriptSrc && baseScriptSrc)
-                    {src = baseScriptSrc + src;}
+                if (scriptSrc && baseScriptSrc)                    {
+src = baseScriptSrc + src;
+}
             }
         }
 
-        if (loadCallback)
-            {script.onload = loadCallback;}
-        if (errorCallback)
-            {script.onerror = errorCallback;}
+        if (loadCallback)            {
+script.onload = loadCallback;
+}
+        if (errorCallback)            {
+script.onerror = errorCallback;
+}
 
         script.src = src;
         if (prepend) {

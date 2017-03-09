@@ -66,8 +66,7 @@ var SDPUtil = {
      * @param line eg. "a=sctpmap:5000 webrtc-datachannel"
      * @returns [SCTP port number, protocol, streams]
      */
-    parse_sctpmap: function (line)
-    {
+    parse_sctpmap: function (line)    {
         var parts = line.substring(10).split(' ');
         var sctpPort = parts[0];
         var protocol = parts[1];
@@ -245,8 +244,9 @@ var SDPUtil = {
         var lines = haystack.split('\r\n'),
             needles = [];
         for (var i = 0; i < lines.length; i++) {
-            if (lines[i].substring(0, needle.length) == needle)
-                {needles.push(lines[i]);}
+            if (lines[i].substring(0, needle.length) == needle)                {
+needles.push(lines[i]);
+}
         }
         if (needles.length || !sessionpart) {
             return needles;
@@ -270,8 +270,9 @@ var SDPUtil = {
             logger.log(line);
             return null;
         }
-        if (line.substring(line.length - 2) == '\r\n') // chomp it
-            {line = line.substring(0, line.length - 2);}
+        if (line.substring(line.length - 2) == '\r\n') {// chomp it
+            line = line.substring(0, line.length - 2);
+        }
         var candidate = {},
             elems = line.split(' '),
             i;

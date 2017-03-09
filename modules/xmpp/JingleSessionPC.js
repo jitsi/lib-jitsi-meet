@@ -130,11 +130,13 @@ export default class JingleSessionPC extends JingleSession {
                 if (typeof protocol === 'string') {
                     protocol = protocol.toLowerCase();
                     if (protocol === 'tcp' || protocol === 'ssltcp') {
-                        if (this.webrtcIceTcpDisable)
-                            {return;}
+                        if (this.webrtcIceTcpDisable)                            {
+return;
+}
                     } else if (protocol == 'udp') {
-                        if (this.webrtcIceUdpDisable)
-                            {return;}
+                        if (this.webrtcIceUdpDisable)                            {
+return;
+}
                     }
                 }
             }
@@ -148,7 +150,9 @@ export default class JingleSessionPC extends JingleSession {
         // "closed" instead.
         // I suppose at some point this will be moved to onconnectionstatechange
         this.peerconnection.onsignalingstatechange = () => {
-            if (!this.peerconnection) {return;}
+            if (!this.peerconnection) {
+return;
+}
             if (this.peerconnection.signalingState === 'stable') {
                 this.wasstable = true;
             } else if (
@@ -165,7 +169,9 @@ export default class JingleSessionPC extends JingleSession {
          * the value of RTCPeerConnection.iceConnectionState changes.
          */
         this.peerconnection.oniceconnectionstatechange = () => {
-            if (!this.peerconnection) {return;}
+            if (!this.peerconnection) {
+return;
+}
             const now = window.performance.now();
             this.room.connectionTimes["ice.state." +
             this.peerconnection.iceConnectionState] = now;
@@ -189,14 +195,16 @@ export default class JingleSessionPC extends JingleSession {
 
                     break;
                 case 'disconnected':
-                    if (this.closed)
-                        {break;}
+                    if (this.closed)                        {
+break;
+}
                     this.isreconnect = true;
                     // Informs interested parties that the connection has been
                     // interrupted.
-                    if (this.wasstable)
-                        {this.room.eventEmitter.emit(
-                            XMPPEvents.CONNECTION_INTERRUPTED);}
+                    if (this.wasstable)                        {
+this.room.eventEmitter.emit(
+                            XMPPEvents.CONNECTION_INTERRUPTED);
+}
                     break;
                 case 'failed':
                     this.room.eventEmitter.emit(
@@ -228,7 +236,9 @@ export default class JingleSessionPC extends JingleSession {
                 if (this.drip_container.length === 0) {
                     // start 20ms callout
                     setTimeout(() => {
-                        if (this.drip_container.length === 0) {return;}
+                        if (this.drip_container.length === 0) {
+return;
+}
                         this.sendIceCandidates(this.drip_container);
                         this.drip_container = [];
                     }, 20);
@@ -658,14 +668,16 @@ export default class JingleSessionPC extends JingleSession {
                 }
                 $(this).find('>parameter').each(function () {
                     lines += 'a=ssrc:' + ssrc + ' ' + $(this).attr('name');
-                    if ($(this).attr('value') && $(this).attr('value').length)
-                        {lines += ':' + $(this).attr('value');}
+                    if ($(this).attr('value') && $(this).attr('value').length)                        {
+lines += ':' + $(this).attr('value');
+}
                     lines += '\r\n';
                 });
             });
             currentRemoteSdp.media.forEach(function(media, idx) {
-                if (!SDPUtil.find_line(media, 'a=mid:' + name))
-                    {return;}
+                if (!SDPUtil.find_line(media, 'a=mid:' + name))                    {
+return;
+}
                 if (!addSsrcInfo[idx]) {
                     addSsrcInfo[idx] = '';
                 }
@@ -890,18 +902,24 @@ export default class JingleSessionPC extends JingleSession {
                             logger.debug("Renegotiate: setting local description");
                             this.peerconnection.setLocalDescription(
                                 answer,
-                                () => { resolve(); },
+                                () => {
+ resolve(); 
+},
                                 (error) => {
                                     reject(
                                         "setLocalDescription failed: " + error);
                                 }
                             );
                         },
-                        (error) => { reject("createAnswer failed: " + error); },
+                        (error) => {
+ reject("createAnswer failed: " + error); 
+},
                         media_constraints
                     );
                 },
-                (error) => { reject("setRemoteDescription failed: " + error); }
+                (error) => {
+ reject("setRemoteDescription failed: " + error); 
+}
             );
         });
     }
@@ -1022,8 +1040,9 @@ export default class JingleSessionPC extends JingleSession {
                 ssrcs.push(ssrc);
             });
             currentRemoteSdp.media.forEach(function(media, idx) {
-                if (!SDPUtil.find_line(media, 'a=mid:' + name))
-                    {return;}
+                if (!SDPUtil.find_line(media, 'a=mid:' + name))                    {
+return;
+}
                 if (!removeSsrcInfo[idx]) {
                     removeSsrcInfo[idx] = '';
                 }
@@ -1317,8 +1336,9 @@ export default class JingleSessionPC extends JingleSession {
             if (errorElSel.length) {
                 error.code = errorElSel.attr('code');
                 const errorReasonSel = $(errResponse).find('error :first');
-                if (errorReasonSel.length)
-                    {error.reason = errorReasonSel[0].tagName;}
+                if (errorReasonSel.length)                    {
+error.reason = errorReasonSel[0].tagName;
+}
             }
 
             if (!errResponse) {
@@ -1430,8 +1450,9 @@ export default class JingleSessionPC extends JingleSession {
             ssrcs.forEach(function (ssrcObj) {
                 const desc = $(jingle.tree()).find(">jingle>content[name=\"" +
                     ssrcObj.mtype + "\"]>description");
-                if (!desc || !desc.length)
-                    {return;}
+                if (!desc || !desc.length)                    {
+return;
+}
                 ssrcObj.ssrcs.forEach(function (ssrc) {
                     const sourceNode = desc.find(">source[ssrc=\"" +
                         ssrc + "\"]");
@@ -1495,8 +1516,8 @@ export default class JingleSessionPC extends JingleSession {
     fixSourceRemoveJingle(jingle) {
         let ssrcs = this.modifiedSSRCs["mute"];
         this.modifiedSSRCs["mute"] = [];
-        if (ssrcs && ssrcs.length)
-            {ssrcs.forEach(function (ssrcObj) {
+        if (ssrcs && ssrcs.length)            {
+ssrcs.forEach(function (ssrcObj) {
                 ssrcObj.ssrcs.forEach(function (ssrc) {
                     const sourceNode
                         = $(jingle.tree()).find(">jingle>content[name=\"" +
@@ -1513,12 +1534,13 @@ export default class JingleSessionPC extends JingleSession {
                             group.ssrcs[0] + "\"])");
                     groupNode.remove();
                 });
-            });}
+            });
+}
 
         ssrcs = this.modifiedSSRCs["remove"];
         this.modifiedSSRCs["remove"] = [];
-        if (ssrcs && ssrcs.length)
-            {ssrcs.forEach(function (ssrcObj) {
+        if (ssrcs && ssrcs.length)            {
+ssrcs.forEach(function (ssrcObj) {
                 const desc
                     = JingleSessionPC.createDescriptionNode(
                         jingle, ssrcObj.mtype);
@@ -1548,7 +1570,8 @@ export default class JingleSessionPC extends JingleSession {
                             "</ssrc-group>");
                     }
                 });
-            });}
+            });
+}
     }
 
     /**

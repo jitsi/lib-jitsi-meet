@@ -89,8 +89,9 @@ function Statistics(xmpp, options) {
             // of callstats.io may be disabled because of globally-disallowed
             // requests to any third parties.
             && (Statistics.disableThirdPartyRequests !== true);
-    if(this.callStatsIntegrationEnabled)
-        {loadCallStatsAPI(this.options.callStatsCustomScriptUrl);}
+    if(this.callStatsIntegrationEnabled)        {
+loadCallStatsAPI(this.options.callStatsCustomScriptUrl);
+}
     this.callStats = null;
     // Flag indicates whether or not the CallStats have been started for this
     // Statistics instance
@@ -124,8 +125,9 @@ Statistics.prototype.startRemoteStats = function (peerconnection) {
 Statistics.localStats = [];
 
 Statistics.startLocalStats = function (stream, callback) {
-    if(!Statistics.audioLevelsEnabled)
-        {return;}
+    if(!Statistics.audioLevelsEnabled)        {
+return;
+}
     var localStats = new LocalStats(stream, Statistics.audioLevelsInterval,
         callback);
     this.localStats.push(localStats);
@@ -133,14 +135,16 @@ Statistics.startLocalStats = function (stream, callback) {
 };
 
 Statistics.prototype.addAudioLevelListener = function(listener) {
-    if(!Statistics.audioLevelsEnabled)
-        {return;}
+    if(!Statistics.audioLevelsEnabled)        {
+return;
+}
     this.eventEmitter.on(StatisticsEvents.AUDIO_LEVEL, listener);
 };
 
 Statistics.prototype.removeAudioLevelListener = function(listener) {
-    if(!Statistics.audioLevelsEnabled)
-        {return;}
+    if(!Statistics.audioLevelsEnabled)        {
+return;
+}
     this.eventEmitter.removeListener(StatisticsEvents.AUDIO_LEVEL, listener);
 };
 
@@ -176,20 +180,23 @@ Statistics.prototype.dispose = function () {
     }
     this.stopCallStats();
     this.stopRemoteStats();
-    if(this.eventEmitter)
-        {this.eventEmitter.removeAllListeners();}
+    if(this.eventEmitter)        {
+this.eventEmitter.removeAllListeners();
+}
 };
 
 Statistics.stopLocalStats = function (stream) {
-    if(!Statistics.audioLevelsEnabled)
-        {return;}
+    if(!Statistics.audioLevelsEnabled)        {
+return;
+}
 
-    for(var i = 0; i < Statistics.localStats.length; i++)
-        {if(Statistics.localStats[i].stream === stream){
+    for(var i = 0; i < Statistics.localStats.length; i++)        {
+if(Statistics.localStats[i].stream === stream){
             var localStats = Statistics.localStats.splice(i, 1);
             localStats[0].stop();
             break;
-        }}
+        }
+}
 };
 
 Statistics.prototype.stopRemoteStats = function () {
@@ -223,8 +230,9 @@ Statistics.prototype.startCallStats = function (session) {
 Statistics.prototype.stopCallStats = function () {
     if(this.callStatsStarted) {
         var index = Statistics.callsStatsInstances.indexOf(this.callstats);
-        if(index > -1)
-            {Statistics.callsStatsInstances.splice(index, 1);}
+        if(index > -1)            {
+Statistics.callsStatsInstances.splice(index, 1);
+}
         // The next line is commented because we need to be able to send
         // feedback even after the conference has been destroyed.
         // this.callstats = null;
@@ -249,8 +257,9 @@ Statistics.prototype.isCallstatsEnabled = function () {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
 Statistics.prototype.sendIceConnectionFailedEvent = function (pc) {
-    if(this.callstats)
-        {this.callstats.sendIceConnectionFailedEvent(pc, this.callstats);}
+    if(this.callstats)        {
+this.callstats.sendIceConnectionFailedEvent(pc, this.callstats);
+}
     Statistics.analytics.sendEvent('connection.ice_failed');
 };
 
@@ -260,8 +269,9 @@ Statistics.prototype.sendIceConnectionFailedEvent = function (pc) {
  * @param type {String} "audio"/"video"
  */
 Statistics.prototype.sendMuteEvent = function (muted, type) {
-    if(this.callstats)
-        {CallStats.sendMuteEvent(muted, type, this.callstats);}
+    if(this.callstats)        {
+CallStats.sendMuteEvent(muted, type, this.callstats);
+}
 };
 
 /**
@@ -270,8 +280,9 @@ Statistics.prototype.sendMuteEvent = function (muted, type) {
  * false for not stopping
  */
 Statistics.prototype.sendScreenSharingEvent = function (start) {
-    if(this.callstats)
-        {CallStats.sendScreenSharingEvent(start, this.callstats);}
+    if(this.callstats)        {
+CallStats.sendScreenSharingEvent(start, this.callstats);
+}
 };
 
 /**
@@ -279,8 +290,9 @@ Statistics.prototype.sendScreenSharingEvent = function (start) {
  * conference.
  */
 Statistics.prototype.sendDominantSpeakerEvent = function () {
-    if(this.callstats)
-        {CallStats.sendDominantSpeakerEvent(this.callstats);}
+    if(this.callstats)        {
+CallStats.sendDominantSpeakerEvent(this.callstats);
+}
 };
 
 /**
@@ -348,8 +360,9 @@ Statistics.sendGetUserMediaFailed = function (e) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
 Statistics.prototype.sendCreateOfferFailed = function (e, pc) {
-    if(this.callstats)
-        {CallStats.sendCreateOfferFailed(e, pc, this.callstats);}
+    if(this.callstats)        {
+CallStats.sendCreateOfferFailed(e, pc, this.callstats);
+}
 };
 
 /**
@@ -359,8 +372,9 @@ Statistics.prototype.sendCreateOfferFailed = function (e, pc) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
 Statistics.prototype.sendCreateAnswerFailed = function (e, pc) {
-    if(this.callstats)
-        {CallStats.sendCreateAnswerFailed(e, pc, this.callstats);}
+    if(this.callstats)        {
+CallStats.sendCreateAnswerFailed(e, pc, this.callstats);
+}
 };
 
 /**
@@ -370,8 +384,9 @@ Statistics.prototype.sendCreateAnswerFailed = function (e, pc) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
 Statistics.prototype.sendSetLocalDescFailed = function (e, pc) {
-    if(this.callstats)
-        {CallStats.sendSetLocalDescFailed(e, pc, this.callstats);}
+    if(this.callstats)        {
+CallStats.sendSetLocalDescFailed(e, pc, this.callstats);
+}
 };
 
 /**
@@ -381,8 +396,9 @@ Statistics.prototype.sendSetLocalDescFailed = function (e, pc) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
 Statistics.prototype.sendSetRemoteDescFailed = function (e, pc) {
-    if(this.callstats)
-        {CallStats.sendSetRemoteDescFailed(e, pc, this.callstats);}
+    if(this.callstats)        {
+CallStats.sendSetRemoteDescFailed(e, pc, this.callstats);
+}
 };
 
 /**
@@ -392,8 +408,9 @@ Statistics.prototype.sendSetRemoteDescFailed = function (e, pc) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
 Statistics.prototype.sendAddIceCandidateFailed = function (e, pc) {
-    if(this.callstats)
-        {CallStats.sendAddIceCandidateFailed(e, pc, this.callstats);}
+    if(this.callstats)        {
+CallStats.sendAddIceCandidateFailed(e, pc, this.callstats);
+}
 };
 
 /**
@@ -418,8 +435,9 @@ Statistics.sendLog = function (m) {
  * @param detailed detailed feedback from the user. Not yet used
  */
 Statistics.prototype.sendFeedback = function(overall, detailed) {
-    if(this.callstats)
-        {this.callstats.sendFeedback(overall, detailed);}
+    if(this.callstats)        {
+this.callstats.sendFeedback(overall, detailed);
+}
     Statistics.analytics.sendEvent("feedback.rating",
         {value: overall, detailed: detailed});
 };
