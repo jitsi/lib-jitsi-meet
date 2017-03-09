@@ -24,12 +24,18 @@ module.exports = {
         'sourceType': 'module'
     },
     'plugins': [
-        'flowtype'
+        'flowtype',
+
+        // ESLint's rule no-duplicate-imports does not understand Flow's import
+        // type. Fortunately, eslint-plugin-import understands Flow's import
+        // type.
+        'import'
     ],
     'rules': {
         'new-cap': 2,
         'no-console': 0,
         'semi': [ 'error', 'always' ],
+
         'no-cond-assign': 2,
         'no-constant-condition': 2,
         'no-control-regex': 2,
@@ -44,6 +50,8 @@ module.exports = {
             'error',
             'all',
             { 'nestedBinaryExpressions': false }
-        ]
+        ],
+
+        'import/no-duplicates': 2
     }
 };
