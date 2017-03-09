@@ -58,6 +58,7 @@ module.exports = {
         'no-irregular-whitespace': 2,
         'no-negated-in-lhs': 2,
         'no-obj-calls': 2,
+        'no-prototype-builtins': 0,
 
         'prefer-spread': 2,
         'require-yield': 2,
