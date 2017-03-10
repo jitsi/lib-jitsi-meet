@@ -566,11 +566,14 @@ SDP.prototype.rtcpFbFromJingle = function(elem, payloadtype) { // XEP-0293
     }
     tmp = elem.find('>rtcp-fb[xmlns="urn:xmpp:jingle:apps:rtp:rtcp-fb:0"]');
     tmp.each(function() {
+        /* eslint-disable no-invalid-this */
         media += `a=rtcp-fb:${payloadtype} ${$(this).attr('type')}`;
         if ($(this).attr('subtype')) {
             media += ` ${$(this).attr('subtype')}`;
         }
         media += '\r\n';
+
+        /* eslint-enable no-invalid-this */
     });
 
     return media;
@@ -610,6 +613,7 @@ SDP.prototype.fromJingle = function(jingle) {
 
     this.session = this.raw;
     jingle.find('>content').each(function() {
+        // eslint-disable-next-line no-invalid-this
         const m = self.jingle2media($(this));
 
         self.media.push(m);
@@ -663,6 +667,7 @@ SDP.prototype.jingle2media = function(content) {
             = desc
                 .find('payload-type')
                 .map(function() {
+                    // eslint-disable-next-line no-invalid-this
                     return this.getAttribute('id');
                 })
                 .get();
@@ -684,6 +689,7 @@ SDP.prototype.jingle2media = function(content) {
             media += `${SDPUtil.buildICEPwd(tmp.attr('pwd'))}\r\n`;
         }
         tmp.find('>fingerprint').each(function() {
+            /* eslint-disable no-invalid-this */
             // FIXME: check namespace at some point
             media += `a=fingerprint:${this.getAttribute('hash')}`;
             media += ` ${$(this).text()}`;
@@ -691,6 +697,8 @@ SDP.prototype.jingle2media = function(content) {
             if (this.getAttribute('setup')) {
                 media += `a=setup:${this.getAttribute('setup')}\r\n`;
             }
+
+            /* eslint-enable no-invalid-this */
         });
     }
     switch (content.attr('senders')) {
@@ -719,6 +727,7 @@ SDP.prototype.jingle2media = function(content) {
 
     if (desc.find('encryption').length) {
         desc.find('encryption>crypto').each(function() {
+            /* eslint-disable no-invalid-this */
             media += `a=crypto:${this.getAttribute('tag')}`;
             media += ` ${this.getAttribute('crypto-suite')}`;
             media += ` ${this.getAttribute('key-params')}`;
@@ -726,9 +735,12 @@ SDP.prototype.jingle2media = function(content) {
                 media += ` ${this.getAttribute('session-params')}`;
             }
             media += '\r\n';
+
+            /* eslint-enable no-invalid-this */
         });
     }
     desc.find('payload-type').each(function() {
+        /* eslint-disable no-invalid-this */
         media += `${SDPUtil.buildRTPMap(this)}\r\n`;
         if ($(this).find('>parameter').length) {
             media += `a=fmtp:${this.getAttribute('id')} `;
@@ -747,6 +759,8 @@ SDP.prototype.jingle2media = function(content) {
 
         // xep-0293
         media += self.rtcpFbFromJingle($(this), this.getAttribute('id'));
+
+        /* eslint-enable no-invalid-this */
     });
 
     // xep-0293
@@ -757,9 +771,12 @@ SDP.prototype.jingle2media = function(content) {
         = desc.find(
             '>rtp-hdrext[xmlns="urn:xmpp:jingle:apps:rtp:rtp-hdrext:0"]');
     tmp.each(function() {
+        /* eslint-disable no-invalid-this */
         media
             += `a=extmap:${this.getAttribute('id')} ${
                 this.getAttribute('uri')}\r\n`;
+
+        /* eslint-enable no-invalid-this */
     });
 
     content
@@ -767,6 +784,7 @@ SDP.prototype.jingle2media = function(content) {
             '>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]'
                 + '>candidate')
         .each(function() {
+            /* eslint-disable no-invalid-this */
             let protocol = this.getAttribute('protocol');
 
             protocol
@@ -781,12 +799,15 @@ SDP.prototype.jingle2media = function(content) {
             }
 
             media += SDPUtil.candidateFromJingle(this);
+
+            /* eslint-enable no-invalid-this */
         });
 
     // XEP-0339 handle ssrc-group attributes
     content
         .find('description>ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
         .each(function() {
+            /* eslint-disable no-invalid-this */
             const semantics = this.getAttribute('semantics');
             const ssrcs
                 = $(this)
@@ -799,12 +820,15 @@ SDP.prototype.jingle2media = function(content) {
             if (ssrcs.length) {
                 media += `a=ssrc-group:${semantics} ${ssrcs.join(' ')}\r\n`;
             }
+
+            /* eslint-enable no-invalid-this */
         });
 
     tmp
         = content.find(
             'description>source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
     tmp.each(function() {
+        /* eslint-disable no-invalid-this */
         const ssrc = this.getAttribute('ssrc');
 
         // eslint-disable-next-line newline-per-chained-call
@@ -819,6 +843,8 @@ SDP.prototype.jingle2media = function(content) {
             }
             media += '\r\n';
         });
+
+        /* eslint-enable no-invalid-this */
     });
 
     return media;

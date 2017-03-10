@@ -65,6 +65,8 @@ const reportType = {
     MST_WITH_USERID: 'mstWithUserID'
 };
 
+/* eslint-enable no-invalid-this */
+
 /**
  * Returns a function which invokes f in a try/catch block, logs any exception
  * to the console, and then swallows it.
@@ -76,6 +78,8 @@ const reportType = {
 function tryCatch(f) {
     return function() {
         try {
+
+            // eslint-disable-next-line no-invalid-this
             f.apply(this, arguments); // eslint-disable-line prefer-rest-params
         } catch (e) {
             GlobalOnErrorHandler.callErrorHandler(e);
@@ -83,6 +87,8 @@ function tryCatch(f) {
         }
     };
 }
+
+/* eslint-disable no-invalid-this */
 
 /**
  * Creates new CallStats instance that handles all callstats API calls.
@@ -124,6 +130,8 @@ const CallStats = tryCatch(function(jingleSession, options) {
         logger.error(e);
     }
 });
+
+/* eslint-enable no-invalid-this */
 
 // some errors/events may happen before CallStats init
 // in this case we accumulate them in this array
@@ -202,7 +210,7 @@ CallStats.prototype.associateStreamWithVideoTag
     // 'jitsi' is default remote user ID for now
     const callStatsId = isLocal ? this.userID : DEFAULT_REMOTE_USER;
 
-    tryCatch(function() {
+    tryCatch(() => {
         logger.debug(
             'Calling callStats.associateMstWithUserID with:',
             this.peerconnection,
@@ -231,7 +239,7 @@ CallStats.prototype.associateStreamWithVideoTag
             });
             CallStats._checkInitialize();
         }
-    }).bind(this)();
+    })();
 };
 
 /**
@@ -304,6 +312,7 @@ CallStats._reportEvent = function(event, eventData) {
     }
 };
 
+/* eslint-disable no-invalid-this */
 /**
  * Notifies CallStats for connection setup errors
  */
@@ -315,6 +324,8 @@ CallStats.prototype.sendTerminateEvent = tryCatch(function() {
         callStats.fabricEvent.fabricTerminated, this.confID);
 });
 
+/* eslint-enable no-invalid-this */
+
 /**
  * Notifies CallStats for ice connection failed
  * @param {RTCPeerConnection} pc connection on which failure occured.
@@ -325,6 +336,7 @@ CallStats.prototype.sendIceConnectionFailedEvent = tryCatch((pc, cs) => {
         cs, wrtcFuncNames.iceConnectionFailure, null, pc);
 });
 
+/* eslint-disable no-invalid-this */
 /**
  * Sends the given feedback through CallStats.
  *
@@ -344,6 +356,8 @@ function(overallFeedback, detailedFeedback) {
         comment: detailedFeedback
     });
 });
+
+/* eslint-enable no-invalid-this */
 
 /**
  * Reports an error to callstats.
@@ -464,6 +478,7 @@ CallStats.dispose = function() {
     CallStats.initializeInProgress = false;
 };
 
+/* eslint-disable no-invalid-this */
 function initCallback(err, msg) {
     logger.log(`CallStats Status: err=${err} msg=${msg}`);
 
@@ -530,5 +545,7 @@ function initCallback(err, msg) {
         CallStats.reportsQueue.length = 0;
     }
 }
+
+/* eslint-enable no-invalid-this */
 
 module.exports = CallStats;

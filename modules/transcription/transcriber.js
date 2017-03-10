@@ -17,7 +17,7 @@ const MAXIMUM_SENTENCE_LENGTH = 80;
  * will be merged to create a transcript
  * @param {AudioRecorder} audioRecorder An audioRecorder recording a conference
  */
-const transcriber = function() {
+function Transcriber() {
     // the object which can record all audio in the conference
     this.audioRecorder = new AudioRecorder();
 
@@ -48,14 +48,14 @@ const transcriber = function() {
     // Used in the updateTranscription method to add a new line when the
     // sentence becomes to long
     this.lineLength = 0;
-};
+}
 
 /**
  * Method to start the transcription process. It will tell the audioRecorder
  * to start storing all audio streams and record the start time for merging
  * purposes
  */
-transcriber.prototype.start = function start() {
+Transcriber.prototype.start = function start() {
     if (this.state !== BEFORE_STATE) {
         throw new Error(
             `The transcription can only start when it's in the "${
@@ -73,7 +73,7 @@ transcriber.prototype.start = function start() {
 
  * @param callback a callback which will receive the transcription
  */
-transcriber.prototype.stop = function stop(callback) {
+Transcriber.prototype.stop = function stop(callback) {
     if (this.state !== RECORDING_STATE) {
         throw new Error(
             `The transcription can only stop when it's in the "${
@@ -86,7 +86,7 @@ transcriber.prototype.stop = function stop(callback) {
     this.audioRecorder.stop();
 
     // and send all recorded audio the the transcription service
-    const callBack = blobCallBack.bind(this);
+    const callBack = blobCallBack.bind(null, this);
 
     this.audioRecorder.getRecordingResults().forEach(recordingResult => {
         this.transcriptionService.send(recordingResult, callBack);
@@ -106,11 +106,11 @@ transcriber.prototype.stop = function stop(callback) {
  * when every send request has been received
  *
  * note: Make sure to bind this as a Transcription object
- *
+ * @param {Transcriber} transcriber the transcriber instance
  * @param {RecordingResult} answer a RecordingResult object with a defined
  * WordArray
  */
-function blobCallBack(answer) {
+function blobCallBack(transcriber, answer) {
     console.log(
         'retrieved an answer from the transcription service. The answer has an'
             + ` array of length: ${answer.wordArray.length}`);
@@ -119,7 +119,7 @@ function blobCallBack(answer) {
     // the start of the recording to all start and end times
     if (answer.wordArray.length > 0) {
         let offset = answer.startTime.getUTCMilliseconds()
-            - this.startTime.getUTCMilliseconds();
+            - transcriber.startTime.getUTCMilliseconds();
 
         // transcriber time will always be earlier
 
@@ -144,19 +144,19 @@ function blobCallBack(answer) {
     }
 
     // then store the array and decrease the counter
-    this.results.push(answer.wordArray);
-    this.counter--;
-    console.log(`current counter: ${this.counter}`);
+    transcriber.results.push(answer.wordArray);
+    transcriber.counter--;
+    console.log(`current counter: ${transcriber.counter}`);
 
     // and check if all results have been received.
-    this.maybeMerge();
+    transcriber.maybeMerge();
 }
 
 /**
  * this method will check if the counter is zero. If it is, it will call
  * the merging method
  */
-transcriber.prototype.maybeMerge = function() {
+Transcriber.prototype.maybeMerge = function() {
     if (this.state === TRANSCRIBING_STATE && this.counter === 0) {
         // make sure to include the events in the result arrays before
         // merging starts
@@ -168,7 +168,7 @@ transcriber.prototype.maybeMerge = function() {
  * This method will merge all speech-to-text arrays together in one
  * readable transcription string
  */
-transcriber.prototype.merge = function() {
+Transcriber.prototype.merge = function() {
     console.log(
         `starting merge process!\n The length of the array: ${
              this.results.length}`);
@@ -242,7 +242,7 @@ transcriber.prototype.merge = function() {
  * @param {Word} word the Word object holding the word to append
  * @param {String|null} name the name of a new speaker. Null if not applicable
  */
-transcriber.prototype.updateTranscription = function(word, name) {
+Transcriber.prototype.updateTranscription = function(word, name) {
     if (name !== undefined && name !== null) {
         this.transcription += `\n${name}:`;
         this.lineLength = name.length + 1; // +1 for the semi-colon
@@ -308,7 +308,7 @@ function pushWordToSortedArray(array, word) {
  * audiostream, it will not be added by the audioRecorder
  * @param {JitsiTrack} track the track to give to the audioRecorder
  */
-transcriber.prototype.addTrack = function(track) {
+Transcriber.prototype.addTrack = function(track) {
     this.audioRecorder.addTrack(track);
 };
 
@@ -316,7 +316,7 @@ transcriber.prototype.addTrack = function(track) {
  * Remove the given track from the auioRecorder
  * @param track
  */
-transcriber.prototype.removeTrack = function(track) {
+Transcriber.prototype.removeTrack = function(track) {
     this.audioRecorder.removeTrack(track);
 };
 
@@ -325,7 +325,7 @@ transcriber.prototype.removeTrack = function(track) {
  * when it's not done yet
  * @returns {String} the transcription as a String
  */
-transcriber.prototype.getTranscription = function() {
+Transcriber.prototype.getTranscription = function() {
     if (this.state !== FINISHED_STATE) {
         throw new Error(
             `The transcription can only be retrieved when it's in the "${
@@ -339,7 +339,7 @@ transcriber.prototype.getTranscription = function() {
 /**
  * Returns the current state of the transcription process
  */
-transcriber.prototype.getState = function() {
+Transcriber.prototype.getState = function() {
     return this.state;
 };
 
@@ -347,7 +347,7 @@ transcriber.prototype.getState = function() {
  * Resets the state to the "before" state, such that it's again possible to
  * call the start method
  */
-transcriber.prototype.reset = function() {
+Transcriber.prototype.reset = function() {
     this.state = BEFORE_STATE;
     this.counter = null;
     this.transcription = null;
@@ -357,4 +357,4 @@ transcriber.prototype.reset = function() {
     this.lineLength = 0;
 };
 
-module.exports = transcriber;
+module.exports = Transcriber;

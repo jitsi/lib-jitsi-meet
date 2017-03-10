@@ -1,5 +1,34 @@
 const SDPUtil = require('./SDPUtil');
 
+// this could be useful in Array.prototype.
+function arrayEquals(array1, array2) {
+    // if the other array is a falsy value, return
+    if (!array2) {
+        return false;
+    }
+
+    // compare lengths - can save a lot of time
+    if (array1.length !== array2.length) {
+        return false;
+    }
+
+    for (let i = 0, l = array1.length; i < l; i++) {
+        // Check if we have nested arrays
+        if (array1[i] instanceof Array && array2[i] instanceof Array) {
+            // recurse into the nested arrays
+            if (!array1[i].equals(array2[i])) {
+                return false;
+            }
+        } else if (array1[i] !== array2[i]) {
+            // Warning - two different object instances will never be
+            // equal: {x:20} != {x:20}
+            return false;
+        }
+    }
+
+    return true;
+}
+
 function SDPDiffer(mySDP, otherSDP) {
     this.mySDP = mySDP;
     this.otherSDP = otherSDP;
@@ -10,35 +39,6 @@ function SDPDiffer(mySDP, otherSDP) {
  * 'mySDP', but not contained in 'otherSdp'. Mapped by channel idx.
  */
 SDPDiffer.prototype.getNewMedia = function() {
-
-    // this could be useful in Array.prototype.
-    function arrayEquals(array) {
-        // if the other array is a falsy value, return
-        if (!array) {
-            return false;
-        }
-
-        // compare lengths - can save a lot of time
-        if (this.length !== array.length) {
-            return false;
-        }
-
-        for (let i = 0, l = this.length; i < l; i++) {
-            // Check if we have nested arrays
-            if (this[i] instanceof Array && array[i] instanceof Array) {
-                // recurse into the nested arrays
-                if (!this[i].equals(array[i])) {
-                    return false;
-                }
-            } else if (this[i] !== array[i]) {
-                // Warning - two different object instances will never be
-                // equal: {x:20} != {x:20}
-                return false;
-            }
-        }
-
-        return true;
-    }
 
     const myMedias = this.mySDP.getMediaSsrcMap();
     const othersMedias = this.otherSDP.getMediaSsrcMap();
@@ -82,7 +82,7 @@ SDPDiffer.prototype.getNewMedia = function() {
                 const mySsrcGroup = myMedia.ssrcGroups[i];
 
                 if (otherSsrcGroup.semantics === mySsrcGroup.semantics
-                    && arrayEquals.apply(otherSsrcGroup.ssrcs,
+                    && arrayEquals(otherSsrcGroup.ssrcs,
                                       [ mySsrcGroup.ssrcs ])) {
 
                     matched = true;

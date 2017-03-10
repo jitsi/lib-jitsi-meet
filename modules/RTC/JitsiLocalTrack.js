@@ -357,9 +357,9 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
     }
 
     return promise
-        .then(() => self._sendMuteStatus(mute))
-        .then(function() {
-            self.eventEmitter.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, this);
+        .then(() => this._sendMuteStatus(mute))
+        .then(() => {
+            this.eventEmitter.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, this);
         });
 };
 

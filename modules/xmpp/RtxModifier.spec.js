@@ -1,4 +1,5 @@
 /* eslint-disable max-len*/
+/* eslint-disable no-invalid-this */
 /* jshint maxlen:false*/
 import RtxModifier from './RtxModifier.js';
 import * as SampleSdpStrings from './SampleSdpStrings.js';
@@ -352,4 +353,5 @@ describe('RtxModifier', () => {
     });
 });
 
+/* eslint-enable no-invalid-this */
 /* eslint-enable max-len*/

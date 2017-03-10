@@ -15,15 +15,20 @@ const parser = {
 
         // eslint-disable-next-line newline-per-chained-call
         $(packet).children().each(function() {
+            // eslint-disable-next-line no-invalid-this
             const tagName = $(this).prop('tagName');
             const node = {
                 tagName
             };
 
             node.attributes = {};
+
+            // eslint-disable-next-line no-invalid-this
             $($(this)[0].attributes).each((index, attr) => {
                 node.attributes[attr.name] = attr.value;
             });
+
+            // eslint-disable-next-line no-invalid-this
             const text = Strophe.getText($(this)[0]);
 
             if (text) {
@@ -31,6 +36,8 @@ const parser = {
             }
             node.children = [];
             nodes.push(node);
+
+            // eslint-disable-next-line no-invalid-this
             self.packet2JSON($(this), node.children);
         });
     },

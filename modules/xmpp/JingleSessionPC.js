@@ -689,11 +689,13 @@ export default class JingleSessionPC extends JingleSession {
             $(content)
                 .find('ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
                 .each(function() {
+                    // eslint-disable-next-line no-invalid-this
                     const semantics = this.getAttribute('semantics');
                     const ssrcs
-                        = $(this)
+                        = $(this) // eslint-disable-line no-invalid-this
                             .find('>source')
                             .map(function() {
+                                // eslint-disable-next-line no-invalid-this
                                 return this.getAttribute('ssrc');
                             })
                             .get();
@@ -710,6 +712,7 @@ export default class JingleSessionPC extends JingleSession {
                 = $(content).find(
                     'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
 
+            /* eslint-disable no-invalid-this */
             tmp.each(function() {
                 const ssrc = $(this).attr('ssrc');
 
@@ -729,6 +732,8 @@ export default class JingleSessionPC extends JingleSession {
                     lines += '\r\n';
                 });
             });
+
+            /* eslint-enable no-invalid-this */
             currentRemoteSdp.media.forEach((media, i2) => {
                 if (!SDPUtil.findLine(media, `a=mid:${name}`)) {
                     return;
@@ -1098,6 +1103,7 @@ export default class JingleSessionPC extends JingleSession {
             $(content)
                 .find('ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
                 .each(function() {
+                    /* eslint-disable no-invalid-this */
                     const semantics = this.getAttribute('semantics');
                     const ssrcs
                         = $(this)
@@ -1112,6 +1118,8 @@ export default class JingleSessionPC extends JingleSession {
                             += `a=ssrc-group:${semantics} ${ssrcs.join(' ')
                                 }\r\n`;
                     }
+
+                    /* eslint-enable no-invalid-this */
                 });
             const ssrcs = [];
 
@@ -1121,6 +1129,7 @@ export default class JingleSessionPC extends JingleSession {
                     'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
 
             tmp.each(function() {
+                // eslint-disable-next-line no-invalid-this
                 const ssrc = $(this).attr('ssrc');
 
                 ssrcs.push(ssrc);

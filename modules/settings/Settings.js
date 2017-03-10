@@ -10,6 +10,8 @@ import UsernameGenerator from '../util/UsernameGenerator';
  * @returns {Storage} the local Storage object (if any)
  */
 function getLocalStorage() {
+
+    // eslint-disable-next-line no-invalid-this
     const global = typeof window === 'undefined' ? this : window;
 
     return global.localStorage;

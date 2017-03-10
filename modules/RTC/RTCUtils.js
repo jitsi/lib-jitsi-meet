@@ -1399,7 +1399,7 @@ function wrapAttachMediaStream(origAttachMediaStream) {
                         = new JitsiTrackError(ex, null, [ 'audiooutput' ]);
 
                     GlobalOnErrorHandler.callUnhandledRejectionHandler({
-                        promise: this,
+                        promise: this, // eslint-disable-line no-invalid-this
                         reason: err
                     });
 

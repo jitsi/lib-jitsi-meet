@@ -79,7 +79,7 @@ function determineCorrectFileType() {
  * @param jitsiConference the jitsiConference which this object
  * is going to record
  */
-const audioRecorder = function(jitsiConference) {
+function AudioRecorder(jitsiConference) {
     // array of TrackRecorders, where each trackRecorder
     // holds the JitsiTrack, MediaRecorder and recorder data
     this.recorders = [];
@@ -92,22 +92,22 @@ const audioRecorder = function(jitsiConference) {
 
     // the jitsiconference the object is recording
     this.jitsiConference = jitsiConference;
-};
+}
 
 /**
  * Add the the exported module so that it can be accessed by other files
  */
-audioRecorder.determineCorrectFileType = determineCorrectFileType;
+AudioRecorder.determineCorrectFileType = determineCorrectFileType;
 
 /**
  * Adds a new TrackRecorder object to the array.
  *
  * @param track the track potentially holding an audio stream
  */
-audioRecorder.prototype.addTrack = function(track) {
+AudioRecorder.prototype.addTrack = function(track) {
     if (track.isAudioTrack()) {
         // create the track recorder
-        const trackRecorder = instantiateTrackRecorder(track);
+        const trackRecorder = this.instantiateTrackRecorder(track);
 
         // push it to the local array of all recorders
 
@@ -125,6 +125,38 @@ audioRecorder.prototype.addTrack = function(track) {
 };
 
 /**
+ * Creates a TrackRecorder object. Also creates the MediaRecorder and
+ * data array for the trackRecorder.
+ * @param track the JitsiTrack holding the audio MediaStream(s)
+ */
+AudioRecorder.prototype.instantiateTrackRecorder = function(track) {
+    const trackRecorder = new TrackRecorder(track);
+
+    // Create a new stream which only holds the audio track
+    const originalStream = trackRecorder.track.getOriginalStream();
+    const stream = createEmptyStream();
+
+    originalStream.getAudioTracks().forEach(t => stream.addTrack(t));
+
+    // Create the MediaRecorder
+    trackRecorder.recorder = new MediaRecorder(stream,
+        { mimeType: this.fileType });
+
+    // array for holding the recorder data. Resets it when
+    // audio already has been recorder once
+    trackRecorder.data = [];
+
+    // function handling a dataEvent, e.g the stream gets new data
+    trackRecorder.recorder.ondataavailable = function(dataEvent) {
+        if (dataEvent.data.size > 0) {
+            trackRecorder.data.push(dataEvent.data);
+        }
+    };
+
+    return trackRecorder;
+};
+
+/**
  * Notifies the module that a specific track has stopped, e.g participant left
  * the conference.
  * if the recording has not started yet, the TrackRecorder will be removed from
@@ -134,7 +166,7 @@ audioRecorder.prototype.addTrack = function(track) {
  *
  * @param {JitsiTrack} track the JitsiTrack to remove from the recording session
  */
-audioRecorder.prototype.removeTrack = function(track) {
+AudioRecorder.prototype.removeTrack = function(track) {
     if (track.isVideoTrack()) {
         return;
     }
@@ -164,7 +196,7 @@ audioRecorder.prototype.removeTrack = function(track) {
  * If it hasn't changed,it will keep the exiting name. If it changes to a
  * undefined value, the old value will also be kept.
  */
-audioRecorder.prototype.updateNames = function() {
+AudioRecorder.prototype.updateNames = function() {
     const conference = this.jitsiConference;
 
     this.recorders.forEach(trackRecorder => {
@@ -185,7 +217,7 @@ audioRecorder.prototype.updateNames = function() {
 /**
  * Starts the audio recording of every local and remote track
  */
-audioRecorder.prototype.start = function() {
+AudioRecorder.prototype.start = function() {
     if (this.isRecording) {
         throw new Error('audiorecorder is already recording');
     }
@@ -206,7 +238,7 @@ audioRecorder.prototype.start = function() {
 /**
  * Stops the audio recording of every local and remote track
  */
-audioRecorder.prototype.stop = function() {
+AudioRecorder.prototype.stop = function() {
     // set the boolean flag to false
     this.isRecording = false;
 
@@ -218,7 +250,7 @@ audioRecorder.prototype.stop = function() {
 /**
  * link hacking to download all recorded audio streams
  */
-audioRecorder.prototype.download = function() {
+AudioRecorder.prototype.download = function() {
     this.recorders.forEach(trackRecorder => {
         const blob = new Blob(trackRecorder.data, { type: this.fileType });
         const url = URL.createObjectURL(blob);
@@ -238,7 +270,7 @@ audioRecorder.prototype.download = function() {
  * which include the name of the owner of the track and the starting time stamp
  * @returns {Array} an array of RecordingResult objects
  */
-audioRecorder.prototype.getRecordingResults = function() {
+AudioRecorder.prototype.getRecordingResults = function() {
     if (this.isRecording) {
         throw new Error(
             'cannot get blobs because the AudioRecorder is still recording!');
@@ -264,7 +296,7 @@ audioRecorder.prototype.getRecordingResults = function() {
  * Gets the mime type of the recorder audio
  * @returns {String} the mime type of the recorder audio
  */
-audioRecorder.prototype.getFileType = function() {
+AudioRecorder.prototype.getFileType = function() {
     return this.fileType;
 };
 
@@ -284,36 +316,6 @@ function createEmptyStream() {
 }
 
 /**
- * Creates a TrackRecorder object. Also creates the MediaRecorder and
- * data array for the trackRecorder.
- * @param track the JitsiTrack holding the audio MediaStream(s)
+ * export the main object AudioRecorder
  */
-function instantiateTrackRecorder(track) {
-    const trackRecorder = new TrackRecorder(track);
-
-    // Create a new stream which only holds the audio track
-    const originalStream = trackRecorder.track.getOriginalStream();
-    const stream = createEmptyStream();
-
-    originalStream.getAudioTracks().forEach(t => stream.addTrack(t));
-
-    // Create the MediaRecorder
-    trackRecorder.recorder
-        = new MediaRecorder(stream, { mimeType: audioRecorder.fileType });
-
-    // array for holding the recorder data. Resets it when
-    // audio already has been recorder once
-    trackRecorder.data = [];
-
-    // function handling a dataEvent, e.g the stream gets new data
-    trackRecorder.recorder.ondataavailable = ({ data }) => {
-        (data.size > 0) && trackRecorder.data.push(data);
-    };
-
-    return trackRecorder;
-}
-
-/**
- * export the main object audioRecorder
- */
-module.exports = audioRecorder;
+module.exports = AudioRecorder;
