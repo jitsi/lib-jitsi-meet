@@ -368,6 +368,8 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
     };
 };
 
+/* eslint-disable no-continue */
+
 /**
  * Stats processing logic.
  */
@@ -612,8 +614,8 @@ StatsCollector.prototype.processAudioLevelReport = function() {
         if(!this.currentAudioLevelsReport.hasOwnProperty(idx)) {
             continue;
         }
-        const now = this.currentAudioLevelsReport[idx];
 
+        const now = this.currentAudioLevelsReport[idx];
         if (now.type != 'ssrc') {
             continue;
         }
@@ -656,3 +658,5 @@ StatsCollector.prototype.processAudioLevelReport = function() {
         }
     }
 };
+
+/* eslint-enable no-continue */

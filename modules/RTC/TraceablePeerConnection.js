@@ -438,7 +438,7 @@ function extractSSRCMap(desc) {
 
     for (const mLine of session.media) {
         if (!Array.isArray(mLine.ssrcs)) {
-            continue;
+            continue; // eslint-disable-line no-continue
         }
 
         if (Array.isArray(mLine.ssrcGroups)) {
@@ -461,7 +461,7 @@ function extractSSRCMap(desc) {
         }
         for (const ssrc of mLine.ssrcs) {
             if (ssrc.attribute !== 'msid') {
-                continue;
+                continue; // eslint-disable-line no-continue
             }
 
             const msid = ssrc.value;

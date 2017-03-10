@@ -150,6 +150,7 @@ module.exports = {
         'new-cap': 2,
         'new-parens': 2,
         'no-array-constructor': 2,
+        'no-continue': 2,
         'no-inline-comments': 0,
         'no-lonely-if': 2,
         'no-mixed-operators': 2,

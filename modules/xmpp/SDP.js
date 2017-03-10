@@ -110,7 +110,7 @@ SDP.prototype.mangle = function() {
         lines.pop(); // remove empty last element
         mline = SDPUtil.parse_mline(lines.shift());
         if (mline.media != 'audio') {
-            continue;
+            continue; // eslint-disable-line no-continue
         }
         newdesc = '';
         mline.fmt.length = 0;
@@ -118,7 +118,7 @@ SDP.prototype.mangle = function() {
             if (lines[j].substr(0, 9) == 'a=rtpmap:') {
                 rtpmap = SDPUtil.parse_rtpmap(lines[j]);
                 if (rtpmap.name == 'CN' || rtpmap.name == 'ISAC') {
-                    continue;
+                    continue; // eslint-disable-line no-continue
                 }
                 mline.fmt.push(rtpmap.id);
             }
@@ -173,7 +173,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
         if (!(mline.media === 'audio'
               || mline.media === 'video'
               || mline.media === 'application')) {
-            continue;
+            continue; // eslint-disable-line no-continue
         }
         const assrcline = SDPUtil.find_line(this.media[i], 'a=ssrc:');
         if (assrcline) {

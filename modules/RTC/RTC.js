@@ -311,14 +311,13 @@ export default class RTC extends Listenable {
 
             for (const trackMediaType of endpointMediaTypes) {
                 // per media type filtering
-                if (mediaType && mediaType !== trackMediaType) {
-                    continue;
-                }
+                if (!mediaType || mediaType === trackMediaType) {
+                    const mediaTrack
+                        = this.remoteTracks[endpoint][trackMediaType];
 
-                const mediaTrack = this.remoteTracks[endpoint][trackMediaType];
-
-                if (mediaTrack) {
-                    remoteTracks.push(mediaTrack);
+                    if (mediaTrack) {
+                        remoteTracks.push(mediaTrack);
+                    }
                 }
             }
         }

@@ -33,17 +33,16 @@ const parser = {
     json2packet(nodes, packet) {
         for(let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
-            if(!node || node === null) {
-                continue;
+            if(node) {
+                packet.c(node.tagName, node.attributes);
+                if(node.value) {
+                    packet.t(node.value);
+                }
+                if(node.children) {
+                    this.json2packet(node.children, packet);
+                }
+                packet.up();
             }
-            packet.c(node.tagName, node.attributes);
-            if(node.value) {
-                packet.t(node.value);
-            }
-            if(node.children) {
-                this.json2packet(node.children, packet);
-            }
-            packet.up();
         }
         // packet.up();
     }
