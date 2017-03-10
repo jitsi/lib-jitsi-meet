@@ -84,6 +84,9 @@ function filterNodeFromPresenceJSON(pres, nodeName) {
 /* eslint-disable newline-per-chained-call */
 
 export default class ChatRoom extends Listenable {
+
+    /* eslint-disable max-params */
+
     constructor(connection, jid, password, XMPP, options) {
         super();
         this.xmpp = XMPP;
@@ -114,6 +117,8 @@ export default class ChatRoom extends Listenable {
 
         this.locked = false;
     }
+
+    /* eslint-enable max-params */
 
     initPresenceMap() {
         this.presMap.to = this.myroomjid;
@@ -724,6 +729,8 @@ export default class ChatRoom extends Listenable {
             error => logger.log('Kick participant error: ', error));
     }
 
+    /* eslint-disable max-params */
+
     lockRoom(key, onSuccess, onError, onNotSupported) {
         // http://xmpp.org/extensions/xep-0045.html#roomconfig
         this.connection.sendIQ(
@@ -781,6 +788,8 @@ export default class ChatRoom extends Listenable {
             },
             onError);
     }
+
+    /* eslint-enable max-params */
 
     addToPresence(key, values) {
         values.tagName = key;

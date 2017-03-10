@@ -6,6 +6,9 @@ import * as MediaType from './service/RTC/MediaType';
  * Represents a participant in (i.e. a member of) a conference.
  */
 export default class JitsiParticipant {
+
+    /* eslint-disable max-params */
+
     /**
      * Initializes a new JitsiParticipant instance.
      *
@@ -33,6 +36,8 @@ export default class JitsiParticipant {
         this._isConnectionActive = true;
         this._properties = {};
     }
+
+    /* eslint-enable max-params */
 
     /**
      * @returns {JitsiConference} The conference that this participant belongs

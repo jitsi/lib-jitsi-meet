@@ -54,6 +54,8 @@ function addMediaStreamInactiveHandler(mediaStream, handler) {
     }
 }
 
+/* eslint-disable max-params */
+
 /**
  * Represents a single media track (either audio or video).
  * @constructor
@@ -100,6 +102,8 @@ function JitsiTrack(
     this.disposed = false;
     this._setHandler('inactive', streamInactiveHandler);
 }
+
+/* eslint-enable max-params */
 
 /**
  * Sets handler to the WebRTC MediaStream or MediaStreamTrack object depending

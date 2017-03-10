@@ -321,6 +321,8 @@ Statistics.sendActiveDeviceListEvent = function(devicesData) {
     }
 };
 
+/* eslint-disable max-params */
+
 /**
  * Lets the underlying statistics module know where is given SSRC rendered by
  * providing renderer tag ID.
@@ -332,13 +334,19 @@ Statistics.sendActiveDeviceListEvent = function(devicesData) {
  * @param containerId {string} the id of media 'audio' or 'video' tag which
  *        renders the stream.
  */
-Statistics.prototype.associateStreamWithVideoTag
-= function(ssrc, isLocal, usageLabel, containerId) {
-    if (this.callstats) {
-        this.callstats.associateStreamWithVideoTag(
-            ssrc, isLocal, usageLabel, containerId);
-    }
+Statistics.prototype.associateStreamWithVideoTag = function(
+        ssrc,
+        isLocal,
+        usageLabel,
+        containerId) {
+    this.callstats && this.callstats.associateStreamWithVideoTag(
+        ssrc,
+        isLocal,
+        usageLabel,
+        containerId);
 };
+
+/* eslint-enable max-params */
 
 /**
  * Notifies CallStats that getUserMedia failed.

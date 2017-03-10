@@ -9,6 +9,8 @@ const Statistics = require('../statistics/statistics');
 let ttfmTrackerAudioAttached = false;
 let ttfmTrackerVideoAttached = false;
 
+/* eslint-disable max-params */
+
 /**
  * Represents a single media track (either audio or video).
  * @param {RTC} rtc the RTC service instance.
@@ -24,8 +26,16 @@ let ttfmTrackerVideoAttached = false;
  * @param {boolean} muted the initial muted state
  * @constructor
  */
-function JitsiRemoteTrack(rtc, conference, ownerEndpointId, stream, track,
-                          mediaType, videoType, ssrc, muted) {
+function JitsiRemoteTrack(
+        rtc,
+        conference,
+        ownerEndpointId,
+        stream,
+        track,
+        mediaType,
+        videoType,
+        ssrc,
+        muted) {
     JitsiTrack.call(
         this,
         conference,
@@ -51,6 +61,8 @@ function JitsiRemoteTrack(rtc, conference, ownerEndpointId, stream, track,
         this._bindMuteHandlers();
     }
 }
+
+/* eslint-enable max-params */
 
 JitsiRemoteTrack.prototype = Object.create(JitsiTrack.prototype);
 JitsiRemoteTrack.prototype.constructor = JitsiRemoteTrack;

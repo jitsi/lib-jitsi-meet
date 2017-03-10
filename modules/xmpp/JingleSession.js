@@ -11,6 +11,8 @@ const logger = getLogger(__filename);
  */
 export default class JingleSession {
 
+    /* eslint-disable max-params */
+
     /**
      * Creates new <tt>JingleSession</tt>.
      * @param {string} sid the Jingle session identifier
@@ -22,8 +24,13 @@ export default class JingleSession {
      * @param {Object} iceConfig the ICE servers config object as defined by
      * the WebRTC. Passed to the PeerConnection's constructor.
      */
-    constructor(sid,
-                localJid, peerjid, connection, mediaConstraints, iceConfig) {
+    constructor(
+            sid,
+            localJid,
+            peerjid,
+            connection,
+            mediaConstraints,
+            iceConfig) {
         this.sid = sid;
         this.localJid = localJid;
         this.peerjid = peerjid;
@@ -60,6 +67,8 @@ export default class JingleSession {
          */
         this.rtc = null;
     }
+
+    /* eslint-enable max-params */
 
     /**
      * Prepares this object to initiate a session.
@@ -133,7 +142,7 @@ export default class JingleSession {
      * @param failure a callback called when either timeout occurs or ERROR
      * response is received.
      */
-    // eslint-disable-next-line no-unused-vars, no-empty-function
+    // eslint-disable-next-line max-params, no-unused-vars, no-empty-function
     terminate(reason, text, success, failure) { }
 
     /**

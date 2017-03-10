@@ -17,6 +17,8 @@ import transform from 'sdp-transform';
 const logger = getLogger(__filename);
 const SIMULCAST_LAYERS = 3;
 
+/* eslint-disable max-params */
+
 /**
  * Creates new instance of 'TraceablePeerConnection'.
  *
@@ -39,16 +41,19 @@ const SIMULCAST_LAYERS = 3;
  *
  * @constructor
  */
-function TraceablePeerConnection(rtc, id, signalingLayer, iceConfig,
-                                 constraints, options) {
-    const self = this;
+function TraceablePeerConnection(
+        rtc,
+        id,
+        signalingLayer,
+        iceConfig,
+        constraints,
+        options) {
 
     /**
      * The parent instance of RTC service which created this
      * <tt>TracablePeerConnection</tt>.
      * @type {RTC}
      */
-
     this.rtc = rtc;
 
     /**
@@ -98,7 +103,7 @@ function TraceablePeerConnection(rtc, id, signalingLayer, iceConfig,
     this.rtxModifier = new RtxModifier();
 
     // override as desired
-    this.trace = function(what, info) {
+    this.trace = (what, info) => {
         /* logger.warn('WTRACE', what, info);
         if (info && RTCBrowserType.isIExplorer()) {
             if (info.length > 1024) {
@@ -108,78 +113,76 @@ function TraceablePeerConnection(rtc, id, signalingLayer, iceConfig,
                 logger.warn('WTRACE', what, info.substr(2048));
             }
         }*/
-        self.updateLog.push({
+        this.updateLog.push({
             time: new Date(),
             type: what,
             value: info || ''
         });
     };
     this.onicecandidate = null;
-    this.peerconnection.onicecandidate = function(event) {
+    this.peerconnection.onicecandidate = event => {
         // FIXME: this causes stack overflow with Temasys Plugin
         if (!RTCBrowserType.isTemasysPluginUsed()) {
-            self.trace(
+            this.trace(
                 'onicecandidate',
                 JSON.stringify(event.candidate, null, ' '));
         }
 
-        if (self.onicecandidate !== null) {
-            self.onicecandidate(event);
+        if (this.onicecandidate !== null) {
+            this.onicecandidate(event);
         }
     };
     this.onaddstream = null;
-    this.peerconnection.onaddstream = function(event) {
-        self.trace('onaddstream', event.stream.id);
-        if (self.onaddstream !== null) {
-            self.onaddstream(event);
+    this.peerconnection.onaddstream = event => {
+        this.trace('onaddstream', event.stream.id);
+        if (this.onaddstream !== null) {
+            this.onaddstream(event);
         }
     };
     this.onremovestream = null;
-    this.peerconnection.onremovestream = function(event) {
-        self.trace('onremovestream', event.stream.id);
-        if (self.onremovestream !== null) {
-            self.onremovestream(event);
+    this.peerconnection.onremovestream = event => {
+        this.trace('onremovestream', event.stream.id);
+        if (this.onremovestream !== null) {
+            this.onremovestream(event);
         }
     };
-    this.peerconnection.onaddstream = function(event) {
-        self._remoteStreamAdded(event.stream);
-    };
-    this.peerconnection.onremovestream = function(event) {
-        self._remoteStreamRemoved(event.stream);
-    };
+    this.peerconnection.onaddstream
+        = event => this._remoteStreamAdded(event.stream);
+    this.peerconnection.onremovestream
+        = event => this._remoteStreamRemoved(event.stream);
     this.onsignalingstatechange = null;
-    this.peerconnection.onsignalingstatechange = function(event) {
-        self.trace('onsignalingstatechange', self.signalingState);
-        if (self.onsignalingstatechange !== null) {
-            self.onsignalingstatechange(event);
+    this.peerconnection.onsignalingstatechange = event => {
+        this.trace('onsignalingstatechange', this.signalingState);
+        if (this.onsignalingstatechange !== null) {
+            this.onsignalingstatechange(event);
         }
     };
     this.oniceconnectionstatechange = null;
-    this.peerconnection.oniceconnectionstatechange = function(event) {
-        self.trace('oniceconnectionstatechange', self.iceConnectionState);
-        if (self.oniceconnectionstatechange !== null) {
-            self.oniceconnectionstatechange(event);
+    this.peerconnection.oniceconnectionstatechange = event => {
+        this.trace('oniceconnectionstatechange', this.iceConnectionState);
+        if (this.oniceconnectionstatechange !== null) {
+            this.oniceconnectionstatechange(event);
         }
     };
     this.onnegotiationneeded = null;
-    this.peerconnection.onnegotiationneeded = function(event) {
-        self.trace('onnegotiationneeded');
-        if (self.onnegotiationneeded !== null) {
-            self.onnegotiationneeded(event);
+    this.peerconnection.onnegotiationneeded = event => {
+        this.trace('onnegotiationneeded');
+        if (this.onnegotiationneeded !== null) {
+            this.onnegotiationneeded(event);
         }
     };
-    self.ondatachannel = null;
-    this.peerconnection.ondatachannel = function(event) {
-        self.trace('ondatachannel', event);
-        if (self.ondatachannel !== null) {
-            self.ondatachannel(event);
+    this.ondatachannel = null;
+    this.peerconnection.ondatachannel = event => {
+        this.trace('ondatachannel', event);
+        if (this.ondatachannel !== null) {
+            this.ondatachannel(event);
         }
     };
 
     // XXX: do all non-firefox browsers which we support also support this?
     if (!RTCBrowserType.isFirefox() && this.maxstats) {
         this.statsinterval = window.setInterval(() => {
-            self.peerconnection.getStats(stats => {
+            this.peerconnection.getStats(stats => {
                 const results = stats.result();
                 const now = new Date();
 
@@ -187,10 +190,10 @@ function TraceablePeerConnection(rtc, id, signalingLayer, iceConfig,
                     results[i].names().forEach(name => {
                         // eslint-disable-next-line no-shadow
                         const id = `${results[i].id}-${name}`;
-                        let s = self.stats[id];
+                        let s = this.stats[id];
 
                         if (!s) {
-                            self.stats[id] = s = {
+                            this.stats[id] = s = {
                                 startTime: now,
                                 endTime: now,
                                 values: [],
@@ -199,7 +202,7 @@ function TraceablePeerConnection(rtc, id, signalingLayer, iceConfig,
                         }
                         s.values.push(results[i].stat(name));
                         s.times.push(now.getTime());
-                        if (s.values.length > self.maxstats) {
+                        if (s.values.length > this.maxstats) {
                             s.values.shift();
                             s.times.shift();
                         }
@@ -207,10 +210,11 @@ function TraceablePeerConnection(rtc, id, signalingLayer, iceConfig,
                     });
                 }
             });
-
         }, 1000);
     }
 }
+
+/* eslint-enable max-params */
 
 /**
  * Returns a string representation of a SessionDescription object.

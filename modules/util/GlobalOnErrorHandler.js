@@ -18,11 +18,9 @@ const oldOnErrorHandler = window.onerror;
  * Custom error handler that calls the old global error handler and executes
  * all handlers that were previously added.
  */
-function JitsiGlobalErrorHandler(message, source, lineno, colno, error) {
-    handlers.forEach(handler => handler(message, source, lineno, colno, error));
-    if (oldOnErrorHandler) {
-        oldOnErrorHandler(message, source, lineno, colno, error);
-    }
+function JitsiGlobalErrorHandler(...args) {
+    handlers.forEach(handler => handler(...args));
+    oldOnErrorHandler && oldOnErrorHandler(...args);
 }
 
 // If an old handler exists, also fire its events.

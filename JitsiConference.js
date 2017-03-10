@@ -675,6 +675,8 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
 };
 
+/* eslint-disable max-params */
+
 /**
  * Adds loca WebRTC stream to the conference.
  * @param {MediaStream} stream new stream that will be added.
@@ -688,17 +690,25 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
  * called. The option is used for adding stream, before the Jingle call is
  * started. That is before the 'session-accept' is sent.
  */
-JitsiConference.prototype._addLocalStream
-    = function(stream, callback, errorCallback, ssrcInfo, dontModifySources) {
-        if (this.jingleSession) {
-            this.jingleSession.addStream(
-            stream, callback, errorCallback, ssrcInfo, dontModifySources);
-        } else {
+JitsiConference.prototype._addLocalStream = function(
+        stream,
+        callback,
+        errorCallback,
+        ssrcInfo,
+        dontModifySources) {
+    if (this.jingleSession) {
+        this.jingleSession.addStream(
+            stream,
+            callback,
+            errorCallback,
+            ssrcInfo,
+            dontModifySources);
+    } else {
         // We are done immediately
-            logger.warn('Add local MediaStream - no JingleSession started yet');
-            callback();
-        }
-    };
+        logger.warn('Add local MediaStream - no JingleSession started yet');
+        callback();
+    }
+};
 
 /**
  * Remove local WebRTC media stream.
@@ -708,18 +718,25 @@ JitsiConference.prototype._addLocalStream
  * @param {object} ssrcInfo object with information about the SSRCs associated
  * with the stream.
  */
-JitsiConference.prototype.removeLocalStream
-    = function(stream, callback, errorCallback, ssrcInfo) {
-        if (this.jingleSession) {
-            this.jingleSession.removeStream(
-            stream, callback, errorCallback, ssrcInfo);
-        } else {
-            // We are done immediately
-            logger.warn(
-                'Remove local MediaStream - no JingleSession started yet');
-            callback();
-        }
-    };
+JitsiConference.prototype.removeLocalStream = function(
+        stream,
+        callback,
+        errorCallback,
+        ssrcInfo) {
+    if (this.jingleSession) {
+        this.jingleSession.removeStream(
+            stream,
+            callback,
+            errorCallback,
+            ssrcInfo);
+    } else {
+        // We are done immediately
+        logger.warn('Remove local MediaStream - no JingleSession started yet');
+        callback();
+    }
+};
+
+/* eslint-enable max-params */
 
 /**
  * Generate ssrc info object for a stream with the following properties:
@@ -887,6 +904,8 @@ JitsiConference.prototype.muteParticipant = function(id) {
     this.room.muteParticipant(participant.getJid(), true);
 };
 
+/* eslint-disable max-params */
+
 /**
  * Notifies this JitsiConference that a new member has joined its chat room.
  *
@@ -898,26 +917,29 @@ JitsiConference.prototype.muteParticipant = function(id) {
  * @param isHidden indicates if this is a hidden participant (system
  * participant for example a recorder).
  */
-JitsiConference.prototype.onMemberJoined
-    = function(jid, nick, role, isHidden) {
-        const id = Strophe.getResourceFromJid(jid);
+JitsiConference.prototype.onMemberJoined = function(jid, nick, role, isHidden) {
+    const id = Strophe.getResourceFromJid(jid);
 
-        if (id === 'focus' || this.myUserId() === id) {
-            return;
-        }
-        const participant = new JitsiParticipant(jid, this, nick, isHidden);
+    if (id === 'focus' || this.myUserId() === id) {
+        return;
+    }
+    const participant = new JitsiParticipant(jid, this, nick, isHidden);
 
-        participant._role = role;
-        this.participants[id] = participant;
-        this.eventEmitter.emit(
-            JitsiConferenceEvents.USER_JOINED,
-            id,
-            participant);
-        this.xmpp.caps.getFeatures(jid).then(features => {
+    participant._role = role;
+    this.participants[id] = participant;
+    this.eventEmitter.emit(
+        JitsiConferenceEvents.USER_JOINED,
+        id,
+        participant);
+    this.xmpp.caps.getFeatures(jid)
+        .then(features => {
             participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
             this.updateDTMFSupport();
-        }, error => logger.error(error));
-    };
+        },
+        error => logger.error(error));
+};
+
+/* eslint-enable max-params */
 
 JitsiConference.prototype.onMemberLeft = function(jid) {
     const id = Strophe.getResourceFromJid(jid);

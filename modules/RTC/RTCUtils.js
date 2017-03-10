@@ -894,6 +894,8 @@ class RTCUtils extends Listenable {
         });
     }
 
+    /* eslint-disable max-params */
+
     /**
     * @param {string[]} um required user media types
     * @param {function} successCallback
@@ -941,6 +943,8 @@ class RTCUtils extends Listenable {
             }
         }
     }
+
+    /* eslint-enable max-params */
 
     /**
      * Creates the local MediaStreams.

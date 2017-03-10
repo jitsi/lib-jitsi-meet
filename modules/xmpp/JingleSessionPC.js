@@ -24,6 +24,8 @@ const IQ_TIMEOUT = 10000;
 
 export default class JingleSessionPC extends JingleSession {
 
+    /* eslint-disable max-params */
+
     /**
      * Creates new <tt>JingleSessionPC</tt>
      * @param {string} sid the Jingle Session ID - random string which
@@ -48,8 +50,14 @@ export default class JingleSessionPC extends JingleSession {
      *
      * @implements {SignalingLayer}
      */
-    constructor(sid, me, peerjid, connection,
-                mediaConstraints, iceConfig, options) {
+    constructor(
+            sid,
+            me,
+            peerjid,
+            connection,
+            mediaConstraints,
+            iceConfig,
+            options) {
         super(sid, me, peerjid, connection, mediaConstraints, iceConfig);
 
         this.lasticecandidate = false;
@@ -97,6 +105,8 @@ export default class JingleSessionPC extends JingleSession {
         this.modificationQueue
             = async.queue(this._processQueueTasks.bind(this), 1);
     }
+
+    /* eslint-enable max-params */
 
     doInitialize() {
         this.lasticecandidate = false;
@@ -623,6 +633,8 @@ export default class JingleSessionPC extends JingleSession {
             IQ_TIMEOUT);
     }
 
+    /* eslint-disable max-params */
+
     /**
      * @inheritDoc
      */
@@ -657,6 +669,8 @@ export default class JingleSessionPC extends JingleSession {
         // this should result in 'onTerminated' being called by strope.jingle.js
         this.connection.jingle.terminate(this.sid);
     }
+
+    /* eslint-enable max-params */
 
     onTerminated(reasonCondition, reasonText) {
         this.state = 'ended';
@@ -1156,6 +1170,8 @@ export default class JingleSessionPC extends JingleSession {
         return removeSsrcInfo;
     }
 
+    /* eslint-disable max-params */
+
     /**
      * Adds stream.
      * @param stream new stream that will be added.
@@ -1175,7 +1191,6 @@ export default class JingleSessionPC extends JingleSession {
      *  the 'doReplaceStream' task or the 'doAddStream' task (for example)
      */
     addStream(stream, callback, errorCallback, ssrcInfo, dontModifySources) {
-
         const workFunction = finishedCallback => {
             if (!this.peerconnection) {
                 finishedCallback(
@@ -1220,6 +1235,8 @@ export default class JingleSessionPC extends JingleSession {
                 error ? errorCallback(error) : callback();
             });
     }
+
+    /* eslint-enable max-params */
 
     /**
      * Generate ssrc info object for a stream with the following properties:
@@ -1300,6 +1317,8 @@ export default class JingleSessionPC extends JingleSession {
         }
     }
 
+    /* eslint-disable max-params */
+
     /**
      * Remove streams.
      * @param stream stream that will be removed.
@@ -1347,6 +1366,8 @@ export default class JingleSessionPC extends JingleSession {
                 error ? errorCallback(error) : callback();
             });
     }
+
+    /* eslint-enable max-params */
 
     /**
      * Figures out added/removed ssrcs and send update IQs.

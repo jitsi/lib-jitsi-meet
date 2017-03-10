@@ -256,11 +256,15 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
                 authIdentity);
         });
 
-    chatRoom.addListener(XMPPEvents.MESSAGE_RECEIVED,
+    chatRoom.addListener(
+        XMPPEvents.MESSAGE_RECEIVED,
+
+        // eslint-disable-next-line max-params
         (jid, displayName, txt, myJid, ts) => {
             const id = Strophe.getResourceFromJid(jid);
 
-            conference.eventEmitter.emit(JitsiConferenceEvents.MESSAGE_RECEIVED,
+            conference.eventEmitter.emit(
+                JitsiConferenceEvents.MESSAGE_RECEIVED,
                 id, txt, ts);
         });
 

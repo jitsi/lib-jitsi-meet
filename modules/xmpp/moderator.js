@@ -11,7 +11,6 @@ import Settings from '../settings/Settings';
 function createExpBackoffTimer(step) {
     let count = 1;
 
-
     return function(reset) {
         // Reset call
         if (reset) {
@@ -29,6 +28,8 @@ function createExpBackoffTimer(step) {
     };
 }
 
+/* eslint-disable max-params */
+
 function Moderator(roomName, xmpp, emitter, options) {
     this.roomName = roomName;
     this.xmppService = xmpp;
@@ -42,8 +43,9 @@ function Moderator(roomName, xmpp, emitter, options) {
     // Sip gateway can be enabled by configuring Jigasi host in config.js or
     // it will be enabled automatically if focus detects the component through
     // service discovery.
-    this.sipGatewayEnabled = this.options.connection.hosts
-        && this.options.connection.hosts.call_control !== undefined;
+    this.sipGatewayEnabled
+        = this.options.connection.hosts
+            && this.options.connection.hosts.call_control !== undefined;
 
     this.eventEmitter = emitter;
 
@@ -73,6 +75,8 @@ function Moderator(roomName, xmpp, emitter, options) {
         window.attachEvent('onmessage', listener);
     }
 }
+
+/* eslint-enable max-params */
 
 Moderator.prototype.isExternalAuthEnabled = function() {
     return this.externalAuthEnabled;

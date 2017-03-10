@@ -19,6 +19,8 @@ class RayoConnectionPlugin extends ConnectionPlugin {
         logger.info('Rayo IQ', iq);
     }
 
+    /* eslint-disable max-params */
+
     dial(to, from, roomName, roomPass, focusMucJid) {
         return new Promise((resolve, reject) => {
             if (!focusMucJid) {
@@ -48,21 +50,26 @@ class RayoConnectionPlugin extends ConnectionPlugin {
                 }).up();
             }
 
-            this.connection.sendIQ(req, result => {
-                logger.info('Dial result ', result);
+            this.connection.sendIQ(
+                req,
+                result => {
+                    logger.info('Dial result ', result);
 
-                // eslint-disable-next-line newline-per-chained-call
-                const resource = $(result).find('ref').attr('uri');
+                    // eslint-disable-next-line newline-per-chained-call
+                    const resource = $(result).find('ref').attr('uri');
 
-                this.callResource = resource.substr('xmpp:'.length);
-                logger.info(`Received call resource: ${this.callResource}`);
-                resolve();
-            }, error => {
-                logger.info('Dial error ', error);
-                reject(error);
-            });
+                    this.callResource = resource.substr('xmpp:'.length);
+                    logger.info(`Received call resource: ${this.callResource}`);
+                    resolve();
+                },
+                error => {
+                    logger.info('Dial error ', error);
+                    reject(error);
+                });
         });
     }
+
+    /* eslint-enable max-params */
 
     hangup() {
         return new Promise((resolve, reject) => {

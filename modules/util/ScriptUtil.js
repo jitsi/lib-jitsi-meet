@@ -1,5 +1,6 @@
 const currentExecutingScript = require('current-executing-script');
 
+/* eslint-disable max-params */
 
 /**
  * Implements utility functions which facilitate the dealing with scripts such
@@ -21,8 +22,13 @@ const ScriptUtil = {
      * @param loadCallback on load callback function
      * @param errorCallback callback to be called on error loading the script
      */
-    loadScript(src, async, prepend, relativeURL,
-                          loadCallback, errorCallback) {
+    loadScript(
+            src,
+            async,
+            prepend,
+            relativeURL,
+            loadCallback,
+            errorCallback) {
         const d = document;
         const tagName = 'script';
         const script = d.createElement(tagName);
@@ -62,5 +68,7 @@ const ScriptUtil = {
         }
     }
 };
+
+/* eslint-enable max-params */
 
 module.exports = ScriptUtil;

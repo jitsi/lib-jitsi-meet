@@ -149,6 +149,8 @@ function ConferenceStats() {
     this.transport = [];
 }
 
+/* eslint-disable max-params */
+
 /**
  * <tt>StatsCollector</tt> registers for stats updates of given
  * <tt>peerconnection</tt> in given <tt>interval</tt>. On each update particular
@@ -217,6 +219,8 @@ function StatsCollector(
     // Map of ssrcs to SsrcStats
     this.ssrc2stats = {};
 }
+
+/* eslint-enable max-params */
 
 module.exports = StatsCollector;
 
