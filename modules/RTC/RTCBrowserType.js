@@ -163,11 +163,7 @@ const RTCBrowserType = {
     },
 
     usesPlanB() {
-        return (
-            RTCBrowserType.isChrome()
-                || RTCBrowserType.isOpera()
-                || RTCBrowserType.isReactNative()
-                || RTCBrowserType.isTemasysPluginUsed());
+        return !RTCBrowserType.usesUnifiedPlan();
     },
 
     usesUnifiedPlan() {
