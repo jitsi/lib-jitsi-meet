@@ -104,7 +104,7 @@ SDP.prototype.containsSSRC = function(ssrc) {
 
 // remove iSAC and CN from SDP
 SDP.prototype.mangle = function() {
-    var i, j, mline, lines, rtpmap, newdesc;
+    var i, j, lines, mline, newdesc, rtpmap;
     for (i = 0; i < this.media.length; i++) {
         lines = this.media[i].split('\r\n');
         lines.pop(); // remove empty last element
@@ -153,7 +153,7 @@ SDP.prototype.removeMediaLines = function(mediaindex, prefix) {
 
 // add content's to a jingle element
 SDP.prototype.toJingle = function(elem, thecreator) {
-    var i, j, k, mline, ssrc, rtpmap, tmp, lines;
+    var i, j, k, lines, mline, rtpmap, ssrc, tmp;
     // new bundle plan
     lines = SDPUtil.find_lines(this.session, 'a=group:');
     if (lines.length) {
@@ -356,7 +356,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 };
 
 SDP.prototype.transportToJingle = function(mediaindex, elem) {
-    var tmp, sctpmap, sctpAttrs, fingerprints;
+    var fingerprints, sctpAttrs, sctpmap, tmp;
     var self = this;
     elem.c('transport');
 
@@ -495,8 +495,8 @@ SDP.prototype.fromJingle = function(jingle) {
 
 // translate a jingle content element into an an SDP media part
 SDP.prototype.jingle2media = function(content) {
-    var media = '',
-        desc = content.find('description'),
+    var desc = content.find('description'),
+        media = '',
         self = this,
         tmp;
     var sctp = content.find(

@@ -376,6 +376,7 @@ function pollForAvailableMediaDevices() {
 
 /**
  * Event handler for the 'devicechange' event.
+ *
  * @param {MediaDeviceInfo[]} devices - list of media devices.
  * @emits RTCEvents.DEVICE_LIST_CHANGED
  */
@@ -383,20 +384,14 @@ function onMediaDevicesListChanged(devicesReceived) {
     currentlyAvailableMediaDevices = devicesReceived.slice(0);
     logger.info('list of media devices has changed:', currentlyAvailableMediaDevices);
 
-    var videoInputDevices = currentlyAvailableMediaDevices.filter(function(d) {
-            return d.kind === 'videoinput';
-        }),
-        audioInputDevices = currentlyAvailableMediaDevices.filter(function(d) {
-            return d.kind === 'audioinput';
-        }),
-        videoInputDevicesWithEmptyLabels = videoInputDevices.filter(
-            function(d) {
-                return d.label === '';
-            }),
-        audioInputDevicesWithEmptyLabels = audioInputDevices.filter(
-            function(d) {
-                return d.label === '';
-            });
+    const videoInputDevices
+        = currentlyAvailableMediaDevices.filter(d => d.kind === 'videoinput');
+    const audioInputDevices
+        = currentlyAvailableMediaDevices.filter(d => d.kind === 'audioinput');
+    const videoInputDevicesWithEmptyLabels
+        = videoInputDevices.filter(d => d.label === '');
+    const audioInputDevicesWithEmptyLabels
+        = audioInputDevices.filter(d => d.label === '');
 
     if (videoInputDevices.length &&
         videoInputDevices.length === videoInputDevicesWithEmptyLabels.length) {
@@ -575,7 +570,7 @@ function obtainDevices(options) {
  * @returns {*[]} object that describes the new streams
  */
 function handleLocalStream(streams, resolution) {
-    var audioStream, videoStream, desktopStream, res = [];
+    var audioStream, desktopStream, res = [], videoStream;
 
     // XXX The function obtainAudioAndVideoPermissions has examined the type of
     // the browser, its capabilities, etc. and has taken the decision whether to

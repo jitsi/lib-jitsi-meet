@@ -158,6 +158,7 @@ module.exports = {
         'quote-props': 0,
         'semi': [ 'error', 'always' ],
         'semi-spacing': 2,
+        'sort-vars': 2,
         'space-before-blocks': 2,
         'space-before-function-paren': [ 'error', 'never' ],
         'space-in-parens': [ 'error', 'never' ],

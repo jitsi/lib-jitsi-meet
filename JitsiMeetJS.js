@@ -98,7 +98,6 @@ var LibJitsiMeet = {
     mediaDevices: JitsiMediaDevices,
     analytics: null,
     init(options) {
-        let logObject, attr;
         Statistics.init(options);
 
         this.analytics = Statistics.analytics;
@@ -114,8 +113,8 @@ var LibJitsiMeet = {
         // Log deployment-specific information, if available.
         if (window.jitsiRegionInfo
             && Object.keys(window.jitsiRegionInfo).length > 0) {
-            logObject = {};
-            for (attr in window.jitsiRegionInfo) {
+            const logObject = {};
+            for (const attr in window.jitsiRegionInfo) {
                 if (window.jitsiRegionInfo.hasOwnProperty(attr)) {
                     logObject[attr] = window.jitsiRegionInfo[attr];
                 }
@@ -126,7 +125,7 @@ var LibJitsiMeet = {
         }
 
         if(this.version) {
-            logObject = {
+            const logObject = {
                 id: "component_version",
                 component: "lib-jitsi-meet",
                 version: this.version
@@ -272,8 +271,8 @@ var LibJitsiMeet = {
                 promiseFulfilled = true;
 
                 if(error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
-                    var oldResolution = options.resolution || '360',
-                        newResolution = getLowerResolution(oldResolution);
+                    const oldResolution = options.resolution || '360';
+                    const newResolution = getLowerResolution(oldResolution);
 
                     if (newResolution !== null) {
                         options.resolution = newResolution;

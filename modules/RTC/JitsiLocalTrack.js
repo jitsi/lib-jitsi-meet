@@ -212,10 +212,10 @@ JitsiLocalTrack.prototype._fireNoDataFromSourceEvent = function() {
  *  enumerateDevices() call
  */
 JitsiLocalTrack.prototype._setRealDeviceIdFromDeviceList = function(devices) {
-    var track = this.getTrack(),
-        device = devices.find(function(d) {
-            return d.kind === track.kind + 'input' && d.label === track.label;
-        });
+    const track = this.getTrack();
+    const device
+        = devices.find(
+            d => d.kind === track.kind + 'input' && d.label === track.label);
 
     if (device) {
         this._realDeviceId = device.deviceId;

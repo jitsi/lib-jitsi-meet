@@ -11,7 +11,7 @@ var SDPUtil = {
     },
     iceparams(mediadesc, sessiondesc) {
         var data = null;
-        var ufrag, pwd;
+        var pwd, ufrag;
         if ((ufrag = SDPUtil.find_line(mediadesc, 'a=ice-ufrag:', sessiondesc))
                 && (pwd = SDPUtil.find_line(mediadesc, 'a=ice-pwd:', sessiondesc))) {
             data = {
@@ -37,8 +37,8 @@ var SDPUtil = {
         return line.substring(6);
     },
     parse_mline(line) {
-        var parts = line.substring(2).split(' '),
-            data = {};
+        var data = {},
+            parts = line.substring(2).split(' ');
         data.media = parts.shift();
         data.port = parts.shift();
         data.proto = parts.shift();
@@ -52,8 +52,8 @@ var SDPUtil = {
         return 'm=' + mline.media + ' ' + mline.port + ' ' + mline.proto + ' ' + mline.fmt.join(' ');
     },
     parse_rtpmap(line) {
-        var parts = line.substring(9).split(' '),
-            data = {};
+        var data = {},
+            parts = line.substring(9).split(' ');
         data.id = parts.shift();
         parts = parts[0].split('/');
         data.name = parts.shift();
@@ -82,8 +82,8 @@ var SDPUtil = {
         return line;
     },
     parse_crypto(line) {
-        var parts = line.substring(9).split(' '),
-            data = {};
+        var data = {},
+            parts = line.substring(9).split(' ');
         data.tag = parts.shift();
         data['crypto-suite'] = parts.shift();
         data['key-params'] = parts.shift();
@@ -93,17 +93,19 @@ var SDPUtil = {
         return data;
     },
     parse_fingerprint(line) { // RFC 4572
-        var parts = line.substring(14).split(' '),
-            data = {};
+        var data = {},
+            parts = line.substring(14).split(' ');
         data.hash = parts.shift();
         data.fingerprint = parts.shift();
         // TODO assert that fingerprint satisfies 2UHEX *(":" 2UHEX) ?
         return data;
     },
     parse_fmtp(line) {
-        var parts = line.split(' '),
-            i, key, value,
-            data = [];
+        var data = [],
+            i,
+            key,
+            parts = line.split(' '),
+            value;
         parts.shift();
         parts = parts.join(' ').split(';');
         for (i = 0; i < parts.length; i++) {
@@ -189,8 +191,8 @@ var SDPUtil = {
         // proprietary mapping of a=ssrc lines
         // TODO: see "Jingle RTP Source Description" by Juberti and P. Thatcher on google docs
         // and parse according to that
-        var lines = desc.split('\r\n'),
-            data = {};
+        var data = {},
+            lines = desc.split('\r\n');
         for (var i = 0; i < lines.length; i++) {
             if (lines[i].substring(0, 7) == 'a=ssrc:') {
                 var idx = lines[i].indexOf(' ');

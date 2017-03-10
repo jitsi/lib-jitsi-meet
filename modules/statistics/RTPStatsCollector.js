@@ -337,9 +337,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
         // example, if item has a stat property of type function, then it's very
         // likely that whoever defined it wanted you to call it in order to
         // retrieve the value associated with a specific key.
-        itemStatByKey = function(item, key) {
-            return item.stat(key); 
-        };
+        itemStatByKey = (item, key) => item.stat(key);
         break;
     case RTCBrowserType.RTC_BROWSER_REACT_NATIVE:
         // The implementation provided by react-native-webrtc follows the
@@ -359,9 +357,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
         };
         break;
     default:
-        itemStatByKey = function(item, key) {
-            return item[key]; 
-        };
+        itemStatByKey = (item, key) => item[key];
     }
 
     // Compose the 2 functions defined above to get a function which retrieves
@@ -409,7 +405,7 @@ StatsCollector.prototype.processStatsReport = function() {
         } catch(e) {/* not supported*/}
 
         if(now.type == 'googCandidatePair') {
-            var ip, type, localip, active;
+            var active, ip, localip, type;
             try {
                 ip = getStatValue(now, 'remoteAddress');
                 type = getStatValue(now, "transportType");
@@ -421,13 +417,10 @@ StatsCollector.prototype.processStatsReport = function() {
             }
             // Save the address unless it has been saved already.
             var conferenceStatsTransport = this.conferenceStats.transport;
-            if(!conferenceStatsTransport.some(function(t) {
-                return (
-                        t.ip == ip && t.type == type && t.localip == localip
-                );
-            })) {
-                conferenceStatsTransport.push(
-                    {ip, type, localip});
+            if(!conferenceStatsTransport.some(
+                    t =>
+                        t.ip == ip && t.type == type && t.localip == localip)) {
+                conferenceStatsTransport.push({ip, type, localip});
             }
             continue;
         }
