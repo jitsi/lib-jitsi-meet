@@ -1,5 +1,5 @@
-/*eslint-disable max-len*/
-/*jshint maxlen:false*/
+/* eslint-disable max-len*/
+/* jshint maxlen:false*/
 import RtxModifier from "./RtxModifier.js";
 import * as SampleSdpStrings from "./SampleSdpStrings.js";
 import * as transform from 'sdp-transform';
@@ -307,4 +307,4 @@ describe ("RtxModifier", function() {
     });
 });
 
-/*eslint-enable max-len*/
+/* eslint-enable max-len*/

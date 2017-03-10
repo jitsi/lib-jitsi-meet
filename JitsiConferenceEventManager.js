@@ -20,7 +20,7 @@ const logger = getLogger(__filename);
 function JitsiConferenceEventManager(conference) {
     this.conference = conference;
 
-    //Listeners related to the conference only
+    // Listeners related to the conference only
     conference.on(JitsiConferenceEvents.TRACK_MUTE_CHANGED,
         function (track) {
             if(!track.isLocal() || !conference.statistics) {

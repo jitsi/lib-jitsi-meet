@@ -326,7 +326,7 @@ var SDPUtil = {
             protocol = 'tcp';
         }
 
-        line += protocol; //.toUpperCase(); // chrome M23 doesn't like this
+        line += protocol; // .toUpperCase(); // chrome M23 doesn't like this
         line += ' ';
         line += cand.getAttribute('priority');
         line += ' ';

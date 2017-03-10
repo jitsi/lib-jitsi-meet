@@ -7,7 +7,7 @@ var RECORDING_STATE = "recording";
 var TRANSCRIBING_STATE = "transcribing";
 var FINISHED_STATE = "finished";
 
-//the amount of characters each line in the transcription will have
+// the amount of characters each line in the transcription will have
 var MAXIMUM_SENTENCE_LENGTH = 80;
 
 /**
@@ -18,27 +18,27 @@ var MAXIMUM_SENTENCE_LENGTH = 80;
  * @param {AudioRecorder} audioRecorder An audioRecorder recording a conference
  */
 var transcriber = function() {
-    //the object which can record all audio in the conference
+    // the object which can record all audio in the conference
     this.audioRecorder = new AudioRecorder();
-    //this object can send the recorder audio to a speech-to-text service
+    // this object can send the recorder audio to a speech-to-text service
     this.transcriptionService = new SphinxService();
-    //holds a counter to keep track if merging can start
+    // holds a counter to keep track if merging can start
     this.counter = null;
-    //holds the date when transcription started which makes it possible
-    //to calculate the offset between recordings
+    // holds the date when transcription started which makes it possible
+    // to calculate the offset between recordings
     this.startTime = null;
-    //will hold the transcription once it is completed
+    // will hold the transcription once it is completed
     this.transcription = null;
-    //this will be a method which will be called once the transcription is done
-    //with the transcription as parameter
+    // this will be a method which will be called once the transcription is done
+    // with the transcription as parameter
     this.callback = null;
-    //stores all the retrieved speech-to-text results to merge together
-    //this value will store an Array<Word> object
+    // stores all the retrieved speech-to-text results to merge together
+    // this value will store an Array<Word> object
     this.results = [];
     // Stores the current state of the transcription process
     this.state = BEFORE_STATE;
-    //Used in the updateTranscription method to add a new line when the
-    //sentence becomes to long
+    // Used in the updateTranscription method to add a new line when the
+    // sentence becomes to long
     this.lineLength = 0;
 };
 
@@ -70,10 +70,10 @@ transcriber.prototype.stop = function stop(callback) {
             "\"" + RECORDING_STATE + "\" state. It's currently in the " +
             "\"" + this.state + "\" state");
     }
-    //stop the recording
+    // stop the recording
     console.log("stopping recording and sending audio files");
     this.audioRecorder.stop();
-    //and send all recorded audio the the transcription service
+    // and send all recorded audio the the transcription service
     var t = this;
 
     var callBack = blobCallBack.bind(this);
@@ -81,9 +81,9 @@ transcriber.prototype.stop = function stop(callback) {
         t.transcriptionService.send(recordingResult, callBack);
         t.counter++;
     });
-    //set the state to "transcribing" so that maybeMerge() functions correctly
+    // set the state to "transcribing" so that maybeMerge() functions correctly
     this.state = TRANSCRIBING_STATE;
-    //and store the callback for later
+    // and store the callback for later
     this.callback = callback;
 };
 
@@ -100,14 +100,14 @@ transcriber.prototype.stop = function stop(callback) {
 var blobCallBack = function(answer){
     console.log("retrieved an answer from the transcription service. The" +
         " answer has an array of length: " + answer.wordArray.length);
-    //first add the offset between the start of the transcription and
-    //the start of the recording to all start and end times
+    // first add the offset between the start of the transcription and
+    // the start of the recording to all start and end times
     if(answer.wordArray.length > 0) {
         var offset = answer.startTime.getUTCMilliseconds() -
             this.startTime.getUTCMilliseconds();
-        //transcriber time will always be earlier
+        // transcriber time will always be earlier
         if (offset < 0) {
-            offset = 0; //presume 0 if it somehow not earlier
+            offset = 0; // presume 0 if it somehow not earlier
         }
 
         var array = "[";
@@ -118,16 +118,16 @@ var blobCallBack = function(answer){
         });
         array += "]";
         console.log(array);
-        //give a name value to the Array object so that the merging can access
-        //the name value without having to use the whole recordingResult object
-        //in the algorithm
+        // give a name value to the Array object so that the merging can access
+        // the name value without having to use the whole recordingResult object
+        // in the algorithm
         answer.wordArray.name = answer.name;
     }
-    //then store the array and decrease the counter
+    // then store the array and decrease the counter
     this.results.push(answer.wordArray);
     this.counter--;
     console.log("current counter: " + this.counter);
-    //and check if all results have been received.
+    // and check if all results have been received.
     this.maybeMerge();
 };
 
@@ -137,8 +137,8 @@ var blobCallBack = function(answer){
  */
 transcriber.prototype.maybeMerge = function(){
     if(this.state === TRANSCRIBING_STATE && this.counter === 0){
-        //make sure to include the events in the result arrays before
-        //merging starts
+        // make sure to include the events in the result arrays before
+        // merging starts
         this.merge();
     }
 };
@@ -151,47 +151,47 @@ transcriber.prototype.merge = function() {
     console.log("starting merge process!\n The length of the array: " +
         this.results.length);
     this.transcription = "";
-    //the merging algorithm will look over all Word objects who are at pos 0 in
-    //every array. It will then select the one closest in time to the
-    //previously placed word, while removing the selected word from its array
-    //note: words can be skipped the skipped word's begin and end time somehow
-    //end up between the closest word start and end time
+    // the merging algorithm will look over all Word objects who are at pos 0 in
+    // every array. It will then select the one closest in time to the
+    // previously placed word, while removing the selected word from its array
+    // note: words can be skipped the skipped word's begin and end time somehow
+    // end up between the closest word start and end time
     var arrays = this.results;
-    //arrays of Word objects
-    var potentialWords = []; //array of the first Word objects
-    //check if any arrays are already empty and remove them
+    // arrays of Word objects
+    var potentialWords = []; // array of the first Word objects
+    // check if any arrays are already empty and remove them
     hasPopulatedArrays(arrays);
 
-    //populate all the potential Words for a first time
+    // populate all the potential Words for a first time
     arrays.forEach(function (array){
         pushWordToSortedArray(potentialWords, array);
     });
 
-    //keep adding words to transcription until all arrays are exhausted
+    // keep adding words to transcription until all arrays are exhausted
     var lowestWordArray;
     var wordToAdd;
     var foundSmaller;
     while(hasPopulatedArrays(arrays)){
-        //first select the lowest array;
+        // first select the lowest array;
         lowestWordArray = arrays[0];
         arrays.forEach(function(wordArray){
             if(wordArray[0].begin < lowestWordArray[0].begin){
                 lowestWordArray = wordArray;
             }
         });
-        //put the word in the transcription
+        // put the word in the transcription
         wordToAdd = lowestWordArray.shift();
         this.updateTranscription(wordToAdd,lowestWordArray.name);
 
-        //keep going until a word in another array has a smaller time
-        //or the array is empty
+        // keep going until a word in another array has a smaller time
+        // or the array is empty
         while(!foundSmaller && lowestWordArray.length > 0){
             arrays.forEach(function(wordArray){
                 if(wordArray[0].begin < lowestWordArray[0].begin){
                     foundSmaller = true;
                 }
             });
-            //add next word if no smaller time has been found
+            // add next word if no smaller time has been found
             if(!foundSmaller){
                 wordToAdd = lowestWordArray.shift();
                 this.updateTranscription(wordToAdd, null);
@@ -200,7 +200,7 @@ transcriber.prototype.merge = function() {
 
     }
 
-    //set the state to finished and do the necessary left-over tasks
+    // set the state to finished and do the necessary left-over tasks
     this.state = FINISHED_STATE;
     if(this.callback){
         this.callback(this.transcription);
@@ -216,14 +216,14 @@ transcriber.prototype.merge = function() {
 transcriber.prototype.updateTranscription = function(word, name){
     if(name !== undefined && name !== null){
         this.transcription += "\n" + name + ":";
-        this.lineLength = name.length + 1; //+1 for the semi-colon
+        this.lineLength = name.length + 1; // +1 for the semi-colon
     }
     if(this.lineLength + word.word.length > MAXIMUM_SENTENCE_LENGTH){
         this.transcription += "\n    ";
-        this.lineLength = 4; //because of the 4 spaces after the new line
+        this.lineLength = 4; // because of the 4 spaces after the new line
     }
     this.transcription += " " + word.word;
-    this.lineLength += word.word.length + 1; //+1 for the space
+    this.lineLength += word.word.length + 1; // +1 for the space
 };
 
 /**
@@ -267,7 +267,7 @@ var pushWordToSortedArray = function(array, word){
                 return;
             }
         }
-        array.push(word); //fail safe
+        array.push(word); // fail safe
     }
 };
 

@@ -276,10 +276,10 @@ StatsCollector.prototype.start = function (startAudioLevelStats) {
                         var results = null;
                         if (!report || !report.result ||
                             typeof report.result != 'function') {
-                            //firefox
+                            // firefox
                             results = report;
                         } else {
-                            //chrome
+                            // chrome
                             results = report.result();
                         }
                         self.currentStatsReport = results;
@@ -406,7 +406,7 @@ StatsCollector.prototype.processStatsReport = function () {
                     "upload": Math.round(sendBandwidth / 1000)
                 };
             }
-        } catch(e){/*not supported*/}
+        } catch(e){/* not supported*/}
 
         if(now.type == 'googCandidatePair') {
             var ip, type, localip, active;
@@ -415,7 +415,7 @@ StatsCollector.prototype.processStatsReport = function () {
                 type = getStatValue(now, "transportType");
                 localip = getStatValue(now, "localAddress");
                 active = getStatValue(now, "activeConnection");
-            } catch(e){/*not supported*/}
+            } catch(e){/* not supported*/}
             if(!ip || !type || !localip || active != "true") {
                 continue;
             }
@@ -536,7 +536,7 @@ StatsCollector.prototype.processStatsReport = function () {
                 resolution.height = height;
                 resolution.width = width;
             }
-        } catch(e){/*not supported*/}
+        } catch(e){/* not supported*/}
 
         if (resolution.height && resolution.width) {
             ssrcStats.setResolution(resolution);
@@ -638,7 +638,7 @@ StatsCollector.prototype.processAudioLevelReport = function () {
             var audioLevel
                 = getStatValue(now, 'audioInputLevel')
                     || getStatValue(now, 'audioOutputLevel');
-        } catch(e) {/*not supported*/
+        } catch(e) {/* not supported*/
             logger.warn("Audio Levels are not available in the statistics.");
             clearInterval(this.audioLevelsIntervalId);
             return;

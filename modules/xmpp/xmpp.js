@@ -72,14 +72,14 @@ export default class XMPP extends Listenable {
 
         // this is dealt with by SDP O/A so we don't need to announce this
         // XEP-0293
-        //this.caps.addFeature('urn:xmpp:jingle:apps:rtp:rtcp-fb:0');
+        // this.caps.addFeature('urn:xmpp:jingle:apps:rtp:rtcp-fb:0');
         // XEP-0294
-        //this.caps.addFeature('urn:xmpp:jingle:apps:rtp:rtp-hdrext:0');
+        // this.caps.addFeature('urn:xmpp:jingle:apps:rtp:rtp-hdrext:0');
 
         this.caps.addFeature('urn:ietf:rfc:5761'); // rtcp-mux
         this.caps.addFeature('urn:ietf:rfc:5888'); // a=group, e.g. bundle
 
-        //this.caps.addFeature('urn:ietf:rfc:5576'); // a=ssrc
+        // this.caps.addFeature('urn:ietf:rfc:5576'); // a=ssrc
 
         // Enable Lipsync ?
         if (RTCBrowserType.isChrome() && false !== this.options.enableLipSync) {

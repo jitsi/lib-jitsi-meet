@@ -54,7 +54,7 @@ export default class RTC extends Listenable {
         this.peerConnectionIdCounter = 1;
 
         this.localTracks = [];
-        //FIXME: We should support multiple streams per jid.
+        // FIXME: We should support multiple streams per jid.
         this.remoteTracks = {};
         this.options = options;
         // A flag whether we had received that the data channel had opened

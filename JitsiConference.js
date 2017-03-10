@@ -414,12 +414,12 @@ JitsiConference.prototype.setSubject = function (subject) {
 JitsiConference.prototype.getTranscriber = function(){
     if (this.transcriber === undefined){
         this.transcriber = new Transcriber();
-        //add all existing local audio tracks to the transcriber
+        // add all existing local audio tracks to the transcriber
         const localAudioTracks = this.getLocalTracks(MediaType.AUDIO);
         for (const localAudio of localAudioTracks) {
             this.transcriber.addTrack(localAudio);
         }
-        //and all remote audio tracks
+        // and all remote audio tracks
         const remoteAudioTracks = this.rtc.getRemoteTracks(MediaType.AUDIO);
         for (const remoteTrack of remoteAudioTracks){
             this.transcriber.addTrack(remoteTrack);

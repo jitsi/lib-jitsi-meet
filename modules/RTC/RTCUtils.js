@@ -186,7 +186,7 @@ function getConstraints(um, options) {
             // for some cameras it might be necessary to request 30fps
             // so they choose 30fps mjpg over 10fps yuy2
             if (options.minFps || options.fps) {
-                options.minFps = options.minFps || options.fps; //Fall back to options.fps for backwards compatibility
+                options.minFps = options.minFps || options.fps; // Fall back to options.fps for backwards compatibility
                 constraints.video.mandatory.minFrameRate = options.minFps;
             }
             if (options.maxFps) {
@@ -285,7 +285,7 @@ function getConstraints(um, options) {
 
     if (options.bandwidth) {
         if (!constraints.video) {
-            //same behaviour as true
+            // same behaviour as true
             constraints.video = {mandatory: {}, optional: []};
         }
         constraints.video.optional.push({bandwidth: options.bandwidth});
@@ -297,7 +297,7 @@ function getConstraints(um, options) {
     if(RTCBrowserType.isFirefox() && options.firefox_fake_device) {
         // seems to be fixed now, removing this experimental fix, as having
         // multiple audio tracks brake the tests
-        //constraints.audio = true;
+        // constraints.audio = true;
         constraints.fake = true;
     }
 
@@ -728,7 +728,7 @@ function defaultSetVideoSrc(element, stream) {
     element.src = src || '';
 }
 
-//Options parameter is to pass config options. Currently uses only "useIPv6".
+// Options parameter is to pass config options. Currently uses only "useIPv6".
 class RTCUtils extends Listenable {
     constructor() {
         super(eventEmitter);

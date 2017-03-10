@@ -1,5 +1,5 @@
-/*eslint-disable max-len*/
-/*jshint maxlen:false*/
+/* eslint-disable max-len*/
+/* jshint maxlen:false*/
 import * as transform from 'sdp-transform';
 
 // A generic sdp session block
@@ -199,4 +199,4 @@ export const plainVideoSdp = transform.parse(plainVideoSdpStr);
 export const rtxVideoSdp = transform.parse(rtxVideoSdpStr);
 export const multiCodecVideoSdp = transform.parse(multiCodecVideoSdpStr);
 
-/*eslint-enable max-len*/
+/* eslint-enable max-len*/

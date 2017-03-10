@@ -20,7 +20,7 @@ function DataChannels(peerConnection, emitter) {
     // and peer as single channel can be used for sending and receiving data.
     // So either channel opened by the bridge or the one opened here is enough
     // for communication with the bridge.
-    /*var dataChannelOptions =
+    /* var dataChannelOptions =
      {
      reliable: true
      };
@@ -53,9 +53,9 @@ DataChannels.prototype.onDataChannel = function (event) {
 
         // Code sample for sending string and/or binary data
         // Sends String message to the bridge
-        //dataChannel.send("Hello bridge!");
+        // dataChannel.send("Hello bridge!");
         // Sends 12 bytes binary message to the bridge
-        //dataChannel.send(new ArrayBuffer(12));
+        // dataChannel.send(new ArrayBuffer(12));
 
         self.eventEmitter.emit(RTCEvents.DATA_CHANNEL_OPEN);
     };
@@ -64,7 +64,7 @@ DataChannels.prototype.onDataChannel = function (event) {
         // FIXME: this one seems to be generated a bit too often right now
         // so we are temporarily commenting it before we have more clarity
         // on which of the errors we absolutely need to report
-        //GlobalOnErrorHandler.callErrorHandler(
+        // GlobalOnErrorHandler.callErrorHandler(
         //        new Error("Data Channel Error:" + error));
         logger.error("Data Channel Error:", error, dataChannel);
     };

@@ -208,7 +208,7 @@ Statistics.prototype.stopRemoteStats = function () {
     this.rtpStats = null;
 };
 
-//CALSTATS METHODS
+// CALSTATS METHODS
 
 /**
  * Initializes the callstats.io API.

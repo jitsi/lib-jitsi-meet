@@ -371,9 +371,9 @@ export default class ConnectionQuality {
             // send the statistics again after a few seconds, and the error is
             // already logged elsewhere. So just ignore it.
 
-            //let errorMsg = "Failed to broadcast local stats";
-            //logger.error(errorMsg, e);
-            //GlobalOnErrorHandler.callErrorHandler(
+            // let errorMsg = "Failed to broadcast local stats";
+            // logger.error(errorMsg, e);
+            // GlobalOnErrorHandler.callErrorHandler(
             //    new Error(errorMsg + ": " + e));
         }
     }

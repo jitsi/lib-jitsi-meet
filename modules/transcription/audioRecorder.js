@@ -21,10 +21,10 @@ var TrackRecorder = function(track){
     // The array of data chunks recorded from the stream
     // acts as a buffer until the data is stored on disk
     this.data = null;
-    //the name of the person of the JitsiTrack. This can be undefined and/or
-    //not unique
+    // the name of the person of the JitsiTrack. This can be undefined and/or
+    // not unique
     this.name = null;
-    //the time of the start of the recording
+    // the time of the start of the recording
     this.startTime = null;
 };
 
@@ -71,8 +71,8 @@ function instantiateTrackRecorder(track) {
     // Create the MediaRecorder
     trackRecorder.recorder = new MediaRecorder(stream,
         {mimeType: audioRecorder.fileType});
-    //array for holding the recorder data. Resets it when
-    //audio already has been recorder once
+    // array for holding the recorder data. Resets it when
+    // audio already has been recorder once
     trackRecorder.data = [];
     // function handling a dataEvent, e.g the stream gets new data
     trackRecorder.recorder.ondataavailable = function (dataEvent) {
@@ -110,13 +110,13 @@ var audioRecorder = function(jitsiConference){
     // holds the JitsiTrack, MediaRecorder and recorder data
     this.recorders = [];
 
-    //get which file type is supported by the current browser
+    // get which file type is supported by the current browser
     this.fileType = determineCorrectFileType();
 
-    //boolean flag for active recording
+    // boolean flag for active recording
     this.isRecording = false;
 
-    //the jitsiconference the object is recording
+    // the jitsiconference the object is recording
     this.jitsiConference = jitsiConference;
 };
 
@@ -132,13 +132,14 @@ audioRecorder.determineCorrectFileType = determineCorrectFileType;
  */
 audioRecorder.prototype.addTrack = function (track) {
     if(track.isAudioTrack()) {
-        //create the track recorder
+        // create the track recorder
         var trackRecorder = instantiateTrackRecorder(track);
-        //push it to the local array of all recorders
+        // push it to the local array of all recorders
         this.recorders.push(trackRecorder);
-        //update the name of the trackRecorders
+        // update the name of the trackRecorders
         this.updateNames();
-        //if we're already recording, immediately start recording this new track
+        // If we're already recording, immediately start recording this new
+        // track.
         if(this.isRecording){
             startRecorder(trackRecorder);
         }
@@ -159,7 +160,7 @@ audioRecorder.prototype.removeTrack = function(track){
     if(track.isVideoTrack()){
         return;
     }
-    
+
     var array = this.recorders;
     var i;
     for(i = 0; i < array.length; i++) {
@@ -168,13 +169,13 @@ audioRecorder.prototype.removeTrack = function(track){
             if(this.isRecording){
                 stopRecorder(recorderToRemove);
             } else {
-                //remove the TrackRecorder from the array
+                // remove the TrackRecorder from the array
                 array.splice(i, 1);
             }
         }
     }
 
-    //make sure the names are up to date
+    // make sure the names are up to date
     this.updateNames();
 };
 
@@ -209,11 +210,11 @@ audioRecorder.prototype.start = function () {
     // set boolean isRecording flag to true so if new participants join the
     // conference, that track can instantly start recording as well
     this.isRecording = true;
-    //start all the mediaRecorders
+    // start all the mediaRecorders
     this.recorders.forEach(function(trackRecorder){
         startRecorder(trackRecorder);
     });
-    //log that recording has started
+    // log that recording has started
     console.log("Started the recording of the audio. There are currently " +
         this.recorders.length + " recorders active.");
 };
@@ -222,9 +223,9 @@ audioRecorder.prototype.start = function () {
  * Stops the audio recording of every local and remote track
  */
 audioRecorder.prototype.stop = function() {
-    //set the boolean flag to false
+    // set the boolean flag to false
     this.isRecording = false;
-    //stop all recorders
+    // stop all recorders
     this.recorders.forEach(function(trackRecorder){
         stopRecorder(trackRecorder);
     });
@@ -259,7 +260,7 @@ audioRecorder.prototype.getRecordingResults = function () {
         throw new Error("cannot get blobs because the AudioRecorder is still" +
             "recording!");
     }
-    //make sure the names are up to date before sending them off
+    // make sure the names are up to date before sending them off
     this.updateNames();
 
     var array = [];

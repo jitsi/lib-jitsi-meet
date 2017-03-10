@@ -106,7 +106,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
                     // Not really sure what's the right thing to do in that
                     // situation, but just closing the connection makes no
                     // sense.
-                    //self.connection.disconnect();
+                    // self.connection.disconnect();
                 } else {
                     logger.warn(errmsg, error);
                 }

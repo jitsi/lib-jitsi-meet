@@ -310,7 +310,7 @@ export default class JingleSessionPC extends JingleSession {
         }
         // might merge last-candidate notification into this, but it is called
         // a lot later. See webrtc issue #2340
-        //logger.log('was this the last candidate', this.lasticecandidate);
+        // logger.log('was this the last candidate', this.lasticecandidate);
         this.connection.sendIQ(
             cand, null, this.newJingleErrorHandler(cand, function (error) {
                 GlobalOnErrorHandler.callErrorHandler(
@@ -620,8 +620,8 @@ export default class JingleSessionPC extends JingleSession {
         this.state = 'ended';
 
         // Do something with reason and reasonCondition when we start to care
-        //this.reasonCondition = reasonCondition;
-        //this.reasonText = reasonText;
+        // this.reasonCondition = reasonCondition;
+        // this.reasonText = reasonText;
         logger.info("Session terminated", this, reasonCondition, reasonText);
 
         this.close();
@@ -867,7 +867,7 @@ export default class JingleSessionPC extends JingleSession {
             sdp: remoteSdp.raw
         });
 
-        //TODO(brian): in the code below there are 2 chunks of code that relate
+        // TODO(brian): in the code below there are 2 chunks of code that relate
         //  to observing changes in local and remove ufrags.  since they
         //  just need to read and observe the SDPs, we should create the
         //  notion of an SDP observer in TraceablePeerConnection that
@@ -1137,7 +1137,7 @@ export default class JingleSessionPC extends JingleSession {
      * @param stream: webrtc media stream
      */
     _handleFirefoxRemoveStream(stream) {
-        if (!stream) { //There is nothing to be changed
+        if (!stream) { // There is nothing to be changed
             return;
         }
         let sender = null;
@@ -1548,7 +1548,7 @@ export default class JingleSessionPC extends JingleSession {
                     const sourceNode
                         = desc.find(">source[ssrc=\"" + ssrc + "\"]");
                     if (!sourceNode || !sourceNode.length) {
-                        //Maybe we have to include cname, msid, etc here?
+                        // Maybe we have to include cname, msid, etc here?
                         desc.append(
                             "<source " +
                             "xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\" " +

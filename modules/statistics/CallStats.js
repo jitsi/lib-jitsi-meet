@@ -159,7 +159,7 @@ var CallStats = _try_catch(function(jingleSession, options) {
         this.callStatsSecret = options.callStatsSecret;
 
         CallStats.initializeInProgress = true;
-        //userID is generated or given by the origin server
+        // userID is generated or given by the origin server
         callStats.initialize(this.callStatsID,
             this.callStatsSecret,
             this.userID,

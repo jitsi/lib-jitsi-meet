@@ -8,7 +8,7 @@ var audioRecorder = require("./../audioRecorder");
  * Implements a TranscriptionService for a Sphinx4 http server
  */
 var SphinxService = function() {
-    //set the correct url
+    // set the correct url
     this.url = getURL();
 };
 
@@ -41,7 +41,7 @@ SphinxService.prototype.sendRequest = function(audioFileBlob, callback) {
             throw new Error("unable to accept response from sphinx server." +
                 "status: " + request.status);
         }
-        //if not ready no point to throw an error
+        // if not ready no point to throw an error
     };
     request.open("POST", this.url);
     request.setRequestHeader("Content-Type",
@@ -58,8 +58,8 @@ SphinxService.prototype.sendRequest = function(audioFileBlob, callback) {
  */
 SphinxService.prototype.formatResponse = function(response) {
     var result = JSON.parse(response).objects;
-    //make sure to delete the session id object, which is always
-    //the first value in the JSON array
+    // make sure to delete the session id object, which is always
+    // the first value in the JSON array
     result.shift();
     var array = [];
     result.forEach(function(word){
@@ -77,11 +77,11 @@ SphinxService.prototype.formatResponse = function(response) {
  */
 SphinxService.prototype.verify = function(response){
     console.log("response from server:" + response.toString());
-    //test if server responded with a string object
+    // test if server responded with a string object
     if(typeof response !== "string"){
         return false;
     }
-    //test if the string can be parsed into valid JSON
+    // test if the string can be parsed into valid JSON
     var json;
     try{
         json = JSON.parse(response);
@@ -89,16 +89,16 @@ SphinxService.prototype.verify = function(response){
         console.log(error);
         return false;
     }
-    //check if the JSON has a "objects" value
+    // check if the JSON has a "objects" value
     if(json.objects === undefined){
         return false;
     }
-    //get the "objects" value and check for a session ID
+    // get the "objects" value and check for a session ID
     var array = json.objects;
     if(!(array[0] && array[0]["session-id"])){
         return false;
     }
-    //everything seems to be in order
+    // everything seems to be in order
     return true;
 };
 

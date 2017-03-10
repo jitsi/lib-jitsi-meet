@@ -628,7 +628,7 @@ export default class ChatRoom extends Listenable {
     }
 
     lockRoom (key, onSuccess, onError, onNotSupported) {
-        //http://xmpp.org/extensions/xep-0045.html#roomconfig
+        // http://xmpp.org/extensions/xep-0045.html#roomconfig
         var ob = this;
         this.connection.sendIQ($iq({to: this.roomjid, type: 'get'}).c('query', {xmlns: 'http://jabber.org/protocol/muc#owner'}),
             function (res) {

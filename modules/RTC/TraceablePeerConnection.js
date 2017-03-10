@@ -89,7 +89,7 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
 
     // override as desired
     this.trace = function (what, info) {
-        /*logger.warn('WTRACE', what, info);
+        /* logger.warn('WTRACE', what, info);
         if (info && RTCBrowserType.isIExplorer()) {
             if (info.length > 1024) {
                 logger.warn('WTRACE', what, info.substr(1024));
@@ -890,7 +890,7 @@ TraceablePeerConnection.prototype.createAnswer
 TraceablePeerConnection.prototype.addIceCandidate
         // eslint-disable-next-line no-unused-vars
         = function (candidate, successCallback, failureCallback) {
-    //var self = this;
+    // var self = this;
             this.trace('addIceCandidate', JSON.stringify(candidate, null, ' '));
             this.peerconnection.addIceCandidate(candidate);
     /* maybe later

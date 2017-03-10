@@ -41,7 +41,7 @@ function Moderator(roomName, xmpp, emitter, options) {
 
     this.connection = this.xmppService.connection;
     this.focusUserJid;
-    //FIXME:
+    // FIXME:
     // Message listener that talks to POPUP window
     function listener(event) {
         if (event.data && event.data.sessionId) {
@@ -329,7 +329,8 @@ Moderator.prototype._allocateConferenceFocusError = function (error, callback) {
         logger.warn("Unauthorized to start the conference", error);
         var toDomain = Strophe.getDomainFromJid(error.getAttribute('to'));
         if (toDomain !== this.options.connection.hosts.anonymousdomain) {
-            //FIXME "is external" should come either from the focus or config.js
+            // FIXME "is external" should come either from the focus or
+            // config.js
             this.externalAuthEnabled = true;
         }
         this.eventEmitter.emit(XMPPEvents.AUTHENTICATION_REQUIRED);
@@ -342,7 +343,7 @@ Moderator.prototype._allocateConferenceFocusError = function (error, callback) {
     // Show message
     var focusComponent = this.getFocusComponent();
     var retrySec = waitMs / 1000;
-    //FIXME: message is duplicated ? Do not show in case of session invalid
+    // FIXME: message is duplicated ? Do not show in case of session invalid
     // which means just a retry
     if (!invalidSession) {
         this.eventEmitter.emit(

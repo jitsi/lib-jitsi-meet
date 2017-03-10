@@ -303,7 +303,7 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
             this.dontFireRemoveEvent = true;
             promise = new Promise( (resolve, reject) => {
                 this._removeStreamFromConferenceAsMute(() => {
-                    //FIXME: Maybe here we should set the SRC for the containers
+                    // FIXME: Maybe here we should set the SRC for the containers
                     // to something
                     this._stopMediaStream();
                     this._setStream(null);
@@ -563,7 +563,7 @@ JitsiLocalTrack.prototype._setByteSent = function (bytesSent) {
     if(this._testByteSent && "connected" === iceConnectionState) {
         setTimeout(function () {
             if(this._bytesSent <= 0){
-                //we are not receiving anything from the microphone
+                // we are not receiving anything from the microphone
                 this._fireNoDataFromSourceEvent();
             }
         }.bind(this), 3000);
