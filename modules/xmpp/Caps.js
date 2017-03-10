@@ -177,13 +177,16 @@ export default class Caps extends Listenable {
         const features = this.disco._features.sort();
         this.version = b64_sha1(
             identities.reduce(
-                (accumulatedValue, identity) => {
-                    return IDENTITY_PROPERTIES.reduce((tmp, key, idx) => {
-                        return tmp + (idx === 0 ? "" : "/") + identity[key];
-                    }, "") + "<";
-                }, ""
-            ) + features.reduce((tmp, feature) => tmp + feature + "<", "")
-        );
+                    (accumulatedValue, identity) =>
+                        IDENTITY_PROPERTIES.reduce(
+                                (tmp, key, idx) =>
+                                    tmp
+                                        + (idx === 0 ? "" : "/")
+                                        + identity[key],
+                                "")
+                            + "<",
+                    "")
+                + features.reduce((tmp, feature) => tmp + feature + "<", ""));
         this._notifyVersionChanged();
     }
 

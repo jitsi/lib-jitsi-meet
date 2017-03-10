@@ -162,6 +162,11 @@ module.exports = {
         'wrap-regex': 0,
 
         // ES6 group rules
+        'arrow-body-style': [
+            'error',
+            'as-needed',
+            { requireReturnForObjectLiteral: true }
+        ],
         'arrow-parens': [ 'error', 'as-needed' ],
         'arrow-spacing': 2,
         'constructor-super': 2,

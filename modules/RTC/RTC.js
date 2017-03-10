@@ -290,9 +290,7 @@ export default class RTC extends Listenable {
         let tracks = this.localTracks.slice();
         if (mediaType !== undefined) {
             tracks = tracks.filter(
-                track => {
-                    return track.getType() === mediaType; 
-                });
+                track => track.getType() === mediaType);
         }
         return tracks;
     }
@@ -653,9 +651,7 @@ export default class RTC extends Listenable {
      */
     getResourceBySSRC (ssrc) {
         if (this.getLocalTracks().find(
-                localTrack => {
-                    return localTrack.getSSRC() == ssrc; 
-                })) {
+                localTrack => localTrack.getSSRC() == ssrc)) {
             return this.conference.myUserId();
         }
 

@@ -157,9 +157,7 @@ class MLineWrap {
      */
     containsSSRC(ssrcNumber) {
         return !!this._ssrcs.find(
-            ssrcObj => {
-                return ssrcObj.id == ssrcNumber; 
-            });
+            ssrcObj => ssrcObj.id == ssrcNumber);
     }
 
     /**
