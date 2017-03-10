@@ -281,7 +281,7 @@ export default class XMPP extends Listenable {
         }
         // Constant JIDs need some random part to be appended in order to be
         // able to join the MUC more than once.
-        if (this.authenticatedUser || cfgNickname != null) {
+        if (this.authenticatedUser || cfgNickname !== null) {
             mucNickname += '-' + RandomUtil.randomHexString(6);
         }
 

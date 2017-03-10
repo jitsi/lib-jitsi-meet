@@ -263,7 +263,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                         // but msid stands for the stream id, makes no sense ?
                         msid = localTrack.getTrackId();
                     }
-                    if(msid != null) {
+                    if(msid !== null) {
                         msid = SDPUtil.filter_special_chars(msid);
                         elem.c('parameter');
                         elem.attrs({name: 'msid', value:msid});

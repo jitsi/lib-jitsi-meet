@@ -201,7 +201,7 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
  * Returns a string representation of a SessionDescription object.
  */
 const dumpSDP = function(description) {
-    if (typeof description === 'undefined' || description == null) {
+    if (typeof description === 'undefined' || description === null) {
         return '';
     }
 
