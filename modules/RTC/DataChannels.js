@@ -105,20 +105,23 @@ DataChannels.prototype.onDataChannel = function(event) {
 
                 if ((type = typeof oldValue) !== 'boolean') {
                     if (type === 'string') {
-                        oldValue = oldValue == 'true';
+                        oldValue = oldValue === 'true';
                     } else {
-                        oldValue = new Boolean(oldValue).valueOf();
+                        oldValue = Boolean(oldValue);
                     }
                 }
                 if ((type = typeof newValue) !== 'boolean') {
                     if (type === 'string') {
-                        newValue = newValue == 'true';
+                        newValue = newValue === 'true';
                     } else {
-                        newValue = new Boolean(newValue).valueOf();
+                        newValue = Boolean(newValue);
                     }
                 }
 
-                self.eventEmitter.emit(RTCEvents.LASTN_CHANGED, oldValue, newValue);
+                self.eventEmitter.emit(
+                    RTCEvents.LASTN_CHANGED,
+                    oldValue,
+                    newValue);
             } else if (colibriClass === 'LastNEndpointsChangeEvent') {
                 // The new/latest list of last-n endpoint IDs.
                 const lastNEndpoints = obj.lastNEndpoints;

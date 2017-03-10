@@ -103,6 +103,7 @@ module.exports = {
         'no-native-reassign': 2,
         'no-new': 2,
         'no-new-func': 2,
+        'no-new-wrappers': 2,
         'no-octal': 2,
         'no-octal-escape': 2,
         'no-proto': 2,
