@@ -1004,8 +1004,7 @@ class RTCUtils extends Listenable {
             um,
             success_callback,
             failure_callback,
-            options) {
-        options = options || {};
+            options = {}) {
         const constraints = getConstraints(um, options);
 
         logger.info('Get media constraints', constraints);
@@ -1050,10 +1049,9 @@ class RTCUtils extends Listenable {
      * @param {string} options.micDeviceId
      * @returns {*} Promise object that will receive the new JitsiTracks
      */
-    obtainAudioAndVideoPermissions(options) {
+    obtainAudioAndVideoPermissions(options = {}) {
         const self = this;
 
-        options = options || {};
         const dsOptions = options.desktopSharingExtensionExternalInstallation;
 
 

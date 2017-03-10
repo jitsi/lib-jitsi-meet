@@ -218,6 +218,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                 const iceservers = [];
 
                 $(res).find('>services>service').each((idx, el) => {
+                    // eslint-disable-next-line no-param-reassign
                     el = $(el);
                     const dict = {};
                     const type = el.attr('type');

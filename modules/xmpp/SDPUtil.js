@@ -331,6 +331,7 @@ const SDPUtil = {
         //      <candidate component=... foundation=... generation=... id=...
         // ip=... network=... port=... priority=... protocol=... type=.../>
         if (line.indexOf('candidate:') === 0) {
+            // eslint-disable-next-line no-param-reassign
             line = `a=${line}`;
         } else if (line.substring(0, 12) != 'a=candidate:') {
             logger.log(
@@ -341,6 +342,7 @@ const SDPUtil = {
             return null;
         }
         if (line.substring(line.length - 2) == '\r\n') { // chomp it
+            // eslint-disable-next-line no-param-reassign
             line = line.substring(0, line.length - 2);
         }
         const candidate = {};

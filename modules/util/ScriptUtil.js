@@ -41,6 +41,7 @@ const ScriptUtil = {
                     = scriptSrc.substring(0, scriptSrc.lastIndexOf('/') + 1);
 
                 if (scriptSrc && baseScriptSrc) {
+                    // eslint-disable-next-line no-param-reassign
                     src = baseScriptSrc + src;
                 }
             }

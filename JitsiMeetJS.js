@@ -60,18 +60,20 @@ function getLowerResolution(resolution) {
  * @returns {*}
  */
 function addDeviceTypeToAnalyticsEvent(name, options) {
+    let ret;
+
     if (options.devices.indexOf('audio') !== -1) {
-        name += '.audio';
+        ret += '.audio';
     }
     if (options.devices.indexOf('desktop') !== -1) {
-        name += '.desktop';
+        ret += '.desktop';
     }
     if (options.devices.indexOf('video') !== -1) {
         // we have video add resolution
-        name += `.video.${options.resolution}`;
+        ret += `.video.${options.resolution}`;
     }
 
-    return name;
+    return ret;
 }
 
 /**

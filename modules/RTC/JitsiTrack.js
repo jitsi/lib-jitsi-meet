@@ -252,16 +252,16 @@ JitsiTrack.prototype._maybeFireTrackAttached = function(container) {
  *          library. That's the case when Temasys plugin is in use.
  */
 JitsiTrack.prototype.attach = function(container) {
+    let c;
+
     if (this.stream) {
-        container = RTCUtils.attachMediaStream(container, this.stream);
+        c = RTCUtils.attachMediaStream(container, this.stream);
     }
-    this.containers.push(container);
+    this.containers.push(c);
+    this._maybeFireTrackAttached(c);
+    this._attachTTFMTracker(c);
 
-    this._maybeFireTrackAttached(container);
-
-    this._attachTTFMTracker(container);
-
-    return container;
+    return c;
 };
 
 /**

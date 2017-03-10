@@ -72,6 +72,7 @@ const ScreenObtainer = {
     init(options, gum) {
         let obtainDesktopStream = null;
 
+        // eslint-disable-next-line no-param-reassign
         this.options = options = options || {};
         gumFunction = gum;
 
