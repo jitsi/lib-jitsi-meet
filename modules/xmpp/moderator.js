@@ -161,7 +161,7 @@ Moderator.prototype.createConferenceIq = function() {
     elem.c(
         'property', {
             name: 'enableLipSync',
-            value: false !== this.options.connection.enableLipSync
+            value: this.options.connection.enableLipSync !== false
         }).up();
     if (this.options.conference.audioPacketDelay !== undefined) {
         elem.c(
@@ -390,7 +390,7 @@ Moderator.prototype._allocateConferenceFocusSuccess = function(
     // Reset the error timeout (because we haven't failed here).
     this.getNextErrorTimeout(true);
     // eslint-disable-next-line newline-per-chained-call
-    if ('true' === $(result).find('conference').attr('ready')) {
+    if ($(result).find('conference').attr('ready') === 'true') {
         // Reset the non-error timeout (because we've succeeded here).
         this.getNextTimeout(true);
         // Exec callback

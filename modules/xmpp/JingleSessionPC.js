@@ -1412,7 +1412,7 @@ export default class JingleSessionPC extends JingleSession {
             }
 
             error.source = null;
-            if (request && 'function' == typeof request.tree) {
+            if (request && typeof request.tree === 'function') {
                 error.source = request.tree();
             }
 

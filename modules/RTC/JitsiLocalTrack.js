@@ -558,7 +558,7 @@ JitsiLocalTrack.prototype._setByteSent = function(bytesSent) {
     const iceConnectionState
         = this.conference ? this.conference.getConnectionState() : null;
 
-    if(this._testByteSent && 'connected' === iceConnectionState) {
+    if(this._testByteSent && iceConnectionState === 'connected') {
         setTimeout(() => {
             if(this._bytesSent <= 0) {
                 // we are not receiving anything from the microphone

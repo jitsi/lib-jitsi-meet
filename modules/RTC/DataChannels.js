@@ -84,10 +84,10 @@ DataChannels.prototype.onDataChannel = function(event) {
                 dataChannel,
                 e);
         }
-        if (('undefined' !== typeof obj) && (null !== obj)) {
+        if ((typeof obj !== 'undefined') && (obj !== null)) {
             const colibriClass = obj.colibriClass;
 
-            if ('DominantSpeakerEndpointChangeEvent' === colibriClass) {
+            if (colibriClass === 'DominantSpeakerEndpointChangeEvent') {
                 // Endpoint ID from the Videobridge.
                 const dominantSpeakerEndpoint = obj.dominantSpeakerEndpoint;
 
@@ -96,7 +96,7 @@ DataChannels.prototype.onDataChannel = function(event) {
                     dominantSpeakerEndpoint);
                 self.eventEmitter.emit(RTCEvents.DOMINANT_SPEAKER_CHANGED,
                   dominantSpeakerEndpoint);
-            } else if ('InLastNChangeEvent' === colibriClass) {
+            } else if (colibriClass === 'InLastNChangeEvent') {
                 let oldValue = obj.oldValue;
                 let newValue = obj.newValue;
 
@@ -119,7 +119,7 @@ DataChannels.prototype.onDataChannel = function(event) {
                 }
 
                 self.eventEmitter.emit(RTCEvents.LASTN_CHANGED, oldValue, newValue);
-            } else if ('LastNEndpointsChangeEvent' === colibriClass) {
+            } else if (colibriClass === 'LastNEndpointsChangeEvent') {
                 // The new/latest list of last-n endpoint IDs.
                 const lastNEndpoints = obj.lastNEndpoints;
                 // The list of endpoint IDs which are entering the list of
@@ -132,11 +132,11 @@ DataChannels.prototype.onDataChannel = function(event) {
                     lastNEndpoints, endpointsEnteringLastN, obj);
                 self.eventEmitter.emit(RTCEvents.LASTN_ENDPOINT_CHANGED,
                     lastNEndpoints, endpointsEnteringLastN, obj);
-            } else if('EndpointMessage' === colibriClass) {
+            } else if(colibriClass === 'EndpointMessage') {
                 self.eventEmitter.emit(
                     RTCEvents.ENDPOINT_MESSAGE_RECEIVED, obj.from,
                     obj.msgPayload);
-            } else if ('EndpointConnectivityStatusChangeEvent' === colibriClass) {
+            } else if (colibriClass === 'EndpointConnectivityStatusChangeEvent') {
                 const endpoint = obj.endpoint;
                 const isActive = obj.active === 'true';
 

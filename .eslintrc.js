@@ -128,6 +128,7 @@ module.exports = {
         'no-with': 2,
         'vars-on-top': 2,
         'wrap-iife': [ 'error', 'inside' ],
+        'yoda': 2,
 
         // Strict Mode group
         'strict': 2,

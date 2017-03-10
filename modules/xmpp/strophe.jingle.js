@@ -48,7 +48,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         logger.log(`on jingle ${action} from ${fromJid}`, iq);
         let sess = this.sessions[sid];
 
-        if ('session-initiate' != action) {
+        if (action != 'session-initiate') {
             if (!sess) {
                 ack.attrs({ type: 'error' });
                 ack.c('error', {type: 'cancel'})
