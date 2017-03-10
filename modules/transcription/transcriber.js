@@ -79,6 +79,7 @@ transcriber.prototype.stop = function stop(callback) {
     const t = this;
 
     const callBack = blobCallBack.bind(this);
+
     this.audioRecorder.getRecordingResults().forEach(recordingResult => {
         t.transcriptionService.send(recordingResult, callBack);
         t.counter++;
@@ -109,11 +110,13 @@ const blobCallBack = function(answer) {
         let offset = answer.startTime.getUTCMilliseconds()
             - this.startTime.getUTCMilliseconds();
         // transcriber time will always be earlier
+
         if (offset < 0) {
             offset = 0; // presume 0 if it somehow not earlier
         }
 
         let array = '[';
+
         answer.wordArray.forEach(wordObject => {
             wordObject.begin += offset;
             wordObject.end += offset;
@@ -164,6 +167,7 @@ transcriber.prototype.merge = function() {
     // arrays of Word objects
     const potentialWords = []; // array of the first Word objects
     // check if any arrays are already empty and remove them
+
     hasPopulatedArrays(arrays);
 
     // populate all the potential Words for a first time
@@ -173,6 +177,7 @@ transcriber.prototype.merge = function() {
     let lowestWordArray;
     let wordToAdd;
     let foundSmaller;
+
     while(hasPopulatedArrays(arrays)) {
         // first select the lowest array;
         lowestWordArray = arrays[0];
@@ -242,6 +247,7 @@ const hasPopulatedArrays = function(twoDimensionalArray) {
             twoDimensionalArray.splice(i, 1);
         }
     }
+
     return twoDimensionalArray.length > 0;
 };
 
@@ -259,12 +265,15 @@ const pushWordToSortedArray = function(array, word) {
     } else{
         if(array[array.length - 1].begin <= word.begin) {
             array.push(word);
+
             return;
         }
         let i;
+
         for(i = 0; i < array.length; i++) {
             if(word.begin < array[i].begin) {
                 array.splice(i, 0, word);
+
                 return;
             }
         }
@@ -302,6 +311,7 @@ transcriber.prototype.getTranscription = function() {
                  FINISHED_STATE}" state. It's currently in the "${
                  this.state}" state`);
     }
+
     return this.transcription;
 };
 

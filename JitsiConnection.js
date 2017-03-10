@@ -1,4 +1,5 @@
 const JitsiConference = require('./JitsiConference');
+
 import * as JitsiConnectionEvents from './JitsiConnectionEvents';
 import XMPP from './modules/xmpp/xmpp';
 const Statistics = require('./modules/statistics/statistics');

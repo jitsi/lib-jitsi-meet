@@ -13,4 +13,5 @@ const VideoType = {
      */
     DESKTOP: 'desktop'
 };
+
 module.exports = VideoType;

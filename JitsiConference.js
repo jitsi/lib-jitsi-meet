@@ -40,6 +40,7 @@ function JitsiConference(options) {
         const errmsg
             = 'Invalid conference name (no conference name passed or it '
                 + 'contains invalid characters like capital letters)!';
+
         logger.error(errmsg);
         throw new Error(errmsg);
     }
@@ -184,7 +185,9 @@ JitsiConference.prototype.leave = function() {
     // leave the conference
     if (this.room) {
         const room = this.room;
+
         this.room = null;
+
         return room.leave().catch(() => {
             // remove all participants because currently the conference won't
             // be usable anyway. This is done on success automatically by the
@@ -249,6 +252,7 @@ JitsiConference.prototype.getExternalAuthUrl = function(urlForPopup) {
     return new Promise((resolve, reject) => {
         if (!this.isExternalAuthEnabled()) {
             reject();
+
             return;
         }
         if (urlForPopup) {
@@ -266,9 +270,11 @@ JitsiConference.prototype.getExternalAuthUrl = function(urlForPopup) {
  */
 JitsiConference.prototype.getLocalTracks = function(mediaType) {
     let tracks = [];
+
     if (this.rtc) {
         tracks = this.rtc.getLocalTracks(mediaType);
     }
+
     return tracks;
 };
 
@@ -416,15 +422,18 @@ JitsiConference.prototype.getTranscriber = function() {
         this.transcriber = new Transcriber();
         // add all existing local audio tracks to the transcriber
         const localAudioTracks = this.getLocalTracks(MediaType.AUDIO);
+
         for (const localAudio of localAudioTracks) {
             this.transcriber.addTrack(localAudio);
         }
         // and all remote audio tracks
         const remoteAudioTracks = this.rtc.getRemoteTracks(MediaType.AUDIO);
+
         for (const remoteTrack of remoteAudioTracks) {
             this.transcriber.addTrack(remoteTrack);
         }
     }
+
     return this.transcriber;
 };
 
@@ -439,12 +448,14 @@ JitsiConference.prototype.addTrack = function(track) {
     if (track.isVideoTrack()) {
         // Ensure there's exactly 1 local video track in the conference.
         const localVideoTrack = this.rtc.getLocalVideoTrack();
+
         if (localVideoTrack) {
             // Don't be excessively harsh and severe if the API client happens
             // to attempt to add the same local video track twice.
             if (track === localVideoTrack) {
                 return Promise.resolve(track);
             }
+
             return Promise.reject(new Error(
                     'cannot add second video track to the conference'));
 
@@ -538,6 +549,7 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
         // Set up the ssrcHandler for the new track before we add it at the lower levels
         newTrack.ssrcHandler = function(conference, ssrcMap) {
             const trackSSRCInfo = ssrcMap.get(this.getMSID());
+
             if (trackSSRCInfo) {
                 this._setSSRC(trackSSRCInfo);
                 conference.rtc.removeListener(
@@ -548,6 +560,7 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
         this.rtc.addListener(RTCEvents.SENDRECV_STREAMS_CHANGED,
             newTrack.ssrcHandler);
     }
+
     // Now replace the stream at the lower levels
     return this._doReplaceTrack(oldTrack, newTrack)
         .then(() => {
@@ -558,6 +571,7 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
                 // Now handle the addition of the newTrack at the JitsiConference level
                 this._setupNewTrack(newTrack);
             }
+
             return Promise.resolve();
         }, error => Promise.reject(new Error(error)));
 };
@@ -577,6 +591,7 @@ JitsiConference.prototype._doReplaceTrack = function(oldTrack, newTrack) {
     if (this.jingleSession) {
         return this.jingleSession.replaceTrack(oldTrack, newTrack);
     }
+
     return Promise.resolve();
 
 };
@@ -595,6 +610,7 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
                 d =>
                     d.kind === `${newTrack.getTrack().kind}input`
                         && d.label === newTrack.getTrack().label);
+
         if (device) {
             Statistics.sendActiveDeviceListEvent(
                 RTC.getEventDataForActiveDevice(device));
@@ -693,8 +709,10 @@ JitsiConference.prototype._generateNewStreamSSRCInfo = function() {
     if (!this.jingleSession) {
         logger.warn('The call haven\'t been started. '
             + 'Cannot generate ssrc info at the moment!');
+
         return null;
     }
+
     return this.jingleSession.generateNewStreamSSRCInfo();
 };
 
@@ -726,6 +744,8 @@ JitsiConference.prototype.lock = function(password) {
     }
 
     const conference = this;
+
+
     return new Promise((resolve, reject) => {
         conference.room.lockRoom(
             password || '',
@@ -778,6 +798,7 @@ JitsiConference.prototype.setLastN = function(lastN) {
         throw new Error(`Invalid value for lastN: ${lastN}`);
     }
     const n = Number(lastN);
+
     if (n < -1) {
         throw new RangeError('lastN cannot be smaller than -1');
     }
@@ -804,10 +825,12 @@ JitsiConference.prototype.getParticipantCount
     = function(countHidden = false) {
 
         let participants = this.getParticipants();
+
         if (!countHidden) {
             participants = participants.filter(p => !p.isHidden());
         }
-    // Add one for the local participant.
+
+        // Add one for the local participant.
         return participants.length + 1;
     };
 
@@ -826,6 +849,7 @@ JitsiConference.prototype.getParticipantById = function(id) {
  */
 JitsiConference.prototype.kickParticipant = function(id) {
     const participant = this.getParticipantById(id);
+
     if (!participant) {
         return;
     }
@@ -838,6 +862,7 @@ JitsiConference.prototype.kickParticipant = function(id) {
  */
 JitsiConference.prototype.muteParticipant = function(id) {
     const participant = this.getParticipantById(id);
+
     if (!participant) {
         return;
     }
@@ -858,10 +883,12 @@ JitsiConference.prototype.muteParticipant = function(id) {
 JitsiConference.prototype.onMemberJoined
     = function(jid, nick, role, isHidden) {
         const id = Strophe.getResourceFromJid(jid);
+
         if (id === 'focus' || this.myUserId() === id) {
             return;
         }
         const participant = new JitsiParticipant(jid, this, nick, isHidden);
+
         participant._role = role;
         this.participants[id] = participant;
         this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED, id, participant);
@@ -873,10 +900,12 @@ JitsiConference.prototype.onMemberJoined
 
 JitsiConference.prototype.onMemberLeft = function(jid) {
     const id = Strophe.getResourceFromJid(jid);
+
     if (id === 'focus' || this.myUserId() === id) {
         return;
     }
     const participant = this.participants[id];
+
     delete this.participants[id];
 
     const removedTracks = this.rtc.removeRemoteTracks(id);
@@ -895,6 +924,7 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
 JitsiConference.prototype.onUserRoleChanged = function(jid, role) {
     const id = Strophe.getResourceFromJid(jid);
     const participant = this.getParticipantById(id);
+
     if (!participant) {
         return;
     }
@@ -905,6 +935,7 @@ JitsiConference.prototype.onUserRoleChanged = function(jid, role) {
 JitsiConference.prototype.onDisplayNameChanged = function(jid, displayName) {
     const id = Strophe.getResourceFromJid(jid);
     const participant = this.getParticipantById(id);
+
     if (!participant) {
         return;
     }
@@ -927,8 +958,10 @@ JitsiConference.prototype.onDisplayNameChanged = function(jid, displayName) {
 JitsiConference.prototype.onRemoteTrackAdded = function(track) {
     const id = track.getParticipantId();
     const participant = this.getParticipantById(id);
+
     if (!participant) {
         logger.error(`No participant found for id: ${id}`);
+
         return;
     }
 
@@ -940,6 +973,7 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
     }
 
     const emitter = this.eventEmitter;
+
     track.addEventListener(
         JitsiTrackEvents.TRACK_MUTE_CHANGED,
         () => emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track));
@@ -1006,6 +1040,7 @@ JitsiConference.prototype.onIncomingCall
         // Error cause this should never happen unless something is wrong!
         const errmsg = `Rejecting session-initiate from non-focus user: ${
                  jingleSession.peerjid}`;
+
         GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
         logger.error(errmsg);
 
@@ -1032,6 +1067,7 @@ JitsiConference.prototype.onIncomingCall
     }
     // add info whether call is cross-region
     let crossRegion = null;
+
     if (window.jitsiRegionInfo) {
         crossRegion = window.jitsiRegionInfo.CrossRegion;
     }
@@ -1060,6 +1096,7 @@ JitsiConference.prototype.onIncomingCall
          *  problems between sdp-interop and trying to keep the ssrcs
          *  consistent
          */
+
         if (localTrack.isVideoTrack() && localTrack.isMuted() && !RTCBrowserType.isFirefox()) {
             /**
              * Handles issues when the stream is added before the peerconnection
@@ -1152,6 +1189,7 @@ JitsiConference.prototype.onCallEnded
     // will learn what their SSRC from the new PeerConnection which will be
     // created on incoming call event.
     const self = this;
+
     this.getLocalTracks().forEach(localTrack => {
         // Reset SSRC as it will no longer be valid
         localTrack._setSSRC(null);
@@ -1209,18 +1247,23 @@ JitsiConference.prototype.sendTones = function(tones, duration, pause) {
     if (!this.dtmfManager) {
         if (!this.jingleSession) {
             logger.warn('cannot sendTones: no jingle session');
+
             return;
         }
 
         const peerConnection = this.jingleSession.peerconnection;
+
         if (!peerConnection) {
             logger.warn('cannot sendTones: no peer connection');
+
             return;
         }
 
         const localAudio = this.getLocalAudioTrack();
+
         if (!localAudio) {
             logger.warn('cannot sendTones: no local audio stream');
+
             return;
         }
         this.dtmfManager = new JitsiDTMFManager(localAudio, peerConnection);
@@ -1236,6 +1279,7 @@ JitsiConference.prototype.isRecordingSupported = function() {
     if (this.room) {
         return this.room.isRecordingSupported();
     }
+
     return false;
 };
 
@@ -1276,6 +1320,7 @@ JitsiConference.prototype.isSIPCallingSupported = function() {
     if (this.room) {
         return this.room.isSIPCallingSupported();
     }
+
     return false;
 };
 
@@ -1287,6 +1332,7 @@ JitsiConference.prototype.dial = function(number) {
     if (this.room) {
         return this.room.dial(number);
     }
+
     return new Promise((resolve, reject) => {
         reject(new Error('The conference is not created yet!'));
     });
@@ -1299,6 +1345,7 @@ JitsiConference.prototype.hangup = function() {
     if (this.room) {
         return this.room.hangup();
     }
+
     return new Promise((resolve, reject) => {
         reject(new Error('The conference is not created yet!'));
     });
@@ -1311,6 +1358,7 @@ JitsiConference.prototype.getPhoneNumber = function() {
     if (this.room) {
         return this.room.getPhoneNumber();
     }
+
     return null;
 };
 
@@ -1321,6 +1369,7 @@ JitsiConference.prototype.getPhonePin = function() {
     if (this.room) {
         return this.room.getPhonePin();
     }
+
     return null;
 };
 
@@ -1332,6 +1381,7 @@ JitsiConference.prototype.getConnectionState = function() {
     if (this.jingleSession) {
         return this.jingleSession.getIceConnectionState();
     }
+
     return null;
 };
 
@@ -1386,11 +1436,13 @@ JitsiConference.prototype.getLogs = function() {
     const data = this.xmpp.getJingleLog();
 
     const metadata = {};
+
     metadata.time = new Date();
     metadata.url = window.location.href;
     metadata.ua = navigator.userAgent;
 
     const log = this.xmpp.getXmppLog();
+
     if (log) {
         metadata.xmpp = log;
     }
@@ -1446,6 +1498,7 @@ JitsiConference.prototype.isCallstatsEnabled = function() {
  */
 JitsiConference.prototype._onTrackAttach = function(track, container) {
     const ssrc = track.getSSRC();
+
     if (!container.id || !ssrc) {
         return;
     }

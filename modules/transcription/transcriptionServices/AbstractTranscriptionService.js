@@ -18,6 +18,7 @@ const TranscriptionService = function() {
  */
 TranscriptionService.prototype.send = function send(recordingResult, callback) {
     const t = this;
+
     this.sendRequest(recordingResult.blob, response => {
         if(t.verify(response)) {
             recordingResult.wordArray = t.formatResponse(response);

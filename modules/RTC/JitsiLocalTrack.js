@@ -146,9 +146,11 @@ JitsiLocalTrack.prototype._initNoDataFromSourceHandlers = function() {
     if(this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
         const _onNoDataFromSourceError
             = this._onNoDataFromSourceError.bind(this);
+
         this._setHandler('track_mute', () => {
             if(this._checkForCameraIssues()) {
                 const now = window.performance.now();
+
                 this._noDataFromSourceTimeout
                     = setTimeout(_onNoDataFromSourceError, 3000);
                 this._setHandler('track_unmute', () => {
@@ -194,8 +196,10 @@ JitsiLocalTrack.prototype._onNoDataFromSourceError = function() {
 JitsiLocalTrack.prototype._fireNoDataFromSourceEvent = function() {
     this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
     const eventName = `${this.getType()}.no_data_from_source`;
+
     Statistics.analytics.sendEvent(eventName);
     const log = {name: eventName};
+
     if (this.isAudioTrack()) {
         log.isReceivingData = this._isReceivingData();
     }
@@ -316,6 +320,7 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
             devices: [ MediaType.VIDEO ],
             facingMode: this.getCameraFacingMode()
         };
+
         if (this.resolution) {
             streamOptions.resolution = this.resolution;
         }
@@ -390,6 +395,7 @@ JitsiLocalTrack.prototype._removeStreamFromConferenceAsMute
 = function(successCallback, errorCallback) {
     if (!this.conference) {
         successCallback();
+
         return;
     }
 
@@ -474,6 +480,7 @@ JitsiLocalTrack.prototype.isMuted = function() {
     if (this.isVideoTrack() && !this.isActive()) {
         return true;
     }
+
     return !this.track || !this.track.enabled;
 
 };
@@ -517,6 +524,7 @@ JitsiLocalTrack.prototype.getSSRC = function() {
     } else if(this.ssrc && this.ssrc.ssrcs && this.ssrc.ssrcs.length) {
         return this.ssrc.ssrcs[0];
     }
+
     return null;
 
 };
@@ -549,6 +557,7 @@ JitsiLocalTrack.prototype._setByteSent = function(bytesSent) {
     // the conference(and through the XMPP chat room ???) instead
     const iceConnectionState
         = this.conference ? this.conference.getConnectionState() : null;
+
     if(this._testByteSent && 'connected' === iceConnectionState) {
         setTimeout(() => {
             if(this._bytesSent <= 0) {
@@ -636,6 +645,7 @@ JitsiLocalTrack.prototype._isReceivingData = function() {
     if(!this.stream) {
         return false;
     }
+
     // In older version of the spec there is no muted property and
     // readyState can have value muted. In the latest versions
     // readyState can have values "live" and "ended" and there is

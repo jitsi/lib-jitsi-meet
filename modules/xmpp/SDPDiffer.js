@@ -36,18 +36,22 @@ SDPDiffer.prototype.getNewMedia = function() {
                 return false;
             }
         }
+
         return true;
     }
 
     const myMedias = this.mySDP.getMediaSsrcMap();
     const othersMedias = this.otherSDP.getMediaSsrcMap();
     const newMedia = {};
+
     Object.keys(othersMedias).forEach(othersMediaIdx => {
         const myMedia = myMedias[othersMediaIdx];
         const othersMedia = othersMedias[othersMediaIdx];
+
         if(!myMedia && othersMedia) {
             // Add whole channel
             newMedia[othersMediaIdx] = othersMedia;
+
             return;
         }
         // Look for new ssrcs across the channel
@@ -72,8 +76,10 @@ SDPDiffer.prototype.getNewMedia = function() {
 
             // try to match the other ssrc-group with an ssrc-group of ours
             let matched = false;
+
             for (let i = 0; i < myMedia.ssrcGroups.length; i++) {
                 const mySsrcGroup = myMedia.ssrcGroups[i];
+
                 if (otherSsrcGroup.semantics == mySsrcGroup.semantics
                     && arrayEquals.apply(otherSsrcGroup.ssrcs,
                                       [mySsrcGroup.ssrcs])) {
@@ -99,6 +105,7 @@ SDPDiffer.prototype.getNewMedia = function() {
             }
         });
     });
+
     return newMedia;
 };
 
@@ -109,9 +116,11 @@ SDPDiffer.prototype.toJingle = function(modify) {
     const sdpMediaSsrcs = this.getNewMedia();
 
     let modified = false;
+
     Object.keys(sdpMediaSsrcs).forEach(mediaindex => {
         modified = true;
         const media = sdpMediaSsrcs[mediaindex];
+
         modify.c('content', {name: media.mid});
 
         modify.c('description',
@@ -121,12 +130,14 @@ SDPDiffer.prototype.toJingle = function(modify) {
         // generate sources from lines
         Object.keys(media.ssrcs).forEach(ssrcNum => {
             const mediaSsrc = media.ssrcs[ssrcNum];
+
             modify.c('source', { xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
             modify.attrs({ssrc: mediaSsrc.ssrc});
             // iterate over ssrc lines
             mediaSsrc.lines.forEach(line => {
                 const idx = line.indexOf(' ');
                 const kv = line.substr(idx + 1);
+
                 modify.c('parameter');
                 if (kv.indexOf(':') == -1) {
                     modify.attrs({ name: kv });
@@ -134,6 +145,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
                     const nv = kv.split(':', 2);
                     const name = nv[0];
                     const value = SDPUtil.filter_special_chars(nv[1]);
+
                     modify.attrs({ name });
                     modify.attrs({ value });
                 }

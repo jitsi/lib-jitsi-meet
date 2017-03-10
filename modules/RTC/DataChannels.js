@@ -139,6 +139,7 @@ DataChannels.prototype.onDataChannel = function(event) {
             } else if ('EndpointConnectivityStatusChangeEvent' === colibriClass) {
                 const endpoint = obj.endpoint;
                 const isActive = obj.active === 'true';
+
                 logger.info(
                     `Endpoint connection status changed: ${endpoint} active ? ${
                         isActive}`);
@@ -158,6 +159,7 @@ DataChannels.prototype.onDataChannel = function(event) {
     dataChannel.onclose = function() {
         logger.info('The Data Channel closed', dataChannel);
         const idx = self._dataChannels.indexOf(dataChannel);
+
         if (idx > -1) {
             self._dataChannels = self._dataChannels.splice(idx, 1);
         }
@@ -215,6 +217,7 @@ DataChannels.prototype._onXXXEndpointChanged = function(xxx, userResource) {
     const tail = xxx.substring(1);
     const lower = head.toLowerCase() + tail;
     const upper = head.toUpperCase() + tail;
+
     logger.log(
             `sending ${lower} endpoint changed notification to the bridge: `,
             userResource);
@@ -238,9 +241,11 @@ DataChannels.prototype._some = function(callback, thisArg) {
         if (thisArg) {
             return dataChannels.some(callback, thisArg);
         }
+
         return dataChannels.some(callback);
 
     }
+
     return false;
 
 };
@@ -256,6 +261,7 @@ DataChannels.prototype.send = function(jsonObject) {
     if(!this._some(dataChannel => {
         if (dataChannel.readyState == 'open') {
             dataChannel.send(JSON.stringify(jsonObject));
+
             return true;
         }
     })) {

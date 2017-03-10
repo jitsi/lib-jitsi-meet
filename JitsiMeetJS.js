@@ -37,13 +37,16 @@ function getLowerResolution(resolution) {
     const order = Resolutions[resolution].order;
     let res = null;
     let resName = null;
+
     Object.keys(Resolutions).forEach(resolution => {
         const value = Resolutions[resolution];
+
         if (!res || (res.order < value.order && value.order < order)) {
             resName = resolution;
             res = value;
         }
     });
+
     return resName;
 }
 
@@ -114,6 +117,7 @@ const LibJitsiMeet = {
         if (window.jitsiRegionInfo
             && Object.keys(window.jitsiRegionInfo).length > 0) {
             const logObject = {};
+
             for (const attr in window.jitsiRegionInfo) {
                 if (window.jitsiRegionInfo.hasOwnProperty(attr)) {
                     logObject[attr] = window.jitsiRegionInfo[attr];
@@ -130,6 +134,7 @@ const LibJitsiMeet = {
                 component: 'lib-jitsi-meet',
                 version: this.version
             };
+
             Statistics.sendLog(JSON.stringify(logObject));
         }
 
@@ -243,6 +248,7 @@ const LibJitsiMeet = {
                     for(let i = 0; i < tracks.length; i++) {
                         const track = tracks[i];
                         const mStream = track.getOriginalStream();
+
                         if(track.getType() === MediaType.AUDIO) {
                             Statistics.startLocalStats(mStream,
                                 track.setAudioLevel.bind(track));
@@ -258,16 +264,19 @@ const LibJitsiMeet = {
                 // set real device ids
                 const currentlyAvailableMediaDevices
                     = RTC.getCurrentlyAvailableMediaDevices();
+
                 if (currentlyAvailableMediaDevices) {
                     for(let i = 0; i < tracks.length; i++) {
                         const track = tracks[i];
+
                         track._setRealDeviceIdFromDeviceList(
                             currentlyAvailableMediaDevices);
                     }
                 }
 
                 return tracks;
-            }).catch(error => {
+            })
+            .catch(error => {
                 promiseFulfilled = true;
 
                 if(error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
@@ -296,6 +305,7 @@ const LibJitsiMeet = {
                         id: 'chrome_extension_user_canceled',
                         message: error.message
                     };
+
                     Statistics.sendLog(JSON.stringify(logObject));
                     Statistics.analytics.sendEvent(
                         'getUserMedia.userCancel.extensionInstall');
@@ -305,6 +315,7 @@ const LibJitsiMeet = {
                         id: 'usermedia_missing_device',
                         status: error.gum.devices
                     };
+
                     Statistics.sendLog(JSON.stringify(logObject));
                     Statistics.analytics.sendEvent(
                         `getUserMedia.deviceNotFound.${
@@ -316,6 +327,7 @@ const LibJitsiMeet = {
                         = addDeviceTypeToAnalyticsEvent(
                             'getUserMedia.failed',
                             options);
+
                     Statistics.analytics.sendEvent(
                         `${event}.${error.name}`,
                         {value: options});
@@ -337,6 +349,7 @@ const LibJitsiMeet = {
     isDeviceListAvailable() {
         logger.warn('This method is deprecated, use '
             + 'JitsiMeetJS.mediaDevices.isDeviceListAvailable instead');
+
         return this.mediaDevices.isDeviceListAvailable();
     },
     /**
@@ -350,6 +363,7 @@ const LibJitsiMeet = {
     isDeviceChangeAvailable(deviceType) {
         logger.warn('This method is deprecated, use '
             + 'JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead');
+
         return this.mediaDevices.isDeviceChangeAvailable(deviceType);
     },
     /**

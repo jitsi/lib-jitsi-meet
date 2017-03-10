@@ -2,6 +2,7 @@
 
 import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
+
 import ConnectionPlugin from './ConnectionPlugin';
 
 const RAYO_XMLNS = 'urn:xmpp:rayo:1';
@@ -22,12 +23,14 @@ class RayoConnectionPlugin extends ConnectionPlugin {
         return new Promise((resolve, reject) => {
             if(!focusMucJid) {
                 reject(new Error('Internal error!'));
+
                 return;
             }
             const req = $iq({
                 type: 'set',
                 to: focusMucJid
             });
+
             req.c('dial', {
                 xmlns: RAYO_XMLNS,
                 to,
@@ -48,9 +51,10 @@ class RayoConnectionPlugin extends ConnectionPlugin {
             this.connection.sendIQ(req, result => {
                 logger.info('Dial result ', result);
 
+                // eslint-disable-next-line newline-per-chained-call
                 const resource = $(result).find('ref').attr('uri');
-                this.call_resource
-                    = resource.substr('xmpp:'.length);
+
+                this.call_resource = resource.substr('xmpp:'.length);
                 logger.info(`Received call resource: ${this.call_resource}`);
                 resolve();
             }, error => {
@@ -65,6 +69,7 @@ class RayoConnectionPlugin extends ConnectionPlugin {
             if (!this.call_resource) {
                 reject(new Error('No call in progress'));
                 logger.warn('No call in progress');
+
                 return;
             }
 
@@ -72,6 +77,7 @@ class RayoConnectionPlugin extends ConnectionPlugin {
                 type: 'set',
                 to: this.call_resource
             });
+
             req.c('hangup', {
                 xmlns: RAYO_XMLNS
             });

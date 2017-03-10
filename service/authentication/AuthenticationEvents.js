@@ -9,4 +9,5 @@ const AuthenticationEvents = {
      */
     IDENTITY_UPDATED: 'authentication.identity_updated'
 };
+
 module.exports = AuthenticationEvents;

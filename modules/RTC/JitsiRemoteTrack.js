@@ -1,6 +1,7 @@
 /* global */
 
 const JitsiTrack = require('./JitsiTrack');
+
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 const logger = require('jitsi-meet-logger').getLogger(__filename);
 const RTCBrowserType = require('./RTCBrowserType');
@@ -152,6 +153,7 @@ JitsiRemoteTrack.prototype._playCallback = function() {
     const type = this.isVideoTrack() ? 'video' : 'audio';
 
     const now = window.performance.now();
+
     console.log(`(TIME) Render ${type}:\t`, now);
     this.conference.getConnectionTimes()[`${type}.render`] = now;
 
@@ -160,9 +162,11 @@ JitsiRemoteTrack.prototype._playCallback = function() {
         - this.conference.getConnectionTimes()['muc.joined'])
         - (window.connectionTimes['obtainPermissions.end']
         - window.connectionTimes['obtainPermissions.start']);
+
     this.conference.getConnectionTimes()[`${type}.ttfm`] = ttfm;
     console.log(`(TIME) TTFM ${type}:\t`, ttfm);
     let eventName = `${type}.ttfm`;
+
     if(this.hasBeenMuted) {
         eventName += '.muted';
     }

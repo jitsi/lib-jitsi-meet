@@ -2,6 +2,7 @@
 
 import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
+
 import RandomUtil from '../util/RandomUtil';
 import * as JitsiConnectionErrors from '../../JitsiConnectionErrors';
 import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
@@ -105,6 +106,7 @@ export default class XMPP extends Listenable {
     connectionHandler(password, status, msg) {
         const now = window.performance.now();
         const statusStr = Strophe.getStatusString(status).toLowerCase();
+
         this.connectionTimes[statusStr] = now;
         logger.log(
             `(TIME) Strophe ${statusStr}${msg ? `[${msg}]` : ''}:\t`,
@@ -119,6 +121,7 @@ export default class XMPP extends Listenable {
 
             // Schedule ping ?
             const pingJid = this.connection.domain;
+
             this.connection.ping.hasPingSupport(
                 pingJid,
                 hasPing => {
@@ -152,6 +155,7 @@ export default class XMPP extends Listenable {
             this.connection.ping.stopInterval();
             const wasIntentionalDisconnect = this.disconnectInProgress;
             const errMsg = msg ? msg : this.lastErrorMsg;
+
             this.disconnectInProgress = false;
             if (this.anonymousConnectionFailed) {
                 // prompt user for username and password
@@ -175,6 +179,7 @@ export default class XMPP extends Listenable {
                 // XXX if the last request error is within 5xx range it means it
                 // was a server failure
                 const lastErrorStatus = Strophe.getLastErrorStatus();
+
                 if (lastErrorStatus >= 500 && lastErrorStatus < 600) {
                     this.eventEmitter.emit(
                         JitsiConnectionEvents.CONNECTION_FAILED,
@@ -239,6 +244,7 @@ export default class XMPP extends Listenable {
      */
     attach(options) {
         const now = this.connectionTimes.attaching = window.performance.now();
+
         logger.log(`(TIME) Strophe Attaching\t:${now}`);
         this.connection.attach(options.jid, options.sid,
             parseInt(options.rid,10) + 1,
@@ -256,6 +262,7 @@ export default class XMPP extends Listenable {
                     || this.options.hosts.domain;
             // Force authenticated domain if room is appended with '?login=true'
             // or if we're joining with the token
+
             if (this.options.hosts.anonymousdomain
                     && (window.location.search.indexOf('login=true') !== -1
                         || this.options.token)) {
@@ -263,6 +270,7 @@ export default class XMPP extends Listenable {
             }
             jid = configDomain || window.location.hostname;
         }
+
         return this._connect(jid, password);
     }
 
@@ -297,6 +305,8 @@ export default class XMPP extends Listenable {
      */
     getJingleLog() {
         const jingle = this.connection.jingle;
+
+
         return jingle ? jingle.getLog() : {};
     }
 
@@ -334,6 +344,7 @@ export default class XMPP extends Listenable {
                 || !this.connection
                 || !this.connection.connected) {
             this.eventEmitter.emit(JitsiConnectionEvents.WRONG_STATE);
+
             return;
         }
 

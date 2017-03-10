@@ -2,11 +2,16 @@
 
 import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
+
 import JingleSessionPC from './JingleSessionPC';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Statistics from '../statistics/statistics';
 import ConnectionPlugin from './ConnectionPlugin';
+
+// XXX Strophe is build around the idea of chaining function calls so allow long
+// function call chains.
+/* eslint-disable newline-per-chained-call */
 
 class JingleConnectionPlugin extends ConnectionPlugin {
     constructor(xmpp, eventEmitter) {
@@ -39,8 +44,10 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             to: fromJid,
             id: iq.getAttribute('id')
         });
+
         logger.log(`on jingle ${action} from ${fromJid}`, iq);
         let sess = this.sessions[sid];
+
         if ('session-initiate' != action) {
             if (!sess) {
                 ack.attrs({ type: 'error' });
@@ -50,6 +57,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     .c('unknown-session', {xmlns: 'urn:xmpp:jingle:errors:1'});
                 logger.warn('invalid session id', iq);
                 this.connection.send(ack);
+
                 return true;
             }
             // local jid is not checked
@@ -61,6 +69,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     .c('item-not-found', {xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas'}).up()
                     .c('unknown-session', {xmlns: 'urn:xmpp:jingle:errors:1'});
                 this.connection.send(ack);
+
                 return true;
             }
         } else if (sess !== undefined) {
@@ -71,17 +80,21 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                 .c('service-unavailable', {xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas'}).up();
             logger.warn('duplicate session id', sid, iq);
             this.connection.send(ack);
+
             return true;
         }
         const now = window.performance.now();
         // see http://xmpp.org/extensions/xep-0166.html#concepts-session
+
         switch (action) {
         case 'session-initiate': {
             logger.log('(TIME) received session-initiate:\t', now);
             const startMuted = $(iq).find('jingle>startmuted');
+
             if (startMuted && startMuted.length > 0) {
                 const audioMuted = startMuted.attr('audio');
                 const videoMuted = startMuted.attr('video');
+
                 this.eventEmitter.emit(XMPPEvents.START_MUTED_FROM_FOCUS,
                             audioMuted === 'true', videoMuted === 'true');
             }
@@ -105,9 +118,10 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             logger.log('terminating...', sess.sid);
             let reasonCondition = null;
             let reasonText = null;
+
             if ($(iq).find('>jingle>reason').length) {
                 reasonCondition
-                        = $(iq).find('>jingle>reason>:first')[0].tagName;
+                    = $(iq).find('>jingle>reason>:first')[0].tagName;
                 reasonText = $(iq).find('>jingle>reason>text').text();
             }
             this.terminate(sess.sid, reasonCondition, reasonText);
@@ -122,6 +136,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
 
             sess.replaceTransport($(iq).find('>jingle'), () => {
                 const successTime = window.performance.now();
+
                 logger.info(
                         '(TIME) Transport replace success!', successTime);
                 Statistics.analytics.sendEvent(
@@ -151,6 +166,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             break;
         }
         this.connection.send(ack);
+
         return true;
     }
 
@@ -181,10 +197,12 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                 .c('service', {host: `turn.${this.connection.domain}`}),
             res => {
                 const iceservers = [];
+
                 $(res).find('>services>service').each((idx, el) => {
                     el = $(el);
                     const dict = {};
                     const type = el.attr('type');
+
                     switch (type) {
                     case 'stun':
                         dict.url = `stun:${el.attr('host')}`;
@@ -198,6 +216,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                         dict.url = `${type}:`;
                         const username = el.attr('username');
                             // https://code.google.com/p/webrtc/issues/detail?id=1508
+
                         if (username) {
                             if (navigator.userAgent.match(
                                     /Chrom(e|ium)\/([0-9]+)\./)
@@ -213,10 +232,12 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                         }
                         dict.url += el.attr('host');
                         const port = el.attr('port');
+
                         if (port && port != '3478') {
                             dict.url += `:${el.attr('port')}`;
                         }
                         const transport = el.attr('transport');
+
                         if (transport && transport != 'udp') {
                             dict.url += `?transport=${transport}`;
                         }
@@ -241,9 +262,11 @@ class JingleConnectionPlugin extends ConnectionPlugin {
      */
     getLog() {
         const data = {};
+
         Object.keys(this.sessions).forEach(sid => {
             const session = this.sessions[sid];
             const pc = session.peerconnection;
+
             if (pc && pc.updateLog) {
                 // FIXME: should probably be a .dump call
                 data[`jingle_${sid}`] = {
@@ -253,12 +276,15 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                 };
             }
         });
+
         return data;
     }
 }
 
+/* eslint-enable newline-per-chained-call */
 
 module.exports = function(XMPP, eventEmitter) {
-    Strophe.addConnectionPlugin('jingle',
+    Strophe.addConnectionPlugin(
+        'jingle',
         new JingleConnectionPlugin(XMPP, eventEmitter));
 };

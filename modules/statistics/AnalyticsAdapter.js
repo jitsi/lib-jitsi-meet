@@ -35,7 +35,9 @@ class CacheAnalytics extends AnalyticsAbstract {
      */
     drainCachedEvents() {
         const eventCacheCopy = this.eventCache.slice();
+
         this.eventCache = [];
+
         return eventCacheCopy;
     }
 
@@ -74,6 +76,7 @@ class AnalyticsAdapter {
     sendEvent(action, data = {}) {
         const modifiedData = Object.assign(
             {browserName: this.browserName}, this.permanentProperties, data);
+
         this.analyticsHandlers.forEach(
             analytics => analytics.sendEvent(action, modifiedData));
     }

@@ -25,6 +25,7 @@ function EventEmitterForwarder(src, dest) {
 EventEmitterForwarder.prototype.forward = function(...args) {
     const srcEvent = args[0];
     // This will be the "this" value for emit function.
+
     args[0] = this.dest;
     // Using bind.apply to pass the arguments as Array-like object ("arguments")
     this.src.addListener(

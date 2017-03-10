@@ -321,6 +321,7 @@ export default class ParticipantConnectionStatus {
      */
     figureOutConnectionStatus(id) {
         const participant = this.conference.getParticipantById(id);
+
         if (!participant) {
             // Probably the participant is no longer in the conference
             // (at the time of writing this code, participant is
@@ -329,6 +330,7 @@ export default class ParticipantConnectionStatus {
             // so we don't care, but let's print the warning for
             // debugging purpose
             logger.warn(`figure out conn status - no participant for: ${id}`);
+
             return;
         }
 
@@ -364,9 +366,11 @@ export default class ParticipantConnectionStatus {
     onTrackRtcMuted(track) {
         const participantId = track.getParticipantId();
         const participant = this.conference.getParticipantById(participantId);
+
         logger.debug(`Detector track RTC muted: ${participantId}`);
         if (!participant) {
             logger.error(`No participant for id: ${participantId}`);
+
             return;
         }
         this.rtcMutedTimestamp[participantId] = Date.now();

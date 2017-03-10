@@ -18,6 +18,7 @@ const logger = getLogger(__filename);
 function createLocalTracks(tracksInfo, options) {
     const newTracks = [];
     let deviceId = null;
+
     tracksInfo.forEach(trackInfo => {
         if (trackInfo.mediaType === MediaType.AUDIO) {
             deviceId = options.micDeviceId;
@@ -33,8 +34,10 @@ function createLocalTracks(tracksInfo, options) {
                 trackInfo.resolution,
                 deviceId,
                 options.facingMode);
+
         newTracks.push(localTrack);
     });
+
     return newTracks;
 }
 
@@ -70,6 +73,7 @@ export default class RTC extends Listenable {
                 deviceId => {
                     const remoteAudioTracks
                         = this.getRemoteTracks(MediaType.AUDIO);
+
                     for (const track of remoteAudioTracks) {
                         track.setAudioOutput(deviceId);
                     }
@@ -95,6 +99,8 @@ export default class RTC extends Listenable {
         return RTCUtils.obtainAudioAndVideoPermissions(options).then(
             tracksInfo => {
                 const tracks = createLocalTracks(tracksInfo, options);
+
+
                 return tracks.some(track => !track._isReceivingData())
                     ? Promise.reject(
                         new JitsiTrackError(
@@ -201,6 +207,7 @@ export default class RTC extends Listenable {
 
     static init(options = {}) {
         this.options = options;
+
         return RTCUtils.init(this.options);
     }
 
@@ -232,6 +239,7 @@ export default class RTC extends Listenable {
 
         this.peerConnections.set(newConnection.id, newConnection);
         this.peerConnectionIdCounter += 1;
+
         return newConnection;
     }
 
@@ -244,11 +252,14 @@ export default class RTC extends Listenable {
      */
     _removePeerConnection(traceablePeerConnection) {
         const id = traceablePeerConnection.id;
+
         if (this.peerConnections.has(id)) {
             // NOTE Remote tracks are not removed here.
             this.peerConnections.delete(id);
+
             return true;
         }
+
         return false;
 
     }
@@ -269,6 +280,8 @@ export default class RTC extends Listenable {
      */
     getLocalVideoTrack() {
         const localVideo = this.getLocalTracks(MediaType.VIDEO);
+
+
         return localVideo.length ? localVideo[0] : undefined;
     }
 
@@ -278,6 +291,8 @@ export default class RTC extends Listenable {
      */
     getLocalAudioTrack() {
         const localAudio = this.getLocalTracks(MediaType.AUDIO);
+
+
         return localAudio.length ? localAudio[0] : undefined;
     }
 
@@ -289,10 +304,12 @@ export default class RTC extends Listenable {
      */
     getLocalTracks(mediaType) {
         let tracks = this.localTracks.slice();
+
         if (mediaType !== undefined) {
             tracks = tracks.filter(
                 track => track.getType() === mediaType);
         }
+
         return tracks;
     }
 
@@ -321,6 +338,7 @@ export default class RTC extends Listenable {
                 }
             }
         }
+
         return remoteTracks;
     }
 
@@ -335,6 +353,7 @@ export default class RTC extends Listenable {
         if (this.remoteTracks[resource]) {
             return this.remoteTracks[resource][type];
         }
+
         return null;
 
     }
@@ -366,16 +385,20 @@ export default class RTC extends Listenable {
      */
     setAudioMute(value) {
         const mutePromises = [];
+
         this.getLocalTracks(MediaType.AUDIO).forEach(audioTrack => {
             // this is a Promise
             mutePromises.push(value ? audioTrack.mute() : audioTrack.unmute());
         });
-        // we return a Promise from all Promises so we can wait for their execution
+
+        // We return a Promise from all Promises so we can wait for their
+        // execution.
         return Promise.all(mutePromises);
     }
 
     removeLocalTrack(track) {
         const pos = this.localTracks.indexOf(track);
+
         if (pos === -1) {
             return;
         }
@@ -435,6 +458,7 @@ export default class RTC extends Listenable {
 
             delete this.remoteTracks[owner];
         }
+
         return removedTracks;
     }
 
@@ -460,8 +484,10 @@ export default class RTC extends Listenable {
                         && mediaTrack.getStreamId() == streamId
                         && mediaTrack.getTrackId() == trackId) {
                         result = mediaTrack;
+
                         return true;
                     }
+
                     return false;
 
                 });
@@ -637,6 +663,7 @@ export default class RTC extends Listenable {
             return;
         }
         const audioTrack = this.getRemoteAudioTrack(resource);
+
         if(audioTrack) {
             audioTrack.setAudioLevel(audioLevel);
         }
@@ -654,6 +681,8 @@ export default class RTC extends Listenable {
         }
 
         const track = this.getRemoteTrackBySSRC(ssrc);
+
+
         return track ? track.getParticipantId() : null;
     }
 
@@ -676,6 +705,7 @@ export default class RTC extends Listenable {
      */
     handleRemoteTrackMute(type, isMuted, from) {
         const track = this.getRemoteTrackByType(type, from);
+
         if (track) {
             track.setMute(isMuted);
         }
@@ -688,6 +718,7 @@ export default class RTC extends Listenable {
      */
     handleRemoteTrackVideoTypeChanged(value, from) {
         const videoTrack = this.getRemoteVideoTrack(from);
+
         if (videoTrack) {
             videoTrack._setVideoType(value);
         }

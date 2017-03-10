@@ -27,6 +27,7 @@ function _getSSRCCount(mLine) {
     if (!mLine.ssrcs) {
         return 0;
     }
+
     return mLine.ssrcs
             .map(ssrcInfo => ssrcInfo.id)
             .filter((ssrc, index, array) => array.indexOf(ssrc) === index)
@@ -73,6 +74,8 @@ export class SdpTransformWrap {
     selectMedia(mediaType) {
         const selectedMLine
             = this.parsedSDP.media.find(mLine => mLine.type === mediaType);
+
+
         return selectedMLine ? new MLineWrap(selectedMLine) : null;
     }
 
@@ -109,6 +112,7 @@ class MLineWrap {
         if (!this.mLine.ssrcs) {
             this.mLine.ssrcs = [];
         }
+
         return this.mLine.ssrcs;
     }
 
@@ -136,6 +140,7 @@ class MLineWrap {
         if (!this.mLine.ssrcGroups) {
             this.mLine.ssrcGroups = [];
         }
+
         return this.mLine.ssrcGroups;
     }
 
@@ -160,6 +165,8 @@ class MLineWrap {
         const attribute = this._ssrcs.find(
             ssrcObj => ssrcObj.id == ssrcNumber
             && ssrcObj.attribute === attrName);
+
+
         return attribute && attribute.value;
     }
 
@@ -255,6 +262,7 @@ class MLineWrap {
         }
 
         const numSsrcs = _getSSRCCount(this.mLine);
+
         if (numSsrcs === 1) {
             // Not using _ssrcs on purpose here
             return this.mLine.ssrcs[0].id;
@@ -262,10 +270,12 @@ class MLineWrap {
             // Look for a SIM or FID group
         if (this.mLine.ssrcGroups) {
             const simGroup = this.findGroup('SIM');
+
             if (simGroup) {
                 return parsePrimarySSRC(simGroup);
             }
             const fidGroup = this.findGroup('FID');
+
             if (fidGroup) {
                 return parsePrimarySSRC(fidGroup);
             }
@@ -283,6 +293,8 @@ class MLineWrap {
      */
     getRtxSSRC(primarySsrc) {
         const fidGroup = this.findGroupByPrimarySSRC('FID', primarySsrc);
+
+
         return fidGroup && parseSecondarySSRC(fidGroup);
     }
 
@@ -318,10 +330,12 @@ class MLineWrap {
             if (ssrcGroupInfo.semantics === 'FID') {
                 // secondary FID streams should be filtered out
                 const secondarySsrc = parseSecondarySSRC(ssrcGroupInfo);
+
                 videoSSRCs.splice(
                     videoSSRCs.indexOf(secondarySsrc), 1);
             }
         }
+
         return videoSSRCs;
     }
 

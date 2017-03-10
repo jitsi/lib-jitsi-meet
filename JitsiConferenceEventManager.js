@@ -37,6 +37,7 @@ function JitsiConferenceEventManager(conference) {
 JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     const conference = this.conference;
     const chatRoom = conference.room;
+
     this.chatRoomForwarder = new EventEmitterForwarder(chatRoom,
         this.conference.eventEmitter);
 
@@ -72,10 +73,12 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
             Object.keys(chatRoom.connectionTimes).forEach(key => {
                 const value = chatRoom.connectionTimes[key];
+
                 Statistics.analytics.sendEvent(`conference.${key}`, {value});
             });
             Object.keys(chatRoom.xmpp.connectionTimes).forEach(key => {
                 const value = chatRoom.xmpp.connectionTimes[key];
+
                 Statistics.analytics.sendEvent(`xmpp.${key}`, {value});
             });
         });
@@ -154,6 +157,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     const eventLogHandler
         = reason => Statistics.sendEventToAll(`conference.error.${reason}`);
+
     chatRoom.addListener(XMPPEvents.SESSION_ACCEPT_TIMEOUT,
         eventLogHandler.bind(null, 'sessionAcceptTimeout'));
 
@@ -185,6 +189,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     chatRoom.setParticipantPropertyListener((node, from) => {
         const participant = conference.getParticipantById(from);
+
         if (!participant) {
             return;
         }
@@ -229,6 +234,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
                         id: 'recorder_status',
                         status
                     };
+
                     if (error) {
                         logObject.error = error;
                     }
@@ -252,6 +258,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     chatRoom.addListener(XMPPEvents.MESSAGE_RECEIVED,
         (jid, displayName, txt, myJid, ts) => {
             const id = Strophe.getResourceFromJid(jid);
+
             conference.eventEmitter.emit(JitsiConferenceEvents.MESSAGE_RECEIVED,
                 id, txt, ts);
         });
@@ -260,6 +267,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         (jid, status) => {
             const id = Strophe.getResourceFromJid(jid);
             const participant = conference.getParticipantById(id);
+
             if (!participant || participant._status === status) {
                 return;
             }
@@ -281,10 +289,12 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     chatRoom.addPresenceListener('startmuted', (data, from) => {
         let isModerator = false;
+
         if (conference.myUserId() === from && conference.isModerator()) {
             isModerator = true;
         } else {
             const participant = conference.getParticipantById(from);
+
             if (participant && participant.isModerator()) {
                 isModerator = true;
             }
@@ -334,6 +344,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     chatRoom.addPresenceListener('devices', (data, from) => {
         let isAudioAvailable = false;
         let isVideoAvailable = false;
+
         data.children.forEach(config => {
             if (config.tagName === 'audio') {
                 isAudioAvailable = config.value === 'true';
@@ -344,10 +355,12 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         });
 
         let availableDevices;
+
         if (conference.myUserId() === from) {
             availableDevices = conference.availableDevices;
         } else {
             const participant = conference.getParticipantById(from);
+
             if (!participant) {
                 return;
             }
@@ -420,6 +433,7 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
 
     rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, () => {
         const now = window.performance.now();
+
         logger.log('(TIME) data channel opened ', now);
         conference.room.connectionTimes['data.channel.opened'] = now;
         Statistics.analytics.sendEvent('conference.dataChannel.open',
@@ -439,6 +453,7 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
     rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
         (from, payload) => {
             const participant = conference.getParticipantById(from);
+
             if (participant) {
                 conference.eventEmitter.emit(
                     JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
@@ -479,10 +494,12 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
  */
 JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
     const conference = this.conference;
+
     conference.xmpp.caps.addListener(XMPPEvents.PARTCIPANT_FEATURES_CHANGED,
         from => {
             const participant = conference.getParticipantId(
                 Strophe.getResourceFromJid(from));
+
             if(participant) {
                 conference.eventEmitter.emit(
                     JitsiConferenceEvents.PARTCIPANT_FEATURES_CHANGED,
@@ -521,12 +538,14 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
  */
 JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
     const conference = this.conference;
+
     if(!conference.statistics) {
         return;
     }
 
     conference.statistics.addAudioLevelListener((ssrc, level) => {
         const resource = conference.rtc.getResourceBySSRC(ssrc);
+
         if (!resource) {
             return;
         }
@@ -554,12 +573,14 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
             }
 
             const id = conference.rtc.getResourceBySSRC(ssrc);
+
             if (!id) {
                 return;
             }
 
             // ssrc to resolution map for user id
             const idResolutions = id2resolution[id] || {};
+
             idResolutions[ssrc] = resolution;
 
             id2resolution[id] = idResolutions;
@@ -574,6 +595,7 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
     conference.statistics.addByteSentStatsListener(stats => {
         conference.getLocalTracks(MediaType.AUDIO).forEach(track => {
             const ssrc = track.getSSRC();
+
             if (!ssrc || !stats.hasOwnProperty(ssrc)) {
                 return;
             }

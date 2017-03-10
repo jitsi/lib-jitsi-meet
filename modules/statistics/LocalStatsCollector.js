@@ -63,6 +63,7 @@ function timeDomainDataToAudioLevel(samples) {
 function animateLevel(newLevel, lastLevel) {
     let value = 0;
     const diff = lastLevel - newLevel;
+
     if(diff > 0.2) {
         value = lastLevel - 0.2;
     } else if(diff < -0.4) {
@@ -101,10 +102,12 @@ LocalStatsCollector.prototype.start = function() {
     }
     context.resume();
     const analyser = context.createAnalyser();
+
     analyser.smoothingTimeConstant = WEBAUDIO_ANALYZER_SMOOTING_TIME;
     analyser.fftSize = WEBAUDIO_ANALYZER_FFT_SIZE;
 
     const source = context.createMediaStreamSource(this.stream);
+
     source.connect(analyser);
 
 
@@ -113,8 +116,10 @@ LocalStatsCollector.prototype.start = function() {
     this.intervalId = setInterval(
         () => {
             const array = new Uint8Array(analyser.frequencyBinCount);
+
             analyser.getByteTimeDomainData(array);
             const audioLevel = timeDomainDataToAudioLevel(array);
+
             if (audioLevel != self.audioLevel) {
                 self.audioLevel = animateLevel(audioLevel, self.audioLevel);
                 self.callback(self.audioLevel);

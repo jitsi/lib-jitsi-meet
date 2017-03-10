@@ -66,6 +66,7 @@ let rawEnumerateDevicesWithCallback = undefined;
  * ready. Otherwise it is too early to assume that the devices listing is not
  * supported.
  */
+
 function initRawEnumerateDevicesWithCallback() {
     rawEnumerateDevicesWithCallback = navigator.mediaDevices
         && navigator.mediaDevices.enumerateDevices
@@ -265,6 +266,7 @@ function getConstraints(um, options) {
             const errmsg
                 = '\'screen\' WebRTC media source is supported only in Chrome'
                     + ' and with Temasys plugin';
+
             GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
             logger.error(errmsg);
         }
@@ -333,8 +335,15 @@ function compareAvailableMediaDevices(newDevices) {
         return true;
     }
 
-    return newDevices.map(mediaDeviceInfoToJSON).sort().join('')
-        !== currentlyAvailableMediaDevices.map(mediaDeviceInfoToJSON).sort().join('');
+    return (
+        newDevices
+                .map(mediaDeviceInfoToJSON)
+                .sort()
+                .join('')
+            !== currentlyAvailableMediaDevices
+                .map(mediaDeviceInfoToJSON)
+                .sort()
+                .join(''));
 
     function mediaDeviceInfoToJSON(info) {
         return JSON.stringify({
@@ -538,6 +547,7 @@ function obtainDevices(options) {
 
     const device = options.devices.splice(0, 1);
     const devices = [];
+
     devices.push(device);
     options.deviceGUM[device](
         stream => {
@@ -578,8 +588,10 @@ function handleLocalStream(streams, resolution) {
         // (with a result which meets our requirements expressed bellow) calling
         // getUserMedia once for both audio and video.
         const audioVideo = streams.audioVideo;
+
         if (audioVideo) {
             const audioTracks = audioVideo.getAudioTracks();
+
             if (audioTracks.length) {
                 // eslint-disable-next-line new-cap
                 audioStream = new webkitMediaStream();
@@ -589,6 +601,7 @@ function handleLocalStream(streams, resolution) {
             }
 
             const videoTracks = audioVideo.getVideoTracks();
+
             if (videoTracks.length) {
                 // eslint-disable-next-line new-cap
                 videoStream = new webkitMediaStream();
@@ -693,6 +706,7 @@ function wrapAttachMediaStream(origAttachMediaStream) {
 function defaultSetVideoSrc(element, stream) {
     // srcObject
     let srcObjectPropertyName = 'srcObject';
+
     if (!(srcObjectPropertyName in element)) {
         srcObjectPropertyName = 'mozSrcObject';
         if (!(srcObjectPropertyName in element)) {
@@ -701,11 +715,13 @@ function defaultSetVideoSrc(element, stream) {
     }
     if (srcObjectPropertyName) {
         element[srcObjectPropertyName] = stream;
+
         return;
     }
 
     // src
     let src;
+
     if (stream) {
         src = stream.jitsiObjectURL;
         // Save the created URL for stream so we can reuse it and not keep
@@ -738,6 +754,7 @@ class RTCUtils extends Listenable {
         return new Promise((resolve, reject) => {
             if (RTCBrowserType.isFirefox()) {
                 const FFversion = RTCBrowserType.getFirefoxVersion();
+
                 if (FFversion < 40) {
                     rejectWithWebRTCNotSupported(
                         `Firefox version too old: ${FFversion}.`
@@ -766,17 +783,21 @@ class RTCUtils extends Listenable {
                             element.play();
                         }
                     }
+
                     return element;
                 });
                 this.getStreamID = function(stream) {
                     let id = stream.id;
+
                     if (!id) {
                         let tracks = stream.getVideoTracks();
+
                         if (!tracks || tracks.length === 0) {
                             tracks = stream.getAudioTracks();
                         }
                         id = tracks[0].id;
                     }
+
                     return SDPUtil.filter_special_chars(id);
                 };
                 RTCSessionDescription = mozRTCSessionDescription; // eslint-disable-line
@@ -789,6 +810,7 @@ class RTCUtils extends Listenable {
 
                 this.peerconnection = webkitRTCPeerConnection;
                 const getUserMedia = navigator.webkitGetUserMedia.bind(navigator);
+
                 if (navigator.mediaDevices) {
                     this.getUserMedia = wrapGetUserMedia(getUserMedia);
                     this.enumerateDevices = wrapEnumerateDevices(
@@ -800,6 +822,7 @@ class RTCUtils extends Listenable {
                 }
                 this.attachMediaStream = wrapAttachMediaStream((element, stream) => {
                     defaultSetVideoSrc(element, stream);
+
                     return element;
                 });
                 this.getStreamID = function(stream) {
@@ -813,6 +836,7 @@ class RTCUtils extends Listenable {
                     // XXX The return statement is affected by automatic
                     // semicolon insertion (ASI). No line terminator is allowed
                     // between the return keyword and the expression.
+
                     return (
                         typeof id === 'number'
                             ? id
@@ -859,11 +883,13 @@ class RTCUtils extends Listenable {
                             // The container must be visible in order to play or
                             // attach the stream when Temasys plugin is in use
                             const containerSel = $(element);
+
                             if (RTCBrowserType.isTemasysPluginUsed()
                                     && !containerSel.is(':visible')) {
                                 containerSel.show();
                             }
                             const video = stream.getVideoTracks().length > 0;
+
                             if (video && !$(element).is(':visible')) {
                                 throw new Error(
                                     'video element must be visible to attach'
@@ -982,6 +1008,8 @@ class RTCUtils extends Listenable {
 
         options = options || {};
         const dsOptions = options.desktopSharingExtensionExternalInstallation;
+
+
         return new Promise((resolve, reject) => {
             const successCallback = function(stream) {
                 resolve(handleLocalStream(stream, options.resolution));
@@ -1032,6 +1060,7 @@ class RTCUtils extends Listenable {
                 });
             } else {
                 const hasDesktop = options.devices.indexOf('desktop') > -1;
+
                 if (hasDesktop) {
                     options.devices.splice(options.devices.indexOf('desktop'), 1);
                 }
@@ -1138,6 +1167,7 @@ class RTCUtils extends Listenable {
         if (!rtcReady) {
             throw new Error('WebRTC not ready yet');
         }
+
         return Boolean(navigator.mediaDevices
             && navigator.mediaDevices.enumerateDevices
             && typeof MediaStreamTrack !== 'undefined'
@@ -1156,11 +1186,13 @@ class RTCUtils extends Listenable {
         if (rtcReady) {
             return Promise.resolve();
         }
+
         return new Promise(resolve => {
             const listener = () => {
                 eventEmitter.removeListener(RTCEvents.RTC_READY, listener);
                 resolve();
             };
+
             eventEmitter.addListener(RTCEvents.RTC_READY, listener);
                 // We have no failed event, so... it either resolves or nothing
                 // happens
@@ -1223,6 +1255,7 @@ class RTCUtils extends Listenable {
 
         // if we have done createObjectURL, lets clean it
         const url = mediaStream.jitsiObjectURL;
+
         if (url) {
             delete mediaStream.jitsiObjectURL;
             (URL || webkitURL).revokeObjectURL(url);
@@ -1293,7 +1326,9 @@ class RTCUtils extends Listenable {
             'label':    device.label,
             'groupId':  device.groupId
         };
+
         devices.push(deviceData);
+
         return { deviceList: devices };
     }
 }

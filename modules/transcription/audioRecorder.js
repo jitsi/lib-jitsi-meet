@@ -65,6 +65,7 @@ function instantiateTrackRecorder(track) {
     // Create a new stream which only holds the audio track
     const originalStream = trackRecorder.track.getOriginalStream();
     const stream = createEmptyStream();
+
     originalStream.getAudioTracks().forEach(track => stream.addTrack(track));
     // Create the MediaRecorder
     trackRecorder.recorder = new MediaRecorder(stream,
@@ -133,6 +134,7 @@ audioRecorder.prototype.addTrack = function(track) {
         // create the track recorder
         const trackRecorder = instantiateTrackRecorder(track);
         // push it to the local array of all recorders
+
         this.recorders.push(trackRecorder);
         // update the name of the trackRecorders
         this.updateNames();
@@ -161,9 +163,11 @@ audioRecorder.prototype.removeTrack = function(track) {
 
     const array = this.recorders;
     let i;
+
     for(i = 0; i < array.length; i++) {
         if(array[i].track.getParticipantId() === track.getParticipantId()) {
             const recorderToRemove = array[i];
+
             if(this.isRecording) {
                 stopRecorder(recorderToRemove);
             } else {
@@ -184,6 +188,7 @@ audioRecorder.prototype.removeTrack = function(track) {
  */
 audioRecorder.prototype.updateNames = function() {
     const conference = this.jitsiConference;
+
     this.recorders.forEach(trackRecorder => {
         if(trackRecorder.track.isLocal()) {
             trackRecorder.name = 'the transcriber';
@@ -191,6 +196,7 @@ audioRecorder.prototype.updateNames = function() {
             const id = trackRecorder.track.getParticipantId();
             const participant = conference.getParticipantById(id);
             const newName = participant.getDisplayName();
+
             if(newName !== 'undefined') {
                 trackRecorder.name = newName;
             }
@@ -232,10 +238,12 @@ audioRecorder.prototype.stop = function() {
  */
 audioRecorder.prototype.download = function() {
     const t = this;
+
     this.recorders.forEach(trackRecorder => {
         const blob = new Blob(trackRecorder.data, {type: t.fileType});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
+
         document.body.appendChild(a);
         a.style = 'display: none';
         a.href = url;
@@ -260,6 +268,7 @@ audioRecorder.prototype.getRecordingResults = function() {
 
     const array = [];
     const t = this;
+
     this.recorders.forEach(
           recorder =>
               array.push(
@@ -267,6 +276,7 @@ audioRecorder.prototype.getRecordingResults = function() {
                       new Blob(recorder.data, {type: t.fileType}),
                       recorder.name,
                       recorder.startTime)));
+
     return array;
 };
 

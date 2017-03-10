@@ -5,19 +5,25 @@ const XMPPEvents = require('../../service/xmpp/XMPPEvents');
 const AuthenticationEvents
     = require('../../service/authentication/AuthenticationEvents');
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
+
 import Settings from '../settings/Settings';
 
 function createExpBackoffTimer(step) {
     let count = 1;
+
+
     return function(reset) {
         // Reset call
         if (reset) {
             count = 1;
+
             return;
         }
         // Calculate next timeout
         const timeout = Math.pow(2, count - 1);
+
         count += 1;
+
         return timeout * step;
     };
 }
@@ -49,6 +55,7 @@ function Moderator(roomName, xmpp, emitter, options) {
                 logger.warn(
                     `Ignoring sessionId from different origin: ${
                         event.origin}`);
+
                 return;
             }
             Settings.setSessionId(event.data.sessionId);
@@ -74,6 +81,7 @@ Moderator.prototype.isSipGatewayEnabled = function() {
 Moderator.prototype.onMucMemberLeft = function(jid) {
     logger.info(`Someone left is it focus ? ${jid}`);
     const resource = Strophe.getResourceFromJid(jid);
+
     if (resource === 'focus') {
         logger.info(
             'Focus has left the room - leaving conference');
@@ -96,9 +104,11 @@ Moderator.prototype.getFocusComponent = function() {
     // Get focus component address
     let focusComponent = this.options.connection.hosts.focus;
     // If not specified use default:  'focus.domain'
+
     if (!focusComponent) {
         focusComponent = `focus.${this.options.connection.hosts.domain}`;
     }
+
     return focusComponent;
 };
 
@@ -211,12 +221,15 @@ Moderator.prototype.createConferenceIq = function() {
             }).up();
     }
     elem.up();
+
     return elem;
 };
 
 
 Moderator.prototype.parseSessionId = function(resultIq) {
+    // eslint-disable-next-line newline-per-chained-call
     const sessionId = $(resultIq).find('conference').attr('session-id');
+
     if (sessionId) {
         logger.info(`Received sessionId:  ${sessionId}`);
         Settings.setSessionId(sessionId);
@@ -224,9 +237,8 @@ Moderator.prototype.parseSessionId = function(resultIq) {
 };
 
 Moderator.prototype.parseConfigOptions = function(resultIq) {
-
-    this.setFocusUserJid(
-        $(resultIq).find('conference').attr('focusjid'));
+    // eslint-disable-next-line newline-per-chained-call
+    this.setFocusUserJid($(resultIq).find('conference').attr('focusjid'));
 
     const authenticationEnabled
         = $(resultIq).find(
@@ -247,6 +259,7 @@ Moderator.prototype.parseConfigOptions = function(resultIq) {
         this.parseSessionId(resultIq);
     }
 
+    // eslint-disable-next-line newline-per-chained-call
     const authIdentity = $(resultIq).find('>conference').attr('identity');
 
     this.eventEmitter.emit(AuthenticationEvents.IDENTITY_UPDATED,
@@ -299,42 +312,50 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
     // If the session is invalid, remove and try again without session ID to get
     // a new one
     const invalidSession = $(error).find('>error>session-invalid').length;
+
     if (invalidSession) {
         logger.info('Session expired! - removing');
         Settings.clearSessionId();
     }
     if ($(error).find('>error>graceful-shutdown').length) {
         this.eventEmitter.emit(XMPPEvents.GRACEFUL_SHUTDOWN);
+
         return;
     }
     // Check for error returned by the reservation system
     const reservationErr = $(error).find('>error>reservation-error');
+
     if (reservationErr.length) {
         // Trigger error event
         const errorCode = reservationErr.attr('error-code');
         const errorTextNode = $(error).find('>error>text');
         let errorMsg;
+
         if (errorTextNode) {
             errorMsg = errorTextNode.text();
         }
         this.eventEmitter.emit(
                 XMPPEvents.RESERVATION_ERROR, errorCode, errorMsg);
+
         return;
     }
     // Not authorized to create new room
     if ($(error).find('>error>not-authorized').length) {
         logger.warn('Unauthorized to start the conference', error);
         const toDomain = Strophe.getDomainFromJid(error.getAttribute('to'));
+
         if (toDomain !== this.options.connection.hosts.anonymousdomain) {
             // FIXME "is external" should come either from the focus or
             // config.js
             this.externalAuthEnabled = true;
         }
         this.eventEmitter.emit(XMPPEvents.AUTHENTICATION_REQUIRED);
+
         return;
     }
     const waitMs = this.getNextErrorTimeout();
     const errmsg = `Focus error, retry after ${waitMs}`;
+
     GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
     logger.error(errmsg, error);
     // Show message
@@ -342,6 +363,7 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
     const retrySec = waitMs / 1000;
     // FIXME: message is duplicated ? Do not show in case of session invalid
     // which means just a retry
+
     if (!invalidSession) {
         this.eventEmitter.emit(
                 XMPPEvents.FOCUS_DISCONNECTED, focusComponent, retrySec);
@@ -368,6 +390,7 @@ Moderator.prototype._allocateConferenceFocusSuccess = function(
 
     // Reset the error timeout (because we haven't failed here).
     this.getNextErrorTimeout(true);
+    // eslint-disable-next-line newline-per-chained-call
     if ('true' === $(result).find('conference').attr('ready')) {
         // Reset the non-error timeout (because we've succeeded here).
         this.getNextTimeout(true);
@@ -375,6 +398,7 @@ Moderator.prototype._allocateConferenceFocusSuccess = function(
         callback();
     } else {
         const waitMs = this.getNextTimeout();
+
         logger.info(`Waiting for the focus... ${waitMs}`);
         window.setTimeout(() => this.allocateConferenceFocus(callback),
             waitMs);
@@ -389,7 +413,9 @@ Moderator.prototype.authenticate = function() {
                 this.parseSessionId(result);
                 resolve();
             }, error => {
+                // eslint-disable-next-line newline-per-chained-call
                 const code = $(error).find('>error').attr('code');
+
                 reject(error, code);
             }
         );
@@ -415,6 +441,7 @@ Moderator.prototype._getLoginUrl = function(popup, urlCb, failureCb) {
         'machine-uid': Settings.getMachineId()
     };
     let str = 'auth url'; // for logger
+
     if (popup) {
         attrs.popup = true;
         str = `POPUP ${str}`;
@@ -435,7 +462,9 @@ Moderator.prototype._getLoginUrl = function(popup, urlCb, failureCb) {
     this.connection.sendIQ(
         iq,
         result => {
+            // eslint-disable-next-line newline-per-chained-call
             let url = $(result).find('login-url').attr('url');
+
             url = decodeURIComponent(url);
             if (url) {
                 logger.info(`Got ${str}: ${url}`);
@@ -455,8 +484,10 @@ Moderator.prototype.getPopupLoginUrl = function(urlCallback, failureCallback) {
 Moderator.prototype.logout = function(callback) {
     const iq = $iq({to: this.getFocusComponent(), type: 'set'});
     const sessionId = Settings.getSessionId();
+
     if (!sessionId) {
         callback();
+
         return;
     }
     iq.c('logout', {
@@ -466,7 +497,9 @@ Moderator.prototype.logout = function(callback) {
     this.connection.sendIQ(
         iq,
         result => {
+            // eslint-disable-next-line newline-per-chained-call
             let logoutUrl = $(result).find('logout').attr('logout-url');
+
             if (logoutUrl) {
                 logoutUrl = decodeURIComponent(logoutUrl);
             }
@@ -476,6 +509,7 @@ Moderator.prototype.logout = function(callback) {
         },
         error => {
             const errmsg = 'Logout error';
+
             GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
             logger.error(errmsg, error);
         }

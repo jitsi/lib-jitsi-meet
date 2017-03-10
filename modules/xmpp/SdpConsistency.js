@@ -61,13 +61,16 @@ export default class SdpConsistency {
     makeVideoPrimarySsrcsConsistent(sdpStr) {
         const sdpTransformer = new SdpTransformWrap(sdpStr);
         const videoMLine = sdpTransformer.selectMedia('video');
+
         if (!videoMLine) {
             logger.error(`No 'video' media found in the sdp: ${sdpStr}`);
+
             return sdpStr;
         }
         if (videoMLine.direction === 'inactive') {
             logger.info(
                 'Sdp-consistency doing nothing, video mline is inactive');
+
             return sdpStr;
         }
         if (videoMLine.direction === 'recvonly') {
@@ -84,8 +87,10 @@ export default class SdpConsistency {
             }
         } else {
             const newPrimarySsrc = videoMLine.getPrimaryVideoSsrc();
+
             if (!newPrimarySsrc) {
                 logger.info('Sdp-consistency couldn\'t parse new primary ssrc');
+
                 return sdpStr;
             }
             if (this.cachedPrimarySsrc) {
@@ -97,6 +102,7 @@ export default class SdpConsistency {
                     if (group.semantics === 'FID') {
                         const primarySsrc = parsePrimarySSRC(group);
                         const rtxSsrc = parseSecondarySSRC(group);
+
                         if (primarySsrc === newPrimarySsrc) {
                             group.ssrcs
                                 = `${this.cachedPrimarySsrc} ${rtxSsrc}`;
@@ -110,6 +116,7 @@ export default class SdpConsistency {
                         this.cachedPrimarySsrc}`);
             }
         }
+
         return sdpTransformer.toRawSDP();
     }
 }

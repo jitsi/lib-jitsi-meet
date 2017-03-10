@@ -31,6 +31,7 @@ function implementOnEndedHandling(jitsiTrack) {
     }
 
     const originalStop = stream.stop;
+
     stream.stop = function() {
         originalStop.apply(stream);
         if (jitsiTrack.isActive()) {
@@ -211,6 +212,7 @@ JitsiTrack.prototype.getUsageLabel = function() {
     if (this.isAudioTrack()) {
         return 'mic';
     }
+
     return this.videoType ? this.videoType : 'default';
 
 };
@@ -267,6 +269,7 @@ JitsiTrack.prototype.attach = function(container) {
 JitsiTrack.prototype.detach = function(container) {
     for (let cs = this.containers, i = cs.length - 1; i >= 0; --i) {
         const c = cs[i];
+
         if (!container) {
             RTCUtils.attachMediaStream(c, null);
         }
@@ -322,6 +325,7 @@ JitsiTrack.prototype.getId = function() {
     if(this.stream) {
         return RTCUtils.getStreamID(this.stream);
     }
+
     return null;
 
 };
@@ -336,6 +340,7 @@ JitsiTrack.prototype.isActive = function() {
     if(typeof this.stream.active !== 'undefined') {
         return this.stream.active;
     }
+
     return true;
 
 };
@@ -386,6 +391,8 @@ JitsiTrack.prototype.setAudioLevel = function(audioLevel) {
 JitsiTrack.prototype.getMSID = function() {
     const streamId = this.getStreamId();
     const trackId = this.getTrackId();
+
+
     return streamId && trackId ? `${streamId} ${trackId}` : null;
 };
 

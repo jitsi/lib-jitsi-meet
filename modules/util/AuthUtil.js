@@ -22,9 +22,11 @@ const AuthUtil = {
      */
     getTokenAuthUrl(urlPattern, roomName, roleUpgrade) {
         const url = urlPattern;
+
         if (typeof url !== 'string') {
             return null;
         }
+
         return url.replace('{room}', roomName)
             .replace('{roleUpgrade}', roleUpgrade === true);
     }

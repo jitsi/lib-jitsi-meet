@@ -61,9 +61,11 @@ const RandomUtil = {
      */
     randomHexString(len) {
         let ret = '';
+
         while (len--) {
             ret += this.randomHexDigit();
         }
+
         return ret;
     },
     randomElement,

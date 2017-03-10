@@ -2,6 +2,7 @@ const logger = require('jitsi-meet-logger').getLogger(__filename);
 
 function JitsiDTMFManager(localAudio, peerConnection) {
     const audioTrack = localAudio.getTrack();
+
     if (!audioTrack) {
         throw new Error('Failed to initialize DTMFSender: no audio track.');
     }

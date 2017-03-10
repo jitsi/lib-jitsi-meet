@@ -11,6 +11,8 @@ import UsernameGenerator from '../util/UsernameGenerator';
  */
 function getLocalStorage() {
     const global = typeof window == 'undefined' ? this : window;
+
+
     return global.localStorage;
 }
 
@@ -28,6 +30,7 @@ function generateUniqueId() {
  */
 function generateJitsiMeetId() {
     const jitsiMeetId = generateUniqueId();
+
     logger.log('generated id', jitsiMeetId);
 
     return jitsiMeetId;
@@ -39,6 +42,7 @@ function generateJitsiMeetId() {
  */
 function generateCallStatsUsername() {
     const username = UsernameGenerator.generateUsername();
+
     logger.log('generated callstats uid', username);
 
     return username;
@@ -50,6 +54,7 @@ class Settings {
         this.callStatsUserName;
 
         const localStorage = getLocalStorage();
+
         if (localStorage) {
             this.userId
                 = localStorage.getItem('jitsiMeetId') || generateJitsiMeetId();
@@ -70,6 +75,7 @@ class Settings {
      */
     save() {
         const localStorage = getLocalStorage();
+
         if (localStorage) {
             localStorage.setItem('jitsiMeetId', this.userId);
             localStorage.setItem('callStatsUserName', this.callStatsUserName);
@@ -98,6 +104,7 @@ class Settings {
      */
     setSessionId(sessionId) {
         const localStorage = getLocalStorage();
+
         if (localStorage) {
             if (sessionId) {
                 localStorage.setItem('sessionId', sessionId);
@@ -122,6 +129,8 @@ class Settings {
         // We may update sessionId in localStorage from another JitsiConference
         // instance and that's why we should always re-read it.
         const localStorage = getLocalStorage();
+
+
         return localStorage ? localStorage.getItem('sessionId') : undefined;
     }
 }

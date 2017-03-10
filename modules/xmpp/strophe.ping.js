@@ -2,6 +2,7 @@
 
 import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
+
 import ConnectionPlugin from './ConnectionPlugin';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
@@ -57,6 +58,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
      */
     ping(jid, success, error, timeout) {
         const iq = $iq({type: 'get', to: jid});
+
         iq.c('ping', {xmlns: Strophe.NS.PING});
         this.connection.sendIQ(iq, success, error, timeout);
     }
@@ -71,6 +73,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
         this.xmpp.caps.getFeatures(jid).then(features =>
             callback(features.has('urn:xmpp:ping')), error => {
             const errmsg = 'Ping feature discovery error';
+
             GlobalOnErrorHandler.callErrorHandler(
                 new Error(`${errmsg}: ${error}`));
             logger.error(errmsg, error);
@@ -88,8 +91,10 @@ class PingConnectionPlugin extends ConnectionPlugin {
     startInterval(remoteJid, interval = PING_INTERVAL) {
         if (this.intervalId) {
             const errmsg = 'Ping task scheduled already';
+
             GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
             logger.error(errmsg);
+
             return;
         }
         this.intervalId = window.setInterval(() => {
@@ -98,6 +103,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
             }, error => {
                 this.failedPings += 1;
                 const errmsg = `Ping ${error ? 'error' : 'timeout'}`;
+
                 if (this.failedPings >= PING_THRESHOLD) {
                     GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
                     logger.error(errmsg, error);

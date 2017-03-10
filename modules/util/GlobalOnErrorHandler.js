@@ -57,6 +57,7 @@ const GlobalOnErrorHandler = {
      */
     callErrorHandler(error) {
         const errHandler = window.onerror;
+
         if(!errHandler) {
             return;
         }
@@ -68,6 +69,7 @@ const GlobalOnErrorHandler = {
      */
     callUnhandledRejectionHandler(error) {
         const errHandler = window.onunhandledrejection;
+
         if(!errHandler) {
             return;
         }

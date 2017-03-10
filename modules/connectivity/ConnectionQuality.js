@@ -54,6 +54,7 @@ function getTarget(simulcast, resolution, millisSinceStart) {
     if (simulcast) {
         // Find the first format with height no bigger than ours.
         let simulcastFormat = kSimulcastFormats.find(f => f.height <= height);
+
         if (simulcastFormat) {
             // Sum the target fields from all simulcast layers for the given
             // resolution (e.g. 720p + 360p + 180p).
@@ -71,6 +72,7 @@ function getTarget(simulcast, resolution, millisSinceStart) {
         // See GetMaxDefaultVideoBitrateKbps in
         // media/engine/webrtcvideoengine2.cc from webrtc.org
         const pixels = resolution.width * resolution.height;
+
         if (pixels <= 320 * 240) {
             target = 600;
         } else if (pixels <= 640 * 480) {
@@ -97,6 +99,7 @@ function rampUp(millisSinceStart) {
     if (millisSinceStart > 60000) {
         return Number.MAX_SAFE_INTEGER;
     }
+
     // According to GCC the send side bandwidth estimation grows with at most
     // 8% per second.
     // https://tools.ietf.org/html/draft-ietf-rmcat-gcc-02#section-5.5
@@ -252,6 +255,7 @@ export default class ConnectionQuality {
         let quality = 100;
         let packetLoss;
         // TODO: take into account packet loss for received streams
+
         if (this._localStats.packetLoss) {
             packetLoss = this._localStats.packetLoss.upload;
 
@@ -306,6 +310,7 @@ export default class ConnectionQuality {
             // expected sending bitrate in perfect conditions
             let target
                 = getTarget(this._simulcast, resolution, millisSinceStart);
+
             target = 0.9 * target;
 
             quality = 100 * this._localStats.bitrate.upload / target;
@@ -323,6 +328,7 @@ export default class ConnectionQuality {
             const diffSeconds
                 = (window.performance.now() - this._lastConnectionQualityUpdate)
                     / 1000;
+
             quality
                 = Math.min(
                     quality,
@@ -359,6 +365,7 @@ export default class ConnectionQuality {
         // resolution instead. Consider removing this.
         const localVideoTrack
             = this._conference.getLocalVideoTrack();
+
         if (localVideoTrack && localVideoTrack.resolution) {
             data.resolution = localVideoTrack.resolution;
         }

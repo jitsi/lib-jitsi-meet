@@ -11,9 +11,11 @@ const HASH = 'sha-1';
 
 function compareIdentities(a, b) {
     let res = 0;
+
     IDENTITY_PROPERTIES_FOR_COMPARE.some(key =>
         (res = ((a[key] > b[key]) && 1) || ((a[key] < b[key]) && -1)) !== 0
     );
+
     return res;
 }
 
@@ -43,6 +45,7 @@ export default class Caps extends Listenable {
         this.rooms = new Set();
 
         const emuc = connection.emuc;
+
         emuc.addListener(XMPPEvents.EMUC_ROOM_ADDED,
             room => this._addChatRoom(room));
         emuc.addListener(XMPPEvents.EMUC_ROOM_REMOVED,
@@ -104,13 +107,19 @@ export default class Caps extends Listenable {
     getFeatures(jid, timeout = 5000) {
         const user
             = jid in this.jidToVersion ? this.jidToVersion[jid] : null;
+
         if(!user || !(user.version in this.versionToCapabilities)) {
             const node = user ? `${user.node}#${user.version}` : null;
+
+
             return new Promise((resolve, reject) =>
                 this.disco.info(jid, node, response => {
                     const features = new Set();
-                    $(response).find('>query>feature').each((idx, el) =>
-                            features.add(el.getAttribute('var')));
+
+                    $(response)
+                        .find('>query>feature')
+                        .each(
+                            (idx, el) => features.add(el.getAttribute('var')));
                     if(user) {
                             // TODO: Maybe use the version + node + hash
                             // as keys?
@@ -121,6 +130,7 @@ export default class Caps extends Listenable {
                 }, reject , timeout)
             );
         }
+
         return Promise.resolve(this.versionToCapabilities[user.version]);
     }
 
@@ -175,6 +185,7 @@ export default class Caps extends Listenable {
     _generateVersion() {
         const identities = this.disco._identities.sort(compareIdentities);
         const features = this.disco._features.sort();
+
         this.version = b64_sha1(
             identities.reduce(
                     (accumulatedValue, identity) =>
@@ -200,11 +211,13 @@ export default class Caps extends Listenable {
         const version = caps.getAttribute('ver');
         const node = caps.getAttribute('node');
         const oldVersion = this.jidToVersion[from];
+
         this.jidToVersion[from] = {version, node};
         if(oldVersion && oldVersion.version !== version) {
             this.eventEmitter.emit(XMPPEvents.PARTCIPANT_FEATURES_CHANGED,
                 from);
         }
+
         // return true to not remove the handler from Strophe
         return true;
     }

@@ -63,10 +63,12 @@ function onRemoteTrack(track) {
         return;
     }
     const participant = track.getParticipantId();
+
     if(!remoteTracks[participant]) {
         remoteTracks[participant] = [];
     }
     const idx = remoteTracks[participant].push(track);
+
     track.addEventListener(
         JitsiMeetJS.events.track.TRACK_AUDIO_LEVEL_CHANGED,
         audioLevel => console.log(`Audio Level remote: ${audioLevel}`));
@@ -81,6 +83,7 @@ function onRemoteTrack(track) {
             console.log(
                 `track audio output device was changed to ${deviceId}`));
     const id = participant + track.getType() + idx;
+
     if(track.getType() == 'video') {
         $('body').append(`<video autoplay='1' id='${participant}video${idx}' />`);
     } else {
@@ -106,6 +109,7 @@ function onUserLeft(id) {
         return;
     }
     const tracks = remoteTracks[id];
+
     for(let i = 0; i < tracks.length; i++) {
         tracks[i].detach($(`#${id}${tracks[i].getType()}`));
     }
@@ -181,6 +185,7 @@ function unload() {
 }
 
 let isVideo = true;
+
 function switchVideo() { // eslint-disable-line no-unused-vars
     isVideo = !isVideo;
     if(localTracks[1]) {
@@ -200,9 +205,8 @@ function switchVideo() { // eslint-disable-line no-unused-vars
                 });
             localTracks[1].attach($('#localVideo1')[0]);
             room.addTrack(localTracks[1]);
-        }).catch(error => {
-            console.log(error);
-        });
+        })
+        .catch(error => console.log(error));
 }
 
 function changeAudioOutput(selected) { // eslint-disable-line no-unused-vars
@@ -239,23 +243,33 @@ const initOptions = {
     // The URL to the Firefox extension for desktop sharing.
     desktopSharingFirefoxExtensionURL: null
 };
-JitsiMeetJS.init(initOptions).then(() => {
-    connection = new JitsiMeetJS.JitsiConnection(null, null, options);
 
-    connection.addEventListener(JitsiMeetJS.events.connection.CONNECTION_ESTABLISHED, onConnectionSuccess);
-    connection.addEventListener(JitsiMeetJS.events.connection.CONNECTION_FAILED, onConnectionFailed);
-    connection.addEventListener(JitsiMeetJS.events.connection.CONNECTION_DISCONNECTED, disconnect);
+JitsiMeetJS.init(initOptions)
+    .then(() => {
+        connection = new JitsiMeetJS.JitsiConnection(null, null, options);
 
-    JitsiMeetJS.mediaDevices.addEventListener(JitsiMeetJS.events.mediaDevices.DEVICE_LIST_CHANGED, onDeviceListChanged);
+        connection.addEventListener(
+            JitsiMeetJS.events.connection.CONNECTION_ESTABLISHED,
+            onConnectionSuccess);
+        connection.addEventListener(
+            JitsiMeetJS.events.connection.CONNECTION_FAILED,
+            onConnectionFailed);
+        connection.addEventListener(
+            JitsiMeetJS.events.connection.CONNECTION_DISCONNECTED,
+            disconnect);
 
-    connection.connect();
-    JitsiMeetJS.createLocalTracks({devices: ['audio', 'video']})
-        .then(onLocalTracks).catch(error => {
-            throw error;
-        });
-}).catch(error => {
-    console.log(error);
-});
+        JitsiMeetJS.mediaDevices.addEventListener(
+            JitsiMeetJS.events.mediaDevices.DEVICE_LIST_CHANGED,
+            onDeviceListChanged);
+
+        connection.connect();
+        JitsiMeetJS.createLocalTracks({devices: ['audio', 'video']})
+            .then(onLocalTracks)
+            .catch(error => {
+                throw error;
+            });
+    })
+    .catch(error => console.log(error));
 
 if (JitsiMeetJS.mediaDevices.isDeviceChangeAvailable('output')) {
     JitsiMeetJS.mediaDevices.enumerateDevices(devices => {

@@ -12,6 +12,8 @@ import * as SDPUtil from './SDPUtil';
  */
 function numVideoSsrcs(parsedSdp) {
     const videoMLine = parsedSdp.media.find(m => m.type === 'video');
+
+
     return videoMLine.ssrcs
     .map(ssrcInfo => ssrcInfo.id)
     .filter((ssrc, index, array) => array.indexOf(ssrc) === index)
@@ -25,6 +27,8 @@ function numVideoSsrcs(parsedSdp) {
  */
 function getPrimaryVideoSsrc(parsedSdp) {
     const videoMLine = parsedSdp.media.find(m => m.type === 'video');
+
+
     return parseInt(SDPUtil.parsePrimaryVideoSsrc(videoMLine));
 }
 
@@ -38,14 +42,18 @@ function getPrimaryVideoSsrc(parsedSdp) {
  */
 function getPrimaryVideoSsrcs(parsedSdp) {
     const videoMLine = parsedSdp.media.find(m => m.type === 'video');
+
     if (numVideoSsrcs(parsedSdp) === 1) {
         return [videoMLine.ssrcs[0].id];
     }
     const simGroups = getVideoGroups(parsedSdp, 'SIM');
+
     if (simGroups.length > 1) {
         return;
     }
     const simGroup = simGroups[0];
+
+
     return SDPUtil.parseGroupSsrcs(simGroup);
 
 }
@@ -61,7 +69,9 @@ function getPrimaryVideoSsrcs(parsedSdp) {
  */
 function getVideoGroups(parsedSdp, groupSemantics) {
     const videoMLine = parsedSdp.media.find(m => m.type === 'video');
+
     videoMLine.ssrcGroups = videoMLine.ssrcGroups || [];
+
     return videoMLine.ssrcGroups
     .filter(g => g.semantics === groupSemantics);
 }
@@ -85,15 +95,18 @@ describe('RtxModifier', () => {
                 const newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(this.singleVideoSdp));
                 const newSdp = transform.parse(newSdpStr);
                 const newPrimaryVideoSsrc = getPrimaryVideoSsrc(newSdp);
+
                 expect(newPrimaryVideoSsrc).toEqual(this.primaryVideoSsrc);
           // Should now have an rtx ssrc as well
                 expect(numVideoSsrcs(newSdp)).toEqual(2);
           // Should now have an FID group
                 const fidGroups = getVideoGroups(newSdp, 'FID');
+
                 expect(fidGroups.length).toEqual(1);
 
                 const fidGroup = fidGroups[0];
                 const fidGroupPrimarySsrc = SDPUtil.parseGroupSsrcs(fidGroup)[0];
+
                 expect(fidGroupPrimarySsrc).toEqual(this.primaryVideoSsrc);
             });
 
@@ -112,6 +125,7 @@ describe('RtxModifier', () => {
                 newSdp = transform.parse(newSdpStr);
                 fidGroup = getVideoGroups(newSdp, 'FID')[0];
                 const newFidGroupRtxSsrc = SDPUtil.parseGroupSsrcs(fidGroup)[1];
+
                 expect(newFidGroupRtxSsrc).toEqual(fidGroupRtxSsrc);
             });
 
@@ -125,6 +139,7 @@ describe('RtxModifier', () => {
 
                 let fidGroup = getVideoGroups(newSdp, 'FID')[0];
                 const fidGroupRtxSsrc = SDPUtil.parseGroupSsrcs(fidGroup)[1];
+
                 this.rtxModifier.clearSsrcCache();
 
           // Now pass the original sdp through again
@@ -132,6 +147,7 @@ describe('RtxModifier', () => {
                 newSdp = transform.parse(newSdpStr);
                 fidGroup = getVideoGroups(newSdp, 'FID')[0];
                 const newFidGroupRtxSsrc = SDPUtil.parseGroupSsrcs(fidGroup)[1];
+
                 expect(newFidGroupRtxSsrc).not.toEqual(fidGroupRtxSsrc);
             });
 
@@ -141,6 +157,7 @@ describe('RtxModifier', () => {
           // -->The rtx ssrc used should be the one we set
                 const forcedRtxSsrc = 123456;
                 const ssrcCache = new Map();
+
                 ssrcCache.set(this.primaryVideoSsrc, forcedRtxSsrc);
                 this.rtxModifier.setSsrcCache(ssrcCache);
                 const newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(this.singleVideoSdp));
@@ -148,6 +165,7 @@ describe('RtxModifier', () => {
 
                 const fidGroup = getVideoGroups(newSdp, 'FID')[0];
                 const fidGroupRtxSsrc = SDPUtil.parseGroupSsrcs(fidGroup)[1];
+
                 expect(fidGroupRtxSsrc).toEqual(forcedRtxSsrc);
             });
         });
@@ -164,14 +182,17 @@ describe('RtxModifier', () => {
                 const newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(this.multipleVideoSdp));
                 const newSdp = transform.parse(newSdpStr);
                 const newPrimaryVideoSsrcs = getPrimaryVideoSsrcs(newSdp);
+
                 expect(newPrimaryVideoSsrcs).toEqual(this.primaryVideoSsrcs);
           // Should now have rtx ssrcs as well
                 expect(numVideoSsrcs(newSdp)).toEqual(this.primaryVideoSsrcs.length * 2);
           // Should now have FID groups
                 const fidGroups = getVideoGroups(newSdp, 'FID');
+
                 expect(fidGroups.length).toEqual(this.primaryVideoSsrcs.length);
                 fidGroups.forEach(fidGroup => {
                     const fidGroupPrimarySsrc = SDPUtil.parseGroupSsrcs(fidGroup)[0];
+
                     expect(this.primaryVideoSsrcs.indexOf(fidGroupPrimarySsrc)).not.toEqual(-1);
                 });
             });
@@ -186,10 +207,12 @@ describe('RtxModifier', () => {
                 const rtxMapping = new Map();
                 let fidGroups = getVideoGroups(newSdp, 'FID');
           // Save the first mapping that is made
+
                 fidGroups.forEach(fidGroup => {
                     const fidSsrcs = SDPUtil.parseGroupSsrcs(fidGroup);
                     const fidGroupPrimarySsrc = fidSsrcs[0];
                     const fidGroupRtxSsrc = fidSsrcs[1];
+
                     rtxMapping.set(fidGroupPrimarySsrc, fidGroupRtxSsrc);
                 });
           // Now pass the original sdp through again and make sure we get the same mapping
@@ -200,6 +223,7 @@ describe('RtxModifier', () => {
                     const fidSsrcs = SDPUtil.parseGroupSsrcs(fidGroup);
                     const fidGroupPrimarySsrc = fidSsrcs[0];
                     const fidGroupRtxSsrc = fidSsrcs[1];
+
                     expect(rtxMapping.has(fidGroupPrimarySsrc)).toBe(true);
                     expect(rtxMapping.get(fidGroupPrimarySsrc)).toEqual(fidGroupRtxSsrc);
                 });
@@ -216,10 +240,12 @@ describe('RtxModifier', () => {
                 const rtxMapping = new Map();
                 let fidGroups = getVideoGroups(newSdp, 'FID');
           // Save the first mapping that is made
+
                 fidGroups.forEach(fidGroup => {
                     const fidSsrcs = SDPUtil.parseGroupSsrcs(fidGroup);
                     const fidGroupPrimarySsrc = fidSsrcs[0];
                     const fidGroupRtxSsrc = fidSsrcs[1];
+
                     rtxMapping.set(fidGroupPrimarySsrc, fidGroupRtxSsrc);
                 });
 
@@ -232,6 +258,7 @@ describe('RtxModifier', () => {
                     const fidSsrcs = SDPUtil.parseGroupSsrcs(fidGroup);
                     const fidGroupPrimarySsrc = fidSsrcs[0];
                     const fidGroupRtxSsrc = fidSsrcs[1];
+
                     expect(rtxMapping.has(fidGroupPrimarySsrc)).toBe(true);
                     expect(rtxMapping.get(fidGroupPrimarySsrc)).not.toEqual(fidGroupRtxSsrc);
                 });
@@ -242,6 +269,7 @@ describe('RtxModifier', () => {
           // Call modifyRtxSsrcs
           // -->The rtx ssrc used should be the one we set
                 const rtxMapping = new Map();
+
                 this.primaryVideoSsrcs.forEach(ssrc => {
                     rtxMapping.set(ssrc, SDPUtil.generateSsrc());
                 });
@@ -251,10 +279,12 @@ describe('RtxModifier', () => {
                 const newSdp = transform.parse(newSdpStr);
 
                 const fidGroups = getVideoGroups(newSdp, 'FID');
+
                 fidGroups.forEach(fidGroup => {
                     const fidSsrcs = SDPUtil.parseGroupSsrcs(fidGroup);
                     const fidGroupPrimarySsrc = fidSsrcs[0];
                     const fidGroupRtxSsrc = fidSsrcs[1];
+
                     expect(rtxMapping.has(fidGroupPrimarySsrc)).toBe(true);
                     expect(rtxMapping.get(fidGroupPrimarySsrc)).toEqual(fidGroupRtxSsrc);
                 });
@@ -265,24 +295,30 @@ describe('RtxModifier', () => {
             it('should handle a recvonly video mline', function() {
                 const sdp = SampleSdpStrings.plainVideoSdp;
                 const videoMLine = sdp.media.find(m => m.type === 'video');
+
                 videoMLine.direction = 'recvonly';
                 const newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(sdp));
+
                 expect(newSdpStr).toEqual(this.transform.write(sdp));
             });
 
             it('should handle an inactive video mline', function() {
                 const sdp = SampleSdpStrings.plainVideoSdp;
                 const videoMLine = sdp.media.find(m => m.type === 'video');
+
                 videoMLine.direction = 'inactive';
                 const newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(sdp));
+
                 expect(newSdpStr).toEqual(this.transform.write(sdp));
             });
 
             it('should handle a video mline with no video ssrcs', function() {
                 const sdp = SampleSdpStrings.plainVideoSdp;
                 const videoMLine = sdp.media.find(m => m.type === 'video');
+
                 videoMLine.ssrcs = [];
                 const newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(sdp));
+
                 expect(newSdpStr).toEqual(this.transform.write(sdp));
             });
         });
@@ -295,12 +331,14 @@ describe('RtxModifier', () => {
             const newSdpStr = this.rtxModifier.stripRtx(sdpStr);
             const newSdp = transform.parse(newSdpStr);
             const fidGroups = getVideoGroups(newSdp, 'FID');
+
             expect(fidGroups.length).toEqual(0);
             expect(numVideoSsrcs(newSdp)).toEqual(1);
         });
         it('should do nothing to an sdp with no rtx', function() {
             const sdpStr = transform.write(SampleSdpStrings.plainVideoSdp);
             const newSdpStr = this.rtxModifier.stripRtx(sdpStr);
+
             expect(newSdpStr).toEqual(sdpStr);
         });
     });

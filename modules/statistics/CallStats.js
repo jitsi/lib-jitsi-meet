@@ -1,6 +1,7 @@
 /* global $, Strophe, callstats */
 const logger = require('jitsi-meet-logger').getLogger(__filename);
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
+
 import Settings from '../settings/Settings';
 
 const jsSHA = require('jssha');
@@ -62,6 +63,7 @@ function initCallback(err, msg) {
     // there is no lib, nothing to report to
     if (err !== 'success') {
         CallStats.initializeFailed = true;
+
         return;
     }
 
@@ -76,6 +78,7 @@ function initCallback(err, msg) {
     if(!fabricInitialized) {
         CallStats.initializeFailed = true;
         logger.log('callstats fabric not initilized', ret.message);
+
         return;
     }
 
@@ -88,6 +91,7 @@ function initCallback(err, msg) {
         CallStats.reportsQueue.forEach(function(report) {
             if (report.type === reportType.ERROR) {
                 const error = report.data;
+
                 CallStats._reportError.call(this, error.type, error.error,
                     error.pc);
             } else if (report.type === reportType.EVENT
@@ -95,6 +99,7 @@ function initCallback(err, msg) {
                 // if we have and event to report and we failed to add fabric
                 // this event will not be reported anyway, returning an error
                 const eventData = report.data;
+
                 callStats.sendFabricEvent(
                     this.peerconnection,
                     eventData.event,
@@ -102,6 +107,7 @@ function initCallback(err, msg) {
                     eventData.eventData);
             } else if (report.type === reportType.MST_WITH_USERID) {
                 const data = report.data;
+
                 callStats.associateMstWithUserID(
                     this.peerconnection,
                     data.callStatsId,

@@ -6,6 +6,7 @@
 
 import {getLogger} from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
+
 import ChatRoom from './ChatRoom';
 import {ConnectionPluginListenable} from './ConnectionPlugin';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
@@ -34,8 +35,10 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
 
     createRoom(jid, password, options) {
         const roomJid = Strophe.getBareJidFromJid(jid);
+
         if (this.rooms[roomJid]) {
             const errmsg = 'You are already in the room!';
+
             logger.error(errmsg);
             throw new Error(errmsg);
         }
@@ -43,6 +46,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
             password, this.xmpp, options);
         this.eventEmitter.emit(
             XMPPEvents.EMUC_ROOM_ADDED, this.rooms[roomJid]);
+
         return this.rooms[roomJid];
     }
 
@@ -61,6 +65,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         }
 
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
+
         if(!room) {
             return;
         }
@@ -79,22 +84,26 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
     onPresenceUnavailable(pres) {
         const from = pres.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
+
         if(!room) {
             return;
         }
 
         room.onPresenceUnavailable(pres, from);
+
         return true;
     }
 
     onPresenceError(pres) {
         const from = pres.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
+
         if(!room) {
             return;
         }
 
         room.onPresenceError(pres, from);
+
         return true;
     }
 
@@ -102,22 +111,26 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         // FIXME: this is a hack. but jingle on muc makes nickchanges hard
         const from = msg.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
+
         if(!room) {
             return;
         }
 
         room.onMessage(msg, from);
+
         return true;
     }
 
     onMute(iq) {
         const from = iq.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
+
         if(!room) {
             return;
         }
 
         room.onMute(iq);
+
         return true;
     }
 }

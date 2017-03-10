@@ -3,6 +3,7 @@
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 const logger = require('jitsi-meet-logger').getLogger(__filename);
 const RTCBrowserType = require('../RTC/RTCBrowserType');
+
 import * as StatisticsEvents from '../../service/statistics/Events';
 
 /* Whether we support the browser we are running into for logging statistics */
@@ -15,6 +16,7 @@ const browserSupported = RTCBrowserType.isChrome()
  * by RTCPeerConnection#getStats mapped by RTCBrowserType.
  */
 const KEYS_BY_BROWSER_TYPE = {};
+
 KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_FIREFOX] = {
     'ssrc': 'ssrc',
     'packetsReceived': 'packetsReceived',
@@ -67,6 +69,7 @@ function calculatePacketLoss(lostPackets, totalPackets) {
     if(!totalPackets || totalPackets <= 0 || !lostPackets || lostPackets <= 0) {
         return 0;
     }
+
     return Math.round((lostPackets / totalPackets) * 100);
 }
 
@@ -180,6 +183,7 @@ function StatsCollector(
      */
     this._browserType = RTCBrowserType.getBrowserType();
     const keys = KEYS_BY_BROWSER_TYPE[this._browserType];
+
     if (!keys) {
         throw `The browser type '${this._browserType}' isn't supported!`;
     }
@@ -242,6 +246,7 @@ StatsCollector.prototype.errorCallback = function(error) {
  */
 StatsCollector.prototype.start = function(startAudioLevelStats) {
     const self = this;
+
     if(startAudioLevelStats) {
         this.audioLevelsIntervalId = setInterval(
             () => {
@@ -249,6 +254,7 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                 self.peerconnection.getStats(
                     report => {
                         let results = null;
+
                         if (!report || !report.result
                             || typeof report.result != 'function') {
                             results = report;
@@ -274,6 +280,7 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                 self.peerconnection.getStats(
                     report => {
                         let results = null;
+
                         if (!report || !report.result
                             || typeof report.result != 'function') {
                             // firefox
@@ -314,6 +321,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
     // RTCPeerConnection#getStats.
     const keyFromName = function(name) {
         const key = keys[name];
+
         if (key) {
             return key;
         }
@@ -325,6 +333,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
     // returned by RTCPeerConnection#getStats associated with a given
     // browser-specific key.
     let itemStatByKey;
+
     switch (this._browserType) {
     case RTCBrowserType.RTC_BROWSER_CHROME:
     case RTCBrowserType.RTC_BROWSER_OPERA:
@@ -345,14 +354,18 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
         // Array in which each element is a key-value pair.
         itemStatByKey = function(item, key) {
             let value;
+
             item.values.some(pair => {
                 if (pair.hasOwnProperty(key)) {
                     value = pair[key];
+
                     return true;
                 }
+
                 return false;
 
             });
+
             return value;
         };
         break;
@@ -379,8 +392,10 @@ StatsCollector.prototype.processStatsReport = function() {
     }
 
     const getStatValue = this._getStatValue;
+
     function getNonNegativeStat(report, name) {
         let value = getStatValue(report, name);
+
         if (typeof value !== 'number') {
             value = Number(value);
         }
@@ -398,9 +413,11 @@ StatsCollector.prototype.processStatsReport = function() {
             continue;
         }
         const now = this.currentStatsReport[idx];
+
         try {
             const receiveBandwidth = getStatValue(now, 'receiveBandwidth');
             const sendBandwidth = getStatValue(now, 'sendBandwidth');
+
             if (receiveBandwidth || sendBandwidth) {
                 this.conferenceStats.bandwidth = {
                     'download': Math.round(receiveBandwidth / 1000),
@@ -411,6 +428,7 @@ StatsCollector.prototype.processStatsReport = function() {
 
         if(now.type == 'googCandidatePair') {
             let active, ip, localip, type;
+
             try {
                 ip = getStatValue(now, 'remoteAddress');
                 type = getStatValue(now, 'transportType');
@@ -422,6 +440,7 @@ StatsCollector.prototype.processStatsReport = function() {
             }
             // Save the address unless it has been saved already.
             const conferenceStatsTransport = this.conferenceStats.transport;
+
             if(!conferenceStatsTransport.some(
                     t =>
                         t.ip == ip && t.type == type && t.localip == localip)) {
@@ -437,6 +456,7 @@ StatsCollector.prototype.processStatsReport = function() {
 
             const local = this.currentStatsReport[now.localCandidateId];
             const remote = this.currentStatsReport[now.remoteCandidateId];
+
             this.conferenceStats.transport.push({
                 ip: `${remote.ipAddress}:${remote.portNumber}`,
                 type: local.transport,
@@ -451,6 +471,7 @@ StatsCollector.prototype.processStatsReport = function() {
 
         const before = this.previousStatsReport[idx];
         const ssrc = getStatValue(now, 'ssrc');
+
         if (!before || !ssrc) {
             continue;
         }
@@ -461,6 +482,7 @@ StatsCollector.prototype.processStatsReport = function() {
         let isDownloadStream = true;
         let key = 'packetsReceived';
         let packetsNow = getStatValue(now, key);
+
         if (typeof packetsNow === 'undefined'
             || packetsNow === null || packetsNow === '') {
             isDownloadStream = false;
@@ -496,6 +518,7 @@ StatsCollector.prototype.processStatsReport = function() {
 
         // TODO: clean this mess up!
         let nowBytesTransmitted = getStatValue(now, 'bytesSent');
+
         if(typeof nowBytesTransmitted === 'number'
             || typeof nowBytesTransmitted === 'string') {
             nowBytesTransmitted = Number(nowBytesTransmitted);
@@ -511,6 +534,7 @@ StatsCollector.prototype.processStatsReport = function() {
 
         const timeMs = now.timestamp - before.timestamp;
         let bitrateReceivedKbps = 0, bitrateSentKbps = 0;
+
         if (timeMs > 0) {
             // TODO is there any reason to round here?
             bitrateReceivedKbps = Math.round((bytesReceived * 8) / timeMs);
@@ -523,8 +547,10 @@ StatsCollector.prototype.processStatsReport = function() {
         });
 
         const resolution = {height: null, width: null};
+
         try {
             let height, width;
+
             if ((height = getStatValue(now, 'googFrameHeightReceived'))
                 && (width = getStatValue(now, 'googFrameWidthReceived'))) {
                 resolution.height = height;
@@ -555,12 +581,14 @@ StatsCollector.prototype.processStatsReport = function() {
     let bitrateDownload = 0;
     let bitrateUpload = 0;
     const resolutions = {};
+
     Object.keys(this.ssrc2stats).forEach(
         function(ssrc) {
             const ssrcStats = this.ssrc2stats[ssrc];
             // process packet loss stats
             const loss = ssrcStats.loss;
             const type = loss.isDownloadStream ? 'download' : 'upload';
+
             totalPackets[type] += loss.packetsTotal;
             lostPackets[type] += loss.packetsLost;
 
@@ -616,12 +644,14 @@ StatsCollector.prototype.processAudioLevelReport = function() {
         }
 
         const now = this.currentAudioLevelsReport[idx];
+
         if (now.type != 'ssrc') {
             continue;
         }
 
         const before = this.baselineAudioLevelsReport[idx];
         const ssrc = getStatValue(now, 'ssrc');
+
         if (!before) {
             logger.warn(`${ssrc} not enough data`);
             continue;
@@ -644,6 +674,7 @@ StatsCollector.prototype.processAudioLevelReport = function() {
         } catch(e) {/* not supported*/
             logger.warn('Audio Levels are not available in the statistics.');
             clearInterval(this.audioLevelsIntervalId);
+
             return;
         }
 

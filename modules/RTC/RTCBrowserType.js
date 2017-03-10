@@ -34,11 +34,13 @@ const RTCBrowserType = {
      */
     getBrowserName() {
         let browser;
+
         if (RTCBrowserType.isAndroid()) {
             browser = 'android';
         } else {
             browser = currentBrowser.split('rtc_browser.')[1];
         }
+
         return browser;
     },
 
@@ -199,20 +201,27 @@ function detectChrome() {
         // We can assume that user agent is chrome, because it's
         // enforced when 'ext' streaming method is set
         const ver = parseInt(userAgent.match(/chrome\/(\d+)\./)[1], 10);
+
         logger.log(`This appears to be Chrome, ver: ${ver}`);
+
         return ver;
     }
+
     return null;
 }
 
 function detectOpera() {
     const userAgent = navigator.userAgent;
+
     if (userAgent.match(/Opera|OPR/)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_OPERA;
         const version = userAgent.match(/(Opera|OPR) ?\/?(\d+)\.?/)[2];
+
         logger.info(`This appears to be Opera, ver: ${version}`);
+
         return version;
     }
+
     return null;
 }
 
@@ -221,9 +230,12 @@ function detectFirefox() {
         currentBrowser = RTCBrowserType.RTC_BROWSER_FIREFOX;
         const version = parseInt(
             navigator.userAgent.match(/Firefox\/([0-9]+)\./)[1], 10);
+
         logger.log(`This appears to be Firefox, ver: ${version}`);
+
         return version;
     }
+
     return null;
 }
 
@@ -231,9 +243,11 @@ function detectSafari() {
     if (/^((?!chrome).)*safari/i.test(navigator.userAgent)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_SAFARI;
         logger.info('This appears to be Safari');
+
         // FIXME detect Safari version when needed
         return 1;
     }
+
     return null;
 }
 
@@ -242,19 +256,23 @@ function detectIE() {
     const ua = window.navigator.userAgent;
 
     const msie = ua.indexOf('MSIE ');
+
     if (msie > 0) {
         // IE 10 or older => return version number
         version = parseInt(ua.substring(msie + 5, ua.indexOf('.', msie)), 10);
     }
 
     const trident = ua.indexOf('Trident/');
+
     if (!version && trident > 0) {
         // IE 11 => return version number
         const rv = ua.indexOf('rv:');
+
         version = parseInt(ua.substring(rv + 3, ua.indexOf('.', rv)), 10);
     }
 
     const edge = ua.indexOf('Edge/');
+
     if (!version && edge > 0) {
         // IE 12 => return version number
         version = parseInt(ua.substring(edge + 5, ua.indexOf('.', edge)), 10);
@@ -264,6 +282,7 @@ function detectIE() {
         currentBrowser = RTCBrowserType.RTC_BROWSER_IEXPLORER;
         logger.info(`This appears to be IExplorer, ver: ${version}`);
     }
+
     return version;
 }
 
@@ -272,23 +291,31 @@ function detectIE() {
  */
 function detectElectron() {
     const userAgent = navigator.userAgent;
+
     if (userAgent.match(/Electron/)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_ELECTRON;
         const version = userAgent.match(/Electron\/([\d.]+)/)[1];
+
         logger.info(`This appears to be Electron, ver: ${version}`);
+
         return version;
     }
+
     return null;
 }
 
 function detectNWJS() {
     const userAgent = navigator.userAgent;
+
     if (userAgent.match(/JitsiMeetNW/)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_NWJS;
         const version = userAgent.match(/JitsiMeetNW\/([\d.]+)/)[1];
+
         logger.info(`This appears to be JitsiMeetNW, ver: ${version}`);
+
         return version;
     }
+
     return null;
 }
 
@@ -299,9 +326,11 @@ function detectReactNative() {
     // If we're remote debugging a React Native app, it may be treated as
     // Chrome. Check navigator.product as well and always return some version
     // even if we can't get the real one.
+
     if (match || navigator.product === 'ReactNative') {
         currentBrowser = RTCBrowserType.RTC_BROWSER_REACT_NATIVE;
         let name;
+
         if (match && match.length > 2) {
             name = match[1];
             version = match[2];
@@ -313,6 +342,7 @@ function detectReactNative() {
         // We're not running in a React Native environment.
         version = null;
     }
+
     return version;
 }
 
@@ -329,6 +359,7 @@ function detectBrowser() {
         detectSafari
     ];
     // Try all browser detectors
+
     for (let i = 0; i < detectors.length; i++) {
         version = detectors[i]();
         if (version) {
@@ -337,6 +368,7 @@ function detectBrowser() {
     }
     logger.warn('Browser type defaults to Safari ver 1');
     currentBrowser = RTCBrowserType.RTC_BROWSER_SAFARI;
+
     return 1;
 }
 

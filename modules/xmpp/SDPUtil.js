@@ -1,5 +1,6 @@
 import {getLogger} from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
+
 import RandomUtil from '../util/RandomUtil';
 const RTCBrowserType = require('../RTC/RTCBrowserType');
 
@@ -12,6 +13,7 @@ const SDPUtil = {
     iceparams(mediadesc, sessiondesc) {
         let data = null;
         let pwd, ufrag;
+
         if ((ufrag = SDPUtil.find_line(mediadesc, 'a=ice-ufrag:', sessiondesc))
                 && (pwd = SDPUtil.find_line(mediadesc, 'a=ice-pwd:', sessiondesc))) {
             data = {
@@ -19,6 +21,7 @@ const SDPUtil = {
                 pwd: SDPUtil.parse_icepwd(pwd)
             };
         }
+
         return data;
     },
     parse_iceufrag(line) {
@@ -47,6 +50,7 @@ const SDPUtil = {
             parts.pop();
         }
         data.fmt = parts;
+
         return data;
     },
     build_mline(mline) {
@@ -61,6 +65,7 @@ const SDPUtil = {
         data.name = parts.shift();
         data.clockrate = parts.shift();
         data.channels = parts.length ? parts.shift() : '1';
+
         return data;
     },
     /**
@@ -74,13 +79,17 @@ const SDPUtil = {
         const protocol = parts[1];
         // Stream count is optional
         const streamCount = parts.length > 2 ? parts[2] : null;
+
+
         return [sctpPort, protocol, streamCount];// SCTP port
     },
     build_rtpmap(el) {
         let line = `a=rtpmap:${el.getAttribute('id')} ${el.getAttribute('name')}/${el.getAttribute('clockrate')}`;
+
         if (el.getAttribute('channels') && el.getAttribute('channels') != '1') {
             line += `/${el.getAttribute('channels')}`;
         }
+
         return line;
     },
     parse_crypto(line) {
@@ -93,6 +102,7 @@ const SDPUtil = {
         if (parts.length) {
             data['session-params'] = parts.join(' ');
         }
+
         return data;
     },
     parse_fingerprint(line) { // RFC 4572
@@ -101,6 +111,7 @@ const SDPUtil = {
 
         data.hash = parts.shift();
         data.fingerprint = parts.shift();
+
         // TODO assert that fingerprint satisfies 2UHEX *(":" 2UHEX) ?
         return data;
     },
@@ -112,10 +123,12 @@ const SDPUtil = {
         parts = parts.join(' ').split(';');
         for (let i = 0; i < parts.length; i++) {
             let key = parts[i].split('=')[0];
+
             while (key.length && key[0] == ' ') {
                 key = key.substring(1);
             }
             const value = parts[i].split('=')[1];
+
             if (key && value) {
                 data.push({name: key, value});
             } else if (key) {
@@ -123,6 +136,7 @@ const SDPUtil = {
                 data.push({name: '', value: key});
             }
         }
+
         return data;
     },
     parse_icecandidate(line) {
@@ -157,11 +171,16 @@ const SDPUtil = {
             }
         }
         candidate.network = '1';
-        candidate.id = Math.random().toString(36).substr(2, 10); // not applicable to SDP -- FIXME: should be unique, not just random
+
+        // not applicable to SDP -- FIXME: should be unique, not just random
+        // eslint-disable-next-line newline-per-chained-call
+        candidate.id = Math.random().toString(36).substr(2, 10);
+
         return candidate;
     },
     build_icecandidate(cand) {
         let line = [`a=candidate:${cand.foundation}`, cand.component, cand.protocol, cand.priority, cand.ip, cand.port, 'typ', cand.type].join(' ');
+
         line += ' ';
         switch (cand.type) {
         case 'srflx':
@@ -188,6 +207,7 @@ const SDPUtil = {
         line += 'generation';
         line += ' ';
         line += cand.hasOwnAttribute('generation') ? cand.generation : '0';
+
         return line;
     },
     parse_ssrc(desc) {
@@ -200,22 +220,27 @@ const SDPUtil = {
         for (let i = 0; i < lines.length; i++) {
             if (lines[i].substring(0, 7) == 'a=ssrc:') {
                 const idx = lines[i].indexOf(' ');
+
                 data[lines[i].substr(idx + 1).split(':', 2)[0]] = lines[i].substr(idx + 1).split(':', 2)[1];
             }
         }
+
         return data;
     },
     parse_rtcpfb(line) {
         const parts = line.substr(10).split(' ');
         const data = {};
+
         data.pt = parts.shift();
         data.type = parts.shift();
         data.params = parts;
+
         return data;
     },
     parse_extmap(line) {
         const parts = line.substr(9).split(' ');
         const data = {};
+
         data.value = parts.shift();
         if (data.value.indexOf('/') === -1) {
             data.direction = 'both';
@@ -225,10 +250,12 @@ const SDPUtil = {
         }
         data.uri = parts.shift();
         data.params = parts;
+
         return data;
     },
     find_line(haystack, needle, sessionpart) {
         let lines = haystack.split('\r\n');
+
         for (let i = 0; i < lines.length; i++) {
             if (lines[i].substring(0, needle.length) == needle) {
                 return lines[i];
@@ -244,6 +271,7 @@ const SDPUtil = {
                 return lines[j];
             }
         }
+
         return false;
     },
     find_lines(haystack, needle, sessionpart) {
@@ -265,6 +293,7 @@ const SDPUtil = {
                 needles.push(lines[j]);
             }
         }
+
         return needles;
     },
     candidateToJingle(line) {
@@ -275,6 +304,7 @@ const SDPUtil = {
         } else if (line.substring(0, 12) != 'a=candidate:') {
             logger.log('parseCandidate called with a line that is not a candidate line');
             logger.log(line);
+
             return null;
         }
         if (line.substring(line.length - 2) == '\r\n') {// chomp it
@@ -286,6 +316,7 @@ const SDPUtil = {
         if (elems[6] != 'typ') {
             logger.log('did not find typ in the right place');
             logger.log(line);
+
             return null;
         }
         candidate.foundation = elems[0].substring(12);
@@ -317,11 +348,16 @@ const SDPUtil = {
             }
         }
         candidate.network = '1';
-        candidate.id = Math.random().toString(36).substr(2, 10); // not applicable to SDP -- FIXME: should be unique, not just random
+
+        // not applicable to SDP -- FIXME: should be unique, not just random
+        // eslint-disable-next-line newline-per-chained-call
+        candidate.id = Math.random().toString(36).substr(2, 10);
+
         return candidate;
     },
     candidateFromJingle(cand) {
         let line = 'a=candidate:';
+
         line += cand.getAttribute('foundation');
         line += ' ';
         line += cand.getAttribute('component');
@@ -329,6 +365,7 @@ const SDPUtil = {
 
         let protocol = cand.getAttribute('protocol');
         // use tcp candidates for FF
+
         if (RTCBrowserType.isFirefox() && protocol.toLowerCase() == 'ssltcp') {
             protocol = 'tcp';
         }
@@ -369,6 +406,7 @@ const SDPUtil = {
         line += 'generation';
         line += ' ';
         line += cand.getAttribute('generation') || '0';
+
         return `${line}\r\n`;
     },
 
@@ -384,11 +422,13 @@ const SDPUtil = {
             .length;
         const numGroups
             = (videoMLine.ssrcGroups && videoMLine.ssrcGroups.length) || 0;
+
         if (numSsrcs > 1 && numGroups === 0) {
             // Ambiguous, can't figure out the primary
             return;
         }
         let primarySsrc = null;
+
         if (numSsrcs === 1) {
             primarySsrc = videoMLine.ssrcs[0].id;
         } else if (numSsrcs === 2) {
@@ -396,6 +436,7 @@ const SDPUtil = {
             const fidGroup
                 = videoMLine.ssrcGroups.find(
                     group => group.semantics === 'FID');
+
             if (fidGroup) {
                 primarySsrc = fidGroup.ssrcs.split(' ')[0];
             }
@@ -404,10 +445,12 @@ const SDPUtil = {
             const simGroup
                 = videoMLine.ssrcGroups.find(
                     group => group.semantics === 'SIM');
+
             if (simGroup) {
                 primarySsrc = simGroup.ssrcs.split(' ')[0];
             }
         }
+
         return primarySsrc;
     },
 
@@ -431,6 +474,7 @@ const SDPUtil = {
     getSsrcAttribute(mLine, ssrc, attributeName) {
         for (let i = 0; i < mLine.ssrcs.length; ++i) {
             const ssrcLine = mLine.ssrcs[i];
+
             if (ssrcLine.id === ssrc
                 && ssrcLine.attribute === attributeName) {
                 return ssrcLine.value;
@@ -475,8 +519,10 @@ const SDPUtil = {
      */
     preferVideoCodec(videoMLine, codecName) {
         let payloadType = null;
+
         for (let i = 0; i < videoMLine.rtp.length; ++i) {
             const rtp = videoMLine.rtp[i];
+
             if (rtp.codec === codecName) {
                 payloadType = rtp.payload;
                 break;
@@ -485,6 +531,7 @@ const SDPUtil = {
         if (payloadType) {
             const payloadTypes = videoMLine.payloads.split(' ').map(p => parseInt(p));
             const payloadIndex = payloadTypes.indexOf(payloadType);
+
             payloadTypes.splice(payloadIndex, 1);
             payloadTypes.unshift(payloadType);
             videoMLine.payloads = payloadTypes.join(' ');

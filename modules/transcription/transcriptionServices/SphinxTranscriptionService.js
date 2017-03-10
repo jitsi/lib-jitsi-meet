@@ -33,6 +33,7 @@ SphinxService.prototype.sendRequest = function(audioFileBlob, callback) {
     console.log(`sending an audio file  to ${this.url}`);
     console.log(`the audio file being sent: ${audioFileBlob}`);
     const request = new XMLHttpRequest();
+
     request.onreadystatechange = function() {
         if(request.readyState === XMLHttpRequest.DONE
             && request.status === 200) {
@@ -61,12 +62,15 @@ SphinxService.prototype.formatResponse = function(response) {
     const result = JSON.parse(response).objects;
     // make sure to delete the session id object, which is always
     // the first value in the JSON array
+
     result.shift();
     const array = [];
+
     result.forEach(
         word =>
             word.filler
                 || array.push(new Word(word.word, word.start, word.end)));
+
     return array;
 };
 
@@ -83,10 +87,12 @@ SphinxService.prototype.verify = function(response) {
     }
     // test if the string can be parsed into valid JSON
     let json;
+
     try{
         json = JSON.parse(response);
     } catch (error) {
         console.log(error);
+
         return false;
     }
     // check if the JSON has a "objects" value
@@ -95,9 +101,11 @@ SphinxService.prototype.verify = function(response) {
     }
     // get the "objects" value and check for a session ID
     const array = json.objects;
+
     if(!(array[0] && array[0]['session-id'])) {
         return false;
     }
+
     // everything seems to be in order
     return true;
 };
@@ -110,10 +118,12 @@ SphinxService.prototype.verify = function(response) {
  */
 function getURL() {
     const message = 'config does not contain an url to a Sphinx4 https server';
+
     if(config.sphinxURL === undefined) {
         console.log(message);
     } else {
         const toReturn = config.sphinxURL;
+
         if(toReturn.includes !== undefined && toReturn.includes('https://')) {
             return toReturn;
         }

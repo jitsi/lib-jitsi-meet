@@ -73,6 +73,7 @@ export default class JingleSession {
             const errmsg
                 = `attempt to initiate on session ${this.sid}
                    in state ${this.state}`;
+
             logger.error(errmsg);
             throw new Error(errmsg);
         }

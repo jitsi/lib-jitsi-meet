@@ -52,4 +52,5 @@ const Resolutions = {
         order: 1
     }
 };
+
 module.exports = Resolutions;

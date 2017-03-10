@@ -156,4 +156,5 @@ const XMPPEvents = {
     // changed.
     ICE_CONNECTION_STATE_CHANGED: 'xmpp.ice_connection_state_changed'
 };
+
 module.exports = XMPPEvents;

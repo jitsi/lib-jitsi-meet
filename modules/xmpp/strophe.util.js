@@ -4,6 +4,7 @@
  */
 import {getLogger} from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
+
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
 /**
@@ -68,6 +69,7 @@ export default function() {
         case Strophe.LogLevel.WARN:
             logger.warn(`Strophe: ${msg}`);
             const errStatusCapture = lastErrorStatusRegExpr.exec(msg);
+
             if (errStatusCapture && errStatusCapture.length === 2) {
                 lastErrorStatus = parseInt(errStatusCapture[1]);
                 logger.debug(
