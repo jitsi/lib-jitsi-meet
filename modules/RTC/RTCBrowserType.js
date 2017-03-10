@@ -176,14 +176,6 @@ const RTCBrowserType = {
     },
 
     /**
-     * Whether the browser is running on an android device.
-     * @returns {boolean}
-     */
-    isAndroid() {
-        return isAndroid;
-    },
-
-    /**
      * Whether jitsi-meet supports simulcast on the current browser.
      * @returns {boolean}
      */
