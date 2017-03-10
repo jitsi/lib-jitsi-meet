@@ -139,7 +139,8 @@ function setResolutionConstraints(constraints, resolution) {
  * @param {bool} firefox_fake_device
  */
 function getConstraints(um, options) {
-    const constraints = { audio: false, video: false };
+    const constraints = { audio: false,
+        video: false };
 
     // Don't mix new and old style settings for Chromium as this leads
     // to TypeError in new Chromium versions. @see
@@ -155,7 +156,8 @@ function getConstraints(um, options) {
 
     if (um.indexOf('video') >= 0) {
         // same behaviour as true
-        constraints.video = { mandatory: {}, optional: [] };
+        constraints.video = { mandatory: {},
+            optional: [] };
 
         if (options.cameraDeviceId) {
             if (isNewStyleConstraintsSupported) {
@@ -214,7 +216,8 @@ function getConstraints(um, options) {
             }
         } else {
             // same behaviour as true
-            constraints.audio = { mandatory: {}, optional: [] };
+            constraints.audio = { mandatory: {},
+                optional: [] };
             if (options.micDeviceId) {
                 if (isNewStyleConstraintsSupported) {
                     // New style of setting device id.
@@ -287,7 +290,8 @@ function getConstraints(um, options) {
     if (options.bandwidth) {
         if (!constraints.video) {
             // same behaviour as true
-            constraints.video = { mandatory: {}, optional: [] };
+            constraints.video = { mandatory: {},
+                optional: [] };
         }
         constraints.video.optional.push({ bandwidth: options.bandwidth });
     }
@@ -671,7 +675,8 @@ function wrapAttachMediaStream(origAttachMediaStream) {
                     const err = new JitsiTrackError(ex, null, [ 'audiooutput' ]);
 
                     GlobalOnErrorHandler.callUnhandledRejectionHandler(
-                        { promise: this, reason: err });
+                        { promise: this,
+                            reason: err });
 
                     logger.warn('Failed to set audio output device for the '
                         + 'element. Default audio output device will be used '

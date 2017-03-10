@@ -113,7 +113,8 @@ Moderator.prototype.getFocusComponent = function() {
 
 Moderator.prototype.createConferenceIq = function() {
     // Generate create conference IQ
-    const elem = $iq({ to: this.getFocusComponent(), type: 'set' });
+    const elem = $iq({ to: this.getFocusComponent(),
+        type: 'set' });
 
     // Session Id used for authentication
     const sessionId = Settings.getSessionId();
@@ -433,7 +434,8 @@ Moderator.prototype.getLoginUrl = function(urlCallback, failureCallback) {
  * @param failureCb
  */
 Moderator.prototype._getLoginUrl = function(popup, urlCb, failureCb) {
-    const iq = $iq({ to: this.getFocusComponent(), type: 'get' });
+    const iq = $iq({ to: this.getFocusComponent(),
+        type: 'get' });
     const attrs = {
         xmlns: 'http://jitsi.org/protocol/focus',
         room: this.roomName,
@@ -481,7 +483,8 @@ Moderator.prototype.getPopupLoginUrl = function(urlCallback, failureCallback) {
 };
 
 Moderator.prototype.logout = function(callback) {
-    const iq = $iq({ to: this.getFocusComponent(), type: 'set' });
+    const iq = $iq({ to: this.getFocusComponent(),
+        type: 'set' });
     const sessionId = Settings.getSessionId();
 
     if (!sessionId) {

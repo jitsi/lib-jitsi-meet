@@ -20,12 +20,42 @@ const STATS_MESSAGE_TYPE = 'stats';
  * See media/engine/simulcast.ss from webrtc.org
  */
 const kSimulcastFormats = [
-    { width: 1920, height: 1080, layers: 3, max: 5000, target: 4000, min: 800 },
-    { width: 1280, height: 720, layers: 3, max: 2500, target: 2500, min: 600 },
-    { width: 960, height: 540, layers: 3, max: 900, target: 900, min: 450 },
-    { width: 640, height: 360, layers: 2, max: 700, target: 500, min: 150 },
-    { width: 480, height: 270, layers: 2, max: 450, target: 350, min: 150 },
-    { width: 320, height: 180, layers: 1, max: 200, target: 150, min: 30 }
+    { width: 1920,
+        height: 1080,
+        layers: 3,
+        max: 5000,
+        target: 4000,
+        min: 800 },
+    { width: 1280,
+        height: 720,
+        layers: 3,
+        max: 2500,
+        target: 2500,
+        min: 600 },
+    { width: 960,
+        height: 540,
+        layers: 3,
+        max: 900,
+        target: 900,
+        min: 450 },
+    { width: 640,
+        height: 360,
+        layers: 2,
+        max: 700,
+        target: 500,
+        min: 150 },
+    { width: 480,
+        height: 270,
+        layers: 2,
+        max: 450,
+        target: 350,
+        min: 150 },
+    { width: 320,
+        height: 180,
+        layers: 1,
+        max: 200,
+        target: 150,
+        min: 30 }
 ];
 
 /**

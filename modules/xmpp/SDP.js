@@ -177,7 +177,8 @@ SDP.prototype.toJingle = function(elem, thecreator) {
             tmp = lines[i].split(' ');
             const semantics = tmp.shift().substr(8);
 
-            elem.c('group', { xmlns: 'urn:xmpp:jingle:apps:grouping:0', semantics });
+            elem.c('group', { xmlns: 'urn:xmpp:jingle:apps:grouping:0',
+                semantics });
             for (j = 0; j < tmp.length; j++) {
                 elem.c('content', { name: tmp[j] }).up();
             }
@@ -199,7 +200,8 @@ SDP.prototype.toJingle = function(elem, thecreator) {
             ssrc = false;
         }
 
-        elem.c('content', { creator: thecreator, name: mline.media });
+        elem.c('content', { creator: thecreator,
+            name: mline.media });
         const amidline = SDPUtil.find_line(this.media[i], 'a=mid:');
 
         if (amidline) {
@@ -243,7 +245,8 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 
             if (ssrc) {
                 // new style mapping
-                elem.c('source', { ssrc, xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
+                elem.c('source', { ssrc,
+                    xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
                 // FIXME: group by ssrc and support multiple different ssrcs
                 const ssrclines = SDPUtil.find_lines(this.media[i], 'a=ssrc:');
 
@@ -255,7 +258,8 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                         if (linessrc != ssrc) {
                             elem.up();
                             ssrc = linessrc;
-                            elem.c('source', { ssrc, xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
+                            elem.c('source', { ssrc,
+                                xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
                         }
                         const kv = line.substr(idx + 1);
 
@@ -276,7 +280,8 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                     });
                 } else {
                     elem.up();
-                    elem.c('source', { ssrc, xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
+                    elem.c('source', { ssrc,
+                        xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
                     elem.c('parameter');
                     elem.attrs({
                         name: 'cname',
@@ -298,13 +303,16 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                     if (msid !== null) {
                         msid = SDPUtil.filter_special_chars(msid);
                         elem.c('parameter');
-                        elem.attrs({ name: 'msid', value: msid });
+                        elem.attrs({ name: 'msid',
+                            value: msid });
                         elem.up();
                         elem.c('parameter');
-                        elem.attrs({ name: 'mslabel', value: msid });
+                        elem.attrs({ name: 'mslabel',
+                            value: msid });
                         elem.up();
                         elem.c('parameter');
-                        elem.attrs({ name: 'label', value: msid });
+                        elem.attrs({ name: 'label',
+                            value: msid });
                         elem.up();
                     }
                 }
@@ -319,7 +327,8 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                     const ssrcs = line.substr(14 + semantics.length).split(' ');
 
                     if (ssrcs.length) {
-                        elem.c('ssrc-group', { semantics, xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
+                        elem.c('ssrc-group', { semantics,
+                            xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
                         ssrcs.forEach(ssrc => elem.c('source', { ssrc }).up());
                         elem.up();
                     }
@@ -464,10 +473,12 @@ SDP.prototype.rtcpFbToJingle = function(mediaindex, elem, payloadtype) { // XEP-
         const tmp = SDPUtil.parse_rtcpfb(line);
 
         if (tmp.type == 'trr-int') {
-            elem.c('rtcp-fb-trr-int', { xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0', value: tmp.params[0] });
+            elem.c('rtcp-fb-trr-int', { xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0',
+                value: tmp.params[0] });
             elem.up();
         } else {
-            elem.c('rtcp-fb', { xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0', type: tmp.type });
+            elem.c('rtcp-fb', { xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0',
+                type: tmp.type });
             if (tmp.params.length > 0) {
                 elem.attrs({ 'subtype': tmp.params[0] });
             }

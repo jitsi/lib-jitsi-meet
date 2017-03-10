@@ -212,7 +212,8 @@ export default class Caps extends Listenable {
         const node = caps.getAttribute('node');
         const oldVersion = this.jidToVersion[from];
 
-        this.jidToVersion[from] = { version, node };
+        this.jidToVersion[from] = { version,
+            node };
         if (oldVersion && oldVersion.version !== version) {
             this.eventEmitter.emit(XMPPEvents.PARTCIPANT_FEATURES_CHANGED,
                 from);

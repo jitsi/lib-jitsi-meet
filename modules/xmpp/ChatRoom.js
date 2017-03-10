@@ -93,7 +93,8 @@ export default class ChatRoom extends Listenable {
         this.noBridgeAvailable = false;
         this.options = options || {};
         this.moderator = new Moderator(this.roomjid, this.xmpp, this.eventEmitter,
-            { connection: this.xmpp.options, conference: this.options });
+            { connection: this.xmpp.options,
+                conference: this.options });
         this.initPresenceMap();
         this.lastPresences = {};
         this.phoneNumber = null;
@@ -180,7 +181,8 @@ export default class ChatRoom extends Listenable {
      */
     doLeave() {
         logger.log('do leave', this.myroomjid);
-        const pres = $pres({ to: this.myroomjid, type: 'unavailable' });
+        const pres = $pres({ to: this.myroomjid,
+            type: 'unavailable' });
 
         this.presMap.length = 0;
 
@@ -203,7 +205,8 @@ export default class ChatRoom extends Listenable {
     discoRoomInfo() {
       // https://xmpp.org/extensions/xep-0045.html#disco-roominfo
 
-        const getInfo = $iq({ type: 'get', to: this.roomjid })
+        const getInfo = $iq({ type: 'get',
+            to: this.roomjid })
         .c('query', { xmlns: Strophe.NS.DISCO_INFO });
 
         this.connection.sendIQ(getInfo, result => {
@@ -226,9 +229,11 @@ export default class ChatRoom extends Listenable {
     createNonAnonymousRoom() {
         // http://xmpp.org/extensions/xep-0045.html#createroom-reserved
 
-        const getForm = $iq({ type: 'get', to: this.roomjid })
+        const getForm = $iq({ type: 'get',
+            to: this.roomjid })
             .c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' })
-            .c('x', { xmlns: 'jabber:x:data', type: 'submit' });
+            .c('x', { xmlns: 'jabber:x:data',
+                type: 'submit' });
 
         const self = this;
 
@@ -244,10 +249,12 @@ export default class ChatRoom extends Listenable {
                 return;
             }
 
-            const formSubmit = $iq({ to: self.roomjid, type: 'set' })
+            const formSubmit = $iq({ to: self.roomjid,
+                type: 'set' })
                 .c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' });
 
-            formSubmit.c('x', { xmlns: 'jabber:x:data', type: 'submit' });
+            formSubmit.c('x', { xmlns: 'jabber:x:data',
+                type: 'submit' });
 
             formSubmit.c('field', { 'var': 'FORM_TYPE' })
                 .c('value')
@@ -477,7 +484,8 @@ export default class ChatRoom extends Listenable {
     }
 
     sendMessage(body, nickname) {
-        const msg = $msg({ to: this.roomjid, type: 'groupchat' });
+        const msg = $msg({ to: this.roomjid,
+            type: 'groupchat' });
 
         msg.c('body', body).up();
         if (nickname) {
@@ -488,7 +496,8 @@ export default class ChatRoom extends Listenable {
     }
 
     setSubject(subject) {
-        const msg = $msg({ to: this.roomjid, type: 'groupchat' });
+        const msg = $msg({ to: this.roomjid,
+            type: 'groupchat' });
 
         msg.c('subject', subject);
         this.connection.send(msg);
@@ -654,9 +663,11 @@ export default class ChatRoom extends Listenable {
     }
 
     kick(jid) {
-        const kickIQ = $iq({ to: this.roomjid, type: 'set' })
+        const kickIQ = $iq({ to: this.roomjid,
+            type: 'set' })
             .c('query', { xmlns: 'http://jabber.org/protocol/muc#admin' })
-            .c('item', { nick: Strophe.getResourceFromJid(jid), role: 'none' })
+            .c('item', { nick: Strophe.getResourceFromJid(jid),
+                role: 'none' })
             .c('reason').t('You have been kicked.').up().up().up();
 
         this.connection.sendIQ(
@@ -668,14 +679,17 @@ export default class ChatRoom extends Listenable {
     lockRoom(key, onSuccess, onError, onNotSupported) {
         // http://xmpp.org/extensions/xep-0045.html#roomconfig
         this.connection.sendIQ(
-            $iq({ to: this.roomjid, type: 'get' }).c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' }),
+            $iq({ to: this.roomjid,
+                type: 'get' }).c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' }),
             res => {
                 if ($(res).find('>query>x[xmlns="jabber:x:data"]>field[var="muc#roomconfig_roomsecret"]').length) {
                     const formsubmit
-                        = $iq({ to: this.roomjid, type: 'set' })
+                        = $iq({ to: this.roomjid,
+                            type: 'set' })
                             .c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' });
 
-                    formsubmit.c('x', { xmlns: 'jabber:x:data', type: 'submit' });
+                    formsubmit.c('x', { xmlns: 'jabber:x:data',
+                        type: 'submit' });
                     formsubmit.c('field', { 'var': 'FORM_TYPE' }).c('value').t('http://jabber.org/protocol/muc#roomconfig').up().up();
                     formsubmit.c('field', { 'var': 'muc#roomconfig_roomsecret' }).c('value').t(key).up().up();
                     // Fixes a bug in prosody 0.9.+ https://code.google.com/p/lxmppd/issues/detail?id=373
@@ -919,7 +933,8 @@ export default class ChatRoom extends Listenable {
     muteParticipant(jid, mute) {
         logger.info('set mute', mute);
         const iqToFocus = $iq(
-            { to: this.focusMucJid, type: 'set' })
+            { to: this.focusMucJid,
+                type: 'set' })
             .c('mute', {
                 xmlns: 'http://jitsi.org/jitmeet/audio',
                 jid

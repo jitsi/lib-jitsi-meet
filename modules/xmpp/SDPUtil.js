@@ -131,10 +131,12 @@ const SDPUtil = {
             const value = parts[i].split('=')[1];
 
             if (key && value) {
-                data.push({ name: key, value });
+                data.push({ name: key,
+                    value });
             } else if (key) {
                 // rfc 4733 (DTMF) style stuff
-                data.push({ name: '', value: key });
+                data.push({ name: '',
+                    value: key });
             }
         }
 

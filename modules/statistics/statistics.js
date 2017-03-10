@@ -443,7 +443,8 @@ Statistics.prototype.sendFeedback = function(overall, detailed) {
         this.callstats.sendFeedback(overall, detailed);
     }
     Statistics.analytics.sendEvent('feedback.rating',
-        { value: overall, detailed });
+        { value: overall,
+            detailed });
 };
 
 Statistics.LOCAL_JID = require('../../service/statistics/constants').LOCAL_JID;
@@ -468,7 +469,8 @@ Statistics.reportGlobalError = function(error) {
  */
 Statistics.sendEventToAll = function(eventName, data) {
     this.analytics.sendEvent(eventName, data);
-    Statistics.sendLog(JSON.stringify({ name: eventName, data }));
+    Statistics.sendLog(JSON.stringify({ name: eventName,
+        data }));
 };
 
 module.exports = Statistics;

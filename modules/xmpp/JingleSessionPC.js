@@ -267,7 +267,8 @@ export default class JingleSessionPC extends JingleSession {
 
     sendIceCandidates(candidates) {
         logger.log('sendIceCandidates', candidates);
-        const cand = $iq({ to: this.peerjid, type: 'set' })
+        const cand = $iq({ to: this.peerjid,
+            type: 'set' })
             .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
                 action: 'transport-info',
                 initiator: this.initiator,
@@ -542,7 +543,8 @@ export default class JingleSessionPC extends JingleSession {
      *        or when the request has timed out.
      */
     sendTransportAccept(localSDP, success, failure) {
-        let transportAccept = $iq({ to: this.peerjid, type: 'set' })
+        let transportAccept = $iq({ to: this.peerjid,
+            type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'transport-accept',
@@ -587,7 +589,8 @@ export default class JingleSessionPC extends JingleSession {
     sendTransportReject(success, failure) {
         // Send 'transport-reject', so that the focus will
         // know that we've failed
-        let transportReject = $iq({ to: this.peerjid, type: 'set' })
+        let transportReject = $iq({ to: this.peerjid,
+            type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'transport-reject',
@@ -610,7 +613,8 @@ export default class JingleSessionPC extends JingleSession {
     terminate(reason, text, success, failure) {
         this.state = JingleSessionState.ENDED;
 
-        let sessionTerminate = $iq({ to: this.peerjid, type: 'set' })
+        let sessionTerminate = $iq({ to: this.peerjid,
+            type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'session-terminate',
@@ -1322,7 +1326,8 @@ export default class JingleSessionPC extends JingleSession {
 
         // send source-remove IQ.
         let sdpDiffer = new SDPDiffer(new_sdp, old_sdp);
-        const remove = $iq({ to: this.peerjid, type: 'set' })
+        const remove = $iq({ to: this.peerjid,
+            type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'source-remove',
@@ -1348,7 +1353,8 @@ export default class JingleSessionPC extends JingleSession {
 
         // send source-add IQ.
         sdpDiffer = new SDPDiffer(old_sdp, new_sdp);
-        const add = $iq({ to: this.peerjid, type: 'set' })
+        const add = $iq({ to: this.peerjid,
+            type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'source-add',

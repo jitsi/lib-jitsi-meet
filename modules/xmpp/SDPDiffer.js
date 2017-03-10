@@ -124,7 +124,8 @@ SDPDiffer.prototype.toJingle = function(modify) {
         modify.c('content', { name: media.mid });
 
         modify.c('description',
-                 { xmlns: 'urn:xmpp:jingle:apps:rtp:1', media: media.mid });
+            { xmlns: 'urn:xmpp:jingle:apps:rtp:1',
+                media: media.mid });
         // FIXME: not completely sure this operates on blocks and / or handles
         // different ssrcs correctly
         // generate sources from lines

@@ -192,7 +192,8 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         // TODO: implement refresh via updateIce as described in
         //      https://code.google.com/p/webrtc/issues/detail?id=1650
         this.connection.sendIQ(
-            $iq({ type: 'get', to: this.connection.domain })
+            $iq({ type: 'get',
+                to: this.connection.domain })
                 .c('services', { xmlns: 'urn:xmpp:extdisco:1' })
                 .c('service', { host: `turn.${this.connection.domain}` }),
             res => {

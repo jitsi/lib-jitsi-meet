@@ -444,7 +444,9 @@ StatsCollector.prototype.processStatsReport = function() {
             if (!conferenceStatsTransport.some(
                     t =>
                         t.ip == ip && t.type == type && t.localip == localip)) {
-                conferenceStatsTransport.push({ ip, type, localip });
+                conferenceStatsTransport.push({ ip,
+                    type,
+                    localip });
             }
             continue;
         }
@@ -546,7 +548,8 @@ StatsCollector.prototype.processStatsReport = function() {
             'upload': bitrateSentKbps
         });
 
-        const resolution = { height: null, width: null };
+        const resolution = { height: null,
+            width: null };
 
         try {
             let height, width;
@@ -607,7 +610,8 @@ StatsCollector.prototype.processStatsReport = function() {
     this.eventEmitter.emit(StatisticsEvents.BYTE_SENT_STATS, byteSentStats);
 
     this.conferenceStats.bitrate
-      = { 'upload': bitrateUpload, 'download': bitrateDownload };
+      = { 'upload': bitrateUpload,
+          'download': bitrateDownload };
 
     this.conferenceStats.packetLoss = {
         total:

@@ -363,7 +363,8 @@ CallStats._reportEvent = function(event, eventData) {
     } else {
         CallStats.reportsQueue.push({
             type: reportType.EVENT,
-            data: { event, eventData }
+            data: { event,
+                eventData }
         });
         CallStats._checkInitialize();
     }
@@ -428,7 +429,9 @@ CallStats._reportError = function(type, e, pc) {
     } else {
         CallStats.reportsQueue.push({
             type: reportType.ERROR,
-            data: { type, error: e, pc }
+            data: { type,
+                error: e,
+                pc }
         });
         CallStats._checkInitialize();
     }

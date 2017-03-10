@@ -975,7 +975,8 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
  * - groups - Array of the groups associated with the stream.
  */
 TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function() {
-    let ssrcInfo = { ssrcs: [], groups: [] };
+    let ssrcInfo = { ssrcs: [],
+        groups: [] };
 
     if (!this.options.disableSimulcast
         && this.simulcast.isSupported()) {

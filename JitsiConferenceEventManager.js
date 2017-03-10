@@ -279,12 +279,14 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     conference.room.addListener(XMPPEvents.LOCAL_UFRAG_CHANGED,
         ufrag => {
             Statistics.sendLog(
-                JSON.stringify({ id: 'local_ufrag', value: ufrag }));
+                JSON.stringify({ id: 'local_ufrag',
+                    value: ufrag }));
         });
     conference.room.addListener(XMPPEvents.REMOTE_UFRAG_CHANGED,
         ufrag => {
             Statistics.sendLog(
-                JSON.stringify({ id: 'remote_ufrag', value: ufrag }));
+                JSON.stringify({ id: 'remote_ufrag',
+                    value: ufrag }));
         });
 
     chatRoom.addPresenceListener('startmuted', (data, from) => {

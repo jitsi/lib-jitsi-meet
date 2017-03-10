@@ -61,7 +61,10 @@ function JitsiConference(options) {
     this.authEnabled = false;
     this.startAudioMuted = false;
     this.startVideoMuted = false;
-    this.startMutedPolicy = { audio: false, video: false };
+    this.startMutedPolicy = {
+        audio: false,
+        video: false
+    };
     this.availableDevices = {
         audio: undefined,
         video: undefined
@@ -399,7 +402,10 @@ JitsiConference.prototype.setDisplayName = function(name) {
         // remove previously set nickname
         this.room.removeFromPresence('nick');
 
-        this.room.addToPresence('nick', { attributes: { xmlns: 'http://jabber.org/protocol/nick' }, value: name });
+        this.room.addToPresence('nick', {
+            attributes: { xmlns: 'http://jabber.org/protocol/nick' },
+            value: name
+        });
         this.room.sendPresence();
     }
 };

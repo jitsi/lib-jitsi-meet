@@ -94,7 +94,8 @@ Recording.prototype.setRecordingJibri
 
     // FIXME jibri does not accept IQ without 'url' attribute set ?
         const iq
-            = $iq({ to: this.focusMucJid, type: 'set' })
+            = $iq({ to: this.focusMucJid,
+                type: 'set' })
                 .c('jibri', {
                     'xmlns': 'http://jitsi.org/protocol/jibri',
                     'action': state === Recording.status.ON
@@ -128,7 +129,8 @@ Recording.prototype.setRecordingJirecon
             errCallback(new Error('Invalid state!'));
         }
 
-        const iq = $iq({ to: this.jirecon, type: 'set' })
+        const iq = $iq({ to: this.jirecon,
+            type: 'set' })
         .c('recording', { xmlns: 'http://jitsi.org/protocol/jirecon',
             action: state === Recording.status.ON
                 ? Recording.action.START
@@ -171,12 +173,14 @@ Recording.prototype.setRecordingJirecon
 // with the new recording state, according to the IQ.
 Recording.prototype.setRecordingColibri
 = function(state, callback, errCallback, options) {
-    const elem = $iq({ to: this.focusMucJid, type: 'set' });
+    const elem = $iq({ to: this.focusMucJid,
+        type: 'set' });
 
     elem.c('conference', {
         xmlns: 'http://jitsi.org/protocol/colibri'
     });
-    elem.c('recording', { state, token: options.token });
+    elem.c('recording', { state,
+        token: options.token });
 
     const self = this;
 

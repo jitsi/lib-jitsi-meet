@@ -201,6 +201,7 @@ module.exports = {
         'no-whitespace-before-property': 2,
         'object-curly-newline': 0,
         'object-curly-spacing': [ 'error', 'always' ],
+        'object-property-newline': 2,
         'one-var': 0,
         'one-var-declaration-per-line': 0,
         'operator-assignment': 0,
