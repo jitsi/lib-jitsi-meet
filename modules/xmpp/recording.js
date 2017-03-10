@@ -6,7 +6,6 @@ const XMPPEvents = require('../../service/xmpp/XMPPEvents');
 const JitsiRecorderErrors = require('../../JitsiRecorderErrors');
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
-
 function Recording(type, eventEmitter, connection, focusMucJid, jirecon,
     roomjid) {
     this.eventEmitter = eventEmitter;
@@ -18,8 +17,7 @@ function Recording(type, eventEmitter, connection, focusMucJid, jirecon,
     this.type = type;
     this._isSupported
         = !(
-            type === Recording.types.JIRECON
-                && !this.jirecon
+            (type === Recording.types.JIRECON && !this.jirecon)
                 || (type !== Recording.types.JIBRI
                     && type !== Recording.types.COLIBRI));
 

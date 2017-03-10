@@ -196,8 +196,9 @@ class MLineWrap {
      */
     findGroup(semantics, ssrcs) {
         return this.ssrcGroups.find(
-            group => group.semantics === semantics
-                && !ssrcs || ssrcs === group.ssrcs);
+            group =>
+                group.semantics === semantics
+                    && (!ssrcs || ssrcs === group.ssrcs));
     }
 
     /**

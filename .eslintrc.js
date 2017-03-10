@@ -151,6 +151,7 @@ module.exports = {
         'new-parens': 2,
         'no-array-constructor': 2,
         'no-inline-comments': 0,
+        'no-mixed-operators': 2,
         'no-mixed-spaces-and-tabs': 2,
         'no-multiple-empty-lines': 2,
         'no-negated-condition': 2,

@@ -321,11 +321,13 @@ export default class ConnectionQuality {
             const maxIncreasePerSecond = 2;
             const prevConnectionQuality = this._localStats.connectionQuality;
             const diffSeconds
-                = (window.performance.now()
-                    - this._lastConnectionQualityUpdate) / 1000;
-            quality = Math.min(
-                quality,
-                prevConnectionQuality + diffSeconds * maxIncreasePerSecond);
+                = (window.performance.now() - this._lastConnectionQualityUpdate)
+                    / 1000;
+            quality
+                = Math.min(
+                    quality,
+                    prevConnectionQuality
+                        + (diffSeconds * maxIncreasePerSecond));
         }
 
         return Math.min(100, quality);
