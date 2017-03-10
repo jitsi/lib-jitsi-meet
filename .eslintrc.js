@@ -126,6 +126,7 @@ module.exports = {
         'no-void': 2,
         'no-warning-comments': 0,
         'no-with': 2,
+        'vars-on-top': 2,
         'wrap-iife': [ 'error', 'inside' ],
 
         // Strict Mode group
