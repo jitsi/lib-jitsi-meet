@@ -1,6 +1,6 @@
 /* global Strophe */
-import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
-import * as MediaType from "./service/RTC/MediaType";
+import * as JitsiConferenceEvents from './JitsiConferenceEvents';
+import * as MediaType from './service/RTC/MediaType';
 
 /**
  * Represents a participant in (i.e. a member of) a conference.

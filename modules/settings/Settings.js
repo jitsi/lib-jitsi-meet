@@ -1,7 +1,7 @@
-import {getLogger} from "jitsi-meet-logger";
+import {getLogger} from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 
-import UsernameGenerator from "../util/UsernameGenerator";
+import UsernameGenerator from '../util/UsernameGenerator';
 
 /**
  * Gets the localStorage of the browser. (Technically, gets the localStorage of
@@ -15,7 +15,7 @@ function getLocalStorage() {
 }
 
 function _p8() {
-    return (Math.random().toString(16) + "000000000").substr(2, 8);
+    return (Math.random().toString(16) + '000000000').substr(2, 8);
 }
 
 function generateUniqueId() {
@@ -28,7 +28,7 @@ function generateUniqueId() {
  */
 function generateJitsiMeetId() {
     const jitsiMeetId = generateUniqueId();
-    logger.log("generated id", jitsiMeetId);
+    logger.log('generated id', jitsiMeetId);
 
     return jitsiMeetId;
 }
@@ -59,7 +59,7 @@ class Settings {
 
             this.save();
         } else {
-            logger.log("localStorage is not supported");
+            logger.log('localStorage is not supported');
             this.userId = generateJitsiMeetId();
             this.callStatsUserName = generateCallStatsUsername();
         }

@@ -1,9 +1,9 @@
 // cache datachannels to avoid garbage collection
 // https://code.google.com/p/chromium/issues/detail?id=405545
 
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var RTCEvents = require("../../service/RTC/RTCEvents");
-var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
+var logger = require('jitsi-meet-logger').getLogger(__filename);
+var RTCEvents = require('../../service/RTC/RTCEvents');
+var GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
 /**
  * Binds "ondatachannel" event listener to given PeerConnection instance.
@@ -49,7 +49,7 @@ DataChannels.prototype.onDataChannel = function(event) {
     var self = this;
 
     dataChannel.onopen = function() {
-        logger.info("Data channel opened by the Videobridge!", dataChannel);
+        logger.info('Data channel opened by the Videobridge!', dataChannel);
 
         // Code sample for sending string and/or binary data
         // Sends String message to the bridge
@@ -66,7 +66,7 @@ DataChannels.prototype.onDataChannel = function(event) {
         // on which of the errors we absolutely need to report
         // GlobalOnErrorHandler.callErrorHandler(
         //        new Error("Data Channel Error:" + error));
-        logger.error("Data Channel Error:", error, dataChannel);
+        logger.error('Data Channel Error:', error, dataChannel);
     };
 
     dataChannel.onmessage = function(event) {
@@ -79,7 +79,7 @@ DataChannels.prototype.onDataChannel = function(event) {
         } catch (e) {
             GlobalOnErrorHandler.callErrorHandler(e);
             logger.error(
-                "Failed to parse data channel message as JSON: ",
+                'Failed to parse data channel message as JSON: ',
                 data,
                 dataChannel,
                 e);
@@ -87,16 +87,16 @@ DataChannels.prototype.onDataChannel = function(event) {
         if (('undefined' !== typeof obj) && (null !== obj)) {
             var colibriClass = obj.colibriClass;
 
-            if ("DominantSpeakerEndpointChangeEvent" === colibriClass) {
+            if ('DominantSpeakerEndpointChangeEvent' === colibriClass) {
                 // Endpoint ID from the Videobridge.
                 var dominantSpeakerEndpoint = obj.dominantSpeakerEndpoint;
 
                 logger.info(
-                    "Data channel new dominant speaker event: ",
+                    'Data channel new dominant speaker event: ',
                     dominantSpeakerEndpoint);
                 self.eventEmitter.emit(RTCEvents.DOMINANT_SPEAKER_CHANGED,
                   dominantSpeakerEndpoint);
-            } else if ("InLastNChangeEvent" === colibriClass) {
+            } else if ('InLastNChangeEvent' === colibriClass) {
                 var oldValue = obj.oldValue;
                 var newValue = obj.newValue;
 
@@ -105,21 +105,21 @@ DataChannels.prototype.onDataChannel = function(event) {
 
                 if ((type = typeof oldValue) !== 'boolean') {
                     if (type === 'string') {
-                        oldValue = oldValue == "true";
+                        oldValue = oldValue == 'true';
                     } else {
                         oldValue = new Boolean(oldValue).valueOf();
                     }
                 }
                 if ((type = typeof newValue) !== 'boolean') {
                     if (type === 'string') {
-                        newValue = newValue == "true";
+                        newValue = newValue == 'true';
                     } else {
                         newValue = new Boolean(newValue).valueOf();
                     }
                 }
 
                 self.eventEmitter.emit(RTCEvents.LASTN_CHANGED, oldValue, newValue);
-            } else if ("LastNEndpointsChangeEvent" === colibriClass) {
+            } else if ('LastNEndpointsChangeEvent' === colibriClass) {
                 // The new/latest list of last-n endpoint IDs.
                 var lastNEndpoints = obj.lastNEndpoints;
                 // The list of endpoint IDs which are entering the list of
@@ -128,34 +128,34 @@ DataChannels.prototype.onDataChannel = function(event) {
                 var endpointsEnteringLastN = obj.endpointsEnteringLastN;
 
                 logger.info(
-                    "Data channel new last-n event: ",
+                    'Data channel new last-n event: ',
                     lastNEndpoints, endpointsEnteringLastN, obj);
                 self.eventEmitter.emit(RTCEvents.LASTN_ENDPOINT_CHANGED,
                     lastNEndpoints, endpointsEnteringLastN, obj);
-            } else if("EndpointMessage" === colibriClass) {
+            } else if('EndpointMessage' === colibriClass) {
                 self.eventEmitter.emit(
                     RTCEvents.ENDPOINT_MESSAGE_RECEIVED, obj.from,
                     obj.msgPayload);
-            } else if ("EndpointConnectivityStatusChangeEvent" === colibriClass) {
+            } else if ('EndpointConnectivityStatusChangeEvent' === colibriClass) {
                 var endpoint = obj.endpoint;
-                var isActive = obj.active === "true";
-                logger.info("Endpoint connection status changed: " + endpoint
-                           + " active ? " + isActive);
+                var isActive = obj.active === 'true';
+                logger.info('Endpoint connection status changed: ' + endpoint
+                           + ' active ? ' + isActive);
                 self.eventEmitter.emit(RTCEvents.ENDPOINT_CONN_STATUS_CHANGED,
                     endpoint, isActive);
             } else {
-                logger.debug("Data channel JSON-formatted message: ", obj);
+                logger.debug('Data channel JSON-formatted message: ', obj);
                 // The received message appears to be appropriately formatted
                 // (i.e. is a JSON object which assigns a value to the mandatory
                 // property colibriClass) so don't just swallow it, expose it to
                 // public consumption.
-                self.eventEmitter.emit("rtc.datachannel." + colibriClass, obj);
+                self.eventEmitter.emit('rtc.datachannel.' + colibriClass, obj);
             }
         }
     };
 
     dataChannel.onclose = function() {
-        logger.info("The Data Channel closed", dataChannel);
+        logger.info('The Data Channel closed', dataChannel);
         var idx = self._dataChannels.indexOf(dataChannel);
         if (idx > -1) {
             self._dataChannels = self._dataChannels.splice(idx, 1);
@@ -182,7 +182,7 @@ DataChannels.prototype.closeAllChannels = function() {
  * or Error with "No opened data channels found!" message.
  */
 DataChannels.prototype.sendSelectedEndpointMessage = function(endpointId) {
-    this._onXXXEndpointChanged("selected", endpointId);
+    this._onXXXEndpointChanged('selected', endpointId);
 };
 
 /**
@@ -193,7 +193,7 @@ DataChannels.prototype.sendSelectedEndpointMessage = function(endpointId) {
  * or Error with "No opened data channels found!" message.
  */
 DataChannels.prototype.sendPinnedEndpointMessage = function(endpointId) {
-    this._onXXXEndpointChanged("pinned", endpointId);
+    this._onXXXEndpointChanged('pinned', endpointId);
 };
 
 /**
@@ -222,7 +222,7 @@ DataChannels.prototype._onXXXEndpointChanged = function(xxx, userResource) {
     var jsonObject = {};
 
     jsonObject.colibriClass = upper + 'EndpointChangedEvent';
-    jsonObject[lower + "Endpoint"]
+    jsonObject[lower + 'Endpoint']
         = userResource ? userResource : null;
 
     this.send(jsonObject);
@@ -259,7 +259,7 @@ DataChannels.prototype.send = function(jsonObject) {
             return true;
         }
     })) {
-        throw new Error("No opened data channels found!");
+        throw new Error('No opened data channels found!');
     }
 };
 
@@ -274,7 +274,7 @@ DataChannels.prototype.send = function(jsonObject) {
  */
 DataChannels.prototype.sendDataChannelMessage = function(to, payload) {
     this.send({
-        colibriClass: "EndpointMessage",
+        colibriClass: 'EndpointMessage',
         to,
         msgPayload: payload
     });

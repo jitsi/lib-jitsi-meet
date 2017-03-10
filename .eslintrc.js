@@ -156,6 +156,7 @@ module.exports = {
         'operator-assignment': 0,
         'padded-blocks': 0,
         'quote-props': 0,
+        'quotes': [ 'error', 'single' ],
         'semi': [ 'error', 'always' ],
         'semi-spacing': 2,
         'sort-vars': 2,

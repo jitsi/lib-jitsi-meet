@@ -1,12 +1,12 @@
 /* global $, $iq, Strophe */
 
-import { getLogger } from "jitsi-meet-logger";
+import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
-import JingleSessionPC from "./JingleSessionPC";
-import XMPPEvents from "../../service/xmpp/XMPPEvents";
-import GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
-import Statistics from "../statistics/statistics";
-import ConnectionPlugin from "./ConnectionPlugin";
+import JingleSessionPC from './JingleSessionPC';
+import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import Statistics from '../statistics/statistics';
+import ConnectionPlugin from './ConnectionPlugin';
 
 class JingleConnectionPlugin extends ConnectionPlugin {
     constructor(xmpp, eventEmitter) {
@@ -77,13 +77,13 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         // see http://xmpp.org/extensions/xep-0166.html#concepts-session
         switch (action) {
         case 'session-initiate': {
-            logger.log("(TIME) received session-initiate:\t", now);
+            logger.log('(TIME) received session-initiate:\t', now);
             const startMuted = $(iq).find('jingle>startmuted');
             if (startMuted && startMuted.length > 0) {
-                const audioMuted = startMuted.attr("audio");
-                const videoMuted = startMuted.attr("video");
+                const audioMuted = startMuted.attr('audio');
+                const videoMuted = startMuted.attr('video');
                 this.eventEmitter.emit(XMPPEvents.START_MUTED_FROM_FOCUS,
-                            audioMuted === "true", videoMuted === "true");
+                            audioMuted === 'true', videoMuted === 'true');
             }
             sess = new JingleSessionPC(
                         $(iq).find('jingle').attr('sid'),
@@ -116,14 +116,14 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             break;
         }
         case 'transport-replace':
-            logger.info("(TIME) Start transport replace", now);
+            logger.info('(TIME) Start transport replace', now);
             Statistics.analytics.sendEvent(
                     'xmpp.transport-replace.start', {value: now});
 
             sess.replaceTransport($(iq).find('>jingle'), () => {
                 const successTime = window.performance.now();
                 logger.info(
-                        "(TIME) Transport replace success!", successTime);
+                        '(TIME) Transport replace success!', successTime);
                 Statistics.analytics.sendEvent(
                         'xmpp.transport-replace.success',
                         {value: successTime});
@@ -246,7 +246,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             const pc = session.peerconnection;
             if (pc && pc.updateLog) {
                 // FIXME: should probably be a .dump call
-                data["jingle_" + sid] = {
+                data['jingle_' + sid] = {
                     updateLog: pc.updateLog,
                     stats: pc.stats,
                     url: window.location.href

@@ -1,13 +1,13 @@
-import {getLogger} from "jitsi-meet-logger";
+import {getLogger} from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
-import RandomUtil from "../util/RandomUtil";
-var RTCBrowserType = require("../RTC/RTCBrowserType");
+import RandomUtil from '../util/RandomUtil';
+var RTCBrowserType = require('../RTC/RTCBrowserType');
 
 var SDPUtil = {
     filter_special_chars(text) {
         // XXX Neither one of the falsy values (e.g. null, undefined, false,
         // "", etc.) "contain" special chars.
-        return text ? text.replace(/[\\\/\{,\}\+]/g, "") : text;
+        return text ? text.replace(/[\\\/\{,\}\+]/g, '') : text;
     },
     iceparams(mediadesc, sessiondesc) {
         var data = null;
@@ -389,16 +389,16 @@ var SDPUtil = {
             if (numSsrcs === 2) {
                 // Can figure it out if there's an FID group
                 const fidGroup = videoMLine.ssrcGroups
-                    .find(group => group.semantics === "FID");
+                    .find(group => group.semantics === 'FID');
                 if (fidGroup) {
-                    primarySsrc = fidGroup.ssrcs.split(" ")[0];
+                    primarySsrc = fidGroup.ssrcs.split(' ')[0];
                 }
             } else if (numSsrcs >= 3) {
                 // Can figure it out if there's a sim group
                 const simGroup = videoMLine.ssrcGroups
-                    .find(group => group.semantics === "SIM");
+                    .find(group => group.semantics === 'SIM');
                 if (simGroup) {
-                    primarySsrc = simGroup.ssrcs.split(" ")[0];
+                    primarySsrc = simGroup.ssrcs.split(' ')[0];
                 }
             }
         }
@@ -443,7 +443,7 @@ var SDPUtil = {
     parseGroupSsrcs(ssrcGroup) {
         return ssrcGroup
             .ssrcs
-            .split(" ")
+            .split(' ')
             .map(ssrcStr => parseInt(ssrcStr));
     },
 
@@ -477,11 +477,11 @@ var SDPUtil = {
             }
         }
         if (payloadType) {
-            const payloadTypes = videoMLine.payloads.split(" ").map(p => parseInt(p));
+            const payloadTypes = videoMLine.payloads.split(' ').map(p => parseInt(p));
             const payloadIndex = payloadTypes.indexOf(payloadType);
             payloadTypes.splice(payloadIndex, 1);
             payloadTypes.unshift(payloadType);
-            videoMLine.payloads = payloadTypes.join(" ");
+            videoMLine.payloads = payloadTypes.join(' ');
         }
     },
 };

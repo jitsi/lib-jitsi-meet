@@ -1,15 +1,15 @@
 /* global __filename, Strophe */
 
 import AuthenticationEvents
-    from "./service/authentication/AuthenticationEvents";
-import EventEmitterForwarder from "./modules/util/EventEmitterForwarder";
-import { getLogger } from "jitsi-meet-logger";
-import * as JitsiConferenceErrors from "./JitsiConferenceErrors";
-import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
-import * as MediaType from "./service/RTC/MediaType";
-import RTCEvents from "./service/RTC/RTCEvents";
-import Statistics from "./modules/statistics/statistics";
-import XMPPEvents from "./service/xmpp/XMPPEvents";
+    from './service/authentication/AuthenticationEvents';
+import EventEmitterForwarder from './modules/util/EventEmitterForwarder';
+import { getLogger } from 'jitsi-meet-logger';
+import * as JitsiConferenceErrors from './JitsiConferenceErrors';
+import * as JitsiConferenceEvents from './JitsiConferenceEvents';
+import * as MediaType from './service/RTC/MediaType';
+import RTCEvents from './service/RTC/RTCEvents';
+import Statistics from './modules/statistics/statistics';
+import XMPPEvents from './service/xmpp/XMPPEvents';
 
 const logger = getLogger(__filename);
 
@@ -56,7 +56,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
                 },
                 function() {
                     logger.warn(
-                        "Error while audio muting due to focus request");
+                        'Error while audio muting due to focus request');
                 });
         }
     );
@@ -135,7 +135,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         function() {
             chatRoom.eventEmitter.emit(
                 XMPPEvents.CONFERENCE_SETUP_FAILED,
-                new Error("ICE fail"));
+                new Error('ICE fail'));
         });
 
     this.chatRoomForwarder.forward(XMPPEvents.MUC_DESTROYED,
@@ -159,10 +159,10 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         });
 
     var eventLogHandler = function(reason) {
-        Statistics.sendEventToAll("conference.error." + reason);
+        Statistics.sendEventToAll('conference.error.' + reason);
     };
     chatRoom.addListener(XMPPEvents.SESSION_ACCEPT_TIMEOUT,
-        eventLogHandler.bind(null, "sessionAcceptTimeout"));
+        eventLogHandler.bind(null, 'sessionAcceptTimeout'));
 
     this.chatRoomForwarder.forward(XMPPEvents.CONNECTION_INTERRUPTED,
         JitsiConferenceEvents.CONNECTION_INTERRUPTED);
@@ -197,7 +197,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         }
 
         participant.setProperty(
-            node.tagName.substring("jitsi_participant_".length),
+            node.tagName.substring('jitsi_participant_'.length),
             node.value);
     });
 
@@ -233,7 +233,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
             conference.on(JitsiConferenceEvents.RECORDER_STATE_CHANGED,
                 function(status, error) {
                     var logObject = {
-                        id: "recorder_status",
+                        id: 'recorder_status',
                         status
                     };
                     if (error) {
@@ -278,15 +278,15 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     conference.room.addListener(XMPPEvents.LOCAL_UFRAG_CHANGED,
         function(ufrag) {
             Statistics.sendLog(
-                JSON.stringify({id: "local_ufrag", value: ufrag}));
+                JSON.stringify({id: 'local_ufrag', value: ufrag}));
         });
     conference.room.addListener(XMPPEvents.REMOTE_UFRAG_CHANGED,
         function(ufrag) {
             Statistics.sendLog(
-                JSON.stringify({id: "remote_ufrag", value: ufrag}));
+                JSON.stringify({id: 'remote_ufrag', value: ufrag}));
         });
 
-    chatRoom.addPresenceListener("startmuted", function(data, from) {
+    chatRoom.addPresenceListener('startmuted', function(data, from) {
         var isModerator = false;
         if (conference.myUserId() === from && conference.isModerator()) {
             isModerator = true;
@@ -324,21 +324,21 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         }
     });
 
-    chatRoom.addPresenceListener("videomuted", function(values, from) {
+    chatRoom.addPresenceListener('videomuted', function(values, from) {
         conference.rtc.handleRemoteTrackMute(MediaType.VIDEO,
-            values.value == "true", from);
+            values.value == 'true', from);
     });
 
-    chatRoom.addPresenceListener("audiomuted", function(values, from) {
+    chatRoom.addPresenceListener('audiomuted', function(values, from) {
         conference.rtc.handleRemoteTrackMute(MediaType.AUDIO,
-            values.value == "true", from);
+            values.value == 'true', from);
     });
 
-    chatRoom.addPresenceListener("videoType", function(data, from) {
+    chatRoom.addPresenceListener('videoType', function(data, from) {
         conference.rtc.handleRemoteTrackVideoTypeChanged(data.value, from);
     });
 
-    chatRoom.addPresenceListener("devices", function(data, from) {
+    chatRoom.addPresenceListener('devices', function(data, from) {
         var isAudioAvailable = false;
         var isVideoAvailable = false;
         data.children.forEach(function(config) {
@@ -427,8 +427,8 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
 
     rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, function() {
         var now = window.performance.now();
-        logger.log("(TIME) data channel opened ", now);
-        conference.room.connectionTimes["data.channel.opened"] = now;
+        logger.log('(TIME) data channel opened ', now);
+        conference.room.connectionTimes['data.channel.opened'] = now;
         Statistics.analytics.sendEvent('conference.dataChannel.open',
             {value: now});
     });
@@ -453,8 +453,8 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
                     participant, payload);
             } else {
                 logger.warn(
-                    "Ignored ENDPOINT_MESSAGE_RECEIVED " +
-                    "for not existing participant: " + from, payload);
+                    'Ignored ENDPOINT_MESSAGE_RECEIVED ' +
+                    'for not existing participant: ' + from, payload);
             }
         });
 

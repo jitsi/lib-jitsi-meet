@@ -1,13 +1,13 @@
 /* global $, b64_sha1, Strophe */
-import XMPPEvents from "../../service/xmpp/XMPPEvents";
-import Listenable from "../util/Listenable";
+import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import Listenable from '../util/Listenable';
 
 /**
  * The property
  */
-const IDENTITY_PROPERTIES = ["category", "type", "lang", "name"];
-const IDENTITY_PROPERTIES_FOR_COMPARE = ["category", "type", "lang"];
-const HASH = "sha-1";
+const IDENTITY_PROPERTIES = ['category', 'type', 'lang', 'name'];
+const IDENTITY_PROPERTIES_FOR_COMPARE = ['category', 'type', 'lang'];
+const HASH = 'sha-1';
 
 function compareIdentities(a, b) {
     let res = 0;
@@ -27,19 +27,19 @@ export default class Caps extends Listenable {
      * @param {String} node the value of the node attribute of the "c" xml node
      * that will be sent to the other participants
      */
-    constructor(connection = {}, node = "http://jitsi.org/jitsimeet") {
+    constructor(connection = {}, node = 'http://jitsi.org/jitsimeet') {
         super();
         this.node = node;
         this.disco = connection.disco;
         if(!this.disco) {
             throw new Error(
-                "Missing strophe-plugins "
-                + "(disco and caps plugins are required)!");
+                'Missing strophe-plugins '
+                + '(disco and caps plugins are required)!');
         }
 
         this.versionToCapabilities = Object.create(null);
         this.jidToVersion = Object.create(null);
-        this.version = "";
+        this.version = '';
         this.rooms = new Set();
 
         const emuc = connection.emuc;
@@ -51,7 +51,7 @@ export default class Caps extends Listenable {
             this._addChatRoom(this.emuc.rooms[jid]);
         }
 
-        Strophe.addNamespace("CAPS", "http://jabber.org/protocol/caps");
+        Strophe.addNamespace('CAPS', 'http://jabber.org/protocol/caps');
         this.disco.addFeature(Strophe.NS.CAPS);
         connection.addHandler(this._handleCaps.bind(this), Strophe.NS.CAPS);
 
@@ -105,12 +105,12 @@ export default class Caps extends Listenable {
         const user
             = jid in this.jidToVersion ? this.jidToVersion[jid] : null;
         if(!user || !(user.version in this.versionToCapabilities)) {
-            const node = user ? user.node + "#" + user.version : null;
+            const node = user ? user.node + '#' + user.version : null;
             return new Promise ((resolve, reject) =>
                 this.disco.info(jid, node, response => {
                     const features = new Set();
-                    $(response).find(">query>feature").each((idx, el) =>
-                            features.add(el.getAttribute("var")));
+                    $(response).find('>query>feature').each((idx, el) =>
+                            features.add(el.getAttribute('var')));
                     if(user) {
                             // TODO: Maybe use the version + node + hash
                             // as keys?
@@ -150,7 +150,7 @@ export default class Caps extends Listenable {
      * @param {ChatRoom} room the room.
      */
     _fixChatRoomPresenceMap(room) {
-        room.addToPresence("c", {
+        room.addToPresence('c', {
             attributes: {
                 xmlns: Strophe.NS.CAPS,
                 hash: HASH,
@@ -181,12 +181,12 @@ export default class Caps extends Listenable {
                         IDENTITY_PROPERTIES.reduce(
                                 (tmp, key, idx) =>
                                     tmp
-                                        + (idx === 0 ? "" : "/")
+                                        + (idx === 0 ? '' : '/')
                                         + identity[key],
-                                "")
-                            + "<",
-                    "")
-                + features.reduce((tmp, feature) => tmp + feature + "<", ""));
+                                '')
+                            + '<',
+                    '')
+                + features.reduce((tmp, feature) => tmp + feature + '<', ''));
         this._notifyVersionChanged();
     }
 
@@ -195,10 +195,10 @@ export default class Caps extends Listenable {
      * @param {DOMElement} stanza the presence packet
      */
     _handleCaps(stanza) {
-        const from = stanza.getAttribute("from");
-        const caps = stanza.querySelector("c");
-        const version = caps.getAttribute("ver");
-        const node = caps.getAttribute("node");
+        const from = stanza.getAttribute('from');
+        const caps = stanza.querySelector('c');
+        const version = caps.getAttribute('ver');
+        const node = caps.getAttribute('node');
         const oldVersion = this.jidToVersion[from];
         this.jidToVersion[from] = {version, node};
         if(oldVersion && oldVersion.version !== version) {

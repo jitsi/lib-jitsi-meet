@@ -1,11 +1,11 @@
 /* global */
 
-var JitsiTrack = require("./JitsiTrack");
-import * as JitsiTrackEvents from "../../JitsiTrackEvents";
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var RTCBrowserType = require("./RTCBrowserType");
-var RTCEvents = require("../../service/RTC/RTCEvents");
-var Statistics = require("../statistics/statistics");
+var JitsiTrack = require('./JitsiTrack');
+import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+var logger = require('jitsi-meet-logger').getLogger(__filename);
+var RTCBrowserType = require('./RTCBrowserType');
+var RTCEvents = require('../../service/RTC/RTCEvents');
+var Statistics = require('../statistics/statistics');
 
 var ttfmTrackerAudioAttached = false;
 var ttfmTrackerVideoAttached = false;
@@ -143,16 +143,16 @@ JitsiRemoteTrack.prototype._playCallback = function() {
     var type = this.isVideoTrack() ? 'video' : 'audio';
 
     var now = window.performance.now();
-    console.log("(TIME) Render " + type + ":\t", now);
-    this.conference.getConnectionTimes()[type + ".render"] = now;
+    console.log('(TIME) Render ' + type + ':\t', now);
+    this.conference.getConnectionTimes()[type + '.render'] = now;
 
     var ttfm = now
-        - (this.conference.getConnectionTimes()["session.initiate"]
-        - this.conference.getConnectionTimes()["muc.joined"])
-        - (window.connectionTimes["obtainPermissions.end"]
-        - window.connectionTimes["obtainPermissions.start"]);
-    this.conference.getConnectionTimes()[type + ".ttfm"] = ttfm;
-    console.log("(TIME) TTFM " + type + ":\t", ttfm);
+        - (this.conference.getConnectionTimes()['session.initiate']
+        - this.conference.getConnectionTimes()['muc.joined'])
+        - (window.connectionTimes['obtainPermissions.end']
+        - window.connectionTimes['obtainPermissions.start']);
+    this.conference.getConnectionTimes()[type + '.ttfm'] = ttfm;
+    console.log('(TIME) TTFM ' + type + ':\t', ttfm);
     var eventName = type + '.ttfm';
     if(this.hasBeenMuted) {
         eventName += '.muted';
@@ -184,12 +184,12 @@ JitsiRemoteTrack.prototype._attachTTFMTracker = function(container) {
     if (RTCBrowserType.isTemasysPluginUsed()) {
         // XXX Don't require Temasys unless it's to be used because it doesn't
         // run on React Native, for example.
-        const AdapterJS = require("./adapter.screenshare");
+        const AdapterJS = require('./adapter.screenshare');
 
         // FIXME: this is not working for IE11
         AdapterJS.addEvent(container, 'play', this._playCallback.bind(this));
     } else {
-        container.addEventListener("canplay", this._playCallback.bind(this));
+        container.addEventListener('canplay', this._playCallback.bind(this));
     }
 };
 

@@ -1,7 +1,7 @@
-var JitsiConference = require("./JitsiConference");
-import * as JitsiConnectionEvents from "./JitsiConnectionEvents";
-import XMPP from "./modules/xmpp/xmpp";
-var Statistics = require("./modules/statistics/statistics");
+var JitsiConference = require('./JitsiConference');
+import * as JitsiConnectionEvents from './JitsiConnectionEvents';
+import XMPP from './modules/xmpp/xmpp';
+var Statistics = require('./modules/statistics/statistics');
 
 /**
  * Creates new connection object for the Jitsi Meet server side video conferencing service. Provides access to the
@@ -34,7 +34,7 @@ function JitsiConnection(appID, token, options) {
                     'connection.disconnected.' + msg);
             }
             Statistics.sendLog(
-                JSON.stringify({id: "connection.disconnected", msg}));
+                JSON.stringify({id: 'connection.disconnected', msg}));
         });
 }
 

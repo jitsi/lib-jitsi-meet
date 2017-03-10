@@ -25,7 +25,7 @@ function createConnectionExternally( // eslint-disable-line no-unused-vars
         success_callback,
         error_callback) {
     if (!window.XMLHttpRequest) {
-        error_callback(new Error("XMLHttpRequest is not supported!"));
+        error_callback(new Error('XMLHttpRequest is not supported!'));
         return;
     }
 
@@ -35,9 +35,9 @@ function createConnectionExternally( // eslint-disable-line no-unused-vars
 
     xhttp.onreadystatechange = function() {
         if (xhttp.readyState == xhttp.DONE) {
-            var now = window.connectionTimes["external_connect.done"] =
+            var now = window.connectionTimes['external_connect.done'] =
                 window.performance.now();
-            console.log("(TIME) external connect XHR done:\t", now);
+            console.log('(TIME) external connect XHR done:\t', now);
             if (xhttp.status == HTTP_STATUS_OK) {
                 try {
                     var data = JSON.parse(xhttp.responseText);
@@ -45,10 +45,10 @@ function createConnectionExternally( // eslint-disable-line no-unused-vars
                     var proxyRegion = xhttp.getResponseHeader('X-Proxy-Region');
                     var jitsiRegion = xhttp.getResponseHeader('X-Jitsi-Region');
                     window.jitsiRegionInfo = {
-                        "ProxyRegion" : proxyRegion,
-                        "Region" : jitsiRegion,
-                        "Shard" : xhttp.getResponseHeader('X-Jitsi-Shard'),
-                        "CrossRegion": proxyRegion !== jitsiRegion ? 1 : 0
+                        'ProxyRegion' : proxyRegion,
+                        'Region' : jitsiRegion,
+                        'Shard' : xhttp.getResponseHeader('X-Jitsi-Shard'),
+                        'CrossRegion': proxyRegion !== jitsiRegion ? 1 : 0
                     };
 
                     success_callback(data);
@@ -56,13 +56,13 @@ function createConnectionExternally( // eslint-disable-line no-unused-vars
                     error_callback(e);
                 }
             } else {
-                error_callback(new Error("XMLHttpRequest error. Status: " +
-                    xhttp.status + ". Error message: " + xhttp.statusText));
+                error_callback(new Error('XMLHttpRequest error. Status: ' +
+                    xhttp.status + '. Error message: ' + xhttp.statusText));
             }
         }
     };
 
-    xhttp.open("GET", webserviceUrl, true);
+    xhttp.open('GET', webserviceUrl, true);
 
     // Fixes external connect for IE
     // The timeout property may be set only after calling the open() method
@@ -70,8 +70,8 @@ function createConnectionExternally( // eslint-disable-line no-unused-vars
     xhttp.timeout = 3000;
 
     window.connectionTimes = {};
-    var now = window.connectionTimes["external_connect.sending"] =
+    var now = window.connectionTimes['external_connect.sending'] =
         window.performance.now();
-    console.log("(TIME) Sending external connect XHR:\t", now);
+    console.log('(TIME) Sending external connect XHR:\t', now);
     xhttp.send();
 }

@@ -1,18 +1,18 @@
 /* global $, $iq, Strophe */
 
-import {getLogger} from "jitsi-meet-logger";
+import {getLogger} from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
-import JingleSession from "./JingleSession";
-const SDPDiffer = require("./SDPDiffer");
-const SDPUtil = require("./SDPUtil");
-const SDP = require("./SDP");
-const async = require("async");
-const XMPPEvents = require("../../service/xmpp/XMPPEvents");
-const RTCBrowserType = require("../RTC/RTCBrowserType");
-const GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
-const Statistics = require("../statistics/statistics");
+import JingleSession from './JingleSession';
+const SDPDiffer = require('./SDPDiffer');
+const SDPUtil = require('./SDPUtil');
+const SDP = require('./SDP');
+const async = require('async');
+const XMPPEvents = require('../../service/xmpp/XMPPEvents');
+const RTCBrowserType = require('../RTC/RTCBrowserType');
+const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
+const Statistics = require('../statistics/statistics');
 
-import * as JingleSessionState from "./JingleSessionState";
+import * as JingleSessionState from './JingleSessionState';
 
 /**
  * Constant tells how long we're going to wait for IQ response, before timeout
@@ -173,10 +173,10 @@ export default class JingleSessionPC extends JingleSession {
                 return;
             }
             const now = window.performance.now();
-            this.room.connectionTimes["ice.state." +
+            this.room.connectionTimes['ice.state.' +
             this.peerconnection.iceConnectionState] = now;
-            logger.log("(TIME) ICE " + this.peerconnection.iceConnectionState +
-                ":\t", now);
+            logger.log('(TIME) ICE ' + this.peerconnection.iceConnectionState +
+                ':\t', now);
             Statistics.analytics.sendEvent(
                 'ice.' + this.peerconnection.iceConnectionState, {value: now});
             this.room.eventEmitter.emit(
@@ -225,7 +225,7 @@ export default class JingleSessionPC extends JingleSession {
                     localSDP.media[candidate.sdpMLineIndex], localSDP.session);
             const jcand = SDPUtil.candidateToJingle(candidate.candidate);
             if (!(ice && jcand)) {
-                const errorMesssage = "failed to get ice && jcand";
+                const errorMesssage = 'failed to get ice && jcand';
                 GlobalOnErrorHandler.callErrorHandler(new Error(errorMesssage));
                 logger.error(errorMesssage);
                 return;
@@ -283,7 +283,7 @@ export default class JingleSessionPC extends JingleSession {
                         = SDPUtil.candidateToJingle(cands[i].candidate);
                     // Mangle ICE candidate if 'failICE' test option is enabled
                     if (this.failICE) {
-                        candidate.ip = "1.1.1.1";
+                        candidate.ip = '1.1.1.1';
                     }
                     cand.c('candidate', candidate).up();
                 }
@@ -314,7 +314,7 @@ export default class JingleSessionPC extends JingleSession {
         this.connection.sendIQ(
             cand, null, this.newJingleErrorHandler(cand, function(error) {
                 GlobalOnErrorHandler.callErrorHandler(
-                    new Error("Jingle error: " + JSON.stringify(error)));
+                    new Error('Jingle error: ' + JSON.stringify(error)));
             }), IQ_TIMEOUT);
     }
 
@@ -350,7 +350,7 @@ export default class JingleSessionPC extends JingleSession {
             this.peerconnection.generateRecvonlySsrc();
         } else {
             logger.error(
-                "Unable to generate recvonly SSRC - no peerconnection");
+                'Unable to generate recvonly SSRC - no peerconnection');
         }
     }
 
@@ -396,7 +396,7 @@ export default class JingleSessionPC extends JingleSession {
                     finishedCallback();
                 }, error => {
                     logger.error(
-                        "Error renegotiating after setting new remote offer: "
+                        'Error renegotiating after setting new remote offer: '
                             + error);
                     JingleSessionPC.onJingleFatalError(this, error);
                     finishedCallback(error);
@@ -429,7 +429,7 @@ export default class JingleSessionPC extends JingleSession {
         // the SCTP connection established with the new bridge.
         this.room.eventEmitter.emit(XMPPEvents.ICE_RESTARTING);
         const originalOffer = jingleOfferElem.clone();
-        jingleOfferElem.find(">content[name='data']").remove();
+        jingleOfferElem.find('>content[name=\'data\']').remove();
 
         // First set an offer without the 'data' section
         this.setOfferCycle(
@@ -484,7 +484,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // Calling tree() to print something useful
         accept = accept.tree();
-        logger.info("Sending session-accept", accept);
+        logger.info('Sending session-accept', accept);
         this.connection.sendIQ(accept,
             success,
             this.newJingleErrorHandler(accept, error => {
@@ -547,7 +547,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // Calling tree() to print something useful to the logger
         transportAccept = transportAccept.tree();
-        logger.info("Sending transport-accept: ", transportAccept);
+        logger.info('Sending transport-accept: ', transportAccept);
 
         this.connection.sendIQ(transportAccept,
             success,
@@ -575,7 +575,7 @@ export default class JingleSessionPC extends JingleSession {
             });
 
         transportReject = transportReject.tree();
-        logger.info("Sending 'transport-reject", transportReject);
+        logger.info('Sending \'transport-reject', transportReject);
 
         this.connection.sendIQ(transportReject,
             success,
@@ -605,7 +605,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // Calling tree() to print something useful
         sessionTerminate = sessionTerminate.tree();
-        logger.info("Sending session-terminate", sessionTerminate);
+        logger.info('Sending session-terminate', sessionTerminate);
 
         this.connection.sendIQ(
             sessionTerminate,
@@ -622,7 +622,7 @@ export default class JingleSessionPC extends JingleSession {
         // Do something with reason and reasonCondition when we start to care
         // this.reasonCondition = reasonCondition;
         // this.reasonText = reasonText;
-        logger.info("Session terminated", this, reasonCondition, reasonText);
+        logger.info('Session terminated', this, reasonCondition, reasonText);
 
         this.close();
     }
@@ -663,7 +663,7 @@ export default class JingleSessionPC extends JingleSession {
                 const ssrc = $(this).attr('ssrc');
                 if (currentRemoteSdp.containsSSRC(ssrc)) {
                     logger.warn(
-                        "Source-add request for existing SSRC: " + ssrc);
+                        'Source-add request for existing SSRC: ' + ssrc);
                     return;
                 }
                 $(this).find('>parameter').each(function() {
@@ -694,7 +694,7 @@ export default class JingleSessionPC extends JingleSession {
     addRemoteStream(elem) {
         // FIXME there is not stop condition for this wait !!!
         if (!this.peerconnection.localDescription) {
-            logger.warn("addSource - localDescription not ready yet");
+            logger.warn('addSource - localDescription not ready yet');
             setTimeout(() => this.addRemoteStream(elem), 200);
             return;
         }
@@ -712,10 +712,10 @@ export default class JingleSessionPC extends JingleSession {
             const newRemoteSdp = this._processRemoteAddSource(addSsrcInfo);
             this._renegotiate(newRemoteSdp)
                 .then(() => {
-                    logger.info("Remote source-add processed");
+                    logger.info('Remote source-add processed');
                     const newSdp
                         = new SDP(this.peerconnection.localDescription.sdp);
-                    logger.log("SDPs", mySdp, newSdp);
+                    logger.log('SDPs', mySdp, newSdp);
                     this.notifyMySSRCUpdate(mySdp, newSdp);
                     finishedCallback();
                 }, error => {
@@ -735,7 +735,7 @@ export default class JingleSessionPC extends JingleSession {
     removeRemoteStream(elem) {
         // FIXME there is no stop condition for this wait !
         if (!this.peerconnection.localDescription) {
-            logger.warn("removeSource - localDescription not ready yet");
+            logger.warn('removeSource - localDescription not ready yet');
             setTimeout(() => this.removeRemoteStream(elem), 200);
             return;
         }
@@ -753,16 +753,16 @@ export default class JingleSessionPC extends JingleSession {
                 = this._processRemoteRemoveSource(removeSsrcInfo);
             this._renegotiate(newRemoteSdp)
                 .then(() => {
-                    logger.info("Remote source-remove processed");
+                    logger.info('Remote source-remove processed');
                     const newSdp
                         = new SDP(this.peerconnection.localDescription.sdp);
-                    logger.log("SDPs", mySdp, newSdp);
+                    logger.log('SDPs', mySdp, newSdp);
                     this.notifyMySSRCUpdate(mySdp, newSdp);
                     finishedCallback();
                 }, error => {
                     logger.error(
-                        "Error renegotiating after processing"
-                            + " remote source-remove: " + error);
+                        'Error renegotiating after processing'
+                            + ' remote source-remove: ' + error);
                     finishedCallback(error);
                 });
         };
@@ -805,7 +805,7 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         remoteSdp.fromJingle(offerIq);
-        this.readSsrcInfo($(offerIq).find(">content"));
+        this.readSsrcInfo($(offerIq).find('>content'));
         return remoteSdp;
     }
 
@@ -863,7 +863,7 @@ export default class JingleSessionPC extends JingleSession {
             = optionalRemoteSdp
                 || new SDP(this.peerconnection.remoteDescription.sdp);
         const remoteDescription = new RTCSessionDescription({
-            type: "offer",
+            type: 'offer',
             sdp: remoteSdp.raw
         });
 
@@ -882,15 +882,15 @@ export default class JingleSessionPC extends JingleSession {
                         XMPPEvents.REMOTE_UFRAG_CHANGED, remoteUfrag);
             }
 
-            logger.debug("Renegotiate: setting remote description");
+            logger.debug('Renegotiate: setting remote description');
             this.peerconnection.setRemoteDescription(
                 remoteDescription,
                 () => {
                     if (this.signalingState === 'closed') {
-                        reject("Attempted to setRemoteDescription in state closed");
+                        reject('Attempted to setRemoteDescription in state closed');
                         return;
                     }
-                    logger.debug("Renegotiate: creating answer");
+                    logger.debug('Renegotiate: creating answer');
                     this.peerconnection.createAnswer(
                         answer => {
                             const localUfrag = JingleSessionPC.getUfrag(answer.sdp);
@@ -899,7 +899,7 @@ export default class JingleSessionPC extends JingleSession {
                                 this.room.eventEmitter.emit(
                                         XMPPEvents.LOCAL_UFRAG_CHANGED, localUfrag);
                             }
-                            logger.debug("Renegotiate: setting local description");
+                            logger.debug('Renegotiate: setting local description');
                             this.peerconnection.setLocalDescription(
                                 answer,
                                 () => {
@@ -907,18 +907,18 @@ export default class JingleSessionPC extends JingleSession {
                                 },
                                 error => {
                                     reject(
-                                        "setLocalDescription failed: " + error);
+                                        'setLocalDescription failed: ' + error);
                                 }
                             );
                         },
                         error => {
-                            reject("createAnswer failed: " + error); 
+                            reject('createAnswer failed: ' + error); 
                         },
                         media_constraints
                     );
                 },
                 error => {
-                    reject("setRemoteDescription failed: " + error); 
+                    reject('setRemoteDescription failed: ' + error); 
                 }
             );
         });
@@ -969,7 +969,7 @@ export default class JingleSessionPC extends JingleSession {
                         finishedCallback();
                     }, error => {
                         logger.error(
-                            "replaceTrack renegotiation failed: " + error);
+                            'replaceTrack renegotiation failed: ' + error);
                         finishedCallback(error);
                     });
             };
@@ -1050,7 +1050,7 @@ export default class JingleSessionPC extends JingleSession {
                     const ssrcLines
                         = SDPUtil.find_lines(media, 'a=ssrc:' + ssrc);
                     if (ssrcLines.length) {
-                        removeSsrcInfo[idx] += ssrcLines.join("\r\n") + "\r\n";
+                        removeSsrcInfo[idx] += ssrcLines.join('\r\n') + '\r\n';
                     }
                 });
                 removeSsrcInfo[idx] += lines;
@@ -1082,8 +1082,8 @@ export default class JingleSessionPC extends JingleSession {
         const workFunction = finishedCallback => {
             if (!this.peerconnection) {
                 finishedCallback(
-                    "Error: "
-                        + "tried adding stream with no active peer connection");
+                    'Error: '
+                        + 'tried adding stream with no active peer connection');
                 return;
             }
             this.addStreamToPeerConnection(stream, ssrcInfo);
@@ -1104,7 +1104,7 @@ export default class JingleSessionPC extends JingleSession {
                     const newSdp
                         = new SDP(this.peerconnection.localDescription.sdp);
                     // FIXME objects should not be logged
-                    logger.log("SDPs", oldSdp, newSdp);
+                    logger.log('SDPs', oldSdp, newSdp);
                     this.notifyMySSRCUpdate(oldSdp, newSdp);
                     finishedCallback();
                 }, error => {
@@ -1153,7 +1153,7 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         if (!track) {
-            const msg = "Cannot remove tracks: no tracks.";
+            const msg = 'Cannot remove tracks: no tracks.';
             logger.log(msg);
             return;
         }
@@ -1170,7 +1170,7 @@ export default class JingleSessionPC extends JingleSession {
         if (sender) {
             this.peerconnection.peerconnection.removeTrack(sender);
         } else {
-            logger.log("Cannot remove tracks: no RTPSender.");
+            logger.log('Cannot remove tracks: no RTPSender.');
         }
     }
 
@@ -1225,7 +1225,7 @@ export default class JingleSessionPC extends JingleSession {
                             this.modifiedSSRCs[ssrcInfo.type] || [];
                         this.modifiedSSRCs[ssrcInfo.type].push(ssrcInfo);
                     }
-                    logger.log("SDPs", oldSdp, newSdp);
+                    logger.log('SDPs', oldSdp, newSdp);
                     this.notifyMySSRCUpdate(oldSdp, newSdp);
                     finishedCallback();
                 }, error => {
@@ -1253,7 +1253,7 @@ export default class JingleSessionPC extends JingleSession {
 
         if (this.state !== JingleSessionState.ACTIVE) {
             logger.warn(
-                "Skipping SSRC update in \'" + this.state + " \' state.");
+                'Skipping SSRC update in \'' + this.state + ' \' state.');
             return;
         }
 
@@ -1271,12 +1271,12 @@ export default class JingleSessionPC extends JingleSession {
         const removed = this.fixJingle(remove);
 
         if (removed && remove) {
-            logger.info("Sending source-remove", remove.tree());
+            logger.info('Sending source-remove', remove.tree());
             this.connection.sendIQ(
                 remove, null,
                 this.newJingleErrorHandler(remove, function(error) {
                     GlobalOnErrorHandler.callErrorHandler(
-                        new Error("Jingle error: " + JSON.stringify(error)));
+                        new Error('Jingle error: ' + JSON.stringify(error)));
                 }), IQ_TIMEOUT);
         } else {
             logger.log('removal not necessary');
@@ -1297,11 +1297,11 @@ export default class JingleSessionPC extends JingleSession {
         const added = this.fixJingle(add);
 
         if (added && add) {
-            logger.info("Sending source-add", add.tree());
+            logger.info('Sending source-add', add.tree());
             this.connection.sendIQ(
                 add, null, this.newJingleErrorHandler(add, function(error) {
                     GlobalOnErrorHandler.callErrorHandler(
-                        new Error("Jingle error: " + JSON.stringify(error)));
+                        new Error('Jingle error: ' + JSON.stringify(error)));
                 }), IQ_TIMEOUT);
         } else {
             logger.log('addition not necessary');
@@ -1346,7 +1346,7 @@ export default class JingleSessionPC extends JingleSession {
             }
 
             error.source = null;
-            if (request && "function" == typeof request.tree) {
+            if (request && 'function' == typeof request.tree) {
                 error.source = request.tree();
             }
 
@@ -1355,7 +1355,7 @@ export default class JingleSessionPC extends JingleSession {
             // FIXME: Maybe we can include part of the session object
             // error.session = this;
 
-            logger.error("Jingle error", error);
+            logger.error('Jingle error', error);
             if (failureCb) {
                 failureCb(error);
             }
@@ -1416,24 +1416,24 @@ export default class JingleSessionPC extends JingleSession {
      */
     fixJingle(jingle) {
         /* eslint-disable no-case-declarations */
-        const action = $(jingle.nodeTree).find("jingle").attr("action");
+        const action = $(jingle.nodeTree).find('jingle').attr('action');
         switch (action) {
-        case "source-add":
-        case "session-accept":
+        case 'source-add':
+        case 'session-accept':
             this.fixSourceAddJingle(jingle);
             break;
-        case "source-remove":
+        case 'source-remove':
             this.fixSourceRemoveJingle(jingle);
             break;
         default:
-            const errmsg = "Unknown jingle action!";
+            const errmsg = 'Unknown jingle action!';
             GlobalOnErrorHandler.callErrorHandler(errmsg);
             logger.error(errmsg);
             return false;
         }/* eslint-enable no-case-declarations */
 
         const sources
-            = $(jingle.tree()).find(">jingle>content>description>source");
+            = $(jingle.tree()).find('>jingle>content>description>source');
         return sources && sources.length > 0;
     }
 
@@ -1444,31 +1444,31 @@ export default class JingleSessionPC extends JingleSession {
      * @returns {boolean} true if the jingle has to be sent and false otherwise.
      */
     fixSourceAddJingle(jingle) {
-        let ssrcs = this.modifiedSSRCs["unmute"];
-        this.modifiedSSRCs["unmute"] = [];
+        let ssrcs = this.modifiedSSRCs['unmute'];
+        this.modifiedSSRCs['unmute'] = [];
         if (ssrcs && ssrcs.length) {
             ssrcs.forEach(function(ssrcObj) {
-                const desc = $(jingle.tree()).find(">jingle>content[name=\"" +
-                    ssrcObj.mtype + "\"]>description");
+                const desc = $(jingle.tree()).find('>jingle>content[name="' +
+                    ssrcObj.mtype + '"]>description');
                 if (!desc || !desc.length) {
                     return;
                 }
                 ssrcObj.ssrcs.forEach(function(ssrc) {
-                    const sourceNode = desc.find(">source[ssrc=\"" +
-                        ssrc + "\"]");
+                    const sourceNode = desc.find('>source[ssrc="' +
+                        ssrc + '"]');
                     sourceNode.remove();
                 });
                 ssrcObj.groups.forEach(function(group) {
-                    const groupNode = desc.find(">ssrc-group[semantics=\"" +
-                        group.semantics + "\"]:has(source[ssrc=\"" +
-                        group.ssrcs[0] + "\"])");
+                    const groupNode = desc.find('>ssrc-group[semantics="' +
+                        group.semantics + '"]:has(source[ssrc="' +
+                        group.ssrcs[0] + '"])');
                     groupNode.remove();
                 });
             });
         }
 
-        ssrcs = this.modifiedSSRCs["addMuted"];
-        this.modifiedSSRCs["addMuted"] = [];
+        ssrcs = this.modifiedSSRCs['addMuted'];
+        this.modifiedSSRCs['addMuted'] = [];
         if (ssrcs && ssrcs.length) {
             ssrcs.forEach(function(ssrcObj) {
                 const desc
@@ -1477,31 +1477,31 @@ export default class JingleSessionPC extends JingleSession {
                 const cname = Math.random().toString(36).substring(2);
                 ssrcObj.ssrcs.forEach(function(ssrc) {
                     const sourceNode
-                        = desc.find(">source[ssrc=\"" + ssrc + "\"]");
+                        = desc.find('>source[ssrc="' + ssrc + '"]');
                     sourceNode.remove();
-                    const sourceXML = "<source " +
-                        "xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\" ssrc=\"" +
-                        ssrc + "\">" +
-                        "<parameter xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\"" +
-                        " value=\"" + ssrcObj.msid + "\" name=\"msid\"/>" +
-                        "<parameter xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\"" +
-                        " value=\"" + cname + "\" name=\"cname\" />" +
-                        "</source>";
+                    const sourceXML = '<source ' +
+                        'xmlns="urn:xmpp:jingle:apps:rtp:ssma:0" ssrc="' +
+                        ssrc + '">' +
+                        '<parameter xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"' +
+                        ' value="' + ssrcObj.msid + '" name="msid"/>' +
+                        '<parameter xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"' +
+                        ' value="' + cname + '" name="cname" />' +
+                        '</source>';
                     desc.append(sourceXML);
                 });
                 ssrcObj.groups.forEach(function(group) {
                     const groupNode
-                        = desc.find(">ssrc-group[semantics=\"" +
-                            group.semantics + "\"]:has(source[ssrc=\""
-                            + group.ssrcs[0] + "\"])");
+                        = desc.find('>ssrc-group[semantics="' +
+                            group.semantics + '"]:has(source[ssrc="'
+                            + group.ssrcs[0] + '"])');
                     groupNode.remove();
                     desc.append(
-                        "<ssrc-group semantics=\"" + group.semantics +
-                        "\" xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\">" +
-                        "<source ssrc=\"" +
-                            group.ssrcs.join("\"/>" + "<source ssrc=\"") +
-                            "\"/>" +
-                        "</ssrc-group>");
+                        '<ssrc-group semantics="' + group.semantics +
+                        '" xmlns="urn:xmpp:jingle:apps:rtp:ssma:0">' +
+                        '<source ssrc="' +
+                            group.ssrcs.join('"/>' + '<source ssrc="') +
+                            '"/>' +
+                        '</ssrc-group>');
                 });
             });
         }
@@ -1514,31 +1514,31 @@ export default class JingleSessionPC extends JingleSession {
      * @returns {boolean} true if the jingle has to be sent and false otherwise.
      */
     fixSourceRemoveJingle(jingle) {
-        let ssrcs = this.modifiedSSRCs["mute"];
-        this.modifiedSSRCs["mute"] = [];
+        let ssrcs = this.modifiedSSRCs['mute'];
+        this.modifiedSSRCs['mute'] = [];
         if (ssrcs && ssrcs.length) {
             ssrcs.forEach(function(ssrcObj) {
                 ssrcObj.ssrcs.forEach(function(ssrc) {
                     const sourceNode
-                        = $(jingle.tree()).find(">jingle>content[name=\"" +
-                            ssrcObj.mtype + "\"]>description>source[ssrc=\"" +
-                            ssrc + "\"]");
+                        = $(jingle.tree()).find('>jingle>content[name="' +
+                            ssrcObj.mtype + '"]>description>source[ssrc="' +
+                            ssrc + '"]');
                     sourceNode.remove();
                 });
                 ssrcObj.groups.forEach(function(group) {
                     const groupNode
                         = $(jingle.tree()).find(
-                            ">jingle>content[name=\"" + ssrcObj.mtype +
-                            "\"]>description>ssrc-group[semantics=\"" +
-                            group.semantics + "\"]:has(source[ssrc=\"" +
-                            group.ssrcs[0] + "\"])");
+                            '>jingle>content[name="' + ssrcObj.mtype +
+                            '"]>description>ssrc-group[semantics="' +
+                            group.semantics + '"]:has(source[ssrc="' +
+                            group.ssrcs[0] + '"])');
                     groupNode.remove();
                 });
             });
         }
 
-        ssrcs = this.modifiedSSRCs["remove"];
-        this.modifiedSSRCs["remove"] = [];
+        ssrcs = this.modifiedSSRCs['remove'];
+        this.modifiedSSRCs['remove'] = [];
         if (ssrcs && ssrcs.length) {
             ssrcs.forEach(function(ssrcObj) {
                 const desc
@@ -1546,28 +1546,28 @@ export default class JingleSessionPC extends JingleSession {
                         jingle, ssrcObj.mtype);
                 ssrcObj.ssrcs.forEach(function(ssrc) {
                     const sourceNode
-                        = desc.find(">source[ssrc=\"" + ssrc + "\"]");
+                        = desc.find('>source[ssrc="' + ssrc + '"]');
                     if (!sourceNode || !sourceNode.length) {
                         // Maybe we have to include cname, msid, etc here?
                         desc.append(
-                            "<source " +
-                            "xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\" " +
-                            "ssrc=\"" + ssrc + "\"></source>");
+                            '<source ' +
+                            'xmlns="urn:xmpp:jingle:apps:rtp:ssma:0" ' +
+                            'ssrc="' + ssrc + '"></source>');
                     }
                 });
                 ssrcObj.groups.forEach(function(group) {
                     const groupNode
-                        = desc.find(">ssrc-group[semantics=\"" +
-                            group.semantics + "\"]:has(source[ssrc=\"" +
-                            group.ssrcs[0] + "\"])");
+                        = desc.find('>ssrc-group[semantics="' +
+                            group.semantics + '"]:has(source[ssrc="' +
+                            group.ssrcs[0] + '"])');
                     if (!groupNode || !groupNode.length) {
-                        desc.append("<ssrc-group semantics=\"" +
+                        desc.append('<ssrc-group semantics="' +
                             group.semantics +
-                            "\" xmlns=\"urn:xmpp:jingle:apps:rtp:ssma:0\">" +
-                            "<source ssrc=\"" +
-                                group.ssrcs.join("\"/><source ssrc=\"") +
-                                "\"/>" +
-                            "</ssrc-group>");
+                            '" xmlns="urn:xmpp:jingle:apps:rtp:ssma:0">' +
+                            '<source ssrc="' +
+                                group.ssrcs.join('"/><source ssrc="') +
+                                '"/>' +
+                            '</ssrc-group>');
                     }
                 });
             });
@@ -1581,22 +1581,22 @@ export default class JingleSessionPC extends JingleSession {
      * @param mtype - the content type(audio, video, etc.)
      */
     static createDescriptionNode(jingle, mtype) {
-        let content = $(jingle.tree()).find(">jingle>content[name=\"" +
-            mtype + "\"]");
+        let content = $(jingle.tree()).find('>jingle>content[name="' +
+            mtype + '"]');
 
         if (!content || !content.length) {
-            $(jingle.tree()).find(">jingle").append(
-                "<content name=\"" + mtype + "\"></content>");
-            content = $(jingle.tree()).find(">jingle>content[name=\"" +
-                mtype + "\"]");
+            $(jingle.tree()).find('>jingle').append(
+                '<content name="' + mtype + '"></content>');
+            content = $(jingle.tree()).find('>jingle>content[name="' +
+                mtype + '"]');
         }
 
-        let desc = content.find(">description");
+        let desc = content.find('>description');
         if (!desc || !desc.length) {
-            content.append("<description " +
-                "xmlns=\"urn:xmpp:jingle:apps:rtp:1\" media=\"" +
-                mtype + "\"></description>");
-            desc = content.find(">description");
+            content.append('<description ' +
+                'xmlns="urn:xmpp:jingle:apps:rtp:1" media="' +
+                mtype + '"></description>');
+            desc = content.find('>description');
         }
         return desc;
     }
@@ -1606,10 +1606,10 @@ export default class JingleSessionPC extends JingleSession {
      */
     static getUfrag(sdp) {
         const ufragLines = sdp.split('\n').filter(function(line) {
-            return line.startsWith("a=ice-ufrag:");
+            return line.startsWith('a=ice-ufrag:');
         });
         if (ufragLines.length > 0) {
-            return ufragLines[0].substr("a=ice-ufrag:".length);
+            return ufragLines[0].substr('a=ice-ufrag:'.length);
         }
     }
 

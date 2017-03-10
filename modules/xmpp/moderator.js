@@ -1,11 +1,11 @@
 /* global $, $iq, Promise, Strophe */
 
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var XMPPEvents = require("../../service/xmpp/XMPPEvents");
+var logger = require('jitsi-meet-logger').getLogger(__filename);
+var XMPPEvents = require('../../service/xmpp/XMPPEvents');
 var AuthenticationEvents
-    = require("../../service/authentication/AuthenticationEvents");
-var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
-import Settings from "../settings/Settings";
+    = require('../../service/authentication/AuthenticationEvents');
+var GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
+import Settings from '../settings/Settings';
 
 function createExpBackoffTimer(step) {
     var count = 1;
@@ -46,7 +46,7 @@ function Moderator(roomName, xmpp, emitter, options) {
     function listener(event) {
         if (event.data && event.data.sessionId) {
             if (event.origin !== window.location.origin) {
-                logger.warn("Ignoring sessionId from different origin: " +
+                logger.warn('Ignoring sessionId from different origin: ' +
                     event.origin);
                 return;
             }
@@ -56,9 +56,9 @@ function Moderator(roomName, xmpp, emitter, options) {
     }
     // Register
     if (window.addEventListener) {
-        window.addEventListener("message", listener, false);
+        window.addEventListener('message', listener, false);
     } else {
-        window.attachEvent("onmessage", listener);
+        window.attachEvent('onmessage', listener);
     }
 }
 
@@ -72,11 +72,11 @@ Moderator.prototype.isSipGatewayEnabled = function() {
 
 
 Moderator.prototype.onMucMemberLeft = function(jid) {
-    logger.info("Someone left is it focus ? " + jid);
+    logger.info('Someone left is it focus ? ' + jid);
     var resource = Strophe.getResourceFromJid(jid);
     if (resource === 'focus') {
         logger.info(
-            "Focus has left the room - leaving conference");
+            'Focus has left the room - leaving conference');
         this.eventEmitter.emit(XMPPEvents.FOCUS_LEFT);
     }
 };
@@ -85,7 +85,7 @@ Moderator.prototype.onMucMemberLeft = function(jid) {
 Moderator.prototype.setFocusUserJid = function(focusJid) {
     if (!this.focusUserJid) {
         this.focusUserJid = focusJid;
-        logger.info("Focus jid set to:  " + this.focusUserJid);
+        logger.info('Focus jid set to:  ' + this.focusUserJid);
     }
 };
 
@@ -113,7 +113,7 @@ Moderator.prototype.createConferenceIq = function() {
     var machineUID = Settings.getMachineId();
 
     logger.info(
-            "Session ID: " + sessionId + " machine UID: " + machineUID);
+            'Session ID: ' + sessionId + ' machine UID: ' + machineUID);
 
     elem.c('conference', {
         xmlns: 'http://jitsi.org/protocol/focus',
@@ -236,7 +236,7 @@ Moderator.prototype.parseConfigOptions = function(resultIq) {
             '>conference>property' +
             '[name=\'authentication\'][value=\'true\']').length > 0;
 
-    logger.info("Authentication enabled: " + authenticationEnabled);
+    logger.info('Authentication enabled: ' + authenticationEnabled);
 
     this.externalAuthEnabled = $(resultIq).find(
             '>conference>property' +
@@ -263,7 +263,7 @@ Moderator.prototype.parseConfigOptions = function(resultIq) {
         this.sipGatewayEnabled = true;
     }
 
-    logger.info("Sip gateway enabled:  " + this.sipGatewayEnabled);
+    logger.info('Sip gateway enabled:  ' + this.sipGatewayEnabled);
 };
 
 // FIXME We need to show the fact that we're waiting for the focus to the user
@@ -303,7 +303,7 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
     // a new one
     var invalidSession = $(error).find('>error>session-invalid').length;
     if (invalidSession) {
-        logger.info("Session expired! - removing");
+        logger.info('Session expired! - removing');
         Settings.clearSessionId();
     }
     if ($(error).find('>error>graceful-shutdown').length) {
@@ -326,7 +326,7 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
     }
     // Not authorized to create new room
     if ($(error).find('>error>not-authorized').length) {
-        logger.warn("Unauthorized to start the conference", error);
+        logger.warn('Unauthorized to start the conference', error);
         var toDomain = Strophe.getDomainFromJid(error.getAttribute('to'));
         if (toDomain !== this.options.connection.hosts.anonymousdomain) {
             // FIXME "is external" should come either from the focus or
@@ -337,7 +337,7 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
         return;
     }
     var waitMs = this.getNextErrorTimeout();
-    var errmsg = "Focus error, retry after " + waitMs;
+    var errmsg = 'Focus error, retry after ' + waitMs;
     GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
     logger.error(errmsg, error);
     // Show message
@@ -378,7 +378,7 @@ Moderator.prototype._allocateConferenceFocusSuccess = function(
         callback();
     } else {
         var waitMs = this.getNextTimeout();
-        logger.info("Waiting for the focus... " + waitMs);
+        logger.info('Waiting for the focus... ' + waitMs);
         window.setTimeout(() => this.allocateConferenceFocus(callback),
             waitMs);
     }
@@ -473,12 +473,12 @@ Moderator.prototype.logout = function(callback) {
             if (logoutUrl) {
                 logoutUrl = decodeURIComponent(logoutUrl);
             }
-            logger.info("Log out OK, url: " + logoutUrl, result);
+            logger.info('Log out OK, url: ' + logoutUrl, result);
             Settings.clearSessionId();
             callback(logoutUrl);
         }.bind(this),
         function(error) {
-            var errmsg = "Logout error";
+            var errmsg = 'Logout error';
             GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
             logger.error(errmsg, error);
         }

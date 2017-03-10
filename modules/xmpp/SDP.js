@@ -1,6 +1,6 @@
 /* global $, APP */
 
-var SDPUtil = require("./SDPUtil");
+var SDPUtil = require('./SDPUtil');
 
 // SDP STUFF
 function SDP(sdp) {
@@ -252,7 +252,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                     elem.up();
                     elem.c('source', { ssrc, xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
                     elem.c('parameter');
-                    elem.attrs({name: "cname", value:Math.random().toString(36).substring(7)});
+                    elem.attrs({name: 'cname', value:Math.random().toString(36).substring(7)});
                     elem.up();
                     // FIXME what case does this code handle ? remove ???
                     let msid = null;
@@ -266,13 +266,13 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                     if(msid != null) {
                         msid = SDPUtil.filter_special_chars(msid);
                         elem.c('parameter');
-                        elem.attrs({name: "msid", value:msid});
+                        elem.attrs({name: 'msid', value:msid});
                         elem.up();
                         elem.c('parameter');
-                        elem.attrs({name: "mslabel", value:msid});
+                        elem.attrs({name: 'mslabel', value:msid});
                         elem.up();
                         elem.c('parameter');
-                        elem.attrs({name: "label", value:msid});
+                        elem.attrs({name: 'label', value:msid});
                         elem.up();
                     }
                 }
@@ -400,7 +400,7 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
             lines.forEach(function(line) {
                 var candidate = SDPUtil.candidateToJingle(line);
                 if (self.failICE) {
-                    candidate.ip = "1.1.1.1";
+                    candidate.ip = '1.1.1.1';
                 }
                 var protocol = candidate &&
                         typeof candidate.protocol === 'string'

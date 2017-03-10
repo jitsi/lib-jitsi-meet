@@ -1,5 +1,5 @@
 /* global Strophe */
-import ConnectionPlugin from "./ConnectionPlugin";
+import ConnectionPlugin from './ConnectionPlugin';
 
 /**
  *  Logs raw stanzas and makes them available for download as JSON

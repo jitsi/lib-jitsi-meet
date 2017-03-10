@@ -1,4 +1,4 @@
-import Listenable from "../util/Listenable";
+import Listenable from '../util/Listenable';
 
 /**
  * Creates ConnectionPlugin class that extends the passed class.

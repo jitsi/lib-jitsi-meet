@@ -1,17 +1,17 @@
 /* global __filename */
-import DataChannels from "./DataChannels";
-import { getLogger } from "jitsi-meet-logger";
-import GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
-import JitsiLocalTrack from "./JitsiLocalTrack.js";
-import JitsiRemoteTrack from "./JitsiRemoteTrack.js";
-import JitsiTrackError from "../../JitsiTrackError";
-import * as JitsiTrackErrors from "../../JitsiTrackErrors";
-import Listenable from "../util/Listenable";
-import * as MediaType from "../../service/RTC/MediaType";
-import RTCEvents from "../../service/RTC/RTCEvents.js";
-import RTCUtils from "./RTCUtils.js";
-import TraceablePeerConnection from "./TraceablePeerConnection";
-import VideoType from "../../service/RTC/VideoType";
+import DataChannels from './DataChannels';
+import { getLogger } from 'jitsi-meet-logger';
+import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import JitsiLocalTrack from './JitsiLocalTrack.js';
+import JitsiRemoteTrack from './JitsiRemoteTrack.js';
+import JitsiTrackError from '../../JitsiTrackError';
+import * as JitsiTrackErrors from '../../JitsiTrackErrors';
+import Listenable from '../util/Listenable';
+import * as MediaType from '../../service/RTC/MediaType';
+import RTCEvents from '../../service/RTC/RTCEvents.js';
+import RTCUtils from './RTCUtils.js';
+import TraceablePeerConnection from './TraceablePeerConnection';
+import VideoType from '../../service/RTC/VideoType';
 
 const logger = getLogger(__filename);
 
@@ -123,8 +123,8 @@ export default class RTC extends Listenable {
                         this.selectedEndpoint);
                 } catch (error) {
                     GlobalOnErrorHandler.callErrorHandler(error);
-                    logger.error("Cannot sendSelectedEndpointMessage ",
-                        this.selectedEndpoint, ". Error: ", error);
+                    logger.error('Cannot sendSelectedEndpointMessage ',
+                        this.selectedEndpoint, '. Error: ', error);
                 }
 
                 this.removeListener(RTCEvents.DATA_CHANNEL_OPEN,
@@ -182,7 +182,7 @@ export default class RTC extends Listenable {
         } else {
             // FIXME: cache value while there is no data channel created
             // and send the cached state once channel is created
-            throw new Error("Data channels support is disabled!");
+            throw new Error('Data channels support is disabled!');
         }
     }
 
@@ -407,7 +407,7 @@ export default class RTC extends Listenable {
 
         if (remoteTracks[mediaType]) {
             logger.error(
-                "Overwriting remote track!", ownerEndpointId, mediaType);
+                'Overwriting remote track!', ownerEndpointId, mediaType);
         }
         remoteTracks[mediaType] = remoteTrack;
 
@@ -593,8 +593,8 @@ export default class RTC extends Listenable {
      * @returns {boolean}
      */
     static isUserStreamById(streamId) {
-        return streamId && streamId !== "mixedmslabel"
-            && streamId !== "default";
+        return streamId && streamId !== 'mixedmslabel'
+            && streamId !== 'default';
     }
 
     /**
@@ -709,7 +709,7 @@ export default class RTC extends Listenable {
         if(this.dataChannels) {
             this.dataChannels.sendDataChannelMessage(to, payload);
         } else {
-            throw new Error("Data channels support is disabled!");
+            throw new Error('Data channels support is disabled!');
         }
     }
 
@@ -724,7 +724,7 @@ export default class RTC extends Listenable {
         if (this.dataChannels) {
             this.dataChannels.sendSetLastNMessage(value);
         } else {
-            throw new Error("Data channels support is disabled!");
+            throw new Error('Data channels support is disabled!');
         }
     }
 }

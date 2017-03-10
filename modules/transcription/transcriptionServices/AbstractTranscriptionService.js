@@ -3,8 +3,8 @@
  * service on.
  */
 var TranscriptionService = function() {
-    throw new Error("TranscriptionService is abstract and cannot be" +
-        "created");
+    throw new Error('TranscriptionService is abstract and cannot be' +
+        'created');
 };
 
 /**
@@ -20,8 +20,8 @@ TranscriptionService.prototype.send = function send(recordingResult, callback) {
     var t = this;
     this.sendRequest(recordingResult.blob, function(response) {
         if(!t.verify(response)) {
-            console.log("the retrieved response from the server" +
-                   " is not valid!");
+            console.log('the retrieved response from the server' +
+                   ' is not valid!');
             recordingResult.wordArray = [];
             callback(recordingResult);
         } else{
@@ -42,7 +42,7 @@ TranscriptionService.prototype.send = function send(recordingResult, callback) {
  */
 // eslint-disable-next-line no-unused-vars
 TranscriptionService.prototype.sendRequest = function(audioBlob, callback) {
-    throw new Error("TranscriptionService.sendRequest is abstract");
+    throw new Error('TranscriptionService.sendRequest is abstract');
 };
 
 /**
@@ -62,7 +62,7 @@ TranscriptionService.prototype.sendRequest = function(audioBlob, callback) {
  */
 // eslint-disable-next-line no-unused-vars
 TranscriptionService.prototype.formatResponse = function(response) {
-    throw new Error("TranscriptionService.format is abstract");
+    throw new Error('TranscriptionService.format is abstract');
 };
 
 /**
@@ -73,7 +73,7 @@ TranscriptionService.prototype.formatResponse = function(response) {
  */
 // eslint-disable-next-line no-unused-vars
 TranscriptionService.prototype.verify = function(response) {
-    throw new Error("TranscriptionService.verify is abstract");
+    throw new Error('TranscriptionService.verify is abstract');
 };
 
 module.exports = TranscriptionService;

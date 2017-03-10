@@ -1,7 +1,7 @@
 /* global $ */
 
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var RTCBrowserType = require("./RTCBrowserType");
+var logger = require('jitsi-meet-logger').getLogger(__filename);
+var RTCBrowserType = require('./RTCBrowserType');
 
 var RTCUIHelper = {
 
@@ -31,7 +31,7 @@ var RTCUIHelper = {
             if (matching.length) {
                 if (matching.length > 1) {
                     logger.warn(
-                        "Container with more than one video elements: ",
+                        'Container with more than one video elements: ',
                         containerElement);
                 }
                 return matching.parent()[0];

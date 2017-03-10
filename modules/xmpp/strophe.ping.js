@@ -1,9 +1,9 @@
 /* global $iq, Strophe */
 
-import { getLogger } from "jitsi-meet-logger";
+import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
-import ConnectionPlugin from "./ConnectionPlugin";
-import GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
+import ConnectionPlugin from './ConnectionPlugin';
+import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
 /**
  * Ping every 10 sec
@@ -43,7 +43,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
      */
     init(connection) {
         super.init(connection);
-        Strophe.addNamespace('PING', "urn:xmpp:ping");
+        Strophe.addNamespace('PING', 'urn:xmpp:ping');
     }
 
     /**
@@ -69,10 +69,10 @@ class PingConnectionPlugin extends ConnectionPlugin {
      */
     hasPingSupport(jid, callback) {
         this.xmpp.caps.getFeatures(jid).then(features =>
-            callback(features.has("urn:xmpp:ping")), error => {
-            const errmsg = "Ping feature discovery error";
+            callback(features.has('urn:xmpp:ping')), error => {
+            const errmsg = 'Ping feature discovery error';
             GlobalOnErrorHandler.callErrorHandler(new Error(
-                errmsg + ": " + error));
+                errmsg + ': ' + error));
             logger.error(errmsg, error);
             callback(false);
         });
@@ -87,7 +87,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
      */
     startInterval(remoteJid, interval = PING_INTERVAL) {
         if (this.intervalId) {
-            const errmsg = "Ping task scheduled already";
+            const errmsg = 'Ping task scheduled already';
             GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
             logger.error(errmsg);
             return;
@@ -97,7 +97,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
                 this.failedPings = 0;
             }, error => {
                 this.failedPings += 1;
-                const errmsg = "Ping " + (error ? "error" : "timeout");
+                const errmsg = 'Ping ' + (error ? 'error' : 'timeout');
                 if (this.failedPings >= PING_THRESHOLD) {
                     GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
                     logger.error(errmsg, error);
@@ -112,7 +112,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
                 }
             }, PING_TIMEOUT);
         }, interval);
-        logger.info("XMPP pings will be sent every " + interval + " ms");
+        logger.info('XMPP pings will be sent every ' + interval + ' ms');
     }
 
     /**
@@ -123,7 +123,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
             window.clearInterval(this.intervalId);
             this.intervalId = null;
             this.failedPings = 0;
-            logger.info("Ping interval cleared");
+            logger.info('Ping interval cleared');
         }
     }
 }

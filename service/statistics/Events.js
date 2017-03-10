@@ -8,19 +8,19 @@
  * @param {boolean} isLocal - <tt>true</tt> if <tt>ssrc</tt> identifies the
  * local endpoint/participant; otherwise, <tt>false</tt>.
  */
-export const AUDIO_LEVEL = "statistics.audioLevel";
+export const AUDIO_LEVEL = 'statistics.audioLevel';
 
 /**
  * An event fired just before the statistics module gets disposes and it's
  * the last chance to submit some logs that will end up in stats services like
  * CallStats (if enabled).
  */
-export const BEFORE_DISPOSED = "statistics.before_disposed";
+export const BEFORE_DISPOSED = 'statistics.before_disposed';
 
 /**
  * An event carrying all statistics by ssrc.
  */
-export const BYTE_SENT_STATS = "statistics.byte_sent_stats";
+export const BYTE_SENT_STATS = 'statistics.byte_sent_stats';
 
 /**
  * An event carrying connection statistics.
@@ -29,4 +29,4 @@ export const BYTE_SENT_STATS = "statistics.byte_sent_stats";
  * event such as <tt>bandwidth</tt>, <tt>bitrate</tt>, <tt>packetLoss</tt>,
  * <tt>resolution</tt>, and <tt>transport</tt>.
  */
-export const CONNECTION_STATS = "statistics.connectionstats";
+export const CONNECTION_STATS = 'statistics.connectionstats';

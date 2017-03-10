@@ -1,4 +1,4 @@
-var SDPUtil = require("./SDPUtil");
+var SDPUtil = require('./SDPUtil');
 
 function SDPDiffer(mySDP, otherSDP) {
     this.mySDP = mySDP;

@@ -6,7 +6,7 @@ import * as transform from 'sdp-transform';
  * @return {Number} the primary SSRC number
  */
 export function parsePrimarySSRC(group) {
-    return parseInt(group.ssrcs.split(" ")[0]);
+    return parseInt(group.ssrcs.split(' ')[0]);
 }
 
 /**
@@ -15,7 +15,7 @@ export function parsePrimarySSRC(group) {
  * @return {Number} the secondary SSRC number
  */
 export function parseSecondarySSRC(group) {
-    return parseInt(group.ssrcs.split(" ")[1]);
+    return parseInt(group.ssrcs.split(' ')[1]);
 }
 
 /**
@@ -99,7 +99,7 @@ class MLineWrap {
      */
     constructor(mLine) {
         if (!mLine) {
-            throw new Error("mLine is undefined");
+            throw new Error('mLine is undefined');
         }
 
         this.mLine = mLine;
@@ -272,11 +272,11 @@ class MLineWrap {
         } else {
             // Look for a SIM or FID group
             if (this.mLine.ssrcGroups) {
-                const simGroup = this.findGroup("SIM");
+                const simGroup = this.findGroup('SIM');
                 if (simGroup) {
                     return parsePrimarySSRC(simGroup);
                 }
-                const fidGroup = this.findGroup("FID");
+                const fidGroup = this.findGroup('FID');
                 if (fidGroup) {
                     return parsePrimarySSRC(fidGroup);
                 }
@@ -293,7 +293,7 @@ class MLineWrap {
      * one)
      */
     getRtxSSRC(primarySsrc) {
-        const fidGroup = this.findGroupByPrimarySSRC("FID", primarySsrc);
+        const fidGroup = this.findGroupByPrimarySSRC('FID', primarySsrc);
         return fidGroup && parseSecondarySSRC(fidGroup);
     }
 
@@ -326,7 +326,7 @@ class MLineWrap {
             // Right now, FID groups are the only ones we parse to
             // disqualify streams.  If/when others arise we'll
             // need to add support for them here
-            if (ssrcGroupInfo.semantics === "FID") {
+            if (ssrcGroupInfo.semantics === 'FID') {
                 // secondary FID streams should be filtered out
                 const secondarySsrc = parseSecondarySSRC(ssrcGroupInfo);
                 videoSSRCs.splice(
@@ -354,7 +354,7 @@ class MLineWrap {
         }
 
         this.mLine.ssrcGroups = this.mLine.ssrcGroups
-            .filter(groupInfo => groupInfo.ssrcs.indexOf(ssrc + "") === -1);
+            .filter(groupInfo => groupInfo.ssrcs.indexOf(ssrc + '') === -1);
     }
 
     /**

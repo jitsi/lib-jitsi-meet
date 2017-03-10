@@ -1,6 +1,6 @@
 /* global __filename */
 
-import { getLogger } from "jitsi-meet-logger";
+import { getLogger } from 'jitsi-meet-logger';
 import { parsePrimarySSRC,
          parseSecondarySSRC,
          SdpTransformWrap } from './SdpTransformUtil';
@@ -40,7 +40,7 @@ export default class SdpConsistency {
      */
     setPrimarySsrc(primarySsrc) {
         if (typeof primarySsrc !== 'number') {
-            throw new Error("Primary SSRC must be a number!");
+            throw new Error('Primary SSRC must be a number!');
         }
         this.cachedPrimarySsrc = primarySsrc;
     }
@@ -58,52 +58,52 @@ export default class SdpConsistency {
      */
     makeVideoPrimarySsrcsConsistent(sdpStr) {
         const sdpTransformer = new SdpTransformWrap(sdpStr);
-        const videoMLine = sdpTransformer.selectMedia("video");
+        const videoMLine = sdpTransformer.selectMedia('video');
         if (!videoMLine) {
             logger.error(`No 'video' media found in the sdp: ${sdpStr}`);
             return sdpStr;
         }
-        if (videoMLine.direction === "inactive") {
+        if (videoMLine.direction === 'inactive') {
             logger.info(
-                "Sdp-consistency doing nothing, video mline is inactive");
+                'Sdp-consistency doing nothing, video mline is inactive');
             return sdpStr;
         }
-        if (videoMLine.direction === "recvonly") {
+        if (videoMLine.direction === 'recvonly') {
             // If the mline is recvonly, we'll add the primary
             //  ssrc as a recvonly ssrc
             if (this.cachedPrimarySsrc) {
                 videoMLine.addSSRCAttribute({
                     id: this.cachedPrimarySsrc,
-                    attribute: "cname",
+                    attribute: 'cname',
                     value: `recvonly-${this.cachedPrimarySsrc}`
                 });
             } else {
-                logger.error("No SSRC found for the recvonly video stream!");
+                logger.error('No SSRC found for the recvonly video stream!');
             }
         } else {
             const newPrimarySsrc = videoMLine.getPrimaryVideoSsrc();
             if (!newPrimarySsrc) {
-                logger.info("Sdp-consistency couldn't parse new primary ssrc");
+                logger.info('Sdp-consistency couldn\'t parse new primary ssrc');
                 return sdpStr;
             }
             if (!this.cachedPrimarySsrc) {
                 this.cachedPrimarySsrc = newPrimarySsrc;
                 logger.info(
-                    "Sdp-consistency caching primary ssrc "
+                    'Sdp-consistency caching primary ssrc '
                     + this.cachedPrimarySsrc);
             } else {
                 logger.info(
-                    `Sdp-consistency replacing new ssrc ` +
+                    'Sdp-consistency replacing new ssrc ' +
                     `${newPrimarySsrc} with cached ${this.cachedPrimarySsrc}`);
                 videoMLine.replaceSSRC(
                     newPrimarySsrc, this.cachedPrimarySsrc);
                 for (const group of videoMLine.ssrcGroups) {
-                    if (group.semantics === "FID") {
+                    if (group.semantics === 'FID') {
                         const primarySsrc = parsePrimarySSRC(group);
                         const rtxSsrc = parseSecondarySSRC(group);
                         if (primarySsrc === newPrimarySsrc) {
                             group.ssrcs =
-                                this.cachedPrimarySsrc + " " +
+                                this.cachedPrimarySsrc + ' ' +
                                     rtxSsrc;
                         }
                     }

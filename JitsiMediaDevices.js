@@ -1,9 +1,9 @@
-import EventEmitter from "events";
-import * as JitsiMediaDevicesEvents from "./JitsiMediaDevicesEvents";
+import EventEmitter from 'events';
+import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
 import * as MediaType from './service/RTC/MediaType';
-import RTC from "./modules/RTC/RTC";
-import RTCEvents from "./service/RTC/RTCEvents";
-import Statistics from "./modules/statistics/statistics";
+import RTC from './modules/RTC/RTC';
+import RTCEvents from './service/RTC/RTCEvents';
+import Statistics from './modules/statistics/statistics';
 
 const eventEmitter = new EventEmitter();
 

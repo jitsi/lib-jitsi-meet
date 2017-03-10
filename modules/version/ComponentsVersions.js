@@ -1,21 +1,21 @@
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var Statistics = require("../statistics/statistics");
+var logger = require('jitsi-meet-logger').getLogger(__filename);
+var Statistics = require('../statistics/statistics');
 
 /**
  * The constant for the name of the focus component.
  * @type {string}
  */
-ComponentsVersions.FOCUS_COMPONENT = "focus";
+ComponentsVersions.FOCUS_COMPONENT = 'focus';
 /**
  * The constant for the name of the videobridge component.
  * @type {string}
  */
-ComponentsVersions.VIDEOBRIDGE_COMPONENT = "videobridge";
+ComponentsVersions.VIDEOBRIDGE_COMPONENT = 'videobridge';
 /**
  * The constant for the name of the XMPP server component.
  * @type {string}
  */
-ComponentsVersions.XMPP_SERVER_COMPONENT = "xmpp";
+ComponentsVersions.XMPP_SERVER_COMPONENT = 'xmpp';
 
 /**
  * Creates new instance of <tt>ComponentsVersions</tt> which will be discovering
@@ -38,13 +38,13 @@ ComponentsVersions.prototype.processPresence =
     function(node, mucResource, mucJid) {
 
         if (node.attributes.xmlns !== 'http://jitsi.org/jitmeet') {
-            logger.warn("Ignored presence versions node - invalid xmlns", node);
+            logger.warn('Ignored presence versions node - invalid xmlns', node);
             return;
         }
 
         if (!this.conference._isFocus(mucJid)) {
             logger.warn(
-            "Received versions not from the focus user: " + node, mucJid);
+            'Received versions not from the focus user: ' + node, mucJid);
             return;
         }
 
@@ -56,7 +56,7 @@ ComponentsVersions.prototype.processPresence =
             componentName !== ComponentsVersions.XMPP_SERVER_COMPONENT &&
             componentName !== ComponentsVersions.VIDEOBRIDGE_COMPONENT) {
                 logger.warn(
-                "Received version for not supported component name: "
+                'Received version for not supported component name: '
                     + componentName);
                 return;
             }
@@ -64,10 +64,10 @@ ComponentsVersions.prototype.processPresence =
             var version = item.value;
             if (this.versions[componentName] !== version) {
                 this.versions[componentName] = version;
-                logger.info("Got " + componentName + " version: " + version);
+                logger.info('Got ' + componentName + ' version: ' + version);
 
                 log.push({
-                    id: "component_version",
+                    id: 'component_version',
                     component: componentName,
                     version});
             }

@@ -1,19 +1,19 @@
 /* global $, Strophe */
 
-import { getLogger } from "jitsi-meet-logger";
+import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
-import RandomUtil from "../util/RandomUtil";
-import * as JitsiConnectionErrors from "../../JitsiConnectionErrors";
-import * as JitsiConnectionEvents from "../../JitsiConnectionEvents";
-import RTCBrowserType from "../RTC/RTCBrowserType";
-import initEmuc from "./strophe.emuc";
-import initJingle from "./strophe.jingle";
-import initStropheUtil from "./strophe.util";
-import initPing from "./strophe.ping";
-import initRayo from "./strophe.rayo";
-import initStropheLogger from "./strophe.logger";
-import Listenable from "../util/Listenable";
-import Caps from "./Caps";
+import RandomUtil from '../util/RandomUtil';
+import * as JitsiConnectionErrors from '../../JitsiConnectionErrors';
+import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
+import RTCBrowserType from '../RTC/RTCBrowserType';
+import initEmuc from './strophe.emuc';
+import initJingle from './strophe.jingle';
+import initStropheUtil from './strophe.util';
+import initPing from './strophe.ping';
+import initRayo from './strophe.rayo';
+import initStropheLogger from './strophe.logger';
+import Listenable from '../util/Listenable';
+import Caps from './Caps';
 
 function createConnection(token, bosh = '/http-bind') {
     // Append token as URL param
@@ -83,7 +83,7 @@ export default class XMPP extends Listenable {
 
         // Enable Lipsync ?
         if (RTCBrowserType.isChrome() && false !== this.options.enableLipSync) {
-            logger.info("Lip-sync enabled !");
+            logger.info('Lip-sync enabled !');
             this.caps.addFeature('http://jitsi.org/meet/lipsync');
         }
 
@@ -106,15 +106,15 @@ export default class XMPP extends Listenable {
         const now = window.performance.now();
         const statusStr = Strophe.getStatusString(status).toLowerCase();
         this.connectionTimes[statusStr] = now;
-        logger.log("(TIME) Strophe " + statusStr +
-            (msg ? "[" + msg + "]" : "") + ":\t", now);
+        logger.log('(TIME) Strophe ' + statusStr +
+            (msg ? '[' + msg + ']' : '') + ':\t', now);
         if (status === Strophe.Status.CONNECTED ||
             status === Strophe.Status.ATTACHED) {
             if (this.options.useStunTurn) {
                 this.connection.jingle.getStunAndTurnCredentials();
             }
 
-            logger.info("My Jabber ID: " + this.connection.jid);
+            logger.info('My Jabber ID: ' + this.connection.jid);
 
             // Schedule ping ?
             var pingJid = this.connection.domain;
@@ -124,7 +124,7 @@ export default class XMPP extends Listenable {
                     if (hasPing) {
                         this.connection.ping.startInterval(pingJid);
                     } else {
-                        logger.warn("Ping NOT supported by " + pingJid);
+                        logger.warn('Ping NOT supported by ' + pingJid);
                     }
                 }.bind(this));
 
@@ -167,7 +167,7 @@ export default class XMPP extends Listenable {
                 // One currently known case is when a BOSH request fails for
                 // more than 4 times. The connection is dropped without
                 // supplying a reason(error message/event) through the API.
-                logger.error("XMPP connection dropped!");
+                logger.error('XMPP connection dropped!');
                 // XXX if the last request error is within 5xx range it means it
                 // was a server failure
                 const lastErrorStatus = Strophe.getLastErrorStatus();
@@ -237,8 +237,8 @@ export default class XMPP extends Listenable {
      * @param options {object} connecting options - rid, sid, jid and password.
      */
     attach(options) {
-        const now = this.connectionTimes["attaching"] = window.performance.now();
-        logger.log("(TIME) Strophe Attaching\t:" + now);
+        const now = this.connectionTimes['attaching'] = window.performance.now();
+        logger.log('(TIME) Strophe Attaching\t:' + now);
         this.connection.attach(options.jid, options.sid,
             parseInt(options.rid,10) + 1,
             this.connectionHandler.bind(this, options.password));
@@ -256,7 +256,7 @@ export default class XMPP extends Listenable {
             // Force authenticated domain if room is appended with '?login=true'
             // or if we're joining with the token
             if (this.options.hosts.anonymousdomain
-                    && (window.location.search.indexOf("login=true") !== -1
+                    && (window.location.search.indexOf('login=true') !== -1
                         || this.options.token)) {
                 configDomain = this.options.hosts.domain;
             }
@@ -268,7 +268,7 @@ export default class XMPP extends Listenable {
     createRoom(roomName, options) {
         // By default MUC nickname is the resource part of the JID
         let mucNickname = Strophe.getNodeFromJid(this.connection.jid);
-        let roomjid = roomName + "@" + this.options.hosts.muc + "/";
+        let roomjid = roomName + '@' + this.options.hosts.muc + '/';
         const cfgNickname
             = options.useNicks && options.nick ? options.nick : null;
 
@@ -282,7 +282,7 @@ export default class XMPP extends Listenable {
         // Constant JIDs need some random part to be appended in order to be
         // able to join the MUC more than once.
         if (this.authenticatedUser || cfgNickname != null) {
-            mucNickname += "-" + RandomUtil.randomHexString(6);
+            mucNickname += '-' + RandomUtil.randomHexString(6);
         }
 
         roomjid += mucNickname;

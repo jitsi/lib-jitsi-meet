@@ -1,17 +1,17 @@
 /* global __filename, mozRTCPeerConnection, webkitRTCPeerConnection,
     RTCPeerConnection, RTCSessionDescription */
 
-import { getLogger } from "jitsi-meet-logger";
-import * as GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
-import RTC from "./RTC";
-import RTCBrowserType from "./RTCBrowserType.js";
-import RTCEvents from "../../service/RTC/RTCEvents";
-import RtxModifier from "../xmpp/RtxModifier.js";
+import { getLogger } from 'jitsi-meet-logger';
+import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import RTC from './RTC';
+import RTCBrowserType from './RTCBrowserType.js';
+import RTCEvents from '../../service/RTC/RTCEvents';
+import RtxModifier from '../xmpp/RtxModifier.js';
 // FIXME SDP tools should end up in some kind of util module
-import SDP from "../xmpp/SDP";
-import SdpConsistency from "../xmpp/SdpConsistency.js";
-import SDPUtil from "../xmpp/SDPUtil";
-import transform from "sdp-transform";
+import SDP from '../xmpp/SDP';
+import SdpConsistency from '../xmpp/SdpConsistency.js';
+import SDPUtil from '../xmpp/SDPUtil';
+import transform from 'sdp-transform';
 
 const logger = getLogger(__filename);
 const SIMULCAST_LAYERS = 3;
@@ -101,7 +101,7 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
         self.updateLog.push({
             time: new Date(),
             type: what,
-            value: info || ""
+            value: info || ''
         });
     };
     this.onicecandidate = null;
@@ -215,7 +215,7 @@ var dumpSDP = function(description) {
 TraceablePeerConnection.prototype._remoteStreamAdded = function(stream) {
     if (!RTC.isUserStream(stream)) {
         logger.info(
-            "Ignored remote 'stream added' event for non-user stream", stream);
+            'Ignored remote \'stream added\' event for non-user stream', stream);
         return;
     }
     // Bind 'addtrack'/'removetrack' event handlers
@@ -253,7 +253,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
     const streamId = RTC.getStreamID(stream);
     const mediaType = track.kind;
 
-    logger.info("Remote track added", streamId, mediaType);
+    logger.info('Remote track added', streamId, mediaType);
 
     // look up an associated JID for a stream id
     if (!mediaType) {
@@ -268,13 +268,13 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
     const remoteSDP = new SDP(this.remoteDescription.sdp);
     const mediaLines = remoteSDP.media.filter(
         function(mediaLines) {
-            return mediaLines.startsWith("m=" + mediaType);
+            return mediaLines.startsWith('m=' + mediaType);
         });
     if (!mediaLines.length) {
         GlobalOnErrorHandler.callErrorHandler(
             new Error(
-                "No media lines for type " + mediaType
-                    + " found in remote SDP for remote track: " + streamId));
+                'No media lines for type ' + mediaType
+                    + ' found in remote SDP for remote track: ' + streamId));
         // Abort
         return;
     }
@@ -290,8 +290,8 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
     if (!ssrcLines.length) {
         GlobalOnErrorHandler.callErrorHandler(
             new Error(
-                "No SSRC lines for streamId " + streamId
-                    + " for remote track, media type: " + mediaType));
+                'No SSRC lines for streamId ' + streamId
+                    + ' for remote track, media type: ' + mediaType));
         // Abort
         return;
     }
@@ -304,9 +304,9 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
     if (!ownerEndpointId) {
         GlobalOnErrorHandler.callErrorHandler(
             new Error(
-                "No SSRC owner known for: " + trackSsrc
-                    + " for remote track, msid: " + streamId
-                    + " media type: " + mediaType));
+                'No SSRC owner known for: ' + trackSsrc
+                    + ' for remote track, msid: ' + streamId
+                    + ' media type: ' + mediaType));
         // Abort
         return;
     }
@@ -318,7 +318,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
 
     if (!peerMediaInfo) {
         GlobalOnErrorHandler.callErrorHandler(
-            new Error("No peer media info available for: " + ownerEndpointId));
+            new Error('No peer media info available for: ' + ownerEndpointId));
         // Abort
         return;
     }
@@ -365,18 +365,18 @@ TraceablePeerConnection.prototype._remoteTrackRemoved
     const streamId = RTC.getStreamID(stream);
     const trackId = track && track.id;
 
-    logger.info("Remote track removed", streamId, trackId);
+    logger.info('Remote track removed', streamId, trackId);
 
     if (!streamId) {
         GlobalOnErrorHandler.callErrorHandler(
-            new Error("Remote track removal failed - no stream ID"));
+            new Error('Remote track removal failed - no stream ID'));
         // Abort
         return;
     }
 
     if (!trackId) {
         GlobalOnErrorHandler.callErrorHandler(
-            new Error("Remote track removal failed - no track ID"));
+            new Error('Remote track removal failed - no track ID'));
         // Abort
         return;
     }
@@ -605,20 +605,20 @@ Object.keys(getters).forEach(function(prop) {
 });
 
 TraceablePeerConnection.prototype.addStream = function(stream, ssrcInfo) {
-    this.trace('addStream', stream ? stream.id : "null");
+    this.trace('addStream', stream ? stream.id : 'null');
     if (stream) {
         this.peerconnection.addStream(stream);
     }
-    if (ssrcInfo && ssrcInfo.type === "addMuted") {
+    if (ssrcInfo && ssrcInfo.type === 'addMuted') {
         this.sdpConsistency.setPrimarySsrc(ssrcInfo.ssrcs[0]);
         const simGroup
-            = ssrcInfo.groups.find(groupInfo => groupInfo.semantics === "SIM");
+            = ssrcInfo.groups.find(groupInfo => groupInfo.semantics === 'SIM');
         if (simGroup) {
             this.simulcast.setSsrcCache(simGroup.ssrcs);
         }
         const fidGroups
             = ssrcInfo.groups.filter(
-                groupInfo => groupInfo.semantics === "FID");
+                groupInfo => groupInfo.semantics === 'FID');
         if (fidGroups) {
             const rtxSsrcMapping = new Map();
             fidGroups.forEach(fidGroup => {
@@ -681,8 +681,8 @@ TraceablePeerConnection.prototype.setRemoteDescription
 
             if (this.options.preferH264) {
                 const parsedSdp = transform.parse(description.sdp);
-                const videoMLine = parsedSdp.media.find(m => m.type === "video");
-                SDPUtil.preferVideoCodec(videoMLine, "h264");
+                const videoMLine = parsedSdp.media.find(m => m.type === 'video');
+                SDPUtil.preferVideoCodec(videoMLine, 'h264');
                 description.sdp = transform.write(parsedSdp);
             }
 
@@ -728,7 +728,7 @@ TraceablePeerConnection.prototype.setRemoteDescription
 TraceablePeerConnection.prototype.generateRecvonlySsrc = function() {
     // FIXME replace with SDPUtil.generateSsrc (when it's added)
     const newSSRC = this.generateNewStreamSSRCInfo().ssrcs[0];
-    logger.info("Generated new recvonly SSRC: " + newSSRC);
+    logger.info('Generated new recvonly SSRC: ' + newSSRC);
     this.sdpConsistency.setPrimarySsrc(newSSRC);
 };
 
@@ -738,14 +738,14 @@ TraceablePeerConnection.prototype.generateRecvonlySsrc = function() {
  * @deprecated
  */
 TraceablePeerConnection.prototype.clearRecvonlySsrc = function() {
-    logger.info("Clearing primary video SSRC!");
+    logger.info('Clearing primary video SSRC!');
     this.sdpConsistency.clearSsrcCache();
 };
 
 TraceablePeerConnection.prototype.close = function() {
     this.trace('stop');
     if (!this.rtc._removePeerConnection(this)) {
-        logger.error("RTC._removePeerConnection returned false");
+        logger.error('RTC._removePeerConnection returned false');
     }
     if (this.statsinterval !== null) {
         window.clearInterval(this.statsinterval);
@@ -936,7 +936,7 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function() {
         }
         ssrcInfo.groups.push({
             ssrcs: ssrcInfo.ssrcs.slice(),
-            semantics: "SIM"
+            semantics: 'SIM'
         });
     } else {
         ssrcInfo = {
@@ -956,7 +956,7 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function() {
             ssrcInfo.ssrcs.push(rtxSsrc);
             ssrcInfo.groups.push({
                 ssrcs: [primarySsrc, rtxSsrc],
-                semantics: "FID"
+                semantics: 'FID'
             });
         }
     }

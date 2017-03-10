@@ -12,19 +12,19 @@
           webkitRTCPeerConnection,
           webkitURL
 */
-import CameraFacingMode from "../../service/RTC/CameraFacingMode";
-import EventEmitter from "events";
-import { getLogger } from "jitsi-meet-logger";
-import GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
-import JitsiTrackError from "../../JitsiTrackError";
-import Listenable from "../util/Listenable";
-import * as MediaType from "../../service/RTC/MediaType";
-import Resolutions from "../../service/RTC/Resolutions";
-import RTCBrowserType from "./RTCBrowserType";
-import RTCEvents from "../../service/RTC/RTCEvents";
-import screenObtainer from "./ScreenObtainer";
-import SDPUtil from "../xmpp/SDPUtil";
-import VideoType from "../../service/RTC/VideoType";
+import CameraFacingMode from '../../service/RTC/CameraFacingMode';
+import EventEmitter from 'events';
+import { getLogger } from 'jitsi-meet-logger';
+import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import JitsiTrackError from '../../JitsiTrackError';
+import Listenable from '../util/Listenable';
+import * as MediaType from '../../service/RTC/MediaType';
+import Resolutions from '../../service/RTC/Resolutions';
+import RTCBrowserType from './RTCBrowserType';
+import RTCEvents from '../../service/RTC/RTCEvents';
+import screenObtainer from './ScreenObtainer';
+import SDPUtil from '../xmpp/SDPUtil';
+import VideoType from '../../service/RTC/VideoType';
 
 const logger = getLogger(__filename);
 
@@ -32,7 +32,7 @@ const logger = getLogger(__filename);
 // React Native, for example.
 const AdapterJS
     = RTCBrowserType.isTemasysPluginUsed()
-        ? require("./adapter.screenshare")
+        ? require('./adapter.screenshare')
         : undefined;
 
 var eventEmitter = new EventEmitter();
@@ -241,7 +241,7 @@ function getConstraints(um, options) {
         if (RTCBrowserType.isChrome()) {
             constraints.video = {
                 mandatory: {
-                    chromeMediaSource: "screen",
+                    chromeMediaSource: 'screen',
                     maxWidth: window.screen.width,
                     maxHeight: window.screen.height,
                     maxFrameRate: 3
@@ -258,14 +258,14 @@ function getConstraints(um, options) {
             };
         } else if (RTCBrowserType.isFirefox()) {
             constraints.video = {
-                mozMediaSource: "window",
-                mediaSource: "window"
+                mozMediaSource: 'window',
+                mediaSource: 'window'
             };
 
         } else {
             var errmsg
-                = "'screen' WebRTC media source is supported only in Chrome"
-                    + " and with Temasys plugin";
+                = '\'screen\' WebRTC media source is supported only in Chrome'
+                    + ' and with Temasys plugin';
             GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
             logger.error(errmsg);
         }
@@ -273,7 +273,7 @@ function getConstraints(um, options) {
     if (um.indexOf('desktop') >= 0) {
         constraints.video = {
             mandatory: {
-                chromeMediaSource: "desktop",
+                chromeMediaSource: 'desktop',
                 chromeMediaSourceId: options.desktopStream,
                 maxWidth: window.screen.width,
                 maxHeight: window.screen.height,
@@ -314,10 +314,10 @@ function setAvailableDevices(um, stream) {
     var audioTracksReceived = stream && !!stream.getAudioTracks().length;
     var videoTracksReceived = stream && !!stream.getVideoTracks().length;
 
-    if (um.indexOf("video") != -1) {
+    if (um.indexOf('video') != -1) {
         devices.video = videoTracksReceived;
     }
-    if (um.indexOf("audio") != -1) {
+    if (um.indexOf('audio') != -1) {
         devices.audio = audioTracksReceived;
     }
 
@@ -556,7 +556,7 @@ function obtainDevices(options) {
                 rtcUtils.stopMediaStream(options.streams[device]);
             });
             logger.error(
-                "failed to obtain " + device + " stream - stop", error);
+                'failed to obtain ' + device + ' stream - stop', error);
 
             options.errorCallback(error);
         });
@@ -730,13 +730,13 @@ class RTCUtils extends Listenable {
     }
 
     init(options) {
-        if (typeof options.disableAEC === "boolean") {
+        if (typeof options.disableAEC === 'boolean') {
             disableAEC = options.disableAEC;
-            logger.info("Disable AEC: " + disableAEC);
+            logger.info('Disable AEC: ' + disableAEC);
         }
-        if (typeof options.disableNS === "boolean") {
+        if (typeof options.disableNS === 'boolean') {
             disableNS = options.disableNS;
-            logger.info("Disable NS: " + disableNS);
+            logger.info('Disable NS: ' + disableNS);
         }
 
         return new Promise(function(resolve, reject) {
@@ -855,8 +855,8 @@ class RTCUtils extends Listenable {
                     this.enumerateDevices = enumerateDevicesThroughMediaStreamTrack;
                     this.attachMediaStream = wrapAttachMediaStream((element, stream) => {
                         if (stream) {
-                            if (stream.id === "dummyAudio"
-                                    || stream.id === "dummyVideo") {
+                            if (stream.id === 'dummyAudio'
+                                    || stream.id === 'dummyVideo') {
                                 return;
                             }
 
@@ -940,7 +940,7 @@ class RTCUtils extends Listenable {
         options = options || {};
         var constraints = getConstraints(um, options);
 
-        logger.info("Get media constraints", constraints);
+        logger.info('Get media constraints', constraints);
 
         try {
             this.getUserMedia(constraints,
@@ -992,8 +992,8 @@ class RTCUtils extends Listenable {
 
             options.devices = options.devices || ['audio', 'video'];
             if(!screenObtainer.isSupported()
-                && options.devices.indexOf("desktop") !== -1) {
-                reject(new Error("Desktop sharing is not supported!"));
+                && options.devices.indexOf('desktop') !== -1) {
+                reject(new Error('Desktop sharing is not supported!'));
             }
             if (RTCBrowserType.isFirefox()
                     // XXX The react-native-webrtc implementation that we
@@ -1009,12 +1009,12 @@ class RTCUtils extends Listenable {
                 };
 
                 var deviceGUM = {
-                    "audio": GUM.bind(self, ["audio"]),
-                    "video": GUM.bind(self, ["video"])
+                    'audio': GUM.bind(self, ['audio']),
+                    'video': GUM.bind(self, ['video'])
                 };
 
                 if(screenObtainer.isSupported()) {
-                    deviceGUM["desktop"] = screenObtainer.obtainStream.bind(
+                    deviceGUM['desktop'] = screenObtainer.obtainStream.bind(
                         screenObtainer,
                         dsOptions);
                 }
@@ -1036,15 +1036,15 @@ class RTCUtils extends Listenable {
             } else {
                 var hasDesktop = options.devices.indexOf('desktop') > -1;
                 if (hasDesktop) {
-                    options.devices.splice(options.devices.indexOf("desktop"), 1);
+                    options.devices.splice(options.devices.indexOf('desktop'), 1);
                 }
                 options.resolution = options.resolution || '360';
                 if(options.devices.length) {
                     this.getUserMediaWithConstraints(
                         options.devices,
                         function(stream) {
-                            var audioDeviceRequested = options.devices.indexOf("audio") !== -1;
-                            var videoDeviceRequested = options.devices.indexOf("video") !== -1;
+                            var audioDeviceRequested = options.devices.indexOf('audio') !== -1;
+                            var videoDeviceRequested = options.devices.indexOf('video') !== -1;
                             var audioTracksReceived = !!stream.getAudioTracks().length;
                             var videoTracksReceived = !!stream.getVideoTracks().length;
 
@@ -1060,11 +1060,11 @@ class RTCUtils extends Listenable {
                                 var devices = [];
 
                                 if (audioDeviceRequested && !audioTracksReceived) {
-                                    devices.push("audio");
+                                    devices.push('audio');
                                 }
 
                                 if (videoDeviceRequested && !videoTracksReceived) {
-                                    devices.push("video");
+                                    devices.push('video');
                                 }
 
                                 // we are missing one of the media we requested
@@ -1084,7 +1084,7 @@ class RTCUtils extends Listenable {
                                         // any way we will throw an error to be
                                         // sure the promise will finish
                                         reject(new JitsiTrackError(
-                                            { name: "UnknownError" },
+                                            { name: 'UnknownError' },
                                             getConstraints(
                                                 options.devices, options),
                                             devices)
@@ -1140,14 +1140,14 @@ class RTCUtils extends Listenable {
 
     _isDeviceListAvailable() {
         if (!rtcReady) {
-            throw new Error("WebRTC not ready yet");
+            throw new Error('WebRTC not ready yet');
         }
         var isEnumerateDevicesAvailable
             = navigator.mediaDevices && navigator.mediaDevices.enumerateDevices;
         if (isEnumerateDevicesAvailable) {
             return true;
         }
-        return typeof MediaStreamTrack !== "undefined" &&
+        return typeof MediaStreamTrack !== 'undefined' &&
             MediaStreamTrack.getSources ? true : false;
     }
 
@@ -1297,10 +1297,10 @@ class RTCUtils extends Listenable {
     getEventDataForActiveDevice(device) {
         var devices = [];
         var deviceData = {
-            "deviceId": device.deviceId,
-            "kind":     device.kind,
-            "label":    device.label,
-            "groupId":  device.groupId
+            'deviceId': device.deviceId,
+            'kind':     device.kind,
+            'label':    device.label,
+            'groupId':  device.groupId
         };
         devices.push(deviceData);
         return { deviceList: devices };

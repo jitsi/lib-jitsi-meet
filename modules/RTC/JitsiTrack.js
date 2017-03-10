@@ -1,10 +1,10 @@
 /* global __filename, module */
-import EventEmitter from "events";
-import { getLogger } from "jitsi-meet-logger";
-import * as JitsiTrackEvents from "../../JitsiTrackEvents";
-import * as MediaType from "../../service/RTC/MediaType";
-import RTCBrowserType from "./RTCBrowserType";
-import RTCUtils from "./RTCUtils";
+import EventEmitter from 'events';
+import { getLogger } from 'jitsi-meet-logger';
+import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import * as MediaType from '../../service/RTC/MediaType';
+import RTCBrowserType from './RTCBrowserType';
+import RTCUtils from './RTCUtils';
 
 const logger = getLogger(__filename);
 
@@ -12,9 +12,9 @@ const logger = getLogger(__filename);
  * Maps our handler types to MediaStreamTrack properties.
  */
 var trackHandler2Prop = {
-    "track_mute": "onmute",// Not supported on FF
-    "track_unmute": "onunmute",
-    "track_ended": "onended"
+    'track_mute': 'onmute',// Not supported on FF
+    'track_unmute': 'onunmute',
+    'track_ended': 'onended'
 };
 
 /**
@@ -46,7 +46,7 @@ function implementOnEndedHandling(jitsiTrack) {
  */
 function addMediaStreamInactiveHandler(mediaStream, handler) {
     // Temasys will use onended
-    if(typeof mediaStream.active !== "undefined") {
+    if(typeof mediaStream.active !== 'undefined') {
         mediaStream.oninactive = handler;
     } else {
         mediaStream.onended = handler;
@@ -91,7 +91,7 @@ function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMedia
      * @type {boolean}
      */
     this.disposed = false;
-    this._setHandler("inactive", streamInactiveHandler);
+    this._setHandler('inactive', streamInactiveHandler);
 }
 
 /**
@@ -106,7 +106,7 @@ JitsiTrack.prototype._setHandler = function(type, handler) {
         return;
     }
 
-    if(type === "inactive") {
+    if(type === 'inactive') {
         if (RTCBrowserType.isFirefox()) {
             implementOnEndedHandling(this);
         }
@@ -126,7 +126,7 @@ JitsiTrack.prototype._setHandler = function(type, handler) {
 JitsiTrack.prototype._setStream = function(stream) {
     this.stream = stream;
     Object.keys(this.handlers).forEach(function(type) {
-        typeof this.handlers[type] === "function" &&
+        typeof this.handlers[type] === 'function' &&
             this._setHandler(type, this.handlers[type]);
     }, this);
 };
@@ -168,7 +168,7 @@ JitsiTrack.prototype.isVideoTrack = function() {
  * @return {boolean} 'true' if it's a local track or 'false' otherwise.
  */
 JitsiTrack.prototype.isLocal = function() {
-    throw new Error("Not implemented by subclass");
+    throw new Error('Not implemented by subclass');
 };
 
 /**
@@ -209,9 +209,9 @@ JitsiTrack.prototype.getTrackId = function() {
  */
 JitsiTrack.prototype.getUsageLabel = function() {
     if (this.isAudioTrack()) {
-        return "mic";
+        return 'mic';
     } else {
-        return this.videoType ? this.videoType : "default";
+        return this.videoType ? this.videoType : 'default';
     }
 };
 
@@ -331,7 +331,7 @@ JitsiTrack.prototype.getId = function() {
  * @returns {boolean} whether MediaStream is active.
  */
 JitsiTrack.prototype.isActive = function() {
-    if(typeof this.stream.active !== "undefined") {
+    if(typeof this.stream.active !== 'undefined') {
         return this.stream.active;
     } else {
         return true;
@@ -384,7 +384,7 @@ JitsiTrack.prototype.setAudioLevel = function(audioLevel) {
 JitsiTrack.prototype.getMSID = function() {
     var streamId = this.getStreamId();
     var trackId = this.getTrackId();
-    return streamId && trackId ? streamId + " " + trackId : null;
+    return streamId && trackId ? streamId + ' ' + trackId : null;
 };
 
 /**

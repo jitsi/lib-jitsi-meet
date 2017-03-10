@@ -1,17 +1,17 @@
 /* global __filename, Promise */
 
-import CameraFacingMode from "../../service/RTC/CameraFacingMode";
-import { getLogger } from "jitsi-meet-logger";
-import JitsiTrack from "./JitsiTrack";
-import JitsiTrackError from "../../JitsiTrackError";
-import * as JitsiTrackErrors from "../../JitsiTrackErrors";
-import * as JitsiTrackEvents from "../../JitsiTrackEvents";
-import * as MediaType from "../../service/RTC/MediaType";
-import RTCBrowserType from "./RTCBrowserType";
-import RTCEvents from "../../service/RTC/RTCEvents";
-import RTCUtils from "./RTCUtils";
-import Statistics from "../statistics/statistics";
-import VideoType from "../../service/RTC/VideoType";
+import CameraFacingMode from '../../service/RTC/CameraFacingMode';
+import { getLogger } from 'jitsi-meet-logger';
+import JitsiTrack from './JitsiTrack';
+import JitsiTrackError from '../../JitsiTrackError';
+import * as JitsiTrackErrors from '../../JitsiTrackErrors';
+import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import * as MediaType from '../../service/RTC/MediaType';
+import RTCBrowserType from './RTCBrowserType';
+import RTCEvents from '../../service/RTC/RTCEvents';
+import RTCUtils from './RTCUtils';
+import Statistics from '../statistics/statistics';
+import VideoType from '../../service/RTC/VideoType';
 
 const logger = getLogger(__filename);
 
@@ -148,20 +148,20 @@ JitsiLocalTrack.prototype._initNoDataFromSourceHandlers = function() {
     if(this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
         const _onNoDataFromSourceError
             = this._onNoDataFromSourceError.bind(this);
-        this._setHandler("track_mute", () => {
+        this._setHandler('track_mute', () => {
             if(this._checkForCameraIssues()) {
                 const now = window.performance.now();
                 this._noDataFromSourceTimeout
                     = setTimeout(_onNoDataFromSourceError, 3000);
-                this._setHandler("track_unmute", () => {
+                this._setHandler('track_unmute', () => {
                     this._clearNoDataFromSourceMuteResources();
                     Statistics.sendEventToAll(
-                        this.getType() + ".track_unmute",
+                        this.getType() + '.track_unmute',
                         {value: window.performance.now() - now});
                 });
             }
         });
-        this._setHandler("track_ended", _onNoDataFromSourceError);
+        this._setHandler('track_ended', _onNoDataFromSourceError);
     }
 };
 
@@ -174,7 +174,7 @@ JitsiLocalTrack.prototype._clearNoDataFromSourceMuteResources = function() {
         clearTimeout(this._noDataFromSourceTimeout);
         this._noDataFromSourceTimeout = null;
     }
-    this._setHandler("track_unmute", undefined);
+    this._setHandler('track_unmute', undefined);
 };
 
 /**
@@ -195,7 +195,7 @@ JitsiLocalTrack.prototype._onNoDataFromSourceError = function() {
  */
 JitsiLocalTrack.prototype._fireNoDataFromSourceEvent = function() {
     this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
-    const eventName = this.getType() + ".no_data_from_source";
+    const eventName = this.getType() + '.no_data_from_source';
     Statistics.analytics.sendEvent(eventName);
     const log = {name: eventName};
     if (this.isAudioTrack()) {
@@ -340,7 +340,7 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
                         // unmute, but let's not crash here
                         if (self.videoType !== streamInfo.videoType) {
                             logger.warn(
-                                "Video type has changed after unmute!",
+                                'Video type has changed after unmute!',
                                 self.videoType, streamInfo.videoType);
                             self.videoType = streamInfo.videoType;
                         }
@@ -382,7 +382,7 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function() {
             error => reject(new Error(error)),
             {
                 mtype: this.type,
-                type: "unmute",
+                type: 'unmute',
                 ssrcs: this.ssrc && this.ssrc.ssrcs,
                 groups: this.ssrc && this.ssrc.groups,
                 msid: this.getMSID()
@@ -409,7 +409,7 @@ function(successCallback, errorCallback) {
         error => errorCallback(new Error(error)),
         {
             mtype: this.type,
-            type: "mute",
+            type: 'mute',
             ssrcs: this.ssrc && this.ssrc.ssrcs,
             groups: this.ssrc && this.ssrc.groups
         });
@@ -560,7 +560,7 @@ JitsiLocalTrack.prototype._setByteSent = function(bytesSent) {
     // the conference(and through the XMPP chat room ???) instead
     const iceConnectionState
         = this.conference ? this.conference.getConnectionState() : null;
-    if(this._testByteSent && "connected" === iceConnectionState) {
+    if(this._testByteSent && 'connected' === iceConnectionState) {
         setTimeout(function() {
             if(this._bytesSent <= 0) {
                 // we are not receiving anything from the microphone
@@ -655,8 +655,8 @@ JitsiLocalTrack.prototype._isReceivingData = function() {
     // the users for error if the stream is muted or ended on it's
     // creation.
     return this.stream.getTracks().some(track =>
-        (!("readyState" in track) || track.readyState === "live")
-            && (!("muted" in track) || track.muted !== true));
+        (!('readyState' in track) || track.readyState === 'live')
+            && (!('muted' in track) || track.muted !== true));
 };
 
 module.exports = JitsiLocalTrack;

@@ -2,10 +2,10 @@ var AudioRecorder = require('./audioRecorder');
 var SphinxService = require(
     './transcriptionServices/SphinxTranscriptionService');
 
-var BEFORE_STATE = "before";
-var RECORDING_STATE = "recording";
-var TRANSCRIBING_STATE = "transcribing";
-var FINISHED_STATE = "finished";
+var BEFORE_STATE = 'before';
+var RECORDING_STATE = 'recording';
+var TRANSCRIBING_STATE = 'transcribing';
+var FINISHED_STATE = 'finished';
 
 // the amount of characters each line in the transcription will have
 var MAXIMUM_SENTENCE_LENGTH = 80;
@@ -49,9 +49,10 @@ var transcriber = function() {
  */
 transcriber.prototype.start = function start() {
     if(this.state !== BEFORE_STATE) {
-        throw new Error("The transcription can only start when it's in the" +
-            "\"" + BEFORE_STATE + "\" state. It's currently in the " +
-            "\"" + this.state + "\" state");
+        throw new Error(
+            'The transcription can only start when it\'s in the "'
+                + BEFORE_STATE + '" state. It\'s currently in the "'
+                + this.state + '" state');
     }
     this.state = RECORDING_STATE;
     this.audioRecorder.start();
@@ -66,12 +67,13 @@ transcriber.prototype.start = function start() {
  */
 transcriber.prototype.stop = function stop(callback) {
     if(this.state !== RECORDING_STATE) {
-        throw new Error("The transcription can only stop when it's in the" +
-            "\"" + RECORDING_STATE + "\" state. It's currently in the " +
-            "\"" + this.state + "\" state");
+        throw new Error(
+            'The transcription can only stop when it\'s in the "'
+                + RECORDING_STATE + '" state. It\'s currently in the "'
+                + this.state + '" state');
     }
     // stop the recording
-    console.log("stopping recording and sending audio files");
+    console.log('stopping recording and sending audio files');
     this.audioRecorder.stop();
     // and send all recorded audio the the transcription service
     var t = this;
@@ -98,8 +100,9 @@ transcriber.prototype.stop = function stop(callback) {
  * WordArray
  */
 var blobCallBack = function(answer) {
-    console.log("retrieved an answer from the transcription service. The" +
-        " answer has an array of length: " + answer.wordArray.length);
+    console.log(
+        'retrieved an answer from the transcription service. The answer has an'
+            + ' array of length: ' + answer.wordArray.length);
     // first add the offset between the start of the transcription and
     // the start of the recording to all start and end times
     if(answer.wordArray.length > 0) {
@@ -110,13 +113,13 @@ var blobCallBack = function(answer) {
             offset = 0; // presume 0 if it somehow not earlier
         }
 
-        var array = "[";
+        var array = '[';
         answer.wordArray.forEach(function(wordObject) {
             wordObject.begin += offset;
             wordObject.end += offset;
-            array += wordObject.word + ",";
+            array += wordObject.word + ',';
         });
-        array += "]";
+        array += ']';
         console.log(array);
         // give a name value to the Array object so that the merging can access
         // the name value without having to use the whole recordingResult object
@@ -126,7 +129,7 @@ var blobCallBack = function(answer) {
     // then store the array and decrease the counter
     this.results.push(answer.wordArray);
     this.counter--;
-    console.log("current counter: " + this.counter);
+    console.log('current counter: ' + this.counter);
     // and check if all results have been received.
     this.maybeMerge();
 };
@@ -148,9 +151,10 @@ transcriber.prototype.maybeMerge = function() {
  * readable transcription string
  */
 transcriber.prototype.merge = function() {
-    console.log("starting merge process!\n The length of the array: " +
-        this.results.length);
-    this.transcription = "";
+    console.log(
+        'starting merge process!\n The length of the array: '
+            + this.results.length);
+    this.transcription = '';
     // the merging algorithm will look over all Word objects who are at pos 0 in
     // every array. It will then select the one closest in time to the
     // previously placed word, while removing the selected word from its array
@@ -215,14 +219,14 @@ transcriber.prototype.merge = function() {
  */
 transcriber.prototype.updateTranscription = function(word, name) {
     if(name !== undefined && name !== null) {
-        this.transcription += "\n" + name + ":";
+        this.transcription += '\n' + name + ':';
         this.lineLength = name.length + 1; // +1 for the semi-colon
     }
     if(this.lineLength + word.word.length > MAXIMUM_SENTENCE_LENGTH) {
-        this.transcription += "\n    ";
+        this.transcription += '\n    ';
         this.lineLength = 4; // because of the 4 spaces after the new line
     }
-    this.transcription += " " + word.word;
+    this.transcription += ' ' + word.word;
     this.lineLength += word.word.length + 1; // +1 for the space
 };
 
@@ -296,9 +300,10 @@ transcriber.prototype.removeTrack = function(track) {
  */
 transcriber.prototype.getTranscription = function() {
     if(this.state !== FINISHED_STATE) {
-        throw new Error("The transcription can only be retrieved when it's in" +
-            " the\"" + FINISHED_STATE + "\" state. It's currently in the " +
-            "\"" + this.state + "\" state");
+        throw new Error(
+            'The transcription can only be retrieved when it\'s in the "'
+                + FINISHED_STATE + '" state. It\'s currently in the "'
+                + this.state + '" state');
     }
     return this.transcription;
 };

@@ -1,12 +1,12 @@
 import * as ConnectionQualityEvents
-    from "../../service/connectivity/ConnectionQualityEvents";
-import * as ConferenceEvents from "../../JitsiConferenceEvents";
-import {getLogger} from "jitsi-meet-logger";
-import RTCBrowserType from "../RTC/RTCBrowserType";
+    from '../../service/connectivity/ConnectionQualityEvents';
+import * as ConferenceEvents from '../../JitsiConferenceEvents';
+import {getLogger} from 'jitsi-meet-logger';
+import RTCBrowserType from '../RTC/RTCBrowserType';
 
 var XMPPEvents = require('../../service/xmpp/XMPPEvents');
 var VideoType = require('../../service/RTC/VideoType');
-var Resolutions = require("../../service/RTC/Resolutions");
+var Resolutions = require('../../service/RTC/Resolutions');
 
 const logger = getLogger(__filename);
 
@@ -14,7 +14,7 @@ const logger = getLogger(__filename);
  * The value to use for the "type" field for messages sent by ConnectionQuality
  * over the data channel.
  */
-const STATS_MESSAGE_TYPE = "stats";
+const STATS_MESSAGE_TYPE = 'stats';
 
 /**
  * See media/engine/simulcast.ss from webrtc.org
@@ -280,8 +280,8 @@ export default class ConnectionQuality {
 
             // Calculate a value based on packet loss only.
             if (packetLoss === undefined) {
-                logger.error("Cannot calculate connection quality, unknown "
-                    + "packet loss.");
+                logger.error('Cannot calculate connection quality, unknown '
+                    + 'packet loss.');
                 quality = 100;
             } else if (packetLoss <= 2) {
                 quality = 100; // Full 5 bars.

@@ -1,28 +1,28 @@
 /* global __filename */
 
-import AuthUtil from "./modules/util/AuthUtil";
-import * as ConnectionQualityEvents from "./service/connectivity/ConnectionQualityEvents";
-import GlobalOnErrorHandler from "./modules/util/GlobalOnErrorHandler";
-import * as JitsiConferenceErrors from "./JitsiConferenceErrors";
-import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
-import JitsiConnection from "./JitsiConnection";
-import * as JitsiConnectionErrors from "./JitsiConnectionErrors";
-import * as JitsiConnectionEvents from "./JitsiConnectionEvents";
-import JitsiMediaDevices from "./JitsiMediaDevices";
-import * as JitsiMediaDevicesEvents from "./JitsiMediaDevicesEvents";
-import JitsiRecorderErrors from "./JitsiRecorderErrors";
-import JitsiTrackError from "./JitsiTrackError";
-import * as JitsiTrackErrors from "./JitsiTrackErrors";
-import * as JitsiTrackEvents from "./JitsiTrackEvents";
-import Logger from "jitsi-meet-logger";
-import * as MediaType from "./service/RTC/MediaType";
-import Resolutions from "./service/RTC/Resolutions";
-import RTC from "./modules/RTC/RTC";
-import RTCBrowserType from "./modules/RTC/RTCBrowserType";
-import RTCUIHelper from "./modules/RTC/RTCUIHelper";
-import ScriptUtil from "./modules/util/ScriptUtil";
-import Settings from "./modules/settings/Settings";
-import Statistics from "./modules/statistics/statistics";
+import AuthUtil from './modules/util/AuthUtil';
+import * as ConnectionQualityEvents from './service/connectivity/ConnectionQualityEvents';
+import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
+import * as JitsiConferenceErrors from './JitsiConferenceErrors';
+import * as JitsiConferenceEvents from './JitsiConferenceEvents';
+import JitsiConnection from './JitsiConnection';
+import * as JitsiConnectionErrors from './JitsiConnectionErrors';
+import * as JitsiConnectionEvents from './JitsiConnectionEvents';
+import JitsiMediaDevices from './JitsiMediaDevices';
+import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
+import JitsiRecorderErrors from './JitsiRecorderErrors';
+import JitsiTrackError from './JitsiTrackError';
+import * as JitsiTrackErrors from './JitsiTrackErrors';
+import * as JitsiTrackEvents from './JitsiTrackEvents';
+import Logger from 'jitsi-meet-logger';
+import * as MediaType from './service/RTC/MediaType';
+import Resolutions from './service/RTC/Resolutions';
+import RTC from './modules/RTC/RTC';
+import RTCBrowserType from './modules/RTC/RTCBrowserType';
+import RTCUIHelper from './modules/RTC/RTCUIHelper';
+import ScriptUtil from './modules/util/ScriptUtil';
+import Settings from './modules/settings/Settings';
+import Statistics from './modules/statistics/statistics';
 
 const logger = Logger.getLogger(__filename);
 
@@ -56,15 +56,15 @@ function getLowerResolution(resolution) {
  * @returns {*}
  */
 function addDeviceTypeToAnalyticsEvent(name, options) {
-    if (options.devices.indexOf("audio") !== -1) {
-        name += ".audio";
+    if (options.devices.indexOf('audio') !== -1) {
+        name += '.audio';
     }
-    if (options.devices.indexOf("desktop") !== -1) {
-        name += ".desktop";
+    if (options.devices.indexOf('desktop') !== -1) {
+        name += '.desktop';
     }
-    if (options.devices.indexOf("video") !== -1) {
+    if (options.devices.indexOf('video') !== -1) {
         // we have video add resolution
-        name += ".video." + options.resolution;
+        name += '.video.' + options.resolution;
     }
 
     return name;
@@ -120,14 +120,14 @@ var LibJitsiMeet = {
                 }
             }
 
-            logObject.id = "deployment_info";
+            logObject.id = 'deployment_info';
             Statistics.sendLog(JSON.stringify(logObject));
         }
 
         if(this.version) {
             const logObject = {
-                id: "component_version",
-                component: "lib-jitsi-meet",
+                id: 'component_version',
+                component: 'lib-jitsi-meet',
                 version: this.version
             };
             Statistics.sendLog(JSON.stringify(logObject));
@@ -226,18 +226,18 @@ var LibJitsiMeet = {
         if(!window.connectionTimes) {
             window.connectionTimes = {};
         }
-        window.connectionTimes["obtainPermissions.start"] =
+        window.connectionTimes['obtainPermissions.start'] =
             window.performance.now();
 
         return RTC.obtainAudioAndVideoPermissions(options || {})
             .then(function(tracks) {
                 promiseFulfilled = true;
 
-                window.connectionTimes["obtainPermissions.end"] =
+                window.connectionTimes['obtainPermissions.end'] =
                     window.performance.now();
 
                 Statistics.analytics.sendEvent(addDeviceTypeToAnalyticsEvent(
-                    "getUserMedia.success", options), {value: options});
+                    'getUserMedia.success', options), {value: options});
 
                 if(!RTC.options.disableAudioLevels) {
                     for(let i = 0; i < tracks.length; i++) {
@@ -277,11 +277,11 @@ var LibJitsiMeet = {
                     if (newResolution !== null) {
                         options.resolution = newResolution;
 
-                        logger.debug("Retry createLocalTracks with resolution",
+                        logger.debug('Retry createLocalTracks with resolution',
                             newResolution);
 
                         Statistics.analytics.sendEvent(
-                            "getUserMedia.fail.resolution." + oldResolution);
+                            'getUserMedia.fail.resolution.' + oldResolution);
 
                         return LibJitsiMeet.createLocalTracks(options);
                     }
@@ -293,32 +293,32 @@ var LibJitsiMeet = {
                     // log it as an event to avoid having conference classified
                     // as partially failed
                     const logObject = {
-                        id: "chrome_extension_user_canceled",
+                        id: 'chrome_extension_user_canceled',
                         message: error.message
                     };
                     Statistics.sendLog(JSON.stringify(logObject));
                     Statistics.analytics.sendEvent(
-                        "getUserMedia.userCancel.extensionInstall");
+                        'getUserMedia.userCancel.extensionInstall');
                 } else if (JitsiTrackErrors.NOT_FOUND === error.name) {
                     // logs not found devices with just application log to cs
                     const logObject = {
-                        id: "usermedia_missing_device",
+                        id: 'usermedia_missing_device',
                         status: error.gum.devices
                     };
                     Statistics.sendLog(JSON.stringify(logObject));
                     Statistics.analytics.sendEvent(
-                        "getUserMedia.deviceNotFound."
+                        'getUserMedia.deviceNotFound.'
                             + error.gum.devices.join('.'));
                 } else {
                     // Report gUM failed to the stats
                     Statistics.sendGetUserMediaFailed(error);
                     Statistics.analytics.sendEvent(
                         addDeviceTypeToAnalyticsEvent(
-                            "getUserMedia.failed", options) + '.' + error.name,
+                            'getUserMedia.failed', options) + '.' + error.name,
                         {value: options});
                 }
 
-                window.connectionTimes["obtainPermissions.end"] =
+                window.connectionTimes['obtainPermissions.end'] =
                     window.performance.now();
 
                 return Promise.reject(error);

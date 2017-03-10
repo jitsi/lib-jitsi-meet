@@ -1,7 +1,7 @@
 /* global $, Strophe, callstats */
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
-import Settings from "../settings/Settings";
+var logger = require('jitsi-meet-logger').getLogger(__filename);
+var GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
+import Settings from '../settings/Settings';
 
 var jsSHA = require('jssha');
 var io = require('socket.io-client');
@@ -13,15 +13,15 @@ var io = require('socket.io-client');
  * @see http://www.callstats.io/api/#enumeration-of-wrtcfuncnames
  */
 var wrtcFuncNames = {
-    createOffer:          "createOffer",
-    createAnswer:         "createAnswer",
-    setLocalDescription:  "setLocalDescription",
-    setRemoteDescription: "setRemoteDescription",
-    addIceCandidate:      "addIceCandidate",
-    getUserMedia:         "getUserMedia",
-    iceConnectionFailure: "iceConnectionFailure",
-    signalingError:       "signalingError",
-    applicationLog:       "applicationLog"
+    createOffer:          'createOffer',
+    createAnswer:         'createAnswer',
+    setLocalDescription:  'setLocalDescription',
+    setRemoteDescription: 'setRemoteDescription',
+    addIceCandidate:      'addIceCandidate',
+    getUserMedia:         'getUserMedia',
+    iceConnectionFailure: 'iceConnectionFailure',
+    signalingError:       'signalingError',
+    applicationLog:       'applicationLog'
 };
 
 /**
@@ -31,19 +31,19 @@ var wrtcFuncNames = {
  * @see http://www.callstats.io/api/#enumeration-of-fabricevent
  */
 var fabricEvent = {
-    fabricHold:"fabricHold",
-    fabricResume:"fabricResume",
-    audioMute:"audioMute",
-    audioUnmute:"audioUnmute",
-    videoPause:"videoPause",
-    videoResume:"videoResume",
-    fabricUsageEvent:"fabricUsageEvent",
-    fabricStats:"fabricStats",
-    fabricTerminated:"fabricTerminated",
-    screenShareStart:"screenShareStart",
-    screenShareStop:"screenShareStop",
-    dominantSpeaker:"dominantSpeaker",
-    activeDeviceList:"activeDeviceList"
+    fabricHold:'fabricHold',
+    fabricResume:'fabricResume',
+    audioMute:'audioMute',
+    audioUnmute:'audioUnmute',
+    videoPause:'videoPause',
+    videoResume:'videoResume',
+    fabricUsageEvent:'fabricUsageEvent',
+    fabricStats:'fabricStats',
+    fabricTerminated:'fabricTerminated',
+    screenShareStart:'screenShareStart',
+    screenShareStop:'screenShareStop',
+    dominantSpeaker:'dominantSpeaker',
+    activeDeviceList:'activeDeviceList'
 };
 
 var callStats = null;
@@ -52,10 +52,10 @@ var callStats = null;
  * The user id to report to callstats as destination.
  * @type {string}
  */
-const DEFAULT_REMOTE_USER = "jitsi";
+const DEFAULT_REMOTE_USER = 'jitsi';
 
 function initCallback(err, msg) {
-    logger.log("CallStats Status: err=" + err + " msg=" + msg);
+    logger.log('CallStats Status: err=' + err + ' msg=' + msg);
 
     CallStats.initializeInProgress = false;
 
@@ -75,7 +75,7 @@ function initCallback(err, msg) {
 
     if(!fabricInitialized) {
         CallStats.initializeFailed = true;
-        logger.log("callstats fabric not initilized", ret.message);
+        logger.log('callstats fabric not initilized', ret.message);
         return;
     }
 
@@ -153,7 +153,7 @@ var CallStats = _try_catch(function(jingleSession, options) {
         };
 
         // The confID is case sensitive!!!
-        this.confID = options.callStatsConfIDNamespace + "/" + options.roomName;
+        this.confID = options.callStatsConfIDNamespace + '/' + options.roomName;
 
         this.callStatsID = options.callStatsID;
         this.callStatsSecret = options.callStatsSecret;
@@ -230,14 +230,14 @@ CallStats._checkInitialize = function() {
  * @type {{ERROR: string, EVENT: string}}
  */
 var reportType = {
-    ERROR: "error",
-    EVENT: "event",
-    MST_WITH_USERID: "mstWithUserID"
+    ERROR: 'error',
+    EVENT: 'event',
+    MST_WITH_USERID: 'mstWithUserID'
 };
 
 CallStats.prototype.pcCallback = _try_catch(function(err, msg) {
     if (callStats && err !== 'success') {
-        logger.error("Monitoring status: " + err + " msg: " + msg);
+        logger.error('Monitoring status: ' + err + ' msg: ' + msg);
     }
 });
 
@@ -264,7 +264,7 @@ function(ssrc, isLocal, usageLabel, containerId) {
 
     _try_catch(function() {
         logger.debug(
-            "Calling callStats.associateMstWithUserID with:",
+            'Calling callStats.associateMstWithUserID with:',
             this.peerconnection,
             callStatsId,
             this.confID,
@@ -303,7 +303,7 @@ function(ssrc, isLocal, usageLabel, containerId) {
 CallStats.sendMuteEvent = _try_catch(function(mute, type, cs) {
     let event;
 
-    if (type === "video") {
+    if (type === 'video') {
         event = mute ? fabricEvent.videoPause : fabricEvent.videoResume;
     } else {
         event = mute ? fabricEvent.audioMute : fabricEvent.audioUnmute;
@@ -414,8 +414,8 @@ function(overallFeedback, detailedFeedback) {
  */
 CallStats._reportError = function(type, e, pc) {
     if(!e) {
-        logger.warn("No error is passed!");
-        e = new Error("Unknown error");
+        logger.warn('No error is passed!');
+        e = new Error('Unknown error');
     }
     if (CallStats.initialized) {
         callStats.reportError(pc, this.confID, type, e);

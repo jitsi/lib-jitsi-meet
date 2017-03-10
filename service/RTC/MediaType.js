@@ -1,9 +1,9 @@
 /**
  * The audio type.
  */
-export const AUDIO = "audio";
+export const AUDIO = 'audio';
 
 /**
  * The video type.
  */
-export const VIDEO = "video";
+export const VIDEO = 'video';

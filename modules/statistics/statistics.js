@@ -1,13 +1,13 @@
 /* global require */
-import analytics from "./AnalyticsAdapter";
-var CallStats = require("./CallStats");
-var EventEmitter = require("events");
-import JitsiTrackError from "../../JitsiTrackError";
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var LocalStats = require("./LocalStatsCollector.js");
-var RTPStats = require("./RTPStatsCollector.js");
+import analytics from './AnalyticsAdapter';
+var CallStats = require('./CallStats');
+var EventEmitter = require('events');
+import JitsiTrackError from '../../JitsiTrackError';
+var logger = require('jitsi-meet-logger').getLogger(__filename);
+var LocalStats = require('./LocalStatsCollector.js');
+var RTPStats = require('./RTPStatsCollector.js');
 var ScriptUtil = require('../util/ScriptUtil');
-import * as StatisticsEvents from "../../service/statistics/Events";
+import * as StatisticsEvents from '../../service/statistics/Events';
 
 /**
  * True if callstats API is loaded
@@ -48,14 +48,14 @@ function formatJitsiTrackErrorForCallStats(error) {
     err.stack = error.stack;
 
     // Combine name from error's name plus (possibly) name of original GUM error
-    err.name = (error.name || "Unknown error") + (error.gum && error.gum.error
-        && error.gum.error.name ? " - " + error.gum.error.name : "");
+    err.name = (error.name || 'Unknown error') + (error.gum && error.gum.error
+        && error.gum.error.name ? ' - ' + error.gum.error.name : '');
 
     // Put all constraints into this field. For constraint failed errors we will
     // still know which exactly constraint failed as it will be a part of
     // message.
     err.constraintName = error.gum && error.gum.constraints
-        ? JSON.stringify(error.gum.constraints) : "";
+        ? JSON.stringify(error.gum.constraints) : '';
 
     // Just copy error's message.
     err.message = error.message;
@@ -438,11 +438,11 @@ Statistics.prototype.sendFeedback = function(overall, detailed) {
     if(this.callstats) {
         this.callstats.sendFeedback(overall, detailed);
     }
-    Statistics.analytics.sendEvent("feedback.rating",
+    Statistics.analytics.sendEvent('feedback.rating',
         {value: overall, detailed});
 };
 
-Statistics.LOCAL_JID = require("../../service/statistics/constants").LOCAL_JID;
+Statistics.LOCAL_JID = require('../../service/statistics/constants').LOCAL_JID;
 
 /**
  * Reports global error to CallStats.

@@ -2,9 +2,9 @@
 /**
  * Strophe logger implementation. Logs from level WARN and above.
  */
-import {getLogger} from "jitsi-meet-logger";
+import {getLogger} from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
-import GlobalOnErrorHandler from "../util/GlobalOnErrorHandler";
+import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
 /**
  * This is the last HTTP error status captured from Strophe debug logs.
@@ -48,10 +48,10 @@ export default function() {
         // Strophe log entry about secondary request timeout does not mean that
         // it's a final failure(the request will be restarted), so we lower it's
         // level here to a warning.
-        logger.trace("Strophe", level, msg);
+        logger.trace('Strophe', level, msg);
         if (typeof msg === 'string' &&
-                msg.indexOf("Request ") !== -1 &&
-                msg.indexOf("timed out (secondary), restarting") !== -1) {
+                msg.indexOf('Request ') !== -1 &&
+                msg.indexOf('timed out (secondary), restarting') !== -1) {
             level = Strophe.LogLevel.WARN;
         }
         /* eslint-disable no-case-declarations */
@@ -61,22 +61,22 @@ export default function() {
                 // on Strophe's DEBUG level
             if (lastErrorStatus !== -1 &&
                         resetLastErrorStatusRegExpr.test(msg)) {
-                logger.debug("Reset lastErrorStatus");
+                logger.debug('Reset lastErrorStatus');
                 lastErrorStatus = -1;
             }
             break;
         case Strophe.LogLevel.WARN:
-            logger.warn("Strophe: " + msg);
+            logger.warn('Strophe: ' + msg);
             const errStatusCapture = lastErrorStatusRegExpr.exec(msg);
             if (errStatusCapture && errStatusCapture.length === 2) {
                 lastErrorStatus = parseInt(errStatusCapture[1]);
                 logger.debug(
-                        "lastErrorStatus set to: " + lastErrorStatus);
+                        'lastErrorStatus set to: ' + lastErrorStatus);
             }
             break;
         case Strophe.LogLevel.ERROR:
         case Strophe.LogLevel.FATAL:
-            msg = "Strophe: " + msg;
+            msg = 'Strophe: ' + msg;
             GlobalOnErrorHandler.callErrorHandler(new Error(msg));
             logger.error(msg);
             break;
@@ -97,25 +97,25 @@ export default function() {
     Strophe.getStatusString = function(status) {
         switch (status) {
         case Strophe.Status.ERROR:
-            return "ERROR";
+            return 'ERROR';
         case Strophe.Status.CONNECTING:
-            return "CONNECTING";
+            return 'CONNECTING';
         case Strophe.Status.CONNFAIL:
-            return "CONNFAIL";
+            return 'CONNFAIL';
         case Strophe.Status.AUTHENTICATING:
-            return "AUTHENTICATING";
+            return 'AUTHENTICATING';
         case Strophe.Status.AUTHFAIL:
-            return "AUTHFAIL";
+            return 'AUTHFAIL';
         case Strophe.Status.CONNECTED:
-            return "CONNECTED";
+            return 'CONNECTED';
         case Strophe.Status.DISCONNECTED:
-            return "DISCONNECTED";
+            return 'DISCONNECTED';
         case Strophe.Status.DISCONNECTING:
-            return "DISCONNECTING";
+            return 'DISCONNECTING';
         case Strophe.Status.ATTACHED:
-            return "ATTACHED";
+            return 'ATTACHED';
         default:
-            return "unknown";
+            return 'unknown';
         }
     };
 }

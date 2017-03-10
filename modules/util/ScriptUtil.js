@@ -1,4 +1,4 @@
-var currentExecutingScript = require("current-executing-script");
+var currentExecutingScript = require('current-executing-script');
 
 
 /**

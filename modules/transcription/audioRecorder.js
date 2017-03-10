@@ -1,12 +1,12 @@
 /* global MediaRecorder, MediaStream, webkitMediaStream */
 
-var RecordingResult = require("./recordingResult");
+var RecordingResult = require('./recordingResult');
 
 /**
  * Possible audio formats MIME types
  */
-var AUDIO_WEBM = "audio/webm";    // Supported in chrome
-var AUDIO_OGG = "audio/ogg";     // Supported in firefox
+var AUDIO_WEBM = 'audio/webm';    // Supported in chrome
+var AUDIO_OGG = 'audio/ogg';     // Supported in firefox
 
 /**
  * A TrackRecorder object holds all the information needed for recording a
@@ -35,8 +35,8 @@ var TrackRecorder = function(track) {
  */
 function startRecorder(trackRecorder) {
     if(trackRecorder.recorder === undefined) {
-        throw new Error("Passed an object to startRecorder which is not a " +
-            "TrackRecorder object");
+        throw new Error('Passed an object to startRecorder which is not a ' +
+            'TrackRecorder object');
     }
     trackRecorder.recorder.start();
     trackRecorder.startTime = new Date();
@@ -49,8 +49,8 @@ function startRecorder(trackRecorder) {
  */
 function stopRecorder(trackRecorder) {
     if(trackRecorder.recorder === undefined) {
-        throw new Error("Passed an object to stopRecorder which is not a " +
-            "TrackRecorder object");
+        throw new Error('Passed an object to stopRecorder which is not a ' +
+            'TrackRecorder object');
     }
     trackRecorder.recorder.stop();
 }
@@ -94,8 +94,8 @@ function determineCorrectFileType() {
     } else if(MediaRecorder.isTypeSupported(AUDIO_OGG)) {
         return AUDIO_OGG;
     } else {
-        throw new Error("unable to create a MediaRecorder with the" +
-            "right mimetype!");
+        throw new Error('unable to create a MediaRecorder with the' +
+            'right mimetype!');
     }
 }
 
@@ -188,7 +188,7 @@ audioRecorder.prototype.updateNames = function() {
     var conference = this.jitsiConference;
     this.recorders.forEach(function(trackRecorder) {
         if(trackRecorder.track.isLocal()) {
-            trackRecorder.name = "the transcriber";
+            trackRecorder.name = 'the transcriber';
         } else {
             var id = trackRecorder.track.getParticipantId();
             var participant = conference.getParticipantById(id);
@@ -205,7 +205,7 @@ audioRecorder.prototype.updateNames = function() {
  */
 audioRecorder.prototype.start = function() {
     if(this.isRecording) {
-        throw new Error("audiorecorder is already recording");
+        throw new Error('audiorecorder is already recording');
     }
     // set boolean isRecording flag to true so if new participants join the
     // conference, that track can instantly start recording as well
@@ -215,8 +215,8 @@ audioRecorder.prototype.start = function() {
         startRecorder(trackRecorder);
     });
     // log that recording has started
-    console.log("Started the recording of the audio. There are currently " +
-        this.recorders.length + " recorders active.");
+    console.log('Started the recording of the audio. There are currently ' +
+        this.recorders.length + ' recorders active.');
 };
 
 /**
@@ -229,7 +229,7 @@ audioRecorder.prototype.stop = function() {
     this.recorders.forEach(function(trackRecorder) {
         stopRecorder(trackRecorder);
     });
-    console.log("stopped recording");
+    console.log('stopped recording');
 };
 
 /**
@@ -242,9 +242,9 @@ audioRecorder.prototype.download = function() {
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
         document.body.appendChild(a);
-        a.style = "display: none";
+        a.style = 'display: none';
         a.href = url;
-        a.download = 'test.' + t.fileType.split("/")[1];
+        a.download = 'test.' + t.fileType.split('/')[1];
         a.click();
         window.URL.revokeObjectURL(url);
     });
@@ -257,8 +257,8 @@ audioRecorder.prototype.download = function() {
  */
 audioRecorder.prototype.getRecordingResults = function() {
     if(this.isRecording) {
-        throw new Error("cannot get blobs because the AudioRecorder is still" +
-            "recording!");
+        throw new Error('cannot get blobs because the AudioRecorder is still' +
+            'recording!');
     }
     // make sure the names are up to date before sending them off
     this.updateNames();
@@ -296,7 +296,7 @@ function createEmptyStream() {
     } else if(typeof webkitMediaStream !== 'undefined') {
         return new webkitMediaStream(); // eslint-disable-line new-cap
     } else {
-        throw new Error("cannot create a clean mediaStream");
+        throw new Error('cannot create a clean mediaStream');
     }
 }
 

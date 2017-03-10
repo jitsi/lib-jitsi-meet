@@ -1,4 +1,4 @@
-var logger = require("jitsi-meet-logger").getLogger(__filename);
+var logger = require('jitsi-meet-logger').getLogger(__filename);
 
 var currentBrowser;
 
@@ -8,21 +8,21 @@ var isAndroid;
 
 var RTCBrowserType = {
 
-    RTC_BROWSER_CHROME: "rtc_browser.chrome",
+    RTC_BROWSER_CHROME: 'rtc_browser.chrome',
 
-    RTC_BROWSER_OPERA: "rtc_browser.opera",
+    RTC_BROWSER_OPERA: 'rtc_browser.opera',
 
-    RTC_BROWSER_FIREFOX: "rtc_browser.firefox",
+    RTC_BROWSER_FIREFOX: 'rtc_browser.firefox',
 
-    RTC_BROWSER_IEXPLORER: "rtc_browser.iexplorer",
+    RTC_BROWSER_IEXPLORER: 'rtc_browser.iexplorer',
 
-    RTC_BROWSER_SAFARI: "rtc_browser.safari",
+    RTC_BROWSER_SAFARI: 'rtc_browser.safari',
 
-    RTC_BROWSER_NWJS: "rtc_browser.nwjs",
+    RTC_BROWSER_NWJS: 'rtc_browser.nwjs',
 
-    RTC_BROWSER_ELECTRON: "rtc_browser.electron",
+    RTC_BROWSER_ELECTRON: 'rtc_browser.electron',
 
-    RTC_BROWSER_REACT_NATIVE: "rtc_browser.react-native",
+    RTC_BROWSER_REACT_NATIVE: 'rtc_browser.react-native',
 
     /**
      * Gets current browser type.
@@ -203,7 +203,7 @@ function detectChrome() {
         // We can assume that user agent is chrome, because it's
         // enforced when 'ext' streaming method is set
         var ver = parseInt(userAgent.match(/chrome\/(\d+)\./)[1], 10);
-        logger.log("This appears to be Chrome, ver: " + ver);
+        logger.log('This appears to be Chrome, ver: ' + ver);
         return ver;
     }
     return null;
@@ -214,7 +214,7 @@ function detectOpera() {
     if (userAgent.match(/Opera|OPR/)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_OPERA;
         var version = userAgent.match(/(Opera|OPR) ?\/?(\d+)\.?/)[2];
-        logger.info("This appears to be Opera, ver: " + version);
+        logger.info('This appears to be Opera, ver: ' + version);
         return version;
     }
     return null;
@@ -234,7 +234,7 @@ function detectFirefox() {
 function detectSafari() {
     if (/^((?!chrome).)*safari/i.test(navigator.userAgent)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_SAFARI;
-        logger.info("This appears to be Safari");
+        logger.info('This appears to be Safari');
         // FIXME detect Safari version when needed
         return 1;
     }
@@ -266,7 +266,7 @@ function detectIE() {
 
     if (version) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_IEXPLORER;
-        logger.info("This appears to be IExplorer, ver: " + version);
+        logger.info('This appears to be IExplorer, ver: ' + version);
     }
     return version;
 }
@@ -279,7 +279,7 @@ function detectElectron() {
     if (userAgent.match(/Electron/)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_ELECTRON;
         var version = userAgent.match(/Electron\/([\d.]+)/)[1];
-        logger.info("This appears to be Electron, ver: " + version);
+        logger.info('This appears to be Electron, ver: ' + version);
         return version;
     }
     return null;
@@ -290,7 +290,7 @@ function detectNWJS() {
     if (userAgent.match(/JitsiMeetNW/)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_NWJS;
         var version = userAgent.match(/JitsiMeetNW\/([\d.]+)/)[1];
-        logger.info("This appears to be JitsiMeetNW, ver: " + version);
+        logger.info('This appears to be JitsiMeetNW, ver: ' + version);
         return version;
     }
     return null;
@@ -339,7 +339,7 @@ function detectBrowser() {
             return version;
         }
     }
-    logger.warn("Browser type defaults to Safari ver 1");
+    logger.warn('Browser type defaults to Safari ver 1');
     currentBrowser = RTCBrowserType.RTC_BROWSER_SAFARI;
     return 1;
 }

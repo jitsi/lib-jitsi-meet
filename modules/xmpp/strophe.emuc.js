@@ -4,11 +4,11 @@
 
 /* global $, Strophe */
 
-import {getLogger} from "jitsi-meet-logger";
+import {getLogger} from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
-import ChatRoom from "./ChatRoom";
-import {ConnectionPluginListenable} from "./ConnectionPlugin";
-import XMPPEvents from "../../service/xmpp/XMPPEvents";
+import ChatRoom from './ChatRoom';
+import {ConnectionPluginListenable} from './ConnectionPlugin';
+import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
 class MucConnectionPlugin extends ConnectionPluginListenable {
     constructor(xmpp) {
@@ -35,7 +35,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
     createRoom(jid, password, options) {
         const roomJid = Strophe.getBareJidFromJid(jid);
         if (this.rooms[roomJid]) {
-            const errmsg = "You are already in the room!";
+            const errmsg = 'You are already in the room!';
             logger.error(errmsg);
             throw new Error(errmsg);
         }

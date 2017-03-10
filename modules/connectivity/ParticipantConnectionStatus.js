@@ -1,11 +1,11 @@
 /* global __filename */
-import { getLogger } from "jitsi-meet-logger";
-import * as JitsiConferenceEvents from "../../JitsiConferenceEvents";
-import * as JitsiTrackEvents from "../../JitsiTrackEvents";
-import * as MediaType from "../../service/RTC/MediaType";
-import RTCBrowserType from "../RTC/RTCBrowserType";
-import RTCEvents from "../../service/RTC/RTCEvents";
-import Statistics from "../statistics/statistics";
+import { getLogger } from 'jitsi-meet-logger';
+import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import * as MediaType from '../../service/RTC/MediaType';
+import RTCBrowserType from '../RTC/RTCBrowserType';
+import RTCEvents from '../../service/RTC/RTCEvents';
+import Statistics from '../statistics/statistics';
 
 const logger = getLogger(__filename);
 
@@ -81,7 +81,7 @@ export default class ParticipantConnectionStatus {
          * @type {Object.<string, number>}
          */
         this.rtcMutedTimestamp = { };
-        logger.info("RtcMuteTimeout set to: " + this.rtcMuteTimeout);
+        logger.info('RtcMuteTimeout set to: ' + this.rtcMuteTimeout);
     }
 
     /**
@@ -194,7 +194,7 @@ export default class ParticipantConnectionStatus {
 
             logger.debug(
                 'Emit endpoint conn status(' + Date.now() + ') '
-                    + endpointId + ": " + newStatus);
+                    + endpointId + ': ' + newStatus);
 
             // Log the event on CallStats
             Statistics.sendLog(

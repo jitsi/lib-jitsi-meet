@@ -1,9 +1,9 @@
 /* global require */
 
-var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var RTCBrowserType = require("../RTC/RTCBrowserType");
-import * as StatisticsEvents from "../../service/statistics/Events";
+var GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
+var logger = require('jitsi-meet-logger').getLogger(__filename);
+var RTCBrowserType = require('../RTC/RTCBrowserType');
+import * as StatisticsEvents from '../../service/statistics/Events';
 
 /* Whether we support the browser we are running into for logging statistics */
 var browserSupported = RTCBrowserType.isChrome() ||
@@ -16,32 +16,32 @@ var browserSupported = RTCBrowserType.isChrome() ||
  */
 var KEYS_BY_BROWSER_TYPE = {};
 KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_FIREFOX] = {
-    "ssrc": "ssrc",
-    "packetsReceived": "packetsReceived",
-    "packetsLost": "packetsLost",
-    "packetsSent": "packetsSent",
-    "bytesReceived": "bytesReceived",
-    "bytesSent": "bytesSent"
+    'ssrc': 'ssrc',
+    'packetsReceived': 'packetsReceived',
+    'packetsLost': 'packetsLost',
+    'packetsSent': 'packetsSent',
+    'bytesReceived': 'bytesReceived',
+    'bytesSent': 'bytesSent'
 };
 KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME] = {
-    "receiveBandwidth": "googAvailableReceiveBandwidth",
-    "sendBandwidth": "googAvailableSendBandwidth",
-    "remoteAddress": "googRemoteAddress",
-    "transportType": "googTransportType",
-    "localAddress": "googLocalAddress",
-    "activeConnection": "googActiveConnection",
-    "ssrc": "ssrc",
-    "packetsReceived": "packetsReceived",
-    "packetsSent": "packetsSent",
-    "packetsLost": "packetsLost",
-    "bytesReceived": "bytesReceived",
-    "bytesSent": "bytesSent",
-    "googFrameHeightReceived": "googFrameHeightReceived",
-    "googFrameWidthReceived": "googFrameWidthReceived",
-    "googFrameHeightSent": "googFrameHeightSent",
-    "googFrameWidthSent": "googFrameWidthSent",
-    "audioInputLevel": "audioInputLevel",
-    "audioOutputLevel": "audioOutputLevel"
+    'receiveBandwidth': 'googAvailableReceiveBandwidth',
+    'sendBandwidth': 'googAvailableSendBandwidth',
+    'remoteAddress': 'googRemoteAddress',
+    'transportType': 'googTransportType',
+    'localAddress': 'googLocalAddress',
+    'activeConnection': 'googActiveConnection',
+    'ssrc': 'ssrc',
+    'packetsReceived': 'packetsReceived',
+    'packetsSent': 'packetsSent',
+    'packetsLost': 'packetsLost',
+    'bytesReceived': 'bytesReceived',
+    'bytesSent': 'bytesSent',
+    'googFrameHeightReceived': 'googFrameHeightReceived',
+    'googFrameWidthReceived': 'googFrameWidthReceived',
+    'googFrameHeightSent': 'googFrameHeightSent',
+    'googFrameWidthSent': 'googFrameWidthSent',
+    'audioInputLevel': 'audioInputLevel',
+    'audioOutputLevel': 'audioOutputLevel'
 };
 KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_OPERA] =
     KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
@@ -181,7 +181,7 @@ function StatsCollector(
     this._browserType = RTCBrowserType.getBrowserType();
     var keys = KEYS_BY_BROWSER_TYPE[this._browserType];
     if (!keys) {
-        throw "The browser type '" + this._browserType + "' isn't supported!";
+        throw 'The browser type \'' + this._browserType + '\' isn\'t supported!';
     }
     /**
      * The function which is to be used to retrieve the value associated in a
@@ -233,7 +233,7 @@ StatsCollector.prototype.stop = function() {
  */
 StatsCollector.prototype.errorCallback = function(error) {
     GlobalOnErrorHandler.callErrorHandler(error);
-    logger.error("Get stats error", error);
+    logger.error('Get stats error', error);
     this.stop();
 };
 
@@ -287,7 +287,7 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                             self.processStatsReport();
                         } catch (e) {
                             GlobalOnErrorHandler.callErrorHandler(e);
-                            logger.error("Unsupported key:" + e, e);
+                            logger.error('Unsupported key:' + e, e);
                         }
 
                         self.previousStatsReport = self.currentStatsReport;
@@ -317,7 +317,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
         if (key) {
             return key;
         } else {
-            throw "The property '" + name + "' isn't supported!";
+            throw 'The property \'' + name + '\' isn\'t supported!';
         }
     };
 
@@ -398,8 +398,8 @@ StatsCollector.prototype.processStatsReport = function() {
             var sendBandwidth = getStatValue(now, 'sendBandwidth');
             if (receiveBandwidth || sendBandwidth) {
                 this.conferenceStats.bandwidth = {
-                    "download": Math.round(receiveBandwidth / 1000),
-                    "upload": Math.round(sendBandwidth / 1000)
+                    'download': Math.round(receiveBandwidth / 1000),
+                    'upload': Math.round(sendBandwidth / 1000)
                 };
             }
         } catch(e) {/* not supported*/}
@@ -408,11 +408,11 @@ StatsCollector.prototype.processStatsReport = function() {
             var active, ip, localip, type;
             try {
                 ip = getStatValue(now, 'remoteAddress');
-                type = getStatValue(now, "transportType");
-                localip = getStatValue(now, "localAddress");
-                active = getStatValue(now, "activeConnection");
+                type = getStatValue(now, 'transportType');
+                localip = getStatValue(now, 'localAddress');
+                active = getStatValue(now, 'activeConnection');
             } catch(e) {/* not supported*/}
-            if(!ip || !type || !localip || active != "true") {
+            if(!ip || !type || !localip || active != 'true') {
                 continue;
             }
             // Save the address unless it has been saved already.
@@ -425,22 +425,22 @@ StatsCollector.prototype.processStatsReport = function() {
             continue;
         }
 
-        if(now.type == "candidatepair") {
-            if(now.state == "succeeded") {
+        if(now.type == 'candidatepair') {
+            if(now.state == 'succeeded') {
                 continue;
             }
 
             var local = this.currentStatsReport[now.localCandidateId];
             var remote = this.currentStatsReport[now.remoteCandidateId];
             this.conferenceStats.transport.push({
-                ip: remote.ipAddress + ":" + remote.portNumber,
+                ip: remote.ipAddress + ':' + remote.portNumber,
                 type: local.transport,
-                localip: local.ipAddress + ":" + local.portNumber
+                localip: local.ipAddress + ':' + local.portNumber
             });
         }
 
-        if (now.type != 'ssrc' && now.type != "outboundrtp" &&
-            now.type != "inboundrtp") {
+        if (now.type != 'ssrc' && now.type != 'outboundrtp' &&
+            now.type != 'inboundrtp') {
             continue;
         }
 
@@ -457,12 +457,12 @@ StatsCollector.prototype.processStatsReport = function() {
         var key = 'packetsReceived';
         var packetsNow = getStatValue(now, key);
         if (typeof packetsNow === 'undefined'
-            || packetsNow === null || packetsNow === "") {
+            || packetsNow === null || packetsNow === '') {
             isDownloadStream = false;
             key = 'packetsSent';
             packetsNow = getStatValue(now, key);
             if (typeof packetsNow === 'undefined' || packetsNow === null) {
-                logger.warn("No packetsReceived nor packetsSent stat found");
+                logger.warn('No packetsReceived nor packetsSent stat found');
                 continue;
             }
         }
@@ -490,15 +490,15 @@ StatsCollector.prototype.processStatsReport = function() {
         var bytesSent = 0;
 
         // TODO: clean this mess up!
-        var nowBytesTransmitted = getStatValue(now, "bytesSent");
-        if(typeof nowBytesTransmitted === "number" ||
-            typeof nowBytesTransmitted === "string") {
+        var nowBytesTransmitted = getStatValue(now, 'bytesSent');
+        if(typeof nowBytesTransmitted === 'number' ||
+            typeof nowBytesTransmitted === 'string') {
             nowBytesTransmitted = Number(nowBytesTransmitted);
             if(!isNaN(nowBytesTransmitted)) {
                 byteSentStats[ssrc] = nowBytesTransmitted;
                 if (nowBytesTransmitted > 0) {
                     bytesSent = nowBytesTransmitted -
-                        getStatValue(before, "bytesSent");
+                        getStatValue(before, 'bytesSent');
                 }
             }
         }
@@ -513,19 +513,19 @@ StatsCollector.prototype.processStatsReport = function() {
         }
 
         ssrcStats.addBitrate({
-            "download": bitrateReceivedKbps,
-            "upload": bitrateSentKbps
+            'download': bitrateReceivedKbps,
+            'upload': bitrateSentKbps
         });
 
         var resolution = {height: null, width: null};
         try {
             var height, width;
-            if ((height = getStatValue(now, "googFrameHeightReceived")) &&
-                (width = getStatValue(now, "googFrameWidthReceived"))) {
+            if ((height = getStatValue(now, 'googFrameHeightReceived')) &&
+                (width = getStatValue(now, 'googFrameWidthReceived'))) {
                 resolution.height = height;
                 resolution.width = width;
-            } else if ((height = getStatValue(now, "googFrameHeightSent")) &&
-                (width = getStatValue(now, "googFrameWidthSent"))) {
+            } else if ((height = getStatValue(now, 'googFrameHeightSent')) &&
+                (width = getStatValue(now, 'googFrameWidthSent'))) {
                 resolution.height = height;
                 resolution.width = width;
             }
@@ -555,7 +555,7 @@ StatsCollector.prototype.processStatsReport = function() {
             var ssrcStats = this.ssrc2stats[ssrc];
             // process packet loss stats
             var loss = ssrcStats.loss;
-            var type = loss.isDownloadStream ? "download" : "upload";
+            var type = loss.isDownloadStream ? 'download' : 'upload';
             totalPackets[type] += loss.packetsTotal;
             lostPackets[type] += loss.packetsLost;
 
@@ -574,7 +574,7 @@ StatsCollector.prototype.processStatsReport = function() {
     this.eventEmitter.emit(StatisticsEvents.BYTE_SENT_STATS, byteSentStats);
 
     this.conferenceStats.bitrate
-      = {"upload": bitrateUpload, "download": bitrateDownload};
+      = {'upload': bitrateUpload, 'download': bitrateDownload};
 
     this.conferenceStats.packetLoss = {
         total:
@@ -586,11 +586,11 @@ StatsCollector.prototype.processStatsReport = function() {
             calculatePacketLoss(lostPackets.upload, totalPackets.upload)
     };
     this.eventEmitter.emit(StatisticsEvents.CONNECTION_STATS, {
-        "bandwidth": this.conferenceStats.bandwidth,
-        "bitrate": this.conferenceStats.bitrate,
-        "packetLoss": this.conferenceStats.packetLoss,
-        "resolution": resolutions,
-        "transport": this.conferenceStats.transport
+        'bandwidth': this.conferenceStats.bandwidth,
+        'bitrate': this.conferenceStats.bitrate,
+        'packetLoss': this.conferenceStats.packetLoss,
+        'resolution': resolutions,
+        'transport': this.conferenceStats.transport
     });
     this.conferenceStats.transport = [];
 };
@@ -621,7 +621,7 @@ StatsCollector.prototype.processAudioLevelReport = function() {
 
         if (!ssrc) {
             if ((Date.now() - now.timestamp) < 3000) {
-                logger.warn("No ssrc: ");
+                logger.warn('No ssrc: ');
             }
             continue;
         }
@@ -632,7 +632,7 @@ StatsCollector.prototype.processAudioLevelReport = function() {
                 = getStatValue(now, 'audioInputLevel')
                     || getStatValue(now, 'audioOutputLevel');
         } catch(e) {/* not supported*/
-            logger.warn("Audio Levels are not available in the statistics.");
+            logger.warn('Audio Levels are not available in the statistics.');
             clearInterval(this.audioLevelsIntervalId);
             return;
         }

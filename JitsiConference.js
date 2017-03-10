@@ -1,27 +1,27 @@
 /* global __filename, Strophe, Promise */
 
-import ComponentsVersions from "./modules/version/ComponentsVersions";
-import ConnectionQuality from "./modules/connectivity/ConnectionQuality";
-import { getLogger } from "jitsi-meet-logger";
-import GlobalOnErrorHandler from "./modules/util/GlobalOnErrorHandler";
-import EventEmitter from "events";
-import * as JitsiConferenceErrors from "./JitsiConferenceErrors";
-import JitsiConferenceEventManager from "./JitsiConferenceEventManager";
-import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
+import ComponentsVersions from './modules/version/ComponentsVersions';
+import ConnectionQuality from './modules/connectivity/ConnectionQuality';
+import { getLogger } from 'jitsi-meet-logger';
+import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
+import EventEmitter from 'events';
+import * as JitsiConferenceErrors from './JitsiConferenceErrors';
+import JitsiConferenceEventManager from './JitsiConferenceEventManager';
+import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import JitsiDTMFManager from './modules/DTMF/JitsiDTMFManager';
-import JitsiParticipant from "./JitsiParticipant";
-import JitsiTrackError from "./JitsiTrackError";
-import * as JitsiTrackErrors from "./JitsiTrackErrors";
-import * as JitsiTrackEvents from "./JitsiTrackEvents";
-import * as MediaType from "./service/RTC/MediaType";
+import JitsiParticipant from './JitsiParticipant';
+import JitsiTrackError from './JitsiTrackError';
+import * as JitsiTrackErrors from './JitsiTrackErrors';
+import * as JitsiTrackEvents from './JitsiTrackEvents';
+import * as MediaType from './service/RTC/MediaType';
 import ParticipantConnectionStatus
-    from "./modules/connectivity/ParticipantConnectionStatus";
-import RTC from "./modules/RTC/RTC";
-import RTCBrowserType from "./modules/RTC/RTCBrowserType.js";
-import * as RTCEvents from "./service/RTC/RTCEvents";
-import Statistics from "./modules/statistics/statistics";
-import TalkMutedDetection from "./modules/TalkMutedDetection";
-import Transcriber from "./modules/transcription/transcriber";
+    from './modules/connectivity/ParticipantConnectionStatus';
+import RTC from './modules/RTC/RTC';
+import RTCBrowserType from './modules/RTC/RTCBrowserType.js';
+import * as RTCEvents from './service/RTC/RTCEvents';
+import Statistics from './modules/statistics/statistics';
+import TalkMutedDetection from './modules/TalkMutedDetection';
+import Transcriber from './modules/transcription/transcriber';
 import VideoType from './service/RTC/VideoType';
 
 const logger = getLogger(__filename);
@@ -38,8 +38,8 @@ const logger = getLogger(__filename);
 function JitsiConference(options) {
     if (!options.name || options.name.toLowerCase() !== options.name) {
         var errmsg
-            = "Invalid conference name (no conference name passed or it "
-                + "contains invalid characters like capital letters)!";
+            = 'Invalid conference name (no conference name passed or it '
+                + 'contains invalid characters like capital letters)!';
         logger.error(errmsg);
         throw new Error(errmsg);
     }
@@ -201,7 +201,7 @@ JitsiConference.prototype.leave = function() {
 
     // If this.room == null we are calling second time leave().
     return Promise.reject(
-        new Error("The conference is has been already left"));
+        new Error('The conference is has been already left'));
 };
 
 /**
@@ -390,9 +390,9 @@ JitsiConference.prototype.removeCommand = function(name) {
 JitsiConference.prototype.setDisplayName = function(name) {
     if (this.room) {
         // remove previously set nickname
-        this.room.removeFromPresence("nick");
+        this.room.removeFromPresence('nick');
 
-        this.room.addToPresence("nick", {attributes: {xmlns: 'http://jabber.org/protocol/nick'}, value: name});
+        this.room.addToPresence('nick', {attributes: {xmlns: 'http://jabber.org/protocol/nick'}, value: name});
         this.room.sendPresence();
     }
 };
@@ -446,7 +446,7 @@ JitsiConference.prototype.addTrack = function(track) {
                 return Promise.resolve(track);
             } else {
                 return Promise.reject(new Error(
-                    "cannot add second video track to the conference"));
+                    'cannot add second video track to the conference'));
             }
         }
     }
@@ -600,8 +600,8 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
         }
     }
     if (newTrack.isVideoTrack()) {
-        this.removeCommand("videoType");
-        this.sendCommand("videoType", {
+        this.removeCommand('videoType');
+        this.sendCommand('videoType', {
             value: newTrack.videoType,
             attributes: {
                 xmlns: 'http://jitsi.org/jitmeet/video'
@@ -658,7 +658,7 @@ JitsiConference.prototype._addLocalStream
             stream, callback, errorCallback, ssrcInfo, dontModifySources);
         } else {
         // We are done immediately
-            logger.warn("Add local MediaStream - no JingleSession started yet");
+            logger.warn('Add local MediaStream - no JingleSession started yet');
             callback();
         }
     };
@@ -678,7 +678,7 @@ JitsiConference.prototype.removeLocalStream
             stream, callback, errorCallback, ssrcInfo);
         } else {
         // We are done immediately
-            logger.warn("Remove local MediaStream - no JingleSession started yet");
+            logger.warn('Remove local MediaStream - no JingleSession started yet');
             callback();
         }
     };
@@ -690,8 +690,8 @@ JitsiConference.prototype.removeLocalStream
  */
 JitsiConference.prototype._generateNewStreamSSRCInfo = function() {
     if (!this.jingleSession) {
-        logger.warn("The call haven't been started. " +
-            "Cannot generate ssrc info at the moment!");
+        logger.warn('The call haven\'t been started. ' +
+            'Cannot generate ssrc info at the moment!');
         return null;
     }
     return this.jingleSession.generateNewStreamSSRCInfo();
@@ -726,7 +726,7 @@ JitsiConference.prototype.lock = function(password) {
 
     var conference = this;
     return new Promise(function(resolve, reject) {
-        conference.room.lockRoom(password || "", function() {
+        conference.room.lockRoom(password || '', function() {
             resolve();
         }, function(err) {
             reject(err);
@@ -866,7 +866,7 @@ JitsiConference.prototype.onMemberJoined
         this.participants[id] = participant;
         this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED, id, participant);
         this.xmpp.caps.getFeatures(jid).then(features => {
-            participant._supportsDTMF = features.has("urn:xmpp:jingle:dtmf:0");
+            participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
             this.updateDTMFSupport();
         }, error => logger.error(error));
     };
@@ -993,8 +993,8 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
 
     if (!consumed) {
         logger.error(
-            "Failed to match remote track on remove"
-                + " with any of the participants",
+            'Failed to match remote track on remove'
+                + ' with any of the participants',
             removedTrack.getStreamId(),
             removedTrack.getParticipantId());
     }
@@ -1007,7 +1007,7 @@ JitsiConference.prototype.onIncomingCall =
 function(jingleSession, jingleOffer, now) {
     if (!this.room.isFocus(jingleSession.peerjid)) {
         // Error cause this should never happen unless something is wrong!
-        var errmsg = "Rejecting session-initiate from non-focus user: "
+        var errmsg = 'Rejecting session-initiate from non-focus user: '
                 + jingleSession.peerjid;
         GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
         logger.error(errmsg);
@@ -1018,8 +1018,8 @@ function(jingleSession, jingleOffer, now) {
             null /* success callback => we don't care */,
             function(error) {
                 logger.warn(
-                    "An error occurred while trying to terminate"
-                        + " invalid Jingle session", error);
+                    'An error occurred while trying to terminate'
+                        + ' invalid Jingle session', error);
             });
 
         return;
@@ -1027,19 +1027,19 @@ function(jingleSession, jingleOffer, now) {
 
     // Accept incoming call
     this.jingleSession = jingleSession;
-    this.room.connectionTimes["session.initiate"] = now;
+    this.room.connectionTimes['session.initiate'] = now;
     // Log "session.restart"
     if (this.wasStopped) {
-        Statistics.sendEventToAll("session.restart");
+        Statistics.sendEventToAll('session.restart');
     }
     // add info whether call is cross-region
     var crossRegion = null;
     if (window.jitsiRegionInfo) {
-        crossRegion = window.jitsiRegionInfo["CrossRegion"];
+        crossRegion = window.jitsiRegionInfo['CrossRegion'];
     }
     Statistics.analytics.sendEvent(
-        "session.initiate", {
-            value: now - this.room.connectionTimes["muc.joined"],
+        'session.initiate', {
+            value: now - this.room.connectionTimes['muc.joined'],
             label: crossRegion
         });
     try {
@@ -1081,7 +1081,7 @@ function(jingleSession, jingleOffer, now) {
             localTrack._setSSRC(this._generateNewStreamSSRCInfo());
             ssrcInfo = {
                 mtype: localTrack.getType(),
-                type: "addMuted",
+                type: 'addMuted',
                 ssrcs: localTrack.ssrc.ssrcs,
                 groups: localTrack.ssrc.groups,
                 msid: localTrack.initialMSID
@@ -1105,7 +1105,7 @@ function(jingleSession, jingleOffer, now) {
         function(error) {
             GlobalOnErrorHandler.callErrorHandler(error);
             logger.error(
-                "Failed to accept incoming Jingle session", error);
+                'Failed to accept incoming Jingle session', error);
         }
     );
 
@@ -1127,10 +1127,10 @@ function(jingleSession, jingleOffer, now) {
  */
 JitsiConference.prototype.onCallEnded
 = function(JingleSession, reasonCondition, reasonText) {
-    logger.info("Call ended: " + reasonCondition + " - " + reasonText);
+    logger.info('Call ended: ' + reasonCondition + ' - ' + reasonText);
     this.wasStopped = true;
     // Send session.terminate event
-    Statistics.sendEventToAll("session.terminate");
+    Statistics.sendEventToAll('session.terminate');
     // Stop the stats
     if (this.statistics) {
         this.statistics.stopRemoteStats();
@@ -1203,19 +1203,19 @@ JitsiConference.prototype.sendTones = function(tones, duration, pause) {
     // FIXME P2P 'dtmfManager' must be cleared, after switching jingleSessions
     if (!this.dtmfManager) {
         if (!this.jingleSession) {
-            logger.warn("cannot sendTones: no jingle session");
+            logger.warn('cannot sendTones: no jingle session');
             return;
         }
 
         const peerConnection = this.jingleSession.peerconnection;
         if (!peerConnection) {
-            logger.warn("cannot sendTones: no peer connection");
+            logger.warn('cannot sendTones: no peer connection');
             return;
         }
 
         const localAudio = this.getLocalAudioTrack();
         if (!localAudio) {
-            logger.warn("cannot sendTones: no local audio stream");
+            logger.warn('cannot sendTones: no local audio stream');
             return;
         }
         this.dtmfManager = new JitsiDTMFManager(localAudio, peerConnection);
@@ -1260,8 +1260,8 @@ JitsiConference.prototype.toggleRecording = function(options) {
         }.bind(this));
     }
     this.eventEmitter.emit(
-        JitsiConferenceEvents.RECORDER_STATE_CHANGED, "error",
-        new Error("The conference is not created yet!"));
+        JitsiConferenceEvents.RECORDER_STATE_CHANGED, 'error',
+        new Error('The conference is not created yet!'));
 };
 
 /**
@@ -1283,7 +1283,7 @@ JitsiConference.prototype.dial = function(number) {
         return this.room.dial(number);
     }
     return new Promise(function(resolve, reject) {
-        reject(new Error("The conference is not created yet!"));
+        reject(new Error('The conference is not created yet!'));
     });
 };
 
@@ -1295,7 +1295,7 @@ JitsiConference.prototype.hangup = function() {
         return this.room.hangup();
     }
     return new Promise(function(resolve, reject) {
-        reject(new Error("The conference is not created yet!"));
+        reject(new Error('The conference is not created yet!'));
     });
 };
 
@@ -1342,8 +1342,8 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
         return;
     }
     this.startMutedPolicy = policy;
-    this.room.removeFromPresence("startmuted");
-    this.room.addToPresence("startmuted", {
+    this.room.removeFromPresence('startmuted');
+    this.room.addToPresence('startmuted', {
         attributes: {
             audio: policy.audio,
             video: policy.video,
@@ -1407,7 +1407,7 @@ JitsiConference.prototype.getConnectionTimes = function() {
  * Sets a property for the local participant.
  */
 JitsiConference.prototype.setLocalParticipantProperty = function(name, value) {
-    this.sendCommand("jitsi_participant_" + name, {value});
+    this.sendCommand('jitsi_participant_' + name, {value});
 };
 
 /**
@@ -1497,7 +1497,7 @@ JitsiConference.prototype.sendEndpointMessage = function(to, payload) {
  * @throws NetworkError or InvalidStateError or Error if the operation fails.
  */
 JitsiConference.prototype.broadcastEndpointMessage = function(payload) {
-    this.sendEndpointMessage("", payload);
+    this.sendEndpointMessage('', payload);
 };
 
 JitsiConference.prototype.isConnectionInterrupted = function() {
