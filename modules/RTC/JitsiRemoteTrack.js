@@ -1,5 +1,3 @@
-/* global */
-
 const JitsiTrack = require('./JitsiTrack');
 
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';

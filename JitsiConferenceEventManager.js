@@ -500,8 +500,9 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
 
     conference.xmpp.caps.addListener(XMPPEvents.PARTCIPANT_FEATURES_CHANGED,
         from => {
-            const participant = conference.getParticipantId(
-                Strophe.getResourceFromJid(from));
+            const participant
+                = conference.getParticipantId(
+                    Strophe.getResourceFromJid(from));
 
             if (participant) {
                 conference.eventEmitter.emit(
@@ -510,9 +511,11 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
             }
         });
     conference.xmpp.addListener(
-        XMPPEvents.CALL_INCOMING, conference.onIncomingCall.bind(conference));
+        XMPPEvents.CALL_INCOMING,
+        conference.onIncomingCall.bind(conference));
     conference.xmpp.addListener(
-        XMPPEvents.CALL_ENDED, conference.onCallEnded.bind(conference));
+        XMPPEvents.CALL_ENDED,
+        conference.onCallEnded.bind(conference));
 
     conference.xmpp.addListener(XMPPEvents.START_MUTED_FROM_FOCUS,
         (audioMuted, videoMuted) => {
