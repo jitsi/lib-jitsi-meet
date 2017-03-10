@@ -19,8 +19,8 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         this.xmpp = xmpp;
         this.eventEmitter = eventEmitter;
         this.sessions = {};
-        this.ice_config = { iceServers: [] };
-        this.media_constraints = {
+        this.iceConfig = { iceServers: [] };
+        this.mediaConstraints = {
             mandatory: {
                 'OfferToReceiveAudio': true,
                 'OfferToReceiveVideo': true
@@ -119,8 +119,8 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                         $(iq).attr('to'),
                         fromJid,
                         this.connection,
-                        this.media_constraints,
-                        this.ice_config, this.xmpp.options);
+                        this.mediaConstraints,
+                        this.iceConfig, this.xmpp.options);
 
             this.sessions[sess.sid] = sess;
 
@@ -271,7 +271,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     }
                     }
                 });
-                this.ice_config.iceServers = iceservers;
+                this.iceConfig.iceServers = iceservers;
             }, err => {
                 logger.warn('getting turn credentials failed', err);
                 logger.warn('is mod_turncredentials or similar installed?');

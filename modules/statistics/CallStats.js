@@ -130,7 +130,7 @@ function initCallback(err, msg) {
  * @return a function which invokes f in a try/catch block, logs any exception
  * to the console, and then swallows it
  */
-function _try_catch(f) {
+function tryCatch(f) {
     return function() {
         try {
             f.apply(this, arguments); // eslint-disable-line prefer-rest-params
@@ -146,7 +146,7 @@ function _try_catch(f) {
  * @param peerConnection {JingleSessionPC} the session object
  * @param options {object} credentials for callstats.
  */
-const CallStats = _try_catch(function(jingleSession, options) {
+const CallStats = tryCatch(function(jingleSession, options) {
     try {
         CallStats.feedbackEnabled = false;
         callStats = new callstats($, io, jsSHA); // eslint-disable-line new-cap
@@ -242,7 +242,7 @@ const reportType = {
     MST_WITH_USERID: 'mstWithUserID'
 };
 
-CallStats.prototype.pcCallback = _try_catch((err, msg) => {
+CallStats.prototype.pcCallback = tryCatch((err, msg) => {
     if (callStats && err !== 'success') {
         logger.error(`Monitoring status: ${err} msg: ${msg}`);
     }
@@ -269,7 +269,7 @@ CallStats.prototype.associateStreamWithVideoTag
     // 'jitsi' is default remote user ID for now
     const callStatsId = isLocal ? this.userID : DEFAULT_REMOTE_USER;
 
-    _try_catch(function() {
+    tryCatch(function() {
         logger.debug(
             'Calling callStats.associateMstWithUserID with:',
             this.peerconnection,
@@ -307,7 +307,7 @@ CallStats.prototype.associateStreamWithVideoTag
  * @param type {String} "audio"/"video"
  * @param {CallStats} cs callstats instance related to the event
  */
-CallStats.sendMuteEvent = _try_catch((mute, type, cs) => {
+CallStats.sendMuteEvent = tryCatch((mute, type, cs) => {
     let event;
 
     if (type === 'video') {
@@ -325,7 +325,7 @@ CallStats.sendMuteEvent = _try_catch((mute, type, cs) => {
  * false for not stopping
  * @param {CallStats} cs callstats instance related to the event
  */
-CallStats.sendScreenSharingEvent = _try_catch((start, cs) => {
+CallStats.sendScreenSharingEvent = tryCatch((start, cs) => {
     CallStats._reportEvent.call(
         cs,
         start ? fabricEvent.screenShareStart : fabricEvent.screenShareStop);
@@ -335,7 +335,7 @@ CallStats.sendScreenSharingEvent = _try_catch((start, cs) => {
  * Notifies CallStats that we are the new dominant speaker in the conference.
  * @param {CallStats} cs callstats instance related to the event
  */
-CallStats.sendDominantSpeakerEvent = _try_catch(cs => {
+CallStats.sendDominantSpeakerEvent = tryCatch(cs => {
     CallStats._reportEvent.call(cs, fabricEvent.dominantSpeaker);
 });
 
@@ -344,7 +344,7 @@ CallStats.sendDominantSpeakerEvent = _try_catch(cs => {
  * @param {{deviceList: {String:String}}} list of devices with their data
  * @param {CallStats} cs callstats instance related to the event
  */
-CallStats.sendActiveDeviceListEvent = _try_catch((devicesData, cs) => {
+CallStats.sendActiveDeviceListEvent = tryCatch((devicesData, cs) => {
     CallStats._reportEvent.call(cs, fabricEvent.activeDeviceList, devicesData);
 });
 
@@ -374,7 +374,7 @@ CallStats._reportEvent = function(event, eventData) {
 /**
  * Notifies CallStats for connection setup errors
  */
-CallStats.prototype.sendTerminateEvent = _try_catch(function() {
+CallStats.prototype.sendTerminateEvent = tryCatch(function() {
     if (!CallStats.initialized) {
         return;
     }
@@ -387,7 +387,7 @@ CallStats.prototype.sendTerminateEvent = _try_catch(function() {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.prototype.sendIceConnectionFailedEvent = _try_catch((pc, cs) => {
+CallStats.prototype.sendIceConnectionFailedEvent = tryCatch((pc, cs) => {
     CallStats._reportError.call(
         cs, wrtcFuncNames.iceConnectionFailure, null, pc);
 });
@@ -399,7 +399,7 @@ CallStats.prototype.sendIceConnectionFailedEvent = _try_catch((pc, cs) => {
  * user feedback
  * @param detailedFeedback detailed feedback from the user. Not yet used
  */
-CallStats.prototype.sendFeedback = _try_catch(
+CallStats.prototype.sendFeedback = tryCatch(
 function(overallFeedback, detailedFeedback) {
     if (!CallStats.feedbackEnabled) {
         return;
@@ -450,7 +450,7 @@ CallStats._reportError = function(type, e, pc) {
  * @param {Error} e error to send
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendGetUserMediaFailed = _try_catch((e, cs) => {
+CallStats.sendGetUserMediaFailed = tryCatch((e, cs) => {
     CallStats._reportError.call(cs, wrtcFuncNames.getUserMedia, e, null);
 });
 
@@ -461,7 +461,7 @@ CallStats.sendGetUserMediaFailed = _try_catch((e, cs) => {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendCreateOfferFailed = _try_catch((e, pc, cs) => {
+CallStats.sendCreateOfferFailed = tryCatch((e, pc, cs) => {
     CallStats._reportError.call(cs, wrtcFuncNames.createOffer, e, pc);
 });
 
@@ -472,7 +472,7 @@ CallStats.sendCreateOfferFailed = _try_catch((e, pc, cs) => {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendCreateAnswerFailed = _try_catch((e, pc, cs) => {
+CallStats.sendCreateAnswerFailed = tryCatch((e, pc, cs) => {
     CallStats._reportError.call(cs, wrtcFuncNames.createAnswer, e, pc);
 });
 
@@ -483,7 +483,7 @@ CallStats.sendCreateAnswerFailed = _try_catch((e, pc, cs) => {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendSetLocalDescFailed = _try_catch((e, pc, cs) => {
+CallStats.sendSetLocalDescFailed = tryCatch((e, pc, cs) => {
     CallStats._reportError.call(cs, wrtcFuncNames.setLocalDescription, e, pc);
 });
 
@@ -494,7 +494,7 @@ CallStats.sendSetLocalDescFailed = _try_catch((e, pc, cs) => {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendSetRemoteDescFailed = _try_catch((e, pc, cs) => {
+CallStats.sendSetRemoteDescFailed = tryCatch((e, pc, cs) => {
     CallStats._reportError.call(cs, wrtcFuncNames.setRemoteDescription, e, pc);
 });
 
@@ -505,7 +505,7 @@ CallStats.sendSetRemoteDescFailed = _try_catch((e, pc, cs) => {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendAddIceCandidateFailed = _try_catch((e, pc, cs) => {
+CallStats.sendAddIceCandidateFailed = tryCatch((e, pc, cs) => {
     CallStats._reportError.call(cs, wrtcFuncNames.addIceCandidate, e, pc);
 });
 
@@ -515,7 +515,7 @@ CallStats.sendAddIceCandidateFailed = _try_catch((e, pc, cs) => {
  * @param {Error} e error to send or {String} message
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendApplicationLog = _try_catch((e, cs) => {
+CallStats.sendApplicationLog = tryCatch((e, cs) => {
     CallStats._reportError.call(cs, wrtcFuncNames.applicationLog, e, null);
 });
 

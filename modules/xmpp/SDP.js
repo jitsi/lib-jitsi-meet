@@ -7,12 +7,12 @@ function SDP(sdp) {
     const media = sdp.split('\r\nm=');
 
     for (let i = 1, length = media.length; i < length; i++) {
-        let media_i = `m=${media[i]}`;
+        let mediaI = `m=${media[i]}`;
 
         if (i !== length - 1) {
-            media_i += '\r\n';
+            mediaI += '\r\n';
         }
-        media[i] = media_i;
+        media[i] = mediaI;
     }
     const session = `${media.shift()}\r\n`;
 
@@ -46,14 +46,14 @@ SDP.prototype.removeUdpCandidates = false;
  */
 SDP.prototype.getMediaSsrcMap = function() {
     const self = this;
-    const media_ssrcs = {};
+    const mediaSSRCs = {};
     let tmp;
 
     for (let mediaindex = 0; mediaindex < self.media.length; mediaindex++) {
-        tmp = SDPUtil.find_lines(self.media[mediaindex], 'a=ssrc:');
+        tmp = SDPUtil.findLines(self.media[mediaindex], 'a=ssrc:');
         const mid
-            = SDPUtil.parse_mid(
-                SDPUtil.find_line(self.media[mediaindex],
+            = SDPUtil.parseMID(
+                SDPUtil.findLine(self.media[mediaindex],
                 'a=mid:'));
         const media = {
             mediaindex,
@@ -62,7 +62,7 @@ SDP.prototype.getMediaSsrcMap = function() {
             ssrcGroups: []
         };
 
-        media_ssrcs[mediaindex] = media;
+        mediaSSRCs[mediaindex] = media;
         tmp.forEach(line => {
             const linessrc = line.substring(7).split(' ')[0];
 
@@ -76,7 +76,7 @@ SDP.prototype.getMediaSsrcMap = function() {
             }
             media.ssrcs[linessrc].lines.push(line);
         });
-        tmp = SDPUtil.find_lines(self.media[mediaindex], 'a=ssrc-group:');
+        tmp = SDPUtil.findLines(self.media[mediaindex], 'a=ssrc-group:');
         tmp.forEach(line => {
             const idx = line.indexOf(' ');
             const semantics = line.substr(0, idx).substr(13);
@@ -91,7 +91,7 @@ SDP.prototype.getMediaSsrcMap = function() {
         });
     }
 
-    return media_ssrcs;
+    return mediaSSRCs;
 };
 
 /**
@@ -123,7 +123,7 @@ SDP.prototype.mangle = function() {
     for (i = 0; i < this.media.length; i++) {
         lines = this.media[i].split('\r\n');
         lines.pop(); // remove empty last element
-        mline = SDPUtil.parse_mline(lines.shift());
+        mline = SDPUtil.parseMLine(lines.shift());
         if (mline.media !== 'audio') {
             continue; // eslint-disable-line no-continue
         }
@@ -131,7 +131,7 @@ SDP.prototype.mangle = function() {
         mline.fmt.length = 0;
         for (j = 0; j < lines.length; j++) {
             if (lines[j].substr(0, 9) === 'a=rtpmap:') {
-                rtpmap = SDPUtil.parse_rtpmap(lines[j]);
+                rtpmap = SDPUtil.parseRTPMap(lines[j]);
                 if (rtpmap.name === 'CN' || rtpmap.name === 'ISAC') {
                     continue; // eslint-disable-line no-continue
                 }
@@ -139,7 +139,7 @@ SDP.prototype.mangle = function() {
             }
             newdesc += `${lines[j]}\r\n`;
         }
-        this.media[i] = `${SDPUtil.build_mline(mline)}\r\n${newdesc}`;
+        this.media[i] = `${SDPUtil.buildMLine(mline)}\r\n${newdesc}`;
     }
     this.raw = this.session + this.media.join('');
 };
@@ -147,7 +147,7 @@ SDP.prototype.mangle = function() {
 // remove lines matching prefix from session section
 SDP.prototype.removeSessionLines = function(prefix) {
     const self = this;
-    const lines = SDPUtil.find_lines(this.session, prefix);
+    const lines = SDPUtil.findLines(this.session, prefix);
 
     lines.forEach(line => {
         self.session = self.session.replace(`${line}\r\n`, '');
@@ -161,7 +161,7 @@ SDP.prototype.removeSessionLines = function(prefix) {
 // TODO: non-numeric mediaindex could match mid
 SDP.prototype.removeMediaLines = function(mediaindex, prefix) {
     const self = this;
-    const lines = SDPUtil.find_lines(this.media[mediaindex], prefix);
+    const lines = SDPUtil.findLines(this.media[mediaindex], prefix);
 
     lines.forEach(line => {
         self.media[mediaindex]
@@ -178,7 +178,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 
     // new bundle plan
 
-    lines = SDPUtil.find_lines(this.session, 'a=group:');
+    lines = SDPUtil.findLines(this.session, 'a=group:');
     if (lines.length) {
         for (i = 0; i < lines.length; i++) {
             tmp = lines[i].split(' ');
@@ -193,13 +193,13 @@ SDP.prototype.toJingle = function(elem, thecreator) {
         }
     }
     for (i = 0; i < this.media.length; i++) {
-        mline = SDPUtil.parse_mline(this.media[i].split('\r\n')[0]);
+        mline = SDPUtil.parseMLine(this.media[i].split('\r\n')[0]);
         if (!(mline.media === 'audio'
               || mline.media === 'video'
               || mline.media === 'application')) {
             continue; // eslint-disable-line no-continue
         }
-        const assrcline = SDPUtil.find_line(this.media[i], 'a=ssrc:');
+        const assrcline = SDPUtil.findLine(this.media[i], 'a=ssrc:');
 
         if (assrcline) {
             ssrc = assrcline.substring(7).split(' ')[0]; // take the first
@@ -209,16 +209,16 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 
         elem.c('content', { creator: thecreator,
             name: mline.media });
-        const amidline = SDPUtil.find_line(this.media[i], 'a=mid:');
+        const amidline = SDPUtil.findLine(this.media[i], 'a=mid:');
 
         if (amidline) {
             // prefer identifier from a=mid if present
-            const mid = SDPUtil.parse_mid(amidline);
+            const mid = SDPUtil.parseMID(amidline);
 
             elem.attrs({ name: mid });
         }
 
-        if (SDPUtil.find_line(this.media[i], 'a=rtpmap:').length) {
+        if (SDPUtil.findLine(this.media[i], 'a=rtpmap:').length) {
             elem.c('description',
                 { xmlns: 'urn:xmpp:jingle:apps:rtp:1',
                     media: mline.media });
@@ -227,20 +227,20 @@ SDP.prototype.toJingle = function(elem, thecreator) {
             }
             for (j = 0; j < mline.fmt.length; j++) {
                 rtpmap
-                    = SDPUtil.find_line(
+                    = SDPUtil.findLine(
                         this.media[i],
                         `a=rtpmap:${mline.fmt[j]}`);
-                elem.c('payload-type', SDPUtil.parse_rtpmap(rtpmap));
+                elem.c('payload-type', SDPUtil.parseRTPMap(rtpmap));
 
                 // put any 'a=fmtp:' + mline.fmt[j] lines into <param name=foo
                 // value=bar/>
                 const afmtpline
-                    = SDPUtil.find_line(
+                    = SDPUtil.findLine(
                         this.media[i],
                         `a=fmtp:${mline.fmt[j]}`);
 
                 if (afmtpline) {
-                    tmp = SDPUtil.parse_fmtp(afmtpline);
+                    tmp = SDPUtil.parseFmtp(afmtpline);
                     for (k = 0; k < tmp.length; k++) {
                         elem.c('parameter', tmp[k]).up();
                     }
@@ -252,12 +252,12 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                 elem.up();
             }
             const crypto
-                = SDPUtil.find_lines(this.media[i], 'a=crypto:', this.session);
+                = SDPUtil.findLines(this.media[i], 'a=crypto:', this.session);
 
             if (crypto.length) {
                 elem.c('encryption', { required: 1 });
                 crypto.forEach(
-                    line => elem.c('crypto', SDPUtil.parse_crypto(line)).up());
+                    line => elem.c('crypto', SDPUtil.parseCrypto(line)).up());
                 elem.up(); // end of encryption
             }
 
@@ -267,7 +267,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                     xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
 
                 // FIXME: group by ssrc and support multiple different ssrcs
-                const ssrclines = SDPUtil.find_lines(this.media[i], 'a=ssrc:');
+                const ssrclines = SDPUtil.findLines(this.media[i], 'a=ssrc:');
 
                 if (ssrclines.length > 0) {
                     // eslint-disable-next-line no-loop-func
@@ -293,7 +293,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 
                             let v = kv.split(':', 2)[1];
 
-                            v = SDPUtil.filter_special_chars(v);
+                            v = SDPUtil.filterSpecialChars(v);
                             elem.attrs({ value: v });
                         }
                         elem.up();
@@ -323,7 +323,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                         msid = localTrack.getTrackId();
                     }
                     if (msid !== null) {
-                        msid = SDPUtil.filter_special_chars(msid);
+                        msid = SDPUtil.filterSpecialChars(msid);
                         elem.c('parameter');
                         elem.attrs({ name: 'msid',
                             value: msid });
@@ -341,10 +341,10 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                 elem.up();
 
                 // XEP-0339 handle ssrc-group attributes
-                const ssrc_group_lines
-                    = SDPUtil.find_lines(this.media[i], 'a=ssrc-group:');
+                const ssrcGroupLines
+                    = SDPUtil.findLines(this.media[i], 'a=ssrc-group:');
 
-                ssrc_group_lines.forEach(line => {
+                ssrcGroupLines.forEach(line => {
                     const idx = line.indexOf(' ');
                     const semantics = line.substr(0, idx).substr(13);
                     const ssrcs = line.substr(14 + semantics.length).split(' ');
@@ -358,7 +358,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                 });
             }
 
-            if (SDPUtil.find_line(this.media[i], 'a=rtcp-mux')) {
+            if (SDPUtil.findLine(this.media[i], 'a=rtcp-mux')) {
                 elem.c('rtcp-mux').up();
             }
 
@@ -366,10 +366,10 @@ SDP.prototype.toJingle = function(elem, thecreator) {
             this.rtcpFbToJingle(i, elem, '*');
 
             // XEP-0294
-            lines = SDPUtil.find_lines(this.media[i], 'a=extmap:');
+            lines = SDPUtil.findLines(this.media[i], 'a=extmap:');
             if (lines.length) {
                 for (j = 0; j < lines.length; j++) {
-                    tmp = SDPUtil.parse_extmap(lines[j]);
+                    tmp = SDPUtil.parseExtmap(lines[j]);
                     elem.c('rtp-hdrext', {
                         xmlns: 'urn:xmpp:jingle:apps:rtp:rtp-hdrext:0',
                         uri: tmp.uri,
@@ -404,13 +404,13 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 
         const m = this.media[i];
 
-        if (SDPUtil.find_line(m, 'a=sendrecv', this.session)) {
+        if (SDPUtil.findLine(m, 'a=sendrecv', this.session)) {
             elem.attrs({ senders: 'both' });
-        } else if (SDPUtil.find_line(m, 'a=sendonly', this.session)) {
+        } else if (SDPUtil.findLine(m, 'a=sendonly', this.session)) {
             elem.attrs({ senders: 'initiator' });
-        } else if (SDPUtil.find_line(m, 'a=recvonly', this.session)) {
+        } else if (SDPUtil.findLine(m, 'a=recvonly', this.session)) {
             elem.attrs({ senders: 'responder' });
-        } else if (SDPUtil.find_line(m, 'a=inactive', this.session)) {
+        } else if (SDPUtil.findLine(m, 'a=inactive', this.session)) {
             elem.attrs({ senders: 'none' });
         }
         if (mline.port === '0') {
@@ -432,10 +432,10 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
 
     // XEP-0343 DTLS/SCTP
     const sctpmap
-        = SDPUtil.find_line(this.media[mediaindex], 'a=sctpmap:', self.session);
+        = SDPUtil.findLine(this.media[mediaindex], 'a=sctpmap:', self.session);
 
     if (sctpmap) {
-        const sctpAttrs = SDPUtil.parse_sctpmap(sctpmap);
+        const sctpAttrs = SDPUtil.parseSCTPMap(sctpmap);
 
         elem.c('sctpmap', {
             xmlns: 'urn:xmpp:jingle:transports:dtls-sctp:1',
@@ -452,20 +452,20 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
 
     // XEP-0320
     const fingerprints
-        = SDPUtil.find_lines(
+        = SDPUtil.findLines(
             this.media[mediaindex],
             'a=fingerprint:',
             this.session);
 
     fingerprints.forEach(line => {
-        tmp = SDPUtil.parse_fingerprint(line);
+        tmp = SDPUtil.parseFingerprint(line);
         tmp.xmlns = 'urn:xmpp:jingle:apps:dtls:0';
         elem.c('fingerprint').t(tmp.fingerprint);
         delete tmp.fingerprint;
 
         // eslint-disable-next-line no-param-reassign
         line
-            = SDPUtil.find_line(
+            = SDPUtil.findLine(
                 self.media[mediaindex],
                 'a=setup:',
                 self.session);
@@ -482,7 +482,7 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
 
         // XEP-0176
         const lines
-            = SDPUtil.find_lines(
+            = SDPUtil.findLines(
                 this.media[mediaindex],
                 'a=candidate:',
                 this.session);
@@ -514,12 +514,12 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
 // XEP-0293
 SDP.prototype.rtcpFbToJingle = function(mediaindex, elem, payloadtype) {
     const lines
-        = SDPUtil.find_lines(
+        = SDPUtil.findLines(
             this.media[mediaindex],
             `a=rtcp-fb:${payloadtype}`);
 
     lines.forEach(line => {
-        const tmp = SDPUtil.parse_rtcpfb(line);
+        const tmp = SDPUtil.parseRTCPFB(line);
 
         if (tmp.type === 'trr-int') {
             elem.c('rtcp-fb-trr-int', {
@@ -608,7 +608,7 @@ SDP.prototype.fromJingle = function(jingle) {
 
     // reconstruct msid-semantic -- apparently not necessary
     /*
-     var msid = SDPUtil.parse_ssrc(this.raw);
+     var msid = SDPUtil.parseSSRC(this.raw);
      if (msid.hasOwnProperty('mslabel')) {
      this.session += "a=msid-semantic: WMS " + msid.mslabel + "\r\n";
      }
@@ -657,7 +657,7 @@ SDP.prototype.jingle2media = function(content) {
                     return this.getAttribute('id');
                 })
                 .get();
-        media += `${SDPUtil.build_mline(tmp)}\r\n`;
+        media += `${SDPUtil.buildMLine(tmp)}\r\n`;
     }
 
     media += 'c=IN IP4 0.0.0.0\r\n';
@@ -669,10 +669,10 @@ SDP.prototype.jingle2media = function(content) {
             '>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]');
     if (tmp.length) {
         if (tmp.attr('ufrag')) {
-            media += `${SDPUtil.build_iceufrag(tmp.attr('ufrag'))}\r\n`;
+            media += `${SDPUtil.buildICEUfrag(tmp.attr('ufrag'))}\r\n`;
         }
         if (tmp.attr('pwd')) {
-            media += `${SDPUtil.build_icepwd(tmp.attr('pwd'))}\r\n`;
+            media += `${SDPUtil.buildICEPwd(tmp.attr('pwd'))}\r\n`;
         }
         tmp.find('>fingerprint').each(function() {
             // FIXME: check namespace at some point
@@ -720,7 +720,7 @@ SDP.prototype.jingle2media = function(content) {
         });
     }
     desc.find('payload-type').each(function() {
-        media += `${SDPUtil.build_rtpmap(this)}\r\n`;
+        media += `${SDPUtil.buildRTPMap(this)}\r\n`;
         if ($(this).find('>parameter').length) {
             media += `a=fmtp:${this.getAttribute('id')} `;
             media
@@ -803,7 +803,7 @@ SDP.prototype.jingle2media = function(content) {
             const name = this.getAttribute('name');
             let value = this.getAttribute('value');
 
-            value = SDPUtil.filter_special_chars(value);
+            value = SDPUtil.filterSpecialChars(value);
             media += `a=ssrc:${ssrc} ${name}`;
             if (value && value.length) {
                 media += `:${value}`;

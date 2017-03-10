@@ -32,9 +32,9 @@ export default class JingleSessionPC extends JingleSession {
      * @param {string} peerjid remote peer JID
      * @param {Strophe.Connection} connection Strophe XMPP connection instance
      * used to send packets.
-     * @param media_constraints the media constraints object passed to
+     * @param mediaConstraints the media constraints object passed to
      * createOffer/Answer, as defined by the WebRTC standard
-     * @param ice_config the ICE servers config object as defined by the WebRTC
+     * @param iceConfig the ICE servers config object as defined by the WebRTC
      * standard.
      * @param {object} options a set of config options
      * @param {boolean} options.webrtcIceUdpDisable <tt>true</tt> to block UDP
@@ -49,8 +49,8 @@ export default class JingleSessionPC extends JingleSession {
      * @implements {SignalingLayer}
      */
     constructor(sid, me, peerjid, connection,
-                media_constraints, ice_config, options) {
-        super(sid, me, peerjid, connection, media_constraints, ice_config);
+                mediaConstraints, iceConfig, options) {
+        super(sid, me, peerjid, connection, mediaConstraints, iceConfig);
 
         this.lasticecandidate = false;
         this.closed = false;
@@ -111,7 +111,7 @@ export default class JingleSessionPC extends JingleSession {
         this.peerconnection
             = this.rtc.createPeerConnection(
                 this,
-                this.connection.jingle.ice_config,
+                this.connection.jingle.iceConfig,
 
                 /* Options */
                 {
@@ -254,17 +254,17 @@ export default class JingleSessionPC extends JingleSession {
             ice.xmlns = 'urn:xmpp:jingle:transports:ice-udp:1';
 
             if (this.usedrip) {
-                if (this.drip_container.length === 0) {
+                if (this.dripContainer.length === 0) {
                     // start 20ms callout
                     setTimeout(() => {
-                        if (this.drip_container.length === 0) {
+                        if (this.dripContainer.length === 0) {
                             return;
                         }
-                        this.sendIceCandidates(this.drip_container);
-                        this.drip_container = [];
+                        this.sendIceCandidates(this.dripContainer);
+                        this.dripContainer = [];
                     }, 20);
                 }
-                this.drip_container.push(candidate);
+                this.dripContainer.push(candidate);
             } else {
                 this.sendIceCandidates([ candidate ]);
             }
@@ -290,7 +290,7 @@ export default class JingleSessionPC extends JingleSession {
         for (let mid = 0; mid < localSDP.media.length; mid++) {
             const cands = candidates.filter(el => el.sdpMLineIndex === mid);
             const mline
-                = SDPUtil.parse_mline(localSDP.media[mid].split('\r\n')[0]);
+                = SDPUtil.parseMLine(localSDP.media[mid].split('\r\n')[0]);
 
             if (cands.length > 0) {
                 const ice
@@ -315,13 +315,13 @@ export default class JingleSessionPC extends JingleSession {
                 }
 
                 // add fingerprint
-                const fingerprint_line
-                    = SDPUtil.find_line(
+                const fingerprintLine
+                    = SDPUtil.findLine(
                         localSDP.media[mid],
                         'a=fingerprint:', localSDP.session);
 
-                if (fingerprint_line) {
-                    const tmp = SDPUtil.parse_fingerprint(fingerprint_line);
+                if (fingerprintLine) {
+                    const tmp = SDPUtil.parseFingerprint(fingerprintLine);
 
                     tmp.required = true;
                     cand.c(
@@ -569,7 +569,7 @@ export default class JingleSessionPC extends JingleSession {
             });
 
         localSDP.media.forEach((medialines, idx) => {
-            const mline = SDPUtil.parse_mline(medialines.split('\r\n')[0]);
+            const mline = SDPUtil.parseMLine(medialines.split('\r\n')[0]);
 
             transportAccept.c('content',
                 {
@@ -730,7 +730,7 @@ export default class JingleSessionPC extends JingleSession {
                 });
             });
             currentRemoteSdp.media.forEach((media, idx) => {
-                if (!SDPUtil.find_line(media, `a=mid:${name}`)) {
+                if (!SDPUtil.findLine(media, `a=mid:${name}`)) {
                     return;
                 }
                 if (!addSsrcInfo[idx]) {
@@ -927,7 +927,7 @@ export default class JingleSessionPC extends JingleSession {
      *  rejects with an error {string}
      */
     _renegotiate(optionalRemoteSdp) {
-        const media_constraints = this.media_constraints;
+        const mediaConstraints = this.mediaConstraints;
         const remoteSdp
             = optionalRemoteSdp
                 || new SDP(this.peerconnection.remoteDescription.sdp);
@@ -989,7 +989,7 @@ export default class JingleSessionPC extends JingleSession {
                             );
                         },
                         error => reject(`createAnswer failed: ${error}`),
-                        media_constraints
+                        mediaConstraints
                     );
                 },
                 error => {
@@ -1126,7 +1126,7 @@ export default class JingleSessionPC extends JingleSession {
                 ssrcs.push(ssrc);
             });
             currentRemoteSdp.media.forEach((media, idx) => {
-                if (!SDPUtil.find_line(media, `a=mid:${name}`)) {
+                if (!SDPUtil.findLine(media, `a=mid:${name}`)) {
                     return;
                 }
                 if (!removeSsrcInfo[idx]) {
@@ -1134,7 +1134,7 @@ export default class JingleSessionPC extends JingleSession {
                 }
                 ssrcs.forEach(ssrc => {
                     const ssrcLines
-                        = SDPUtil.find_lines(media, `a=ssrc:${ssrc}`);
+                        = SDPUtil.findLines(media, `a=ssrc:${ssrc}`);
 
                     if (ssrcLines.length) {
                         removeSsrcInfo[idx] += `${ssrcLines.join('\r\n')}\r\n`;
@@ -1341,10 +1341,10 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Figures out added/removed ssrcs and send update IQs.
-     * @param old_sdp SDP object for old description.
-     * @param new_sdp SDP object for new description.
+     * @param oldSDP SDP object for old description.
+     * @param newSDP SDP object for new description.
      */
-    notifyMySSRCUpdate(old_sdp, new_sdp) {
+    notifyMySSRCUpdate(oldSDP, newSDP) {
 
         if (this.state !== JingleSessionState.ACTIVE) {
             logger.warn(`Skipping SSRC update in '${this.state} ' state.`);
@@ -1353,7 +1353,7 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         // send source-remove IQ.
-        let sdpDiffer = new SDPDiffer(new_sdp, old_sdp);
+        let sdpDiffer = new SDPDiffer(newSDP, oldSDP);
         const remove = $iq({ to: this.peerjid,
             type: 'set' })
             .c('jingle', {
@@ -1380,7 +1380,7 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         // send source-add IQ.
-        sdpDiffer = new SDPDiffer(old_sdp, new_sdp);
+        sdpDiffer = new SDPDiffer(oldSDP, newSDP);
         const add = $iq({ to: this.peerjid,
             type: 'set' })
             .c('jingle', {

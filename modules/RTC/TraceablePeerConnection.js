@@ -23,7 +23,7 @@ const SIMULCAST_LAYERS = 3;
  * @param {RTC} rtc the instance of <tt>RTC</tt> service
  * @param {number} id the peer connection id assigned by the parent RTC module.
  * @param {SignalingLayer} signalingLayer the signaling layer instance
- * @param {object} ice_config WebRTC 'PeerConnection' ICE config
+ * @param {object} iceConfig WebRTC 'PeerConnection' ICE config
  * @param {object} constraints WebRTC 'PeerConnection' constraints
  * @param {object} options <tt>TracablePeerConnection</tt> config options.
  * @param {boolean} options.disableSimulcast if set to 'true' will disable
@@ -39,7 +39,7 @@ const SIMULCAST_LAYERS = 3;
  *
  * @constructor
  */
-function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
+function TraceablePeerConnection(rtc, id, signalingLayer, iceConfig,
                                  constraints, options) {
     const self = this;
 
@@ -72,7 +72,7 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
     } else {
         RTCPeerConnectionType = webkitRTCPeerConnection;
     }
-    this.peerconnection = new RTCPeerConnectionType(ice_config, constraints);
+    this.peerconnection = new RTCPeerConnectionType(iceConfig, constraints);
     this.updateLog = [];
     this.stats = {};
     this.statsinterval = null;
@@ -300,7 +300,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
         return;
     }
 
-    let ssrcLines = SDPUtil.find_lines(mediaLines[0], 'a=ssrc:');
+    let ssrcLines = SDPUtil.findLines(mediaLines[0], 'a=ssrc:');
 
     ssrcLines = ssrcLines.filter(
         line => {
@@ -864,7 +864,7 @@ const _fixAnswerRFC4145Setup = function(offer, answer) {
             && offer.media && answer.media
             && offer.media.length === answer.media.length) {
         answer.media.forEach((a, i) => {
-            if (SDPUtil.find_line(
+            if (SDPUtil.findLine(
                     offer.media[i],
                     'a=setup:actpass',
                     offer.session)) {

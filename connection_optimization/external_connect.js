@@ -11,7 +11,7 @@
  *
  * @param webserviceUrl the url for the web service that is going to create the
  * connection.
- * @param success_callback callback function called with the result of the AJAX
+ * @param successCallback callback function called with the result of the AJAX
  * request if the request was successfull. The callback will receive one
  * parameter which will be JS Object with properties - rid, sid and jid. This
  * result should be passed to JitsiConnection.attach method in order to use that
@@ -22,7 +22,7 @@
  */
 function createConnectionExternally( // eslint-disable-line no-unused-vars
         webserviceUrl,
-        success_callback,
+        successCallback,
         error_callback) {
     if (!window.XMLHttpRequest) {
         error_callback(new Error('XMLHttpRequest is not supported!'));
@@ -51,7 +51,7 @@ function createConnectionExternally( // eslint-disable-line no-unused-vars
                         'CrossRegion': proxyRegion !== jitsiRegion ? 1 : 0
                     };
 
-                    success_callback(data);
+                    successCallback(data);
                 } catch (e) {
                     error_callback(e);
                 }

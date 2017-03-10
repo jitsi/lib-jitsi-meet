@@ -5,7 +5,7 @@ import RandomUtil from '../util/RandomUtil';
 const RTCBrowserType = require('../RTC/RTCBrowserType');
 
 const SDPUtil = {
-    filter_special_chars(text) {
+    filterSpecialChars(text) {
         // XXX Neither one of the falsy values (e.g. null, undefined, false,
         // "", etc.) "contain" special chars.
         // eslint-disable-next-line no-useless-escape
@@ -15,36 +15,36 @@ const SDPUtil = {
         let data = null;
         let pwd, ufrag;
 
-        if ((ufrag = SDPUtil.find_line(mediadesc, 'a=ice-ufrag:', sessiondesc))
+        if ((ufrag = SDPUtil.findLine(mediadesc, 'a=ice-ufrag:', sessiondesc))
                 && (pwd
-                    = SDPUtil.find_line(
+                    = SDPUtil.findLine(
                         mediadesc,
                         'a=ice-pwd:',
                         sessiondesc))) {
             data = {
-                ufrag: SDPUtil.parse_iceufrag(ufrag),
-                pwd: SDPUtil.parse_icepwd(pwd)
+                ufrag: SDPUtil.parseICEUfrag(ufrag),
+                pwd: SDPUtil.parseICEPwd(pwd)
             };
         }
 
         return data;
     },
-    parse_iceufrag(line) {
+    parseICEUfrag(line) {
         return line.substring(12);
     },
-    build_iceufrag(frag) {
+    buildICEUfrag(frag) {
         return `a=ice-ufrag:${frag}`;
     },
-    parse_icepwd(line) {
+    parseICEPwd(line) {
         return line.substring(10);
     },
-    build_icepwd(pwd) {
+    buildICEPwd(pwd) {
         return `a=ice-pwd:${pwd}`;
     },
-    parse_mid(line) {
+    parseMID(line) {
         return line.substring(6);
     },
-    parse_mline(line) {
+    parseMLine(line) {
         const data = {};
         const parts = line.substring(2).split(' ');
 
@@ -58,12 +58,12 @@ const SDPUtil = {
 
         return data;
     },
-    build_mline(mline) {
+    buildMLine(mline) {
         return (
             `m=${mline.media} ${mline.port} ${mline.proto} ${
                 mline.fmt.join(' ')}`);
     },
-    parse_rtpmap(line) {
+    parseRTPMap(line) {
         const data = {};
         let parts = line.substring(9).split(' ');
 
@@ -81,7 +81,7 @@ const SDPUtil = {
      * @param line eg. "a=sctpmap:5000 webrtc-datachannel"
      * @returns [SCTP port number, protocol, streams]
      */
-    parse_sctpmap(line) {
+    parseSCTPMap(line) {
         const parts = line.substring(10).split(' ');
         const sctpPort = parts[0];
         const protocol = parts[1];
@@ -92,7 +92,7 @@ const SDPUtil = {
 
         return [ sctpPort, protocol, streamCount ];// SCTP port
     },
-    build_rtpmap(el) {
+    buildRTPMap(el) {
         let line
             = `a=rtpmap:${el.getAttribute('id')} ${el.getAttribute('name')}/${
                 el.getAttribute('clockrate')}`;
@@ -104,7 +104,7 @@ const SDPUtil = {
 
         return line;
     },
-    parse_crypto(line) {
+    parseCrypto(line) {
         const data = {};
         const parts = line.substring(9).split(' ');
 
@@ -117,7 +117,7 @@ const SDPUtil = {
 
         return data;
     },
-    parse_fingerprint(line) { // RFC 4572
+    parseFingerprint(line) { // RFC 4572
         const data = {};
         const parts = line.substring(14).split(' ');
 
@@ -127,7 +127,7 @@ const SDPUtil = {
         // TODO assert that fingerprint satisfies 2UHEX *(":" 2UHEX) ?
         return data;
     },
-    parse_fmtp(line) {
+    parseFmtp(line) {
         const data = [];
         let parts = line.split(' ');
 
@@ -153,7 +153,7 @@ const SDPUtil = {
 
         return data;
     },
-    parse_icecandidate(line) {
+    parseICECandidate(line) {
         const candidate = {};
         const elems = line.split(' ');
 
@@ -183,7 +183,7 @@ const SDPUtil = {
                 break;
             default: // TODO
                 logger.log(
-                    `parse_icecandidate not translating "${
+                    `parseICECandidate not translating "${
                         elems[i]}" = "${elems[i + 1]}"`);
             }
         }
@@ -195,7 +195,7 @@ const SDPUtil = {
 
         return candidate;
     },
-    build_icecandidate(cand) {
+    buildICECandidate(cand) {
         let line = [
             `a=candidate:${cand.foundation}`,
             cand.component,
@@ -237,7 +237,7 @@ const SDPUtil = {
 
         return line;
     },
-    parse_ssrc(desc) {
+    parseSSRC(desc) {
         // proprietary mapping of a=ssrc lines
         // TODO: see "Jingle RTP Source Description" by Juberti and P. Thatcher
         // on google docs and parse according to that
@@ -255,7 +255,7 @@ const SDPUtil = {
 
         return data;
     },
-    parse_rtcpfb(line) {
+    parseRTCPFB(line) {
         const parts = line.substr(10).split(' ');
         const data = {};
 
@@ -265,7 +265,7 @@ const SDPUtil = {
 
         return data;
     },
-    parse_extmap(line) {
+    parseExtmap(line) {
         const parts = line.substr(9).split(' ');
         const data = {};
 
@@ -281,7 +281,7 @@ const SDPUtil = {
 
         return data;
     },
-    find_line(haystack, needle, sessionpart) {
+    findLine(haystack, needle, sessionpart) {
         let lines = haystack.split('\r\n');
 
         for (let i = 0; i < lines.length; i++) {
@@ -303,7 +303,7 @@ const SDPUtil = {
 
         return false;
     },
-    find_lines(haystack, needle, sessionpart) {
+    findLines(haystack, needle, sessionpart) {
         let lines = haystack.split('\r\n');
         const needles = [];
 

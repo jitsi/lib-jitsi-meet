@@ -12,15 +12,15 @@ class StropheLogger extends ConnectionPlugin {
 
     init(connection) {
         super.init(connection);
-        this.connection.rawInput = this.log_incoming.bind(this);
-        this.connection.rawOutput = this.log_outgoing.bind(this);
+        this.connection.rawInput = this.logIncoming.bind(this);
+        this.connection.rawOutput = this.logOutgoing.bind(this);
     }
 
-    log_incoming(stanza) {
+    logIncoming(stanza) {
         this.log.push([ new Date().getTime(), 'incoming', stanza ]);
     }
 
-    log_outgoing(stanza) {
+    logOutgoing(stanza) {
         this.log.push([ new Date().getTime(), 'outgoing', stanza ]);
     }
 }

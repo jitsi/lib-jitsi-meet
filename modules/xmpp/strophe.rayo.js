@@ -54,8 +54,8 @@ class RayoConnectionPlugin extends ConnectionPlugin {
                 // eslint-disable-next-line newline-per-chained-call
                 const resource = $(result).find('ref').attr('uri');
 
-                this.call_resource = resource.substr('xmpp:'.length);
-                logger.info(`Received call resource: ${this.call_resource}`);
+                this.callResource = resource.substr('xmpp:'.length);
+                logger.info(`Received call resource: ${this.callResource}`);
                 resolve();
             }, error => {
                 logger.info('Dial error ', error);
@@ -66,7 +66,7 @@ class RayoConnectionPlugin extends ConnectionPlugin {
 
     hangup() {
         return new Promise((resolve, reject) => {
-            if (!this.call_resource) {
+            if (!this.callResource) {
                 reject(new Error('No call in progress'));
                 logger.warn('No call in progress');
 
@@ -75,7 +75,7 @@ class RayoConnectionPlugin extends ConnectionPlugin {
 
             const req = $iq({
                 type: 'set',
-                to: this.call_resource
+                to: this.callResource
             });
 
             req.c('hangup', {
@@ -84,11 +84,11 @@ class RayoConnectionPlugin extends ConnectionPlugin {
 
             this.connection.sendIQ(req, result => {
                 logger.info('Hangup result ', result);
-                this.call_resource = null;
+                this.callResource = null;
                 resolve();
             }, error => {
                 logger.info('Hangup error ', error);
-                this.call_resource = null;
+                this.callResource = null;
                 reject(new Error('Hangup error '));
             });
         });

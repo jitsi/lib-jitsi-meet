@@ -528,7 +528,7 @@ export default class RTC extends Listenable {
     }
 
     static getPCConstraints() {
-        return RTCUtils.pc_constraints;
+        return RTCUtils.pcConstraints;
     }
 
     static attachMediaStream(elSelector, stream) {

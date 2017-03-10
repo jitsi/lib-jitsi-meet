@@ -148,7 +148,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
                 } else {
                     const nv = kv.split(':', 2);
                     const name = nv[0];
-                    const value = SDPUtil.filter_special_chars(nv[1]);
+                    const value = SDPUtil.filterSpecialChars(nv[1]);
 
                     modify.attrs({ name });
                     modify.attrs({ value });

@@ -4,7 +4,7 @@ import * as SampleSdpStrings from './SampleSdpStrings.js';
 describe('SDPUtil', () => {
     it('should parse an ice ufrag correctly', () => {
         const line = 'a=ice-ufrag:3jlcc1b3j1rqt6';
-        const parsed = SDPUtil.parse_iceufrag(line);
+        const parsed = SDPUtil.parseICEUfrag(line);
 
         expect(parsed).toEqual('3jlcc1b3j1rqt6');
     });

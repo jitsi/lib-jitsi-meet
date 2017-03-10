@@ -794,7 +794,7 @@ class RTCUtils extends Listenable {
                     = wrapEnumerateDevices(
                         navigator.mediaDevices.enumerateDevices.bind(
                             navigator.mediaDevices));
-                this.pc_constraints = {};
+                this.pcConstraints = {};
                 this.attachMediaStream
                     = wrapAttachMediaStream((element, stream) => {
                         // srcObject is being standardized and FF will
@@ -826,7 +826,7 @@ class RTCUtils extends Listenable {
                         id = tracks[0].id;
                     }
 
-                    return SDPUtil.filter_special_chars(id);
+                    return SDPUtil.filterSpecialChars(id);
                 };
 
                 /* eslint-disable no-global-assign, no-native-reassign */
@@ -878,21 +878,21 @@ class RTCUtils extends Listenable {
                     return (
                         typeof id === 'number'
                             ? id
-                            : SDPUtil.filter_special_chars(id));
+                            : SDPUtil.filterSpecialChars(id));
                 };
 
-                this.pc_constraints = { optional: [] };
+                this.pcConstraints = { optional: [] };
 
                 // Allows sending of video to be suspended if the bandwidth
                 // estimation is too low.
                 if (!options.disableSuspendVideo) {
-                    this.pc_constraints.optional.push(
+                    this.pcConstraints.optional.push(
                         { googSuspendBelowMinBitrate: true });
                 }
 
                 if (options.useIPv6) {
                     // https://code.google.com/p/webrtc/issues/detail?id=2828
-                    this.pc_constraints.optional.push({ googIPv6: true });
+                    this.pcConstraints.optional.push({ googIPv6: true });
                 }
 
                 if (!webkitMediaStream.prototype.getVideoTracks) {
@@ -942,7 +942,7 @@ class RTCUtils extends Listenable {
                             return attachMediaStream(element, stream);
                         });
                     this.getStreamID
-                        = stream => SDPUtil.filter_special_chars(stream.label);
+                        = stream => SDPUtil.filterSpecialChars(stream.label);
 
                     onReady(
                         options,
@@ -990,8 +990,8 @@ class RTCUtils extends Listenable {
 
     /**
     * @param {string[]} um required user media types
-    * @param {function} success_callback
-    * @param {Function} failure_callback
+    * @param {function} successCallback
+    * @param {Function} failureCallback
     * @param {Object} [options] optional parameters
     * @param {string} options.resolution
     * @param {number} options.bandwidth
@@ -1002,8 +1002,8 @@ class RTCUtils extends Listenable {
     **/
     getUserMediaWithConstraints(
             um,
-            success_callback,
-            failure_callback,
+            successCallback,
+            failureCallback,
             options = {}) {
         const constraints = getConstraints(um, options);
 
@@ -1015,23 +1015,23 @@ class RTCUtils extends Listenable {
                 stream => {
                     logger.log('onUserMediaSuccess');
                     setAvailableDevices(um, stream);
-                    success_callback(stream);
+                    successCallback(stream);
                 },
                 error => {
                     setAvailableDevices(um, undefined);
                     logger.warn('Failed to get access to local media. Error ',
                         error, constraints);
 
-                    if (failure_callback) {
-                        failure_callback(
+                    if (failureCallback) {
+                        failureCallback(
                             new JitsiTrackError(error, constraints, um));
                     }
                 });
         } catch (e) {
             logger.error('GUM failed: ', e);
 
-            if (failure_callback) {
-                failure_callback(new JitsiTrackError(e, constraints, um));
+            if (failureCallback) {
+                failureCallback(new JitsiTrackError(e, constraints, um));
             }
         }
     }

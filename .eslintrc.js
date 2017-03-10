@@ -160,6 +160,7 @@ module.exports = {
         ],
         'block-spacing': [ 'error', 'always' ],
         'brace-style': 2,
+        'camelcase': 2,
         'comma-dangle': 2,
         'comma-spacing': 2,
         'comma-style': 2,

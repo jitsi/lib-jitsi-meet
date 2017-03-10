@@ -17,19 +17,19 @@ export default class JingleSession {
      * @param {string} localJid our JID
      * @param {string} peerjid the JID of the remote peer
      * @param {Strophe.Connection} connection the XMPP connection
-     * @param {Object} media_constraints the media constraints object passed to
+     * @param {Object} mediaConstraints the media constraints object passed to
      * the PeerConnection onCreateAnswer/Offer as defined by the WebRTC.
-     * @param {Object} ice_config the ICE servers config object as defined by
+     * @param {Object} iceConfig the ICE servers config object as defined by
      * the WebRTC. Passed to the PeerConnection's constructor.
      */
     constructor(sid,
-                localJid, peerjid, connection, media_constraints, ice_config) {
+                localJid, peerjid, connection, mediaConstraints, iceConfig) {
         this.sid = sid;
         this.localJid = localJid;
         this.peerjid = peerjid;
         this.connection = connection;
-        this.media_constraints = media_constraints;
-        this.ice_config = ice_config;
+        this.mediaConstraints = mediaConstraints;
+        this.iceConfig = iceConfig;
 
         /**
          * Whether to use dripping or not. Dripping is sending trickle
@@ -40,7 +40,7 @@ export default class JingleSession {
         /**
          *  When dripping is used, stores ICE candidates which are to be sent.
          */
-        this.drip_container = [];
+        this.dripContainer = [];
 
         /**
          * The chat room instance associated with the session.
