@@ -444,10 +444,10 @@ JitsiConference.prototype.addTrack = function(track) {
             // to attempt to add the same local video track twice.
             if (track === localVideoTrack) {
                 return Promise.resolve(track);
-            } else {
-                return Promise.reject(new Error(
-                    'cannot add second video track to the conference'));
             }
+            return Promise.reject(new Error(
+                    'cannot add second video track to the conference'));
+
         }
     }
 
@@ -576,9 +576,9 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
 JitsiConference.prototype._doReplaceTrack = function(oldTrack, newTrack) {
     if (this.jingleSession) {
         return this.jingleSession.replaceTrack(oldTrack, newTrack);
-    } else {
-        return Promise.resolve();
     }
+    return Promise.resolve();
+
 };
 
 /**
@@ -1326,9 +1326,9 @@ JitsiConference.prototype.getPhonePin = function() {
 JitsiConference.prototype.getConnectionState = function() {
     if (this.jingleSession) {
         return this.jingleSession.getIceConnectionState();
-    } else {
-        return null;
     }
+    return null;
+
 };
 
 /**

@@ -484,9 +484,9 @@ JitsiLocalTrack.prototype.isMuted = function() {
     }
     if (this.isVideoTrack() && !this.isActive()) {
         return true;
-    } else {
-        return !this.track || !this.track.enabled;
     }
+    return !this.track || !this.track.enabled;
+
 };
 
 /**
@@ -527,9 +527,9 @@ JitsiLocalTrack.prototype.getSSRC = function() {
         return this.ssrc.groups[0].ssrcs[0];
     } else if(this.ssrc && this.ssrc.ssrcs && this.ssrc.ssrcs.length) {
         return this.ssrc.ssrcs[0];
-    } else {
-        return null;
     }
+    return null;
+
 };
 
 /**

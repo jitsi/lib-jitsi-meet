@@ -81,6 +81,7 @@ module.exports = {
         'no-caller': 2,
         'no-case-declarations': 2,
         'no-div-regex': 0,
+        'no-else-return': 2,
         'no-empty-pattern': 2,
         'no-eval': 2,
         'no-extend-native': 2,

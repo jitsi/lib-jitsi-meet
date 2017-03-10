@@ -40,14 +40,14 @@ function getPrimaryVideoSsrcs(parsedSdp) {
     const videoMLine = parsedSdp.media.find(m => m.type === 'video');
     if (numVideoSsrcs(parsedSdp) === 1) {
         return [videoMLine.ssrcs[0].id];
-    } else {
-        const simGroups = getVideoGroups(parsedSdp, 'SIM');
-        if (simGroups.length > 1) {
-            return;
-        }
-        const simGroup = simGroups[0];
-        return SDPUtil.parseGroupSsrcs(simGroup);
     }
+    const simGroups = getVideoGroups(parsedSdp, 'SIM');
+    if (simGroups.length > 1) {
+        return;
+    }
+    const simGroup = simGroups[0];
+    return SDPUtil.parseGroupSsrcs(simGroup);
+
 }
 
 /**

@@ -1160,17 +1160,17 @@ class RTCUtils extends Listenable {
     onRTCReady() {
         if (rtcReady) {
             return Promise.resolve();
-        } else {
-            return new Promise(resolve => {
-                const listener = () => {
-                    eventEmitter.removeListener(RTCEvents.RTC_READY, listener);
-                    resolve();
-                };
-                eventEmitter.addListener(RTCEvents.RTC_READY, listener);
+        }
+        return new Promise(resolve => {
+            const listener = () => {
+                eventEmitter.removeListener(RTCEvents.RTC_READY, listener);
+                resolve();
+            };
+            eventEmitter.addListener(RTCEvents.RTC_READY, listener);
                 // We have no failed event, so... it either resolves or nothing
                 // happens
-            });
-        }
+        });
+
     }
 
     /**

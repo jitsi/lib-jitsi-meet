@@ -210,9 +210,9 @@ JitsiTrack.prototype.getTrackId = function() {
 JitsiTrack.prototype.getUsageLabel = function() {
     if (this.isAudioTrack()) {
         return 'mic';
-    } else {
-        return this.videoType ? this.videoType : 'default';
     }
+    return this.videoType ? this.videoType : 'default';
+
 };
 
 /**
@@ -319,9 +319,9 @@ JitsiTrack.prototype.isScreenSharing = function() {
 JitsiTrack.prototype.getId = function() {
     if(this.stream) {
         return RTCUtils.getStreamID(this.stream);
-    } else {
-        return null;
     }
+    return null;
+
 };
 
 /**
@@ -333,9 +333,9 @@ JitsiTrack.prototype.getId = function() {
 JitsiTrack.prototype.isActive = function() {
     if(typeof this.stream.active !== 'undefined') {
         return this.stream.active;
-    } else {
-        return true;
     }
+    return true;
+
 };
 
 /**

@@ -93,10 +93,10 @@ function determineCorrectFileType() {
         return AUDIO_WEBM;
     } else if(MediaRecorder.isTypeSupported(AUDIO_OGG)) {
         return AUDIO_OGG;
-    } else {
-        throw new Error('unable to create a MediaRecorder with the'
-            + 'right mimetype!');
     }
+    throw new Error('unable to create a MediaRecorder with the'
+            + 'right mimetype!');
+
 }
 
 /**
@@ -295,9 +295,9 @@ function createEmptyStream() {
         return new MediaStream();
     } else if(typeof webkitMediaStream !== 'undefined') {
         return new webkitMediaStream(); // eslint-disable-line new-cap
-    } else {
-        throw new Error('cannot create a clean mediaStream');
     }
+    throw new Error('cannot create a clean mediaStream');
+
 }
 
 /**

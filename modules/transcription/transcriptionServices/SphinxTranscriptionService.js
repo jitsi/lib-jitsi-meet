@@ -117,9 +117,9 @@ function getURL() {
         var toReturn = config.sphinxURL;
         if(toReturn.includes !== undefined && toReturn.includes('https://')) {
             return toReturn;
-        } else{
-            console.log(message);
         }
+        console.log(message);
+
     }
 }
 

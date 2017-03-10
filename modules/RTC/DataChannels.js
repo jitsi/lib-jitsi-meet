@@ -237,12 +237,12 @@ DataChannels.prototype._some = function(callback, thisArg) {
     if (dataChannels && dataChannels.length !== 0) {
         if (thisArg) {
             return dataChannels.some(callback, thisArg);
-        } else {
-            return dataChannels.some(callback);
         }
-    } else {
-        return false;
+        return dataChannels.some(callback);
+
     }
+    return false;
+
 };
 
 /**

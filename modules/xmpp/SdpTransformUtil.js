@@ -26,12 +26,12 @@ export function parseSecondarySSRC(group) {
 function _getSSRCCount(mLine) {
     if (!mLine.ssrcs) {
         return 0;
-    } else {
-        return mLine.ssrcs
+    }
+    return mLine.ssrcs
             .map(ssrcInfo => ssrcInfo.id)
             .filter((ssrc, index, array) => array.indexOf(ssrc) === index)
             .length;
-    }
+
 }
 
 /**
@@ -269,19 +269,19 @@ class MLineWrap {
         if (numSsrcs === 1) {
             // Not using _ssrcs on purpose here
             return this.mLine.ssrcs[0].id;
-        } else {
+        }
             // Look for a SIM or FID group
-            if (this.mLine.ssrcGroups) {
-                const simGroup = this.findGroup('SIM');
-                if (simGroup) {
-                    return parsePrimarySSRC(simGroup);
-                }
-                const fidGroup = this.findGroup('FID');
-                if (fidGroup) {
-                    return parsePrimarySSRC(fidGroup);
-                }
+        if (this.mLine.ssrcGroups) {
+            const simGroup = this.findGroup('SIM');
+            if (simGroup) {
+                return parsePrimarySSRC(simGroup);
+            }
+            const fidGroup = this.findGroup('FID');
+            if (fidGroup) {
+                return parsePrimarySSRC(fidGroup);
             }
         }
+
     }
 
     /**

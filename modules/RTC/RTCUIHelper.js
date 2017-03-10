@@ -25,18 +25,18 @@ var RTCUIHelper = {
         var videoElemName = RTCUIHelper.getVideoElementName();
         if (!RTCBrowserType.isTemasysPluginUsed()) {
             return $(containerElement).find(videoElemName)[0];
-        } else {
-            var matching = $(containerElement).find(
+        }
+        var matching = $(containerElement).find(
                 ' ' + videoElemName + '>param[value="video"]');
-            if (matching.length) {
-                if (matching.length > 1) {
-                    logger.warn(
+        if (matching.length) {
+            if (matching.length > 1) {
+                logger.warn(
                         'Container with more than one video elements: ',
                         containerElement);
-                }
-                return matching.parent()[0];
             }
+            return matching.parent()[0];
         }
+
         return undefined;
     },
     /**

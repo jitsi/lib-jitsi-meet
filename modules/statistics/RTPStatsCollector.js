@@ -316,9 +316,9 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
         var key = keys[name];
         if (key) {
             return key;
-        } else {
-            throw 'The property \'' + name + '\' isn\'t supported!';
         }
+        throw 'The property \'' + name + '\' isn\'t supported!';
+
     };
 
     // Define the function which retrieves the value from a specific report
@@ -349,9 +349,9 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
                 if (pair.hasOwnProperty(key)) {
                     value = pair[key];
                     return true;
-                } else {
-                    return false;
                 }
+                return false;
+
             });
             return value;
         };

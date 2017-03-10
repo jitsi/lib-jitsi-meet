@@ -247,9 +247,9 @@ export default class RTC extends Listenable {
             // NOTE Remote tracks are not removed here.
             this.peerConnections.delete(id);
             return true;
-        } else {
-            return false;
         }
+        return false;
+
     }
 
     addLocalTrack(track) {
@@ -334,9 +334,9 @@ export default class RTC extends Listenable {
     getRemoteTrackByType(type, resource) {
         if (this.remoteTracks[resource]) {
             return this.remoteTracks[resource][type];
-        } else {
-            return null;
         }
+        return null;
+
     }
 
     /**
@@ -461,9 +461,9 @@ export default class RTC extends Listenable {
                         && mediaTrack.getTrackId() == trackId) {
                         result = mediaTrack;
                         return true;
-                    } else {
-                        return false;
                     }
+                    return false;
+
                 });
         });
 

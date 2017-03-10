@@ -682,9 +682,9 @@ export default class ChatRoom extends Listenable {
         var member = this.members[mucJid];
         if (member) {
             return member.isFocus;
-        } else {
-            return null;
         }
+        return null;
+
     }
 
     isModerator() {
