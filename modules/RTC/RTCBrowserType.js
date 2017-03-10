@@ -179,6 +179,10 @@ const RTCBrowserType = {
         // whether to actually enable simulcast or not).
         // TODO: the logic should be in one single place.
         return window.chrome !== undefined;
+    },
+
+    supportsRtx() {
+        return !RTCBrowserType.isFirefox();
     }
 
     // Add version getters for other browsers when needed

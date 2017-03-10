@@ -930,7 +930,7 @@ TraceablePeerConnection.prototype.createAnswer
                         dumpSDP(answer));
                 }
 
-                if (!this.options.disableRtx && !RTCBrowserType.isFirefox()) {
+                if (!this.options.disableRtx && RTCBrowserType.supportsRtx()) {
                     answer.sdp = this.rtxModifier.modifyRtxSsrcs(answer.sdp);
                     this.trace(
                         'createAnswerOnSuccess::postTransform (rtx modifier)',
@@ -1028,7 +1028,7 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function() {
             groups: []
         };
     }
-    if (!this.options.disableRtx && !RTCBrowserType.isFirefox()) {
+    if (!this.options.disableRtx && RTCBrowserType.supportsRtx()) {
         // Specifically use a for loop here because we'll
         //  be adding to the list we're iterating over, so we
         //  only want to iterate through the items originally
