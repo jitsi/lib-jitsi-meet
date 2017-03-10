@@ -941,7 +941,7 @@ class RTCUtils extends Listenable {
     * @param {string} options.cameraDeviceId
     * @param {string} options.micDeviceId
     **/
-    getUserMediaWithConstraints( um, success_callback, failure_callback, options) {
+    getUserMediaWithConstraints(um, success_callback, failure_callback, options) {
         options = options || {};
         var constraints = getConstraints(um, options);
 

@@ -18,7 +18,7 @@ var parser = {
                 tagName
             };
             node.attributes = {};
-            $($(this)[0].attributes).each(function( index, attr ) {
+            $($(this)[0].attributes).each(function(index, attr) {
                 node.attributes[ attr.name ] = attr.value;
             });
             var text = Strophe.getText($(this)[0]);
@@ -98,7 +98,7 @@ export default class ChatRoom extends Listenable {
         this.presMap['to'] = this.myroomjid;
         this.presMap['xns'] = 'http://jabber.org/protocol/muc';
         this.presMap["nodes"] = [];
-        this.presMap["nodes"].push( {
+        this.presMap["nodes"].push({
             "tagName": "user-agent",
             "value": navigator.userAgent,
             "attributes": {xmlns: 'http://jitsi.org/jitmeet/user-agent'}
@@ -109,7 +109,7 @@ export default class ChatRoom extends Listenable {
     }
 
     updateDeviceAvailability (devices) {
-        this.presMap["nodes"].push( {
+        this.presMap["nodes"].push({
             "tagName": "devices",
             "children": [
                 {

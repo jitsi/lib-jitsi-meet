@@ -351,7 +351,7 @@ Moderator.prototype._allocateConferenceFocusError = function (error, callback) {
     }
     // Reset response timeout
     this.getNextTimeout(true);
-    window.setTimeout( () => this.allocateConferenceFocus(callback), waitMs);
+    window.setTimeout(() => this.allocateConferenceFocus(callback), waitMs);
 };
 
 /**

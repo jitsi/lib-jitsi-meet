@@ -301,7 +301,7 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
     } else {
         if(mute) {
             this.dontFireRemoveEvent = true;
-            promise = new Promise( (resolve, reject) => {
+            promise = new Promise((resolve, reject) => {
                 this._removeStreamFromConferenceAsMute(() => {
                     // FIXME: Maybe here we should set the SRC for the containers
                     // to something

@@ -1,4 +1,4 @@
-var AudioRecorder = require( './audioRecorder');
+var AudioRecorder = require('./audioRecorder');
 var SphinxService = require(
     './transcriptionServices/SphinxTranscriptionService');
 

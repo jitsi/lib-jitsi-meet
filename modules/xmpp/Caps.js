@@ -106,7 +106,7 @@ export default class Caps extends Listenable {
             = jid in this.jidToVersion ? this.jidToVersion[jid] : null;
         if(!user || !(user.version in this.versionToCapabilities)) {
             const node = user ? user.node + "#" + user.version : null;
-            return new Promise ( (resolve, reject) =>
+            return new Promise ((resolve, reject) =>
                 this.disco.info(jid, node, response => {
                     const features = new Set();
                     $(response).find(">query>feature").each((idx, el) =>

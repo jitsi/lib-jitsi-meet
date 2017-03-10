@@ -1,7 +1,7 @@
 /* global config */
 
 var TranscriptionService = require("./AbstractTranscriptionService");
-var Word = require( "../word");
+var Word = require("../word");
 var audioRecorder = require("./../audioRecorder");
 
 /**
