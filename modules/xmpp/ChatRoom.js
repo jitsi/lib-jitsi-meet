@@ -507,19 +507,19 @@ export default class ChatRoom extends Listenable {
         var isKick = $(pres).find(
                 '>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="307"]'
             ).length !== 0;
-
+        const membersKeys = Object.keys(this.members);
         if (!isSelfPresence) {
             delete this.members[from];
             this.onParticipantLeft(from, false);
-        } else if (Object.keys(this.members).length > 0) {
+        } else if (membersKeys.length > 0) {
             // If the status code is 110 this means we're leaving and we would
             // like to remove everyone else from our view, so we trigger the
             // event.
-            for (const i in this.members) {
-                const member = this.members[i];
-                delete this.members[i];
-                this.onParticipantLeft(i, member.isFocus);
-            }
+            membersKeys.forEach(jid => {
+                const member = this.members[jid];
+                delete this.members[jid];
+                this.onParticipantLeft(jid, member.isFocus);
+            });
             this.connection.emuc.doLeave(this.roomjid);
 
             // we fire muc_left only if this is not a kick,

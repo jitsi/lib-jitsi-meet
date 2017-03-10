@@ -392,6 +392,9 @@ StatsCollector.prototype.processStatsReport = function() {
     var byteSentStats = {};
 
     for (var idx in this.currentStatsReport) {
+        if(!this.currentStatsReport.hasOwnProperty(idx)) {
+            continue;
+        }
         var now = this.currentStatsReport[idx];
         try {
             var receiveBandwidth = getStatValue(now, 'receiveBandwidth');
@@ -605,7 +608,10 @@ StatsCollector.prototype.processAudioLevelReport = function() {
 
     var getStatValue = this._getStatValue;
 
-    for (var idx in this.currentAudioLevelsReport) {
+    for(var idx in this.currentAudioLevelsReport) {
+        if(!this.currentAudioLevelsReport.hasOwnProperty(idx)) {
+            continue;
+        }
         var now = this.currentAudioLevelsReport[idx];
 
         if (now.type != 'ssrc') {

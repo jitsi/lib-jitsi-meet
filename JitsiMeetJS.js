@@ -37,13 +37,13 @@ function getLowerResolution(resolution) {
     var order = Resolutions[resolution].order;
     var res = null;
     var resName = null;
-    for(const i in Resolutions) {
-        var tmp = Resolutions[i];
-        if (!res || (res.order < tmp.order && tmp.order < order)) {
-            resName = i;
-            res = tmp;
+    Object.keys(Resolutions).forEach(resolution => {
+        const value = Resolutions[resolution];
+        if (!res || (res.order < value.order && value.order < order)) {
+            resName = resolution;
+            res = value;
         }
-    }
+    });
     return resName;
 }
 

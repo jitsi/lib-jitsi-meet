@@ -69,20 +69,18 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     // send some analytics events
     chatRoom.addListener(XMPPEvents.MUC_JOINED,
         () => {
-            let key, value;
-
             this.conference.connectionIsInterrupted = false;
 
-            for (key in chatRoom.connectionTimes) {
-                value = chatRoom.connectionTimes[key];
+            Object.keys(chatRoom.connectionTimes).forEach(key => {
+                const value = chatRoom.connectionTimes[key];
                 Statistics.analytics.sendEvent('conference.' + key,
                     {value});
-            }
-            for (key in chatRoom.xmpp.connectionTimes) {
-                value = chatRoom.xmpp.connectionTimes[key];
+            });
+            Object.keys(chatRoom.xmpp.connectionTimes).forEach(key => {
+                const value = chatRoom.xmpp.connectionTimes[key];
                 Statistics.analytics.sendEvent('xmpp.' + key,
                     {value});
-            }
+            });
         });
 
     this.chatRoomForwarder.forward(XMPPEvents.ROOM_JOIN_ERROR,

@@ -47,9 +47,9 @@ export default class Caps extends Listenable {
             room => this._addChatRoom(room));
         emuc.addListener(XMPPEvents.EMUC_ROOM_REMOVED,
             room => this._removeChatRoom(room));
-        for(const jid in emuc.rooms) {
-            this._addChatRoom(this.emuc.rooms[jid]);
-        }
+        Object.keys(emuc.rooms).forEach(jid => {
+            this._addChatRoom(emuc.rooms[jid]);
+        });
 
         Strophe.addNamespace('CAPS', 'http://jabber.org/protocol/caps');
         this.disco.addFeature(Strophe.NS.CAPS);
