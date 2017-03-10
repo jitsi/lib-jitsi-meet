@@ -116,6 +116,7 @@ module.exports = {
         'no-self-assign': 2,
         'no-self-compare': 2,
         'no-sequences': 2,
+        'no-throw-literal': 2,
         'no-unmodified-loop-condition': 2,
         'no-unused-expressions': [
             'error',

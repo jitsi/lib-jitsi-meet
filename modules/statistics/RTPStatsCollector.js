@@ -186,6 +186,7 @@ function StatsCollector(
     const keys = KEYS_BY_BROWSER_TYPE[this._browserType];
 
     if (!keys) {
+        // eslint-disable-next-line no-throw-literal
         throw `The browser type '${this._browserType}' isn't supported!`;
     }
 
@@ -328,8 +329,9 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
         if (key) {
             return key;
         }
-        throw `The property '${name}' isn't supported!`;
 
+        // eslint-disable-next-line no-throw-literal
+        throw `The property '${name}' isn't supported!`;
     };
 
     // Define the function which retrieves the value from a specific report
