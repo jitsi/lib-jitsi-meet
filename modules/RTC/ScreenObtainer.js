@@ -476,7 +476,7 @@ function waitForExtensionAfterInstall(options, waitInterval, retries) {
     return new Promise((resolve, reject) => {
         let currentRetries = retries;
         const interval = window.setInterval(() => {
-            checkChromeExtInstalled( (installed) => {
+            checkChromeExtInstalled( installed => {
                 if(installed) {
                     window.clearInterval(interval);
                     resolve();

@@ -113,7 +113,7 @@ export default class JingleSessionPC extends JingleSession {
                     preferH264: this.room.options.preferH264
                 });
 
-        this.peerconnection.onicecandidate = (ev) => {
+        this.peerconnection.onicecandidate = ev => {
             if (!ev) {
                 // There was an incomplete check for ev before which left
                 // the last line of the function unprotected from a potential
@@ -389,12 +389,12 @@ export default class JingleSessionPC extends JingleSession {
      *        fail at any point during setRD, createAnswer, setLD.
      */
     setOfferCycle(jingleOfferIq, success, failure) {
-        const workFunction = (finishedCallback) => {
+        const workFunction = finishedCallback => {
             const newRemoteSdp = this._processNewJingleOfferIq(jingleOfferIq);
             this._renegotiate(newRemoteSdp)
                 .then(() => {
                     finishedCallback();
-                }, (error) => {
+                }, error => {
                     logger.error(
                         "Error renegotiating after setting new remote offer: "
                             + error);
@@ -404,7 +404,7 @@ export default class JingleSessionPC extends JingleSession {
         };
         this.modificationQueue.push(
             workFunction,
-            (error) => {
+            error => {
                 if (!error) {
                     success();
                 } else {
@@ -487,7 +487,7 @@ export default class JingleSessionPC extends JingleSession {
         logger.info("Sending session-accept", accept);
         this.connection.sendIQ(accept,
             success,
-            this.newJingleErrorHandler(accept, (error) => {
+            this.newJingleErrorHandler(accept, error => {
                 failure(error);
                 // 'session-accept' is a critical timeout and we'll
                 // have to restart
@@ -704,7 +704,7 @@ export default class JingleSessionPC extends JingleSession {
 
         this.readSsrcInfo(elem);
 
-        const workFunction = (finishedCallback) => {
+        const workFunction = finishedCallback => {
             const sdp = new SDP(this.peerconnection.remoteDescription.sdp);
             const mySdp = new SDP(this.peerconnection.localDescription.sdp);
             const addSsrcInfo = this._parseSsrcInfoFromSourceAdd(elem, sdp);
@@ -718,7 +718,7 @@ export default class JingleSessionPC extends JingleSession {
                     logger.log("SDPs", mySdp, newSdp);
                     this.notifyMySSRCUpdate(mySdp, newSdp);
                     finishedCallback();
-                }, (error) => {
+                }, error => {
                     logger.error(
                         `Error renegotiating after processing remote source-add:
                         ${error}`);
@@ -743,7 +743,7 @@ export default class JingleSessionPC extends JingleSession {
         logger.log('Remove remote stream');
         logger.log(
             'ICE connection state: ', this.peerconnection.iceConnectionState);
-        const workFunction = (finishedCallback) => {
+        const workFunction = finishedCallback => {
             const sdp = new SDP(this.peerconnection.remoteDescription.sdp);
             const mySdp = new SDP(this.peerconnection.localDescription.sdp);
             const removeSsrcInfo
@@ -759,7 +759,7 @@ export default class JingleSessionPC extends JingleSession {
                     logger.log("SDPs", mySdp, newSdp);
                     this.notifyMySSRCUpdate(mySdp, newSdp);
                     finishedCallback();
-                }, (error) => {
+                }, error => {
                     logger.error(
                         "Error renegotiating after processing"
                             + " remote source-remove: " + error);
@@ -892,7 +892,7 @@ export default class JingleSessionPC extends JingleSession {
                     }
                     logger.debug("Renegotiate: creating answer");
                     this.peerconnection.createAnswer(
-                        (answer) => {
+                        answer => {
                             const localUfrag = JingleSessionPC.getUfrag(answer.sdp);
                             if (localUfrag != this.localUfrag) {
                                 this.localUfrag = localUfrag;
@@ -905,19 +905,19 @@ export default class JingleSessionPC extends JingleSession {
                                 () => {
                                     resolve(); 
                                 },
-                                (error) => {
+                                error => {
                                     reject(
                                         "setLocalDescription failed: " + error);
                                 }
                             );
                         },
-                        (error) => {
+                        error => {
                             reject("createAnswer failed: " + error); 
                         },
                         media_constraints
                     );
                 },
-                (error) => {
+                error => {
                     reject("setRemoteDescription failed: " + error); 
                 }
             );
@@ -937,7 +937,7 @@ export default class JingleSessionPC extends JingleSession {
      */
     replaceTrack(oldTrack, newTrack) {
         return new Promise((resolve, reject) => {
-            const workFunction = (finishedCallback) => {
+            const workFunction = finishedCallback => {
                 const oldSdp
                     = new SDP(this.peerconnection.localDescription.sdp);
                 // NOTE the code below assumes that no more than 1 video track
@@ -967,7 +967,7 @@ export default class JingleSessionPC extends JingleSession {
                             = new SDP(this.peerconnection.localDescription.sdp);
                         this.notifyMySSRCUpdate(oldSdp, newSdp);
                         finishedCallback();
-                    }, (error) => {
+                    }, error => {
                         logger.error(
                             "replaceTrack renegotiation failed: " + error);
                         finishedCallback(error);
@@ -975,7 +975,7 @@ export default class JingleSessionPC extends JingleSession {
             };
             this.modificationQueue.push(
                 workFunction,
-                (error) => {
+                error => {
                     if (!error) {
                         resolve();
                     } else {
@@ -1079,7 +1079,7 @@ export default class JingleSessionPC extends JingleSession {
      */
     addStream(stream, callback, errorCallback, ssrcInfo, dontModifySources) {
 
-        const workFunction = (finishedCallback) => {
+        const workFunction = finishedCallback => {
             if (!this.peerconnection) {
                 finishedCallback(
                     "Error: "
@@ -1107,13 +1107,13 @@ export default class JingleSessionPC extends JingleSession {
                     logger.log("SDPs", oldSdp, newSdp);
                     this.notifyMySSRCUpdate(oldSdp, newSdp);
                     finishedCallback();
-                }, (error) => {
+                }, error => {
                     finishedCallback(error);
                 });
         };
         this.modificationQueue.push(
             workFunction,
-            (error) => {
+            error => {
                 if (!error) {
                     callback();
                 } else {
@@ -1204,7 +1204,7 @@ export default class JingleSessionPC extends JingleSession {
      *        the stream.
      */
     removeStream(stream, callback, errorCallback, ssrcInfo) {
-        const workFunction = (finishedCallback) => {
+        const workFunction = finishedCallback => {
             if (!this.peerconnection) {
                 finishedCallback();
                 return;
@@ -1228,13 +1228,13 @@ export default class JingleSessionPC extends JingleSession {
                     logger.log("SDPs", oldSdp, newSdp);
                     this.notifyMySSRCUpdate(oldSdp, newSdp);
                     finishedCallback();
-                }, (error) => {
+                }, error => {
                     finishedCallback(error);
                 });
         };
         this.modificationQueue.push(
             workFunction,
-            (error) => {
+            error => {
                 if (!error) {
                     callback();
                 } else {

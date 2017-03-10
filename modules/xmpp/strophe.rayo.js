@@ -45,7 +45,7 @@ class RayoConnectionPlugin extends ConnectionPlugin {
                 }).up();
             }
 
-            this.connection.sendIQ(req, (result) => {
+            this.connection.sendIQ(req, result => {
                 logger.info('Dial result ', result);
 
                 const resource = $(result).find('ref').attr('uri');
@@ -53,7 +53,7 @@ class RayoConnectionPlugin extends ConnectionPlugin {
                     resource.substr('xmpp:'.length);
                 logger.info("Received call resource: " + this.call_resource);
                 resolve();
-            }, (error) => {
+            }, error => {
                 logger.info('Dial error ', error);
                 reject(error);
             });
@@ -76,11 +76,11 @@ class RayoConnectionPlugin extends ConnectionPlugin {
                 xmlns: RAYO_XMLNS
             });
 
-            this.connection.sendIQ(req, (result) => {
+            this.connection.sendIQ(req, result => {
                 logger.info('Hangup result ', result);
                 this.call_resource = null;
                 resolve();
-            }, (error) => {
+            }, error => {
                 logger.info('Hangup error ', error);
                 this.call_resource = null;
                 reject(new Error('Hangup error '));

@@ -162,6 +162,7 @@ module.exports = {
         'wrap-regex': 0,
 
         // ES6 group rules
+        'arrow-parens': [ 'error', 'as-needed' ],
         'arrow-spacing': 2,
         'constructor-super': 2,
         'generator-star-spacing': 2,

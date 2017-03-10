@@ -67,7 +67,7 @@ export default class RTC extends Listenable {
         // handle this event by themselves.
         if (RTCUtils.isDeviceChangeAvailable('output')) {
             RTCUtils.addListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
-                (deviceId) => {
+                deviceId => {
                     const remoteAudioTracks
                         = this.getRemoteTracks(MediaType.AUDIO);
                     for (const track of remoteAudioTracks) {
@@ -290,7 +290,7 @@ export default class RTC extends Listenable {
         let tracks = this.localTracks.slice();
         if (mediaType !== undefined) {
             tracks = tracks.filter(
-                (track) => {
+                track => {
                     return track.getType() === mediaType; 
                 });
         }
@@ -451,11 +451,11 @@ export default class RTC extends Listenable {
         let result = undefined;
 
         // .find will break the loop once the first match is found
-        Object.keys(this.remoteTracks).find((endpoint) => {
+        Object.keys(this.remoteTracks).find(endpoint => {
             const endpointTracks = this.remoteTracks[endpoint];
 
             return endpointTracks && Object.keys(endpointTracks).find(
-                (mediaType) => {
+                mediaType => {
                     const mediaTrack = endpointTracks[mediaType];
 
                     if (mediaTrack

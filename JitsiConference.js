@@ -559,7 +559,7 @@ JitsiConference.prototype.replaceTrack = function (oldTrack, newTrack) {
                 this._setupNewTrack(newTrack);
             }
             return Promise.resolve();
-        }, (error) => {
+        }, error => {
             return Promise.reject(new Error(error));
         });
 };

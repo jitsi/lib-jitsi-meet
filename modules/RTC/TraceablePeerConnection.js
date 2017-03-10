@@ -221,10 +221,10 @@ TraceablePeerConnection.prototype._remoteStreamAdded = function (stream) {
     // Bind 'addtrack'/'removetrack' event handlers
     if (RTCBrowserType.isChrome() || RTCBrowserType.isNWJS()
         || RTCBrowserType.isElectron()) {
-        stream.onaddtrack = (event) => {
+        stream.onaddtrack = event => {
             this._remoteTrackAdded(event.target, event.track);
         };
-        stream.onremovetrack = (event) => {
+        stream.onremovetrack = event => {
             this._remoteTrackRemoved(event.target, event.track);
         };
     }
@@ -817,7 +817,7 @@ TraceablePeerConnection.prototype.createAnswer
         = function (successCallback, failureCallback, constraints) {
             this.trace('createAnswer', JSON.stringify(constraints, null, ' '));
             this.peerconnection.createAnswer(
-        (answer) => {
+        answer => {
             try {
                 this.trace(
                     'createAnswerOnSuccess::preTransform', dumpSDP(answer));
@@ -877,7 +877,7 @@ TraceablePeerConnection.prototype.createAnswer
                 failureCallback(e);
             }
         },
-        (err) => {
+        err => {
             this.trace('createAnswerOnFailure', err);
             this.eventEmitter.emit(RTCEvents.CREATE_ANSWER_FAILED, err,
                 this.peerconnection);

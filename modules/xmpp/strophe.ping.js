@@ -95,7 +95,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
         this.intervalId = window.setInterval(() => {
             this.ping(remoteJid, () => {
                 this.failedPings = 0;
-            }, (error) => {
+            }, error => {
                 this.failedPings += 1;
                 const errmsg = "Ping " + (error ? "error" : "timeout");
                 if (this.failedPings >= PING_THRESHOLD) {

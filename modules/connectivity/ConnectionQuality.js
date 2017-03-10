@@ -173,7 +173,7 @@ export default class ConnectionQuality {
 
         conference.room.addListener(
             XMPPEvents.ICE_CONNECTION_STATE_CHANGED,
-            (newState) => {
+            newState => {
                 if (newState === 'connected') {
                     this._timeIceConnected = window.performance.now();
                 }
@@ -206,7 +206,7 @@ export default class ConnectionQuality {
         // Save the last time we were unmuted.
         conference.on(
             ConferenceEvents.TRACK_MUTE_CHANGED,
-            (track) => {
+            track => {
                 if (track.isVideoTrack()) {
                     if (track.isMuted()) {
                         this._timeVideoUnmuted = -1;
@@ -217,7 +217,7 @@ export default class ConnectionQuality {
             });
         conference.on(
             ConferenceEvents.TRACK_ADDED,
-            (track) => {
+            track => {
                 if (track.isVideoTrack() && !track.isMuted()) {
                     this._maybeUpdateUnmuteTime();
                 }

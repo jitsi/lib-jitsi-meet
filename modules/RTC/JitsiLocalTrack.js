@@ -308,7 +308,7 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
                     this._stopMediaStream();
                     this._setStream(null);
                     resolve();
-                }, (err) => {
+                }, err => {
                     reject(err);
                 });
             });
@@ -379,7 +379,7 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function () {
         this.conference._addLocalStream(
             this.stream,
             resolve,
-            (error) => reject(new Error(error)),
+            error => reject(new Error(error)),
             {
                 mtype: this.type,
                 type: "unmute",
@@ -406,7 +406,7 @@ function (successCallback, errorCallback) {
     this.conference.removeLocalStream(
         this.stream,
         successCallback,
-        (error) => errorCallback(new Error(error)),
+        error => errorCallback(new Error(error)),
         {
             mtype: this.type,
             type: "mute",
@@ -427,7 +427,7 @@ JitsiLocalTrack.prototype._sendMuteStatus = function(mute) {
         return Promise.resolve();
     }
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
         this.conference.room[
             this.isAudioTrack()
                 ? 'setAudioMute'
