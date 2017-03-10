@@ -193,7 +193,7 @@ function switchVideo() { // eslint-disable-line no-unused-vars
         localTracks[1].dispose();
         localTracks.pop();
     }
-    JitsiMeetJS.createLocalTracks({devices: isVideo ? ['video'] : ['desktop']})
+    JitsiMeetJS.createLocalTracks({devices: isVideo ? [ 'video' ] : [ 'desktop' ]})
         .then(tracks => {
             localTracks.push(tracks[0]);
             localTracks[1].addEventListener(JitsiMeetJS.events.track.TRACK_MUTE_CHANGED,
@@ -226,7 +226,7 @@ const initOptions = {
     desktopSharingChromeDisabled: false,
     // The media sources to use when using screen sharing with the Chrome
     // extension.
-    desktopSharingChromeSources: ['screen', 'window'],
+    desktopSharingChromeSources: [ 'screen', 'window' ],
     // Required version of Chrome extension
     desktopSharingChromeMinExtVersion: '0.1',
 
@@ -264,7 +264,7 @@ JitsiMeetJS.init(initOptions)
             onDeviceListChanged);
 
         connection.connect();
-        JitsiMeetJS.createLocalTracks({devices: ['audio', 'video']})
+        JitsiMeetJS.createLocalTracks({devices: [ 'audio', 'video' ]})
             .then(onLocalTracks)
             .catch(error => {
                 throw error;

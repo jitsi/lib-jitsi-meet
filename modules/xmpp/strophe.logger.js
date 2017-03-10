@@ -17,11 +17,11 @@ class StropheLogger extends ConnectionPlugin {
     }
 
     log_incoming(stanza) {
-        this.log.push([new Date().getTime(), 'incoming', stanza]);
+        this.log.push([ new Date().getTime(), 'incoming', stanza ]);
     }
 
     log_outgoing(stanza) {
-        this.log.push([new Date().getTime(), 'outgoing', stanza]);
+        this.log.push([ new Date().getTime(), 'outgoing', stanza ]);
     }
 }
 

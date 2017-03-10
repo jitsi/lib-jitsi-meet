@@ -256,7 +256,7 @@ export default class JingleSessionPC extends JingleSession {
                 }
                 this.drip_container.push(candidate);
             } else {
-                this.sendIceCandidates([candidate]);
+                this.sendIceCandidates([ candidate ]);
             }
         } else {
             logger.log('sendIceCandidate: last candidate.');

@@ -107,7 +107,7 @@ const ScreenObtainer = {
                             );
                         } else {
                             jitsiError = new JitsiTrackError(
-                                error, constraints, ['desktop']);
+                                error, constraints, [ 'desktop' ]);
                         }
                         (typeof onFailure === 'function')
                             && onFailure(jitsiError);
@@ -341,7 +341,7 @@ const ScreenObtainer = {
  * 'about:config'.
  */
 function obtainWebRTCScreen(options, streamCallback, failCallback) {
-    gumFunction(['screen'], streamCallback, failCallback);
+    gumFunction([ 'screen' ], streamCallback, failCallback);
 }
 
 /**
@@ -531,7 +531,7 @@ function waitForExtensionAfterInstall(options, waitInterval, retries) {
 function onGetStreamResponse(response, onSuccess, onFailure) {
     if (response.streamId) {
         gumFunction(
-            ['desktop'],
+            [ 'desktop' ],
             stream => onSuccess(stream),
             onFailure,
             { desktopStream: response.streamId });

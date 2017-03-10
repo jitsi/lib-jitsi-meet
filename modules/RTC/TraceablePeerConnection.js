@@ -988,7 +988,7 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function() {
         });
     } else {
         ssrcInfo = {
-            ssrcs: [SDPUtil.generateSsrc()],
+            ssrcs: [ SDPUtil.generateSsrc() ],
             groups: []
         };
     }
@@ -1005,7 +1005,7 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function() {
 
             ssrcInfo.ssrcs.push(rtxSsrc);
             ssrcInfo.groups.push({
-                ssrcs: [primarySsrc, rtxSsrc],
+                ssrcs: [ primarySsrc, rtxSsrc ],
                 semantics: 'FID'
             });
         }

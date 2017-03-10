@@ -148,6 +148,11 @@ module.exports = {
         'no-unused-vars': 2,
 
         // Stylistic issues group
+        'array-bracket-spacing': [
+            'error',
+            'always',
+            { 'objectsInArrays': true }
+        ],
         'brace-style': 2,
         'comma-style': 2,
         'eol-last': 2,

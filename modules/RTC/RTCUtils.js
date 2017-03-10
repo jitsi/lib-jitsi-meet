@@ -206,9 +206,9 @@ function getConstraints(um, options) {
                 constraints.audio = {
                     mandatory: {},
                     deviceId: options.micDeviceId, // new style
-                    optional: [{
+                    optional: [ {
                         sourceId: options.micDeviceId // old style
-                    }]};
+                    } ]};
             } else {
                 constraints.audio = true;
             }
@@ -467,14 +467,14 @@ const getUserMediaStatus = {
 function wrapGetUserMedia(getUserMedia) {
     return function(constraints, successCallback, errorCallback) {
         getUserMedia(constraints, stream => {
-            maybeApply(successCallback, [stream]);
+            maybeApply(successCallback, [ stream ]);
             if (!getUserMediaStatus.initialized) {
                 getUserMediaStatus.initialized = true;
                 getUserMediaStatus.callbacks.forEach(callback => callback());
                 getUserMediaStatus.callbacks.length = 0;
             }
         }, error => {
-            maybeApply(errorCallback, [error]);
+            maybeApply(errorCallback, [ error ]);
         });
     };
 }
@@ -668,7 +668,7 @@ function wrapAttachMediaStream(origAttachMediaStream) {
                 && audioOutputChanged) {
             element.setSinkId(rtcUtils.getAudioOutputDevice())
                 .catch(function(ex) {
-                    const err = new JitsiTrackError(ex, null, ['audiooutput']);
+                    const err = new JitsiTrackError(ex, null, [ 'audiooutput' ]);
 
                     GlobalOnErrorHandler.callUnhandledRejectionHandler(
                         {promise: this, reason: err});
@@ -1015,7 +1015,7 @@ class RTCUtils extends Listenable {
                 resolve(handleLocalStream(stream, options.resolution));
             };
 
-            options.devices = options.devices || ['audio', 'video'];
+            options.devices = options.devices || [ 'audio', 'video' ];
             if(!screenObtainer.isSupported()
                 && options.devices.indexOf('desktop') !== -1) {
                 reject(new Error('Desktop sharing is not supported!'));
@@ -1034,8 +1034,8 @@ class RTCUtils extends Listenable {
                 };
 
                 const deviceGUM = {
-                    'audio': GUM.bind(self, ['audio']),
-                    'video': GUM.bind(self, ['video'])
+                    'audio': GUM.bind(self, [ 'audio' ]),
+                    'video': GUM.bind(self, [ 'video' ])
                 };
 
                 if(screenObtainer.isSupported()) {

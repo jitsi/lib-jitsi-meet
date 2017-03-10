@@ -82,7 +82,7 @@ const SDPUtil = {
         const streamCount = parts.length > 2 ? parts[2] : null;
 
 
-        return [sctpPort, protocol, streamCount];// SCTP port
+        return [ sctpPort, protocol, streamCount ];// SCTP port
     },
     build_rtpmap(el) {
         let line = `a=rtpmap:${el.getAttribute('id')} ${el.getAttribute('name')}/${el.getAttribute('clockrate')}`;
@@ -180,7 +180,7 @@ const SDPUtil = {
         return candidate;
     },
     build_icecandidate(cand) {
-        let line = [`a=candidate:${cand.foundation}`, cand.component, cand.protocol, cand.priority, cand.ip, cand.port, 'typ', cand.type].join(' ');
+        let line = [ `a=candidate:${cand.foundation}`, cand.component, cand.protocol, cand.priority, cand.ip, cand.port, 'typ', cand.type ].join(' ');
 
         line += ' ';
         switch (cand.type) {
