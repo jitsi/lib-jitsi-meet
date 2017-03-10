@@ -258,7 +258,6 @@ class JingleConnectionPlugin extends ConnectionPlugin {
 }
 
 
-
 module.exports = function(XMPP, eventEmitter) {
     Strophe.addConnectionPlugin('jingle',
         new JingleConnectionPlugin(XMPP, eventEmitter));
