@@ -191,13 +191,10 @@ transcriber.prototype.merge = function() {
     arrays.forEach(array => pushWordToSortedArray(potentialWords, array));
 
     // keep adding words to transcription until all arrays are exhausted
-    let lowestWordArray;
-    let wordToAdd;
-    let foundSmaller;
-
     while (hasPopulatedArrays(arrays)) {
         // first select the lowest array;
-        lowestWordArray = arrays[0];
+        let lowestWordArray = arrays[0];
+
         arrays.forEach(wordArray => {
             if (wordArray[0].begin < lowestWordArray[0].begin) {
                 lowestWordArray = wordArray;
@@ -205,23 +202,29 @@ transcriber.prototype.merge = function() {
         });
 
         // put the word in the transcription
-        wordToAdd = lowestWordArray.shift();
+        let wordToAdd = lowestWordArray.shift();
+
         this.updateTranscription(wordToAdd, lowestWordArray.name);
 
         // keep going until a word in another array has a smaller time
         // or the array is empty
-        while (!foundSmaller && lowestWordArray.length > 0) {
+        while (lowestWordArray.length > 0) {
+            let foundSmaller = false;
+            const wordToCompare = lowestWordArray[0].begin;
+
             arrays.forEach(wordArray => {
-                if (wordArray[0].begin < lowestWordArray[0].begin) {
+                if (wordArray[0].begin < wordToCompare) {
                     foundSmaller = true;
                 }
             });
 
             // add next word if no smaller time has been found
-            if (!foundSmaller) {
-                wordToAdd = lowestWordArray.shift();
-                this.updateTranscription(wordToAdd, null);
+            if (foundSmaller) {
+                break;
             }
+
+            wordToAdd = lowestWordArray.shift();
+            this.updateTranscription(wordToAdd, null);
         }
 
     }
