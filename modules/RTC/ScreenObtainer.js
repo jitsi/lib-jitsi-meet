@@ -241,9 +241,11 @@ var ScreenObtainer = {
                 failCallback);
         } else {
             if (chromeExtUpdateRequired) {
+                /* eslint-disable no-alert */
                 alert(
                     'Jitsi Desktop Streamer requires update. '
                     + 'Changes will take effect after next Chrome restart.');
+                /* eslint-enable no-alert */
             }
 
             try {
