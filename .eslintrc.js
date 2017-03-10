@@ -152,6 +152,7 @@ module.exports = {
         'no-array-constructor': 2,
         'no-inline-comments': 0,
         'no-mixed-spaces-and-tabs': 2,
+        'no-negated-condition': 2,
         'no-nested-ternary': 0,
         'no-new-object': 2,
         'no-plusplus': 0,

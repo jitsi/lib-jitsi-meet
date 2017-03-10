@@ -95,10 +95,11 @@ export default class RTC extends Listenable {
         return RTCUtils.obtainAudioAndVideoPermissions(options).then(
             tracksInfo => {
                 const tracks = createLocalTracks(tracksInfo, options);
-                return !tracks.some(track =>
-                    !track._isReceivingData()) ? tracks
-                        : Promise.reject(new JitsiTrackError(
-                            JitsiTrackErrors.NO_DATA_FROM_SOURCE));
+                return tracks.some(track => !track._isReceivingData())
+                    ? Promise.reject(
+                        new JitsiTrackError(
+                            JitsiTrackErrors.NO_DATA_FROM_SOURCE))
+                    : tracks;
             });
     }
 

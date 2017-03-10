@@ -162,7 +162,10 @@ export default class XMPP extends Listenable {
                 this.eventEmitter.emit(
                     JitsiConnectionEvents.CONNECTION_FAILED,
                     JitsiConnectionErrors.OTHER_ERROR, errMsg);
-            } else if (!wasIntentionalDisconnect) {
+            } else if (wasIntentionalDisconnect) {
+                this.eventEmitter.emit(
+                    JitsiConnectionEvents.CONNECTION_DISCONNECTED, errMsg);
+            } else {
                 // XXX if Strophe drops the connection while not being asked to,
                 // it means that most likely some serious error has occurred.
                 // One currently known case is when a BOSH request fails for
@@ -183,9 +186,6 @@ export default class XMPP extends Listenable {
                         JitsiConnectionErrors.CONNECTION_DROPPED_ERROR,
                         errMsg ? errMsg : 'connection-dropped-error');
                 }
-            } else {
-                this.eventEmitter.emit(
-                    JitsiConnectionEvents.CONNECTION_DISCONNECTED, errMsg);
             }
         } else if (status === Strophe.Status.AUTHFAIL) {
             // wrong password or username, prompt user

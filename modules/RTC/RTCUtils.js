@@ -200,7 +200,18 @@ function getConstraints(um, options) {
             // The react-native-webrtc project that we're currently using
             // expects the audio constraint to be a boolean.
             constraints.audio = true;
-        } else if (!RTCBrowserType.isFirefox()) {
+        } else if (RTCBrowserType.isFirefox()) {
+            if (options.micDeviceId) {
+                constraints.audio = {
+                    mandatory: {},
+                    deviceId: options.micDeviceId, // new style
+                    optional: [{
+                        sourceId: options.micDeviceId // old style
+                    }]};
+            } else {
+                constraints.audio = true;
+            }
+        } else {
             // same behaviour as true
             constraints.audio = { mandatory: {}, optional: []};
             if (options.micDeviceId) {
@@ -223,17 +234,6 @@ function getConstraints(um, options) {
                 {googEchoCancellation2: !disableAEC},
                 {googAutoGainControl2: true}
             );
-        } else {
-            if (options.micDeviceId) {
-                constraints.audio = {
-                    mandatory: {},
-                    deviceId: options.micDeviceId, // new style
-                    optional: [{
-                        sourceId: options.micDeviceId // old style
-                    }]};
-            } else {
-                constraints.audio = true;
-            }
         }
     }
     if (um.indexOf('screen') >= 0) {

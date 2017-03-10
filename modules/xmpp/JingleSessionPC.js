@@ -975,13 +975,8 @@ export default class JingleSessionPC extends JingleSession {
             this.modificationQueue.push(
                 workFunction,
                 error => {
-                    if (!error) {
-                        resolve();
-                    } else {
-                        reject(error);
-                    }
-                }
-            );
+                    error ? reject(error) : resolve();
+                });
         });
     }
 
@@ -1113,13 +1108,8 @@ export default class JingleSessionPC extends JingleSession {
         this.modificationQueue.push(
             workFunction,
             error => {
-                if (!error) {
-                    callback();
-                } else {
-                    errorCallback(error);
-                }
-            }
-        );
+                error ? errorCallback(error) : callback();
+            });
     }
 
     /**
@@ -1234,13 +1224,8 @@ export default class JingleSessionPC extends JingleSession {
         this.modificationQueue.push(
             workFunction,
             error => {
-                if (!error) {
-                    callback();
-                } else {
-                    errorCallback(error);
-                }
-            }
-        );
+                error ? errorCallback(error) : callback();
+            });
     }
 
     /**

@@ -46,10 +46,10 @@ function implementOnEndedHandling(jitsiTrack) {
  */
 function addMediaStreamInactiveHandler(mediaStream, handler) {
     // Temasys will use onended
-    if(typeof mediaStream.active !== 'undefined') {
-        mediaStream.oninactive = handler;
-    } else {
+    if (typeof mediaStream.active === 'undefined') {
         mediaStream.onended = handler;
+    } else {
+        mediaStream.oninactive = handler;
     }
 }
 

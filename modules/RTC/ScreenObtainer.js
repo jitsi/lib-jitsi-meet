@@ -121,18 +121,21 @@ const ScreenObtainer = {
         } else if (RTCBrowserType.isTemasysPluginUsed()) {
             // XXX Don't require Temasys unless it's to be used because it
             // doesn't run on React Native, for example.
-            const AdapterJS = require('./adapter.screenshare');
+            const plugin
+                = require('./adapter.screenshare').WebRTCPlugin.plugin;
 
-            if (!AdapterJS.WebRTCPlugin.plugin.HasScreensharingFeature) {
-                logger.info('Screensharing not supported by this plugin '
-                    + 'version');
-            } else if(!AdapterJS.WebRTCPlugin.plugin.isScreensharingAvailable) {
-                logger.info(
-                    'Screensharing not available with Temasys plugin on'
-                    + ' this site');
+            if (plugin.HasScreensharingFeature) {
+                if (plugin.isScreensharingAvailable) {
+                    obtainDesktopStream = obtainWebRTCScreen;
+                    logger.info('Using Temasys plugin for desktop sharing');
+                } else {
+                    logger.info(
+                        'Screensharing not available with Temasys plugin on'
+                            + ' this site');
+                }
             } else {
-                obtainDesktopStream = obtainWebRTCScreen;
-                logger.info('Using Temasys plugin for desktop sharing');
+                logger.info(
+                    'Screensharing not supported by this plugin version');
             }
         } else if (RTCBrowserType.isChrome()) {
             if (options.desktopSharingChromeDisabled

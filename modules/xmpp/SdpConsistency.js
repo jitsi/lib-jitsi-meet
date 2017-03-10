@@ -88,17 +88,11 @@ export default class SdpConsistency {
                 logger.info('Sdp-consistency couldn\'t parse new primary ssrc');
                 return sdpStr;
             }
-            if (!this.cachedPrimarySsrc) {
-                this.cachedPrimarySsrc = newPrimarySsrc;
-                logger.info(
-                    `Sdp-consistency caching primary ssrc ${
-                        this.cachedPrimarySsrc}`);
-            } else {
+            if (this.cachedPrimarySsrc) {
                 logger.info(
                     `Sdp-consistency replacing new ssrc ${newPrimarySsrc
                         } with cached ${this.cachedPrimarySsrc}`);
-                videoMLine.replaceSSRC(
-                    newPrimarySsrc, this.cachedPrimarySsrc);
+                videoMLine.replaceSSRC(newPrimarySsrc, this.cachedPrimarySsrc);
                 for (const group of videoMLine.ssrcGroups) {
                     if (group.semantics === 'FID') {
                         const primarySsrc = parsePrimarySSRC(group);
@@ -109,6 +103,11 @@ export default class SdpConsistency {
                         }
                     }
                 }
+            } else {
+                this.cachedPrimarySsrc = newPrimarySsrc;
+                logger.info(
+                    `Sdp-consistency caching primary ssrc ${
+                        this.cachedPrimarySsrc}`);
             }
         }
         return sdpTransformer.toRawSDP();

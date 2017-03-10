@@ -509,16 +509,9 @@ SDP.prototype.jingle2media = function(content) {
     } else {
         tmp.proto = 'RTP/AVPF';
     }
-    if (!sctp.length) {
-        tmp.fmt = desc.find('payload-type').map(
-            function() {
-                return this.getAttribute('id');
-            }).get();
-        media += `${SDPUtil.build_mline(tmp)}\r\n`;
-    } else {
+    if (sctp.length) {
         media += `m=application 1 DTLS/SCTP ${sctp.attr('number')}\r\n`;
-        media += `a=sctpmap:${sctp.attr('number')
-             } ${sctp.attr('protocol')}`;
+        media += `a=sctpmap:${sctp.attr('number')} ${sctp.attr('protocol')}`;
 
         const streamCount = sctp.attr('streams');
         if (streamCount) {
@@ -526,6 +519,12 @@ SDP.prototype.jingle2media = function(content) {
         } else {
             media += '\r\n';
         }
+    } else {
+        tmp.fmt = desc.find('payload-type').map(
+            function() {
+                return this.getAttribute('id');
+            }).get();
+        media += `${SDPUtil.build_mline(tmp)}\r\n`;
     }
 
     media += 'c=IN IP4 0.0.0.0\r\n';

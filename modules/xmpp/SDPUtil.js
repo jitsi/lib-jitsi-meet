@@ -217,11 +217,11 @@ const SDPUtil = {
         const parts = line.substr(9).split(' ');
         const data = {};
         data.value = parts.shift();
-        if (data.value.indexOf('/') != -1) {
+        if (data.value.indexOf('/') === -1) {
+            data.direction = 'both';
+        } else {
             data.direction = data.value.substr(data.value.indexOf('/') + 1);
             data.value = data.value.substr(0, data.value.indexOf('/'));
-        } else {
-            data.direction = 'both';
         }
         data.uri = parts.shift();
         data.params = parts;

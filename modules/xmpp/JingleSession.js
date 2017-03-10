@@ -80,7 +80,7 @@ export default class JingleSession {
         this.rtc = rtc;
         this.state = JingleSessionState.PENDING;
         this.initiator = isInitiator ? this.localJid : this.peerjid;
-        this.responder = !isInitiator ? this.localJid : this.peerjid;
+        this.responder = isInitiator ? this.peerjid : this.localJid;
         this.doInitialize();
     }
 

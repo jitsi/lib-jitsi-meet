@@ -326,10 +326,7 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
                     const mediaType = self.getType();
                     const streamInfo = streamsInfo.find(info => info.mediaType === mediaType);
 
-                    if(!streamInfo) {
-                        throw new JitsiTrackError(
-                            JitsiTrackErrors.TRACK_NO_STREAM_FOUND);
-                    }else {
+                    if (streamInfo) {
                         self._setStream(streamInfo.stream);
                         self.track = streamInfo.track;
                         // This is not good when video type changes after
@@ -340,6 +337,9 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
                                 self.videoType, streamInfo.videoType);
                             self.videoType = streamInfo.videoType;
                         }
+                    }else {
+                        throw new JitsiTrackError(
+                            JitsiTrackErrors.TRACK_NO_STREAM_FOUND);
                     }
 
                     self.containers = self.containers.map(cont => RTCUtils.attachMediaStream(cont, self.stream));
