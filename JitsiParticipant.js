@@ -205,6 +205,9 @@ export default class JitsiParticipant {
         return this._role;
     }
 
+    /**
+     *
+     */
     supportsDTMF() {
         return this._supportsDTMF;
     }

@@ -15,6 +15,11 @@ import VideoType from '../../service/RTC/VideoType';
 
 const logger = getLogger(__filename);
 
+/**
+ *
+ * @param tracksInfo
+ * @param options
+ */
 function createLocalTracks(tracksInfo, options) {
     const newTracks = [];
     let deviceId = null;
@@ -41,7 +46,15 @@ function createLocalTracks(tracksInfo, options) {
     return newTracks;
 }
 
+/**
+ *
+ */
 export default class RTC extends Listenable {
+    /**
+     *
+     * @param conference
+     * @param options
+     */
     constructor(conference, options = {}) {
         super();
         this.conference = conference;
@@ -198,24 +211,44 @@ export default class RTC extends Listenable {
         }
     }
 
+    /**
+     *
+     * @param eventType
+     * @param listener
+     */
     static addListener(eventType, listener) {
         RTCUtils.addListener(eventType, listener);
     }
 
+    /**
+     *
+     * @param eventType
+     * @param listener
+     */
     static removeListener(eventType, listener) {
         RTCUtils.removeListener(eventType, listener);
     }
 
+    /**
+     *
+     */
     static isRTCReady() {
         return RTCUtils.isRTCReady();
     }
 
+    /**
+     *
+     * @param options
+     */
     static init(options = {}) {
         this.options = options;
 
         return RTCUtils.init(this.options);
     }
 
+    /**
+     *
+     */
     static getDeviceAvailability() {
         return RTCUtils.getDeviceAvailability();
     }
@@ -269,6 +302,10 @@ export default class RTC extends Listenable {
 
     }
 
+    /**
+     *
+     * @param track
+     */
     addLocalTrack(track) {
         if (!track) {
             throw new Error('track must not be null nor undefined');
@@ -401,6 +438,10 @@ export default class RTC extends Listenable {
         return Promise.all(mutePromises);
     }
 
+    /**
+     *
+     * @param track
+     */
     removeLocalTrack(track) {
         const pos = this.localTracks.indexOf(track);
 
@@ -546,14 +587,26 @@ export default class RTC extends Listenable {
         return toBeRemoved;
     }
 
+    /**
+     *
+     */
     static getPCConstraints() {
         return RTCUtils.pcConstraints;
     }
 
+    /**
+     *
+     * @param elSelector
+     * @param stream
+     */
     static attachMediaStream(elSelector, stream) {
         return RTCUtils.attachMediaStream(elSelector, stream);
     }
 
+    /**
+     *
+     * @param stream
+     */
     static getStreamID(stream) {
         return RTCUtils.getStreamID(stream);
     }
@@ -682,6 +735,11 @@ export default class RTC extends Listenable {
         }
     }
 
+    /**
+     *
+     * @param resource
+     * @param audioLevel
+     */
     setAudioLevel(resource, audioLevel) {
         if (!resource) {
             return;

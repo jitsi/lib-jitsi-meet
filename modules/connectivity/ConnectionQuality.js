@@ -145,6 +145,12 @@ function rampUp(millisSinceStart) {
  * value of 0% indicates a poor connection.
  */
 export default class ConnectionQuality {
+    /**
+     *
+     * @param conference
+     * @param eventEmitter
+     * @param options
+     */
     constructor(conference, eventEmitter, options) {
         this.eventEmitter = eventEmitter;
 

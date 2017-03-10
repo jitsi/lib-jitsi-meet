@@ -8,6 +8,10 @@ const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
 import Settings from '../settings/Settings';
 
+/**
+ *
+ * @param step
+ */
 function createExpBackoffTimer(step) {
     let count = 1;
 
@@ -30,6 +34,13 @@ function createExpBackoffTimer(step) {
 
 /* eslint-disable max-params */
 
+/**
+ *
+ * @param roomName
+ * @param xmpp
+ * @param emitter
+ * @param options
+ */
 function Moderator(roomName, xmpp, emitter, options) {
     this.roomName = roomName;
     this.xmppService = xmpp;
@@ -51,8 +62,11 @@ function Moderator(roomName, xmpp, emitter, options) {
 
     this.connection = this.xmppService.connection;
 
-    // FIXME:
-    // Message listener that talks to POPUP window
+    // FIXME: Message listener that talks to POPUP window
+    /**
+     *
+     * @param event
+     */
     function listener(event) {
         if (event.data && event.data.sessionId) {
             if (event.origin !== window.location.origin) {

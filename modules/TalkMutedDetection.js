@@ -1,5 +1,8 @@
 import * as JitsiConferenceEvents from '../JitsiConferenceEvents';
 
+/**
+ *
+ */
 export default class TalkMutedDetection {
     /**
      * Creates TalkMutedDetection

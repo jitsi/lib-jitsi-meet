@@ -17,10 +17,16 @@ function getLocalStorage() {
     return global.localStorage;
 }
 
+/**
+ *
+ */
 function _p8() {
     return `${Math.random().toString(16)}000000000`.substr(2, 8);
 }
 
+/**
+ *
+ */
 function generateUniqueId() {
     return _p8() + _p8() + _p8() + _p8();
 }
@@ -49,7 +55,13 @@ function generateCallStatsUsername() {
     return username;
 }
 
+/**
+ *
+ */
 class Settings {
+    /**
+     *
+     */
     constructor() {
         const localStorage = getLocalStorage();
 

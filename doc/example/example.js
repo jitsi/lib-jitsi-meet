@@ -108,6 +108,10 @@ function onConferenceJoined() {
     }
 }
 
+/**
+ *
+ * @param id
+ */
 function onUserLeft(id) {
     console.log('user left');
     if (!remoteTracks[id]) {
@@ -190,6 +194,9 @@ function disconnect() {
         disconnect);
 }
 
+/**
+ *
+ */
 function unload() {
     for (let i = 0; i < localTracks.length; i++) {
         localTracks[i].stop();
@@ -200,6 +207,9 @@ function unload() {
 
 let isVideo = true;
 
+/**
+ *
+ */
 function switchVideo() { // eslint-disable-line no-unused-vars
     isVideo = !isVideo;
     if (localTracks[1]) {
@@ -222,6 +232,10 @@ function switchVideo() { // eslint-disable-line no-unused-vars
         .catch(error => console.log(error));
 }
 
+/**
+ *
+ * @param selected
+ */
 function changeAudioOutput(selected) { // eslint-disable-line no-unused-vars
     JitsiMeetJS.mediaDevices.setAudioOutputDevice(selected.value);
 }

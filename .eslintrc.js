@@ -231,6 +231,16 @@ module.exports = {
         'padded-blocks': 0,
         'quote-props': 0,
         'quotes': [ 'error', 'single' ],
+        'require-jsdoc': [
+            'error',
+            {
+                'require': {
+                    'ClassDeclaration': true,
+                    'FunctionDeclaration': true,
+                    'MethodDefinition': true
+                }
+            }
+        ],
         'semi': [ 'error', 'always' ],
         'semi-spacing': 2,
         'sort-vars': 2,

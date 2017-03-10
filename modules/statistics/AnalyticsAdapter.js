@@ -2,6 +2,9 @@
  * Interface for analytics handlers.
  */
 class AnalyticsAbstract {
+    /**
+     *
+     */
     sendEvent() {} // eslint-disable-line no-empty-function
 }
 
@@ -10,6 +13,9 @@ class AnalyticsAbstract {
  * @extends AnalyticsAbstract
  */
 class CacheAnalytics extends AnalyticsAbstract {
+    /**
+     *
+     */
     constructor() {
         super();
 
@@ -50,6 +56,9 @@ const cacheAnalytics = new CacheAnalytics();
  * This class will store and manage the handlers that are going to be used.
  */
 class AnalyticsAdapter {
+    /**
+     *
+     */
     constructor() {
         this.analyticsHandlers = new Set();
 

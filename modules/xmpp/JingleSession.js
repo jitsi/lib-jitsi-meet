@@ -4,7 +4,7 @@ import * as JingleSessionState from './JingleSessionState';
 
 const logger = getLogger(__filename);
 
-/*
+/**
  * JingleSession provides an API to manage a single Jingle session. We will
  * have different implementations depending on the underlying interface used
  * (i.e. WebRTC and ORTC) and here we hold the code common to all of them.
@@ -99,15 +99,20 @@ export default class JingleSession {
      * {@link initialize}.
      * @protected
      */
-    doInitialize() { } // eslint-disable-line no-empty-function
+    doInitialize() {} // eslint-disable-line no-empty-function
+
+    /* eslint-disable no-unused-vars, no-empty-function */
 
     /**
      * Adds the ICE candidates found in the 'contents' array as remote
      * candidates?
      * Note: currently only used on transport-info
+     *
+     * @param contents
      */
-    // eslint-disable-next-line no-unused-vars, no-empty-function
-    addIceCandidates(contents) { }
+    addIceCandidates(contents) {}
+
+    /* eslint-enable no-unused-vars, no-empty-function */
 
     /**
      * Returns current state of this <tt>JingleSession</tt> instance.
@@ -117,21 +122,23 @@ export default class JingleSession {
         return this.state;
     }
 
+    /* eslint-disable no-unused-vars, no-empty-function */
+
     /**
      * Handles an 'add-source' event.
      *
      * @param contents an array of Jingle 'content' elements.
      */
-    // eslint-disable-next-line no-unused-vars, no-empty-function
-    addSources(contents) { }
+    addSources(contents) {}
 
     /**
      * Handles a 'remove-source' event.
      *
      * @param contents an array of Jingle 'content' elements.
      */
-    // eslint-disable-next-line no-unused-vars, no-empty-function
-    removeSources(contents) { }
+    removeSources(contents) {}
+
+    /* eslint-disable max-params */
 
     /**
      * Terminates this Jingle session by sending session-terminate
@@ -142,8 +149,9 @@ export default class JingleSession {
      * @param failure a callback called when either timeout occurs or ERROR
      * response is received.
      */
-    // eslint-disable-next-line max-params, no-unused-vars, no-empty-function
-    terminate(reason, text, success, failure) { }
+    terminate(reason, text, success, failure) {}
+
+    /* eslint-enable max-params */
 
     /**
      * Handles an offer from the remote peer (prepares to accept a session).
@@ -154,6 +162,7 @@ export default class JingleSession {
      * error object with details(which is meant more to be printed to the logger
      * than analysed in the code, as the error is unrecoverable anyway)
      */
-    // eslint-disable-next-line no-unused-vars, no-empty-function
-    acceptOffer(jingle, success, failure) { }
+    acceptOffer(jingle, success, failure) {}
+
+    /* eslint-enable no-unused-vars, no-empty-function */
 }

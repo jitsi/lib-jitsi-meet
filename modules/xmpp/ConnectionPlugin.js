@@ -10,10 +10,18 @@ function getConnectionPluginDefinition(base = class {}) {
      * Base class for strophe connection plugins.
      */
     return class extends base {
+        /**
+         *
+         */
         constructor(...args) {
             super(...args);
             this.connection = null;
         }
+
+        /**
+         *
+         * @param connection
+         */
         init(connection) {
             this.connection = connection;
         }

@@ -486,6 +486,12 @@ CallStats.dispose = function() {
 };
 
 /* eslint-disable no-invalid-this */
+
+/**
+ *
+ * @param err
+ * @param msg
+ */
 function initCallback(err, msg) {
     logger.log(`CallStats Status: err=${err} msg=${msg}`);
 

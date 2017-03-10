@@ -2,7 +2,10 @@
 
 const SDPUtil = require('./SDPUtil');
 
-// SDP STUFF
+/**
+ *
+ * @param sdp
+ */
 function SDP(sdp) {
     const media = sdp.split('\r\nm=');
 

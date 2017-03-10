@@ -141,6 +141,10 @@ class PingConnectionPlugin extends ConnectionPlugin {
     }
 }
 
+/**
+ *
+ * @param xmpp
+ */
 export default function(xmpp) {
     Strophe.addConnectionPlugin('ping', new PingConnectionPlugin(xmpp));
 }

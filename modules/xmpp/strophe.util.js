@@ -41,6 +41,9 @@ const resetLastErrorStatusRegExpr = /request id \d+.\d+ got 200/;
 const lastErrorStatusRegExpr
     = /request errored, status: (\d+), number of errors: \d+/;
 
+/**
+ *
+ */
 export default function() {
 
     Strophe.log = function(level, msg) {

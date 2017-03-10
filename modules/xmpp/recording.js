@@ -8,6 +8,15 @@ const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
 /* eslint-disable max-params */
 
+/**
+ *
+ * @param type
+ * @param eventEmitter
+ * @param connection
+ * @param focusMucJid
+ * @param jirecon
+ * @param roomjid
+ */
 function Recording(
         type,
         eventEmitter,

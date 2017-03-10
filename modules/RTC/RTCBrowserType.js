@@ -197,8 +197,10 @@ const RTCBrowserType = {
     // Add version getters for other browsers when needed
 };
 
-// detectOpera() must be called before detectChrome() !!!
-// otherwise Opera wil be detected as Chrome
+/**
+ * detectOpera() must be called before detectChrome() !!!
+ * otherwise Opera wil be detected as Chrome
+ */
 function detectChrome() {
     if (navigator.webkitGetUserMedia) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_CHROME;
@@ -216,6 +218,9 @@ function detectChrome() {
     return null;
 }
 
+/**
+ *
+ */
 function detectOpera() {
     const userAgent = navigator.userAgent;
 
@@ -231,6 +236,9 @@ function detectOpera() {
     return null;
 }
 
+/**
+ *
+ */
 function detectFirefox() {
     if (navigator.mozGetUserMedia) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_FIREFOX;
@@ -245,6 +253,9 @@ function detectFirefox() {
     return null;
 }
 
+/**
+ *
+ */
 function detectSafari() {
     if (/^((?!chrome).)*safari/i.test(navigator.userAgent)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_SAFARI;
@@ -257,6 +268,9 @@ function detectSafari() {
     return null;
 }
 
+/**
+ *
+ */
 function detectIE() {
     let version;
     const ua = window.navigator.userAgent;
@@ -310,6 +324,9 @@ function detectElectron() {
     return null;
 }
 
+/**
+ *
+ */
 function detectNWJS() {
     const userAgent = navigator.userAgent;
 
@@ -325,6 +342,9 @@ function detectNWJS() {
     return null;
 }
 
+/**
+ *
+ */
 function detectReactNative() {
     const match
         = navigator.userAgent.match(/\b(react[ \t_-]*native)(?:\/(\S+))?/i);
@@ -353,6 +373,9 @@ function detectReactNative() {
     return version;
 }
 
+/**
+ *
+ */
 function detectBrowser() {
     let version;
     const detectors = [

@@ -11,13 +11,24 @@ import ChatRoom from './ChatRoom';
 import { ConnectionPluginListenable } from './ConnectionPlugin';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
+/**
+ *
+ */
 class MucConnectionPlugin extends ConnectionPluginListenable {
+    /**
+     *
+     * @param xmpp
+     */
     constructor(xmpp) {
         super();
         this.xmpp = xmpp;
         this.rooms = {};
     }
 
+    /**
+     *
+     * @param connection
+     */
     init(connection) {
         super.init(connection);
 
@@ -34,6 +45,12 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
             'http://jitsi.org/jitmeet/audio', 'iq', 'set', null, null);
     }
 
+    /**
+     *
+     * @param jid
+     * @param password
+     * @param options
+     */
     createRoom(jid, password, options) {
         const roomJid = Strophe.getBareJidFromJid(jid);
 
@@ -51,12 +68,20 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         return this.rooms[roomJid];
     }
 
+    /**
+     *
+     * @param jid
+     */
     doLeave(jid) {
         this.eventEmitter.emit(
             XMPPEvents.EMUC_ROOM_REMOVED, this.rooms[jid]);
         delete this.rooms[jid];
     }
 
+    /**
+     *
+     * @param pres
+     */
     onPresence(pres) {
         const from = pres.getAttribute('from');
 
@@ -82,6 +107,10 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         return true;
     }
 
+    /**
+     *
+     * @param pres
+     */
     onPresenceUnavailable(pres) {
         const from = pres.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
@@ -95,6 +124,10 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         return true;
     }
 
+    /**
+     *
+     * @param pres
+     */
     onPresenceError(pres) {
         const from = pres.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
@@ -108,6 +141,10 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         return true;
     }
 
+    /**
+     *
+     * @param msg
+     */
     onMessage(msg) {
         // FIXME: this is a hack. but jingle on muc makes nickchanges hard
         const from = msg.getAttribute('from');
@@ -122,6 +159,10 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         return true;
     }
 
+    /**
+     *
+     * @param iq
+     */
     onMute(iq) {
         const from = iq.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
@@ -136,6 +177,10 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
     }
 }
 
+/**
+ *
+ * @param XMPP
+ */
 export default function(XMPP) {
     Strophe.addConnectionPlugin('emuc', new MucConnectionPlugin(XMPP));
 }

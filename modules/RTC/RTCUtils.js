@@ -62,14 +62,16 @@ const isAudioOutputDeviceChangeAvailable
 
 let currentlyAvailableMediaDevices;
 
-let rawEnumerateDevicesWithCallback;
-
 /**
  * "rawEnumerateDevicesWithCallback" will be initialized only after WebRTC is
  * ready. Otherwise it is too early to assume that the devices listing is not
  * supported.
  */
+let rawEnumerateDevicesWithCallback;
 
+/**
+ *
+ */
 function initRawEnumerateDevicesWithCallback() {
     rawEnumerateDevicesWithCallback = navigator.mediaDevices
         && navigator.mediaDevices.enumerateDevices
@@ -105,6 +107,11 @@ const isDeviceChangeEventSupported = false;
 
 let rtcReady = false;
 
+/**
+ *
+ * @param constraints
+ * @param resolution
+ */
 function setResolutionConstraints(constraints, resolution) {
     const isAndroid = RTCBrowserType.isAndroid();
 
@@ -358,6 +365,10 @@ function compareAvailableMediaDevices(newDevices) {
                 .sort()
                 .join(''));
 
+    /**
+     *
+     * @param info
+     */
     function mediaDeviceInfoToJSON(info) {
         return JSON.stringify({
             kind: info.kind,
@@ -664,12 +675,21 @@ function defaultSetVideoSrc(element, stream) {
     element.src = src || '';
 }
 
-// Options parameter is to pass config options. Currently uses only "useIPv6".
+/**
+ *
+ */
 class RTCUtils extends Listenable {
+    /**
+     *
+     */
     constructor() {
         super(eventEmitter);
     }
 
+    /**
+     *
+     * @param options
+     */
     init(options) {
         if (typeof options.disableAEC === 'boolean') {
             disableAEC = options.disableAEC;
@@ -1119,14 +1139,23 @@ class RTCUtils extends Listenable {
         });
     }
 
+    /**
+     *
+     */
     getDeviceAvailability() {
         return devices;
     }
 
+    /**
+     *
+     */
     isRTCReady() {
         return rtcReady;
     }
 
+    /**
+     *
+     */
     _isDeviceListAvailable() {
         if (!rtcReady) {
             throw new Error('WebRTC not ready yet');
@@ -1327,6 +1356,10 @@ function rejectWithWebRTCNotSupported(errorMessage, reject) {
 
 const rtcUtils = new RTCUtils();
 
+/**
+ *
+ * @param options
+ */
 function obtainDevices(options) {
     if (!options.devices || options.devices.length === 0) {
         return options.successCallback(options.streams || {});
@@ -1350,9 +1383,13 @@ function obtainDevices(options) {
         });
 }
 
-// In case of IE we continue from 'onReady' callback
-// passed to RTCUtils constructor. It will be invoked by Temasys plugin
-// once it is initialized.
+/**
+ * In case of IE we continue from 'onReady' callback passed to RTCUtils
+ * constructor. It will be invoked by Temasys plugin once it is initialized.
+ *
+ * @param options
+ * @param GUM
+ */
 function onReady(options, GUM) {
     rtcReady = true;
     eventEmitter.emit(RTCEvents.RTC_READY, true);

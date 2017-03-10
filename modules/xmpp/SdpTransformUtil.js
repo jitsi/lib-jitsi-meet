@@ -53,6 +53,9 @@ class MLineWrap {
         this.mLine = mLine;
     }
 
+    /**
+     *
+     */
     get _ssrcs() {
         if (!this.mLine.ssrcs) {
             this.mLine.ssrcs = [];

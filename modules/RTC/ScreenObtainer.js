@@ -406,6 +406,11 @@ function isUpdateRequired(minVersion, extVersion) {
     }
 }
 
+/**
+ *
+ * @param callback
+ * @param options
+ */
 function checkChromeExtInstalled(callback, options) {
     if (typeof chrome === 'undefined' || !chrome || !chrome.runtime) {
         // No API, so no extension for sure
@@ -440,6 +445,12 @@ function checkChromeExtInstalled(callback, options) {
     );
 }
 
+/**
+ *
+ * @param options
+ * @param streamCallback
+ * @param failCallback
+ */
 function doGetStreamFromExtension(options, streamCallback, failCallback) {
     // Sends 'getStream' msg to the extension.
     // Extension id must be defined in the config.
@@ -482,6 +493,10 @@ function initInlineInstalls(options) {
         getWebStoreInstallUrl(options));
 }
 
+/**
+ *
+ * @param options
+ */
 function initChromeExtension(options) {
     // Initialize Chrome extension inline installs
     initInlineInstalls(options);

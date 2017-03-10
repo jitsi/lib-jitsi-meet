@@ -22,6 +22,9 @@ import * as JingleSessionState from './JingleSessionState';
  */
 const IQ_TIMEOUT = 10000;
 
+/**
+ *
+ */
 export default class JingleSessionPC extends JingleSession {
 
     /* eslint-disable max-params */
@@ -108,6 +111,9 @@ export default class JingleSessionPC extends JingleSession {
 
     /* eslint-enable max-params */
 
+    /**
+     *
+     */
     doInitialize() {
         this.lasticecandidate = false;
 
@@ -244,6 +250,10 @@ export default class JingleSessionPC extends JingleSession {
         };
     }
 
+    /**
+     *
+     * @param candidate
+     */
     sendIceCandidate(candidate) {
         const localSDP = new SDP(this.peerconnection.localDescription.sdp);
 
@@ -286,6 +296,10 @@ export default class JingleSessionPC extends JingleSession {
         }
     }
 
+    /**
+     *
+     * @param candidates
+     */
     sendIceCandidates(candidates) {
         logger.log('sendIceCandidates', candidates);
         const cand = $iq({ to: this.peerjid,
@@ -357,6 +371,10 @@ export default class JingleSessionPC extends JingleSession {
             }), IQ_TIMEOUT);
     }
 
+    /**
+     *
+     * @param contents
+     */
     readSsrcInfo(contents) {
         $(contents).each((i1, content) => {
             const ssrcs
@@ -672,6 +690,11 @@ export default class JingleSessionPC extends JingleSession {
 
     /* eslint-enable max-params */
 
+    /**
+     *
+     * @param reasonCondition
+     * @param reasonText
+     */
     onTerminated(reasonCondition, reasonText) {
         this.state = 'ended';
 
@@ -1492,6 +1515,11 @@ export default class JingleSessionPC extends JingleSession {
         };
     }
 
+    /**
+     *
+     * @param session
+     * @param error
+     */
     static onJingleFatalError(session, error) {
         if (this.room) {
             this.room.eventEmitter.emit(

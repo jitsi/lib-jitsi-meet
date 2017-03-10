@@ -189,6 +189,11 @@ export default class ParticipantConnectionStatus {
         }
     }
 
+    /**
+     *
+     * @param participant
+     * @param newStatus
+     */
     _changeConnectionStatus(participant, newStatus) {
         if (participant.isConnectionActive() !== newStatus) {
 

@@ -13,7 +13,15 @@ import ConnectionPlugin from './ConnectionPlugin';
 // function call chains.
 /* eslint-disable newline-per-chained-call */
 
+/**
+ *
+ */
 class JingleConnectionPlugin extends ConnectionPlugin {
+    /**
+     *
+     * @param xmpp
+     * @param eventEmitter
+     */
     constructor(xmpp, eventEmitter) {
         super();
         this.xmpp = xmpp;
@@ -30,12 +38,20 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         };
     }
 
+    /**
+     *
+     * @param connection
+     */
     init(connection) {
         super.init(connection);
         this.connection.addHandler(this.onJingle.bind(this),
             'urn:xmpp:jingle:1', 'iq', 'set', null, null);
     }
 
+    /**
+     *
+     * @param iq
+     */
     onJingle(iq) {
         const sid = $(iq).find('jingle').attr('sid');
         const action = $(iq).find('jingle').attr('action');
@@ -186,6 +202,12 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         return true;
     }
 
+    /**
+     *
+     * @param sid
+     * @param reasonCondition
+     * @param reasonText
+     */
     terminate(sid, reasonCondition, reasonText) {
         if (this.sessions.hasOwnProperty(sid)) {
             if (this.sessions[sid].state !== 'ended') {
@@ -195,6 +217,9 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         }
     }
 
+    /**
+     *
+     */
     getStunAndTurnCredentials() {
         // get stun and turn configuration from server via xep-0215
         // uses time-limited credentials as described in

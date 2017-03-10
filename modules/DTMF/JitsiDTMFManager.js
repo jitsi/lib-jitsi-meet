@@ -1,5 +1,10 @@
 const logger = require('jitsi-meet-logger').getLogger(__filename);
 
+/**
+ *
+ * @param localAudio
+ * @param peerConnection
+ */
 function JitsiDTMFManager(localAudio, peerConnection) {
     const audioTrack = localAudio.getTrack();
 
@@ -10,7 +15,6 @@ function JitsiDTMFManager(localAudio, peerConnection) {
         = peerConnection.peerconnection.createDTMFSender(audioTrack);
     logger.debug('Initialized DTMFSender');
 }
-
 
 JitsiDTMFManager.prototype.sendTones = function(tones, duration, pause) {
     this.dtmfSender.insertDTMF(tones, duration || 200, pause || 200);

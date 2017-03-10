@@ -1,6 +1,11 @@
 const SDPUtil = require('./SDPUtil');
 
 // this could be useful in Array.prototype.
+/**
+ *
+ * @param array1
+ * @param array2
+ */
 function arrayEquals(array1, array2) {
     // if the other array is a falsy value, return
     if (!array2) {
@@ -29,6 +34,11 @@ function arrayEquals(array1, array2) {
     return true;
 }
 
+/**
+ *
+ * @param mySDP
+ * @param otherSDP
+ */
 function SDPDiffer(mySDP, otherSDP) {
     this.mySDP = mySDP;
     this.otherSDP = otherSDP;

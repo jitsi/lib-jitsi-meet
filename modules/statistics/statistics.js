@@ -16,13 +16,17 @@ import * as StatisticsEvents from '../../service/statistics/Events';
  */
 let isCallstatsLoaded = false;
 
-// Since callstats.io is a third party, we cannot guarantee the quality of their
-// service. More specifically, their server may take noticeably long time to
-// respond. Consequently, it is in our best interest (in the sense that the
-// intergration of callstats.io is pretty important to us but not enough to
-// allow it to prevent people from joining a conference) to (1) start
-// downloading their API as soon as possible and (2) do the downloading
-// asynchronously.
+/**
+ * Since callstats.io is a third party, we cannot guarantee the quality of their
+ * service. More specifically, their server may take noticeably long time to
+ * respond. Consequently, it is in our best interest (in the sense that the
+ * intergration of callstats.io is pretty important to us but not enough to
+ * allow it to prevent people from joining a conference) to (1) start
+ * downloading their API as soon as possible and (2) do the downloading
+ * asynchronously.
+ *
+ * @param customScriptUrl
+ */
 function loadCallStatsAPI(customScriptUrl) {
     if (!isCallstatsLoaded) {
         ScriptUtil.loadScript(
@@ -81,6 +85,11 @@ Statistics.init = function(options) {
 
 };
 
+/**
+ *
+ * @param xmpp
+ * @param options
+ */
 function Statistics(xmpp, options) {
     this.rtpStats = null;
     this.eventEmitter = new EventEmitter();

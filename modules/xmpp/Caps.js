@@ -9,6 +9,11 @@ const IDENTITY_PROPERTIES = [ 'category', 'type', 'lang', 'name' ];
 const IDENTITY_PROPERTIES_FOR_COMPARE = [ 'category', 'type', 'lang' ];
 const HASH = 'sha-1';
 
+/**
+ *
+ * @param a
+ * @param b
+ */
 function compareIdentities(a, b) {
     let res = 0;
 

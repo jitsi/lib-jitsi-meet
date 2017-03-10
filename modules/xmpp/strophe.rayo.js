@@ -7,7 +7,14 @@ import ConnectionPlugin from './ConnectionPlugin';
 
 const RAYO_XMLNS = 'urn:xmpp:rayo:1';
 
+/**
+ *
+ */
 class RayoConnectionPlugin extends ConnectionPlugin {
+    /**
+     *
+     * @param connection
+     */
     init(connection) {
         super.init(connection);
 
@@ -15,12 +22,24 @@ class RayoConnectionPlugin extends ConnectionPlugin {
             this.onRayo.bind(this), RAYO_XMLNS, 'iq', 'set', null, null);
     }
 
+    /**
+     *
+     * @param iq
+     */
     onRayo(iq) {
         logger.info('Rayo IQ', iq);
     }
 
     /* eslint-disable max-params */
 
+    /**
+     *
+     * @param to
+     * @param from
+     * @param roomName
+     * @param roomPass
+     * @param focusMucJid
+     */
     dial(to, from, roomName, roomPass, focusMucJid) {
         return new Promise((resolve, reject) => {
             if (!focusMucJid) {
@@ -71,6 +90,9 @@ class RayoConnectionPlugin extends ConnectionPlugin {
 
     /* eslint-enable max-params */
 
+    /**
+     *
+     */
     hangup() {
         return new Promise((resolve, reject) => {
             if (!this.callResource) {
@@ -102,6 +124,9 @@ class RayoConnectionPlugin extends ConnectionPlugin {
     }
 }
 
+/**
+ *
+ */
 export default function() {
     Strophe.addConnectionPlugin('rayo', new RayoConnectionPlugin());
 }

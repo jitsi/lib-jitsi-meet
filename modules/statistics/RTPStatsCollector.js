@@ -122,6 +122,9 @@ SsrcStats.prototype.resetBitrate = function() {
     this.bitrate.upload = 0;
 };
 
+/**
+ *
+ */
 function ConferenceStats() {
 
     /**
@@ -402,6 +405,11 @@ StatsCollector.prototype.processStatsReport = function() {
 
     const getStatValue = this._getStatValue;
 
+    /**
+     *
+     * @param report
+     * @param name
+     */
     function getNonNegativeStat(report, name) {
         let value = getStatValue(report, name);
 

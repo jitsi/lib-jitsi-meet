@@ -16,6 +16,11 @@ import initStropheLogger from './strophe.logger';
 import Listenable from '../util/Listenable';
 import Caps from './Caps';
 
+/**
+ *
+ * @param token
+ * @param bosh
+ */
 function createConnection(token, bosh = '/http-bind') {
     // Append token as URL param
     if (token) {
@@ -26,7 +31,15 @@ function createConnection(token, bosh = '/http-bind') {
     return new Strophe.Connection(bosh);
 }
 
+/**
+ *
+ */
 export default class XMPP extends Listenable {
+    /**
+     *
+     * @param options
+     * @param token
+     */
     constructor(options, token) {
         super();
         this.connection = null;
@@ -95,6 +108,9 @@ export default class XMPP extends Listenable {
         }
     }
 
+    /**
+     *
+     */
     getConnection() {
         return this.connection;
     }
@@ -203,6 +219,11 @@ export default class XMPP extends Listenable {
         }
     }
 
+    /**
+     *
+     * @param jid
+     * @param password
+     */
     _connect(jid, password) {
         // connection.connect() starts the connection process.
         //
@@ -254,6 +275,11 @@ export default class XMPP extends Listenable {
             this.connectionHandler.bind(this, options.password));
     }
 
+    /**
+     *
+     * @param jid
+     * @param password
+     */
     connect(jid, password) {
         this.connectParams = {
             jid,
@@ -280,6 +306,11 @@ export default class XMPP extends Listenable {
         return this._connect(jid, password);
     }
 
+    /**
+     *
+     * @param roomName
+     * @param options
+     */
     createRoom(roomName, options) {
         // By default MUC nickname is the resource part of the JID
         let mucNickname = Strophe.getNodeFromJid(this.connection.jid);
@@ -324,18 +355,33 @@ export default class XMPP extends Listenable {
         return (this.connection.logger || {}).log || null;
     }
 
+    /**
+     *
+     */
     dial(...args) {
         this.connection.rayo.dial(...args);
     }
 
+    /**
+     *
+     * @param jid
+     * @param mute
+     */
     setMute(jid, mute) {
         this.connection.moderate.setMute(jid, mute);
     }
 
+    /**
+     *
+     * @param jid
+     */
     eject(jid) {
         this.connection.moderate.eject(jid);
     }
 
+    /**
+     *
+     */
     getSessions() {
         return this.connection.jingle.sessions;
     }
@@ -391,6 +437,9 @@ export default class XMPP extends Listenable {
         }
     }
 
+    /**
+     *
+     */
     _initStrophePlugins() {
         initEmuc(this);
         initJingle(this, this.eventEmitter);
