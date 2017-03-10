@@ -284,6 +284,7 @@ export default class ConnectionQuality {
 
         let quality = 100;
         let packetLoss;
+
         // TODO: take into account packet loss for received streams
 
         if (this._localStats.packetLoss) {

@@ -54,6 +54,7 @@ SDPDiffer.prototype.getNewMedia = function() {
 
             return;
         }
+
         // Look for new ssrcs across the channel
         Object.keys(othersMedia.ssrcs).forEach(ssrc => {
             if (Object.keys(myMedia.ssrcs).indexOf(ssrc) === -1) {
@@ -126,6 +127,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
         modify.c('description',
             { xmlns: 'urn:xmpp:jingle:apps:rtp:1',
                 media: media.mid });
+
         // FIXME: not completely sure this operates on blocks and / or handles
         // different ssrcs correctly
         // generate sources from lines
@@ -134,6 +136,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
 
             modify.c('source', { xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
             modify.attrs({ ssrc: mediaSsrc.ssrc });
+
             // iterate over ssrc lines
             mediaSsrc.lines.forEach(line => {
                 const idx = line.indexOf(' ');

@@ -55,6 +55,7 @@ const RandomUtil = {
     randomHexDigit() {
         return randomElement(HEX_DIGITS);
     },
+
     /**
      * Returns a random string of hex digits with length 'len'.
      * @param len the length.

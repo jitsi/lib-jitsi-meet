@@ -7,6 +7,7 @@ import RTC from './RTC';
 import RTCBrowserType from './RTCBrowserType.js';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import RtxModifier from '../xmpp/RtxModifier.js';
+
 // FIXME SDP tools should end up in some kind of util module
 import SDP from '../xmpp/SDP';
 import SdpConsistency from '../xmpp/SdpConsistency.js';
@@ -41,6 +42,7 @@ const SIMULCAST_LAYERS = 3;
 function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
                                  constraints, options) {
     const self = this;
+
     /**
      * The parent instance of RTC service which created this
      * <tt>TracablePeerConnection</tt>.
@@ -48,11 +50,13 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
      */
 
     this.rtc = rtc;
+
     /**
      * The peer connection identifier assigned by the RTC module.
      * @type {number}
      */
     this.id = id;
+
     /**
      * The signaling layer which operates this peer connection.
      * @type {SignalingLayer}
@@ -72,6 +76,7 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
     this.updateLog = [];
     this.stats = {};
     this.statsinterval = null;
+
     /**
      * @type {number}
      */
@@ -84,6 +89,7 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
     this.simulcast = new Simulcast({ numOfLayers: SIMULCAST_LAYERS,
         explodeRemoteSimulcast: false });
     this.sdpConsistency = new SdpConsistency();
+
     /**
      * TracablePeerConnection uses RTC's eventEmitter
      * @type {EventEmitter}
@@ -169,6 +175,7 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
             self.ondatachannel(event);
         }
     };
+
     // XXX: do all non-firefox browsers which we support also support this?
     if (!RTCBrowserType.isFirefox() && this.maxstats) {
         this.statsinterval = window.setInterval(() => {
@@ -225,6 +232,7 @@ TraceablePeerConnection.prototype._remoteStreamAdded = function(stream) {
 
         return;
     }
+
     // Bind 'addtrack'/'removetrack' event handlers
     if (RTCBrowserType.isChrome() || RTCBrowserType.isNWJS()
         || RTCBrowserType.isElectron()) {
@@ -235,6 +243,7 @@ TraceablePeerConnection.prototype._remoteStreamAdded = function(stream) {
             this._remoteTrackRemoved(event.target, event.track);
         };
     }
+
     // Call remoteTrackAdded for each track in the stream
     const streamAudioTracks = stream.getAudioTracks();
 
@@ -360,6 +369,7 @@ TraceablePeerConnection.prototype._remoteStreamRemoved = function(stream) {
 
         return;
     }
+
     // Call remoteTrackRemoved for each track in the stream
     const streamVideoTracks = stream.getVideoTracks();
 
@@ -441,6 +451,7 @@ function extractSSRCMap(desc) {
      * @type {Map<string,TrackSSRCInfo>}
      */
     const ssrcMap = new Map();
+
     /**
      * Groups mapped by primary SSRC number
      * @type {Map<number,Array<SSRCGroupInfo>>}
@@ -474,6 +485,7 @@ function extractSSRCMap(desc) {
                         = group.ssrcs.split(' ')
                                      .map(ssrcStr => parseInt(ssrcStr));
                     const primarySSRC = groupSSRCs[0];
+
                     // Note that group.semantics is already present
 
                     group.ssrcs = groupSSRCs;
@@ -669,6 +681,7 @@ TraceablePeerConnection.prototype.addStream = function(stream, ssrcInfo) {
 
 TraceablePeerConnection.prototype.removeStream = function(stream) {
     this.trace('removeStream', stream.id);
+
     // FF doesn't support this yet.
     if (this.peerconnection.removeStream) {
         this.peerconnection.removeStream(stream);
@@ -684,6 +697,7 @@ TraceablePeerConnection.prototype.createDataChannel = function(label, opts) {
 TraceablePeerConnection.prototype.setLocalDescription
         = function(description, successCallback, failureCallback) {
             this.trace('setLocalDescription::preTransform', dumpSDP(description));
+
     // if we're running on FF, transform to Plan A first.
             if (RTCBrowserType.usesUnifiedPlan()) {
                 description = this.interop.toUnifiedPlan(description);
@@ -711,6 +725,7 @@ TraceablePeerConnection.prototype.setLocalDescription
 TraceablePeerConnection.prototype.setRemoteDescription
         = function(description, successCallback, failureCallback) {
             this.trace('setRemoteDescription::preTransform', dumpSDP(description));
+
     // TODO the focus should squeze or explode the remote simulcast
             description = this.simulcast.mungeRemoteDescription(description);
             this.trace(
@@ -753,6 +768,7 @@ TraceablePeerConnection.prototype.setRemoteDescription
             failureCallback(err);
         }
     );
+
     /*
      if (this.statsinterval === null && this.maxstats > 0) {
      // start gathering stats
@@ -862,6 +878,7 @@ TraceablePeerConnection.prototype.createAnswer
             try {
                 this.trace(
                     'createAnswerOnSuccess::preTransform', dumpSDP(answer));
+
                 // if we're running on FF, transform to Plan A first.
                 if (RTCBrowserType.usesUnifiedPlan()) {
                     answer = this.interop.toPlanB(answer);
@@ -933,11 +950,13 @@ TraceablePeerConnection.prototype.createAnswer
         };
 
 TraceablePeerConnection.prototype.addIceCandidate
+
         // eslint-disable-next-line no-unused-vars
         = function(candidate, successCallback, failureCallback) {
     // var self = this;
             this.trace('addIceCandidate', JSON.stringify(candidate, null, ' '));
             this.peerconnection.addIceCandidate(candidate);
+
     /* maybe later
      this.peerconnection.addIceCandidate(candidate,
      function () {

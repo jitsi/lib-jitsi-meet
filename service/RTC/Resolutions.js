@@ -24,6 +24,7 @@ const Resolutions = {
         height: 720,
         order: 5
     },
+
     // 16:9 resolution first.
     '360': {
         width: 640,
@@ -40,6 +41,7 @@ const Resolutions = {
         height: 480,
         order: 3
     },
+
     // 16:9 resolution first.
     '180': {
         width: 320,

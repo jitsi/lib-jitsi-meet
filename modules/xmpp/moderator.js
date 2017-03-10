@@ -19,6 +19,7 @@ function createExpBackoffTimer(step) {
 
             return;
         }
+
         // Calculate next timeout
         const timeout = Math.pow(2, count - 1);
 
@@ -33,6 +34,7 @@ function Moderator(roomName, xmpp, emitter, options) {
     this.xmppService = xmpp;
     this.getNextTimeout = createExpBackoffTimer(1000);
     this.getNextErrorTimeout = createExpBackoffTimer(1000);
+
     // External authentication stuff
     this.externalAuthEnabled = false;
     this.options = options;
@@ -46,6 +48,7 @@ function Moderator(roomName, xmpp, emitter, options) {
     this.eventEmitter = emitter;
 
     this.connection = this.xmppService.connection;
+
     // FIXME:
     // Message listener that talks to POPUP window
     function listener(event) {
@@ -58,9 +61,11 @@ function Moderator(roomName, xmpp, emitter, options) {
                 return;
             }
             Settings.setSessionId(event.data.sessionId);
+
             // After popup is closed we will authenticate
         }
     }
+
     // Register
     if (window.addEventListener) {
         window.addEventListener('message', listener, false);
@@ -102,6 +107,7 @@ Moderator.prototype.getFocusUserJid = function() {
 Moderator.prototype.getFocusComponent = function() {
     // Get focus component address
     let focusComponent = this.options.connection.hosts.focus;
+
     // If not specified use default:  'focus.domain'
 
     if (!focusComponent) {
@@ -138,6 +144,7 @@ Moderator.prototype.createConferenceIq = function() {
                 value: this.options.connection.enforcedBridge
             }).up();
     }
+
     // Tell the focus we have Jigasi configured
     if (this.options.connection.hosts !== undefined
         && this.options.connection.hosts.call_control !== undefined) {
@@ -287,11 +294,13 @@ Moderator.prototype.parseConfigOptions = function(resultIq) {
 Moderator.prototype.allocateConferenceFocus = function(callback) {
     // Try to use focus user JID from the config
     this.setFocusUserJid(this.options.connection.focusUserJid);
+
     // Send create conference IQ
     this.connection.sendIQ(
         this.createConferenceIq(),
         result => this._allocateConferenceFocusSuccess(result, callback),
         error => this._allocateConferenceFocusError(error, callback));
+
     // XXX We're pressed for time here because we're beginning a complex and/or
     // lengthy conference-establishment process which supposedly involves
     // multiple RTTs. We don't have the time to wait for Strophe to decide to
@@ -322,6 +331,7 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
 
         return;
     }
+
     // Check for error returned by the reservation system
     const reservationErr = $(error).find('>error>reservation-error');
 
@@ -339,6 +349,7 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
 
         return;
     }
+
     // Not authorized to create new room
     if ($(error).find('>error>not-authorized').length) {
         logger.warn('Unauthorized to start the conference', error);
@@ -358,9 +369,11 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
 
     GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
     logger.error(errmsg, error);
+
     // Show message
     const focusComponent = this.getFocusComponent();
     const retrySec = waitMs / 1000;
+
     // FIXME: message is duplicated ? Do not show in case of session invalid
     // which means just a retry
 
@@ -368,6 +381,7 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
         this.eventEmitter.emit(
                 XMPPEvents.FOCUS_DISCONNECTED, focusComponent, retrySec);
     }
+
     // Reset response timeout
     this.getNextTimeout(true);
     window.setTimeout(() => this.allocateConferenceFocus(callback), waitMs);
@@ -390,10 +404,12 @@ Moderator.prototype._allocateConferenceFocusSuccess = function(
 
     // Reset the error timeout (because we haven't failed here).
     this.getNextErrorTimeout(true);
+
     // eslint-disable-next-line newline-per-chained-call
     if ($(result).find('conference').attr('ready') === 'true') {
         // Reset the non-error timeout (because we've succeeded here).
         this.getNextTimeout(true);
+
         // Exec callback
         callback();
     } else {
@@ -448,6 +464,7 @@ Moderator.prototype._getLoginUrl = function(popup, urlCb, failureCb) {
         str = `POPUP ${str}`;
     }
     iq.c('login-url', attrs);
+
     /**
      * Implements a failure callback which reports an error message and an error
      * through (1) GlobalOnErrorHandler, (2) logger, and (3) failureCb.

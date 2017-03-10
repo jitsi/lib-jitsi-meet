@@ -187,6 +187,7 @@ function StatsCollector(
     if (!keys) {
         throw `The browser type '${this._browserType}' isn't supported!`;
     }
+
     /**
      * The function which is to be used to retrieve the value associated in a
      * report returned by RTCPeerConnection#getStats with a LibJitsiMeet
@@ -210,6 +211,7 @@ function StatsCollector(
 
     this.statsIntervalId = null;
     this.statsIntervalMilis = statsInterval;
+
     // Map of ssrcs to SsrcStats
     this.ssrc2stats = {};
 }
@@ -438,6 +440,7 @@ StatsCollector.prototype.processStatsReport = function() {
             if (!ip || !type || !localip || active != 'true') {
                 continue;
             }
+
             // Save the address unless it has been saved already.
             const conferenceStatsTransport = this.conferenceStats.transport;
 
@@ -588,6 +591,7 @@ StatsCollector.prototype.processStatsReport = function() {
     Object.keys(this.ssrc2stats).forEach(
         function(ssrc) {
             const ssrcStats = this.ssrc2stats[ssrc];
+
             // process packet loss stats
             const loss = ssrcStats.loss;
             const type = loss.isDownloadStream ? 'download' : 'upload';

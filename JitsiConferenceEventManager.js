@@ -66,6 +66,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     this.chatRoomForwarder.forward(XMPPEvents.MUC_JOINED,
         JitsiConferenceEvents.CONFERENCE_JOINED);
+
     // send some analytics events
     chatRoom.addListener(XMPPEvents.MUC_JOINED,
         () => {
@@ -554,6 +555,7 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
 
         conference.rtc.setAudioLevel(resource, level);
     });
+
     // Forward the "before stats disposed" event
     conference.statistics.addBeforeDisposedListener(() => {
         conference.eventEmitter.emit(

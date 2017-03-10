@@ -43,6 +43,7 @@ SphinxService.prototype.sendRequest = function(audioFileBlob, callback) {
                 `unable to accept response from sphinx server. status: ${
                     request.status}`);
         }
+
         // if not ready no point to throw an error
     };
     request.open('POST', this.url);
@@ -60,6 +61,7 @@ SphinxService.prototype.sendRequest = function(audioFileBlob, callback) {
  */
 SphinxService.prototype.formatResponse = function(response) {
     const result = JSON.parse(response).objects;
+
     // make sure to delete the session id object, which is always
     // the first value in the JSON array
 
@@ -81,10 +83,12 @@ SphinxService.prototype.formatResponse = function(response) {
  */
 SphinxService.prototype.verify = function(response) {
     console.log(`response from server:${response.toString()}`);
+
     // test if server responded with a string object
     if (typeof response !== 'string') {
         return false;
     }
+
     // test if the string can be parsed into valid JSON
     let json;
 
@@ -95,10 +99,12 @@ SphinxService.prototype.verify = function(response) {
 
         return false;
     }
+
     // check if the JSON has a "objects" value
     if (json.objects === undefined) {
         return false;
     }
+
     // get the "objects" value and check for a session ID
     const array = json.objects;
 

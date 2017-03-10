@@ -69,6 +69,7 @@ const SDPUtil = {
 
         return data;
     },
+
     /**
      * Parses SDP line "a=sctpmap:..." and extracts SCTP port from it.
      * @param line eg. "a=sctpmap:5000 webrtc-datachannel"
@@ -78,6 +79,7 @@ const SDPUtil = {
         const parts = line.substring(10).split(' ');
         const sctpPort = parts[0];
         const protocol = parts[1];
+
         // Stream count is optional
         const streamCount = parts.length > 2 ? parts[2] : null;
 
@@ -152,6 +154,7 @@ const SDPUtil = {
         candidate.priority = elems[3];
         candidate.ip = elems[4];
         candidate.port = elems[5];
+
         // elems[6] => "typ"
         candidate.type = elems[7];
         candidate.generation = 0; // default value, may be overwritten below
@@ -267,6 +270,7 @@ const SDPUtil = {
         if (!sessionpart) {
             return false;
         }
+
         // search session part
         lines = sessionpart.split('\r\n');
         for (let j = 0; j < lines.length; j++) {
@@ -289,6 +293,7 @@ const SDPUtil = {
         if (needles.length || !sessionpart) {
             return needles;
         }
+
         // search session part
         lines = sessionpart.split('\r\n');
         for (let j = 0; j < lines.length; j++) {
@@ -328,6 +333,7 @@ const SDPUtil = {
         candidate.priority = elems[3];
         candidate.ip = elems[4];
         candidate.port = elems[5];
+
         // elems[6] => "typ"
         candidate.type = elems[7];
 
@@ -367,6 +373,7 @@ const SDPUtil = {
         line += ' ';
 
         let protocol = cand.getAttribute('protocol');
+
         // use tcp candidates for FF
 
         if (RTCBrowserType.isFirefox() && protocol.toLowerCase() == 'ssltcp') {
@@ -509,6 +516,7 @@ const SDPUtil = {
     getMedia(sdp, type) {
         return sdp.media.find(m => m.type === type);
     },
+
     /**
      * Sets the given codecName as the preferred codec by
      *  moving it to the beginning of the payload types

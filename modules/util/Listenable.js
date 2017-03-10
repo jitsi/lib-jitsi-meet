@@ -13,6 +13,7 @@ export default class Listenable {
      */
     constructor(eventEmitter = new EventEmitter()) {
         this.eventEmitter = eventEmitter;
+
         // aliases for addListener/removeListener
         this.addEventListener = this.on = this.addListener;
         this.removeEventListener = this.off = this.removeListener;

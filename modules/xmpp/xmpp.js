@@ -176,6 +176,7 @@ export default class XMPP extends Listenable {
                 // more than 4 times. The connection is dropped without
                 // supplying a reason(error message/event) through the API.
                 logger.error('XMPP connection dropped!');
+
                 // XXX if the last request error is within 5xx range it means it
                 // was a server failure
                 const lastErrorStatus = Strophe.getLastErrorStatus();
@@ -260,6 +261,7 @@ export default class XMPP extends Listenable {
             let configDomain
                 = this.options.hosts.anonymousdomain
                     || this.options.hosts.domain;
+
             // Force authenticated domain if room is appended with '?login=true'
             // or if we're joining with the token
 
@@ -288,6 +290,7 @@ export default class XMPP extends Listenable {
             // node of the anonymous JID is very long - here we trim it a bit
             mucNickname = mucNickname.substr(0, 8);
         }
+
         // Constant JIDs need some random part to be appended in order to be
         // able to join the MUC more than once.
         if (this.authenticatedUser || cfgNickname !== null) {

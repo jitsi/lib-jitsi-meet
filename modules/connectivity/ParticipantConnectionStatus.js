@@ -34,6 +34,7 @@ export default class ParticipantConnectionStatus {
     constructor(rtc, conference, rtcMuteTimeout) {
         this.rtc = rtc;
         this.conference = conference;
+
         /**
          * A map of the "endpoint ID"(which corresponds to the resource part
          * of MUC JID(nickname)) to the timeout callback IDs scheduled using
@@ -41,6 +42,7 @@ export default class ParticipantConnectionStatus {
          * @type {Object.<string, number>}
          */
         this.trackTimers = {};
+
         /**
          * This map holds the endpoint connection status received from the JVB
          * (as it might be different than the one stored in JitsiParticipant).
@@ -48,6 +50,7 @@ export default class ParticipantConnectionStatus {
          * @type {Object.<string, boolean>}
          */
         this.connStatusFromJvb = { };
+
         /**
          * How long we're going to wait after the RTC video track muted event
          * for the corresponding signalling mute event, before the connection
@@ -59,6 +62,7 @@ export default class ParticipantConnectionStatus {
         this.rtcMuteTimeout
             = typeof rtcMuteTimeout === 'number'
                 ? rtcMuteTimeout : DEFAULT_RTC_MUTE_TIMEOUT;
+
         /**
          * This map holds a timestamp indicating  when participant's video track
          * was RTC muted (it is assumed that each participant can have only 1

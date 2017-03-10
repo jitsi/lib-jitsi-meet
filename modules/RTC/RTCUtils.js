@@ -49,8 +49,10 @@ const devices = {
 let audioOutputDeviceId = 'default'; // default device
 // whether user has explicitly set a device to use
 let audioOutputChanged = false;
+
 // Disables Acoustic Echo Cancellation
 let disableAEC = false;
+
 // Disables Noise Suppression
 let disableNS = false;
 
@@ -61,6 +63,7 @@ const isAudioOutputDeviceChangeAvailable
 let currentlyAvailableMediaDevices;
 
 let rawEnumerateDevicesWithCallback;
+
 /**
  * "rawEnumerateDevicesWithCallback" will be initialized only after WebRTC is
  * ready. Otherwise it is too early to assume that the devices listing is not
@@ -75,6 +78,7 @@ function initRawEnumerateDevicesWithCallback() {
                 callback,
                 () => callback([]));
         }
+
         // Safari:
         // "ReferenceError: Can't find variable: MediaStreamTrack"
         // when Temasys plugin is not installed yet, have to delay this call
@@ -164,6 +168,7 @@ function getConstraints(um, options) {
                 // New style of setting device id.
                 constraints.video.deviceId = options.cameraDeviceId;
             }
+
             // Old style.
             constraints.video.optional.push({
                 sourceId: options.cameraDeviceId
@@ -223,11 +228,13 @@ function getConstraints(um, options) {
                     // New style of setting device id.
                     constraints.audio.deviceId = options.micDeviceId;
                 }
+
                 // Old style.
                 constraints.audio.optional.push({
                     sourceId: options.micDeviceId
                 });
             }
+
             // if it is good enough for hangouts...
             constraints.audio.optional.push(
                 { googEchoCancellation: !disableAEC },
@@ -533,6 +540,7 @@ function convertMediaStreamTrackSource(source) {
     return {
         facing: source.facing || null,
         label: source.label,
+
         // theoretically deprecated MediaStreamTrack.getSources should
         // not return 'audiooutput' devices but let's handle it in any
         // case
@@ -620,6 +628,7 @@ function handleLocalStream(streams, resolution) {
             audioStream = streams.audio;
             videoStream = streams.video;
         }
+
         // Again, different choices on different types of browser.
         desktopStream = streams.desktopStream || streams.desktop;
     }
@@ -668,6 +677,7 @@ function wrapAttachMediaStream(origAttachMediaStream) {
                 && rtcUtils.isDeviceChangeAvailable('output')
                 && stream.getAudioTracks
                 && stream.getAudioTracks().length
+
                 // we skip setting audio output if there was no explicit change
                 && audioOutputChanged) {
             element.setSinkId(rtcUtils.getAudioOutputDevice())
@@ -729,6 +739,7 @@ function defaultSetVideoSrc(element, stream) {
 
     if (stream) {
         src = stream.jitsiObjectURL;
+
         // Save the created URL for stream so we can reuse it and not keep
         // creating URLs.
         if (!src) {
@@ -838,6 +849,7 @@ class RTCUtils extends Listenable {
                     // for the id of MediaStream. Let's just say that a number
                     // contains no special characters.
                     const id = stream.id;
+
                     // XXX The return statement is affected by automatic
                     // semicolon insertion (ASI). No line terminator is allowed
                     // between the return keyword and the expression.
@@ -1026,6 +1038,7 @@ class RTCUtils extends Listenable {
                 reject(new Error('Desktop sharing is not supported!'));
             }
             if (RTCBrowserType.isFirefox()
+
                     // XXX The react-native-webrtc implementation that we
                     // utilize on React Native at the time of this writing does
                     // not support the MediaStream constructors defined by
@@ -1048,6 +1061,7 @@ class RTCUtils extends Listenable {
                         screenObtainer,
                         dsOptions);
                 }
+
                 // With FF/IE we can't split the stream into audio and video because FF
                 // doesn't support media stream constructors. So, we need to get the
                 // audio stream separately from the video stream using two distinct GUM
@@ -1199,6 +1213,7 @@ class RTCUtils extends Listenable {
             };
 
             eventEmitter.addListener(RTCEvents.RTC_READY, listener);
+
                 // We have no failed event, so... it either resolves or nothing
                 // happens
         });
@@ -1233,6 +1248,7 @@ class RTCUtils extends Listenable {
                 || RTCBrowserType.isNWJS()
                 || RTCBrowserType.isElectron();
     }
+
     /**
      * A method to handle stopping of the stream.
      * One point to handle the differences in various implementations.

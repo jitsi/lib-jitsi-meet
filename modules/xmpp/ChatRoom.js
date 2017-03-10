@@ -49,6 +49,7 @@ const parser = {
                 packet.up();
             }
         }
+
         // packet.up();
     }
 };
@@ -114,6 +115,7 @@ export default class ChatRoom extends Listenable {
             'value': navigator.userAgent,
             'attributes': { xmlns: 'http://jitsi.org/jitmeet/user-agent' }
         });
+
         // We need to broadcast 'videomuted' status from the beginning, cause Jicofo
         // makes decisions based on that. Initialize it with 'false' here.
         this.addVideoInfoToPresence(false);
@@ -273,6 +275,7 @@ export default class ChatRoom extends Listenable {
 
     onPresence(pres) {
         const from = pres.getAttribute('from');
+
         // Parse roles.
         const member = {};
 
@@ -302,6 +305,7 @@ export default class ChatRoom extends Listenable {
         parser.packet2JSON(pres, nodes);
         this.lastPresences[from] = nodes;
         let jibri = null;
+
         // process nodes to extract data needed for MUC_JOINED and
         // MUC_MEMBER_JOINED events
 
@@ -692,8 +696,10 @@ export default class ChatRoom extends Listenable {
                         type: 'submit' });
                     formsubmit.c('field', { 'var': 'FORM_TYPE' }).c('value').t('http://jabber.org/protocol/muc#roomconfig').up().up();
                     formsubmit.c('field', { 'var': 'muc#roomconfig_roomsecret' }).c('value').t(key).up().up();
+
                     // Fixes a bug in prosody 0.9.+ https://code.google.com/p/lxmppd/issues/detail?id=373
                     formsubmit.c('field', { 'var': 'muc#roomconfig_whois' }).c('value').t('anyone').up().up();
+
                     // FIXME: is muc#roomconfig_passwordprotectedroom required?
                     this.connection.sendIQ(formsubmit, onSuccess, onError);
                 } else {

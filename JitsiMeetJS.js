@@ -140,6 +140,7 @@ const LibJitsiMeet = {
 
         return RTC.init(options || {});
     },
+
     /**
      * Returns whether the desktop sharing is enabled or not.
      * @returns {boolean}
@@ -150,6 +151,7 @@ const LibJitsiMeet = {
     setLogLevel(level) {
         Logger.setLogLevel(level);
     },
+
     /**
      * Sets the log level to the <tt>Logger</tt> instance with given id.
      * @param {Logger.levels} level the logging level to be set
@@ -160,6 +162,7 @@ const LibJitsiMeet = {
     setLogLevelById(level, id) {
         Logger.setLogLevelById(level, id);
     },
+
     /**
      * Registers new global logger transport to the library logging framework.
      * @param globalTransport
@@ -168,6 +171,7 @@ const LibJitsiMeet = {
     addGlobalLogTransport(globalTransport) {
         Logger.addGlobalTransport(globalTransport);
     },
+
     /**
      * Removes global logging transport from the library logging framework.
      * @param globalTransport
@@ -176,6 +180,7 @@ const LibJitsiMeet = {
     removeGlobalLogTransport(globalTransport) {
         Logger.removeGlobalTransport(globalTransport);
     },
+
     /**
      * Creates the media tracks and returns them trough the callback.
      * @param options Object with properties / settings specifying the tracks which should be created.
@@ -339,6 +344,7 @@ const LibJitsiMeet = {
                 return Promise.reject(error);
             });
     },
+
     /**
      * Checks if its possible to enumerate available cameras/micropones.
      * @returns {Promise<boolean>} a Promise which will be resolved only once
@@ -352,6 +358,7 @@ const LibJitsiMeet = {
 
         return this.mediaDevices.isDeviceListAvailable();
     },
+
     /**
      * Returns true if changing the input (camera / microphone) or output
      * (audio) device is supported and false if not.
@@ -366,6 +373,7 @@ const LibJitsiMeet = {
 
         return this.mediaDevices.isDeviceChangeAvailable(deviceType);
     },
+
     /**
      * Executes callback with list of media devices connected.
      * @param {function} callback
@@ -376,6 +384,7 @@ const LibJitsiMeet = {
             + 'JitsiMeetJS.mediaDevices.enumerateDevices instead');
         this.mediaDevices.enumerateDevices(callback);
     },
+
     /**
      * @returns function that can be used to be attached to window.onerror and
      * if options.enableWindowOnErrorHandler is enabled returns

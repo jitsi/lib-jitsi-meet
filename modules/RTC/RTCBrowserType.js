@@ -198,6 +198,7 @@ function detectChrome() {
     if (navigator.webkitGetUserMedia) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_CHROME;
         const userAgent = navigator.userAgent.toLowerCase();
+
         // We can assume that user agent is chrome, because it's
         // enforced when 'ext' streaming method is set
         const ver = parseInt(userAgent.match(/chrome\/(\d+)\./)[1], 10);
@@ -323,6 +324,7 @@ function detectReactNative() {
     const match
         = navigator.userAgent.match(/\b(react[ \t_-]*native)(?:\/(\S+))?/i);
     let version;
+
     // If we're remote debugging a React Native app, it may be treated as
     // Chrome. Check navigator.product as well and always return some version
     // even if we can't get the real one.
@@ -358,6 +360,7 @@ function detectBrowser() {
         detectIE,
         detectSafari
     ];
+
     // Try all browser detectors
 
     for (let i = 0; i < detectors.length; i++) {

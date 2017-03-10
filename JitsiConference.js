@@ -50,6 +50,7 @@ function JitsiConference(options) {
     this._init(options);
     this.componentsVersions = new ComponentsVersions(this);
     this.participants = {};
+
     /**
      * Jingle Session instance
      * @type {JingleSessionPC}
@@ -70,6 +71,7 @@ function JitsiConference(options) {
         video: undefined
     };
     this.isMutedByFocus = false;
+
     // Flag indicates if the 'onCallEnded' method was ever called on this
     // instance. Used to log extra analytics event for debugging purpose.
     // We need to know if the potential issue happened before or after
@@ -106,6 +108,7 @@ JitsiConference.prototype._init = function(options) {
     if (options.connection) {
         this.connection = options.connection;
         this.xmpp = this.connection.xmpp;
+
         // Setup XMPP events only if we have new connection object.
         this.eventManager.setupXMPPListeners();
     }
@@ -198,6 +201,7 @@ JitsiConference.prototype.leave = function() {
             // ChatRoom instance.
             this.getParticipants().forEach(
                 participant => this.onMemberLeft(participant.getJid()));
+
             // Close the JingleSession
             if (this.jingleSession) {
                 this.jingleSession.close();
@@ -427,12 +431,14 @@ JitsiConference.prototype.setSubject = function(subject) {
 JitsiConference.prototype.getTranscriber = function() {
     if (this.transcriber === undefined) {
         this.transcriber = new Transcriber();
+
         // add all existing local audio tracks to the transcriber
         const localAudioTracks = this.getLocalTracks(MediaType.AUDIO);
 
         for (const localAudio of localAudioTracks) {
             this.transcriber.addTrack(localAudio);
         }
+
         // and all remote audio tracks
         const remoteAudioTracks = this.rtc.getRemoteTracks(MediaType.AUDIO);
 
@@ -490,6 +496,7 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
     // check if track was muted by focus and now is unmuted by user
     if (this.isMutedByFocus && track.isAudioTrack() && !track.isMuted()) {
         this.isMutedByFocus = false;
+
         // unmute local user on server
         this.room.muteParticipant(this.room.myroomjid, false);
     }
@@ -553,6 +560,7 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
             return Promise.reject(
                 new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
         }
+
         // Set up the ssrcHandler for the new track before we add it at the lower levels
         newTrack.ssrcHandler = function(conference, ssrcMap) {
             const trackSSRCInfo = ssrcMap.get(this.getMSID());
@@ -1068,10 +1076,12 @@ JitsiConference.prototype.onIncomingCall
     // Accept incoming call
     this.jingleSession = jingleSession;
     this.room.connectionTimes['session.initiate'] = now;
+
     // Log "session.restart"
     if (this.wasStopped) {
         Statistics.sendEventToAll('session.restart');
     }
+
     // add info whether call is cross-region
     let crossRegion = null;
 
@@ -1090,9 +1100,11 @@ JitsiConference.prototype.onIncomingCall
     }
 
     this.rtc.initializeDataChannels(jingleSession.peerconnection);
+
     // Add local Tracks to the ChatRoom
     this.getLocalTracks().forEach(localTrack => {
         let ssrcInfo = null;
+
         /**
          * We don't do this for Firefox because, on Firefox, we keep the
          *  stream in the peer connection and just set 'enabled' on the
@@ -1145,6 +1157,7 @@ JitsiConference.prototype.onIncomingCall
             logger.error(e);
         }
     });
+
     // Generate the 'recvonly' SSRC in case there are no video tracks
     if (!this.getLocalTracks(MediaType.VIDEO).length) {
         jingleSession.generateRecvonlySsrc();
@@ -1178,17 +1191,22 @@ JitsiConference.prototype.onCallEnded
 = function(JingleSession, reasonCondition, reasonText) {
     logger.info(`Call ended: ${reasonCondition} - ${reasonText}`);
     this.wasStopped = true;
+
     // Send session.terminate event
     Statistics.sendEventToAll('session.terminate');
+
     // Stop the stats
     if (this.statistics) {
         this.statistics.stopRemoteStats();
         this.statistics.stopCallStats();
     }
+
     // Current JingleSession is invalid so set it to null on the room
     this.jingleSession = null;
+
     // Let the RTC service do any cleanups
     this.rtc.onCallEnded();
+
     // PeerConnection has been closed which means that SSRCs stored in
     // JitsiLocalTrack will not match those assigned by the old PeerConnection
     // and SSRC replacement logic will not work as expected.
@@ -1200,6 +1218,7 @@ JitsiConference.prototype.onCallEnded
     this.getLocalTracks().forEach(localTrack => {
         // Reset SSRC as it will no longer be valid
         localTrack._setSSRC(null);
+
         // Bind the handler to fetch new SSRC, it will un register itself once
         // it reads the values
         self.rtc.addListener(

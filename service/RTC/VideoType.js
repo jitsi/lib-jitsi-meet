@@ -8,6 +8,7 @@ const VideoType = {
      * The camera video type.
      */
     CAMERA: 'camera',
+
     /**
      * The desktop video type.
      */

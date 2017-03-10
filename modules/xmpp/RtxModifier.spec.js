@@ -97,8 +97,10 @@ describe('RtxModifier', () => {
                 const newPrimaryVideoSsrc = getPrimaryVideoSsrc(newSdp);
 
                 expect(newPrimaryVideoSsrc).toEqual(this.primaryVideoSsrc);
+
           // Should now have an rtx ssrc as well
                 expect(numVideoSsrcs(newSdp)).toEqual(2);
+
           // Should now have an FID group
                 const fidGroups = getVideoGroups(newSdp, 'FID');
 
@@ -184,8 +186,10 @@ describe('RtxModifier', () => {
                 const newPrimaryVideoSsrcs = getPrimaryVideoSsrcs(newSdp);
 
                 expect(newPrimaryVideoSsrcs).toEqual(this.primaryVideoSsrcs);
+
           // Should now have rtx ssrcs as well
                 expect(numVideoSsrcs(newSdp)).toEqual(this.primaryVideoSsrcs.length * 2);
+
           // Should now have FID groups
                 const fidGroups = getVideoGroups(newSdp, 'FID');
 
@@ -206,6 +210,7 @@ describe('RtxModifier', () => {
 
                 const rtxMapping = new Map();
                 let fidGroups = getVideoGroups(newSdp, 'FID');
+
           // Save the first mapping that is made
 
                 fidGroups.forEach(fidGroup => {
@@ -215,6 +220,7 @@ describe('RtxModifier', () => {
 
                     rtxMapping.set(fidGroupPrimarySsrc, fidGroupRtxSsrc);
                 });
+
           // Now pass the original sdp through again and make sure we get the same mapping
                 newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(this.multipleVideoSdp));
                 newSdp = transform.parse(newSdpStr);
@@ -239,6 +245,7 @@ describe('RtxModifier', () => {
 
                 const rtxMapping = new Map();
                 let fidGroups = getVideoGroups(newSdp, 'FID');
+
           // Save the first mapping that is made
 
                 fidGroups.forEach(fidGroup => {
@@ -250,6 +257,7 @@ describe('RtxModifier', () => {
                 });
 
                 this.rtxModifier.clearSsrcCache();
+
           // Now pass the original sdp through again and make sure we get the same mapping
                 newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(this.multipleVideoSdp));
                 newSdp = transform.parse(newSdpStr);

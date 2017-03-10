@@ -46,6 +46,7 @@ const JitsiMediaDevices = {
     enumerateDevices(callback) {
         RTC.enumerateDevices(callback);
     },
+
     /**
      * Checks if its possible to enumerate available cameras/micropones.
      * @returns {Promise<boolean>} a Promise which will be resolved only once
@@ -55,6 +56,7 @@ const JitsiMediaDevices = {
     isDeviceListAvailable() {
         return RTC.isDeviceListAvailable();
     },
+
     /**
      * Returns true if changing the input (camera / microphone) or output
      * (audio) device is supported and false if not.
@@ -65,6 +67,7 @@ const JitsiMediaDevices = {
     isDeviceChangeAvailable(deviceType) {
         return RTC.isDeviceChangeAvailable(deviceType);
     },
+
     /**
      * Returns true if user granted permission to media devices.
      * @param {'audio'|'video'} [type] - type of devices to check,
@@ -83,6 +86,7 @@ const JitsiMediaDevices = {
             return permissions.video === true && permissions.audio === true;
         }
     },
+
     /**
      * Returns currently used audio output device id, 'default' stands
      * for default device
@@ -91,6 +95,7 @@ const JitsiMediaDevices = {
     getAudioOutputDevice() {
         return RTC.getAudioOutputDevice();
     },
+
     /**
      * Sets current audio output device.
      * @param {string} deviceId - id of 'audiooutput' device from
@@ -112,6 +117,7 @@ const JitsiMediaDevices = {
 
         return RTC.setAudioOutputDevice(deviceId);
     },
+
     /**
      * Adds an event handler.
      * @param {string} event - event name
@@ -120,6 +126,7 @@ const JitsiMediaDevices = {
     addEventListener(event, handler) {
         eventEmitter.addListener(event, handler);
     },
+
     /**
      * Removes event handler.
      * @param {string} event - event name
@@ -128,6 +135,7 @@ const JitsiMediaDevices = {
     removeEventListener(event, handler) {
         eventEmitter.removeListener(event, handler);
     },
+
     /**
      * Emits an event.
      * @param {string} event - event name

@@ -20,6 +20,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
 
     init(connection) {
         super.init(connection);
+
         // add handlers (just once)
         this.connection.addHandler(this.onPresence.bind(this), null,
             'presence', null, null, null, null);

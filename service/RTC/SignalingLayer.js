@@ -23,6 +23,7 @@ export default class SignalingLayer {
     getSSRCOwner(ssrc) { // eslint-disable-line no-unused-vars
         throw new Error('not implemented');
     }
+
     /**
      * Obtains the info about given media advertised in the MUC presence of
      * the participant identified by the given MUC JID.

@@ -108,6 +108,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
                 if (this.failedPings >= PING_THRESHOLD) {
                     GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
                     logger.error(errmsg, error);
+
                     // FIXME it doesn't help to disconnect when 3rd PING
                     // times out, it only stops Strophe from retrying.
                     // Not really sure what's the right thing to do in that

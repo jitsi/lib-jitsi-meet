@@ -32,6 +32,7 @@ function loadCallStatsAPI(customScriptUrl) {
                 /* prepend */ true);
         isCallstatsLoaded = true;
     }
+
     // FIXME At the time of this writing, we hope that the callstats.io API will
     // have loaded by the time we needed it (i.e. CallStats.init is invoked).
 }
@@ -87,6 +88,7 @@ function Statistics(xmpp, options) {
     this.options = options || {};
     this.callStatsIntegrationEnabled
         = this.options.callStatsID && this.options.callStatsSecret
+
             // Even though AppID and AppSecret may be specified, the integration
             // of callstats.io may be disabled because of globally-disallowed
             // requests to any third parties.
@@ -95,6 +97,7 @@ function Statistics(xmpp, options) {
         loadCallStatsAPI(this.options.callStatsCustomScriptUrl);
     }
     this.callStats = null;
+
     // Flag indicates whether or not the CallStats have been started for this
     // Statistics instance
     this.callStatsStarted = false;
@@ -238,6 +241,7 @@ Statistics.prototype.stopCallStats = function() {
         if (index > -1) {
             Statistics.callsStatsInstances.splice(index, 1);
         }
+
         // The next line is commented because we need to be able to send
         // feedback even after the conference has been destroyed.
         // this.callstats = null;

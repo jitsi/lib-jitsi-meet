@@ -56,6 +56,7 @@ export default class JingleSessionPC extends JingleSession {
         this.closed = false;
 
         this.modifyingLocalStreams = false;
+
         /**
          * Used to keep state about muted/unmuted video streams
          *  so we can prevent errant source-add/source-removes
@@ -85,6 +86,7 @@ export default class JingleSessionPC extends JingleSession {
 
         this.webrtcIceUdpDisable = Boolean(options.webrtcIceUdpDisable);
         this.webrtcIceTcpDisable = Boolean(options.webrtcIceTcpDisable);
+
         /**
          * Flag used to enforce ICE failure through the URL parameter for
          * the automatic testing purpose.
@@ -98,15 +100,19 @@ export default class JingleSessionPC extends JingleSession {
 
     doInitialize() {
         this.lasticecandidate = false;
+
         // True if reconnect is in progress
         this.isreconnect = false;
+
         // Set to true if the connection was ever stable
         this.wasstable = false;
+
         // Create new peer connection instance
         this.peerconnection
             = this.rtc.createPeerConnection(
                 this,
                 this.connection.jingle.ice_config,
+
                 /* Options */
                 {
                     disableSimulcast: this.room.options.disableSimulcast,
@@ -123,6 +129,7 @@ export default class JingleSessionPC extends JingleSession {
                 // the check complete.
                 return;
             }
+
             // XXX this is broken, candidate is not parsed.
             const candidate = ev.candidate;
 
@@ -145,6 +152,7 @@ export default class JingleSessionPC extends JingleSession {
             }
             this.sendIceCandidate(candidate);
         };
+
         // Note there is a change in the spec about closed:
         // This value moved into the RTCPeerConnectionState enum in
         // the May 13, 2016 draft of the specification, as it reflects the state
@@ -165,6 +173,7 @@ export default class JingleSessionPC extends JingleSession {
                 this.room.eventEmitter.emit(XMPPEvents.SUSPEND_DETECTED);
             }
         };
+
         /**
          * The oniceconnectionstatechange event handler contains the code to
          * execute when the iceconnectionstatechange event, of type Event,
@@ -206,6 +215,7 @@ export default class JingleSessionPC extends JingleSession {
                     break;
                 }
                 this.isreconnect = true;
+
                     // Informs interested parties that the connection has been
                     // interrupted.
                 if (this.wasstable) {
@@ -260,6 +270,7 @@ export default class JingleSessionPC extends JingleSession {
             }
         } else {
             logger.log('sendIceCandidate: last candidate.');
+
             // FIXME: remember to re-think in ICE-restart
             this.lasticecandidate = true;
         }
@@ -294,6 +305,7 @@ export default class JingleSessionPC extends JingleSession {
                 for (let i = 0; i < cands.length; i++) {
                     const candidate
                         = SDPUtil.candidateToJingle(cands[i].candidate);
+
                     // Mangle ICE candidate if 'failICE' test option is enabled
 
                     if (this.failICE) {
@@ -301,6 +313,7 @@ export default class JingleSessionPC extends JingleSession {
                     }
                     cand.c('candidate', candidate).up();
                 }
+
                 // add fingerprint
                 const fingerprint_line
                     = SDPUtil.find_line(
@@ -323,6 +336,7 @@ export default class JingleSessionPC extends JingleSession {
                 cand.up(); // content
             }
         }
+
         // might merge last-candidate notification into this, but it is called
         // a lot later. See webrtc issue #2340
         // logger.log('was this the last candidate', this.lasticecandidate);
@@ -507,11 +521,13 @@ export default class JingleSessionPC extends JingleSession {
             success,
             this.newJingleErrorHandler(accept, error => {
                 failure(error);
+
                 // 'session-accept' is a critical timeout and we'll
                 // have to restart
                 this.room.eventEmitter.emit(XMPPEvents.SESSION_ACCEPT_TIMEOUT);
             }),
             IQ_TIMEOUT);
+
         // XXX Videobridge needs WebRTC's answer (ICE ufrag and pwd, DTLS
         // fingerprint and setup) ASAP in order to start the connection
         // establishment.
@@ -688,6 +704,7 @@ export default class JingleSessionPC extends JingleSession {
                                 }\r\n`;
                     }
                 });
+
             // handles both >source and >description>source
             const tmp
                 = $(content).find(
@@ -993,6 +1010,7 @@ export default class JingleSessionPC extends JingleSession {
             const workFunction = finishedCallback => {
                 const oldSdp
                     = new SDP(this.peerconnection.localDescription.sdp);
+
                 // NOTE the code below assumes that no more than 1 video track
                 // can be added to the peer connection.
                 // Transition from no video to video (possibly screen sharing)
@@ -1004,6 +1022,7 @@ export default class JingleSessionPC extends JingleSession {
                     // 1. source-remove for the recvonly
                     // 2. source-add for the new video stream
                     this.peerconnection.clearRecvonlySsrc();
+
                 // Transition from video to no video
                 } else if (oldTrack && oldTrack.isVideoTrack() && !newTrack) {
                     // Clearing current primary SSRC and generating the recvonly
@@ -1090,6 +1109,7 @@ export default class JingleSessionPC extends JingleSession {
                     }
                 });
             const ssrcs = [];
+
             // handles both >source and >description>source versions
             const tmp
                 = $(content).find(
@@ -1168,6 +1188,7 @@ export default class JingleSessionPC extends JingleSession {
                 .then(() => {
                     const newSdp
                         = new SDP(this.peerconnection.localDescription.sdp);
+
                     // FIXME objects should not be logged
 
                     logger.log('SDPs', oldSdp, newSdp);
@@ -1203,6 +1224,7 @@ export default class JingleSessionPC extends JingleSession {
             return;
         }
         let sender = null;
+
         // On Firefox we don't replace MediaStreams as this messes up the
         // m-lines (which can't be removed in Plan Unified) and brings a lot
         // of complications. Instead, we use the RTPSender and remove just
@@ -1470,6 +1492,7 @@ export default class JingleSessionPC extends JingleSession {
      */
     close() {
         this.closed = true;
+
         // do not try to close if already closed.
         this.peerconnection
             && ((this.peerconnection.signalingState

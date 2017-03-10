@@ -184,12 +184,16 @@ const simulcastRtxVideoMLineSdp = ''
 
 // A full sdp string representing a client doing simulcast
 const simulcastSdpStr = baseSessionSdp + baseAudioMLineSdp + simulcastVideoMLineSdp + baseDataMLineSdp;
+
 // A full sdp string representing a client doing simulcast and rtx
 const simulcastRtxSdpStr = baseSessionSdp + baseAudioMLineSdp + simulcastRtxVideoMLineSdp + baseDataMLineSdp;
+
 // A full sdp string representing a client doing a single video stream
 const plainVideoSdpStr = baseSessionSdp + baseAudioMLineSdp + plainVideoMLineSdp + baseDataMLineSdp;
+
 // A full sdp string representing a client doing a single video stream with rtx
 const rtxVideoSdpStr = baseSessionSdp + baseAudioMLineSdp + rtxVideoMLineSdp + baseDataMLineSdp;
+
 // A full sdp string representing a client doing a single video stream with multiple codec options
 const multiCodecVideoSdpStr = baseSessionSdp + baseAudioMLineSdp + multiCodecVideoMLine + baseDataMLineSdp;
 

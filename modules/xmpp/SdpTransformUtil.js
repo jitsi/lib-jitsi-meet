@@ -267,6 +267,7 @@ class MLineWrap {
             // Not using _ssrcs on purpose here
             return this.mLine.ssrcs[0].id;
         }
+
             // Look for a SIM or FID group
         if (this.mLine.ssrcGroups) {
             const simGroup = this.findGroup('SIM');

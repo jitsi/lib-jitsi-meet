@@ -25,6 +25,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                 'OfferToReceiveAudio': true,
                 'OfferToReceiveVideo': true
             }
+
             // MozDontOfferDataChannel: true when this is firefox
         };
     }
@@ -39,6 +40,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         const sid = $(iq).find('jingle').attr('sid');
         const action = $(iq).find('jingle').attr('action');
         const fromJid = iq.getAttribute('from');
+
         // send ack first
         const ack = $iq({ type: 'result',
             to: fromJid,
@@ -60,6 +62,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
 
                 return true;
             }
+
             // local jid is not checked
             if (fromJid != sess.peerjid) {
                 logger.warn(
@@ -84,6 +87,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             return true;
         }
         const now = window.performance.now();
+
         // see http://xmpp.org/extensions/xep-0166.html#concepts-session
 
         switch (action) {
@@ -216,6 +220,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     case 'turns': {
                         dict.url = `${type}:`;
                         const username = el.attr('username');
+
                             // https://code.google.com/p/webrtc/issues/detail?id=1508
 
                         if (username) {
@@ -255,6 +260,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                 logger.warn('getting turn credentials failed', err);
                 logger.warn('is mod_turncredentials or similar installed?');
             });
+
         // implement push?
     }
 

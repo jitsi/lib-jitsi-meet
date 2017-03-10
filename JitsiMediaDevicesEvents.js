@@ -11,6 +11,7 @@
  *  @see https://developer.mozilla.org/en-US/docs/Web/API/MediaDeviceInfo
  */
 export const DEVICE_LIST_CHANGED = 'mediaDevices.devicechange';
+
 /**
  * Indicates that the environment is currently showing permission prompt to
  * access camera and/or microphone. The event provides the following

@@ -63,6 +63,7 @@ function updateAssociatedRtxStream(mLine, primarySsrcInfo, rtxSsrc) {
         ssrcs: `${primarySsrc} ${rtxSsrc}`
     });
 }
+
 /**
  * End helper functions
  */
@@ -148,6 +149,7 @@ export default class RtxModifier {
             } else {
                 logger.debug(
                     `No previously associated rtx ssrc for video ssrc ${ssrc}`);
+
                 // If there's one in the sdp already for it, we'll just set
                 //  that as the corresponding one
                 const previousAssociatedRtxStream = videoMLine.getRtxSSRC(ssrc);
@@ -213,9 +215,11 @@ export default class RtxModifier {
             return sdpStr;
         }
         const fidGroups = videoMLine.findGroups('FID');
+
         // Remove the fid groups from the mline
 
         videoMLine.removeGroupsBySemantics('FID');
+
         // Get the rtx ssrcs and remove them from the mline
         for (const fidGroup of fidGroups) {
             const rtxSsrc = parseSecondarySSRC(fidGroup);

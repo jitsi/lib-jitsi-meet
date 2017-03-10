@@ -85,6 +85,7 @@ const ScreenObtainer = {
                     onSuccess,
                     (error, constraints) => {
                         let jitsiError;
+
                         // FIXME:
                         // This is very very durty fix for recognising that the
                         // user have clicked the cancel button from the Desktop
@@ -255,6 +256,7 @@ const ScreenObtainer = {
                 alert(
                     'Jitsi Desktop Streamer requires update. '
                     + 'Changes will take effect after next Chrome restart.');
+
                 /* eslint-enable no-alert */
             }
 
@@ -264,6 +266,7 @@ const ScreenObtainer = {
                     arg => {
                         logger.log('Extension installed successfully', arg);
                         chromeExtInstalled = true;
+
                         // We need to give a moment to the endpoint to become
                         // available.
                         waitForExtensionAfterInstall(this.options, 200, 10)
@@ -417,6 +420,7 @@ function checkChromeExtInstalled(callback, options) {
 
                 return;
             }
+
             // Check installed extension version
             const extVersion = response.version;
 
@@ -476,6 +480,7 @@ function initInlineInstalls(options) {
 function initChromeExtension(options) {
     // Initialize Chrome extension inline installs
     initInlineInstalls(options);
+
     // Check if extension is installed
     checkChromeExtInstalled((installed, updateRequired) => {
         chromeExtInstalled = installed;

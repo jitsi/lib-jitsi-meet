@@ -169,6 +169,15 @@ module.exports = {
         'key-spacing': 2,
         'keyword-spacing': 2,
         'linebreak-style': [ 'error', 'unix' ],
+        'lines-around-comment': [
+            'error',
+            {
+                'allowBlockStart': true,
+                'allowObjectStart': true,
+                'beforeBlockComment': true,
+                'beforeLineComment': true
+            }
+        ],
         'max-lines': 0,
         'max-nested-callbacks': 2,
         'max-statements': 0,

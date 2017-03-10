@@ -42,6 +42,7 @@ const RTCUIHelper = {
 
         return undefined;
     },
+
     /**
      * Sets 'volume' property of given HTML element displaying RTC audio or
      * video stream.
@@ -53,6 +54,7 @@ const RTCUIHelper = {
             streamElement.volume = volume;
         }
     },
+
     /**
      * Sets 'autoplay' property of given HTML element displaying RTC audio or
      * video stream.

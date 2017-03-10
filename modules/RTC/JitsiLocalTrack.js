@@ -333,6 +333,7 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
                 if (streamInfo) {
                     self._setStream(streamInfo.stream);
                     self.track = streamInfo.track;
+
                     // This is not good when video type changes after
                     // unmute, but let's not crash here
                     if (self.videoType !== streamInfo.videoType) {
@@ -552,6 +553,7 @@ JitsiLocalTrack.prototype.getDeviceId = function() {
  */
 JitsiLocalTrack.prototype._setByteSent = function(bytesSent) {
     this._bytesSent = bytesSent;
+
     // FIXME it's a shame that PeerConnection and ICE status does not belong
     // to the RTC module and it has to be accessed through
     // the conference(and through the XMPP chat room ???) instead

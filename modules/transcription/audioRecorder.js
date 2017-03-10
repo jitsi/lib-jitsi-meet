@@ -16,14 +16,18 @@ const AUDIO_OGG = 'audio/ogg';     // Supported in firefox
 const TrackRecorder = function(track) {
     // The JitsiTrack holding the stream
     this.track = track;
+
     // The MediaRecorder recording the stream
     this.recorder = null;
+
     // The array of data chunks recorded from the stream
     // acts as a buffer until the data is stored on disk
     this.data = null;
+
     // the name of the person of the JitsiTrack. This can be undefined and/or
     // not unique
     this.name = null;
+
     // the time of the start of the recording
     this.startTime = null;
 };
@@ -62,17 +66,21 @@ function stopRecorder(trackRecorder) {
  */
 function instantiateTrackRecorder(track) {
     const trackRecorder = new TrackRecorder(track);
+
     // Create a new stream which only holds the audio track
     const originalStream = trackRecorder.track.getOriginalStream();
     const stream = createEmptyStream();
 
     originalStream.getAudioTracks().forEach(track => stream.addTrack(track));
+
     // Create the MediaRecorder
     trackRecorder.recorder = new MediaRecorder(stream,
         { mimeType: audioRecorder.fileType });
+
     // array for holding the recorder data. Resets it when
     // audio already has been recorder once
     trackRecorder.data = [];
+
     // function handling a dataEvent, e.g the stream gets new data
     trackRecorder.recorder.ondataavailable = function(dataEvent) {
         if (dataEvent.data.size > 0) {
@@ -133,11 +141,14 @@ audioRecorder.prototype.addTrack = function(track) {
     if (track.isAudioTrack()) {
         // create the track recorder
         const trackRecorder = instantiateTrackRecorder(track);
+
         // push it to the local array of all recorders
 
         this.recorders.push(trackRecorder);
+
         // update the name of the trackRecorders
         this.updateNames();
+
         // If we're already recording, immediately start recording this new
         // track.
         if (this.isRecording) {
@@ -211,11 +222,14 @@ audioRecorder.prototype.start = function() {
     if (this.isRecording) {
         throw new Error('audiorecorder is already recording');
     }
+
     // set boolean isRecording flag to true so if new participants join the
     // conference, that track can instantly start recording as well
     this.isRecording = true;
+
     // start all the mediaRecorders
     this.recorders.forEach(trackRecorder => startRecorder(trackRecorder));
+
     // log that recording has started
     console.log(
         `Started the recording of the audio. There are currently ${
@@ -228,6 +242,7 @@ audioRecorder.prototype.start = function() {
 audioRecorder.prototype.stop = function() {
     // set the boolean flag to false
     this.isRecording = false;
+
     // stop all recorders
     this.recorders.forEach(trackRecorder => stopRecorder(trackRecorder));
     console.log('stopped recording');
@@ -263,6 +278,7 @@ audioRecorder.prototype.getRecordingResults = function() {
         throw new Error(
             'cannot get blobs because the AudioRecorder is still recording!');
     }
+
     // make sure the names are up to date before sending them off
     this.updateNames();
 

@@ -45,11 +45,13 @@ export default class RTC extends Listenable {
     constructor(conference, options = {}) {
         super();
         this.conference = conference;
+
         /**
          * A map of active <tt>TraceablePeerConnection</tt>.
          * @type {Map.<number, TraceablePeerConnection>}
          */
         this.peerConnections = new Map();
+
         /**
          * The counter used to generated id numbers assigned to peer connections
          * @type {number}
@@ -57,9 +59,11 @@ export default class RTC extends Listenable {
         this.peerConnectionIdCounter = 1;
 
         this.localTracks = [];
+
         // FIXME: We should support multiple streams per jid.
         this.remoteTracks = {};
         this.options = options;
+
         // A flag whether we had received that the data channel had opened
         // we can get this flag out of sync if for some reason data channel got
         // closed from server, a desired behaviour so we can see errors when this
@@ -120,6 +124,7 @@ export default class RTC extends Listenable {
             this._dataChannelOpenListener = () => {
                 // mark that dataChannel is opened
                 this.dataChannelsOpen = true;
+
                 // when the data channel becomes available, tell the bridge
                 // about video selections so that it can do adaptive simulcast,
                 // we want the notification to trigger even if userJid

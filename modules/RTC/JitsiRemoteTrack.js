@@ -42,10 +42,12 @@ function JitsiRemoteTrack(rtc, conference, ownerEndpointId, stream, track,
     this.rtc = rtc;
     this.ownerEndpointId = ownerEndpointId;
     this.muted = muted;
+
     // we want to mark whether the track has been ever muted
     // to detect ttfm events for startmuted conferences, as it can significantly
     // increase ttfm values
     this.hasBeenMuted = muted;
+
     // Bind 'onmute' and 'onunmute' event handlers
     if (this.rtc && this.track) {
         this._bindMuteHandlers();

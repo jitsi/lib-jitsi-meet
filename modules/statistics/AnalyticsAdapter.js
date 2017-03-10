@@ -12,6 +12,7 @@ class AnalyticsAbstract {
 class CacheAnalytics extends AnalyticsAbstract {
     constructor() {
         super();
+
         // some events may happen before init or implementation script download
         // in this case we accumulate them in this array and send them on init
         this.eventCache = [];

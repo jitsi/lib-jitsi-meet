@@ -6,11 +6,13 @@ const Statistics = require('../statistics/statistics');
  * @type {string}
  */
 ComponentsVersions.FOCUS_COMPONENT = 'focus';
+
 /**
  * The constant for the name of the videobridge component.
  * @type {string}
  */
 ComponentsVersions.VIDEOBRIDGE_COMPONENT = 'videobridge';
+
 /**
  * The constant for the name of the XMPP server component.
  * @type {string}

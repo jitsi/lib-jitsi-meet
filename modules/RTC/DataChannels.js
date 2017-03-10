@@ -71,6 +71,7 @@ DataChannels.prototype.onDataChannel = function(event) {
 
     dataChannel.onmessage = function(event) {
         const data = event.data;
+
         // JSON
         let obj;
 
@@ -125,6 +126,7 @@ DataChannels.prototype.onDataChannel = function(event) {
             } else if (colibriClass === 'LastNEndpointsChangeEvent') {
                 // The new/latest list of last-n endpoint IDs.
                 const lastNEndpoints = obj.lastNEndpoints;
+
                 // The list of endpoint IDs which are entering the list of
                 // last-n at this time i.e. were not in the old list of last-n
                 // endpoint IDs.
@@ -150,6 +152,7 @@ DataChannels.prototype.onDataChannel = function(event) {
                     endpoint, isActive);
             } else {
                 logger.debug('Data channel JSON-formatted message: ', obj);
+
                 // The received message appears to be appropriately formatted
                 // (i.e. is a JSON object which assigns a value to the mandatory
                 // property colibriClass) so don't just swallow it, expose it to

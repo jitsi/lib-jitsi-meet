@@ -55,6 +55,7 @@ export default function() {
                 && msg.indexOf('timed out (secondary), restarting') !== -1) {
             level = Strophe.LogLevel.WARN;
         }
+
         /* eslint-disable no-case-declarations */
         switch (level) {
         case Strophe.LogLevel.DEBUG:
@@ -83,6 +84,7 @@ export default function() {
             logger.error(msg);
             break;
         }
+
         /* eslint-enable no-case-declarations */
     };
 
