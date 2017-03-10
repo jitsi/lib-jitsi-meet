@@ -66,8 +66,8 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         }
 
         // Parse status.
-        if ($(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]' +
-            '>status[code="201"]').length) {
+        if ($(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]'
+            + '>status[code="201"]').length) {
             room.createNonAnonymousRoom();
         }
 

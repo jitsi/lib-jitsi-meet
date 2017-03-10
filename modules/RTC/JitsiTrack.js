@@ -126,8 +126,8 @@ JitsiTrack.prototype._setHandler = function(type, handler) {
 JitsiTrack.prototype._setStream = function(stream) {
     this.stream = stream;
     Object.keys(this.handlers).forEach(function(type) {
-        typeof this.handlers[type] === 'function' &&
-            this._setHandler(type, this.handlers[type]);
+        typeof this.handlers[type] === 'function'
+            && this._setHandler(type, this.handlers[type]);
     }, this);
 };
 
@@ -413,8 +413,8 @@ JitsiTrack.prototype.setAudioOutput = function(audioOutputDeviceId) {
         return element.setSinkId(audioOutputDeviceId)
             .catch(function(error) {
                 logger.warn(
-                    'Failed to change audio output device on element. Default' +
-                    ' or previously set audio output device will be used.',
+                    'Failed to change audio output device on element. Default'
+                    + ' or previously set audio output device will be used.',
                     element, error);
                 throw error;
             });

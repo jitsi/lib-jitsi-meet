@@ -586,8 +586,8 @@ JitsiConference.prototype._doReplaceTrack = function(oldTrack, newTrack) {
  * @param {JitsiLocalTrack} newTrack the new track being created
  */
 JitsiConference.prototype._setupNewTrack = function(newTrack) {
-    if (newTrack.isAudioTrack() || (newTrack.isVideoTrack() &&
-            newTrack.videoType !== VideoType.DESKTOP)) {
+    if (newTrack.isAudioTrack() || (newTrack.isVideoTrack()
+            && newTrack.videoType !== VideoType.DESKTOP)) {
         // Report active device to statistics
         var devices = RTC.getCurrentlyAvailableMediaDevices();
         var device = devices.find(function(d) {
@@ -690,8 +690,8 @@ JitsiConference.prototype.removeLocalStream
  */
 JitsiConference.prototype._generateNewStreamSSRCInfo = function() {
     if (!this.jingleSession) {
-        logger.warn('The call haven\'t been started. ' +
-            'Cannot generate ssrc info at the moment!');
+        logger.warn('The call haven\'t been started. '
+            + 'Cannot generate ssrc info at the moment!');
         return null;
     }
     return this.jingleSession.generateNewStreamSSRCInfo();
@@ -1003,8 +1003,8 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
 /**
  * Handles incoming call event.
  */
-JitsiConference.prototype.onIncomingCall =
-function(jingleSession, jingleOffer, now) {
+JitsiConference.prototype.onIncomingCall
+= function(jingleSession, jingleOffer, now) {
     if (!this.room.isFocus(jingleSession.peerjid)) {
         // Error cause this should never happen unless something is wrong!
         var errmsg = 'Rejecting session-initiate from non-focus user: '
@@ -1417,8 +1417,8 @@ JitsiConference.prototype.setLocalParticipantProperty = function(name, value) {
  * user feedback
  * @param detailedFeedback detailed feedback from the user. Not yet used
  */
-JitsiConference.prototype.sendFeedback =
-function(overallFeedback, detailedFeedback) {
+JitsiConference.prototype.sendFeedback
+= function(overallFeedback, detailedFeedback) {
     this.statistics.sendFeedback(overallFeedback, detailedFeedback);
 };
 

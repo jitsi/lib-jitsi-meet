@@ -173,10 +173,10 @@ export default class JingleSessionPC extends JingleSession {
                 return;
             }
             const now = window.performance.now();
-            this.room.connectionTimes['ice.state.' +
-            this.peerconnection.iceConnectionState] = now;
-            logger.log('(TIME) ICE ' + this.peerconnection.iceConnectionState +
-                ':\t', now);
+            this.room.connectionTimes['ice.state.'
+            + this.peerconnection.iceConnectionState] = now;
+            logger.log('(TIME) ICE ' + this.peerconnection.iceConnectionState
+                + ':\t', now);
             Statistics.analytics.sendEvent(
                 'ice.' + this.peerconnection.iceConnectionState, {value: now});
             this.room.eventEmitter.emit(
@@ -322,8 +322,8 @@ export default class JingleSessionPC extends JingleSession {
         $(contents).each((idx, content) => {
             const ssrcs
                 = $(content).find(
-                    'description>' +
-                    'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
+                    'description>'
+                    + 'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
             ssrcs.each((idx, ssrcElement) => {
                 const ssrc = ssrcElement.getAttribute('ssrc');
                 $(ssrcElement)
@@ -1090,8 +1090,8 @@ export default class JingleSessionPC extends JingleSession {
 
             if (ssrcInfo) {
                 // available only on video mute/unmute
-                this.modifiedSSRCs[ssrcInfo.type] =
-                    this.modifiedSSRCs[ssrcInfo.type] || [];
+                this.modifiedSSRCs[ssrcInfo.type]
+                    = this.modifiedSSRCs[ssrcInfo.type] || [];
                 this.modifiedSSRCs[ssrcInfo.type].push(ssrcInfo);
             }
             if (dontModifySources) {
@@ -1187,8 +1187,8 @@ export default class JingleSessionPC extends JingleSession {
         if (!this.peerconnection) {
             return;
         }
-        if (RTCBrowserType.getBrowserType() ===
-                RTCBrowserType.RTC_BROWSER_FIREFOX) {
+        if (RTCBrowserType.getBrowserType()
+                === RTCBrowserType.RTC_BROWSER_FIREFOX) {
             this._handleFirefoxRemoveStream(actualStream);
         } else if (actualStream) {
             this.peerconnection.removeStream(actualStream);
@@ -1209,8 +1209,8 @@ export default class JingleSessionPC extends JingleSession {
                 finishedCallback();
                 return;
             }
-            if (RTCBrowserType.getBrowserType() ===
-                    RTCBrowserType.RTC_BROWSER_FIREFOX) {
+            if (RTCBrowserType.getBrowserType()
+                    === RTCBrowserType.RTC_BROWSER_FIREFOX) {
                 this._handleFirefoxRemoveStream(stream);
             } else if (stream) {
                 this.removeStreamFromPeerConnection(stream);
@@ -1221,8 +1221,8 @@ export default class JingleSessionPC extends JingleSession {
                     const newSdp
                         = new SDP(this.peerconnection.localDescription.sdp);
                     if (ssrcInfo) {
-                        this.modifiedSSRCs[ssrcInfo.type] =
-                            this.modifiedSSRCs[ssrcInfo.type] || [];
+                        this.modifiedSSRCs[ssrcInfo.type]
+                            = this.modifiedSSRCs[ssrcInfo.type] || [];
                         this.modifiedSSRCs[ssrcInfo.type].push(ssrcInfo);
                     }
                     logger.log('SDPs', oldSdp, newSdp);
@@ -1448,20 +1448,20 @@ export default class JingleSessionPC extends JingleSession {
         this.modifiedSSRCs['unmute'] = [];
         if (ssrcs && ssrcs.length) {
             ssrcs.forEach(function(ssrcObj) {
-                const desc = $(jingle.tree()).find('>jingle>content[name="' +
-                    ssrcObj.mtype + '"]>description');
+                const desc = $(jingle.tree()).find('>jingle>content[name="'
+                    + ssrcObj.mtype + '"]>description');
                 if (!desc || !desc.length) {
                     return;
                 }
                 ssrcObj.ssrcs.forEach(function(ssrc) {
-                    const sourceNode = desc.find('>source[ssrc="' +
-                        ssrc + '"]');
+                    const sourceNode = desc.find('>source[ssrc="'
+                        + ssrc + '"]');
                     sourceNode.remove();
                 });
                 ssrcObj.groups.forEach(function(group) {
-                    const groupNode = desc.find('>ssrc-group[semantics="' +
-                        group.semantics + '"]:has(source[ssrc="' +
-                        group.ssrcs[0] + '"])');
+                    const groupNode = desc.find('>ssrc-group[semantics="'
+                        + group.semantics + '"]:has(source[ssrc="'
+                        + group.ssrcs[0] + '"])');
                     groupNode.remove();
                 });
             });
@@ -1479,29 +1479,29 @@ export default class JingleSessionPC extends JingleSession {
                     const sourceNode
                         = desc.find('>source[ssrc="' + ssrc + '"]');
                     sourceNode.remove();
-                    const sourceXML = '<source ' +
-                        'xmlns="urn:xmpp:jingle:apps:rtp:ssma:0" ssrc="' +
-                        ssrc + '">' +
-                        '<parameter xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"' +
-                        ' value="' + ssrcObj.msid + '" name="msid"/>' +
-                        '<parameter xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"' +
-                        ' value="' + cname + '" name="cname" />' +
-                        '</source>';
+                    const sourceXML = '<source '
+                        + 'xmlns="urn:xmpp:jingle:apps:rtp:ssma:0" ssrc="'
+                        + ssrc + '">'
+                        + '<parameter xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"'
+                        + ' value="' + ssrcObj.msid + '" name="msid"/>'
+                        + '<parameter xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"'
+                        + ' value="' + cname + '" name="cname" />'
+                        + '</source>';
                     desc.append(sourceXML);
                 });
                 ssrcObj.groups.forEach(function(group) {
                     const groupNode
-                        = desc.find('>ssrc-group[semantics="' +
-                            group.semantics + '"]:has(source[ssrc="'
+                        = desc.find('>ssrc-group[semantics="'
+                            + group.semantics + '"]:has(source[ssrc="'
                             + group.ssrcs[0] + '"])');
                     groupNode.remove();
                     desc.append(
-                        '<ssrc-group semantics="' + group.semantics +
-                        '" xmlns="urn:xmpp:jingle:apps:rtp:ssma:0">' +
-                        '<source ssrc="' +
-                            group.ssrcs.join('"/>' + '<source ssrc="') +
-                            '"/>' +
-                        '</ssrc-group>');
+                        '<ssrc-group semantics="' + group.semantics
+                        + '" xmlns="urn:xmpp:jingle:apps:rtp:ssma:0">'
+                        + '<source ssrc="'
+                            + group.ssrcs.join('"/>' + '<source ssrc="')
+                            + '"/>'
+                        + '</ssrc-group>');
                 });
             });
         }
@@ -1520,18 +1520,18 @@ export default class JingleSessionPC extends JingleSession {
             ssrcs.forEach(function(ssrcObj) {
                 ssrcObj.ssrcs.forEach(function(ssrc) {
                     const sourceNode
-                        = $(jingle.tree()).find('>jingle>content[name="' +
-                            ssrcObj.mtype + '"]>description>source[ssrc="' +
-                            ssrc + '"]');
+                        = $(jingle.tree()).find('>jingle>content[name="'
+                            + ssrcObj.mtype + '"]>description>source[ssrc="'
+                            + ssrc + '"]');
                     sourceNode.remove();
                 });
                 ssrcObj.groups.forEach(function(group) {
                     const groupNode
                         = $(jingle.tree()).find(
-                            '>jingle>content[name="' + ssrcObj.mtype +
-                            '"]>description>ssrc-group[semantics="' +
-                            group.semantics + '"]:has(source[ssrc="' +
-                            group.ssrcs[0] + '"])');
+                            '>jingle>content[name="' + ssrcObj.mtype
+                            + '"]>description>ssrc-group[semantics="'
+                            + group.semantics + '"]:has(source[ssrc="'
+                            + group.ssrcs[0] + '"])');
                     groupNode.remove();
                 });
             });
@@ -1550,24 +1550,24 @@ export default class JingleSessionPC extends JingleSession {
                     if (!sourceNode || !sourceNode.length) {
                         // Maybe we have to include cname, msid, etc here?
                         desc.append(
-                            '<source ' +
-                            'xmlns="urn:xmpp:jingle:apps:rtp:ssma:0" ' +
-                            'ssrc="' + ssrc + '"></source>');
+                            '<source '
+                            + 'xmlns="urn:xmpp:jingle:apps:rtp:ssma:0" '
+                            + 'ssrc="' + ssrc + '"></source>');
                     }
                 });
                 ssrcObj.groups.forEach(function(group) {
                     const groupNode
-                        = desc.find('>ssrc-group[semantics="' +
-                            group.semantics + '"]:has(source[ssrc="' +
-                            group.ssrcs[0] + '"])');
+                        = desc.find('>ssrc-group[semantics="'
+                            + group.semantics + '"]:has(source[ssrc="'
+                            + group.ssrcs[0] + '"])');
                     if (!groupNode || !groupNode.length) {
-                        desc.append('<ssrc-group semantics="' +
-                            group.semantics +
-                            '" xmlns="urn:xmpp:jingle:apps:rtp:ssma:0">' +
-                            '<source ssrc="' +
-                                group.ssrcs.join('"/><source ssrc="') +
-                                '"/>' +
-                            '</ssrc-group>');
+                        desc.append('<ssrc-group semantics="'
+                            + group.semantics
+                            + '" xmlns="urn:xmpp:jingle:apps:rtp:ssma:0">'
+                            + '<source ssrc="'
+                                + group.ssrcs.join('"/><source ssrc="')
+                                + '"/>'
+                            + '</ssrc-group>');
                     }
                 });
             });
@@ -1581,21 +1581,21 @@ export default class JingleSessionPC extends JingleSession {
      * @param mtype - the content type(audio, video, etc.)
      */
     static createDescriptionNode(jingle, mtype) {
-        let content = $(jingle.tree()).find('>jingle>content[name="' +
-            mtype + '"]');
+        let content = $(jingle.tree()).find('>jingle>content[name="'
+            + mtype + '"]');
 
         if (!content || !content.length) {
             $(jingle.tree()).find('>jingle').append(
                 '<content name="' + mtype + '"></content>');
-            content = $(jingle.tree()).find('>jingle>content[name="' +
-                mtype + '"]');
+            content = $(jingle.tree()).find('>jingle>content[name="'
+                + mtype + '"]');
         }
 
         let desc = content.find('>description');
         if (!desc || !desc.length) {
-            content.append('<description ' +
-                'xmlns="urn:xmpp:jingle:apps:rtp:1" media="' +
-                mtype + '"></description>');
+            content.append('<description '
+                + 'xmlns="urn:xmpp:jingle:apps:rtp:1" media="'
+                + mtype + '"></description>');
             desc = content.find('>description');
         }
         return desc;

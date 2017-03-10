@@ -93,8 +93,8 @@ export default class SdpConsistency {
                     + this.cachedPrimarySsrc);
             } else {
                 logger.info(
-                    'Sdp-consistency replacing new ssrc ' +
-                    `${newPrimarySsrc} with cached ${this.cachedPrimarySsrc}`);
+                    `Sdp-consistency replacing new ssrc ${newPrimarySsrc} with`
+                        + ` cached ${this.cachedPrimarySsrc}`);
                 videoMLine.replaceSSRC(
                     newPrimarySsrc, this.cachedPrimarySsrc);
                 for (const group of videoMLine.ssrcGroups) {
@@ -102,9 +102,9 @@ export default class SdpConsistency {
                         const primarySsrc = parsePrimarySSRC(group);
                         const rtxSsrc = parseSecondarySSRC(group);
                         if (primarySsrc === newPrimarySsrc) {
-                            group.ssrcs =
-                                this.cachedPrimarySsrc + ' ' +
-                                    rtxSsrc;
+                            group.ssrcs
+                                = this.cachedPrimarySsrc + ' '
+                                    + rtxSsrc;
                         }
                     }
                 }

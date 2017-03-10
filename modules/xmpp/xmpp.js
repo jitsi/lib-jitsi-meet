@@ -106,10 +106,10 @@ export default class XMPP extends Listenable {
         const now = window.performance.now();
         const statusStr = Strophe.getStatusString(status).toLowerCase();
         this.connectionTimes[statusStr] = now;
-        logger.log('(TIME) Strophe ' + statusStr +
-            (msg ? '[' + msg + ']' : '') + ':\t', now);
-        if (status === Strophe.Status.CONNECTED ||
-            status === Strophe.Status.ATTACHED) {
+        logger.log('(TIME) Strophe ' + statusStr
+            + (msg ? '[' + msg + ']' : '') + ':\t', now);
+        if (status === Strophe.Status.CONNECTED
+            || status === Strophe.Status.ATTACHED) {
             if (this.options.useStunTurn) {
                 this.connection.jingle.getStunAndTurnCredentials();
             }
@@ -131,8 +131,8 @@ export default class XMPP extends Listenable {
             if (password) {
                 this.authenticatedUser = true;
             }
-            if (this.connection && this.connection.connected &&
-                Strophe.getResourceFromJid(this.connection.jid)) {
+            if (this.connection && this.connection.connected
+                && Strophe.getResourceFromJid(this.connection.jid)) {
                 // .connected is true while connecting?
     //                this.connection.send($pres());
                 this.eventEmitter.emit(
@@ -251,8 +251,8 @@ export default class XMPP extends Listenable {
         };
         if (!jid) {
             let configDomain
-                = this.options.hosts.anonymousdomain ||
-                    this.options.hosts.domain;
+                = this.options.hosts.anonymousdomain
+                    || this.options.hosts.domain;
             // Force authenticated domain if room is appended with '?login=true'
             // or if we're joining with the token
             if (this.options.hosts.anonymousdomain

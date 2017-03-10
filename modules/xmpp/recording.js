@@ -116,8 +116,8 @@ Recording.prototype.setRecordingJibri
         });
     };
 
-Recording.prototype.setRecordingJirecon =
-    function(state, callback, errCallback) {
+Recording.prototype.setRecordingJirecon
+    = function(state, callback, errCallback) {
 
         if (state == this.state) {
             errCallback(new Error('Invalid state!'));
@@ -141,9 +141,9 @@ Recording.prototype.setRecordingJirecon =
             // TODO wait for an IQ with the real status, since this is
             // provisional?
             self.jireconRid = $(result).find('recording').attr('rid');
-            logger.log('Recording ' +
-                (state === Recording.status.ON ? 'started' : 'stopped') +
-                '(jirecon)' + result);
+            logger.log('Recording '
+                + (state === Recording.status.ON ? 'started' : 'stopped')
+                + '(jirecon)' + result);
             self.state = state;
             if (state === Recording.status.OFF) {
                 self.jireconRid = null;
@@ -160,8 +160,8 @@ Recording.prototype.setRecordingJirecon =
 // Sends a COLIBRI message which enables or disables (according to 'state')
 // the recording on the bridge. Waits for the result IQ and calls 'callback'
 // with the new recording state, according to the IQ.
-Recording.prototype.setRecordingColibri =
-function(state, callback, errCallback, options) {
+Recording.prototype.setRecordingColibri
+= function(state, callback, errCallback, options) {
     var elem = $iq({to: this.focusMucJid, type: 'set'});
     elem.c('conference', {
         xmlns: 'http://jitsi.org/protocol/colibri'
@@ -195,8 +195,8 @@ function(state, callback, errCallback, options) {
     );
 };
 
-Recording.prototype.setRecording =
-function(state, callback, errCallback, options) {
+Recording.prototype.setRecording
+= function(state, callback, errCallback, options) {
     switch(this.type) {
     case Recording.types.JIRECON:
         this.setRecordingJirecon(state, callback, errCallback, options);
@@ -238,8 +238,8 @@ Recording.prototype.toggleRecording = function(options, statusChangeHandler) {
     // have any of those we throw an error.
     if ((oldState === Recording.status.OFF
         || oldState === Recording.status.AVAILABLE)
-        && ((!options.token && this.type === Recording.types.COLIBRI) ||
-        (!options.streamId && this.type === Recording.types.JIBRI))) {
+        && ((!options.token && this.type === Recording.types.COLIBRI)
+        || (!options.streamId && this.type === Recording.types.JIBRI))) {
         statusChangeHandler(Recording.status.FAILED,
                             JitsiRecorderErrors.NO_TOKEN);
         logger.error('No token passed!');

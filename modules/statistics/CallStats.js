@@ -253,8 +253,8 @@ CallStats.prototype.pcCallback = _try_catch(function(err, msg) {
  * @param containerId {string} the id of media 'audio' or 'video' tag which
  *        renders the stream.
  */
-CallStats.prototype.associateStreamWithVideoTag =
-function(ssrc, isLocal, usageLabel, containerId) {
+CallStats.prototype.associateStreamWithVideoTag
+= function(ssrc, isLocal, usageLabel, containerId) {
     if(!callStats) {
         return;
     }

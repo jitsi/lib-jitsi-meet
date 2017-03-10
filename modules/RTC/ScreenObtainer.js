@@ -106,8 +106,8 @@ var ScreenObtainer = {
                             jitsiError = new JitsiTrackError(
                                 error, constraints, ['desktop']);
                         }
-                        (typeof onFailure === 'function') &&
-                            onFailure(jitsiError);
+                        (typeof onFailure === 'function')
+                            && onFailure(jitsiError);
                     });
             };
         } else if(RTCBrowserType.isElectron()) {
@@ -124,25 +124,25 @@ var ScreenObtainer = {
             const AdapterJS = require('./adapter.screenshare');
 
             if (!AdapterJS.WebRTCPlugin.plugin.HasScreensharingFeature) {
-                logger.info('Screensharing not supported by this plugin ' +
-                    'version');
+                logger.info('Screensharing not supported by this plugin '
+                    + 'version');
             } else if(!AdapterJS.WebRTCPlugin.plugin.isScreensharingAvailable) {
                 logger.info(
-                    'Screensharing not available with Temasys plugin on' +
-                    ' this site');
+                    'Screensharing not available with Temasys plugin on'
+                    + ' this site');
             } else {
                 obtainDesktopStream = obtainWebRTCScreen;
                 logger.info('Using Temasys plugin for desktop sharing');
             }
         } else if (RTCBrowserType.isChrome()) {
-            if (options.desktopSharingChromeDisabled ||
-                options.desktopSharingChromeMethod === false ||
-                !options.desktopSharingChromeExtId) {
+            if (options.desktopSharingChromeDisabled
+                || options.desktopSharingChromeMethod === false
+                || !options.desktopSharingChromeExtId) {
                 // TODO: desktopSharingChromeMethod is deprecated, remove.
                 obtainDesktopStream = null;
             } else if (RTCBrowserType.getChromeVersion() >= 34) {
-                obtainDesktopStream =
-                    this.obtainScreenFromExtension;
+                obtainDesktopStream
+                    = this.obtainScreenFromExtension;
                 logger.info('Using Chrome extension for desktop sharing');
                 initChromeExtension(options);
             } else {
@@ -152,8 +152,8 @@ var ScreenObtainer = {
             if (options.desktopSharingFirefoxDisabled) {
                 obtainDesktopStream = null;
             } else if (window.location.protocol === 'http:') {
-                logger.log('Screen sharing is not supported over HTTP. ' +
-                    'Use of HTTPS is required.');
+                logger.log('Screen sharing is not supported over HTTP. '
+                    + 'Use of HTTPS is required.');
                 obtainDesktopStream = null;
             } else {
                 obtainDesktopStream = this.obtainScreenOnFirefox;
@@ -183,13 +183,14 @@ var ScreenObtainer = {
      */
     obtainScreenOnFirefox(options, callback, errorCallback) {
         var extensionRequired = false;
-        if (this.options.desktopSharingFirefoxMaxVersionExtRequired === -1 ||
-            (this.options.desktopSharingFirefoxMaxVersionExtRequired >= 0 &&
-                RTCBrowserType.getFirefoxVersion() <=
-                    this.options.desktopSharingFirefoxMaxVersionExtRequired)) {
+        const { desktopSharingFirefoxMaxVersionExtRequired } = this.options;
+        if (desktopSharingFirefoxMaxVersionExtRequired === -1
+            || (desktopSharingFirefoxMaxVersionExtRequired >= 0
+                && RTCBrowserType.getFirefoxVersion()
+                    <= desktopSharingFirefoxMaxVersionExtRequired)) {
             extensionRequired = true;
-            logger.log('Jidesha extension required on firefox version ' +
-                RTCBrowserType.getFirefoxVersion());
+            logger.log('Jidesha extension required on firefox version '
+                + RTCBrowserType.getFirefoxVersion());
         }
 
         if (!extensionRequired || firefoxExtInstalled === true) {
@@ -213,8 +214,8 @@ var ScreenObtainer = {
                     this.obtainScreenOnFirefox(callback, errorCallback);
                 },
                 300);
-            logger.log('Waiting for detection of jidesha on firefox to ' +
-                'finish.');
+            logger.log(
+                'Waiting for detection of jidesha on firefox to finish.');
             return;
         }
 
@@ -241,8 +242,8 @@ var ScreenObtainer = {
         } else {
             if (chromeExtUpdateRequired) {
                 alert(
-                    'Jitsi Desktop Streamer requires update. ' +
-                    'Changes will take effect after next Chrome restart.');
+                    'Jitsi Desktop Streamer requires update. '
+                    + 'Changes will take effect after next Chrome restart.');
             }
 
             try {
@@ -334,8 +335,8 @@ function obtainWebRTCScreen(options, streamCallback, failCallback) {
  * @returns {string}
  */
 function getWebStoreInstallUrl(options) {
-    return 'https://chrome.google.com/webstore/detail/' +
-        options.desktopSharingChromeExtId;
+    return 'https://chrome.google.com/webstore/detail/'
+        + options.desktopSharingChromeExtId;
 }
 
 /**
@@ -455,8 +456,8 @@ function initChromeExtension(options) {
         chromeExtInstalled = installed;
         chromeExtUpdateRequired = updateRequired;
         logger.info(
-            'Chrome extension installed: ' + chromeExtInstalled +
-            ' updateRequired: ' + chromeExtUpdateRequired);
+            'Chrome extension installed: ' + chromeExtInstalled
+            + ' updateRequired: ' + chromeExtUpdateRequired);
     }, options);
 }
 
@@ -555,9 +556,9 @@ function initFirefoxExtensionDetection(options) {
     // "chrome://EXT_ID/content/DOMAIN.png"
     // Where EXT_ID is the ID of the extension with "@" replaced by ".", and
     // DOMAIN is a domain whitelisted by the extension.
-    var src = 'chrome://' +
-        options.desktopSharingFirefoxExtId.replace('@', '.') +
-        '/content/' + document.location.hostname + '.png';
+    var src = 'chrome://'
+        + options.desktopSharingFirefoxExtId.replace('@', '.')
+        + '/content/' + document.location.hostname + '.png';
     img.setAttribute('src', src);
 }
 

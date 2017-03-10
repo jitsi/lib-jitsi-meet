@@ -425,8 +425,8 @@ function extractSSRCMap(desc) {
      */
     const groupsMap = new Map();
 
-    if (typeof desc !== 'object' || desc === null ||
-        typeof desc.sdp !== 'string') {
+    if (typeof desc !== 'object' || desc === null
+        || typeof desc.sdp !== 'string') {
         logger.warn('An empty description was passed as an argument.');
         return ssrcMap;
     }
@@ -444,8 +444,8 @@ function extractSSRCMap(desc) {
 
         if (Array.isArray(mLine.ssrcGroups)) {
             for (const group of mLine.ssrcGroups) {
-                if (typeof group.semantics !== 'undefined' &&
-                    typeof group.ssrcs !== 'undefined') {
+                if (typeof group.semantics !== 'undefined'
+                    && typeof group.ssrcs !== 'undefined') {
                     // Parse SSRCs and store as numbers
                     const groupSSRCs
                         = group.ssrcs.split(' ')
@@ -498,8 +498,8 @@ function extractSSRCMap(desc) {
  * Currently it only takes care of ordering the a=ssrc lines.
  */
 var normalizePlanB = function(desc) {
-    if (typeof desc !== 'object' || desc === null ||
-        typeof desc.sdp !== 'string') {
+    if (typeof desc !== 'object' || desc === null
+        || typeof desc.sdp !== 'string') {
         logger.warn('An empty description was passed as an argument.');
         return desc;
     }
@@ -507,8 +507,8 @@ var normalizePlanB = function(desc) {
     var transform = require('sdp-transform');
     var session = transform.parse(desc.sdp);
 
-    if (typeof session !== 'undefined' &&
-        typeof session.media !== 'undefined' && Array.isArray(session.media)) {
+    if (typeof session !== 'undefined'
+        && typeof session.media !== 'undefined' && Array.isArray(session.media)) {
         session.media.forEach(function(mLine) {
 
             // Chrome appears to be picky about the order in which a=ssrc lines
@@ -521,11 +521,11 @@ var normalizePlanB = function(desc) {
             var firstSsrcs = [];
             var newSsrcLines = [];
 
-            if (typeof mLine.ssrcGroups !== 'undefined' &&
-                Array.isArray(mLine.ssrcGroups)) {
+            if (typeof mLine.ssrcGroups !== 'undefined'
+                && Array.isArray(mLine.ssrcGroups)) {
                 mLine.ssrcGroups.forEach(function(group) {
-                    if (typeof group.semantics !== 'undefined' &&
-                        group.semantics === 'FID') {
+                    if (typeof group.semantics !== 'undefined'
+                        && group.semantics === 'FID') {
                         if (typeof group.ssrcs !== 'undefined') {
                             firstSsrcs.push(Number(group.ssrcs.split(' ')[0]));
                         }

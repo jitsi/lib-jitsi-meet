@@ -3,8 +3,8 @@
  * service on.
  */
 var TranscriptionService = function() {
-    throw new Error('TranscriptionService is abstract and cannot be' +
-        'created');
+    throw new Error('TranscriptionService is abstract and cannot be'
+        + 'created');
 };
 
 /**
@@ -20,8 +20,8 @@ TranscriptionService.prototype.send = function send(recordingResult, callback) {
     var t = this;
     this.sendRequest(recordingResult.blob, function(response) {
         if(!t.verify(response)) {
-            console.log('the retrieved response from the server' +
-                   ' is not valid!');
+            console.log('the retrieved response from the server'
+                   + ' is not valid!');
             recordingResult.wordArray = [];
             callback(recordingResult);
         } else{

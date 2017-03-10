@@ -223,8 +223,8 @@ export default class ChatRoom extends Listenable {
         this.connection.sendIQ(getForm, function(form) {
 
             if (!$(form).find(
-                    '>query>x[xmlns="jabber:x:data"]' +
-                    '>field[var="muc#roomconfig_whois"]').length) {
+                    '>query>x[xmlns="jabber:x:data"]'
+                    + '>field[var="muc#roomconfig_whois"]').length) {
                 var errmsg = 'non-anonymous rooms not supported';
                 GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
                 logger.error(errmsg);
@@ -299,8 +299,8 @@ export default class ChatRoom extends Listenable {
             }
             if (!this.joined) {
                 this.joined = true;
-                var now = this.connectionTimes['muc.joined'] =
-                    window.performance.now();
+                var now = this.connectionTimes['muc.joined']
+                    = window.performance.now();
                 logger.log('(TIME) MUC joined:\t', now);
 
                 // set correct initial state of locked
@@ -483,12 +483,12 @@ export default class ChatRoom extends Listenable {
 
     onPresenceUnavailable(pres, from) {
         // room destroyed ?
-        if ($(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]' +
-            '>destroy').length) {
+        if ($(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]'
+            + '>destroy').length) {
             var reason;
             var reasonSelect = $(pres).find(
-                    '>x[xmlns="http://jabber.org/protocol/muc#user"]' +
-                    '>destroy>reason');
+                    '>x[xmlns="http://jabber.org/protocol/muc#user"]'
+                    + '>destroy>reason');
             if (reasonSelect.length) {
                 reason = reasonSelect.text();
             }
@@ -536,10 +536,10 @@ export default class ChatRoom extends Listenable {
     }
 
     onMessage(msg, from) {
-        var nick =
-            $(msg).find('>nick[xmlns="http://jabber.org/protocol/nick"]')
-                .text() ||
-            Strophe.getResourceFromJid(from);
+        var nick
+            = $(msg).find('>nick[xmlns="http://jabber.org/protocol/nick"]')
+                .text()
+            || Strophe.getResourceFromJid(from);
 
         var txt = $(msg).find('>body').text();
         var type = msg.getAttribute('type');
@@ -921,8 +921,8 @@ export default class ChatRoom extends Listenable {
                 clearTimeout(timeout);
                 if(doReject) {
                     // the timeout expired
-                    reject(new Error('The timeout for the confirmation about ' +
-                        'leaving the room expired.'));
+                    reject(new Error('The timeout for the confirmation about '
+                        + 'leaving the room expired.'));
                 } else {
                     resolve();
                 }

@@ -35,8 +35,8 @@ var TrackRecorder = function(track) {
  */
 function startRecorder(trackRecorder) {
     if(trackRecorder.recorder === undefined) {
-        throw new Error('Passed an object to startRecorder which is not a ' +
-            'TrackRecorder object');
+        throw new Error('Passed an object to startRecorder which is not a '
+            + 'TrackRecorder object');
     }
     trackRecorder.recorder.start();
     trackRecorder.startTime = new Date();
@@ -49,8 +49,8 @@ function startRecorder(trackRecorder) {
  */
 function stopRecorder(trackRecorder) {
     if(trackRecorder.recorder === undefined) {
-        throw new Error('Passed an object to stopRecorder which is not a ' +
-            'TrackRecorder object');
+        throw new Error('Passed an object to stopRecorder which is not a '
+            + 'TrackRecorder object');
     }
     trackRecorder.recorder.stop();
 }
@@ -94,8 +94,8 @@ function determineCorrectFileType() {
     } else if(MediaRecorder.isTypeSupported(AUDIO_OGG)) {
         return AUDIO_OGG;
     } else {
-        throw new Error('unable to create a MediaRecorder with the' +
-            'right mimetype!');
+        throw new Error('unable to create a MediaRecorder with the'
+            + 'right mimetype!');
     }
 }
 
@@ -215,8 +215,8 @@ audioRecorder.prototype.start = function() {
         startRecorder(trackRecorder);
     });
     // log that recording has started
-    console.log('Started the recording of the audio. There are currently ' +
-        this.recorders.length + ' recorders active.');
+    console.log('Started the recording of the audio. There are currently '
+        + this.recorders.length + ' recorders active.');
 };
 
 /**
@@ -257,8 +257,8 @@ audioRecorder.prototype.download = function() {
  */
 audioRecorder.prototype.getRecordingResults = function() {
     if(this.isRecording) {
-        throw new Error('cannot get blobs because the AudioRecorder is still' +
-            'recording!');
+        throw new Error('cannot get blobs because the AudioRecorder is still'
+            + 'recording!');
     }
     // make sure the names are up to date before sending them off
     this.updateNames();

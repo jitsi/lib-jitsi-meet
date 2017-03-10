@@ -169,9 +169,9 @@ SDP.prototype.toJingle = function(elem, thecreator) {
     }
     for (i = 0; i < this.media.length; i++) {
         mline = SDPUtil.parse_mline(this.media[i].split('\r\n')[0]);
-        if (!(mline.media === 'audio' ||
-              mline.media === 'video' ||
-              mline.media === 'application')) {
+        if (!(mline.media === 'audio'
+              || mline.media === 'video'
+              || mline.media === 'application')) {
             continue;
         }
         var assrcline = SDPUtil.find_line(this.media[i], 'a=ssrc:');
@@ -402,12 +402,12 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
                 if (self.failICE) {
                     candidate.ip = '1.1.1.1';
                 }
-                var protocol = candidate &&
-                        typeof candidate.protocol === 'string'
+                var protocol = candidate
+                        && typeof candidate.protocol === 'string'
                     ? candidate.protocol.toLowerCase() : '';
                 if ((self.removeTcpCandidates
-                        && (protocol === 'tcp' || protocol === 'ssltcp')) ||
-                    (self.removeUdpCandidates && protocol === 'udp')) {
+                        && (protocol === 'tcp' || protocol === 'ssltcp'))
+                    || (self.removeUdpCandidates && protocol === 'udp')) {
                     return;
                 }
                 elem.c('candidate', candidate).up();
@@ -460,10 +460,10 @@ SDP.prototype.rtcpFbFromJingle = function(elem, payloadtype) { // XEP-0293
 // construct an SDP from a jingle stanza
 SDP.prototype.fromJingle = function(jingle) {
     var self = this;
-    this.raw = 'v=0\r\n' +
-        'o=- 1923518516 2 IN IP4 0.0.0.0\r\n' +// FIXME
-        's=-\r\n' +
-        't=0 0\r\n';
+    this.raw = 'v=0\r\n'
+        + 'o=- 1923518516 2 IN IP4 0.0.0.0\r\n'// FIXME
+        + 's=-\r\n'
+        + 't=0 0\r\n';
     // http://tools.ietf.org/html/draft-ietf-mmusic-sdp-bundle-negotiation-04#section-8
     if ($(jingle).find('>group[xmlns="urn:xmpp:jingle:apps:grouping:0"]').length) {
         $(jingle).find('>group[xmlns="urn:xmpp:jingle:apps:grouping:0"]').each(function(idx, group) {
@@ -522,8 +522,8 @@ SDP.prototype.jingle2media = function(content) {
         media += SDPUtil.build_mline(tmp) + '\r\n';
     } else {
         media += 'm=application 1 DTLS/SCTP ' + sctp.attr('number') + '\r\n';
-        media += 'a=sctpmap:' + sctp.attr('number') +
-            ' ' + sctp.attr('protocol');
+        media += 'a=sctpmap:' + sctp.attr('number')
+            + ' ' + sctp.attr('protocol');
 
         var streamCount = sctp.attr('streams');
         if (streamCount) {
@@ -595,8 +595,8 @@ SDP.prototype.jingle2media = function(content) {
             media += 'a=fmtp:' + this.getAttribute('id') + ' ';
             media += $(this).find('parameter').map(function() {
                 return (this.getAttribute('name')
-                        ? this.getAttribute('name') + '=' : '') +
-                    this.getAttribute('value');
+                        ? this.getAttribute('name') + '=' : '')
+                    + this.getAttribute('value');
             }).get().join('; ');
             media += '\r\n';
         }
@@ -618,8 +618,8 @@ SDP.prototype.jingle2media = function(content) {
         protocol = typeof protocol === 'string' ? protocol.toLowerCase() : '';
 
         if ((self.removeTcpCandidates
-                && (protocol === 'tcp' || protocol === 'ssltcp')) ||
-            (self.removeUdpCandidates && protocol === 'udp')) {
+                && (protocol === 'tcp' || protocol === 'ssltcp'))
+            || (self.removeUdpCandidates && protocol === 'udp')) {
             return;
         } else if (self.failICE) {
             this.setAttribute('ip', '1.1.1.1');

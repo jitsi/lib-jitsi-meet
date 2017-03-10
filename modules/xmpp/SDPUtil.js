@@ -425,8 +425,8 @@ var SDPUtil = {
     getSsrcAttribute(mLine, ssrc, attributeName) {
         for (let i = 0; i < mLine.ssrcs.length; ++i) {
             const ssrcLine = mLine.ssrcs[i];
-            if (ssrcLine.id === ssrc &&
-                ssrcLine.attribute === attributeName) {
+            if (ssrcLine.id === ssrc
+                && ssrcLine.attribute === attributeName) {
                 return ssrcLine.value;
             }
         }

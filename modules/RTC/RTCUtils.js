@@ -55,8 +55,8 @@ var disableAEC = false;
 var disableNS = false;
 
 var featureDetectionAudioEl = document.createElement('audio');
-var isAudioOutputDeviceChangeAvailable =
-    typeof featureDetectionAudioEl.setSinkId !== 'undefined';
+var isAudioOutputDeviceChangeAvailable
+    = typeof featureDetectionAudioEl.setSinkId !== 'undefined';
 
 var currentlyAvailableMediaDevices;
 
@@ -116,12 +116,12 @@ function setResolutionConstraints(constraints, resolution) {
     }
 
     if (constraints.video.mandatory.minWidth) {
-        constraints.video.mandatory.maxWidth =
-            constraints.video.mandatory.minWidth;
+        constraints.video.mandatory.maxWidth
+            = constraints.video.mandatory.minWidth;
     }
     if (constraints.video.mandatory.minHeight) {
-        constraints.video.mandatory.maxHeight =
-            constraints.video.mandatory.minHeight;
+        constraints.video.mandatory.maxHeight
+            = constraints.video.mandatory.minHeight;
     }
 }
 
@@ -148,10 +148,10 @@ function getConstraints(um, options) {
     // new style constraints when new versions of Chromium and Firefox will
     // have stable support of new constraints format. For more information
     // @see https://github.com/jitsi/lib-jitsi-meet/pull/136
-    var isNewStyleConstraintsSupported =
-        RTCBrowserType.isFirefox() ||
-        RTCBrowserType.isReactNative() ||
-        RTCBrowserType.isTemasysPluginUsed();
+    var isNewStyleConstraintsSupported
+        = RTCBrowserType.isFirefox()
+        || RTCBrowserType.isReactNative()
+        || RTCBrowserType.isTemasysPluginUsed();
 
     if (um.indexOf('video') >= 0) {
         // same behaviour as true
@@ -334,8 +334,8 @@ function compareAvailableMediaDevices(newDevices) {
         return true;
     }
 
-    return newDevices.map(mediaDeviceInfoToJSON).sort().join('') !==
-        currentlyAvailableMediaDevices.map(mediaDeviceInfoToJSON).sort().join('');
+    return newDevices.map(mediaDeviceInfoToJSON).sort().join('')
+        !== currentlyAvailableMediaDevices.map(mediaDeviceInfoToJSON).sort().join('');
 
     function mediaDeviceInfoToJSON(info) {
         return JSON.stringify({
@@ -393,13 +393,13 @@ function onMediaDevicesListChanged(devicesReceived) {
     const audioInputDevicesWithEmptyLabels
         = audioInputDevices.filter(d => d.label === '');
 
-    if (videoInputDevices.length &&
-        videoInputDevices.length === videoInputDevicesWithEmptyLabels.length) {
+    if (videoInputDevices.length
+        && videoInputDevices.length === videoInputDevicesWithEmptyLabels.length) {
         devices.video = false;
     }
 
-    if (audioInputDevices.length &&
-        audioInputDevices.length === audioInputDevicesWithEmptyLabels.length) {
+    if (audioInputDevices.length
+        && audioInputDevices.length === audioInputDevicesWithEmptyLabels.length) {
         devices.audio = false;
     }
 
@@ -664,9 +664,9 @@ function wrapAttachMediaStream(origAttachMediaStream) {
                     GlobalOnErrorHandler.callUnhandledRejectionHandler(
                         {promise: this, reason: err});
 
-                    logger.warn('Failed to set audio output device for the ' +
-                        'element. Default audio output device will be used ' +
-                        'instead',
+                    logger.warn('Failed to set audio output device for the '
+                        + 'element. Default audio output device will be used '
+                        + 'instead',
                         element, err);
                 });
         }
@@ -785,11 +785,11 @@ class RTCUtils extends Listenable {
                 };
                 RTCSessionDescription = mozRTCSessionDescription; // eslint-disable-line
                 RTCIceCandidate = mozRTCIceCandidate;             // eslint-disable-line
-            } else if (RTCBrowserType.isChrome() ||
-                    RTCBrowserType.isOpera() ||
-                    RTCBrowserType.isNWJS() ||
-                    RTCBrowserType.isElectron() ||
-                    RTCBrowserType.isReactNative()) {
+            } else if (RTCBrowserType.isChrome()
+                    || RTCBrowserType.isOpera()
+                    || RTCBrowserType.isNWJS()
+                    || RTCBrowserType.isElectron()
+                    || RTCBrowserType.isReactNative()) {
 
                 this.peerconnection = webkitRTCPeerConnection;
                 var getUserMedia = navigator.webkitGetUserMedia.bind(navigator);
@@ -1048,8 +1048,8 @@ class RTCUtils extends Listenable {
                             var audioTracksReceived = !!stream.getAudioTracks().length;
                             var videoTracksReceived = !!stream.getVideoTracks().length;
 
-                            if((audioDeviceRequested && !audioTracksReceived) ||
-                                (videoDeviceRequested && !videoTracksReceived)) {
+                            if((audioDeviceRequested && !audioTracksReceived)
+                                || (videoDeviceRequested && !videoTracksReceived)) {
                                 self.stopMediaStream(stream);
 
                                 // We are getting here in case if we requested
@@ -1147,8 +1147,8 @@ class RTCUtils extends Listenable {
         if (isEnumerateDevicesAvailable) {
             return true;
         }
-        return typeof MediaStreamTrack !== 'undefined' &&
-            MediaStreamTrack.getSources ? true : false;
+        return typeof MediaStreamTrack !== 'undefined'
+            && MediaStreamTrack.getSources ? true : false;
     }
 
     /**
@@ -1198,12 +1198,12 @@ class RTCUtils extends Listenable {
     isDeviceChangeAvailable(deviceType) {
         return deviceType === 'output' || deviceType === 'audiooutput'
             ? isAudioOutputDeviceChangeAvailable
-            : RTCBrowserType.isChrome() ||
-                RTCBrowserType.isFirefox() ||
-                RTCBrowserType.isOpera() ||
-                RTCBrowserType.isTemasysPluginUsed() ||
-                RTCBrowserType.isNWJS() ||
-                RTCBrowserType.isElectron();
+            : RTCBrowserType.isChrome()
+                || RTCBrowserType.isFirefox()
+                || RTCBrowserType.isOpera()
+                || RTCBrowserType.isTemasysPluginUsed()
+                || RTCBrowserType.isNWJS()
+                || RTCBrowserType.isElectron();
     }
     /**
      * A method to handle stopping of the stream.

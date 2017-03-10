@@ -38,8 +38,8 @@ SphinxService.prototype.sendRequest = function(audioFileBlob, callback) {
             && request.status === 200) {
             callback(request.responseText);
         } else if (request.readyState === XMLHttpRequest.DONE) {
-            throw new Error('unable to accept response from sphinx server.' +
-                'status: ' + request.status);
+            throw new Error('unable to accept response from sphinx server.'
+                + 'status: ' + request.status);
         }
         // if not ready no point to throw an error
     };
@@ -109,8 +109,8 @@ SphinxService.prototype.verify = function(response) {
  * @returns {string} the URL to the sphinx4 server
  */
 function getURL() {
-    var message = 'config does not contain an url to a ' +
-    'Sphinx4 https server';
+    var message = 'config does not contain an url to a '
+    + 'Sphinx4 https server';
     if(config.sphinxURL === undefined) {
         console.log(message);
     } else {

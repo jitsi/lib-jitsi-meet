@@ -453,8 +453,8 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
                     participant, payload);
             } else {
                 logger.warn(
-                    'Ignored ENDPOINT_MESSAGE_RECEIVED ' +
-                    'for not existing participant: ' + from, payload);
+                    'Ignored ENDPOINT_MESSAGE_RECEIVED '
+                    + 'for not existing participant: ' + from, payload);
             }
         });
 
@@ -555,8 +555,8 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
         Object.keys(ssrc2resolution).forEach(function(ssrc) {
             var resolution = ssrc2resolution[ssrc];
 
-            if (!resolution.width || !resolution.height ||
-                resolution.width == -1 || resolution.height == -1) {
+            if (!resolution.width || !resolution.height
+                || resolution.width == -1 || resolution.height == -1) {
                 return;
             }
 

@@ -6,9 +6,9 @@ var RTCBrowserType = require('../RTC/RTCBrowserType');
 import * as StatisticsEvents from '../../service/statistics/Events';
 
 /* Whether we support the browser we are running into for logging statistics */
-var browserSupported = RTCBrowserType.isChrome() ||
-        RTCBrowserType.isOpera() || RTCBrowserType.isFirefox() ||
-        RTCBrowserType.isNWJS() || RTCBrowserType.isElectron();
+var browserSupported = RTCBrowserType.isChrome()
+        || RTCBrowserType.isOpera() || RTCBrowserType.isFirefox()
+        || RTCBrowserType.isNWJS() || RTCBrowserType.isElectron();
 
 /**
  * The LibJitsiMeet browser-agnostic names of the browser-specific keys reported
@@ -43,18 +43,18 @@ KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME] = {
     'audioInputLevel': 'audioInputLevel',
     'audioOutputLevel': 'audioOutputLevel'
 };
-KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_OPERA] =
-    KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
-KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_NWJS] =
-    KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
-KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_ELECTRON] =
-    KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
-KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_IEXPLORER] =
-    KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
-KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_SAFARI] =
-    KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
-KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_REACT_NATIVE] =
-    KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
+KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_OPERA]
+    = KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
+KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_NWJS]
+    = KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
+KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_ELECTRON]
+    = KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
+KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_IEXPLORER]
+    = KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
+KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_SAFARI]
+    = KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
+KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_REACT_NATIVE]
+    = KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
 
 /**
  * Calculates packet lost percent using the number of lost packets and the
@@ -249,16 +249,16 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                 self.peerconnection.getStats(
                     function(report) {
                         var results = null;
-                        if (!report || !report.result ||
-                            typeof report.result != 'function') {
+                        if (!report || !report.result
+                            || typeof report.result != 'function') {
                             results = report;
                         } else {
                             results = report.result();
                         }
                         self.currentAudioLevelsReport = results;
                         self.processAudioLevelReport();
-                        self.baselineAudioLevelsReport =
-                            self.currentAudioLevelsReport;
+                        self.baselineAudioLevelsReport
+                            = self.currentAudioLevelsReport;
                     },
                     self.errorCallback
                 );
@@ -274,8 +274,8 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                 self.peerconnection.getStats(
                     function(report) {
                         var results = null;
-                        if (!report || !report.result ||
-                            typeof report.result != 'function') {
+                        if (!report || !report.result
+                            || typeof report.result != 'function') {
                             // firefox
                             results = report;
                         } else {
@@ -439,8 +439,8 @@ StatsCollector.prototype.processStatsReport = function() {
             });
         }
 
-        if (now.type != 'ssrc' && now.type != 'outboundrtp' &&
-            now.type != 'inboundrtp') {
+        if (now.type != 'ssrc' && now.type != 'outboundrtp'
+            && now.type != 'inboundrtp') {
             continue;
         }
 
@@ -491,14 +491,14 @@ StatsCollector.prototype.processStatsReport = function() {
 
         // TODO: clean this mess up!
         var nowBytesTransmitted = getStatValue(now, 'bytesSent');
-        if(typeof nowBytesTransmitted === 'number' ||
-            typeof nowBytesTransmitted === 'string') {
+        if(typeof nowBytesTransmitted === 'number'
+            || typeof nowBytesTransmitted === 'string') {
             nowBytesTransmitted = Number(nowBytesTransmitted);
             if(!isNaN(nowBytesTransmitted)) {
                 byteSentStats[ssrc] = nowBytesTransmitted;
                 if (nowBytesTransmitted > 0) {
-                    bytesSent = nowBytesTransmitted -
-                        getStatValue(before, 'bytesSent');
+                    bytesSent = nowBytesTransmitted
+                        - getStatValue(before, 'bytesSent');
                 }
             }
         }
@@ -520,12 +520,12 @@ StatsCollector.prototype.processStatsReport = function() {
         var resolution = {height: null, width: null};
         try {
             var height, width;
-            if ((height = getStatValue(now, 'googFrameHeightReceived')) &&
-                (width = getStatValue(now, 'googFrameWidthReceived'))) {
+            if ((height = getStatValue(now, 'googFrameHeightReceived'))
+                && (width = getStatValue(now, 'googFrameWidthReceived'))) {
                 resolution.height = height;
                 resolution.width = width;
-            } else if ((height = getStatValue(now, 'googFrameHeightSent')) &&
-                (width = getStatValue(now, 'googFrameWidthSent'))) {
+            } else if ((height = getStatValue(now, 'googFrameHeightSent'))
+                && (width = getStatValue(now, 'googFrameWidthSent'))) {
                 resolution.height = height;
                 resolution.width = width;
             }

@@ -154,6 +154,7 @@ module.exports = {
         'one-var': 0,
         'one-var-declaration-per-line': 0,
         'operator-assignment': 0,
+        'operator-linebreak': [ 'error', 'before' ],
         'padded-blocks': 0,
         'quote-props': 0,
         'quotes': [ 'error', 'single' ],

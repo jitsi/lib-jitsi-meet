@@ -226,15 +226,15 @@ var LibJitsiMeet = {
         if(!window.connectionTimes) {
             window.connectionTimes = {};
         }
-        window.connectionTimes['obtainPermissions.start'] =
-            window.performance.now();
+        window.connectionTimes['obtainPermissions.start']
+            = window.performance.now();
 
         return RTC.obtainAudioAndVideoPermissions(options || {})
             .then(function(tracks) {
                 promiseFulfilled = true;
 
-                window.connectionTimes['obtainPermissions.end'] =
-                    window.performance.now();
+                window.connectionTimes['obtainPermissions.end']
+                    = window.performance.now();
 
                 Statistics.analytics.sendEvent(addDeviceTypeToAnalyticsEvent(
                     'getUserMedia.success', options), {value: options});
@@ -287,8 +287,8 @@ var LibJitsiMeet = {
                     }
                 }
 
-                if (JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED ===
-                        error.name) {
+                if (JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED
+                        === error.name) {
                     // User cancelled action is not really an error, so only
                     // log it as an event to avoid having conference classified
                     // as partially failed
@@ -318,8 +318,8 @@ var LibJitsiMeet = {
                         {value: options});
                 }
 
-                window.connectionTimes['obtainPermissions.end'] =
-                    window.performance.now();
+                window.connectionTimes['obtainPermissions.end']
+                    = window.performance.now();
 
                 return Promise.reject(error);
             }.bind(this));
@@ -332,8 +332,8 @@ var LibJitsiMeet = {
      * @deprecated use JitsiMeetJS.mediaDevices.isDeviceListAvailable instead
      */
     isDeviceListAvailable() {
-        logger.warn('This method is deprecated, use ' +
-            'JitsiMeetJS.mediaDevices.isDeviceListAvailable instead');
+        logger.warn('This method is deprecated, use '
+            + 'JitsiMeetJS.mediaDevices.isDeviceListAvailable instead');
         return this.mediaDevices.isDeviceListAvailable();
     },
     /**
@@ -345,8 +345,8 @@ var LibJitsiMeet = {
      * @deprecated use JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead
      */
     isDeviceChangeAvailable(deviceType) {
-        logger.warn('This method is deprecated, use ' +
-            'JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead');
+        logger.warn('This method is deprecated, use '
+            + 'JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead');
         return this.mediaDevices.isDeviceChangeAvailable(deviceType);
     },
     /**
@@ -355,8 +355,8 @@ var LibJitsiMeet = {
      * @deprecated use JitsiMeetJS.mediaDevices.enumerateDevices instead
      */
     enumerateDevices(callback) {
-        logger.warn('This method is deprecated, use ' +
-            'JitsiMeetJS.mediaDevices.enumerateDevices instead');
+        logger.warn('This method is deprecated, use '
+            + 'JitsiMeetJS.mediaDevices.enumerateDevices instead');
         this.mediaDevices.enumerateDevices(callback);
     },
     /**

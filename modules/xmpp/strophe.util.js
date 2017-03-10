@@ -49,9 +49,9 @@ export default function() {
         // it's a final failure(the request will be restarted), so we lower it's
         // level here to a warning.
         logger.trace('Strophe', level, msg);
-        if (typeof msg === 'string' &&
-                msg.indexOf('Request ') !== -1 &&
-                msg.indexOf('timed out (secondary), restarting') !== -1) {
+        if (typeof msg === 'string'
+                && msg.indexOf('Request ') !== -1
+                && msg.indexOf('timed out (secondary), restarting') !== -1) {
             level = Strophe.LogLevel.WARN;
         }
         /* eslint-disable no-case-declarations */
@@ -59,8 +59,8 @@ export default function() {
         case Strophe.LogLevel.DEBUG:
                 // The log message which reports successful status is logged
                 // on Strophe's DEBUG level
-            if (lastErrorStatus !== -1 &&
-                        resetLastErrorStatusRegExpr.test(msg)) {
+            if (lastErrorStatus !== -1
+                        && resetLastErrorStatusRegExpr.test(msg)) {
                 logger.debug('Reset lastErrorStatus');
                 lastErrorStatus = -1;
             }

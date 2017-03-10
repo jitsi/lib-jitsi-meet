@@ -24,8 +24,8 @@ var isCallstatsLoaded = false;
 function loadCallStatsAPI(customScriptUrl) {
     if(!isCallstatsLoaded) {
         ScriptUtil.loadScript(
-                customScriptUrl ? customScriptUrl :
-                    'https://api.callstats.io/static/callstats-ws.min.js',
+                customScriptUrl ? customScriptUrl
+                    : 'https://api.callstats.io/static/callstats-ws.min.js',
                 /* async */ true,
                 /* prepend */ true);
         isCallstatsLoaded = true;
@@ -321,8 +321,8 @@ Statistics.sendActiveDeviceListEvent = function(devicesData) {
  * @param containerId {string} the id of media 'audio' or 'video' tag which
  *        renders the stream.
  */
-Statistics.prototype.associateStreamWithVideoTag =
-function(ssrc, isLocal, usageLabel, containerId) {
+Statistics.prototype.associateStreamWithVideoTag
+= function(ssrc, isLocal, usageLabel, containerId) {
     if(this.callstats) {
         this.callstats.associateStreamWithVideoTag(
             ssrc, isLocal, usageLabel, containerId);

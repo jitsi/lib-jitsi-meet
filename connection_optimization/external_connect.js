@@ -35,8 +35,8 @@ function createConnectionExternally( // eslint-disable-line no-unused-vars
 
     xhttp.onreadystatechange = function() {
         if (xhttp.readyState == xhttp.DONE) {
-            var now = window.connectionTimes['external_connect.done'] =
-                window.performance.now();
+            var now = window.connectionTimes['external_connect.done']
+                = window.performance.now();
             console.log('(TIME) external connect XHR done:\t', now);
             if (xhttp.status == HTTP_STATUS_OK) {
                 try {
@@ -56,8 +56,8 @@ function createConnectionExternally( // eslint-disable-line no-unused-vars
                     error_callback(e);
                 }
             } else {
-                error_callback(new Error('XMLHttpRequest error. Status: ' +
-                    xhttp.status + '. Error message: ' + xhttp.statusText));
+                error_callback(new Error('XMLHttpRequest error. Status: '
+                    + xhttp.status + '. Error message: ' + xhttp.statusText));
             }
         }
     };
@@ -70,8 +70,8 @@ function createConnectionExternally( // eslint-disable-line no-unused-vars
     xhttp.timeout = 3000;
 
     window.connectionTimes = {};
-    var now = window.connectionTimes['external_connect.sending'] =
-        window.performance.now();
+    var now = window.connectionTimes['external_connect.sending']
+        = window.performance.now();
     console.log('(TIME) Sending external connect XHR:\t', now);
     xhttp.send();
 }

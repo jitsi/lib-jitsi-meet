@@ -95,8 +95,8 @@ function LocalStatsCollector(stream, interval, callback) {
  * Starts the collecting the statistics.
  */
 LocalStatsCollector.prototype.start = function() {
-    if (!context ||
-        RTCBrowserType.isTemasysPluginUsed()) {
+    if (!context
+        || RTCBrowserType.isTemasysPluginUsed()) {
         return;
     }
     context.resume();

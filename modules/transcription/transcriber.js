@@ -106,8 +106,8 @@ var blobCallBack = function(answer) {
     // first add the offset between the start of the transcription and
     // the start of the recording to all start and end times
     if(answer.wordArray.length > 0) {
-        var offset = answer.startTime.getUTCMilliseconds() -
-            this.startTime.getUTCMilliseconds();
+        var offset = answer.startTime.getUTCMilliseconds()
+            - this.startTime.getUTCMilliseconds();
         // transcriber time will always be earlier
         if (offset < 0) {
             offset = 0; // presume 0 if it somehow not earlier

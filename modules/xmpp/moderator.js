@@ -34,8 +34,8 @@ function Moderator(roomName, xmpp, emitter, options) {
     // Sip gateway can be enabled by configuring Jigasi host in config.js or
     // it will be enabled automatically if focus detects the component through
     // service discovery.
-    this.sipGatewayEnabled = this.options.connection.hosts &&
-        this.options.connection.hosts.call_control !== undefined;
+    this.sipGatewayEnabled = this.options.connection.hosts
+        && this.options.connection.hosts.call_control !== undefined;
 
     this.eventEmitter = emitter;
 
@@ -46,8 +46,8 @@ function Moderator(roomName, xmpp, emitter, options) {
     function listener(event) {
         if (event.data && event.data.sessionId) {
             if (event.origin !== window.location.origin) {
-                logger.warn('Ignoring sessionId from different origin: ' +
-                    event.origin);
+                logger.warn('Ignoring sessionId from different origin: '
+                    + event.origin);
                 return;
             }
             Settings.setSessionId(event.data.sessionId);
@@ -132,8 +132,8 @@ Moderator.prototype.createConferenceIq = function() {
             }).up();
     }
     // Tell the focus we have Jigasi configured
-    if (this.options.connection.hosts !== undefined &&
-        this.options.connection.hosts.call_control !== undefined) {
+    if (this.options.connection.hosts !== undefined
+        && this.options.connection.hosts.call_control !== undefined) {
         elem.c(
             'property', {
                 name: 'call_control',
@@ -233,14 +233,14 @@ Moderator.prototype.parseConfigOptions = function(resultIq) {
 
     var authenticationEnabled
         = $(resultIq).find(
-            '>conference>property' +
-            '[name=\'authentication\'][value=\'true\']').length > 0;
+            '>conference>property'
+            + '[name=\'authentication\'][value=\'true\']').length > 0;
 
     logger.info('Authentication enabled: ' + authenticationEnabled);
 
     this.externalAuthEnabled = $(resultIq).find(
-            '>conference>property' +
-            '[name=\'externalAuth\'][value=\'true\']').length > 0;
+            '>conference>property'
+            + '[name=\'externalAuth\'][value=\'true\']').length > 0;
 
     logger.info(
         'External authentication enabled: ' + this.externalAuthEnabled);
@@ -258,8 +258,8 @@ Moderator.prototype.parseConfigOptions = function(resultIq) {
     // Check if focus has auto-detected Jigasi component(this will be also
     // included if we have passed our host from the config)
     if ($(resultIq).find(
-        '>conference>property' +
-        '[name=\'sipGatewayEnabled\'][value=\'true\']').length) {
+        '>conference>property'
+        + '[name=\'sipGatewayEnabled\'][value=\'true\']').length) {
         this.sipGatewayEnabled = true;
     }
 

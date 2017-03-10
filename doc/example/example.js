@@ -136,14 +136,14 @@ function onConnectionSuccess() {
           console.log(userID + ' - ' + audioLevel);
       });
     room.on(JitsiMeetJS.events.conference.RECORDER_STATE_CHANGED, function() {
-        console.log(room.isRecordingSupported() + ' - ' +
-            room.getRecordingState() + ' - ' +
-            room.getRecordingURL());
+        console.log(room.isRecordingSupported() + ' - '
+            + room.getRecordingState() + ' - '
+            + room.getRecordingURL());
     });
     room.on(JitsiMeetJS.events.conference.PHONE_NUMBER_CHANGED, function() {
         console.log(
-            room.getPhoneNumber() + ' - ' +
-            room.getPhonePin());
+            room.getPhoneNumber() + ' - '
+            + room.getPhonePin());
     });
     room.join();
 }

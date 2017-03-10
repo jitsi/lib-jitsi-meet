@@ -292,9 +292,9 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
     this.dontFireRemoveEvent = false;
 
     // FIXME FF does not support 'removeStream' method used to mute
-    if (this.isAudioTrack() ||
-        this.videoType === VideoType.DESKTOP ||
-        RTCBrowserType.isFirefox()) {
+    if (this.isAudioTrack()
+        || this.videoType === VideoType.DESKTOP
+        || RTCBrowserType.isFirefox()) {
         if(this.track) {
             this.track.enabled = !mute;
         }
@@ -396,8 +396,8 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function() {
  * @param {Function} errorCallback will be called on error
  * @private
  */
-JitsiLocalTrack.prototype._removeStreamFromConferenceAsMute =
-function(successCallback, errorCallback) {
+JitsiLocalTrack.prototype._removeStreamFromConferenceAsMute
+= function(successCallback, errorCallback) {
     if (!this.conference) {
         successCallback();
         return;
@@ -626,8 +626,8 @@ JitsiLocalTrack.prototype._stopMediaStream = function() {
  * @returns {boolean} true if an issue is detected and false otherwise
  */
 JitsiLocalTrack.prototype._checkForCameraIssues = function() {
-    if(!this.isVideoTrack() || this.stopStreamInProgress ||
-        this.videoType === VideoType.DESKTOP) {
+    if(!this.isVideoTrack() || this.stopStreamInProgress
+        || this.videoType === VideoType.DESKTOP) {
         return false;
     }
 
