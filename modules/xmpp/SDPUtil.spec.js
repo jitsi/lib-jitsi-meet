@@ -16,7 +16,8 @@ describe('SDPUtil', () => {
 
             SDPUtil.preferVideoCodec(videoMLine, 'H264');
             const newPayloadTypesOrder
-                = videoMLine.payloads.split(' ').map(ptStr => parseInt(ptStr));
+                = videoMLine.payloads.split(' ').map(
+                    ptStr => parseInt(ptStr, 10));
 
             expect(newPayloadTypesOrder[0]).toEqual(126);
         });

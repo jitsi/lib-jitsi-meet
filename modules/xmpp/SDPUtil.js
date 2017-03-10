@@ -533,7 +533,7 @@ const SDPUtil = {
         return ssrcGroup
             .ssrcs
             .split(' ')
-            .map(ssrcStr => parseInt(ssrcStr));
+            .map(ssrcStr => parseInt(ssrcStr, 10));
     },
 
     /**
@@ -570,7 +570,7 @@ const SDPUtil = {
         }
         if (payloadType) {
             const payloadTypes
-                = videoMLine.payloads.split(' ').map(p => parseInt(p));
+                = videoMLine.payloads.split(' ').map(p => parseInt(p, 10));
             const payloadIndex = payloadTypes.indexOf(payloadType);
 
             payloadTypes.splice(payloadIndex, 1);

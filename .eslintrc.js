@@ -132,6 +132,7 @@ module.exports = {
         'no-void': 2,
         'no-warning-comments': 0,
         'no-with': 2,
+        'radix': 2,
         'vars-on-top': 2,
         'wrap-iife': [ 'error', 'inside' ],
         'yoda': 2,

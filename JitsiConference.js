@@ -812,7 +812,7 @@ JitsiConference.prototype.pinParticipant = function(participantId) {
  * than -1.
  */
 JitsiConference.prototype.setLastN = function(lastN) {
-    if (!Number.isInteger(lastN) && !Number.parseInt(lastN)) {
+    if (!Number.isInteger(lastN) && !Number.parseInt(lastN, 10)) {
         throw new Error(`Invalid value for lastN: ${lastN}`);
     }
     const n = Number(lastN);

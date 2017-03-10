@@ -73,9 +73,8 @@ export default function() {
             const errStatusCapture = lastErrorStatusRegExpr.exec(msg);
 
             if (errStatusCapture && errStatusCapture.length === 2) {
-                lastErrorStatus = parseInt(errStatusCapture[1]);
-                logger.debug(
-                        `lastErrorStatus set to: ${lastErrorStatus}`);
+                lastErrorStatus = parseInt(errStatusCapture[1], 10);
+                logger.debug(`lastErrorStatus set to: ${lastErrorStatus}`);
             }
             break;
         case Strophe.LogLevel.ERROR:

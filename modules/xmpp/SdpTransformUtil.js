@@ -6,7 +6,7 @@ import * as transform from 'sdp-transform';
  * @return {Number} the primary SSRC number
  */
 export function parsePrimarySSRC(group) {
-    return parseInt(group.ssrcs.split(' ')[0]);
+    return parseInt(group.ssrcs.split(' ')[0], 10);
 }
 
 /**
@@ -15,7 +15,7 @@ export function parsePrimarySSRC(group) {
  * @return {Number} the secondary SSRC number
  */
 export function parseSecondarySSRC(group) {
-    return parseInt(group.ssrcs.split(' ')[1]);
+    return parseInt(group.ssrcs.split(' ')[1], 10);
 }
 
 /**
