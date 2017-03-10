@@ -87,6 +87,7 @@ module.exports = {
         'no-eq-null': 2,
         'no-eval': 2,
         'no-extend-native': 2,
+        'no-extra-bind': 2,
         'no-extra-label': 2,
         'no-fallthrough': 2,
         'no-floating-decimal': 2,

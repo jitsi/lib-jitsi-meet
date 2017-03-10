@@ -207,7 +207,7 @@ export default class ChatRoom extends Listenable {
         }.bind(this), function(error) {
             GlobalOnErrorHandler.callErrorHandler(error);
             logger.error('Error getting room info: ', error);
-        }.bind(this));
+        });
     }
 
 

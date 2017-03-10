@@ -1359,7 +1359,7 @@ export default class JingleSessionPC extends JingleSession {
             if (failureCb) {
                 failureCb(error);
             }
-        }.bind(this);
+        };
     }
 
     static onJingleFatalError(session, error) {

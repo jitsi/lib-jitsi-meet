@@ -476,7 +476,7 @@ Moderator.prototype.logout = function(callback) {
             logger.info('Log out OK, url: ' + logoutUrl, result);
             Settings.clearSessionId();
             callback(logoutUrl);
-        }.bind(this),
+        },
         function(error) {
             const errmsg = 'Logout error';
             GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));

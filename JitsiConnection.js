@@ -22,7 +22,7 @@ function JitsiConnection(appID, token, options) {
             // sends analytics and callstats event
             Statistics.sendEventToAll('connection.failed.' + errType,
                 {label: msg});
-        }.bind(this));
+        });
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_DISCONNECTED,
         function(msg) {

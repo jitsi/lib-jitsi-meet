@@ -322,7 +322,7 @@ const LibJitsiMeet = {
                     = window.performance.now();
 
                 return Promise.reject(error);
-            }.bind(this));
+            });
     },
     /**
      * Checks if its possible to enumerate available cameras/micropones.
