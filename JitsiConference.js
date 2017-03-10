@@ -758,11 +758,8 @@ JitsiConference.prototype.lock = function(password) {
         return Promise.reject();
     }
 
-    const conference = this;
-
-
     return new Promise((resolve, reject) => {
-        conference.room.lockRoom(
+        this.room.lockRoom(
             password || '',
             () => resolve(),
             err => reject(err),

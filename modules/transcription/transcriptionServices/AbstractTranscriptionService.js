@@ -17,11 +17,9 @@ const TranscriptionService = function() {
  *        the answer as a WordArray
  */
 TranscriptionService.prototype.send = function send(recordingResult, callback) {
-    const t = this;
-
     this.sendRequest(recordingResult.blob, response => {
-        if (t.verify(response)) {
-            recordingResult.wordArray = t.formatResponse(response);
+        if (this.verify(response)) {
+            recordingResult.wordArray = this.formatResponse(response);
         } else {
             console.log('the retrieved response from the server is not valid!');
             recordingResult.wordArray = [];

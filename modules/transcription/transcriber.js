@@ -86,13 +86,11 @@ transcriber.prototype.stop = function stop(callback) {
     this.audioRecorder.stop();
 
     // and send all recorded audio the the transcription service
-    const t = this;
-
     const callBack = blobCallBack.bind(this);
 
     this.audioRecorder.getRecordingResults().forEach(recordingResult => {
-        t.transcriptionService.send(recordingResult, callBack);
-        t.counter++;
+        this.transcriptionService.send(recordingResult, callBack);
+        this.counter++;
     });
 
     // set the state to "transcribing" so that maybeMerge() functions correctly

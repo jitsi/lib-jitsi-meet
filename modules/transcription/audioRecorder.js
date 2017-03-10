@@ -252,17 +252,15 @@ audioRecorder.prototype.stop = function() {
  * link hacking to download all recorded audio streams
  */
 audioRecorder.prototype.download = function() {
-    const t = this;
-
     this.recorders.forEach(trackRecorder => {
-        const blob = new Blob(trackRecorder.data, { type: t.fileType });
+        const blob = new Blob(trackRecorder.data, { type: this.fileType });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
 
         document.body.appendChild(a);
         a.style = 'display: none';
         a.href = url;
-        a.download = `test.${t.fileType.split('/')[1]}`;
+        a.download = `test.${this.fileType.split('/')[1]}`;
         a.click();
         window.URL.revokeObjectURL(url);
     });
@@ -283,13 +281,12 @@ audioRecorder.prototype.getRecordingResults = function() {
     this.updateNames();
 
     const array = [];
-    const t = this;
 
     this.recorders.forEach(
           recorder =>
               array.push(
                   new RecordingResult(
-                      new Blob(recorder.data, { type: t.fileType }),
+                      new Blob(recorder.data, { type: this.fileType }),
                       recorder.name,
                       recorder.startTime)));
 
