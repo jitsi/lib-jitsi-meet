@@ -755,7 +755,7 @@ TraceablePeerConnection.prototype.setRemoteDescription
             description.sdp = transform.write(parsedSdp);
         }
 
-        // if we're running on FF, transform to Plan A first.
+        // If the browser uses unified plan, transform to it first
         if (RTCBrowserType.usesUnifiedPlan()) {
             description.sdp = this.rtxModifier.stripRtx(description.sdp);
             this.trace(
@@ -767,9 +767,8 @@ TraceablePeerConnection.prototype.setRemoteDescription
             this.trace(
                     'setRemoteDescription::postTransform (Plan A)',
                     dumpSDP(description));
-        }
-
-        if (RTCBrowserType.usesPlanB()) {
+        } else {
+            // Plan B
             // eslint-disable-next-line no-param-reassign
             description = normalizePlanB(description);
         }
