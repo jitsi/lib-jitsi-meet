@@ -264,7 +264,7 @@ export default class JingleSessionPC extends JingleSession {
 
         const localSDP = new SDP(this.peerconnection.localDescription.sdp);
         for (let mid = 0; mid < localSDP.media.length; mid++) {
-            const cands = candidates.filter(function (el) {
+            const cands = candidates.filter(function(el) {
                 return el.sdpMLineIndex == mid;
             });
             const mline
@@ -312,7 +312,7 @@ export default class JingleSessionPC extends JingleSession {
         // a lot later. See webrtc issue #2340
         // logger.log('was this the last candidate', this.lasticecandidate);
         this.connection.sendIQ(
-            cand, null, this.newJingleErrorHandler(cand, function (error) {
+            cand, null, this.newJingleErrorHandler(cand, function(error) {
                 GlobalOnErrorHandler.callErrorHandler(
                     new Error("Jingle error: " + JSON.stringify(error)));
             }), IQ_TIMEOUT);
@@ -639,14 +639,14 @@ export default class JingleSessionPC extends JingleSession {
      */
     _parseSsrcInfoFromSourceAdd(sourceAddElem, currentRemoteSdp) {
         const addSsrcInfo = [];
-        $(sourceAddElem).each(function (idx, content) {
+        $(sourceAddElem).each(function(idx, content) {
             const name = $(content).attr('name');
             let lines = '';
             $(content)
                 .find('ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
                 .each(function() {
                     const semantics = this.getAttribute('semantics');
-                    const ssrcs = $(this).find('>source').map(function () {
+                    const ssrcs = $(this).find('>source').map(function() {
                         return this.getAttribute('ssrc');
                     }).get();
 
@@ -659,14 +659,14 @@ export default class JingleSessionPC extends JingleSession {
             const tmp
                 = $(content).find(
                     'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
-            tmp.each(function () {
+            tmp.each(function() {
                 const ssrc = $(this).attr('ssrc');
                 if (currentRemoteSdp.containsSSRC(ssrc)) {
                     logger.warn(
                         "Source-add request for existing SSRC: " + ssrc);
                     return;
                 }
-                $(this).find('>parameter').each(function () {
+                $(this).find('>parameter').each(function() {
                     lines += 'a=ssrc:' + ssrc + ' ' + $(this).attr('name');
                     if ($(this).attr('value') && $(this).attr('value').length) {
                         lines += ':' + $(this).attr('value');
@@ -1014,14 +1014,14 @@ export default class JingleSessionPC extends JingleSession {
      */
     _parseSsrcInfoFromSourceRemove(sourceRemoveElem, currentRemoteSdp) {
         const removeSsrcInfo = [];
-        $(sourceRemoveElem).each(function (idx, content) {
+        $(sourceRemoveElem).each(function(idx, content) {
             const name = $(content).attr('name');
             let lines = '';
             $(content)
                 .find('ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
                 .each(function() {
                     const semantics = this.getAttribute('semantics');
-                    const ssrcs = $(this).find('>source').map(function () {
+                    const ssrcs = $(this).find('>source').map(function() {
                         return this.getAttribute('ssrc');
                     }).get();
 
@@ -1035,7 +1035,7 @@ export default class JingleSessionPC extends JingleSession {
             const tmp
                 = $(content).find(
                     'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
-            tmp.each(function () {
+            tmp.each(function() {
                 const ssrc = $(this).attr('ssrc');
                 ssrcs.push(ssrc);
             });
@@ -1159,7 +1159,7 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         // Find the right sender (for audio or video)
-        this.peerconnection.peerconnection.getSenders().some(function (s) {
+        this.peerconnection.peerconnection.getSenders().some(function(s) {
             if (s.track === track) {
                 sender = s;
                 return true;
@@ -1274,7 +1274,7 @@ export default class JingleSessionPC extends JingleSession {
             logger.info("Sending source-remove", remove.tree());
             this.connection.sendIQ(
                 remove, null,
-                this.newJingleErrorHandler(remove, function (error) {
+                this.newJingleErrorHandler(remove, function(error) {
                     GlobalOnErrorHandler.callErrorHandler(
                         new Error("Jingle error: " + JSON.stringify(error)));
                 }), IQ_TIMEOUT);
@@ -1299,7 +1299,7 @@ export default class JingleSessionPC extends JingleSession {
         if (added && add) {
             logger.info("Sending source-add", add.tree());
             this.connection.sendIQ(
-                add, null, this.newJingleErrorHandler(add, function (error) {
+                add, null, this.newJingleErrorHandler(add, function(error) {
                     GlobalOnErrorHandler.callErrorHandler(
                         new Error("Jingle error: " + JSON.stringify(error)));
                 }), IQ_TIMEOUT);
@@ -1327,7 +1327,7 @@ export default class JingleSessionPC extends JingleSession {
      * @returns {function(this:JingleSessionPC)}
      */
     newJingleErrorHandler(request, failureCb) {
-        return function (errResponse) {
+        return function(errResponse) {
 
             const error = {};
 
@@ -1447,18 +1447,18 @@ export default class JingleSessionPC extends JingleSession {
         let ssrcs = this.modifiedSSRCs["unmute"];
         this.modifiedSSRCs["unmute"] = [];
         if (ssrcs && ssrcs.length) {
-            ssrcs.forEach(function (ssrcObj) {
+            ssrcs.forEach(function(ssrcObj) {
                 const desc = $(jingle.tree()).find(">jingle>content[name=\"" +
                     ssrcObj.mtype + "\"]>description");
                 if (!desc || !desc.length) {
                     return;
                 }
-                ssrcObj.ssrcs.forEach(function (ssrc) {
+                ssrcObj.ssrcs.forEach(function(ssrc) {
                     const sourceNode = desc.find(">source[ssrc=\"" +
                         ssrc + "\"]");
                     sourceNode.remove();
                 });
-                ssrcObj.groups.forEach(function (group) {
+                ssrcObj.groups.forEach(function(group) {
                     const groupNode = desc.find(">ssrc-group[semantics=\"" +
                         group.semantics + "\"]:has(source[ssrc=\"" +
                         group.ssrcs[0] + "\"])");
@@ -1470,12 +1470,12 @@ export default class JingleSessionPC extends JingleSession {
         ssrcs = this.modifiedSSRCs["addMuted"];
         this.modifiedSSRCs["addMuted"] = [];
         if (ssrcs && ssrcs.length) {
-            ssrcs.forEach(function (ssrcObj) {
+            ssrcs.forEach(function(ssrcObj) {
                 const desc
                     = JingleSessionPC.createDescriptionNode(
                         jingle, ssrcObj.mtype);
                 const cname = Math.random().toString(36).substring(2);
-                ssrcObj.ssrcs.forEach(function (ssrc) {
+                ssrcObj.ssrcs.forEach(function(ssrc) {
                     const sourceNode
                         = desc.find(">source[ssrc=\"" + ssrc + "\"]");
                     sourceNode.remove();
@@ -1489,7 +1489,7 @@ export default class JingleSessionPC extends JingleSession {
                         "</source>";
                     desc.append(sourceXML);
                 });
-                ssrcObj.groups.forEach(function (group) {
+                ssrcObj.groups.forEach(function(group) {
                     const groupNode
                         = desc.find(">ssrc-group[semantics=\"" +
                             group.semantics + "\"]:has(source[ssrc=\""
@@ -1517,15 +1517,15 @@ export default class JingleSessionPC extends JingleSession {
         let ssrcs = this.modifiedSSRCs["mute"];
         this.modifiedSSRCs["mute"] = [];
         if (ssrcs && ssrcs.length) {
-            ssrcs.forEach(function (ssrcObj) {
-                ssrcObj.ssrcs.forEach(function (ssrc) {
+            ssrcs.forEach(function(ssrcObj) {
+                ssrcObj.ssrcs.forEach(function(ssrc) {
                     const sourceNode
                         = $(jingle.tree()).find(">jingle>content[name=\"" +
                             ssrcObj.mtype + "\"]>description>source[ssrc=\"" +
                             ssrc + "\"]");
                     sourceNode.remove();
                 });
-                ssrcObj.groups.forEach(function (group) {
+                ssrcObj.groups.forEach(function(group) {
                     const groupNode
                         = $(jingle.tree()).find(
                             ">jingle>content[name=\"" + ssrcObj.mtype +
@@ -1540,11 +1540,11 @@ export default class JingleSessionPC extends JingleSession {
         ssrcs = this.modifiedSSRCs["remove"];
         this.modifiedSSRCs["remove"] = [];
         if (ssrcs && ssrcs.length) {
-            ssrcs.forEach(function (ssrcObj) {
+            ssrcs.forEach(function(ssrcObj) {
                 const desc
                     = JingleSessionPC.createDescriptionNode(
                         jingle, ssrcObj.mtype);
-                ssrcObj.ssrcs.forEach(function (ssrc) {
+                ssrcObj.ssrcs.forEach(function(ssrc) {
                     const sourceNode
                         = desc.find(">source[ssrc=\"" + ssrc + "\"]");
                     if (!sourceNode || !sourceNode.length) {
@@ -1555,7 +1555,7 @@ export default class JingleSessionPC extends JingleSession {
                             "ssrc=\"" + ssrc + "\"></source>");
                     }
                 });
-                ssrcObj.groups.forEach(function (group) {
+                ssrcObj.groups.forEach(function(group) {
                     const groupNode
                         = desc.find(">ssrc-group[semantics=\"" +
                             group.semantics + "\"]:has(source[ssrc=\"" +
@@ -1605,7 +1605,7 @@ export default class JingleSessionPC extends JingleSession {
      * Extracts the ice username fragment from an SDP string.
      */
     static getUfrag(sdp) {
-        const ufragLines = sdp.split('\n').filter(function (line) {
+        const ufragLines = sdp.split('\n').filter(function(line) {
             return line.startsWith("a=ice-ufrag:");
         });
         if (ufragLines.length > 0) {

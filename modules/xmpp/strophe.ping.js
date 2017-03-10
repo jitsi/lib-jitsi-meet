@@ -41,7 +41,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
      * Initializes the plugin. Method called by Strophe.
      * @param connection Strophe connection instance.
      */
-    init (connection) {
+    init(connection) {
         super.init(connection);
         Strophe.addNamespace('PING', "urn:xmpp:ping");
     }
@@ -55,7 +55,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
      *        timeout <tt>error<//t> callback is called with undefined error
      *        argument.
      */
-    ping (jid, success, error, timeout) {
+    ping(jid, success, error, timeout) {
         const iq = $iq({type: 'get', to: jid});
         iq.c('ping', {xmlns: Strophe.NS.PING});
         this.connection.sendIQ(iq, success, error, timeout);
@@ -67,7 +67,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
      * @param callback function with boolean argument which will be
      * <tt>true</tt> if XEP-0199 ping is supported by given <tt>jid</tt>
      */
-    hasPingSupport (jid, callback) {
+    hasPingSupport(jid, callback) {
         this.xmpp.caps.getFeatures(jid).then(features =>
             callback(features.has("urn:xmpp:ping")), error => {
             const errmsg = "Ping feature discovery error";
@@ -85,7 +85,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
      * @param remoteJid remote JID to which ping requests will be sent to.
      * @param interval task interval in ms.
      */
-    startInterval (remoteJid, interval = PING_INTERVAL) {
+    startInterval(remoteJid, interval = PING_INTERVAL) {
         if (this.intervalId) {
             const errmsg = "Ping task scheduled already";
             GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
@@ -118,7 +118,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
     /**
      * Stops current "ping"  interval task.
      */
-    stopInterval () {
+    stopInterval() {
         if (this.intervalId) {
             window.clearInterval(this.intervalId);
             this.intervalId = null;
@@ -128,6 +128,6 @@ class PingConnectionPlugin extends ConnectionPlugin {
     }
 }
 
-export default function (xmpp) {
+export default function(xmpp) {
     Strophe.addConnectionPlugin('ping', new PingConnectionPlugin(xmpp));
 }

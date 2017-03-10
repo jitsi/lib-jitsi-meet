@@ -59,7 +59,7 @@ var RandomUtil = {
      * Returns a random string of hex digits with length 'len'.
      * @param len the length.
      */
-    randomHexString (len) {
+    randomHexString(len) {
         var ret = '';
         while (len--) {
             ret += this.randomHexDigit();

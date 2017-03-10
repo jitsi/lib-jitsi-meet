@@ -10,21 +10,21 @@ class StropheLogger extends ConnectionPlugin {
         this.log = [];
     }
 
-    init (connection) {
+    init(connection) {
         super.init(connection);
         this.connection.rawInput = this.log_incoming.bind(this);
         this.connection.rawOutput = this.log_outgoing.bind(this);
     }
 
-    log_incoming (stanza) {
+    log_incoming(stanza) {
         this.log.push([new Date().getTime(), 'incoming', stanza]);
     }
 
-    log_outgoing (stanza) {
+    log_outgoing(stanza) {
         this.log.push([new Date().getTime(), 'outgoing', stanza]);
     }
 }
 
-export default function () {
+export default function() {
     Strophe.addConnectionPlugin('logger', new StropheLogger());
 }

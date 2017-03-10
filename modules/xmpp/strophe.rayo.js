@@ -7,18 +7,18 @@ import ConnectionPlugin from "./ConnectionPlugin";
 const RAYO_XMLNS = 'urn:xmpp:rayo:1';
 
 class RayoConnectionPlugin extends ConnectionPlugin {
-    init (connection) {
+    init(connection) {
         super.init(connection);
 
         this.connection.addHandler(
             this.onRayo.bind(this), RAYO_XMLNS, 'iq', 'set', null, null);
     }
 
-    onRayo (iq) {
+    onRayo(iq) {
         logger.info("Rayo IQ", iq);
     }
 
-    dial (to, from, roomName, roomPass, focusMucJid) {
+    dial(to, from, roomName, roomPass, focusMucJid) {
         return new Promise((resolve, reject) => {
             if(!focusMucJid) {
                 reject(new Error("Internal error!"));
@@ -60,7 +60,7 @@ class RayoConnectionPlugin extends ConnectionPlugin {
         });
     }
 
-    hangup () {
+    hangup() {
         return new Promise((resolve, reject) => {
             if (!this.call_resource) {
                 reject(new Error("No call in progress"));

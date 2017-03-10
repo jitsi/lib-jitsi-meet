@@ -94,7 +94,7 @@ function LocalStatsCollector(stream, interval, callback) {
 /**
  * Starts the collecting the statistics.
  */
-LocalStatsCollector.prototype.start = function () {
+LocalStatsCollector.prototype.start = function() {
     if (!context ||
         RTCBrowserType.isTemasysPluginUsed()) {
         return;
@@ -111,7 +111,7 @@ LocalStatsCollector.prototype.start = function () {
     var self = this;
 
     this.intervalId = setInterval(
-        function () {
+        function() {
             var array = new Uint8Array(analyser.frequencyBinCount);
             analyser.getByteTimeDomainData(array);
             var audioLevel = timeDomainDataToAudioLevel(array);
@@ -127,7 +127,7 @@ LocalStatsCollector.prototype.start = function () {
 /**
  * Stops collecting the statistics.
  */
-LocalStatsCollector.prototype.stop = function () {
+LocalStatsCollector.prototype.stop = function() {
     if (this.intervalId) {
         clearInterval(this.intervalId);
         this.intervalId = null;

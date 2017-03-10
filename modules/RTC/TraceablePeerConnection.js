@@ -88,7 +88,7 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
     this.rtxModifier = new RtxModifier();
 
     // override as desired
-    this.trace = function (what, info) {
+    this.trace = function(what, info) {
         /* logger.warn('WTRACE', what, info);
         if (info && RTCBrowserType.isIExplorer()) {
             if (info.length > 1024) {
@@ -105,7 +105,7 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
         });
     };
     this.onicecandidate = null;
-    this.peerconnection.onicecandidate = function (event) {
+    this.peerconnection.onicecandidate = function(event) {
         // FIXME: this causes stack overflow with Temasys Plugin
         if (!RTCBrowserType.isTemasysPluginUsed()) {
             self.trace(
@@ -118,48 +118,48 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
         }
     };
     this.onaddstream = null;
-    this.peerconnection.onaddstream = function (event) {
+    this.peerconnection.onaddstream = function(event) {
         self.trace('onaddstream', event.stream.id);
         if (self.onaddstream !== null) {
             self.onaddstream(event);
         }
     };
     this.onremovestream = null;
-    this.peerconnection.onremovestream = function (event) {
+    this.peerconnection.onremovestream = function(event) {
         self.trace('onremovestream', event.stream.id);
         if (self.onremovestream !== null) {
             self.onremovestream(event);
         }
     };
-    this.peerconnection.onaddstream = function (event) {
+    this.peerconnection.onaddstream = function(event) {
         self._remoteStreamAdded(event.stream);
     };
-    this.peerconnection.onremovestream = function (event) {
+    this.peerconnection.onremovestream = function(event) {
         self._remoteStreamRemoved(event.stream);
     };
     this.onsignalingstatechange = null;
-    this.peerconnection.onsignalingstatechange = function (event) {
+    this.peerconnection.onsignalingstatechange = function(event) {
         self.trace('onsignalingstatechange', self.signalingState);
         if (self.onsignalingstatechange !== null) {
             self.onsignalingstatechange(event);
         }
     };
     this.oniceconnectionstatechange = null;
-    this.peerconnection.oniceconnectionstatechange = function (event) {
+    this.peerconnection.oniceconnectionstatechange = function(event) {
         self.trace('oniceconnectionstatechange', self.iceConnectionState);
         if (self.oniceconnectionstatechange !== null) {
             self.oniceconnectionstatechange(event);
         }
     };
     this.onnegotiationneeded = null;
-    this.peerconnection.onnegotiationneeded = function (event) {
+    this.peerconnection.onnegotiationneeded = function(event) {
         self.trace('onnegotiationneeded');
         if (self.onnegotiationneeded !== null) {
             self.onnegotiationneeded(event);
         }
     };
     self.ondatachannel = null;
-    this.peerconnection.ondatachannel = function (event) {
+    this.peerconnection.ondatachannel = function(event) {
         self.trace('ondatachannel', event);
         if (self.ondatachannel !== null) {
             self.ondatachannel(event);
@@ -172,7 +172,7 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
                 var results = stats.result();
                 var now = new Date();
                 for (var i = 0; i < results.length; ++i) {
-                    results[i].names().forEach(function (name) {
+                    results[i].names().forEach(function(name) {
                         var id = results[i].id + '-' + name;
                         if (!self.stats[id]) {
                             self.stats[id] = {
@@ -212,7 +212,7 @@ var dumpSDP = function(description) {
  * Called when new remote MediaStream is added to the PeerConnection.
  * @param {MediaStream} stream the WebRTC MediaStream for remote participant
  */
-TraceablePeerConnection.prototype._remoteStreamAdded = function (stream) {
+TraceablePeerConnection.prototype._remoteStreamAdded = function(stream) {
     if (!RTC.isUserStream(stream)) {
         logger.info(
             "Ignored remote 'stream added' event for non-user stream", stream);
@@ -249,7 +249,7 @@ TraceablePeerConnection.prototype._remoteStreamAdded = function (stream) {
  * @param {MediaStreamTrack} track the WebRTC MediaStreamTrack added for remote
  * participant
  */
-TraceablePeerConnection.prototype._remoteTrackAdded = function (stream, track) {
+TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
     const streamId = RTC.getStreamID(stream);
     const mediaType = track.kind;
 
@@ -267,7 +267,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function (stream, track) {
 
     const remoteSDP = new SDP(this.remoteDescription.sdp);
     const mediaLines = remoteSDP.media.filter(
-        function (mediaLines){
+        function(mediaLines){
             return mediaLines.startsWith("m=" + mediaType);
         });
     if (!mediaLines.length) {
@@ -282,7 +282,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function (stream, track) {
     let ssrcLines = SDPUtil.find_lines(mediaLines[0], 'a=ssrc:');
 
     ssrcLines = ssrcLines.filter(
-        function (line) {
+        function(line) {
             const msid
                 = RTCBrowserType.isTemasysPluginUsed() ? 'mslabel' : 'msid';
             return line.indexOf(msid + ':' + streamId) !== -1;
@@ -335,7 +335,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function (stream, track) {
  * @param stream the WebRTC MediaStream object which is being removed from the
  * PeerConnection
  */
-TraceablePeerConnection.prototype._remoteStreamRemoved = function (stream) {
+TraceablePeerConnection.prototype._remoteStreamRemoved = function(stream) {
     if (!RTC.isUserStream(stream)) {
         const id = RTC.getStreamID(stream);
         logger.info(
@@ -361,7 +361,7 @@ TraceablePeerConnection.prototype._remoteStreamRemoved = function (stream) {
  * removed from the PeerConnection.
  */
 TraceablePeerConnection.prototype._remoteTrackRemoved
-= function (stream, track) {
+= function(stream, track) {
     const streamId = RTC.getStreamID(stream);
     const trackId = track && track.id;
 
@@ -509,7 +509,7 @@ var normalizePlanB = function(desc) {
 
     if (typeof session !== 'undefined' &&
         typeof session.media !== 'undefined' && Array.isArray(session.media)) {
-        session.media.forEach(function (mLine) {
+        session.media.forEach(function(mLine) {
 
             // Chrome appears to be picky about the order in which a=ssrc lines
             // are listed in an m-line when rtx is enabled (and thus there are
@@ -523,7 +523,7 @@ var normalizePlanB = function(desc) {
 
             if (typeof mLine.ssrcGroups !== 'undefined' &&
                 Array.isArray(mLine.ssrcGroups)) {
-                mLine.ssrcGroups.forEach(function (group) {
+                mLine.ssrcGroups.forEach(function(group) {
                     if (typeof group.semantics !== 'undefined' &&
                         group.semantics === 'FID') {
                         if (typeof group.ssrcs !== 'undefined') {
@@ -563,10 +563,10 @@ var normalizePlanB = function(desc) {
 };
 
 var getters = {
-    signalingState () {
+    signalingState() {
         return this.peerconnection.signalingState;
     },
-    iceConnectionState () {
+    iceConnectionState() {
         return this.peerconnection.iceConnectionState;
     },
     localDescription() {
@@ -595,7 +595,7 @@ var getters = {
         return desc;
     }
 };
-Object.keys(getters).forEach(function (prop) {
+Object.keys(getters).forEach(function(prop) {
     Object.defineProperty(
         TraceablePeerConnection.prototype,
         prop, {
@@ -604,7 +604,7 @@ Object.keys(getters).forEach(function (prop) {
     );
 });
 
-TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
+TraceablePeerConnection.prototype.addStream = function(stream, ssrcInfo) {
     this.trace('addStream', stream ? stream.id : "null");
     if (stream) {
         this.peerconnection.addStream(stream);
@@ -631,7 +631,7 @@ TraceablePeerConnection.prototype.addStream = function (stream, ssrcInfo) {
     }
 };
 
-TraceablePeerConnection.prototype.removeStream = function (stream) {
+TraceablePeerConnection.prototype.removeStream = function(stream) {
     this.trace('removeStream', stream.id);
     // FF doesn't support this yet.
     if (this.peerconnection.removeStream) {
@@ -639,13 +639,13 @@ TraceablePeerConnection.prototype.removeStream = function (stream) {
     }
 };
 
-TraceablePeerConnection.prototype.createDataChannel = function (label, opts) {
+TraceablePeerConnection.prototype.createDataChannel = function(label, opts) {
     this.trace('createDataChannel', label, opts);
     return this.peerconnection.createDataChannel(label, opts);
 };
 
 TraceablePeerConnection.prototype.setLocalDescription
-        = function (description, successCallback, failureCallback) {
+        = function(description, successCallback, failureCallback) {
             this.trace('setLocalDescription::preTransform', dumpSDP(description));
     // if we're running on FF, transform to Plan A first.
             if (RTCBrowserType.usesUnifiedPlan()) {
@@ -656,11 +656,11 @@ TraceablePeerConnection.prototype.setLocalDescription
 
             var self = this;
             this.peerconnection.setLocalDescription(description,
-        function () {
+        function() {
             self.trace('setLocalDescriptionOnSuccess');
             successCallback();
         },
-        function (err) {
+        function(err) {
             self.trace('setLocalDescriptionOnFailure', err);
             self.eventEmitter.emit(
                 RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
@@ -671,7 +671,7 @@ TraceablePeerConnection.prototype.setLocalDescription
         };
 
 TraceablePeerConnection.prototype.setRemoteDescription
-        = function (description, successCallback, failureCallback) {
+        = function(description, successCallback, failureCallback) {
             this.trace('setRemoteDescription::preTransform', dumpSDP(description));
     // TODO the focus should squeze or explode the remote simulcast
             description = this.simulcast.mungeRemoteDescription(description);
@@ -702,11 +702,11 @@ TraceablePeerConnection.prototype.setRemoteDescription
 
             var self = this;
             this.peerconnection.setRemoteDescription(description,
-        function () {
+        function() {
             self.trace('setRemoteDescriptionOnSuccess');
             successCallback();
         },
-        function (err) {
+        function(err) {
             self.trace('setRemoteDescriptionOnFailure', err);
             self.eventEmitter.emit(RTCEvents.SET_REMOTE_DESCRIPTION_FAILED,
                 err, self.peerconnection);
@@ -737,12 +737,12 @@ TraceablePeerConnection.prototype.generateRecvonlySsrc = function() {
  * SSRC.
  * @deprecated
  */
-TraceablePeerConnection.prototype.clearRecvonlySsrc = function () {
+TraceablePeerConnection.prototype.clearRecvonlySsrc = function() {
     logger.info("Clearing primary video SSRC!");
     this.sdpConsistency.clearSsrcCache();
 };
 
-TraceablePeerConnection.prototype.close = function () {
+TraceablePeerConnection.prototype.close = function() {
     this.trace('stop');
     if (!this.rtc._removePeerConnection(this)) {
         logger.error("RTC._removePeerConnection returned false");
@@ -765,7 +765,7 @@ TraceablePeerConnection.prototype.close = function () {
  * @param {SDP} answer - the SDP to modify
  * @private
  */
-var _fixAnswerRFC4145Setup = function (offer, answer) {
+var _fixAnswerRFC4145Setup = function(offer, answer) {
     if (!RTCBrowserType.isChrome()) {
         // It looks like Firefox doesn't agree with the fix (at least in its
         // current implementation) because it effectively remains active even
@@ -800,7 +800,7 @@ var _fixAnswerRFC4145Setup = function (offer, answer) {
     if (offer && answer
             && offer.media && answer.media
             && offer.media.length == answer.media.length) {
-        answer.media.forEach(function (a, i) {
+        answer.media.forEach(function(a, i) {
             if (SDPUtil.find_line(
                     offer.media[i],
                     'a=setup:actpass',
@@ -814,7 +814,7 @@ var _fixAnswerRFC4145Setup = function (offer, answer) {
 };
 
 TraceablePeerConnection.prototype.createAnswer
-        = function (successCallback, failureCallback, constraints) {
+        = function(successCallback, failureCallback, constraints) {
             this.trace('createAnswer', JSON.stringify(constraints, null, ' '));
             this.peerconnection.createAnswer(
         answer => {
@@ -889,7 +889,7 @@ TraceablePeerConnection.prototype.createAnswer
 
 TraceablePeerConnection.prototype.addIceCandidate
         // eslint-disable-next-line no-unused-vars
-        = function (candidate, successCallback, failureCallback) {
+        = function(candidate, successCallback, failureCallback) {
     // var self = this;
             this.trace('addIceCandidate', JSON.stringify(candidate, null, ' '));
             this.peerconnection.addIceCandidate(candidate);
@@ -914,7 +914,7 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
             || RTCBrowserType.isReactNative()) {
         // ignore for now...
         if(!errback) {
-            errback = function () {};
+            errback = function() {};
         }
         this.peerconnection.getStats(null, callback, errback);
     } else {
@@ -927,7 +927,7 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
  * - ssrcs - Array of the ssrcs associated with the stream.
  * - groups - Array of the groups associated with the stream.
  */
-TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function () {
+TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function() {
     let ssrcInfo = {ssrcs: [], groups: []};
     if (!this.options.disableSimulcast
         && this.simulcast.isSupported()) {

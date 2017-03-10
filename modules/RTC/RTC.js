@@ -91,9 +91,9 @@ export default class RTC extends Listenable {
      * @param {string} options.micDeviceId
      * @returns {*} Promise object that will receive the new JitsiTracks
      */
-    static obtainAudioAndVideoPermissions (options) {
+    static obtainAudioAndVideoPermissions(options) {
         return RTCUtils.obtainAudioAndVideoPermissions(options).then(
-            function (tracksInfo) {
+            function(tracksInfo) {
                 var tracks = createLocalTracks(tracksInfo, options);
                 return !tracks.some(track =>
                     !track._isReceivingData()) ? tracks
@@ -106,7 +106,7 @@ export default class RTC extends Listenable {
      * Initializes the data channels of this instance.
      * @param peerconnection the associated PeerConnection.
      */
-    initializeDataChannels (peerconnection) {
+    initializeDataChannels(peerconnection) {
         if(this.options.config.openSctp) {
             this.dataChannels = new DataChannels(peerconnection,
                 this.eventEmitter);
@@ -140,7 +140,7 @@ export default class RTC extends Listenable {
      * Should be called when current media session ends and after the
      * PeerConnection has been closed using PeerConnection.close() method.
      */
-    onCallEnded () {
+    onCallEnded() {
         if (this.dataChannels) {
             // DataChannels are not explicitly closed as the PeerConnection
             // is closed on call ended which triggers data channel onclose
@@ -161,7 +161,7 @@ export default class RTC extends Listenable {
      * @throws NetworkError or InvalidStateError or Error if the operation
      * fails.
      */
-    selectEndpoint (id) {
+    selectEndpoint(id) {
         // cache the value if channel is missing, till we open it
         this.selectedEndpoint = id;
         if(this.dataChannels && this.dataChannelsOpen) {
@@ -176,7 +176,7 @@ export default class RTC extends Listenable {
      * @param id {string} the user id
      * @throws NetworkError or InvalidStateError or Error if the operation fails.
      */
-    pinEndpoint (id) {
+    pinEndpoint(id) {
         if(this.dataChannels) {
             this.dataChannels.sendPinnedEndpointMessage(id);
         } else {
@@ -186,24 +186,24 @@ export default class RTC extends Listenable {
         }
     }
 
-    static addListener (eventType, listener) {
+    static addListener(eventType, listener) {
         RTCUtils.addListener(eventType, listener);
     }
 
-    static removeListener (eventType, listener) {
+    static removeListener(eventType, listener) {
         RTCUtils.removeListener(eventType, listener);
     }
 
-    static isRTCReady () {
+    static isRTCReady() {
         return RTCUtils.isRTCReady();
     }
 
-    static init (options = {}) {
+    static init(options = {}) {
         this.options = options;
         return RTCUtils.init(this.options);
     }
 
-    static getDeviceAvailability () {
+    static getDeviceAvailability() {
         return RTCUtils.getDeviceAvailability();
     }
 
@@ -222,7 +222,7 @@ export default class RTC extends Listenable {
      * preferred over other video codecs.
      * @return {TraceablePeerConnection}
      */
-    createPeerConnection (signaling, iceConfig, options) {
+    createPeerConnection(signaling, iceConfig, options) {
         const newConnection
             = new TraceablePeerConnection(
                 this,
@@ -241,7 +241,7 @@ export default class RTC extends Listenable {
      * successfully or <tt>false</tt> if there was no peer connection mapped in
      * this RTC instance.
      */
-    _removePeerConnection (traceablePeerConnection) {
+    _removePeerConnection(traceablePeerConnection) {
         const id = traceablePeerConnection.id;
         if (this.peerConnections.has(id)) {
             // NOTE Remote tracks are not removed here.
@@ -252,7 +252,7 @@ export default class RTC extends Listenable {
         }
     }
 
-    addLocalTrack (track) {
+    addLocalTrack(track) {
         if (!track) {
             throw new Error('track must not be null nor undefined');
         }
@@ -266,7 +266,7 @@ export default class RTC extends Listenable {
      * Get local video track.
      * @returns {JitsiLocalTrack|undefined}
      */
-    getLocalVideoTrack () {
+    getLocalVideoTrack() {
         const localVideo = this.getLocalTracks(MediaType.VIDEO);
         return localVideo.length ? localVideo[0] : undefined;
     }
@@ -275,7 +275,7 @@ export default class RTC extends Listenable {
      * Get local audio track.
      * @returns {JitsiLocalTrack|undefined}
      */
-    getLocalAudioTrack () {
+    getLocalAudioTrack() {
         const localAudio = this.getLocalTracks(MediaType.AUDIO);
         return localAudio.length ? localAudio[0] : undefined;
     }
@@ -286,7 +286,7 @@ export default class RTC extends Listenable {
      * @param {MediaType} [mediaType] optional media type filter
      * (audio or video).
      */
-    getLocalTracks (mediaType) {
+    getLocalTracks(mediaType) {
         let tracks = this.localTracks.slice();
         if (mediaType !== undefined) {
             tracks = tracks.filter(
@@ -301,7 +301,7 @@ export default class RTC extends Listenable {
      * by their media type if this argument is specified.
      * @return {Array<JitsiRemoteTrack>}
      */
-    getRemoteTracks (mediaType) {
+    getRemoteTracks(mediaType) {
         const remoteTracks = [];
         const remoteEndpoints = Object.keys(this.remoteTracks);
 
@@ -331,7 +331,7 @@ export default class RTC extends Listenable {
      * @param resource the resource part of the MUC JID
      * @returns {JitsiRemoteTrack|null}
      */
-    getRemoteTrackByType (type, resource) {
+    getRemoteTrackByType(type, resource) {
         if (this.remoteTracks[resource]) {
             return this.remoteTracks[resource][type];
         } else {
@@ -345,7 +345,7 @@ export default class RTC extends Listenable {
      * @param resource the resource part of the MUC JID
      * @returns {JitsiRemoteTrack|null}
      */
-    getRemoteAudioTrack (resource) {
+    getRemoteAudioTrack(resource) {
         return this.getRemoteTrackByType(MediaType.AUDIO, resource);
     }
 
@@ -355,7 +355,7 @@ export default class RTC extends Listenable {
      * @param resource the resource part of the MUC JID
      * @returns {JitsiRemoteTrack|null}
      */
-    getRemoteVideoTrack (resource) {
+    getRemoteVideoTrack(resource) {
         return this.getRemoteTrackByType(MediaType.VIDEO, resource);
     }
 
@@ -364,7 +364,7 @@ export default class RTC extends Listenable {
      * @param value the mute value
      * @returns {Promise}
      */
-    setAudioMute (value) {
+    setAudioMute(value) {
         const mutePromises = [];
         this.getLocalTracks(MediaType.AUDIO).forEach(function(audioTrack){
             // this is a Promise
@@ -374,7 +374,7 @@ export default class RTC extends Listenable {
         return Promise.all(mutePromises);
     }
 
-    removeLocalTrack (track) {
+    removeLocalTrack(track) {
         const pos = this.localTracks.indexOf(track);
         if (pos === -1) {
             return;
@@ -395,7 +395,7 @@ export default class RTC extends Listenable {
      * @param {string} ssrc
      * @param {boolean} muted
      */
-    _createRemoteTrack (ownerEndpointId,
+    _createRemoteTrack(ownerEndpointId,
                         stream, track, mediaType, videoType, ssrc, muted) {
         const remoteTrack
             = new JitsiRemoteTrack(
@@ -421,7 +421,7 @@ export default class RTC extends Listenable {
      * @param {string} owner - The resource part of the MUC JID.
      * @returns {JitsiRemoteTrack[]}
      */
-    removeRemoteTracks (owner) {
+    removeRemoteTracks(owner) {
         const removedTracks = [];
 
         if (this.remoteTracks[owner]) {
@@ -445,7 +445,7 @@ export default class RTC extends Listenable {
      * @return {JitsiRemoteTrack|undefined}
      * @private
      */
-    _getRemoteTrackById (streamId, trackId) {
+    _getRemoteTrackById(streamId, trackId) {
         let result = undefined;
 
         // .find will break the loop once the first match is found
@@ -480,7 +480,7 @@ export default class RTC extends Listenable {
      * <tt>undefined</tt> if no track matching given stream and track ids was
      * found.
      */
-    _removeRemoteTrack (streamId, trackId) {
+    _removeRemoteTrack(streamId, trackId) {
         const toBeRemoved = this._getRemoteTrackById(streamId, trackId);
 
         if (toBeRemoved) {
@@ -496,15 +496,15 @@ export default class RTC extends Listenable {
         return toBeRemoved;
     }
 
-    static getPCConstraints () {
+    static getPCConstraints() {
         return RTCUtils.pc_constraints;
     }
 
-    static attachMediaStream (elSelector, stream) {
+    static attachMediaStream(elSelector, stream) {
         return RTCUtils.attachMediaStream(elSelector, stream);
     }
 
-    static getStreamID (stream) {
+    static getStreamID(stream) {
         return RTCUtils.getStreamID(stream);
     }
 
@@ -512,7 +512,7 @@ export default class RTC extends Listenable {
      * Returns true if retrieving the the list of input devices is supported
      * and false if not.
      */
-    static isDeviceListAvailable () {
+    static isDeviceListAvailable() {
         return RTCUtils.isDeviceListAvailable();
     }
 
@@ -523,7 +523,7 @@ export default class RTC extends Listenable {
      *      undefined or 'input', 'output' - for audio output device change.
      * @returns {boolean} true if available, false otherwise.
      */
-    static isDeviceChangeAvailable (deviceType) {
+    static isDeviceChangeAvailable(deviceType) {
         return RTCUtils.isDeviceChangeAvailable(deviceType);
     }
 
@@ -532,7 +532,7 @@ export default class RTC extends Listenable {
      * device
      * @returns {string}
      */
-    static getAudioOutputDevice () {
+    static getAudioOutputDevice() {
         return RTCUtils.getAudioOutputDevice();
     }
 
@@ -541,7 +541,7 @@ export default class RTC extends Listenable {
      * empty array is returned/
      * @returns {Array} list of available media devices.
      */
-    static getCurrentlyAvailableMediaDevices () {
+    static getCurrentlyAvailableMediaDevices() {
         return RTCUtils.getCurrentlyAvailableMediaDevices();
     }
 
@@ -549,7 +549,7 @@ export default class RTC extends Listenable {
      * Returns event data for device to be reported to stats.
      * @returns {MediaDeviceInfo} device.
      */
-    static getEventDataForActiveDevice (device) {
+    static getEventDataForActiveDevice(device) {
         return RTCUtils.getEventDataForActiveDevice(device);
     }
 
@@ -560,7 +560,7 @@ export default class RTC extends Listenable {
      * @returns {Promise} - resolves when audio output is changed, is rejected
      *      otherwise
      */
-    static setAudioOutputDevice (deviceId) {
+    static setAudioOutputDevice(deviceId) {
         return RTCUtils.setAudioOutputDevice(deviceId);
     }
 
@@ -576,7 +576,7 @@ export default class RTC extends Listenable {
      * @param {MediaStream} stream the WebRTC MediaStream instance
      * @returns {boolean}
      */
-    static isUserStream (stream) {
+    static isUserStream(stream) {
         return RTC.isUserStreamById(RTCUtils.getStreamID(stream));
     }
 
@@ -592,7 +592,7 @@ export default class RTC extends Listenable {
      * @param {string} streamId the id of WebRTC MediaStream
      * @returns {boolean}
      */
-    static isUserStreamById (streamId) {
+    static isUserStreamById(streamId) {
         return streamId && streamId !== "mixedmslabel"
             && streamId !== "default";
     }
@@ -601,7 +601,7 @@ export default class RTC extends Listenable {
      * Allows to receive list of available cameras/microphones.
      * @param {function} callback would receive array of devices as an argument
      */
-    static enumerateDevices (callback) {
+    static enumerateDevices(callback) {
         RTCUtils.enumerateDevices(callback);
     }
 
@@ -610,7 +610,7 @@ export default class RTC extends Listenable {
      * One point to handle the differences in various implementations.
      * @param mediaStream MediaStream object to stop.
      */
-    static stopMediaStream (mediaStream) {
+    static stopMediaStream(mediaStream) {
         RTCUtils.stopMediaStream(mediaStream);
     }
 
@@ -625,16 +625,16 @@ export default class RTC extends Listenable {
     /**
      * Closes all currently opened data channels.
      */
-    closeAllDataChannels () {
+    closeAllDataChannels() {
         if(this.dataChannels) {
             this.dataChannels.closeAllChannels();
             this.dataChannelsOpen = false;
         }
     }
 
-    dispose () { }
+    dispose() { }
 
-    setAudioLevel (resource, audioLevel) {
+    setAudioLevel(resource, audioLevel) {
         if(!resource) {
             return;
         }
@@ -649,7 +649,7 @@ export default class RTC extends Listenable {
      * remoteTracks for the ssrc and returns the corresponding resource.
      * @param ssrc the ssrc to check.
      */
-    getResourceBySSRC (ssrc) {
+    getResourceBySSRC(ssrc) {
         if (this.getLocalTracks().find(
                 localTrack => localTrack.getSSRC() == ssrc)) {
             return this.conference.myUserId();
@@ -666,8 +666,8 @@ export default class RTC extends Listenable {
      * @return {JitsiRemoteTrack|undefined} return the first remote track that
      * matches given SSRC or <tt>undefined</tt> if no such track was found.
      */
-    getRemoteTrackBySSRC (ssrc) {
-        return this.getRemoteTracks().find(function (remoteTrack) {
+    getRemoteTrackBySSRC(ssrc) {
+        return this.getRemoteTracks().find(function(remoteTrack) {
             return ssrc == remoteTrack.getSSRC();
         });
     }
@@ -678,7 +678,7 @@ export default class RTC extends Listenable {
      * @param isMuted {boolean} the new mute state
      * @param from {string} user id
      */
-    handleRemoteTrackMute (type, isMuted, from) {
+    handleRemoteTrackMute(type, isMuted, from) {
         var track = this.getRemoteTrackByType(type, from);
         if (track) {
             track.setMute(isMuted);
@@ -690,7 +690,7 @@ export default class RTC extends Listenable {
      * @param value {string} the new video type
      * @param from {string} user id
      */
-    handleRemoteTrackVideoTypeChanged (value, from) {
+    handleRemoteTrackVideoTypeChanged(value, from) {
         var videoTrack = this.getRemoteVideoTrack(from);
         if (videoTrack) {
             videoTrack._setVideoType(value);
@@ -705,7 +705,7 @@ export default class RTC extends Listenable {
      * @throws NetworkError or InvalidStateError or Error if the operation
      * fails or there is no data channel created
      */
-    sendDataChannelMessage (to, payload) {
+    sendDataChannelMessage(to, payload) {
         if(this.dataChannels) {
             this.dataChannels.sendDataChannelMessage(to, payload);
         } else {
@@ -720,7 +720,7 @@ export default class RTC extends Listenable {
      * @param value {int} the new value for lastN.
      * @trows Error if there is no data channel created.
      */
-    setLastN (value) {
+    setLastN(value) {
         if (this.dataChannels) {
             this.dataChannels.sendSetLastNMessage(value);
         } else {

@@ -124,7 +124,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
             modify.c('source', { xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
             modify.attrs({ssrc: mediaSsrc.ssrc});
             // iterate over ssrc lines
-            mediaSsrc.lines.forEach(function (line) {
+            mediaSsrc.lines.forEach(function(line) {
                 var idx = line.indexOf(' ');
                 var kv = line.substr(idx + 1);
                 modify.c('parameter');
@@ -151,7 +151,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
                     xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0'
                 });
 
-                ssrcGroup.ssrcs.forEach(function (ssrc) {
+                ssrcGroup.ssrcs.forEach(function(ssrc) {
                     modify.c('source', { ssrc })
                         .up(); // end of source
                 });

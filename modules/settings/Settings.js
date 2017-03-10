@@ -68,7 +68,7 @@ class Settings {
     /**
      * Save settings to localStorage if browser supports that.
      */
-    save () {
+    save() {
         var localStorage = getLocalStorage();
         if (localStorage) {
             localStorage.setItem('jitsiMeetId', this.userId);
@@ -80,7 +80,7 @@ class Settings {
      * Returns current machine id.
      * @returns {string} machine id
      */
-    getMachineId () {
+    getMachineId() {
         return this.userId;
     }
 
@@ -88,7 +88,7 @@ class Settings {
      * Returns fake username for callstats
      * @returns {string} fake username for callstats
      */
-    getCallStatsUserName () {
+    getCallStatsUserName() {
         return this.callStatsUserName;
     }
 
@@ -96,7 +96,7 @@ class Settings {
      * Save current session id.
      * @param {string} sessionId session id
      */
-    setSessionId (sessionId) {
+    setSessionId(sessionId) {
         const localStorage = getLocalStorage();
         if (localStorage) {
             if (sessionId) {
@@ -110,7 +110,7 @@ class Settings {
     /**
      * Clear current session id.
      */
-    clearSessionId () {
+    clearSessionId() {
         this.setSessionId(undefined);
     }
 
@@ -118,7 +118,7 @@ class Settings {
      * Returns current session id.
      * @returns {string} current session id
      */
-    getSessionId () {
+    getSessionId() {
         // We may update sessionId in localStorage from another JitsiConference
         // instance and that's why we should always re-read it.
         const localStorage = getLocalStorage();

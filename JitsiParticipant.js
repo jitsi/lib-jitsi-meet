@@ -136,7 +136,7 @@ export default class JitsiParticipant {
     /**
      * @returns {String} The status of the participant.
      */
-    getStatus () {
+    getStatus() {
         return this._status;
     }
 

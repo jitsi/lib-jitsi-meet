@@ -429,7 +429,7 @@ var names = [
  * Generate random username.
  * @returns {string} random username
  */
-function generateUsername () {
+function generateUsername() {
     var name = RandomUtil.randomElement(names);
     var suffix = RandomUtil.randomAlphanumStr(3);
 

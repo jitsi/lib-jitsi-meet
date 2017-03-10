@@ -18,14 +18,14 @@ function JitsiConnection(appID, token, options) {
     this.xmpp = new XMPP(options, token);
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
-        function (errType, msg) {
+        function(errType, msg) {
             // sends analytics and callstats event
             Statistics.sendEventToAll('connection.failed.' + errType,
                 {label: msg});
         }.bind(this));
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_DISCONNECTED,
-        function (msg) {
+        function(msg) {
             // we can see disconnects from normal tab closing of the browser
             // and then there are no msgs, but we want to log only disconnects
             // when there is real error
@@ -43,7 +43,7 @@ function JitsiConnection(appID, token, options) {
  * @param options {object} connecting options
  * (for example authentications parameters).
  */
-JitsiConnection.prototype.connect = function (options) {
+JitsiConnection.prototype.connect = function(options) {
     if(!options) {
         options = {};
     }
@@ -58,14 +58,14 @@ JitsiConnection.prototype.connect = function (options) {
  *
  * @param options {object} connecting options - rid, sid and jid.
  */
-JitsiConnection.prototype.attach = function (options) {
+JitsiConnection.prototype.attach = function(options) {
     this.xmpp.attach(options);
 };
 
 /**
  * Disconnect the client from the server.
  */
-JitsiConnection.prototype.disconnect = function () {
+JitsiConnection.prototype.disconnect = function() {
     // XXX Forward any arguments passed to JitsiConnection.disconnect to
     // XMPP.disconnect. For example, the caller of JitsiConnection.disconnect
     // may optionally pass the event which triggered the disconnect in order to
@@ -79,7 +79,7 @@ JitsiConnection.prototype.disconnect = function () {
  * This method allows renewal of the tokens if they are expiring.
  * @param token the new token.
  */
-JitsiConnection.prototype.setToken = function (token) {
+JitsiConnection.prototype.setToken = function(token) {
     this.token = token;
 };
 
@@ -91,7 +91,7 @@ JitsiConnection.prototype.setToken = function (token) {
  * that will be created.
  * @returns {JitsiConference} returns the new conference object.
  */
-JitsiConnection.prototype.initJitsiConference = function (name, options) {
+JitsiConnection.prototype.initJitsiConference = function(name, options) {
     return new JitsiConference({name, config: options, connection: this});
 };
 
@@ -100,7 +100,7 @@ JitsiConnection.prototype.initJitsiConference = function (name, options) {
  * @param event {JitsiConnectionEvents} the connection event.
  * @param listener {Function} the function that will receive the event
  */
-JitsiConnection.prototype.addEventListener = function (event, listener) {
+JitsiConnection.prototype.addEventListener = function(event, listener) {
     this.xmpp.addListener(event, listener);
 };
 
@@ -109,14 +109,14 @@ JitsiConnection.prototype.addEventListener = function (event, listener) {
  * @param event {JitsiConnectionEvents} the connection event.
  * @param listener {Function} the function that will receive the event
  */
-JitsiConnection.prototype.removeEventListener = function (event, listener) {
+JitsiConnection.prototype.removeEventListener = function(event, listener) {
     this.xmpp.removeListener(event, listener);
 };
 
 /**
  * Returns measured connectionTimes.
  */
-JitsiConnection.prototype.getConnectionTimes = function () {
+JitsiConnection.prototype.getConnectionTimes = function() {
     return this.xmpp.connectionTimes;
 };
 
@@ -138,7 +138,7 @@ JitsiConnection.prototype.addFeature = function(feature, submit = false) {
  * @param {boolean} submit if true - the new list of features will be
  * immediately submitted to the others.
  */
-JitsiConnection.prototype.removeFeature = function (feature, submit = false) {
+JitsiConnection.prototype.removeFeature = function(feature, submit = false) {
     return this.xmpp.caps.removeFeature(feature, submit);
 };
 

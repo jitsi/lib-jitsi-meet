@@ -20,7 +20,7 @@ export default class SignalingLayer {
      * @param {string} ssrc a string representation of the SSRC number.
      * @return {string|null} the endpoint ID for given media SSRC.
      */
-    getSSRCOwner (ssrc) { // eslint-disable-line no-unused-vars
+    getSSRCOwner(ssrc) { // eslint-disable-line no-unused-vars
         throw new Error('not implemented');
     }
     /**
@@ -34,7 +34,7 @@ export default class SignalingLayer {
      * info or <tt>null</tt> either if there is no presence available for given
      * JID or if the media type given is invalid.
      */
-    getPeerMediaInfo (owner, mediaType) { // eslint-disable-line no-unused-vars
+    getPeerMediaInfo(owner, mediaType) { // eslint-disable-line no-unused-vars
         throw new Error('not implemented');
     }
 }

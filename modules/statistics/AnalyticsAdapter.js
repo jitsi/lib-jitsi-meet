@@ -91,7 +91,7 @@ class AnalyticsAdapter {
      * the cached events.
      * @param {Array} handlers the handlers
      */
-    setAnalyticsHandlers (handlers) {
+    setAnalyticsHandlers(handlers) {
         this.analyticsHandlers = new Set(handlers);
         cacheAnalytics.drainCachedEvents().forEach(
             ev => this.sendEvent(ev.action, ev.data));
@@ -101,7 +101,7 @@ class AnalyticsAdapter {
      * Adds map of properties that will be added to every event.
      * @param {Object} properties the map of properties
      */
-    addPermanentProperties (properties) {
+    addPermanentProperties(properties) {
         this.permanentProperties
             = Object.assign(this.permanentProperties, properties);
     }

@@ -18,7 +18,7 @@ export default class SdpConsistency {
     /**
      * Constructor
      */
-    constructor () {
+    constructor() {
         this.clearSsrcCache();
     }
 
@@ -27,7 +27,7 @@ export default class SdpConsistency {
      *  they will not be used for the next call to
      *  makeVideoPrimarySsrcsConsistent
      */
-    clearSsrcCache () {
+    clearSsrcCache() {
         this.cachedPrimarySsrc = null;
     }
 
@@ -38,7 +38,7 @@ export default class SdpConsistency {
      *  in future calls to makeVideoPrimarySsrcsConsistent
      * @throws Error if <tt>primarySsrc</tt> is not a number
      */
-    setPrimarySsrc (primarySsrc) {
+    setPrimarySsrc(primarySsrc) {
         if (typeof primarySsrc !== 'number') {
             throw new Error("Primary SSRC must be a number!");
         }
@@ -56,7 +56,7 @@ export default class SdpConsistency {
      * @returns {string} a (potentially) modified sdp string
      *  with ssrcs consistent with this class' cache
      */
-    makeVideoPrimarySsrcsConsistent (sdpStr) {
+    makeVideoPrimarySsrcsConsistent(sdpStr) {
         const sdpTransformer = new SdpTransformWrap(sdpStr);
         const videoMLine = sdpTransformer.selectMedia("video");
         if (!videoMLine) {

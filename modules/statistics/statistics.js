@@ -67,7 +67,7 @@ function formatJitsiTrackErrorForCallStats(error) {
  * Init statistic options
  * @param options
  */
-Statistics.init = function (options) {
+Statistics.init = function(options) {
     Statistics.audioLevelsEnabled = !options.disableAudioLevels;
 
     if(typeof options.audioLevelsInterval === 'number') {
@@ -108,7 +108,7 @@ Statistics.analytics = analytics;
  */
 Statistics.callsStatsInstances = [];
 
-Statistics.prototype.startRemoteStats = function (peerconnection) {
+Statistics.prototype.startRemoteStats = function(peerconnection) {
     this.stopRemoteStats();
 
     try {
@@ -124,7 +124,7 @@ Statistics.prototype.startRemoteStats = function (peerconnection) {
 
 Statistics.localStats = [];
 
-Statistics.startLocalStats = function (stream, callback) {
+Statistics.startLocalStats = function(stream, callback) {
     if(!Statistics.audioLevelsEnabled) {
         return;
     }
@@ -148,33 +148,33 @@ Statistics.prototype.removeAudioLevelListener = function(listener) {
     this.eventEmitter.removeListener(StatisticsEvents.AUDIO_LEVEL, listener);
 };
 
-Statistics.prototype.addBeforeDisposedListener = function (listener) {
+Statistics.prototype.addBeforeDisposedListener = function(listener) {
     this.eventEmitter.on(StatisticsEvents.BEFORE_DISPOSED, listener);
 };
 
-Statistics.prototype.removeBeforeDisposedListener = function (listener) {
+Statistics.prototype.removeBeforeDisposedListener = function(listener) {
     this.eventEmitter.removeListener(
         StatisticsEvents.BEFORE_DISPOSED, listener);
 };
 
-Statistics.prototype.addConnectionStatsListener = function (listener) {
+Statistics.prototype.addConnectionStatsListener = function(listener) {
     this.eventEmitter.on(StatisticsEvents.CONNECTION_STATS, listener);
 };
 
-Statistics.prototype.removeConnectionStatsListener = function (listener) {
+Statistics.prototype.removeConnectionStatsListener = function(listener) {
     this.eventEmitter.removeListener(StatisticsEvents.CONNECTION_STATS, listener);
 };
 
-Statistics.prototype.addByteSentStatsListener = function (listener) {
+Statistics.prototype.addByteSentStatsListener = function(listener) {
     this.eventEmitter.on(StatisticsEvents.BYTE_SENT_STATS, listener);
 };
 
-Statistics.prototype.removeByteSentStatsListener = function (listener) {
+Statistics.prototype.removeByteSentStatsListener = function(listener) {
     this.eventEmitter.removeListener(StatisticsEvents.BYTE_SENT_STATS,
         listener);
 };
 
-Statistics.prototype.dispose = function () {
+Statistics.prototype.dispose = function() {
     if (this.eventEmitter) {
         this.eventEmitter.emit(StatisticsEvents.BEFORE_DISPOSED);
     }
@@ -185,7 +185,7 @@ Statistics.prototype.dispose = function () {
     }
 };
 
-Statistics.stopLocalStats = function (stream) {
+Statistics.stopLocalStats = function(stream) {
     if(!Statistics.audioLevelsEnabled) {
         return;
     }
@@ -199,7 +199,7 @@ Statistics.stopLocalStats = function (stream) {
     }
 };
 
-Statistics.prototype.stopRemoteStats = function () {
+Statistics.prototype.stopRemoteStats = function() {
     if (!this.rtpStats) {
         return;
     }
@@ -214,7 +214,7 @@ Statistics.prototype.stopRemoteStats = function () {
  * Initializes the callstats.io API.
  * @param peerConnection {JingleSessionPC} the session object
  */
-Statistics.prototype.startCallStats = function (session) {
+Statistics.prototype.startCallStats = function(session) {
     if(this.callStatsIntegrationEnabled && !this.callStatsStarted) {
         // Here we overwrite the previous instance, but it must be bound to
         // the new PeerConnection
@@ -227,7 +227,7 @@ Statistics.prototype.startCallStats = function (session) {
 /**
  * Removes the callstats.io instances.
  */
-Statistics.prototype.stopCallStats = function () {
+Statistics.prototype.stopCallStats = function() {
     if(this.callStatsStarted) {
         var index = Statistics.callsStatsInstances.indexOf(this.callstats);
         if(index > -1) {
@@ -248,7 +248,7 @@ Statistics.prototype.stopCallStats = function () {
  * @returns true if the callstats integration is enabled, otherwise returns
  * false.
  */
-Statistics.prototype.isCallstatsEnabled = function () {
+Statistics.prototype.isCallstatsEnabled = function() {
     return this.callStatsIntegrationEnabled;
 };
 
@@ -256,7 +256,7 @@ Statistics.prototype.isCallstatsEnabled = function () {
  * Notifies CallStats and analytics(if present) for ice connection failed
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
-Statistics.prototype.sendIceConnectionFailedEvent = function (pc) {
+Statistics.prototype.sendIceConnectionFailedEvent = function(pc) {
     if(this.callstats) {
         this.callstats.sendIceConnectionFailedEvent(pc, this.callstats);
     }
@@ -268,7 +268,7 @@ Statistics.prototype.sendIceConnectionFailedEvent = function (pc) {
  * @param mute {boolean} true for muted and false for not muted
  * @param type {String} "audio"/"video"
  */
-Statistics.prototype.sendMuteEvent = function (muted, type) {
+Statistics.prototype.sendMuteEvent = function(muted, type) {
     if(this.callstats) {
         CallStats.sendMuteEvent(muted, type, this.callstats);
     }
@@ -279,7 +279,7 @@ Statistics.prototype.sendMuteEvent = function (muted, type) {
  * @param start {boolean} true for starting screen sharing and
  * false for not stopping
  */
-Statistics.prototype.sendScreenSharingEvent = function (start) {
+Statistics.prototype.sendScreenSharingEvent = function(start) {
     if(this.callstats) {
         CallStats.sendScreenSharingEvent(start, this.callstats);
     }
@@ -289,7 +289,7 @@ Statistics.prototype.sendScreenSharingEvent = function (start) {
  * Notifies the statistics module that we are now the dominant speaker of the
  * conference.
  */
-Statistics.prototype.sendDominantSpeakerEvent = function () {
+Statistics.prototype.sendDominantSpeakerEvent = function() {
     if(this.callstats) {
         CallStats.sendDominantSpeakerEvent(this.callstats);
     }
@@ -300,9 +300,9 @@ Statistics.prototype.sendDominantSpeakerEvent = function () {
  * @param {{deviceList: {String:String}}} devicesData - list of devices with
  *      their data
  */
-Statistics.sendActiveDeviceListEvent = function (devicesData) {
+Statistics.sendActiveDeviceListEvent = function(devicesData) {
     if (Statistics.callsStatsInstances.length) {
-        Statistics.callsStatsInstances.forEach(function (cs) {
+        Statistics.callsStatsInstances.forEach(function(cs) {
             CallStats.sendActiveDeviceListEvent(devicesData, cs);
         });
     } else {
@@ -322,7 +322,7 @@ Statistics.sendActiveDeviceListEvent = function (devicesData) {
  *        renders the stream.
  */
 Statistics.prototype.associateStreamWithVideoTag =
-function (ssrc, isLocal, usageLabel, containerId) {
+function(ssrc, isLocal, usageLabel, containerId) {
     if(this.callstats) {
         this.callstats.associateStreamWithVideoTag(
             ssrc, isLocal, usageLabel, containerId);
@@ -334,10 +334,10 @@ function (ssrc, isLocal, usageLabel, containerId) {
  *
  * @param {Error} e error to send
  */
-Statistics.sendGetUserMediaFailed = function (e) {
+Statistics.sendGetUserMediaFailed = function(e) {
 
     if (Statistics.callsStatsInstances.length) {
-        Statistics.callsStatsInstances.forEach(function (cs) {
+        Statistics.callsStatsInstances.forEach(function(cs) {
             CallStats.sendGetUserMediaFailed(
                 e instanceof JitsiTrackError
                     ? formatJitsiTrackErrorForCallStats(e)
@@ -359,7 +359,7 @@ Statistics.sendGetUserMediaFailed = function (e) {
  * @param {Error} e error to send
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
-Statistics.prototype.sendCreateOfferFailed = function (e, pc) {
+Statistics.prototype.sendCreateOfferFailed = function(e, pc) {
     if(this.callstats) {
         CallStats.sendCreateOfferFailed(e, pc, this.callstats);
     }
@@ -371,7 +371,7 @@ Statistics.prototype.sendCreateOfferFailed = function (e, pc) {
  * @param {Error} e error to send
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
-Statistics.prototype.sendCreateAnswerFailed = function (e, pc) {
+Statistics.prototype.sendCreateAnswerFailed = function(e, pc) {
     if(this.callstats) {
         CallStats.sendCreateAnswerFailed(e, pc, this.callstats);
     }
@@ -383,7 +383,7 @@ Statistics.prototype.sendCreateAnswerFailed = function (e, pc) {
  * @param {Error} e error to send
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
-Statistics.prototype.sendSetLocalDescFailed = function (e, pc) {
+Statistics.prototype.sendSetLocalDescFailed = function(e, pc) {
     if(this.callstats) {
         CallStats.sendSetLocalDescFailed(e, pc, this.callstats);
     }
@@ -395,7 +395,7 @@ Statistics.prototype.sendSetLocalDescFailed = function (e, pc) {
  * @param {Error} e error to send
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
-Statistics.prototype.sendSetRemoteDescFailed = function (e, pc) {
+Statistics.prototype.sendSetRemoteDescFailed = function(e, pc) {
     if(this.callstats) {
         CallStats.sendSetRemoteDescFailed(e, pc, this.callstats);
     }
@@ -407,7 +407,7 @@ Statistics.prototype.sendSetRemoteDescFailed = function (e, pc) {
  * @param {Error} e error to send
  * @param {RTCPeerConnection} pc connection on which failure occured.
  */
-Statistics.prototype.sendAddIceCandidateFailed = function (e, pc) {
+Statistics.prototype.sendAddIceCandidateFailed = function(e, pc) {
     if(this.callstats) {
         CallStats.sendAddIceCandidateFailed(e, pc, this.callstats);
     }
@@ -418,9 +418,9 @@ Statistics.prototype.sendAddIceCandidateFailed = function (e, pc) {
  *
  * @param {String} a log message to send or an {Error} object to be reported
  */
-Statistics.sendLog = function (m) {
+Statistics.sendLog = function(m) {
     if (Statistics.callsStatsInstances.length) {
-        Statistics.callsStatsInstances.forEach(function (cs) {
+        Statistics.callsStatsInstances.forEach(function(cs) {
             CallStats.sendApplicationLog(m, cs);
         });
     } else {
@@ -449,7 +449,7 @@ Statistics.LOCAL_JID = require("../../service/statistics/constants").LOCAL_JID;
  *
  * @param {Error} error
  */
-Statistics.reportGlobalError = function (error) {
+Statistics.reportGlobalError = function(error) {
     if (error instanceof JitsiTrackError && error.gum) {
         Statistics.sendGetUserMediaFailed(error);
     } else {
@@ -462,7 +462,7 @@ Statistics.reportGlobalError = function (error) {
  * @param {string} eventName the event name.
  * @param {Object} data the data to be sent.
  */
-Statistics.sendEventToAll = function (eventName, data) {
+Statistics.sendEventToAll = function(eventName, data) {
     this.analytics.sendEvent(eventName, data);
     Statistics.sendLog(JSON.stringify({name: eventName, data}));
 };

@@ -105,7 +105,7 @@ class MLineWrap {
         this.mLine = mLine;
     }
 
-    get _ssrcs () {
+    get _ssrcs() {
         if (!this.mLine.ssrcs) {
             this.mLine.ssrcs = [];
         }
@@ -124,7 +124,7 @@ class MLineWrap {
      * Modifies the direction of the underlying media description.
      * @param {string} direction the new direction to be set
      */
-    set direction (direction) {
+    set direction(direction) {
         this.mLine.direction = direction;
     }
 
@@ -132,7 +132,7 @@ class MLineWrap {
      * Exposes the SSRC group array of the underlying media description object.
      * @return {Array.<Object>}
      */
-    get ssrcGroups () {
+    get ssrcGroups() {
         if (!this.mLine.ssrcGroups) {
             this.mLine.ssrcGroups = [];
         }
@@ -144,7 +144,7 @@ class MLineWrap {
      * object.
      * @param {Array.<Object>} ssrcGroups
      */
-    set ssrcGroups (ssrcGroups) {
+    set ssrcGroups(ssrcGroups) {
         this.mLine.ssrcGroups = ssrcGroups;
     }
 
@@ -257,7 +257,7 @@ class MLineWrap {
      * @returns {number|undefined} the primary video ssrc
      * @throws Error if the underlying media description is not a video
      */
-    getPrimaryVideoSsrc () {
+    getPrimaryVideoSsrc() {
         const mediaType = this.mLine.type;
 
         if (mediaType !== 'video') {
@@ -292,7 +292,7 @@ class MLineWrap {
      * @returns {number|undefined} the rtx ssrc (or undefined if there isn't
      * one)
      */
-    getRtxSSRC (primarySsrc) {
+    getRtxSSRC(primarySsrc) {
         const fidGroup = this.findGroupByPrimarySSRC("FID", primarySsrc);
         return fidGroup && parseSecondarySSRC(fidGroup);
     }
@@ -301,7 +301,7 @@ class MLineWrap {
      * Obtains all SSRCs contained in the underlying media description.
      * @return {Array.<number>} an array with all SSRC as numbers.
      */
-    getSSRCs () {
+    getSSRCs() {
         return this._ssrcs
             .map(ssrcInfo => ssrcInfo.id)
             .filter((ssrc, index, array) => array.indexOf(ssrc) === index);
@@ -312,7 +312,7 @@ class MLineWrap {
      * @return {Array.<number>} an array of all primary video SSRCs as numbers.
      * @throws Error if the wrapped media description is not a video.
      */
-    getPrimaryVideoSSRCs () {
+    getPrimaryVideoSSRCs() {
         const mediaType = this.mLine.type;
 
         if (mediaType !== 'video') {

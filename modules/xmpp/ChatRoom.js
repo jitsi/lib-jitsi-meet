@@ -10,9 +10,9 @@ import XMPPEvents from "../../service/xmpp/XMPPEvents";
 const logger = getLogger(__filename);
 
 var parser = {
-    packet2JSON (packet, nodes) {
+    packet2JSON(packet, nodes) {
         var self = this;
-        $(packet).children().each(function () {
+        $(packet).children().each(function() {
             var tagName = $(this).prop("tagName");
             const node = {
                 tagName
@@ -30,7 +30,7 @@ var parser = {
             self.packet2JSON($(this), node.children);
         });
     },
-    json2packet (nodes, packet) {
+    json2packet(nodes, packet) {
         for(let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
             if(!node || node === null){
@@ -94,7 +94,7 @@ export default class ChatRoom extends Listenable {
         this.locked = false;
     }
 
-    initPresenceMap () {
+    initPresenceMap() {
         this.presMap['to'] = this.myroomjid;
         this.presMap['xns'] = 'http://jabber.org/protocol/muc';
         this.presMap["nodes"] = [];
@@ -108,7 +108,7 @@ export default class ChatRoom extends Listenable {
         this.addVideoInfoToPresence(false);
     }
 
-    updateDeviceAvailability (devices) {
+    updateDeviceAvailability(devices) {
         this.presMap["nodes"].push({
             "tagName": "devices",
             "children": [
@@ -124,15 +124,15 @@ export default class ChatRoom extends Listenable {
         });
     }
 
-    join (password) {
+    join(password) {
         this.password = password;
         var self = this;
-        this.moderator.allocateConferenceFocus(function () {
+        this.moderator.allocateConferenceFocus(function() {
             self.sendPresence(true);
         });
     }
 
-    sendPresence (fromJoin) {
+    sendPresence(fromJoin) {
         var to = this.presMap['to'];
         if (!to || (!this.joined && !fromJoin)) {
             // Too early to send presence - not initialized
@@ -170,7 +170,7 @@ export default class ChatRoom extends Listenable {
      * Sends the presence unavailable, signaling the server
      * we want to leave the room.
      */
-    doLeave () {
+    doLeave() {
         logger.log("do leave", this.myroomjid);
         var pres = $pres({to: this.myroomjid, type: 'unavailable' });
         this.presMap.length = 0;
@@ -191,27 +191,27 @@ export default class ChatRoom extends Listenable {
         this.connection.flush();
     }
 
-    discoRoomInfo () {
+    discoRoomInfo() {
       // https://xmpp.org/extensions/xep-0045.html#disco-roominfo
 
         var getInfo = $iq({type: 'get', to: this.roomjid})
         .c('query', {xmlns: Strophe.NS.DISCO_INFO});
 
-        this.connection.sendIQ(getInfo, function (result) {
+        this.connection.sendIQ(getInfo, function(result) {
             var locked = $(result).find('>query>feature[var="muc_passwordprotected"]')
             .length === 1;
             if (locked != this.locked) {
                 this.eventEmitter.emit(XMPPEvents.MUC_LOCK_CHANGED, locked);
                 this.locked = locked;
             }
-        }.bind(this), function (error) {
+        }.bind(this), function(error) {
             GlobalOnErrorHandler.callErrorHandler(error);
             logger.error("Error getting room info: ", error);
         }.bind(this));
     }
 
 
-    createNonAnonymousRoom () {
+    createNonAnonymousRoom() {
         // http://xmpp.org/extensions/xep-0045.html#createroom-reserved
 
         var getForm = $iq({type: 'get', to: this.roomjid})
@@ -220,7 +220,7 @@ export default class ChatRoom extends Listenable {
 
         var self = this;
 
-        this.connection.sendIQ(getForm, function (form) {
+        this.connection.sendIQ(getForm, function(form) {
 
             if (!$(form).find(
                     '>query>x[xmlns="jabber:x:data"]' +
@@ -245,13 +245,13 @@ export default class ChatRoom extends Listenable {
 
             self.connection.sendIQ(formSubmit);
 
-        }, function (error) {
+        }, function(error) {
             GlobalOnErrorHandler.callErrorHandler(error);
             logger.error("Error getting room configuration form: ", error);
         });
     }
 
-    onPresence (pres) {
+    onPresence(pres) {
         var from = pres.getAttribute('from');
         // Parse roles.
         var member = {};
@@ -407,7 +407,7 @@ export default class ChatRoom extends Listenable {
      * @param from jid of the focus
      * @param mucJid the jid of the focus in the muc
      */
-    _initFocus (from, mucJid) {
+    _initFocus(from, mucJid) {
         this.focusMucJid = from;
         if(!this.recording) {
             this.recording = new Recorder(this.options.recordingType,
@@ -424,11 +424,11 @@ export default class ChatRoom extends Listenable {
      * Sets the special listener to be used for "command"s whose name starts with
      * "jitsi_participant_".
      */
-    setParticipantPropertyListener (listener) {
+    setParticipantPropertyListener(listener) {
         this.participantPropertyListener = listener;
     }
 
-    processNode (node, from) {
+    processNode(node, from) {
         // make sure we catch all errors coming from any handler
         // otherwise we can remove the presence handler from strophe
         try {
@@ -446,7 +446,7 @@ export default class ChatRoom extends Listenable {
         }
     }
 
-    sendMessage (body, nickname) {
+    sendMessage(body, nickname) {
         var msg = $msg({to: this.roomjid, type: 'groupchat'});
         msg.c('body', body).up();
         if (nickname) {
@@ -456,7 +456,7 @@ export default class ChatRoom extends Listenable {
         this.eventEmitter.emit(XMPPEvents.SENDING_CHAT_MESSAGE, body);
     }
 
-    setSubject (subject) {
+    setSubject(subject) {
         var msg = $msg({to: this.roomjid, type: 'groupchat'});
         msg.c('subject', subject);
         this.connection.send(msg);
@@ -468,7 +468,7 @@ export default class ChatRoom extends Listenable {
      * @param skipEvents optional params to skip any events, including check
      * whether this is the focus that left
      */
-    onParticipantLeft (jid, skipEvents) {
+    onParticipantLeft(jid, skipEvents) {
 
         delete this.lastPresences[jid];
 
@@ -481,7 +481,7 @@ export default class ChatRoom extends Listenable {
         this.moderator.onMucMemberLeft(jid);
     }
 
-    onPresenceUnavailable (pres, from) {
+    onPresenceUnavailable(pres, from) {
         // room destroyed ?
         if ($(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]' +
             '>destroy').length) {
@@ -535,7 +535,7 @@ export default class ChatRoom extends Listenable {
         }
     }
 
-    onMessage (msg, from) {
+    onMessage(msg, from) {
         var nick =
             $(msg).find('>nick[xmlns="http://jabber.org/protocol/nick"]')
                 .text() ||
@@ -583,7 +583,7 @@ export default class ChatRoom extends Listenable {
         }
     }
 
-    onPresenceError (pres, from) {
+    onPresenceError(pres, from) {
         if ($(pres).find('>error[type="auth"]>not-authorized[xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]').length) {
             logger.log('on password required', from);
             this.eventEmitter.emit(XMPPEvents.PASSWORD_REQUIRED);
@@ -611,7 +611,7 @@ export default class ChatRoom extends Listenable {
         }
     }
 
-    kick (jid) {
+    kick(jid) {
         var kickIQ = $iq({to: this.roomjid, type: 'set'})
             .c('query', {xmlns: 'http://jabber.org/protocol/muc#admin'})
             .c('item', {nick: Strophe.getResourceFromJid(jid), role: 'none'})
@@ -619,19 +619,19 @@ export default class ChatRoom extends Listenable {
 
         this.connection.sendIQ(
             kickIQ,
-            function (result) {
+            function(result) {
                 logger.log('Kick participant with jid: ', jid, result);
             },
-            function (error) {
+            function(error) {
                 logger.log('Kick participant error: ', error);
             });
     }
 
-    lockRoom (key, onSuccess, onError, onNotSupported) {
+    lockRoom(key, onSuccess, onError, onNotSupported) {
         // http://xmpp.org/extensions/xep-0045.html#roomconfig
         var ob = this;
         this.connection.sendIQ($iq({to: this.roomjid, type: 'get'}).c('query', {xmlns: 'http://jabber.org/protocol/muc#owner'}),
-            function (res) {
+            function(res) {
                 if ($(res).find('>query>x[xmlns="jabber:x:data"]>field[var="muc#roomconfig_roomsecret"]').length) {
                     var formsubmit = $iq({to: ob.roomjid, type: 'set'}).c('query', {xmlns: 'http://jabber.org/protocol/muc#owner'});
                     formsubmit.c('x', {xmlns: 'jabber:x:data', type: 'submit'});
@@ -649,24 +649,24 @@ export default class ChatRoom extends Listenable {
             }, onError);
     }
 
-    addToPresence (key, values) {
+    addToPresence(key, values) {
         values.tagName = key;
         this.removeFromPresence(key);
         this.presMap.nodes.push(values);
     }
 
-    removeFromPresence (key) {
+    removeFromPresence(key) {
         var nodes = this.presMap.nodes.filter(function(node) {
             return key !== node.tagName;
         });
         this.presMap.nodes = nodes;
     }
 
-    addPresenceListener (name, handler) {
+    addPresenceListener(name, handler) {
         this.presHandlers[name] = handler;
     }
 
-    removePresenceListener (name) {
+    removePresenceListener(name) {
         delete this.presHandlers[name];
     }
 
@@ -678,7 +678,7 @@ export default class ChatRoom extends Listenable {
      * <tt>false</tt> if is not. When given <tt>mucJid</tt> does not exist in
      * the MUC then <tt>null</tt> is returned.
      */
-    isFocus (mucJid) {
+    isFocus(mucJid) {
         var member = this.members[mucJid];
         if (member) {
             return member.isFocus;
@@ -687,29 +687,29 @@ export default class ChatRoom extends Listenable {
         }
     }
 
-    isModerator () {
+    isModerator() {
         return this.role === 'moderator';
     }
 
-    getMemberRole (peerJid) {
+    getMemberRole(peerJid) {
         if (this.members[peerJid]) {
             return this.members[peerJid].role;
         }
         return null;
     }
 
-    setVideoMute (mute, callback) {
+    setVideoMute(mute, callback) {
         this.sendVideoInfoPresence(mute);
         if(callback) {
             callback(mute);
         }
     }
 
-    setAudioMute (mute, callback) {
+    setAudioMute(mute, callback) {
         return this.sendAudioInfoPresence(mute, callback);
     }
 
-    addAudioInfoToPresence (mute) {
+    addAudioInfoToPresence(mute) {
         this.removeFromPresence("audiomuted");
         this.addToPresence("audiomuted",
             {attributes:
@@ -717,7 +717,7 @@ export default class ChatRoom extends Listenable {
                 value: mute.toString()});
     }
 
-    sendAudioInfoPresence (mute, callback) {
+    sendAudioInfoPresence(mute, callback) {
         this.addAudioInfoToPresence(mute);
         if(this.connection) {
             this.sendPresence();
@@ -727,7 +727,7 @@ export default class ChatRoom extends Listenable {
         }
     }
 
-    addVideoInfoToPresence (mute) {
+    addVideoInfoToPresence(mute) {
         this.removeFromPresence("videomuted");
         this.addToPresence("videomuted",
             {attributes:
@@ -735,7 +735,7 @@ export default class ChatRoom extends Listenable {
                 value: mute.toString()});
     }
 
-    sendVideoInfoPresence (mute) {
+    sendVideoInfoPresence(mute) {
         this.addVideoInfoToPresence(mute);
         if(!this.connection) {
             return;
@@ -754,7 +754,7 @@ export default class ChatRoom extends Listenable {
      * info or <tt>null</tt> either if there is no presence available or if
      * the media type given is invalid.
      */
-    getMediaPresenceInfo (endpointId, mediaType) {
+    getMediaPresenceInfo(endpointId, mediaType) {
         // Will figure out current muted status by looking up owner's presence
         const pres = this.lastPresences[this.roomjid + "/" + endpointId];
         if (!pres) {
@@ -789,7 +789,7 @@ export default class ChatRoom extends Listenable {
     /**
      * Returns true if the recording is supproted and false if not.
      */
-    isRecordingSupported () {
+    isRecordingSupported() {
         if(this.recording) {
             return this.recording.isSupported();
         }
@@ -800,14 +800,14 @@ export default class ChatRoom extends Listenable {
      * Returns null if the recording is not supported, "on" if the recording started
      * and "off" if the recording is not started.
      */
-    getRecordingState () {
+    getRecordingState() {
         return this.recording ? this.recording.getState() : undefined;
     }
 
     /**
      * Returns the url of the recorded video.
      */
-    getRecordingURL () {
+    getRecordingURL() {
         return this.recording ? this.recording.getURL() : null;
     }
 
@@ -816,7 +816,7 @@ export default class ChatRoom extends Listenable {
      * @param token token for authentication
      * @param statusChangeHandler {function} receives the new status as argument.
      */
-    toggleRecording (options, statusChangeHandler) {
+    toggleRecording(options, statusChangeHandler) {
         if(this.recording) {
             return this.recording.toggleRecording(options, statusChangeHandler);
         }
@@ -828,7 +828,7 @@ export default class ChatRoom extends Listenable {
     /**
      * Returns true if the SIP calls are supported and false otherwise
      */
-    isSIPCallingSupported () {
+    isSIPCallingSupported() {
         if(this.moderator) {
             return this.moderator.isSipGatewayEnabled();
         }
@@ -839,7 +839,7 @@ export default class ChatRoom extends Listenable {
      * Dials a number.
      * @param number the number
      */
-    dial (number) {
+    dial(number) {
         return this.connection.rayo.dial(number, "fromnumber",
             Strophe.getNodeFromJid(this.myroomjid), this.password,
             this.focusMucJid);
@@ -848,21 +848,21 @@ export default class ChatRoom extends Listenable {
     /**
      * Hangup an existing call
      */
-    hangup () {
+    hangup() {
         return this.connection.rayo.hangup();
     }
 
     /**
      * Returns the phone number for joining the conference.
      */
-    getPhoneNumber () {
+    getPhoneNumber() {
         return this.phoneNumber;
     }
 
     /**
      * Returns the pin for joining the conference with phone.
      */
-    getPhonePin () {
+    getPhonePin() {
         return this.phonePin;
     }
 
@@ -871,7 +871,7 @@ export default class ChatRoom extends Listenable {
      * @param jid of the participant
      * @param mute
      */
-    muteParticipant (jid, mute) {
+    muteParticipant(jid, mute) {
         logger.info("set mute", mute);
         var iqToFocus = $iq(
             {to: this.focusMucJid, type: 'set'})
@@ -884,15 +884,15 @@ export default class ChatRoom extends Listenable {
 
         this.connection.sendIQ(
             iqToFocus,
-            function (result) {
+            function(result) {
                 logger.log('set mute', result);
             },
-            function (error) {
+            function(error) {
                 logger.log('set mute error', error);
             });
     }
 
-    onMute (iq) {
+    onMute(iq) {
         var from = iq.getAttribute('from');
         if (from !== this.focusMucJid) {
             logger.warn("Ignored mute from non focus peer");
@@ -912,7 +912,7 @@ export default class ChatRoom extends Listenable {
      * than 5s after sending presence unavailable. Otherwise the promise is
      * rejected.
      */
-    leave () {
+    leave() {
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => onMucLeft(true), 5000);
             const eventEmitter = this.eventEmitter;

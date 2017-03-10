@@ -33,7 +33,7 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
 
     JitsiTrack.call(this,
         null /* RTC */, stream, track,
-        function () {
+        function() {
             if(!this.dontFireRemoveEvent) {
                 this.eventEmitter.emit(
                     JitsiTrackEvents.LOCAL_TRACK_STOPPED);
@@ -98,7 +98,7 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
      */
     this._noDataFromSourceTimeout = null;
 
-    this._onDeviceListChanged = function (devices) {
+    this._onDeviceListChanged = function(devices) {
         self._setRealDeviceIdFromDeviceList(devices);
 
         // Mark track as ended for those browsers that do not support
@@ -106,7 +106,7 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
         // device ID "".
         if (typeof self.getTrack().readyState === 'undefined'
             && typeof self._realDeviceId !== 'undefined'
-            && !devices.find(function (d) {
+            && !devices.find(function(d) {
                 return d.deviceId === self._realDeviceId;
             })) {
             self._trackEnded = true;
@@ -137,14 +137,14 @@ JitsiLocalTrack.prototype.constructor = JitsiLocalTrack;
  * Returns if associated MediaStreamTrack is in the 'ended' state
  * @returns {boolean}
  */
-JitsiLocalTrack.prototype.isEnded = function () {
+JitsiLocalTrack.prototype.isEnded = function() {
     return this.getTrack().readyState === 'ended' || this._trackEnded;
 };
 
 /**
  * Sets handlers to the MediaStreamTrack object that will detect camera issues.
  */
-JitsiLocalTrack.prototype._initNoDataFromSourceHandlers = function () {
+JitsiLocalTrack.prototype._initNoDataFromSourceHandlers = function() {
     if(this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
         const _onNoDataFromSourceError
             = this._onNoDataFromSourceError.bind(this);
@@ -169,7 +169,7 @@ JitsiLocalTrack.prototype._initNoDataFromSourceHandlers = function () {
  * Clears all timeouts and handlers set on MediaStreamTrack mute event.
  * FIXME: Change the name of the method with better one.
  */
-JitsiLocalTrack.prototype._clearNoDataFromSourceMuteResources = function () {
+JitsiLocalTrack.prototype._clearNoDataFromSourceMuteResources = function() {
     if(this._noDataFromSourceTimeout) {
         clearTimeout(this._noDataFromSourceTimeout);
         this._noDataFromSourceTimeout = null;
@@ -182,7 +182,7 @@ JitsiLocalTrack.prototype._clearNoDataFromSourceMuteResources = function () {
  * timeouts set on MediaStreamTrack muted event. Verifies that the camera
  * issue persists and fires NO_DATA_FROM_SOURCE event.
  */
-JitsiLocalTrack.prototype._onNoDataFromSourceError = function () {
+JitsiLocalTrack.prototype._onNoDataFromSourceError = function() {
     this._clearNoDataFromSourceMuteResources();
     if(this._checkForCameraIssues()) {
         this._fireNoDataFromSourceEvent();
@@ -193,7 +193,7 @@ JitsiLocalTrack.prototype._onNoDataFromSourceError = function () {
  * Fires JitsiTrackEvents.NO_DATA_FROM_SOURCE and logs it to analytics and
  * callstats.
  */
-JitsiLocalTrack.prototype._fireNoDataFromSourceEvent = function () {
+JitsiLocalTrack.prototype._fireNoDataFromSourceEvent = function() {
     this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
     const eventName = this.getType() + ".no_data_from_source";
     Statistics.analytics.sendEvent(eventName);
@@ -211,9 +211,9 @@ JitsiLocalTrack.prototype._fireNoDataFromSourceEvent = function () {
  * @param {MediaDeviceInfo[]} devices - list of devices obtained from
  *  enumerateDevices() call
  */
-JitsiLocalTrack.prototype._setRealDeviceIdFromDeviceList = function (devices) {
+JitsiLocalTrack.prototype._setRealDeviceIdFromDeviceList = function(devices) {
     var track = this.getTrack(),
-        device = devices.find(function (d) {
+        device = devices.find(function(d) {
             return d.kind === track.kind + 'input' && d.label === track.label;
         });
 
@@ -227,7 +227,7 @@ JitsiLocalTrack.prototype._setRealDeviceIdFromDeviceList = function (devices) {
  * in progress.
  * @returns {Promise}
  */
-JitsiLocalTrack.prototype.mute = function () {
+JitsiLocalTrack.prototype.mute = function() {
     return createMuteUnmutePromise(this, true);
 };
 
@@ -236,7 +236,7 @@ JitsiLocalTrack.prototype.mute = function () {
  * in progress.
  * @returns {Promise}
  */
-JitsiLocalTrack.prototype.unmute = function () {
+JitsiLocalTrack.prototype.unmute = function() {
     return createMuteUnmutePromise(this, false);
 };
 
@@ -274,7 +274,7 @@ function createMuteUnmutePromise(track, mute) {
  * @private
  * @returns {Promise}
  */
-JitsiLocalTrack.prototype._setMute = function (mute) {
+JitsiLocalTrack.prototype._setMute = function(mute) {
     if (this.isMuted() === mute) {
         return Promise.resolve();
     }
@@ -324,7 +324,7 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
             }
 
             promise = RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
-                .then(function (streamsInfo) {
+                .then(function(streamsInfo) {
                     var mediaType = self.getType();
                     var streamInfo = streamsInfo.find(function(info) {
                         return info.mediaType === mediaType;
@@ -370,7 +370,7 @@ JitsiLocalTrack.prototype._setMute = function (mute) {
  * @private
  * @returns {Promise}
  */
-JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function () {
+JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function() {
     if (!this.conference) {
         return Promise.resolve();
     }
@@ -397,7 +397,7 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function () {
  * @private
  */
 JitsiLocalTrack.prototype._removeStreamFromConferenceAsMute =
-function (successCallback, errorCallback) {
+function(successCallback, errorCallback) {
     if (!this.conference) {
         successCallback();
         return;
@@ -444,7 +444,7 @@ JitsiLocalTrack.prototype._sendMuteStatus = function(mute) {
  * @extends JitsiTrack#dispose
  * @returns {Promise}
  */
-JitsiLocalTrack.prototype.dispose = function () {
+JitsiLocalTrack.prototype.dispose = function() {
     var self = this;
     var promise = Promise.resolve();
 
@@ -477,7 +477,7 @@ JitsiLocalTrack.prototype.dispose = function () {
  * @returns {boolean} <tt>true</tt> - if the stream is muted
  * and <tt>false</tt> otherwise.
  */
-JitsiLocalTrack.prototype.isMuted = function () {
+JitsiLocalTrack.prototype.isMuted = function() {
     // this.stream will be null when we mute local video on Chrome
     if (!this.stream) {
         return true;
@@ -493,7 +493,7 @@ JitsiLocalTrack.prototype.isMuted = function () {
  * Updates the SSRC associated with the MediaStream in JitsiLocalTrack object.
  * @ssrc the new ssrc
  */
-JitsiLocalTrack.prototype._setSSRC = function (ssrc) {
+JitsiLocalTrack.prototype._setSSRC = function(ssrc) {
     this.ssrc = ssrc;
 };
 
@@ -522,7 +522,7 @@ JitsiLocalTrack.prototype._setConference = function(conference) {
  * In case of video and simulcast returns the the primarySSRC.
  * @returns {string} or {null}
  */
-JitsiLocalTrack.prototype.getSSRC = function () {
+JitsiLocalTrack.prototype.getSSRC = function() {
     if(this.ssrc && this.ssrc.groups && this.ssrc.groups.length) {
         return this.ssrc.groups[0].ssrcs[0];
     } else if(this.ssrc && this.ssrc.ssrcs && this.ssrc.ssrcs.length) {
@@ -536,7 +536,7 @@ JitsiLocalTrack.prototype.getSSRC = function () {
  * Returns <tt>true</tt>.
  * @returns {boolean} <tt>true</tt>
  */
-JitsiLocalTrack.prototype.isLocal = function () {
+JitsiLocalTrack.prototype.isLocal = function() {
     return true;
 };
 
@@ -544,7 +544,7 @@ JitsiLocalTrack.prototype.isLocal = function () {
  * Returns device id associated with track.
  * @returns {string}
  */
-JitsiLocalTrack.prototype.getDeviceId = function () {
+JitsiLocalTrack.prototype.getDeviceId = function() {
     return this._realDeviceId || this.deviceId;
 };
 
@@ -553,7 +553,7 @@ JitsiLocalTrack.prototype.getDeviceId = function () {
  * @param bytesSent {integer} the new value (FIXME: what is an integer in js?)
  * NOTE: used only for audio tracks to detect audio issues.
  */
-JitsiLocalTrack.prototype._setByteSent = function (bytesSent) {
+JitsiLocalTrack.prototype._setByteSent = function(bytesSent) {
     this._bytesSent = bytesSent;
     // FIXME it's a shame that PeerConnection and ICE status does not belong
     // to the RTC module and it has to be accessed through
@@ -561,7 +561,7 @@ JitsiLocalTrack.prototype._setByteSent = function (bytesSent) {
     const iceConnectionState
         = this.conference ? this.conference.getConnectionState() : null;
     if(this._testByteSent && "connected" === iceConnectionState) {
-        setTimeout(function () {
+        setTimeout(function() {
             if(this._bytesSent <= 0){
                 // we are not receiving anything from the microphone
                 this._fireNoDataFromSourceEvent();
@@ -577,7 +577,7 @@ JitsiLocalTrack.prototype._setByteSent = function (bytesSent) {
  *
  * @returns {CameraFacingMode|undefined}
  */
-JitsiLocalTrack.prototype.getCameraFacingMode = function () {
+JitsiLocalTrack.prototype.getCameraFacingMode = function() {
     if (this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
         // MediaStreamTrack#getSettings() is not implemented in many browsers,
         // so we need feature checking here. Progress on the respective
@@ -615,7 +615,7 @@ JitsiLocalTrack.prototype.getCameraFacingMode = function () {
 /**
  * Stops the associated MediaStream.
  */
-JitsiLocalTrack.prototype._stopMediaStream = function () {
+JitsiLocalTrack.prototype._stopMediaStream = function() {
     this.stopStreamInProgress = true;
     RTCUtils.stopMediaStream(this.stream);
     this.stopStreamInProgress = false;
@@ -625,7 +625,7 @@ JitsiLocalTrack.prototype._stopMediaStream = function () {
  * Detects camera issues on ended and mute events from MediaStreamTrack.
  * @returns {boolean} true if an issue is detected and false otherwise
  */
-JitsiLocalTrack.prototype._checkForCameraIssues = function () {
+JitsiLocalTrack.prototype._checkForCameraIssues = function() {
     if(!this.isVideoTrack() || this.stopStreamInProgress ||
         this.videoType === VideoType.DESKTOP) {
         return false;
@@ -643,7 +643,7 @@ JitsiLocalTrack.prototype._checkForCameraIssues = function () {
  * user has disposed the track.
  * @returns {boolean} true if the stream is receiving data and false otherwise.
  */
-JitsiLocalTrack.prototype._isReceivingData = function () {
+JitsiLocalTrack.prototype._isReceivingData = function() {
     if(!this.stream) {
         return false;
     }

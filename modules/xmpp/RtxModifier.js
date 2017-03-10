@@ -19,7 +19,7 @@ const logger = getLogger(__filename);
  *  primary ssrc
  * @param {number} rtxSsrc the rtx ssrc to associate with the primary ssrc
  */
-function updateAssociatedRtxStream (mLine, primarySsrcInfo, rtxSsrc) {
+function updateAssociatedRtxStream(mLine, primarySsrcInfo, rtxSsrc) {
     logger.debug(
         `Updating mline to associate ${rtxSsrc}` +
         `rtx ssrc with primary stream, ${primarySsrcInfo.id}`);
@@ -73,7 +73,7 @@ export default class RtxModifier {
     /**
      * Constructor
      */
-    constructor () {
+    constructor() {
         /**
          * Map of video ssrc to corresponding RTX
          *  ssrc
@@ -86,7 +86,7 @@ export default class RtxModifier {
      *  their corresponding rtx ssrcs so that they will
      *  not be used for the next call to modifyRtxSsrcs
      */
-    clearSsrcCache () {
+    clearSsrcCache() {
         this.correspondingRtxSsrcs.clear();
     }
 
@@ -96,7 +96,7 @@ export default class RtxModifier {
      * @param {Map} ssrcMapping a mapping of primary video
      *  ssrcs to their corresponding rtx ssrcs
      */
-    setSsrcCache (ssrcMapping) {
+    setSsrcCache(ssrcMapping) {
         logger.debug("Setting ssrc cache to ", ssrcMapping);
         this.correspondingRtxSsrcs = ssrcMapping;
     }
@@ -108,7 +108,7 @@ export default class RtxModifier {
      *  the same RTX ssrc will be used again.
      * @param {string} sdpStr sdp in raw string format
      */
-    modifyRtxSsrcs (sdpStr) {
+    modifyRtxSsrcs(sdpStr) {
         const sdpTransformer = new SdpTransformWrap(sdpStr);
         const videoMLine = sdpTransformer.selectMedia("video");
         if (!videoMLine) {
@@ -175,7 +175,7 @@ export default class RtxModifier {
      * @param {string} sdpStr sdp in raw string format
      * @returns {string} sdp string with all rtx streams stripped
      */
-    stripRtx (sdpStr) {
+    stripRtx(sdpStr) {
         const sdpTransformer = new SdpTransformWrap(sdpStr);
         const videoMLine = sdpTransformer.selectMedia("video");
         if (!videoMLine) {

@@ -23,7 +23,7 @@ export default class Listenable {
      * @param {String} eventName the name of the event
      * @param {Function} listener the listener.
      */
-    addListener (eventName, listener) {
+    addListener(eventName, listener) {
         this.eventEmitter.addListener(eventName, listener);
     }
 
@@ -33,7 +33,7 @@ export default class Listenable {
      * listener
      * @param {Function} listener the listener.
      */
-    removeListener (eventName, listener) {
+    removeListener(eventName, listener) {
         this.eventEmitter.removeListener(eventName, listener);
     }
 }

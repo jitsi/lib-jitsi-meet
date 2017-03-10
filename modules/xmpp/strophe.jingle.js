@@ -24,13 +24,13 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         };
     }
 
-    init (connection) {
+    init(connection) {
         super.init(connection);
         this.connection.addHandler(this.onJingle.bind(this),
             'urn:xmpp:jingle:1', 'iq', 'set', null, null);
     }
 
-    onJingle (iq) {
+    onJingle(iq) {
         const sid = $(iq).find('jingle').attr('sid');
         const action = $(iq).find('jingle').attr('action');
         const fromJid = iq.getAttribute('from');
@@ -154,7 +154,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         return true;
     }
 
-    terminate (sid, reasonCondition, reasonText) {
+    terminate(sid, reasonCondition, reasonText) {
         if (this.sessions.hasOwnProperty(sid)) {
             if (this.sessions[sid].state != 'ended') {
                 this.sessions[sid].onTerminated(reasonCondition, reasonText);
@@ -163,7 +163,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         }
     }
 
-    getStunAndTurnCredentials () {
+    getStunAndTurnCredentials() {
         // get stun and turn configuration from server via xep-0215
         // uses time-limited credentials as described in
         // http://tools.ietf.org/html/draft-uberti-behave-turn-rest-00
@@ -239,7 +239,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
     /**
      * Returns the data saved in 'updateLog' in a format to be logged.
      */
-    getLog () {
+    getLog() {
         const data = {};
         Object.keys(this.sessions).forEach(sid => {
             const session = this.sessions[sid];

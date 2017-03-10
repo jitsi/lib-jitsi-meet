@@ -28,7 +28,7 @@ var ttfmTrackerVideoAttached = false;
 function JitsiRemoteTrack(rtc, conference, ownerEndpointId, stream, track,
                           mediaType, videoType, ssrc, muted) {
     JitsiTrack.call(
-        this, conference, stream, track, function () {}, mediaType, videoType, ssrc);
+        this, conference, stream, track, function() {}, mediaType, videoType, ssrc);
     this.rtc = rtc;
     this.ownerEndpointId = ownerEndpointId;
     this.muted = muted;
@@ -52,7 +52,7 @@ JitsiRemoteTrack.prototype._bindMuteHandlers = function() {
     // 2. It does mix MediaStream('inactive') with MediaStreamTrack events
     // 3. Allowing to bind more than one event handler requires too much
     //    refactoring around camera issues detection.
-    this.track.addEventListener('mute', function () {
+    this.track.addEventListener('mute', function() {
 
         logger.debug(
             '"onmute" event(' + Date.now() + '): ',
@@ -62,7 +62,7 @@ JitsiRemoteTrack.prototype._bindMuteHandlers = function() {
     }.bind(this));
 
     // Bind 'onunmute'
-    this.track.addEventListener('unmute', function () {
+    this.track.addEventListener('unmute', function() {
 
         logger.debug(
             '"onunmute" event(' + Date.now() + '): ',
@@ -76,7 +76,7 @@ JitsiRemoteTrack.prototype._bindMuteHandlers = function() {
  * Sets current muted status and fires an events for the change.
  * @param value the muted status.
  */
-JitsiRemoteTrack.prototype.setMute = function (value) {
+JitsiRemoteTrack.prototype.setMute = function(value) {
     if(this.muted === value) {
         return;
     }
@@ -99,7 +99,7 @@ JitsiRemoteTrack.prototype.setMute = function (value) {
  * @returns {boolean|*|JitsiRemoteTrack.muted} <tt>true</tt> if the track is
  * muted and <tt>false</tt> otherwise.
  */
-JitsiRemoteTrack.prototype.isMuted = function () {
+JitsiRemoteTrack.prototype.isMuted = function() {
     return this.muted;
 };
 
@@ -115,7 +115,7 @@ JitsiRemoteTrack.prototype.getParticipantId = function() {
 /**
  * Return false;
  */
-JitsiRemoteTrack.prototype.isLocal = function () {
+JitsiRemoteTrack.prototype.isLocal = function() {
     return false;
 };
 
@@ -123,7 +123,7 @@ JitsiRemoteTrack.prototype.isLocal = function () {
  * Returns the synchronization source identifier (SSRC) of this remote track.
  * @returns {string} the SSRC of this remote track
  */
-JitsiRemoteTrack.prototype.getSSRC = function () {
+JitsiRemoteTrack.prototype.getSSRC = function() {
     return this.ssrc;
 };
 
@@ -131,7 +131,7 @@ JitsiRemoteTrack.prototype.getSSRC = function () {
  * Changes the video type of the track
  * @param type the new video type("camera", "desktop")
  */
-JitsiRemoteTrack.prototype._setVideoType = function (type) {
+JitsiRemoteTrack.prototype._setVideoType = function(type) {
     if(this.videoType === type) {
         return;
     }
@@ -139,7 +139,7 @@ JitsiRemoteTrack.prototype._setVideoType = function (type) {
     this.eventEmitter.emit(JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED, type);
 };
 
-JitsiRemoteTrack.prototype._playCallback = function () {
+JitsiRemoteTrack.prototype._playCallback = function() {
     var type = this.isVideoTrack() ? 'video' : 'audio';
 
     var now = window.performance.now();
@@ -168,7 +168,7 @@ JitsiRemoteTrack.prototype._playCallback = function () {
  *        method has been called previously on video or audio HTML element.
  * @private
  */
-JitsiRemoteTrack.prototype._attachTTFMTracker = function (container) {
+JitsiRemoteTrack.prototype._attachTTFMTracker = function(container) {
     if((ttfmTrackerAudioAttached && this.isAudioTrack())
         || (ttfmTrackerVideoAttached && this.isVideoTrack())) {
         return;

@@ -55,7 +55,7 @@ export default class XMPP extends Listenable {
     /**
      * Initializes the list of feature advertised through the disco-info mechanism
      */
-    initFeaturesList () {
+    initFeaturesList() {
         // http://xmpp.org/extensions/xep-0167.html#support
         // http://xmpp.org/extensions/xep-0176.html#support
         this.caps.addFeature('urn:xmpp:jingle:1');
@@ -92,7 +92,7 @@ export default class XMPP extends Listenable {
         }
     }
 
-    getConnection () {
+    getConnection() {
         return this.connection; 
     }
 
@@ -102,7 +102,7 @@ export default class XMPP extends Listenable {
      * @status the connection status
      * @msg message
      */
-    connectionHandler (password, status, msg) {
+    connectionHandler(password, status, msg) {
         const now = window.performance.now();
         const statusStr = Strophe.getStatusString(status).toLowerCase();
         this.connectionTimes[statusStr] = now;
@@ -120,7 +120,7 @@ export default class XMPP extends Listenable {
             var pingJid = this.connection.domain;
             this.connection.ping.hasPingSupport(
                 pingJid,
-                function (hasPing) {
+                function(hasPing) {
                     if (hasPing) {
                         this.connection.ping.startInterval(pingJid);
                     } else {
@@ -194,7 +194,7 @@ export default class XMPP extends Listenable {
         }
     }
 
-    _connect (jid, password) {
+    _connect(jid, password) {
         // connection.connect() starts the connection process.
         //
         // As the connection process proceeds, the user supplied callback will
@@ -236,7 +236,7 @@ export default class XMPP extends Listenable {
      *
      * @param options {object} connecting options - rid, sid, jid and password.
      */
-    attach (options) {
+    attach(options) {
         const now = this.connectionTimes["attaching"] = window.performance.now();
         logger.log("(TIME) Strophe Attaching\t:" + now);
         this.connection.attach(options.jid, options.sid,
@@ -244,7 +244,7 @@ export default class XMPP extends Listenable {
             this.connectionHandler.bind(this, options.password));
     }
 
-    connect (jid, password) {
+    connect(jid, password) {
         this.connectParams = {
             jid,
             password
@@ -265,7 +265,7 @@ export default class XMPP extends Listenable {
         return this._connect(jid, password);
     }
 
-    createRoom (roomName, options) {
+    createRoom(roomName, options) {
         // By default MUC nickname is the resource part of the JID
         let mucNickname = Strophe.getNodeFromJid(this.connection.jid);
         let roomjid = roomName + "@" + this.options.hosts.muc + "/";
@@ -294,7 +294,7 @@ export default class XMPP extends Listenable {
      * Returns the logs from strophe.jingle.
      * @returns {Object}
      */
-    getJingleLog () {
+    getJingleLog() {
         const jingle = this.connection.jingle;
         return jingle ? jingle.getLog() : {};
     }
@@ -302,23 +302,23 @@ export default class XMPP extends Listenable {
     /**
      * Returns the logs from strophe.
      */
-    getXmppLog () {
+    getXmppLog() {
         return (this.connection.logger || {}).log || null;
     }
 
-    dial (to, from, roomName,roomPass) {
+    dial(to, from, roomName,roomPass) {
         this.connection.rayo.dial(to, from, roomName,roomPass);
     }
 
-    setMute (jid, mute) {
+    setMute(jid, mute) {
         this.connection.moderate.setMute(jid, mute);
     }
 
-    eject (jid) {
+    eject(jid) {
         this.connection.moderate.eject(jid);
     }
 
-    getSessions () {
+    getSessions() {
         return this.connection.jingle.sessions;
     }
 
@@ -328,7 +328,7 @@ export default class XMPP extends Listenable {
      * @param ev optionally, the event which triggered the necessity to disconnect
      * from the XMPP server (e.g. beforeunload, unload)
      */
-    disconnect (ev) {
+    disconnect(ev) {
         if (this.disconnectInProgress
                 || !this.connection
                 || !this.connection.connected) {

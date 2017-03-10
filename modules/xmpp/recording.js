@@ -53,7 +53,7 @@ Recording.action = {
     STOP: "stop"
 };
 
-Recording.prototype.handleJibriPresence = function (jibri) {
+Recording.prototype.handleJibriPresence = function(jibri) {
     var attributes = jibri.attributes;
     if(!attributes) {
         return;
@@ -84,7 +84,7 @@ Recording.prototype.handleJibriPresence = function (jibri) {
 };
 
 Recording.prototype.setRecordingJibri
-    = function (state, callback, errCallback, options) {
+    = function(state, callback, errCallback, options) {
 
         if (state == this.state){
             errCallback(JitsiRecorderErrors.INVALID_STATE);
@@ -105,19 +105,19 @@ Recording.prototype.setRecordingJibri
         logger.log(iq.nodeTree);
         this.connection.sendIQ(
         iq,
-        function (result) {
+        function(result) {
             logger.log("Result", result);
             callback($(result).find('jibri').attr('state'),
             $(result).find('jibri').attr('url'));
         },
-        function (error) {
+        function(error) {
             logger.log('Failed to start recording, error: ', error);
             errCallback(error);
         });
     };
 
 Recording.prototype.setRecordingJirecon =
-    function (state, callback, errCallback) {
+    function(state, callback, errCallback) {
 
         if (state == this.state){
             errCallback(new Error("Invalid state!"));
@@ -137,7 +137,7 @@ Recording.prototype.setRecordingJirecon =
         var self = this;
         this.connection.sendIQ(
         iq,
-        function (result) {
+        function(result) {
             // TODO wait for an IQ with the real status, since this is
             // provisional?
             self.jireconRid = $(result).find('recording').attr('rid');
@@ -151,7 +151,7 @@ Recording.prototype.setRecordingJirecon =
 
             callback(state);
         },
-        function (error) {
+        function(error) {
             logger.log('Failed to start recording, error: ', error);
             errCallback(error);
         });
@@ -161,7 +161,7 @@ Recording.prototype.setRecordingJirecon =
 // the recording on the bridge. Waits for the result IQ and calls 'callback'
 // with the new recording state, according to the IQ.
 Recording.prototype.setRecordingColibri =
-function (state, callback, errCallback, options) {
+function(state, callback, errCallback, options) {
     var elem = $iq({to: this.focusMucJid, type: 'set'});
     elem.c('conference', {
         xmlns: 'http://jitsi.org/protocol/colibri'
@@ -170,7 +170,7 @@ function (state, callback, errCallback, options) {
 
     var self = this;
     this.connection.sendIQ(elem,
-        function (result) {
+        function(result) {
             logger.log('Set recording "', state, '". Result:', result);
             var recordingElem = $(result).find('>conference>recording');
             var newState = recordingElem.attr('state');
@@ -188,7 +188,7 @@ function (state, callback, errCallback, options) {
                 }, 'http://jitsi.org/protocol/colibri', 'iq', null, null, null);
             }
         },
-        function (error) {
+        function(error) {
             logger.warn(error);
             errCallback(error);
         }
@@ -196,7 +196,7 @@ function (state, callback, errCallback, options) {
 };
 
 Recording.prototype.setRecording =
-function (state, callback, errCallback, options) {
+function(state, callback, errCallback, options) {
     switch(this.type){
     case Recording.types.JIRECON:
         this.setRecordingJirecon(state, callback, errCallback, options);
@@ -220,7 +220,7 @@ function (state, callback, errCallback, options) {
  * @param token token for authentication
  * @param statusChangeHandler {function} receives the new status as argument.
  */
-Recording.prototype.toggleRecording = function (options, statusChangeHandler) {
+Recording.prototype.toggleRecording = function(options, statusChangeHandler) {
     var oldState = this.state;
 
     // If the recorder is currently unavailable we throw an error.
@@ -254,7 +254,7 @@ Recording.prototype.toggleRecording = function (options, statusChangeHandler) {
     var self = this;
     logger.log("Toggle recording (old state, new state): ", oldState, newState);
     this.setRecording(newState,
-        function (state, url) {
+        function(state, url) {
             // If the state is undefined we're going to wait for presence
             // update.
             if (state && state !== oldState) {
@@ -262,7 +262,7 @@ Recording.prototype.toggleRecording = function (options, statusChangeHandler) {
                 self.url = url;
                 statusChangeHandler(state);
             }
-        }, function (error) {
+        }, function(error) {
             statusChangeHandler(Recording.status.FAILED, error);
         }, options);
 };
@@ -270,7 +270,7 @@ Recording.prototype.toggleRecording = function (options, statusChangeHandler) {
 /**
  * Returns true if the recording is supproted and false if not.
  */
-Recording.prototype.isSupported = function () {
+Recording.prototype.isSupported = function() {
     return this._isSupported;
 };
 
@@ -278,14 +278,14 @@ Recording.prototype.isSupported = function () {
  * Returns null if the recording is not supported, "on" if the recording started
  * and "off" if the recording is not started.
  */
-Recording.prototype.getState = function () {
+Recording.prototype.getState = function() {
     return this.state;
 };
 
 /**
  * Returns the url of the recorded video.
  */
-Recording.prototype.getURL = function () {
+Recording.prototype.getURL = function() {
     return this.url;
 };
 

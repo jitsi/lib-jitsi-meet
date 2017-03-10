@@ -56,7 +56,7 @@ SDP.prototype.getMediaSsrcMap = function() {
             ssrcGroups: []
         };
         media_ssrcs[mediaindex] = media;
-        tmp.forEach(function (line) {
+        tmp.forEach(function(line) {
             var linessrc = line.substring(7).split(' ')[0];
             // allocate new ChannelSsrc
             if(!media.ssrcs[linessrc]) {
@@ -87,11 +87,11 @@ SDP.prototype.getMediaSsrcMap = function() {
  * @param ssrc the ssrc to check.
  * @returns {boolean} <tt>true</tt> if this SDP contains given SSRC.
  */
-SDP.prototype.containsSSRC = function (ssrc) {
+SDP.prototype.containsSSRC = function(ssrc) {
     // FIXME this code is really strange - improve it if you can
     var medias = this.getMediaSsrcMap();
     var result = false;
-    Object.keys(medias).forEach(function (mediaindex) {
+    Object.keys(medias).forEach(function(mediaindex) {
         if (result) {
             return;
         }
@@ -103,7 +103,7 @@ SDP.prototype.containsSSRC = function (ssrc) {
 };
 
 // remove iSAC and CN from SDP
-SDP.prototype.mangle = function () {
+SDP.prototype.mangle = function() {
     var i, j, mline, lines, rtpmap, newdesc;
     for (i = 0; i < this.media.length; i++) {
         lines = this.media[i].split('\r\n');
@@ -152,7 +152,7 @@ SDP.prototype.removeMediaLines = function(mediaindex, prefix) {
 };
 
 // add content's to a jingle element
-SDP.prototype.toJingle = function (elem, thecreator) {
+SDP.prototype.toJingle = function(elem, thecreator) {
     var i, j, k, mline, ssrc, rtpmap, tmp, lines;
     // new bundle plan
     lines = SDPUtil.find_lines(this.session, 'a=group:');
@@ -226,7 +226,7 @@ SDP.prototype.toJingle = function (elem, thecreator) {
                 // FIXME: group by ssrc and support multiple different ssrcs
                 var ssrclines = SDPUtil.find_lines(this.media[i], 'a=ssrc:');
                 if(ssrclines.length > 0) {
-                    ssrclines.forEach(function (line) {
+                    ssrclines.forEach(function(line) {
                         var idx = line.indexOf(' ');
                         var linessrc = line.substr(0, idx).substr(7);
                         if (linessrc != ssrc) {
@@ -355,7 +355,7 @@ SDP.prototype.toJingle = function (elem, thecreator) {
     return elem;
 };
 
-SDP.prototype.transportToJingle = function (mediaindex, elem) {
+SDP.prototype.transportToJingle = function(mediaindex, elem) {
     var tmp, sctpmap, sctpAttrs, fingerprints;
     var self = this;
     elem.c('transport');
@@ -397,7 +397,7 @@ SDP.prototype.transportToJingle = function (mediaindex, elem) {
         // XEP-0176
         if (SDPUtil.find_line(this.media[mediaindex], 'a=candidate:', this.session)) { // add any a=candidate lines
             var lines = SDPUtil.find_lines(this.media[mediaindex], 'a=candidate:', this.session);
-            lines.forEach(function (line) {
+            lines.forEach(function(line) {
                 var candidate = SDPUtil.candidateToJingle(line);
                 if (self.failICE) {
                     candidate.ip = "1.1.1.1";
@@ -417,9 +417,9 @@ SDP.prototype.transportToJingle = function (mediaindex, elem) {
     elem.up(); // end of transport
 };
 
-SDP.prototype.rtcpFbToJingle = function (mediaindex, elem, payloadtype) { // XEP-0293
+SDP.prototype.rtcpFbToJingle = function(mediaindex, elem, payloadtype) { // XEP-0293
     var lines = SDPUtil.find_lines(this.media[mediaindex], 'a=rtcp-fb:' + payloadtype);
-    lines.forEach(function (line) {
+    lines.forEach(function(line) {
         var tmp = SDPUtil.parse_rtcpfb(line);
         if (tmp.type == 'trr-int') {
             elem.c('rtcp-fb-trr-int', {xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0', value: tmp.params[0]});
@@ -434,7 +434,7 @@ SDP.prototype.rtcpFbToJingle = function (mediaindex, elem, payloadtype) { // XEP
     });
 };
 
-SDP.prototype.rtcpFbFromJingle = function (elem, payloadtype) { // XEP-0293
+SDP.prototype.rtcpFbFromJingle = function(elem, payloadtype) { // XEP-0293
     var media = '';
     var tmp = elem.find('>rtcp-fb-trr-int[xmlns="urn:xmpp:jingle:apps:rtp:rtcp-fb:0"]');
     if (tmp.length) {
@@ -447,7 +447,7 @@ SDP.prototype.rtcpFbFromJingle = function (elem, payloadtype) { // XEP-0293
         media += '\r\n';
     }
     tmp = elem.find('>rtcp-fb[xmlns="urn:xmpp:jingle:apps:rtp:rtcp-fb:0"]');
-    tmp.each(function () {
+    tmp.each(function() {
         media += 'a=rtcp-fb:' + payloadtype + ' ' + $(this).attr('type');
         if ($(this).attr('subtype')) {
             media += ' ' + $(this).attr('subtype');
@@ -458,7 +458,7 @@ SDP.prototype.rtcpFbFromJingle = function (elem, payloadtype) { // XEP-0293
 };
 
 // construct an SDP from a jingle stanza
-SDP.prototype.fromJingle = function (jingle) {
+SDP.prototype.fromJingle = function(jingle) {
     var self = this;
     this.raw = 'v=0\r\n' +
         'o=- 1923518516 2 IN IP4 0.0.0.0\r\n' +// FIXME
@@ -466,8 +466,8 @@ SDP.prototype.fromJingle = function (jingle) {
         't=0 0\r\n';
     // http://tools.ietf.org/html/draft-ietf-mmusic-sdp-bundle-negotiation-04#section-8
     if ($(jingle).find('>group[xmlns="urn:xmpp:jingle:apps:grouping:0"]').length) {
-        $(jingle).find('>group[xmlns="urn:xmpp:jingle:apps:grouping:0"]').each(function (idx, group) {
-            var contents = $(group).find('>content').map(function (idx, content) {
+        $(jingle).find('>group[xmlns="urn:xmpp:jingle:apps:grouping:0"]').each(function(idx, group) {
+            var contents = $(group).find('>content').map(function(idx, content) {
                 return content.getAttribute('name');
             }).get();
             if (contents.length > 0) {
@@ -477,7 +477,7 @@ SDP.prototype.fromJingle = function (jingle) {
     }
 
     this.session = this.raw;
-    jingle.find('>content').each(function () {
+    jingle.find('>content').each(function() {
         var m = self.jingle2media($(this));
         self.media.push(m);
     });
@@ -494,7 +494,7 @@ SDP.prototype.fromJingle = function (jingle) {
 };
 
 // translate a jingle content element into an an SDP media part
-SDP.prototype.jingle2media = function (content) {
+SDP.prototype.jingle2media = function(content) {
     var media = '',
         desc = content.find('description'),
         self = this,
@@ -516,7 +516,7 @@ SDP.prototype.jingle2media = function (content) {
     }
     if (!sctp.length) {
         tmp.fmt = desc.find('payload-type').map(
-            function () {
+            function() {
                 return this.getAttribute('id');
             }).get();
         media += SDPUtil.build_mline(tmp) + '\r\n';
@@ -545,7 +545,7 @@ SDP.prototype.jingle2media = function (content) {
         if (tmp.attr('pwd')) {
             media += SDPUtil.build_icepwd(tmp.attr('pwd')) + '\r\n';
         }
-        tmp.find('>fingerprint').each(function () {
+        tmp.find('>fingerprint').each(function() {
             // FIXME: check namespace at some point
             media += 'a=fingerprint:' + this.getAttribute('hash');
             media += ' ' + $(this).text();
@@ -579,7 +579,7 @@ SDP.prototype.jingle2media = function (content) {
     }
 
     if (desc.find('encryption').length) {
-        desc.find('encryption>crypto').each(function () {
+        desc.find('encryption>crypto').each(function() {
             media += 'a=crypto:' + this.getAttribute('tag');
             media += ' ' + this.getAttribute('crypto-suite');
             media += ' ' + this.getAttribute('key-params');
@@ -589,11 +589,11 @@ SDP.prototype.jingle2media = function (content) {
             media += '\r\n';
         });
     }
-    desc.find('payload-type').each(function () {
+    desc.find('payload-type').each(function() {
         media += SDPUtil.build_rtpmap(this) + '\r\n';
         if ($(this).find('>parameter').length) {
             media += 'a=fmtp:' + this.getAttribute('id') + ' ';
-            media += $(this).find('parameter').map(function () {
+            media += $(this).find('parameter').map(function() {
                 return (this.getAttribute('name')
                         ? this.getAttribute('name') + '=' : '') +
                     this.getAttribute('value');
@@ -609,11 +609,11 @@ SDP.prototype.jingle2media = function (content) {
 
     // xep-0294
     tmp = desc.find('>rtp-hdrext[xmlns="urn:xmpp:jingle:apps:rtp:rtp-hdrext:0"]');
-    tmp.each(function () {
+    tmp.each(function() {
         media += 'a=extmap:' + this.getAttribute('id') + ' ' + this.getAttribute('uri') + '\r\n';
     });
 
-    content.find('>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]>candidate').each(function () {
+    content.find('>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]>candidate').each(function() {
         var protocol = this.getAttribute('protocol');
         protocol = typeof protocol === 'string' ? protocol.toLowerCase() : '';
 
@@ -641,9 +641,9 @@ SDP.prototype.jingle2media = function (content) {
     });
 
     tmp = content.find('description>source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
-    tmp.each(function () {
+    tmp.each(function() {
         var ssrc = this.getAttribute('ssrc');
-        $(this).find('>parameter').each(function () {
+        $(this).find('>parameter').each(function() {
             var name = this.getAttribute('name');
             var value = this.getAttribute('value');
             value = SDPUtil.filter_special_chars(value);

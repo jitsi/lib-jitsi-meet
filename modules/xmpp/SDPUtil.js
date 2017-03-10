@@ -4,12 +4,12 @@ import RandomUtil from "../util/RandomUtil";
 var RTCBrowserType = require("../RTC/RTCBrowserType");
 
 var SDPUtil = {
-    filter_special_chars (text) {
+    filter_special_chars(text) {
         // XXX Neither one of the falsy values (e.g. null, undefined, false,
         // "", etc.) "contain" special chars.
         return text ? text.replace(/[\\\/\{,\}\+]/g, "") : text;
     },
-    iceparams (mediadesc, sessiondesc) {
+    iceparams(mediadesc, sessiondesc) {
         var data = null;
         var ufrag, pwd;
         if ((ufrag = SDPUtil.find_line(mediadesc, 'a=ice-ufrag:', sessiondesc))
@@ -21,22 +21,22 @@ var SDPUtil = {
         }
         return data;
     },
-    parse_iceufrag (line) {
+    parse_iceufrag(line) {
         return line.substring(12);
     },
-    build_iceufrag (frag) {
+    build_iceufrag(frag) {
         return 'a=ice-ufrag:' + frag;
     },
-    parse_icepwd (line) {
+    parse_icepwd(line) {
         return line.substring(10);
     },
-    build_icepwd (pwd) {
+    build_icepwd(pwd) {
         return 'a=ice-pwd:' + pwd;
     },
-    parse_mid (line) {
+    parse_mid(line) {
         return line.substring(6);
     },
-    parse_mline (line) {
+    parse_mline(line) {
         var parts = line.substring(2).split(' '),
             data = {};
         data.media = parts.shift();
@@ -48,10 +48,10 @@ var SDPUtil = {
         data.fmt = parts;
         return data;
     },
-    build_mline (mline) {
+    build_mline(mline) {
         return 'm=' + mline.media + ' ' + mline.port + ' ' + mline.proto + ' ' + mline.fmt.join(' ');
     },
-    parse_rtpmap (line) {
+    parse_rtpmap(line) {
         var parts = line.substring(9).split(' '),
             data = {};
         data.id = parts.shift();
@@ -66,7 +66,7 @@ var SDPUtil = {
      * @param line eg. "a=sctpmap:5000 webrtc-datachannel"
      * @returns [SCTP port number, protocol, streams]
      */
-    parse_sctpmap (line) {
+    parse_sctpmap(line) {
         var parts = line.substring(10).split(' ');
         var sctpPort = parts[0];
         var protocol = parts[1];
@@ -74,14 +74,14 @@ var SDPUtil = {
         var streamCount = parts.length > 2 ? parts[2] : null;
         return [sctpPort, protocol, streamCount];// SCTP port
     },
-    build_rtpmap (el) {
+    build_rtpmap(el) {
         var line = 'a=rtpmap:' + el.getAttribute('id') + ' ' + el.getAttribute('name') + '/' + el.getAttribute('clockrate');
         if (el.getAttribute('channels') && el.getAttribute('channels') != '1') {
             line += '/' + el.getAttribute('channels');
         }
         return line;
     },
-    parse_crypto (line) {
+    parse_crypto(line) {
         var parts = line.substring(9).split(' '),
             data = {};
         data.tag = parts.shift();
@@ -92,7 +92,7 @@ var SDPUtil = {
         }
         return data;
     },
-    parse_fingerprint (line) { // RFC 4572
+    parse_fingerprint(line) { // RFC 4572
         var parts = line.substring(14).split(' '),
             data = {};
         data.hash = parts.shift();
@@ -100,7 +100,7 @@ var SDPUtil = {
         // TODO assert that fingerprint satisfies 2UHEX *(":" 2UHEX) ?
         return data;
     },
-    parse_fmtp (line) {
+    parse_fmtp(line) {
         var parts = line.split(' '),
             i, key, value,
             data = [];
@@ -121,7 +121,7 @@ var SDPUtil = {
         }
         return data;
     },
-    parse_icecandidate (line) {
+    parse_icecandidate(line) {
         var candidate = {},
             elems = line.split(' ');
         candidate.foundation = elems[0].substring(12);
@@ -155,7 +155,7 @@ var SDPUtil = {
         candidate.id = Math.random().toString(36).substr(2, 10); // not applicable to SDP -- FIXME: should be unique, not just random
         return candidate;
     },
-    build_icecandidate (cand) {
+    build_icecandidate(cand) {
         var line = ['a=candidate:' + cand.foundation, cand.component, cand.protocol, cand.priority, cand.ip, cand.port, 'typ', cand.type].join(' ');
         line += ' ';
         switch (cand.type) {
@@ -185,7 +185,7 @@ var SDPUtil = {
         line += cand.hasOwnAttribute('generation') ? cand.generation : '0';
         return line;
     },
-    parse_ssrc (desc) {
+    parse_ssrc(desc) {
         // proprietary mapping of a=ssrc lines
         // TODO: see "Jingle RTP Source Description" by Juberti and P. Thatcher on google docs
         // and parse according to that
@@ -199,7 +199,7 @@ var SDPUtil = {
         }
         return data;
     },
-    parse_rtcpfb (line) {
+    parse_rtcpfb(line) {
         var parts = line.substr(10).split(' ');
         var data = {};
         data.pt = parts.shift();
@@ -207,7 +207,7 @@ var SDPUtil = {
         data.params = parts;
         return data;
     },
-    parse_extmap (line) {
+    parse_extmap(line) {
         var parts = line.substr(9).split(' ');
         var data = {};
         data.value = parts.shift();
@@ -221,7 +221,7 @@ var SDPUtil = {
         data.params = parts;
         return data;
     },
-    find_line (haystack, needle, sessionpart) {
+    find_line(haystack, needle, sessionpart) {
         var lines = haystack.split('\r\n');
         for (var i = 0; i < lines.length; i++) {
             if (lines[i].substring(0, needle.length) == needle) {
@@ -240,7 +240,7 @@ var SDPUtil = {
         }
         return false;
     },
-    find_lines (haystack, needle, sessionpart) {
+    find_lines(haystack, needle, sessionpart) {
         var lines = haystack.split('\r\n'),
             needles = [];
         for (var i = 0; i < lines.length; i++) {
@@ -260,7 +260,7 @@ var SDPUtil = {
         }
         return needles;
     },
-    candidateToJingle (line) {
+    candidateToJingle(line) {
         // a=candidate:2979166662 1 udp 2113937151 192.168.2.100 57698 typ host generation 0
         //      <candidate component=... foundation=... generation=... id=... ip=... network=... port=... priority=... protocol=... type=.../>
         if (line.indexOf('candidate:') === 0) {
@@ -313,7 +313,7 @@ var SDPUtil = {
         candidate.id = Math.random().toString(36).substr(2, 10); // not applicable to SDP -- FIXME: should be unique, not just random
         return candidate;
     },
-    candidateFromJingle (cand) {
+    candidateFromJingle(cand) {
         var line = 'a=candidate:';
         line += cand.getAttribute('foundation');
         line += ' ';
@@ -420,7 +420,7 @@ var SDPUtil = {
      * @returns {string} the value corresponding to the given ssrc
      *  and attributeName
      */
-    getSsrcAttribute (mLine, ssrc, attributeName) {
+    getSsrcAttribute(mLine, ssrc, attributeName) {
         for (let i = 0; i < mLine.ssrcs.length; ++i) {
             const ssrcLine = mLine.ssrcs[i];
             if (ssrcLine.id === ssrc &&
@@ -438,7 +438,7 @@ var SDPUtil = {
      * @returns {list<number>} a list of the ssrcs in the group
      *  parsed as numbers
      */
-    parseGroupSsrcs (ssrcGroup) {
+    parseGroupSsrcs(ssrcGroup) {
         return ssrcGroup
             .ssrcs
             .split(" ")
@@ -451,7 +451,7 @@ var SDPUtil = {
      * @param {string} type the type of the desired mline (e.g. "video")
      * @returns {object} a media object
      */
-    getMedia (sdp, type) {
+    getMedia(sdp, type) {
         return sdp.media.find(m => m.type === type);
     },
     /**

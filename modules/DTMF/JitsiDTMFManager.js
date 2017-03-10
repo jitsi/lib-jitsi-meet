@@ -1,6 +1,6 @@
 var logger = require("jitsi-meet-logger").getLogger(__filename);
 
-function JitsiDTMFManager (localAudio, peerConnection) {
+function JitsiDTMFManager(localAudio, peerConnection) {
     var audioTrack = localAudio.getTrack();
     if (!audioTrack) {
         throw new Error("Failed to initialize DTMFSender: no audio track.");
@@ -11,6 +11,6 @@ function JitsiDTMFManager (localAudio, peerConnection) {
 }
 
 
-JitsiDTMFManager.prototype.sendTones = function (tones, duration, pause) {
+JitsiDTMFManager.prototype.sendTones = function(tones, duration, pause) {
     this.dtmfSender.insertDTMF(tones, duration || 200, pause || 200);
 };

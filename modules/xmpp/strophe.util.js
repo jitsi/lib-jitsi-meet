@@ -40,9 +40,9 @@ const resetLastErrorStatusRegExpr = /request id \d+.\d+ got 200/;
 const lastErrorStatusRegExpr
     = /request errored, status: (\d+), number of errors: \d+/;
 
-export default function () {
+export default function() {
 
-    Strophe.log = function (level, msg) {
+    Strophe.log = function(level, msg) {
         // Our global handler reports uncaught errors to the stats which may
         // interpret those as partial call failure.
         // Strophe log entry about secondary request timeout does not mean that
@@ -90,11 +90,11 @@ export default function () {
      * @return {number} HTTP error code, '0' for unknown or "god knows what"
      * (this is a hack).
      */
-    Strophe.getLastErrorStatus = function () {
+    Strophe.getLastErrorStatus = function() {
         return lastErrorStatus;
     };
 
-    Strophe.getStatusString = function (status) {
+    Strophe.getStatusString = function(status) {
         switch (status) {
         case Strophe.Status.ERROR:
             return "ERROR";

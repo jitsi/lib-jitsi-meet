@@ -17,7 +17,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         this.rooms = {};
     }
 
-    init (connection) {
+    init(connection) {
         super.init(connection);
         // add handlers (just once)
         this.connection.addHandler(this.onPresence.bind(this), null,
@@ -32,7 +32,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
             'http://jitsi.org/jitmeet/audio', 'iq', 'set',null,null);
     }
 
-    createRoom (jid, password, options) {
+    createRoom(jid, password, options) {
         const roomJid = Strophe.getBareJidFromJid(jid);
         if (this.rooms[roomJid]) {
             const errmsg = "You are already in the room!";
@@ -46,13 +46,13 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         return this.rooms[roomJid];
     }
 
-    doLeave (jid) {
+    doLeave(jid) {
         this.eventEmitter.emit(
             XMPPEvents.EMUC_ROOM_REMOVED, this.rooms[jid]);
         delete this.rooms[jid];
     }
 
-    onPresence (pres) {
+    onPresence(pres) {
         const from = pres.getAttribute('from');
 
         // What is this for? A workaround for something?
@@ -76,7 +76,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         return true;
     }
 
-    onPresenceUnavailable (pres) {
+    onPresenceUnavailable(pres) {
         const from = pres.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
         if(!room) {
@@ -87,7 +87,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         return true;
     }
 
-    onPresenceError (pres) {
+    onPresenceError(pres) {
         const from = pres.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
         if(!room) {
@@ -98,7 +98,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         return true;
     }
 
-    onMessage (msg) {
+    onMessage(msg) {
         // FIXME: this is a hack. but jingle on muc makes nickchanges hard
         const from = msg.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];

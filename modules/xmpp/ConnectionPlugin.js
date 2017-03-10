@@ -14,7 +14,7 @@ function getConnectionPluginDefinition(base = class{}) {
             super(...args);
             this.connection = null;
         }
-        init (connection) {
+        init(connection) {
             this.connection = connection;
         }
     };

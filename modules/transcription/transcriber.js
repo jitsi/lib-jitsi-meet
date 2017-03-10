@@ -163,7 +163,7 @@ transcriber.prototype.merge = function() {
     hasPopulatedArrays(arrays);
 
     // populate all the potential Words for a first time
-    arrays.forEach(function (array){
+    arrays.forEach(function(array){
         pushWordToSortedArray(potentialWords, array);
     });
 

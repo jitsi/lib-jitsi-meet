@@ -155,7 +155,7 @@ export default class ParticipantConnectionStatus {
                 this._onRemoteTrackRemoved);
         }
 
-        Object.keys(this.trackTimers).forEach(function (participantId) {
+        Object.keys(this.trackTimers).forEach(function(participantId) {
             this.clearTimeout(participantId);
             this.clearRtcMutedTimestamp(participantId);
         }.bind(this));
@@ -299,7 +299,7 @@ export default class ParticipantConnectionStatus {
      *       local and remote tracks.
      *
      */
-    isVideoTrackFrozen (participant) {
+    isVideoTrackFrozen(participant) {
         if (!RTCBrowserType.isVideoMuteOnConnInterruptedSupported()) {
             return false;
         }
@@ -376,7 +376,7 @@ export default class ParticipantConnectionStatus {
             // it some time, before the connection interrupted event is
             // triggered.
             this.clearTimeout(participantId);
-            this.trackTimers[participantId] = window.setTimeout(function () {
+            this.trackTimers[participantId] = window.setTimeout(function() {
                 logger.debug('RTC mute timeout for: ' + participantId);
                 this.clearTimeout(participantId);
                 this.figureOutConnectionStatus(participantId);
@@ -407,7 +407,7 @@ export default class ParticipantConnectionStatus {
      * @param {JitsiRemoteTrack} track the remote video track for which
      * the signalling mute/unmute event will be processed.
      */
-    onSignallingMuteChanged (track) {
+    onSignallingMuteChanged(track) {
         const participantId = track.getParticipantId();
 
         logger.debug(

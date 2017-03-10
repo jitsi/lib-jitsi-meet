@@ -23,19 +23,19 @@ function onLocalTracks(tracks){
     localTracks = tracks;
     for(var i = 0; i < localTracks.length; i++) {
         localTracks[i].addEventListener(JitsiMeetJS.events.track.TRACK_AUDIO_LEVEL_CHANGED,
-            function (audioLevel) {
+            function(audioLevel) {
                 console.log("Audio Level local: " + audioLevel);
             });
         localTracks[i].addEventListener(JitsiMeetJS.events.track.TRACK_MUTE_CHANGED,
-            function () {
+            function() {
                 console.log("local track muted");
             });
         localTracks[i].addEventListener(JitsiMeetJS.events.track.LOCAL_TRACK_STOPPED,
-            function () {
+            function() {
                 console.log("local track stoped");
             });
         localTracks[i].addEventListener(JitsiMeetJS.events.track.TRACK_AUDIO_OUTPUT_CHANGED,
-            function (deviceId) {
+            function(deviceId) {
                 console.log("track audio output device was changed to " + deviceId);
             });
         if(localTracks[i].getType() == "video") {
@@ -65,19 +65,19 @@ function onRemoteTrack(track) {
     }
     var idx = remoteTracks[participant].push(track);
     track.addEventListener(JitsiMeetJS.events.track.TRACK_AUDIO_LEVEL_CHANGED,
-        function (audioLevel) {
+        function(audioLevel) {
             console.log("Audio Level remote: " + audioLevel);
         });
     track.addEventListener(JitsiMeetJS.events.track.TRACK_MUTE_CHANGED,
-        function () {
+        function() {
             console.log("remote track muted");
         });
     track.addEventListener(JitsiMeetJS.events.track.LOCAL_TRACK_STOPPED,
-        function () {
+        function() {
             console.log("remote track stoped");
         });
     track.addEventListener(JitsiMeetJS.events.track.TRACK_AUDIO_OUTPUT_CHANGED,
-        function (deviceId) {
+        function(deviceId) {
             console.log("track audio output device was changed to " + deviceId);
         });
     var id = participant + track.getType() + idx;
@@ -92,7 +92,7 @@ function onRemoteTrack(track) {
 /**
  * That function is executed when the conference is joined
  */
-function onConferenceJoined () {
+function onConferenceJoined() {
     console.log("conference joined!");
     isJoined = true;
     for(var i = 0; i < localTracks.length; i++) {
@@ -117,7 +117,7 @@ function onUserLeft(id) {
 function onConnectionSuccess(){
     room = connection.initJitsiConference("conference", confOptions);
     room.on(JitsiMeetJS.events.conference.TRACK_ADDED, onRemoteTrack);
-    room.on(JitsiMeetJS.events.conference.TRACK_REMOVED, function (track) {
+    room.on(JitsiMeetJS.events.conference.TRACK_REMOVED, function(track) {
         console.log("track removed!!!" + track);
     });
     room.on(JitsiMeetJS.events.conference.CONFERENCE_JOINED, onConferenceJoined);
@@ -125,22 +125,22 @@ function onConnectionSuccess(){
         console.log("user join");remoteTracks[id] = [];
     });
     room.on(JitsiMeetJS.events.conference.USER_LEFT, onUserLeft);
-    room.on(JitsiMeetJS.events.conference.TRACK_MUTE_CHANGED, function (track) {
+    room.on(JitsiMeetJS.events.conference.TRACK_MUTE_CHANGED, function(track) {
         console.log(track.getType() + " - " + track.isMuted());
     });
-    room.on(JitsiMeetJS.events.conference.DISPLAY_NAME_CHANGED, function (userID, displayName) {
+    room.on(JitsiMeetJS.events.conference.DISPLAY_NAME_CHANGED, function(userID, displayName) {
         console.log(userID + " - " + displayName);
     });
     room.on(JitsiMeetJS.events.conference.TRACK_AUDIO_LEVEL_CHANGED,
       function(userID, audioLevel){
           console.log(userID + " - " + audioLevel);
       });
-    room.on(JitsiMeetJS.events.conference.RECORDER_STATE_CHANGED, function () {
+    room.on(JitsiMeetJS.events.conference.RECORDER_STATE_CHANGED, function() {
         console.log(room.isRecordingSupported() + " - " +
             room.getRecordingState() + " - " +
             room.getRecordingURL());
     });
-    room.on(JitsiMeetJS.events.conference.PHONE_NUMBER_CHANGED, function () {
+    room.on(JitsiMeetJS.events.conference.PHONE_NUMBER_CHANGED, function() {
         console.log(
             room.getPhoneNumber() + " - " +
             room.getPhonePin());
@@ -188,19 +188,19 @@ function switchVideo() { // eslint-disable-line no-unused-vars
         localTracks.pop();
     }
     JitsiMeetJS.createLocalTracks({devices: isVideo ? ["video"] : ["desktop"]}).
-        then(function (tracks) {
+        then(function(tracks) {
             localTracks.push(tracks[0]);
             localTracks[1].addEventListener(JitsiMeetJS.events.track.TRACK_MUTE_CHANGED,
-                function () {
+                function() {
                     console.log("local track muted");
                 });
             localTracks[1].addEventListener(JitsiMeetJS.events.track.LOCAL_TRACK_STOPPED,
-                function () {
+                function() {
                     console.log("local track stoped");
                 });
             localTracks[1].attach($("#localVideo1")[0]);
             room.addTrack(localTracks[1]);
-        }).catch(function (error) {
+        }).catch(function(error) {
             console.log(error);
         });
 }
@@ -250,10 +250,10 @@ JitsiMeetJS.init(initOptions).then(function(){
 
     connection.connect();
     JitsiMeetJS.createLocalTracks({devices: ["audio", "video"]}).
-        then(onLocalTracks).catch(function (error) {
+        then(onLocalTracks).catch(function(error) {
             throw error;
         });
-}).catch(function (error) {
+}).catch(function(error) {
     console.log(error);
 });
 
@@ -265,7 +265,7 @@ if (JitsiMeetJS.mediaDevices.isDeviceChangeAvailable('output')) {
 
         if (audioOutputDevices.length > 1) {
             $('#audioOutputSelect').html(
-                audioOutputDevices.map(function (d) {
+                audioOutputDevices.map(function(d) {
                     return '<option value="' + d.deviceId + '">' + d.label + '</option>';
                 }).join('\n')
             );

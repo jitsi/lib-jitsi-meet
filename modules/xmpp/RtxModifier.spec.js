@@ -10,7 +10,7 @@ import * as SDPUtil from "./SDPUtil";
  * @param {object} parsedSdp the sdp as parsed by transform.parse
  * @returns {number} the number of video ssrcs in the given sdp
  */
-function numVideoSsrcs (parsedSdp) {
+function numVideoSsrcs(parsedSdp) {
     const videoMLine = parsedSdp.media.find(m => m.type === "video");
     return videoMLine.ssrcs
     .map(ssrcInfo => ssrcInfo.id)
@@ -23,7 +23,7 @@ function numVideoSsrcs (parsedSdp) {
  * @param {object} parsedSdp the sdp as parsed by transform.parse
  * @returns {number} the primary video ssrc in the given sdp
  */
-function getPrimaryVideoSsrc (parsedSdp) {
+function getPrimaryVideoSsrc(parsedSdp) {
     const videoMLine = parsedSdp.media.find(m => m.type === "video");
     return parseInt(SDPUtil.parsePrimaryVideoSsrc(videoMLine));
 }
@@ -36,7 +36,7 @@ function getPrimaryVideoSsrc (parsedSdp) {
  * @param {object} parsedSdp the sdp as parsed by transform.parse
  * @returns {list<number>} the primary video ssrcs in the given sdp
  */
-function getPrimaryVideoSsrcs (parsedSdp) {
+function getPrimaryVideoSsrcs(parsedSdp) {
     const videoMLine = parsedSdp.media.find(m => m.type === "video");
     if (numVideoSsrcs(parsedSdp) === 1) {
         return [videoMLine.ssrcs[0].id];
@@ -59,7 +59,7 @@ function getPrimaryVideoSsrcs (parsedSdp) {
  * @returns {list<object>} a list of the groups from the given sdp
  *  that matched the passed semantics
  */
-function getVideoGroups (parsedSdp, groupSemantics) {
+function getVideoGroups(parsedSdp, groupSemantics) {
     const videoMLine = parsedSdp.media.find(m => m.type === "video");
     videoMLine.ssrcGroups = videoMLine.ssrcGroups || [];
     return videoMLine.ssrcGroups

@@ -8,12 +8,12 @@ import Statistics from "./modules/statistics/statistics";
 const eventEmitter = new EventEmitter();
 
 RTC.addListener(RTCEvents.DEVICE_LIST_CHANGED,
-    function (devices) {
+    function(devices) {
         eventEmitter.emit(JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED, devices);
     });
 
 RTC.addListener(RTCEvents.DEVICE_LIST_AVAILABLE,
-    function (devices) {
+    function(devices) {
         // log output device
         logOutputDevice(
             JitsiMediaDevices.getAudioOutputDevice(),
@@ -25,8 +25,8 @@ RTC.addListener(RTCEvents.DEVICE_LIST_AVAILABLE,
  * @param deviceID the device id to log
  * @param devices list of devices
  */
-function logOutputDevice (deviceID, devices) {
-    var device = devices.find(function (d) {
+function logOutputDevice(deviceID, devices) {
+    var device = devices.find(function(d) {
         return d.kind === 'audiooutput' && d.deviceId === deviceID;
     });
 
@@ -41,7 +41,7 @@ var JitsiMediaDevices = {
      * Executes callback with list of media devices connected.
      * @param {function} callback
      */
-    enumerateDevices (callback) {
+    enumerateDevices(callback) {
         RTC.enumerateDevices(callback);
     },
     /**
@@ -50,7 +50,7 @@ var JitsiMediaDevices = {
      * the WebRTC stack is ready, either with true if the device listing is
      * available available or with false otherwise.
      */
-    isDeviceListAvailable () {
+    isDeviceListAvailable() {
         return RTC.isDeviceListAvailable();
     },
     /**
@@ -60,7 +60,7 @@ var JitsiMediaDevices = {
      *      undefined or 'input', 'output' - for audio output device change.
      * @returns {boolean} true if available, false otherwise.
      */
-    isDeviceChangeAvailable (deviceType) {
+    isDeviceChangeAvailable(deviceType) {
         return RTC.isDeviceChangeAvailable(deviceType);
     },
     /**
@@ -69,7 +69,7 @@ var JitsiMediaDevices = {
      *      undefined stands for both 'audio' and 'video' together
      * @returns {boolean}
      */
-    isDevicePermissionGranted (type) {
+    isDevicePermissionGranted(type) {
         var permissions = RTC.getDeviceAvailability();
 
         switch(type) {
@@ -86,7 +86,7 @@ var JitsiMediaDevices = {
      * for default device
      * @returns {string}
      */
-    getAudioOutputDevice () {
+    getAudioOutputDevice() {
         return RTC.getAudioOutputDevice();
     },
     /**
@@ -97,7 +97,7 @@ var JitsiMediaDevices = {
      * @returns {Promise} - resolves when audio output is changed, is rejected
      *      otherwise
      */
-    setAudioOutputDevice (deviceId) {
+    setAudioOutputDevice(deviceId) {
 
         var availableDevices = RTC.getCurrentlyAvailableMediaDevices();
         if (availableDevices && availableDevices.length > 0) {
@@ -114,7 +114,7 @@ var JitsiMediaDevices = {
      * @param {string} event - event name
      * @param {function} handler - event handler
      */
-    addEventListener (event, handler) {
+    addEventListener(event, handler) {
         eventEmitter.addListener(event, handler);
     },
     /**
@@ -122,14 +122,14 @@ var JitsiMediaDevices = {
      * @param {string} event - event name
      * @param {function} handler - event handler
      */
-    removeEventListener (event, handler) {
+    removeEventListener(event, handler) {
         eventEmitter.removeListener(event, handler);
     },
     /**
      * Emits an event.
      * @param {string} event - event name
      */
-    emitEvent (event) { // eslint-disable-line no-unused-vars
+    emitEvent(event) { // eslint-disable-line no-unused-vars
         eventEmitter.emit(...arguments);
     }
 };

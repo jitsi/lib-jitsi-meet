@@ -9,7 +9,7 @@ import Settings from "../settings/Settings";
 
 function createExpBackoffTimer(step) {
     var count = 1;
-    return function (reset) {
+    return function(reset) {
         // Reset call
         if (reset) {
             count = 1;
@@ -62,16 +62,16 @@ function Moderator(roomName, xmpp, emitter, options) {
     }
 }
 
-Moderator.prototype.isExternalAuthEnabled = function () {
+Moderator.prototype.isExternalAuthEnabled = function() {
     return this.externalAuthEnabled;
 };
 
-Moderator.prototype.isSipGatewayEnabled = function () {
+Moderator.prototype.isSipGatewayEnabled = function() {
     return this.sipGatewayEnabled;
 };
 
 
-Moderator.prototype.onMucMemberLeft = function (jid) {
+Moderator.prototype.onMucMemberLeft = function(jid) {
     logger.info("Someone left is it focus ? " + jid);
     var resource = Strophe.getResourceFromJid(jid);
     if (resource === 'focus') {
@@ -82,7 +82,7 @@ Moderator.prototype.onMucMemberLeft = function (jid) {
 };
 
 
-Moderator.prototype.setFocusUserJid = function (focusJid) {
+Moderator.prototype.setFocusUserJid = function(focusJid) {
     if (!this.focusUserJid) {
         this.focusUserJid = focusJid;
         logger.info("Focus jid set to:  " + this.focusUserJid);
@@ -90,11 +90,11 @@ Moderator.prototype.setFocusUserJid = function (focusJid) {
 };
 
 
-Moderator.prototype.getFocusUserJid = function () {
+Moderator.prototype.getFocusUserJid = function() {
     return this.focusUserJid;
 };
 
-Moderator.prototype.getFocusComponent = function () {
+Moderator.prototype.getFocusComponent = function() {
     // Get focus component address
     var focusComponent = this.options.connection.hosts.focus;
     // If not specified use default:  'focus.domain'
@@ -104,7 +104,7 @@ Moderator.prototype.getFocusComponent = function () {
     return focusComponent;
 };
 
-Moderator.prototype.createConferenceIq = function () {
+Moderator.prototype.createConferenceIq = function() {
     // Generate create conference IQ
     var elem = $iq({to: this.getFocusComponent(), type: 'set'});
 
@@ -218,7 +218,7 @@ Moderator.prototype.createConferenceIq = function () {
 };
 
 
-Moderator.prototype.parseSessionId = function (resultIq) {
+Moderator.prototype.parseSessionId = function(resultIq) {
     var sessionId = $(resultIq).find('conference').attr('session-id');
     if (sessionId) {
         logger.info('Received sessionId:  ' + sessionId);
@@ -226,7 +226,7 @@ Moderator.prototype.parseSessionId = function (resultIq) {
     }
 };
 
-Moderator.prototype.parseConfigOptions = function (resultIq) {
+Moderator.prototype.parseConfigOptions = function(resultIq) {
 
     this.setFocusUserJid(
         $(resultIq).find('conference').attr('focusjid'));
@@ -274,7 +274,7 @@ Moderator.prototype.parseConfigOptions = function (resultIq) {
  * @param {Function} callback - the function to be called back upon the
  * successful allocation of the conference focus
  */
-Moderator.prototype.allocateConferenceFocus = function (callback) {
+Moderator.prototype.allocateConferenceFocus = function(callback) {
     // Try to use focus user JID from the config
     this.setFocusUserJid(this.options.connection.focusUserJid);
     // Send create conference IQ
@@ -298,7 +298,7 @@ Moderator.prototype.allocateConferenceFocus = function (callback) {
  * @param {Function} callback - the function to be called back upon the
  * successful allocation of the conference focus
  */
-Moderator.prototype._allocateConferenceFocusError = function (error, callback) {
+Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
     // If the session is invalid, remove and try again without session ID to get
     // a new one
     var invalidSession = $(error).find('>error>session-invalid').length;
@@ -363,7 +363,7 @@ Moderator.prototype._allocateConferenceFocusError = function (error, callback) {
  * @param {Function} callback - the function to be called back upon the
  * successful allocation of the conference focus
  */
-Moderator.prototype._allocateConferenceFocusSuccess = function (
+Moderator.prototype._allocateConferenceFocusSuccess = function(
         result,
         callback) {
     // Setup config options
@@ -384,7 +384,7 @@ Moderator.prototype._allocateConferenceFocusSuccess = function (
     }
 };
 
-Moderator.prototype.authenticate = function () {
+Moderator.prototype.authenticate = function() {
     return new Promise((resolve, reject) => {
         this.connection.sendIQ(
             this.createConferenceIq(),
@@ -399,7 +399,7 @@ Moderator.prototype.authenticate = function () {
     });
 };
 
-Moderator.prototype.getLoginUrl = function (urlCallback, failureCallback) {
+Moderator.prototype.getLoginUrl = function(urlCallback, failureCallback) {
     this._getLoginUrl(/* popup */ false, urlCallback, failureCallback);
 };
 
@@ -410,7 +410,7 @@ Moderator.prototype.getLoginUrl = function (urlCallback, failureCallback) {
  * @param urlCb
  * @param failureCb
  */
-Moderator.prototype._getLoginUrl = function (popup, urlCb, failureCb) {
+Moderator.prototype._getLoginUrl = function(popup, urlCb, failureCb) {
     var iq = $iq({to: this.getFocusComponent(), type: 'get'});
     var attrs = {
         xmlns: 'http://jitsi.org/protocol/focus',
@@ -437,7 +437,7 @@ Moderator.prototype._getLoginUrl = function (popup, urlCb, failureCb) {
     }
     this.connection.sendIQ(
         iq,
-        function (result) {
+        function(result) {
             var url = $(result).find('login-url').attr('url');
             url = decodeURIComponent(url);
             if (url) {
@@ -451,11 +451,11 @@ Moderator.prototype._getLoginUrl = function (popup, urlCb, failureCb) {
     );
 };
 
-Moderator.prototype.getPopupLoginUrl = function (urlCallback, failureCallback) {
+Moderator.prototype.getPopupLoginUrl = function(urlCallback, failureCallback) {
     this._getLoginUrl(/* popup */ true, urlCallback, failureCallback);
 };
 
-Moderator.prototype.logout = function (callback) {
+Moderator.prototype.logout = function(callback) {
     var iq = $iq({to: this.getFocusComponent(), type: 'set'});
     var sessionId = Settings.getSessionId();
     if (!sessionId) {
@@ -468,7 +468,7 @@ Moderator.prototype.logout = function (callback) {
     });
     this.connection.sendIQ(
         iq,
-        function (result) {
+        function(result) {
             var logoutUrl = $(result).find('logout').attr('logout-url');
             if (logoutUrl) {
                 logoutUrl = decodeURIComponent(logoutUrl);
@@ -477,7 +477,7 @@ Moderator.prototype.logout = function (callback) {
             Settings.clearSessionId();
             callback(logoutUrl);
         }.bind(this),
-        function (error) {
+        function(error) {
             var errmsg = "Logout error";
             GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
             logger.error(errmsg, error);

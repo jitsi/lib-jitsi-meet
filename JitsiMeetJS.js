@@ -97,7 +97,7 @@ var LibJitsiMeet = {
     logLevels: Logger.levels,
     mediaDevices: JitsiMediaDevices,
     analytics: null,
-    init (options) {
+    init(options) {
         let logObject, attr;
         Statistics.init(options);
 
@@ -140,10 +140,10 @@ var LibJitsiMeet = {
      * Returns whether the desktop sharing is enabled or not.
      * @returns {boolean}
      */
-    isDesktopSharingEnabled () {
+    isDesktopSharingEnabled() {
         return RTC.isDesktopSharingEnabled();
     },
-    setLogLevel (level) {
+    setLogLevel(level) {
         Logger.setLogLevel(level);
     },
     /**
@@ -153,7 +153,7 @@ var LibJitsiMeet = {
      * Usually it's the name of the JavaScript source file including the path
      * ex. "modules/xmpp/ChatRoom.js"
      */
-    setLogLevelById (level, id) {
+    setLogLevelById(level, id) {
         Logger.setLogLevelById(level, id);
     },
     /**
@@ -161,7 +161,7 @@ var LibJitsiMeet = {
      * @param globalTransport
      * @see Logger.addGlobalTransport
      */
-    addGlobalLogTransport (globalTransport) {
+    addGlobalLogTransport(globalTransport) {
         Logger.addGlobalTransport(globalTransport);
     },
     /**
@@ -169,7 +169,7 @@ var LibJitsiMeet = {
      * @param globalTransport
      * @see Logger.removeGlobalTransport
      */
-    removeGlobalLogTransport (globalTransport) {
+    removeGlobalLogTransport(globalTransport) {
         Logger.removeGlobalTransport(globalTransport);
     },
     /**
@@ -211,11 +211,11 @@ var LibJitsiMeet = {
      *     A promise that returns an array of created JitsiTracks if resolved,
      *     or a JitsiConferenceError if rejected.
      */
-    createLocalTracks (options, firePermissionPromptIsShownEvent) {
+    createLocalTracks(options, firePermissionPromptIsShownEvent) {
         var promiseFulfilled = false;
 
         if (firePermissionPromptIsShownEvent === true) {
-            window.setTimeout(function () {
+            window.setTimeout(function() {
                 if (!promiseFulfilled) {
                     JitsiMediaDevices.emitEvent(
                         JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN,
@@ -268,7 +268,7 @@ var LibJitsiMeet = {
                 }
 
                 return tracks;
-            }).catch(function (error) {
+            }).catch(function(error) {
                 promiseFulfilled = true;
 
                 if(error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
@@ -332,7 +332,7 @@ var LibJitsiMeet = {
      * available available or with false otherwise.
      * @deprecated use JitsiMeetJS.mediaDevices.isDeviceListAvailable instead
      */
-    isDeviceListAvailable () {
+    isDeviceListAvailable() {
         logger.warn('This method is deprecated, use ' +
             'JitsiMeetJS.mediaDevices.isDeviceListAvailable instead');
         return this.mediaDevices.isDeviceListAvailable();
@@ -345,7 +345,7 @@ var LibJitsiMeet = {
      * @returns {boolean} true if available, false otherwise.
      * @deprecated use JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead
      */
-    isDeviceChangeAvailable (deviceType) {
+    isDeviceChangeAvailable(deviceType) {
         logger.warn('This method is deprecated, use ' +
             'JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead');
         return this.mediaDevices.isDeviceChangeAvailable(deviceType);
@@ -355,7 +355,7 @@ var LibJitsiMeet = {
      * @param {function} callback
      * @deprecated use JitsiMeetJS.mediaDevices.enumerateDevices instead
      */
-    enumerateDevices (callback) {
+    enumerateDevices(callback) {
         logger.warn('This method is deprecated, use ' +
             'JitsiMeetJS.mediaDevices.enumerateDevices instead');
         this.mediaDevices.enumerateDevices(callback);
@@ -366,7 +366,7 @@ var LibJitsiMeet = {
      * the function used by the lib.
      * (function(message, source, lineno, colno, error)).
      */
-    getGlobalOnErrorHandler (message, source, lineno, colno, error) {
+    getGlobalOnErrorHandler(message, source, lineno, colno, error) {
         logger.error(
             'UnhandledError: ' + message,
             'Script: ' + source,

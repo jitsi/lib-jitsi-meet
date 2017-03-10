@@ -87,7 +87,7 @@ function SsrcStats() {
  * Sets the "loss" object.
  * @param loss the value to set.
  */
-SsrcStats.prototype.setLoss = function (loss) {
+SsrcStats.prototype.setLoss = function(loss) {
     this.loss = loss || {};
 };
 
@@ -95,7 +95,7 @@ SsrcStats.prototype.setLoss = function (loss) {
  * Sets resolution that belong to the ssrc represented by this instance.
  * @param resolution new resolution value to be set.
  */
-SsrcStats.prototype.setResolution = function (resolution) {
+SsrcStats.prototype.setResolution = function(resolution) {
     this.resolution = resolution || {};
 };
 
@@ -104,7 +104,7 @@ SsrcStats.prototype.setResolution = function (resolution) {
  * the respective fields of the "bitrate" field of this object.
  * @param bitrate an object holding the values to add.
  */
-SsrcStats.prototype.addBitrate = function (bitrate) {
+SsrcStats.prototype.addBitrate = function(bitrate) {
     this.bitrate.download += bitrate.download;
     this.bitrate.upload += bitrate.upload;
 };
@@ -113,7 +113,7 @@ SsrcStats.prototype.addBitrate = function (bitrate) {
  * Resets the bit rate for given <tt>ssrc</tt> that belong to the peer
  * represented by this instance.
  */
-SsrcStats.prototype.resetBitrate = function () {
+SsrcStats.prototype.resetBitrate = function() {
     this.bitrate.download = 0;
     this.bitrate.upload = 0;
 };
@@ -215,7 +215,7 @@ module.exports = StatsCollector;
 /**
  * Stops stats updates.
  */
-StatsCollector.prototype.stop = function () {
+StatsCollector.prototype.stop = function() {
     if (this.audioLevelsIntervalId) {
         clearInterval(this.audioLevelsIntervalId);
         this.audioLevelsIntervalId = null;
@@ -231,7 +231,7 @@ StatsCollector.prototype.stop = function () {
  * Callback passed to <tt>getStats</tt> method.
  * @param error an error that occurred on <tt>getStats</tt> call.
  */
-StatsCollector.prototype.errorCallback = function (error) {
+StatsCollector.prototype.errorCallback = function(error) {
     GlobalOnErrorHandler.callErrorHandler(error);
     logger.error("Get stats error", error);
     this.stop();
@@ -240,14 +240,14 @@ StatsCollector.prototype.errorCallback = function (error) {
 /**
  * Starts stats updates.
  */
-StatsCollector.prototype.start = function (startAudioLevelStats) {
+StatsCollector.prototype.start = function(startAudioLevelStats) {
     var self = this;
     if(startAudioLevelStats) {
         this.audioLevelsIntervalId = setInterval(
-            function () {
+            function() {
                 // Interval updates
                 self.peerconnection.getStats(
-                    function (report) {
+                    function(report) {
                         var results = null;
                         if (!report || !report.result ||
                             typeof report.result != 'function') {
@@ -269,10 +269,10 @@ StatsCollector.prototype.start = function (startAudioLevelStats) {
 
     if (browserSupported) {
         this.statsIntervalId = setInterval(
-            function () {
+            function() {
                 // Interval updates
                 self.peerconnection.getStats(
-                    function (report) {
+                    function(report) {
                         var results = null;
                         if (!report || !report.result ||
                             typeof report.result != 'function') {
@@ -308,11 +308,11 @@ StatsCollector.prototype.start = function (startAudioLevelStats) {
  * @param {Object.<string,string>} keys the map of LibJitsi browser-agnostic
  * names to RTCPeerConnection#getStats browser-specific keys
  */
-StatsCollector.prototype._defineGetStatValueMethod = function (keys) {
+StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
     // Define the function which converts a LibJitsiMeet browser-asnostic name
     // to a browser-specific key of a report returned by
     // RTCPeerConnection#getStats.
-    var keyFromName = function (name) {
+    var keyFromName = function(name) {
         var key = keys[name];
         if (key) {
             return key;
@@ -337,7 +337,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function (keys) {
         // example, if item has a stat property of type function, then it's very
         // likely that whoever defined it wanted you to call it in order to
         // retrieve the value associated with a specific key.
-        itemStatByKey = function (item, key) {
+        itemStatByKey = function(item, key) {
             return item.stat(key); 
         };
         break;
@@ -345,9 +345,9 @@ StatsCollector.prototype._defineGetStatValueMethod = function (keys) {
         // The implementation provided by react-native-webrtc follows the
         // Objective-C WebRTC API: RTCStatsReport has a values property of type
         // Array in which each element is a key-value pair.
-        itemStatByKey = function (item, key) {
+        itemStatByKey = function(item, key) {
             var value;
-            item.values.some(function (pair) {
+            item.values.some(function(pair) {
                 if (pair.hasOwnProperty(key)) {
                     value = pair[key];
                     return true;
@@ -359,7 +359,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function (keys) {
         };
         break;
     default:
-        itemStatByKey = function (item, key) {
+        itemStatByKey = function(item, key) {
             return item[key]; 
         };
     }
@@ -367,7 +367,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function (keys) {
     // Compose the 2 functions defined above to get a function which retrieves
     // the value from a specific report returned by RTCPeerConnection#getStats
     // associated with a specific LibJitsiMeet browser-agnostic name.
-    return function (item, name) {
+    return function(item, name) {
         return itemStatByKey(item, keyFromName(name));
     };
 };
@@ -375,7 +375,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function (keys) {
 /**
  * Stats processing logic.
  */
-StatsCollector.prototype.processStatsReport = function () {
+StatsCollector.prototype.processStatsReport = function() {
     if (!this.previousStatsReport) {
         return;
     }
@@ -421,7 +421,7 @@ StatsCollector.prototype.processStatsReport = function () {
             }
             // Save the address unless it has been saved already.
             var conferenceStatsTransport = this.conferenceStats.transport;
-            if(!conferenceStatsTransport.some(function (t) {
+            if(!conferenceStatsTransport.some(function(t) {
                 return (
                         t.ip == ip && t.type == type && t.localip == localip
                 );
@@ -558,7 +558,7 @@ StatsCollector.prototype.processStatsReport = function () {
     var bitrateUpload = 0;
     var resolutions = {};
     Object.keys(this.ssrc2stats).forEach(
-        function (ssrc) {
+        function(ssrc) {
             var ssrcStats = this.ssrc2stats[ssrc];
             // process packet loss stats
             var loss = ssrcStats.loss;
@@ -605,7 +605,7 @@ StatsCollector.prototype.processStatsReport = function () {
 /**
  * Stats processing logic.
  */
-StatsCollector.prototype.processAudioLevelReport = function () {
+StatsCollector.prototype.processAudioLevelReport = function() {
     if (!this.baselineAudioLevelsReport) {
         return;
     }

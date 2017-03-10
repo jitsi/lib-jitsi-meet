@@ -75,7 +75,7 @@ function instantiateTrackRecorder(track) {
     // audio already has been recorder once
     trackRecorder.data = [];
     // function handling a dataEvent, e.g the stream gets new data
-    trackRecorder.recorder.ondataavailable = function (dataEvent) {
+    trackRecorder.recorder.ondataavailable = function(dataEvent) {
         if(dataEvent.data.size > 0) {
             trackRecorder.data.push(dataEvent.data);
         }
@@ -130,7 +130,7 @@ audioRecorder.determineCorrectFileType = determineCorrectFileType;
  *
  * @param track the track potentially holding an audio stream
  */
-audioRecorder.prototype.addTrack = function (track) {
+audioRecorder.prototype.addTrack = function(track) {
     if(track.isAudioTrack()) {
         // create the track recorder
         var trackRecorder = instantiateTrackRecorder(track);
@@ -203,7 +203,7 @@ audioRecorder.prototype.updateNames = function(){
 /**
  * Starts the audio recording of every local and remote track
  */
-audioRecorder.prototype.start = function () {
+audioRecorder.prototype.start = function() {
     if(this.isRecording) {
         throw new Error("audiorecorder is already recording");
     }
@@ -235,9 +235,9 @@ audioRecorder.prototype.stop = function() {
 /**
  * link hacking to download all recorded audio streams
  */
-audioRecorder.prototype.download = function () {
+audioRecorder.prototype.download = function() {
     var t = this;
-    this.recorders.forEach(function (trackRecorder) {
+    this.recorders.forEach(function(trackRecorder) {
         var blob = new Blob(trackRecorder.data, {type: t.fileType});
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
@@ -255,7 +255,7 @@ audioRecorder.prototype.download = function () {
  * which include the name of the owner of the track and the starting time stamp
  * @returns {Array} an array of RecordingResult objects
  */
-audioRecorder.prototype.getRecordingResults = function () {
+audioRecorder.prototype.getRecordingResults = function() {
     if(this.isRecording) {
         throw new Error("cannot get blobs because the AudioRecorder is still" +
             "recording!");
@@ -265,7 +265,7 @@ audioRecorder.prototype.getRecordingResults = function () {
 
     var array = [];
     var t = this;
-    this.recorders.forEach(function (recorder) {
+    this.recorders.forEach(function(recorder) {
         array.push(
             new RecordingResult(
             new Blob(recorder.data, {type: t.fileType}),
@@ -280,7 +280,7 @@ audioRecorder.prototype.getRecordingResults = function () {
  * Gets the mime type of the recorder audio
  * @returns {String} the mime type of the recorder audio
  */
-audioRecorder.prototype.getFileType = function () {
+audioRecorder.prototype.getFileType = function() {
     return this.fileType;
 };
 

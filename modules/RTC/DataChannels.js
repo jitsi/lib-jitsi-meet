@@ -44,11 +44,11 @@ function DataChannels(peerConnection, emitter) {
  * on the bridge.
  * @param event the event info object.
  */
-DataChannels.prototype.onDataChannel = function (event) {
+DataChannels.prototype.onDataChannel = function(event) {
     var dataChannel = event.channel;
     var self = this;
 
-    dataChannel.onopen = function () {
+    dataChannel.onopen = function() {
         logger.info("Data channel opened by the Videobridge!", dataChannel);
 
         // Code sample for sending string and/or binary data
@@ -60,7 +60,7 @@ DataChannels.prototype.onDataChannel = function (event) {
         self.eventEmitter.emit(RTCEvents.DATA_CHANNEL_OPEN);
     };
 
-    dataChannel.onerror = function (error) {
+    dataChannel.onerror = function(error) {
         // FIXME: this one seems to be generated a bit too often right now
         // so we are temporarily commenting it before we have more clarity
         // on which of the errors we absolutely need to report
@@ -69,7 +69,7 @@ DataChannels.prototype.onDataChannel = function (event) {
         logger.error("Data Channel Error:", error, dataChannel);
     };
 
-    dataChannel.onmessage = function (event) {
+    dataChannel.onmessage = function(event) {
         var data = event.data;
         // JSON
         var obj;
@@ -154,7 +154,7 @@ DataChannels.prototype.onDataChannel = function (event) {
         }
     };
 
-    dataChannel.onclose = function () {
+    dataChannel.onclose = function() {
         logger.info("The Data Channel closed", dataChannel);
         var idx = self._dataChannels.indexOf(dataChannel);
         if (idx > -1) {
@@ -167,8 +167,8 @@ DataChannels.prototype.onDataChannel = function (event) {
 /**
  * Closes all currently opened data channels.
  */
-DataChannels.prototype.closeAllChannels = function () {
-    this._dataChannels.forEach(function (dc){
+DataChannels.prototype.closeAllChannels = function() {
+    this._dataChannels.forEach(function(dc){
         // the DC will be removed from the array on 'onclose' event
         dc.close();
     });
@@ -181,7 +181,7 @@ DataChannels.prototype.closeAllChannels = function () {
  * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send})
  * or Error with "No opened data channels found!" message.
  */
-DataChannels.prototype.sendSelectedEndpointMessage = function (endpointId) {
+DataChannels.prototype.sendSelectedEndpointMessage = function(endpointId) {
     this._onXXXEndpointChanged("selected", endpointId);
 };
 
@@ -192,7 +192,7 @@ DataChannels.prototype.sendSelectedEndpointMessage = function (endpointId) {
  * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send})
  * or Error with "No opened data channels found!" message.
  */
-DataChannels.prototype.sendPinnedEndpointMessage = function (endpointId) {
+DataChannels.prototype.sendPinnedEndpointMessage = function(endpointId) {
     this._onXXXEndpointChanged("pinned", endpointId);
 };
 
@@ -207,7 +207,7 @@ DataChannels.prototype.sendPinnedEndpointMessage = function (endpointId) {
  * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send})
  * or Error with "No opened data channels found!" message.
  */
-DataChannels.prototype._onXXXEndpointChanged = function (xxx, userResource) {
+DataChannels.prototype._onXXXEndpointChanged = function(xxx, userResource) {
     // Derive the correct words from xxx such as selected and Selected, pinned
     // and Pinned.
     var head = xxx.charAt(0);
@@ -231,7 +231,7 @@ DataChannels.prototype._onXXXEndpointChanged = function (xxx, userResource) {
     logger.log(lower + ' endpoint changed: ', userResource);
 };
 
-DataChannels.prototype._some = function (callback, thisArg) {
+DataChannels.prototype._some = function(callback, thisArg) {
     var dataChannels = this._dataChannels;
 
     if (dataChannels && dataChannels.length !== 0) {
@@ -252,8 +252,8 @@ DataChannels.prototype._some = function (callback, thisArg) {
  * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send})
  * or Error with "No opened data channels found!" message.
  */
-DataChannels.prototype.send = function (jsonObject) {
-    if(!this._some(function (dataChannel) {
+DataChannels.prototype.send = function(jsonObject) {
+    if(!this._some(function(dataChannel) {
         if (dataChannel.readyState == 'open') {
             dataChannel.send(JSON.stringify(jsonObject));
             return true;
@@ -272,7 +272,7 @@ DataChannels.prototype.send = function (jsonObject) {
  * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send})
  * or Error with "No opened data channels found!" message.
  */
-DataChannels.prototype.sendDataChannelMessage = function (to, payload) {
+DataChannels.prototype.sendDataChannelMessage = function(to, payload) {
     this.send({
         colibriClass: "EndpointMessage",
         to,
@@ -284,7 +284,7 @@ DataChannels.prototype.sendDataChannelMessage = function (to, payload) {
  * Sends a "lastN value changed" message via the data channel.
  * @param value {int} The new value for lastN. -1 means unlimited.
  */
-DataChannels.prototype.sendSetLastNMessage = function (value) {
+DataChannels.prototype.sendSetLastNMessage = function(value) {
     const jsonObject = {
         colibriClass : 'LastNChangedEvent',
         lastN : value
