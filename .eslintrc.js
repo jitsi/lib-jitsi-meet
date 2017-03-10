@@ -149,6 +149,7 @@ module.exports = {
         'no-restricted-syntax': 0,
         'no-ternary': 0,
         'no-underscore-dangle': 0,
+        'no-unneeded-ternary': 2,
         'no-whitespace-before-property': 2,
         'object-curly-newline': 0,
         'one-var': 0,

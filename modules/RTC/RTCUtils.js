@@ -1142,13 +1142,11 @@ class RTCUtils extends Listenable {
         if (!rtcReady) {
             throw new Error('WebRTC not ready yet');
         }
-        var isEnumerateDevicesAvailable
-            = navigator.mediaDevices && navigator.mediaDevices.enumerateDevices;
-        if (isEnumerateDevicesAvailable) {
-            return true;
-        }
-        return typeof MediaStreamTrack !== 'undefined'
-            && MediaStreamTrack.getSources ? true : false;
+        return !!(
+            navigator.mediaDevices
+                && navigator.mediaDevices.enumerateDevices
+                && typeof MediaStreamTrack !== 'undefined'
+                && MediaStreamTrack.getSources);
     }
 
     /**
@@ -1163,8 +1161,8 @@ class RTCUtils extends Listenable {
         if (rtcReady) {
             return Promise.resolve();
         } else {
-            return new Promise(function(resolve) {
-                var listener = function() {
+            return new Promise(resolve => {
+                const listener = () => {
                     eventEmitter.removeListener(RTCEvents.RTC_READY, listener);
                     resolve();
                 };
@@ -1183,9 +1181,7 @@ class RTCUtils extends Listenable {
      * available available or with false otherwise.
      */
     isDeviceListAvailable() {
-        return this.onRTCReady().then(function() {
-            return this._isDeviceListAvailable();
-        }.bind(this));
+        return this.onRTCReady().then(this._isDeviceListAvailable.bind(this));
     }
 
     /**

@@ -17,10 +17,11 @@ function Recording(type, eventEmitter, connection, focusMucJid, jirecon,
     this.url = null;
     this.type = type;
     this._isSupported
-        = type === Recording.types.JIRECON && !this.jirecon
-            || (type !== Recording.types.JIBRI
-                && type !== Recording.types.COLIBRI)
-            ? false : true;
+        = !(
+            type === Recording.types.JIRECON
+                && !this.jirecon
+                || (type !== Recording.types.JIBRI
+                    && type !== Recording.types.COLIBRI));
 
     /**
      * The ID of the jirecon recording session. Jirecon generates it when we
