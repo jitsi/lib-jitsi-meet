@@ -777,10 +777,11 @@ JitsiConference.prototype.setLastN = function(lastN) {
     if (!Number.isInteger(lastN) && !Number.parseInt(lastN)) {
         throw new Error(`Invalid value for lastN: ${lastN}`);
     }
-    if (lastN < -1) {
+    const n = Number(lastN);
+    if (n < -1) {
         throw new RangeError('lastN cannot be smaller than -1');
     }
-    this.rtc.setLastN(lastN | 0);
+    this.rtc.setLastN(n);
 };
 
 /**
