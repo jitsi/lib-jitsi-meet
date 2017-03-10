@@ -2,7 +2,7 @@
 /**
  * Strophe logger implementation. Logs from level WARN and above.
  */
-import {getLogger} from 'jitsi-meet-logger';
+import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';

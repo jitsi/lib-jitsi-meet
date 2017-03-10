@@ -139,7 +139,7 @@ function setResolutionConstraints(constraints, resolution) {
  * @param {bool} firefox_fake_device
  */
 function getConstraints(um, options) {
-    const constraints = {audio: false, video: false};
+    const constraints = { audio: false, video: false };
 
     // Don't mix new and old style settings for Chromium as this leads
     // to TypeError in new Chromium versions. @see
@@ -208,13 +208,13 @@ function getConstraints(um, options) {
                     deviceId: options.micDeviceId, // new style
                     optional: [ {
                         sourceId: options.micDeviceId // old style
-                    } ]};
+                    } ] };
             } else {
                 constraints.audio = true;
             }
         } else {
             // same behaviour as true
-            constraints.audio = { mandatory: {}, optional: []};
+            constraints.audio = { mandatory: {}, optional: [] };
             if (options.micDeviceId) {
                 if (isNewStyleConstraintsSupported) {
                     // New style of setting device id.
@@ -227,13 +227,13 @@ function getConstraints(um, options) {
             }
             // if it is good enough for hangouts...
             constraints.audio.optional.push(
-                {googEchoCancellation: !disableAEC},
-                {googAutoGainControl: true},
-                {googNoiseSupression: !disableNS},
-                {googHighpassFilter: true},
-                {googNoiseSuppression2: !disableNS},
-                {googEchoCancellation2: !disableAEC},
-                {googAutoGainControl2: true}
+                { googEchoCancellation: !disableAEC },
+                { googAutoGainControl: true },
+                { googNoiseSupression: !disableNS },
+                { googHighpassFilter: true },
+                { googNoiseSuppression2: !disableNS },
+                { googEchoCancellation2: !disableAEC },
+                { googAutoGainControl2: true }
             );
         }
     }
@@ -287,15 +287,15 @@ function getConstraints(um, options) {
     if (options.bandwidth) {
         if (!constraints.video) {
             // same behaviour as true
-            constraints.video = {mandatory: {}, optional: []};
+            constraints.video = { mandatory: {}, optional: [] };
         }
-        constraints.video.optional.push({bandwidth: options.bandwidth});
+        constraints.video.optional.push({ bandwidth: options.bandwidth });
     }
 
     // we turn audio for both audio and video tracks, the fake audio & video seems to work
     // only when enabled in one getUserMedia call, we cannot get fake audio separate by fake video
     // this later can be a problem with some of the tests
-    if(RTCBrowserType.isFirefox() && options.firefox_fake_device) {
+    if (RTCBrowserType.isFirefox() && options.firefox_fake_device) {
         // seems to be fixed now, removing this experimental fix, as having
         // multiple audio tracks brake the tests
         // constraints.audio = true;
@@ -541,7 +541,7 @@ function convertMediaStreamTrackSource(source) {
 }
 
 function obtainDevices(options) {
-    if(!options.devices || options.devices.length === 0) {
+    if (!options.devices || options.devices.length === 0) {
         return options.successCallback(options.streams || {});
     }
 
@@ -671,7 +671,7 @@ function wrapAttachMediaStream(origAttachMediaStream) {
                     const err = new JitsiTrackError(ex, null, [ 'audiooutput' ]);
 
                     GlobalOnErrorHandler.callUnhandledRejectionHandler(
-                        {promise: this, reason: err});
+                        { promise: this, reason: err });
 
                     logger.warn('Failed to set audio output device for the '
                         + 'element. Default audio output device will be used '
@@ -843,18 +843,18 @@ class RTCUtils extends Listenable {
                             : SDPUtil.filter_special_chars(id));
                 };
 
-                this.pc_constraints = {optional: [] };
+                this.pc_constraints = { optional: [] };
 
                 // Allows sending of video to be suspended if the bandwidth
                 // estimation is too low.
                 if (!options.disableSuspendVideo) {
                     this.pc_constraints.optional.push(
-                        {googSuspendBelowMinBitrate: true});
+                        { googSuspendBelowMinBitrate: true });
                 }
 
                 if (options.useIPv6) {
                     // https://code.google.com/p/webrtc/issues/detail?id=2828
-                    this.pc_constraints.optional.push({googIPv6: true});
+                    this.pc_constraints.optional.push({ googIPv6: true });
                 }
 
                 if (!webkitMediaStream.prototype.getVideoTracks) {
@@ -1016,7 +1016,7 @@ class RTCUtils extends Listenable {
             };
 
             options.devices = options.devices || [ 'audio', 'video' ];
-            if(!screenObtainer.isSupported()
+            if (!screenObtainer.isSupported()
                 && options.devices.indexOf('desktop') !== -1) {
                 reject(new Error('Desktop sharing is not supported!'));
             }
@@ -1038,7 +1038,7 @@ class RTCUtils extends Listenable {
                     'video': GUM.bind(self, [ 'video' ])
                 };
 
-                if(screenObtainer.isSupported()) {
+                if (screenObtainer.isSupported()) {
                     deviceGUM.desktop = screenObtainer.obtainStream.bind(
                         screenObtainer,
                         dsOptions);
@@ -1065,7 +1065,7 @@ class RTCUtils extends Listenable {
                     options.devices.splice(options.devices.indexOf('desktop'), 1);
                 }
                 options.resolution = options.resolution || '360';
-                if(options.devices.length) {
+                if (options.devices.length) {
                     this.getUserMediaWithConstraints(
                         options.devices,
                         stream => {
@@ -1078,7 +1078,7 @@ class RTCUtils extends Listenable {
                             const videoTracksReceived
                                 = stream.getVideoTracks().length > 0;
 
-                            if((audioDeviceRequested && !audioTracksReceived)
+                            if ((audioDeviceRequested && !audioTracksReceived)
                                 || (videoDeviceRequested && !videoTracksReceived)) {
                                 self.stopMediaStream(stream);
 
@@ -1128,19 +1128,19 @@ class RTCUtils extends Listenable {
 
                                 return;
                             }
-                            if(hasDesktop) {
+                            if (hasDesktop) {
                                 screenObtainer.obtainStream(
                                     dsOptions,
                                     desktopStream => {
-                                        successCallback({audioVideo: stream,
-                                            desktopStream});
+                                        successCallback({ audioVideo: stream,
+                                            desktopStream });
                                     }, error => {
                                         self.stopMediaStream(stream);
 
                                         reject(error);
                                     });
                             } else {
-                                successCallback({audioVideo: stream});
+                                successCallback({ audioVideo: stream });
                             }
                         },
                         error => reject(error),
@@ -1148,7 +1148,7 @@ class RTCUtils extends Listenable {
                 } else if (hasDesktop) {
                     screenObtainer.obtainStream(
                         dsOptions,
-                        stream => successCallback({desktopStream: stream}),
+                        stream => successCallback({ desktopStream: stream }),
                         error => reject(error));
                 }
             }
@@ -1322,9 +1322,9 @@ class RTCUtils extends Listenable {
         const devices = [];
         const deviceData = {
             'deviceId': device.deviceId,
-            'kind':     device.kind,
-            'label':    device.label,
-            'groupId':  device.groupId
+            'kind': device.kind,
+            'label': device.label,
+            'groupId': device.groupId
         };
 
         devices.push(deviceData);

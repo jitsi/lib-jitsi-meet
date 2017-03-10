@@ -21,7 +21,7 @@ class RayoConnectionPlugin extends ConnectionPlugin {
 
     dial(to, from, roomName, roomPass, focusMucJid) {
         return new Promise((resolve, reject) => {
-            if(!focusMucJid) {
+            if (!focusMucJid) {
                 reject(new Error('Internal error!'));
 
                 return;

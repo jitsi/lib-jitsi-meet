@@ -35,7 +35,7 @@ SphinxService.prototype.sendRequest = function(audioFileBlob, callback) {
     const request = new XMLHttpRequest();
 
     request.onreadystatechange = function() {
-        if(request.readyState === XMLHttpRequest.DONE
+        if (request.readyState === XMLHttpRequest.DONE
             && request.status === 200) {
             callback(request.responseText);
         } else if (request.readyState === XMLHttpRequest.DONE) {
@@ -82,13 +82,13 @@ SphinxService.prototype.formatResponse = function(response) {
 SphinxService.prototype.verify = function(response) {
     console.log(`response from server:${response.toString()}`);
     // test if server responded with a string object
-    if(typeof response !== 'string') {
+    if (typeof response !== 'string') {
         return false;
     }
     // test if the string can be parsed into valid JSON
     let json;
 
-    try{
+    try {
         json = JSON.parse(response);
     } catch (error) {
         console.log(error);
@@ -96,13 +96,13 @@ SphinxService.prototype.verify = function(response) {
         return false;
     }
     // check if the JSON has a "objects" value
-    if(json.objects === undefined) {
+    if (json.objects === undefined) {
         return false;
     }
     // get the "objects" value and check for a session ID
     const array = json.objects;
 
-    if(!(array[0] && array[0]['session-id'])) {
+    if (!(array[0] && array[0]['session-id'])) {
         return false;
     }
 
@@ -119,12 +119,12 @@ SphinxService.prototype.verify = function(response) {
 function getURL() {
     const message = 'config does not contain an url to a Sphinx4 https server';
 
-    if(config.sphinxURL === undefined) {
+    if (config.sphinxURL === undefined) {
         console.log(message);
     } else {
         const toReturn = config.sphinxURL;
 
-        if(toReturn.includes !== undefined && toReturn.includes('https://')) {
+        if (toReturn.includes !== undefined && toReturn.includes('https://')) {
             return toReturn;
         }
         console.log(message);

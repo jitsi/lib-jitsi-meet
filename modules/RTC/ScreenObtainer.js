@@ -113,11 +113,11 @@ const ScreenObtainer = {
                             && onFailure(jitsiError);
                     });
             };
-        } else if(RTCBrowserType.isElectron()) {
+        } else if (RTCBrowserType.isElectron()) {
             obtainDesktopStream = (options, onSuccess, onFailure) =>
                 window.JitsiMeetElectron.obtainDesktopStream(
                     streamId =>
-                        onGetStreamResponse({streamId}, onSuccess, onFailure),
+                        onGetStreamResponse({ streamId }, onSuccess, onFailure),
                     err => onFailure(new JitsiTrackError(
                         JitsiTrackErrors.CHROME_EXTENSION_GENERIC_ERROR, err))
                 );
@@ -279,7 +279,7 @@ const ScreenObtainer = {
                     this.handleExtensionInstallationError.bind(this,
                         options, streamCallback, failCallback)
                 );
-            } catch(e) {
+            } catch (e) {
                 this.handleExtensionInstallationError(options, streamCallback,
                     failCallback, e);
             }
@@ -466,7 +466,7 @@ function doGetStreamFromExtension(options, streamCallback, failCallback) {
  * @param options supports "desktopSharingChromeExtId"
  */
 function initInlineInstalls(options) {
-    if($('link[rel=chrome-webstore-item]').length === 0) {
+    if ($('link[rel=chrome-webstore-item]').length === 0) {
         $('head').append('<link rel="chrome-webstore-item">');
     }
     $('link[rel=chrome-webstore-item]').attr('href',
@@ -496,7 +496,7 @@ function initChromeExtension(options) {
  * checks
  */
 function waitForExtensionAfterInstall(options, waitInterval, retries) {
-    if(retries === 0) {
+    if (retries === 0) {
         return Promise.reject();
     }
 
@@ -504,12 +504,12 @@ function waitForExtensionAfterInstall(options, waitInterval, retries) {
         let currentRetries = retries;
         const interval = window.setInterval(() => {
             checkChromeExtInstalled(installed => {
-                if(installed) {
+                if (installed) {
                     window.clearInterval(interval);
                     resolve();
                 } else {
                     currentRetries--;
-                    if(currentRetries === 0) {
+                    if (currentRetries === 0) {
                         reject();
                         window.clearInterval(interval);
                     }
@@ -539,7 +539,7 @@ function onGetStreamResponse(response, onSuccess, onFailure) {
         // As noted in Chrome Desktop Capture API:
         // If user didn't select any source (i.e. canceled the prompt)
         // then the callback is called with an empty streamId.
-        if(response.streamId === '') {
+        if (response.streamId === '') {
             onFailure(new JitsiTrackError(
                 JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED));
 

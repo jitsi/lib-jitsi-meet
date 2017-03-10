@@ -22,7 +22,7 @@ function JitsiConnection(appID, token, options) {
         (errType, msg) => {
             // sends analytics and callstats event
             Statistics.sendEventToAll(`connection.failed.${errType}`,
-                {label: msg});
+                { label: msg });
         });
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_DISCONNECTED,
@@ -30,12 +30,12 @@ function JitsiConnection(appID, token, options) {
             // we can see disconnects from normal tab closing of the browser
             // and then there are no msgs, but we want to log only disconnects
             // when there is real error
-            if(msg) {
+            if (msg) {
                 Statistics.analytics.sendEvent(
                     `connection.disconnected.${msg}`);
             }
             Statistics.sendLog(
-                JSON.stringify({id: 'connection.disconnected', msg}));
+                JSON.stringify({ id: 'connection.disconnected', msg }));
         });
 }
 
@@ -45,7 +45,7 @@ function JitsiConnection(appID, token, options) {
  * (for example authentications parameters).
  */
 JitsiConnection.prototype.connect = function(options) {
-    if(!options) {
+    if (!options) {
         options = {};
     }
 
@@ -91,7 +91,7 @@ JitsiConnection.prototype.setToken = function(token) {
  * @returns {JitsiConference} returns the new conference object.
  */
 JitsiConnection.prototype.initJitsiConference = function(name, options) {
-    return new JitsiConference({name, config: options, connection: this});
+    return new JitsiConference({ name, config: options, connection: this });
 };
 
 /**

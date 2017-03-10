@@ -88,7 +88,7 @@ export default class XMPP extends Listenable {
             this.caps.addFeature('http://jitsi.org/meet/lipsync');
         }
 
-        if(this.connection.rayo) {
+        if (this.connection.rayo) {
             this.caps.addFeature('urn:xmpp:rayo:client:1');
         }
     }
@@ -162,7 +162,7 @@ export default class XMPP extends Listenable {
                 this.eventEmitter.emit(
                     JitsiConnectionEvents.CONNECTION_FAILED,
                     JitsiConnectionErrors.PASSWORD_REQUIRED);
-            } else if(this.connectionFailed) {
+            } else if (this.connectionFailed) {
                 this.eventEmitter.emit(
                     JitsiConnectionEvents.CONNECTION_FAILED,
                     JitsiConnectionErrors.OTHER_ERROR, errMsg);

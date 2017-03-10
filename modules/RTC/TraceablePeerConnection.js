@@ -81,8 +81,8 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
     this.interop = new Interop();
     const Simulcast = require('sdp-simulcast');
 
-    this.simulcast = new Simulcast({numOfLayers: SIMULCAST_LAYERS,
-        explodeRemoteSimulcast: false});
+    this.simulcast = new Simulcast({ numOfLayers: SIMULCAST_LAYERS,
+        explodeRemoteSimulcast: false });
     this.sdpConsistency = new SdpConsistency();
     /**
      * TracablePeerConnection uses RTC's eventEmitter
@@ -957,7 +957,7 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
     if (RTCBrowserType.isFirefox()
             || RTCBrowserType.isTemasysPluginUsed()
             || RTCBrowserType.isReactNative()) {
-        if(!errback) {
+        if (!errback) {
             errback = function() {
                 // Making sure that getStats won't fail if error callback is
                 // not passed.
@@ -975,7 +975,7 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
  * - groups - Array of the groups associated with the stream.
  */
 TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function() {
-    let ssrcInfo = {ssrcs: [], groups: []};
+    let ssrcInfo = { ssrcs: [], groups: [] };
 
     if (!this.options.disableSimulcast
         && this.simulcast.isSupported()) {

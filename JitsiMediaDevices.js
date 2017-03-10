@@ -74,7 +74,7 @@ const JitsiMediaDevices = {
     isDevicePermissionGranted(type) {
         const permissions = RTC.getDeviceAvailability();
 
-        switch(type) {
+        switch (type) {
         case MediaType.VIDEO:
             return permissions.video === true;
         case MediaType.AUDIO:

@@ -55,7 +55,7 @@ Recording.action = {
 Recording.prototype.handleJibriPresence = function(jibri) {
     const attributes = jibri.attributes;
 
-    if(!attributes) {
+    if (!attributes) {
         return;
     }
 
@@ -94,7 +94,7 @@ Recording.prototype.setRecordingJibri
 
     // FIXME jibri does not accept IQ without 'url' attribute set ?
         const iq
-            = $iq({to: this.focusMucJid, type: 'set'})
+            = $iq({ to: this.focusMucJid, type: 'set' })
                 .c('jibri', {
                     'xmlns': 'http://jitsi.org/protocol/jibri',
                     'action': state === Recording.status.ON
@@ -128,15 +128,15 @@ Recording.prototype.setRecordingJirecon
             errCallback(new Error('Invalid state!'));
         }
 
-        const iq = $iq({to: this.jirecon, type: 'set'})
-        .c('recording', {xmlns: 'http://jitsi.org/protocol/jirecon',
+        const iq = $iq({ to: this.jirecon, type: 'set' })
+        .c('recording', { xmlns: 'http://jitsi.org/protocol/jirecon',
             action: state === Recording.status.ON
                 ? Recording.action.START
                 : Recording.action.STOP,
-            mucjid: this.roomjid});
+            mucjid: this.roomjid });
 
         if (state === 'off') {
-            iq.attrs({rid: this.jireconRid});
+            iq.attrs({ rid: this.jireconRid });
         }
 
         logger.log('Start recording');
@@ -171,12 +171,12 @@ Recording.prototype.setRecordingJirecon
 // with the new recording state, according to the IQ.
 Recording.prototype.setRecordingColibri
 = function(state, callback, errCallback, options) {
-    const elem = $iq({to: this.focusMucJid, type: 'set'});
+    const elem = $iq({ to: this.focusMucJid, type: 'set' });
 
     elem.c('conference', {
         xmlns: 'http://jitsi.org/protocol/colibri'
     });
-    elem.c('recording', {state, token: options.token});
+    elem.c('recording', { state, token: options.token });
 
     const self = this;
 
@@ -210,7 +210,7 @@ Recording.prototype.setRecordingColibri
 
 Recording.prototype.setRecording
 = function(state, callback, errCallback, options) {
-    switch(this.type) {
+    switch (this.type) {
     case Recording.types.JIRECON:
         this.setRecordingJirecon(state, callback, errCallback, options);
         break;

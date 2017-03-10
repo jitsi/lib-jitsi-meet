@@ -14,15 +14,15 @@ const io = require('socket.io-client');
  * @see http://www.callstats.io/api/#enumeration-of-wrtcfuncnames
  */
 const wrtcFuncNames = {
-    createOffer:          'createOffer',
-    createAnswer:         'createAnswer',
-    setLocalDescription:  'setLocalDescription',
+    createOffer: 'createOffer',
+    createAnswer: 'createAnswer',
+    setLocalDescription: 'setLocalDescription',
     setRemoteDescription: 'setRemoteDescription',
-    addIceCandidate:      'addIceCandidate',
-    getUserMedia:         'getUserMedia',
+    addIceCandidate: 'addIceCandidate',
+    getUserMedia: 'getUserMedia',
     iceConnectionFailure: 'iceConnectionFailure',
-    signalingError:       'signalingError',
-    applicationLog:       'applicationLog'
+    signalingError: 'signalingError',
+    applicationLog: 'applicationLog'
 };
 
 /**
@@ -32,19 +32,19 @@ const wrtcFuncNames = {
  * @see http://www.callstats.io/api/#enumeration-of-fabricevent
  */
 const fabricEvent = {
-    fabricHold:'fabricHold',
-    fabricResume:'fabricResume',
-    audioMute:'audioMute',
-    audioUnmute:'audioUnmute',
-    videoPause:'videoPause',
-    videoResume:'videoResume',
-    fabricUsageEvent:'fabricUsageEvent',
-    fabricStats:'fabricStats',
-    fabricTerminated:'fabricTerminated',
-    screenShareStart:'screenShareStart',
-    screenShareStop:'screenShareStop',
-    dominantSpeaker:'dominantSpeaker',
-    activeDeviceList:'activeDeviceList'
+    fabricHold: 'fabricHold',
+    fabricResume: 'fabricResume',
+    audioMute: 'audioMute',
+    audioUnmute: 'audioUnmute',
+    videoPause: 'videoPause',
+    videoResume: 'videoResume',
+    fabricUsageEvent: 'fabricUsageEvent',
+    fabricStats: 'fabricStats',
+    fabricTerminated: 'fabricTerminated',
+    screenShareStart: 'screenShareStart',
+    screenShareStop: 'screenShareStop',
+    dominantSpeaker: 'dominantSpeaker',
+    activeDeviceList: 'activeDeviceList'
 };
 
 let callStats = null;
@@ -75,7 +75,7 @@ function initCallback(err, msg) {
 
     const fabricInitialized = ret.status === 'success';
 
-    if(!fabricInitialized) {
+    if (!fabricInitialized) {
         CallStats.initializeFailed = true;
         logger.log('callstats fabric not initilized', ret.message);
 
@@ -147,7 +147,7 @@ function _try_catch(f) {
  * @param options {object} credentials for callstats.
  */
 const CallStats = _try_catch(function(jingleSession, options) {
-    try{
+    try {
         CallStats.feedbackEnabled = false;
         callStats = new callstats($, io, jsSHA); // eslint-disable-line new-cap
 
@@ -261,7 +261,7 @@ CallStats.prototype.pcCallback = _try_catch((err, msg) => {
  */
 CallStats.prototype.associateStreamWithVideoTag
 = function(ssrc, isLocal, usageLabel, containerId) {
-    if(!callStats) {
+    if (!callStats) {
         return;
     }
 
@@ -277,7 +277,7 @@ CallStats.prototype.associateStreamWithVideoTag
             ssrc,
             usageLabel,
             containerId);
-        if(CallStats.initialized) {
+        if (CallStats.initialized) {
             callStats.associateMstWithUserID(
                 this.peerconnection,
                 callStatsId,
@@ -363,7 +363,7 @@ CallStats._reportEvent = function(event, eventData) {
     } else {
         CallStats.reportsQueue.push({
             type: reportType.EVENT,
-            data: {event, eventData}
+            data: { event, eventData }
         });
         CallStats._checkInitialize();
     }
@@ -373,7 +373,7 @@ CallStats._reportEvent = function(event, eventData) {
  * Notifies CallStats for connection setup errors
  */
 CallStats.prototype.sendTerminateEvent = _try_catch(function() {
-    if(!CallStats.initialized) {
+    if (!CallStats.initialized) {
         return;
     }
     callStats.sendFabricEvent(this.peerconnection,
@@ -399,7 +399,7 @@ CallStats.prototype.sendIceConnectionFailedEvent = _try_catch((pc, cs) => {
  */
 CallStats.prototype.sendFeedback = _try_catch(
 function(overallFeedback, detailedFeedback) {
-    if(!CallStats.feedbackEnabled) {
+    if (!CallStats.feedbackEnabled) {
         return;
     }
 
@@ -419,7 +419,7 @@ function(overallFeedback, detailedFeedback) {
  * @private
  */
 CallStats._reportError = function(type, e, pc) {
-    if(!e) {
+    if (!e) {
         logger.warn('No error is passed!');
         e = new Error('Unknown error');
     }
@@ -428,7 +428,7 @@ CallStats._reportError = function(type, e, pc) {
     } else {
         CallStats.reportsQueue.push({
             type: reportType.ERROR,
-            data: { type, error: e, pc}
+            data: { type, error: e, pc }
         });
         CallStats._checkInitialize();
     }

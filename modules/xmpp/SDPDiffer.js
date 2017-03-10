@@ -48,7 +48,7 @@ SDPDiffer.prototype.getNewMedia = function() {
         const myMedia = myMedias[othersMediaIdx];
         const othersMedia = othersMedias[othersMediaIdx];
 
-        if(!myMedia && othersMedia) {
+        if (!myMedia && othersMedia) {
             // Add whole channel
             newMedia[othersMediaIdx] = othersMedia;
 
@@ -56,10 +56,10 @@ SDPDiffer.prototype.getNewMedia = function() {
         }
         // Look for new ssrcs across the channel
         Object.keys(othersMedia.ssrcs).forEach(ssrc => {
-            if(Object.keys(myMedia.ssrcs).indexOf(ssrc) === -1) {
+            if (Object.keys(myMedia.ssrcs).indexOf(ssrc) === -1) {
                 // Allocate channel if we've found ssrc that doesn't exist in
                 // our channel
-                if(!newMedia[othersMediaIdx]) {
+                if (!newMedia[othersMediaIdx]) {
                     newMedia[othersMediaIdx] = {
                         mediaindex: othersMedia.mediaindex,
                         mid: othersMedia.mid,
@@ -93,7 +93,7 @@ SDPDiffer.prototype.getNewMedia = function() {
                 // Allocate channel if we've found an ssrc-group that doesn't
                 // exist in our channel
 
-                if(!newMedia[othersMediaIdx]) {
+                if (!newMedia[othersMediaIdx]) {
                     newMedia[othersMediaIdx] = {
                         mediaindex: othersMedia.mediaindex,
                         mid: othersMedia.mid,
@@ -121,10 +121,10 @@ SDPDiffer.prototype.toJingle = function(modify) {
         modified = true;
         const media = sdpMediaSsrcs[mediaindex];
 
-        modify.c('content', {name: media.mid});
+        modify.c('content', { name: media.mid });
 
         modify.c('description',
-                 {xmlns:'urn:xmpp:jingle:apps:rtp:1', media: media.mid});
+                 { xmlns: 'urn:xmpp:jingle:apps:rtp:1', media: media.mid });
         // FIXME: not completely sure this operates on blocks and / or handles
         // different ssrcs correctly
         // generate sources from lines
@@ -132,7 +132,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
             const mediaSsrc = media.ssrcs[ssrcNum];
 
             modify.c('source', { xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
-            modify.attrs({ssrc: mediaSsrc.ssrc});
+            modify.attrs({ ssrc: mediaSsrc.ssrc });
             // iterate over ssrc lines
             mediaSsrc.lines.forEach(line => {
                 const idx = line.indexOf(' ');

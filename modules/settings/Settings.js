@@ -1,4 +1,4 @@
-import {getLogger} from 'jitsi-meet-logger';
+import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 
 import UsernameGenerator from '../util/UsernameGenerator';

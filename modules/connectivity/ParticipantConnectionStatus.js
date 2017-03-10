@@ -206,7 +206,7 @@ export default class ParticipantConnectionStatus {
 
             // and analytics
             Statistics.analytics.sendEvent('peer.conn.status',
-                {label: newStatus});
+                { label: newStatus });
 
             this.conference.eventEmitter.emit(
                 JitsiConferenceEvents.PARTICIPANT_CONN_STATUS_CHANGED,

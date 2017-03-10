@@ -6,7 +6,7 @@
  * Transcriber in a conference
  */
 const transcriberHolder = {
-    transcribers : [],
+    transcribers: [],
 
     add(transcriber) {
         transcriberHolder.transcribers.push(transcriber);

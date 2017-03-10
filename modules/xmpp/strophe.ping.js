@@ -57,9 +57,9 @@ class PingConnectionPlugin extends ConnectionPlugin {
      *        argument.
      */
     ping(jid, success, error, timeout) {
-        const iq = $iq({type: 'get', to: jid});
+        const iq = $iq({ type: 'get', to: jid });
 
-        iq.c('ping', {xmlns: Strophe.NS.PING});
+        iq.c('ping', { xmlns: Strophe.NS.PING });
         this.connection.sendIQ(iq, success, error, timeout);
     }
 

@@ -34,7 +34,7 @@ const oldOnUnhandledRejection = window.onunhandledrejection;
  */
 function JitsiGlobalUnhandledRejection(event) {
     handlers.forEach(handler => handler(null, null, null, null, event.reason));
-    if(oldOnUnhandledRejection) {
+    if (oldOnUnhandledRejection) {
         oldOnUnhandledRejection(event);
     }
 }
@@ -58,7 +58,7 @@ const GlobalOnErrorHandler = {
     callErrorHandler(error) {
         const errHandler = window.onerror;
 
-        if(!errHandler) {
+        if (!errHandler) {
             return;
         }
         errHandler(null, null, null, null, error);
@@ -70,7 +70,7 @@ const GlobalOnErrorHandler = {
     callUnhandledRejectionHandler(error) {
         const errHandler = window.onunhandledrejection;
 
-        if(!errHandler) {
+        if (!errHandler) {
             return;
         }
         errHandler(error);

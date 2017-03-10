@@ -34,7 +34,7 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
     JitsiTrack.call(this,
         null /* RTC */, stream, track,
         () => {
-            if(!this.dontFireRemoveEvent) {
+            if (!this.dontFireRemoveEvent) {
                 this.eventEmitter.emit(
                     JitsiTrackEvents.LOCAL_TRACK_STOPPED);
             }
@@ -143,12 +143,12 @@ JitsiLocalTrack.prototype.isEnded = function() {
  * Sets handlers to the MediaStreamTrack object that will detect camera issues.
  */
 JitsiLocalTrack.prototype._initNoDataFromSourceHandlers = function() {
-    if(this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
+    if (this.isVideoTrack() && this.videoType === VideoType.CAMERA) {
         const _onNoDataFromSourceError
             = this._onNoDataFromSourceError.bind(this);
 
         this._setHandler('track_mute', () => {
-            if(this._checkForCameraIssues()) {
+            if (this._checkForCameraIssues()) {
                 const now = window.performance.now();
 
                 this._noDataFromSourceTimeout
@@ -157,7 +157,7 @@ JitsiLocalTrack.prototype._initNoDataFromSourceHandlers = function() {
                     this._clearNoDataFromSourceMuteResources();
                     Statistics.sendEventToAll(
                         `${this.getType()}.track_unmute`,
-                        {value: window.performance.now() - now});
+                        { value: window.performance.now() - now });
                 });
             }
         });
@@ -170,7 +170,7 @@ JitsiLocalTrack.prototype._initNoDataFromSourceHandlers = function() {
  * FIXME: Change the name of the method with better one.
  */
 JitsiLocalTrack.prototype._clearNoDataFromSourceMuteResources = function() {
-    if(this._noDataFromSourceTimeout) {
+    if (this._noDataFromSourceTimeout) {
         clearTimeout(this._noDataFromSourceTimeout);
         this._noDataFromSourceTimeout = null;
     }
@@ -184,7 +184,7 @@ JitsiLocalTrack.prototype._clearNoDataFromSourceMuteResources = function() {
  */
 JitsiLocalTrack.prototype._onNoDataFromSourceError = function() {
     this._clearNoDataFromSourceMuteResources();
-    if(this._checkForCameraIssues()) {
+    if (this._checkForCameraIssues()) {
         this._fireNoDataFromSourceEvent();
     }
 };
@@ -198,7 +198,7 @@ JitsiLocalTrack.prototype._fireNoDataFromSourceEvent = function() {
     const eventName = `${this.getType()}.no_data_from_source`;
 
     Statistics.analytics.sendEvent(eventName);
-    const log = {name: eventName};
+    const log = { name: eventName };
 
     if (this.isAudioTrack()) {
         log.isReceivingData = this._isReceivingData();
@@ -287,7 +287,7 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
     // Local track can be used out of conference, so we need to handle that
     // case and mark that track should start muted or not when added to
     // conference.
-    if(!this.conference || !this.conference.room) {
+    if (!this.conference || !this.conference.room) {
         this.startMuted = mute;
     }
 
@@ -297,7 +297,7 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
     if (this.isAudioTrack()
         || this.videoType === VideoType.DESKTOP
         || RTCBrowserType.isFirefox()) {
-        if(this.track) {
+        if (this.track) {
             this.track.enabled = !mute;
         }
     } else if (mute) {
@@ -341,7 +341,7 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
                             self.videoType, streamInfo.videoType);
                         self.videoType = streamInfo.videoType;
                     }
-                }else {
+                } else {
                     throw new JitsiTrackError(
                         JitsiTrackErrors.TRACK_NO_STREAM_FOUND);
                 }
@@ -506,7 +506,7 @@ JitsiLocalTrack.prototype._setConference = function(conference) {
     // on "attach" call, but for local track we not always have the conference
     // before attaching. However this may result in duplicated events if they
     // have been triggered on "attach" already.
-    for(let i = 0; i < this.containers.length; i++) {
+    for (let i = 0; i < this.containers.length; i++) {
         this._maybeFireTrackAttached(this.containers[i]);
     }
 };
@@ -519,9 +519,9 @@ JitsiLocalTrack.prototype._setConference = function(conference) {
  * @returns {string} or {null}
  */
 JitsiLocalTrack.prototype.getSSRC = function() {
-    if(this.ssrc && this.ssrc.groups && this.ssrc.groups.length) {
+    if (this.ssrc && this.ssrc.groups && this.ssrc.groups.length) {
         return this.ssrc.groups[0].ssrcs[0];
-    } else if(this.ssrc && this.ssrc.ssrcs && this.ssrc.ssrcs.length) {
+    } else if (this.ssrc && this.ssrc.ssrcs && this.ssrc.ssrcs.length) {
         return this.ssrc.ssrcs[0];
     }
 
@@ -558,9 +558,9 @@ JitsiLocalTrack.prototype._setByteSent = function(bytesSent) {
     const iceConnectionState
         = this.conference ? this.conference.getConnectionState() : null;
 
-    if(this._testByteSent && iceConnectionState === 'connected') {
+    if (this._testByteSent && iceConnectionState === 'connected') {
         setTimeout(() => {
-            if(this._bytesSent <= 0) {
+            if (this._bytesSent <= 0) {
                 // we are not receiving anything from the microphone
                 this._fireNoDataFromSourceEvent();
             }
@@ -624,7 +624,7 @@ JitsiLocalTrack.prototype._stopMediaStream = function() {
  * @returns {boolean} true if an issue is detected and false otherwise
  */
 JitsiLocalTrack.prototype._checkForCameraIssues = function() {
-    if(!this.isVideoTrack() || this.stopStreamInProgress
+    if (!this.isVideoTrack() || this.stopStreamInProgress
         || this.videoType === VideoType.DESKTOP) {
         return false;
     }
@@ -642,7 +642,7 @@ JitsiLocalTrack.prototype._checkForCameraIssues = function() {
  * @returns {boolean} true if the stream is receiving data and false otherwise.
  */
 JitsiLocalTrack.prototype._isReceivingData = function() {
-    if(!this.stream) {
+    if (!this.stream) {
         return false;
     }
 

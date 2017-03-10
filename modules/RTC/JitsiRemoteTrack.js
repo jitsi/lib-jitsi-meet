@@ -87,16 +87,16 @@ JitsiRemoteTrack.prototype._bindMuteHandlers = function() {
  * @param value the muted status.
  */
 JitsiRemoteTrack.prototype.setMute = function(value) {
-    if(this.muted === value) {
+    if (this.muted === value) {
         return;
     }
 
-    if(value) {
+    if (value) {
         this.hasBeenMuted = true;
     }
 
     // we can have a fake video stream
-    if(this.stream) {
+    if (this.stream) {
         this.stream.muted = value;
     }
 
@@ -142,7 +142,7 @@ JitsiRemoteTrack.prototype.getSSRC = function() {
  * @param type the new video type("camera", "desktop")
  */
 JitsiRemoteTrack.prototype._setVideoType = function(type) {
-    if(this.videoType === type) {
+    if (this.videoType === type) {
         return;
     }
     this.videoType = type;
@@ -167,10 +167,10 @@ JitsiRemoteTrack.prototype._playCallback = function() {
     console.log(`(TIME) TTFM ${type}:\t`, ttfm);
     let eventName = `${type}.ttfm`;
 
-    if(this.hasBeenMuted) {
+    if (this.hasBeenMuted) {
         eventName += '.muted';
     }
-    Statistics.analytics.sendEvent(eventName, {value: ttfm});
+    Statistics.analytics.sendEvent(eventName, { value: ttfm });
 };
 
 /**
@@ -182,7 +182,7 @@ JitsiRemoteTrack.prototype._playCallback = function() {
  * @private
  */
 JitsiRemoteTrack.prototype._attachTTFMTracker = function(container) {
-    if((ttfmTrackerAudioAttached && this.isAudioTrack())
+    if ((ttfmTrackerAudioAttached && this.isAudioTrack())
         || (ttfmTrackerVideoAttached && this.isVideoTrack())) {
         return;
     }

@@ -34,7 +34,7 @@ const TrackRecorder = function(track) {
  * @param trackRecorder the TrackRecorder to start
  */
 function startRecorder(trackRecorder) {
-    if(trackRecorder.recorder === undefined) {
+    if (trackRecorder.recorder === undefined) {
         throw new Error('Passed an object to startRecorder which is not a '
             + 'TrackRecorder object');
     }
@@ -48,7 +48,7 @@ function startRecorder(trackRecorder) {
  * @param trackRecorder the TrackRecorder to stop
  */
 function stopRecorder(trackRecorder) {
-    if(trackRecorder.recorder === undefined) {
+    if (trackRecorder.recorder === undefined) {
         throw new Error('Passed an object to stopRecorder which is not a '
             + 'TrackRecorder object');
     }
@@ -69,13 +69,13 @@ function instantiateTrackRecorder(track) {
     originalStream.getAudioTracks().forEach(track => stream.addTrack(track));
     // Create the MediaRecorder
     trackRecorder.recorder = new MediaRecorder(stream,
-        {mimeType: audioRecorder.fileType});
+        { mimeType: audioRecorder.fileType });
     // array for holding the recorder data. Resets it when
     // audio already has been recorder once
     trackRecorder.data = [];
     // function handling a dataEvent, e.g the stream gets new data
     trackRecorder.recorder.ondataavailable = function(dataEvent) {
-        if(dataEvent.data.size > 0) {
+        if (dataEvent.data.size > 0) {
             trackRecorder.data.push(dataEvent.data);
         }
     };
@@ -88,9 +88,9 @@ function instantiateTrackRecorder(track) {
  * chrome supports "audio/webm" and firefox supports "audio/ogg"
  */
 function determineCorrectFileType() {
-    if(MediaRecorder.isTypeSupported(AUDIO_WEBM)) {
+    if (MediaRecorder.isTypeSupported(AUDIO_WEBM)) {
         return AUDIO_WEBM;
-    } else if(MediaRecorder.isTypeSupported(AUDIO_OGG)) {
+    } else if (MediaRecorder.isTypeSupported(AUDIO_OGG)) {
         return AUDIO_OGG;
     }
     throw new Error('unable to create a MediaRecorder with the'
@@ -130,7 +130,7 @@ audioRecorder.determineCorrectFileType = determineCorrectFileType;
  * @param track the track potentially holding an audio stream
  */
 audioRecorder.prototype.addTrack = function(track) {
-    if(track.isAudioTrack()) {
+    if (track.isAudioTrack()) {
         // create the track recorder
         const trackRecorder = instantiateTrackRecorder(track);
         // push it to the local array of all recorders
@@ -140,7 +140,7 @@ audioRecorder.prototype.addTrack = function(track) {
         this.updateNames();
         // If we're already recording, immediately start recording this new
         // track.
-        if(this.isRecording) {
+        if (this.isRecording) {
             startRecorder(trackRecorder);
         }
     }
@@ -157,18 +157,18 @@ audioRecorder.prototype.addTrack = function(track) {
  * @param {JitsiTrack} track the JitsiTrack to remove from the recording session
  */
 audioRecorder.prototype.removeTrack = function(track) {
-    if(track.isVideoTrack()) {
+    if (track.isVideoTrack()) {
         return;
     }
 
     const array = this.recorders;
     let i;
 
-    for(i = 0; i < array.length; i++) {
-        if(array[i].track.getParticipantId() === track.getParticipantId()) {
+    for (i = 0; i < array.length; i++) {
+        if (array[i].track.getParticipantId() === track.getParticipantId()) {
             const recorderToRemove = array[i];
 
-            if(this.isRecording) {
+            if (this.isRecording) {
                 stopRecorder(recorderToRemove);
             } else {
                 // remove the TrackRecorder from the array
@@ -190,14 +190,14 @@ audioRecorder.prototype.updateNames = function() {
     const conference = this.jitsiConference;
 
     this.recorders.forEach(trackRecorder => {
-        if(trackRecorder.track.isLocal()) {
+        if (trackRecorder.track.isLocal()) {
             trackRecorder.name = 'the transcriber';
         } else {
             const id = trackRecorder.track.getParticipantId();
             const participant = conference.getParticipantById(id);
             const newName = participant.getDisplayName();
 
-            if(newName !== 'undefined') {
+            if (newName !== 'undefined') {
                 trackRecorder.name = newName;
             }
         }
@@ -208,7 +208,7 @@ audioRecorder.prototype.updateNames = function() {
  * Starts the audio recording of every local and remote track
  */
 audioRecorder.prototype.start = function() {
-    if(this.isRecording) {
+    if (this.isRecording) {
         throw new Error('audiorecorder is already recording');
     }
     // set boolean isRecording flag to true so if new participants join the
@@ -240,7 +240,7 @@ audioRecorder.prototype.download = function() {
     const t = this;
 
     this.recorders.forEach(trackRecorder => {
-        const blob = new Blob(trackRecorder.data, {type: t.fileType});
+        const blob = new Blob(trackRecorder.data, { type: t.fileType });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
 
@@ -259,7 +259,7 @@ audioRecorder.prototype.download = function() {
  * @returns {Array} an array of RecordingResult objects
  */
 audioRecorder.prototype.getRecordingResults = function() {
-    if(this.isRecording) {
+    if (this.isRecording) {
         throw new Error(
             'cannot get blobs because the AudioRecorder is still recording!');
     }
@@ -273,7 +273,7 @@ audioRecorder.prototype.getRecordingResults = function() {
           recorder =>
               array.push(
                   new RecordingResult(
-                      new Blob(recorder.data, {type: t.fileType}),
+                      new Blob(recorder.data, { type: t.fileType }),
                       recorder.name,
                       recorder.startTime)));
 
@@ -295,9 +295,9 @@ audioRecorder.prototype.getFileType = function() {
  */
 function createEmptyStream() {
     // Firefox supports the MediaStream object, Chrome webkitMediaStream
-    if(typeof MediaStream !== 'undefined') {
+    if (typeof MediaStream !== 'undefined') {
         return new MediaStream();
-    } else if(typeof webkitMediaStream !== 'undefined') {
+    } else if (typeof webkitMediaStream !== 'undefined') {
         return new webkitMediaStream(); // eslint-disable-line new-cap
     }
     throw new Error('cannot create a clean mediaStream');

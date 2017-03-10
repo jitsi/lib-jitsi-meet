@@ -64,7 +64,7 @@ SDP.prototype.getMediaSsrcMap = function() {
             const linessrc = line.substring(7).split(' ')[0];
             // allocate new ChannelSsrc
 
-            if(!media.ssrcs[linessrc]) {
+            if (!media.ssrcs[linessrc]) {
                 media.ssrcs[linessrc] = {
                     ssrc: linessrc,
                     lines: []
@@ -177,9 +177,9 @@ SDP.prototype.toJingle = function(elem, thecreator) {
             tmp = lines[i].split(' ');
             const semantics = tmp.shift().substr(8);
 
-            elem.c('group', {xmlns: 'urn:xmpp:jingle:apps:grouping:0', semantics});
+            elem.c('group', { xmlns: 'urn:xmpp:jingle:apps:grouping:0', semantics });
             for (j = 0; j < tmp.length; j++) {
-                elem.c('content', {name: tmp[j]}).up();
+                elem.c('content', { name: tmp[j] }).up();
             }
             elem.up();
         }
@@ -199,7 +199,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
             ssrc = false;
         }
 
-        elem.c('content', {creator: thecreator, name: mline.media});
+        elem.c('content', { creator: thecreator, name: mline.media });
         const amidline = SDPUtil.find_line(this.media[i], 'a=mid:');
 
         if (amidline) {
@@ -211,10 +211,10 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 
         if (SDPUtil.find_line(this.media[i], 'a=rtpmap:').length) {
             elem.c('description',
-                {xmlns: 'urn:xmpp:jingle:apps:rtp:1',
+                { xmlns: 'urn:xmpp:jingle:apps:rtp:1',
                     media: mline.media });
             if (ssrc) {
-                elem.attrs({ssrc});
+                elem.attrs({ ssrc });
             }
             for (j = 0; j < mline.fmt.length; j++) {
                 rtpmap = SDPUtil.find_line(this.media[i], `a=rtpmap:${mline.fmt[j]}`);
@@ -235,7 +235,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
             const crypto = SDPUtil.find_lines(this.media[i], 'a=crypto:', this.session);
 
             if (crypto.length) {
-                elem.c('encryption', {required: 1});
+                elem.c('encryption', { required: 1 });
                 crypto.forEach(
                     line => elem.c('crypto', SDPUtil.parse_crypto(line)).up());
                 elem.up(); // end of encryption
@@ -247,7 +247,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                 // FIXME: group by ssrc and support multiple different ssrcs
                 const ssrclines = SDPUtil.find_lines(this.media[i], 'a=ssrc:');
 
-                if(ssrclines.length > 0) {
+                if (ssrclines.length > 0) {
                     ssrclines.forEach(line => {
                         const idx = line.indexOf(' ');
                         const linessrc = line.substr(0, idx).substr(7);
@@ -295,16 +295,16 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                         // but msid stands for the stream id, makes no sense ?
                         msid = localTrack.getTrackId();
                     }
-                    if(msid !== null) {
+                    if (msid !== null) {
                         msid = SDPUtil.filter_special_chars(msid);
                         elem.c('parameter');
-                        elem.attrs({name: 'msid', value:msid});
+                        elem.attrs({ name: 'msid', value: msid });
                         elem.up();
                         elem.c('parameter');
-                        elem.attrs({name: 'mslabel', value:msid});
+                        elem.attrs({ name: 'mslabel', value: msid });
                         elem.up();
                         elem.c('parameter');
-                        elem.attrs({name: 'label', value:msid});
+                        elem.attrs({ name: 'label', value: msid });
                         elem.up();
                     }
                 }
@@ -344,16 +344,16 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                     if (tmp.hasOwnProperty('direction')) {
                         switch (tmp.direction) {
                         case 'sendonly':
-                            elem.attrs({senders: 'responder'});
+                            elem.attrs({ senders: 'responder' });
                             break;
                         case 'recvonly':
-                            elem.attrs({senders: 'initiator'});
+                            elem.attrs({ senders: 'initiator' });
                             break;
                         case 'sendrecv':
-                            elem.attrs({senders: 'both'});
+                            elem.attrs({ senders: 'both' });
                             break;
                         case 'inactive':
-                            elem.attrs({senders: 'none'});
+                            elem.attrs({ senders: 'none' });
                             break;
                         }
                     }
@@ -368,17 +368,17 @@ SDP.prototype.toJingle = function(elem, thecreator) {
         this.transportToJingle(i, elem);
 
         if (SDPUtil.find_line(this.media[i], 'a=sendrecv', this.session)) {
-            elem.attrs({senders: 'both'});
+            elem.attrs({ senders: 'both' });
         } else if (SDPUtil.find_line(this.media[i], 'a=sendonly', this.session)) {
-            elem.attrs({senders: 'initiator'});
+            elem.attrs({ senders: 'initiator' });
         } else if (SDPUtil.find_line(this.media[i], 'a=recvonly', this.session)) {
-            elem.attrs({senders: 'responder'});
+            elem.attrs({ senders: 'responder' });
         } else if (SDPUtil.find_line(this.media[i], 'a=inactive', this.session)) {
-            elem.attrs({senders: 'none'});
+            elem.attrs({ senders: 'none' });
         }
         if (mline.port == '0') {
             // estos hack to reject an m-line
-            elem.attrs({senders: 'rejected'});
+            elem.attrs({ senders: 'rejected' });
         }
         elem.up(); // end of content
     }
@@ -407,7 +407,7 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
         });
         // Optional stream count attribute
         if (sctpAttrs.length > 2) {
-            elem.attrs({ streams: sctpAttrs[2]});
+            elem.attrs({ streams: sctpAttrs[2] });
         }
         elem.up();
     }
@@ -464,12 +464,12 @@ SDP.prototype.rtcpFbToJingle = function(mediaindex, elem, payloadtype) { // XEP-
         const tmp = SDPUtil.parse_rtcpfb(line);
 
         if (tmp.type == 'trr-int') {
-            elem.c('rtcp-fb-trr-int', {xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0', value: tmp.params[0]});
+            elem.c('rtcp-fb-trr-int', { xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0', value: tmp.params[0] });
             elem.up();
         } else {
-            elem.c('rtcp-fb', {xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0', type: tmp.type});
+            elem.c('rtcp-fb', { xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0', type: tmp.type });
             if (tmp.params.length > 0) {
-                elem.attrs({'subtype': tmp.params[0]});
+                elem.attrs({ 'subtype': tmp.params[0] });
             }
             elem.up();
         }

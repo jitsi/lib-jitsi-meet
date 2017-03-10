@@ -1,6 +1,6 @@
 /* global $, $iq, Strophe */
 
-import {getLogger} from 'jitsi-meet-logger';
+import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 
 import JingleSession from './JingleSession';
@@ -185,7 +185,7 @@ export default class JingleSessionPC extends JingleSession {
                 now);
             Statistics.analytics.sendEvent(
                 `ice.${this.peerconnection.iceConnectionState}`,
-                {value: now});
+                { value: now });
             this.room.eventEmitter.emit(
                 XMPPEvents.ICE_CONNECTION_STATE_CHANGED,
                 this.peerconnection.iceConnectionState);
@@ -267,11 +267,11 @@ export default class JingleSessionPC extends JingleSession {
 
     sendIceCandidates(candidates) {
         logger.log('sendIceCandidates', candidates);
-        const cand = $iq({to: this.peerjid, type: 'set'})
-            .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
+        const cand = $iq({ to: this.peerjid, type: 'set' })
+            .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
                 action: 'transport-info',
                 initiator: this.initiator,
-                sid: this.sid});
+                sid: this.sid });
 
         const localSDP = new SDP(this.peerconnection.localDescription.sdp);
 
@@ -312,7 +312,7 @@ export default class JingleSessionPC extends JingleSession {
                     tmp.required = true;
                     cand.c(
                         'fingerprint',
-                        {xmlns: 'urn:xmpp:jingle:apps:dtls:0'})
+                        { xmlns: 'urn:xmpp:jingle:apps:dtls:0' })
                         .t(tmp.fingerprint);
                     delete tmp.fingerprint;
                     cand.attrs(tmp);
@@ -476,9 +476,9 @@ export default class JingleSessionPC extends JingleSession {
         // NOTE: since we're just reading from it, we don't need to be within
         //  the modification queue to access the local description
         const localSDP = new SDP(this.peerconnection.localDescription.sdp);
-        let accept = $iq({to: this.peerjid,
-            type: 'set'})
-            .c('jingle', {xmlns: 'urn:xmpp:jingle:1',
+        let accept = $iq({ to: this.peerjid,
+            type: 'set' })
+            .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
                 action: 'session-accept',
                 initiator: this.initiator,
                 responder: this.responder,
@@ -542,7 +542,7 @@ export default class JingleSessionPC extends JingleSession {
      *        or when the request has timed out.
      */
     sendTransportAccept(localSDP, success, failure) {
-        let transportAccept = $iq({to: this.peerjid, type: 'set'})
+        let transportAccept = $iq({ to: this.peerjid, type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'transport-accept',
@@ -587,7 +587,7 @@ export default class JingleSessionPC extends JingleSession {
     sendTransportReject(success, failure) {
         // Send 'transport-reject', so that the focus will
         // know that we've failed
-        let transportReject = $iq({to: this.peerjid, type: 'set'})
+        let transportReject = $iq({ to: this.peerjid, type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'transport-reject',
@@ -1322,7 +1322,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // send source-remove IQ.
         let sdpDiffer = new SDPDiffer(new_sdp, old_sdp);
-        const remove = $iq({to: this.peerjid, type: 'set'})
+        const remove = $iq({ to: this.peerjid, type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'source-remove',
@@ -1348,7 +1348,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // send source-add IQ.
         sdpDiffer = new SDPDiffer(old_sdp, new_sdp);
-        const add = $iq({to: this.peerjid, type: 'set'})
+        const add = $iq({ to: this.peerjid, type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'source-add',

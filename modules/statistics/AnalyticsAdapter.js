@@ -75,7 +75,7 @@ class AnalyticsAdapter {
      */
     sendEvent(action, data = {}) {
         const modifiedData = Object.assign(
-            {browserName: this.browserName}, this.permanentProperties, data);
+            { browserName: this.browserName }, this.permanentProperties, data);
 
         this.analyticsHandlers.forEach(
             analytics => analytics.sendEvent(action, modifiedData));

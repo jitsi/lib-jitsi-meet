@@ -114,7 +114,7 @@ export default class RTC extends Listenable {
      * @param peerconnection the associated PeerConnection.
      */
     initializeDataChannels(peerconnection) {
-        if(this.options.config.openSctp) {
+        if (this.options.config.openSctp) {
             this.dataChannels = new DataChannels(peerconnection,
                 this.eventEmitter);
             this._dataChannelOpenListener = () => {
@@ -171,7 +171,7 @@ export default class RTC extends Listenable {
     selectEndpoint(id) {
         // cache the value if channel is missing, till we open it
         this.selectedEndpoint = id;
-        if(this.dataChannels && this.dataChannelsOpen) {
+        if (this.dataChannels && this.dataChannelsOpen) {
             this.dataChannels.sendSelectedEndpointMessage(id);
         }
     }
@@ -184,7 +184,7 @@ export default class RTC extends Listenable {
      * @throws NetworkError or InvalidStateError or Error if the operation fails.
      */
     pinEndpoint(id) {
-        if(this.dataChannels) {
+        if (this.dataChannels) {
             this.dataChannels.sendPinnedEndpointMessage(id);
         } else {
             // FIXME: cache value while there is no data channel created
@@ -652,19 +652,19 @@ export default class RTC extends Listenable {
      * Closes all currently opened data channels.
      */
     closeAllDataChannels() {
-        if(this.dataChannels) {
+        if (this.dataChannels) {
             this.dataChannels.closeAllChannels();
             this.dataChannelsOpen = false;
         }
     }
 
     setAudioLevel(resource, audioLevel) {
-        if(!resource) {
+        if (!resource) {
             return;
         }
         const audioTrack = this.getRemoteAudioTrack(resource);
 
-        if(audioTrack) {
+        if (audioTrack) {
             audioTrack.setAudioLevel(audioLevel);
         }
     }
@@ -733,7 +733,7 @@ export default class RTC extends Listenable {
      * fails or there is no data channel created
      */
     sendDataChannelMessage(to, payload) {
-        if(this.dataChannels) {
+        if (this.dataChannels) {
             this.dataChannels.sendDataChannelMessage(to, payload);
         } else {
             throw new Error('Data channels support is disabled!');

@@ -4,11 +4,11 @@
 
 /* global $, Strophe */
 
-import {getLogger} from 'jitsi-meet-logger';
+import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 
 import ChatRoom from './ChatRoom';
-import {ConnectionPluginListenable} from './ConnectionPlugin';
+import { ConnectionPluginListenable } from './ConnectionPlugin';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
 class MucConnectionPlugin extends ConnectionPluginListenable {
@@ -66,7 +66,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
 
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
-        if(!room) {
+        if (!room) {
             return;
         }
 
@@ -85,7 +85,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         const from = pres.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
-        if(!room) {
+        if (!room) {
             return;
         }
 
@@ -98,7 +98,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         const from = pres.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
-        if(!room) {
+        if (!room) {
             return;
         }
 
@@ -112,7 +112,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         const from = msg.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
-        if(!room) {
+        if (!room) {
             return;
         }
 
@@ -125,7 +125,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         const from = iq.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
-        if(!room) {
+        if (!room) {
             return;
         }
 

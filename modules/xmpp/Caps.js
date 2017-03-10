@@ -33,7 +33,7 @@ export default class Caps extends Listenable {
         super();
         this.node = node;
         this.disco = connection.disco;
-        if(!this.disco) {
+        if (!this.disco) {
             throw new Error(
                 'Missing strophe-plugins '
                 + '(disco and caps plugins are required)!');
@@ -71,7 +71,7 @@ export default class Caps extends Listenable {
     addFeature(feature, submit = false) {
         this.disco.addFeature(feature);
         this._generateVersion();
-        if(submit) {
+        if (submit) {
             this.submit();
         }
     }
@@ -86,7 +86,7 @@ export default class Caps extends Listenable {
     removeFeature(feature, submit = false) {
         this.disco.removeFeature(feature);
         this._generateVersion();
-        if(submit) {
+        if (submit) {
             this.submit();
         }
     }
@@ -108,7 +108,7 @@ export default class Caps extends Listenable {
         const user
             = jid in this.jidToVersion ? this.jidToVersion[jid] : null;
 
-        if(!user || !(user.version in this.versionToCapabilities)) {
+        if (!user || !(user.version in this.versionToCapabilities)) {
             const node = user ? `${user.node}#${user.version}` : null;
 
 
@@ -120,7 +120,7 @@ export default class Caps extends Listenable {
                         .find('>query>feature')
                         .each(
                             (idx, el) => features.add(el.getAttribute('var')));
-                    if(user) {
+                    if (user) {
                             // TODO: Maybe use the version + node + hash
                             // as keys?
                         this.versionToCapabilities[user.version]
@@ -212,8 +212,8 @@ export default class Caps extends Listenable {
         const node = caps.getAttribute('node');
         const oldVersion = this.jidToVersion[from];
 
-        this.jidToVersion[from] = {version, node};
-        if(oldVersion && oldVersion.version !== version) {
+        this.jidToVersion[from] = { version, node };
+        if (oldVersion && oldVersion.version !== version) {
             this.eventEmitter.emit(XMPPEvents.PARTCIPANT_FEATURES_CHANGED,
                 from);
         }
@@ -227,7 +227,7 @@ export default class Caps extends Listenable {
      * @param {String} jid the jid to be removed.
      */
     _removeJidToVersionEntry(jid) {
-        if(jid in this.jidToVersion) {
+        if (jid in this.jidToVersion) {
             delete this.jidToVersion[jid];
         }
     }

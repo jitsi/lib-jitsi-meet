@@ -135,7 +135,7 @@ DataChannels.prototype.onDataChannel = function(event) {
                     lastNEndpoints, endpointsEnteringLastN, obj);
                 self.eventEmitter.emit(RTCEvents.LASTN_ENDPOINT_CHANGED,
                     lastNEndpoints, endpointsEnteringLastN, obj);
-            } else if(colibriClass === 'EndpointMessage') {
+            } else if (colibriClass === 'EndpointMessage') {
                 self.eventEmitter.emit(
                     RTCEvents.ENDPOINT_MESSAGE_RECEIVED, obj.from,
                     obj.msgPayload);
@@ -261,7 +261,7 @@ DataChannels.prototype._some = function(callback, thisArg) {
  * or Error with "No opened data channels found!" message.
  */
 DataChannels.prototype.send = function(jsonObject) {
-    if(!this._some(dataChannel => {
+    if (!this._some(dataChannel => {
         if (dataChannel.readyState == 'open') {
             dataChannel.send(JSON.stringify(jsonObject));
 
@@ -295,8 +295,8 @@ DataChannels.prototype.sendDataChannelMessage = function(to, payload) {
  */
 DataChannels.prototype.sendSetLastNMessage = function(value) {
     const jsonObject = {
-        colibriClass : 'LastNChangedEvent',
-        lastN : value
+        colibriClass: 'LastNChangedEvent',
+        lastN: value
     };
 
     this.send(jsonObject);

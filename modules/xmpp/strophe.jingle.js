@@ -19,7 +19,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         this.xmpp = xmpp;
         this.eventEmitter = eventEmitter;
         this.sessions = {};
-        this.ice_config = {iceServers: []};
+        this.ice_config = { iceServers: [] };
         this.media_constraints = {
             mandatory: {
                 'OfferToReceiveAudio': true,
@@ -40,7 +40,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         const action = $(iq).find('jingle').attr('action');
         const fromJid = iq.getAttribute('from');
         // send ack first
-        const ack = $iq({type: 'result',
+        const ack = $iq({ type: 'result',
             to: fromJid,
             id: iq.getAttribute('id')
         });
@@ -51,10 +51,10 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         if (action != 'session-initiate') {
             if (!sess) {
                 ack.attrs({ type: 'error' });
-                ack.c('error', {type: 'cancel'})
+                ack.c('error', { type: 'cancel' })
                     .c('item-not-found', {
-                        xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas'}).up()
-                    .c('unknown-session', {xmlns: 'urn:xmpp:jingle:errors:1'});
+                        xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas' }).up()
+                    .c('unknown-session', { xmlns: 'urn:xmpp:jingle:errors:1' });
                 logger.warn('invalid session id', iq);
                 this.connection.send(ack);
 
@@ -65,9 +65,9 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                 logger.warn(
                     'jid mismatch for session id', sid, sess.peerjid, iq);
                 ack.attrs({ type: 'error' });
-                ack.c('error', {type: 'cancel'})
-                    .c('item-not-found', {xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas'}).up()
-                    .c('unknown-session', {xmlns: 'urn:xmpp:jingle:errors:1'});
+                ack.c('error', { type: 'cancel' })
+                    .c('item-not-found', { xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas' }).up()
+                    .c('unknown-session', { xmlns: 'urn:xmpp:jingle:errors:1' });
                 this.connection.send(ack);
 
                 return true;
@@ -76,8 +76,8 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             // existing session with same session id
             // this might be out-of-order if the sess.peerjid is the same as from
             ack.attrs({ type: 'error' });
-            ack.c('error', {type: 'cancel'})
-                .c('service-unavailable', {xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas'}).up();
+            ack.c('error', { type: 'cancel' })
+                .c('service-unavailable', { xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas' }).up();
             logger.warn('duplicate session id', sid, iq);
             this.connection.send(ack);
 
@@ -111,7 +111,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             this.eventEmitter.emit(XMPPEvents.CALL_INCOMING,
                     sess, $(iq).find('>jingle'), now);
             Statistics.analytics.sendEvent(
-                    'xmpp.session-initiate', {value: now});
+                    'xmpp.session-initiate', { value: now });
             break;
         }
         case 'session-terminate': {
@@ -132,7 +132,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         case 'transport-replace':
             logger.info('(TIME) Start transport replace', now);
             Statistics.analytics.sendEvent(
-                    'xmpp.transport-replace.start', {value: now});
+                    'xmpp.transport-replace.start', { value: now });
 
             sess.replaceTransport($(iq).find('>jingle'), () => {
                 const successTime = window.performance.now();
@@ -141,7 +141,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                         '(TIME) Transport replace success!', successTime);
                 Statistics.analytics.sendEvent(
                         'xmpp.transport-replace.success',
-                        {value: successTime});
+                        { value: successTime });
             }, error => {
                 GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error('Transport replace failed', error);
@@ -159,7 +159,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         default:
             logger.warn('jingle action not implemented', action);
             ack.attrs({ type: 'error' });
-            ack.c('error', {type: 'cancel'})
+            ack.c('error', { type: 'cancel' })
                     .c('bad-request',
                         { xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas' })
                     .up();
@@ -192,9 +192,9 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         // TODO: implement refresh via updateIce as described in
         //      https://code.google.com/p/webrtc/issues/detail?id=1650
         this.connection.sendIQ(
-            $iq({type: 'get', to: this.connection.domain})
-                .c('services', {xmlns: 'urn:xmpp:extdisco:1'})
-                .c('service', {host: `turn.${this.connection.domain}`}),
+            $iq({ type: 'get', to: this.connection.domain })
+                .c('services', { xmlns: 'urn:xmpp:extdisco:1' })
+                .c('service', { host: `turn.${this.connection.domain}` }),
             res => {
                 const iceservers = [];
 

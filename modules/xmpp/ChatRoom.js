@@ -22,7 +22,7 @@ const parser = {
 
             node.attributes = {};
             $($(this)[0].attributes).each((index, attr) => {
-                node.attributes[ attr.name ] = attr.value;
+                node.attributes[attr.name] = attr.value;
             });
             const text = Strophe.getText($(this)[0]);
 
@@ -35,15 +35,15 @@ const parser = {
         });
     },
     json2packet(nodes, packet) {
-        for(let i = 0; i < nodes.length; i++) {
+        for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
 
-            if(node) {
+            if (node) {
                 packet.c(node.tagName, node.attributes);
-                if(node.value) {
+                if (node.value) {
                     packet.t(node.value);
                 }
-                if(node.children) {
+                if (node.children) {
                     this.json2packet(node.children, packet);
                 }
                 packet.up();
@@ -62,8 +62,8 @@ const parser = {
 function filterNodeFromPresenceJSON(pres, nodeName) {
     const res = [];
 
-    for(let i = 0; i < pres.length; i++) {
-        if(pres[i].tagName === nodeName) {
+    for (let i = 0; i < pres.length; i++) {
+        if (pres[i].tagName === nodeName) {
             res.push(pres[i]);
         }
     }
@@ -93,7 +93,7 @@ export default class ChatRoom extends Listenable {
         this.noBridgeAvailable = false;
         this.options = options || {};
         this.moderator = new Moderator(this.roomjid, this.xmpp, this.eventEmitter,
-            {connection: this.xmpp.options, conference: this.options});
+            { connection: this.xmpp.options, conference: this.options });
         this.initPresenceMap();
         this.lastPresences = {};
         this.phoneNumber = null;
@@ -111,7 +111,7 @@ export default class ChatRoom extends Listenable {
         this.presMap.nodes.push({
             'tagName': 'user-agent',
             'value': navigator.userAgent,
-            'attributes': {xmlns: 'http://jitsi.org/jitmeet/user-agent'}
+            'attributes': { xmlns: 'http://jitsi.org/jitmeet/user-agent' }
         });
         // We need to broadcast 'videomuted' status from the beginning, cause Jicofo
         // makes decisions based on that. Initialize it with 'false' here.
@@ -147,7 +147,7 @@ export default class ChatRoom extends Listenable {
             return;
         }
 
-        const pres = $pres({to });
+        const pres = $pres({ to });
 
         // xep-0045 defines: "including in the initial presence stanza an empty
         // <x/> element qualified by the 'http://jabber.org/protocol/muc' namespace"
@@ -155,7 +155,7 @@ export default class ChatRoom extends Listenable {
         // as joining, and server can send us the message history for the room on
         // every presence
         if (fromJoin) {
-            pres.c('x', {xmlns: this.presMap.xns});
+            pres.c('x', { xmlns: this.presMap.xns });
 
             if (this.password) {
                 pres.c('password').t(this.password).up();
@@ -180,7 +180,7 @@ export default class ChatRoom extends Listenable {
      */
     doLeave() {
         logger.log('do leave', this.myroomjid);
-        const pres = $pres({to: this.myroomjid, type: 'unavailable' });
+        const pres = $pres({ to: this.myroomjid, type: 'unavailable' });
 
         this.presMap.length = 0;
 
@@ -203,8 +203,8 @@ export default class ChatRoom extends Listenable {
     discoRoomInfo() {
       // https://xmpp.org/extensions/xep-0045.html#disco-roominfo
 
-        const getInfo = $iq({type: 'get', to: this.roomjid})
-        .c('query', {xmlns: Strophe.NS.DISCO_INFO});
+        const getInfo = $iq({ type: 'get', to: this.roomjid })
+        .c('query', { xmlns: Strophe.NS.DISCO_INFO });
 
         this.connection.sendIQ(getInfo, result => {
             const locked
@@ -226,9 +226,9 @@ export default class ChatRoom extends Listenable {
     createNonAnonymousRoom() {
         // http://xmpp.org/extensions/xep-0045.html#createroom-reserved
 
-        const getForm = $iq({type: 'get', to: this.roomjid})
-            .c('query', {xmlns: 'http://jabber.org/protocol/muc#owner'})
-            .c('x', {xmlns: 'jabber:x:data', type: 'submit'});
+        const getForm = $iq({ type: 'get', to: this.roomjid })
+            .c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' })
+            .c('x', { xmlns: 'jabber:x:data', type: 'submit' });
 
         const self = this;
 
@@ -244,16 +244,16 @@ export default class ChatRoom extends Listenable {
                 return;
             }
 
-            const formSubmit = $iq({to: self.roomjid, type: 'set'})
-                .c('query', {xmlns: 'http://jabber.org/protocol/muc#owner'});
+            const formSubmit = $iq({ to: self.roomjid, type: 'set' })
+                .c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' });
 
-            formSubmit.c('x', {xmlns: 'jabber:x:data', type: 'submit'});
+            formSubmit.c('x', { xmlns: 'jabber:x:data', type: 'submit' });
 
-            formSubmit.c('field', {'var': 'FORM_TYPE'})
+            formSubmit.c('field', { 'var': 'FORM_TYPE' })
                 .c('value')
                 .t('http://jabber.org/protocol/muc#roomconfig').up().up();
 
-            formSubmit.c('field', {'var': 'muc#roomconfig_whois'})
+            formSubmit.c('field', { 'var': 'muc#roomconfig_whois' })
                 .c('value').t('anyone').up().up();
 
             self.connection.sendIQ(formSubmit);
@@ -298,10 +298,10 @@ export default class ChatRoom extends Listenable {
         // process nodes to extract data needed for MUC_JOINED and
         // MUC_MEMBER_JOINED events
 
-        for(let i = 0; i < nodes.length; i++) {
+        for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
 
-            switch(node.tagName) {
+            switch (node.tagName) {
             case 'nick':
                 member.nick = node.value;
                 break;
@@ -368,19 +368,19 @@ export default class ChatRoom extends Listenable {
             }
 
             // store the new display name
-            if(member.displayName) {
+            if (member.displayName) {
                 memberOfThis.displayName = member.displayName;
             }
         }
 
         // after we had fired member or room joined events, lets fire events
         // for the rest info we got in presence
-        for(let i = 0; i < nodes.length; i++) {
+        for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
 
-            switch(node.tagName) {
+            switch (node.tagName) {
             case 'nick':
-                if(!member.isFocus) {
+                if (!member.isFocus) {
                     const displayName = this.xmpp.options.displayJids
                             ? Strophe.getResourceFromJid(from) : member.nick;
 
@@ -402,7 +402,7 @@ export default class ChatRoom extends Listenable {
             case 'call-control': {
                 const att = node.attributes;
 
-                if(!att) {
+                if (!att) {
                     break;
                 }
                 this.phoneNumber = att.phone || null;
@@ -423,9 +423,9 @@ export default class ChatRoom extends Listenable {
                 member.status);
         }
 
-        if(jibri) {
+        if (jibri) {
             this.lastJibri = jibri;
-            if(this.recording) {
+            if (this.recording) {
                 this.recording.handleJibriPresence(jibri);
             }
         }
@@ -438,11 +438,11 @@ export default class ChatRoom extends Listenable {
      */
     _initFocus(from, mucJid) {
         this.focusMucJid = from;
-        if(!this.recording) {
+        if (!this.recording) {
             this.recording = new Recorder(this.options.recordingType,
                 this.eventEmitter, this.connection, this.focusMucJid,
                 this.options.jirecon, this.roomjid);
-            if(this.lastJibri) {
+            if (this.lastJibri) {
                 this.recording.handleJibriPresence(this.lastJibri);
             }
         }
@@ -467,7 +467,7 @@ export default class ChatRoom extends Listenable {
                 tagHandler = this.participantPropertyListener;
             }
 
-            if(tagHandler) {
+            if (tagHandler) {
                 tagHandler(node, Strophe.getResourceFromJid(from), from);
             }
         } catch (e) {
@@ -477,18 +477,18 @@ export default class ChatRoom extends Listenable {
     }
 
     sendMessage(body, nickname) {
-        const msg = $msg({to: this.roomjid, type: 'groupchat'});
+        const msg = $msg({ to: this.roomjid, type: 'groupchat' });
 
         msg.c('body', body).up();
         if (nickname) {
-            msg.c('nick', {xmlns: 'http://jabber.org/protocol/nick'}).t(nickname).up().up();
+            msg.c('nick', { xmlns: 'http://jabber.org/protocol/nick' }).t(nickname).up().up();
         }
         this.connection.send(msg);
         this.eventEmitter.emit(XMPPEvents.SENDING_CHAT_MESSAGE, body);
     }
 
     setSubject(subject) {
-        const msg = $msg({to: this.roomjid, type: 'groupchat'});
+        const msg = $msg({ to: this.roomjid, type: 'groupchat' });
 
         msg.c('subject', subject);
         this.connection.send(msg);
@@ -504,7 +504,7 @@ export default class ChatRoom extends Listenable {
 
         delete this.lastPresences[jid];
 
-        if(skipEvents) {
+        if (skipEvents) {
             return;
         }
 
@@ -643,7 +643,7 @@ export default class ChatRoom extends Listenable {
                 logger.warn('onPresError ', pres);
                 this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR);
             }
-        } else if($(pres).find('>error>service-unavailable').length) {
+        } else if ($(pres).find('>error>service-unavailable').length) {
             logger.warn('Maximum users limit for the room has been reached',
                 pres);
             this.eventEmitter.emit(XMPPEvents.ROOM_MAX_USERS_ERROR);
@@ -654,9 +654,9 @@ export default class ChatRoom extends Listenable {
     }
 
     kick(jid) {
-        const kickIQ = $iq({to: this.roomjid, type: 'set'})
-            .c('query', {xmlns: 'http://jabber.org/protocol/muc#admin'})
-            .c('item', {nick: Strophe.getResourceFromJid(jid), role: 'none'})
+        const kickIQ = $iq({ to: this.roomjid, type: 'set' })
+            .c('query', { xmlns: 'http://jabber.org/protocol/muc#admin' })
+            .c('item', { nick: Strophe.getResourceFromJid(jid), role: 'none' })
             .c('reason').t('You have been kicked.').up().up().up();
 
         this.connection.sendIQ(
@@ -668,18 +668,18 @@ export default class ChatRoom extends Listenable {
     lockRoom(key, onSuccess, onError, onNotSupported) {
         // http://xmpp.org/extensions/xep-0045.html#roomconfig
         this.connection.sendIQ(
-            $iq({to: this.roomjid, type: 'get'}).c('query', {xmlns: 'http://jabber.org/protocol/muc#owner'}),
+            $iq({ to: this.roomjid, type: 'get' }).c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' }),
             res => {
                 if ($(res).find('>query>x[xmlns="jabber:x:data"]>field[var="muc#roomconfig_roomsecret"]').length) {
                     const formsubmit
-                        = $iq({to: this.roomjid, type: 'set'})
-                            .c('query', {xmlns: 'http://jabber.org/protocol/muc#owner'});
+                        = $iq({ to: this.roomjid, type: 'set' })
+                            .c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' });
 
-                    formsubmit.c('x', {xmlns: 'jabber:x:data', type: 'submit'});
-                    formsubmit.c('field', {'var': 'FORM_TYPE'}).c('value').t('http://jabber.org/protocol/muc#roomconfig').up().up();
-                    formsubmit.c('field', {'var': 'muc#roomconfig_roomsecret'}).c('value').t(key).up().up();
+                    formsubmit.c('x', { xmlns: 'jabber:x:data', type: 'submit' });
+                    formsubmit.c('field', { 'var': 'FORM_TYPE' }).c('value').t('http://jabber.org/protocol/muc#roomconfig').up().up();
+                    formsubmit.c('field', { 'var': 'muc#roomconfig_roomsecret' }).c('value').t(key).up().up();
                     // Fixes a bug in prosody 0.9.+ https://code.google.com/p/lxmppd/issues/detail?id=373
-                    formsubmit.c('field', {'var': 'muc#roomconfig_whois'}).c('value').t('anyone').up().up();
+                    formsubmit.c('field', { 'var': 'muc#roomconfig_whois' }).c('value').t('anyone').up().up();
                     // FIXME: is muc#roomconfig_passwordprotectedroom required?
                     this.connection.sendIQ(formsubmit, onSuccess, onError);
                 } else {
@@ -741,7 +741,7 @@ export default class ChatRoom extends Listenable {
 
     setVideoMute(mute, callback) {
         this.sendVideoInfoPresence(mute);
-        if(callback) {
+        if (callback) {
             callback(mute);
         }
     }
@@ -753,17 +753,17 @@ export default class ChatRoom extends Listenable {
     addAudioInfoToPresence(mute) {
         this.removeFromPresence('audiomuted');
         this.addToPresence('audiomuted',
-            {attributes:
-            {'xmlns': 'http://jitsi.org/jitmeet/audio'},
-                value: mute.toString()});
+            { attributes:
+            { 'xmlns': 'http://jitsi.org/jitmeet/audio' },
+                value: mute.toString() });
     }
 
     sendAudioInfoPresence(mute, callback) {
         this.addAudioInfoToPresence(mute);
-        if(this.connection) {
+        if (this.connection) {
             this.sendPresence();
         }
-        if(callback) {
+        if (callback) {
             callback();
         }
     }
@@ -771,14 +771,14 @@ export default class ChatRoom extends Listenable {
     addVideoInfoToPresence(mute) {
         this.removeFromPresence('videomuted');
         this.addToPresence('videomuted',
-            {attributes:
-            {'xmlns': 'http://jitsi.org/jitmeet/video'},
-                value: mute.toString()});
+            { attributes:
+            { 'xmlns': 'http://jitsi.org/jitmeet/video' },
+                value: mute.toString() });
     }
 
     sendVideoInfoPresence(mute) {
         this.addVideoInfoToPresence(mute);
-        if(!this.connection) {
+        if (!this.connection) {
             return;
         }
         this.sendPresence();
@@ -815,7 +815,7 @@ export default class ChatRoom extends Listenable {
             mutedNode = filterNodeFromPresenceJSON(pres, 'videomuted');
             const videoTypeNode = filterNodeFromPresenceJSON(pres, 'videoType');
 
-            if(videoTypeNode.length > 0) {
+            if (videoTypeNode.length > 0) {
                 data.videoType = videoTypeNode[0].value;
             }
         } else {
@@ -833,7 +833,7 @@ export default class ChatRoom extends Listenable {
      * Returns true if the recording is supproted and false if not.
      */
     isRecordingSupported() {
-        if(this.recording) {
+        if (this.recording) {
             return this.recording.isSupported();
         }
 
@@ -861,7 +861,7 @@ export default class ChatRoom extends Listenable {
      * @param statusChangeHandler {function} receives the new status as argument.
      */
     toggleRecording(options, statusChangeHandler) {
-        if(this.recording) {
+        if (this.recording) {
             return this.recording.toggleRecording(options, statusChangeHandler);
         }
 
@@ -873,7 +873,7 @@ export default class ChatRoom extends Listenable {
      * Returns true if the SIP calls are supported and false otherwise
      */
     isSIPCallingSupported() {
-        if(this.moderator) {
+        if (this.moderator) {
             return this.moderator.isSipGatewayEnabled();
         }
 
@@ -919,7 +919,7 @@ export default class ChatRoom extends Listenable {
     muteParticipant(jid, mute) {
         logger.info('set mute', mute);
         const iqToFocus = $iq(
-            {to: this.focusMucJid, type: 'set'})
+            { to: this.focusMucJid, type: 'set' })
             .c('mute', {
                 xmlns: 'http://jitsi.org/jitmeet/audio',
                 jid
@@ -966,7 +966,7 @@ export default class ChatRoom extends Listenable {
             function onMucLeft(doReject = false) {
                 eventEmitter.removeListener(XMPPEvents.MUC_LEFT, onMucLeft);
                 clearTimeout(timeout);
-                if(doReject) {
+                if (doReject) {
                     // the timeout expired
                     reject(new Error('The timeout for the confirmation about '
                         + 'leaving the room expired.'));

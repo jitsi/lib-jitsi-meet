@@ -61,7 +61,7 @@ function JitsiConference(options) {
     this.authEnabled = false;
     this.startAudioMuted = false;
     this.startVideoMuted = false;
-    this.startMutedPolicy = {audio: false, video: false};
+    this.startMutedPolicy = { audio: false, video: false };
     this.availableDevices = {
         audio: undefined,
         video: undefined
@@ -399,7 +399,7 @@ JitsiConference.prototype.setDisplayName = function(name) {
         // remove previously set nickname
         this.room.removeFromPresence('nick');
 
-        this.room.addToPresence('nick', {attributes: {xmlns: 'http://jabber.org/protocol/nick'}, value: name});
+        this.room.addToPresence('nick', { attributes: { xmlns: 'http://jabber.org/protocol/nick' }, value: name });
         this.room.sendPresence();
     }
 };
@@ -1003,7 +1003,7 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
     this.getParticipants().forEach(function(participant) {
         const tracks = participant.getTracks();
 
-        for(let i = 0; i < tracks.length; i++) {
+        for (let i = 0; i < tracks.length; i++) {
             if (tracks[i] === removedTrack) {
                 // Since the tracks have been compared and are
                 // considered equal the result of splice can be ignored.
@@ -1134,7 +1134,7 @@ JitsiConference.prototype.onIncomingCall
                 },
                 ssrcInfo,
                 true /* don't modify SSRCs */);
-        } catch(e) {
+        } catch (e) {
             GlobalOnErrorHandler.callErrorHandler(e);
             logger.error(e);
         }
@@ -1464,7 +1464,7 @@ JitsiConference.prototype.getConnectionTimes = function() {
  * Sets a property for the local participant.
  */
 JitsiConference.prototype.setLocalParticipantProperty = function(name, value) {
-    this.sendCommand(`jitsi_participant_${name}`, {value});
+    this.sendCommand(`jitsi_participant_${name}`, { value });
 };
 
 /**

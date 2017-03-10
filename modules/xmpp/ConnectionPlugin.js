@@ -5,7 +5,7 @@ import Listenable from '../util/Listenable';
  * @param {Class} base the definition of the class that will be extended by
  * ConnectionPlugin
  */
-function getConnectionPluginDefinition(base = class{}) {
+function getConnectionPluginDefinition(base = class {}) {
     /**
      * Base class for strophe connection plugins.
      */

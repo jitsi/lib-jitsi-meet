@@ -20,9 +20,9 @@ TranscriptionService.prototype.send = function send(recordingResult, callback) {
     const t = this;
 
     this.sendRequest(recordingResult.blob, response => {
-        if(t.verify(response)) {
+        if (t.verify(response)) {
             recordingResult.wordArray = t.formatResponse(response);
-        } else{
+        } else {
             console.log('the retrieved response from the server is not valid!');
             recordingResult.wordArray = [];
         }

@@ -31,7 +31,7 @@ const logger = Logger.getLogger(__filename);
 const USER_MEDIA_PERMISSION_PROMPT_TIMEOUT = 500;
 
 function getLowerResolution(resolution) {
-    if(!Resolutions[resolution]) {
+    if (!Resolutions[resolution]) {
         return null;
     }
     const order = Resolutions[resolution].order;
@@ -104,7 +104,7 @@ const LibJitsiMeet = {
         Statistics.init(options);
 
         this.analytics = Statistics.analytics;
-        if(options.enableAnalyticsLogging === true) {
+        if (options.enableAnalyticsLogging === true) {
             this.analytics.init(RTCBrowserType.getBrowserName());
         }
 
@@ -128,7 +128,7 @@ const LibJitsiMeet = {
             Statistics.sendLog(JSON.stringify(logObject));
         }
 
-        if(this.version) {
+        if (this.version) {
             const logObject = {
                 id: 'component_version',
                 component: 'lib-jitsi-meet',
@@ -228,7 +228,7 @@ const LibJitsiMeet = {
             }, USER_MEDIA_PERMISSION_PROMPT_TIMEOUT);
         }
 
-        if(!window.connectionTimes) {
+        if (!window.connectionTimes) {
             window.connectionTimes = {};
         }
         window.connectionTimes['obtainPermissions.start']
@@ -242,14 +242,14 @@ const LibJitsiMeet = {
                     = window.performance.now();
 
                 Statistics.analytics.sendEvent(addDeviceTypeToAnalyticsEvent(
-                    'getUserMedia.success', options), {value: options});
+                    'getUserMedia.success', options), { value: options });
 
-                if(!RTC.options.disableAudioLevels) {
-                    for(let i = 0; i < tracks.length; i++) {
+                if (!RTC.options.disableAudioLevels) {
+                    for (let i = 0; i < tracks.length; i++) {
                         const track = tracks[i];
                         const mStream = track.getOriginalStream();
 
-                        if(track.getType() === MediaType.AUDIO) {
+                        if (track.getType() === MediaType.AUDIO) {
                             Statistics.startLocalStats(mStream,
                                 track.setAudioLevel.bind(track));
                             track.addEventListener(
@@ -266,7 +266,7 @@ const LibJitsiMeet = {
                     = RTC.getCurrentlyAvailableMediaDevices();
 
                 if (currentlyAvailableMediaDevices) {
-                    for(let i = 0; i < tracks.length; i++) {
+                    for (let i = 0; i < tracks.length; i++) {
                         const track = tracks[i];
 
                         track._setRealDeviceIdFromDeviceList(
@@ -279,7 +279,7 @@ const LibJitsiMeet = {
             .catch(error => {
                 promiseFulfilled = true;
 
-                if(error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
+                if (error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
                     const oldResolution = options.resolution || '360';
                     const newResolution = getLowerResolution(oldResolution);
 
@@ -330,7 +330,7 @@ const LibJitsiMeet = {
 
                     Statistics.analytics.sendEvent(
                         `${event}.${error.name}`,
-                        {value: options});
+                        { value: options });
                 }
 
                 window.connectionTimes['obtainPermissions.end']

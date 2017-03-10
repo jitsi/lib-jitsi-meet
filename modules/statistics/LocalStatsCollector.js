@@ -20,7 +20,7 @@ window.AudioContext = window.AudioContext || window.webkitAudioContext;
 
 let context = null;
 
-if(window.AudioContext) {
+if (window.AudioContext) {
     context = new AudioContext();
 
     // XXX Not all browsers define a suspend method on AudioContext. As the
@@ -64,9 +64,9 @@ function animateLevel(newLevel, lastLevel) {
     let value = 0;
     const diff = lastLevel - newLevel;
 
-    if(diff > 0.2) {
+    if (diff > 0.2) {
         value = lastLevel - 0.2;
-    } else if(diff < -0.4) {
+    } else if (diff < -0.4) {
         value = lastLevel + 0.4;
     } else {
         value = newLevel;

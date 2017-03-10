@@ -35,7 +35,7 @@ const ScriptUtil = {
             // and use it as base of the src supplied argument
             const scriptEl = currentExecutingScript();
 
-            if(scriptEl) {
+            if (scriptEl) {
                 const scriptSrc = scriptEl.src;
                 const baseScriptSrc
                     = scriptSrc.substring(0, scriptSrc.lastIndexOf('/') + 1);

@@ -26,7 +26,7 @@ const trackHandler2Prop = {
 function implementOnEndedHandling(jitsiTrack) {
     const stream = jitsiTrack.getOriginalStream();
 
-    if(!stream) {
+    if (!stream) {
         return;
     }
 
@@ -103,16 +103,16 @@ function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMedia
  */
 JitsiTrack.prototype._setHandler = function(type, handler) {
     this.handlers[type] = handler;
-    if(!this.stream) {
+    if (!this.stream) {
         return;
     }
 
-    if(type === 'inactive') {
+    if (type === 'inactive') {
         if (RTCBrowserType.isFirefox()) {
             implementOnEndedHandling(this);
         }
         addMediaStreamInactiveHandler(this.stream, handler);
-    } else if(trackHandler2Prop.hasOwnProperty(type)) {
+    } else if (trackHandler2Prop.hasOwnProperty(type)) {
         this.stream.getVideoTracks().forEach(track => {
             track[trackHandler2Prop[type]] = handler;
         }, this);
@@ -246,7 +246,7 @@ JitsiTrack.prototype._maybeFireTrackAttached = function(container) {
  *          library. That's the case when Temasys plugin is in use.
  */
 JitsiTrack.prototype.attach = function(container) {
-    if(this.stream) {
+    if (this.stream) {
         container = RTCUtils.attachMediaStream(container, this.stream);
     }
     this.containers.push(container);
@@ -322,7 +322,7 @@ JitsiTrack.prototype.isScreenSharing = function() {
  * @returns {string|null} id of the track or null if this is fake track.
  */
 JitsiTrack.prototype.getId = function() {
-    if(this.stream) {
+    if (this.stream) {
         return RTCUtils.getStreamID(this.stream);
     }
 
@@ -337,7 +337,7 @@ JitsiTrack.prototype.getId = function() {
  * @returns {boolean} whether MediaStream is active.
  */
 JitsiTrack.prototype.isActive = function() {
-    if(typeof this.stream.active !== 'undefined') {
+    if (typeof this.stream.active !== 'undefined') {
         return this.stream.active;
     }
 
@@ -352,7 +352,7 @@ JitsiTrack.prototype.isActive = function() {
  * @param handler handler for the event.
  */
 JitsiTrack.prototype.on = function(eventId, handler) {
-    if(this.eventEmitter) {
+    if (this.eventEmitter) {
         this.eventEmitter.on(eventId, handler);
     }
 };
@@ -363,7 +363,7 @@ JitsiTrack.prototype.on = function(eventId, handler) {
  * @param [handler] optional, the specific handler to unbind
  */
 JitsiTrack.prototype.off = function(eventId, handler) {
-    if(this.eventEmitter) {
+    if (this.eventEmitter) {
         this.eventEmitter.removeListener(eventId, handler);
     }
 };
@@ -377,7 +377,7 @@ JitsiTrack.prototype.removeEventListener = JitsiTrack.prototype.off;
  * @param audioLevel the new audio level
  */
 JitsiTrack.prototype.setAudioLevel = function(audioLevel) {
-    if(this.audioLevel !== audioLevel) {
+    if (this.audioLevel !== audioLevel) {
         this.eventEmitter.emit(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
             audioLevel);
         this.audioLevel = audioLevel;
