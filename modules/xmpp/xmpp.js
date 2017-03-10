@@ -324,8 +324,8 @@ export default class XMPP extends Listenable {
         return (this.connection.logger || {}).log || null;
     }
 
-    dial(to, from, roomName, roomPass) {
-        this.connection.rayo.dial(to, from, roomName, roomPass);
+    dial(...args) {
+        this.connection.rayo.dial(...args);
     }
 
     setMute(jid, mute) {

@@ -15,6 +15,8 @@ import VideoType from '../../service/RTC/VideoType';
 
 const logger = getLogger(__filename);
 
+/* eslint-disable max-params */
+
 /**
  * Represents a single media track(either audio or video).
  * One <tt>JitsiLocalTrack</tt> corresponds to one WebRTC MediaStreamTrack.
@@ -27,20 +29,28 @@ const logger = getLogger(__filename);
  * @param facingMode the camera facing mode used in getUserMedia call
  * @constructor
  */
-function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
-                         deviceId, facingMode) {
-    const self = this;
-
-    JitsiTrack.call(this,
-        null /* RTC */, stream, track,
+function JitsiLocalTrack(
+        stream,
+        track,
+        mediaType,
+        videoType,
+        resolution,
+        deviceId,
+        facingMode) {
+    JitsiTrack.call(
+        this,
+        null /* RTC */,
+        stream,
+        track,
         () => {
             if (!this.dontFireRemoveEvent) {
-                this.eventEmitter.emit(
-                    JitsiTrackEvents.LOCAL_TRACK_STOPPED);
+                this.eventEmitter.emit(JitsiTrackEvents.LOCAL_TRACK_STOPPED);
             }
             this.dontFireRemoveEvent = false;
         } /* inactiveHandler */,
-        mediaType, videoType, null /* ssrc */);
+        mediaType,
+        videoType,
+        null /* ssrc */);
     this.dontFireRemoveEvent = false;
     this.resolution = resolution;
 
@@ -98,16 +108,16 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
      */
     this._noDataFromSourceTimeout = null;
 
-    this._onDeviceListChanged = function(devices) {
-        self._setRealDeviceIdFromDeviceList(devices);
+    this._onDeviceListChanged = devices => {
+        this._setRealDeviceIdFromDeviceList(devices);
 
         // Mark track as ended for those browsers that do not support
         // "readyState" property. We do not touch tracks created with default
         // device ID "".
-        if (typeof self.getTrack().readyState === 'undefined'
-            && typeof self._realDeviceId !== 'undefined'
-            && !devices.find(d => d.deviceId === self._realDeviceId)) {
-            self._trackEnded = true;
+        if (typeof this.getTrack().readyState === 'undefined'
+                && typeof this._realDeviceId !== 'undefined'
+                && !devices.find(d => d.deviceId === this._realDeviceId)) {
+            this._trackEnded = true;
         }
     };
 
@@ -117,16 +127,19 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
     // because there might be local tracks not attached to a conference.
     if (this.isAudioTrack() && RTCUtils.isDeviceChangeAvailable('output')) {
         this._onAudioOutputDeviceChanged = this.setAudioOutput.bind(this);
-
-        RTCUtils.addListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
+        RTCUtils.addListener(
+            RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
             this._onAudioOutputDeviceChanged);
     }
 
-    RTCUtils.addListener(RTCEvents.DEVICE_LIST_CHANGED,
+    RTCUtils.addListener(
+        RTCEvents.DEVICE_LIST_CHANGED,
         this._onDeviceListChanged);
 
     this._initNoDataFromSourceHandlers();
 }
+
+/* eslint-enable max-params */
 
 JitsiLocalTrack.prototype = Object.create(JitsiTrack.prototype);
 JitsiLocalTrack.prototype.constructor = JitsiLocalTrack;

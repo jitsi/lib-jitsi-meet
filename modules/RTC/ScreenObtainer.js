@@ -290,6 +290,8 @@ const ScreenObtainer = {
         }
     },
 
+    /* eslint-disable max-params */
+
     handleExtensionInstallationError(options, streamCallback, failCallback, e) {
         const webStoreInstallUrl = getWebStoreInstallUrl(this.options);
 
@@ -313,6 +315,8 @@ const ScreenObtainer = {
             JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR,
             msg));
     },
+
+    /* eslint-enable max-params */
 
     checkForChromeExtensionOnInterval(options, streamCallback, failCallback) {
         if (options.checkAgain() === false) {

@@ -411,6 +411,8 @@ export default class RTC extends Listenable {
         this.localTracks.splice(pos, 1);
     }
 
+    /* eslint-disable max-params */
+
     /**
      * Initializes a new JitsiRemoteTrack instance with the data provided by
      * the signaling layer and SDP.
@@ -423,24 +425,41 @@ export default class RTC extends Listenable {
      * @param {string} ssrc
      * @param {boolean} muted
      */
-    _createRemoteTrack(ownerEndpointId,
-                        stream, track, mediaType, videoType, ssrc, muted) {
+    _createRemoteTrack(
+            ownerEndpointId,
+            stream,
+            track,
+            mediaType,
+            videoType,
+            ssrc,
+            muted) {
         const remoteTrack
             = new JitsiRemoteTrack(
-                this, this.conference, ownerEndpointId, stream, track,
-                mediaType, videoType, ssrc, muted);
+                this,
+                this.conference,
+                ownerEndpointId,
+                stream,
+                track,
+                mediaType,
+                videoType,
+                ssrc,
+                muted);
         const remoteTracks
             = this.remoteTracks[ownerEndpointId]
                 || (this.remoteTracks[ownerEndpointId] = {});
 
         if (remoteTracks[mediaType]) {
             logger.error(
-                'Overwriting remote track!', ownerEndpointId, mediaType);
+                'Overwriting remote track!',
+                ownerEndpointId,
+                mediaType);
         }
         remoteTracks[mediaType] = remoteTrack;
 
         this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack);
     }
+
+    /* eslint-enable max-params */
 
     /**
      * Removes all JitsiRemoteTracks associated with given MUC nickname

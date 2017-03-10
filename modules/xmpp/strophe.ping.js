@@ -47,22 +47,27 @@ class PingConnectionPlugin extends ConnectionPlugin {
         Strophe.addNamespace('PING', 'urn:xmpp:ping');
     }
 
+    /* eslint-disable max-params */
+
     /**
      * Sends "ping" to given <tt>jid</tt>
      * @param jid the JID to which ping request will be sent.
      * @param success callback called on success.
      * @param error callback called on error.
      * @param timeout ms how long are we going to wait for the response. On
-     *        timeout <tt>error<//t> callback is called with undefined error
-     *        argument.
+     * timeout <tt>error<//t> callback is called with undefined error argument.
      */
     ping(jid, success, error, timeout) {
-        const iq = $iq({ type: 'get',
-            to: jid });
+        const iq = $iq({
+            type: 'get',
+            to: jid
+        });
 
         iq.c('ping', { xmlns: Strophe.NS.PING });
         this.connection.sendIQ(iq, success, error, timeout);
     }
+
+    /* eslint-enable max-params */
 
     /**
      * Checks if given <tt>jid</tt> has XEP-0199 ping support.

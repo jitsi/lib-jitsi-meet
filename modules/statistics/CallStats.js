@@ -181,6 +181,8 @@ CallStats.prototype.pcCallback = tryCatch((err, msg) => {
     }
 });
 
+/* eslint-disable max-params */
+
 /**
  * Lets CallStats module know where is given SSRC rendered by providing renderer
  * tag ID.
@@ -193,8 +195,11 @@ CallStats.prototype.pcCallback = tryCatch((err, msg) => {
  * @param containerId {string} the id of media 'audio' or 'video' tag which
  *        renders the stream.
  */
-CallStats.prototype.associateStreamWithVideoTag
-= function(ssrc, isLocal, usageLabel, containerId) {
+CallStats.prototype.associateStreamWithVideoTag = function(
+        ssrc,
+        isLocal,
+        usageLabel,
+        containerId) {
     if (!callStats) {
         return;
     }
@@ -233,6 +238,8 @@ CallStats.prototype.associateStreamWithVideoTag
         }
     }).bind(this)();
 };
+
+/* eslint-enable max-params */
 
 /**
  * Notifies CallStats for mute events

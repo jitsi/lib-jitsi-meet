@@ -390,6 +390,8 @@ const LibJitsiMeet = {
         this.mediaDevices.enumerateDevices(callback);
     },
 
+    /* eslint-disable max-params */
+
     /**
      * @returns function that can be used to be attached to window.onerror and
      * if options.enableWindowOnErrorHandler is enabled returns
@@ -405,6 +407,8 @@ const LibJitsiMeet = {
             'StackTrace: ', error);
         Statistics.reportGlobalError(error);
     },
+
+    /* eslint-enable max-params */
 
     /**
      * Returns current machine id saved from the local storage.

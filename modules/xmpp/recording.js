@@ -6,8 +6,15 @@ const XMPPEvents = require('../../service/xmpp/XMPPEvents');
 const JitsiRecorderErrors = require('../../JitsiRecorderErrors');
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
-function Recording(type, eventEmitter, connection, focusMucJid, jirecon,
-    roomjid) {
+/* eslint-disable max-params */
+
+function Recording(
+        type,
+        eventEmitter,
+        connection,
+        focusMucJid,
+        jirecon,
+        roomjid) {
     this.eventEmitter = eventEmitter;
     this.connection = connection;
     this.state = null;
@@ -29,6 +36,8 @@ function Recording(type, eventEmitter, connection, focusMucJid, jirecon,
     this.jireconRid = null;
     this.roomjid = roomjid;
 }
+
+/* eslint-enable max-params */
 
 Recording.types = {
     COLIBRI: 'colibri',
@@ -84,42 +93,50 @@ Recording.prototype.handleJibriPresence = function(jibri) {
     this.eventEmitter.emit(XMPPEvents.RECORDER_STATE_CHANGED, this.state);
 };
 
-Recording.prototype.setRecordingJibri
-    = function(state, callback, errCallback, options = {}) {
+/* eslint-disable max-params */
 
-        if (state === this.state) {
-            errCallback(JitsiRecorderErrors.INVALID_STATE);
-        }
+Recording.prototype.setRecordingJibri = function(
+        state,
+        callback,
+        errCallback,
+        options = {}) {
+    if (state === this.state) {
+        errCallback(JitsiRecorderErrors.INVALID_STATE);
+    }
 
-        // FIXME jibri does not accept IQ without 'url' attribute set ?
-        const iq
-            = $iq({ to: this.focusMucJid,
-                type: 'set' })
-                .c('jibri', {
-                    'xmlns': 'http://jitsi.org/protocol/jibri',
-                    'action': state === Recording.status.ON
-                            ? Recording.action.START
-                            : Recording.action.STOP,
-                    'streamid': options.streamId
-                })
-                .up();
+    // FIXME jibri does not accept IQ without 'url' attribute set ?
+    const iq
+        = $iq({
+            to: this.focusMucJid,
+            type: 'set'
+        })
+            .c('jibri', {
+                'xmlns': 'http://jitsi.org/protocol/jibri',
+                'action': state === Recording.status.ON
+                        ? Recording.action.START
+                        : Recording.action.STOP,
+                'streamid': options.streamId
+            })
+            .up();
 
-        logger.log(`Set jibri recording: ${state}`, iq.nodeTree);
-        logger.log(iq.nodeTree);
-        this.connection.sendIQ(
-        iq,
-        result => {
-            logger.log('Result', result);
+    logger.log(`Set jibri recording: ${state}`, iq.nodeTree);
+    logger.log(iq.nodeTree);
+    this.connection.sendIQ(
+    iq,
+    result => {
+        logger.log('Result', result);
 
-            const jibri = $(result).find('jibri');
+        const jibri = $(result).find('jibri');
 
-            callback(jibri.attr('state'), jibri.attr('url'));
-        },
-        error => {
-            logger.log('Failed to start recording, error: ', error);
-            errCallback(error);
-        });
-    };
+        callback(jibri.attr('state'), jibri.attr('url'));
+    },
+    error => {
+        logger.log('Failed to start recording, error: ', error);
+        errCallback(error);
+    });
+};
+
+/* eslint-enable max-params */
 
 Recording.prototype.setRecordingJirecon
     = function(state, callback, errCallback) {
@@ -166,23 +183,33 @@ Recording.prototype.setRecordingJirecon
         });
     };
 
+/* eslint-disable max-params */
+
 // Sends a COLIBRI message which enables or disables (according to 'state')
 // the recording on the bridge. Waits for the result IQ and calls 'callback'
 // with the new recording state, according to the IQ.
-Recording.prototype.setRecordingColibri
-= function(state, callback, errCallback, options) {
-    const elem = $iq({ to: this.focusMucJid,
-        type: 'set' });
+Recording.prototype.setRecordingColibri = function(
+        state,
+        callback,
+        errCallback,
+        options) {
+    const elem = $iq({
+        to: this.focusMucJid,
+        type: 'set'
+    });
 
     elem.c('conference', {
         xmlns: 'http://jitsi.org/protocol/colibri'
     });
-    elem.c('recording', { state,
-        token: options.token });
+    elem.c('recording', {
+        state,
+        token: options.token
+    });
 
     const self = this;
 
-    this.connection.sendIQ(elem,
+    this.connection.sendIQ(
+        elem,
         result => {
             logger.log('Set recording "', state, '". Result:', result);
             const recordingElem = $(result).find('>conference>recording');
@@ -210,17 +237,18 @@ Recording.prototype.setRecordingColibri
     );
 };
 
-Recording.prototype.setRecording
-= function(state, callback, errCallback, options) {
+/* eslint-enable max-params */
+
+Recording.prototype.setRecording = function(...args) {
     switch (this.type) {
     case Recording.types.JIRECON:
-        this.setRecordingJirecon(state, callback, errCallback, options);
+        this.setRecordingJirecon(...args);
         break;
     case Recording.types.COLIBRI:
-        this.setRecordingColibri(state, callback, errCallback, options);
+        this.setRecordingColibri(...args);
         break;
     case Recording.types.JIBRI:
-        this.setRecordingJibri(state, callback, errCallback, options);
+        this.setRecordingJibri(...args);
         break;
     default: {
         const errmsg = 'Unknown recording type!';
