@@ -101,6 +101,7 @@ module.exports = {
         'no-multi-spaces': 2,
         'no-multi-str': 2,
         'no-native-reassign': 2,
+        'no-new': 2,
         'no-new-func': 2,
         'no-octal': 2,
         'no-octal-escape': 2,

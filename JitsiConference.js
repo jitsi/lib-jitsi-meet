@@ -141,9 +141,11 @@ JitsiConference.prototype._init = function(options) {
     this.eventManager.setupStatisticsListeners();
 
     if (this.options.config.enableTalkWhileMuted) {
-        new TalkMutedDetection(this, () => {
-            this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED);
-        });
+        // eslint-disable-next-line no-new
+        new TalkMutedDetection(
+            this,
+            () =>
+                this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED));
     }
 };
 
