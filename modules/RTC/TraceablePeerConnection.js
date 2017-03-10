@@ -491,6 +491,8 @@ function extractSSRCMap(desc) {
                     // Note that group.semantics is already present
 
                     group.ssrcs = groupSSRCs;
+
+                    // eslint-disable-next-line max-depth
                     if (!groupsMap.has(primarySSRC)) {
                         groupsMap.set(primarySSRC, []);
                     }

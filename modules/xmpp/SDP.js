@@ -241,6 +241,8 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 
                 if (afmtpline) {
                     tmp = SDPUtil.parseFmtp(afmtpline);
+
+                    // eslint-disable-next-line max-depth
                     for (k = 0; k < tmp.length; k++) {
                         elem.c('parameter', tmp[k]).up();
                     }
@@ -317,11 +319,14 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                     // FIXME what is this ? global APP.RTC in SDP ?
                     const localTrack = APP.RTC.getLocalTracks(mline.media);
 
+                    // eslint-disable-next-line max-depth
                     if (localTrack) {
                         // FIXME before this changes the track id was accessed,
                         // but msid stands for the stream id, makes no sense ?
                         msid = localTrack.getTrackId();
                     }
+
+                    // eslint-disable-next-line max-depth
                     if (msid !== null) {
                         msid = SDPUtil.filterSpecialChars(msid);
                         elem.c('parameter');
@@ -375,7 +380,11 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                         uri: tmp.uri,
                         id: tmp.value
                     });
+
+                    // eslint-disable-next-line max-depth
                     if (tmp.hasOwnProperty('direction')) {
+
+                        // eslint-disable-next-line max-depth
                         switch (tmp.direction) {
                         case 'sendonly':
                             elem.attrs({ senders: 'responder' });

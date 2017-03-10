@@ -103,6 +103,7 @@ export default class SdpConsistency {
                         const primarySsrc = parsePrimarySSRC(group);
                         const rtxSsrc = parseSecondarySSRC(group);
 
+                        // eslint-disable-next-line max-depth
                         if (primarySsrc === newPrimarySsrc) {
                             group.ssrcs
                                 = `${this.cachedPrimarySsrc} ${rtxSsrc}`;
