@@ -55,72 +55,15 @@ let callStats = null;
  */
 const DEFAULT_REMOTE_USER = 'jitsi';
 
-function initCallback(err, msg) {
-    logger.log(`CallStats Status: err=${err} msg=${msg}`);
-
-    CallStats.initializeInProgress = false;
-
-    // there is no lib, nothing to report to
-    if (err !== 'success') {
-        CallStats.initializeFailed = true;
-
-        return;
-    }
-
-    const ret = callStats.addNewFabric(this.peerconnection,
-        DEFAULT_REMOTE_USER,
-        callStats.fabricUsage.multiplex,
-        this.confID,
-        this.pcCallback.bind(this));
-
-    const fabricInitialized = ret.status === 'success';
-
-    if (!fabricInitialized) {
-        CallStats.initializeFailed = true;
-        logger.log('callstats fabric not initilized', ret.message);
-
-        return;
-    }
-
-    CallStats.initializeFailed = false;
-    CallStats.initialized = true;
-    CallStats.feedbackEnabled = true;
-
-    // notify callstats about failures if there were any
-    if (CallStats.reportsQueue.length) {
-        CallStats.reportsQueue.forEach(function(report) {
-            if (report.type === reportType.ERROR) {
-                const error = report.data;
-
-                CallStats._reportError.call(this, error.type, error.error,
-                    error.pc);
-            } else if (report.type === reportType.EVENT
-                && fabricInitialized) {
-                // if we have and event to report and we failed to add fabric
-                // this event will not be reported anyway, returning an error
-                const eventData = report.data;
-
-                callStats.sendFabricEvent(
-                    this.peerconnection,
-                    eventData.event,
-                    this.confID,
-                    eventData.eventData);
-            } else if (report.type === reportType.MST_WITH_USERID) {
-                const data = report.data;
-
-                callStats.associateMstWithUserID(
-                    this.peerconnection,
-                    data.callStatsId,
-                    this.confID,
-                    data.ssrc,
-                    data.usageLabel,
-                    data.containerId
-                );
-            }
-        }, this);
-        CallStats.reportsQueue.length = 0;
-    }
-}
+/**
+ * Type of pending reports, can be event or an error.
+ * @type {{ERROR: string, EVENT: string}}
+ */
+const reportType = {
+    ERROR: 'error',
+    EVENT: 'event',
+    MST_WITH_USERID: 'mstWithUserID'
+};
 
 /**
  * Returns a function which invokes f in a try/catch block, logs any exception
@@ -230,16 +173,6 @@ CallStats._checkInitialize = function() {
         callStats.callStatsSecret,
         callStats.userID,
         initCallback.bind(callStats));
-};
-
-/**
- * Type of pending reports, can be event or an error.
- * @type {{ERROR: string, EVENT: string}}
- */
-const reportType = {
-    ERROR: 'error',
-    EVENT: 'event',
-    MST_WITH_USERID: 'mstWithUserID'
 };
 
 CallStats.prototype.pcCallback = tryCatch((err, msg) => {
@@ -530,5 +463,72 @@ CallStats.dispose = function() {
     CallStats.initializeFailed = false;
     CallStats.initializeInProgress = false;
 };
+
+function initCallback(err, msg) {
+    logger.log(`CallStats Status: err=${err} msg=${msg}`);
+
+    CallStats.initializeInProgress = false;
+
+    // there is no lib, nothing to report to
+    if (err !== 'success') {
+        CallStats.initializeFailed = true;
+
+        return;
+    }
+
+    const ret = callStats.addNewFabric(this.peerconnection,
+        DEFAULT_REMOTE_USER,
+        callStats.fabricUsage.multiplex,
+        this.confID,
+        this.pcCallback.bind(this));
+
+    const fabricInitialized = ret.status === 'success';
+
+    if (!fabricInitialized) {
+        CallStats.initializeFailed = true;
+        logger.log('callstats fabric not initilized', ret.message);
+
+        return;
+    }
+
+    CallStats.initializeFailed = false;
+    CallStats.initialized = true;
+    CallStats.feedbackEnabled = true;
+
+    // notify callstats about failures if there were any
+    if (CallStats.reportsQueue.length) {
+        CallStats.reportsQueue.forEach(function(report) {
+            if (report.type === reportType.ERROR) {
+                const error = report.data;
+
+                CallStats._reportError.call(this, error.type, error.error,
+                    error.pc);
+            } else if (report.type === reportType.EVENT
+                && fabricInitialized) {
+                // if we have and event to report and we failed to add fabric
+                // this event will not be reported anyway, returning an error
+                const eventData = report.data;
+
+                callStats.sendFabricEvent(
+                    this.peerconnection,
+                    eventData.event,
+                    this.confID,
+                    eventData.eventData);
+            } else if (report.type === reportType.MST_WITH_USERID) {
+                const data = report.data;
+
+                callStats.associateMstWithUserID(
+                    this.peerconnection,
+                    data.callStatsId,
+                    this.confID,
+                    data.ssrc,
+                    data.usageLabel,
+                    data.containerId
+                );
+            }
+        }, this);
+        CallStats.reportsQueue.length = 0;
+    }
+}
 
 module.exports = CallStats;

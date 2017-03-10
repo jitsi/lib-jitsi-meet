@@ -110,7 +110,7 @@ transcriber.prototype.stop = function stop(callback) {
  * @param {RecordingResult} answer a RecordingResult object with a defined
  * WordArray
  */
-const blobCallBack = function(answer) {
+function blobCallBack(answer) {
     console.log(
         'retrieved an answer from the transcription service. The answer has an'
             + ` array of length: ${answer.wordArray.length}`);
@@ -150,7 +150,7 @@ const blobCallBack = function(answer) {
 
     // and check if all results have been received.
     this.maybeMerge();
-};
+}
 
 /**
  * this method will check if the counter is zero. If it is, it will call
@@ -263,7 +263,7 @@ transcriber.prototype.updateTranscription = function(word, name) {
  * @param {Array<Array>} twoDimensionalArray the array to check
  * @returns {boolean} true if any non-zero arrays inside, otherwise false
  */
-const hasPopulatedArrays = function(twoDimensionalArray) {
+function hasPopulatedArrays(twoDimensionalArray) {
     for (let i = 0; i < twoDimensionalArray.length; i++) {
         if (twoDimensionalArray[i].length === 0) {
             twoDimensionalArray.splice(i, 1);
@@ -271,7 +271,7 @@ const hasPopulatedArrays = function(twoDimensionalArray) {
     }
 
     return twoDimensionalArray.length > 0;
-};
+}
 
 /**
  * Push a word to the right location in a sorted array. The array is sorted
@@ -281,7 +281,7 @@ const hasPopulatedArrays = function(twoDimensionalArray) {
  * @param {Array<Word>} array the sorted array to push to
  * @param {Word} word the word to push into the array
  */
-const pushWordToSortedArray = function(array, word) {
+function pushWordToSortedArray(array, word) {
     if (array.length === 0) {
         array.push(word);
     } else {
@@ -290,9 +290,8 @@ const pushWordToSortedArray = function(array, word) {
 
             return;
         }
-        let i;
 
-        for (i = 0; i < array.length; i++) {
+        for (let i = 0; i < array.length; i++) {
             if (word.begin < array[i].begin) {
                 array.splice(i, 0, word);
 
@@ -301,7 +300,7 @@ const pushWordToSortedArray = function(array, word) {
         }
         array.push(word); // fail safe
     }
-};
+}
 
 /**
  * Gives the transcriber a JitsiTrack holding an audioStream to transcribe.

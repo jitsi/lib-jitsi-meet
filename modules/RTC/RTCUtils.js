@@ -431,35 +431,6 @@ function onMediaDevicesListChanged(devicesReceived) {
     eventEmitter.emit(RTCEvents.DEVICE_LIST_CHANGED, devicesReceived);
 }
 
-// In case of IE we continue from 'onReady' callback
-// passed to RTCUtils constructor. It will be invoked by Temasys plugin
-// once it is initialized.
-function onReady(options, GUM) {
-    rtcReady = true;
-    eventEmitter.emit(RTCEvents.RTC_READY, true);
-    screenObtainer.init(options, GUM);
-
-    // Initialize rawEnumerateDevicesWithCallback
-    initRawEnumerateDevicesWithCallback();
-
-    if (rtcUtils.isDeviceListAvailable() && rawEnumerateDevicesWithCallback) {
-        rawEnumerateDevicesWithCallback(ds => {
-            currentlyAvailableMediaDevices = ds.splice(0);
-
-            eventEmitter.emit(RTCEvents.DEVICE_LIST_AVAILABLE,
-                currentlyAvailableMediaDevices);
-
-            if (isDeviceChangeEventSupported) {
-                navigator.mediaDevices.addEventListener(
-                    'devicechange',
-                    () => rtcUtils.enumerateDevices(onMediaDevicesListChanged));
-            } else {
-                pollForAvailableMediaDevices();
-            }
-        });
-    }
-}
-
 /**
  * Apply function with arguments if function exists.
  * Do nothing if function not provided.
@@ -558,30 +529,6 @@ function convertMediaStreamTrackSource(source) {
     };
 }
 
-function obtainDevices(options) {
-    if (!options.devices || options.devices.length === 0) {
-        return options.successCallback(options.streams || {});
-    }
-
-    const device = options.devices.splice(0, 1);
-
-    options.deviceGUM[device](
-        stream => {
-            options.streams = options.streams || {};
-            options.streams[device] = stream;
-            obtainDevices(options);
-        },
-        error => {
-            Object.keys(options.streams).forEach(
-                d => rtcUtils.stopMediaStream(options.streams[d]));
-            logger.error(
-                `failed to obtain ${device} stream - stop`, error);
-
-            options.errorCallback(error);
-        });
-}
-
-
 /**
  * Handles the newly created Media Streams.
  * @param streams the new Media Streams
@@ -663,44 +610,6 @@ function handleLocalStream(streams, resolution) {
     }
 
     return res;
-}
-
-/**
- * Wraps original attachMediaStream function to set current audio output device
- * if this is supported.
- * @param {Function} origAttachMediaStream
- * @returns {Function}
- */
-function wrapAttachMediaStream(origAttachMediaStream) {
-    return function(element, stream) {
-        // eslint-disable-next-line prefer-rest-params
-        const res = origAttachMediaStream.apply(rtcUtils, arguments);
-
-        if (stream
-                && rtcUtils.isDeviceChangeAvailable('output')
-                && stream.getAudioTracks
-                && stream.getAudioTracks().length
-
-                // we skip setting audio output if there was no explicit change
-                && audioOutputChanged) {
-            element.setSinkId(rtcUtils.getAudioOutputDevice())
-                .catch(function(ex) {
-                    const err
-                        = new JitsiTrackError(ex, null, [ 'audiooutput' ]);
-
-                    GlobalOnErrorHandler.callUnhandledRejectionHandler(
-                        { promise: this,
-                            reason: err });
-
-                    logger.warn('Failed to set audio output device for the '
-                        + 'element. Default audio output device will be used '
-                        + 'instead',
-                        element, err);
-                });
-        }
-
-        return res;
-    };
 }
 
 /**
@@ -1413,5 +1322,96 @@ function rejectWithWebRTCNotSupported(errorMessage, reject) {
 }
 
 const rtcUtils = new RTCUtils();
+
+function obtainDevices(options) {
+    if (!options.devices || options.devices.length === 0) {
+        return options.successCallback(options.streams || {});
+    }
+
+    const device = options.devices.splice(0, 1);
+
+    options.deviceGUM[device](
+        stream => {
+            options.streams = options.streams || {};
+            options.streams[device] = stream;
+            obtainDevices(options);
+        },
+        error => {
+            Object.keys(options.streams).forEach(
+                d => rtcUtils.stopMediaStream(options.streams[d]));
+            logger.error(
+                `failed to obtain ${device} stream - stop`, error);
+
+            options.errorCallback(error);
+        });
+}
+
+// In case of IE we continue from 'onReady' callback
+// passed to RTCUtils constructor. It will be invoked by Temasys plugin
+// once it is initialized.
+function onReady(options, GUM) {
+    rtcReady = true;
+    eventEmitter.emit(RTCEvents.RTC_READY, true);
+    screenObtainer.init(options, GUM);
+
+    // Initialize rawEnumerateDevicesWithCallback
+    initRawEnumerateDevicesWithCallback();
+
+    if (rtcUtils.isDeviceListAvailable() && rawEnumerateDevicesWithCallback) {
+        rawEnumerateDevicesWithCallback(ds => {
+            currentlyAvailableMediaDevices = ds.splice(0);
+
+            eventEmitter.emit(RTCEvents.DEVICE_LIST_AVAILABLE,
+                currentlyAvailableMediaDevices);
+
+            if (isDeviceChangeEventSupported) {
+                navigator.mediaDevices.addEventListener(
+                    'devicechange',
+                    () => rtcUtils.enumerateDevices(onMediaDevicesListChanged));
+            } else {
+                pollForAvailableMediaDevices();
+            }
+        });
+    }
+}
+
+/**
+ * Wraps original attachMediaStream function to set current audio output device
+ * if this is supported.
+ * @param {Function} origAttachMediaStream
+ * @returns {Function}
+ */
+function wrapAttachMediaStream(origAttachMediaStream) {
+    return function(element, stream) {
+        // eslint-disable-next-line prefer-rest-params
+        const res = origAttachMediaStream.apply(rtcUtils, arguments);
+
+        if (stream
+                && rtcUtils.isDeviceChangeAvailable('output')
+                && stream.getAudioTracks
+                && stream.getAudioTracks().length
+
+                // we skip setting audio output if there was no explicit change
+                && audioOutputChanged) {
+            element.setSinkId(rtcUtils.getAudioOutputDevice())
+                .catch(function(ex) {
+                    const err
+                        = new JitsiTrackError(ex, null, [ 'audiooutput' ]);
+
+                    GlobalOnErrorHandler.callUnhandledRejectionHandler({
+                        promise: this,
+                        reason: err
+                    });
+
+                    logger.warn('Failed to set audio output device for the '
+                        + 'element. Default audio output device will be used '
+                        + 'instead',
+                        element, err);
+                });
+        }
+
+        return res;
+    };
+}
 
 export default rtcUtils;

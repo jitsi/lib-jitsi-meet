@@ -32,61 +32,6 @@ function _getSSRCCount(mLine) {
             .map(ssrcInfo => ssrcInfo.id)
             .filter((ssrc, index, array) => array.indexOf(ssrc) === index)
             .length;
-
-}
-
-/**
- * Utility class for SDP manipulation using the 'sdp-transform' library.
- *
- * Typical use usage scenario:
- *
- * const transformer = new SdpTransformWrap(rawSdp);
- * const videoMLine = transformer.selectMedia('video);
- * if (videoMLine) {
- *     videoMLiner.addSSRCAttribute({
- *         id: 2342343,
- *         attribute: "cname",
- *         value: "someCname"
- *     });
- *     rawSdp = transformer.toRawSdp();
- * }
- */
-export class SdpTransformWrap {
-
-    /**
-     * Creates new instance and parses the raw SDP into objects using
-     * 'sdp-transform' lib.
-     * @param {string} rawSDP the SDP in raw text format.
-     */
-    constructor(rawSDP) {
-        this.parsedSDP = transform.parse(rawSDP);
-    }
-
-    /**
-     * Selects the first media SDP of given name.
-     * @param {string} mediaType the name of the media e.g. 'audio', 'video',
-     * 'data'.
-     * @return {MLineWrap|null} return {@link MLineWrap} instance for the media
-     * line or <tt>null</tt> if not found. The object returned references
-     * the underlying SDP state held by this <tt>SdpTransformWrap</tt> instance
-     * (it's not a copy).
-     */
-    selectMedia(mediaType) {
-        const selectedMLine
-            = this.parsedSDP.media.find(mLine => mLine.type === mediaType);
-
-
-        return selectedMLine ? new MLineWrap(selectedMLine) : null;
-    }
-
-    /**
-     * Converts the currently stored SDP state in this instance to raw text SDP
-     * format.
-     * @return {string}
-     */
-    toRawSDP() {
-        return transform.write(this.parsedSDP);
-    }
 }
 
 /**
@@ -397,5 +342,58 @@ class MLineWrap {
      */
     addSSRCGroup(group) {
         this.ssrcGroups.push(group);
+    }
+}
+
+/**
+ * Utility class for SDP manipulation using the 'sdp-transform' library.
+ *
+ * Typical use usage scenario:
+ *
+ * const transformer = new SdpTransformWrap(rawSdp);
+ * const videoMLine = transformer.selectMedia('video);
+ * if (videoMLine) {
+ *     videoMLiner.addSSRCAttribute({
+ *         id: 2342343,
+ *         attribute: "cname",
+ *         value: "someCname"
+ *     });
+ *     rawSdp = transformer.toRawSdp();
+ * }
+ */
+export class SdpTransformWrap {
+
+    /**
+     * Creates new instance and parses the raw SDP into objects using
+     * 'sdp-transform' lib.
+     * @param {string} rawSDP the SDP in raw text format.
+     */
+    constructor(rawSDP) {
+        this.parsedSDP = transform.parse(rawSDP);
+    }
+
+    /**
+     * Selects the first media SDP of given name.
+     * @param {string} mediaType the name of the media e.g. 'audio', 'video',
+     * 'data'.
+     * @return {MLineWrap|null} return {@link MLineWrap} instance for the media
+     * line or <tt>null</tt> if not found. The object returned references
+     * the underlying SDP state held by this <tt>SdpTransformWrap</tt> instance
+     * (it's not a copy).
+     */
+    selectMedia(mediaType) {
+        const selectedMLine
+            = this.parsedSDP.media.find(mLine => mLine.type === mediaType);
+
+        return selectedMLine ? new MLineWrap(selectedMLine) : null;
+    }
+
+    /**
+     * Converts the currently stored SDP state in this instance to raw text SDP
+     * format.
+     * @return {string}
+     */
+    toRawSDP() {
+        return transform.write(this.parsedSDP);
     }
 }

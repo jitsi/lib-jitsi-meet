@@ -1,6 +1,10 @@
 const logger = require('jitsi-meet-logger').getLogger(__filename);
 
+let browserVersion; // eslint-disable-line prefer-const
+
 let currentBrowser;
+
+const isAndroid = navigator.userAgent.indexOf('Android') !== -1;
 
 const RTCBrowserType = {
 
@@ -376,7 +380,6 @@ function detectBrowser() {
     return 1;
 }
 
-const browserVersion = detectBrowser();
-const isAndroid = navigator.userAgent.indexOf('Android') !== -1;
+browserVersion = detectBrowser();
 
 module.exports = RTCBrowserType;
