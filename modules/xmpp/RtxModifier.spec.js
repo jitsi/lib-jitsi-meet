@@ -66,20 +66,20 @@ function getVideoGroups(parsedSdp, groupSemantics) {
     .filter(g => g.semantics === groupSemantics);
 }
 
-describe ('RtxModifier', function() {
+describe('RtxModifier', function() {
     beforeEach(function() {
         this.rtxModifier = new RtxModifier();
         this.transform = transform;
         this.SDPUtil = SDPUtil;
     });
 
-    describe ('modifyRtxSsrcs', function() {
-        describe ('when given an sdp with a single video ssrc', function() {
+    describe('modifyRtxSsrcs', function() {
+        describe('when given an sdp with a single video ssrc', function() {
             beforeEach(function() {
                 this.singleVideoSdp = SampleSdpStrings.plainVideoSdp;
                 this.primaryVideoSsrc = getPrimaryVideoSsrc(this.singleVideoSdp);
             });
-            it ('should add a single rtx ssrc', function() {
+            it('should add a single rtx ssrc', function() {
           // Call rtxModifier.modifyRtxSsrcs with an sdp that contains a single video
           //  ssrc.  The returned sdp should have an rtx ssrc and an fid group.
                 const newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(this.singleVideoSdp));
@@ -97,7 +97,7 @@ describe ('RtxModifier', function() {
                 expect(fidGroupPrimarySsrc).toEqual(this.primaryVideoSsrc);
             });
 
-            it ('should re-use the same rtx ssrc for a primary ssrc it\'s seen before', function() {
+            it('should re-use the same rtx ssrc for a primary ssrc it\'s seen before', function() {
           // Have rtxModifier generate an rtx ssrc via modifyRtxSsrcs.  Then call it again
           //  with the same primary ssrc in the sdp (but no rtx ssrc).  It should use
           //  the same rtx ssrc as before.
@@ -115,7 +115,7 @@ describe ('RtxModifier', function() {
                 expect(newFidGroupRtxSsrc).toEqual(fidGroupRtxSsrc);
             });
 
-            it ('should NOT re-use the same rtx ssrc for a primary ssrc it\'s seen before if the cache has been cleared', function() {
+            it('should NOT re-use the same rtx ssrc for a primary ssrc it\'s seen before if the cache has been cleared', function() {
           // Call modifyRtxSsrcs to generate an rtx ssrc
           // Clear the rtxModifier cache
           // Call modifyRtxSsrcs to generate an rtx ssrc again with the same primary ssrc
@@ -135,7 +135,7 @@ describe ('RtxModifier', function() {
                 expect(newFidGroupRtxSsrc).not.toEqual(fidGroupRtxSsrc);
             });
 
-            it ('should use the rtx ssrc from the cache when the cache has been manually set', function() {
+            it('should use the rtx ssrc from the cache when the cache has been manually set', function() {
           // Manually set an rtx ssrc mapping in the cache
           // Call modifyRtxSsrcs
           // -->The rtx ssrc used should be the one we set
@@ -152,13 +152,13 @@ describe ('RtxModifier', function() {
             });
         });
 
-        describe ('when given an sdp with multiple video ssrcs', function() {
+        describe('when given an sdp with multiple video ssrcs', function() {
             beforeEach(function() {
                 this.multipleVideoSdp = SampleSdpStrings.simulcastSdp;
                 this.primaryVideoSsrcs = getPrimaryVideoSsrcs(this.multipleVideoSdp);
             });
 
-            it ('should add rtx ssrcs for all of them', function() {
+            it('should add rtx ssrcs for all of them', function() {
           // Call rtxModifier.modifyRtxSsrcs with an sdp that contains multiple video
           //  ssrcs.  The returned sdp should have an rtx ssrc and an fid group for all of them.
                 const newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(this.multipleVideoSdp));
@@ -176,7 +176,7 @@ describe ('RtxModifier', function() {
                 });
             });
 
-            it ('should re-use the same rtx ssrcs for any primary ssrc it\'s seen before', function() {
+            it('should re-use the same rtx ssrcs for any primary ssrc it\'s seen before', function() {
           // Have rtxModifier generate an rtx ssrc via modifyRtxSsrcs.  Then call it again
           //  with the same primary ssrc in the sdp (but no rtx ssrc).  It should use
           //  the same rtx ssrc as before.
@@ -205,7 +205,7 @@ describe ('RtxModifier', function() {
                 });
             });
 
-            it ('should NOT re-use the same rtx ssrcs for any primary ssrc it\'s seen before if the cache has been cleared', function() {
+            it('should NOT re-use the same rtx ssrcs for any primary ssrc it\'s seen before if the cache has been cleared', function() {
           // Call modifyRtxSsrcs to generate an rtx ssrc
           // Clear the rtxModifier cache
           // Call modifyRtxSsrcs to generate rtx ssrcs again with the same primary ssrcs
@@ -237,7 +237,7 @@ describe ('RtxModifier', function() {
                 });
             });
 
-            it ('should use the rtx ssrcs from the cache when the cache has been manually set', function() {
+            it('should use the rtx ssrcs from the cache when the cache has been manually set', function() {
           // Manually set an rtx ssrc mapping in the cache
           // Call modifyRtxSsrcs
           // -->The rtx ssrc used should be the one we set
@@ -261,8 +261,8 @@ describe ('RtxModifier', function() {
             });
         });
 
-        describe ('(corner cases)', function() {
-            it ('should handle a recvonly video mline', function() {
+        describe('(corner cases)', function() {
+            it('should handle a recvonly video mline', function() {
                 const sdp = SampleSdpStrings.plainVideoSdp;
                 const videoMLine = sdp.media.find(m => m.type === 'video');
                 videoMLine.direction = 'recvonly';
@@ -270,7 +270,7 @@ describe ('RtxModifier', function() {
                 expect(newSdpStr).toEqual(this.transform.write(sdp));
             });
 
-            it ('should handle an inactive video mline', function() {
+            it('should handle an inactive video mline', function() {
                 const sdp = SampleSdpStrings.plainVideoSdp;
                 const videoMLine = sdp.media.find(m => m.type === 'video');
                 videoMLine.direction = 'inactive';
@@ -278,7 +278,7 @@ describe ('RtxModifier', function() {
                 expect(newSdpStr).toEqual(this.transform.write(sdp));
             });
 
-            it ('should handle a video mline with no video ssrcs', function() {
+            it('should handle a video mline with no video ssrcs', function() {
                 const sdp = SampleSdpStrings.plainVideoSdp;
                 const videoMLine = sdp.media.find(m => m.type === 'video');
                 videoMLine.ssrcs = [];
@@ -291,7 +291,7 @@ describe ('RtxModifier', function() {
     describe('stripRtx', function() {
         beforeEach(function() {
         });
-        it ('should strip all rtx streams from an sdp with rtx', function() {
+        it('should strip all rtx streams from an sdp with rtx', function() {
             const sdpStr = transform.write(SampleSdpStrings.rtxVideoSdp);
             const newSdpStr = this.rtxModifier.stripRtx(sdpStr);
             const newSdp = transform.parse(newSdpStr);
@@ -299,7 +299,7 @@ describe ('RtxModifier', function() {
             expect(fidGroups.length).toEqual(0);
             expect(numVideoSsrcs(newSdp)).toEqual(1);
         });
-        it ('should do nothing to an sdp with no rtx', function() {
+        it('should do nothing to an sdp with no rtx', function() {
             const sdpStr = transform.write(SampleSdpStrings.plainVideoSdp);
             const newSdpStr = this.rtxModifier.stripRtx(sdpStr);
             expect(newSdpStr).toEqual(sdpStr);

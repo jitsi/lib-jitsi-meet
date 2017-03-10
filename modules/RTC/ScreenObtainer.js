@@ -79,7 +79,7 @@ var ScreenObtainer = {
 
         if (RTCBrowserType.isNWJS()) {
             obtainDesktopStream = (options, onSuccess, onFailure) => {
-                window.JitsiMeetNW.obtainDesktopStream (
+                window.JitsiMeetNW.obtainDesktopStream(
                     onSuccess,
                     (error, constraints) => {
                         var jitsiError;
@@ -112,7 +112,7 @@ var ScreenObtainer = {
             };
         } else if(RTCBrowserType.isElectron()) {
             obtainDesktopStream = (options, onSuccess, onFailure) =>
-                window.JitsiMeetElectron.obtainDesktopStream (
+                window.JitsiMeetElectron.obtainDesktopStream(
                     streamId =>
                         onGetStreamResponse({streamId}, onSuccess, onFailure),
                     err => onFailure(new JitsiTrackError(

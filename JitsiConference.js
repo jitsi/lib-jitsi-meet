@@ -510,7 +510,7 @@ JitsiConference.prototype.onLocalTrackRemoved = function(track) {
  * @returns {Promise}
  */
 JitsiConference.prototype.removeTrack = function(track) {
-    return this.replaceTrack (track, null);
+    return this.replaceTrack(track, null);
 };
 
 /**
