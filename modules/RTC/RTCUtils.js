@@ -113,23 +113,16 @@ let rtcReady = false;
  * @param resolution
  */
 function setResolutionConstraints(constraints, resolution) {
-    const isAndroid = RTCBrowserType.isAndroid();
-
     if (Resolutions[resolution]) {
         constraints.video.mandatory.minWidth = Resolutions[resolution].width;
         constraints.video.mandatory.minHeight = Resolutions[resolution].height;
-    } else if (isAndroid) {
-        // FIXME can't remember if the purpose of this was to always request
-        //       low resolution on Android ? if yes it should be moved up front
-        constraints.video.mandatory.minWidth = 320;
-        constraints.video.mandatory.minHeight = 180;
-        constraints.video.mandatory.maxFrameRate = 15;
     }
 
     if (constraints.video.mandatory.minWidth) {
         constraints.video.mandatory.maxWidth
             = constraints.video.mandatory.minWidth;
     }
+
     if (constraints.video.mandatory.minHeight) {
         constraints.video.mandatory.maxHeight
             = constraints.video.mandatory.minHeight;
