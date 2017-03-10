@@ -19,7 +19,7 @@ SDPDiffer.prototype.getNewMedia = function() {
         }
 
         // compare lengths - can save a lot of time
-        if (this.length != array.length) {
+        if (this.length !== array.length) {
             return false;
         }
 
@@ -30,7 +30,7 @@ SDPDiffer.prototype.getNewMedia = function() {
                 if (!this[i].equals(array[i])) {
                     return false;
                 }
-            } else if (this[i] != array[i]) {
+            } else if (this[i] !== array[i]) {
                 // Warning - two different object instances will never be
                 // equal: {x:20} != {x:20}
                 return false;
@@ -81,7 +81,7 @@ SDPDiffer.prototype.getNewMedia = function() {
             for (let i = 0; i < myMedia.ssrcGroups.length; i++) {
                 const mySsrcGroup = myMedia.ssrcGroups[i];
 
-                if (otherSsrcGroup.semantics == mySsrcGroup.semantics
+                if (otherSsrcGroup.semantics === mySsrcGroup.semantics
                     && arrayEquals.apply(otherSsrcGroup.ssrcs,
                                       [ mySsrcGroup.ssrcs ])) {
 
@@ -143,7 +143,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
                 const kv = line.substr(idx + 1);
 
                 modify.c('parameter');
-                if (kv.indexOf(':') == -1) {
+                if (kv.indexOf(':') === -1) {
                     modify.attrs({ name: kv });
                 } else {
                     const nv = kv.split(':', 2);

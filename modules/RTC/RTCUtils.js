@@ -328,10 +328,10 @@ function setAvailableDevices(um, stream) {
     const audioTracksReceived = stream && stream.getAudioTracks().length > 0;
     const videoTracksReceived = stream && stream.getVideoTracks().length > 0;
 
-    if (um.indexOf('video') != -1) {
+    if (um.indexOf('video') !== -1) {
         devices.video = videoTracksReceived;
     }
-    if (um.indexOf('audio') != -1) {
+    if (um.indexOf('audio') !== -1) {
         devices.audio = audioTracksReceived;
     }
 

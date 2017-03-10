@@ -259,7 +259,7 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                         let results = null;
 
                         if (!report || !report.result
-                            || typeof report.result != 'function') {
+                            || typeof report.result !== 'function') {
                             results = report;
                         } else {
                             results = report.result();
@@ -285,7 +285,7 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                         let results = null;
 
                         if (!report || !report.result
-                            || typeof report.result != 'function') {
+                            || typeof report.result !== 'function') {
                             // firefox
                             results = report;
                         } else {
@@ -429,7 +429,7 @@ StatsCollector.prototype.processStatsReport = function() {
             }
         } catch (e) { /* not supported*/ }
 
-        if (now.type == 'googCandidatePair') {
+        if (now.type === 'googCandidatePair') {
             let active, ip, localip, type;
 
             try {
@@ -438,7 +438,7 @@ StatsCollector.prototype.processStatsReport = function() {
                 localip = getStatValue(now, 'localAddress');
                 active = getStatValue(now, 'activeConnection');
             } catch (e) { /* not supported*/ }
-            if (!ip || !type || !localip || active != 'true') {
+            if (!ip || !type || !localip || active !== 'true') {
                 continue;
             }
 
@@ -447,7 +447,9 @@ StatsCollector.prototype.processStatsReport = function() {
 
             if (!conferenceStatsTransport.some(
                     t =>
-                        t.ip == ip && t.type == type && t.localip == localip)) {
+                        t.ip === ip
+                        && t.type === type
+                        && t.localip === localip)) {
                 conferenceStatsTransport.push({ ip,
                     type,
                     localip });
@@ -455,8 +457,8 @@ StatsCollector.prototype.processStatsReport = function() {
             continue;
         }
 
-        if (now.type == 'candidatepair') {
-            if (now.state == 'succeeded') {
+        if (now.type === 'candidatepair') {
+            if (now.state === 'succeeded') {
                 continue;
             }
 
@@ -470,8 +472,8 @@ StatsCollector.prototype.processStatsReport = function() {
             });
         }
 
-        if (now.type != 'ssrc' && now.type != 'outboundrtp'
-            && now.type != 'inboundrtp') {
+        if (now.type !== 'ssrc' && now.type !== 'outboundrtp'
+            && now.type !== 'inboundrtp') {
             continue;
         }
 
@@ -655,7 +657,7 @@ StatsCollector.prototype.processAudioLevelReport = function() {
 
         const now = this.currentAudioLevelsReport[idx];
 
-        if (now.type != 'ssrc') {
+        if (now.type !== 'ssrc') {
             continue;
         }
 

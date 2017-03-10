@@ -97,7 +97,8 @@ const SDPUtil = {
             = `a=rtpmap:${el.getAttribute('id')} ${el.getAttribute('name')}/${
                 el.getAttribute('clockrate')}`;
 
-        if (el.getAttribute('channels') && el.getAttribute('channels') != '1') {
+        if (el.getAttribute('channels')
+            && el.getAttribute('channels') !== '1') {
             line += `/${el.getAttribute('channels')}`;
         }
 
@@ -135,7 +136,7 @@ const SDPUtil = {
         for (let i = 0; i < parts.length; i++) {
             let key = parts[i].split('=')[0];
 
-            while (key.length && key[0] == ' ') {
+            while (key.length && key[0] === ' ') {
                 key = key.substring(1);
             }
             const value = parts[i].split('=')[1];
@@ -244,7 +245,7 @@ const SDPUtil = {
         const lines = desc.split('\r\n');
 
         for (let i = 0; i < lines.length; i++) {
-            if (lines[i].substring(0, 7) == 'a=ssrc:') {
+            if (lines[i].substring(0, 7) === 'a=ssrc:') {
                 const idx = lines[i].indexOf(' ');
 
                 data[lines[i].substr(idx + 1).split(':', 2)[0]]
@@ -284,7 +285,7 @@ const SDPUtil = {
         let lines = haystack.split('\r\n');
 
         for (let i = 0; i < lines.length; i++) {
-            if (lines[i].substring(0, needle.length) == needle) {
+            if (lines[i].substring(0, needle.length) === needle) {
                 return lines[i];
             }
         }
@@ -295,7 +296,7 @@ const SDPUtil = {
         // search session part
         lines = sessionpart.split('\r\n');
         for (let j = 0; j < lines.length; j++) {
-            if (lines[j].substring(0, needle.length) == needle) {
+            if (lines[j].substring(0, needle.length) === needle) {
                 return lines[j];
             }
         }
@@ -307,7 +308,7 @@ const SDPUtil = {
         const needles = [];
 
         for (let i = 0; i < lines.length; i++) {
-            if (lines[i].substring(0, needle.length) == needle) {
+            if (lines[i].substring(0, needle.length) === needle) {
                 needles.push(lines[i]);
             }
         }
@@ -318,7 +319,7 @@ const SDPUtil = {
         // search session part
         lines = sessionpart.split('\r\n');
         for (let j = 0; j < lines.length; j++) {
-            if (lines[j].substring(0, needle.length) == needle) {
+            if (lines[j].substring(0, needle.length) === needle) {
                 needles.push(lines[j]);
             }
         }
@@ -333,7 +334,7 @@ const SDPUtil = {
         if (line.indexOf('candidate:') === 0) {
             // eslint-disable-next-line no-param-reassign
             line = `a=${line}`;
-        } else if (line.substring(0, 12) != 'a=candidate:') {
+        } else if (line.substring(0, 12) !== 'a=candidate:') {
             logger.log(
                 'parseCandidate called with a line that is not a candidate'
                     + ' line');
@@ -341,14 +342,14 @@ const SDPUtil = {
 
             return null;
         }
-        if (line.substring(line.length - 2) == '\r\n') { // chomp it
+        if (line.substring(line.length - 2) === '\r\n') { // chomp it
             // eslint-disable-next-line no-param-reassign
             line = line.substring(0, line.length - 2);
         }
         const candidate = {};
         const elems = line.split(' ');
 
-        if (elems[6] != 'typ') {
+        if (elems[6] !== 'typ') {
             logger.log('did not find typ in the right place');
             logger.log(line);
 
@@ -403,7 +404,7 @@ const SDPUtil = {
 
         // use tcp candidates for FF
 
-        if (RTCBrowserType.isFirefox() && protocol.toLowerCase() == 'ssltcp') {
+        if (RTCBrowserType.isFirefox() && protocol.toLowerCase() === 'ssltcp') {
             protocol = 'tcp';
         }
 
@@ -435,7 +436,7 @@ const SDPUtil = {
             }
             break;
         }
-        if (protocol.toLowerCase() == 'tcp') {
+        if (protocol.toLowerCase() === 'tcp') {
             line += 'tcptype';
             line += ' ';
             line += cand.getAttribute('tcptype');

@@ -163,7 +163,7 @@ class MLineWrap {
      */
     getSSRCAttrValue(ssrcNumber, attrName) {
         const attribute = this._ssrcs.find(
-            ssrcObj => ssrcObj.id == ssrcNumber
+            ssrcObj => ssrcObj.id === ssrcNumber
             && ssrcObj.attribute === attrName);
 
 

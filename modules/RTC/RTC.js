@@ -486,8 +486,8 @@ export default class RTC extends Listenable {
                     const mediaTrack = endpointTracks[mediaType];
 
                     if (mediaTrack
-                        && mediaTrack.getStreamId() == streamId
-                        && mediaTrack.getTrackId() == trackId) {
+                        && mediaTrack.getStreamId() === streamId
+                        && mediaTrack.getTrackId() === trackId) {
                         result = mediaTrack;
 
                         return true;
@@ -680,7 +680,12 @@ export default class RTC extends Listenable {
      * @param ssrc the ssrc to check.
      */
     getResourceBySSRC(ssrc) {
+
+        // FIXME: Convert the SSRCs in whole project to use the same type.
+        // Now we are using number and string.
         if (this.getLocalTracks().find(
+
+            // eslint-disable-next-line eqeqeq
                 localTrack => localTrack.getSSRC() == ssrc)) {
             return this.conference.myUserId();
         }
@@ -699,6 +704,10 @@ export default class RTC extends Listenable {
      * matches given SSRC or <tt>undefined</tt> if no such track was found.
      */
     getRemoteTrackBySSRC(ssrc) {
+
+        // FIXME: Convert the SSRCs in whole project to use the same type.
+        // Now we are using number and string.
+        // eslint-disable-next-line eqeqeq
         return this.getRemoteTracks().find(t => ssrc == t.getSSRC());
     }
 

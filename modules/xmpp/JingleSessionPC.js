@@ -143,7 +143,7 @@ export default class JingleSessionPC extends JingleSession {
                         if (this.webrtcIceTcpDisable) {
                             return;
                         }
-                    } else if (protocol == 'udp') {
+                    } else if (protocol === 'udp') {
                         if (this.webrtcIceUdpDisable) {
                             return;
                         }
@@ -288,7 +288,7 @@ export default class JingleSessionPC extends JingleSession {
         const localSDP = new SDP(this.peerconnection.localDescription.sdp);
 
         for (let mid = 0; mid < localSDP.media.length; mid++) {
-            const cands = candidates.filter(el => el.sdpMLineIndex == mid);
+            const cands = candidates.filter(el => el.sdpMLineIndex === mid);
             const mline
                 = SDPUtil.parse_mline(localSDP.media[mid].split('\r\n')[0]);
 
@@ -298,7 +298,7 @@ export default class JingleSessionPC extends JingleSession {
 
                 ice.xmlns = 'urn:xmpp:jingle:transports:ice-udp:1';
                 cand.c('content', {
-                    creator: this.initiator == this.localJid
+                    creator: this.initiator === this.localJid
                                     ? 'initiator' : 'responder',
                     name: cands[0].sdpMid ? cands[0].sdpMid : mline.media
                 }).c('transport', ice);
@@ -510,7 +510,7 @@ export default class JingleSessionPC extends JingleSession {
         }
         localSDP.toJingle(
             accept,
-            this.initiator == this.localJid ? 'initiator' : 'responder',
+            this.initiator === this.localJid ? 'initiator' : 'responder',
             null);
         this.fixJingle(accept);
 
@@ -574,7 +574,7 @@ export default class JingleSessionPC extends JingleSession {
             transportAccept.c('content',
                 {
                     creator:
-                        this.initiator == this.localJid
+                        this.initiator === this.localJid
                             ? 'initiator'
                             : 'responder',
                     name: mline.media
@@ -946,7 +946,7 @@ export default class JingleSessionPC extends JingleSession {
         return new Promise((resolve, reject) => {
             const remoteUfrag = JingleSessionPC.getUfrag(remoteDescription.sdp);
 
-            if (remoteUfrag != this.remoteUfrag) {
+            if (remoteUfrag !== this.remoteUfrag) {
                 this.remoteUfrag = remoteUfrag;
                 this.room.eventEmitter.emit(
                         XMPPEvents.REMOTE_UFRAG_CHANGED, remoteUfrag);
@@ -969,7 +969,7 @@ export default class JingleSessionPC extends JingleSession {
                             const localUfrag
                                 = JingleSessionPC.getUfrag(answer.sdp);
 
-                            if (localUfrag != this.localUfrag) {
+                            if (localUfrag !== this.localUfrag) {
                                 this.localUfrag = localUfrag;
                                 this.room.eventEmitter.emit(
                                         XMPPEvents.LOCAL_UFRAG_CHANGED,

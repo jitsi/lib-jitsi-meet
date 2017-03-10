@@ -69,7 +69,7 @@ Recording.prototype.handleJibriPresence = function(jibri) {
 
     if (newState === 'undefined') {
         this.state = Recording.status.UNAVAILABLE;
-    } else if (newState === 'off') {
+    } else if (newState === Recording.status.OFF) {
         if (!this.state
             || this.state === 'undefined'
             || this.state === Recording.status.UNAVAILABLE) {
@@ -87,7 +87,7 @@ Recording.prototype.handleJibriPresence = function(jibri) {
 Recording.prototype.setRecordingJibri
     = function(state, callback, errCallback, options = {}) {
 
-        if (state == this.state) {
+        if (state === this.state) {
             errCallback(JitsiRecorderErrors.INVALID_STATE);
         }
 
@@ -123,8 +123,7 @@ Recording.prototype.setRecordingJibri
 
 Recording.prototype.setRecordingJirecon
     = function(state, callback, errCallback) {
-
-        if (state == this.state) {
+        if (state === this.state) {
             errCallback(new Error('Invalid state!'));
         }
 
@@ -136,7 +135,7 @@ Recording.prototype.setRecordingJirecon
                 : Recording.action.STOP,
             mucjid: this.roomjid });
 
-        if (state === 'off') {
+        if (state === Recording.status.OFF) {
             iq.attrs({ rid: this.jireconRid });
         }
 

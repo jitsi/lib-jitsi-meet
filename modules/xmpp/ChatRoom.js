@@ -221,7 +221,7 @@ export default class ChatRoom extends Listenable {
                         .length
                     === 1;
 
-            if (locked != this.locked) {
+            if (locked !== this.locked) {
                 this.eventEmitter.emit(XMPPEvents.MUC_LOCK_CHANGED, locked);
                 this.locked = locked;
             }
@@ -326,9 +326,9 @@ export default class ChatRoom extends Listenable {
             }
         }
 
-        if (from == this.myroomjid) {
+        if (from === this.myroomjid) {
             const newRole
-                = member.affiliation == 'owner' ? member.role : 'none';
+                = member.affiliation === 'owner' ? member.role : 'none';
 
             if (this.role !== newRole) {
                 this.role = newRole;
@@ -366,7 +366,7 @@ export default class ChatRoom extends Listenable {
             // Watch role change:
             const memberOfThis = this.members[from];
 
-            if (memberOfThis.role != member.role) {
+            if (memberOfThis.role !== member.role) {
                 memberOfThis.role = member.role;
                 this.eventEmitter.emit(
                     XMPPEvents.MUC_ROLE_CHANGED, from, member.role);
@@ -614,7 +614,7 @@ export default class ChatRoom extends Listenable {
         const txt = $(msg).find('>body').text();
         const type = msg.getAttribute('type');
 
-        if (type == 'error') {
+        if (type === 'error') {
             this.eventEmitter.emit(XMPPEvents.CHAT_ERROR_RECEIVED,
                 $(msg).find('>text').text(), txt);
 
@@ -648,7 +648,7 @@ export default class ChatRoom extends Listenable {
             }
         }
 
-        if (from == this.roomjid
+        if (from === this.roomjid
                 && $(msg)
                     .find(
                         '>x[xmlns="http://jabber.org/protocol/muc#user"]'

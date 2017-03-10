@@ -120,7 +120,7 @@ LocalStatsCollector.prototype.start = function() {
             analyser.getByteTimeDomainData(array);
             const audioLevel = timeDomainDataToAudioLevel(array);
 
-            if (audioLevel != self.audioLevel) {
+            if (audioLevel !== self.audioLevel) {
                 self.audioLevel = animateLevel(audioLevel, self.audioLevel);
                 self.callback(self.audioLevel);
             }

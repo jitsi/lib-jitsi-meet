@@ -76,6 +76,7 @@ module.exports = {
         'default-case': 0,
         'dot-location': [ 'error', 'property' ],
         'dot-notation': 2,
+        'eqeqeq': 2,
         'guard-for-in': 2,
         'no-alert': 2,
         'no-caller': 2,

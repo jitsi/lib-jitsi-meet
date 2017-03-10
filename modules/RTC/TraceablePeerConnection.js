@@ -862,7 +862,7 @@ const _fixAnswerRFC4145Setup = function(offer, answer) {
     // default choice of setup:active to setup:passive.
     if (offer && answer
             && offer.media && answer.media
-            && offer.media.length == answer.media.length) {
+            && offer.media.length === answer.media.length) {
         answer.media.forEach((a, i) => {
             if (SDPUtil.find_line(
                     offer.media[i],

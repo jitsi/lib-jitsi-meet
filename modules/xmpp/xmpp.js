@@ -20,7 +20,7 @@ function createConnection(token, bosh = '/http-bind') {
     // Append token as URL param
     if (token) {
         // eslint-disable-next-line no-param-reassign
-        bosh += `${bosh.indexOf('?') == -1 ? '?' : '&'}token=${token}`;
+        bosh += `${bosh.indexOf('?') === -1 ? '?' : '&'}token=${token}`;
     }
 
     return new Strophe.Connection(bosh);
@@ -374,7 +374,7 @@ export default class XMPP extends Listenable {
         if (ev !== null && typeof ev !== 'undefined') {
             const evType = ev.type;
 
-            if (evType == 'beforeunload' || evType == 'unload') {
+            if (evType === 'beforeunload' || evType === 'unload') {
                 // XXX Whatever we said above, synchronous sending is the best
                 // (known) way to properly disconnect from the XMPP server.
                 // Consequently, it may be fine to have the source code and

@@ -377,6 +377,6 @@ function detectBrowser() {
 }
 
 const browserVersion = detectBrowser();
-const isAndroid = navigator.userAgent.indexOf('Android') != -1;
+const isAndroid = navigator.userAgent.indexOf('Android') !== -1;
 
 module.exports = RTCBrowserType;

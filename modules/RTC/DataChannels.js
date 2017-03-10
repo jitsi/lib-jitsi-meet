@@ -266,7 +266,7 @@ DataChannels.prototype._some = function(callback, thisArg) {
  */
 DataChannels.prototype.send = function(jsonObject) {
     if (!this._some(dataChannel => {
-        if (dataChannel.readyState == 'open') {
+        if (dataChannel.readyState === 'open') {
             dataChannel.send(JSON.stringify(jsonObject));
 
             return true;

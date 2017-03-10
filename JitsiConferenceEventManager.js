@@ -332,12 +332,12 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     chatRoom.addPresenceListener('videomuted', (values, from) => {
         conference.rtc.handleRemoteTrackMute(MediaType.VIDEO,
-            values.value == 'true', from);
+            values.value === 'true', from);
     });
 
     chatRoom.addPresenceListener('audiomuted', (values, from) => {
         conference.rtc.handleRemoteTrackMute(MediaType.AUDIO,
-            values.value == 'true', from);
+            values.value === 'true', from);
     });
 
     chatRoom.addPresenceListener('videoType', (data, from) => {
@@ -575,7 +575,7 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
             const resolution = ssrc2resolution[ssrc];
 
             if (!resolution.width || !resolution.height
-                || resolution.width == -1 || resolution.height == -1) {
+                || resolution.width === -1 || resolution.height === -1) {
                 return;
             }
 

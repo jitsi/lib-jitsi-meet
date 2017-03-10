@@ -92,7 +92,7 @@ function getTarget(simulcast, resolution, millisSinceStart) {
                 const targetHeight = height;
 
                 simulcastFormat
-                    = kSimulcastFormats.find(f => f.height == targetHeight);
+                    = kSimulcastFormats.find(f => f.height === targetHeight);
                 if (simulcastFormat) {
                     target += simulcastFormat.target;
                 } else {

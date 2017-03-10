@@ -43,7 +43,7 @@ function onLocalTracks(tracks) {
             deviceId =>
                 console.log(
                     `track audio output device was changed to ${deviceId}`));
-        if (localTracks[i].getType() == 'video') {
+        if (localTracks[i].getType() === 'video') {
             $('body').append(`<video autoplay='1' id='localVideo${i}' />`);
             localTracks[i].attach($(`#localVideo${i}`)[0]);
         } else {
@@ -87,7 +87,7 @@ function onRemoteTrack(track) {
                 `track audio output device was changed to ${deviceId}`));
     const id = participant + track.getType() + idx;
 
-    if (track.getType() == 'video') {
+    if (track.getType() === 'video') {
         $('body').append(
             `<video autoplay='1' id='${participant}video${idx}' />`);
     } else {

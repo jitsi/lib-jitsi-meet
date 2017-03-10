@@ -50,7 +50,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         logger.log(`on jingle ${action} from ${fromJid}`, iq);
         let sess = this.sessions[sid];
 
-        if (action != 'session-initiate') {
+        if (action !== 'session-initiate') {
             if (!sess) {
                 ack.attrs({ type: 'error' });
                 ack.c('error', { type: 'cancel' })
@@ -68,7 +68,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             }
 
             // local jid is not checked
-            if (fromJid != sess.peerjid) {
+            if (fromJid !== sess.peerjid) {
                 logger.warn(
                     'jid mismatch for session id', sid, sess.peerjid, iq);
                 ack.attrs({ type: 'error' });
@@ -188,7 +188,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
 
     terminate(sid, reasonCondition, reasonText) {
         if (this.sessions.hasOwnProperty(sid)) {
-            if (this.sessions[sid].state != 'ended') {
+            if (this.sessions[sid].state !== 'ended') {
                 this.sessions[sid].onTerminated(reasonCondition, reasonText);
             }
             delete this.sessions[sid];
@@ -255,12 +255,12 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                         dict.url += el.attr('host');
                         const port = el.attr('port');
 
-                        if (port && port != '3478') {
+                        if (port && port !== '3478') {
                             dict.url += `:${el.attr('port')}`;
                         }
                         const transport = el.attr('transport');
 
-                        if (transport && transport != 'udp') {
+                        if (transport && transport !== 'udp') {
                             dict.url += `?transport=${transport}`;
                         }
 

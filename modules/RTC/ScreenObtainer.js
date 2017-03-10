@@ -103,7 +103,7 @@ const ScreenObtainer = {
                         // but this is what we are receiving from GUM when the
                         // streamId for the desktop sharing is "".
 
-                        if (error && error.name == 'InvalidStateError') {
+                        if (error && error.name === 'InvalidStateError') {
                             jitsiError = new JitsiTrackError(
                                 JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED
                             );
