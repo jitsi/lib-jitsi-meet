@@ -5,7 +5,7 @@
  * This is probably temporary until there is a better way to expose the
  * Transcriber in a conference
  */
-var transcriberHolder = {
+const transcriberHolder = {
     transcribers : [],
 
     add(transcriber) {

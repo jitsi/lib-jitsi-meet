@@ -1,4 +1,4 @@
-var AuthenticationEvents = {
+const AuthenticationEvents = {
     /**
      * Event callback arguments:
      * function(authenticationEnabled, userIdentity)

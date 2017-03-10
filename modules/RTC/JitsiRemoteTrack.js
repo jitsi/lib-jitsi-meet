@@ -1,14 +1,14 @@
 /* global */
 
-var JitsiTrack = require('./JitsiTrack');
+const JitsiTrack = require('./JitsiTrack');
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
-var logger = require('jitsi-meet-logger').getLogger(__filename);
-var RTCBrowserType = require('./RTCBrowserType');
-var RTCEvents = require('../../service/RTC/RTCEvents');
-var Statistics = require('../statistics/statistics');
+const logger = require('jitsi-meet-logger').getLogger(__filename);
+const RTCBrowserType = require('./RTCBrowserType');
+const RTCEvents = require('../../service/RTC/RTCEvents');
+const Statistics = require('../statistics/statistics');
 
-var ttfmTrackerAudioAttached = false;
-var ttfmTrackerVideoAttached = false;
+let ttfmTrackerAudioAttached = false;
+let ttfmTrackerVideoAttached = false;
 
 /**
  * Represents a single media track (either audio or video).
@@ -140,20 +140,20 @@ JitsiRemoteTrack.prototype._setVideoType = function(type) {
 };
 
 JitsiRemoteTrack.prototype._playCallback = function() {
-    var type = this.isVideoTrack() ? 'video' : 'audio';
+    const type = this.isVideoTrack() ? 'video' : 'audio';
 
-    var now = window.performance.now();
+    const now = window.performance.now();
     console.log('(TIME) Render ' + type + ':\t', now);
     this.conference.getConnectionTimes()[type + '.render'] = now;
 
-    var ttfm = now
+    const ttfm = now
         - (this.conference.getConnectionTimes()['session.initiate']
         - this.conference.getConnectionTimes()['muc.joined'])
         - (window.connectionTimes['obtainPermissions.end']
         - window.connectionTimes['obtainPermissions.start']);
     this.conference.getConnectionTimes()[type + '.ttfm'] = ttfm;
     console.log('(TIME) TTFM ' + type + ':\t', ttfm);
-    var eventName = type + '.ttfm';
+    let eventName = type + '.ttfm';
     if(this.hasBeenMuted) {
         eventName += '.muted';
     }

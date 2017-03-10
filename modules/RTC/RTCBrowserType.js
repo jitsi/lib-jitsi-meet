@@ -1,12 +1,8 @@
-var logger = require('jitsi-meet-logger').getLogger(__filename);
+const logger = require('jitsi-meet-logger').getLogger(__filename);
 
-var currentBrowser;
+let currentBrowser;
 
-var browserVersion;
-
-var isAndroid;
-
-var RTCBrowserType = {
+const RTCBrowserType = {
 
     RTC_BROWSER_CHROME: 'rtc_browser.chrome',
 
@@ -37,7 +33,7 @@ var RTCBrowserType = {
      * @returns {string}
      */
     getBrowserName() {
-        var browser;
+        let browser;
         if (RTCBrowserType.isAndroid()) {
             browser = 'android';
         } else {
@@ -199,10 +195,10 @@ var RTCBrowserType = {
 function detectChrome() {
     if (navigator.webkitGetUserMedia) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_CHROME;
-        var userAgent = navigator.userAgent.toLowerCase();
+        const userAgent = navigator.userAgent.toLowerCase();
         // We can assume that user agent is chrome, because it's
         // enforced when 'ext' streaming method is set
-        var ver = parseInt(userAgent.match(/chrome\/(\d+)\./)[1], 10);
+        const ver = parseInt(userAgent.match(/chrome\/(\d+)\./)[1], 10);
         logger.log('This appears to be Chrome, ver: ' + ver);
         return ver;
     }
@@ -210,10 +206,10 @@ function detectChrome() {
 }
 
 function detectOpera() {
-    var userAgent = navigator.userAgent;
+    const userAgent = navigator.userAgent;
     if (userAgent.match(/Opera|OPR/)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_OPERA;
-        var version = userAgent.match(/(Opera|OPR) ?\/?(\d+)\.?/)[2];
+        const version = userAgent.match(/(Opera|OPR) ?\/?(\d+)\.?/)[2];
         logger.info('This appears to be Opera, ver: ' + version);
         return version;
     }
@@ -223,7 +219,7 @@ function detectOpera() {
 function detectFirefox() {
     if (navigator.mozGetUserMedia) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_FIREFOX;
-        var version = parseInt(
+        const version = parseInt(
             navigator.userAgent.match(/Firefox\/([0-9]+)\./)[1], 10);
         logger.log('This appears to be Firefox, ver: ' + version);
         return version;
@@ -242,23 +238,23 @@ function detectSafari() {
 }
 
 function detectIE() {
-    var version;
-    var ua = window.navigator.userAgent;
+    let version;
+    const ua = window.navigator.userAgent;
 
-    var msie = ua.indexOf('MSIE ');
+    const msie = ua.indexOf('MSIE ');
     if (msie > 0) {
         // IE 10 or older => return version number
         version = parseInt(ua.substring(msie + 5, ua.indexOf('.', msie)), 10);
     }
 
-    var trident = ua.indexOf('Trident/');
+    const trident = ua.indexOf('Trident/');
     if (!version && trident > 0) {
         // IE 11 => return version number
-        var rv = ua.indexOf('rv:');
+        const rv = ua.indexOf('rv:');
         version = parseInt(ua.substring(rv + 3, ua.indexOf('.', rv)), 10);
     }
 
-    var edge = ua.indexOf('Edge/');
+    const edge = ua.indexOf('Edge/');
     if (!version && edge > 0) {
         // IE 12 => return version number
         version = parseInt(ua.substring(edge + 5, ua.indexOf('.', edge)), 10);
@@ -275,10 +271,10 @@ function detectIE() {
  * Detects Electron environment.
  */
 function detectElectron() {
-    var userAgent = navigator.userAgent;
+    const userAgent = navigator.userAgent;
     if (userAgent.match(/Electron/)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_ELECTRON;
-        var version = userAgent.match(/Electron\/([\d.]+)/)[1];
+        const version = userAgent.match(/Electron\/([\d.]+)/)[1];
         logger.info('This appears to be Electron, ver: ' + version);
         return version;
     }
@@ -286,10 +282,10 @@ function detectElectron() {
 }
 
 function detectNWJS() {
-    var userAgent = navigator.userAgent;
+    const userAgent = navigator.userAgent;
     if (userAgent.match(/JitsiMeetNW/)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_NWJS;
-        var version = userAgent.match(/JitsiMeetNW\/([\d.]+)/)[1];
+        const version = userAgent.match(/JitsiMeetNW\/([\d.]+)/)[1];
         logger.info('This appears to be JitsiMeetNW, ver: ' + version);
         return version;
     }
@@ -297,15 +293,15 @@ function detectNWJS() {
 }
 
 function detectReactNative() {
-    var match
+    const match
         = navigator.userAgent.match(/\b(react[ \t_-]*native)(?:\/(\S+))?/i);
-    var version;
+    let version;
     // If we're remote debugging a React Native app, it may be treated as
     // Chrome. Check navigator.product as well and always return some version
     // even if we can't get the real one.
     if (match || navigator.product === 'ReactNative') {
         currentBrowser = RTCBrowserType.RTC_BROWSER_REACT_NATIVE;
-        var name;
+        let name;
         if (match && match.length > 2) {
             name = match[1];
             version = match[2];
@@ -321,8 +317,8 @@ function detectReactNative() {
 }
 
 function detectBrowser() {
-    var version;
-    var detectors = [
+    let version;
+    const detectors = [
         detectReactNative,
         detectElectron,
         detectNWJS,
@@ -333,7 +329,7 @@ function detectBrowser() {
         detectSafari
     ];
     // Try all browser detectors
-    for (var i = 0; i < detectors.length; i++) {
+    for (let i = 0; i < detectors.length; i++) {
         version = detectors[i]();
         if (version) {
             return version;
@@ -344,7 +340,7 @@ function detectBrowser() {
     return 1;
 }
 
-browserVersion = detectBrowser();
-isAndroid = navigator.userAgent.indexOf('Android') != -1;
+const browserVersion = detectBrowser();
+const isAndroid = navigator.userAgent.indexOf('Android') != -1;
 
 module.exports = RTCBrowserType;

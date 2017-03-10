@@ -1,14 +1,14 @@
 /* global $, $iq, Promise, Strophe */
 
-var logger = require('jitsi-meet-logger').getLogger(__filename);
-var XMPPEvents = require('../../service/xmpp/XMPPEvents');
-var AuthenticationEvents
+const logger = require('jitsi-meet-logger').getLogger(__filename);
+const XMPPEvents = require('../../service/xmpp/XMPPEvents');
+const AuthenticationEvents
     = require('../../service/authentication/AuthenticationEvents');
-var GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
+const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 import Settings from '../settings/Settings';
 
 function createExpBackoffTimer(step) {
-    var count = 1;
+    let count = 1;
     return function(reset) {
         // Reset call
         if (reset) {
@@ -16,7 +16,7 @@ function createExpBackoffTimer(step) {
             return;
         }
         // Calculate next timeout
-        var timeout = Math.pow(2, count - 1);
+        const timeout = Math.pow(2, count - 1);
         count += 1;
         return timeout * step;
     };
@@ -73,7 +73,7 @@ Moderator.prototype.isSipGatewayEnabled = function() {
 
 Moderator.prototype.onMucMemberLeft = function(jid) {
     logger.info('Someone left is it focus ? ' + jid);
-    var resource = Strophe.getResourceFromJid(jid);
+    const resource = Strophe.getResourceFromJid(jid);
     if (resource === 'focus') {
         logger.info(
             'Focus has left the room - leaving conference');
@@ -96,7 +96,7 @@ Moderator.prototype.getFocusUserJid = function() {
 
 Moderator.prototype.getFocusComponent = function() {
     // Get focus component address
-    var focusComponent = this.options.connection.hosts.focus;
+    let focusComponent = this.options.connection.hosts.focus;
     // If not specified use default:  'focus.domain'
     if (!focusComponent) {
         focusComponent = 'focus.' + this.options.connection.hosts.domain;
@@ -106,11 +106,11 @@ Moderator.prototype.getFocusComponent = function() {
 
 Moderator.prototype.createConferenceIq = function() {
     // Generate create conference IQ
-    var elem = $iq({to: this.getFocusComponent(), type: 'set'});
+    const elem = $iq({to: this.getFocusComponent(), type: 'set'});
 
     // Session Id used for authentication
-    var sessionId = Settings.getSessionId();
-    var machineUID = Settings.getMachineId();
+    const sessionId = Settings.getSessionId();
+    const machineUID = Settings.getMachineId();
 
     logger.info(
             'Session ID: ' + sessionId + ' machine UID: ' + machineUID);
@@ -219,7 +219,7 @@ Moderator.prototype.createConferenceIq = function() {
 
 
 Moderator.prototype.parseSessionId = function(resultIq) {
-    var sessionId = $(resultIq).find('conference').attr('session-id');
+    const sessionId = $(resultIq).find('conference').attr('session-id');
     if (sessionId) {
         logger.info('Received sessionId:  ' + sessionId);
         Settings.setSessionId(sessionId);
@@ -231,7 +231,7 @@ Moderator.prototype.parseConfigOptions = function(resultIq) {
     this.setFocusUserJid(
         $(resultIq).find('conference').attr('focusjid'));
 
-    var authenticationEnabled
+    const authenticationEnabled
         = $(resultIq).find(
             '>conference>property'
             + '[name=\'authentication\'][value=\'true\']').length > 0;
@@ -250,7 +250,7 @@ Moderator.prototype.parseConfigOptions = function(resultIq) {
         this.parseSessionId(resultIq);
     }
 
-    var authIdentity = $(resultIq).find('>conference').attr('identity');
+    const authIdentity = $(resultIq).find('>conference').attr('identity');
 
     this.eventEmitter.emit(AuthenticationEvents.IDENTITY_UPDATED,
         authenticationEnabled, authIdentity);
@@ -301,7 +301,7 @@ Moderator.prototype.allocateConferenceFocus = function(callback) {
 Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
     // If the session is invalid, remove and try again without session ID to get
     // a new one
-    var invalidSession = $(error).find('>error>session-invalid').length;
+    const invalidSession = $(error).find('>error>session-invalid').length;
     if (invalidSession) {
         logger.info('Session expired! - removing');
         Settings.clearSessionId();
@@ -311,12 +311,12 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
         return;
     }
     // Check for error returned by the reservation system
-    var reservationErr = $(error).find('>error>reservation-error');
+    const reservationErr = $(error).find('>error>reservation-error');
     if (reservationErr.length) {
         // Trigger error event
-        var errorCode = reservationErr.attr('error-code');
-        var errorTextNode = $(error).find('>error>text');
-        var errorMsg;
+        const errorCode = reservationErr.attr('error-code');
+        const errorTextNode = $(error).find('>error>text');
+        let errorMsg;
         if (errorTextNode) {
             errorMsg = errorTextNode.text();
         }
@@ -327,7 +327,7 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
     // Not authorized to create new room
     if ($(error).find('>error>not-authorized').length) {
         logger.warn('Unauthorized to start the conference', error);
-        var toDomain = Strophe.getDomainFromJid(error.getAttribute('to'));
+        const toDomain = Strophe.getDomainFromJid(error.getAttribute('to'));
         if (toDomain !== this.options.connection.hosts.anonymousdomain) {
             // FIXME "is external" should come either from the focus or
             // config.js
@@ -336,13 +336,13 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
         this.eventEmitter.emit(XMPPEvents.AUTHENTICATION_REQUIRED);
         return;
     }
-    var waitMs = this.getNextErrorTimeout();
-    var errmsg = 'Focus error, retry after ' + waitMs;
+    const waitMs = this.getNextErrorTimeout();
+    const errmsg = 'Focus error, retry after ' + waitMs;
     GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
     logger.error(errmsg, error);
     // Show message
-    var focusComponent = this.getFocusComponent();
-    var retrySec = waitMs / 1000;
+    const focusComponent = this.getFocusComponent();
+    const retrySec = waitMs / 1000;
     // FIXME: message is duplicated ? Do not show in case of session invalid
     // which means just a retry
     if (!invalidSession) {
@@ -377,7 +377,7 @@ Moderator.prototype._allocateConferenceFocusSuccess = function(
         // Exec callback
         callback();
     } else {
-        var waitMs = this.getNextTimeout();
+        const waitMs = this.getNextTimeout();
         logger.info('Waiting for the focus... ' + waitMs);
         window.setTimeout(() => this.allocateConferenceFocus(callback),
             waitMs);
@@ -392,7 +392,7 @@ Moderator.prototype.authenticate = function() {
                 this.parseSessionId(result);
                 resolve();
             }, error => {
-                var code = $(error).find('>error').attr('code');
+                const code = $(error).find('>error').attr('code');
                 reject(error, code);
             }
         );
@@ -411,13 +411,13 @@ Moderator.prototype.getLoginUrl = function(urlCallback, failureCallback) {
  * @param failureCb
  */
 Moderator.prototype._getLoginUrl = function(popup, urlCb, failureCb) {
-    var iq = $iq({to: this.getFocusComponent(), type: 'get'});
-    var attrs = {
+    const iq = $iq({to: this.getFocusComponent(), type: 'get'});
+    const attrs = {
         xmlns: 'http://jitsi.org/protocol/focus',
         room: this.roomName,
         'machine-uid': Settings.getMachineId()
     };
-    var str = 'auth url'; // for logger
+    let str = 'auth url'; // for logger
     if (popup) {
         attrs.popup = true;
         str = 'POPUP ' + str;
@@ -438,7 +438,7 @@ Moderator.prototype._getLoginUrl = function(popup, urlCb, failureCb) {
     this.connection.sendIQ(
         iq,
         function(result) {
-            var url = $(result).find('login-url').attr('url');
+            let url = $(result).find('login-url').attr('url');
             url = decodeURIComponent(url);
             if (url) {
                 logger.info('Got ' + str + ': ' + url);
@@ -456,8 +456,8 @@ Moderator.prototype.getPopupLoginUrl = function(urlCallback, failureCallback) {
 };
 
 Moderator.prototype.logout = function(callback) {
-    var iq = $iq({to: this.getFocusComponent(), type: 'set'});
-    var sessionId = Settings.getSessionId();
+    const iq = $iq({to: this.getFocusComponent(), type: 'set'});
+    const sessionId = Settings.getSessionId();
     if (!sessionId) {
         callback();
         return;
@@ -469,7 +469,7 @@ Moderator.prototype.logout = function(callback) {
     this.connection.sendIQ(
         iq,
         function(result) {
-            var logoutUrl = $(result).find('logout').attr('logout-url');
+            let logoutUrl = $(result).find('logout').attr('logout-url');
             if (logoutUrl) {
                 logoutUrl = decodeURIComponent(logoutUrl);
             }
@@ -478,7 +478,7 @@ Moderator.prototype.logout = function(callback) {
             callback(logoutUrl);
         }.bind(this),
         function(error) {
-            var errmsg = 'Logout error';
+            const errmsg = 'Logout error';
             GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
             logger.error(errmsg, error);
         }

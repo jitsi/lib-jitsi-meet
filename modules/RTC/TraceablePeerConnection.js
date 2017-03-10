@@ -40,7 +40,7 @@ const SIMULCAST_LAYERS = 3;
  */
 function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
                                  constraints, options) {
-    var self = this;
+    const self = this;
     /**
      * The parent instance of RTC service which created this
      * <tt>TracablePeerConnection</tt>.
@@ -58,7 +58,7 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
      */
     this.signalingLayer = signalingLayer;
     this.options = options;
-    var RTCPeerConnectionType = null;
+    let RTCPeerConnectionType = null;
     if (RTCBrowserType.isFirefox()) {
         RTCPeerConnectionType = mozRTCPeerConnection;
     } else if (RTCBrowserType.isTemasysPluginUsed()) {
@@ -74,9 +74,9 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
      * @type {number}
      */
     this.maxstats = 0;
-    var Interop = require('sdp-interop').Interop;
+    const Interop = require('sdp-interop').Interop;
     this.interop = new Interop();
-    var Simulcast = require('sdp-simulcast');
+    const Simulcast = require('sdp-simulcast');
     this.simulcast = new Simulcast({numOfLayers: SIMULCAST_LAYERS,
         explodeRemoteSimulcast: false});
     this.sdpConsistency = new SdpConsistency();
@@ -169,11 +169,11 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
     if (!RTCBrowserType.isFirefox() && this.maxstats) {
         this.statsinterval = window.setInterval(function() {
             self.peerconnection.getStats(function(stats) {
-                var results = stats.result();
-                var now = new Date();
-                for (var i = 0; i < results.length; ++i) {
+                const results = stats.result();
+                const now = new Date();
+                for (let i = 0; i < results.length; ++i) {
                     results[i].names().forEach(function(name) {
-                        var id = results[i].id + '-' + name;
+                        const id = results[i].id + '-' + name;
                         if (!self.stats[id]) {
                             self.stats[id] = {
                                 startTime: now,
@@ -200,7 +200,7 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
 /**
  * Returns a string representation of a SessionDescription object.
  */
-var dumpSDP = function(description) {
+const dumpSDP = function(description) {
     if (typeof description === 'undefined' || description == null) {
         return '';
     }
@@ -497,15 +497,15 @@ function extractSSRCMap(desc) {
  * Takes a SessionDescription object and returns a "normalized" version.
  * Currently it only takes care of ordering the a=ssrc lines.
  */
-var normalizePlanB = function(desc) {
+const normalizePlanB = function(desc) {
     if (typeof desc !== 'object' || desc === null
         || typeof desc.sdp !== 'string') {
         logger.warn('An empty description was passed as an argument.');
         return desc;
     }
 
-    var transform = require('sdp-transform');
-    var session = transform.parse(desc.sdp);
+    const transform = require('sdp-transform');
+    const session = transform.parse(desc.sdp);
 
     if (typeof session !== 'undefined'
         && typeof session.media !== 'undefined' && Array.isArray(session.media)) {
@@ -518,8 +518,8 @@ var normalizePlanB = function(desc) {
             // the "a=ssrc:S1" lines, SRD fails.
             // So, put SSRC which appear as the first SSRC in an FID ssrc-group
             // first.
-            var firstSsrcs = [];
-            var newSsrcLines = [];
+            const firstSsrcs = [];
+            const newSsrcLines = [];
 
             if (typeof mLine.ssrcGroups !== 'undefined'
                 && Array.isArray(mLine.ssrcGroups)) {
@@ -534,7 +534,7 @@ var normalizePlanB = function(desc) {
             }
 
             if (Array.isArray(mLine.ssrcs)) {
-                var i;
+                let i;
                 for (i = 0; i < mLine.ssrcs.length; i++) {
                     if (typeof mLine.ssrcs[i] === 'object'
                         && typeof mLine.ssrcs[i].id !== 'undefined'
@@ -555,14 +555,14 @@ var normalizePlanB = function(desc) {
         });
     }
 
-    var resStr = transform.write(session);
+    const resStr = transform.write(session);
     return new RTCSessionDescription({
         type: desc.type,
         sdp: resStr
     });
 };
 
-var getters = {
+const getters = {
     signalingState() {
         return this.peerconnection.signalingState;
     },
@@ -570,7 +570,7 @@ var getters = {
         return this.peerconnection.iceConnectionState;
     },
     localDescription() {
-        var desc = this.peerconnection.localDescription;
+        let desc = this.peerconnection.localDescription;
 
         this.trace('getLocalDescription::preTransform', dumpSDP(desc));
 
@@ -583,7 +583,7 @@ var getters = {
         return desc;
     },
     remoteDescription() {
-        var desc = this.peerconnection.remoteDescription;
+        let desc = this.peerconnection.remoteDescription;
         this.trace('getRemoteDescription::preTransform', dumpSDP(desc));
 
         // if we're running on FF, transform to Plan B first.
@@ -654,7 +654,7 @@ TraceablePeerConnection.prototype.setLocalDescription
             dumpSDP(description));
             }
 
-            var self = this;
+            const self = this;
             this.peerconnection.setLocalDescription(description,
         function() {
             self.trace('setLocalDescriptionOnSuccess');
@@ -700,7 +700,7 @@ TraceablePeerConnection.prototype.setRemoteDescription
                 description = normalizePlanB(description);
             }
 
-            var self = this;
+            const self = this;
             this.peerconnection.setRemoteDescription(description,
         function() {
             self.trace('setRemoteDescriptionOnSuccess');
@@ -765,7 +765,7 @@ TraceablePeerConnection.prototype.close = function() {
  * @param {SDP} answer - the SDP to modify
  * @private
  */
-var _fixAnswerRFC4145Setup = function(offer, answer) {
+const _fixAnswerRFC4145Setup = function(offer, answer) {
     if (!RTCBrowserType.isChrome()) {
         // It looks like Firefox doesn't agree with the fix (at least in its
         // current implementation) because it effectively remains active even

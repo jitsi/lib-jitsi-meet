@@ -37,7 +37,7 @@ const logger = getLogger(__filename);
  */
 function JitsiConference(options) {
     if (!options.name || options.name.toLowerCase() !== options.name) {
-        var errmsg
+        const errmsg
             = 'Invalid conference name (no conference name passed or it '
                 + 'contains invalid characters like capital letters)!';
         logger.error(errmsg);
@@ -438,7 +438,7 @@ JitsiConference.prototype.getTranscriber = function() {
 JitsiConference.prototype.addTrack = function(track) {
     if (track.isVideoTrack()) {
         // Ensure there's exactly 1 local video track in the conference.
-        var localVideoTrack = this.rtc.getLocalVideoTrack();
+        const localVideoTrack = this.rtc.getLocalVideoTrack();
         if (localVideoTrack) {
             // Don't be excessively harsh and severe if the API client happens
             // to attempt to add the same local video track twice.
@@ -589,8 +589,8 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
     if (newTrack.isAudioTrack() || (newTrack.isVideoTrack()
             && newTrack.videoType !== VideoType.DESKTOP)) {
         // Report active device to statistics
-        var devices = RTC.getCurrentlyAvailableMediaDevices();
-        var device = devices.find(function(d) {
+        const devices = RTC.getCurrentlyAvailableMediaDevices();
+        const device = devices.find(function(d) {
             return d.kind === newTrack.getTrack().kind + 'input'
                 && d.label === newTrack.getTrack().label;
         });
@@ -724,7 +724,7 @@ JitsiConference.prototype.lock = function(password) {
         return Promise.reject();
     }
 
-    var conference = this;
+    const conference = this;
     return new Promise(function(resolve, reject) {
         conference.room.lockRoom(password || '', function() {
             resolve();
@@ -825,7 +825,7 @@ JitsiConference.prototype.getParticipantById = function(id) {
  * @param {string} id id of the participant to kick
  */
 JitsiConference.prototype.kickParticipant = function(id) {
-    var participant = this.getParticipantById(id);
+    const participant = this.getParticipantById(id);
     if (!participant) {
         return;
     }
@@ -837,7 +837,7 @@ JitsiConference.prototype.kickParticipant = function(id) {
  * @param {string} id The id of the participant to mute.
  */
 JitsiConference.prototype.muteParticipant = function(id) {
-    var participant = this.getParticipantById(id);
+    const participant = this.getParticipantById(id);
     if (!participant) {
         return;
     }
@@ -857,11 +857,11 @@ JitsiConference.prototype.muteParticipant = function(id) {
  */
 JitsiConference.prototype.onMemberJoined
     = function(jid, nick, role, isHidden) {
-        var id = Strophe.getResourceFromJid(jid);
+        const id = Strophe.getResourceFromJid(jid);
         if (id === 'focus' || this.myUserId() === id) {
             return;
         }
-        var participant = new JitsiParticipant(jid, this, nick, isHidden);
+        const participant = new JitsiParticipant(jid, this, nick, isHidden);
         participant._role = role;
         this.participants[id] = participant;
         this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED, id, participant);
@@ -872,14 +872,14 @@ JitsiConference.prototype.onMemberJoined
     };
 
 JitsiConference.prototype.onMemberLeft = function(jid) {
-    var id = Strophe.getResourceFromJid(jid);
+    const id = Strophe.getResourceFromJid(jid);
     if (id === 'focus' || this.myUserId() === id) {
         return;
     }
-    var participant = this.participants[id];
+    const participant = this.participants[id];
     delete this.participants[id];
 
-    var removedTracks = this.rtc.removeRemoteTracks(id);
+    const removedTracks = this.rtc.removeRemoteTracks(id);
 
     removedTracks.forEach(function(track) {
         this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
@@ -893,8 +893,8 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
 };
 
 JitsiConference.prototype.onUserRoleChanged = function(jid, role) {
-    var id = Strophe.getResourceFromJid(jid);
-    var participant = this.getParticipantById(id);
+    const id = Strophe.getResourceFromJid(jid);
+    const participant = this.getParticipantById(id);
     if (!participant) {
         return;
     }
@@ -903,8 +903,8 @@ JitsiConference.prototype.onUserRoleChanged = function(jid, role) {
 };
 
 JitsiConference.prototype.onDisplayNameChanged = function(jid, displayName) {
-    var id = Strophe.getResourceFromJid(jid);
-    var participant = this.getParticipantById(id);
+    const id = Strophe.getResourceFromJid(jid);
+    const participant = this.getParticipantById(id);
     if (!participant) {
         return;
     }
@@ -1007,7 +1007,7 @@ JitsiConference.prototype.onIncomingCall
 = function(jingleSession, jingleOffer, now) {
     if (!this.room.isFocus(jingleSession.peerjid)) {
         // Error cause this should never happen unless something is wrong!
-        var errmsg = 'Rejecting session-initiate from non-focus user: '
+        const errmsg = 'Rejecting session-initiate from non-focus user: '
                 + jingleSession.peerjid;
         GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
         logger.error(errmsg);
@@ -1033,7 +1033,7 @@ JitsiConference.prototype.onIncomingCall
         Statistics.sendEventToAll('session.restart');
     }
     // add info whether call is cross-region
-    var crossRegion = null;
+    let crossRegion = null;
     if (window.jitsiRegionInfo) {
         crossRegion = window.jitsiRegionInfo.CrossRegion;
     }
@@ -1146,7 +1146,7 @@ JitsiConference.prototype.onCallEnded
     // We want to re-register 'ssrcHandler' of our local tracks, so that they
     // will learn what their SSRC from the new PeerConnection which will be
     // created on incoming call event.
-    var self = this;
+    const self = this;
     this.getLocalTracks().forEach(function(localTrack) {
         // Reset SSRC as it will no longer be valid
         localTrack._setSSRC(null);
@@ -1166,11 +1166,11 @@ JitsiConference.prototype.onSuspendDetected = function() {
 };
 
 JitsiConference.prototype.updateDTMFSupport = function() {
-    var somebodySupportsDTMF = false;
-    var participants = this.getParticipants();
+    let somebodySupportsDTMF = false;
+    const participants = this.getParticipants();
 
     // check if at least 1 participant supports DTMF
-    for (var i = 0; i < participants.length; i += 1) {
+    for (let i = 0; i < participants.length; i += 1) {
         if (participants[i].supportsDTMF()) {
             somebodySupportsDTMF = true;
             break;
@@ -1379,14 +1379,14 @@ JitsiConference.prototype.isStartVideoMuted = function() {
  * Get object with internal logs.
  */
 JitsiConference.prototype.getLogs = function() {
-    var data = this.xmpp.getJingleLog();
+    const data = this.xmpp.getJingleLog();
 
-    var metadata = {};
+    const metadata = {};
     metadata.time = new Date();
     metadata.url = window.location.href;
     metadata.ua = navigator.userAgent;
 
-    var log = this.xmpp.getXmppLog();
+    const log = this.xmpp.getXmppLog();
     if (log) {
         metadata.xmpp = log;
     }
@@ -1441,7 +1441,7 @@ JitsiConference.prototype.isCallstatsEnabled = function() {
  * @param container the container
  */
 JitsiConference.prototype._onTrackAttach = function(track, container) {
-    var ssrc = track.getSSRC();
+    const ssrc = track.getSSRC();
     if (!container.id || !ssrc) {
         return;
     }

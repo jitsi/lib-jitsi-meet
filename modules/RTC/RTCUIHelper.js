@@ -1,9 +1,9 @@
 /* global $ */
 
-var logger = require('jitsi-meet-logger').getLogger(__filename);
-var RTCBrowserType = require('./RTCBrowserType');
+const logger = require('jitsi-meet-logger').getLogger(__filename);
+const RTCBrowserType = require('./RTCBrowserType');
 
-var RTCUIHelper = {
+const RTCUIHelper = {
 
     /**
      * Returns the name of 'video' element depending on the browser that we're
@@ -22,11 +22,11 @@ var RTCUIHelper = {
      *          container or undefined otherwise.
      */
     findVideoElement(containerElement) {
-        var videoElemName = RTCUIHelper.getVideoElementName();
+        const videoElemName = RTCUIHelper.getVideoElementName();
         if (!RTCBrowserType.isTemasysPluginUsed()) {
             return $(containerElement).find(videoElemName)[0];
         }
-        var matching = $(containerElement).find(
+        const matching = $(containerElement).find(
                 ' ' + videoElemName + '>param[value="video"]');
         if (matching.length) {
             if (matching.length > 1) {

@@ -1,4 +1,4 @@
-var SDPUtil = require('./SDPUtil');
+const SDPUtil = require('./SDPUtil');
 
 function SDPDiffer(mySDP, otherSDP) {
     this.mySDP = mySDP;
@@ -23,7 +23,7 @@ SDPDiffer.prototype.getNewMedia = function() {
             return false;
         }
 
-        for (var i = 0, l = this.length; i < l; i++) {
+        for (let i = 0, l = this.length; i < l; i++) {
             // Check if we have nested arrays
             if (this[i] instanceof Array && array[i] instanceof Array) {
                 // recurse into the nested arrays
@@ -39,12 +39,12 @@ SDPDiffer.prototype.getNewMedia = function() {
         return true;
     }
 
-    var myMedias = this.mySDP.getMediaSsrcMap();
-    var othersMedias = this.otherSDP.getMediaSsrcMap();
-    var newMedia = {};
+    const myMedias = this.mySDP.getMediaSsrcMap();
+    const othersMedias = this.otherSDP.getMediaSsrcMap();
+    const newMedia = {};
     Object.keys(othersMedias).forEach(function(othersMediaIdx) {
-        var myMedia = myMedias[othersMediaIdx];
-        var othersMedia = othersMedias[othersMediaIdx];
+        const myMedia = myMedias[othersMediaIdx];
+        const othersMedia = othersMedias[othersMediaIdx];
         if(!myMedia && othersMedia) {
             // Add whole channel
             newMedia[othersMediaIdx] = othersMedia;
@@ -71,9 +71,9 @@ SDPDiffer.prototype.getNewMedia = function() {
         othersMedia.ssrcGroups.forEach(function(otherSsrcGroup) {
 
             // try to match the other ssrc-group with an ssrc-group of ours
-            var matched = false;
-            for (var i = 0; i < myMedia.ssrcGroups.length; i++) {
-                var mySsrcGroup = myMedia.ssrcGroups[i];
+            let matched = false;
+            for (let i = 0; i < myMedia.ssrcGroups.length; i++) {
+                const mySsrcGroup = myMedia.ssrcGroups[i];
                 if (otherSsrcGroup.semantics == mySsrcGroup.semantics
                     && arrayEquals.apply(otherSsrcGroup.ssrcs,
                                       [mySsrcGroup.ssrcs])) {
@@ -106,12 +106,12 @@ SDPDiffer.prototype.getNewMedia = function() {
  * TODO: document!
  */
 SDPDiffer.prototype.toJingle = function(modify) {
-    var sdpMediaSsrcs = this.getNewMedia();
+    const sdpMediaSsrcs = this.getNewMedia();
 
-    var modified = false;
+    let modified = false;
     Object.keys(sdpMediaSsrcs).forEach(function(mediaindex) {
         modified = true;
-        var media = sdpMediaSsrcs[mediaindex];
+        const media = sdpMediaSsrcs[mediaindex];
         modify.c('content', {name: media.mid});
 
         modify.c('description',
@@ -120,20 +120,20 @@ SDPDiffer.prototype.toJingle = function(modify) {
         // different ssrcs correctly
         // generate sources from lines
         Object.keys(media.ssrcs).forEach(function(ssrcNum) {
-            var mediaSsrc = media.ssrcs[ssrcNum];
+            const mediaSsrc = media.ssrcs[ssrcNum];
             modify.c('source', { xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
             modify.attrs({ssrc: mediaSsrc.ssrc});
             // iterate over ssrc lines
             mediaSsrc.lines.forEach(function(line) {
-                var idx = line.indexOf(' ');
-                var kv = line.substr(idx + 1);
+                const idx = line.indexOf(' ');
+                const kv = line.substr(idx + 1);
                 modify.c('parameter');
                 if (kv.indexOf(':') == -1) {
                     modify.attrs({ name: kv });
                 } else {
-                    var nv = kv.split(':', 2);
-                    var name = nv[0];
-                    var value = SDPUtil.filter_special_chars(nv[1]);
+                    const nv = kv.split(':', 2);
+                    const name = nv[0];
+                    const value = SDPUtil.filter_special_chars(nv[1]);
                     modify.attrs({ name });
                     modify.attrs({ value });
                 }

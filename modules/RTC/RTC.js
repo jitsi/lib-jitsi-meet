@@ -16,15 +16,15 @@ import VideoType from '../../service/RTC/VideoType';
 const logger = getLogger(__filename);
 
 function createLocalTracks(tracksInfo, options) {
-    var newTracks = [];
-    var deviceId = null;
+    const newTracks = [];
+    let deviceId = null;
     tracksInfo.forEach(function(trackInfo) {
         if (trackInfo.mediaType === MediaType.AUDIO) {
             deviceId = options.micDeviceId;
         } else if (trackInfo.videoType === VideoType.CAMERA) {
             deviceId = options.cameraDeviceId;
         }
-        var localTrack
+        const localTrack
             = new JitsiLocalTrack(
                 trackInfo.stream,
                 trackInfo.track,
@@ -94,7 +94,7 @@ export default class RTC extends Listenable {
     static obtainAudioAndVideoPermissions(options) {
         return RTCUtils.obtainAudioAndVideoPermissions(options).then(
             function(tracksInfo) {
-                var tracks = createLocalTracks(tracksInfo, options);
+                const tracks = createLocalTracks(tracksInfo, options);
                 return !tracks.some(track =>
                     !track._isReceivingData()) ? tracks
                         : Promise.reject(new JitsiTrackError(
@@ -638,7 +638,7 @@ export default class RTC extends Listenable {
         if(!resource) {
             return;
         }
-        var audioTrack = this.getRemoteAudioTrack(resource);
+        const audioTrack = this.getRemoteAudioTrack(resource);
         if(audioTrack) {
             audioTrack.setAudioLevel(audioLevel);
         }
@@ -679,7 +679,7 @@ export default class RTC extends Listenable {
      * @param from {string} user id
      */
     handleRemoteTrackMute(type, isMuted, from) {
-        var track = this.getRemoteTrackByType(type, from);
+        const track = this.getRemoteTrackByType(type, from);
         if (track) {
             track.setMute(isMuted);
         }
@@ -691,7 +691,7 @@ export default class RTC extends Listenable {
      * @param from {string} user id
      */
     handleRemoteTrackVideoTypeChanged(value, from) {
-        var videoTrack = this.getRemoteVideoTrack(from);
+        const videoTrack = this.getRemoteVideoTrack(from);
         if (videoTrack) {
             videoTrack._setVideoType(value);
         }

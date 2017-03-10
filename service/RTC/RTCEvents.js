@@ -1,4 +1,4 @@
-var RTCEvents = {
+const RTCEvents = {
     /**
      * Indicates error while create answer call.
      */

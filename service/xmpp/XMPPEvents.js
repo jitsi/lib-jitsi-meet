@@ -1,4 +1,4 @@
-var XMPPEvents = {
+const XMPPEvents = {
     /**
      * Indicates error while adding ice candidate.
      */

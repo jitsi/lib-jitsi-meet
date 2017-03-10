@@ -26,7 +26,7 @@ RTC.addListener(RTCEvents.DEVICE_LIST_AVAILABLE,
  * @param devices list of devices
  */
 function logOutputDevice(deviceID, devices) {
-    var device = devices.find(function(d) {
+    const device = devices.find(function(d) {
         return d.kind === 'audiooutput' && d.deviceId === deviceID;
     });
 
@@ -36,7 +36,7 @@ function logOutputDevice(deviceID, devices) {
     }
 }
 
-var JitsiMediaDevices = {
+const JitsiMediaDevices = {
     /**
      * Executes callback with list of media devices connected.
      * @param {function} callback
@@ -70,7 +70,7 @@ var JitsiMediaDevices = {
      * @returns {boolean}
      */
     isDevicePermissionGranted(type) {
-        var permissions = RTC.getDeviceAvailability();
+        const permissions = RTC.getDeviceAvailability();
 
         switch(type) {
         case MediaType.VIDEO:
@@ -99,7 +99,7 @@ var JitsiMediaDevices = {
      */
     setAudioOutputDevice(deviceId) {
 
-        var availableDevices = RTC.getCurrentlyAvailableMediaDevices();
+        const availableDevices = RTC.getCurrentlyAvailableMediaDevices();
         if (availableDevices && availableDevices.length > 0) {
             // if we have devices info report device to stats
             // normally this will not happen on startup as this method is called

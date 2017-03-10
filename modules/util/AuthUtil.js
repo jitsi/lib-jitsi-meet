@@ -1,4 +1,4 @@
-var AuthUtil = {
+const AuthUtil = {
     /**
      * Creates the URL pointing to JWT token authentication service. It is
      * formatted from the 'urlPattern' argument which can contain the following
@@ -21,7 +21,7 @@ var AuthUtil = {
      * constructed.
      */
     getTokenAuthUrl(urlPattern, roomName, roleUpgrade) {
-        var url = urlPattern;
+        const url = urlPattern;
         if (typeof url !== 'string') {
             return null;
         }

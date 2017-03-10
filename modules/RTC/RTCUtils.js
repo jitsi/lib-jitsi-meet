@@ -35,32 +35,32 @@ const AdapterJS
         ? require('./adapter.screenshare')
         : undefined;
 
-var eventEmitter = new EventEmitter();
+const eventEmitter = new EventEmitter();
 
-var AVAILABLE_DEVICES_POLL_INTERVAL_TIME = 3000; // ms
+const AVAILABLE_DEVICES_POLL_INTERVAL_TIME = 3000; // ms
 
-var devices = {
+const devices = {
     audio: false,
     video: false
 };
 
 // Currently audio output device change is supported only in Chrome and
 // default output always has 'default' device ID
-var audioOutputDeviceId = 'default'; // default device
+let audioOutputDeviceId = 'default'; // default device
 // whether user has explicitly set a device to use
-var audioOutputChanged = false;
+let audioOutputChanged = false;
 // Disables Acoustic Echo Cancellation
-var disableAEC = false;
+let disableAEC = false;
 // Disables Noise Suppression
-var disableNS = false;
+let disableNS = false;
 
-var featureDetectionAudioEl = document.createElement('audio');
-var isAudioOutputDeviceChangeAvailable
+const featureDetectionAudioEl = document.createElement('audio');
+const isAudioOutputDeviceChangeAvailable
     = typeof featureDetectionAudioEl.setSinkId !== 'undefined';
 
-var currentlyAvailableMediaDevices;
+let currentlyAvailableMediaDevices;
 
-var rawEnumerateDevicesWithCallback = undefined;
+let rawEnumerateDevicesWithCallback = undefined;
 /**
  * "rawEnumerateDevicesWithCallback" will be initialized only after WebRTC is
  * ready. Otherwise it is too early to assume that the devices listing is not
@@ -97,12 +97,12 @@ function initRawEnumerateDevicesWithCallback() {
 // 'devicechange' event can be found in spec -
 // http://w3c.github.io/mediacapture-main/#event-mediadevices-devicechange
 // TODO: check MS Edge
-var isDeviceChangeEventSupported = false;
+const isDeviceChangeEventSupported = false;
 
-var rtcReady = false;
+let rtcReady = false;
 
 function setResolutionConstraints(constraints, resolution) {
-    var isAndroid = RTCBrowserType.isAndroid();
+    const isAndroid = RTCBrowserType.isAndroid();
 
     if (Resolutions[resolution]) {
         constraints.video.mandatory.minWidth = Resolutions[resolution].width;
@@ -139,7 +139,7 @@ function setResolutionConstraints(constraints, resolution) {
  * @param {bool} firefox_fake_device
  */
 function getConstraints(um, options) {
-    var constraints = {audio: false, video: false};
+    const constraints = {audio: false, video: false};
 
     // Don't mix new and old style settings for Chromium as this leads
     // to TypeError in new Chromium versions. @see
@@ -148,7 +148,7 @@ function getConstraints(um, options) {
     // new style constraints when new versions of Chromium and Firefox will
     // have stable support of new constraints format. For more information
     // @see https://github.com/jitsi/lib-jitsi-meet/pull/136
-    var isNewStyleConstraintsSupported
+    const isNewStyleConstraintsSupported
         = RTCBrowserType.isFirefox()
         || RTCBrowserType.isReactNative()
         || RTCBrowserType.isTemasysPluginUsed();
@@ -172,7 +172,7 @@ function getConstraints(um, options) {
             // TODO: Maybe use "exact" syntax if options.facingMode is defined,
             // but this probably needs to be decided when updating other
             // constraints, as we currently don't use "exact" syntax anywhere.
-            var facingMode = options.facingMode || CameraFacingMode.USER;
+            const facingMode = options.facingMode || CameraFacingMode.USER;
 
             if (isNewStyleConstraintsSupported) {
                 constraints.video.facingMode = facingMode;
@@ -263,7 +263,7 @@ function getConstraints(um, options) {
             };
 
         } else {
-            var errmsg
+            const errmsg
                 = '\'screen\' WebRTC media source is supported only in Chrome'
                     + ' and with Temasys plugin';
             GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
@@ -311,8 +311,8 @@ function getConstraints(um, options) {
  * @param stream the stream we received from calling getUserMedia.
  */
 function setAvailableDevices(um, stream) {
-    var audioTracksReceived = stream && !!stream.getAudioTracks().length;
-    var videoTracksReceived = stream && !!stream.getVideoTracks().length;
+    const audioTracksReceived = stream && !!stream.getAudioTracks().length;
+    const videoTracksReceived = stream && !!stream.getVideoTracks().length;
 
     if (um.indexOf('video') != -1) {
         devices.video = videoTracksReceived;
@@ -448,7 +448,7 @@ function maybeApply(fn, args) {
     fn && fn(...args);
 }
 
-var getUserMediaStatus = {
+const getUserMediaStatus = {
     initialized: false,
     callbacks: []
 };
@@ -522,7 +522,7 @@ function enumerateDevicesThroughMediaStreamTrack(callback) {
  * @param {Object} source
  */
 function convertMediaStreamTrackSource(source) {
-    var kind = (source.kind || '').toLowerCase();
+    const kind = (source.kind || '').toLowerCase();
 
     return {
         facing: source.facing || null,
@@ -543,8 +543,8 @@ function obtainDevices(options) {
         return options.successCallback(options.streams || {});
     }
 
-    var device = options.devices.splice(0, 1);
-    var devices = [];
+    const device = options.devices.splice(0, 1);
+    const devices = [];
     devices.push(device);
     options.deviceGUM[device](function(stream) {
         options.streams = options.streams || {};
@@ -570,7 +570,8 @@ function obtainDevices(options) {
  * @returns {*[]} object that describes the new streams
  */
 function handleLocalStream(streams, resolution) {
-    var audioStream, desktopStream, res = [], videoStream;
+    let audioStream, desktopStream, videoStream;
+    const res = [];
 
     // XXX The function obtainAudioAndVideoPermissions has examined the type of
     // the browser, its capabilities, etc. and has taken the decision whether to
@@ -582,22 +583,22 @@ function handleLocalStream(streams, resolution) {
         // As mentioned above, certian types of browser (e.g. Chrome) support
         // (with a result which meets our requirements expressed bellow) calling
         // getUserMedia once for both audio and video.
-        var audioVideo = streams.audioVideo;
+        const audioVideo = streams.audioVideo;
         if (audioVideo) {
-            var audioTracks = audioVideo.getAudioTracks();
+            const audioTracks = audioVideo.getAudioTracks();
             if (audioTracks.length) {
                 // eslint-disable-next-line new-cap
                 audioStream = new webkitMediaStream();
-                for (var i = 0; i < audioTracks.length; i++) {
+                for (let i = 0; i < audioTracks.length; i++) {
                     audioStream.addTrack(audioTracks[i]);
                 }
             }
 
-            var videoTracks = audioVideo.getVideoTracks();
+            const videoTracks = audioVideo.getVideoTracks();
             if (videoTracks.length) {
                 // eslint-disable-next-line new-cap
                 videoStream = new webkitMediaStream();
-                for (var j = 0; j < videoTracks.length; j++) {
+                for (let j = 0; j < videoTracks.length; j++) {
                     videoStream.addTrack(videoTracks[j]);
                 }
             }
@@ -649,7 +650,7 @@ function handleLocalStream(streams, resolution) {
  */
 function wrapAttachMediaStream(origAttachMediaStream) {
     return function(element, stream) {
-        var res = origAttachMediaStream.apply(rtcUtils, arguments);
+        const res = origAttachMediaStream.apply(rtcUtils, arguments);
 
         if (stream
                 && rtcUtils.isDeviceChangeAvailable('output')
@@ -659,7 +660,7 @@ function wrapAttachMediaStream(origAttachMediaStream) {
                 && audioOutputChanged) {
             element.setSinkId(rtcUtils.getAudioOutputDevice())
                 .catch(function(ex) {
-                    var err = new JitsiTrackError(ex, null, ['audiooutput']);
+                    const err = new JitsiTrackError(ex, null, ['audiooutput']);
 
                     GlobalOnErrorHandler.callUnhandledRejectionHandler(
                         {promise: this, reason: err});
@@ -696,7 +697,7 @@ function wrapAttachMediaStream(origAttachMediaStream) {
  */
 function defaultSetVideoSrc(element, stream) {
     // srcObject
-    var srcObjectPropertyName = 'srcObject';
+    let srcObjectPropertyName = 'srcObject';
     if (!(srcObjectPropertyName in element)) {
         srcObjectPropertyName = 'mozSrcObject';
         if (!(srcObjectPropertyName in element)) {
@@ -709,7 +710,7 @@ function defaultSetVideoSrc(element, stream) {
     }
 
     // src
-    var src;
+    let src;
     if (stream) {
         src = stream.jitsiObjectURL;
         // Save the created URL for stream so we can reuse it and not keep
@@ -741,7 +742,7 @@ class RTCUtils extends Listenable {
 
         return new Promise(function(resolve, reject) {
             if (RTCBrowserType.isFirefox()) {
-                var FFversion = RTCBrowserType.getFirefoxVersion();
+                const FFversion = RTCBrowserType.getFirefoxVersion();
                 if (FFversion < 40) {
                     rejectWithWebRTCNotSupported(
                         `Firefox version too old: ${FFversion}.`
@@ -773,9 +774,9 @@ class RTCUtils extends Listenable {
                     return element;
                 });
                 this.getStreamID = function(stream) {
-                    var id = stream.id;
+                    let id = stream.id;
                     if (!id) {
-                        var tracks = stream.getVideoTracks();
+                        let tracks = stream.getVideoTracks();
                         if (!tracks || tracks.length === 0) {
                             tracks = stream.getAudioTracks();
                         }
@@ -792,7 +793,7 @@ class RTCUtils extends Listenable {
                     || RTCBrowserType.isReactNative()) {
 
                 this.peerconnection = webkitRTCPeerConnection;
-                var getUserMedia = navigator.webkitGetUserMedia.bind(navigator);
+                const getUserMedia = navigator.webkitGetUserMedia.bind(navigator);
                 if (navigator.mediaDevices) {
                     this.getUserMedia = wrapGetUserMedia(getUserMedia);
                     this.enumerateDevices = wrapEnumerateDevices(
@@ -813,7 +814,7 @@ class RTCUtils extends Listenable {
                     // React Native at the time of this writing returns a number
                     // for the id of MediaStream. Let's just say that a number
                     // contains no special characters.
-                    var id = stream.id;
+                    const id = stream.id;
                     // XXX The return statement is affected by automatic
                     // semicolon insertion (ASI). No line terminator is allowed
                     // between the return keyword and the expression.
@@ -862,12 +863,12 @@ class RTCUtils extends Listenable {
 
                             // The container must be visible in order to play or
                             // attach the stream when Temasys plugin is in use
-                            var containerSel = $(element);
+                            const containerSel = $(element);
                             if (RTCBrowserType.isTemasysPluginUsed()
                                     && !containerSel.is(':visible')) {
                                 containerSel.show();
                             }
-                            var video = !!stream.getVideoTracks().length;
+                            const video = !!stream.getVideoTracks().length;
                             if (video && !$(element).is(':visible')) {
                                 throw new Error(
                                     'video element must be visible to attach'
@@ -938,7 +939,7 @@ class RTCUtils extends Listenable {
     **/
     getUserMediaWithConstraints(um, success_callback, failure_callback, options) {
         options = options || {};
-        var constraints = getConstraints(um, options);
+        const constraints = getConstraints(um, options);
 
         logger.info('Get media constraints', constraints);
 
@@ -981,12 +982,12 @@ class RTCUtils extends Listenable {
      * @returns {*} Promise object that will receive the new JitsiTracks
      */
     obtainAudioAndVideoPermissions(options) {
-        var self = this;
+        const self = this;
 
         options = options || {};
-        var dsOptions = options.desktopSharingExtensionExternalInstallation;
+        const dsOptions = options.desktopSharingExtensionExternalInstallation;
         return new Promise(function(resolve, reject) {
-            var successCallback = function(stream) {
+            const successCallback = function(stream) {
                 resolve(handleLocalStream(stream, options.resolution));
             };
 
@@ -1004,11 +1005,11 @@ class RTCUtils extends Listenable {
                     // NSNumber as) a MediaStream ID.
                     || RTCBrowserType.isReactNative()
                     || RTCBrowserType.isTemasysPluginUsed()) {
-                var GUM = function(device, s, e) {
+                const GUM = function(device, s, e) {
                     this.getUserMediaWithConstraints(device, s, e, options);
                 };
 
-                var deviceGUM = {
+                const deviceGUM = {
                     'audio': GUM.bind(self, ['audio']),
                     'video': GUM.bind(self, ['video'])
                 };
@@ -1034,7 +1035,7 @@ class RTCUtils extends Listenable {
                     deviceGUM
                 });
             } else {
-                var hasDesktop = options.devices.indexOf('desktop') > -1;
+                const hasDesktop = options.devices.indexOf('desktop') > -1;
                 if (hasDesktop) {
                     options.devices.splice(options.devices.indexOf('desktop'), 1);
                 }
@@ -1043,10 +1044,10 @@ class RTCUtils extends Listenable {
                     this.getUserMediaWithConstraints(
                         options.devices,
                         function(stream) {
-                            var audioDeviceRequested = options.devices.indexOf('audio') !== -1;
-                            var videoDeviceRequested = options.devices.indexOf('video') !== -1;
-                            var audioTracksReceived = !!stream.getAudioTracks().length;
-                            var videoTracksReceived = !!stream.getVideoTracks().length;
+                            const audioDeviceRequested = options.devices.indexOf('audio') !== -1;
+                            const videoDeviceRequested = options.devices.indexOf('video') !== -1;
+                            const audioTracksReceived = !!stream.getAudioTracks().length;
+                            const videoTracksReceived = !!stream.getVideoTracks().length;
 
                             if((audioDeviceRequested && !audioTracksReceived)
                                 || (videoDeviceRequested && !videoTracksReceived)) {
@@ -1057,7 +1058,7 @@ class RTCUtils extends Listenable {
                                 // didn't get corresponding MediaStreamTrack in
                                 // response stream. We don't know the reason why
                                 // this happened, so reject with general error.
-                                var devices = [];
+                                const devices = [];
 
                                 if (audioDeviceRequested && !audioTracksReceived) {
                                     devices.push('audio');
@@ -1227,7 +1228,7 @@ class RTCUtils extends Listenable {
         }
 
         // if we have done createObjectURL, lets clean it
-        var url = mediaStream.jitsiObjectURL;
+        const url = mediaStream.jitsiObjectURL;
         if (url) {
             delete mediaStream.jitsiObjectURL;
             (URL || webkitURL).revokeObjectURL(url);
@@ -1291,8 +1292,8 @@ class RTCUtils extends Listenable {
      * @returns {MediaDeviceInfo} device.
      */
     getEventDataForActiveDevice(device) {
-        var devices = [];
-        var deviceData = {
+        const devices = [];
+        const deviceData = {
             'deviceId': device.deviceId,
             'kind':     device.kind,
             'label':    device.label,

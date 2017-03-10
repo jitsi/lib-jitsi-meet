@@ -91,7 +91,7 @@ export default class JitsiParticipant {
      * @value the value to set.
      */
     setProperty(name, value) {
-        var oldValue = this._properties[name];
+        const oldValue = this._properties[name];
 
         if (value !== oldValue) {
             this._properties[name] = value;

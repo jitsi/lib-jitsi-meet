@@ -1,7 +1,7 @@
-var JitsiConference = require('./JitsiConference');
+const JitsiConference = require('./JitsiConference');
 import * as JitsiConnectionEvents from './JitsiConnectionEvents';
 import XMPP from './modules/xmpp/xmpp';
-var Statistics = require('./modules/statistics/statistics');
+const Statistics = require('./modules/statistics/statistics');
 
 /**
  * Creates new connection object for the Jitsi Meet server side video conferencing service. Provides access to the
@@ -70,7 +70,7 @@ JitsiConnection.prototype.disconnect = function() {
     // XMPP.disconnect. For example, the caller of JitsiConnection.disconnect
     // may optionally pass the event which triggered the disconnect in order to
     // provide the implementation with finer-grained context.
-    var x = this.xmpp;
+    const x = this.xmpp;
 
     x.disconnect(...arguments);
 };

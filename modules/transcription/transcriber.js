@@ -1,14 +1,14 @@
-var AudioRecorder = require('./audioRecorder');
-var SphinxService = require(
+const AudioRecorder = require('./audioRecorder');
+const SphinxService = require(
     './transcriptionServices/SphinxTranscriptionService');
 
-var BEFORE_STATE = 'before';
-var RECORDING_STATE = 'recording';
-var TRANSCRIBING_STATE = 'transcribing';
-var FINISHED_STATE = 'finished';
+const BEFORE_STATE = 'before';
+const RECORDING_STATE = 'recording';
+const TRANSCRIBING_STATE = 'transcribing';
+const FINISHED_STATE = 'finished';
 
 // the amount of characters each line in the transcription will have
-var MAXIMUM_SENTENCE_LENGTH = 80;
+const MAXIMUM_SENTENCE_LENGTH = 80;
 
 /**
  * This is the main object for handing the Transcription. It interacts with
@@ -17,7 +17,7 @@ var MAXIMUM_SENTENCE_LENGTH = 80;
  * will be merged to create a transcript
  * @param {AudioRecorder} audioRecorder An audioRecorder recording a conference
  */
-var transcriber = function() {
+const transcriber = function() {
     // the object which can record all audio in the conference
     this.audioRecorder = new AudioRecorder();
     // this object can send the recorder audio to a speech-to-text service
@@ -76,9 +76,9 @@ transcriber.prototype.stop = function stop(callback) {
     console.log('stopping recording and sending audio files');
     this.audioRecorder.stop();
     // and send all recorded audio the the transcription service
-    var t = this;
+    const t = this;
 
-    var callBack = blobCallBack.bind(this);
+    const callBack = blobCallBack.bind(this);
     this.audioRecorder.getRecordingResults().forEach(function(recordingResult) {
         t.transcriptionService.send(recordingResult, callBack);
         t.counter++;
@@ -99,21 +99,21 @@ transcriber.prototype.stop = function stop(callback) {
  * @param {RecordingResult} answer a RecordingResult object with a defined
  * WordArray
  */
-var blobCallBack = function(answer) {
+const blobCallBack = function(answer) {
     console.log(
         'retrieved an answer from the transcription service. The answer has an'
             + ' array of length: ' + answer.wordArray.length);
     // first add the offset between the start of the transcription and
     // the start of the recording to all start and end times
     if(answer.wordArray.length > 0) {
-        var offset = answer.startTime.getUTCMilliseconds()
+        let offset = answer.startTime.getUTCMilliseconds()
             - this.startTime.getUTCMilliseconds();
         // transcriber time will always be earlier
         if (offset < 0) {
             offset = 0; // presume 0 if it somehow not earlier
         }
 
-        var array = '[';
+        let array = '[';
         answer.wordArray.forEach(function(wordObject) {
             wordObject.begin += offset;
             wordObject.end += offset;
@@ -160,9 +160,9 @@ transcriber.prototype.merge = function() {
     // previously placed word, while removing the selected word from its array
     // note: words can be skipped the skipped word's begin and end time somehow
     // end up between the closest word start and end time
-    var arrays = this.results;
+    const arrays = this.results;
     // arrays of Word objects
-    var potentialWords = []; // array of the first Word objects
+    const potentialWords = []; // array of the first Word objects
     // check if any arrays are already empty and remove them
     hasPopulatedArrays(arrays);
 
@@ -172,9 +172,9 @@ transcriber.prototype.merge = function() {
     });
 
     // keep adding words to transcription until all arrays are exhausted
-    var lowestWordArray;
-    var wordToAdd;
-    var foundSmaller;
+    let lowestWordArray;
+    let wordToAdd;
+    let foundSmaller;
     while(hasPopulatedArrays(arrays)) {
         // first select the lowest array;
         lowestWordArray = arrays[0];
@@ -238,8 +238,8 @@ transcriber.prototype.updateTranscription = function(word, name) {
  * @param {Array<Array>} twoDimensionalArray the array to check
  * @returns {boolean} true if any non-zero arrays inside, otherwise false
  */
-var hasPopulatedArrays = function(twoDimensionalArray) {
-    var i;
+const hasPopulatedArrays = function(twoDimensionalArray) {
+    let i;
     for(i = 0; i < twoDimensionalArray.length; i++) {
         if(twoDimensionalArray[i].length === 0) {
             twoDimensionalArray.splice(i, 1);
@@ -256,7 +256,7 @@ var hasPopulatedArrays = function(twoDimensionalArray) {
  * @param {Array<Word>} array the sorted array to push to
  * @param {Word} word the word to push into the array
  */
-var pushWordToSortedArray = function(array, word) {
+const pushWordToSortedArray = function(array, word) {
     if(array.length === 0) {
         array.push(word);
     } else{
@@ -264,7 +264,7 @@ var pushWordToSortedArray = function(array, word) {
             array.push(word);
             return;
         }
-        var i;
+        let i;
         for(i = 0; i < array.length; i++) {
             if(word.begin < array[i].begin) {
                 array.splice(i, 0, word);

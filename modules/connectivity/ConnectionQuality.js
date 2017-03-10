@@ -4,9 +4,9 @@ import * as ConferenceEvents from '../../JitsiConferenceEvents';
 import {getLogger} from 'jitsi-meet-logger';
 import RTCBrowserType from '../RTC/RTCBrowserType';
 
-var XMPPEvents = require('../../service/xmpp/XMPPEvents');
-var VideoType = require('../../service/RTC/VideoType');
-var Resolutions = require('../../service/RTC/Resolutions');
+const XMPPEvents = require('../../service/xmpp/XMPPEvents');
+const VideoType = require('../../service/RTC/VideoType');
+const Resolutions = require('../../service/RTC/Resolutions');
 
 const logger = getLogger(__filename);
 
@@ -31,7 +31,7 @@ const kSimulcastFormats = [
 /**
  * The initial bitrate for video in kbps.
  */
-var startBitrate = 800;
+let startBitrate = 800;
 
 /**
  * Gets the expected bitrate (in kbps) in perfect network conditions.

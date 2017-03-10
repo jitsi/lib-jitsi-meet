@@ -28,15 +28,15 @@ const logger = Logger.getLogger(__filename);
 
 // The amount of time to wait until firing
 // JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN event
-var USER_MEDIA_PERMISSION_PROMPT_TIMEOUT = 500;
+const USER_MEDIA_PERMISSION_PROMPT_TIMEOUT = 500;
 
 function getLowerResolution(resolution) {
     if(!Resolutions[resolution]) {
         return null;
     }
-    var order = Resolutions[resolution].order;
-    var res = null;
-    var resName = null;
+    const order = Resolutions[resolution].order;
+    let res = null;
+    let resName = null;
     Object.keys(Resolutions).forEach(resolution => {
         const value = Resolutions[resolution];
         if (!res || (res.order < value.order && value.order < order)) {
@@ -73,7 +73,7 @@ function addDeviceTypeToAnalyticsEvent(name, options) {
 /**
  * Namespace for the interface of Jitsi Meet Library.
  */
-var LibJitsiMeet = {
+const LibJitsiMeet = {
 
     version: '{#COMMIT_HASH#}',
 
@@ -211,7 +211,7 @@ var LibJitsiMeet = {
      *     or a JitsiConferenceError if rejected.
      */
     createLocalTracks(options, firePermissionPromptIsShownEvent) {
-        var promiseFulfilled = false;
+        let promiseFulfilled = false;
 
         if (firePermissionPromptIsShownEvent === true) {
             window.setTimeout(function() {
@@ -242,7 +242,7 @@ var LibJitsiMeet = {
                 if(!RTC.options.disableAudioLevels) {
                     for(let i = 0; i < tracks.length; i++) {
                         const track = tracks[i];
-                        var mStream = track.getOriginalStream();
+                        const mStream = track.getOriginalStream();
                         if(track.getType() === MediaType.AUDIO) {
                             Statistics.startLocalStats(mStream,
                                 track.setAudioLevel.bind(track));
@@ -256,7 +256,7 @@ var LibJitsiMeet = {
                 }
 
                 // set real device ids
-                var currentlyAvailableMediaDevices
+                const currentlyAvailableMediaDevices
                     = RTC.getCurrentlyAvailableMediaDevices();
                 if (currentlyAvailableMediaDevices) {
                     for(let i = 0; i < tracks.length; i++) {

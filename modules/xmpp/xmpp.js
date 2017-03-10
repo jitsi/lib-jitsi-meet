@@ -117,7 +117,7 @@ export default class XMPP extends Listenable {
             logger.info('My Jabber ID: ' + this.connection.jid);
 
             // Schedule ping ?
-            var pingJid = this.connection.domain;
+            const pingJid = this.connection.domain;
             this.connection.ping.hasPingSupport(
                 pingJid,
                 function(hasPing) {

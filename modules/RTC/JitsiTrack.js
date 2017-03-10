@@ -11,7 +11,7 @@ const logger = getLogger(__filename);
 /**
  * Maps our handler types to MediaStreamTrack properties.
  */
-var trackHandler2Prop = {
+const trackHandler2Prop = {
     'track_mute': 'onmute',// Not supported on FF
     'track_unmute': 'onunmute',
     'track_ended': 'onended'
@@ -24,13 +24,13 @@ var trackHandler2Prop = {
  * to which 'onended' handling will be added.
  */
 function implementOnEndedHandling(jitsiTrack) {
-    var stream = jitsiTrack.getOriginalStream();
+    const stream = jitsiTrack.getOriginalStream();
 
     if(!stream) {
         return;
     }
 
-    var originalStop = stream.stop;
+    const originalStop = stream.stop;
     stream.stop = function() {
         originalStop.apply(stream);
         if (jitsiTrack.isActive()) {
@@ -265,8 +265,8 @@ JitsiTrack.prototype.attach = function(container) {
  * JitsiTrack is currently attached.
  */
 JitsiTrack.prototype.detach = function(container) {
-    for (var cs = this.containers, i = cs.length - 1; i >= 0; --i) {
-        var c = cs[i];
+    for (let cs = this.containers, i = cs.length - 1; i >= 0; --i) {
+        const c = cs[i];
         if (!container) {
             RTCUtils.attachMediaStream(c, null);
         }
@@ -382,8 +382,8 @@ JitsiTrack.prototype.setAudioLevel = function(audioLevel) {
  * no stream is attached.
  */
 JitsiTrack.prototype.getMSID = function() {
-    var streamId = this.getStreamId();
-    var trackId = this.getTrackId();
+    const streamId = this.getStreamId();
+    const trackId = this.getTrackId();
     return streamId && trackId ? streamId + ' ' + trackId : null;
 };
 
@@ -396,7 +396,7 @@ JitsiTrack.prototype.getMSID = function() {
  * @returns {Promise}
  */
 JitsiTrack.prototype.setAudioOutput = function(audioOutputDeviceId) {
-    var self = this;
+    const self = this;
 
     if (!RTCUtils.isDeviceChangeAvailable('output')) {
         return Promise.reject(

@@ -1,10 +1,10 @@
 /* global $, Strophe, callstats */
-var logger = require('jitsi-meet-logger').getLogger(__filename);
-var GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
+const logger = require('jitsi-meet-logger').getLogger(__filename);
+const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 import Settings from '../settings/Settings';
 
-var jsSHA = require('jssha');
-var io = require('socket.io-client');
+const jsSHA = require('jssha');
+const io = require('socket.io-client');
 
 /**
  * We define enumeration of wrtcFuncNames as we need them before
@@ -12,7 +12,7 @@ var io = require('socket.io-client');
  * @const
  * @see http://www.callstats.io/api/#enumeration-of-wrtcfuncnames
  */
-var wrtcFuncNames = {
+const wrtcFuncNames = {
     createOffer:          'createOffer',
     createAnswer:         'createAnswer',
     setLocalDescription:  'setLocalDescription',
@@ -30,7 +30,7 @@ var wrtcFuncNames = {
  * @const
  * @see http://www.callstats.io/api/#enumeration-of-fabricevent
  */
-var fabricEvent = {
+const fabricEvent = {
     fabricHold:'fabricHold',
     fabricResume:'fabricResume',
     audioMute:'audioMute',
@@ -46,7 +46,7 @@ var fabricEvent = {
     activeDeviceList:'activeDeviceList'
 };
 
-var callStats = null;
+let callStats = null;
 
 /**
  * The user id to report to callstats as destination.
@@ -65,13 +65,13 @@ function initCallback(err, msg) {
         return;
     }
 
-    var ret = callStats.addNewFabric(this.peerconnection,
+    const ret = callStats.addNewFabric(this.peerconnection,
         DEFAULT_REMOTE_USER,
         callStats.fabricUsage.multiplex,
         this.confID,
         this.pcCallback.bind(this));
 
-    var fabricInitialized = ret.status === 'success';
+    const fabricInitialized = ret.status === 'success';
 
     if(!fabricInitialized) {
         CallStats.initializeFailed = true;
@@ -87,21 +87,21 @@ function initCallback(err, msg) {
     if (CallStats.reportsQueue.length) {
         CallStats.reportsQueue.forEach(function(report) {
             if (report.type === reportType.ERROR) {
-                var error = report.data;
+                const error = report.data;
                 CallStats._reportError.call(this, error.type, error.error,
                     error.pc);
             } else if (report.type === reportType.EVENT
                 && fabricInitialized) {
                 // if we have and event to report and we failed to add fabric
                 // this event will not be reported anyway, returning an error
-                var eventData = report.data;
+                const eventData = report.data;
                 callStats.sendFabricEvent(
                     this.peerconnection,
                     eventData.event,
                     this.confID,
                     eventData.eventData);
             } else if (report.type === reportType.MST_WITH_USERID) {
-                var data = report.data;
+                const data = report.data;
                 callStats.associateMstWithUserID(
                     this.peerconnection,
                     data.callStatsId,
@@ -140,7 +140,7 @@ function _try_catch(f) {
  * @param peerConnection {JingleSessionPC} the session object
  * @param options {object} credentials for callstats.
  */
-var CallStats = _try_catch(function(jingleSession, options) {
+const CallStats = _try_catch(function(jingleSession, options) {
     try{
         CallStats.feedbackEnabled = false;
         callStats = new callstats($, io, jsSHA); // eslint-disable-line new-cap
@@ -229,7 +229,7 @@ CallStats._checkInitialize = function() {
  * Type of pending reports, can be event or an error.
  * @type {{ERROR: string, EVENT: string}}
  */
-var reportType = {
+const reportType = {
     ERROR: 'error',
     EVENT: 'event',
     MST_WITH_USERID: 'mstWithUserID'

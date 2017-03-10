@@ -1,4 +1,4 @@
-var RandomUtil = require('./RandomUtil');
+const RandomUtil = require('./RandomUtil');
 
 /**
  * from faker.js - Copyright (c) 2014-2015 Matthew Bergman & Marak Squires
@@ -7,7 +7,7 @@ var RandomUtil = require('./RandomUtil');
  *
  * @const
  */
-var names = [
+const names = [
     'Aaliyah', 'Aaron', 'Abagail', 'Abbey', 'Abbie', 'Abbigail', 'Abby',
     'Abdiel', 'Abdul', 'Abdullah', 'Abe', 'Abel', 'Abelardo', 'Abigail',
     'Abigale', 'Abigayle', 'Abner', 'Abraham', 'Ada', 'Adah', 'Adalberto',
@@ -430,8 +430,8 @@ var names = [
  * @returns {string} random username
  */
 function generateUsername() {
-    var name = RandomUtil.randomElement(names);
-    var suffix = RandomUtil.randomAlphanumStr(3);
+    const name = RandomUtil.randomElement(names);
+    const suffix = RandomUtil.randomAlphanumStr(3);
 
     return name + '-' + suffix;
 }

@@ -7,7 +7,7 @@
  *
  * @enum {string}
  */
-var CameraFacingMode = {
+const CameraFacingMode = {
     /**
      * The mode which specifies the environment-facing camera.
      */

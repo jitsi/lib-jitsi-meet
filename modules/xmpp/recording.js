@@ -2,9 +2,9 @@
 
 import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
-var XMPPEvents = require('../../service/xmpp/XMPPEvents');
-var JitsiRecorderErrors = require('../../JitsiRecorderErrors');
-var GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
+const XMPPEvents = require('../../service/xmpp/XMPPEvents');
+const JitsiRecorderErrors = require('../../JitsiRecorderErrors');
+const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
 
 function Recording(type, eventEmitter, connection, focusMucJid, jirecon,
@@ -55,12 +55,12 @@ Recording.action = {
 };
 
 Recording.prototype.handleJibriPresence = function(jibri) {
-    var attributes = jibri.attributes;
+    const attributes = jibri.attributes;
     if(!attributes) {
         return;
     }
 
-    var newState = attributes.status;
+    const newState = attributes.status;
     logger.log('Handle jibri presence : ', newState);
 
     if (newState === this.state) {
@@ -93,7 +93,7 @@ Recording.prototype.setRecordingJibri
         options = options || {};
 
     // FIXME jibri does not accept IQ without 'url' attribute set ?
-        var iq = $iq({to: this.focusMucJid, type: 'set'})
+        const iq = $iq({to: this.focusMucJid, type: 'set'})
         .c('jibri', {
             'xmlns': 'http://jitsi.org/protocol/jibri',
             'action': state === Recording.status.ON
@@ -124,7 +124,7 @@ Recording.prototype.setRecordingJirecon
             errCallback(new Error('Invalid state!'));
         }
 
-        var iq = $iq({to: this.jirecon, type: 'set'})
+        const iq = $iq({to: this.jirecon, type: 'set'})
         .c('recording', {xmlns: 'http://jitsi.org/protocol/jirecon',
             action: state === Recording.status.ON
                 ? Recording.action.START
@@ -135,7 +135,7 @@ Recording.prototype.setRecordingJirecon
         }
 
         logger.log('Start recording');
-        var self = this;
+        const self = this;
         this.connection.sendIQ(
         iq,
         function(result) {
@@ -163,25 +163,25 @@ Recording.prototype.setRecordingJirecon
 // with the new recording state, according to the IQ.
 Recording.prototype.setRecordingColibri
 = function(state, callback, errCallback, options) {
-    var elem = $iq({to: this.focusMucJid, type: 'set'});
+    const elem = $iq({to: this.focusMucJid, type: 'set'});
     elem.c('conference', {
         xmlns: 'http://jitsi.org/protocol/colibri'
     });
     elem.c('recording', {state, token: options.token});
 
-    var self = this;
+    const self = this;
     this.connection.sendIQ(elem,
         function(result) {
             logger.log('Set recording "', state, '". Result:', result);
-            var recordingElem = $(result).find('>conference>recording');
-            var newState = recordingElem.attr('state');
+            const recordingElem = $(result).find('>conference>recording');
+            const newState = recordingElem.attr('state');
 
             self.state = newState;
             callback(newState);
 
             if (newState === 'pending') {
                 self.connection.addHandler(function(iq) {
-                    var state = $(iq).find('recording').attr('state');
+                    const state = $(iq).find('recording').attr('state');
                     if (state) {
                         self.state = newState;
                         callback(state);
@@ -208,11 +208,12 @@ Recording.prototype.setRecording
     case Recording.types.JIBRI:
         this.setRecordingJibri(state, callback, errCallback, options);
         break;
-    default:
-        var errmsg = 'Unknown recording type!';
+    default: {
+        const errmsg = 'Unknown recording type!';
         GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
         logger.error(errmsg);
-        return;
+        break;
+    }
     }
 };
 
@@ -222,7 +223,7 @@ Recording.prototype.setRecording
  * @param statusChangeHandler {function} receives the new status as argument.
  */
 Recording.prototype.toggleRecording = function(options, statusChangeHandler) {
-    var oldState = this.state;
+    const oldState = this.state;
 
     // If the recorder is currently unavailable we throw an error.
     if (oldState === Recording.status.UNAVAILABLE
@@ -247,12 +248,12 @@ Recording.prototype.toggleRecording = function(options, statusChangeHandler) {
         return;
     }
 
-    var newState = oldState === Recording.status.AVAILABLE
+    const newState = oldState === Recording.status.AVAILABLE
                     || oldState === Recording.status.OFF
                     ? Recording.status.ON
                     : Recording.status.OFF;
 
-    var self = this;
+    const self = this;
     logger.log('Toggle recording (old state, new state): ', oldState, newState);
     this.setRecording(newState,
         function(state, url) {

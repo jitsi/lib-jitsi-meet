@@ -83,8 +83,8 @@ function JitsiTrackError(error, options, devices) {
                     + (this.gum.devices || []).join(', ');
             break;
         case 'ConstraintNotSatisfiedError':
-        case 'OverconstrainedError':
-            var constraintName = error.constraintName;
+        case 'OverconstrainedError': {
+            const constraintName = error.constraintName;
 
             if (options
                     && options.video
@@ -108,6 +108,8 @@ function JitsiTrackError(error, options, devices) {
                         + error.constraintName;
             }
             break;
+        }
+
         default:
             this.name = JitsiTrackErrors.GENERAL;
             this.message

@@ -4,7 +4,7 @@
  * @param begin the time the word was started being uttered
  * @param end the time the word stopped being uttered
  */
-var Word = function(word, begin, end) {
+const Word = function(word, begin, end) {
     this.word = word;
     this.begin = begin;
     this.end = end;

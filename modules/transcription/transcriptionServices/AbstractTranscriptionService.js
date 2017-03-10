@@ -2,7 +2,7 @@
  * Abstract class representing an interface to implement a speech-to-text
  * service on.
  */
-var TranscriptionService = function() {
+const TranscriptionService = function() {
     throw new Error('TranscriptionService is abstract and cannot be'
         + 'created');
 };
@@ -17,7 +17,7 @@ var TranscriptionService = function() {
  *        the answer as a WordArray
  */
 TranscriptionService.prototype.send = function send(recordingResult, callback) {
-    var t = this;
+    const t = this;
     this.sendRequest(recordingResult.blob, function(response) {
         if(!t.verify(response)) {
             console.log('the retrieved response from the server'

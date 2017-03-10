@@ -49,7 +49,7 @@ class Settings {
         this.userId;
         this.callStatsUserName;
 
-        var localStorage = getLocalStorage();
+        const localStorage = getLocalStorage();
         if (localStorage) {
             this.userId
                 = localStorage.getItem('jitsiMeetId') || generateJitsiMeetId();
@@ -69,7 +69,7 @@ class Settings {
      * Save settings to localStorage if browser supports that.
      */
     save() {
-        var localStorage = getLocalStorage();
+        const localStorage = getLocalStorage();
         if (localStorage) {
             localStorage.setItem('jitsiMeetId', this.userId);
             localStorage.setItem('callStatsUserName', this.callStatsUserName);

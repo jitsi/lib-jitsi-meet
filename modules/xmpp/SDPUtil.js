@@ -1,17 +1,17 @@
 import {getLogger} from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 import RandomUtil from '../util/RandomUtil';
-var RTCBrowserType = require('../RTC/RTCBrowserType');
+const RTCBrowserType = require('../RTC/RTCBrowserType');
 
-var SDPUtil = {
+const SDPUtil = {
     filter_special_chars(text) {
         // XXX Neither one of the falsy values (e.g. null, undefined, false,
         // "", etc.) "contain" special chars.
         return text ? text.replace(/[\\\/\{,\}\+]/g, '') : text;
     },
     iceparams(mediadesc, sessiondesc) {
-        var data = null;
-        var pwd, ufrag;
+        let data = null;
+        let pwd, ufrag;
         if ((ufrag = SDPUtil.find_line(mediadesc, 'a=ice-ufrag:', sessiondesc))
                 && (pwd = SDPUtil.find_line(mediadesc, 'a=ice-pwd:', sessiondesc))) {
             data = {
@@ -37,8 +37,9 @@ var SDPUtil = {
         return line.substring(6);
     },
     parse_mline(line) {
-        var data = {},
-            parts = line.substring(2).split(' ');
+        const data = {};
+        const parts = line.substring(2).split(' ');
+
         data.media = parts.shift();
         data.port = parts.shift();
         data.proto = parts.shift();
@@ -52,8 +53,9 @@ var SDPUtil = {
         return 'm=' + mline.media + ' ' + mline.port + ' ' + mline.proto + ' ' + mline.fmt.join(' ');
     },
     parse_rtpmap(line) {
-        var data = {},
-            parts = line.substring(9).split(' ');
+        const data = {};
+        let parts = line.substring(9).split(' ');
+
         data.id = parts.shift();
         parts = parts[0].split('/');
         data.name = parts.shift();
@@ -67,23 +69,24 @@ var SDPUtil = {
      * @returns [SCTP port number, protocol, streams]
      */
     parse_sctpmap(line) {
-        var parts = line.substring(10).split(' ');
-        var sctpPort = parts[0];
-        var protocol = parts[1];
+        const parts = line.substring(10).split(' ');
+        const sctpPort = parts[0];
+        const protocol = parts[1];
         // Stream count is optional
-        var streamCount = parts.length > 2 ? parts[2] : null;
+        const streamCount = parts.length > 2 ? parts[2] : null;
         return [sctpPort, protocol, streamCount];// SCTP port
     },
     build_rtpmap(el) {
-        var line = 'a=rtpmap:' + el.getAttribute('id') + ' ' + el.getAttribute('name') + '/' + el.getAttribute('clockrate');
+        let line = 'a=rtpmap:' + el.getAttribute('id') + ' ' + el.getAttribute('name') + '/' + el.getAttribute('clockrate');
         if (el.getAttribute('channels') && el.getAttribute('channels') != '1') {
             line += '/' + el.getAttribute('channels');
         }
         return line;
     },
     parse_crypto(line) {
-        var data = {},
-            parts = line.substring(9).split(' ');
+        const data = {};
+        const parts = line.substring(9).split(' ');
+
         data.tag = parts.shift();
         data['crypto-suite'] = parts.shift();
         data['key-params'] = parts.shift();
@@ -93,27 +96,26 @@ var SDPUtil = {
         return data;
     },
     parse_fingerprint(line) { // RFC 4572
-        var data = {},
-            parts = line.substring(14).split(' ');
+        const data = {};
+        const parts = line.substring(14).split(' ');
+
         data.hash = parts.shift();
         data.fingerprint = parts.shift();
         // TODO assert that fingerprint satisfies 2UHEX *(":" 2UHEX) ?
         return data;
     },
     parse_fmtp(line) {
-        var data = [],
-            i,
-            key,
-            parts = line.split(' '),
-            value;
+        const data = [];
+        let parts = line.split(' ');
+
         parts.shift();
         parts = parts.join(' ').split(';');
-        for (i = 0; i < parts.length; i++) {
-            key = parts[i].split('=')[0];
+        for (let i = 0; i < parts.length; i++) {
+            let key = parts[i].split('=')[0];
             while (key.length && key[0] == ' ') {
                 key = key.substring(1);
             }
-            value = parts[i].split('=')[1];
+            const value = parts[i].split('=')[1];
             if (key && value) {
                 data.push({name: key, value});
             } else if (key) {
@@ -124,8 +126,9 @@ var SDPUtil = {
         return data;
     },
     parse_icecandidate(line) {
-        var candidate = {},
-            elems = line.split(' ');
+        const candidate = {};
+        const elems = line.split(' ');
+
         candidate.foundation = elems[0].substring(12);
         candidate.component = elems[1];
         candidate.protocol = elems[2].toLowerCase();
@@ -135,7 +138,7 @@ var SDPUtil = {
         // elems[6] => "typ"
         candidate.type = elems[7];
         candidate.generation = 0; // default value, may be overwritten below
-        for (var i = 8; i < elems.length; i += 2) {
+        for (let i = 8; i < elems.length; i += 2) {
             switch (elems[i]) {
             case 'raddr':
                 candidate['rel-addr'] = elems[i + 1];
@@ -158,7 +161,7 @@ var SDPUtil = {
         return candidate;
     },
     build_icecandidate(cand) {
-        var line = ['a=candidate:' + cand.foundation, cand.component, cand.protocol, cand.priority, cand.ip, cand.port, 'typ', cand.type].join(' ');
+        let line = ['a=candidate:' + cand.foundation, cand.component, cand.protocol, cand.priority, cand.ip, cand.port, 'typ', cand.type].join(' ');
         line += ' ';
         switch (cand.type) {
         case 'srflx':
@@ -191,27 +194,28 @@ var SDPUtil = {
         // proprietary mapping of a=ssrc lines
         // TODO: see "Jingle RTP Source Description" by Juberti and P. Thatcher on google docs
         // and parse according to that
-        var data = {},
-            lines = desc.split('\r\n');
-        for (var i = 0; i < lines.length; i++) {
+        const data = {};
+        const lines = desc.split('\r\n');
+
+        for (let i = 0; i < lines.length; i++) {
             if (lines[i].substring(0, 7) == 'a=ssrc:') {
-                var idx = lines[i].indexOf(' ');
+                const idx = lines[i].indexOf(' ');
                 data[lines[i].substr(idx + 1).split(':', 2)[0]] = lines[i].substr(idx + 1).split(':', 2)[1];
             }
         }
         return data;
     },
     parse_rtcpfb(line) {
-        var parts = line.substr(10).split(' ');
-        var data = {};
+        const parts = line.substr(10).split(' ');
+        const data = {};
         data.pt = parts.shift();
         data.type = parts.shift();
         data.params = parts;
         return data;
     },
     parse_extmap(line) {
-        var parts = line.substr(9).split(' ');
-        var data = {};
+        const parts = line.substr(9).split(' ');
+        const data = {};
         data.value = parts.shift();
         if (data.value.indexOf('/') != -1) {
             data.direction = data.value.substr(data.value.indexOf('/') + 1);
@@ -224,8 +228,8 @@ var SDPUtil = {
         return data;
     },
     find_line(haystack, needle, sessionpart) {
-        var lines = haystack.split('\r\n');
-        for (var i = 0; i < lines.length; i++) {
+        let lines = haystack.split('\r\n');
+        for (let i = 0; i < lines.length; i++) {
             if (lines[i].substring(0, needle.length) == needle) {
                 return lines[i];
             }
@@ -235,7 +239,7 @@ var SDPUtil = {
         }
         // search session part
         lines = sessionpart.split('\r\n');
-        for (var j = 0; j < lines.length; j++) {
+        for (let j = 0; j < lines.length; j++) {
             if (lines[j].substring(0, needle.length) == needle) {
                 return lines[j];
             }
@@ -243,9 +247,10 @@ var SDPUtil = {
         return false;
     },
     find_lines(haystack, needle, sessionpart) {
-        var lines = haystack.split('\r\n'),
-            needles = [];
-        for (var i = 0; i < lines.length; i++) {
+        let lines = haystack.split('\r\n');
+        const needles = [];
+
+        for (let i = 0; i < lines.length; i++) {
             if (lines[i].substring(0, needle.length) == needle) {
                 needles.push(lines[i]);
             }
@@ -255,7 +260,7 @@ var SDPUtil = {
         }
         // search session part
         lines = sessionpart.split('\r\n');
-        for (var j = 0; j < lines.length; j++) {
+        for (let j = 0; j < lines.length; j++) {
             if (lines[j].substring(0, needle.length) == needle) {
                 needles.push(lines[j]);
             }
@@ -275,9 +280,9 @@ var SDPUtil = {
         if (line.substring(line.length - 2) == '\r\n') {// chomp it
             line = line.substring(0, line.length - 2);
         }
-        var candidate = {},
-            elems = line.split(' '),
-            i;
+        const candidate = {};
+        const elems = line.split(' ');
+
         if (elems[6] != 'typ') {
             logger.log('did not find typ in the right place');
             logger.log(line);
@@ -293,7 +298,7 @@ var SDPUtil = {
         candidate.type = elems[7];
 
         candidate.generation = '0'; // default, may be overwritten below
-        for (i = 8; i < elems.length; i += 2) {
+        for (let i = 8; i < elems.length; i += 2) {
             switch (elems[i]) {
             case 'raddr':
                 candidate['rel-addr'] = elems[i + 1];
@@ -316,13 +321,13 @@ var SDPUtil = {
         return candidate;
     },
     candidateFromJingle(cand) {
-        var line = 'a=candidate:';
+        let line = 'a=candidate:';
         line += cand.getAttribute('foundation');
         line += ' ';
         line += cand.getAttribute('component');
         line += ' ';
 
-        var protocol = cand.getAttribute('protocol');
+        let protocol = cand.getAttribute('protocol');
         // use tcp candidates for FF
         if (RTCBrowserType.isFirefox() && protocol.toLowerCase() == 'ssltcp') {
             protocol = 'tcp';

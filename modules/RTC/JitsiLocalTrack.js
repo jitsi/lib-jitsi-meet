@@ -29,7 +29,7 @@ const logger = getLogger(__filename);
  */
 function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
                          deviceId, facingMode) {
-    var self = this;
+    const self = this;
 
     JitsiTrack.call(this,
         null /* RTC */, stream, track,
@@ -279,8 +279,8 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
         return Promise.resolve();
     }
 
-    var promise = Promise.resolve();
-    var self = this;
+    let promise = Promise.resolve();
+    const self = this;
 
     // Local track can be used out of conference, so we need to handle that
     // case and mark that track should start muted or not when added to
@@ -314,7 +314,7 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
             });
         } else {
             // This path is only for camera.
-            var streamOptions = {
+            const streamOptions = {
                 cameraDeviceId: this.getDeviceId(),
                 devices: [ MediaType.VIDEO ],
                 facingMode: this.getCameraFacingMode()
@@ -325,8 +325,8 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
 
             promise = RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
                 .then(function(streamsInfo) {
-                    var mediaType = self.getType();
-                    var streamInfo = streamsInfo.find(function(info) {
+                    const mediaType = self.getType();
+                    const streamInfo = streamsInfo.find(function(info) {
                         return info.mediaType === mediaType;
                     });
 
@@ -445,8 +445,8 @@ JitsiLocalTrack.prototype._sendMuteStatus = function(mute) {
  * @returns {Promise}
  */
 JitsiLocalTrack.prototype.dispose = function() {
-    var self = this;
-    var promise = Promise.resolve();
+    const self = this;
+    let promise = Promise.resolve();
 
     if (this.conference) {
         promise = this.conference.removeTrack(this);
@@ -510,7 +510,7 @@ JitsiLocalTrack.prototype._setConference = function(conference) {
     // on "attach" call, but for local track we not always have the conference
     // before attaching. However this may result in duplicated events if they
     // have been triggered on "attach" already.
-    for(var i = 0; i < this.containers.length; i++) {
+    for(let i = 0; i < this.containers.length; i++) {
         this._maybeFireTrackAttached(this.containers[i]);
     }
 };
@@ -586,7 +586,7 @@ JitsiLocalTrack.prototype.getCameraFacingMode = function() {
         // and https://bugzilla.mozilla.org/show_bug.cgi?id=1213517 for Firefox.
         // Even if a browser implements getSettings() already, it might still
         // not return anything for 'facingMode'.
-        var trackSettings;
+        let trackSettings;
 
         try {
             trackSettings = this.track.getSettings();

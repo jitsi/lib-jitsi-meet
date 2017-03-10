@@ -1,18 +1,18 @@
 /* global require */
 import analytics from './AnalyticsAdapter';
-var CallStats = require('./CallStats');
-var EventEmitter = require('events');
+const CallStats = require('./CallStats');
+const EventEmitter = require('events');
 import JitsiTrackError from '../../JitsiTrackError';
-var logger = require('jitsi-meet-logger').getLogger(__filename);
-var LocalStats = require('./LocalStatsCollector.js');
-var RTPStats = require('./RTPStatsCollector.js');
-var ScriptUtil = require('../util/ScriptUtil');
+const logger = require('jitsi-meet-logger').getLogger(__filename);
+const LocalStats = require('./LocalStatsCollector.js');
+const RTPStats = require('./RTPStatsCollector.js');
+const ScriptUtil = require('../util/ScriptUtil');
 import * as StatisticsEvents from '../../service/statistics/Events';
 
 /**
  * True if callstats API is loaded
  */
-var isCallstatsLoaded = false;
+let isCallstatsLoaded = false;
 
 // Since callstats.io is a third party, we cannot guarantee the quality of their
 // service. More specifically, their server may take noticeably long time to
@@ -42,7 +42,7 @@ function loadCallStatsAPI(customScriptUrl) {
  * @param {JitsiTrackError} error
  */
 function formatJitsiTrackErrorForCallStats(error) {
-    var err = new Error();
+    const err = new Error();
 
     // Just copy original stack from error
     err.stack = error.stack;
@@ -128,7 +128,7 @@ Statistics.startLocalStats = function(stream, callback) {
     if(!Statistics.audioLevelsEnabled) {
         return;
     }
-    var localStats = new LocalStats(stream, Statistics.audioLevelsInterval,
+    const localStats = new LocalStats(stream, Statistics.audioLevelsInterval,
         callback);
     this.localStats.push(localStats);
     localStats.start();
@@ -190,9 +190,9 @@ Statistics.stopLocalStats = function(stream) {
         return;
     }
 
-    for(var i = 0; i < Statistics.localStats.length; i++) {
+    for(let i = 0; i < Statistics.localStats.length; i++) {
         if(Statistics.localStats[i].stream === stream) {
-            var localStats = Statistics.localStats.splice(i, 1);
+            const localStats = Statistics.localStats.splice(i, 1);
             localStats[0].stop();
             break;
         }
@@ -229,7 +229,7 @@ Statistics.prototype.startCallStats = function(session) {
  */
 Statistics.prototype.stopCallStats = function() {
     if(this.callStatsStarted) {
-        var index = Statistics.callsStatsInstances.indexOf(this.callstats);
+        const index = Statistics.callsStatsInstances.indexOf(this.callstats);
         if(index > -1) {
             Statistics.callsStatsInstances.splice(index, 1);
         }

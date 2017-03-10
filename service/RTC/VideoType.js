@@ -3,7 +3,7 @@
  * Enumeration of the video types
  * @type {{CAMERA: string, DESKTOP: string}}
  */
-var VideoType = {
+const VideoType = {
     /**
      * The camera video type.
      */

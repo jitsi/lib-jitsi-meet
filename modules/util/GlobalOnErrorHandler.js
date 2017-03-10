@@ -9,10 +9,10 @@
 /**
  * List with global error handlers that will be executed.
  */
-var handlers = [];
+const handlers = [];
 
 // If an old handler exists, also fire its events.
-var oldOnErrorHandler = window.onerror;
+const oldOnErrorHandler = window.onerror;
 
 /**
  * Custom error handler that calls the old global error handler and executes
@@ -28,7 +28,7 @@ function JitsiGlobalErrorHandler(message, source, lineno, colno, error) {
 }
 
 // If an old handler exists, also fire its events.
-var oldOnUnhandledRejection = window.onunhandledrejection;
+const oldOnUnhandledRejection = window.onunhandledrejection;
 
 /**
  * Custom handler that calls the old global handler and executes all handlers
@@ -48,7 +48,7 @@ window.onerror = JitsiGlobalErrorHandler;
 window.onunhandledrejection = JitsiGlobalUnhandledRejection;
 
 
-var GlobalOnErrorHandler = {
+const GlobalOnErrorHandler = {
     /**
      * Adds new error handlers.
      * @param handler the new handler.
@@ -61,7 +61,7 @@ var GlobalOnErrorHandler = {
      * @param error the error to pass to the error handler
      */
     callErrorHandler(error) {
-        var errHandler = window.onerror;
+        const errHandler = window.onerror;
         if(!errHandler) {
             return;
         }
@@ -72,7 +72,7 @@ var GlobalOnErrorHandler = {
      * @param error the error to pass to the rejection handler.
      */
     callUnhandledRejectionHandler(error) {
-        var errHandler = window.onunhandledrejection;
+        const errHandler = window.onunhandledrejection;
         if(!errHandler) {
             return;
         }

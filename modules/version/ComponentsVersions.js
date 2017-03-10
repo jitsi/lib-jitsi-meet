@@ -1,5 +1,5 @@
-var logger = require('jitsi-meet-logger').getLogger(__filename);
-var Statistics = require('../statistics/statistics');
+const logger = require('jitsi-meet-logger').getLogger(__filename);
+const Statistics = require('../statistics/statistics');
 
 /**
  * The constant for the name of the focus component.
@@ -48,10 +48,10 @@ ComponentsVersions.prototype.processPresence
             return;
         }
 
-        var log = [];
+        const log = [];
         node.children.forEach(function(item) {
 
-            var componentName = item.attributes.name;
+            const componentName = item.attributes.name;
             if (componentName !== ComponentsVersions.FOCUS_COMPONENT
             && componentName !== ComponentsVersions.XMPP_SERVER_COMPONENT
             && componentName !== ComponentsVersions.VIDEOBRIDGE_COMPONENT) {
@@ -61,7 +61,7 @@ ComponentsVersions.prototype.processPresence
                 return;
             }
 
-            var version = item.value;
+            const version = item.value;
             if (this.versions[componentName] !== version) {
                 this.versions[componentName] = version;
                 logger.info('Got ' + componentName + ' version: ' + version);

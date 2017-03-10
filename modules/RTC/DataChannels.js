@@ -1,9 +1,9 @@
 // cache datachannels to avoid garbage collection
 // https://code.google.com/p/chromium/issues/detail?id=405545
 
-var logger = require('jitsi-meet-logger').getLogger(__filename);
-var RTCEvents = require('../../service/RTC/RTCEvents');
-var GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
+const logger = require('jitsi-meet-logger').getLogger(__filename);
+const RTCEvents = require('../../service/RTC/RTCEvents');
+const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
 /**
  * Binds "ondatachannel" event listener to given PeerConnection instance.
@@ -45,8 +45,8 @@ function DataChannels(peerConnection, emitter) {
  * @param event the event info object.
  */
 DataChannels.prototype.onDataChannel = function(event) {
-    var dataChannel = event.channel;
-    var self = this;
+    const dataChannel = event.channel;
+    const self = this;
 
     dataChannel.onopen = function() {
         logger.info('Data channel opened by the Videobridge!', dataChannel);
@@ -70,9 +70,9 @@ DataChannels.prototype.onDataChannel = function(event) {
     };
 
     dataChannel.onmessage = function(event) {
-        var data = event.data;
+        const data = event.data;
         // JSON
-        var obj;
+        let obj;
 
         try {
             obj = JSON.parse(data);
@@ -85,11 +85,11 @@ DataChannels.prototype.onDataChannel = function(event) {
                 e);
         }
         if (('undefined' !== typeof obj) && (null !== obj)) {
-            var colibriClass = obj.colibriClass;
+            const colibriClass = obj.colibriClass;
 
             if ('DominantSpeakerEndpointChangeEvent' === colibriClass) {
                 // Endpoint ID from the Videobridge.
-                var dominantSpeakerEndpoint = obj.dominantSpeakerEndpoint;
+                const dominantSpeakerEndpoint = obj.dominantSpeakerEndpoint;
 
                 logger.info(
                     'Data channel new dominant speaker event: ',
@@ -97,11 +97,11 @@ DataChannels.prototype.onDataChannel = function(event) {
                 self.eventEmitter.emit(RTCEvents.DOMINANT_SPEAKER_CHANGED,
                   dominantSpeakerEndpoint);
             } else if ('InLastNChangeEvent' === colibriClass) {
-                var oldValue = obj.oldValue;
-                var newValue = obj.newValue;
+                let oldValue = obj.oldValue;
+                let newValue = obj.newValue;
 
                 // Make sure that oldValue and newValue are of type boolean.
-                var type;
+                let type;
 
                 if ((type = typeof oldValue) !== 'boolean') {
                     if (type === 'string') {
@@ -121,11 +121,11 @@ DataChannels.prototype.onDataChannel = function(event) {
                 self.eventEmitter.emit(RTCEvents.LASTN_CHANGED, oldValue, newValue);
             } else if ('LastNEndpointsChangeEvent' === colibriClass) {
                 // The new/latest list of last-n endpoint IDs.
-                var lastNEndpoints = obj.lastNEndpoints;
+                const lastNEndpoints = obj.lastNEndpoints;
                 // The list of endpoint IDs which are entering the list of
                 // last-n at this time i.e. were not in the old list of last-n
                 // endpoint IDs.
-                var endpointsEnteringLastN = obj.endpointsEnteringLastN;
+                const endpointsEnteringLastN = obj.endpointsEnteringLastN;
 
                 logger.info(
                     'Data channel new last-n event: ',
@@ -137,8 +137,8 @@ DataChannels.prototype.onDataChannel = function(event) {
                     RTCEvents.ENDPOINT_MESSAGE_RECEIVED, obj.from,
                     obj.msgPayload);
             } else if ('EndpointConnectivityStatusChangeEvent' === colibriClass) {
-                var endpoint = obj.endpoint;
-                var isActive = obj.active === 'true';
+                const endpoint = obj.endpoint;
+                const isActive = obj.active === 'true';
                 logger.info('Endpoint connection status changed: ' + endpoint
                            + ' active ? ' + isActive);
                 self.eventEmitter.emit(RTCEvents.ENDPOINT_CONN_STATUS_CHANGED,
@@ -156,7 +156,7 @@ DataChannels.prototype.onDataChannel = function(event) {
 
     dataChannel.onclose = function() {
         logger.info('The Data Channel closed', dataChannel);
-        var idx = self._dataChannels.indexOf(dataChannel);
+        const idx = self._dataChannels.indexOf(dataChannel);
         if (idx > -1) {
             self._dataChannels = self._dataChannels.splice(idx, 1);
         }
@@ -210,16 +210,16 @@ DataChannels.prototype.sendPinnedEndpointMessage = function(endpointId) {
 DataChannels.prototype._onXXXEndpointChanged = function(xxx, userResource) {
     // Derive the correct words from xxx such as selected and Selected, pinned
     // and Pinned.
-    var head = xxx.charAt(0);
-    var tail = xxx.substring(1);
-    var lower = head.toLowerCase() + tail;
-    var upper = head.toUpperCase() + tail;
+    const head = xxx.charAt(0);
+    const tail = xxx.substring(1);
+    const lower = head.toLowerCase() + tail;
+    const upper = head.toUpperCase() + tail;
     logger.log(
             'sending ' + lower
                 + ' endpoint changed notification to the bridge: ',
             userResource);
 
-    var jsonObject = {};
+    const jsonObject = {};
 
     jsonObject.colibriClass = upper + 'EndpointChangedEvent';
     jsonObject[lower + 'Endpoint']
@@ -232,7 +232,7 @@ DataChannels.prototype._onXXXEndpointChanged = function(xxx, userResource) {
 };
 
 DataChannels.prototype._some = function(callback, thisArg) {
-    var dataChannels = this._dataChannels;
+    const dataChannels = this._dataChannels;
 
     if (dataChannels && dataChannels.length !== 0) {
         if (thisArg) {

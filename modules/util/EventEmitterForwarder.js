@@ -24,8 +24,8 @@ function EventEmitterForwarder(src, dest) {
  */
 EventEmitterForwarder.prototype.forward = function() {
     // This line is only for fixing jshint errors.
-    var args = arguments;
-    var srcEvent = args[0];
+    const args = arguments;
+    const srcEvent = args[0];
     // This will be the "this" value for emit function.
     args[0] = this.dest;
     // Using bind.apply to pass the arguments as Array-like object ("arguments")

@@ -1,8 +1,8 @@
 /* global chrome, $, alert */
 
-var GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
-var logger = require('jitsi-meet-logger').getLogger(__filename);
-var RTCBrowserType = require('./RTCBrowserType');
+const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
+const logger = require('jitsi-meet-logger').getLogger(__filename);
+const RTCBrowserType = require('./RTCBrowserType');
 import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
 
@@ -10,30 +10,30 @@ import * as JitsiTrackErrors from '../../JitsiTrackErrors';
  * Indicates whether the Chrome desktop sharing extension is installed.
  * @type {boolean}
  */
-var chromeExtInstalled = false;
+let chromeExtInstalled = false;
 
 /**
  * Indicates whether an update of the Chrome desktop sharing extension is
  * required.
  * @type {boolean}
  */
-var chromeExtUpdateRequired = false;
+let chromeExtUpdateRequired = false;
 
 /**
  * Whether the jidesha extension for firefox is installed for the domain on
  * which we are running. Null designates an unknown value.
  * @type {null}
  */
-var firefoxExtInstalled = null;
+let firefoxExtInstalled = null;
 
 /**
  * If set to true, detection of an installed firefox extension will be started
  * again the next time obtainScreenOnFirefox is called (e.g. next time the
  * user tries to enable screen sharing).
  */
-var reDetectFirefoxExtension = false;
+let reDetectFirefoxExtension = false;
 
-var gumFunction = null;
+let gumFunction = null;
 
 /**
  * The error returned by chrome when trying to start inline installation from
@@ -58,7 +58,7 @@ const CHROME_NO_EXTENSION_ERROR_MSG // eslint-disable-line no-unused-vars
 /**
  * Handles obtaining a stream from a screen capture on different browsers.
  */
-var ScreenObtainer = {
+const ScreenObtainer = {
     obtainStream: null,
 
     /**
@@ -69,7 +69,7 @@ var ScreenObtainer = {
      * @param gum {Function} GUM method
      */
     init(options, gum) {
-        var obtainDesktopStream = null;
+        let obtainDesktopStream = null;
         this.options = options = options || {};
         gumFunction = gum;
 
@@ -82,7 +82,7 @@ var ScreenObtainer = {
                 window.JitsiMeetNW.obtainDesktopStream(
                     onSuccess,
                     (error, constraints) => {
-                        var jitsiError;
+                        let jitsiError;
                         // FIXME:
                         // This is very very durty fix for recognising that the
                         // user have clicked the cancel button from the Desktop
@@ -182,7 +182,7 @@ var ScreenObtainer = {
      * @param errorCallback
      */
     obtainScreenOnFirefox(options, callback, errorCallback) {
-        var extensionRequired = false;
+        let extensionRequired = false;
         const { desktopSharingFirefoxMaxVersionExtRequired } = this.options;
         if (desktopSharingFirefoxMaxVersionExtRequired === -1
             || (desktopSharingFirefoxMaxVersionExtRequired >= 0
@@ -349,12 +349,12 @@ function getWebStoreInstallUrl(options) {
  */
 function isUpdateRequired(minVersion, extVersion) {
     try {
-        var s1 = minVersion.split('.');
-        var s2 = extVersion.split('.');
+        const s1 = minVersion.split('.');
+        const s2 = extVersion.split('.');
 
-        var len = Math.max(s1.length, s2.length);
-        for (var i = 0; i < len; i++) {
-            var n1 = 0,
+        const len = Math.max(s1.length, s2.length);
+        for (let i = 0; i < len; i++) {
+            let n1 = 0,
                 n2 = 0;
 
             if (i < s1.length) {
@@ -399,9 +399,9 @@ function checkChromeExtInstalled(callback, options) {
                 return;
             }
             // Check installed extension version
-            var extVersion = response.version;
+            const extVersion = response.version;
             logger.log('Extension version is: ' + extVersion);
-            var updateRequired
+            const updateRequired
                 = isUpdateRequired(
                     options.desktopSharingChromeMinExtVersion,
                     extVersion);
@@ -422,7 +422,7 @@ function doGetStreamFromExtension(options, streamCallback, failCallback) {
         response => {
             if (!response) {
                 // possibly re-wraping error message to make code consistent
-                var lastError = chrome.runtime.lastError;
+                const lastError = chrome.runtime.lastError;
                 failCallback(lastError instanceof Error
                     ? lastError
                     : new JitsiTrackError(
@@ -544,7 +544,7 @@ function initFirefoxExtensionDetection(options) {
         return;
     }
 
-    var img = document.createElement('img');
+    const img = document.createElement('img');
     img.onload = () => {
         logger.log('Detected firefox screen sharing extension.');
         firefoxExtInstalled = true;
@@ -558,7 +558,7 @@ function initFirefoxExtensionDetection(options) {
     // "chrome://EXT_ID/content/DOMAIN.png"
     // Where EXT_ID is the ID of the extension with "@" replaced by ".", and
     // DOMAIN is a domain whitelisted by the extension.
-    var src = 'chrome://'
+    const src = 'chrome://'
         + options.desktopSharingFirefoxExtId.replace('@', '.')
         + '/content/' + document.location.hostname + '.png';
     img.setAttribute('src', src);

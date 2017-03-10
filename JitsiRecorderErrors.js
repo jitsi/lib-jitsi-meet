@@ -2,7 +2,7 @@
  * Enumeration with the errors for the conference.
  * @type {{string: string}}
  */
-var JitsiRecorderErrors = {
+const JitsiRecorderErrors = {
     /**
      * Indicates that the recorder is currently unavailable.
      */

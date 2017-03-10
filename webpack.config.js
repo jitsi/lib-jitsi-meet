@@ -1,13 +1,13 @@
 /* global __dirname */
 
-var child_process = require('child_process'); // eslint-disable-line camelcase
-var process = require('process');
-var webpack = require('webpack');
+const child_process = require('child_process'); // eslint-disable-line camelcase
+const process = require('process');
+const webpack = require('webpack');
 
-var minimize
+const minimize
     = process.argv.indexOf('-p') !== -1
         || process.argv.indexOf('--optimize-minimize') !== -1;
-var plugins = [];
+const plugins = [];
 
 if (minimize) {
     // While webpack will automatically insert UglifyJsPlugin when minimize is
