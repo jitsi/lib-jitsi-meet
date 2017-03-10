@@ -122,7 +122,7 @@ function onConnectionSuccess() {
     });
     room.on(JitsiMeetJS.events.conference.CONFERENCE_JOINED, onConferenceJoined);
     room.on(JitsiMeetJS.events.conference.USER_JOINED, function(id) {
-        console.log("user join");remoteTracks[id] = [];
+        console.log("user join"); remoteTracks[id] = [];
     });
     room.on(JitsiMeetJS.events.conference.USER_LEFT, onUserLeft);
     room.on(JitsiMeetJS.events.conference.TRACK_MUTE_CHANGED, function(track) {
