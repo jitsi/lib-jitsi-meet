@@ -59,7 +59,6 @@ function JitsiConference(options) {
     this.dtmfManager = null;
     this.somebodySupportsDTMF = false;
     this.authEnabled = false;
-    this.authIdentity;
     this.startAudioMuted = false;
     this.startVideoMuted = false;
     this.startMutedPolicy = {audio: false, video: false};

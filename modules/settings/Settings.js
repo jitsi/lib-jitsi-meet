@@ -50,9 +50,6 @@ function generateCallStatsUsername() {
 
 class Settings {
     constructor() {
-        this.userId;
-        this.callStatsUserName;
-
         const localStorage = getLocalStorage();
 
         if (localStorage) {

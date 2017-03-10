@@ -112,6 +112,13 @@ module.exports = {
         'no-self-compare': 2,
         'no-sequences': 2,
         'no-unmodified-loop-condition': 2,
+        'no-unused-expressions': [
+            'error',
+            {
+                'allowShortCircuit': true,
+                'allowTernary': true
+            }
+        ],
         'no-unused-labels': 2,
         'no-useless-call': 2,
         'no-void': 2,

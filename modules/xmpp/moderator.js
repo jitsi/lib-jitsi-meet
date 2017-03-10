@@ -46,7 +46,6 @@ function Moderator(roomName, xmpp, emitter, options) {
     this.eventEmitter = emitter;
 
     this.connection = this.xmppService.connection;
-    this.focusUserJid;
     // FIXME:
     // Message listener that talks to POPUP window
     function listener(event) {
