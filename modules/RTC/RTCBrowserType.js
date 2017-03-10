@@ -1,10 +1,10 @@
-const logger = require('jitsi-meet-logger').getLogger(__filename);
+import { getLogger } from 'jitsi-meet-logger';
 
 let browserVersion; // eslint-disable-line prefer-const
 
 let currentBrowser;
 
-const isAndroid = navigator.userAgent.indexOf('Android') !== -1;
+const logger = getLogger(__filename);
 
 const RTCBrowserType = {
 
