@@ -7,21 +7,6 @@ import Statistics from './modules/statistics/statistics';
 
 const eventEmitter = new EventEmitter();
 
-RTC.addListener(
-    RTCEvents.DEVICE_LIST_CHANGED,
-    devices =>
-        eventEmitter.emit(
-            JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED,
-            devices));
-
-RTC.addListener(RTCEvents.DEVICE_LIST_AVAILABLE,
-    devices => {
-        // log output device
-        logOutputDevice(
-            JitsiMediaDevices.getAudioOutputDevice(),
-            devices);
-    });
-
 /**
  * Gathers data and sends it to statistics.
  * @param deviceID the device id to log
@@ -144,5 +129,19 @@ const JitsiMediaDevices = {
         eventEmitter.emit(event, ...args);
     }
 };
+
+
+RTC.addListener(
+    RTCEvents.DEVICE_LIST_CHANGED,
+    devices =>
+        eventEmitter.emit(
+            JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED,
+            devices));
+RTC.addListener(
+    RTCEvents.DEVICE_LIST_AVAILABLE,
+    devices =>
+        logOutputDevice(
+            JitsiMediaDevices.getAudioOutputDevice(),
+            devices));
 
 module.exports = JitsiMediaDevices;

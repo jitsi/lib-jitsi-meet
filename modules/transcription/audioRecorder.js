@@ -60,38 +60,6 @@ function stopRecorder(trackRecorder) {
 }
 
 /**
- * Creates a TrackRecorder object. Also creates the MediaRecorder and
- * data array for the trackRecorder.
- * @param track the JitsiTrack holding the audio MediaStream(s)
- */
-function instantiateTrackRecorder(track) {
-    const trackRecorder = new TrackRecorder(track);
-
-    // Create a new stream which only holds the audio track
-    const originalStream = trackRecorder.track.getOriginalStream();
-    const stream = createEmptyStream();
-
-    originalStream.getAudioTracks().forEach(t => stream.addTrack(t));
-
-    // Create the MediaRecorder
-    trackRecorder.recorder = new MediaRecorder(stream,
-        { mimeType: audioRecorder.fileType });
-
-    // array for holding the recorder data. Resets it when
-    // audio already has been recorder once
-    trackRecorder.data = [];
-
-    // function handling a dataEvent, e.g the stream gets new data
-    trackRecorder.recorder.ondataavailable = function(dataEvent) {
-        if (dataEvent.data.size > 0) {
-            trackRecorder.data.push(dataEvent.data);
-        }
-    };
-
-    return trackRecorder;
-}
-
-/**
  * Determines which kind of audio recording the browser supports
  * chrome supports "audio/webm" and firefox supports "audio/ogg"
  */
@@ -101,9 +69,8 @@ function determineCorrectFileType() {
     } else if (MediaRecorder.isTypeSupported(AUDIO_OGG)) {
         return AUDIO_OGG;
     }
-    throw new Error('unable to create a MediaRecorder with the'
-            + 'right mimetype!');
-
+    throw new Error(
+        'unable to create a MediaRecorder with the right mimetype!');
 }
 
 /**
@@ -314,6 +281,36 @@ function createEmptyStream() {
         return new webkitMediaStream(); // eslint-disable-line new-cap
     }
     throw new Error('cannot create a clean mediaStream');
+}
+
+/**
+ * Creates a TrackRecorder object. Also creates the MediaRecorder and
+ * data array for the trackRecorder.
+ * @param track the JitsiTrack holding the audio MediaStream(s)
+ */
+function instantiateTrackRecorder(track) {
+    const trackRecorder = new TrackRecorder(track);
+
+    // Create a new stream which only holds the audio track
+    const originalStream = trackRecorder.track.getOriginalStream();
+    const stream = createEmptyStream();
+
+    originalStream.getAudioTracks().forEach(t => stream.addTrack(t));
+
+    // Create the MediaRecorder
+    trackRecorder.recorder
+        = new MediaRecorder(stream, { mimeType: audioRecorder.fileType });
+
+    // array for holding the recorder data. Resets it when
+    // audio already has been recorder once
+    trackRecorder.data = [];
+
+    // function handling a dataEvent, e.g the stream gets new data
+    trackRecorder.recorder.ondataavailable = ({ data }) => {
+        (data.size > 0) && trackRecorder.data.push(data);
+    };
+
+    return trackRecorder;
 }
 
 /**
