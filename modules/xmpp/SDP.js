@@ -481,7 +481,7 @@ SDP.prototype.rtcpFbFromJingle = function(elem, payloadtype) { // XEP-0293
     let tmp = elem.find('>rtcp-fb-trr-int[xmlns="urn:xmpp:jingle:apps:rtp:rtcp-fb:0"]');
 
     if (tmp.length) {
-        media += 'a=rtcp-fb:' + '*' + ' ' + 'trr-int' + ' ';
+        media += 'a=rtcp-fb:* trr-int ';
         if (tmp.attr('value')) {
             media += tmp.attr('value');
         } else {

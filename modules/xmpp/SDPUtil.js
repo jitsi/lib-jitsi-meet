@@ -8,6 +8,7 @@ const SDPUtil = {
     filter_special_chars(text) {
         // XXX Neither one of the falsy values (e.g. null, undefined, false,
         // "", etc.) "contain" special chars.
+        // eslint-disable-next-line no-useless-escape
         return text ? text.replace(/[\\\/\{,\}\+]/g, '') : text;
     },
     iceparams(mediadesc, sessiondesc) {
