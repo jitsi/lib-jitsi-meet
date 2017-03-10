@@ -147,6 +147,7 @@ module.exports = {
         // Stylistic issues group
         'brace-style': 2,
         'comma-style': 2,
+        'eol-last': 2,
         'func-names': 0,
         'func-style': 0,
         'id-blacklist': 0,
