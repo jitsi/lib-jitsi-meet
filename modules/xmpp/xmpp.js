@@ -93,7 +93,7 @@ export default class XMPP extends Listenable {
     }
 
     getConnection() {
-        return this.connection; 
+        return this.connection;
     }
 
     /**

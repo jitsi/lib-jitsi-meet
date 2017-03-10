@@ -26,7 +26,7 @@ module.exports = function(config) {
 
 
     // preprocess matching files before serving them to the browser
-    // available preprocessors: 
+    // available preprocessors:
     //  https://npmjs.org/browse/keyword/karma-preprocessor
         preprocessors: {
             './JitsiMeetJS.js': ['webpack'],
@@ -49,18 +49,18 @@ module.exports = function(config) {
 
 
     // level of logging
-    // possible values: config.LOG_DISABLE || config.LOG_ERROR || 
+    // possible values: config.LOG_DISABLE || config.LOG_ERROR ||
     //  config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
         logLevel: config.LOG_INFO,
 
 
-    // enable / disable watching file and executing tests whenever 
+    // enable / disable watching file and executing tests whenever
     // any file changes
         autoWatch: false,
 
 
     // start these browsers
-    // available browser launchers: 
+    // available browser launchers:
     // https://npmjs.org/browse/keyword/karma-launcher
         browsers: ['Chrome'],
 

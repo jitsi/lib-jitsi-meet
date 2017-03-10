@@ -903,7 +903,7 @@ export default class JingleSessionPC extends JingleSession {
                             this.peerconnection.setLocalDescription(
                                 answer,
                                 () => {
-                                    resolve(); 
+                                    resolve();
                                 },
                                 error => {
                                     reject(
@@ -912,13 +912,13 @@ export default class JingleSessionPC extends JingleSession {
                             );
                         },
                         error => {
-                            reject('createAnswer failed: ' + error); 
+                            reject('createAnswer failed: ' + error);
                         },
                         media_constraints
                     );
                 },
                 error => {
-                    reject('setRemoteDescription failed: ' + error); 
+                    reject('setRemoteDescription failed: ' + error);
                 }
             );
         });

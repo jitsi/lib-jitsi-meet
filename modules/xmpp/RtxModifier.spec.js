@@ -107,7 +107,7 @@ describe ('RtxModifier', function() {
                 let fidGroup = getVideoGroups(newSdp, 'FID')[0];
                 const fidGroupRtxSsrc = SDPUtil.parseGroupSsrcs(fidGroup)[1];
 
-          // Now pass the original sdp through again 
+          // Now pass the original sdp through again
                 newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(this.singleVideoSdp));
                 newSdp = transform.parse(newSdpStr);
                 fidGroup = getVideoGroups(newSdp, 'FID')[0];

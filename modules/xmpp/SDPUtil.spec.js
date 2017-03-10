@@ -14,7 +14,7 @@ describe('SDPUtil', function() {
             const sdp = SampleSdpStrings.multiCodecVideoSdp;
             const videoMLine = sdp.media.find(m => m.type === 'video');
             SDPUtil.preferVideoCodec(videoMLine, 'H264');
-            const newPayloadTypesOrder 
+            const newPayloadTypesOrder
                 = videoMLine.payloads.split(' ').map(ptStr => parseInt(ptStr));
             expect(newPayloadTypesOrder[0]).toEqual(126);
         });

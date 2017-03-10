@@ -260,7 +260,7 @@ JitsiMeetJS.init(initOptions).then(function() {
 if (JitsiMeetJS.mediaDevices.isDeviceChangeAvailable('output')) {
     JitsiMeetJS.mediaDevices.enumerateDevices(function(devices) {
         var audioOutputDevices = devices.filter(function(d) {
-            return d.kind === 'audiooutput'; 
+            return d.kind === 'audiooutput';
         });
 
         if (audioOutputDevices.length > 1) {
