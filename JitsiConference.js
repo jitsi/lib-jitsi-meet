@@ -246,7 +246,7 @@ JitsiConference.prototype.isExternalAuthEnabled = function() {
  * @returns {Promise}
  */
 JitsiConference.prototype.getExternalAuthUrl = function(urlForPopup) {
-    return new Promise(function(resolve, reject) {
+    return new Promise((resolve, reject) => {
         if (!this.isExternalAuthEnabled()) {
             reject();
             return;
@@ -256,7 +256,7 @@ JitsiConference.prototype.getExternalAuthUrl = function(urlForPopup) {
         } else {
             this.room.moderator.getLoginUrl(resolve, reject);
         }
-    }.bind(this));
+    });
 };
 
 /**
@@ -590,10 +590,11 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
             && newTrack.videoType !== VideoType.DESKTOP)) {
         // Report active device to statistics
         const devices = RTC.getCurrentlyAvailableMediaDevices();
-        const device = devices.find(function(d) {
-            return d.kind === `${newTrack.getTrack().kind}input`
-                && d.label === newTrack.getTrack().label;
-        });
+        const device
+            = devices.find(
+                d =>
+                    d.kind === `${newTrack.getTrack().kind}input`
+                        && d.label === newTrack.getTrack().label);
         if (device) {
             Statistics.sendActiveDeviceListEvent(
                 RTC.getEventDataForActiveDevice(device));
@@ -725,14 +726,12 @@ JitsiConference.prototype.lock = function(password) {
     }
 
     const conference = this;
-    return new Promise(function(resolve, reject) {
-        conference.room.lockRoom(password || '', function() {
-            resolve();
-        }, function(err) {
-            reject(err);
-        }, function() {
-            reject(JitsiConferenceErrors.PASSWORD_NOT_SUPPORTED);
-        });
+    return new Promise((resolve, reject) => {
+        conference.room.lockRoom(
+            password || '',
+            () => resolve(),
+            err => reject(err),
+            () => reject(JitsiConferenceErrors.PASSWORD_NOT_SUPPORTED));
     });
 };
 
@@ -881,9 +880,9 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
 
     const removedTracks = this.rtc.removeRemoteTracks(id);
 
-    removedTracks.forEach(function(track) {
-        this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
-    }.bind(this));
+    removedTracks.forEach(
+        track =>
+            this.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track));
 
     // there can be no participant in case the member that left is focus
     if (participant) {
@@ -942,13 +941,10 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
     const emitter = this.eventEmitter;
     track.addEventListener(
         JitsiTrackEvents.TRACK_MUTE_CHANGED,
-        function() {
-            emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track);
-        }
-    );
+        () => emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track));
     track.addEventListener(
         JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
-        function(audioLevel) {
+        audioLevel => {
             emitter.emit(
                 JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED,
                 id,
@@ -1016,10 +1012,11 @@ JitsiConference.prototype.onIncomingCall
         jingleSession.terminate(
             'security-error', 'Only focus can start new sessions',
             null /* success callback => we don't care */,
-            function(error) {
+            error => {
                 logger.warn(
-                    'An error occurred while trying to terminate'
-                        + ' invalid Jingle session', error);
+                    'An error occurred while trying to terminate invalid Jingle'
+                        + ' session',
+                    error);
             });
 
         return;
@@ -1050,7 +1047,7 @@ JitsiConference.prototype.onIncomingCall
 
     this.rtc.initializeDataChannels(jingleSession.peerconnection);
     // Add local Tracks to the ChatRoom
-    this.getLocalTracks().forEach(function(localTrack) {
+    this.getLocalTracks().forEach(localTrack => {
         let ssrcInfo = null;
         /**
          * We don't do this for Firefox because, on Firefox, we keep the
@@ -1102,14 +1099,14 @@ JitsiConference.prototype.onIncomingCall
             GlobalOnErrorHandler.callErrorHandler(e);
             logger.error(e);
         }
-    }.bind(this));
+    });
     // Generate the 'recvonly' SSRC in case there are no video tracks
     if (!this.getLocalTracks(MediaType.VIDEO).length) {
         jingleSession.generateRecvonlySsrc();
     }
 
     jingleSession.acceptOffer(jingleOffer, null,
-        function(error) {
+        error => {
             GlobalOnErrorHandler.callErrorHandler(error);
             logger.error(
                 'Failed to accept incoming Jingle session', error);
@@ -1154,7 +1151,7 @@ JitsiConference.prototype.onCallEnded
     // will learn what their SSRC from the new PeerConnection which will be
     // created on incoming call event.
     const self = this;
-    this.getLocalTracks().forEach(function(localTrack) {
+    this.getLocalTracks().forEach(localTrack => {
         // Reset SSRC as it will no longer be valid
         localTrack._setSSRC(null);
         // Bind the handler to fetch new SSRC, it will un register itself once
@@ -1261,10 +1258,10 @@ JitsiConference.prototype.getRecordingURL = function() {
  */
 JitsiConference.prototype.toggleRecording = function(options) {
     if (this.room) {
-        return this.room.toggleRecording(options, function(status, error) {
+        return this.room.toggleRecording(options, (status, error) => {
             this.eventEmitter.emit(
                 JitsiConferenceEvents.RECORDER_STATE_CHANGED, status, error);
-        }.bind(this));
+        });
     }
     this.eventEmitter.emit(
         JitsiConferenceEvents.RECORDER_STATE_CHANGED, 'error',
@@ -1289,7 +1286,7 @@ JitsiConference.prototype.dial = function(number) {
     if (this.room) {
         return this.room.dial(number);
     }
-    return new Promise(function(resolve, reject) {
+    return new Promise((resolve, reject) => {
         reject(new Error('The conference is not created yet!'));
     });
 };
@@ -1301,7 +1298,7 @@ JitsiConference.prototype.hangup = function() {
     if (this.room) {
         return this.room.hangup();
     }
-    return new Promise(function(resolve, reject) {
+    return new Promise((resolve, reject) => {
         reject(new Error('The conference is not created yet!'));
     });
 };
@@ -1335,7 +1332,6 @@ JitsiConference.prototype.getConnectionState = function() {
         return this.jingleSession.getIceConnectionState();
     }
     return null;
-
 };
 
 /**

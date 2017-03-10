@@ -18,7 +18,7 @@ const logger = getLogger(__filename);
 function createLocalTracks(tracksInfo, options) {
     const newTracks = [];
     let deviceId = null;
-    tracksInfo.forEach(function(trackInfo) {
+    tracksInfo.forEach(trackInfo => {
         if (trackInfo.mediaType === MediaType.AUDIO) {
             deviceId = options.micDeviceId;
         } else if (trackInfo.videoType === VideoType.CAMERA) {
@@ -93,7 +93,7 @@ export default class RTC extends Listenable {
      */
     static obtainAudioAndVideoPermissions(options) {
         return RTCUtils.obtainAudioAndVideoPermissions(options).then(
-            function(tracksInfo) {
+            tracksInfo => {
                 const tracks = createLocalTracks(tracksInfo, options);
                 return !tracks.some(track =>
                     !track._isReceivingData()) ? tracks
@@ -366,7 +366,7 @@ export default class RTC extends Listenable {
      */
     setAudioMute(value) {
         const mutePromises = [];
-        this.getLocalTracks(MediaType.AUDIO).forEach(function(audioTrack) {
+        this.getLocalTracks(MediaType.AUDIO).forEach(audioTrack => {
             // this is a Promise
             mutePromises.push(value ? audioTrack.mute() : audioTrack.unmute());
         });
@@ -665,9 +665,7 @@ export default class RTC extends Listenable {
      * matches given SSRC or <tt>undefined</tt> if no such track was found.
      */
     getRemoteTrackBySSRC(ssrc) {
-        return this.getRemoteTracks().find(function(remoteTrack) {
-            return ssrc == remoteTrack.getSSRC();
-        });
+        return this.getRemoteTracks().find(remoteTrack => ssrc == remoteTrack.getSSRC());
     }
 
     /**

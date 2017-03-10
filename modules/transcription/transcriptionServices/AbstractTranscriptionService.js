@@ -18,7 +18,7 @@ const TranscriptionService = function() {
  */
 TranscriptionService.prototype.send = function send(recordingResult, callback) {
     const t = this;
-    this.sendRequest(recordingResult.blob, function(response) {
+    this.sendRequest(recordingResult.blob, response => {
         if(!t.verify(response)) {
             console.log('the retrieved response from the server'
                    + ' is not valid!');

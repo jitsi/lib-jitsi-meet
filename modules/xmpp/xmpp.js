@@ -121,13 +121,13 @@ export default class XMPP extends Listenable {
             const pingJid = this.connection.domain;
             this.connection.ping.hasPingSupport(
                 pingJid,
-                function(hasPing) {
+                hasPing => {
                     if (hasPing) {
                         this.connection.ping.startInterval(pingJid);
                     } else {
                         logger.warn(`Ping NOT supported by ${pingJid}`);
                     }
-                }.bind(this));
+                });
 
             if (password) {
                 this.authenticatedUser = true;

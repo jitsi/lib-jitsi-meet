@@ -267,9 +267,7 @@ export default class JingleSessionPC extends JingleSession {
 
         const localSDP = new SDP(this.peerconnection.localDescription.sdp);
         for (let mid = 0; mid < localSDP.media.length; mid++) {
-            const cands = candidates.filter(function(el) {
-                return el.sdpMLineIndex == mid;
-            });
+            const cands = candidates.filter(el => el.sdpMLineIndex == mid);
             const mline
                 = SDPUtil.parse_mline(localSDP.media[mid].split('\r\n')[0]);
             if (cands.length > 0) {
@@ -315,7 +313,7 @@ export default class JingleSessionPC extends JingleSession {
         // a lot later. See webrtc issue #2340
         // logger.log('was this the last candidate', this.lasticecandidate);
         this.connection.sendIQ(
-            cand, null, this.newJingleErrorHandler(cand, function(error) {
+            cand, null, this.newJingleErrorHandler(cand, error => {
                 GlobalOnErrorHandler.callErrorHandler(
                     new Error(`Jingle error: ${JSON.stringify(error)}`));
             }), IQ_TIMEOUT);
@@ -640,7 +638,7 @@ export default class JingleSessionPC extends JingleSession {
      */
     _parseSsrcInfoFromSourceAdd(sourceAddElem, currentRemoteSdp) {
         const addSsrcInfo = [];
-        $(sourceAddElem).each(function(idx, content) {
+        $(sourceAddElem).each((idx, content) => {
             const name = $(content).attr('name');
             let lines = '';
             $(content)
@@ -676,7 +674,7 @@ export default class JingleSessionPC extends JingleSession {
                     lines += '\r\n';
                 });
             });
-            currentRemoteSdp.media.forEach(function(media, idx) {
+            currentRemoteSdp.media.forEach((media, idx) => {
                 if (!SDPUtil.find_line(media, `a=mid:${name}`)) {
                     return;
                 }
@@ -818,10 +816,10 @@ export default class JingleSessionPC extends JingleSession {
      */
     _processRemoteRemoveSource(removeSsrcInfo) {
         const remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
-        removeSsrcInfo.forEach(function(lines, idx) {
+        removeSsrcInfo.forEach((lines, idx) => {
             lines = lines.split('\r\n');
             lines.pop(); // remove empty last element;
-            lines.forEach(function(line) {
+            lines.forEach(line => {
                 remoteSdp.media[idx]
                     = remoteSdp.media[idx].replace(`${line}\r\n`, '');
             });
@@ -840,7 +838,7 @@ export default class JingleSessionPC extends JingleSession {
      */
     _processRemoteAddSource(addSsrcInfo) {
         const remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
-        addSsrcInfo.forEach(function(lines, idx) {
+        addSsrcInfo.forEach((lines, idx) => {
             remoteSdp.media[idx] += lines;
         });
         remoteSdp.raw = remoteSdp.session + remoteSdp.media.join('');
@@ -1015,7 +1013,7 @@ export default class JingleSessionPC extends JingleSession {
      */
     _parseSsrcInfoFromSourceRemove(sourceRemoveElem, currentRemoteSdp) {
         const removeSsrcInfo = [];
-        $(sourceRemoveElem).each(function(idx, content) {
+        $(sourceRemoveElem).each((idx, content) => {
             const name = $(content).attr('name');
             let lines = '';
             $(content)
@@ -1041,14 +1039,14 @@ export default class JingleSessionPC extends JingleSession {
                 const ssrc = $(this).attr('ssrc');
                 ssrcs.push(ssrc);
             });
-            currentRemoteSdp.media.forEach(function(media, idx) {
+            currentRemoteSdp.media.forEach((media, idx) => {
                 if (!SDPUtil.find_line(media, `a=mid:${name}`)) {
                     return;
                 }
                 if (!removeSsrcInfo[idx]) {
                     removeSsrcInfo[idx] = '';
                 }
-                ssrcs.forEach(function(ssrc) {
+                ssrcs.forEach(ssrc => {
                     const ssrcLines
                         = SDPUtil.find_lines(media, `a=ssrc:${ssrc}`);
                     if (ssrcLines.length) {
@@ -1160,7 +1158,7 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         // Find the right sender (for audio or video)
-        this.peerconnection.peerconnection.getSenders().some(function(s) {
+        this.peerconnection.peerconnection.getSenders().some(s => {
             if (s.track === track) {
                 sender = s;
                 return true;
@@ -1274,7 +1272,7 @@ export default class JingleSessionPC extends JingleSession {
             logger.info('Sending source-remove', remove.tree());
             this.connection.sendIQ(
                 remove, null,
-                this.newJingleErrorHandler(remove, function(error) {
+                this.newJingleErrorHandler(remove, error => {
                     GlobalOnErrorHandler.callErrorHandler(
                         new Error(`Jingle error: ${JSON.stringify(error)}`));
                 }), IQ_TIMEOUT);
@@ -1299,7 +1297,7 @@ export default class JingleSessionPC extends JingleSession {
         if (added && add) {
             logger.info('Sending source-add', add.tree());
             this.connection.sendIQ(
-                add, null, this.newJingleErrorHandler(add, function(error) {
+                add, null, this.newJingleErrorHandler(add, error => {
                     GlobalOnErrorHandler.callErrorHandler(
                         new Error(`Jingle error: ${JSON.stringify(error)}`));
                 }), IQ_TIMEOUT);
@@ -1447,18 +1445,18 @@ export default class JingleSessionPC extends JingleSession {
         let ssrcs = this.modifiedSSRCs.unmute;
         this.modifiedSSRCs.unmute = [];
         if (ssrcs && ssrcs.length) {
-            ssrcs.forEach(function(ssrcObj) {
+            ssrcs.forEach(ssrcObj => {
                 const desc
                     = $(jingle.tree()).find(
                         `>jingle>content[name="${ssrcObj.mtype}"]>description`);
                 if (!desc || !desc.length) {
                     return;
                 }
-                ssrcObj.ssrcs.forEach(function(ssrc) {
+                ssrcObj.ssrcs.forEach(ssrc => {
                     const sourceNode = desc.find(`>source[ssrc="${ssrc}"]`);
                     sourceNode.remove();
                 });
-                ssrcObj.groups.forEach(function(group) {
+                ssrcObj.groups.forEach(group => {
                     const groupNode = desc.find(`>ssrc-group[semantics="${
                          group.semantics}"]:has(source[ssrc="${
                          group.ssrcs[0]}"])`);
@@ -1470,12 +1468,12 @@ export default class JingleSessionPC extends JingleSession {
         ssrcs = this.modifiedSSRCs.addMuted;
         this.modifiedSSRCs.addMuted = [];
         if (ssrcs && ssrcs.length) {
-            ssrcs.forEach(function(ssrcObj) {
+            ssrcs.forEach(ssrcObj => {
                 const desc
                     = JingleSessionPC.createDescriptionNode(
                         jingle, ssrcObj.mtype);
                 const cname = Math.random().toString(36).substring(2);
-                ssrcObj.ssrcs.forEach(function(ssrc) {
+                ssrcObj.ssrcs.forEach(ssrc => {
                     const sourceNode
                         = desc.find(`>source[ssrc="${ssrc}"]`);
                     sourceNode.remove();
@@ -1489,7 +1487,7 @@ export default class JingleSessionPC extends JingleSession {
                         + '</source>';
                     desc.append(sourceXML);
                 });
-                ssrcObj.groups.forEach(function(group) {
+                ssrcObj.groups.forEach(group => {
                     const groupNode
                         = desc.find(
                             `>ssrc-group[semantics="${group.semantics
@@ -1515,15 +1513,15 @@ export default class JingleSessionPC extends JingleSession {
         let ssrcs = this.modifiedSSRCs.mute;
         this.modifiedSSRCs.mute = [];
         if (ssrcs && ssrcs.length) {
-            ssrcs.forEach(function(ssrcObj) {
-                ssrcObj.ssrcs.forEach(function(ssrc) {
+            ssrcs.forEach(ssrcObj => {
+                ssrcObj.ssrcs.forEach(ssrc => {
                     const sourceNode
                         = $(jingle.tree()).find(
                             `>jingle>content[name="${ssrcObj.mtype
                                 }"]>description>source[ssrc="${ssrc}"]`);
                     sourceNode.remove();
                 });
-                ssrcObj.groups.forEach(function(group) {
+                ssrcObj.groups.forEach(group => {
                     const groupNode
                         = $(jingle.tree()).find(
                             `>jingle>content[name="${ssrcObj.mtype
@@ -1538,11 +1536,11 @@ export default class JingleSessionPC extends JingleSession {
         ssrcs = this.modifiedSSRCs.remove;
         this.modifiedSSRCs.remove = [];
         if (ssrcs && ssrcs.length) {
-            ssrcs.forEach(function(ssrcObj) {
+            ssrcs.forEach(ssrcObj => {
                 const desc
                     = JingleSessionPC.createDescriptionNode(
                         jingle, ssrcObj.mtype);
-                ssrcObj.ssrcs.forEach(function(ssrc) {
+                ssrcObj.ssrcs.forEach(ssrc => {
                     const sourceNode
                         = desc.find(`>source[ssrc="${ssrc}"]`);
                     if (!sourceNode || !sourceNode.length) {
@@ -1552,7 +1550,7 @@ export default class JingleSessionPC extends JingleSession {
                                 + `ssrc="${ssrc}"></source>`);
                     }
                 });
-                ssrcObj.groups.forEach(function(group) {
+                ssrcObj.groups.forEach(group => {
                     const groupNode
                         = desc.find(`>ssrc-group[semantics="${
                              group.semantics}"]:has(source[ssrc="${

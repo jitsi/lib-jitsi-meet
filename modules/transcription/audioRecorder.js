@@ -65,9 +65,7 @@ function instantiateTrackRecorder(track) {
     // Create a new stream which only holds the audio track
     const originalStream = trackRecorder.track.getOriginalStream();
     const stream = createEmptyStream();
-    originalStream.getAudioTracks().forEach(function(track) {
-        stream.addTrack(track);
-    });
+    originalStream.getAudioTracks().forEach(track => stream.addTrack(track));
     // Create the MediaRecorder
     trackRecorder.recorder = new MediaRecorder(stream,
         {mimeType: audioRecorder.fileType});
@@ -186,7 +184,7 @@ audioRecorder.prototype.removeTrack = function(track) {
  */
 audioRecorder.prototype.updateNames = function() {
     const conference = this.jitsiConference;
-    this.recorders.forEach(function(trackRecorder) {
+    this.recorders.forEach(trackRecorder => {
         if(trackRecorder.track.isLocal()) {
             trackRecorder.name = 'the transcriber';
         } else {
@@ -211,9 +209,7 @@ audioRecorder.prototype.start = function() {
     // conference, that track can instantly start recording as well
     this.isRecording = true;
     // start all the mediaRecorders
-    this.recorders.forEach(function(trackRecorder) {
-        startRecorder(trackRecorder);
-    });
+    this.recorders.forEach(trackRecorder => startRecorder(trackRecorder));
     // log that recording has started
     console.log(
         `Started the recording of the audio. There are currently ${
@@ -236,7 +232,7 @@ audioRecorder.prototype.stop = function() {
  */
 audioRecorder.prototype.download = function() {
     const t = this;
-    this.recorders.forEach(function(trackRecorder) {
+    this.recorders.forEach(trackRecorder => {
         const blob = new Blob(trackRecorder.data, {type: t.fileType});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -264,14 +260,13 @@ audioRecorder.prototype.getRecordingResults = function() {
 
     const array = [];
     const t = this;
-    this.recorders.forEach(function(recorder) {
-        array.push(
-            new RecordingResult(
-            new Blob(recorder.data, {type: t.fileType}),
-            recorder.name,
-            recorder.startTime)
-        );
-    });
+    this.recorders.forEach(
+          recorder =>
+              array.push(
+                  new RecordingResult(
+                      new Blob(recorder.data, {type: t.fileType}),
+                      recorder.name,
+                      recorder.startTime)));
     return array;
 };
 
@@ -296,7 +291,6 @@ function createEmptyStream() {
         return new webkitMediaStream(); // eslint-disable-line new-cap
     }
     throw new Error('cannot create a clean mediaStream');
-
 }
 
 /**

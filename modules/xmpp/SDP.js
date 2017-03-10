@@ -56,7 +56,7 @@ SDP.prototype.getMediaSsrcMap = function() {
             ssrcGroups: []
         };
         media_ssrcs[mediaindex] = media;
-        tmp.forEach(function(line) {
+        tmp.forEach(line => {
             const linessrc = line.substring(7).split(' ')[0];
             // allocate new ChannelSsrc
             if(!media.ssrcs[linessrc]) {
@@ -68,7 +68,7 @@ SDP.prototype.getMediaSsrcMap = function() {
             media.ssrcs[linessrc].lines.push(line);
         });
         tmp = SDPUtil.find_lines(self.media[mediaindex], 'a=ssrc-group:');
-        tmp.forEach(function(line) {
+        tmp.forEach(line => {
             const idx = line.indexOf(' ');
             const semantics = line.substr(0, idx).substr(13);
             const ssrcs = line.substr(14 + semantics.length).split(' ');
@@ -91,7 +91,7 @@ SDP.prototype.containsSSRC = function(ssrc) {
     // FIXME this code is really strange - improve it if you can
     const medias = this.getMediaSsrcMap();
     let result = false;
-    Object.keys(medias).forEach(function(mediaindex) {
+    Object.keys(medias).forEach(mediaindex => {
         if (result) {
             return;
         }
@@ -133,7 +133,7 @@ SDP.prototype.mangle = function() {
 SDP.prototype.removeSessionLines = function(prefix) {
     const self = this;
     const lines = SDPUtil.find_lines(this.session, prefix);
-    lines.forEach(function(line) {
+    lines.forEach(line => {
         self.session = self.session.replace(`${line}\r\n`, '');
     });
     this.raw = this.session + this.media.join('');
@@ -144,8 +144,9 @@ SDP.prototype.removeSessionLines = function(prefix) {
 SDP.prototype.removeMediaLines = function(mediaindex, prefix) {
     const self = this;
     const lines = SDPUtil.find_lines(this.media[mediaindex], prefix);
-    lines.forEach(function(line) {
-        self.media[mediaindex] = self.media[mediaindex].replace(`${line}\r\n`, '');
+    lines.forEach(line => {
+        self.media[mediaindex]
+            = self.media[mediaindex].replace(`${line}\r\n`, '');
     });
     this.raw = this.session + this.media.join('');
     return lines;
@@ -214,9 +215,8 @@ SDP.prototype.toJingle = function(elem, thecreator) {
             const crypto = SDPUtil.find_lines(this.media[i], 'a=crypto:', this.session);
             if (crypto.length) {
                 elem.c('encryption', {required: 1});
-                crypto.forEach(function(line) {
-                    elem.c('crypto', SDPUtil.parse_crypto(line)).up();
-                });
+                crypto.forEach(
+                    line => elem.c('crypto', SDPUtil.parse_crypto(line)).up());
                 elem.up(); // end of encryption
             }
 
@@ -226,7 +226,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                 // FIXME: group by ssrc and support multiple different ssrcs
                 const ssrclines = SDPUtil.find_lines(this.media[i], 'a=ssrc:');
                 if(ssrclines.length > 0) {
-                    ssrclines.forEach(function(line) {
+                    ssrclines.forEach(line => {
                         const idx = line.indexOf(' ');
                         const linessrc = line.substr(0, idx).substr(7);
                         if (linessrc != ssrc) {
@@ -280,16 +280,13 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 
                 // XEP-0339 handle ssrc-group attributes
                 const ssrc_group_lines = SDPUtil.find_lines(this.media[i], 'a=ssrc-group:');
-                ssrc_group_lines.forEach(function(line) {
+                ssrc_group_lines.forEach(line => {
                     const idx = line.indexOf(' ');
                     const semantics = line.substr(0, idx).substr(13);
                     const ssrcs = line.substr(14 + semantics.length).split(' ');
                     if (ssrcs.length) {
                         elem.c('ssrc-group', { semantics, xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
-                        ssrcs.forEach(function(ssrc) {
-                            elem.c('source', { ssrc })
-                                .up();
-                        });
+                        ssrcs.forEach(ssrc => elem.c('source', { ssrc }).up());
                         elem.up();
                     }
                 });
@@ -379,7 +376,7 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
     // XEP-0320
     const fingerprints
         = SDPUtil.find_lines(this.media[mediaindex], 'a=fingerprint:', this.session);
-    fingerprints.forEach(function(line) {
+    fingerprints.forEach(line => {
         tmp = SDPUtil.parse_fingerprint(line);
         tmp.xmlns = 'urn:xmpp:jingle:apps:dtls:0';
         elem.c('fingerprint').t(tmp.fingerprint);
@@ -398,7 +395,7 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
         // XEP-0176
         if (SDPUtil.find_line(this.media[mediaindex], 'a=candidate:', this.session)) { // add any a=candidate lines
             const lines = SDPUtil.find_lines(this.media[mediaindex], 'a=candidate:', this.session);
-            lines.forEach(function(line) {
+            lines.forEach(line => {
                 const candidate = SDPUtil.candidateToJingle(line);
                 if (self.failICE) {
                     candidate.ip = '1.1.1.1';
@@ -420,7 +417,7 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
 
 SDP.prototype.rtcpFbToJingle = function(mediaindex, elem, payloadtype) { // XEP-0293
     const lines = SDPUtil.find_lines(this.media[mediaindex], `a=rtcp-fb:${payloadtype}`);
-    lines.forEach(function(line) {
+    lines.forEach(line => {
         const tmp = SDPUtil.parse_rtcpfb(line);
         if (tmp.type == 'trr-int') {
             elem.c('rtcp-fb-trr-int', {xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0', value: tmp.params[0]});
@@ -467,10 +464,8 @@ SDP.prototype.fromJingle = function(jingle) {
         + 't=0 0\r\n';
     // http://tools.ietf.org/html/draft-ietf-mmusic-sdp-bundle-negotiation-04#section-8
     if ($(jingle).find('>group[xmlns="urn:xmpp:jingle:apps:grouping:0"]').length) {
-        $(jingle).find('>group[xmlns="urn:xmpp:jingle:apps:grouping:0"]').each(function(idx, group) {
-            const contents = $(group).find('>content').map(function(idx, content) {
-                return content.getAttribute('name');
-            }).get();
+        $(jingle).find('>group[xmlns="urn:xmpp:jingle:apps:grouping:0"]').each((idx, group) => {
+            const contents = $(group).find('>content').map((idx, content) => content.getAttribute('name')).get();
             if (contents.length > 0) {
                 self.raw += `a=group:${group.getAttribute('semantics') || group.getAttribute('type')} ${contents.join(' ')}\r\n`;
             }
@@ -657,6 +652,5 @@ SDP.prototype.jingle2media = function(content) {
 
     return media;
 };
-
 
 module.exports = SDP;

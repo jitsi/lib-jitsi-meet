@@ -66,15 +66,15 @@ function getVideoGroups(parsedSdp, groupSemantics) {
     .filter(g => g.semantics === groupSemantics);
 }
 
-describe('RtxModifier', function() {
+describe('RtxModifier', () => {
     beforeEach(function() {
         this.rtxModifier = new RtxModifier();
         this.transform = transform;
         this.SDPUtil = SDPUtil;
     });
 
-    describe('modifyRtxSsrcs', function() {
-        describe('when given an sdp with a single video ssrc', function() {
+    describe('modifyRtxSsrcs', () => {
+        describe('when given an sdp with a single video ssrc', () => {
             beforeEach(function() {
                 this.singleVideoSdp = SampleSdpStrings.plainVideoSdp;
                 this.primaryVideoSsrc = getPrimaryVideoSsrc(this.singleVideoSdp);
@@ -152,7 +152,7 @@ describe('RtxModifier', function() {
             });
         });
 
-        describe('when given an sdp with multiple video ssrcs', function() {
+        describe('when given an sdp with multiple video ssrcs', () => {
             beforeEach(function() {
                 this.multipleVideoSdp = SampleSdpStrings.simulcastSdp;
                 this.primaryVideoSsrcs = getPrimaryVideoSsrcs(this.multipleVideoSdp);
@@ -261,7 +261,7 @@ describe('RtxModifier', function() {
             });
         });
 
-        describe('(corner cases)', function() {
+        describe('(corner cases)', () => {
             it('should handle a recvonly video mline', function() {
                 const sdp = SampleSdpStrings.plainVideoSdp;
                 const videoMLine = sdp.media.find(m => m.type === 'video');
@@ -288,8 +288,8 @@ describe('RtxModifier', function() {
         });
     });
 
-    describe('stripRtx', function() {
-        beforeEach(function() { }); // eslint-disable-line no-empty-function
+    describe('stripRtx', () => {
+        beforeEach(() => { }); // eslint-disable-line no-empty-function
         it('should strip all rtx streams from an sdp with rtx', function() {
             const sdpStr = transform.write(SampleSdpStrings.rtxVideoSdp);
             const newSdpStr = this.rtxModifier.stripRtx(sdpStr);

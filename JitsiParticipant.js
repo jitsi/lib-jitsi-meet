@@ -58,10 +58,11 @@ export default class JitsiParticipant {
      * {@link JitsiTrack.isWebRTCTrackMuted}.
      */
     hasAnyVideoTrackWebRTCMuted() {
-        return this.getTracks().some(function(jitsiTrack) {
-            return jitsiTrack.getType() === MediaType.VIDEO
-                && jitsiTrack.isWebRTCTrackMuted();
-        });
+        return (
+            this.getTracks().some(
+                jitsiTrack =>
+                    jitsiTrack.getType() === MediaType.VIDEO
+                        && jitsiTrack.isWebRTCTrackMuted()));
     }
 
     /**

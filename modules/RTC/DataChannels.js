@@ -169,7 +169,7 @@ DataChannels.prototype.onDataChannel = function(event) {
  * Closes all currently opened data channels.
  */
 DataChannels.prototype.closeAllChannels = function() {
-    this._dataChannels.forEach(function(dc) {
+    this._dataChannels.forEach(dc => {
         // the DC will be removed from the array on 'onclose' event
         dc.close();
     });
@@ -253,7 +253,7 @@ DataChannels.prototype._some = function(callback, thisArg) {
  * or Error with "No opened data channels found!" message.
  */
 DataChannels.prototype.send = function(jsonObject) {
-    if(!this._some(function(dataChannel) {
+    if(!this._some(dataChannel => {
         if (dataChannel.readyState == 'open') {
             dataChannel.send(JSON.stringify(jsonObject));
             return true;

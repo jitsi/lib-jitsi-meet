@@ -49,7 +49,7 @@ ComponentsVersions.prototype.processPresence
         }
 
         const log = [];
-        node.children.forEach(function(item) {
+        node.children.forEach(item => {
 
             const componentName = item.attributes.name;
             if (componentName !== ComponentsVersions.FOCUS_COMPONENT
@@ -72,7 +72,7 @@ ComponentsVersions.prototype.processPresence
                     version
                 });
             }
-        }.bind(this));
+        });
 
         // logs versions to stats
         if (log.length > 0) {

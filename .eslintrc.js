@@ -209,6 +209,7 @@ module.exports = {
             'always',
             { 'avoidQuotes': true }
         ],
+        'prefer-arrow-callback': [ 'error', { 'allowNamedFunctions': true } ],
         'prefer-const': 2,
         'prefer-reflect': 0,
         'prefer-rest-params': 2,

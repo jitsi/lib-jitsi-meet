@@ -33,13 +33,13 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
 
     JitsiTrack.call(this,
         null /* RTC */, stream, track,
-        function() {
+        () => {
             if(!this.dontFireRemoveEvent) {
                 this.eventEmitter.emit(
                     JitsiTrackEvents.LOCAL_TRACK_STOPPED);
             }
             this.dontFireRemoveEvent = false;
-        }.bind(this) /* inactiveHandler */,
+        } /* inactiveHandler */,
         mediaType, videoType, null /* ssrc */);
     this.dontFireRemoveEvent = false;
     this.resolution = resolution;
@@ -106,9 +106,7 @@ function JitsiLocalTrack(stream, track, mediaType, videoType, resolution,
         // device ID "".
         if (typeof self.getTrack().readyState === 'undefined'
             && typeof self._realDeviceId !== 'undefined'
-            && !devices.find(function(d) {
-                return d.deviceId === self._realDeviceId;
-            })) {
+            && !devices.find(d => d.deviceId === self._realDeviceId)) {
             self._trackEnded = true;
         }
     };
@@ -257,10 +255,10 @@ function createMuteUnmutePromise(track, mute) {
     track.inMuteOrUnmuteProgress = true;
 
     return track._setMute(mute)
-        .then(function() {
+        .then(() => {
             track.inMuteOrUnmuteProgress = false;
         })
-        .catch(function(status) {
+        .catch(status => {
             track.inMuteOrUnmuteProgress = false;
             throw status;
         });
@@ -324,11 +322,9 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
             }
 
             promise = RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
-                .then(function(streamsInfo) {
+                .then(streamsInfo => {
                     const mediaType = self.getType();
-                    const streamInfo = streamsInfo.find(function(info) {
-                        return info.mediaType === mediaType;
-                    });
+                    const streamInfo = streamsInfo.find(info => info.mediaType === mediaType);
 
                     if(!streamInfo) {
                         throw new JitsiTrackError(
@@ -346,9 +342,7 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
                         }
                     }
 
-                    self.containers = self.containers.map(function(cont) {
-                        return RTCUtils.attachMediaStream(cont, self.stream);
-                    });
+                    self.containers = self.containers.map(cont => RTCUtils.attachMediaStream(cont, self.stream));
 
                     return self._addStreamToConferenceAsUnmute();
                 });
@@ -356,9 +350,7 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
     }
 
     return promise
-        .then(function() {
-            return self._sendMuteStatus(mute);
-        })
+        .then(() => self._sendMuteStatus(mute))
         .then(function() {
             self.eventEmitter.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, this);
         });
@@ -466,9 +458,8 @@ JitsiLocalTrack.prototype.dispose = function() {
     }
 
     return promise
-        .then(function() {
-            return JitsiTrack.prototype.dispose.call(self); // super.dispose();
-        });
+        .then(() => JitsiTrack.prototype.dispose.call(self) // super.dispose();
+        );
 };
 
 /**
@@ -561,12 +552,12 @@ JitsiLocalTrack.prototype._setByteSent = function(bytesSent) {
     const iceConnectionState
         = this.conference ? this.conference.getConnectionState() : null;
     if(this._testByteSent && 'connected' === iceConnectionState) {
-        setTimeout(function() {
+        setTimeout(() => {
             if(this._bytesSent <= 0) {
                 // we are not receiving anything from the microphone
                 this._fireNoDataFromSourceEvent();
             }
-        }.bind(this), 3000);
+        }, 3000);
         this._testByteSent = false;
     }
 };

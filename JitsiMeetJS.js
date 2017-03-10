@@ -214,7 +214,7 @@ const LibJitsiMeet = {
         let promiseFulfilled = false;
 
         if (firePermissionPromptIsShownEvent === true) {
-            window.setTimeout(function() {
+            window.setTimeout(() => {
                 if (!promiseFulfilled) {
                     JitsiMediaDevices.emitEvent(
                         JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN,
@@ -230,7 +230,7 @@ const LibJitsiMeet = {
             = window.performance.now();
 
         return RTC.obtainAudioAndVideoPermissions(options || {})
-            .then(function(tracks) {
+            .then(tracks => {
                 promiseFulfilled = true;
 
                 window.connectionTimes['obtainPermissions.end']
@@ -248,7 +248,7 @@ const LibJitsiMeet = {
                                 track.setAudioLevel.bind(track));
                             track.addEventListener(
                                 JitsiTrackEvents.LOCAL_TRACK_STOPPED,
-                                function() {
+                                () => {
                                     Statistics.stopLocalStats(mStream);
                                 });
                         }
@@ -267,7 +267,7 @@ const LibJitsiMeet = {
                 }
 
                 return tracks;
-            }).catch(function(error) {
+            }).catch(error => {
                 promiseFulfilled = true;
 
                 if(error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {

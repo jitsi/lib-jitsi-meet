@@ -302,7 +302,7 @@ Statistics.prototype.sendDominantSpeakerEvent = function() {
  */
 Statistics.sendActiveDeviceListEvent = function(devicesData) {
     if (Statistics.callsStatsInstances.length) {
-        Statistics.callsStatsInstances.forEach(function(cs) {
+        Statistics.callsStatsInstances.forEach(cs => {
             CallStats.sendActiveDeviceListEvent(devicesData, cs);
         });
     } else {
@@ -337,13 +337,13 @@ Statistics.prototype.associateStreamWithVideoTag
 Statistics.sendGetUserMediaFailed = function(e) {
 
     if (Statistics.callsStatsInstances.length) {
-        Statistics.callsStatsInstances.forEach(function(cs) {
-            CallStats.sendGetUserMediaFailed(
-                e instanceof JitsiTrackError
-                    ? formatJitsiTrackErrorForCallStats(e)
-                    : e,
-                cs);
-        });
+        Statistics.callsStatsInstances.forEach(
+            cs =>
+                CallStats.sendGetUserMediaFailed(
+                    e instanceof JitsiTrackError
+                        ? formatJitsiTrackErrorForCallStats(e)
+                        : e,
+                    cs));
     } else {
         CallStats.sendGetUserMediaFailed(
             e instanceof JitsiTrackError
@@ -420,9 +420,8 @@ Statistics.prototype.sendAddIceCandidateFailed = function(e, pc) {
  */
 Statistics.sendLog = function(m) {
     if (Statistics.callsStatsInstances.length) {
-        Statistics.callsStatsInstances.forEach(function(cs) {
-            CallStats.sendApplicationLog(m, cs);
-        });
+        Statistics.callsStatsInstances.forEach(
+            cs => CallStats.sendApplicationLog(m, cs));
     } else {
         CallStats.sendApplicationLog(m, null);
     }

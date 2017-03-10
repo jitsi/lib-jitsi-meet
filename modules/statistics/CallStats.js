@@ -235,7 +235,7 @@ const reportType = {
     MST_WITH_USERID: 'mstWithUserID'
 };
 
-CallStats.prototype.pcCallback = _try_catch(function(err, msg) {
+CallStats.prototype.pcCallback = _try_catch((err, msg) => {
     if (callStats && err !== 'success') {
         logger.error(`Monitoring status: ${err} msg: ${msg}`);
     }
@@ -300,7 +300,7 @@ CallStats.prototype.associateStreamWithVideoTag
  * @param type {String} "audio"/"video"
  * @param {CallStats} cs callstats instance related to the event
  */
-CallStats.sendMuteEvent = _try_catch(function(mute, type, cs) {
+CallStats.sendMuteEvent = _try_catch((mute, type, cs) => {
     let event;
 
     if (type === 'video') {
@@ -318,7 +318,7 @@ CallStats.sendMuteEvent = _try_catch(function(mute, type, cs) {
  * false for not stopping
  * @param {CallStats} cs callstats instance related to the event
  */
-CallStats.sendScreenSharingEvent = _try_catch(function(start, cs) {
+CallStats.sendScreenSharingEvent = _try_catch((start, cs) => {
     CallStats._reportEvent.call(
         cs,
         start ? fabricEvent.screenShareStart : fabricEvent.screenShareStop);
@@ -328,7 +328,7 @@ CallStats.sendScreenSharingEvent = _try_catch(function(start, cs) {
  * Notifies CallStats that we are the new dominant speaker in the conference.
  * @param {CallStats} cs callstats instance related to the event
  */
-CallStats.sendDominantSpeakerEvent = _try_catch(function(cs) {
+CallStats.sendDominantSpeakerEvent = _try_catch(cs => {
     CallStats._reportEvent.call(cs, fabricEvent.dominantSpeaker);
 });
 
@@ -337,7 +337,7 @@ CallStats.sendDominantSpeakerEvent = _try_catch(function(cs) {
  * @param {{deviceList: {String:String}}} list of devices with their data
  * @param {CallStats} cs callstats instance related to the event
  */
-CallStats.sendActiveDeviceListEvent = _try_catch(function(devicesData, cs) {
+CallStats.sendActiveDeviceListEvent = _try_catch((devicesData, cs) => {
     CallStats._reportEvent.call(cs, fabricEvent.activeDeviceList, devicesData);
 });
 
@@ -379,7 +379,7 @@ CallStats.prototype.sendTerminateEvent = _try_catch(function() {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.prototype.sendIceConnectionFailedEvent = _try_catch(function(pc, cs) {
+CallStats.prototype.sendIceConnectionFailedEvent = _try_catch((pc, cs) => {
     CallStats._reportError.call(
         cs, wrtcFuncNames.iceConnectionFailure, null, pc);
 });
@@ -435,7 +435,7 @@ CallStats._reportError = function(type, e, pc) {
  * @param {Error} e error to send
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendGetUserMediaFailed = _try_catch(function(e, cs) {
+CallStats.sendGetUserMediaFailed = _try_catch((e, cs) => {
     CallStats._reportError.call(cs, wrtcFuncNames.getUserMedia, e, null);
 });
 
@@ -446,7 +446,7 @@ CallStats.sendGetUserMediaFailed = _try_catch(function(e, cs) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendCreateOfferFailed = _try_catch(function(e, pc, cs) {
+CallStats.sendCreateOfferFailed = _try_catch((e, pc, cs) => {
     CallStats._reportError.call(cs, wrtcFuncNames.createOffer, e, pc);
 });
 
@@ -457,7 +457,7 @@ CallStats.sendCreateOfferFailed = _try_catch(function(e, pc, cs) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendCreateAnswerFailed = _try_catch(function(e, pc, cs) {
+CallStats.sendCreateAnswerFailed = _try_catch((e, pc, cs) => {
     CallStats._reportError.call(cs, wrtcFuncNames.createAnswer, e, pc);
 });
 
@@ -468,7 +468,7 @@ CallStats.sendCreateAnswerFailed = _try_catch(function(e, pc, cs) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendSetLocalDescFailed = _try_catch(function(e, pc, cs) {
+CallStats.sendSetLocalDescFailed = _try_catch((e, pc, cs) => {
     CallStats._reportError.call(cs, wrtcFuncNames.setLocalDescription, e, pc);
 });
 
@@ -479,7 +479,7 @@ CallStats.sendSetLocalDescFailed = _try_catch(function(e, pc, cs) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendSetRemoteDescFailed = _try_catch(function(e, pc, cs) {
+CallStats.sendSetRemoteDescFailed = _try_catch((e, pc, cs) => {
     CallStats._reportError.call(cs, wrtcFuncNames.setRemoteDescription, e, pc);
 });
 
@@ -490,7 +490,7 @@ CallStats.sendSetRemoteDescFailed = _try_catch(function(e, pc, cs) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendAddIceCandidateFailed = _try_catch(function(e, pc, cs) {
+CallStats.sendAddIceCandidateFailed = _try_catch((e, pc, cs) => {
     CallStats._reportError.call(cs, wrtcFuncNames.addIceCandidate, e, pc);
 });
 
@@ -500,7 +500,7 @@ CallStats.sendAddIceCandidateFailed = _try_catch(function(e, pc, cs) {
  * @param {Error} e error to send or {String} message
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendApplicationLog = _try_catch(function(e, cs) {
+CallStats.sendApplicationLog = _try_catch((e, cs) => {
     CallStats._reportError.call(cs, wrtcFuncNames.applicationLog, e, null);
 });
 

@@ -434,7 +434,7 @@ Moderator.prototype._getLoginUrl = function(popup, urlCb, failureCb) {
     }
     this.connection.sendIQ(
         iq,
-        function(result) {
+        result => {
             let url = $(result).find('login-url').attr('url');
             url = decodeURIComponent(url);
             if (url) {
@@ -465,7 +465,7 @@ Moderator.prototype.logout = function(callback) {
     });
     this.connection.sendIQ(
         iq,
-        function(result) {
+        result => {
             let logoutUrl = $(result).find('logout').attr('logout-url');
             if (logoutUrl) {
                 logoutUrl = decodeURIComponent(logoutUrl);
@@ -474,7 +474,7 @@ Moderator.prototype.logout = function(callback) {
             Settings.clearSessionId();
             callback(logoutUrl);
         },
-        function(error) {
+        error => {
             const errmsg = 'Logout error';
             GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
             logger.error(errmsg, error);

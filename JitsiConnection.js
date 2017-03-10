@@ -18,14 +18,14 @@ function JitsiConnection(appID, token, options) {
     this.xmpp = new XMPP(options, token);
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
-        function(errType, msg) {
+        (errType, msg) => {
             // sends analytics and callstats event
             Statistics.sendEventToAll(`connection.failed.${errType}`,
                 {label: msg});
         });
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_DISCONNECTED,
-        function(msg) {
+        msg => {
             // we can see disconnects from normal tab closing of the browser
             // and then there are no msgs, but we want to log only disconnects
             // when there is real error

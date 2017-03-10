@@ -42,7 +42,7 @@ SDPDiffer.prototype.getNewMedia = function() {
     const myMedias = this.mySDP.getMediaSsrcMap();
     const othersMedias = this.otherSDP.getMediaSsrcMap();
     const newMedia = {};
-    Object.keys(othersMedias).forEach(function(othersMediaIdx) {
+    Object.keys(othersMedias).forEach(othersMediaIdx => {
         const myMedia = myMedias[othersMediaIdx];
         const othersMedia = othersMedias[othersMediaIdx];
         if(!myMedia && othersMedia) {
@@ -51,7 +51,7 @@ SDPDiffer.prototype.getNewMedia = function() {
             return;
         }
         // Look for new ssrcs across the channel
-        Object.keys(othersMedia.ssrcs).forEach(function(ssrc) {
+        Object.keys(othersMedia.ssrcs).forEach(ssrc => {
             if(Object.keys(myMedia.ssrcs).indexOf(ssrc) === -1) {
                 // Allocate channel if we've found ssrc that doesn't exist in
                 // our channel
@@ -68,7 +68,7 @@ SDPDiffer.prototype.getNewMedia = function() {
         });
 
         // Look for new ssrc groups across the channels
-        othersMedia.ssrcGroups.forEach(function(otherSsrcGroup) {
+        othersMedia.ssrcGroups.forEach(otherSsrcGroup => {
 
             // try to match the other ssrc-group with an ssrc-group of ours
             let matched = false;
@@ -109,7 +109,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
     const sdpMediaSsrcs = this.getNewMedia();
 
     let modified = false;
-    Object.keys(sdpMediaSsrcs).forEach(function(mediaindex) {
+    Object.keys(sdpMediaSsrcs).forEach(mediaindex => {
         modified = true;
         const media = sdpMediaSsrcs[mediaindex];
         modify.c('content', {name: media.mid});
@@ -119,12 +119,12 @@ SDPDiffer.prototype.toJingle = function(modify) {
         // FIXME: not completely sure this operates on blocks and / or handles
         // different ssrcs correctly
         // generate sources from lines
-        Object.keys(media.ssrcs).forEach(function(ssrcNum) {
+        Object.keys(media.ssrcs).forEach(ssrcNum => {
             const mediaSsrc = media.ssrcs[ssrcNum];
             modify.c('source', { xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
             modify.attrs({ssrc: mediaSsrc.ssrc});
             // iterate over ssrc lines
-            mediaSsrc.lines.forEach(function(line) {
+            mediaSsrc.lines.forEach(line => {
                 const idx = line.indexOf(' ');
                 const kv = line.substr(idx + 1);
                 modify.c('parameter');
@@ -143,7 +143,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
         });
 
         // generate source groups from lines
-        media.ssrcGroups.forEach(function(ssrcGroup) {
+        media.ssrcGroups.forEach(ssrcGroup => {
             if (ssrcGroup.ssrcs.length) {
 
                 modify.c('ssrc-group', {
@@ -151,7 +151,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
                     xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0'
                 });
 
-                ssrcGroup.ssrcs.forEach(function(ssrc) {
+                ssrcGroup.ssrcs.forEach(ssrc => {
                     modify.c('source', { ssrc })
                         .up(); // end of source
                 });

@@ -61,24 +61,24 @@ JitsiRemoteTrack.prototype._bindMuteHandlers = function() {
     // 2. It does mix MediaStream('inactive') with MediaStreamTrack events
     // 3. Allowing to bind more than one event handler requires too much
     //    refactoring around camera issues detection.
-    this.track.addEventListener('mute', function() {
+    this.track.addEventListener('mute', () => {
 
         logger.debug(
             `"onmute" event(${Date.now()}): `,
             this.getParticipantId(), this.getType(), this.getSSRC());
 
         this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_MUTE, this);
-    }.bind(this));
+    });
 
     // Bind 'onunmute'
-    this.track.addEventListener('unmute', function() {
+    this.track.addEventListener('unmute', () => {
 
         logger.debug(
             `"onunmute" event(${Date.now()}): `,
             this.getParticipantId(), this.getType(), this.getSSRC());
 
         this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_UNMUTE, this);
-    }.bind(this));
+    });
 };
 
 /**

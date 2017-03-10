@@ -106,12 +106,12 @@ Recording.prototype.setRecordingJibri
         logger.log(iq.nodeTree);
         this.connection.sendIQ(
         iq,
-        function(result) {
+        result => {
             logger.log('Result', result);
             callback($(result).find('jibri').attr('state'),
             $(result).find('jibri').attr('url'));
         },
-        function(error) {
+        error => {
             logger.log('Failed to start recording, error: ', error);
             errCallback(error);
         });
@@ -138,7 +138,7 @@ Recording.prototype.setRecordingJirecon
         const self = this;
         this.connection.sendIQ(
         iq,
-        function(result) {
+        result => {
             // TODO wait for an IQ with the real status, since this is
             // provisional?
             self.jireconRid = $(result).find('recording').attr('rid');
@@ -153,7 +153,7 @@ Recording.prototype.setRecordingJirecon
 
             callback(state);
         },
-        function(error) {
+        error => {
             logger.log('Failed to start recording, error: ', error);
             errCallback(error);
         });
@@ -172,7 +172,7 @@ Recording.prototype.setRecordingColibri
 
     const self = this;
     this.connection.sendIQ(elem,
-        function(result) {
+        result => {
             logger.log('Set recording "', state, '". Result:', result);
             const recordingElem = $(result).find('>conference>recording');
             const newState = recordingElem.attr('state');
@@ -181,7 +181,7 @@ Recording.prototype.setRecordingColibri
             callback(newState);
 
             if (newState === 'pending') {
-                self.connection.addHandler(function(iq) {
+                self.connection.addHandler(iq => {
                     const state = $(iq).find('recording').attr('state');
                     if (state) {
                         self.state = newState;
@@ -190,7 +190,7 @@ Recording.prototype.setRecordingColibri
                 }, 'http://jitsi.org/protocol/colibri', 'iq', null, null, null);
             }
         },
-        function(error) {
+        error => {
             logger.warn(error);
             errCallback(error);
         }
@@ -256,8 +256,9 @@ Recording.prototype.toggleRecording = function(options, statusChangeHandler) {
 
     const self = this;
     logger.log('Toggle recording (old state, new state): ', oldState, newState);
-    this.setRecording(newState,
-        function(state, url) {
+    this.setRecording(
+        newState,
+        (state, url) => {
             // If the state is undefined we're going to wait for presence
             // update.
             if (state && state !== oldState) {
@@ -265,9 +266,9 @@ Recording.prototype.toggleRecording = function(options, statusChangeHandler) {
                 self.url = url;
                 statusChangeHandler(state);
             }
-        }, function(error) {
-            statusChangeHandler(Recording.status.FAILED, error);
-        }, options);
+        },
+        error => statusChangeHandler(Recording.status.FAILED, error),
+        options);
 };
 
 /**

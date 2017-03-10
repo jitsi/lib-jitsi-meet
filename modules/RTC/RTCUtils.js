@@ -71,9 +71,8 @@ function initRawEnumerateDevicesWithCallback() {
         && navigator.mediaDevices.enumerateDevices
         ? function(callback) {
             navigator.mediaDevices.enumerateDevices().then(
-                callback, function() {
-                    callback([]);
-                });
+                callback,
+                () => callback([]));
         }
         // Safari:
         // "ReferenceError: Can't find variable: MediaStreamTrack"
@@ -81,9 +80,9 @@ function initRawEnumerateDevicesWithCallback() {
         // until WebRTC is ready.
         : MediaStreamTrack && MediaStreamTrack.getSources
         ? function(callback) {
-            MediaStreamTrack.getSources(function(sources) {
-                callback(sources.map(convertMediaStreamTrackSource));
-            });
+            MediaStreamTrack.getSources(
+                sources =>
+                    callback(sources.map(convertMediaStreamTrackSource)));
         }
         : undefined;
 }
@@ -359,7 +358,7 @@ function pollForAvailableMediaDevices() {
     // do not matter. This fixes situation when we have no devices initially,
     // and then plug in a new one.
     if (rawEnumerateDevicesWithCallback) {
-        rawEnumerateDevicesWithCallback(function(devices) {
+        rawEnumerateDevicesWithCallback(devices => {
             // We don't fire RTCEvents.DEVICE_LIST_CHANGED for the first time
             // we call enumerateDevices(). This is the initial step.
             if (typeof currentlyAvailableMediaDevices === 'undefined') {
@@ -418,7 +417,7 @@ function onReady(options, GUM) {
     initRawEnumerateDevicesWithCallback();
 
     if (rtcUtils.isDeviceListAvailable() && rawEnumerateDevicesWithCallback) {
-        rawEnumerateDevicesWithCallback(function(devices) {
+        rawEnumerateDevicesWithCallback(devices => {
             currentlyAvailableMediaDevices = devices.splice(0);
 
             eventEmitter.emit(RTCEvents.DEVICE_LIST_AVAILABLE,
@@ -427,10 +426,7 @@ function onReady(options, GUM) {
             if (isDeviceChangeEventSupported) {
                 navigator.mediaDevices.addEventListener(
                     'devicechange',
-                    function() {
-                        rtcUtils.enumerateDevices(
-                            onMediaDevicesListChanged);
-                    });
+                    () => rtcUtils.enumerateDevices(onMediaDevicesListChanged));
             } else {
                 pollForAvailableMediaDevices();
             }
@@ -461,16 +457,14 @@ const getUserMediaStatus = {
  */
 function wrapGetUserMedia(getUserMedia) {
     return function(constraints, successCallback, errorCallback) {
-        getUserMedia(constraints, function(stream) {
+        getUserMedia(constraints, stream => {
             maybeApply(successCallback, [stream]);
             if (!getUserMediaStatus.initialized) {
                 getUserMediaStatus.initialized = true;
-                getUserMediaStatus.callbacks.forEach(function(callback) {
-                    callback();
-                });
+                getUserMediaStatus.callbacks.forEach(callback => callback());
                 getUserMediaStatus.callbacks.length = 0;
             }
-        }, function(error) {
+        }, error => {
             maybeApply(errorCallback, [error]);
         });
     };
@@ -497,8 +491,8 @@ function afterUserMediaInitialized(callback) {
 function wrapEnumerateDevices(enumerateDevices) {
     return function(callback) {
         // enumerate devices only after initial getUserMedia
-        afterUserMediaInitialized(function() {
-            enumerateDevices().then(callback, function(err) {
+        afterUserMediaInitialized(() => {
+            enumerateDevices().then(callback, err => {
                 logger.error('cannot enumerate devices: ', err);
                 callback([]);
             });
@@ -512,9 +506,8 @@ function wrapEnumerateDevices(enumerateDevices) {
  * @param {Function} callback function to call when received devices list.
  */
 function enumerateDevicesThroughMediaStreamTrack(callback) {
-    MediaStreamTrack.getSources(function(sources) {
-        callback(sources.map(convertMediaStreamTrackSource));
-    });
+    MediaStreamTrack.getSources(
+        sources => callback(sources.map(convertMediaStreamTrackSource)));
 }
 
 /**
@@ -546,13 +539,14 @@ function obtainDevices(options) {
     const device = options.devices.splice(0, 1);
     const devices = [];
     devices.push(device);
-    options.deviceGUM[device](function(stream) {
-        options.streams = options.streams || {};
-        options.streams[device] = stream;
-        obtainDevices(options);
-    },
-        function(error) {
-            Object.keys(options.streams).forEach(function(device) {
+    options.deviceGUM[device](
+        stream => {
+            options.streams = options.streams || {};
+            options.streams[device] = stream;
+            obtainDevices(options);
+        },
+        error => {
+            Object.keys(options.streams).forEach(device => {
                 rtcUtils.stopMediaStream(options.streams[device]);
             });
             logger.error(
@@ -741,7 +735,7 @@ class RTCUtils extends Listenable {
             logger.info(`Disable NS: ${disableNS}`);
         }
 
-        return new Promise(function(resolve, reject) {
+        return new Promise((resolve, reject) => {
             if (RTCBrowserType.isFirefox()) {
                 const FFversion = RTCBrowserType.getFirefoxVersion();
                 if (FFversion < 40) {
@@ -758,7 +752,7 @@ class RTCUtils extends Listenable {
                     navigator.mediaDevices.enumerateDevices.bind(navigator.mediaDevices)
                 );
                 this.pc_constraints = {};
-                this.attachMediaStream = wrapAttachMediaStream(function(element, stream) {
+                this.attachMediaStream = wrapAttachMediaStream((element, stream) => {
                     //  srcObject is being standardized and FF will eventually
                     //  support that unprefixed. FF also supports the
                     //  "element.src = URL.createObjectURL(...)" combo, but that
@@ -804,7 +798,7 @@ class RTCUtils extends Listenable {
                     this.getUserMedia = getUserMedia;
                     this.enumerateDevices = enumerateDevicesThroughMediaStreamTrack;
                 }
-                this.attachMediaStream = wrapAttachMediaStream(function(element, stream) {
+                this.attachMediaStream = wrapAttachMediaStream((element, stream) => {
                     defaultSetVideoSrc(element, stream);
                     return element;
                 });
@@ -923,7 +917,7 @@ class RTCUtils extends Listenable {
                 onReady(options, this.getUserMediaWithConstraints.bind(this));
                 resolve();
             }
-        }.bind(this));
+        });
     }
 
     /**
@@ -945,13 +939,14 @@ class RTCUtils extends Listenable {
         logger.info('Get media constraints', constraints);
 
         try {
-            this.getUserMedia(constraints,
-                function(stream) {
+            this.getUserMedia(
+                constraints,
+                stream => {
                     logger.log('onUserMediaSuccess');
                     setAvailableDevices(um, stream);
                     success_callback(stream);
                 },
-                function(error) {
+                error => {
                     setAvailableDevices(um, undefined);
                     logger.warn('Failed to get access to local media. Error ',
                         error, constraints);
@@ -987,7 +982,7 @@ class RTCUtils extends Listenable {
 
         options = options || {};
         const dsOptions = options.desktopSharingExtensionExternalInstallation;
-        return new Promise(function(resolve, reject) {
+        return new Promise((resolve, reject) => {
             const successCallback = function(stream) {
                 resolve(handleLocalStream(stream, options.resolution));
             };
@@ -1044,7 +1039,7 @@ class RTCUtils extends Listenable {
                 if(options.devices.length) {
                     this.getUserMediaWithConstraints(
                         options.devices,
-                        function(stream) {
+                        stream => {
                             const audioDeviceRequested
                                 = options.devices.indexOf('audio') !== -1;
                             const videoDeviceRequested
@@ -1083,7 +1078,7 @@ class RTCUtils extends Listenable {
                                 // set to not ask for permissions)
                                 self.getUserMediaWithConstraints(
                                     devices,
-                                    function() {
+                                    () => {
                                         // we already failed to obtain this
                                         // media, so we are not supposed in any
                                         // way to receive success for this call
@@ -1096,7 +1091,7 @@ class RTCUtils extends Listenable {
                                             devices)
                                         );
                                     },
-                                    function(error) {
+                                    error => {
                                         // rejects with real error for not
                                         // obtaining the media
                                         reject(error);
@@ -1107,10 +1102,10 @@ class RTCUtils extends Listenable {
                             if(hasDesktop) {
                                 screenObtainer.obtainStream(
                                     dsOptions,
-                                    function(desktopStream) {
+                                    desktopStream => {
                                         successCallback({audioVideo: stream,
                                             desktopStream});
-                                    }, function(error) {
+                                    }, error => {
                                         self.stopMediaStream(stream);
 
                                         reject(error);
@@ -1119,21 +1114,16 @@ class RTCUtils extends Listenable {
                                 successCallback({audioVideo: stream});
                             }
                         },
-                        function(error) {
-                            reject(error);
-                        },
+                        error => reject(error),
                         options);
                 } else if (hasDesktop) {
                     screenObtainer.obtainStream(
                         dsOptions,
-                        function(stream) {
-                            successCallback({desktopStream: stream});
-                        }, function(error) {
-                            reject(error);
-                        });
+                        stream => successCallback({desktopStream: stream}),
+                        error => reject(error));
                 }
             }
-        }.bind(this));
+        });
     }
 
     getDeviceAvailability() {
@@ -1212,7 +1202,7 @@ class RTCUtils extends Listenable {
      * @param mediaStream MediaStream object to stop.
      */
     stopMediaStream(mediaStream) {
-        mediaStream.getTracks().forEach(function(track) {
+        mediaStream.getTracks().forEach(track => {
             // stop() not supported with IE
             if (!RTCBrowserType.isTemasysPluginUsed() && track.stop) {
                 track.stop();
@@ -1262,7 +1252,7 @@ class RTCUtils extends Listenable {
         }
 
         return featureDetectionAudioEl.setSinkId(deviceId)
-            .then(function() {
+            .then(() => {
                 audioOutputDeviceId = deviceId;
                 audioOutputChanged = true;
 

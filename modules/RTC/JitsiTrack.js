@@ -112,7 +112,7 @@ JitsiTrack.prototype._setHandler = function(type, handler) {
         }
         addMediaStreamInactiveHandler(this.stream, handler);
     } else if(trackHandler2Prop.hasOwnProperty(type)) {
-        this.stream.getVideoTracks().forEach(function(track) {
+        this.stream.getVideoTracks().forEach(track => {
             track[trackHandler2Prop[type]] = handler;
         }, this);
     }
@@ -411,17 +411,15 @@ JitsiTrack.prototype.setAudioOutput = function(audioOutputDeviceId) {
         return Promise.resolve();
     }
 
-    return Promise.all(this.containers.map(function(element) {
-        return element.setSinkId(audioOutputDeviceId)
-            .catch(function(error) {
+    return Promise.all(this.containers.map(element => element.setSinkId(audioOutputDeviceId)
+            .catch(error => {
                 logger.warn(
                     'Failed to change audio output device on element. Default'
                     + ' or previously set audio output device will be used.',
                     element, error);
                 throw error;
-            });
-    }))
-    .then(function() {
+            })))
+    .then(() => {
         self.eventEmitter.emit(JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED,
             audioOutputDeviceId);
     });

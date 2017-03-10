@@ -79,7 +79,7 @@ transcriber.prototype.stop = function stop(callback) {
     const t = this;
 
     const callBack = blobCallBack.bind(this);
-    this.audioRecorder.getRecordingResults().forEach(function(recordingResult) {
+    this.audioRecorder.getRecordingResults().forEach(recordingResult => {
         t.transcriptionService.send(recordingResult, callBack);
         t.counter++;
     });
@@ -114,7 +114,7 @@ const blobCallBack = function(answer) {
         }
 
         let array = '[';
-        answer.wordArray.forEach(function(wordObject) {
+        answer.wordArray.forEach(wordObject => {
             wordObject.begin += offset;
             wordObject.end += offset;
             array += `${wordObject.word},`;
@@ -167,9 +167,7 @@ transcriber.prototype.merge = function() {
     hasPopulatedArrays(arrays);
 
     // populate all the potential Words for a first time
-    arrays.forEach(function(array) {
-        pushWordToSortedArray(potentialWords, array);
-    });
+    arrays.forEach(array => pushWordToSortedArray(potentialWords, array));
 
     // keep adding words to transcription until all arrays are exhausted
     let lowestWordArray;
@@ -178,7 +176,7 @@ transcriber.prototype.merge = function() {
     while(hasPopulatedArrays(arrays)) {
         // first select the lowest array;
         lowestWordArray = arrays[0];
-        arrays.forEach(function(wordArray) {
+        arrays.forEach(wordArray => {
             if(wordArray[0].begin < lowestWordArray[0].begin) {
                 lowestWordArray = wordArray;
             }
@@ -190,7 +188,7 @@ transcriber.prototype.merge = function() {
         // keep going until a word in another array has a smaller time
         // or the array is empty
         while(!foundSmaller && lowestWordArray.length > 0) {
-            arrays.forEach(function(wordArray) {
+            arrays.forEach(wordArray => {
                 if(wordArray[0].begin < lowestWordArray[0].begin) {
                     foundSmaller = true;
                 }

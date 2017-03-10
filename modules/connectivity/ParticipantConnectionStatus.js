@@ -155,10 +155,10 @@ export default class ParticipantConnectionStatus {
                 this._onRemoteTrackRemoved);
         }
 
-        Object.keys(this.trackTimers).forEach(function(participantId) {
+        Object.keys(this.trackTimers).forEach(participantId => {
             this.clearTimeout(participantId);
             this.clearRtcMutedTimestamp(participantId);
-        }.bind(this));
+        });
 
         // Clear RTC connection status cache
         this.connStatusFromJvb = {};
@@ -375,11 +375,11 @@ export default class ParticipantConnectionStatus {
             // it some time, before the connection interrupted event is
             // triggered.
             this.clearTimeout(participantId);
-            this.trackTimers[participantId] = window.setTimeout(function() {
+            this.trackTimers[participantId] = window.setTimeout(() => {
                 logger.debug(`RTC mute timeout for: ${participantId}`);
                 this.clearTimeout(participantId);
                 this.figureOutConnectionStatus(participantId);
-            }.bind(this), this.rtcMuteTimeout);
+            }, this.rtcMuteTimeout);
         }
     }
 

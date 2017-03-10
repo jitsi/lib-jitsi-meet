@@ -244,10 +244,10 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
     const self = this;
     if(startAudioLevelStats) {
         this.audioLevelsIntervalId = setInterval(
-            function() {
+            () => {
                 // Interval updates
                 self.peerconnection.getStats(
-                    function(report) {
+                    report => {
                         let results = null;
                         if (!report || !report.result
                             || typeof report.result != 'function') {
@@ -269,10 +269,10 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
 
     if (browserSupported) {
         this.statsIntervalId = setInterval(
-            function() {
+            () => {
                 // Interval updates
                 self.peerconnection.getStats(
-                    function(report) {
+                    report => {
                         let results = null;
                         if (!report || !report.result
                             || typeof report.result != 'function') {
@@ -345,7 +345,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
         // Array in which each element is a key-value pair.
         itemStatByKey = function(item, key) {
             let value;
-            item.values.some(function(pair) {
+            item.values.some(pair => {
                 if (pair.hasOwnProperty(key)) {
                     value = pair[key];
                     return true;

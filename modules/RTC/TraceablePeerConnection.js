@@ -167,12 +167,12 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
     };
     // XXX: do all non-firefox browsers which we support also support this?
     if (!RTCBrowserType.isFirefox() && this.maxstats) {
-        this.statsinterval = window.setInterval(function() {
-            self.peerconnection.getStats(function(stats) {
+        this.statsinterval = window.setInterval(() => {
+            self.peerconnection.getStats(stats => {
                 const results = stats.result();
                 const now = new Date();
                 for (let i = 0; i < results.length; ++i) {
-                    results[i].names().forEach(function(name) {
+                    results[i].names().forEach(name => {
                         const id = `${results[i].id}-${name}`;
                         if (!self.stats[id]) {
                             self.stats[id] = {
@@ -281,7 +281,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
     let ssrcLines = SDPUtil.find_lines(mediaLines[0], 'a=ssrc:');
 
     ssrcLines = ssrcLines.filter(
-        function(line) {
+        line => {
             const msid
                 = RTCBrowserType.isTemasysPluginUsed() ? 'mslabel' : 'msid';
             return line.indexOf(`${msid}:${streamId}`) !== -1;
@@ -508,7 +508,7 @@ const normalizePlanB = function(desc) {
 
     if (typeof session !== 'undefined'
         && typeof session.media !== 'undefined' && Array.isArray(session.media)) {
-        session.media.forEach(function(mLine) {
+        session.media.forEach(mLine => {
 
             // Chrome appears to be picky about the order in which a=ssrc lines
             // are listed in an m-line when rtx is enabled (and thus there are
@@ -522,7 +522,7 @@ const normalizePlanB = function(desc) {
 
             if (typeof mLine.ssrcGroups !== 'undefined'
                 && Array.isArray(mLine.ssrcGroups)) {
-                mLine.ssrcGroups.forEach(function(group) {
+                mLine.ssrcGroups.forEach(group => {
                     if (typeof group.semantics !== 'undefined'
                         && group.semantics === 'FID') {
                         if (typeof group.ssrcs !== 'undefined') {
@@ -594,7 +594,7 @@ const getters = {
         return desc;
     }
 };
-Object.keys(getters).forEach(function(prop) {
+Object.keys(getters).forEach(prop => {
     Object.defineProperty(
         TraceablePeerConnection.prototype,
         prop, {
@@ -655,11 +655,11 @@ TraceablePeerConnection.prototype.setLocalDescription
 
             const self = this;
             this.peerconnection.setLocalDescription(description,
-        function() {
+        () => {
             self.trace('setLocalDescriptionOnSuccess');
             successCallback();
         },
-        function(err) {
+        err => {
             self.trace('setLocalDescriptionOnFailure', err);
             self.eventEmitter.emit(
                 RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
@@ -701,11 +701,11 @@ TraceablePeerConnection.prototype.setRemoteDescription
 
             const self = this;
             this.peerconnection.setRemoteDescription(description,
-        function() {
+        () => {
             self.trace('setRemoteDescriptionOnSuccess');
             successCallback();
         },
-        function(err) {
+        err => {
             self.trace('setRemoteDescriptionOnFailure', err);
             self.eventEmitter.emit(RTCEvents.SET_REMOTE_DESCRIPTION_FAILED,
                 err, self.peerconnection);
@@ -799,7 +799,7 @@ const _fixAnswerRFC4145Setup = function(offer, answer) {
     if (offer && answer
             && offer.media && answer.media
             && offer.media.length == answer.media.length) {
-        answer.media.forEach(function(a, i) {
+        answer.media.forEach((a, i) => {
             if (SDPUtil.find_line(
                     offer.media[i],
                     'a=setup:actpass',

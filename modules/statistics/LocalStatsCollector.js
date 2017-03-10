@@ -111,7 +111,7 @@ LocalStatsCollector.prototype.start = function() {
     const self = this;
 
     this.intervalId = setInterval(
-        function() {
+        () => {
             const array = new Uint8Array(analyser.frequencyBinCount);
             analyser.getByteTimeDomainData(array);
             const audioLevel = timeDomainDataToAudioLevel(array);
