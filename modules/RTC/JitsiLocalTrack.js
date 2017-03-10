@@ -296,57 +296,55 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
         if(this.track) {
             this.track.enabled = !mute;
         }
-    } else {
-        if(mute) {
-            this.dontFireRemoveEvent = true;
-            promise = new Promise((resolve, reject) => {
-                this._removeStreamFromConferenceAsMute(() => {
-                    // FIXME: Maybe here we should set the SRC for the containers
-                    // to something
-                    this._stopMediaStream();
-                    this._setStream(null);
-                    resolve();
-                }, err => {
-                    reject(err);
-                });
+    } else if (mute) {
+        this.dontFireRemoveEvent = true;
+        promise = new Promise((resolve, reject) => {
+            this._removeStreamFromConferenceAsMute(() => {
+                // FIXME: Maybe here we should set the SRC for the containers
+                // to something
+                this._stopMediaStream();
+                this._setStream(null);
+                resolve();
+            }, err => {
+                reject(err);
             });
-        } else {
-            // This path is only for camera.
-            const streamOptions = {
-                cameraDeviceId: this.getDeviceId(),
-                devices: [ MediaType.VIDEO ],
-                facingMode: this.getCameraFacingMode()
-            };
-            if (this.resolution) {
-                streamOptions.resolution = this.resolution;
-            }
-
-            promise = RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
-                .then(streamsInfo => {
-                    const mediaType = self.getType();
-                    const streamInfo = streamsInfo.find(info => info.mediaType === mediaType);
-
-                    if (streamInfo) {
-                        self._setStream(streamInfo.stream);
-                        self.track = streamInfo.track;
-                        // This is not good when video type changes after
-                        // unmute, but let's not crash here
-                        if (self.videoType !== streamInfo.videoType) {
-                            logger.warn(
-                                'Video type has changed after unmute!',
-                                self.videoType, streamInfo.videoType);
-                            self.videoType = streamInfo.videoType;
-                        }
-                    }else {
-                        throw new JitsiTrackError(
-                            JitsiTrackErrors.TRACK_NO_STREAM_FOUND);
-                    }
-
-                    self.containers = self.containers.map(cont => RTCUtils.attachMediaStream(cont, self.stream));
-
-                    return self._addStreamToConferenceAsUnmute();
-                });
+        });
+    } else {
+        // This path is only for camera.
+        const streamOptions = {
+            cameraDeviceId: this.getDeviceId(),
+            devices: [ MediaType.VIDEO ],
+            facingMode: this.getCameraFacingMode()
+        };
+        if (this.resolution) {
+            streamOptions.resolution = this.resolution;
         }
+
+        promise = RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
+            .then(streamsInfo => {
+                const mediaType = self.getType();
+                const streamInfo = streamsInfo.find(info => info.mediaType === mediaType);
+
+                if (streamInfo) {
+                    self._setStream(streamInfo.stream);
+                    self.track = streamInfo.track;
+                    // This is not good when video type changes after
+                    // unmute, but let's not crash here
+                    if (self.videoType !== streamInfo.videoType) {
+                        logger.warn(
+                            'Video type has changed after unmute!',
+                            self.videoType, streamInfo.videoType);
+                        self.videoType = streamInfo.videoType;
+                    }
+                }else {
+                    throw new JitsiTrackError(
+                        JitsiTrackErrors.TRACK_NO_STREAM_FOUND);
+                }
+
+                self.containers = self.containers.map(cont => RTCUtils.attachMediaStream(cont, self.stream));
+
+                return self._addStreamToConferenceAsUnmute();
+            });
     }
 
     return promise

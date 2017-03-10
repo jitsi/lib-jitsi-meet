@@ -382,7 +382,8 @@ const SDPUtil = {
             .map(ssrcInfo => ssrcInfo.id)
             .filter((ssrc, index, array) => array.indexOf(ssrc) === index)
             .length;
-        const numGroups = (videoMLine.ssrcGroups && videoMLine.ssrcGroups.length) || 0;
+        const numGroups
+            = (videoMLine.ssrcGroups && videoMLine.ssrcGroups.length) || 0;
         if (numSsrcs > 1 && numGroups === 0) {
             // Ambiguous, can't figure out the primary
             return;
@@ -390,21 +391,21 @@ const SDPUtil = {
         let primarySsrc = null;
         if (numSsrcs === 1) {
             primarySsrc = videoMLine.ssrcs[0].id;
-        } else {
-            if (numSsrcs === 2) {
-                // Can figure it out if there's an FID group
-                const fidGroup = videoMLine.ssrcGroups
-                    .find(group => group.semantics === 'FID');
-                if (fidGroup) {
-                    primarySsrc = fidGroup.ssrcs.split(' ')[0];
-                }
-            } else if (numSsrcs >= 3) {
-                // Can figure it out if there's a sim group
-                const simGroup = videoMLine.ssrcGroups
-                    .find(group => group.semantics === 'SIM');
-                if (simGroup) {
-                    primarySsrc = simGroup.ssrcs.split(' ')[0];
-                }
+        } else if (numSsrcs === 2) {
+            // Can figure it out if there's an FID group
+            const fidGroup
+                = videoMLine.ssrcGroups.find(
+                    group => group.semantics === 'FID');
+            if (fidGroup) {
+                primarySsrc = fidGroup.ssrcs.split(' ')[0];
+            }
+        } else if (numSsrcs >= 3) {
+            // Can figure it out if there's a sim group
+            const simGroup
+                = videoMLine.ssrcGroups.find(
+                    group => group.semantics === 'SIM');
+            if (simGroup) {
+                primarySsrc = simGroup.ssrcs.split(' ')[0];
             }
         }
         return primarySsrc;
