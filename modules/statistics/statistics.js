@@ -49,7 +49,7 @@ function formatJitsiTrackErrorForCallStats(error) {
 
     // Combine name from error's name plus (possibly) name of original GUM error
     err.name = (error.name || 'Unknown error') + (error.gum && error.gum.error
-        && error.gum.error.name ? ' - ' + error.gum.error.name : '');
+        && error.gum.error.name ? ` - ${error.gum.error.name}` : '');
 
     // Put all constraints into this field. For constraint failed errors we will
     // still know which exactly constraint failed as it will be a part of
@@ -118,7 +118,7 @@ Statistics.prototype.startRemoteStats = function(peerconnection) {
         this.rtpStats.start(Statistics.audioLevelsEnabled);
     } catch (e) {
         this.rtpStats = null;
-        logger.error('Failed to start collecting remote statistics: ' + e);
+        logger.error(`Failed to start collecting remote statistics: ${e}`);
     }
 };
 

@@ -199,7 +199,7 @@ function detectChrome() {
         // We can assume that user agent is chrome, because it's
         // enforced when 'ext' streaming method is set
         const ver = parseInt(userAgent.match(/chrome\/(\d+)\./)[1], 10);
-        logger.log('This appears to be Chrome, ver: ' + ver);
+        logger.log(`This appears to be Chrome, ver: ${ver}`);
         return ver;
     }
     return null;
@@ -210,7 +210,7 @@ function detectOpera() {
     if (userAgent.match(/Opera|OPR/)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_OPERA;
         const version = userAgent.match(/(Opera|OPR) ?\/?(\d+)\.?/)[2];
-        logger.info('This appears to be Opera, ver: ' + version);
+        logger.info(`This appears to be Opera, ver: ${version}`);
         return version;
     }
     return null;
@@ -221,7 +221,7 @@ function detectFirefox() {
         currentBrowser = RTCBrowserType.RTC_BROWSER_FIREFOX;
         const version = parseInt(
             navigator.userAgent.match(/Firefox\/([0-9]+)\./)[1], 10);
-        logger.log('This appears to be Firefox, ver: ' + version);
+        logger.log(`This appears to be Firefox, ver: ${version}`);
         return version;
     }
     return null;
@@ -262,7 +262,7 @@ function detectIE() {
 
     if (version) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_IEXPLORER;
-        logger.info('This appears to be IExplorer, ver: ' + version);
+        logger.info(`This appears to be IExplorer, ver: ${version}`);
     }
     return version;
 }
@@ -275,7 +275,7 @@ function detectElectron() {
     if (userAgent.match(/Electron/)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_ELECTRON;
         const version = userAgent.match(/Electron\/([\d.]+)/)[1];
-        logger.info('This appears to be Electron, ver: ' + version);
+        logger.info(`This appears to be Electron, ver: ${version}`);
         return version;
     }
     return null;
@@ -286,7 +286,7 @@ function detectNWJS() {
     if (userAgent.match(/JitsiMeetNW/)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_NWJS;
         const version = userAgent.match(/JitsiMeetNW\/([\d.]+)/)[1];
-        logger.info('This appears to be JitsiMeetNW, ver: ' + version);
+        logger.info(`This appears to be JitsiMeetNW, ver: ${version}`);
         return version;
     }
     return null;
@@ -308,7 +308,7 @@ function detectReactNative() {
         }
         name || (name = 'react-native');
         version || (version = 'unknown');
-        console.info('This appears to be ' + name + ', ver: ' + version);
+        console.info(`This appears to be ${name}, ver: ${version}`);
     } else {
         // We're not running in a React Native environment.
         version = null;

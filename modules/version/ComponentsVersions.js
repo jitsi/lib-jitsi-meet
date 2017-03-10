@@ -36,7 +36,6 @@ function ComponentsVersions(conference) {
 
 ComponentsVersions.prototype.processPresence
     = function(node, mucResource, mucJid) {
-
         if (node.attributes.xmlns !== 'http://jitsi.org/jitmeet') {
             logger.warn('Ignored presence versions node - invalid xmlns', node);
             return;
@@ -44,7 +43,8 @@ ComponentsVersions.prototype.processPresence
 
         if (!this.conference._isFocus(mucJid)) {
             logger.warn(
-            'Received versions not from the focus user: ' + node, mucJid);
+                `Received versions not from the focus user: ${node}`,
+                mucJid);
             return;
         }
 
@@ -56,24 +56,25 @@ ComponentsVersions.prototype.processPresence
             && componentName !== ComponentsVersions.XMPP_SERVER_COMPONENT
             && componentName !== ComponentsVersions.VIDEOBRIDGE_COMPONENT) {
                 logger.warn(
-                'Received version for not supported component name: '
-                    + componentName);
+                    `Received version for not supported component name: ${
+                        componentName}`);
                 return;
             }
 
             const version = item.value;
             if (this.versions[componentName] !== version) {
                 this.versions[componentName] = version;
-                logger.info('Got ' + componentName + ' version: ' + version);
+                logger.info(`Got ${componentName} version: ${version}`);
 
                 log.push({
                     id: 'component_version',
                     component: componentName,
-                    version});
+                    version
+                });
             }
         }.bind(this));
 
-    // logs versions to stats
+        // logs versions to stats
         if (log.length > 0) {
             Statistics.sendLog(JSON.stringify(log));
         }

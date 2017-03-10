@@ -58,7 +58,7 @@ function updateAssociatedRtxStream(mLine, primarySsrcInfo, rtxSsrc) {
     });
     mLine.addSSRCGroup({
         semantics: 'FID',
-        ssrcs: primarySsrc + ' ' + rtxSsrc
+        ssrcs: `${primarySsrc} ${rtxSsrc}`
     });
 }
 /**

@@ -66,17 +66,17 @@ export default function() {
             }
             break;
         case Strophe.LogLevel.WARN:
-            logger.warn('Strophe: ' + msg);
+            logger.warn(`Strophe: ${msg}`);
             const errStatusCapture = lastErrorStatusRegExpr.exec(msg);
             if (errStatusCapture && errStatusCapture.length === 2) {
                 lastErrorStatus = parseInt(errStatusCapture[1]);
                 logger.debug(
-                        'lastErrorStatus set to: ' + lastErrorStatus);
+                        `lastErrorStatus set to: ${lastErrorStatus}`);
             }
             break;
         case Strophe.LogLevel.ERROR:
         case Strophe.LogLevel.FATAL:
-            msg = 'Strophe: ' + msg;
+            msg = `Strophe: ${msg}`;
             GlobalOnErrorHandler.callErrorHandler(new Error(msg));
             logger.error(msg);
             break;

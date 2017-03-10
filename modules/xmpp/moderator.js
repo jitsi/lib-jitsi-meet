@@ -46,8 +46,9 @@ function Moderator(roomName, xmpp, emitter, options) {
     function listener(event) {
         if (event.data && event.data.sessionId) {
             if (event.origin !== window.location.origin) {
-                logger.warn('Ignoring sessionId from different origin: '
-                    + event.origin);
+                logger.warn(
+                    `Ignoring sessionId from different origin: ${
+                        event.origin}`);
                 return;
             }
             Settings.setSessionId(event.data.sessionId);
@@ -70,9 +71,8 @@ Moderator.prototype.isSipGatewayEnabled = function() {
     return this.sipGatewayEnabled;
 };
 
-
 Moderator.prototype.onMucMemberLeft = function(jid) {
-    logger.info('Someone left is it focus ? ' + jid);
+    logger.info(`Someone left is it focus ? ${jid}`);
     const resource = Strophe.getResourceFromJid(jid);
     if (resource === 'focus') {
         logger.info(
@@ -81,14 +81,12 @@ Moderator.prototype.onMucMemberLeft = function(jid) {
     }
 };
 
-
 Moderator.prototype.setFocusUserJid = function(focusJid) {
     if (!this.focusUserJid) {
         this.focusUserJid = focusJid;
-        logger.info('Focus jid set to:  ' + this.focusUserJid);
+        logger.info(`Focus jid set to:  ${this.focusUserJid}`);
     }
 };
-
 
 Moderator.prototype.getFocusUserJid = function() {
     return this.focusUserJid;
@@ -99,7 +97,7 @@ Moderator.prototype.getFocusComponent = function() {
     let focusComponent = this.options.connection.hosts.focus;
     // If not specified use default:  'focus.domain'
     if (!focusComponent) {
-        focusComponent = 'focus.' + this.options.connection.hosts.domain;
+        focusComponent = `focus.${this.options.connection.hosts.domain}`;
     }
     return focusComponent;
 };
@@ -112,8 +110,7 @@ Moderator.prototype.createConferenceIq = function() {
     const sessionId = Settings.getSessionId();
     const machineUID = Settings.getMachineId();
 
-    logger.info(
-            'Session ID: ' + sessionId + ' machine UID: ' + machineUID);
+    logger.info(`Session ID: ${sessionId} machine UID: ${machineUID}`);
 
     elem.c('conference', {
         xmlns: 'http://jitsi.org/protocol/focus',
@@ -221,7 +218,7 @@ Moderator.prototype.createConferenceIq = function() {
 Moderator.prototype.parseSessionId = function(resultIq) {
     const sessionId = $(resultIq).find('conference').attr('session-id');
     if (sessionId) {
-        logger.info('Received sessionId:  ' + sessionId);
+        logger.info(`Received sessionId:  ${sessionId}`);
         Settings.setSessionId(sessionId);
     }
 };
@@ -236,14 +233,14 @@ Moderator.prototype.parseConfigOptions = function(resultIq) {
             '>conference>property'
             + '[name=\'authentication\'][value=\'true\']').length > 0;
 
-    logger.info('Authentication enabled: ' + authenticationEnabled);
+    logger.info(`Authentication enabled: ${authenticationEnabled}`);
 
     this.externalAuthEnabled = $(resultIq).find(
             '>conference>property'
             + '[name=\'externalAuth\'][value=\'true\']').length > 0;
 
     logger.info(
-        'External authentication enabled: ' + this.externalAuthEnabled);
+        `External authentication enabled: ${this.externalAuthEnabled}`);
 
     if (!this.externalAuthEnabled) {
         // We expect to receive sessionId in 'internal' authentication mode
@@ -263,7 +260,7 @@ Moderator.prototype.parseConfigOptions = function(resultIq) {
         this.sipGatewayEnabled = true;
     }
 
-    logger.info('Sip gateway enabled:  ' + this.sipGatewayEnabled);
+    logger.info(`Sip gateway enabled:  ${this.sipGatewayEnabled}`);
 };
 
 // FIXME We need to show the fact that we're waiting for the focus to the user
@@ -337,7 +334,7 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
         return;
     }
     const waitMs = this.getNextErrorTimeout();
-    const errmsg = 'Focus error, retry after ' + waitMs;
+    const errmsg = `Focus error, retry after ${waitMs}`;
     GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
     logger.error(errmsg, error);
     // Show message
@@ -378,7 +375,7 @@ Moderator.prototype._allocateConferenceFocusSuccess = function(
         callback();
     } else {
         const waitMs = this.getNextTimeout();
-        logger.info('Waiting for the focus... ' + waitMs);
+        logger.info(`Waiting for the focus... ${waitMs}`);
         window.setTimeout(() => this.allocateConferenceFocus(callback),
             waitMs);
     }
@@ -420,7 +417,7 @@ Moderator.prototype._getLoginUrl = function(popup, urlCb, failureCb) {
     let str = 'auth url'; // for logger
     if (popup) {
         attrs.popup = true;
-        str = 'POPUP ' + str;
+        str = `POPUP ${str}`;
     }
     iq.c('login-url', attrs);
     /**
@@ -441,13 +438,13 @@ Moderator.prototype._getLoginUrl = function(popup, urlCb, failureCb) {
             let url = $(result).find('login-url').attr('url');
             url = decodeURIComponent(url);
             if (url) {
-                logger.info('Got ' + str + ': ' + url);
+                logger.info(`Got ${str}: ${url}`);
                 urlCb(url);
             } else {
-                reportError('Failed to get ' + str + ' from the focus', result);
+                reportError(`Failed to get ${str} from the focus`, result);
             }
         },
-        reportError.bind(undefined, 'Get ' + str + ' error')
+        reportError.bind(undefined, `Get ${str} error`)
     );
 };
 
@@ -473,7 +470,7 @@ Moderator.prototype.logout = function(callback) {
             if (logoutUrl) {
                 logoutUrl = decodeURIComponent(logoutUrl);
             }
-            logger.info('Log out OK, url: ' + logoutUrl, result);
+            logger.info(`Log out OK, url: ${logoutUrl}`, result);
             Settings.clearSessionId();
             callback(logoutUrl);
         },

@@ -181,7 +181,7 @@ function StatsCollector(
     this._browserType = RTCBrowserType.getBrowserType();
     const keys = KEYS_BY_BROWSER_TYPE[this._browserType];
     if (!keys) {
-        throw 'The browser type \'' + this._browserType + '\' isn\'t supported!';
+        throw `The browser type '${this._browserType}' isn't supported!`;
     }
     /**
      * The function which is to be used to retrieve the value associated in a
@@ -287,7 +287,7 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                             self.processStatsReport();
                         } catch (e) {
                             GlobalOnErrorHandler.callErrorHandler(e);
-                            logger.error('Unsupported key:' + e, e);
+                            logger.error(`Unsupported key:${e}`, e);
                         }
 
                         self.previousStatsReport = self.currentStatsReport;
@@ -317,7 +317,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
         if (key) {
             return key;
         }
-        throw 'The property \'' + name + '\' isn\'t supported!';
+        throw `The property '${name}' isn't supported!`;
 
     };
 
@@ -436,9 +436,9 @@ StatsCollector.prototype.processStatsReport = function() {
             const local = this.currentStatsReport[now.localCandidateId];
             const remote = this.currentStatsReport[now.remoteCandidateId];
             this.conferenceStats.transport.push({
-                ip: remote.ipAddress + ':' + remote.portNumber,
+                ip: `${remote.ipAddress}:${remote.portNumber}`,
                 type: local.transport,
-                localip: local.ipAddress + ':' + local.portNumber
+                localip: `${local.ipAddress}:${local.portNumber}`
             });
         }
 
@@ -621,7 +621,7 @@ StatsCollector.prototype.processAudioLevelReport = function() {
         const before = this.baselineAudioLevelsReport[idx];
         const ssrc = getStatValue(now, 'ssrc');
         if (!before) {
-            logger.warn(ssrc + ' not enough data');
+            logger.warn(`${ssrc} not enough data`);
             continue;
         }
 

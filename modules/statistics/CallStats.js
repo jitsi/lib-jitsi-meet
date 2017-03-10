@@ -55,7 +55,7 @@ let callStats = null;
 const DEFAULT_REMOTE_USER = 'jitsi';
 
 function initCallback(err, msg) {
-    logger.log('CallStats Status: err=' + err + ' msg=' + msg);
+    logger.log(`CallStats Status: err=${err} msg=${msg}`);
 
     CallStats.initializeInProgress = false;
 
@@ -153,7 +153,7 @@ const CallStats = _try_catch(function(jingleSession, options) {
         };
 
         // The confID is case sensitive!!!
-        this.confID = options.callStatsConfIDNamespace + '/' + options.roomName;
+        this.confID = `${options.callStatsConfIDNamespace}/${options.roomName}`;
 
         this.callStatsID = options.callStatsID;
         this.callStatsSecret = options.callStatsSecret;
@@ -237,7 +237,7 @@ const reportType = {
 
 CallStats.prototype.pcCallback = _try_catch(function(err, msg) {
     if (callStats && err !== 'success') {
-        logger.error('Monitoring status: ' + err + ' msg: ' + msg);
+        logger.error(`Monitoring status: ${err} msg: ${msg}`);
     }
 });
 

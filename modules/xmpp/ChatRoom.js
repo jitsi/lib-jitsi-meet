@@ -73,7 +73,7 @@ export default class ChatRoom extends Listenable {
         this.roomjid = Strophe.getBareJidFromJid(jid);
         this.myroomjid = jid;
         this.password = password;
-        logger.info('Joined MUC as ' + this.myroomjid);
+        logger.info(`Joined MUC as ${this.myroomjid}`);
         this.members = {};
         this.presMap = {};
         this.presHandlers = {};
@@ -266,7 +266,7 @@ export default class ChatRoom extends Listenable {
         const jid = mucUserItem.attr('jid');
         member.jid = jid;
         member.isFocus
-            = jid && jid.indexOf(this.moderator.getFocusUserJid() + '/') === 0;
+            = jid && jid.indexOf(`${this.moderator.getFocusUserJid()}/`) === 0;
         member.isHiddenDomain
             = jid && jid.indexOf('@') > 0
                 && this.options.hiddenDomain
@@ -421,7 +421,7 @@ export default class ChatRoom extends Listenable {
                 this.recording.handleJibriPresence(this.lastJibri);
             }
         }
-        logger.info('Ignore focus: ' + from + ', real JID: ' + mucJid);
+        logger.info(`Ignore focus: ${from}, real JID: ${mucJid}`);
     }
 
     /**
@@ -446,7 +446,7 @@ export default class ChatRoom extends Listenable {
             }
         } catch (e) {
             GlobalOnErrorHandler.callErrorHandler(e);
-            logger.error('Error processing:' + node.tagName + ' node.', e);
+            logger.error(`Error processing:${node.tagName} node.`, e);
         }
     }
 
@@ -558,7 +558,7 @@ export default class ChatRoom extends Listenable {
             const subjectText = subject.text();
             if (subjectText || subjectText === '') {
                 this.eventEmitter.emit(XMPPEvents.SUBJECT_CHANGED, subjectText);
-                logger.log('Subject is changed to ' + subjectText);
+                logger.log(`Subject is changed to ${subjectText}`);
             }
         }
 
@@ -572,7 +572,7 @@ export default class ChatRoom extends Listenable {
             if (stamp) {
                 // the format is CCYYMMDDThh:mm:ss
                 const dateParts = stamp.match(/(\d{4})(\d{2})(\d{2}T\d{2}:\d{2}:\d{2})/);
-                stamp = dateParts[1] + '-' + dateParts[2] + '-' + dateParts[3] + 'Z';
+                stamp = `${dateParts[1]}-${dateParts[2]}-${dateParts[3]}Z`;
             }
         }
 
@@ -760,7 +760,7 @@ export default class ChatRoom extends Listenable {
      */
     getMediaPresenceInfo(endpointId, mediaType) {
         // Will figure out current muted status by looking up owner's presence
-        const pres = this.lastPresences[this.roomjid + '/' + endpointId];
+        const pres = this.lastPresences[`${this.roomjid}/${endpointId}`];
         if (!pres) {
             // No presence available
             return null;
@@ -781,7 +781,7 @@ export default class ChatRoom extends Listenable {
                 data.videoType = videoTypeNode[0].value;
             }
         } else {
-            logger.error('Unsupported media type: ' + mediaType);
+            logger.error(`Unsupported media type: ${mediaType}`);
             return null;
         }
 

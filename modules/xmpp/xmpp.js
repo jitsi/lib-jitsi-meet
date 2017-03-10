@@ -18,7 +18,7 @@ import Caps from './Caps';
 function createConnection(token, bosh = '/http-bind') {
     // Append token as URL param
     if (token) {
-        bosh += (bosh.indexOf('?') == -1 ? '?' : '&') + 'token=' + token;
+        bosh += `${bosh.indexOf('?') == -1 ? '?' : '&'}token=${token}`;
     }
 
     return new Strophe.Connection(bosh);
@@ -106,15 +106,16 @@ export default class XMPP extends Listenable {
         const now = window.performance.now();
         const statusStr = Strophe.getStatusString(status).toLowerCase();
         this.connectionTimes[statusStr] = now;
-        logger.log('(TIME) Strophe ' + statusStr
-            + (msg ? '[' + msg + ']' : '') + ':\t', now);
+        logger.log(
+            `(TIME) Strophe ${statusStr}${msg ? `[${msg}]` : ''}:\t`,
+            now);
         if (status === Strophe.Status.CONNECTED
             || status === Strophe.Status.ATTACHED) {
             if (this.options.useStunTurn) {
                 this.connection.jingle.getStunAndTurnCredentials();
             }
 
-            logger.info('My Jabber ID: ' + this.connection.jid);
+            logger.info(`My Jabber ID: ${this.connection.jid}`);
 
             // Schedule ping ?
             const pingJid = this.connection.domain;
@@ -124,7 +125,7 @@ export default class XMPP extends Listenable {
                     if (hasPing) {
                         this.connection.ping.startInterval(pingJid);
                     } else {
-                        logger.warn('Ping NOT supported by ' + pingJid);
+                        logger.warn(`Ping NOT supported by ${pingJid}`);
                     }
                 }.bind(this));
 
@@ -238,7 +239,7 @@ export default class XMPP extends Listenable {
      */
     attach(options) {
         const now = this.connectionTimes.attaching = window.performance.now();
-        logger.log('(TIME) Strophe Attaching\t:' + now);
+        logger.log(`(TIME) Strophe Attaching\t:${now}`);
         this.connection.attach(options.jid, options.sid,
             parseInt(options.rid,10) + 1,
             this.connectionHandler.bind(this, options.password));
@@ -268,7 +269,7 @@ export default class XMPP extends Listenable {
     createRoom(roomName, options) {
         // By default MUC nickname is the resource part of the JID
         let mucNickname = Strophe.getNodeFromJid(this.connection.jid);
-        let roomjid = roomName + '@' + this.options.hosts.muc + '/';
+        let roomjid = `${roomName}@${this.options.hosts.muc}/`;
         const cfgNickname
             = options.useNicks && options.nick ? options.nick : null;
 
@@ -282,7 +283,7 @@ export default class XMPP extends Listenable {
         // Constant JIDs need some random part to be appended in order to be
         // able to join the MUC more than once.
         if (this.authenticatedUser || cfgNickname !== null) {
-            mucNickname += '-' + RandomUtil.randomHexString(6);
+            mucNickname += `-${RandomUtil.randomHexString(6)}`;
         }
 
         roomjid += mucNickname;

@@ -25,13 +25,13 @@ const SDPUtil = {
         return line.substring(12);
     },
     build_iceufrag(frag) {
-        return 'a=ice-ufrag:' + frag;
+        return `a=ice-ufrag:${frag}`;
     },
     parse_icepwd(line) {
         return line.substring(10);
     },
     build_icepwd(pwd) {
-        return 'a=ice-pwd:' + pwd;
+        return `a=ice-pwd:${pwd}`;
     },
     parse_mid(line) {
         return line.substring(6);
@@ -50,7 +50,7 @@ const SDPUtil = {
         return data;
     },
     build_mline(mline) {
-        return 'm=' + mline.media + ' ' + mline.port + ' ' + mline.proto + ' ' + mline.fmt.join(' ');
+        return `m=${mline.media} ${mline.port} ${mline.proto} ${mline.fmt.join(' ')}`;
     },
     parse_rtpmap(line) {
         const data = {};
@@ -77,9 +77,9 @@ const SDPUtil = {
         return [sctpPort, protocol, streamCount];// SCTP port
     },
     build_rtpmap(el) {
-        let line = 'a=rtpmap:' + el.getAttribute('id') + ' ' + el.getAttribute('name') + '/' + el.getAttribute('clockrate');
+        let line = `a=rtpmap:${el.getAttribute('id')} ${el.getAttribute('name')}/${el.getAttribute('clockrate')}`;
         if (el.getAttribute('channels') && el.getAttribute('channels') != '1') {
-            line += '/' + el.getAttribute('channels');
+            line += `/${el.getAttribute('channels')}`;
         }
         return line;
     },
@@ -153,7 +153,7 @@ const SDPUtil = {
                 candidate.tcptype = elems[i + 1];
                 break;
             default: // TODO
-                logger.log('parse_icecandidate not translating "' + elems[i] + '" = "' + elems[i + 1] + '"');
+                logger.log(`parse_icecandidate not translating "${elems[i]}" = "${elems[i + 1]}"`);
             }
         }
         candidate.network = '1';
@@ -161,7 +161,7 @@ const SDPUtil = {
         return candidate;
     },
     build_icecandidate(cand) {
-        let line = ['a=candidate:' + cand.foundation, cand.component, cand.protocol, cand.priority, cand.ip, cand.port, 'typ', cand.type].join(' ');
+        let line = [`a=candidate:${cand.foundation}`, cand.component, cand.protocol, cand.priority, cand.ip, cand.port, 'typ', cand.type].join(' ');
         line += ' ';
         switch (cand.type) {
         case 'srflx':
@@ -271,7 +271,7 @@ const SDPUtil = {
         // a=candidate:2979166662 1 udp 2113937151 192.168.2.100 57698 typ host generation 0
         //      <candidate component=... foundation=... generation=... id=... ip=... network=... port=... priority=... protocol=... type=.../>
         if (line.indexOf('candidate:') === 0) {
-            line = 'a=' + line;
+            line = `a=${line}`;
         } else if (line.substring(0, 12) != 'a=candidate:') {
             logger.log('parseCandidate called with a line that is not a candidate line');
             logger.log(line);
@@ -313,7 +313,7 @@ const SDPUtil = {
                 candidate.tcptype = elems[i + 1];
                 break;
             default: // TODO
-                logger.log('not translating "' + elems[i] + '" = "' + elems[i + 1] + '"');
+                logger.log(`not translating "${elems[i]}" = "${elems[i + 1]}"`);
             }
         }
         candidate.network = '1';
@@ -342,7 +342,7 @@ const SDPUtil = {
         line += cand.getAttribute('port');
         line += ' ';
         line += 'typ';
-        line += ' ' + cand.getAttribute('type');
+        line += ` ${cand.getAttribute('type')}`;
         line += ' ';
         switch (cand.getAttribute('type')) {
         case 'srflx':
@@ -369,7 +369,7 @@ const SDPUtil = {
         line += 'generation';
         line += ' ';
         line += cand.getAttribute('generation') || '0';
-        return line + '\r\n';
+        return `${line}\r\n`;
     },
 
     /**

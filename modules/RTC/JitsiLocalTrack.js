@@ -156,7 +156,7 @@ JitsiLocalTrack.prototype._initNoDataFromSourceHandlers = function() {
                 this._setHandler('track_unmute', () => {
                     this._clearNoDataFromSourceMuteResources();
                     Statistics.sendEventToAll(
-                        this.getType() + '.track_unmute',
+                        `${this.getType()}.track_unmute`,
                         {value: window.performance.now() - now});
                 });
             }
@@ -195,7 +195,7 @@ JitsiLocalTrack.prototype._onNoDataFromSourceError = function() {
  */
 JitsiLocalTrack.prototype._fireNoDataFromSourceEvent = function() {
     this.eventEmitter.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
-    const eventName = this.getType() + '.no_data_from_source';
+    const eventName = `${this.getType()}.no_data_from_source`;
     Statistics.analytics.sendEvent(eventName);
     const log = {name: eventName};
     if (this.isAudioTrack()) {
@@ -215,7 +215,7 @@ JitsiLocalTrack.prototype._setRealDeviceIdFromDeviceList = function(devices) {
     const track = this.getTrack();
     const device
         = devices.find(
-            d => d.kind === track.kind + 'input' && d.label === track.label);
+            d => d.kind === `${track.kind}input` && d.label === track.label);
 
     if (device) {
         this._realDeviceId = device.deviceId;

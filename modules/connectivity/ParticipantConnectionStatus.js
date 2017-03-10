@@ -81,7 +81,7 @@ export default class ParticipantConnectionStatus {
          * @type {Object.<string, number>}
          */
         this.rtcMutedTimestamp = { };
-        logger.info('RtcMuteTimeout set to: ' + this.rtcMuteTimeout);
+        logger.info(`RtcMuteTimeout set to: ${this.rtcMuteTimeout}`);
     }
 
     /**
@@ -174,8 +174,8 @@ export default class ParticipantConnectionStatus {
     onEndpointConnStatusChanged(endpointId, isActive) {
 
         logger.debug(
-            'Detector RTCEvents.ENDPOINT_CONN_STATUS_CHANGED('
-                + Date.now() + '): ' + endpointId + ': ' + isActive);
+            `Detector RTCEvents.ENDPOINT_CONN_STATUS_CHANGED(${Date.now()}): ${
+                endpointId}: ${isActive}`);
 
         // Filter out events for the local JID for now
         if (endpointId !== this.conference.myUserId()) {
@@ -193,8 +193,8 @@ export default class ParticipantConnectionStatus {
             participant._setIsConnectionActive(newStatus);
 
             logger.debug(
-                'Emit endpoint conn status(' + Date.now() + ') '
-                    + endpointId + ': ' + newStatus);
+                `Emit endpoint conn status(${Date.now()}) ${endpointId}: ${
+                    newStatus}`);
 
             // Log the event on CallStats
             Statistics.sendLog(
@@ -250,8 +250,8 @@ export default class ParticipantConnectionStatus {
                 && remoteTrack.getType() === MediaType.VIDEO) {
 
             logger.debug(
-                'Detector on remote track added for: '
-                    + remoteTrack.getParticipantId());
+                `Detector on remote track added for: ${
+                    remoteTrack.getParticipantId()}`);
 
             remoteTrack.on(
                 JitsiTrackEvents.TRACK_MUTE_CHANGED,
@@ -272,8 +272,7 @@ export default class ParticipantConnectionStatus {
 
             const endpointId = remoteTrack.getParticipantId();
 
-            logger.debug(
-                'Detector on remote track removed: ' + endpointId);
+            logger.debug(`Detector on remote track removed: ${endpointId}`);
 
             remoteTrack.off(
                 JitsiTrackEvents.TRACK_MUTE_CHANGED,
@@ -329,7 +328,7 @@ export default class ParticipantConnectionStatus {
             // fired),
             // so we don't care, but let's print the warning for
             // debugging purpose
-            logger.warn('figure out conn status - no participant for: ' + id);
+            logger.warn(`figure out conn status - no participant for: ${id}`);
             return;
         }
 
@@ -348,10 +347,10 @@ export default class ParticipantConnectionStatus {
             = isConnActiveByJvb && (isVideoMuted || !isVideoTrackFrozen);
 
         logger.debug(
-            'Figure out conn status, is video muted: ' + isVideoMuted
-                + ' is active(jvb): ' + isConnActiveByJvb
-                + ' video track frozen: ' + isVideoTrackFrozen
-                + ' => ' + isConnectionActive);
+            `Figure out conn status, is video muted: ${isVideoMuted
+                 } is active(jvb): ${isConnActiveByJvb
+                 } video track frozen: ${isVideoTrackFrozen
+                 } => ${isConnectionActive}`);
 
         this._changeConnectionStatus(participant, isConnectionActive);
     }
@@ -365,9 +364,9 @@ export default class ParticipantConnectionStatus {
     onTrackRtcMuted(track) {
         const participantId = track.getParticipantId();
         const participant = this.conference.getParticipantById(participantId);
-        logger.debug('Detector track RTC muted: ' + participantId);
+        logger.debug(`Detector track RTC muted: ${participantId}`);
         if (!participant) {
-            logger.error('No participant for id: ' + participantId);
+            logger.error(`No participant for id: ${participantId}`);
             return;
         }
         this.rtcMutedTimestamp[participantId] = Date.now();
@@ -377,7 +376,7 @@ export default class ParticipantConnectionStatus {
             // triggered.
             this.clearTimeout(participantId);
             this.trackTimers[participantId] = window.setTimeout(function() {
-                logger.debug('RTC mute timeout for: ' + participantId);
+                logger.debug(`RTC mute timeout for: ${participantId}`);
                 this.clearTimeout(participantId);
                 this.figureOutConnectionStatus(participantId);
             }.bind(this), this.rtcMuteTimeout);
@@ -393,7 +392,7 @@ export default class ParticipantConnectionStatus {
     onTrackRtcUnmuted(track) {
         const participantId = track.getParticipantId();
 
-        logger.debug('Detector track RTC unmuted: ' + participantId);
+        logger.debug(`Detector track RTC unmuted: ${participantId}`);
 
         this.clearTimeout(participantId);
         this.clearRtcMutedTimestamp(participantId);
@@ -411,10 +410,9 @@ export default class ParticipantConnectionStatus {
         const participantId = track.getParticipantId();
 
         logger.debug(
-            'Detector on track signalling mute changed: '
-                + participantId, track.isMuted());
+            `Detector on track signalling mute changed: ${participantId}`,
+            track.isMuted());
 
         this.figureOutConnectionStatus(participantId);
     }
-
 }

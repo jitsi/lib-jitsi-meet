@@ -42,7 +42,7 @@ module.exports = {
                 flags: 'g',
                 replace:
                     child_process.execSync( // eslint-disable-line camelcase
-                            __dirname + '/get-version.sh')
+                            `${__dirname}/get-version.sh`)
 
                         // The type of the return value of
                         // child_process.execSync is either Buffer or String.
@@ -53,13 +53,13 @@ module.exports = {
                             .trim(),
                 search: '{#COMMIT_HASH#}'
             },
-            test: __dirname + '/JitsiMeetJS.js'
+            test: `${__dirname}/JitsiMeetJS.js`
         }, {
             // Transpile ES2015 (aka ES6) to ES5.
 
             exclude: [
-                __dirname + '/modules/RTC/adapter.screenshare.js',
-                __dirname + '/node_modules/'
+                `${__dirname}/modules/RTC/adapter.screenshare.js`,
+                `${__dirname}/node_modules/`
             ],
             loader: 'babel-loader',
             query: {
@@ -77,10 +77,10 @@ module.exports = {
         __filename: true
     },
     output: {
-        filename: '[name]' + (minimize ? '.min' : '') + '.js',
+        filename: `[name]${minimize ? '.min' : ''}.js`,
         library: 'JitsiMeetJS',
         libraryTarget: 'umd',
-        sourceMapFilename: '[name].' + (minimize ? 'min' : 'js') + '.map'
+        sourceMapFilename: `[name].${minimize ? 'min' : 'js'}.map`
     },
     plugins
 };

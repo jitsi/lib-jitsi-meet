@@ -64,7 +64,7 @@ function addDeviceTypeToAnalyticsEvent(name, options) {
     }
     if (options.devices.indexOf('video') !== -1) {
         // we have video add resolution
-        name += '.video.' + options.resolution;
+        name += `.video.${options.resolution}`;
     }
 
     return name;
@@ -281,7 +281,7 @@ const LibJitsiMeet = {
                             newResolution);
 
                         Statistics.analytics.sendEvent(
-                            'getUserMedia.fail.resolution.' + oldResolution);
+                            `getUserMedia.fail.resolution.${oldResolution}`);
 
                         return LibJitsiMeet.createLocalTracks(options);
                     }
@@ -307,14 +307,17 @@ const LibJitsiMeet = {
                     };
                     Statistics.sendLog(JSON.stringify(logObject));
                     Statistics.analytics.sendEvent(
-                        'getUserMedia.deviceNotFound.'
-                            + error.gum.devices.join('.'));
+                        `getUserMedia.deviceNotFound.${
+                             error.gum.devices.join('.')}`);
                 } else {
                     // Report gUM failed to the stats
                     Statistics.sendGetUserMediaFailed(error);
+                    const event
+                        = addDeviceTypeToAnalyticsEvent(
+                            'getUserMedia.failed',
+                            options);
                     Statistics.analytics.sendEvent(
-                        addDeviceTypeToAnalyticsEvent(
-                            'getUserMedia.failed', options) + '.' + error.name,
+                        `${event}.${error.name}`,
                         {value: options});
                 }
 
@@ -367,10 +370,10 @@ const LibJitsiMeet = {
      */
     getGlobalOnErrorHandler(message, source, lineno, colno, error) {
         logger.error(
-            'UnhandledError: ' + message,
-            'Script: ' + source,
-            'Line: ' + lineno,
-            'Column: ' + colno,
+            `UnhandledError: ${message}`,
+            `Script: ${source}`,
+            `Line: ${lineno}`,
+            `Column: ${colno}`,
             'StackTrace: ', error);
         Statistics.reportGlobalError(error);
     },

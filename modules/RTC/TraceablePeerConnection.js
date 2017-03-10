@@ -173,7 +173,7 @@ function TraceablePeerConnection(rtc, id, signalingLayer, ice_config,
                 const now = new Date();
                 for (let i = 0; i < results.length; ++i) {
                     results[i].names().forEach(function(name) {
-                        const id = results[i].id + '-' + name;
+                        const id = `${results[i].id}-${name}`;
                         if (!self.stats[id]) {
                             self.stats[id] = {
                                 startTime: now,
@@ -205,7 +205,7 @@ const dumpSDP = function(description) {
         return '';
     }
 
-    return 'type: ' + description.type + '\r\n' + description.sdp;
+    return `type: ${description.type}\r\n${description.sdp}`;
 };
 
 /**
@@ -266,15 +266,14 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
     }
 
     const remoteSDP = new SDP(this.remoteDescription.sdp);
-    const mediaLines = remoteSDP.media.filter(
-        function(mediaLines) {
-            return mediaLines.startsWith('m=' + mediaType);
-        });
+    const mediaLines
+        = remoteSDP.media.filter(
+            mediaLines => mediaLines.startsWith(`m=${mediaType}`));
     if (!mediaLines.length) {
         GlobalOnErrorHandler.callErrorHandler(
             new Error(
-                'No media lines for type ' + mediaType
-                    + ' found in remote SDP for remote track: ' + streamId));
+                `No media lines for type ${mediaType
+                     } found in remote SDP for remote track: ${streamId}`));
         // Abort
         return;
     }
@@ -285,13 +284,13 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
         function(line) {
             const msid
                 = RTCBrowserType.isTemasysPluginUsed() ? 'mslabel' : 'msid';
-            return line.indexOf(msid + ':' + streamId) !== -1;
+            return line.indexOf(`${msid}:${streamId}`) !== -1;
         });
     if (!ssrcLines.length) {
         GlobalOnErrorHandler.callErrorHandler(
             new Error(
-                'No SSRC lines for streamId ' + streamId
-                    + ' for remote track, media type: ' + mediaType));
+                `No SSRC lines for streamId ${streamId
+                     } for remote track, media type: ${mediaType}`));
         // Abort
         return;
     }
@@ -304,9 +303,9 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
     if (!ownerEndpointId) {
         GlobalOnErrorHandler.callErrorHandler(
             new Error(
-                'No SSRC owner known for: ' + trackSsrc
-                    + ' for remote track, msid: ' + streamId
-                    + ' media type: ' + mediaType));
+                `No SSRC owner known for: ${trackSsrc
+                     } for remote track, msid: ${streamId
+                     } media type: ${mediaType}`));
         // Abort
         return;
     }
@@ -318,7 +317,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
 
     if (!peerMediaInfo) {
         GlobalOnErrorHandler.callErrorHandler(
-            new Error('No peer media info available for: ' + ownerEndpointId));
+            new Error(`No peer media info available for: ${ownerEndpointId}`));
         // Abort
         return;
     }
@@ -728,7 +727,7 @@ TraceablePeerConnection.prototype.setRemoteDescription
 TraceablePeerConnection.prototype.generateRecvonlySsrc = function() {
     // FIXME replace with SDPUtil.generateSsrc (when it's added)
     const newSSRC = this.generateNewStreamSSRCInfo().ssrcs[0];
-    logger.info('Generated new recvonly SSRC: ' + newSSRC);
+    logger.info(`Generated new recvonly SSRC: ${newSSRC}`);
     this.sdpConsistency.setPrimarySsrc(newSSRC);
 };
 
@@ -838,8 +837,11 @@ TraceablePeerConnection.prototype.createAnswer
                  *  about unmapped ssrcs)
                  */
                 if (!RTCBrowserType.isFirefox()) {
-                    answer.sdp = this.sdpConsistency.makeVideoPrimarySsrcsConsistent(answer.sdp);
-                    this.trace('createAnswerOnSuccess::postTransform (make primary video ssrcs consistent)',
+                    answer.sdp
+                        = this.sdpConsistency.makeVideoPrimarySsrcsConsistent(
+                            answer.sdp);
+                    this.trace(
+                        'createAnswerOnSuccess::postTransform (make primary video ssrcs consistent)',
                         dumpSDP(answer));
                 }
 

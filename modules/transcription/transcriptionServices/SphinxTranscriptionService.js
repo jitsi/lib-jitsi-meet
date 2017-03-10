@@ -30,16 +30,17 @@ SphinxService.constructor = SphinxService;
  * @param callback the callback function retrieving the server response
  */
 SphinxService.prototype.sendRequest = function(audioFileBlob, callback) {
-    console.log('sending an audio file  to ' + this.url);
-    console.log('the audio file being sent: ' + audioFileBlob);
+    console.log(`sending an audio file  to ${this.url}`);
+    console.log(`the audio file being sent: ${audioFileBlob}`);
     const request = new XMLHttpRequest();
     request.onreadystatechange = function() {
         if(request.readyState === XMLHttpRequest.DONE
             && request.status === 200) {
             callback(request.responseText);
         } else if (request.readyState === XMLHttpRequest.DONE) {
-            throw new Error('unable to accept response from sphinx server.'
-                + 'status: ' + request.status);
+            throw new Error(
+                `unable to accept response from sphinx server. status: ${
+                    request.status}`);
         }
         // if not ready no point to throw an error
     };
@@ -47,7 +48,7 @@ SphinxService.prototype.sendRequest = function(audioFileBlob, callback) {
     request.setRequestHeader('Content-Type',
         audioRecorder.determineCorrectFileType());
     request.send(audioFileBlob);
-    console.log('send ' + audioFileBlob);
+    console.log(`send ${audioFileBlob}`);
 };
 
 /**
@@ -62,11 +63,10 @@ SphinxService.prototype.formatResponse = function(response) {
     // the first value in the JSON array
     result.shift();
     const array = [];
-    result.forEach(function(word) {
-        if(!word.filler) {
-            array.push(new Word(word.word, word.start, word.end));
-        }
-    });
+    result.forEach(
+        word =>
+            word.filler
+                || array.push(new Word(word.word, word.start, word.end)));
     return array;
 };
 
@@ -76,7 +76,7 @@ SphinxService.prototype.formatResponse = function(response) {
  * @return {boolean} whether the response is valid
  */
 SphinxService.prototype.verify = function(response) {
-    console.log('response from server:' + response.toString());
+    console.log(`response from server:${response.toString()}`);
     // test if server responded with a string object
     if(typeof response !== 'string') {
         return false;
@@ -109,8 +109,7 @@ SphinxService.prototype.verify = function(response) {
  * @returns {string} the URL to the sphinx4 server
  */
 function getURL() {
-    const message = 'config does not contain an url to a '
-    + 'Sphinx4 https server';
+    const message = 'config does not contain an url to a Sphinx4 https server';
     if(config.sphinxURL === undefined) {
         console.log(message);
     } else {

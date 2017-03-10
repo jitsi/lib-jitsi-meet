@@ -27,7 +27,7 @@ const RTCUIHelper = {
             return $(containerElement).find(videoElemName)[0];
         }
         const matching = $(containerElement).find(
-                ' ' + videoElemName + '>param[value="video"]');
+                ` ${videoElemName}>param[value="video"]`);
         if (matching.length) {
             if (matching.length > 1) {
                 logger.warn(

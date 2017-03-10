@@ -189,8 +189,9 @@ const ScreenObtainer = {
                 && RTCBrowserType.getFirefoxVersion()
                     <= desktopSharingFirefoxMaxVersionExtRequired)) {
             extensionRequired = true;
-            logger.log('Jidesha extension required on firefox version '
-                + RTCBrowserType.getFirefoxVersion());
+            logger.log(
+                `Jidesha extension required on firefox version ${
+                    RTCBrowserType.getFirefoxVersion()}`);
         }
 
         if (!extensionRequired || firefoxExtInstalled === true) {
@@ -290,7 +291,7 @@ const ScreenObtainer = {
         }
 
         const msg
-            = 'Failed to install the extension from ' + webStoreInstallUrl;
+            = `Failed to install the extension from ${webStoreInstallUrl}`;
 
         logger.log(msg, e);
         failCallback(new JitsiTrackError(
@@ -337,8 +338,9 @@ function obtainWebRTCScreen(options, streamCallback, failCallback) {
  * @returns {string}
  */
 function getWebStoreInstallUrl(options) {
-    return 'https://chrome.google.com/webstore/detail/'
-        + options.desktopSharingChromeExtId;
+    return (
+        `https://chrome.google.com/webstore/detail/${
+            options.desktopSharingChromeExtId}`);
 }
 
 /**
@@ -400,7 +402,7 @@ function checkChromeExtInstalled(callback, options) {
             }
             // Check installed extension version
             const extVersion = response.version;
-            logger.log('Extension version is: ' + extVersion);
+            logger.log(`Extension version is: ${extVersion}`);
             const updateRequired
                 = isUpdateRequired(
                     options.desktopSharingChromeMinExtVersion,
@@ -458,8 +460,8 @@ function initChromeExtension(options) {
         chromeExtInstalled = installed;
         chromeExtUpdateRequired = updateRequired;
         logger.info(
-            'Chrome extension installed: ' + chromeExtInstalled
-            + ' updateRequired: ' + chromeExtUpdateRequired);
+            `Chrome extension installed: ${chromeExtInstalled
+                } updateRequired: ${chromeExtUpdateRequired}`);
     }, options);
 }
 
@@ -558,9 +560,9 @@ function initFirefoxExtensionDetection(options) {
     // "chrome://EXT_ID/content/DOMAIN.png"
     // Where EXT_ID is the ID of the extension with "@" replaced by ".", and
     // DOMAIN is a domain whitelisted by the extension.
-    const src = 'chrome://'
-        + options.desktopSharingFirefoxExtId.replace('@', '.')
-        + '/content/' + document.location.hostname + '.png';
+    const src
+        = `chrome://${options.desktopSharingFirefoxExtId.replace('@', '.')
+            }/content/${document.location.hostname}.png`;
     img.setAttribute('src', src);
 }
 

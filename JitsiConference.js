@@ -591,7 +591,7 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
         // Report active device to statistics
         const devices = RTC.getCurrentlyAvailableMediaDevices();
         const device = devices.find(function(d) {
-            return d.kind === newTrack.getTrack().kind + 'input'
+            return d.kind === `${newTrack.getTrack().kind}input`
                 && d.label === newTrack.getTrack().label;
         });
         if (device) {
@@ -776,7 +776,7 @@ JitsiConference.prototype.pinParticipant = function(participantId) {
  */
 JitsiConference.prototype.setLastN = function(lastN) {
     if (!Number.isInteger(lastN) && !Number.parseInt(lastN)) {
-        throw new Error('Invalid value for lastN: ' + lastN);
+        throw new Error(`Invalid value for lastN: ${lastN}`);
     }
     if (lastN < -1) {
         throw new RangeError('lastN cannot be smaller than -1');
@@ -1007,8 +1007,8 @@ JitsiConference.prototype.onIncomingCall
 = function(jingleSession, jingleOffer, now) {
     if (!this.room.isFocus(jingleSession.peerjid)) {
         // Error cause this should never happen unless something is wrong!
-        const errmsg = 'Rejecting session-initiate from non-focus user: '
-                + jingleSession.peerjid;
+        const errmsg = `Rejecting session-initiate from non-focus user: ${
+                 jingleSession.peerjid}`;
         GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
         logger.error(errmsg);
 
@@ -1134,7 +1134,7 @@ JitsiConference.prototype.onIncomingCall
  */
 JitsiConference.prototype.onCallEnded
 = function(JingleSession, reasonCondition, reasonText) {
-    logger.info('Call ended: ' + reasonCondition + ' - ' + reasonText);
+    logger.info(`Call ended: ${reasonCondition} - ${reasonText}`);
     this.wasStopped = true;
     // Send session.terminate event
     Statistics.sendEventToAll('session.terminate');
@@ -1414,7 +1414,7 @@ JitsiConference.prototype.getConnectionTimes = function() {
  * Sets a property for the local participant.
  */
 JitsiConference.prototype.setLocalParticipantProperty = function(name, value) {
-    this.sendCommand('jitsi_participant_' + name, {value});
+    this.sendCommand(`jitsi_participant_${name}`, {value});
 };
 
 /**

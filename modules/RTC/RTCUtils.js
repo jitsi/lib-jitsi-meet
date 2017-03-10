@@ -531,7 +531,7 @@ function convertMediaStreamTrackSource(source) {
         // not return 'audiooutput' devices but let's handle it in any
         // case
         kind: kind
-            ? kind === 'audiooutput' ? kind : kind + 'input'
+            ? kind === 'audiooutput' ? kind : `${kind}input`
             : null,
         deviceId: source.id,
         groupId: source.groupId || null
@@ -556,7 +556,7 @@ function obtainDevices(options) {
                 rtcUtils.stopMediaStream(options.streams[device]);
             });
             logger.error(
-                'failed to obtain ' + device + ' stream - stop', error);
+                `failed to obtain ${device} stream - stop`, error);
 
             options.errorCallback(error);
         });
@@ -733,11 +733,11 @@ class RTCUtils extends Listenable {
     init(options) {
         if (typeof options.disableAEC === 'boolean') {
             disableAEC = options.disableAEC;
-            logger.info('Disable AEC: ' + disableAEC);
+            logger.info(`Disable AEC: ${disableAEC}`);
         }
         if (typeof options.disableNS === 'boolean') {
             disableNS = options.disableNS;
-            logger.info('Disable NS: ' + disableNS);
+            logger.info(`Disable NS: ${disableNS}`);
         }
 
         return new Promise(function(resolve, reject) {
@@ -1262,7 +1262,7 @@ class RTCUtils extends Listenable {
                 audioOutputDeviceId = deviceId;
                 audioOutputChanged = true;
 
-                logger.log('Audio output device set to ' + deviceId);
+                logger.log(`Audio output device set to ${deviceId}`);
 
                 eventEmitter.emit(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
                     deviceId);

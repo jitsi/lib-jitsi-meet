@@ -39,7 +39,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             to: fromJid,
             id: iq.getAttribute('id')
         });
-        logger.log('on jingle ' + action + ' from ' + fromJid, iq);
+        logger.log(`on jingle ${action} from ${fromJid}`, iq);
         let sess = this.sessions[sid];
         if ('session-initiate' != action) {
             if (!sess) {
@@ -178,7 +178,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         this.connection.sendIQ(
             $iq({type: 'get', to: this.connection.domain})
                 .c('services', {xmlns: 'urn:xmpp:extdisco:1'})
-                .c('service', {host: 'turn.' + this.connection.domain}),
+                .c('service', {host: `turn.${this.connection.domain}`}),
             res => {
                 const iceservers = [];
                 $(res).find('>services>service').each((idx, el) => {
@@ -187,15 +187,15 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     const type = el.attr('type');
                     switch (type) {
                     case 'stun':
-                        dict.url = 'stun:' + el.attr('host');
+                        dict.url = `stun:${el.attr('host')}`;
                         if (el.attr('port')) {
-                            dict.url += ':' + el.attr('port');
+                            dict.url += `:${el.attr('port')}`;
                         }
                         iceservers.push(dict);
                         break;
                     case 'turn':
                     case 'turns': {
-                        dict.url = type + ':';
+                        dict.url = `${type}:`;
                         const username = el.attr('username');
                             // https://code.google.com/p/webrtc/issues/detail?id=1508
                         if (username) {
@@ -205,7 +205,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                                         navigator.userAgent.match(
                                             /Chrom(e|ium)\/([0-9]+)\./)[2],
                                             10) < 28) {
-                                dict.url += username + '@';
+                                dict.url += `${username}@`;
                             } else {
                                     // only works in M28
                                 dict.username = username;
@@ -214,11 +214,11 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                         dict.url += el.attr('host');
                         const port = el.attr('port');
                         if (port && port != '3478') {
-                            dict.url += ':' + el.attr('port');
+                            dict.url += `:${el.attr('port')}`;
                         }
                         const transport = el.attr('transport');
                         if (transport && transport != 'udp') {
-                            dict.url += '?transport=' + transport;
+                            dict.url += `?transport=${transport}`;
                         }
 
                         dict.credential = el.attr('password')
@@ -246,7 +246,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             const pc = session.peerconnection;
             if (pc && pc.updateLog) {
                 // FIXME: should probably be a .dump call
-                data['jingle_' + sid] = {
+                data[`jingle_${sid}`] = {
                     updateLog: pc.updateLog,
                     stats: pc.stats,
                     url: window.location.href

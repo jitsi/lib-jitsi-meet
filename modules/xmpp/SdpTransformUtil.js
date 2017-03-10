@@ -354,7 +354,7 @@ class MLineWrap {
         }
 
         this.mLine.ssrcGroups = this.mLine.ssrcGroups
-            .filter(groupInfo => groupInfo.ssrcs.indexOf(ssrc + '') === -1);
+            .filter(groupInfo => groupInfo.ssrcs.indexOf(`${ssrc}`) === -1);
     }
 
     /**

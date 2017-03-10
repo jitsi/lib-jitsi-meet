@@ -64,7 +64,7 @@ JitsiRemoteTrack.prototype._bindMuteHandlers = function() {
     this.track.addEventListener('mute', function() {
 
         logger.debug(
-            '"onmute" event(' + Date.now() + '): ',
+            `"onmute" event(${Date.now()}): `,
             this.getParticipantId(), this.getType(), this.getSSRC());
 
         this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_MUTE, this);
@@ -74,7 +74,7 @@ JitsiRemoteTrack.prototype._bindMuteHandlers = function() {
     this.track.addEventListener('unmute', function() {
 
         logger.debug(
-            '"onunmute" event(' + Date.now() + '): ',
+            `"onunmute" event(${Date.now()}): `,
             this.getParticipantId(), this.getType(), this.getSSRC());
 
         this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_UNMUTE, this);
@@ -152,17 +152,17 @@ JitsiRemoteTrack.prototype._playCallback = function() {
     const type = this.isVideoTrack() ? 'video' : 'audio';
 
     const now = window.performance.now();
-    console.log('(TIME) Render ' + type + ':\t', now);
-    this.conference.getConnectionTimes()[type + '.render'] = now;
+    console.log(`(TIME) Render ${type}:\t`, now);
+    this.conference.getConnectionTimes()[`${type}.render`] = now;
 
     const ttfm = now
         - (this.conference.getConnectionTimes()['session.initiate']
         - this.conference.getConnectionTimes()['muc.joined'])
         - (window.connectionTimes['obtainPermissions.end']
         - window.connectionTimes['obtainPermissions.start']);
-    this.conference.getConnectionTimes()[type + '.ttfm'] = ttfm;
-    console.log('(TIME) TTFM ' + type + ':\t', ttfm);
-    let eventName = type + '.ttfm';
+    this.conference.getConnectionTimes()[`${type}.ttfm`] = ttfm;
+    console.log(`(TIME) TTFM ${type}:\t`, ttfm);
+    let eventName = `${type}.ttfm`;
     if(this.hasBeenMuted) {
         eventName += '.muted';
     }

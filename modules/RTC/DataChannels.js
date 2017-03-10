@@ -139,8 +139,9 @@ DataChannels.prototype.onDataChannel = function(event) {
             } else if ('EndpointConnectivityStatusChangeEvent' === colibriClass) {
                 const endpoint = obj.endpoint;
                 const isActive = obj.active === 'true';
-                logger.info('Endpoint connection status changed: ' + endpoint
-                           + ' active ? ' + isActive);
+                logger.info(
+                    `Endpoint connection status changed: ${endpoint} active ? ${
+                        isActive}`);
                 self.eventEmitter.emit(RTCEvents.ENDPOINT_CONN_STATUS_CHANGED,
                     endpoint, isActive);
             } else {
@@ -149,7 +150,7 @@ DataChannels.prototype.onDataChannel = function(event) {
                 // (i.e. is a JSON object which assigns a value to the mandatory
                 // property colibriClass) so don't just swallow it, expose it to
                 // public consumption.
-                self.eventEmitter.emit('rtc.datachannel.' + colibriClass, obj);
+                self.eventEmitter.emit(`rtc.datachannel.${colibriClass}`, obj);
             }
         }
     };
@@ -215,20 +216,19 @@ DataChannels.prototype._onXXXEndpointChanged = function(xxx, userResource) {
     const lower = head.toLowerCase() + tail;
     const upper = head.toUpperCase() + tail;
     logger.log(
-            'sending ' + lower
-                + ' endpoint changed notification to the bridge: ',
+            `sending ${lower} endpoint changed notification to the bridge: `,
             userResource);
 
     const jsonObject = {};
 
-    jsonObject.colibriClass = upper + 'EndpointChangedEvent';
-    jsonObject[lower + 'Endpoint']
+    jsonObject.colibriClass = `${upper}EndpointChangedEvent`;
+    jsonObject[`${lower}Endpoint`]
         = userResource ? userResource : null;
 
     this.send(jsonObject);
 
     // Notify Videobridge about the specified endpoint change.
-    logger.log(lower + ' endpoint changed: ', userResource);
+    logger.log(`${lower} endpoint changed: `, userResource);
 };
 
 DataChannels.prototype._some = function(callback, thisArg) {
@@ -291,7 +291,7 @@ DataChannels.prototype.sendSetLastNMessage = function(value) {
     };
 
     this.send(jsonObject);
-    logger.log('Channel lastN set to: ' + value);
+    logger.log(`Channel lastN set to: ${value}`);
 };
 
 module.exports = DataChannels;

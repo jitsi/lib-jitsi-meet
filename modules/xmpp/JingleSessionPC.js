@@ -173,12 +173,15 @@ export default class JingleSessionPC extends JingleSession {
                 return;
             }
             const now = window.performance.now();
-            this.room.connectionTimes['ice.state.'
-            + this.peerconnection.iceConnectionState] = now;
-            logger.log('(TIME) ICE ' + this.peerconnection.iceConnectionState
-                + ':\t', now);
+            this.room.connectionTimes[
+                    `ice.state.${this.peerconnection.iceConnectionState}`]
+                = now;
+            logger.log(
+                `(TIME) ICE ${this.peerconnection.iceConnectionState}:\t`,
+                now);
             Statistics.analytics.sendEvent(
-                'ice.' + this.peerconnection.iceConnectionState, {value: now});
+                `ice.${this.peerconnection.iceConnectionState}`,
+                {value: now});
             this.room.eventEmitter.emit(
                 XMPPEvents.ICE_CONNECTION_STATE_CHANGED,
                 this.peerconnection.iceConnectionState);
@@ -314,7 +317,7 @@ export default class JingleSessionPC extends JingleSession {
         this.connection.sendIQ(
             cand, null, this.newJingleErrorHandler(cand, function(error) {
                 GlobalOnErrorHandler.callErrorHandler(
-                    new Error('Jingle error: ' + JSON.stringify(error)));
+                    new Error(`Jingle error: ${JSON.stringify(error)}`));
             }), IQ_TIMEOUT);
     }
 
@@ -323,7 +326,7 @@ export default class JingleSessionPC extends JingleSession {
             const ssrcs
                 = $(content).find(
                     'description>'
-                    + 'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
+                        + 'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
             ssrcs.each((idx, ssrcElement) => {
                 const ssrc = ssrcElement.getAttribute('ssrc');
                 $(ssrcElement)
@@ -396,8 +399,8 @@ export default class JingleSessionPC extends JingleSession {
                     finishedCallback();
                 }, error => {
                     logger.error(
-                        'Error renegotiating after setting new remote offer: '
-                            + error);
+                        `Error renegotiating after setting new remote offer: ${
+                             error}`);
                     JingleSessionPC.onJingleFatalError(this, error);
                     finishedCallback(error);
                 });
@@ -405,13 +408,8 @@ export default class JingleSessionPC extends JingleSession {
         this.modificationQueue.push(
             workFunction,
             error => {
-                if (!error) {
-                    success();
-                } else {
-                    failure(error);
-                }
-            }
-        );
+                error ? failure(error) : success();
+            });
     }
 
     /**
@@ -537,7 +535,10 @@ export default class JingleSessionPC extends JingleSession {
             const mline = SDPUtil.parse_mline(medialines.split('\r\n')[0]);
             transportAccept.c('content',
                 {
-                    creator: this.initiator == this.localJid ? 'initiator' : 'responder',
+                    creator:
+                        this.initiator == this.localJid
+                            ? 'initiator'
+                            : 'responder',
                     name: mline.media
                 }
             );
@@ -651,8 +652,9 @@ export default class JingleSessionPC extends JingleSession {
                     }).get();
 
                     if (ssrcs.length) {
-                        lines += 'a=ssrc-group:' + semantics
-                            + ' ' + ssrcs.join(' ') + '\r\n';
+                        lines
+                            += `a=ssrc-group:${semantics} ${ssrcs.join(' ')
+                                }\r\n`;
                     }
                 });
             // handles both >source and >description>source
@@ -663,19 +665,19 @@ export default class JingleSessionPC extends JingleSession {
                 const ssrc = $(this).attr('ssrc');
                 if (currentRemoteSdp.containsSSRC(ssrc)) {
                     logger.warn(
-                        'Source-add request for existing SSRC: ' + ssrc);
+                        `Source-add request for existing SSRC: ${ssrc}`);
                     return;
                 }
                 $(this).find('>parameter').each(function() {
-                    lines += 'a=ssrc:' + ssrc + ' ' + $(this).attr('name');
+                    lines += `a=ssrc:${ssrc} ${$(this).attr('name')}`;
                     if ($(this).attr('value') && $(this).attr('value').length) {
-                        lines += ':' + $(this).attr('value');
+                        lines += `:${$(this).attr('value')}`;
                     }
                     lines += '\r\n';
                 });
             });
             currentRemoteSdp.media.forEach(function(media, idx) {
-                if (!SDPUtil.find_line(media, 'a=mid:' + name)) {
+                if (!SDPUtil.find_line(media, `a=mid:${name}`)) {
                     return;
                 }
                 if (!addSsrcInfo[idx]) {
@@ -720,8 +722,7 @@ export default class JingleSessionPC extends JingleSession {
                     finishedCallback();
                 }, error => {
                     logger.error(
-                        `Error renegotiating after processing remote source-add:
-                        ${error}`);
+                        `Error renegotiating after processing remote source-add: ${error}`);
                     finishedCallback(error);
                 });
         };
@@ -761,8 +762,7 @@ export default class JingleSessionPC extends JingleSession {
                     finishedCallback();
                 }, error => {
                     logger.error(
-                        'Error renegotiating after processing'
-                            + ' remote source-remove: ' + error);
+                        `Error renegotiating after processing remote source-remove: ${error}`);
                     finishedCallback(error);
                 });
         };
@@ -823,7 +823,7 @@ export default class JingleSessionPC extends JingleSession {
             lines.pop(); // remove empty last element;
             lines.forEach(function(line) {
                 remoteSdp.media[idx]
-                    = remoteSdp.media[idx].replace(line + '\r\n', '');
+                    = remoteSdp.media[idx].replace(`${line}\r\n`, '');
             });
         });
         remoteSdp.raw = remoteSdp.session + remoteSdp.media.join('');
@@ -893,13 +893,16 @@ export default class JingleSessionPC extends JingleSession {
                     logger.debug('Renegotiate: creating answer');
                     this.peerconnection.createAnswer(
                         answer => {
-                            const localUfrag = JingleSessionPC.getUfrag(answer.sdp);
+                            const localUfrag
+                                = JingleSessionPC.getUfrag(answer.sdp);
                             if (localUfrag != this.localUfrag) {
                                 this.localUfrag = localUfrag;
                                 this.room.eventEmitter.emit(
-                                        XMPPEvents.LOCAL_UFRAG_CHANGED, localUfrag);
+                                        XMPPEvents.LOCAL_UFRAG_CHANGED,
+                                        localUfrag);
                             }
-                            logger.debug('Renegotiate: setting local description');
+                            logger.debug(
+                                'Renegotiate: setting local description');
                             this.peerconnection.setLocalDescription(
                                 answer,
                                 () => {
@@ -907,18 +910,16 @@ export default class JingleSessionPC extends JingleSession {
                                 },
                                 error => {
                                     reject(
-                                        'setLocalDescription failed: ' + error);
+                                        `setLocalDescription failed: ${error}`);
                                 }
                             );
                         },
-                        error => {
-                            reject('createAnswer failed: ' + error);
-                        },
+                        error => reject(`createAnswer failed: ${error}`),
                         media_constraints
                     );
                 },
                 error => {
-                    reject('setRemoteDescription failed: ' + error);
+                    reject(`setRemoteDescription failed: ${error}`);
                 }
             );
         });
@@ -969,7 +970,7 @@ export default class JingleSessionPC extends JingleSession {
                         finishedCallback();
                     }, error => {
                         logger.error(
-                            'replaceTrack renegotiation failed: ' + error);
+                            `replaceTrack renegotiation failed: ${error}`);
                         finishedCallback(error);
                     });
             };
@@ -1026,8 +1027,9 @@ export default class JingleSessionPC extends JingleSession {
                     }).get();
 
                     if (ssrcs.length) {
-                        lines += 'a=ssrc-group:' + semantics
-                            + ' ' + ssrcs.join(' ') + '\r\n';
+                        lines
+                            += `a=ssrc-group:${semantics} ${ssrcs.join(' ')
+                                }\r\n`;
                     }
                 });
             const ssrcs = [];
@@ -1040,7 +1042,7 @@ export default class JingleSessionPC extends JingleSession {
                 ssrcs.push(ssrc);
             });
             currentRemoteSdp.media.forEach(function(media, idx) {
-                if (!SDPUtil.find_line(media, 'a=mid:' + name)) {
+                if (!SDPUtil.find_line(media, `a=mid:${name}`)) {
                     return;
                 }
                 if (!removeSsrcInfo[idx]) {
@@ -1048,9 +1050,9 @@ export default class JingleSessionPC extends JingleSession {
                 }
                 ssrcs.forEach(function(ssrc) {
                     const ssrcLines
-                        = SDPUtil.find_lines(media, 'a=ssrc:' + ssrc);
+                        = SDPUtil.find_lines(media, `a=ssrc:${ssrc}`);
                     if (ssrcLines.length) {
-                        removeSsrcInfo[idx] += ssrcLines.join('\r\n') + '\r\n';
+                        removeSsrcInfo[idx] += `${ssrcLines.join('\r\n')}\r\n`;
                     }
                 });
                 removeSsrcInfo[idx] += lines;
@@ -1082,8 +1084,7 @@ export default class JingleSessionPC extends JingleSession {
         const workFunction = finishedCallback => {
             if (!this.peerconnection) {
                 finishedCallback(
-                    'Error: '
-                        + 'tried adding stream with no active peer connection');
+                    'Error: tried adding stream with no active peer connection');
                 return;
             }
             this.addStreamToPeerConnection(stream, ssrcInfo);
@@ -1252,8 +1253,7 @@ export default class JingleSessionPC extends JingleSession {
     notifyMySSRCUpdate(old_sdp, new_sdp) {
 
         if (this.state !== JingleSessionState.ACTIVE) {
-            logger.warn(
-                'Skipping SSRC update in \'' + this.state + ' \' state.');
+            logger.warn(`Skipping SSRC update in '${this.state} ' state.`);
             return;
         }
 
@@ -1276,7 +1276,7 @@ export default class JingleSessionPC extends JingleSession {
                 remove, null,
                 this.newJingleErrorHandler(remove, function(error) {
                     GlobalOnErrorHandler.callErrorHandler(
-                        new Error('Jingle error: ' + JSON.stringify(error)));
+                        new Error(`Jingle error: ${JSON.stringify(error)}`));
                 }), IQ_TIMEOUT);
         } else {
             logger.log('removal not necessary');
@@ -1301,7 +1301,7 @@ export default class JingleSessionPC extends JingleSession {
             this.connection.sendIQ(
                 add, null, this.newJingleErrorHandler(add, function(error) {
                     GlobalOnErrorHandler.callErrorHandler(
-                        new Error('Jingle error: ' + JSON.stringify(error)));
+                        new Error(`Jingle error: ${JSON.stringify(error)}`));
                 }), IQ_TIMEOUT);
         } else {
             logger.log('addition not necessary');
@@ -1448,20 +1448,20 @@ export default class JingleSessionPC extends JingleSession {
         this.modifiedSSRCs.unmute = [];
         if (ssrcs && ssrcs.length) {
             ssrcs.forEach(function(ssrcObj) {
-                const desc = $(jingle.tree()).find('>jingle>content[name="'
-                    + ssrcObj.mtype + '"]>description');
+                const desc
+                    = $(jingle.tree()).find(
+                        `>jingle>content[name="${ssrcObj.mtype}"]>description`);
                 if (!desc || !desc.length) {
                     return;
                 }
                 ssrcObj.ssrcs.forEach(function(ssrc) {
-                    const sourceNode = desc.find('>source[ssrc="'
-                        + ssrc + '"]');
+                    const sourceNode = desc.find(`>source[ssrc="${ssrc}"]`);
                     sourceNode.remove();
                 });
                 ssrcObj.groups.forEach(function(group) {
-                    const groupNode = desc.find('>ssrc-group[semantics="'
-                        + group.semantics + '"]:has(source[ssrc="'
-                        + group.ssrcs[0] + '"])');
+                    const groupNode = desc.find(`>ssrc-group[semantics="${
+                         group.semantics}"]:has(source[ssrc="${
+                         group.ssrcs[0]}"])`);
                     groupNode.remove();
                 });
             });
@@ -1477,31 +1477,29 @@ export default class JingleSessionPC extends JingleSession {
                 const cname = Math.random().toString(36).substring(2);
                 ssrcObj.ssrcs.forEach(function(ssrc) {
                     const sourceNode
-                        = desc.find('>source[ssrc="' + ssrc + '"]');
+                        = desc.find(`>source[ssrc="${ssrc}"]`);
                     sourceNode.remove();
-                    const sourceXML = '<source '
-                        + 'xmlns="urn:xmpp:jingle:apps:rtp:ssma:0" ssrc="'
-                        + ssrc + '">'
+                    const sourceXML
+                        = '<source xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"'
+                        + ` ssrc="${ssrc}">`
                         + '<parameter xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"'
-                        + ' value="' + ssrcObj.msid + '" name="msid"/>'
+                        + ` value="${ssrcObj.msid}" name="msid"/>`
                         + '<parameter xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"'
-                        + ' value="' + cname + '" name="cname" />'
+                        + ` value="${cname}" name="cname" />`
                         + '</source>';
                     desc.append(sourceXML);
                 });
                 ssrcObj.groups.forEach(function(group) {
                     const groupNode
-                        = desc.find('>ssrc-group[semantics="'
-                            + group.semantics + '"]:has(source[ssrc="'
-                            + group.ssrcs[0] + '"])');
+                        = desc.find(
+                            `>ssrc-group[semantics="${group.semantics
+                                }"]:has(source[ssrc="${group.ssrcs[0]}"])`);
                     groupNode.remove();
                     desc.append(
-                        '<ssrc-group semantics="' + group.semantics
-                        + '" xmlns="urn:xmpp:jingle:apps:rtp:ssma:0">'
-                        + '<source ssrc="'
-                            + group.ssrcs.join('"/>' + '<source ssrc="')
-                            + '"/>'
-                        + '</ssrc-group>');
+                        `<ssrc-group semantics="${group.semantics
+                            }" xmlns="urn:xmpp:jingle:apps:rtp:ssma:0">`
+                        + `<source ssrc="${group.ssrcs.join('"/><source ssrc="')
+                            }"/></ssrc-group>`);
                 });
             });
         }
@@ -1520,18 +1518,18 @@ export default class JingleSessionPC extends JingleSession {
             ssrcs.forEach(function(ssrcObj) {
                 ssrcObj.ssrcs.forEach(function(ssrc) {
                     const sourceNode
-                        = $(jingle.tree()).find('>jingle>content[name="'
-                            + ssrcObj.mtype + '"]>description>source[ssrc="'
-                            + ssrc + '"]');
+                        = $(jingle.tree()).find(
+                            `>jingle>content[name="${ssrcObj.mtype
+                                }"]>description>source[ssrc="${ssrc}"]`);
                     sourceNode.remove();
                 });
                 ssrcObj.groups.forEach(function(group) {
                     const groupNode
                         = $(jingle.tree()).find(
-                            '>jingle>content[name="' + ssrcObj.mtype
-                            + '"]>description>ssrc-group[semantics="'
-                            + group.semantics + '"]:has(source[ssrc="'
-                            + group.ssrcs[0] + '"])');
+                            `>jingle>content[name="${ssrcObj.mtype
+                                }"]>description>ssrc-group[semantics="${
+                                group.semantics}"]:has(source[ssrc="${
+                                group.ssrcs[0]}"])`);
                     groupNode.remove();
                 });
             });
@@ -1546,27 +1544,25 @@ export default class JingleSessionPC extends JingleSession {
                         jingle, ssrcObj.mtype);
                 ssrcObj.ssrcs.forEach(function(ssrc) {
                     const sourceNode
-                        = desc.find('>source[ssrc="' + ssrc + '"]');
+                        = desc.find(`>source[ssrc="${ssrc}"]`);
                     if (!sourceNode || !sourceNode.length) {
                         // Maybe we have to include cname, msid, etc here?
                         desc.append(
-                            '<source '
-                            + 'xmlns="urn:xmpp:jingle:apps:rtp:ssma:0" '
-                            + 'ssrc="' + ssrc + '"></source>');
+                            '<source xmlns="urn:xmpp:jingle:apps:rtp:ssma:0" '
+                                + `ssrc="${ssrc}"></source>`);
                     }
                 });
                 ssrcObj.groups.forEach(function(group) {
                     const groupNode
-                        = desc.find('>ssrc-group[semantics="'
-                            + group.semantics + '"]:has(source[ssrc="'
-                            + group.ssrcs[0] + '"])');
+                        = desc.find(`>ssrc-group[semantics="${
+                             group.semantics}"]:has(source[ssrc="${
+                             group.ssrcs[0]}"])`);
                     if (!groupNode || !groupNode.length) {
-                        desc.append('<ssrc-group semantics="'
-                            + group.semantics
-                            + '" xmlns="urn:xmpp:jingle:apps:rtp:ssma:0">'
-                            + '<source ssrc="'
-                                + group.ssrcs.join('"/><source ssrc="')
-                                + '"/>'
+                        desc.append(
+                            `<ssrc-group semantics="${group.semantics
+                                }" xmlns="urn:xmpp:jingle:apps:rtp:ssma:0">`
+                            + `<source ssrc="${
+                                group.ssrcs.join('"/><source ssrc="')}"/>`
                             + '</ssrc-group>');
                     }
                 });
@@ -1581,21 +1577,19 @@ export default class JingleSessionPC extends JingleSession {
      * @param mtype - the content type(audio, video, etc.)
      */
     static createDescriptionNode(jingle, mtype) {
-        let content = $(jingle.tree()).find('>jingle>content[name="'
-            + mtype + '"]');
+        let content = $(jingle.tree()).find(`>jingle>content[name="${mtype}"]`);
 
         if (!content || !content.length) {
             $(jingle.tree()).find('>jingle').append(
-                '<content name="' + mtype + '"></content>');
-            content = $(jingle.tree()).find('>jingle>content[name="'
-                + mtype + '"]');
+                `<content name="${mtype}"></content>`);
+            content = $(jingle.tree()).find(`>jingle>content[name="${mtype}"]`);
         }
 
         let desc = content.find('>description');
         if (!desc || !desc.length) {
-            content.append('<description '
-                + 'xmlns="urn:xmpp:jingle:apps:rtp:1" media="'
-                + mtype + '"></description>');
+            content.append(
+                `<description xmlns="urn:xmpp:jingle:apps:rtp:1" media="${
+                    mtype}"></description>`);
             desc = content.find('>description');
         }
         return desc;
@@ -1605,12 +1599,10 @@ export default class JingleSessionPC extends JingleSession {
      * Extracts the ice username fragment from an SDP string.
      */
     static getUfrag(sdp) {
-        const ufragLines = sdp.split('\n').filter(function(line) {
-            return line.startsWith('a=ice-ufrag:');
-        });
+        const ufragLines
+            = sdp.split('\n').filter(line => line.startsWith('a=ice-ufrag:'));
         if (ufragLines.length > 0) {
             return ufragLines[0].substr('a=ice-ufrag:'.length);
         }
     }
-
 }

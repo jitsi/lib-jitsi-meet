@@ -71,8 +71,8 @@ class PingConnectionPlugin extends ConnectionPlugin {
         this.xmpp.caps.getFeatures(jid).then(features =>
             callback(features.has('urn:xmpp:ping')), error => {
             const errmsg = 'Ping feature discovery error';
-            GlobalOnErrorHandler.callErrorHandler(new Error(
-                errmsg + ': ' + error));
+            GlobalOnErrorHandler.callErrorHandler(
+                new Error(`${errmsg}: ${error}`));
             logger.error(errmsg, error);
             callback(false);
         });
@@ -97,7 +97,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
                 this.failedPings = 0;
             }, error => {
                 this.failedPings += 1;
-                const errmsg = 'Ping ' + (error ? 'error' : 'timeout');
+                const errmsg = `Ping ${error ? 'error' : 'timeout'}`;
                 if (this.failedPings >= PING_THRESHOLD) {
                     GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
                     logger.error(errmsg, error);
@@ -112,7 +112,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
                 }
             }, PING_TIMEOUT);
         }, interval);
-        logger.info('XMPP pings will be sent every ' + interval + ' ms');
+        logger.info(`XMPP pings will be sent every ${interval} ms`);
     }
 
     /**

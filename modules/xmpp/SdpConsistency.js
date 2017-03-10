@@ -1,9 +1,11 @@
 /* global __filename */
 
 import { getLogger } from 'jitsi-meet-logger';
-import { parsePrimarySSRC,
-         parseSecondarySSRC,
-         SdpTransformWrap } from './SdpTransformUtil';
+import {
+    parsePrimarySSRC,
+    parseSecondarySSRC,
+    SdpTransformWrap
+} from './SdpTransformUtil';
 
 const logger = getLogger(__filename);
 
@@ -89,12 +91,12 @@ export default class SdpConsistency {
             if (!this.cachedPrimarySsrc) {
                 this.cachedPrimarySsrc = newPrimarySsrc;
                 logger.info(
-                    'Sdp-consistency caching primary ssrc '
-                    + this.cachedPrimarySsrc);
+                    `Sdp-consistency caching primary ssrc ${
+                        this.cachedPrimarySsrc}`);
             } else {
                 logger.info(
-                    `Sdp-consistency replacing new ssrc ${newPrimarySsrc} with`
-                        + ` cached ${this.cachedPrimarySsrc}`);
+                    `Sdp-consistency replacing new ssrc ${newPrimarySsrc
+                        } with cached ${this.cachedPrimarySsrc}`);
                 videoMLine.replaceSSRC(
                     newPrimarySsrc, this.cachedPrimarySsrc);
                 for (const group of videoMLine.ssrcGroups) {
@@ -103,8 +105,7 @@ export default class SdpConsistency {
                         const rtxSsrc = parseSecondarySSRC(group);
                         if (primarySsrc === newPrimarySsrc) {
                             group.ssrcs
-                                = this.cachedPrimarySsrc + ' '
-                                    + rtxSsrc;
+                                = `${this.cachedPrimarySsrc} ${rtxSsrc}`;
                         }
                     }
                 }

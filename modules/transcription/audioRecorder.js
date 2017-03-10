@@ -215,8 +215,9 @@ audioRecorder.prototype.start = function() {
         startRecorder(trackRecorder);
     });
     // log that recording has started
-    console.log('Started the recording of the audio. There are currently '
-        + this.recorders.length + ' recorders active.');
+    console.log(
+        `Started the recording of the audio. There are currently ${
+            this.recorders.length} recorders active.`);
 };
 
 /**
@@ -226,9 +227,7 @@ audioRecorder.prototype.stop = function() {
     // set the boolean flag to false
     this.isRecording = false;
     // stop all recorders
-    this.recorders.forEach(function(trackRecorder) {
-        stopRecorder(trackRecorder);
-    });
+    this.recorders.forEach(trackRecorder => stopRecorder(trackRecorder));
     console.log('stopped recording');
 };
 
@@ -244,7 +243,7 @@ audioRecorder.prototype.download = function() {
         document.body.appendChild(a);
         a.style = 'display: none';
         a.href = url;
-        a.download = 'test.' + t.fileType.split('/')[1];
+        a.download = `test.${t.fileType.split('/')[1]}`;
         a.click();
         window.URL.revokeObjectURL(url);
     });
@@ -257,8 +256,8 @@ audioRecorder.prototype.download = function() {
  */
 audioRecorder.prototype.getRecordingResults = function() {
     if(this.isRecording) {
-        throw new Error('cannot get blobs because the AudioRecorder is still'
-            + 'recording!');
+        throw new Error(
+            'cannot get blobs because the AudioRecorder is still recording!');
     }
     // make sure the names are up to date before sending them off
     this.updateNames();

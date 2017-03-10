@@ -51,7 +51,7 @@ class RayoConnectionPlugin extends ConnectionPlugin {
                 const resource = $(result).find('ref').attr('uri');
                 this.call_resource
                     = resource.substr('xmpp:'.length);
-                logger.info('Received call resource: ' + this.call_resource);
+                logger.info(`Received call resource: ${this.call_resource}`);
                 resolve();
             }, error => {
                 logger.info('Dial error ', error);

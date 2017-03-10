@@ -73,13 +73,11 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
             Object.keys(chatRoom.connectionTimes).forEach(key => {
                 const value = chatRoom.connectionTimes[key];
-                Statistics.analytics.sendEvent('conference.' + key,
-                    {value});
+                Statistics.analytics.sendEvent(`conference.${key}`, {value});
             });
             Object.keys(chatRoom.xmpp.connectionTimes).forEach(key => {
                 const value = chatRoom.xmpp.connectionTimes[key];
-                Statistics.analytics.sendEvent('xmpp.' + key,
-                    {value});
+                Statistics.analytics.sendEvent(`xmpp.${key}`, {value});
             });
         });
 
@@ -109,10 +107,9 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     this.chatRoomForwarder.forward(XMPPEvents.BRIDGE_DOWN,
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.VIDEOBRIDGE_NOT_AVAILABLE);
-    chatRoom.addListener(XMPPEvents.BRIDGE_DOWN,
-        function() {
-            Statistics.analytics.sendEvent('conference.bridgeDown');
-        });
+    chatRoom.addListener(
+        XMPPEvents.BRIDGE_DOWN,
+        () => Statistics.analytics.sendEvent('conference.bridgeDown'));
 
     this.chatRoomForwarder.forward(XMPPEvents.RESERVATION_ERROR,
         JitsiConferenceEvents.CONFERENCE_FAILED,
@@ -156,9 +153,8 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
                 JitsiConferenceErrors.FOCUS_LEFT);
         });
 
-    const eventLogHandler = function(reason) {
-        Statistics.sendEventToAll('conference.error.' + reason);
-    };
+    const eventLogHandler
+        = reason => Statistics.sendEventToAll(`conference.error.${reason}`);
     chatRoom.addListener(XMPPEvents.SESSION_ACCEPT_TIMEOUT,
         eventLogHandler.bind(null, 'sessionAcceptTimeout'));
 
@@ -451,8 +447,9 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
                     participant, payload);
             } else {
                 logger.warn(
-                    'Ignored ENDPOINT_MESSAGE_RECEIVED '
-                    + 'for not existing participant: ' + from, payload);
+                    'Ignored ENDPOINT_MESSAGE_RECEIVED for not existing '
+                        + `participant: ${from}`,
+                    payload);
             }
         });
 

@@ -386,7 +386,7 @@ JitsiTrack.prototype.setAudioLevel = function(audioLevel) {
 JitsiTrack.prototype.getMSID = function() {
     const streamId = this.getStreamId();
     const trackId = this.getTrackId();
-    return streamId && trackId ? streamId + ' ' + trackId : null;
+    return streamId && trackId ? `${streamId} ${trackId}` : null;
 };
 
 /**

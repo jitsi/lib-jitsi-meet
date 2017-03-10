@@ -50,9 +50,9 @@ const transcriber = function() {
 transcriber.prototype.start = function start() {
     if(this.state !== BEFORE_STATE) {
         throw new Error(
-            'The transcription can only start when it\'s in the "'
-                + BEFORE_STATE + '" state. It\'s currently in the "'
-                + this.state + '" state');
+            `The transcription can only start when it's in the "${
+                 BEFORE_STATE}" state. It's currently in the "${
+                 this.state}" state`);
     }
     this.state = RECORDING_STATE;
     this.audioRecorder.start();
@@ -68,9 +68,9 @@ transcriber.prototype.start = function start() {
 transcriber.prototype.stop = function stop(callback) {
     if(this.state !== RECORDING_STATE) {
         throw new Error(
-            'The transcription can only stop when it\'s in the "'
-                + RECORDING_STATE + '" state. It\'s currently in the "'
-                + this.state + '" state');
+            `The transcription can only stop when it's in the "${
+                 RECORDING_STATE}" state. It's currently in the "${
+                 this.state}" state`);
     }
     // stop the recording
     console.log('stopping recording and sending audio files');
@@ -102,7 +102,7 @@ transcriber.prototype.stop = function stop(callback) {
 const blobCallBack = function(answer) {
     console.log(
         'retrieved an answer from the transcription service. The answer has an'
-            + ' array of length: ' + answer.wordArray.length);
+            + ` array of length: ${answer.wordArray.length}`);
     // first add the offset between the start of the transcription and
     // the start of the recording to all start and end times
     if(answer.wordArray.length > 0) {
@@ -117,7 +117,7 @@ const blobCallBack = function(answer) {
         answer.wordArray.forEach(function(wordObject) {
             wordObject.begin += offset;
             wordObject.end += offset;
-            array += wordObject.word + ',';
+            array += `${wordObject.word},`;
         });
         array += ']';
         console.log(array);
@@ -129,7 +129,7 @@ const blobCallBack = function(answer) {
     // then store the array and decrease the counter
     this.results.push(answer.wordArray);
     this.counter--;
-    console.log('current counter: ' + this.counter);
+    console.log(`current counter: ${this.counter}`);
     // and check if all results have been received.
     this.maybeMerge();
 };
@@ -152,8 +152,8 @@ transcriber.prototype.maybeMerge = function() {
  */
 transcriber.prototype.merge = function() {
     console.log(
-        'starting merge process!\n The length of the array: '
-            + this.results.length);
+        `starting merge process!\n The length of the array: ${
+             this.results.length}`);
     this.transcription = '';
     // the merging algorithm will look over all Word objects who are at pos 0 in
     // every array. It will then select the one closest in time to the
@@ -219,14 +219,14 @@ transcriber.prototype.merge = function() {
  */
 transcriber.prototype.updateTranscription = function(word, name) {
     if(name !== undefined && name !== null) {
-        this.transcription += '\n' + name + ':';
+        this.transcription += `\n${name}:`;
         this.lineLength = name.length + 1; // +1 for the semi-colon
     }
     if(this.lineLength + word.word.length > MAXIMUM_SENTENCE_LENGTH) {
         this.transcription += '\n    ';
         this.lineLength = 4; // because of the 4 spaces after the new line
     }
-    this.transcription += ' ' + word.word;
+    this.transcription += ` ${word.word}`;
     this.lineLength += word.word.length + 1; // +1 for the space
 };
 
@@ -239,8 +239,7 @@ transcriber.prototype.updateTranscription = function(word, name) {
  * @returns {boolean} true if any non-zero arrays inside, otherwise false
  */
 const hasPopulatedArrays = function(twoDimensionalArray) {
-    let i;
-    for(i = 0; i < twoDimensionalArray.length; i++) {
+    for(let i = 0; i < twoDimensionalArray.length; i++) {
         if(twoDimensionalArray[i].length === 0) {
             twoDimensionalArray.splice(i, 1);
         }
@@ -301,9 +300,9 @@ transcriber.prototype.removeTrack = function(track) {
 transcriber.prototype.getTranscription = function() {
     if(this.state !== FINISHED_STATE) {
         throw new Error(
-            'The transcription can only be retrieved when it\'s in the "'
-                + FINISHED_STATE + '" state. It\'s currently in the "'
-                + this.state + '" state');
+            `The transcription can only be retrieved when it's in the "${
+                 FINISHED_STATE}" state. It's currently in the "${
+                 this.state}" state`);
     }
     return this.transcription;
 };

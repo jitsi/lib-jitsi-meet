@@ -6,13 +6,13 @@ const SDPUtil = require('./SDPUtil');
 function SDP(sdp) {
     const media = sdp.split('\r\nm=');
     for (let i = 1, length = media.length; i < length; i++) {
-        let media_i = 'm=' + media[i];
+        let media_i = `m=${media[i]}`;
         if (i != length - 1) {
             media_i += '\r\n';
         }
         media[i] = media_i;
     }
-    const session = media.shift() + '\r\n';
+    const session = `${media.shift()}\r\n`;
 
     this.media = media;
     this.raw = session + media.join('');
@@ -122,9 +122,9 @@ SDP.prototype.mangle = function() {
                 }
                 mline.fmt.push(rtpmap.id);
             }
-            newdesc += lines[j] + '\r\n';
+            newdesc += `${lines[j]}\r\n`;
         }
-        this.media[i] = SDPUtil.build_mline(mline) + '\r\n' + newdesc;
+        this.media[i] = `${SDPUtil.build_mline(mline)}\r\n${newdesc}`;
     }
     this.raw = this.session + this.media.join('');
 };
@@ -134,7 +134,7 @@ SDP.prototype.removeSessionLines = function(prefix) {
     const self = this;
     const lines = SDPUtil.find_lines(this.session, prefix);
     lines.forEach(function(line) {
-        self.session = self.session.replace(line + '\r\n', '');
+        self.session = self.session.replace(`${line}\r\n`, '');
     });
     this.raw = this.session + this.media.join('');
     return lines;
@@ -145,7 +145,7 @@ SDP.prototype.removeMediaLines = function(mediaindex, prefix) {
     const self = this;
     const lines = SDPUtil.find_lines(this.media[mediaindex], prefix);
     lines.forEach(function(line) {
-        self.media[mediaindex] = self.media[mediaindex].replace(line + '\r\n', '');
+        self.media[mediaindex] = self.media[mediaindex].replace(`${line}\r\n`, '');
     });
     this.raw = this.session + this.media.join('');
     return lines;
@@ -197,10 +197,10 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                 elem.attrs({ssrc});
             }
             for (j = 0; j < mline.fmt.length; j++) {
-                rtpmap = SDPUtil.find_line(this.media[i], 'a=rtpmap:' + mline.fmt[j]);
+                rtpmap = SDPUtil.find_line(this.media[i], `a=rtpmap:${mline.fmt[j]}`);
                 elem.c('payload-type', SDPUtil.parse_rtpmap(rtpmap));
                 // put any 'a=fmtp:' + mline.fmt[j] lines into <param name=foo value=bar/>
-                const afmtpline = SDPUtil.find_line(this.media[i], 'a=fmtp:' + mline.fmt[j]);
+                const afmtpline = SDPUtil.find_line(this.media[i], `a=fmtp:${mline.fmt[j]}`);
                 if (afmtpline) {
                     tmp = SDPUtil.parse_fmtp(afmtpline);
                     for (k = 0; k < tmp.length; k++) {
@@ -419,7 +419,7 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
 };
 
 SDP.prototype.rtcpFbToJingle = function(mediaindex, elem, payloadtype) { // XEP-0293
-    const lines = SDPUtil.find_lines(this.media[mediaindex], 'a=rtcp-fb:' + payloadtype);
+    const lines = SDPUtil.find_lines(this.media[mediaindex], `a=rtcp-fb:${payloadtype}`);
     lines.forEach(function(line) {
         const tmp = SDPUtil.parse_rtcpfb(line);
         if (tmp.type == 'trr-int') {
@@ -449,9 +449,9 @@ SDP.prototype.rtcpFbFromJingle = function(elem, payloadtype) { // XEP-0293
     }
     tmp = elem.find('>rtcp-fb[xmlns="urn:xmpp:jingle:apps:rtp:rtcp-fb:0"]');
     tmp.each(function() {
-        media += 'a=rtcp-fb:' + payloadtype + ' ' + $(this).attr('type');
+        media += `a=rtcp-fb:${payloadtype} ${$(this).attr('type')}`;
         if ($(this).attr('subtype')) {
-            media += ' ' + $(this).attr('subtype');
+            media += ` ${$(this).attr('subtype')}`;
         }
         media += '\r\n';
     });
@@ -472,7 +472,7 @@ SDP.prototype.fromJingle = function(jingle) {
                 return content.getAttribute('name');
             }).get();
             if (contents.length > 0) {
-                self.raw += 'a=group:' + (group.getAttribute('semantics') || group.getAttribute('type')) + ' ' + contents.join(' ') + '\r\n';
+                self.raw += `a=group:${group.getAttribute('semantics') || group.getAttribute('type')} ${contents.join(' ')}\r\n`;
             }
         });
     }
@@ -519,15 +519,15 @@ SDP.prototype.jingle2media = function(content) {
             function() {
                 return this.getAttribute('id');
             }).get();
-        media += SDPUtil.build_mline(tmp) + '\r\n';
+        media += `${SDPUtil.build_mline(tmp)}\r\n`;
     } else {
-        media += 'm=application 1 DTLS/SCTP ' + sctp.attr('number') + '\r\n';
-        media += 'a=sctpmap:' + sctp.attr('number')
-            + ' ' + sctp.attr('protocol');
+        media += `m=application 1 DTLS/SCTP ${sctp.attr('number')}\r\n`;
+        media += `a=sctpmap:${sctp.attr('number')
+             } ${sctp.attr('protocol')}`;
 
         const streamCount = sctp.attr('streams');
         if (streamCount) {
-            media += ' ' + streamCount + '\r\n';
+            media += ` ${streamCount}\r\n`;
         } else {
             media += '\r\n';
         }
@@ -540,18 +540,18 @@ SDP.prototype.jingle2media = function(content) {
     tmp = content.find('>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]');
     if (tmp.length) {
         if (tmp.attr('ufrag')) {
-            media += SDPUtil.build_iceufrag(tmp.attr('ufrag')) + '\r\n';
+            media += `${SDPUtil.build_iceufrag(tmp.attr('ufrag'))}\r\n`;
         }
         if (tmp.attr('pwd')) {
-            media += SDPUtil.build_icepwd(tmp.attr('pwd')) + '\r\n';
+            media += `${SDPUtil.build_icepwd(tmp.attr('pwd'))}\r\n`;
         }
         tmp.find('>fingerprint').each(function() {
             // FIXME: check namespace at some point
-            media += 'a=fingerprint:' + this.getAttribute('hash');
-            media += ' ' + $(this).text();
+            media += `a=fingerprint:${this.getAttribute('hash')}`;
+            media += ` ${$(this).text()}`;
             media += '\r\n';
             if (this.getAttribute('setup')) {
-                media += 'a=setup:' + this.getAttribute('setup') + '\r\n';
+                media += `a=setup:${this.getAttribute('setup')}\r\n`;
             }
         });
     }
@@ -569,7 +569,7 @@ SDP.prototype.jingle2media = function(content) {
         media += 'a=sendrecv\r\n';
         break;
     }
-    media += 'a=mid:' + content.attr('name') + '\r\n';
+    media += `a=mid:${content.attr('name')}\r\n`;
 
     // <description><rtcp-mux/></description>
     // see http://code.google.com/p/libjingle/issues/detail?id=309 -- no spec though
@@ -580,22 +580,22 @@ SDP.prototype.jingle2media = function(content) {
 
     if (desc.find('encryption').length) {
         desc.find('encryption>crypto').each(function() {
-            media += 'a=crypto:' + this.getAttribute('tag');
-            media += ' ' + this.getAttribute('crypto-suite');
-            media += ' ' + this.getAttribute('key-params');
+            media += `a=crypto:${this.getAttribute('tag')}`;
+            media += ` ${this.getAttribute('crypto-suite')}`;
+            media += ` ${this.getAttribute('key-params')}`;
             if (this.getAttribute('session-params')) {
-                media += ' ' + this.getAttribute('session-params');
+                media += ` ${this.getAttribute('session-params')}`;
             }
             media += '\r\n';
         });
     }
     desc.find('payload-type').each(function() {
-        media += SDPUtil.build_rtpmap(this) + '\r\n';
+        media += `${SDPUtil.build_rtpmap(this)}\r\n`;
         if ($(this).find('>parameter').length) {
-            media += 'a=fmtp:' + this.getAttribute('id') + ' ';
+            media += `a=fmtp:${this.getAttribute('id')} `;
             media += $(this).find('parameter').map(function() {
                 return (this.getAttribute('name')
-                        ? this.getAttribute('name') + '=' : '')
+                        ? `${this.getAttribute('name')}=` : '')
                     + this.getAttribute('value');
             }).get().join('; ');
             media += '\r\n';
@@ -610,7 +610,7 @@ SDP.prototype.jingle2media = function(content) {
     // xep-0294
     tmp = desc.find('>rtp-hdrext[xmlns="urn:xmpp:jingle:apps:rtp:rtp-hdrext:0"]');
     tmp.each(function() {
-        media += 'a=extmap:' + this.getAttribute('id') + ' ' + this.getAttribute('uri') + '\r\n';
+        media += `a=extmap:${this.getAttribute('id')} ${this.getAttribute('uri')}\r\n`;
     });
 
     content.find('>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]>candidate').each(function() {
@@ -636,7 +636,7 @@ SDP.prototype.jingle2media = function(content) {
         }).get();
 
         if (ssrcs.length) {
-            media += 'a=ssrc-group:' + semantics + ' ' + ssrcs.join(' ') + '\r\n';
+            media += `a=ssrc-group:${semantics} ${ssrcs.join(' ')}\r\n`;
         }
     });
 
@@ -647,9 +647,9 @@ SDP.prototype.jingle2media = function(content) {
             const name = this.getAttribute('name');
             let value = this.getAttribute('value');
             value = SDPUtil.filter_special_chars(value);
-            media += 'a=ssrc:' + ssrc + ' ' + name;
+            media += `a=ssrc:${ssrc} ${name}`;
             if (value && value.length) {
-                media += ':' + value;
+                media += `:${value}`;
             }
             media += '\r\n';
         });

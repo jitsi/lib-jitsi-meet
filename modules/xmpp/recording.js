@@ -102,7 +102,7 @@ Recording.prototype.setRecordingJibri
             'streamid': options.streamId,
         }).up();
 
-        logger.log('Set jibri recording: ' + state, iq.nodeTree);
+        logger.log(`Set jibri recording: ${state}`, iq.nodeTree);
         logger.log(iq.nodeTree);
         this.connection.sendIQ(
         iq,
@@ -142,9 +142,10 @@ Recording.prototype.setRecordingJirecon
             // TODO wait for an IQ with the real status, since this is
             // provisional?
             self.jireconRid = $(result).find('recording').attr('rid');
-            logger.log('Recording '
-                + (state === Recording.status.ON ? 'started' : 'stopped')
-                + '(jirecon)' + result);
+            logger.log(
+                `Recording ${
+                    state === Recording.status.ON ? 'started' : 'stopped'
+                    }(jirecon)${result}`);
             self.state = state;
             if (state === Recording.status.OFF) {
                 self.jireconRid = null;
