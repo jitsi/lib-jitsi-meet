@@ -60,7 +60,7 @@ const isAudioOutputDeviceChangeAvailable
 
 let currentlyAvailableMediaDevices;
 
-let rawEnumerateDevicesWithCallback = undefined;
+let rawEnumerateDevicesWithCallback;
 /**
  * "rawEnumerateDevicesWithCallback" will be initialized only after WebRTC is
  * ready. Otherwise it is too early to assume that the devices listing is not

@@ -470,7 +470,7 @@ export default class RTC extends Listenable {
      * @private
      */
     _getRemoteTrackById(streamId, trackId) {
-        let result = undefined;
+        let result;
 
         // .find will break the loop once the first match is found
         Object.keys(this.remoteTracks).find(endpoint => {
