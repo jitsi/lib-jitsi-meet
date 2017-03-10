@@ -6,7 +6,9 @@ const options = {
         muc: 'conference.jitsi-meet.example.com' // FIXME: use XEP-0030
     },
     bosh: '//jitsi-meet.example.com/http-bind', // FIXME: use xep-0156 for that
-    clientNode: 'http://jitsi.org/jitsimeet' // The name of client node advertised in XEP-0115 'c' stanza
+
+    // The name of client node advertised in XEP-0115 'c' stanza
+    clientNode: 'http://jitsi.org/jitsimeet'
 };
 
 const confOptions = {
@@ -45,7 +47,8 @@ function onLocalTracks(tracks) {
             $('body').append(`<video autoplay='1' id='localVideo${i}' />`);
             localTracks[i].attach($(`#localVideo${i}`)[0]);
         } else {
-            $('body').append(`<audio autoplay='1' muted='true' id='localAudio${i}' />`);
+            $('body').append(
+                `<audio autoplay='1' muted='true' id='localAudio${i}' />`);
             localTracks[i].attach($(`#localAudio${i}`)[0]);
         }
         if (isJoined) {
@@ -85,9 +88,11 @@ function onRemoteTrack(track) {
     const id = participant + track.getType() + idx;
 
     if (track.getType() == 'video') {
-        $('body').append(`<video autoplay='1' id='${participant}video${idx}' />`);
+        $('body').append(
+            `<video autoplay='1' id='${participant}video${idx}' />`);
     } else {
-        $('body').append(`<audio autoplay='1' id='${participant}audio${idx}' />`);
+        $('body').append(
+            `<audio autoplay='1' id='${participant}audio${idx}' />`);
     }
     track.attach($(`#${id}`)[0]);
 }
@@ -124,7 +129,9 @@ function onConnectionSuccess() {
     room.on(JitsiMeetJS.events.conference.TRACK_REMOVED, track => {
         console.log(`track removed!!!${track}`);
     });
-    room.on(JitsiMeetJS.events.conference.CONFERENCE_JOINED, onConferenceJoined);
+    room.on(
+        JitsiMeetJS.events.conference.CONFERENCE_JOINED,
+        onConferenceJoined);
     room.on(JitsiMeetJS.events.conference.USER_JOINED, id => {
         console.log('user join');
         remoteTracks[id] = [];
@@ -133,9 +140,9 @@ function onConnectionSuccess() {
     room.on(JitsiMeetJS.events.conference.TRACK_MUTE_CHANGED, track => {
         console.log(`${track.getType()} - ${track.isMuted()}`);
     });
-    room.on(JitsiMeetJS.events.conference.DISPLAY_NAME_CHANGED, (userID, displayName) => {
-        console.log(`${userID} - ${displayName}`);
-    });
+    room.on(
+        JitsiMeetJS.events.conference.DISPLAY_NAME_CHANGED,
+        (userID, displayName) => console.log(`${userID} - ${displayName}`));
     room.on(JitsiMeetJS.events.conference.TRACK_AUDIO_LEVEL_CHANGED,
       (userID, audioLevel) => {
           console.log(`${userID} - ${audioLevel}`);
@@ -172,9 +179,15 @@ function onDeviceListChanged(devices) {
  */
 function disconnect() {
     console.log('disconnect!');
-    connection.removeEventListener(JitsiMeetJS.events.connection.CONNECTION_ESTABLISHED, onConnectionSuccess);
-    connection.removeEventListener(JitsiMeetJS.events.connection.CONNECTION_FAILED, onConnectionFailed);
-    connection.removeEventListener(JitsiMeetJS.events.connection.CONNECTION_DISCONNECTED, disconnect);
+    connection.removeEventListener(
+        JitsiMeetJS.events.connection.CONNECTION_ESTABLISHED,
+        onConnectionSuccess);
+    connection.removeEventListener(
+        JitsiMeetJS.events.connection.CONNECTION_FAILED,
+        onConnectionFailed);
+    connection.removeEventListener(
+        JitsiMeetJS.events.connection.CONNECTION_DISCONNECTED,
+        disconnect);
 }
 
 function unload() {
@@ -193,17 +206,16 @@ function switchVideo() { // eslint-disable-line no-unused-vars
         localTracks[1].dispose();
         localTracks.pop();
     }
-    JitsiMeetJS.createLocalTracks({ devices: isVideo ? [ 'video' ] : [ 'desktop' ] })
+    JitsiMeetJS.createLocalTracks(
+            { devices: isVideo ? [ 'video' ] : [ 'desktop' ] })
         .then(tracks => {
             localTracks.push(tracks[0]);
-            localTracks[1].addEventListener(JitsiMeetJS.events.track.TRACK_MUTE_CHANGED,
-                () => {
-                    console.log('local track muted');
-                });
-            localTracks[1].addEventListener(JitsiMeetJS.events.track.LOCAL_TRACK_STOPPED,
-                () => {
-                    console.log('local track stoped');
-                });
+            localTracks[1].addEventListener(
+                JitsiMeetJS.events.track.TRACK_MUTE_CHANGED,
+                () => console.log('local track muted'));
+            localTracks[1].addEventListener(
+                JitsiMeetJS.events.track.LOCAL_TRACK_STOPPED,
+                () => console.log('local track stoped'));
             localTracks[1].attach($('#localVideo1')[0]);
             room.addTrack(localTracks[1]);
         })
@@ -281,12 +293,16 @@ JitsiMeetJS.init(initOptions)
 
 if (JitsiMeetJS.mediaDevices.isDeviceChangeAvailable('output')) {
     JitsiMeetJS.mediaDevices.enumerateDevices(devices => {
-        const audioOutputDevices = devices.filter(d => d.kind === 'audiooutput');
+        const audioOutputDevices
+            = devices.filter(d => d.kind === 'audiooutput');
 
         if (audioOutputDevices.length > 1) {
             $('#audioOutputSelect').html(
-                audioOutputDevices.map(d => `<option value="${d.deviceId}">${d.label}</option>`).join('\n')
-            );
+                audioOutputDevices
+                    .map(
+                        d =>
+                            `<option value="${d.deviceId}">${d.label}</option>`)
+                    .join('\n'));
 
             $('#audioOutputSelectWrapper').show();
         }

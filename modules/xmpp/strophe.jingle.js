@@ -55,8 +55,12 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                 ack.attrs({ type: 'error' });
                 ack.c('error', { type: 'cancel' })
                     .c('item-not-found', {
-                        xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas' }).up()
-                    .c('unknown-session', { xmlns: 'urn:xmpp:jingle:errors:1' });
+                        xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas'
+                    })
+                    .up()
+                    .c('unknown-session', {
+                        xmlns: 'urn:xmpp:jingle:errors:1'
+                    });
                 logger.warn('invalid session id', iq);
                 this.connection.send(ack);
 
@@ -69,18 +73,26 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     'jid mismatch for session id', sid, sess.peerjid, iq);
                 ack.attrs({ type: 'error' });
                 ack.c('error', { type: 'cancel' })
-                    .c('item-not-found', { xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas' }).up()
-                    .c('unknown-session', { xmlns: 'urn:xmpp:jingle:errors:1' });
+                    .c('item-not-found', {
+                        xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas'
+                    })
+                    .up()
+                    .c('unknown-session', {
+                        xmlns: 'urn:xmpp:jingle:errors:1'
+                    });
                 this.connection.send(ack);
 
                 return true;
             }
         } else if (sess !== undefined) {
-            // existing session with same session id
-            // this might be out-of-order if the sess.peerjid is the same as from
+            // Existing session with same session id. This might be out-of-order
+            // if the sess.peerjid is the same as from.
             ack.attrs({ type: 'error' });
             ack.c('error', { type: 'cancel' })
-                .c('service-unavailable', { xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas' }).up();
+                .c('service-unavailable', {
+                    xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas'
+                })
+                .up();
             logger.warn('duplicate session id', sid, iq);
             this.connection.send(ack);
 
@@ -188,11 +200,13 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         // uses time-limited credentials as described in
         // http://tools.ietf.org/html/draft-uberti-behave-turn-rest-00
         //
-        // see https://code.google.com/p/prosody-modules/source/browse/mod_turncredentials/mod_turncredentials.lua
-        // for a prosody module which implements this
+        // See https://code.google.com/p/prosody-modules/source/browse/
+        // mod_turncredentials/mod_turncredentials.lua
+        // for a prosody module which implements this.
         //
-        // currently, this doesn't work with updateIce and therefore credentials with a long
-        // validity have to be fetched before creating the peerconnection
+        // Currently, this doesn't work with updateIce and therefore credentials
+        // with a long validity have to be fetched before creating the
+        // peerconnection.
         // TODO: implement refresh via updateIce as described in
         //      https://code.google.com/p/webrtc/issues/detail?id=1650
         this.connection.sendIQ(
@@ -221,7 +235,8 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                         dict.url = `${type}:`;
                         const username = el.attr('username');
 
-                            // https://code.google.com/p/webrtc/issues/detail?id=1508
+                        // https://code.google.com/p/webrtc/issues/detail
+                        // ?id=1508
 
                         if (username) {
                             if (navigator.userAgent.match(

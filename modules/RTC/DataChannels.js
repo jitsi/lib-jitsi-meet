@@ -16,10 +16,10 @@ function DataChannels(peerConnection, emitter) {
     this._dataChannels = [];
 
     // Sample code for opening new data channel from Jitsi Meet to the bridge.
-    // Although it's not a requirement to open separate channels from both bridge
-    // and peer as single channel can be used for sending and receiving data.
-    // So either channel opened by the bridge or the one opened here is enough
-    // for communication with the bridge.
+    // Although it's not a requirement to open separate channels from both
+    // bridge and peer as single channel can be used for sending and receiving
+    // data. So either channel opened by the bridge or the one opened here is
+    // enough for communication with the bridge.
     /* var dataChannelOptions =
      {
      reliable: true
@@ -141,7 +141,8 @@ DataChannels.prototype.onDataChannel = function(event) {
                 self.eventEmitter.emit(
                     RTCEvents.ENDPOINT_MESSAGE_RECEIVED, obj.from,
                     obj.msgPayload);
-            } else if (colibriClass === 'EndpointConnectivityStatusChangeEvent') {
+            } else if (colibriClass
+                    === 'EndpointConnectivityStatusChangeEvent') {
                 const endpoint = obj.endpoint;
                 const isActive = obj.active === 'true';
 

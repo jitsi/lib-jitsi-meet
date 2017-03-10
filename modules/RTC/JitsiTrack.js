@@ -67,8 +67,14 @@ function addMediaStreamInactiveHandler(mediaStream, handler) {
  * @param videoType the VideoType for this track if any
  * @param ssrc the SSRC of this track if known
  */
-function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMediaType,
-                    videoType, ssrc) {
+function JitsiTrack(
+        conference,
+        stream,
+        track,
+        streamInactiveHandler,
+        trackMediaType,
+        videoType,
+        ssrc) {
     /**
      * Array with the HTML elements that are displaying the streams.
      * @type {Array}
@@ -418,18 +424,25 @@ JitsiTrack.prototype.setAudioOutput = function(audioOutputDeviceId) {
         return Promise.resolve();
     }
 
-    return Promise.all(this.containers.map(element => element.setSinkId(audioOutputDeviceId)
-            .catch(error => {
-                logger.warn(
-                    'Failed to change audio output device on element. Default'
-                    + ' or previously set audio output device will be used.',
-                    element, error);
-                throw error;
-            })))
-    .then(() => {
-        self.eventEmitter.emit(JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED,
-            audioOutputDeviceId);
-    });
+    return (
+        Promise.all(
+                this.containers.map(
+                    element =>
+                        element.setSinkId(audioOutputDeviceId)
+                            .catch(error => {
+                                logger.warn(
+                                    'Failed to change audio output device on'
+                                        + ' element. Default or previously set'
+                                        + ' audio output device will be used.',
+                                    element,
+                                    error);
+                                throw error;
+                            })))
+            .then(() => {
+                self.eventEmitter.emit(
+                    JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED,
+                    audioOutputDeviceId);
+            }));
 };
 
 module.exports = JitsiTrack;

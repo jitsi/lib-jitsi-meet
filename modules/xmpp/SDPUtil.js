@@ -16,7 +16,11 @@ const SDPUtil = {
         let pwd, ufrag;
 
         if ((ufrag = SDPUtil.find_line(mediadesc, 'a=ice-ufrag:', sessiondesc))
-                && (pwd = SDPUtil.find_line(mediadesc, 'a=ice-pwd:', sessiondesc))) {
+                && (pwd
+                    = SDPUtil.find_line(
+                        mediadesc,
+                        'a=ice-pwd:',
+                        sessiondesc))) {
             data = {
                 ufrag: SDPUtil.parse_iceufrag(ufrag),
                 pwd: SDPUtil.parse_icepwd(pwd)
@@ -55,7 +59,9 @@ const SDPUtil = {
         return data;
     },
     build_mline(mline) {
-        return `m=${mline.media} ${mline.port} ${mline.proto} ${mline.fmt.join(' ')}`;
+        return (
+            `m=${mline.media} ${mline.port} ${mline.proto} ${
+                mline.fmt.join(' ')}`);
     },
     parse_rtpmap(line) {
         const data = {};
@@ -87,7 +93,9 @@ const SDPUtil = {
         return [ sctpPort, protocol, streamCount ];// SCTP port
     },
     build_rtpmap(el) {
-        let line = `a=rtpmap:${el.getAttribute('id')} ${el.getAttribute('name')}/${el.getAttribute('clockrate')}`;
+        let line
+            = `a=rtpmap:${el.getAttribute('id')} ${el.getAttribute('name')}/${
+                el.getAttribute('clockrate')}`;
 
         if (el.getAttribute('channels') && el.getAttribute('channels') != '1') {
             line += `/${el.getAttribute('channels')}`;
@@ -173,7 +181,9 @@ const SDPUtil = {
                 candidate.tcptype = elems[i + 1];
                 break;
             default: // TODO
-                logger.log(`parse_icecandidate not translating "${elems[i]}" = "${elems[i + 1]}"`);
+                logger.log(
+                    `parse_icecandidate not translating "${
+                        elems[i]}" = "${elems[i + 1]}"`);
             }
         }
         candidate.network = '1';
@@ -185,14 +195,24 @@ const SDPUtil = {
         return candidate;
     },
     build_icecandidate(cand) {
-        let line = [ `a=candidate:${cand.foundation}`, cand.component, cand.protocol, cand.priority, cand.ip, cand.port, 'typ', cand.type ].join(' ');
+        let line = [
+            `a=candidate:${cand.foundation}`,
+            cand.component,
+            cand.protocol,
+            cand.priority,
+            cand.ip,
+            cand.port,
+            'typ',
+            cand.type
+        ].join(' ');
 
         line += ' ';
         switch (cand.type) {
         case 'srflx':
         case 'prflx':
         case 'relay':
-            if (cand.hasOwnAttribute('rel-addr') && cand.hasOwnAttribute('rel-port')) {
+            if (cand.hasOwnAttribute('rel-addr')
+                    && cand.hasOwnAttribute('rel-port')) {
                 line += 'raddr';
                 line += ' ';
                 line += cand['rel-addr'];
@@ -218,8 +238,8 @@ const SDPUtil = {
     },
     parse_ssrc(desc) {
         // proprietary mapping of a=ssrc lines
-        // TODO: see "Jingle RTP Source Description" by Juberti and P. Thatcher on google docs
-        // and parse according to that
+        // TODO: see "Jingle RTP Source Description" by Juberti and P. Thatcher
+        // on google docs and parse according to that
         const data = {};
         const lines = desc.split('\r\n');
 
@@ -227,7 +247,8 @@ const SDPUtil = {
             if (lines[i].substring(0, 7) == 'a=ssrc:') {
                 const idx = lines[i].indexOf(' ');
 
-                data[lines[i].substr(idx + 1).split(':', 2)[0]] = lines[i].substr(idx + 1).split(':', 2)[1];
+                data[lines[i].substr(idx + 1).split(':', 2)[0]]
+                    = lines[i].substr(idx + 1).split(':', 2)[1];
             }
         }
 
@@ -305,12 +326,16 @@ const SDPUtil = {
         return needles;
     },
     candidateToJingle(line) {
-        // a=candidate:2979166662 1 udp 2113937151 192.168.2.100 57698 typ host generation 0
-        //      <candidate component=... foundation=... generation=... id=... ip=... network=... port=... priority=... protocol=... type=.../>
+        // a=candidate:2979166662 1 udp 2113937151 192.168.2.100 57698 typ host
+        // generation 0
+        //      <candidate component=... foundation=... generation=... id=...
+        // ip=... network=... port=... priority=... protocol=... type=.../>
         if (line.indexOf('candidate:') === 0) {
             line = `a=${line}`;
         } else if (line.substring(0, 12) != 'a=candidate:') {
-            logger.log('parseCandidate called with a line that is not a candidate line');
+            logger.log(
+                'parseCandidate called with a line that is not a candidate'
+                    + ' line');
             logger.log(line);
 
             return null;
@@ -395,7 +420,8 @@ const SDPUtil = {
         case 'srflx':
         case 'prflx':
         case 'relay':
-            if (cand.getAttribute('rel-addr') && cand.getAttribute('rel-port')) {
+            if (cand.getAttribute('rel-addr')
+                    && cand.getAttribute('rel-port')) {
                 line += 'raddr';
                 line += ' ';
                 line += cand.getAttribute('rel-addr');
@@ -540,7 +566,8 @@ const SDPUtil = {
             }
         }
         if (payloadType) {
-            const payloadTypes = videoMLine.payloads.split(' ').map(p => parseInt(p));
+            const payloadTypes
+                = videoMLine.payloads.split(' ').map(p => parseInt(p));
             const payloadIndex = payloadTypes.indexOf(payloadType);
 
             payloadTypes.splice(payloadIndex, 1);

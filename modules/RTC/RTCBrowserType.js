@@ -114,7 +114,8 @@ const RTCBrowserType = {
      */
     isTemasysPluginUsed() {
         // Temasys do not support Microsoft Edge:
-        // http://support.temasys.com.sg/support/solutions/articles/5000654345-can-the-temasys-webrtc-plugin-be-used-with-microsoft-edge-
+        // http://support.temasys.com.sg/support/solutions/articles/
+        // 5000654345-can-the-temasys-webrtc-plugin-be-used-with-microsoft-edge-
         if (RTCBrowserType.isIExplorer()
                 && RTCBrowserType.getIExplorerVersion() < 12) {
             return true;

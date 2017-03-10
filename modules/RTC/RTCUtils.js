@@ -193,7 +193,8 @@ function getConstraints(um, options) {
             // for some cameras it might be necessary to request 30fps
             // so they choose 30fps mjpg over 10fps yuy2
             if (options.minFps || options.fps) {
-                options.minFps = options.minFps || options.fps; // Fall back to options.fps for backwards compatibility
+                // Fall back to options.fps for backwards compatibility
+                options.minFps = options.minFps || options.fps;
                 constraints.video.mandatory.minFrameRate = options.minFps;
             }
             if (options.maxFps) {
@@ -303,9 +304,10 @@ function getConstraints(um, options) {
         constraints.video.optional.push({ bandwidth: options.bandwidth });
     }
 
-    // we turn audio for both audio and video tracks, the fake audio & video seems to work
-    // only when enabled in one getUserMedia call, we cannot get fake audio separate by fake video
-    // this later can be a problem with some of the tests
+    // we turn audio for both audio and video tracks, the fake audio & video
+    // seems to work only when enabled in one getUserMedia call, we cannot get
+    // fake audio separate by fake video this later can be a problem with some
+    // of the tests
     if (RTCBrowserType.isFirefox() && options.firefox_fake_device) {
         // seems to be fixed now, removing this experimental fix, as having
         // multiple audio tracks brake the tests
@@ -401,7 +403,9 @@ function pollForAvailableMediaDevices() {
  */
 function onMediaDevicesListChanged(devicesReceived) {
     currentlyAvailableMediaDevices = devicesReceived.slice(0);
-    logger.info('list of media devices has changed:', currentlyAvailableMediaDevices);
+    logger.info(
+        'list of media devices has changed:',
+        currentlyAvailableMediaDevices);
 
     const videoInputDevices
         = currentlyAvailableMediaDevices.filter(d => d.kind === 'videoinput');
@@ -413,12 +417,14 @@ function onMediaDevicesListChanged(devicesReceived) {
         = audioInputDevices.filter(d => d.label === '');
 
     if (videoInputDevices.length
-        && videoInputDevices.length === videoInputDevicesWithEmptyLabels.length) {
+            && videoInputDevices.length
+                === videoInputDevicesWithEmptyLabels.length) {
         devices.video = false;
     }
 
     if (audioInputDevices.length
-        && audioInputDevices.length === audioInputDevicesWithEmptyLabels.length) {
+            && audioInputDevices.length
+                === audioInputDevicesWithEmptyLabels.length) {
         devices.audio = false;
     }
 
@@ -682,7 +688,8 @@ function wrapAttachMediaStream(origAttachMediaStream) {
                 && audioOutputChanged) {
             element.setSinkId(rtcUtils.getAudioOutputDevice())
                 .catch(function(ex) {
-                    const err = new JitsiTrackError(ex, null, [ 'audiooutput' ]);
+                    const err
+                        = new JitsiTrackError(ex, null, [ 'audiooutput' ]);
 
                     GlobalOnErrorHandler.callUnhandledRejectionHandler(
                         { promise: this,
@@ -780,28 +787,33 @@ class RTCUtils extends Listenable {
                     return;
                 }
                 this.peerconnection = mozRTCPeerConnection;
-                this.getUserMedia = wrapGetUserMedia(navigator.mozGetUserMedia.bind(navigator));
-                this.enumerateDevices = wrapEnumerateDevices(
-                    navigator.mediaDevices.enumerateDevices.bind(navigator.mediaDevices)
-                );
+                this.getUserMedia
+                    = wrapGetUserMedia(
+                        navigator.mozGetUserMedia.bind(navigator));
+                this.enumerateDevices
+                    = wrapEnumerateDevices(
+                        navigator.mediaDevices.enumerateDevices.bind(
+                            navigator.mediaDevices));
                 this.pc_constraints = {};
-                this.attachMediaStream = wrapAttachMediaStream((element, stream) => {
-                    //  srcObject is being standardized and FF will eventually
-                    //  support that unprefixed. FF also supports the
-                    //  "element.src = URL.createObjectURL(...)" combo, but that
-                    //  will be deprecated in favour of srcObject.
-                    //
-                    // https://groups.google.com/forum/#!topic/mozilla.dev.media/pKOiioXonJg
-                    // https://github.com/webrtc/samples/issues/302
-                    if (element) {
-                        defaultSetVideoSrc(element, stream);
-                        if (stream) {
-                            element.play();
+                this.attachMediaStream
+                    = wrapAttachMediaStream((element, stream) => {
+                        // srcObject is being standardized and FF will
+                        // eventually support that unprefixed. FF also supports
+                        // the "element.src = URL.createObjectURL(...)" combo,
+                        // but that will be deprecated in favour of srcObject.
+                        //
+                        // https://groups.google.com/forum/#!topic/
+                        // mozilla.dev.media/pKOiioXonJg
+                        // https://github.com/webrtc/samples/issues/302
+                        if (element) {
+                            defaultSetVideoSrc(element, stream);
+                            if (stream) {
+                                element.play();
+                            }
                         }
-                    }
 
-                    return element;
-                });
+                        return element;
+                    });
                 this.getStreamID = function(stream) {
                     let id = stream.id;
 
@@ -816,8 +828,13 @@ class RTCUtils extends Listenable {
 
                     return SDPUtil.filter_special_chars(id);
                 };
-                RTCSessionDescription = mozRTCSessionDescription; // eslint-disable-line
-                RTCIceCandidate = mozRTCIceCandidate;             // eslint-disable-line
+
+                /* eslint-disable no-global-assign, no-native-reassign */
+
+                RTCSessionDescription = mozRTCSessionDescription;
+                RTCIceCandidate = mozRTCIceCandidate;
+
+                /* eslint-enable no-global-assign, no-native-reassign */
             } else if (RTCBrowserType.isChrome()
                     || RTCBrowserType.isOpera()
                     || RTCBrowserType.isNWJS()
@@ -825,22 +842,26 @@ class RTCUtils extends Listenable {
                     || RTCBrowserType.isReactNative()) {
 
                 this.peerconnection = webkitRTCPeerConnection;
-                const getUserMedia = navigator.webkitGetUserMedia.bind(navigator);
+                const getUserMedia
+                    = navigator.webkitGetUserMedia.bind(navigator);
 
                 if (navigator.mediaDevices) {
                     this.getUserMedia = wrapGetUserMedia(getUserMedia);
-                    this.enumerateDevices = wrapEnumerateDevices(
-                        navigator.mediaDevices.enumerateDevices.bind(navigator.mediaDevices)
-                    );
+                    this.enumerateDevices
+                        = wrapEnumerateDevices(
+                            navigator.mediaDevices.enumerateDevices.bind(
+                                navigator.mediaDevices));
                 } else {
                     this.getUserMedia = getUserMedia;
-                    this.enumerateDevices = enumerateDevicesThroughMediaStreamTrack;
+                    this.enumerateDevices
+                      = enumerateDevicesThroughMediaStreamTrack;
                 }
-                this.attachMediaStream = wrapAttachMediaStream((element, stream) => {
-                    defaultSetVideoSrc(element, stream);
+                this.attachMediaStream
+                    = wrapAttachMediaStream((element, stream) => {
+                        defaultSetVideoSrc(element, stream);
 
-                    return element;
-                });
+                        return element;
+                    });
                 this.getStreamID = function(stream) {
                     // A. MediaStreams from FF endpoints have the characters '{'
                     // and '}' that make jQuery choke.
@@ -889,33 +910,37 @@ class RTCUtils extends Listenable {
                 const webRTCReadyCb = () => {
                     this.peerconnection = RTCPeerConnection;
                     this.getUserMedia = window.getUserMedia;
-                    this.enumerateDevices = enumerateDevicesThroughMediaStreamTrack;
-                    this.attachMediaStream = wrapAttachMediaStream((element, stream) => {
-                        if (stream) {
-                            if (stream.id === 'dummyAudio'
-                                    || stream.id === 'dummyVideo') {
-                                return;
+                    this.enumerateDevices
+                        = enumerateDevicesThroughMediaStreamTrack;
+                    this.attachMediaStream
+                        = wrapAttachMediaStream((element, stream) => {
+                            if (stream) {
+                                if (stream.id === 'dummyAudio'
+                                        || stream.id === 'dummyVideo') {
+                                    return;
+                                }
+
+                                // The container must be visible in order to
+                                // play or attach the stream when Temasys plugin
+                                // is in use
+                                const containerSel = $(element);
+
+                                if (RTCBrowserType.isTemasysPluginUsed()
+                                        && !containerSel.is(':visible')) {
+                                    containerSel.show();
+                                }
+                                const video
+                                    = stream.getVideoTracks().length > 0;
+
+                                if (video && !$(element).is(':visible')) {
+                                    throw new Error(
+                                        'video element must be visible to'
+                                            + ' attach video stream');
+                                }
                             }
 
-                            // The container must be visible in order to play or
-                            // attach the stream when Temasys plugin is in use
-                            const containerSel = $(element);
-
-                            if (RTCBrowserType.isTemasysPluginUsed()
-                                    && !containerSel.is(':visible')) {
-                                containerSel.show();
-                            }
-                            const video = stream.getVideoTracks().length > 0;
-
-                            if (video && !$(element).is(':visible')) {
-                                throw new Error(
-                                    'video element must be visible to attach'
-                                        + ' video stream');
-                            }
-                        }
-
-                        return attachMediaStream(element, stream);
-                    });
+                            return attachMediaStream(element, stream);
+                        });
                     this.getStreamID
                         = stream => SDPUtil.filter_special_chars(stream.label);
 
@@ -975,7 +1000,11 @@ class RTCUtils extends Listenable {
     * @param {string} options.cameraDeviceId
     * @param {string} options.micDeviceId
     **/
-    getUserMediaWithConstraints(um, success_callback, failure_callback, options) {
+    getUserMediaWithConstraints(
+            um,
+            success_callback,
+            failure_callback,
+            options) {
         options = options || {};
         const constraints = getConstraints(um, options);
 
@@ -1013,9 +1042,10 @@ class RTCUtils extends Listenable {
      * @param {Object} [options] optional parameters
      * @param {Array} options.devices the devices that will be requested
      * @param {string} options.resolution resolution constraints
-     * @param {bool} options.dontCreateJitsiTrack if <tt>true</tt> objects with the following structure {stream: the Media Stream,
-     * type: "audio" or "video", videoType: "camera" or "desktop"}
-     * will be returned trough the Promise, otherwise JitsiTrack objects will be returned.
+     * @param {bool} options.dontCreateJitsiTrack if <tt>true</tt> objects with
+     * the following structure {stream: the Media Stream, type: "audio" or
+     * "video", videoType: "camera" or "desktop"} will be returned trough the
+     * Promise, otherwise JitsiTrack objects will be returned.
      * @param {string} options.cameraDeviceId
      * @param {string} options.micDeviceId
      * @returns {*} Promise object that will receive the new JitsiTracks
@@ -1062,14 +1092,14 @@ class RTCUtils extends Listenable {
                         dsOptions);
                 }
 
-                // With FF/IE we can't split the stream into audio and video because FF
-                // doesn't support media stream constructors. So, we need to get the
-                // audio stream separately from the video stream using two distinct GUM
-                // calls. Not very user friendly :-( but we don't have many other
-                // options neither.
+                // With FF/IE we can't split the stream into audio and video
+                // because FF doesn't support media stream constructors. So, we
+                // need to get the audio stream separately from the video stream
+                // using two distinct GUM calls. Not very user friendly :-( but
+                // we don't have many other options neither.
                 //
-                // Note that we pack those 2 streams in a single object and pass it to
-                // the successCallback method.
+                // Note that we pack those 2 streams in a single object and pass
+                // it to the successCallback method.
                 obtainDevices({
                     devices: options.devices,
                     streams: [],
@@ -1081,7 +1111,9 @@ class RTCUtils extends Listenable {
                 const hasDesktop = options.devices.indexOf('desktop') > -1;
 
                 if (hasDesktop) {
-                    options.devices.splice(options.devices.indexOf('desktop'), 1);
+                    options.devices.splice(
+                        options.devices.indexOf('desktop'),
+                        1);
                 }
                 options.resolution = options.resolution || '360';
                 if (options.devices.length) {
@@ -1098,7 +1130,8 @@ class RTCUtils extends Listenable {
                                 = stream.getVideoTracks().length > 0;
 
                             if ((audioDeviceRequested && !audioTracksReceived)
-                                || (videoDeviceRequested && !videoTracksReceived)) {
+                                    || (videoDeviceRequested
+                                        && !videoTracksReceived)) {
                                 self.stopMediaStream(stream);
 
                                 // We are getting here in case if we requested
@@ -1108,11 +1141,13 @@ class RTCUtils extends Listenable {
                                 // this happened, so reject with general error.
                                 const devices = [];
 
-                                if (audioDeviceRequested && !audioTracksReceived) {
+                                if (audioDeviceRequested
+                                        && !audioTracksReceived) {
                                     devices.push('audio');
                                 }
 
-                                if (videoDeviceRequested && !videoTracksReceived) {
+                                if (videoDeviceRequested
+                                        && !videoTracksReceived) {
                                     devices.push('video');
                                 }
 
@@ -1135,7 +1170,8 @@ class RTCUtils extends Listenable {
                                         reject(new JitsiTrackError(
                                             { name: 'UnknownError' },
                                             getConstraints(
-                                                options.devices, options),
+                                                options.devices,
+                                                options),
                                             devices)
                                         );
                                     },

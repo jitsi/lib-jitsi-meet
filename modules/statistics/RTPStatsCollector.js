@@ -66,7 +66,8 @@ KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_REACT_NATIVE]
  * @returns {number} packet loss percent
  */
 function calculatePacketLoss(lostPackets, totalPackets) {
-    if (!totalPackets || totalPackets <= 0 || !lostPackets || lostPackets <= 0) {
+    if (!totalPackets || totalPackets <= 0
+            || !lostPackets || lostPackets <= 0) {
         return 0;
     }
 
@@ -517,7 +518,8 @@ StatsCollector.prototype.processStatsReport = function() {
 
         const bytesReceivedNow = getNonNegativeStat(now, 'bytesReceived');
         const bytesReceivedBefore = getNonNegativeStat(before, 'bytesReceived');
-        const bytesReceived = Math.max(0, bytesReceivedNow - bytesReceivedBefore);
+        const bytesReceived
+            = Math.max(0, bytesReceivedNow - bytesReceivedBefore);
 
         let bytesSent = 0;
 

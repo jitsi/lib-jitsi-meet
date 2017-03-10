@@ -66,12 +66,12 @@ export default class RTC extends Listenable {
 
         // A flag whether we had received that the data channel had opened
         // we can get this flag out of sync if for some reason data channel got
-        // closed from server, a desired behaviour so we can see errors when this
-        // happen
+        // closed from server, a desired behaviour so we can see errors when
+        // this happen
         this.dataChannelsOpen = false;
 
-        // Switch audio output device on all remote audio tracks. Local audio tracks
-        // handle this event by themselves.
+        // Switch audio output device on all remote audio tracks. Local audio
+        // tracks handle this event by themselves.
         if (RTCUtils.isDeviceChangeAvailable('output')) {
             RTCUtils.addListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
                 deviceId => {
@@ -90,11 +90,10 @@ export default class RTC extends Listenable {
      * @param {Object} [options] optional parameters
      * @param {Array} options.devices the devices that will be requested
      * @param {string} options.resolution resolution constraints
-     * @param {bool} options.dontCreateJitsiTrack if <tt>true</tt> objects with the
-     * following structure {stream: the Media Stream,
-     * type: "audio" or "video", videoType: "camera" or "desktop"}
-     * will be returned trough the Promise, otherwise JitsiTrack objects will be
-     * returned.
+     * @param {bool} options.dontCreateJitsiTrack if <tt>true</tt> objects with
+     * the following structure {stream: the Media Stream, type: "audio" or
+     * "video", videoType: "camera" or "desktop"} will be returned trough the
+     * Promise, otherwise JitsiTrack objects will be returned.
      * @param {string} options.cameraDeviceId
      * @param {string} options.micDeviceId
      * @returns {*} Promise object that will receive the new JitsiTracks
@@ -186,7 +185,8 @@ export default class RTC extends Listenable {
      * order to always receive video for this participant (even when last n is
      * enabled).
      * @param id {string} the user id
-     * @throws NetworkError or InvalidStateError or Error if the operation fails.
+     * @throws NetworkError or InvalidStateError or Error if the operation
+     * fails.
      */
     pinEndpoint(id) {
         if (this.dataChannels) {
@@ -364,8 +364,8 @@ export default class RTC extends Listenable {
     }
 
     /**
-     * Gets JitsiRemoteTrack for AUDIO MediaType associated with given MUC nickname
-     * (resource part of the JID).
+     * Gets JitsiRemoteTrack for AUDIO MediaType associated with given MUC
+     * nickname (resource part of the JID).
      * @param resource the resource part of the MUC JID
      * @returns {JitsiRemoteTrack|null}
      */
@@ -374,8 +374,8 @@ export default class RTC extends Listenable {
     }
 
     /**
-     * Gets JitsiRemoteTrack for VIDEO MediaType associated with given MUC nickname
-     * (resource part of the JID).
+     * Gets JitsiRemoteTrack for VIDEO MediaType associated with given MUC
+     * nickname (resource part of the JID).
      * @param resource the resource part of the MUC JID
      * @returns {JitsiRemoteTrack|null}
      */
@@ -699,7 +699,7 @@ export default class RTC extends Listenable {
      * matches given SSRC or <tt>undefined</tt> if no such track was found.
      */
     getRemoteTrackBySSRC(ssrc) {
-        return this.getRemoteTracks().find(remoteTrack => ssrc == remoteTrack.getSSRC());
+        return this.getRemoteTracks().find(t => ssrc == t.getSSRC());
     }
 
     /**

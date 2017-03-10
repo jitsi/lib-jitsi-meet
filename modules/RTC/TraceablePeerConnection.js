@@ -228,7 +228,8 @@ const dumpSDP = function(description) {
 TraceablePeerConnection.prototype._remoteStreamAdded = function(stream) {
     if (!RTC.isUserStream(stream)) {
         logger.info(
-            'Ignored remote \'stream added\' event for non-user stream', stream);
+            'Ignored remote \'stream added\' event for non-user stream',
+            stream);
 
         return;
     }
@@ -545,7 +546,8 @@ const normalizePlanB = function(desc) {
     const session = transform.parse(desc.sdp);
 
     if (typeof session !== 'undefined'
-        && typeof session.media !== 'undefined' && Array.isArray(session.media)) {
+            && typeof session.media !== 'undefined'
+            && Array.isArray(session.media)) {
         session.media.forEach(mLine => {
 
             // Chrome appears to be picky about the order in which a=ssrc lines
@@ -696,9 +698,11 @@ TraceablePeerConnection.prototype.createDataChannel = function(label, opts) {
 
 TraceablePeerConnection.prototype.setLocalDescription
         = function(description, successCallback, failureCallback) {
-            this.trace('setLocalDescription::preTransform', dumpSDP(description));
+            this.trace(
+                'setLocalDescription::preTransform',
+                dumpSDP(description));
 
-    // if we're running on FF, transform to Plan A first.
+            // if we're running on FF, transform to Plan A first.
             if (RTCBrowserType.usesUnifiedPlan()) {
                 description = this.interop.toUnifiedPlan(description);
                 this.trace('setLocalDescription::postTransform (Plan A)',
@@ -724,26 +728,31 @@ TraceablePeerConnection.prototype.setLocalDescription
 
 TraceablePeerConnection.prototype.setRemoteDescription
         = function(description, successCallback, failureCallback) {
-            this.trace('setRemoteDescription::preTransform', dumpSDP(description));
+            this.trace(
+                'setRemoteDescription::preTransform',
+                dumpSDP(description));
 
-    // TODO the focus should squeze or explode the remote simulcast
+            // TODO the focus should squeze or explode the remote simulcast
             description = this.simulcast.mungeRemoteDescription(description);
             this.trace(
-        'setRemoteDescription::postTransform (simulcast)',
-        dumpSDP(description));
+                'setRemoteDescription::postTransform (simulcast)',
+                dumpSDP(description));
 
             if (this.options.preferH264) {
                 const parsedSdp = transform.parse(description.sdp);
-                const videoMLine = parsedSdp.media.find(m => m.type === 'video');
+                const videoMLine
+                    = parsedSdp.media.find(m => m.type === 'video');
 
                 SDPUtil.preferVideoCodec(videoMLine, 'h264');
                 description.sdp = transform.write(parsedSdp);
             }
 
-    // if we're running on FF, transform to Plan A first.
+            // if we're running on FF, transform to Plan A first.
             if (RTCBrowserType.usesUnifiedPlan()) {
                 description.sdp = this.rtxModifier.stripRtx(description.sdp);
-                this.trace('setRemoteDescription::postTransform (stripRtx)', dumpSDP(description));
+                this.trace(
+                    'setRemoteDescription::postTransform (stripRtx)',
+                    dumpSDP(description));
                 description = this.interop.toUnifiedPlan(description);
                 this.trace(
             'setRemoteDescription::postTransform (Plan A)',
@@ -900,7 +909,8 @@ TraceablePeerConnection.prototype.createAnswer
                         = this.sdpConsistency.makeVideoPrimarySsrcsConsistent(
                             answer.sdp);
                     this.trace(
-                        'createAnswerOnSuccess::postTransform (make primary video ssrcs consistent)',
+                        'createAnswerOnSuccess::postTransform (make primary'
+                          + ' video ssrcs consistent)',
                         dumpSDP(answer));
                 }
 

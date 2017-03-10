@@ -168,7 +168,9 @@ Statistics.prototype.addConnectionStatsListener = function(listener) {
 };
 
 Statistics.prototype.removeConnectionStatsListener = function(listener) {
-    this.eventEmitter.removeListener(StatisticsEvents.CONNECTION_STATS, listener);
+    this.eventEmitter.removeListener(
+        StatisticsEvents.CONNECTION_STATS,
+        listener);
 };
 
 Statistics.prototype.addByteSentStatsListener = function(listener) {

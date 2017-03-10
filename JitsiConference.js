@@ -30,9 +30,11 @@ const logger = getLogger(__filename);
  * Creates a JitsiConference object with the given name and properties.
  * Note: this constructor is not a part of the public API (objects should be
  * created using JitsiConnection.createConference).
- * @param options.config properties / settings related to the conference that will be created.
+ * @param options.config properties / settings related to the conference that
+ * will be created.
  * @param options.name the name of the conference
- * @param options.connection the JitsiConnection object for this JitsiConference.
+ * @param options.connection the JitsiConnection object for this
+ * JitsiConference.
  * @constructor
  */
 function JitsiConference(options) {
@@ -133,7 +135,8 @@ JitsiConference.prototype._init = function(options) {
             callStatsID: this.options.config.callStatsID,
             callStatsSecret: this.options.config.callStatsSecret,
             callStatsConfIDNamespace:
-                this.options.config.callStatsConfIDNamespace || window.location.hostname,
+                this.options.config.callStatsConfIDNamespace
+                    || window.location.hostname,
             callStatsCustomScriptUrl:
                 this.options.config.callStatsCustomScriptUrl,
             roomName: this.options.name
@@ -303,12 +306,13 @@ JitsiConference.prototype.getLocalVideoTrack = function() {
 };
 
 /**
- * Attaches a handler for events(For example - "participant joined".) in the conference. All possible event are defined
- * in JitsiConferenceEvents.
+ * Attaches a handler for events(For example - "participant joined".) in the
+ * conference. All possible event are defined in JitsiConferenceEvents.
  * @param eventId the event ID.
  * @param handler handler for the event.
  *
- * Note: consider adding eventing functionality by extending an EventEmitter impl, instead of rolling ourselves
+ * Note: consider adding eventing functionality by extending an EventEmitter
+ * impl, instead of rolling ourselves
  */
 JitsiConference.prototype.on = function(eventId, handler) {
     if (this.eventEmitter) {
@@ -321,7 +325,8 @@ JitsiConference.prototype.on = function(eventId, handler) {
  * @param eventId the event ID.
  * @param [handler] optional, the specific handler to unbind
  *
- * Note: consider adding eventing functionality by extending an EventEmitter impl, instead of rolling ourselves
+ * Note: consider adding eventing functionality by extending an EventEmitter
+ * impl, instead of rolling ourselves
  */
 JitsiConference.prototype.off = function(eventId, handler) {
     if (this.eventEmitter) {
@@ -561,7 +566,8 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
                 new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
         }
 
-        // Set up the ssrcHandler for the new track before we add it at the lower levels
+        // Set up the ssrcHandler for the new track before we add it at the
+        // lower levels
         newTrack.ssrcHandler = function(conference, ssrcMap) {
             const trackSSRCInfo = ssrcMap.get(this.getMSID());
 
@@ -583,7 +589,8 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
                 this.onLocalTrackRemoved(oldTrack);
             }
             if (newTrack) {
-                // Now handle the addition of the newTrack at the JitsiConference level
+                // Now handle the addition of the newTrack at the
+                // JitsiConference level
                 this._setupNewTrack(newTrack);
             }
 
@@ -675,10 +682,12 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
 /**
  * Adds loca WebRTC stream to the conference.
  * @param {MediaStream} stream new stream that will be added.
- * @param {function} callback callback executed after successful stream addition.
- * @param {function(error)} errorCallback callback executed if stream addition fail.
- * @param {object} ssrcInfo object with information about the SSRCs associated with the
- * stream.
+ * @param {function} callback callback executed after successful stream
+ * addition.
+ * @param {function(error)} errorCallback callback executed if stream addition
+ * fail.
+ * @param {object} ssrcInfo object with information about the SSRCs associated
+ * with the stream.
  * @param {boolean} [dontModifySources] if <tt>true</tt> _modifySources won't be
  * called. The option is used for adding stream, before the Jingle call is
  * started. That is before the 'session-accept' is sent.
@@ -709,8 +718,9 @@ JitsiConference.prototype.removeLocalStream
             this.jingleSession.removeStream(
             stream, callback, errorCallback, ssrcInfo);
         } else {
-        // We are done immediately
-            logger.warn('Remove local MediaStream - no JingleSession started yet');
+            // We are done immediately
+            logger.warn(
+                'Remove local MediaStream - no JingleSession started yet');
             callback();
         }
     };
@@ -903,7 +913,10 @@ JitsiConference.prototype.onMemberJoined
 
         participant._role = role;
         this.participants[id] = participant;
-        this.eventEmitter.emit(JitsiConferenceEvents.USER_JOINED, id, participant);
+        this.eventEmitter.emit(
+            JitsiConferenceEvents.USER_JOINED,
+            id,
+            participant);
         this.xmpp.caps.getFeatures(jid).then(features => {
             participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
             this.updateDTMFSupport();
@@ -957,7 +970,10 @@ JitsiConference.prototype.onDisplayNameChanged = function(jid, displayName) {
     }
 
     participant._displayName = displayName;
-    this.eventEmitter.emit(JitsiConferenceEvents.DISPLAY_NAME_CHANGED, id, displayName);
+    this.eventEmitter.emit(
+        JitsiConferenceEvents.DISPLAY_NAME_CHANGED,
+        id,
+        displayName);
 };
 
 /**
@@ -1113,7 +1129,9 @@ JitsiConference.prototype.onIncomingCall
          *  consistent
          */
 
-        if (localTrack.isVideoTrack() && localTrack.isMuted() && !RTCBrowserType.isFirefox()) {
+        if (localTrack.isVideoTrack()
+                && localTrack.isMuted()
+                && !RTCBrowserType.isFirefox()) {
             /**
              * Handles issues when the stream is added before the peerconnection
              * is created. The peerconnection is created when second participant
@@ -1244,7 +1262,9 @@ JitsiConference.prototype.updateDTMFSupport = function() {
     }
     if (somebodySupportsDTMF !== this.somebodySupportsDTMF) {
         this.somebodySupportsDTMF = somebodySupportsDTMF;
-        this.eventEmitter.emit(JitsiConferenceEvents.DTMF_SUPPORT_CHANGED, somebodySupportsDTMF);
+        this.eventEmitter.emit(
+            JitsiConferenceEvents.DTMF_SUPPORT_CHANGED,
+            somebodySupportsDTMF);
     }
 };
 
@@ -1262,7 +1282,11 @@ JitsiConference.prototype.isDTMFSupported = function() {
  * @return {string} local user's ID
  */
 JitsiConference.prototype.myUserId = function() {
-    return this.room && this.room.myroomjid ? Strophe.getResourceFromJid(this.room.myroomjid) : null;
+    return (
+        this.room
+            && this.room.myroomjid
+                ? Strophe.getResourceFromJid(this.room.myroomjid)
+                : null);
 };
 
 JitsiConference.prototype.sendTones = function(tones, duration, pause) {

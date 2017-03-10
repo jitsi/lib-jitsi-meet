@@ -47,14 +47,15 @@ export default class XMPP extends Listenable {
 
         // Setup a disconnect on unload as a way to facilitate API consumers. It
         // sounds like they would want that. A problem for them though may be if
-        // they wanted to utilize the connected connection in an unload handler of
-        // their own. However, it should be fairly easy for them to do that by
-        // registering their unload handler before us.
+        // they wanted to utilize the connected connection in an unload handler
+        // of their own. However, it should be fairly easy for them to do that
+        // by registering their unload handler before us.
         $(window).on('beforeunload unload', this.disconnect.bind(this));
     }
 
     /**
-     * Initializes the list of feature advertised through the disco-info mechanism
+     * Initializes the list of feature advertised through the disco-info
+     * mechanism.
      */
     initFeaturesList() {
         // http://xmpp.org/extensions/xep-0167.html#support
@@ -237,9 +238,9 @@ export default class XMPP extends Listenable {
     }
 
     /**
-     * Attach to existing connection. Can be used for optimizations. For example:
-     * if the connection is created on the server we can attach to it and start
-     * using it.
+     * Attach to existing connection. Can be used for optimizations. For
+     * example: if the connection is created on the server we can attach to it
+     * and start using it.
      *
      * @param options {object} connecting options - rid, sid, jid and password.
      */
@@ -339,8 +340,8 @@ export default class XMPP extends Listenable {
     /**
      * Disconnects this from the XMPP server (if this is connected).
      *
-     * @param ev optionally, the event which triggered the necessity to disconnect
-     * from the XMPP server (e.g. beforeunload, unload)
+     * @param ev optionally, the event which triggered the necessity to
+     * disconnect from the XMPP server (e.g. beforeunload, unload).
      */
     disconnect(ev) {
         if (this.disconnectInProgress
@@ -354,16 +355,17 @@ export default class XMPP extends Listenable {
         this.disconnectInProgress = true;
 
         // XXX Strophe is asynchronously sending by default. Unfortunately, that
-        // means that there may not be enough time to send an unavailable presence
-        // or disconnect at all. Switching Strophe to synchronous sending is not
-        // much of an option because it may lead to a noticeable delay in navigating
-        // away from the current location. As a compromise, we will try to increase
-        // the chances of sending an unavailable presence and/or disconecting within
-        // the short time span that we have upon unloading by invoking flush() on
-        // the connection. We flush() once before disconnect() in order to attemtp
-        // to have its unavailable presence at the top of the send queue. We flush()
-        // once more after disconnect() in order to attempt to have its unavailable
-        // presence sent as soon as possible.
+        // means that there may not be enough time to send an unavailable
+        // presence or disconnect at all. Switching Strophe to synchronous
+        // sending is not much of an option because it may lead to a noticeable
+        // delay in navigating away from the current location. As a compromise,
+        // we will try to increase the chances of sending an unavailable
+        // presence and/or disconecting within the short time span that we have
+        // upon unloading by invoking flush() on the connection. We flush() once
+        // before disconnect() in order to attemtp to have its unavailable
+        // presence at the top of the send queue. We flush() once more after
+        // disconnect() in order to attempt to have its unavailable presence
+        // sent as soon as possible.
         this.connection.flush();
 
         if (ev !== null && typeof ev !== 'undefined') {
@@ -372,9 +374,9 @@ export default class XMPP extends Listenable {
             if (evType == 'beforeunload' || evType == 'unload') {
                 // XXX Whatever we said above, synchronous sending is the best
                 // (known) way to properly disconnect from the XMPP server.
-                // Consequently, it may be fine to have the source code and comment
-                // it in or out depending on whether we want to run with it for some
-                // time.
+                // Consequently, it may be fine to have the source code and
+                // comment it in or out depending on whether we want to run with
+                // it for some time.
                 this.connection.options.sync = true;
             }
         }

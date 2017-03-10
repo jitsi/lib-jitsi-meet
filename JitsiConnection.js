@@ -5,11 +5,13 @@ import XMPP from './modules/xmpp/xmpp';
 const Statistics = require('./modules/statistics/statistics');
 
 /**
- * Creates new connection object for the Jitsi Meet server side video conferencing service. Provides access to the
- * JitsiConference interface.
- * @param appID identification for the provider of Jitsi Meet video conferencing services.
+ * Creates new connection object for the Jitsi Meet server side video
+ * conferencing service. Provides access to the JitsiConference interface.
+ * @param appID identification for the provider of Jitsi Meet video conferencing
+ * services.
  * @param token the JWT token used to authenticate with the server(optional)
- * @param options Object with properties / settings related to connection with the server.
+ * @param options Object with properties / settings related to connection with
+ * the server.
  * @constructor
  */
 function JitsiConnection(appID, token, options) {

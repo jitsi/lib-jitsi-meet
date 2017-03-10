@@ -51,7 +51,10 @@ SDP.prototype.getMediaSsrcMap = function() {
 
     for (let mediaindex = 0; mediaindex < self.media.length; mediaindex++) {
         tmp = SDPUtil.find_lines(self.media[mediaindex], 'a=ssrc:');
-        const mid = SDPUtil.parse_mid(SDPUtil.find_line(self.media[mediaindex], 'a=mid:'));
+        const mid
+            = SDPUtil.parse_mid(
+                SDPUtil.find_line(self.media[mediaindex],
+                'a=mid:'));
         const media = {
             mediaindex,
             mid,
@@ -223,11 +226,18 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                 elem.attrs({ ssrc });
             }
             for (j = 0; j < mline.fmt.length; j++) {
-                rtpmap = SDPUtil.find_line(this.media[i], `a=rtpmap:${mline.fmt[j]}`);
+                rtpmap
+                    = SDPUtil.find_line(
+                        this.media[i],
+                        `a=rtpmap:${mline.fmt[j]}`);
                 elem.c('payload-type', SDPUtil.parse_rtpmap(rtpmap));
 
-                // put any 'a=fmtp:' + mline.fmt[j] lines into <param name=foo value=bar/>
-                const afmtpline = SDPUtil.find_line(this.media[i], `a=fmtp:${mline.fmt[j]}`);
+                // put any 'a=fmtp:' + mline.fmt[j] lines into <param name=foo
+                // value=bar/>
+                const afmtpline
+                    = SDPUtil.find_line(
+                        this.media[i],
+                        `a=fmtp:${mline.fmt[j]}`);
 
                 if (afmtpline) {
                     tmp = SDPUtil.parse_fmtp(afmtpline);
@@ -235,11 +245,14 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                         elem.c('parameter', tmp[k]).up();
                     }
                 }
-                this.rtcpFbToJingle(i, elem, mline.fmt[j]); // XEP-0293 -- map a=rtcp-fb
+
+                // XEP-0293 -- map a=rtcp-fb
+                this.rtcpFbToJingle(i, elem, mline.fmt[j]);
 
                 elem.up();
             }
-            const crypto = SDPUtil.find_lines(this.media[i], 'a=crypto:', this.session);
+            const crypto
+                = SDPUtil.find_lines(this.media[i], 'a=crypto:', this.session);
 
             if (crypto.length) {
                 elem.c('encryption', { required: 1 });
@@ -327,7 +340,8 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                 elem.up();
 
                 // XEP-0339 handle ssrc-group attributes
-                const ssrc_group_lines = SDPUtil.find_lines(this.media[i], 'a=ssrc-group:');
+                const ssrc_group_lines
+                    = SDPUtil.find_lines(this.media[i], 'a=ssrc-group:');
 
                 ssrc_group_lines.forEach(line => {
                     const idx = line.indexOf(' ');
@@ -355,9 +369,11 @@ SDP.prototype.toJingle = function(elem, thecreator) {
             if (lines.length) {
                 for (j = 0; j < lines.length; j++) {
                     tmp = SDPUtil.parse_extmap(lines[j]);
-                    elem.c('rtp-hdrext', { xmlns: 'urn:xmpp:jingle:apps:rtp:rtp-hdrext:0',
+                    elem.c('rtp-hdrext', {
+                        xmlns: 'urn:xmpp:jingle:apps:rtp:rtp-hdrext:0',
                         uri: tmp.uri,
-                        id: tmp.value });
+                        id: tmp.value
+                    });
                     if (tmp.hasOwnProperty('direction')) {
                         switch (tmp.direction) {
                         case 'sendonly':
@@ -385,13 +401,15 @@ SDP.prototype.toJingle = function(elem, thecreator) {
         // map ice-ufrag/pwd, dtls fingerprint, candidates
         this.transportToJingle(i, elem);
 
-        if (SDPUtil.find_line(this.media[i], 'a=sendrecv', this.session)) {
+        const m = this.media[i];
+
+        if (SDPUtil.find_line(m, 'a=sendrecv', this.session)) {
             elem.attrs({ senders: 'both' });
-        } else if (SDPUtil.find_line(this.media[i], 'a=sendonly', this.session)) {
+        } else if (SDPUtil.find_line(m, 'a=sendonly', this.session)) {
             elem.attrs({ senders: 'initiator' });
-        } else if (SDPUtil.find_line(this.media[i], 'a=recvonly', this.session)) {
+        } else if (SDPUtil.find_line(m, 'a=recvonly', this.session)) {
             elem.attrs({ senders: 'responder' });
-        } else if (SDPUtil.find_line(this.media[i], 'a=inactive', this.session)) {
+        } else if (SDPUtil.find_line(m, 'a=inactive', this.session)) {
             elem.attrs({ senders: 'none' });
         }
         if (mline.port == '0') {
@@ -433,14 +451,21 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
 
     // XEP-0320
     const fingerprints
-        = SDPUtil.find_lines(this.media[mediaindex], 'a=fingerprint:', this.session);
+        = SDPUtil.find_lines(
+            this.media[mediaindex],
+            'a=fingerprint:',
+            this.session);
 
     fingerprints.forEach(line => {
         tmp = SDPUtil.parse_fingerprint(line);
         tmp.xmlns = 'urn:xmpp:jingle:apps:dtls:0';
         elem.c('fingerprint').t(tmp.fingerprint);
         delete tmp.fingerprint;
-        line = SDPUtil.find_line(self.media[mediaindex], 'a=setup:', self.session);
+        line
+            = SDPUtil.find_line(
+                self.media[mediaindex],
+                'a=setup:',
+                self.session);
         if (line) {
             tmp.setup = line.substr(8);
         }
@@ -453,18 +478,23 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
         elem.attrs(tmp);
 
         // XEP-0176
-        if (SDPUtil.find_line(this.media[mediaindex], 'a=candidate:', this.session)) { // add any a=candidate lines
-            const lines = SDPUtil.find_lines(this.media[mediaindex], 'a=candidate:', this.session);
+        const lines
+            = SDPUtil.find_lines(
+                this.media[mediaindex],
+                'a=candidate:',
+                this.session);
 
+        if (lines.length) { // add any a=candidate lines
             lines.forEach(line => {
                 const candidate = SDPUtil.candidateToJingle(line);
 
                 if (self.failICE) {
                     candidate.ip = '1.1.1.1';
                 }
-                const protocol = candidate
-                        && typeof candidate.protocol === 'string'
-                    ? candidate.protocol.toLowerCase() : '';
+                const protocol
+                    = candidate && typeof candidate.protocol === 'string'
+                        ? candidate.protocol.toLowerCase()
+                        : '';
 
                 if ((self.removeTcpCandidates
                         && (protocol === 'tcp' || protocol === 'ssltcp'))
@@ -478,19 +508,27 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
     elem.up(); // end of transport
 };
 
-SDP.prototype.rtcpFbToJingle = function(mediaindex, elem, payloadtype) { // XEP-0293
-    const lines = SDPUtil.find_lines(this.media[mediaindex], `a=rtcp-fb:${payloadtype}`);
+// XEP-0293
+SDP.prototype.rtcpFbToJingle = function(mediaindex, elem, payloadtype) {
+    const lines
+        = SDPUtil.find_lines(
+            this.media[mediaindex],
+            `a=rtcp-fb:${payloadtype}`);
 
     lines.forEach(line => {
         const tmp = SDPUtil.parse_rtcpfb(line);
 
         if (tmp.type == 'trr-int') {
-            elem.c('rtcp-fb-trr-int', { xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0',
-                value: tmp.params[0] });
+            elem.c('rtcp-fb-trr-int', {
+                xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0',
+                value: tmp.params[0]
+            });
             elem.up();
         } else {
-            elem.c('rtcp-fb', { xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0',
-                type: tmp.type });
+            elem.c('rtcp-fb', {
+                xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0',
+                type: tmp.type
+            });
             if (tmp.params.length > 0) {
                 elem.attrs({ 'subtype': tmp.params[0] });
             }
@@ -501,7 +539,9 @@ SDP.prototype.rtcpFbToJingle = function(mediaindex, elem, payloadtype) { // XEP-
 
 SDP.prototype.rtcpFbFromJingle = function(elem, payloadtype) { // XEP-0293
     let media = '';
-    let tmp = elem.find('>rtcp-fb-trr-int[xmlns="urn:xmpp:jingle:apps:rtp:rtcp-fb:0"]');
+    let tmp
+        = elem.find(
+            '>rtcp-fb-trr-int[xmlns="urn:xmpp:jingle:apps:rtp:rtcp-fb:0"]');
 
     if (tmp.length) {
         media += 'a=rtcp-fb:* trr-int ';
@@ -533,7 +573,8 @@ SDP.prototype.fromJingle = function(jingle) {
         + 's=-\r\n'
         + 't=0 0\r\n';
 
-    // http://tools.ietf.org/html/draft-ietf-mmusic-sdp-bundle-negotiation-04#section-8
+    // http://tools.ietf.org/html/draft-ietf-mmusic-sdp-bundle-negotiation-04
+    // #section-8
     const groups
         = $(jingle).find('>group[xmlns="urn:xmpp:jingle:apps:grouping:0"]');
 
@@ -547,7 +588,10 @@ SDP.prototype.fromJingle = function(jingle) {
 
             if (contents.length > 0) {
                 self.raw
-                    += `a=group:${group.getAttribute('semantics') || group.getAttribute('type')} ${contents.join(' ')}\r\n`;
+                    += `a=group:${
+                        group.getAttribute('semantics')
+                            || group.getAttribute('type')} ${
+                        contents.join(' ')}\r\n`;
             }
         });
     }
@@ -617,7 +661,9 @@ SDP.prototype.jingle2media = function(content) {
     if (!sctp.length) {
         media += 'a=rtcp:1 IN IP4 0.0.0.0\r\n';
     }
-    tmp = content.find('>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]');
+    tmp
+        = content.find(
+            '>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]');
     if (tmp.length) {
         if (tmp.attr('ufrag')) {
             media += `${SDPUtil.build_iceufrag(tmp.attr('ufrag'))}\r\n`;
@@ -652,7 +698,8 @@ SDP.prototype.jingle2media = function(content) {
     media += `a=mid:${content.attr('name')}\r\n`;
 
     // <description><rtcp-mux/></description>
-    // see http://code.google.com/p/libjingle/issues/detail?id=309 -- no spec though
+    // see http://code.google.com/p/libjingle/issues/detail?id=309 -- no spec
+    // though
     // and http://mail.jabber.org/pipermail/jingle/2011-December/001761.html
     if (desc.find('rtcp-mux').length) {
         media += 'a=rtcp-mux\r\n';
@@ -694,44 +741,57 @@ SDP.prototype.jingle2media = function(content) {
     media += self.rtcpFbFromJingle(desc, '*');
 
     // xep-0294
-    tmp = desc.find('>rtp-hdrext[xmlns="urn:xmpp:jingle:apps:rtp:rtp-hdrext:0"]');
+    tmp
+        = desc.find(
+            '>rtp-hdrext[xmlns="urn:xmpp:jingle:apps:rtp:rtp-hdrext:0"]');
     tmp.each(function() {
-        media += `a=extmap:${this.getAttribute('id')} ${this.getAttribute('uri')}\r\n`;
+        media
+            += `a=extmap:${this.getAttribute('id')} ${
+                this.getAttribute('uri')}\r\n`;
     });
 
-    content.find('>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]>candidate').each(function() {
-        let protocol = this.getAttribute('protocol');
+    content
+        .find(
+            '>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]'
+                + '>candidate')
+        .each(function() {
+            let protocol = this.getAttribute('protocol');
 
-        protocol = typeof protocol === 'string' ? protocol.toLowerCase() : '';
+            protocol
+                = typeof protocol === 'string' ? protocol.toLowerCase() : '';
 
-        if ((self.removeTcpCandidates
-                && (protocol === 'tcp' || protocol === 'ssltcp'))
-            || (self.removeUdpCandidates && protocol === 'udp')) {
-            return;
-        } else if (self.failICE) {
-            this.setAttribute('ip', '1.1.1.1');
-        }
+            if ((self.removeTcpCandidates
+                    && (protocol === 'tcp' || protocol === 'ssltcp'))
+                || (self.removeUdpCandidates && protocol === 'udp')) {
+                return;
+            } else if (self.failICE) {
+                this.setAttribute('ip', '1.1.1.1');
+            }
 
-        media += SDPUtil.candidateFromJingle(this);
-    });
+            media += SDPUtil.candidateFromJingle(this);
+        });
 
     // XEP-0339 handle ssrc-group attributes
-    content.find('description>ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]').each(function() {
-        const semantics = this.getAttribute('semantics');
-        const ssrcs
-            = $(this)
-                .find('>source')
-                .map(function() {
-                    return this.getAttribute('ssrc');
-                })
-                .get();
+    content
+        .find('description>ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
+        .each(function() {
+            const semantics = this.getAttribute('semantics');
+            const ssrcs
+                = $(this)
+                    .find('>source')
+                    .map(function() {
+                        return this.getAttribute('ssrc');
+                    })
+                    .get();
 
-        if (ssrcs.length) {
-            media += `a=ssrc-group:${semantics} ${ssrcs.join(' ')}\r\n`;
-        }
-    });
+            if (ssrcs.length) {
+                media += `a=ssrc-group:${semantics} ${ssrcs.join(' ')}\r\n`;
+            }
+        });
 
-    tmp = content.find('description>source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
+    tmp
+        = content.find(
+            'description>source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
     tmp.each(function() {
         const ssrc = this.getAttribute('ssrc');
 

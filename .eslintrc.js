@@ -179,6 +179,7 @@ module.exports = {
                 'beforeLineComment': true
             }
         ],
+        'max-len': [ 'error', 80 ],
         'max-lines': 0,
         'max-nested-callbacks': 2,
         'max-statements': 0,

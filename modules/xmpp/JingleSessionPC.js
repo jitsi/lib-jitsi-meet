@@ -779,7 +779,8 @@ export default class JingleSessionPC extends JingleSession {
                     finishedCallback();
                 }, error => {
                     logger.error(
-                        `Error renegotiating after processing remote source-add: ${error}`);
+                        'Error renegotiating after processing remote'
+                            + ` source-add: ${error}`);
                     finishedCallback(error);
                 });
         };
@@ -823,7 +824,8 @@ export default class JingleSessionPC extends JingleSession {
                     finishedCallback();
                 }, error => {
                     logger.error(
-                        `Error renegotiating after processing remote source-remove: ${error}`);
+                        'Error renegotiating after processing remote'
+                          + ` source-remove: ${error}`);
                     finishedCallback(error);
                 });
         };
@@ -954,7 +956,9 @@ export default class JingleSessionPC extends JingleSession {
                 remoteDescription,
                 () => {
                     if (this.signalingState === 'closed') {
-                        reject('Attempted to setRemoteDescription in state closed');
+                        reject(
+                            'Attempted to setRemoteDescription in state'
+                                + ' closed');
 
                         return;
                     }
@@ -1165,7 +1169,8 @@ export default class JingleSessionPC extends JingleSession {
         const workFunction = finishedCallback => {
             if (!this.peerconnection) {
                 finishedCallback(
-                    'Error: tried adding stream with no active peer connection');
+                    'Error: tried adding stream with no active peer'
+                        + ' connection');
 
                 return;
             }

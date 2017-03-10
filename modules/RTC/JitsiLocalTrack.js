@@ -328,7 +328,8 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
         promise = RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
             .then(streamsInfo => {
                 const mediaType = self.getType();
-                const streamInfo = streamsInfo.find(info => info.mediaType === mediaType);
+                const streamInfo
+                    = streamsInfo.find(info => info.mediaType === mediaType);
 
                 if (streamInfo) {
                     self._setStream(streamInfo.stream);
@@ -347,7 +348,9 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
                         JitsiTrackErrors.TRACK_NO_STREAM_FOUND);
                 }
 
-                self.containers = self.containers.map(cont => RTCUtils.attachMediaStream(cont, self.stream));
+                self.containers
+                    = self.containers.map(
+                        cont => RTCUtils.attachMediaStream(cont, self.stream));
 
                 return self._addStreamToConferenceAsUnmute();
             });
