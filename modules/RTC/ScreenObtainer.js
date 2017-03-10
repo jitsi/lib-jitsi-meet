@@ -151,7 +151,7 @@ var ScreenObtainer = {
         } else if (RTCBrowserType.isFirefox()) {
             if (options.desktopSharingFirefoxDisabled) {
                 obtainDesktopStream = null;
-            } else if (window.location.protocol === "http:"){
+            } else if (window.location.protocol === "http:") {
                 logger.log("Screen sharing is not supported over HTTP. " +
                     "Use of HTTPS is required.");
                 obtainDesktopStream = null;
@@ -333,7 +333,7 @@ function obtainWebRTCScreen(options, streamCallback, failCallback) {
  * @param options supports "desktopSharingChromeExtId"
  * @returns {string}
  */
-function getWebStoreInstallUrl(options){
+function getWebStoreInstallUrl(options) {
     return "https://chrome.google.com/webstore/detail/" +
         options.desktopSharingChromeExtId;
 }
@@ -439,7 +439,7 @@ function doGetStreamFromExtension(options, streamCallback, failCallback) {
  * website of published extension.
  * @param options supports "desktopSharingChromeExtId"
  */
-function initInlineInstalls(options){
+function initInlineInstalls(options) {
     if($("link[rel=chrome-webstore-item]").length === 0) {
         $("head").append("<link rel=\"chrome-webstore-item\">");
     }

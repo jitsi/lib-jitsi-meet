@@ -8,7 +8,7 @@
  * @param wordArray the recorder audio stream transcribed as an array of Word
  *                  objects
  */
-var RecordingResult = function(blob, name, startTime, wordArray){
+var RecordingResult = function(blob, name, startTime, wordArray) {
     this.blob = blob;
     this.name = name;
     this.startTime = startTime;

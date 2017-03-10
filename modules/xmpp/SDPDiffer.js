@@ -1,6 +1,6 @@
 var SDPUtil = require("./SDPUtil");
 
-function SDPDiffer(mySDP, otherSDP){
+function SDPDiffer(mySDP, otherSDP) {
     this.mySDP = mySDP;
     this.otherSDP = otherSDP;
 }
@@ -55,7 +55,7 @@ SDPDiffer.prototype.getNewMedia = function() {
             if(Object.keys(myMedia.ssrcs).indexOf(ssrc) === -1) {
                 // Allocate channel if we've found ssrc that doesn't exist in
                 // our channel
-                if(!newMedia[othersMediaIdx]){
+                if(!newMedia[othersMediaIdx]) {
                     newMedia[othersMediaIdx] = {
                         mediaindex: othersMedia.mediaindex,
                         mid: othersMedia.mid,
@@ -68,7 +68,7 @@ SDPDiffer.prototype.getNewMedia = function() {
         });
 
         // Look for new ssrc groups across the channels
-        othersMedia.ssrcGroups.forEach(function(otherSsrcGroup){
+        othersMedia.ssrcGroups.forEach(function(otherSsrcGroup) {
 
             // try to match the other ssrc-group with an ssrc-group of ours
             var matched = false;
@@ -87,7 +87,7 @@ SDPDiffer.prototype.getNewMedia = function() {
                 // Allocate channel if we've found an ssrc-group that doesn't
                 // exist in our channel
 
-                if(!newMedia[othersMediaIdx]){
+                if(!newMedia[othersMediaIdx]) {
                     newMedia[othersMediaIdx] = {
                         mediaindex: othersMedia.mediaindex,
                         mid: othersMedia.mid,
@@ -109,7 +109,7 @@ SDPDiffer.prototype.toJingle = function(modify) {
     var sdpMediaSsrcs = this.getNewMedia();
 
     var modified = false;
-    Object.keys(sdpMediaSsrcs).forEach(function(mediaindex){
+    Object.keys(sdpMediaSsrcs).forEach(function(mediaindex) {
         modified = true;
         var media = sdpMediaSsrcs[mediaindex];
         modify.c('content', {name: media.mid});

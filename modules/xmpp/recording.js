@@ -86,7 +86,7 @@ Recording.prototype.handleJibriPresence = function(jibri) {
 Recording.prototype.setRecordingJibri
     = function(state, callback, errCallback, options) {
 
-        if (state == this.state){
+        if (state == this.state) {
             errCallback(JitsiRecorderErrors.INVALID_STATE);
         }
         options = options || {};
@@ -119,7 +119,7 @@ Recording.prototype.setRecordingJibri
 Recording.prototype.setRecordingJirecon =
     function(state, callback, errCallback) {
 
-        if (state == this.state){
+        if (state == this.state) {
             errCallback(new Error("Invalid state!"));
         }
 
@@ -129,7 +129,7 @@ Recording.prototype.setRecordingJirecon =
                 ? Recording.action.START
                 : Recording.action.STOP,
             mucjid: this.roomjid});
-        if (state === 'off'){
+        if (state === 'off') {
             iq.attrs({rid: this.jireconRid});
         }
 
@@ -145,7 +145,7 @@ Recording.prototype.setRecordingJirecon =
                 (state === Recording.status.ON ? 'started' : 'stopped') +
                 '(jirecon)' + result);
             self.state = state;
-            if (state === Recording.status.OFF){
+            if (state === Recording.status.OFF) {
                 self.jireconRid = null;
             }
 
@@ -179,7 +179,7 @@ function(state, callback, errCallback, options) {
             callback(newState);
 
             if (newState === 'pending') {
-                self.connection.addHandler(function(iq){
+                self.connection.addHandler(function(iq) {
                     var state = $(iq).find('recording').attr('state');
                     if (state) {
                         self.state = newState;
@@ -197,7 +197,7 @@ function(state, callback, errCallback, options) {
 
 Recording.prototype.setRecording =
 function(state, callback, errCallback, options) {
-    switch(this.type){
+    switch(this.type) {
     case Recording.types.JIRECON:
         this.setRecordingJirecon(state, callback, errCallback, options);
         break;

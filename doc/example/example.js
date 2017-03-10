@@ -19,7 +19,7 @@ var isJoined = false;
  * Handles local tracks.
  * @param tracks Array with JitsiTrack objects
  */
-function onLocalTracks(tracks){
+function onLocalTracks(tracks) {
     localTracks = tracks;
     for(var i = 0; i < localTracks.length; i++) {
         localTracks[i].addEventListener(JitsiMeetJS.events.track.TRACK_AUDIO_LEVEL_CHANGED,
@@ -114,14 +114,14 @@ function onUserLeft(id) {
 /**
  * That function is called when connection is established successfully
  */
-function onConnectionSuccess(){
+function onConnectionSuccess() {
     room = connection.initJitsiConference("conference", confOptions);
     room.on(JitsiMeetJS.events.conference.TRACK_ADDED, onRemoteTrack);
     room.on(JitsiMeetJS.events.conference.TRACK_REMOVED, function(track) {
         console.log("track removed!!!" + track);
     });
     room.on(JitsiMeetJS.events.conference.CONFERENCE_JOINED, onConferenceJoined);
-    room.on(JitsiMeetJS.events.conference.USER_JOINED, function(id){
+    room.on(JitsiMeetJS.events.conference.USER_JOINED, function(id) {
         console.log("user join");remoteTracks[id] = [];
     });
     room.on(JitsiMeetJS.events.conference.USER_LEFT, onUserLeft);
@@ -132,7 +132,7 @@ function onConnectionSuccess(){
         console.log(userID + " - " + displayName);
     });
     room.on(JitsiMeetJS.events.conference.TRACK_AUDIO_LEVEL_CHANGED,
-      function(userID, audioLevel){
+      function(userID, audioLevel) {
           console.log(userID + " - " + audioLevel);
       });
     room.on(JitsiMeetJS.events.conference.RECORDER_STATE_CHANGED, function() {
@@ -165,7 +165,7 @@ function onDeviceListChanged(devices) {
 /**
  * This function is called when we disconnect.
  */
-function disconnect(){
+function disconnect() {
     console.log("disconnect!");
     connection.removeEventListener(JitsiMeetJS.events.connection.CONNECTION_ESTABLISHED, onConnectionSuccess);
     connection.removeEventListener(JitsiMeetJS.events.connection.CONNECTION_FAILED, onConnectionFailed);
@@ -239,7 +239,7 @@ var initOptions = {
     // The URL to the Firefox extension for desktop sharing.
     desktopSharingFirefoxExtensionURL: null
 };
-JitsiMeetJS.init(initOptions).then(function(){
+JitsiMeetJS.init(initOptions).then(function() {
     connection = new JitsiMeetJS.JitsiConnection(null, null, options);
 
     connection.addEventListener(JitsiMeetJS.events.connection.CONNECTION_ESTABLISHED, onConnectionSuccess);

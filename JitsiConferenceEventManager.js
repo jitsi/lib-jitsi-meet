@@ -73,12 +73,12 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
             this.conference.connectionIsInterrupted = false;
 
-            for (key in chatRoom.connectionTimes){
+            for (key in chatRoom.connectionTimes) {
                 value = chatRoom.connectionTimes[key];
                 Statistics.analytics.sendEvent('conference.' + key,
                     {value});
             }
-            for (key in chatRoom.xmpp.connectionTimes){
+            for (key in chatRoom.xmpp.connectionTimes) {
                 value = chatRoom.xmpp.connectionTimes[key];
                 Statistics.analytics.sendEvent('xmpp.' + key,
                     {value});
@@ -112,7 +112,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.VIDEOBRIDGE_NOT_AVAILABLE);
     chatRoom.addListener(XMPPEvents.BRIDGE_DOWN,
-        function(){
+        function() {
             Statistics.analytics.sendEvent('conference.bridgeDown');
         });
 

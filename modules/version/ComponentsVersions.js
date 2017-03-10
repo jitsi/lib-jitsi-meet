@@ -49,7 +49,7 @@ ComponentsVersions.prototype.processPresence =
         }
 
         var log = [];
-        node.children.forEach(function(item){
+        node.children.forEach(function(item) {
 
             var componentName = item.attributes.name;
             if (componentName !== ComponentsVersions.FOCUS_COMPONENT &&

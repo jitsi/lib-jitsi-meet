@@ -997,7 +997,7 @@ class RTCUtils extends Listenable {
 
             options.devices = options.devices || ['audio', 'video'];
             if(!screenObtainer.isSupported()
-                && options.devices.indexOf("desktop") !== -1){
+                && options.devices.indexOf("desktop") !== -1) {
                 reject(new Error("Desktop sharing is not supported!"));
             }
             if (RTCBrowserType.isFirefox()
@@ -1018,7 +1018,7 @@ class RTCUtils extends Listenable {
                     "video": GUM.bind(self, ["video"])
                 };
 
-                if(screenObtainer.isSupported()){
+                if(screenObtainer.isSupported()) {
                     deviceGUM["desktop"] = screenObtainer.obtainStream.bind(
                         screenObtainer,
                         dsOptions);

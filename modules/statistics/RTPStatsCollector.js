@@ -406,7 +406,7 @@ StatsCollector.prototype.processStatsReport = function() {
                     "upload": Math.round(sendBandwidth / 1000)
                 };
             }
-        } catch(e){/* not supported*/}
+        } catch(e) {/* not supported*/}
 
         if(now.type == 'googCandidatePair') {
             var ip, type, localip, active;
@@ -415,7 +415,7 @@ StatsCollector.prototype.processStatsReport = function() {
                 type = getStatValue(now, "transportType");
                 localip = getStatValue(now, "localAddress");
                 active = getStatValue(now, "activeConnection");
-            } catch(e){/* not supported*/}
+            } catch(e) {/* not supported*/}
             if(!ip || !type || !localip || active != "true") {
                 continue;
             }
@@ -501,7 +501,7 @@ StatsCollector.prototype.processStatsReport = function() {
         if(typeof nowBytesTransmitted === "number" ||
             typeof nowBytesTransmitted === "string") {
             nowBytesTransmitted = Number(nowBytesTransmitted);
-            if(!isNaN(nowBytesTransmitted)){
+            if(!isNaN(nowBytesTransmitted)) {
                 byteSentStats[ssrc] = nowBytesTransmitted;
                 if (nowBytesTransmitted > 0) {
                     bytesSent = nowBytesTransmitted -
@@ -536,7 +536,7 @@ StatsCollector.prototype.processStatsReport = function() {
                 resolution.height = height;
                 resolution.width = width;
             }
-        } catch(e){/* not supported*/}
+        } catch(e) {/* not supported*/}
 
         if (resolution.height && resolution.width) {
             ssrcStats.setResolution(resolution);

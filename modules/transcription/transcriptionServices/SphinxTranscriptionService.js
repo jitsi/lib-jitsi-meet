@@ -62,7 +62,7 @@ SphinxService.prototype.formatResponse = function(response) {
     // the first value in the JSON array
     result.shift();
     var array = [];
-    result.forEach(function(word){
+    result.forEach(function(word) {
         if(!word.filler) {
             array.push(new Word(word.word, word.start, word.end));
         }
@@ -75,27 +75,27 @@ SphinxService.prototype.formatResponse = function(response) {
  * @param response the server response
  * @return {boolean} whether the response is valid
  */
-SphinxService.prototype.verify = function(response){
+SphinxService.prototype.verify = function(response) {
     console.log("response from server:" + response.toString());
     // test if server responded with a string object
-    if(typeof response !== "string"){
+    if(typeof response !== "string") {
         return false;
     }
     // test if the string can be parsed into valid JSON
     var json;
     try{
         json = JSON.parse(response);
-    } catch (error){
+    } catch (error) {
         console.log(error);
         return false;
     }
     // check if the JSON has a "objects" value
-    if(json.objects === undefined){
+    if(json.objects === undefined) {
         return false;
     }
     // get the "objects" value and check for a session ID
     var array = json.objects;
-    if(!(array[0] && array[0]["session-id"])){
+    if(!(array[0] && array[0]["session-id"])) {
         return false;
     }
     // everything seems to be in order
@@ -111,11 +111,11 @@ SphinxService.prototype.verify = function(response){
 function getURL() {
     var message = "config does not contain an url to a " +
     "Sphinx4 https server";
-    if(config.sphinxURL === undefined){
+    if(config.sphinxURL === undefined) {
         console.log(message);
     } else {
         var toReturn = config.sphinxURL;
-        if(toReturn.includes !== undefined && toReturn.includes("https://")){
+        if(toReturn.includes !== undefined && toReturn.includes("https://")) {
             return toReturn;
         } else{
             console.log(message);

@@ -67,7 +67,7 @@ function addMediaStreamInactiveHandler(mediaStream, handler) {
  * @param ssrc the SSRC of this track if known
  */
 function JitsiTrack(conference, stream, track, streamInactiveHandler, trackMediaType,
-                    videoType, ssrc){
+                    videoType, ssrc) {
     /**
      * Array with the HTML elements that are displaying the streams.
      * @type {Array}

@@ -157,6 +157,7 @@ module.exports = {
         'padded-blocks': 0,
         'quote-props': 0,
         'semi': [ 'error', 'always' ],
+        'space-before-blocks': 2,
         'space-before-function-paren': [ 'error', 'never' ],
         'space-in-parens': [ 'error', 'never' ],
         'space-infix-ops': 2,

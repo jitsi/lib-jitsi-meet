@@ -13,7 +13,7 @@ var AUDIO_OGG = "audio/ogg";     // Supported in firefox
  * single JitsiTrack (either remote or local)
  * @param track The JitsiTrack the object is going to hold
  */
-var TrackRecorder = function(track){
+var TrackRecorder = function(track) {
     // The JitsiTrack holding the stream
     this.track = track;
     // The MediaRecorder recording the stream
@@ -47,7 +47,7 @@ function startRecorder(trackRecorder) {
  * This will also try to update the name
  * @param trackRecorder the TrackRecorder to stop
  */
-function stopRecorder(trackRecorder){
+function stopRecorder(trackRecorder) {
     if(trackRecorder.recorder === undefined) {
         throw new Error("Passed an object to stopRecorder which is not a " +
             "TrackRecorder object");
@@ -65,7 +65,7 @@ function instantiateTrackRecorder(track) {
     // Create a new stream which only holds the audio track
     var originalStream = trackRecorder.track.getOriginalStream();
     var stream = createEmptyStream();
-    originalStream.getAudioTracks().forEach(function(track){
+    originalStream.getAudioTracks().forEach(function(track) {
         stream.addTrack(track);
     });
     // Create the MediaRecorder
@@ -105,7 +105,7 @@ function determineCorrectFileType() {
  * @param jitsiConference the jitsiConference which this object
  * is going to record
  */
-var audioRecorder = function(jitsiConference){
+var audioRecorder = function(jitsiConference) {
     // array of TrackRecorders, where each trackRecorder
     // holds the JitsiTrack, MediaRecorder and recorder data
     this.recorders = [];
@@ -140,7 +140,7 @@ audioRecorder.prototype.addTrack = function(track) {
         this.updateNames();
         // If we're already recording, immediately start recording this new
         // track.
-        if(this.isRecording){
+        if(this.isRecording) {
             startRecorder(trackRecorder);
         }
     }
@@ -156,17 +156,17 @@ audioRecorder.prototype.addTrack = function(track) {
  *
  * @param {JitsiTrack} track the JitsiTrack to remove from the recording session
  */
-audioRecorder.prototype.removeTrack = function(track){
-    if(track.isVideoTrack()){
+audioRecorder.prototype.removeTrack = function(track) {
+    if(track.isVideoTrack()) {
         return;
     }
 
     var array = this.recorders;
     var i;
     for(i = 0; i < array.length; i++) {
-        if(array[i].track.getParticipantId() === track.getParticipantId()){
+        if(array[i].track.getParticipantId() === track.getParticipantId()) {
             var recorderToRemove = array[i];
-            if(this.isRecording){
+            if(this.isRecording) {
                 stopRecorder(recorderToRemove);
             } else {
                 // remove the TrackRecorder from the array
@@ -184,10 +184,10 @@ audioRecorder.prototype.removeTrack = function(track){
  * If it hasn't changed,it will keep the exiting name. If it changes to a
  * undefined value, the old value will also be kept.
  */
-audioRecorder.prototype.updateNames = function(){
+audioRecorder.prototype.updateNames = function() {
     var conference = this.jitsiConference;
-    this.recorders.forEach(function(trackRecorder){
-        if(trackRecorder.track.isLocal()){
+    this.recorders.forEach(function(trackRecorder) {
+        if(trackRecorder.track.isLocal()) {
             trackRecorder.name = "the transcriber";
         } else {
             var id = trackRecorder.track.getParticipantId();
@@ -211,7 +211,7 @@ audioRecorder.prototype.start = function() {
     // conference, that track can instantly start recording as well
     this.isRecording = true;
     // start all the mediaRecorders
-    this.recorders.forEach(function(trackRecorder){
+    this.recorders.forEach(function(trackRecorder) {
         startRecorder(trackRecorder);
     });
     // log that recording has started
@@ -226,7 +226,7 @@ audioRecorder.prototype.stop = function() {
     // set the boolean flag to false
     this.isRecording = false;
     // stop all recorders
-    this.recorders.forEach(function(trackRecorder){
+    this.recorders.forEach(function(trackRecorder) {
         stopRecorder(trackRecorder);
     });
     console.log("stopped recording");

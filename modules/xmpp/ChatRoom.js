@@ -33,7 +33,7 @@ var parser = {
     json2packet(nodes, packet) {
         for(let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
-            if(!node || node === null){
+            if(!node || node === null) {
                 continue;
             }
             packet.c(node.tagName, node.attributes);
@@ -54,7 +54,7 @@ var parser = {
  * @param pres the presence JSON
  * @param nodeName the name of the node (videomuted, audiomuted, etc)
  */
-function filterNodeFromPresenceJSON(pres, nodeName){
+function filterNodeFromPresenceJSON(pres, nodeName) {
     var res = [];
     for(let i = 0; i < pres.length; i++) {
         if(pres[i].tagName === nodeName) {

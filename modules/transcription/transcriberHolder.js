@@ -8,7 +8,7 @@
 var transcriberHolder = {
     transcribers : [],
 
-    add(transcriber){
+    add(transcriber) {
         transcriberHolder.transcribers.push(transcriber);
     }
 };

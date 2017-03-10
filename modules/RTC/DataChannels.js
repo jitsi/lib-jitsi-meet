@@ -168,7 +168,7 @@ DataChannels.prototype.onDataChannel = function(event) {
  * Closes all currently opened data channels.
  */
 DataChannels.prototype.closeAllChannels = function() {
-    this._dataChannels.forEach(function(dc){
+    this._dataChannels.forEach(function(dc) {
         // the DC will be removed from the array on 'onclose' event
         dc.close();
     });

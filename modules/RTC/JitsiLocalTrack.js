@@ -448,7 +448,7 @@ JitsiLocalTrack.prototype.dispose = function() {
     var self = this;
     var promise = Promise.resolve();
 
-    if (this.conference){
+    if (this.conference) {
         promise = this.conference.removeTrack(this);
     }
 
@@ -562,7 +562,7 @@ JitsiLocalTrack.prototype._setByteSent = function(bytesSent) {
         = this.conference ? this.conference.getConnectionState() : null;
     if(this._testByteSent && "connected" === iceConnectionState) {
         setTimeout(function() {
-            if(this._bytesSent <= 0){
+            if(this._bytesSent <= 0) {
                 // we are not receiving anything from the microphone
                 this._fireNoDataFromSourceEvent();
             }

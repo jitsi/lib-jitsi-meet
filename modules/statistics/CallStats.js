@@ -379,7 +379,7 @@ CallStats.prototype.sendTerminateEvent = _try_catch(function() {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.prototype.sendIceConnectionFailedEvent = _try_catch(function(pc, cs){
+CallStats.prototype.sendIceConnectionFailedEvent = _try_catch(function(pc, cs) {
     CallStats._reportError.call(
         cs, wrtcFuncNames.iceConnectionFailure, null, pc);
 });

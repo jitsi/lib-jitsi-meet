@@ -18,10 +18,10 @@ const logger = getLogger(__filename);
 function createLocalTracks(tracksInfo, options) {
     var newTracks = [];
     var deviceId = null;
-    tracksInfo.forEach(function(trackInfo){
+    tracksInfo.forEach(function(trackInfo) {
         if (trackInfo.mediaType === MediaType.AUDIO) {
             deviceId = options.micDeviceId;
-        } else if (trackInfo.videoType === VideoType.CAMERA){
+        } else if (trackInfo.videoType === VideoType.CAMERA) {
             deviceId = options.cameraDeviceId;
         }
         var localTrack
@@ -366,7 +366,7 @@ export default class RTC extends Listenable {
      */
     setAudioMute(value) {
         const mutePromises = [];
-        this.getLocalTracks(MediaType.AUDIO).forEach(function(audioTrack){
+        this.getLocalTracks(MediaType.AUDIO).forEach(function(audioTrack) {
             // this is a Promise
             mutePromises.push(value ? audioTrack.mute() : audioTrack.unmute());
         });

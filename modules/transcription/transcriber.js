@@ -48,7 +48,7 @@ var transcriber = function() {
  * purposes
  */
 transcriber.prototype.start = function start() {
-    if(this.state !== BEFORE_STATE){
+    if(this.state !== BEFORE_STATE) {
         throw new Error("The transcription can only start when it's in the" +
             "\"" + BEFORE_STATE + "\" state. It's currently in the " +
             "\"" + this.state + "\" state");
@@ -65,7 +65,7 @@ transcriber.prototype.start = function start() {
  * @param callback a callback which will receive the transcription
  */
 transcriber.prototype.stop = function stop(callback) {
-    if(this.state !== RECORDING_STATE){
+    if(this.state !== RECORDING_STATE) {
         throw new Error("The transcription can only stop when it's in the" +
             "\"" + RECORDING_STATE + "\" state. It's currently in the " +
             "\"" + this.state + "\" state");
@@ -77,7 +77,7 @@ transcriber.prototype.stop = function stop(callback) {
     var t = this;
 
     var callBack = blobCallBack.bind(this);
-    this.audioRecorder.getRecordingResults().forEach(function(recordingResult){
+    this.audioRecorder.getRecordingResults().forEach(function(recordingResult) {
         t.transcriptionService.send(recordingResult, callBack);
         t.counter++;
     });
@@ -97,7 +97,7 @@ transcriber.prototype.stop = function stop(callback) {
  * @param {RecordingResult} answer a RecordingResult object with a defined
  * WordArray
  */
-var blobCallBack = function(answer){
+var blobCallBack = function(answer) {
     console.log("retrieved an answer from the transcription service. The" +
         " answer has an array of length: " + answer.wordArray.length);
     // first add the offset between the start of the transcription and
@@ -135,8 +135,8 @@ var blobCallBack = function(answer){
  * this method will check if the counter is zero. If it is, it will call
  * the merging method
  */
-transcriber.prototype.maybeMerge = function(){
-    if(this.state === TRANSCRIBING_STATE && this.counter === 0){
+transcriber.prototype.maybeMerge = function() {
+    if(this.state === TRANSCRIBING_STATE && this.counter === 0) {
         // make sure to include the events in the result arrays before
         // merging starts
         this.merge();
@@ -163,7 +163,7 @@ transcriber.prototype.merge = function() {
     hasPopulatedArrays(arrays);
 
     // populate all the potential Words for a first time
-    arrays.forEach(function(array){
+    arrays.forEach(function(array) {
         pushWordToSortedArray(potentialWords, array);
     });
 
@@ -171,11 +171,11 @@ transcriber.prototype.merge = function() {
     var lowestWordArray;
     var wordToAdd;
     var foundSmaller;
-    while(hasPopulatedArrays(arrays)){
+    while(hasPopulatedArrays(arrays)) {
         // first select the lowest array;
         lowestWordArray = arrays[0];
-        arrays.forEach(function(wordArray){
-            if(wordArray[0].begin < lowestWordArray[0].begin){
+        arrays.forEach(function(wordArray) {
+            if(wordArray[0].begin < lowestWordArray[0].begin) {
                 lowestWordArray = wordArray;
             }
         });
@@ -185,14 +185,14 @@ transcriber.prototype.merge = function() {
 
         // keep going until a word in another array has a smaller time
         // or the array is empty
-        while(!foundSmaller && lowestWordArray.length > 0){
-            arrays.forEach(function(wordArray){
-                if(wordArray[0].begin < lowestWordArray[0].begin){
+        while(!foundSmaller && lowestWordArray.length > 0) {
+            arrays.forEach(function(wordArray) {
+                if(wordArray[0].begin < lowestWordArray[0].begin) {
                     foundSmaller = true;
                 }
             });
             // add next word if no smaller time has been found
-            if(!foundSmaller){
+            if(!foundSmaller) {
                 wordToAdd = lowestWordArray.shift();
                 this.updateTranscription(wordToAdd, null);
             }
@@ -202,7 +202,7 @@ transcriber.prototype.merge = function() {
 
     // set the state to finished and do the necessary left-over tasks
     this.state = FINISHED_STATE;
-    if(this.callback){
+    if(this.callback) {
         this.callback(this.transcription);
     }
 };
@@ -213,12 +213,12 @@ transcriber.prototype.merge = function() {
  * @param {Word} word the Word object holding the word to append
  * @param {String|null} name the name of a new speaker. Null if not applicable
  */
-transcriber.prototype.updateTranscription = function(word, name){
-    if(name !== undefined && name !== null){
+transcriber.prototype.updateTranscription = function(word, name) {
+    if(name !== undefined && name !== null) {
         this.transcription += "\n" + name + ":";
         this.lineLength = name.length + 1; // +1 for the semi-colon
     }
-    if(this.lineLength + word.word.length > MAXIMUM_SENTENCE_LENGTH){
+    if(this.lineLength + word.word.length > MAXIMUM_SENTENCE_LENGTH) {
         this.transcription += "\n    ";
         this.lineLength = 4; // because of the 4 spaces after the new line
     }
@@ -234,10 +234,10 @@ transcriber.prototype.updateTranscription = function(word, name){
  * @param {Array<Array>} twoDimensionalArray the array to check
  * @returns {boolean} true if any non-zero arrays inside, otherwise false
  */
-var hasPopulatedArrays = function(twoDimensionalArray){
+var hasPopulatedArrays = function(twoDimensionalArray) {
     var i;
-    for(i = 0; i < twoDimensionalArray.length; i++){
-        if(twoDimensionalArray[i].length === 0){
+    for(i = 0; i < twoDimensionalArray.length; i++) {
+        if(twoDimensionalArray[i].length === 0) {
             twoDimensionalArray.splice(i, 1);
         }
     }
@@ -252,17 +252,17 @@ var hasPopulatedArrays = function(twoDimensionalArray){
  * @param {Array<Word>} array the sorted array to push to
  * @param {Word} word the word to push into the array
  */
-var pushWordToSortedArray = function(array, word){
+var pushWordToSortedArray = function(array, word) {
     if(array.length === 0) {
         array.push(word);
     } else{
-        if(array[array.length - 1].begin <= word.begin){
+        if(array[array.length - 1].begin <= word.begin) {
             array.push(word);
             return;
         }
         var i;
-        for(i = 0; i < array.length; i++){
-            if(word.begin < array[i].begin){
+        for(i = 0; i < array.length; i++) {
+            if(word.begin < array[i].begin) {
                 array.splice(i, 0, word);
                 return;
             }
@@ -277,7 +277,7 @@ var pushWordToSortedArray = function(array, word){
  * audiostream, it will not be added by the audioRecorder
  * @param {JitsiTrack} track the track to give to the audioRecorder
  */
-transcriber.prototype.addTrack = function(track){
+transcriber.prototype.addTrack = function(track) {
     this.audioRecorder.addTrack(track);
 };
 
@@ -285,7 +285,7 @@ transcriber.prototype.addTrack = function(track){
  * Remove the given track from the auioRecorder
  * @param track
  */
-transcriber.prototype.removeTrack = function(track){
+transcriber.prototype.removeTrack = function(track) {
     this.audioRecorder.removeTrack(track);
 };
 
@@ -294,8 +294,8 @@ transcriber.prototype.removeTrack = function(track){
  * when it's not done yet
  * @returns {String} the transcription as a String
  */
-transcriber.prototype.getTranscription = function(){
-    if(this.state !== FINISHED_STATE){
+transcriber.prototype.getTranscription = function() {
+    if(this.state !== FINISHED_STATE) {
         throw new Error("The transcription can only be retrieved when it's in" +
             " the\"" + FINISHED_STATE + "\" state. It's currently in the " +
             "\"" + this.state + "\" state");
@@ -306,7 +306,7 @@ transcriber.prototype.getTranscription = function(){
 /**
  * Returns the current state of the transcription process
  */
-transcriber.prototype.getState = function(){
+transcriber.prototype.getState = function() {
     return this.state;
 };
 

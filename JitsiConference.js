@@ -388,7 +388,7 @@ JitsiConference.prototype.removeCommand = function(name) {
  * @param name the display name to set
  */
 JitsiConference.prototype.setDisplayName = function(name) {
-    if (this.room){
+    if (this.room) {
         // remove previously set nickname
         this.room.removeFromPresence("nick");
 
@@ -411,8 +411,8 @@ JitsiConference.prototype.setSubject = function(subject) {
  * Get a transcriber object for all current participants in this conference
  * @return {Transcriber} the transcriber object
  */
-JitsiConference.prototype.getTranscriber = function(){
-    if (this.transcriber === undefined){
+JitsiConference.prototype.getTranscriber = function() {
+    if (this.transcriber === undefined) {
         this.transcriber = new Transcriber();
         // add all existing local audio tracks to the transcriber
         const localAudioTracks = this.getLocalTracks(MediaType.AUDIO);
@@ -421,7 +421,7 @@ JitsiConference.prototype.getTranscriber = function(){
         }
         // and all remote audio tracks
         const remoteAudioTracks = this.rtc.getRemoteTracks(MediaType.AUDIO);
-        for (const remoteTrack of remoteAudioTracks){
+        for (const remoteTrack of remoteAudioTracks) {
             this.transcriber.addTrack(remoteTrack);
         }
     }
@@ -935,7 +935,7 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
     // Add track to JitsiParticipant.
     participant._tracks.push(track);
 
-    if (this.transcriber){
+    if (this.transcriber) {
         this.transcriber.addTrack(track);
     }
 
@@ -980,7 +980,7 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
                 this.eventEmitter.emit(
                     JitsiConferenceEvents.TRACK_REMOVED, removedTrack);
 
-                if (this.transcriber){
+                if (this.transcriber) {
                     this.transcriber.removeTrack(removedTrack);
                 }
 
@@ -1282,7 +1282,7 @@ JitsiConference.prototype.dial = function(number) {
     if (this.room) {
         return this.room.dial(number);
     }
-    return new Promise(function(resolve, reject){
+    return new Promise(function(resolve, reject) {
         reject(new Error("The conference is not created yet!"));
     });
 };
@@ -1294,7 +1294,7 @@ JitsiConference.prototype.hangup = function() {
     if (this.room) {
         return this.room.hangup();
     }
-    return new Promise(function(resolve, reject){
+    return new Promise(function(resolve, reject) {
         reject(new Error("The conference is not created yet!"));
     });
 };
@@ -1418,7 +1418,7 @@ JitsiConference.prototype.setLocalParticipantProperty = function(name, value) {
  * @param detailedFeedback detailed feedback from the user. Not yet used
  */
 JitsiConference.prototype.sendFeedback =
-function(overallFeedback, detailedFeedback){
+function(overallFeedback, detailedFeedback) {
     this.statistics.sendFeedback(overallFeedback, detailedFeedback);
 };
 

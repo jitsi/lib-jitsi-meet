@@ -244,12 +244,12 @@ var LibJitsiMeet = {
                     for(let i = 0; i < tracks.length; i++) {
                         const track = tracks[i];
                         var mStream = track.getOriginalStream();
-                        if(track.getType() === MediaType.AUDIO){
+                        if(track.getType() === MediaType.AUDIO) {
                             Statistics.startLocalStats(mStream,
                                 track.setAudioLevel.bind(track));
                             track.addEventListener(
                                 JitsiTrackEvents.LOCAL_TRACK_STOPPED,
-                                function(){
+                                function() {
                                     Statistics.stopLocalStats(mStream);
                                 });
                         }
