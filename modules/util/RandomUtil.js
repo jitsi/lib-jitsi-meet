@@ -63,7 +63,7 @@ const RandomUtil = {
     randomHexString(len) {
         let ret = '';
 
-        while (len--) {
+        while (len--) { // eslint-disable-line no-param-reassign
             ret += this.randomHexDigit();
         }
 

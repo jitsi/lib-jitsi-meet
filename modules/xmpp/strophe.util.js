@@ -53,6 +53,7 @@ export default function() {
         if (typeof msg === 'string'
                 && msg.indexOf('Request ') !== -1
                 && msg.indexOf('timed out (secondary), restarting') !== -1) {
+            // eslint-disable-next-line no-param-reassign
             level = Strophe.LogLevel.WARN;
         }
 
@@ -79,6 +80,7 @@ export default function() {
             break;
         case Strophe.LogLevel.ERROR:
         case Strophe.LogLevel.FATAL:
+            // eslint-disable-next-line no-param-reassign
             msg = `Strophe: ${msg}`;
             GlobalOnErrorHandler.callErrorHandler(new Error(msg));
             logger.error(msg);

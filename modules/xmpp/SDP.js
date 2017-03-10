@@ -462,6 +462,8 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
         tmp.xmlns = 'urn:xmpp:jingle:apps:dtls:0';
         elem.c('fingerprint').t(tmp.fingerprint);
         delete tmp.fingerprint;
+
+        // eslint-disable-next-line no-param-reassign
         line
             = SDPUtil.find_line(
                 self.media[mediaindex],

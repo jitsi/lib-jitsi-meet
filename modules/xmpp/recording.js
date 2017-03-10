@@ -1,4 +1,4 @@
-/* global $, $iq */
+  /* global $, $iq */
 
 import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
@@ -85,14 +85,13 @@ Recording.prototype.handleJibriPresence = function(jibri) {
 };
 
 Recording.prototype.setRecordingJibri
-    = function(state, callback, errCallback, options) {
+    = function(state, callback, errCallback, options = {}) {
 
         if (state == this.state) {
             errCallback(JitsiRecorderErrors.INVALID_STATE);
         }
-        options = options || {};
 
-    // FIXME jibri does not accept IQ without 'url' attribute set ?
+        // FIXME jibri does not accept IQ without 'url' attribute set ?
         const iq
             = $iq({ to: this.focusMucJid,
                 type: 'set' })

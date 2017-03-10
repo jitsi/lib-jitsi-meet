@@ -421,18 +421,22 @@ function(overallFeedback, detailedFeedback) {
  * @private
  */
 CallStats._reportError = function(type, e, pc) {
-    if (!e) {
+    let error = e;
+
+    if (!error) {
         logger.warn('No error is passed!');
-        e = new Error('Unknown error');
+        error = new Error('Unknown error');
     }
     if (CallStats.initialized) {
-        callStats.reportError(pc, this.confID, type, e);
+        callStats.reportError(pc, this.confID, type, error);
     } else {
         CallStats.reportsQueue.push({
             type: reportType.ERROR,
-            data: { type,
-                error: e,
-                pc }
+            data: {
+                error,
+                pc,
+                type
+            }
         });
         CallStats._checkInitialize();
     }

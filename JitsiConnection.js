@@ -47,11 +47,7 @@ function JitsiConnection(appID, token, options) {
  * @param options {object} connecting options
  * (for example authentications parameters).
  */
-JitsiConnection.prototype.connect = function(options) {
-    if (!options) {
-        options = {};
-    }
-
+JitsiConnection.prototype.connect = function(options = {}) {
     this.xmpp.connect(options.id, options.password);
 };
 

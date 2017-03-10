@@ -886,6 +886,7 @@ export default class JingleSessionPC extends JingleSession {
         const remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
 
         removeSsrcInfo.forEach((lines, idx) => {
+            // eslint-disable-next-line no-param-reassign
             lines = lines.split('\r\n');
             lines.pop(); // remove empty last element;
             lines.forEach(line => {

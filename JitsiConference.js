@@ -100,11 +100,7 @@ function JitsiConference(options) {
  * @param options {object}
  * @param connection {JitsiConnection} overrides this.connection
  */
-JitsiConference.prototype._init = function(options) {
-    if (!options) {
-        options = {};
-    }
-
+JitsiConference.prototype._init = function(options = {}) {
     // Override connection and xmpp properties (Usefull if the connection
     // reloaded)
     if (options.connection) {

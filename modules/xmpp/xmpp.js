@@ -19,6 +19,7 @@ import Caps from './Caps';
 function createConnection(token, bosh = '/http-bind') {
     // Append token as URL param
     if (token) {
+        // eslint-disable-next-line no-param-reassign
         bosh += `${bosh.indexOf('?') == -1 ? '?' : '&'}token=${token}`;
     }
 
@@ -271,6 +272,8 @@ export default class XMPP extends Listenable {
                         || this.options.token)) {
                 configDomain = this.options.hosts.domain;
             }
+
+            // eslint-disable-next-line no-param-reassign
             jid = configDomain || window.location.hostname;
         }
 
