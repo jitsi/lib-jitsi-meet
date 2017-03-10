@@ -175,7 +175,7 @@ export default class ParticipantConnectionStatus {
 
         logger.debug(
             'Detector RTCEvents.ENDPOINT_CONN_STATUS_CHANGED('
-                + Date.now() +'): ' + endpointId + ': ' + isActive);
+                + Date.now() + '): ' + endpointId + ': ' + isActive);
 
         // Filter out events for the local JID for now
         if (endpointId !== this.conference.myUserId()) {

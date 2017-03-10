@@ -237,7 +237,7 @@ var reportType = {
 
 CallStats.prototype.pcCallback = _try_catch(function (err, msg) {
     if (callStats && err !== 'success') {
-        logger.error("Monitoring status: "+ err + " msg: " + msg);
+        logger.error("Monitoring status: " + err + " msg: " + msg);
     }
 });
 

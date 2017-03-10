@@ -535,7 +535,7 @@ var normalizePlanB = function(desc) {
 
             if (Array.isArray(mLine.ssrcs)) {
                 var i;
-                for (i = 0; i<mLine.ssrcs.length; i++){
+                for (i = 0; i < mLine.ssrcs.length; i++){
                     if (typeof mLine.ssrcs[i] === 'object'
                         && typeof mLine.ssrcs[i].id !== 'undefined'
                         && firstSsrcs.indexOf(mLine.ssrcs[i].id) >= 0) {
@@ -544,7 +544,7 @@ var normalizePlanB = function(desc) {
                     }
                 }
 
-                for (i = 0; i<mLine.ssrcs.length; i++){
+                for (i = 0; i < mLine.ssrcs.length; i++){
                     if (typeof mLine.ssrcs[i] !== 'undefined') {
                         newSsrcLines.push(mLine.ssrcs[i]);
                     }

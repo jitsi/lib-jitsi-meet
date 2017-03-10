@@ -292,7 +292,7 @@ export default class ChatRoom extends Listenable {
         }
 
         if (from == this.myroomjid) {
-            var newRole = member.affiliation == "owner"? member.role : "none";
+            var newRole = member.affiliation == "owner" ? member.role : "none";
             if (this.role !== newRole) {
                 this.role = newRole;
                 this.eventEmitter.emit(XMPPEvents.LOCAL_ROLE_CHANGED, this.role);
@@ -572,7 +572,7 @@ export default class ChatRoom extends Listenable {
             }
         }
 
-        if (from==this.roomjid && $(msg).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="104"]').length) {
+        if (from == this.roomjid && $(msg).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>status[code="104"]').length) {
             this.discoRoomInfo();
         }
 

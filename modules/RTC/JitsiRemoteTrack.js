@@ -153,7 +153,7 @@ JitsiRemoteTrack.prototype._playCallback = function () {
         - window.connectionTimes["obtainPermissions.start"]);
     this.conference.getConnectionTimes()[type + ".ttfm"] = ttfm;
     console.log("(TIME) TTFM " + type + ":\t", ttfm);
-    var eventName = type +'.ttfm';
+    var eventName = type + '.ttfm';
     if(this.hasBeenMuted) {
         eventName += '.muted';
     }

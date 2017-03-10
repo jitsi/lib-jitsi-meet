@@ -1050,7 +1050,7 @@ export default class JingleSessionPC extends JingleSession {
                     const ssrcLines
                         = SDPUtil.find_lines(media, 'a=ssrc:' + ssrc);
                     if (ssrcLines.length) {
-                        removeSsrcInfo[idx] += ssrcLines.join("\r\n")+"\r\n";
+                        removeSsrcInfo[idx] += ssrcLines.join("\r\n") + "\r\n";
                     }
                 });
                 removeSsrcInfo[idx] += lines;

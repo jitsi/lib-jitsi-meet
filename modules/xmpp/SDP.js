@@ -615,7 +615,7 @@ SDP.prototype.jingle2media = function (content) {
 
     content.find('>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]>candidate').each(function () {
         var protocol = this.getAttribute('protocol');
-        protocol = typeof protocol === 'string' ? protocol.toLowerCase(): '';
+        protocol = typeof protocol === 'string' ? protocol.toLowerCase() : '';
 
         if ((self.removeTcpCandidates
                 && (protocol === 'tcp' || protocol === 'ssltcp')) ||

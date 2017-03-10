@@ -23,7 +23,7 @@ SDPDiffer.prototype.getNewMedia = function() {
             return false;
         }
 
-        for (var i = 0, l=this.length; i < l; i++) {
+        for (var i = 0, l = this.length; i < l; i++) {
             // Check if we have nested arrays
             if (this[i] instanceof Array && array[i] instanceof Array) {
                 // recurse into the nested arrays

@@ -337,7 +337,7 @@ Moderator.prototype._allocateConferenceFocusError = function (error, callback) {
         return;
     }
     var waitMs = this.getNextErrorTimeout();
-    var errmsg = "Focus error, retry after "+ waitMs;
+    var errmsg = "Focus error, retry after " + waitMs;
     GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
     logger.error(errmsg, error);
     // Show message

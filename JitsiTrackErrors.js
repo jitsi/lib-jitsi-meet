@@ -18,7 +18,7 @@ export const CHROME_EXTENSION_INSTALLATION_ERROR
  * selection dialog in jidesha extension for Chrome.
  */
 export const CHROME_EXTENSION_USER_CANCELED
-    ="gum.chrome_extension_user_canceled";
+    = "gum.chrome_extension_user_canceled";
 /**
  * An error which indicates that some of requested constraints in
  * getUserMedia call were not satisfied.

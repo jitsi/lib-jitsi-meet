@@ -1196,7 +1196,7 @@ JitsiConference.prototype.isDTMFSupported = function () {
  * @return {string} local user's ID
  */
 JitsiConference.prototype.myUserId = function () {
-    return this.room && this.room.myroomjid? Strophe.getResourceFromJid(this.room.myroomjid) : null;
+    return this.room && this.room.myroomjid ? Strophe.getResourceFromJid(this.room.myroomjid) : null;
 };
 
 JitsiConference.prototype.sendTones = function (tones, duration, pause) {

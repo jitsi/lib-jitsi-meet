@@ -1153,7 +1153,7 @@ class RTCUtils extends Listenable {
             return true;
         }
         return typeof MediaStreamTrack !== "undefined" &&
-            MediaStreamTrack.getSources? true : false;
+            MediaStreamTrack.getSources ? true : false;
     }
 
     /**
@@ -1206,7 +1206,7 @@ class RTCUtils extends Listenable {
             : RTCBrowserType.isChrome() ||
                 RTCBrowserType.isFirefox() ||
                 RTCBrowserType.isOpera() ||
-                RTCBrowserType.isTemasysPluginUsed()||
+                RTCBrowserType.isTemasysPluginUsed() ||
                 RTCBrowserType.isNWJS() ||
                 RTCBrowserType.isElectron();
     }

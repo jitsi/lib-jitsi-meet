@@ -240,7 +240,7 @@ export default class XMPP extends Listenable {
         const now = this.connectionTimes["attaching"] = window.performance.now();
         logger.log("(TIME) Strophe Attaching\t:" + now);
         this.connection.attach(options.jid, options.sid,
-            parseInt(options.rid,10)+1,
+            parseInt(options.rid,10) + 1,
             this.connectionHandler.bind(this, options.password));
     }
 
@@ -296,7 +296,7 @@ export default class XMPP extends Listenable {
      */
     getJingleLog () {
         const jingle = this.connection.jingle;
-        return jingle? jingle.getLog() : {};
+        return jingle ? jingle.getLog() : {};
     }
 
     /**

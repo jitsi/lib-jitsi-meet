@@ -114,7 +114,7 @@ var blobCallBack = function(answer){
         answer.wordArray.forEach(function(wordObject) {
             wordObject.begin += offset;
             wordObject.end += offset;
-            array += wordObject.word+",";
+            array += wordObject.word + ",";
         });
         array += "]";
         console.log(array);

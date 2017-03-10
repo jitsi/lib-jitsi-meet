@@ -106,7 +106,7 @@ function onUserLeft(id) {
         return;
     }
     var tracks = remoteTracks[id];
-    for(var i = 0; i< tracks.length; i++) {
+    for(var i = 0; i < tracks.length; i++) {
         tracks[i].detach($("#" + id + tracks[i].getType()));
     }
 }
@@ -187,7 +187,7 @@ function switchVideo() { // eslint-disable-line no-unused-vars
         localTracks[1].dispose();
         localTracks.pop();
     }
-    JitsiMeetJS.createLocalTracks({devices: isVideo? ["video"] : ["desktop"]}).
+    JitsiMeetJS.createLocalTracks({devices: isVideo ? ["video"] : ["desktop"]}).
         then(function (tracks) {
             localTracks.push(tracks[0]);
             localTracks[1].addEventListener(JitsiMeetJS.events.track.TRACK_MUTE_CHANGED,

@@ -67,7 +67,7 @@ function calculatePacketLoss(lostPackets, totalPackets) {
     if(!totalPackets || totalPackets <= 0 || !lostPackets || lostPackets <= 0) {
         return 0;
     }
-    return Math.round((lostPackets/totalPackets)*100);
+    return Math.round((lostPackets / totalPackets) * 100);
 }
 
 /**
