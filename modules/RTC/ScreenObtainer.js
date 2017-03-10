@@ -173,7 +173,7 @@ const ScreenObtainer = {
      * @returns {boolean}
      */
     isSupported() {
-        return !!this.obtainStream;
+        return this.obtainStream !== null;
     },
 
     /**

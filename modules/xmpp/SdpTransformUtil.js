@@ -149,18 +149,6 @@ class MLineWrap {
     }
 
     /**
-     * Checks whether the underlying media description contains given SSRC
-     * number.
-     * @param {string} ssrcNumber
-     * @return {boolean} <tt>true</tt> if given SSRC has been found or
-     * <tt>false</tt> otherwise.
-     */
-    containsSSRC(ssrcNumber) {
-        return !!this._ssrcs.find(
-            ssrcObj => ssrcObj.id == ssrcNumber);
-    }
-
-    /**
      * Obtains value from SSRC attribute.
      * @param {number} ssrcNumber the SSRC number for which attribute is to be
      * found
@@ -249,7 +237,7 @@ class MLineWrap {
      * <tt>false</tt> otherwise.
      */
     containsAnySSRCGroups() {
-        return !!this.mLine.ssrcGroups;
+        return this.mLine.ssrcGroups !== undefined;
     }
 
     /**

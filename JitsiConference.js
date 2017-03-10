@@ -222,7 +222,7 @@ JitsiConference.prototype.isAuthEnabled = function() {
  * Check if user is logged in.
  */
 JitsiConference.prototype.isLoggedIn = function() {
-    return !!this.authIdentity;
+    return Boolean(this.authIdentity);
 };
 
 /**

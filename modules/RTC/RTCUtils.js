@@ -311,8 +311,8 @@ function getConstraints(um, options) {
  * @param stream the stream we received from calling getUserMedia.
  */
 function setAvailableDevices(um, stream) {
-    const audioTracksReceived = stream && !!stream.getAudioTracks().length;
-    const videoTracksReceived = stream && !!stream.getVideoTracks().length;
+    const audioTracksReceived = stream && stream.getAudioTracks().length > 0;
+    const videoTracksReceived = stream && stream.getVideoTracks().length > 0;
 
     if (um.indexOf('video') != -1) {
         devices.video = videoTracksReceived;
@@ -868,7 +868,7 @@ class RTCUtils extends Listenable {
                                     && !containerSel.is(':visible')) {
                                 containerSel.show();
                             }
-                            const video = !!stream.getVideoTracks().length;
+                            const video = stream.getVideoTracks().length > 0;
                             if (video && !$(element).is(':visible')) {
                                 throw new Error(
                                     'video element must be visible to attach'
@@ -1044,10 +1044,14 @@ class RTCUtils extends Listenable {
                     this.getUserMediaWithConstraints(
                         options.devices,
                         function(stream) {
-                            const audioDeviceRequested = options.devices.indexOf('audio') !== -1;
-                            const videoDeviceRequested = options.devices.indexOf('video') !== -1;
-                            const audioTracksReceived = !!stream.getAudioTracks().length;
-                            const videoTracksReceived = !!stream.getVideoTracks().length;
+                            const audioDeviceRequested
+                                = options.devices.indexOf('audio') !== -1;
+                            const videoDeviceRequested
+                                = options.devices.indexOf('video') !== -1;
+                            const audioTracksReceived
+                                = stream.getAudioTracks().length > 0;
+                            const videoTracksReceived
+                                = stream.getVideoTracks().length > 0;
 
                             if((audioDeviceRequested && !audioTracksReceived)
                                 || (videoDeviceRequested && !videoTracksReceived)) {
@@ -1143,11 +1147,10 @@ class RTCUtils extends Listenable {
         if (!rtcReady) {
             throw new Error('WebRTC not ready yet');
         }
-        return !!(
-            navigator.mediaDevices
-                && navigator.mediaDevices.enumerateDevices
-                && typeof MediaStreamTrack !== 'undefined'
-                && MediaStreamTrack.getSources);
+        return Boolean(navigator.mediaDevices
+            && navigator.mediaDevices.enumerateDevices
+            && typeof MediaStreamTrack !== 'undefined'
+            && MediaStreamTrack.getSources);
     }
 
     /**

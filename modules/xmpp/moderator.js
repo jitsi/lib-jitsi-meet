@@ -147,7 +147,7 @@ Moderator.prototype.createConferenceIq = function() {
     elem.c(
         'property', {
             name: 'disableRtx',
-            value: !!this.options.conference.disableRtx
+            value: Boolean(this.options.conference.disableRtx)
         }).up();
     elem.c(
         'property', {

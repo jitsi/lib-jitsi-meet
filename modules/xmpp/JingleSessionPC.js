@@ -82,14 +82,14 @@ export default class JingleSessionPC extends JingleSession {
          */
         this.ssrcOwners = {};
 
-        this.webrtcIceUdpDisable = !!options.webrtcIceUdpDisable;
-        this.webrtcIceTcpDisable = !!options.webrtcIceTcpDisable;
+        this.webrtcIceUdpDisable = Boolean(options.webrtcIceUdpDisable);
+        this.webrtcIceTcpDisable = Boolean(options.webrtcIceTcpDisable);
         /**
          * Flag used to enforce ICE failure through the URL parameter for
          * the automatic testing purpose.
          * @type {boolean}
          */
-        this.failICE = !!options.failICE;
+        this.failICE = Boolean(options.failICE);
 
         this.modificationQueue
             = async.queue(this._processQueueTasks.bind(this), 1);

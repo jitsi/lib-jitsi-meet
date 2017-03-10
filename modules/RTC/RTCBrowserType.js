@@ -184,7 +184,7 @@ const RTCBrowserType = {
         // This mirrors what sdp-simulcast uses (which is used when deciding
         // whether to actually enable simulcast or not).
         // TODO: the logic should be in one single place.
-        return !!window.chrome;
+        return window.chrome !== undefined;
     }
 
     // Add version getters for other browsers when needed
