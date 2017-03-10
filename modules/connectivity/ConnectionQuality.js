@@ -89,8 +89,10 @@ function getTarget(simulcast, resolution, millisSinceStart) {
             // Sum the target fields from all simulcast layers for the given
             // resolution (e.g. 720p + 360p + 180p).
             for (height = simulcastFormat.height; height >= 180; height /= 2) {
+                const targetHeight = height;
+
                 simulcastFormat
-                    = kSimulcastFormats.find(f => f.height == height);
+                    = kSimulcastFormats.find(f => f.height == targetHeight);
                 if (simulcastFormat) {
                     target += simulcastFormat.target;
                 } else {

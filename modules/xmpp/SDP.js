@@ -270,6 +270,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                 const ssrclines = SDPUtil.find_lines(this.media[i], 'a=ssrc:');
 
                 if (ssrclines.length > 0) {
+                    // eslint-disable-next-line no-loop-func
                     ssrclines.forEach(line => {
                         const idx = line.indexOf(' ');
                         const linessrc = line.substr(0, idx).substr(7);
