@@ -127,7 +127,7 @@ function initCallback(err, msg) {
 function _try_catch(f) {
     return function() {
         try {
-            f.apply(this, arguments);
+            f.apply(this, arguments); // eslint-disable-line prefer-rest-params
         } catch (e) {
             GlobalOnErrorHandler.callErrorHandler(e);
             logger.error(e);

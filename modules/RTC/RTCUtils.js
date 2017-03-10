@@ -650,6 +650,7 @@ function handleLocalStream(streams, resolution) {
  */
 function wrapAttachMediaStream(origAttachMediaStream) {
     return function(element, stream) {
+        // eslint-disable-next-line prefer-rest-params
         const res = origAttachMediaStream.apply(rtcUtils, arguments);
 
         if (stream

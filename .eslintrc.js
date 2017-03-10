@@ -211,6 +211,7 @@ module.exports = {
         ],
         'prefer-const': 2,
         'prefer-reflect': 0,
+        'prefer-rest-params': 2,
         'prefer-spread': 2,
         'prefer-template': 2,
         'require-yield': 2,

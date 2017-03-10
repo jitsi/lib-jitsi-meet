@@ -22,14 +22,13 @@ function EventEmitterForwarder(src, dest) {
  * @param arguments all other passed arguments are going to be fired with
  * dstEvent.
  */
-EventEmitterForwarder.prototype.forward = function() {
-    // This line is only for fixing jshint errors.
-    const args = arguments;
+EventEmitterForwarder.prototype.forward = function(...args) {
     const srcEvent = args[0];
     // This will be the "this" value for emit function.
     args[0] = this.dest;
     // Using bind.apply to pass the arguments as Array-like object ("arguments")
-    this.src.addListener(srcEvent,
+    this.src.addListener(
+        srcEvent,
         Function.prototype.bind.apply(this.dest.emit, args));
 };
 
