@@ -153,6 +153,7 @@ module.exports = {
             'always',
             { 'objectsInArrays': true }
         ],
+        'block-spacing': [ 'error', 'always' ],
         'brace-style': 2,
         'comma-style': 2,
         'eol-last': 2,

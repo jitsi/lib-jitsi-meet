@@ -308,7 +308,7 @@ const SDPUtil = {
 
             return null;
         }
-        if (line.substring(line.length - 2) == '\r\n') {// chomp it
+        if (line.substring(line.length - 2) == '\r\n') { // chomp it
             line = line.substring(0, line.length - 2);
         }
         const candidate = {};
