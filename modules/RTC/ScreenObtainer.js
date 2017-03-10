@@ -378,10 +378,10 @@ function isUpdateRequired(minVersion, extVersion) {
                 n2 = 0;
 
             if (i < s1.length) {
-                n1 = parseInt(s1[i]);
+                n1 = parseInt(s1[i], 10);
             }
             if (i < s2.length) {
-                n2 = parseInt(s2[i]);
+                n2 = parseInt(s2[i], 10);
             }
 
             if (isNaN(n1) || isNaN(n2)) {

@@ -29,7 +29,7 @@ function getPrimaryVideoSsrc(parsedSdp) {
     const videoMLine = parsedSdp.media.find(m => m.type === 'video');
 
 
-    return parseInt(SDPUtil.parsePrimaryVideoSsrc(videoMLine));
+    return parseInt(SDPUtil.parsePrimaryVideoSsrc(videoMLine), 10);
 }
 
 /**

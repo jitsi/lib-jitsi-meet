@@ -484,7 +484,7 @@ function extractSSRCMap(desc) {
                     // Parse SSRCs and store as numbers
                     const groupSSRCs
                         = group.ssrcs.split(' ')
-                                     .map(ssrcStr => parseInt(ssrcStr));
+                                     .map(ssrcStr => parseInt(ssrcStr, 10));
                     const primarySSRC = groupSSRCs[0];
 
                     // Note that group.semantics is already present
