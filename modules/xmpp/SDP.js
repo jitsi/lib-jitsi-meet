@@ -287,9 +287,9 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                         if (kv.indexOf(':') === -1) {
                             elem.attrs({ name: kv });
                         } else {
-                            const k = kv.split(':', 2)[0];
+                            const name = kv.split(':', 2)[0];
 
-                            elem.attrs({ name: k });
+                            elem.attrs({ name });
 
                             let v = kv.split(':', 2)[1];
 
@@ -352,7 +352,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                     if (ssrcs.length) {
                         elem.c('ssrc-group', { semantics,
                             xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
-                        ssrcs.forEach(ssrc => elem.c('source', { ssrc }).up());
+                        ssrcs.forEach(s => elem.c('source', { ssrc: s }).up());
                         elem.up();
                     }
                 });
@@ -586,7 +586,7 @@ SDP.prototype.fromJingle = function(jingle) {
             const contents
                 = $(group)
                     .find('>content')
-                    .map((idx, content) => content.getAttribute('name'))
+                    .map((_, content) => content.getAttribute('name'))
                     .get();
 
             if (contents.length > 0) {

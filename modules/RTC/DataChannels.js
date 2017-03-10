@@ -69,9 +69,7 @@ DataChannels.prototype.onDataChannel = function(event) {
         logger.error('Data Channel Error:', error, dataChannel);
     };
 
-    dataChannel.onmessage = function(event) {
-        const data = event.data;
-
+    dataChannel.onmessage = function({ data }) {
         // JSON
         let obj;
 

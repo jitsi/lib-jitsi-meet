@@ -185,23 +185,25 @@ function TraceablePeerConnection(rtc, id, signalingLayer, iceConfig,
 
                 for (let i = 0; i < results.length; ++i) {
                     results[i].names().forEach(name => {
+                        // eslint-disable-next-line no-shadow
                         const id = `${results[i].id}-${name}`;
+                        let s = self.stats[id];
 
-                        if (!self.stats[id]) {
-                            self.stats[id] = {
+                        if (!s) {
+                            self.stats[id] = s = {
                                 startTime: now,
                                 endTime: now,
                                 values: [],
                                 times: []
                             };
                         }
-                        self.stats[id].values.push(results[i].stat(name));
-                        self.stats[id].times.push(now.getTime());
-                        if (self.stats[id].values.length > self.maxstats) {
-                            self.stats[id].values.shift();
-                            self.stats[id].times.shift();
+                        s.values.push(results[i].stat(name));
+                        s.times.push(now.getTime());
+                        if (s.values.length > self.maxstats) {
+                            s.values.shift();
+                            s.times.shift();
                         }
-                        self.stats[id].endTime = now;
+                        s.endTime = now;
                     });
                 }
             });
@@ -287,8 +289,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
 
     const remoteSDP = new SDP(this.remoteDescription.sdp);
     const mediaLines
-        = remoteSDP.media.filter(
-            mediaLines => mediaLines.startsWith(`m=${mediaType}`));
+        = remoteSDP.media.filter(mls => mls.startsWith(`m=${mediaType}`));
 
     if (!mediaLines.length) {
         GlobalOnErrorHandler.callErrorHandler(
@@ -542,6 +543,7 @@ const normalizePlanB = function(desc) {
         return desc;
     }
 
+    // eslint-disable-next-line no-shadow
     const transform = require('sdp-transform');
     const session = transform.parse(desc.sdp);
 

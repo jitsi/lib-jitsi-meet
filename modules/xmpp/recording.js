@@ -194,11 +194,11 @@ Recording.prototype.setRecordingColibri
             if (newState === 'pending') {
                 self.connection.addHandler(iq => {
                     // eslint-disable-next-line newline-per-chained-call
-                    const state = $(iq).find('recording').attr('state');
+                    const s = $(iq).find('recording').attr('state');
 
-                    if (state) {
+                    if (s) {
                         self.state = newState;
-                        callback(state);
+                        callback(s);
                     }
                 }, 'http://jitsi.org/protocol/colibri', 'iq', null, null, null);
             }

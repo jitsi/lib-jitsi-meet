@@ -71,7 +71,7 @@ function instantiateTrackRecorder(track) {
     const originalStream = trackRecorder.track.getOriginalStream();
     const stream = createEmptyStream();
 
-    originalStream.getAudioTracks().forEach(track => stream.addTrack(track));
+    originalStream.getAudioTracks().forEach(t => stream.addTrack(t));
 
     // Create the MediaRecorder
     trackRecorder.recorder = new MediaRecorder(stream,

@@ -380,13 +380,13 @@ function pollForAvailableMediaDevices() {
     // do not matter. This fixes situation when we have no devices initially,
     // and then plug in a new one.
     if (rawEnumerateDevicesWithCallback) {
-        rawEnumerateDevicesWithCallback(devices => {
+        rawEnumerateDevicesWithCallback(ds => {
             // We don't fire RTCEvents.DEVICE_LIST_CHANGED for the first time
             // we call enumerateDevices(). This is the initial step.
             if (typeof currentlyAvailableMediaDevices === 'undefined') {
-                currentlyAvailableMediaDevices = devices.slice(0);
-            } else if (compareAvailableMediaDevices(devices)) {
-                onMediaDevicesListChanged(devices);
+                currentlyAvailableMediaDevices = ds.slice(0);
+            } else if (compareAvailableMediaDevices(ds)) {
+                onMediaDevicesListChanged(ds);
             }
 
             window.setTimeout(pollForAvailableMediaDevices,
@@ -443,8 +443,8 @@ function onReady(options, GUM) {
     initRawEnumerateDevicesWithCallback();
 
     if (rtcUtils.isDeviceListAvailable() && rawEnumerateDevicesWithCallback) {
-        rawEnumerateDevicesWithCallback(devices => {
-            currentlyAvailableMediaDevices = devices.splice(0);
+        rawEnumerateDevicesWithCallback(ds => {
+            currentlyAvailableMediaDevices = ds.splice(0);
 
             eventEmitter.emit(RTCEvents.DEVICE_LIST_AVAILABLE,
                 currentlyAvailableMediaDevices);
@@ -564,9 +564,7 @@ function obtainDevices(options) {
     }
 
     const device = options.devices.splice(0, 1);
-    const devices = [];
 
-    devices.push(device);
     options.deviceGUM[device](
         stream => {
             options.streams = options.streams || {};
@@ -574,9 +572,8 @@ function obtainDevices(options) {
             obtainDevices(options);
         },
         error => {
-            Object.keys(options.streams).forEach(device => {
-                rtcUtils.stopMediaStream(options.streams[device]);
-            });
+            Object.keys(options.streams).forEach(
+                d => rtcUtils.stopMediaStream(options.streams[d]));
             logger.error(
                 `failed to obtain ${device} stream - stop`, error);
 
@@ -949,7 +946,7 @@ class RTCUtils extends Listenable {
                         this.getUserMediaWithConstraints.bind(this));
                 };
                 const webRTCReadyPromise
-                    = new Promise(resolve => AdapterJS.webRTCReady(resolve));
+                    = new Promise(r => AdapterJS.webRTCReady(r));
 
                 // Resolve or reject depending on whether the Temasys plugin is
                 // installed.
@@ -1137,6 +1134,7 @@ class RTCUtils extends Listenable {
                                 // didn't get corresponding MediaStreamTrack in
                                 // response stream. We don't know the reason why
                                 // this happened, so reject with general error.
+                                // eslint-disable-next-line no-shadow
                                 const devices = [];
 
                                 if (audioDeviceRequested
@@ -1374,7 +1372,7 @@ class RTCUtils extends Listenable {
      * @returns {MediaDeviceInfo} device.
      */
     getEventDataForActiveDevice(device) {
-        const devices = [];
+        const deviceList = [];
         const deviceData = {
             'deviceId': device.deviceId,
             'kind': device.kind,
@@ -1382,9 +1380,9 @@ class RTCUtils extends Listenable {
             'groupId': device.groupId
         };
 
-        devices.push(deviceData);
+        deviceList.push(deviceData);
 
-        return { deviceList: devices };
+        return { deviceList };
     }
 }
 

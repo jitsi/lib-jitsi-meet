@@ -81,7 +81,7 @@ const ScreenObtainer = {
         }
 
         if (RTCBrowserType.isNWJS()) {
-            obtainDesktopStream = (options, onSuccess, onFailure) => {
+            obtainDesktopStream = (_, onSuccess, onFailure) => {
                 window.JitsiMeetNW.obtainDesktopStream(
                     onSuccess,
                     (error, constraints) => {
@@ -116,7 +116,7 @@ const ScreenObtainer = {
                     });
             };
         } else if (RTCBrowserType.isElectron()) {
-            obtainDesktopStream = (options, onSuccess, onFailure) =>
+            obtainDesktopStream = (_, onSuccess, onFailure) =>
                 window.JitsiMeetElectron.obtainDesktopStream(
                     streamId =>
                         onGetStreamResponse({ streamId }, onSuccess, onFailure),

@@ -348,18 +348,18 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     readSsrcInfo(contents) {
-        $(contents).each((idx, content) => {
+        $(contents).each((i1, content) => {
             const ssrcs
                 = $(content).find(
                     'description>'
                         + 'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
 
-            ssrcs.each((idx, ssrcElement) => {
+            ssrcs.each((i2, ssrcElement) => {
                 const ssrc = ssrcElement.getAttribute('ssrc');
 
                 $(ssrcElement)
                     .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
-                    .each((idx, ssrcInfoElement) => {
+                    .each((i3, ssrcInfoElement) => {
                         const owner = ssrcInfoElement.getAttribute('owner');
 
                         if (owner && owner.length) {
@@ -682,7 +682,7 @@ export default class JingleSessionPC extends JingleSession {
     _parseSsrcInfoFromSourceAdd(sourceAddElem, currentRemoteSdp) {
         const addSsrcInfo = [];
 
-        $(sourceAddElem).each((idx, content) => {
+        $(sourceAddElem).each((i1, content) => {
             const name = $(content).attr('name');
             let lines = '';
 
@@ -729,14 +729,14 @@ export default class JingleSessionPC extends JingleSession {
                     lines += '\r\n';
                 });
             });
-            currentRemoteSdp.media.forEach((media, idx) => {
+            currentRemoteSdp.media.forEach((media, i2) => {
                 if (!SDPUtil.findLine(media, `a=mid:${name}`)) {
                     return;
                 }
-                if (!addSsrcInfo[idx]) {
-                    addSsrcInfo[idx] = '';
+                if (!addSsrcInfo[i2]) {
+                    addSsrcInfo[i2] = '';
                 }
-                addSsrcInfo[idx] += lines;
+                addSsrcInfo[i2] += lines;
             });
         });
 
@@ -1091,7 +1091,7 @@ export default class JingleSessionPC extends JingleSession {
     _parseSsrcInfoFromSourceRemove(sourceRemoveElem, currentRemoteSdp) {
         const removeSsrcInfo = [];
 
-        $(sourceRemoveElem).each((idx, content) => {
+        $(sourceRemoveElem).each((i1, content) => {
             const name = $(content).attr('name');
             let lines = '';
 
@@ -1125,22 +1125,22 @@ export default class JingleSessionPC extends JingleSession {
 
                 ssrcs.push(ssrc);
             });
-            currentRemoteSdp.media.forEach((media, idx) => {
+            currentRemoteSdp.media.forEach((media, i2) => {
                 if (!SDPUtil.findLine(media, `a=mid:${name}`)) {
                     return;
                 }
-                if (!removeSsrcInfo[idx]) {
-                    removeSsrcInfo[idx] = '';
+                if (!removeSsrcInfo[i2]) {
+                    removeSsrcInfo[i2] = '';
                 }
                 ssrcs.forEach(ssrc => {
                     const ssrcLines
                         = SDPUtil.findLines(media, `a=ssrc:${ssrc}`);
 
                     if (ssrcLines.length) {
-                        removeSsrcInfo[idx] += `${ssrcLines.join('\r\n')}\r\n`;
+                        removeSsrcInfo[i2] += `${ssrcLines.join('\r\n')}\r\n`;
                     }
                 });
-                removeSsrcInfo[idx] += lines;
+                removeSsrcInfo[i2] += lines;
             });
         });
 
