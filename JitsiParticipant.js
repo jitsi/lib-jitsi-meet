@@ -193,65 +193,10 @@ export default class JitsiParticipant {
     }
 
     /**
-     * @returns {???} The latest statistics reported by this participant (i.e.
-     * info used to populate the GSM bars)
-     * TODO: do we expose this or handle it internally?
-     */
-    getLatestStats() {
-    }
-
-    /**
      * @returns {String} The role of this participant.
      */
     getRole() {
         return this._role;
-    }
-
-    /**
-     * @returns {Boolean} Whether this participant is the conference focus (i.e.
-     * jicofo).
-     */
-    isFocus() {
-    }
-
-    /**
-     * @returns {Boolean} Whether this participant is a conference recorder
-     * (i.e. jirecon).
-     */
-    isRecorder() {
-    }
-
-    /**
-     * @returns {Boolean} Whether this participant is a SIP gateway (i.e.
-     * jigasi).
-     */
-    isSipGateway() {
-    }
-
-    /**
-     * @returns {Boolean} Whether this participant is currently sharing their
-     * screen.
-     */
-    isScreenSharing() {
-    }
-
-    /**
-     * @returns {String} The user agent of this participant (i.e. browser
-     * userAgent string).
-     */
-    getUserAgent() {
-    }
-
-    /**
-     * Kicks the participant from the conference (requires certain privileges).
-     */
-    kick() {
-    }
-
-    /**
-     * Asks this participant to mute themselves.
-     */
-    askToMute() {
     }
 
     supportsDTMF() {

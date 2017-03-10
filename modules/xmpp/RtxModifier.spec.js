@@ -289,8 +289,7 @@ describe('RtxModifier', function() {
     });
 
     describe('stripRtx', function() {
-        beforeEach(function() {
-        });
+        beforeEach(function() { }); // eslint-disable-line no-empty-function
         it('should strip all rtx streams from an sdp with rtx', function() {
             const sdpStr = transform.write(SampleSdpStrings.rtxVideoSdp);
             const newSdpStr = this.rtxModifier.stripRtx(sdpStr);

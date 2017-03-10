@@ -632,8 +632,6 @@ export default class RTC extends Listenable {
         }
     }
 
-    dispose() { }
-
     setAudioLevel(resource, audioLevel) {
         if(!resource) {
             return;

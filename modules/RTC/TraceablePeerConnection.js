@@ -912,9 +912,11 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
     if (RTCBrowserType.isFirefox()
             || RTCBrowserType.isTemasysPluginUsed()
             || RTCBrowserType.isReactNative()) {
-        // ignore for now...
         if(!errback) {
-            errback = function() {};
+            errback = function() {
+                // Making sure that getStats won't fail if error callback is
+                // not passed.
+            };
         }
         this.peerconnection.getStats(null, callback, errback);
     } else {

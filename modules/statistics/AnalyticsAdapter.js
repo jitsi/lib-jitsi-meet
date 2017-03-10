@@ -2,7 +2,7 @@
  * Interface for analytics handlers.
  */
 class AnalyticsAbstract {
-    sendEvent() {}
+    sendEvent() {} // eslint-disable-line no-empty-function
 }
 
 /**

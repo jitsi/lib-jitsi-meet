@@ -1089,8 +1089,15 @@ JitsiConference.prototype.onIncomingCall
         }
         try {
             this._addLocalStream(
-                localTrack.getOriginalStream(), function() {}, function() {},
-                ssrcInfo, true /* don't modify SSRCs */);
+                localTrack.getOriginalStream(),
+                () => {
+                    // There is nothing to be done after the stream is added.
+                },
+                () => {
+                    // TODO: Maybe report the error to the user?
+                },
+                ssrcInfo,
+                true /* don't modify SSRCs */);
         } catch(e) {
             GlobalOnErrorHandler.callErrorHandler(e);
             logger.error(e);

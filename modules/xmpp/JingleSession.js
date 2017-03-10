@@ -89,19 +89,15 @@ export default class JingleSession {
      * {@link initialize}.
      * @protected
      */
-    doInitialize() {
-
-    }
+    doInitialize() { } // eslint-disable-line no-empty-function
 
     /**
      * Adds the ICE candidates found in the 'contents' array as remote
      * candidates?
      * Note: currently only used on transport-info
      */
-    // eslint-disable-next-line no-unused-vars
-    addIceCandidates(contents) {
-
-    }
+    // eslint-disable-next-line no-unused-vars, no-empty-function
+    addIceCandidates(contents) { }
 
     /**
      * Returns current state of this <tt>JingleSession</tt> instance.
@@ -116,20 +112,16 @@ export default class JingleSession {
      *
      * @param contents an array of Jingle 'content' elements.
      */
-    // eslint-disable-next-line no-unused-vars
-    addSources(contents) {
-
-    }
+    // eslint-disable-next-line no-unused-vars, no-empty-function
+    addSources(contents) { }
 
     /**
      * Handles a 'remove-source' event.
      *
      * @param contents an array of Jingle 'content' elements.
      */
-    // eslint-disable-next-line no-unused-vars
-    removeSources(contents) {
-
-    }
+    // eslint-disable-next-line no-unused-vars, no-empty-function
+    removeSources(contents) { }
 
     /**
      * Terminates this Jingle session by sending session-terminate
@@ -140,10 +132,8 @@ export default class JingleSession {
      * @param failure a callback called when either timeout occurs or ERROR
      * response is received.
      */
-    // eslint-disable-next-line no-unused-vars
-    terminate(reason, text, success, failure) {
-
-    }
+    // eslint-disable-next-line no-unused-vars, no-empty-function
+    terminate(reason, text, success, failure) { }
 
     /**
      * Handles an offer from the remote peer (prepares to accept a session).
@@ -154,8 +144,6 @@ export default class JingleSession {
      * error object with details(which is meant more to be printed to the logger
      * than analysed in the code, as the error is unrecoverable anyway)
      */
-    // eslint-disable-next-line no-unused-vars
-    acceptOffer(jingle, success, failure) {
-
-    }
+    // eslint-disable-next-line no-unused-vars, no-empty-function
+    acceptOffer(jingle, success, failure) { }
 }

@@ -28,7 +28,16 @@ let ttfmTrackerVideoAttached = false;
 function JitsiRemoteTrack(rtc, conference, ownerEndpointId, stream, track,
                           mediaType, videoType, ssrc, muted) {
     JitsiTrack.call(
-        this, conference, stream, track, function() {}, mediaType, videoType, ssrc);
+        this,
+        conference,
+        stream,
+        track,
+        () => {
+            // Nothing to do if the track is inactive.
+        },
+        mediaType,
+        videoType,
+        ssrc);
     this.rtc = rtc;
     this.ownerEndpointId = ownerEndpointId;
     this.muted = muted;

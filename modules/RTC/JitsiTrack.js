@@ -290,6 +290,7 @@ JitsiTrack.prototype.detach = function(container) {
  */
 // eslint-disable-next-line no-unused-vars
 JitsiTrack.prototype._attachTTFMTracker = function(container) {
+    // Should be defined by the classes that are extending JitsiTrack
 };
 
 /**
@@ -310,6 +311,7 @@ JitsiTrack.prototype.dispose = function() {
  * screen capture as opposed to a camera.
  */
 JitsiTrack.prototype.isScreenSharing = function() {
+    // FIXME: Should be fixed or removed.
 };
 
 /**
