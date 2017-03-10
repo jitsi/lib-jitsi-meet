@@ -124,11 +124,11 @@ export default class ChatRoom extends Listenable {
             'children': [
                 {
                     'tagName': 'audio',
-                    'value': devices.audio,
+                    'value': devices.audio
                 },
                 {
                     'tagName': 'video',
-                    'value': devices.video,
+                    'value': devices.video
                 }
             ]
         });

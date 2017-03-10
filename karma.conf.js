@@ -16,7 +16,7 @@ module.exports = function(config) {
     // list of files / patterns to load in the browser
         files: [
             './JitsiMeetJS.js',
-            './modules/**/*.spec.js',
+            './modules/**/*.spec.js'
         ],
 
 
@@ -69,6 +69,6 @@ module.exports = function(config) {
     // if true, Karma captures browsers, runs the tests and exits
         singleRun: false,
 
-        webpack: require('./webpack.config.js'),
+        webpack: require('./webpack.config.js')
     });
 };

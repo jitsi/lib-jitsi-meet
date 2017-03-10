@@ -100,7 +100,7 @@ Recording.prototype.setRecordingJibri
                     'action': state === Recording.status.ON
                             ? Recording.action.START
                             : Recording.action.STOP,
-                    'streamid': options.streamId,
+                    'streamid': options.streamId
                 })
                 .up();
 

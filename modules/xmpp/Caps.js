@@ -127,7 +127,7 @@ export default class Caps extends Listenable {
                                 = features;
                     }
                     resolve(features);
-                }, reject , timeout)
+                }, reject, timeout)
             );
         }
 

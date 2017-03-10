@@ -537,7 +537,7 @@ const SDPUtil = {
             payloadTypes.unshift(payloadType);
             videoMLine.payloads = payloadTypes.join(' ');
         }
-    },
+    }
 };
 
 module.exports = SDPUtil;

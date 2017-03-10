@@ -188,7 +188,7 @@ transcriber.prototype.merge = function() {
         });
         // put the word in the transcription
         wordToAdd = lowestWordArray.shift();
-        this.updateTranscription(wordToAdd,lowestWordArray.name);
+        this.updateTranscription(wordToAdd, lowestWordArray.name);
 
         // keep going until a word in another array has a smaller time
         // or the array is empty

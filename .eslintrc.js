@@ -155,6 +155,8 @@ module.exports = {
         ],
         'block-spacing': [ 'error', 'always' ],
         'brace-style': 2,
+        'comma-dangle': 2,
+        'comma-spacing': 2,
         'comma-style': 2,
         'eol-last': 2,
         'func-names': 0,

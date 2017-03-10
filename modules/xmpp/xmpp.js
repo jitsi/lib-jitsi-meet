@@ -247,7 +247,7 @@ export default class XMPP extends Listenable {
 
         logger.log(`(TIME) Strophe Attaching\t:${now}`);
         this.connection.attach(options.jid, options.sid,
-            parseInt(options.rid,10) + 1,
+            parseInt(options.rid, 10) + 1,
             this.connectionHandler.bind(this, options.password));
     }
 
@@ -317,8 +317,8 @@ export default class XMPP extends Listenable {
         return (this.connection.logger || {}).log || null;
     }
 
-    dial(to, from, roomName,roomPass) {
-        this.connection.rayo.dial(to, from, roomName,roomPass);
+    dial(to, from, roomName, roomPass) {
+        this.connection.rayo.dial(to, from, roomName, roomPass);
     }
 
     setMute(jid, mute) {

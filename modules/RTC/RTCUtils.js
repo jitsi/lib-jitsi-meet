@@ -1124,7 +1124,7 @@ class RTCUtils extends Listenable {
                                         // rejects with real error for not
                                         // obtaining the media
                                         reject(error);
-                                    },options);
+                                    }, options);
 
                                 return;
                             }

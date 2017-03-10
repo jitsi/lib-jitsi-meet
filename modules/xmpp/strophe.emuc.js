@@ -30,7 +30,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         this.connection.addHandler(this.onMessage.bind(this), null,
             'message', null, null);
         this.connection.addHandler(this.onMute.bind(this),
-            'http://jitsi.org/jitmeet/audio', 'iq', 'set',null,null);
+            'http://jitsi.org/jitmeet/audio', 'iq', 'set', null, null);
     }
 
     createRoom(jid, password, options) {
