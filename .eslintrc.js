@@ -146,6 +146,7 @@ module.exports = {
         'max-lines': 0,
         'max-nested-callbacks': 2,
         'max-statements': 0,
+        'max-statements-per-line': 2,
         'multiline-ternary': 0,
         'new-cap': 2,
         'new-parens': 2,
