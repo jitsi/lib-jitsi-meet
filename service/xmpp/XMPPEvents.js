@@ -184,6 +184,14 @@ const XMPPEvents = {
     // suspending detected
     SUSPEND_DETECTED: 'xmpp.suspend_detected',
 
+    /**
+     * Indicates that video SIP GW state changed.
+     *
+     * @param {VideoSIPGWConstants} status - Any of the following statuses:
+     * STATUS_BUSY, STATUS_AVAILABLE or STATUS_UNDEFINED.
+     */
+    VIDEO_SIP_GW_AVAILABILITY_CHANGED: 'xmpp.videoSIPGWAvailabilityChanged',
+
     // Designates an event indicating that the local ICE username fragment of
     // the jingle session has changed.
     LOCAL_UFRAG_CHANGED: 'xmpp.local_ufrag_changed',
