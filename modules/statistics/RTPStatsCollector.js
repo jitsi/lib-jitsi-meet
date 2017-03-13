@@ -472,7 +472,8 @@ StatsCollector.prototype.processStatsReport = function() {
         }
 
         if (now.type === 'candidatepair') {
-            if (now.state === 'succeeded') {
+            // we need succeeded pairs only
+            if (now.state !== 'succeeded') {
                 continue;
             }
 
