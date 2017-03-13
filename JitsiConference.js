@@ -852,8 +852,8 @@ JitsiConference.prototype.setLastN = function(lastN) {
  * the last N.
  * @param {string} participantId the identifier of the participant we would
  * like to check
- * @return {boolean} {true} if the participant with id is in the last N set or
- * if there's no last N set, {false} otherwise
+ * @return {boolean} true if the participant with id is in the last N set or
+ * if there's no last N set, false otherwise
  */
 JitsiConference.prototype.isInLastN = function(participantId) {
     return this.rtc.isInLastN(participantId);
