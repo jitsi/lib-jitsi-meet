@@ -13,7 +13,6 @@ function DataChannels(peerConnection, emitter) {
     peerConnection.ondatachannel = this.onDataChannel.bind(this);
     this.eventEmitter = emitter;
 
-    this._lastNEndpoints = null;
     this._dataChannels = [];
 
     // Sample code for opening new data channel from Jitsi Meet to the bridge.
@@ -124,19 +123,17 @@ DataChannels.prototype.onDataChannel = function(event) {
                     newValue);
             } else if (colibriClass === 'LastNEndpointsChangeEvent') {
                 // The new/latest list of last-n endpoint IDs.
-
-                self._lastNEndpoints = obj.lastNEndpoints;
+                const lastNEndpoints = obj.lastNEndpoints;
 
                 // The list of endpoint IDs which are entering the list of
                 // last-n at this time i.e. were not in the old list of last-n
                 // endpoint IDs.
                 const endpointsEnteringLastN = obj.endpointsEnteringLastN;
 
-                logger.info(
-                    'Data channel new last-n event: ',
-                        self._lastNEndpoints, endpointsEnteringLastN, obj);
+                logger.info('Data channel new last-n event: ',
+                    lastNEndpoints, endpointsEnteringLastN, obj);
                 self.eventEmitter.emit(RTCEvents.LASTN_ENDPOINT_CHANGED,
-                    self._lastNEndpoints, endpointsEnteringLastN, obj);
+                    lastNEndpoints, endpointsEnteringLastN, obj);
             } else if (colibriClass === 'EndpointMessage') {
                 self.eventEmitter.emit(
                     RTCEvents.ENDPOINT_MESSAGE_RECEIVED, obj.from,
@@ -305,18 +302,6 @@ DataChannels.prototype.sendSetLastNMessage = function(value) {
 
     this.send(jsonObject);
     logger.log(`Channel lastN set to: ${value}`);
-};
-
-/**
- * Indicates if the endpoint id is currently included in the last N.
- *
- * @param id the endpoint id that we check for last N
- * @returns {boolean} {true} if the endpoint id is in the last N or if we
- * haven't initialised the last N array yet and {false} otherwise
- */
-DataChannels.prototype.isInLastN = function (id) {
-    return !this._lastNEndpoints // lastNEndpoints not initialised yet
-        || this._lastNEndpoints.indexOf(id) > -1;
 };
 
 module.exports = DataChannels;

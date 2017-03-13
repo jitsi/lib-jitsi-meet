@@ -133,6 +133,7 @@ export default class RTC extends Listenable {
         if (this.options.config.openSctp) {
             this.dataChannels = new DataChannels(peerconnection,
                 this.eventEmitter);
+
             this._dataChannelOpenListener = () => {
                 // mark that dataChannel is opened
                 this.dataChannelsOpen = true;
@@ -157,6 +158,12 @@ export default class RTC extends Listenable {
             };
             this.addListener(RTCEvents.DATA_CHANNEL_OPEN,
                 this._dataChannelOpenListener);
+
+            this.addListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
+                lastNEndpoints => {
+                    this._lastNEndpoints = lastNEndpoints;
+                }
+            );
         }
     }
 
@@ -849,11 +856,12 @@ export default class RTC extends Listenable {
     /**
      * Indicates if the endpoint id is currently included in the last N.
      *
-     * @param id the endpoint id that we check for last N
-     * @returns {boolean} {true} if the endpoint id is in the last N or if we
-     * don't have data channel support, otherwise we return {false}
+     * @param {string} id the endpoint id that we check for last N
+     * @returns {boolean} true if the endpoint id is in the last N or if we
+     * don't have data channel support, otherwise we return false
      */
-    isInLastN (id) {
-        return (this.dataChannels) ? this.dataChannels.isInLastN(id) : true;
+    isInLastN(id) {
+        return !this._lastNEndpoints // lastNEndpoints not initialised yet
+            || this._lastNEndpoints.indexOf(id) > -1;
     }
 }
