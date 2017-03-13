@@ -23,7 +23,8 @@ KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_FIREFOX] = {
     'packetsLost': 'packetsLost',
     'packetsSent': 'packetsSent',
     'bytesReceived': 'bytesReceived',
-    'bytesSent': 'bytesSent'
+    'bytesSent': 'bytesSent',
+    'framerateMean': 'framerateMean'
 };
 KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME] = {
     'receiveBandwidth': 'googAvailableReceiveBandwidth',
@@ -42,6 +43,8 @@ KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME] = {
     'googFrameWidthReceived': 'googFrameWidthReceived',
     'googFrameHeightSent': 'googFrameHeightSent',
     'googFrameWidthSent': 'googFrameWidthSent',
+    'googFrameRateReceived': 'googFrameRateReceived',
+    'googFrameRateSent': 'googFrameRateSent',
     'audioInputLevel': 'audioInputLevel',
     'audioOutputLevel': 'audioOutputLevel'
 };
@@ -85,6 +88,7 @@ function SsrcStats() {
         upload: 0
     };
     this.resolution = {};
+    this.framerate = 0;
 }
 
 /**
@@ -120,6 +124,14 @@ SsrcStats.prototype.addBitrate = function(bitrate) {
 SsrcStats.prototype.resetBitrate = function() {
     this.bitrate.download = 0;
     this.bitrate.upload = 0;
+};
+
+/**
+ * Sets the "framerate".
+ * @param framerate the value to set.
+ */
+SsrcStats.prototype.setFramerate = function(framerate) {
+    this.framerate = framerate || 0;
 };
 
 /**
@@ -587,6 +599,21 @@ StatsCollector.prototype.processStatsReport = function() {
             }
         } catch (e) { /* not supported*/ }
 
+        // Tries to get frame rate
+        try {
+            ssrcStats.setFramerate(
+                getStatValue(now, 'googFrameRateReceived')
+                || getStatValue(now, 'googFrameRateSent')
+                || 0);
+        } catch (e) {
+            // if it fails with previous properties(chrome),
+            // let's try with another one (FF)
+            try {
+                ssrcStats.setFramerate(Math.round(
+                    getNonNegativeStat(now, 'framerateMean')));
+            } catch (err) { /* not supported*/ }
+        }
+
         if (resolution.height && resolution.width) {
             ssrcStats.setResolution(resolution);
         } else {
@@ -606,6 +633,7 @@ StatsCollector.prototype.processStatsReport = function() {
     let bitrateDownload = 0;
     let bitrateUpload = 0;
     const resolutions = {};
+    const framerates = {};
 
     Object.keys(this.ssrc2stats).forEach(
         function(ssrc) {
@@ -626,6 +654,9 @@ StatsCollector.prototype.processStatsReport = function() {
 
             // collect resolutions
             resolutions[ssrc] = ssrcStats.resolution;
+
+            // collect framerates
+            framerates[ssrc] = ssrcStats.framerate;
         },
         this
     );
@@ -650,6 +681,7 @@ StatsCollector.prototype.processStatsReport = function() {
         'bitrate': this.conferenceStats.bitrate,
         'packetLoss': this.conferenceStats.packetLoss,
         'resolution': resolutions,
+        'framerate': framerates,
         'transport': this.conferenceStats.transport
     });
     this.conferenceStats.transport = [];
