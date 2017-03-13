@@ -363,7 +363,7 @@ export default class ParticipantConnectionStatus {
             `Figure out conn status, is video muted: ${isVideoMuted
                  } is active(jvb): ${isConnActiveByJvb
                  } video track frozen: ${isVideoTrackFrozen
-                 } is in last N: ${isInLastN}
+                 } is in last N: ${isInLastN
                  } => ${isConnectionActive}`);
 
         this._changeConnectionStatus(participant, isConnectionActive);
