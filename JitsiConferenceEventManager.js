@@ -32,6 +32,76 @@ function JitsiConferenceEventManager(conference) {
 }
 
 /**
+ * Groups resolutions by user id, skip incorrect resolutions.
+ * @param conference {JitsiConference} the conference
+ * @param resolutions map of resolutions by ssrc
+ */
+function mapResolutionsByUserId(conference, resolutions) {
+
+    const id2resolution = {};
+
+    // preprocess resolutions: group by user id, skip incorrect
+    // resolutions etc.
+    Object.keys(resolutions).forEach(ssrc => {
+        const resolution = resolutions[ssrc];
+
+        if (!resolution.width || !resolution.height
+            || resolution.width === -1 || resolution.height === -1) {
+            return;
+        }
+
+        const id = conference.rtc.getResourceBySSRC(ssrc);
+
+        if (!id) {
+            return;
+        }
+
+        // ssrc to resolution map for user id
+        const idResolutions = id2resolution[id] || {};
+
+        idResolutions[ssrc] = resolution;
+
+        id2resolution[id] = idResolutions;
+    });
+
+    return id2resolution;
+}
+
+/**
+ * Groups framerates by user id, skip framerates with value of 0.
+ * @param conference {JitsiConference} the conference
+ * @param framerates map of framerates by ssrc
+ */
+function mapFrameratesByUserId(conference, framerates) {
+
+    const id2framerate = {};
+
+    // preprocess framerates: group by user id
+    Object.keys(framerates).forEach(ssrc => {
+        const framerate = framerates[ssrc];
+
+        if (framerate === 0) {
+            return;
+        }
+
+        const id = conference.rtc.getResourceBySSRC(ssrc);
+
+        if (!id) {
+            return;
+        }
+
+        // ssrc to framerate map for user id
+        const id2framerates = id2framerate[id] || {};
+
+        id2framerates[ssrc] = framerate;
+
+        id2framerate[id] = id2framerates;
+    });
+
+    return id2framerate;
+}
+
+/**
  * Setups event listeners related to conference.chatRoom
  */
 JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
@@ -569,35 +639,9 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
             JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED);
     });
     conference.statistics.addConnectionStatsListener(stats => {
-        const ssrc2resolution = stats.resolution;
 
-        const id2resolution = {};
-
-        // preprocess resolutions: group by user id, skip incorrect
-        // resolutions etc.
-        Object.keys(ssrc2resolution).forEach(ssrc => {
-            const resolution = ssrc2resolution[ssrc];
-
-            if (!resolution.width || !resolution.height
-                || resolution.width === -1 || resolution.height === -1) {
-                return;
-            }
-
-            const id = conference.rtc.getResourceBySSRC(ssrc);
-
-            if (!id) {
-                return;
-            }
-
-            // ssrc to resolution map for user id
-            const idResolutions = id2resolution[id] || {};
-
-            idResolutions[ssrc] = resolution;
-
-            id2resolution[id] = idResolutions;
-        });
-
-        stats.resolution = id2resolution;
+        stats.resolution = mapResolutionsByUserId(conference, stats.resolution);
+        stats.framerate = mapFrameratesByUserId(conference, stats.framerate);
 
         conference.eventEmitter.emit(
             JitsiConferenceEvents.CONNECTION_STATS, stats);
