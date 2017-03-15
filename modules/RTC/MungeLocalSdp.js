@@ -220,7 +220,7 @@ export default class MungeLocalSdp {
             // an update should be sent
             const primaryCname = `injected-${primarySSRC}`;
 
-            requiredSSRCs.forEach(ssrcNum => {
+            for (const ssrcNum of requiredSSRCs) {
                 // Remove old attributes
                 videoMLine.removeSSRC(ssrcNum);
 
@@ -237,15 +237,14 @@ export default class MungeLocalSdp {
                     attribute: 'msid',
                     value: videoTrack.storedMSID
                 });
-            });
+            }
             if (requiredSSRCs.length > 1) {
                 const group = {
                     ssrcs: requiredSSRCs.join(' '),
                     semantics: 'SIM'
                 };
 
-                if (!videoMLine.findGroup(
-                        group.semantics, group.ssrcs)) {
+                if (!videoMLine.findGroup(group.semantics, group.ssrcs)) {
                     // Inject the group
                     logger.debug(
                         `Injecting SIM group for ${videoTrack}`, group);
@@ -256,53 +255,56 @@ export default class MungeLocalSdp {
             // Insert RTX
             // FIXME in P2P RTX is used by Chrome regardless of this
             // option status
-            if (!this.pc.options.disableRtx) {
-                const rtxSSRCs = this.pc.rtxModifier.correspondingRtxSsrcs;
+            if (this.pc.options.disableRtx) {
 
-                videoMLine.forEachSSRCAttr(ssrcObj => {
-                    // Trigger only once per SSRC when processing msid
-                    if (ssrcObj.attribute === 'msid') {
-                        const correspondingSSRC
-                            = rtxSSRCs.get(ssrcObj.id);
+                // eslint-disable-next-line no-continue
+                continue;
+            }
 
-                        if (correspondingSSRC) {
-                            // Remove old attributes
-                            videoMLine.removeSSRC(correspondingSSRC);
+            // FIXME rtxModifier should be reused for this part
+            const rtxSSRCs = this.pc.rtxModifier.correspondingRtxSsrcs;
 
-                            // Add new
-                            videoMLine.addSSRCAttribute({
-                                id: correspondingSSRC,
-                                attribute: 'msid',
-                                value: ssrcObj.value
-                            });
-                            videoMLine.addSSRCAttribute({
-                                id: correspondingSSRC,
-                                attribute: 'cname',
-                                value: primaryCname
-                            });
-                            const rtxGroup = {
-                                ssrcs: `${ssrcObj.id} ${correspondingSSRC}`,
-                                semantics: 'FID'
-                            };
+            // These are the SSRC object that contain "msid"
+            const streamSSRCs
+                = videoMLine.ssrcs.filter(
+                    ssrcObj => ssrcObj.attribute === 'msid');
 
-                            if (!videoMLine.findGroup(
-                                    'FID', rtxGroup.ssrcs)) {
-                                videoMLine.addSSRCGroup(rtxGroup);
-                                logger.debug(
-                                    `${'Injecting RTX group'
-                                        + ' for: '}${ssrcObj.id}`,
-                                    rtxGroup);
-                            }
-                        } else {
-                            // FIXME explain better
-                            // Logging on debug, because it's normal
-                            // if the SSRCs are already in the SDP
-                            logger.debug(
-                                `No corresponding SSRC found for: ${
-                                 ssrcObj.id}`, rtxSSRCs);
-                        }
+            for (const ssrcObj of streamSSRCs) {
+                const correspondingSSRC = rtxSSRCs.get(ssrcObj.id);
+
+                if (correspondingSSRC) {
+                    // Remove old attributes
+                    videoMLine.removeSSRC(correspondingSSRC);
+
+                    // Add new
+                    videoMLine.addSSRCAttribute({
+                        id: correspondingSSRC,
+                        attribute: 'msid',
+                        value: ssrcObj.value
+                    });
+                    videoMLine.addSSRCAttribute({
+                        id: correspondingSSRC,
+                        attribute: 'cname',
+                        value: primaryCname
+                    });
+                    const rtxGroup = {
+                        ssrcs: `${ssrcObj.id} ${correspondingSSRC}`,
+                        semantics: 'FID'
+                    };
+
+                    if (!videoMLine.findGroup('FID', rtxGroup.ssrcs)) {
+                        videoMLine.addSSRCGroup(rtxGroup);
+                        logger.debug(
+                            `Injecting RTX group for: ${ssrcObj.id}`, rtxGroup);
                     }
-                });
+                } else {
+                    // FIXME explain better
+                    // Logging on debug, because it's normal
+                    // if the SSRCs are already in the SDP
+                    logger.debug(
+                        `No corresponding SSRC found for: ${ssrcObj.id}`,
+                        rtxSSRCs);
+                }
             }
         }
 
