@@ -557,13 +557,12 @@ export default class P2PEnabledConference extends JitsiConference {
         // Add local track to JVB
         this._attachLocalTracksToJvbSession();
 
+        const wasP2PEstablished = this.p2pEstablished;
+
         // Swap remote tracks, but only if the P2P has been fully established
-        if (this.p2pEstablished) {
+        if (wasP2PEstablished) {
             // Remove remote P2P tracks
             this._removeRemoteP2PTracks();
-
-            // Add back remote JVB tracks
-            this._addRemoteJVBTracks();
         }
 
         // Stop P2P stats
@@ -592,6 +591,11 @@ export default class P2PEnabledConference extends JitsiConference {
 
         // Update P2P status and other affected events/states
         this._setP2PStatus(false);
+
+        if (wasP2PEstablished) {
+            // Add back remote JVB tracks
+            this._addRemoteJVBTracks();
+        }
 
         // Start remote stats
         logger.info('Starting remote stats with JVB connection');
