@@ -12,6 +12,8 @@ const logger = getLogger(__filename);
  * attach/detach and video mute/unmute local operations. That means it prevents
  * from SSRC updates being sent to Jicofo/remote peer, so that there is no
  * sRD/sLD cycle on the remote side.
+ *
+ * FIXME audio SSRC is not consistent, between attach and detach
  */
 export default class MungeLocalSdp {
 
