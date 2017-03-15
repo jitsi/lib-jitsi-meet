@@ -50,64 +50,72 @@ export default class MungeLocalSdp {
             return false;
         }
 
-        let modified = false;
-
-        // eslint-disable-next-line no-negated-condition
-        if (audioMLine.direction !== 'inactive') {
-
-            localAudio.forEach(audioTrack => {
-                const isAttached = audioTrack._isAttachedToPC(this.pc);
-                const shouldFake = !isAttached;
-
-                logger.debug(
-                    `${audioTrack} isAttached: ${isAttached
-                        } => should fake audio SDP ?: ${shouldFake}`);
-                if (shouldFake) {
-                    // Inject removed SSRCs
-                    const audioSSRC = this.pc.getLocalSSRC(audioTrack);
-
-                    if (!audioSSRC) {
-                        logger.error(
-                            `Can't fake SDP for ${
-                                audioTrack} - no SSRC stored`);
-
-                        // Aborts the forEach on this particular track,
-                        // but will continue with the other ones
-                        return;
-                    }
-
-                    // FIXME come up with a message
-                    // when there should not be audio SSRC anymore
-                    if (audioMLine.getSSRCCount() > 0) {
-                        logger.debug(
-                            'Doing nothing - audio SSRCs are still there');
-
-                        // audio SSRCs are still there
-                        return;
-                    }
-
-                    modified = true;
-
-                    // We need to fake sendrecv
-                    audioMLine.direction = 'sendrecv';
-
-                    logger.debug(`Injecting audio SSRC: ${audioSSRC}`);
-                    audioMLine.addSSRCAttribute({
-                        id: audioSSRC,
-                        attribute: 'cname',
-                        value: `injected-${audioSSRC}`
-                    });
-                    audioMLine.addSSRCAttribute({
-                        id: audioSSRC,
-                        attribute: 'msid',
-                        value: audioTrack.storedMSID
-                    });
-                }
-            });
-        } else {
+        if (audioMLine.direction === 'inactive') {
             logger.error(
                 `Not doing local audio transform for direction: ${
-                 audioMLine.direction}`);
+                    audioMLine.direction}`);
+
+            return false;
+        }
+
+        let modified = false;
+
+        for (const audioTrack of localAudio) {
+            const isAttached = audioTrack._isAttachedToPC(this.pc);
+            const shouldFake = !isAttached;
+
+            logger.debug(
+                `${audioTrack} isAttached: ${isAttached
+                    } => should fake audio SDP ?: ${shouldFake}`);
+
+            if (!shouldFake) {
+
+                // not using continue increases indentation
+                // eslint-disable-next-line no-continue
+                continue;
+            }
+
+            // Inject removed SSRCs
+            const audioSSRC = this.pc.getLocalSSRC(audioTrack);
+
+            if (!audioSSRC) {
+                logger.error(
+                    `Can't fake SDP for ${
+                        audioTrack} - no SSRC stored`);
+
+                // Aborts the forEach on this particular track,
+                // but will continue with the other ones
+                // eslint-disable-next-line no-continue
+                continue;
+            }
+
+            // FIXME come up with a message
+            // when there should not be audio SSRC anymore
+            if (audioMLine.getSSRCCount() > 0) {
+                logger.debug(
+                    'Doing nothing - audio SSRCs are still there');
+
+                // audio SSRCs are still there
+                // eslint-disable-next-line no-continue
+                continue;
+            }
+
+            modified = true;
+
+            // We need to fake sendrecv
+            audioMLine.direction = 'sendrecv';
+
+            logger.debug(`Injecting audio SSRC: ${audioSSRC}`);
+            audioMLine.addSSRCAttribute({
+                id: audioSSRC,
+                attribute: 'cname',
+                value: `injected-${audioSSRC}`
+            });
+            audioMLine.addSSRCAttribute({
+                id: audioSSRC,
+                attribute: 'msid',
+                value: audioTrack.storedMSID
+            });
         }
 
         return modified;
@@ -146,152 +154,156 @@ export default class MungeLocalSdp {
             return false;
         }
 
-        let modified = false;
-
-        // eslint-disable-next-line no-negated-condition
-        if (videoMLine.direction !== 'inactive') {
-
-            localVideos.forEach(videoTrack => {
-                const isMuted = videoTrack.isMuted();
-                const muteInProgress = videoTrack.inMuteOrUnmuteProgress;
-                const isAttached = videoTrack._isAttachedToPC(this.pc);
-                const shouldFakeSdp = isMuted || muteInProgress || !isAttached;
-
-                logger.debug(
-                    `${videoTrack
-                     } isMuted: ${isMuted
-                     }, is mute in progress: ${muteInProgress
-                     }, is attached ? : ${isAttached
-                     } => should fake sdp ? : ${shouldFakeSdp}`);
-                if (shouldFakeSdp) {
-                    // Inject removed SSRCs
-                    const requiredSSRCs
-                        = this.pc.isSimulcastOn()
-                            ? this.pc.simulcast.ssrcCache
-                            : [ this.pc.sdpConsistency.cachedPrimarySsrc ];
-
-                    if (!requiredSSRCs.length) {
-                        logger.error(
-                            `No SSRCs stored for: ${videoTrack} in ${this.pc}`);
-
-                        return;
-                    }
-                    if (!videoMLine.getSSRCCount()) {
-                        logger.error(
-                            'No video SSRCs found '
-                                + '(should be at least the recv-only one');
-
-                        return;
-                    }
-
-                    modified = true;
-
-                    // We need to fake sendrecv
-                    videoMLine.direction = 'sendrecv';
-
-                    // Check if the recvonly has MSID
-                    const primarySSRC = requiredSSRCs[0];
-
-                    // FIXME the cname could come from the stream, but may
-                    // turn out to be too complex. It is fine to come up
-                    // with any value, as long as we only care about
-                    // the actual SSRC values when deciding whether or not
-                    // an update should be sent
-                    const primaryCname = `injected-${primarySSRC}`;
-
-                    requiredSSRCs.forEach(ssrcNum => {
-                        // Remove old attributes
-                        videoMLine.removeSSRC(ssrcNum);
-
-                        // Inject
-                        logger.debug(
-                            `Injecting video SSRC: ${ssrcNum
-                                } for ${videoTrack}`);
-                        videoMLine.addSSRCAttribute({
-                            id: ssrcNum,
-                            attribute: 'cname',
-                            value: primaryCname
-                        });
-                        videoMLine.addSSRCAttribute({
-                            id: ssrcNum,
-                            attribute: 'msid',
-                            value: videoTrack.storedMSID
-                        });
-                    });
-                    if (requiredSSRCs.length > 1) {
-                        const group = {
-                            ssrcs: requiredSSRCs.join(' '),
-                            semantics: 'SIM'
-                        };
-
-                        if (!videoMLine.findGroup(
-                                group.semantics, group.ssrcs)) {
-                            // Inject the group
-                            logger.debug(
-                                `Injecting SIM group for ${videoTrack}`, group);
-                            videoMLine.addSSRCGroup(group);
-                        }
-                    }
-
-                    // Insert RTX
-                    // FIXME in P2P RTX is used by Chrome regardless of this
-                    // option status
-                    if (!this.pc.options.disableRtx) {
-                        const rtxSSRCs
-                            = this.pc.rtxModifier.correspondingRtxSsrcs;
-
-                        videoMLine.forEachSSRCAttr(ssrcObj => {
-                            // Trigger only once per SSRC when processing msid
-                            if (ssrcObj.attribute === 'msid') {
-                                const correspondingSSRC
-                                    = rtxSSRCs.get(ssrcObj.id);
-
-                                if (correspondingSSRC) {
-                                    // Remove old attributes
-                                    videoMLine.removeSSRC(correspondingSSRC);
-
-                                    // Add new
-                                    videoMLine.addSSRCAttribute({
-                                        id: correspondingSSRC,
-                                        attribute: 'msid',
-                                        value: ssrcObj.value
-                                    });
-                                    videoMLine.addSSRCAttribute({
-                                        id: correspondingSSRC,
-                                        attribute: 'cname',
-                                        value: primaryCname
-                                    });
-                                    const rtxGroup = {
-                                        ssrcs: `${ssrcObj.id
-                                                } ${correspondingSSRC}`,
-                                        semantics: 'FID'
-                                    };
-
-                                    if (!videoMLine.findGroup(
-                                            'FID', rtxGroup.ssrcs)) {
-                                        videoMLine.addSSRCGroup(rtxGroup);
-                                        logger.debug(
-                                            `${'Injecting RTX group'
-                                                + ' for: '}${ssrcObj.id}`,
-                                            rtxGroup);
-                                    }
-                                } else {
-                                    // FIXME explain better
-                                    // Logging on debug, because it's normal
-                                    // if the SSRCs are already in the SDP
-                                    logger.debug(
-                                        `No corresponding SSRC found for: ${
-                                         ssrcObj.id}`, rtxSSRCs);
-                                }
-                            }
-                        });
-                    }
-                }
-            });
-        } else {
+        if (videoMLine.direction === 'inactive') {
             logger.error(
                 `Not doing local video transform for direction: ${
-                     videoMLine.direction}`);
+                    videoMLine.direction}`);
+
+            return false;
+        }
+
+        let modified = false;
+
+        for (const videoTrack of localVideos) {
+            const isMuted = videoTrack.isMuted();
+            const muteInProgress = videoTrack.inMuteOrUnmuteProgress;
+            const isAttached = videoTrack._isAttachedToPC(this.pc);
+            const shouldFakeSdp = isMuted || muteInProgress || !isAttached;
+
+            logger.debug(
+                `${videoTrack
+                 } isMuted: ${isMuted
+                 }, is mute in progress: ${muteInProgress
+                 }, is attached ? : ${isAttached
+                 } => should fake sdp ? : ${shouldFakeSdp}`);
+
+            if (!shouldFakeSdp) {
+
+                // eslint-disable-next-line no-continue
+                continue;
+            }
+
+            // Inject removed SSRCs
+            const requiredSSRCs
+                = this.pc.isSimulcastOn()
+                    ? this.pc.simulcast.ssrcCache
+                    : [ this.pc.sdpConsistency.cachedPrimarySsrc ];
+
+            if (!requiredSSRCs.length) {
+                logger.error(
+                    `No SSRCs stored for: ${videoTrack} in ${this.pc}`);
+
+                // eslint-disable-next-line no-continue
+                continue;
+            }
+            if (!videoMLine.getSSRCCount()) {
+                logger.error(
+                    'No video SSRCs found '
+                        + '(should be at least the recv-only one');
+
+                // eslint-disable-next-line no-continue
+                continue;
+            }
+
+            modified = true;
+
+            // We need to fake sendrecv
+            videoMLine.direction = 'sendrecv';
+
+            // Check if the recvonly has MSID
+            const primarySSRC = requiredSSRCs[0];
+
+            // FIXME the cname could come from the stream, but may
+            // turn out to be too complex. It is fine to come up
+            // with any value, as long as we only care about
+            // the actual SSRC values when deciding whether or not
+            // an update should be sent
+            const primaryCname = `injected-${primarySSRC}`;
+
+            requiredSSRCs.forEach(ssrcNum => {
+                // Remove old attributes
+                videoMLine.removeSSRC(ssrcNum);
+
+                // Inject
+                logger.debug(
+                    `Injecting video SSRC: ${ssrcNum} for ${videoTrack}`);
+                videoMLine.addSSRCAttribute({
+                    id: ssrcNum,
+                    attribute: 'cname',
+                    value: primaryCname
+                });
+                videoMLine.addSSRCAttribute({
+                    id: ssrcNum,
+                    attribute: 'msid',
+                    value: videoTrack.storedMSID
+                });
+            });
+            if (requiredSSRCs.length > 1) {
+                const group = {
+                    ssrcs: requiredSSRCs.join(' '),
+                    semantics: 'SIM'
+                };
+
+                if (!videoMLine.findGroup(
+                        group.semantics, group.ssrcs)) {
+                    // Inject the group
+                    logger.debug(
+                        `Injecting SIM group for ${videoTrack}`, group);
+                    videoMLine.addSSRCGroup(group);
+                }
+            }
+
+            // Insert RTX
+            // FIXME in P2P RTX is used by Chrome regardless of this
+            // option status
+            if (!this.pc.options.disableRtx) {
+                const rtxSSRCs = this.pc.rtxModifier.correspondingRtxSsrcs;
+
+                videoMLine.forEachSSRCAttr(ssrcObj => {
+                    // Trigger only once per SSRC when processing msid
+                    if (ssrcObj.attribute === 'msid') {
+                        const correspondingSSRC
+                            = rtxSSRCs.get(ssrcObj.id);
+
+                        if (correspondingSSRC) {
+                            // Remove old attributes
+                            videoMLine.removeSSRC(correspondingSSRC);
+
+                            // Add new
+                            videoMLine.addSSRCAttribute({
+                                id: correspondingSSRC,
+                                attribute: 'msid',
+                                value: ssrcObj.value
+                            });
+                            videoMLine.addSSRCAttribute({
+                                id: correspondingSSRC,
+                                attribute: 'cname',
+                                value: primaryCname
+                            });
+                            const rtxGroup = {
+                                ssrcs: `${ssrcObj.id} ${correspondingSSRC}`,
+                                semantics: 'FID'
+                            };
+
+                            if (!videoMLine.findGroup(
+                                    'FID', rtxGroup.ssrcs)) {
+                                videoMLine.addSSRCGroup(rtxGroup);
+                                logger.debug(
+                                    `${'Injecting RTX group'
+                                        + ' for: '}${ssrcObj.id}`,
+                                    rtxGroup);
+                            }
+                        } else {
+                            // FIXME explain better
+                            // Logging on debug, because it's normal
+                            // if the SSRCs are already in the SDP
+                            logger.debug(
+                                `No corresponding SSRC found for: ${
+                                 ssrcObj.id}`, rtxSSRCs);
+                        }
+                    }
+                });
+            }
         }
 
         return modified;
