@@ -254,6 +254,8 @@ export default class RTC extends Listenable {
         return RTCUtils.getDeviceAvailability();
     }
 
+    /* eslint-disable max-params */
+
     /**
      * Creates new <tt>TraceablePeerConnection</tt>
      * @param {SignalingLayer} signaling the signaling layer that will
@@ -284,6 +286,8 @@ export default class RTC extends Listenable {
 
         return newConnection;
     }
+
+    /* eslint-enable max-params */
 
     /**
      * Removed given peer connection from this RTC module instance.
@@ -369,10 +373,9 @@ export default class RTC extends Listenable {
      * the callback.
      * @private
      */
-    _iteratePeerConnections (callback) {
-        return Array.from(this.peerConnections.values()).find((pc) => {
-            return callback.apply(this, [pc]);
-        }, this);
+    _iteratePeerConnections(callback) {
+        return Array.from(this.peerConnections.values())
+                    .find(pc => callback.apply(this, [ pc ]));
     }
 
     /**
@@ -383,12 +386,15 @@ export default class RTC extends Listenable {
      */
     getRemoteTracks(mediaType) {
         let remoteTracks = [];
-        this._iteratePeerConnections((pc) => {
+
+        this._iteratePeerConnections(pc => {
             const pcRemoteTracks = pc.getRemoteTracks(undefined, mediaType);
+
             if (pcRemoteTracks) {
                 remoteTracks = remoteTracks.concat(pcRemoteTracks);
             }
         });
+
         return remoteTracks;
     }
 
@@ -434,8 +440,9 @@ export default class RTC extends Listenable {
     removeRemoteTracks(owner) {
         let removedTracks = [];
 
-        this._iteratePeerConnections(function (pc) {
+        this._iteratePeerConnections(pc => {
             const pcRemovedTracks = pc.removeRemoteTracks(owner);
+
             removedTracks = removedTracks.concat(pcRemovedTracks);
         });
 
@@ -607,6 +614,7 @@ export default class RTC extends Listenable {
         }
         if (!track.isAudioTrack()) {
             logger.warn(`Received audio level for non-audio track: ${ssrc}`);
+
             return;
         }
 
@@ -620,6 +628,7 @@ export default class RTC extends Listenable {
      */
     getResourceBySSRC(ssrc) {
         const track = this._getTrackBySSRC(ssrc);
+
         return track ? track.getParticipantId() : null;
     }
 
@@ -627,16 +636,18 @@ export default class RTC extends Listenable {
      *
      * @private
      */
-    _getTrackBySSRC (ssrc) {
+    _getTrackBySSRC(ssrc) {
         let track
             = this.getLocalTracks().find(
-                (localTrack) => {
+                localTrack =>
+
                     // It is important that SSRC is not compared with ===,
                     // because the code calling this method is inconsistent
                     // about string vs number types
-                    return Array.from(this.peerConnections.values())
-                        .find(pc => pc.getLocalSSRC(localTrack) == ssrc);
-                });
+                    Array.from(this.peerConnections.values())
+                         .find(pc => pc.getLocalSSRC(localTrack) == ssrc) // eslint-disable-line eqeqeq, max-len
+                );
+
         if (!track) {
             track = this._getRemoteTrackBySSRC(ssrc);
         }
@@ -652,12 +663,14 @@ export default class RTC extends Listenable {
      * matches given SSRC or <tt>undefined</tt> if no such track was found.
      * @private
      */
-    _getRemoteTrackBySSRC (ssrc) {
+    _getRemoteTrackBySSRC(ssrc) {
+        /* eslint-disable eqeqeq */
         // FIXME: Convert the SSRCs in whole project to use the same type.
         // Now we are using number and string.
-        // eslint-disable-next-line eqeqeq
         return this.getRemoteTracks().find(
             remoteTrack => ssrc == remoteTrack.getSSRC());
+
+        /* eslint-enable eqeqeq */
     }
 
     /**

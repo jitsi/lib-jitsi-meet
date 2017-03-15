@@ -31,7 +31,7 @@ const RTCBrowserType = {
      * @return {boolean} <tt>true</tt> if the current browser supports this
      * strategy or <tt>false</tt> otherwise.
      */
-    doesVideoMuteByStreamRemove: function () {
+    doesVideoMuteByStreamRemove() {
         return !RTCBrowserType.isFirefox();
     },
 

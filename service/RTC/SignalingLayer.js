@@ -1,6 +1,5 @@
 
-// FIXME has to be moved to RTC
-import Listenable from "../../modules/util/Listenable";
+import Listenable from '../../modules/util/Listenable';
 
 /**
  * An object that carries the info about specific media type advertised by
@@ -17,10 +16,6 @@ import Listenable from "../../modules/util/Listenable";
  * @interface SignalingLayer
  */
 export default class SignalingLayer extends Listenable {
-
-    constructor() {
-        super();
-    }
 
     /**
      * Obtains the endpoint ID for given SSRC.

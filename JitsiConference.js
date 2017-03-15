@@ -21,7 +21,7 @@ import Statistics from './modules/statistics/statistics';
 import TalkMutedDetection from './modules/TalkMutedDetection';
 import Transcriber from './modules/transcription/transcriber';
 import VideoType from './service/RTC/VideoType';
-import * as XMPPEvents from "./service/xmpp/XMPPEvents";
+import * as XMPPEvents from './service/xmpp/XMPPEvents';
 
 const logger = getLogger(__filename);
 
@@ -93,7 +93,8 @@ function JitsiConference(options) {
     this.connectionIsInterrupted = false;
 
 }
-//FIXME convert JitsiConference to ES6 - ASAP !
+
+// FIXME convert JitsiConference to ES6 - ASAP !
 JitsiConference.prototype.constructor = JitsiConference;
 
 /**
@@ -610,10 +611,10 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
 JitsiConference.prototype._doReplaceTrack = function(oldTrack, newTrack) {
     if (this.jvbJingleSession) {
         return this.jvbJingleSession.replaceTrack(oldTrack, newTrack);
-    } else {
-        logger.info('_doReplaceTrack - no JVB JingleSession');
-        return Promise.resolve();
     }
+    logger.info('_doReplaceTrack - no JVB JingleSession');
+
+    return Promise.resolve();
 };
 
 /**
@@ -689,12 +690,13 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
 JitsiConference.prototype._addLocalTrackAsUnmute = function(track) {
     if (this.jvbJingleSession) {
         return this.jvbJingleSession.addTrackAsUnmute(track);
-    } else {
-        // We are done immediately
-        logger.warn(
-            'Add local MediaStream as unmute - no JingleSession started yet');
-        return Promise.resolve();
     }
+
+    // We are done immediately
+    logger.warn(
+        'Add local MediaStream as unmute - no JingleSession started yet');
+
+    return Promise.resolve();
 };
 
 /**
@@ -705,12 +707,13 @@ JitsiConference.prototype._addLocalTrackAsUnmute = function(track) {
 JitsiConference.prototype._removeTrackAsMute = function(track) {
     if (this.jvbJingleSession) {
         return this.jvbJingleSession.removeTrackAsMute(track);
-    } else {
-        // We are done immediately
-        logger.warn(
-            'Remove local MediaStream - no JVBJingleSession started yet');
-        return Promise.resolve();
     }
+
+    // We are done immediately
+    logger.warn(
+        'Remove local MediaStream - no JVBJingleSession started yet');
+
+    return Promise.resolve();
 };
 
 /* eslint-enable max-params */
@@ -938,6 +941,7 @@ JitsiConference.prototype.onLocalRoleChanged = function(role) {
 JitsiConference.prototype.onUserRoleChanged = function(jid, role) {
     const id = Strophe.getResourceFromJid(jid);
     const participant = this.getParticipantById(id);
+
     if (!participant) {
         return;
     }
@@ -1013,9 +1017,9 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
  * @param {jQuery} answer a jQuery selector pointing to 'jingle' IQ element
  */
 // eslint-disable-next-line no-unused-vars
-JitsiConference.prototype.onCallAccepted = function (session, answer) {
+JitsiConference.prototype.onCallAccepted = function(session, answer) {
     // JVB conference does not care
-    logger.error("onAcceptedCall - not implemented in JVB conference");
+    logger.error('onAcceptedCall - not implemented in JVB conference');
 };
 
 /**
@@ -1026,10 +1030,10 @@ JitsiConference.prototype.onCallAccepted = function (session, answer) {
  * element
  */
 // eslint-disable-next-line no-unused-vars
-JitsiConference.prototype.onTransportInfo = function (session, transportInfo) {
+JitsiConference.prototype.onTransportInfo = function(session, transportInfo) {
     // NOTE right now all transport is received from the bridge in the initial
     // 'session-initiate' IQ. Only P2P implementation cares about this IQs.
-    logger.error("onTransportInfo - not implemented in JVB conference");
+    logger.error('onTransportInfo - not implemented in JVB conference');
 };
 
 /**
@@ -1041,7 +1045,7 @@ JitsiConference.prototype.onTransportInfo = function (session, transportInfo) {
 JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
     let consumed = false;
 
-    this.getParticipants().forEach((participant) => {
+    this.getParticipants().forEach(participant => {
         const tracks = participant.getTracks();
 
         for (let i = 0; i < tracks.length; i++) {
@@ -1069,7 +1073,7 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
         // JitsiConference, but moving to subclass is hard and it's only a log
         // message which could potentially be removed once things get more
         // stable.
-        if ( (this.p2pEstablished && !removedTrack.isP2P)
+        if ((this.p2pEstablished && !removedTrack.isP2P)
              || (!this.p2pEstablished && removedTrack.isP2P)) {
             // This track has been removed explicitly by P2PEnabledConference
             return;
@@ -1089,12 +1093,14 @@ JitsiConference.prototype.onIncomingCall
 = function(jingleSession, jingleOffer, now) {
     if (!this.room.isFocus(jingleSession.peerjid)) {
         this._rejectIncomingCall(jingleSession);
+
         return;
     }
 
     // Accept incoming call
     this.jvbJingleSession = jingleSession;
     this.room.connectionTimes['session.initiate'] = now;
+
     // Log "session.restart"
     if (this.wasStopped) {
         Statistics.sendEventToAll('session.restart');
@@ -1137,7 +1143,7 @@ JitsiConference.prototype.onIncomingCall
             this.statistics.startCallStats(jingleSession);
             this._startRemoteStats();
         });
-    } catch(e) {
+    } catch (e) {
         GlobalOnErrorHandler.callErrorHandler(e);
         logger.error(e);
     }
@@ -1150,34 +1156,41 @@ JitsiConference.prototype.onIncomingCall
  * @private
  */
 JitsiConference.prototype._rejectIncomingCallNonModerator
-= function (jingleSession) {
+= function(jingleSession) {
     this._rejectIncomingCall(
         jingleSession,
-        'security-error', 'Only focus can start new sessions',
-        'Rejecting session-initiate from non-focus and non-moderator user: '
-            + jingleSession.peerjid);
+        {
+            reasonTag: 'security-error',
+            reasonMsg: 'Only focus can start new sessions',
+            errorMsg: 'Rejecting session-initiate from non-focus and'
+                        + `non-moderator user: ${jingleSession.peerjid}`
+        });
 };
 
 /**
  * Rejects incoming Jingle call.
  * @param {JingleSessionPC} jingleSession the session instance to be rejected.
- * @param {string} reasonTag the name of the reason element as defined by Jingle
- * @param {string} reasonMsg the reason description which will be included in
- * Jingle 'session-terminate' message.
- * @param {string} [errorMsg] optional error message to be logged on global
+ * @param {object} [options]
+ * @param {string} options.reasonTag the name of the reason element as defined
+ * by Jingle
+ * @param {string} options.reasonMsg the reason description which will
+ * be included in Jingle 'session-terminate' message.
+ * @param {string} options.errorMsg an error message to be logged on global
  * error handler
  * @private
  */
 JitsiConference.prototype._rejectIncomingCall
-= function (jingleSession, reasonTag, reasonMsg, errorMsg) {
-    if (errorMsg)
-        GlobalOnErrorHandler.callErrorHandler(new Error(errorMsg));
+= function(jingleSession, options) {
+    if (options && options.errorMsg) {
+        GlobalOnErrorHandler.callErrorHandler(new Error(options.errorMsg));
+    }
 
     // Terminate  the jingle session with a reason
     jingleSession.terminate(
-        reasonTag, reasonMsg,
+        options && options.reasonTag,
+        options && options.reasonMsg,
         null /* success callback => we don't care */,
-        (error) => {
+        error => {
             logger.warn(
                 'An error occurred while trying to terminate'
                     + ' invalid Jingle session', error);
@@ -1189,8 +1202,9 @@ JitsiConference.prototype._rejectIncomingCall
  * available).
  * @private
  */
-JitsiConference.prototype._startRemoteStats = function () {
+JitsiConference.prototype._startRemoteStats = function() {
     const activePeerConnection = this.getActivePeerConnection();
+
     if (activePeerConnection) {
         this.statistics.startRemoteStats(activePeerConnection);
     }
@@ -1201,7 +1215,7 @@ JitsiConference.prototype._startRemoteStats = function () {
  * @return {boolean} <tt>true</tt> if this conference is currently using direct
  * peer to peer connection or <tt>false</tt> if the JVB one is in use.
  */
-JitsiConference.prototype.isP2PEstablished = function () {
+JitsiConference.prototype.isP2PEstablished = function() {
     return false;
 };
 
@@ -1220,6 +1234,7 @@ JitsiConference.prototype.onCallEnded
             'Received onCallEnded for invalid session',
             reasonCondition,
             reasonText);
+
         return;
     }
     logger.info(`JVB call ended: ${reasonCondition} - ${reasonText}`);

@@ -198,7 +198,7 @@ const XMPPEvents = {
     /**
      * Event fired when 'transport-info' with new ICE candidates is received.
      */
-    TRANSPORT_INFO: "xmpp.transportinfo.jingle",
+    TRANSPORT_INFO: 'xmpp.transportinfo.jingle',
 
     // Designates an event indicating that the local ICE connection state has
     // changed.

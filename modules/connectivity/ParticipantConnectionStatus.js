@@ -167,7 +167,8 @@ export default class ParticipantConnectionStatus {
             JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
 
         const participantIds = Object.keys(this.trackTimers);
-        for(const participantId of participantIds) {
+
+        for (const participantId of participantIds) {
             this.clearTimeout(participantId);
             this.clearRtcMutedTimestamp(participantId);
         }
@@ -336,6 +337,7 @@ export default class ParticipantConnectionStatus {
      */
     refreshStatusForAll() {
         const participants = this.conference.getParticipants();
+
         for (const participant of participants) {
             this.figureOutConnectionStatus(participant.getId());
         }

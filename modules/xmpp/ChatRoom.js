@@ -538,11 +538,11 @@ export default class ChatRoom extends Listenable {
 
             if (node.tagName.startsWith('jitsi_participant_')) {
                 // NOTE should we allow more than one handler ?
-                tagHandlers = [this.participantPropertyListener];
+                tagHandlers = [ this.participantPropertyListener ];
             }
 
             if (tagHandlers) {
-                tagHandlers.forEach((handler) => {
+                tagHandlers.forEach(handler => {
                     handler(node, Strophe.getResourceFromJid(from), from);
                 });
             }
@@ -897,32 +897,35 @@ export default class ChatRoom extends Listenable {
      */
     addPresenceListener(name, handler) {
         if (typeof handler !== 'function') {
-            throw new Error("'handler' is not a function");
+            throw new Error('"handler" is not a function');
         }
         let tagHandlers = this.presHandlers[name];
 
         if (!tagHandlers) {
             this.presHandlers[name] = tagHandlers = [];
         }
-        if (tagHandlers.indexOf(handler) == -1) {
+        if (tagHandlers.indexOf(handler) === -1) {
             tagHandlers.push(handler);
         } else {
             logger.warn(
-                "Trying to add the same handler more than once for: " + name);
+                `Trying to add the same handler more than once for: ${name}`);
         }
     }
 
     /**
      *
      * @param name
+     * @param handler
      */
     removePresenceListener(name, handler) {
         const tagHandlers = this.presHandlers[name];
         const handlerIdx = tagHandlers ? tagHandlers.indexOf(handler) : -1;
+
+        // eslint-disable-next-line no-negated-condition
         if (handlerIdx !== -1) {
             tagHandlers.splice(handlerIdx, 1);
         } else {
-            logger.warn("Handler for: " + name + " was not registered");
+            logger.warn(`Handler for: ${name} was not registered`);
         }
     }
 
@@ -978,7 +981,7 @@ export default class ChatRoom extends Listenable {
     /**
      *
      * @param mute
-     * @apram callback
+     * @param callback
      */
     setAudioMute(mute, callback) {
         return this.sendAudioInfoPresence(mute, callback);

@@ -96,13 +96,13 @@ JitsiConnection.prototype.initJitsiConference = function(name, options) {
             config: options,
             connection: this
         });
-    } else {
-        return new JitsiConference({
-            name,
-            config: options,
-            connection: this
-        });
     }
+
+    return new JitsiConference({
+        name,
+        config: options,
+        connection: this
+    });
 };
 
 /**

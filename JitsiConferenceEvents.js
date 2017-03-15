@@ -135,7 +135,8 @@ export const PARTICIPANT_PROPERTY_CHANGED
 /**
  * Indicates that the conference has switched between JVB and P2P connections.
  */
-export const P2P_STATUS = "conference.p2pConnectionStatus";
+export const P2P_STATUS = 'conference.p2pConnectionStatus';
+
 /**
  * Indicates that phone number changed.
  */

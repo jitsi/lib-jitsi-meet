@@ -136,6 +136,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             if (startMuted && startMuted.length > 0) {
                 const audioMuted = startMuted.attr('audio');
                 const videoMuted = startMuted.attr('video');
+
                 this.eventEmitter.emit(XMPPEvents.START_MUTED_FROM_FOCUS,
                         audioMuted === 'true', videoMuted === 'true');
             }
@@ -143,17 +144,18 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             // FIXME that should work most of the time, but we'd have to
             // think how secure it is to assume that user with "focus"
             // nickname is Jicofo.
-            const isP2P = 'focus' !== Strophe.getResourceFromJid(fromJid);
+            const isP2P = Strophe.getResourceFromJid(fromJid) !== 'focus';
 
             logger.info(
-                "Marking session from " + fromJid
-                    + (isP2P ? ' as P2P' : ' as *not* P2P'));
+                `Marking session from ${fromJid
+                     }${isP2P ? ' as P2P' : ' as *not* P2P'}`);
             sess = new JingleSessionPC(
                         $(iq).find('jingle').attr('sid'),
                         $(iq).attr('to'),
                         fromJid,
                         this.connection,
                         this.mediaConstraints,
+
                         // Only P2P makes use of the ICE config
                         isP2P ? this.p2pIceConfig : this.jvbIceConfig,
                         isP2P /* P2P */, false /* initiator */,
@@ -191,7 +193,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             this.terminate(sess.sid, reasonCondition, reasonText);
             this.eventEmitter.emit(XMPPEvents.CALL_ENDED,
                 sess, reasonCondition, reasonText);
-        break;
+            break;
         }
         case 'transport-replace':
             logger.info('(TIME) Start transport replace', now);
@@ -254,6 +256,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     this.xmpp.options);
 
         this.sessions[sess.sid] = sess;
+
         return sess;
     }
 

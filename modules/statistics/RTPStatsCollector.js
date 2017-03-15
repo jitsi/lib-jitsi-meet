@@ -471,8 +471,8 @@ StatsCollector.prototype.processStatsReport = function() {
             // Save the address unless it has been saved already.
             const conferenceStatsTransport = this.conferenceStats.transport;
 
-            if(!conferenceStatsTransport.some(
-                    t=>
+            if (!conferenceStatsTransport.some(
+                    t =>
                        t.ip === ip
                        && t.type === type
                        && t.localip === localip)) {

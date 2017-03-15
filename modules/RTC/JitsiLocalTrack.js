@@ -71,6 +71,7 @@ function JitsiLocalTrack(
     this.startMuted = false;
     this.storedMSID = this.getMSID();
     this.inMuteOrUnmuteProgress = false;
+
     /**
      * An array which stores the peer connection to which this local track is
      * currently attached to. See {@link TraceablePeerConnection.attachTrack}.
@@ -158,15 +159,14 @@ JitsiLocalTrack.prototype = Object.create(JitsiTrack.prototype);
 JitsiLocalTrack.prototype.constructor = JitsiLocalTrack;
 
 JitsiLocalTrack.prototype._addPeerConnection = function(tpc) {
-    if (!this._isAttachedToPC(tpc)) {
-        this.peerConnections.push(tpc);
+    if (this._isAttachedToPC(tpc)) {
+        logger.error(`${tpc} has been associated with ${this} already !`);
     } else {
-        logger.error(
-            `${tpc} has been associated with ${this} already !`);
+        this.peerConnections.push(tpc);
     }
 };
 
-JitsiLocalTrack.prototype._removePeerConnection = function (tpc) {
+JitsiLocalTrack.prototype._removePeerConnection = function(tpc) {
     if (this._isAttachedToPC(tpc)) {
         this.peerConnections.splice(
             this.peerConnections.indexOf(tpc), 1);
@@ -183,7 +183,7 @@ JitsiLocalTrack.prototype._removePeerConnection = function (tpc) {
  * @return {boolean} <tt>true</tt> if this tracks is currently attached to given
  * peer connection or <tt>false</tt> otherwise.
  */
-JitsiLocalTrack.prototype._isAttachedToPC = function (tpc) {
+JitsiLocalTrack.prototype._isAttachedToPC = function(tpc) {
     return this.peerConnections.indexOf(tpc) !== -1;
 };
 
@@ -285,8 +285,9 @@ JitsiLocalTrack.prototype._setRealDeviceIdFromDeviceList = function(devices) {
  * handlers to it.
  * @param {MediaStream} stream the new stream.
  */
-JitsiLocalTrack.prototype._setStream = function (stream) {
+JitsiLocalTrack.prototype._setStream = function(stream) {
     JitsiTrack.prototype._setStream.call(this, stream);
+
     // Store the MSID for video mute/unmute purposes
     if (stream) {
         this.storedMSID = this.getMSID();
@@ -370,7 +371,7 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
     this.dontFireRemoveEvent = false;
 
     // A function that will print info about muted status transition
-    const loggerMuteInfo = () => { logger.info("Mute " + this + ": " + mute); };
+    const loggerMuteInfo = () => logger.info(`Mute ${this}: ${mute}`);
 
     if (this.isAudioTrack()
         || this.videoType === VideoType.DESKTOP
@@ -395,6 +396,7 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
         });
     } else {
         loggerMuteInfo();
+
         // This path is only for camera.
         const streamOptions = {
             cameraDeviceId: this.getDeviceId(),
@@ -466,7 +468,7 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function() {
     // SSRCs are changed. This would help to separate XMPP from the RTC module.
     return new Promise((resolve, reject) => {
         this.conference._addLocalTrackAsUnmute(this)
-            .then(resolve, (error) => reject(new Error(error)));
+            .then(resolve, error => reject(new Error(error)));
     });
 };
 
@@ -485,7 +487,7 @@ JitsiLocalTrack.prototype._removeStreamFromConferenceAsMute
     }
     this.conference._removeTrackAsMute(this).then(
         successCallback,
-        (error) => errorCallback(new Error(error)));
+        error => errorCallback(new Error(error)));
 };
 
 /**
@@ -618,6 +620,7 @@ JitsiLocalTrack.prototype._setByteSent = function(tpc, bytesSent) {
         setTimeout(() => {
             if (this._bytesSent <= 0) {
                 logger.warn(`${this} 'bytes sent' <= 0: ${this._bytesSent}`);
+
                 // we are not receiving anything from the microphone
                 this._fireNoDataFromSourceEvent();
             }
@@ -719,8 +722,8 @@ JitsiLocalTrack.prototype._isReceivingData = function() {
  * Creates a text representation of this local track instance.
  * @return {string}
  */
-JitsiLocalTrack.prototype.toString = function () {
-    return "LocalTrack[" + this.rtcId + "," + this.getType() + "]";
+JitsiLocalTrack.prototype.toString = function() {
+    return `LocalTrack[${this.rtcId},${this.getType()}]`;
 };
 
 module.exports = JitsiLocalTrack;

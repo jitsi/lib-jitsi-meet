@@ -358,6 +358,7 @@ class MLineWrap {
 
         if (this.selectedMLine.ssrcs) {
             const ssrcsCopy = this.selectedMLine.ssrcs.slice();
+
             ssrcsCopy.forEach(callback);
         }
     }

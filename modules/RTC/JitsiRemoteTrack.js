@@ -226,7 +226,7 @@ JitsiRemoteTrack.prototype._attachTTFMTracker = function(container) {
  * Creates a text representation of this remote track instance.
  * @return {string}
  */
-JitsiRemoteTrack.prototype.toString = function () {
+JitsiRemoteTrack.prototype.toString = function() {
     return `RemoteTrack[${this.ownerEndpointId}, ${this.getType()
             }, p2p: ${this.isP2P}]`;
 };

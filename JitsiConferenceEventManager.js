@@ -384,7 +384,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         let isAudioAvailable = false;
         let isVideoAvailable = false;
 
-        data.children.forEach((config) => {
+        data.children.forEach(config => {
             if (config.tagName === 'audio') {
                 isAudioAvailable = config.value === 'true';
             }
@@ -510,9 +510,9 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
             if (!tpc.isP2P) {
                 Statistics.sendLog(
                     JSON.stringify({
-                    id: 'local_ufrag',
-                    value: ufrag
-                }));
+                        id: 'local_ufrag',
+                        value: ufrag
+                    }));
             }
         });
     rtc.addListener(RTCEvents.REMOTE_UFRAG_CHANGED,
@@ -520,9 +520,9 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
             if (!tpc.isP2P) {
                 Statistics.sendLog(
                     JSON.stringify({
-                    id: 'remote_ufrag',
-                    value: ufrag
-                }));
+                        id: 'remote_ufrag',
+                        value: ufrag
+                    }));
             }
         });
 
