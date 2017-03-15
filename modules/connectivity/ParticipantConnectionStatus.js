@@ -357,7 +357,7 @@ export default class ParticipantConnectionStatus {
 
         const isConnectionActive
             = isConnActiveByJvb
-                && (isVideoMuted || !isVideoTrackFrozen || isInLastN);
+                && (isVideoMuted || (isInLastN && !isVideoTrackFrozen));
 
         logger.debug(
             `Figure out conn status, is video muted: ${isVideoMuted
