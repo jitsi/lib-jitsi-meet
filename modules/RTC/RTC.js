@@ -83,6 +83,13 @@ export default class RTC extends Listenable {
         // this happen
         this.dataChannelsOpen = false;
 
+        // Defines the last N endpoints list. It can be null or an array once
+        // initialised with a datachannel last N event.
+        this._lastNEndpoints = null;
+
+        // The last N change listener.
+        this._lastNChangeListener = null;
+
         // Switch audio output device on all remote audio tracks. Local audio
         // tracks handle this event by themselves.
         if (RTCUtils.isDeviceChangeAvailable('output')) {
@@ -159,11 +166,13 @@ export default class RTC extends Listenable {
             this.addListener(RTCEvents.DATA_CHANNEL_OPEN,
                 this._dataChannelOpenListener);
 
+            // Add Last N change listener.
+            this._lastNChangeListener = lastNEndpoints => {
+                this._lastNEndpoints = lastNEndpoints;
+            };
+
             this.addListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
-                lastNEndpoints => {
-                    this._lastNEndpoints = lastNEndpoints;
-                }
-            );
+                this._lastNChangeListener);
         }
     }
 
@@ -739,6 +748,11 @@ export default class RTC extends Listenable {
         if (this.dataChannels) {
             this.dataChannels.closeAllChannels();
             this.dataChannelsOpen = false;
+
+            if (this._lastNChangeListener) {
+                this.removeListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
+                    this._lastNChangeListener);
+            }
         }
     }
 
@@ -856,9 +870,9 @@ export default class RTC extends Listenable {
     /**
      * Indicates if the endpoint id is currently included in the last N.
      *
-     * @param {string} id the endpoint id that we check for last N
+     * @param {string} id the endpoint id that we check for last N.
      * @returns {boolean} true if the endpoint id is in the last N or if we
-     * don't have data channel support, otherwise we return false
+     * don't have data channel support, otherwise we return false.
      */
     isInLastN(id) {
         return !this._lastNEndpoints // lastNEndpoints not initialised yet
