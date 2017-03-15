@@ -37,15 +37,13 @@ const RTCBrowserType = {
      * @returns {string}
      */
     getBrowserName() {
-        let browser;
+        const isAndroid = navigator.userAgent.indexOf('Android') !== -1;
 
-        if (RTCBrowserType.isAndroid()) {
-            browser = 'android';
-        } else {
-            browser = currentBrowser.split('rtc_browser.')[1];
+        if (isAndroid) {
+            return 'android';
         }
 
-        return browser;
+        return currentBrowser.split('rtc_browser.')[1];
     },
 
     /**
