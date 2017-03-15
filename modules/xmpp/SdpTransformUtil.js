@@ -353,11 +353,8 @@ class MLineWrap {
      * the SSRC object as defined by the 'sdp-transform' lib.
      */
     forEachSSRCAttr(callback) {
-        // mLine must be selected !
-        this._assertMLineSelected();
-
-        if (this.selectedMLine.ssrcs) {
-            const ssrcsCopy = this.selectedMLine.ssrcs.slice();
+        if (this.mLine.ssrcs) {
+            const ssrcsCopy = this.mLine.ssrcs.slice();
 
             ssrcsCopy.forEach(callback);
         }

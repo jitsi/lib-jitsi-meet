@@ -41,7 +41,9 @@ export default class MungeLocalSdp {
         }
 
 
-        if (!transformer.selectMedia('audio')) {
+        const audioMLine = transformer.selectMedia('audio');
+
+        if (!audioMLine) {
             logger.error(
                 'Unable to hack local audio track SDP - no "audio" media');
 
@@ -51,7 +53,7 @@ export default class MungeLocalSdp {
         let modified = false;
 
         // eslint-disable-next-line no-negated-condition
-        if (transformer.mediaDirection !== 'inactive') {
+        if (audioMLine.direction !== 'inactive') {
 
             localAudio.forEach(audioTrack => {
                 const isAttached = audioTrack._isAttachedToPC(this.pc);
@@ -76,7 +78,7 @@ export default class MungeLocalSdp {
 
                     // FIXME come up with a message
                     // when there should not be audio SSRC anymore
-                    if (transformer.getSSRCCount() > 0) {
+                    if (audioMLine.getSSRCCount() > 0) {
                         logger.debug(
                             'Doing nothing - audio SSRCs are still there');
 
@@ -87,15 +89,15 @@ export default class MungeLocalSdp {
                     modified = true;
 
                     // We need to fake sendrecv
-                    transformer.mediaDirection = 'sendrecv';
+                    audioMLine.direction = 'sendrecv';
 
                     logger.debug(`Injecting audio SSRC: ${audioSSRC}`);
-                    transformer.addSSRCAttribute({
+                    audioMLine.addSSRCAttribute({
                         id: audioSSRC,
                         attribute: 'cname',
                         value: `injected-${audioSSRC}`
                     });
-                    transformer.addSSRCAttribute({
+                    audioMLine.addSSRCAttribute({
                         id: audioSSRC,
                         attribute: 'msid',
                         value: audioTrack.storedMSID
@@ -105,7 +107,7 @@ export default class MungeLocalSdp {
         } else {
             logger.error(
                 `Not doing local audio transform for direction: ${
-                 transformer.mediaDirection}`);
+                 audioMLine.direction}`);
         }
 
         return modified;
@@ -135,7 +137,9 @@ export default class MungeLocalSdp {
                     + 'Strange things may happen !', localVideos);
         }
 
-        if (!transformer.selectMedia('video')) {
+        const videoMLine = transformer.selectMedia('video');
+
+        if (!videoMLine) {
             logger.error(
                 'Unable to hack local video track SDP - no "video" media');
 
@@ -145,7 +149,7 @@ export default class MungeLocalSdp {
         let modified = false;
 
         // eslint-disable-next-line no-negated-condition
-        if (transformer.mediaDirection !== 'inactive') {
+        if (videoMLine.direction !== 'inactive') {
 
             localVideos.forEach(videoTrack => {
                 const isMuted = videoTrack.isMuted();
@@ -172,7 +176,7 @@ export default class MungeLocalSdp {
 
                         return;
                     }
-                    if (!transformer.getSSRCCount()) {
+                    if (!videoMLine.getSSRCCount()) {
                         logger.error(
                             'No video SSRCs found '
                                 + '(should be at least the recv-only one');
@@ -183,7 +187,7 @@ export default class MungeLocalSdp {
                     modified = true;
 
                     // We need to fake sendrecv
-                    transformer.mediaDirection = 'sendrecv';
+                    videoMLine.direction = 'sendrecv';
 
                     // Check if the recvonly has MSID
                     const primarySSRC = requiredSSRCs[0];
@@ -197,18 +201,18 @@ export default class MungeLocalSdp {
 
                     requiredSSRCs.forEach(ssrcNum => {
                         // Remove old attributes
-                        transformer.removeSSRC(ssrcNum);
+                        videoMLine.removeSSRC(ssrcNum);
 
                         // Inject
                         logger.debug(
                             `Injecting video SSRC: ${ssrcNum
                                 } for ${videoTrack}`);
-                        transformer.addSSRCAttribute({
+                        videoMLine.addSSRCAttribute({
                             id: ssrcNum,
                             attribute: 'cname',
                             value: primaryCname
                         });
-                        transformer.addSSRCAttribute({
+                        videoMLine.addSSRCAttribute({
                             id: ssrcNum,
                             attribute: 'msid',
                             value: videoTrack.storedMSID
@@ -220,12 +224,12 @@ export default class MungeLocalSdp {
                             semantics: 'SIM'
                         };
 
-                        if (!transformer.findGroup(
+                        if (!videoMLine.findGroup(
                                 group.semantics, group.ssrcs)) {
                             // Inject the group
                             logger.debug(
                                 `Injecting SIM group for ${videoTrack}`, group);
-                            transformer.addSSRCGroup(group);
+                            videoMLine.addSSRCGroup(group);
                         }
                     }
 
@@ -236,7 +240,7 @@ export default class MungeLocalSdp {
                         const rtxSSRCs
                             = this.pc.rtxModifier.correspondingRtxSsrcs;
 
-                        transformer.forEachSSRCAttr(ssrcObj => {
+                        videoMLine.forEachSSRCAttr(ssrcObj => {
                             // Trigger only once per SSRC when processing msid
                             if (ssrcObj.attribute === 'msid') {
                                 const correspondingSSRC
@@ -244,15 +248,15 @@ export default class MungeLocalSdp {
 
                                 if (correspondingSSRC) {
                                     // Remove old attributes
-                                    transformer.removeSSRC(correspondingSSRC);
+                                    videoMLine.removeSSRC(correspondingSSRC);
 
                                     // Add new
-                                    transformer.addSSRCAttribute({
+                                    videoMLine.addSSRCAttribute({
                                         id: correspondingSSRC,
                                         attribute: 'msid',
                                         value: ssrcObj.value
                                     });
-                                    transformer.addSSRCAttribute({
+                                    videoMLine.addSSRCAttribute({
                                         id: correspondingSSRC,
                                         attribute: 'cname',
                                         value: primaryCname
@@ -263,9 +267,9 @@ export default class MungeLocalSdp {
                                         semantics: 'FID'
                                     };
 
-                                    if (!transformer.findGroup(
+                                    if (!videoMLine.findGroup(
                                             'FID', rtxGroup.ssrcs)) {
-                                        transformer.addSSRCGroup(rtxGroup);
+                                        videoMLine.addSSRCGroup(rtxGroup);
                                         logger.debug(
                                             `${'Injecting RTX group'
                                                 + ' for: '}${ssrcObj.id}`,
@@ -287,7 +291,7 @@ export default class MungeLocalSdp {
         } else {
             logger.error(
                 `Not doing local video transform for direction: ${
-                     transformer.mediaDirection}`);
+                     videoMLine.direction}`);
         }
 
         return modified;
