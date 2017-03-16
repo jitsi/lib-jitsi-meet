@@ -148,7 +148,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
 
             logger.info(
                 `Marking session from ${fromJid
-                     }${isP2P ? ' as P2P' : ' as *not* P2P'}`);
+                } as ${isP2P ? '' : '*not*'} P2P`);
             sess = new JingleSessionPC(
                         $(iq).find('jingle').attr('sid'),
                         $(iq).attr('to'),
@@ -243,7 +243,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
      * @param {string} peer remote participant's JID
      * @return {JingleSessionPC}
      */
-    newJingleSession(me, peer) {
+    newP2PJingleSession(me, peer) {
         const sess
             = new JingleSessionPC(
                     me,
@@ -252,7 +252,8 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     this.connection,
                     this.mediaConstraints,
                     this.p2pIceConfig,
-                    true /* P2P */, true /* initiator */,
+                    true /* P2P */,
+                    true /* initiator */,
                     this.xmpp.options);
 
         this.sessions[sess.sid] = sess;

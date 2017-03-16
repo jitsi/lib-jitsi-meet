@@ -430,7 +430,7 @@ export default class P2PEnabledConference extends JitsiConference {
         }
 
         this.p2pJingleSession
-            = this.xmpp.connection.jingle.newJingleSession(
+            = this.xmpp.connection.jingle.newP2PJingleSession(
                 this.room.myroomjid, peerJid);
         this.p2pJingleSession.setSSRCOwnerJid(this.room.myroomjid);
 
