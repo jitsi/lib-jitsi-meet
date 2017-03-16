@@ -8,7 +8,7 @@ const logger = getLogger(__filename);
 
 /**
  * Fakes local SDP, so that it will reflect current local tracks status inside
- * of the <tt>TraceablePeerConnection<tt/> and make operations like
+ * of the {@link TraceablePeerConnection} and make operations like
  * attach/detach and video mute/unmute local operations. That means it prevents
  * from SSRC updates being sent to Jicofo/remote peer, so that there is no
  * sRD/sLD cycle on the remote side.
@@ -20,10 +20,10 @@ export default class MungeLocalSdp {
     /**
      * Creates new <tt>MungeLocalSdp</tt> instance.
      *
-     * @param {TraceablePeerConnection} traceablePeerConnection
+     * @param {TraceablePeerConnection} tpc
      */
-    constructor(traceablePeerConnection) {
-        this.pc = traceablePeerConnection;
+    constructor(tpc) {
+        this.tpc = tpc;
     }
 
     /**
@@ -35,8 +35,7 @@ export default class MungeLocalSdp {
      * @private
      */
     _describeLocalAudioTracks(transformer) {
-
-        const localAudio = this.pc.getLocalTracks(MediaType.AUDIO);
+        const localAudio = this.tpc.getLocalTracks(MediaType.AUDIO);
 
         if (!localAudio.length) {
             return false;
@@ -54,8 +53,7 @@ export default class MungeLocalSdp {
 
         if (audioMLine.direction === 'inactive') {
             logger.error(
-                `Not doing local audio transform for direction: ${
-                    audioMLine.direction}`);
+                'Not doing local audio transform for "inactive" direction');
 
             return false;
         }
@@ -63,7 +61,7 @@ export default class MungeLocalSdp {
         let modified = false;
 
         for (const audioTrack of localAudio) {
-            const isAttached = audioTrack._isAttachedToPC(this.pc);
+            const isAttached = audioTrack._isAttachedToPC(this.tpc);
             const shouldFake = !isAttached;
 
             logger.debug(
@@ -71,14 +69,13 @@ export default class MungeLocalSdp {
                     } => should fake audio SDP ?: ${shouldFake}`);
 
             if (!shouldFake) {
-
                 // not using continue increases indentation
                 // eslint-disable-next-line no-continue
                 continue;
             }
 
             // Inject removed SSRCs
-            const audioSSRC = this.pc.getLocalSSRC(audioTrack);
+            const audioSSRC = this.tpc.getLocalSSRC(audioTrack);
 
             if (!audioSSRC) {
                 logger.error(
@@ -135,9 +132,8 @@ export default class MungeLocalSdp {
      * @private
      */
     _describeLocalVideoTracks(transformer) {
-
         // Go over each video tracks and check if the SDP has to be changed
-        const localVideos = this.pc.getLocalTracks(MediaType.VIDEO);
+        const localVideos = this.tpc.getLocalTracks(MediaType.VIDEO);
 
         if (!localVideos.length) {
             return false;
@@ -158,8 +154,7 @@ export default class MungeLocalSdp {
 
         if (videoMLine.direction === 'inactive') {
             logger.error(
-                `Not doing local video transform for direction: ${
-                    videoMLine.direction}`);
+                'Not doing local video transform for "inactive" direction.');
 
             return false;
         }
@@ -169,7 +164,7 @@ export default class MungeLocalSdp {
         for (const videoTrack of localVideos) {
             const isMuted = videoTrack.isMuted();
             const muteInProgress = videoTrack.inMuteOrUnmuteProgress;
-            const isAttached = videoTrack._isAttachedToPC(this.pc);
+            const isAttached = videoTrack._isAttachedToPC(this.tpc);
             const shouldFakeSdp = isMuted || muteInProgress || !isAttached;
 
             logger.debug(
@@ -180,20 +175,19 @@ export default class MungeLocalSdp {
                  } => should fake sdp ? : ${shouldFakeSdp}`);
 
             if (!shouldFakeSdp) {
-
                 // eslint-disable-next-line no-continue
                 continue;
             }
 
             // Inject removed SSRCs
             const requiredSSRCs
-                = this.pc.isSimulcastOn()
-                    ? this.pc.simulcast.ssrcCache
-                    : [ this.pc.sdpConsistency.cachedPrimarySsrc ];
+                = this.tpc.isSimulcastOn()
+                    ? this.tpc.simulcast.ssrcCache
+                    : [ this.tpc.sdpConsistency.cachedPrimarySsrc ];
 
             if (!requiredSSRCs.length) {
                 logger.error(
-                    `No SSRCs stored for: ${videoTrack} in ${this.pc}`);
+                    `No SSRCs stored for: ${videoTrack} in ${this.tpc}`);
 
                 // eslint-disable-next-line no-continue
                 continue;
@@ -257,14 +251,14 @@ export default class MungeLocalSdp {
             // Insert RTX
             // FIXME in P2P RTX is used by Chrome regardless of this
             // option status
-            if (this.pc.options.disableRtx) {
+            if (this.tpc.options.disableRtx) {
 
                 // eslint-disable-next-line no-continue
                 continue;
             }
 
             // FIXME rtxModifier should be reused for this part
-            const rtxSSRCs = this.pc.rtxModifier.correspondingRtxSsrcs;
+            const rtxSSRCs = this.tpc.rtxModifier.correspondingRtxSsrcs;
 
             // These are the SSRC object that contain "msid"
             const streamSSRCs
@@ -323,7 +317,7 @@ export default class MungeLocalSdp {
     maybeMungeLocalSdp(desc) {
         // Nothing to be done in early stage when localDescription
         // is not available yet
-        if (!this.pc.peerconnection.localDescription.sdp) {
+        if (!this.tpc.peerconnection.localDescription.sdp) {
             return;
         }
 
