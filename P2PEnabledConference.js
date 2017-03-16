@@ -32,10 +32,10 @@ export default class P2PEnabledConference extends JitsiConference {
      * participant has left.
      * @param {boolean} [options.config.disableAutoP2P] option used in automatic
      * testing. When set to <tt>true</tt> the method
-     * {@link _startPeer2PeerSession} will be blocked which means that no
+     * {@link _startStopP2PSession} will be blocked which means that no
      * automatic switching between P2P and JVB connections will happen. In such
-     * case public methods {@link startPeer2PeerSession} and
-     * {@link stopPeer2PeerSession} have to be called explicitly.
+     * case public methods {@link startP2PSession} and {@link stopP2PSession}
+     * have to be called explicitly.
      */
     constructor(options) {
         super(options);
@@ -417,7 +417,7 @@ export default class P2PEnabledConference extends JitsiConference {
      * @param {string} peerJid the JID of the remote participant
      * @private
      */
-    _startPeer2PeerSession(peerJid) {
+    _startP2PSession(peerJid) {
         if (this.deferredStartP2P) {
             // Make note that the task has been executed
             this.deferredStartP2P = null;
@@ -525,16 +525,16 @@ export default class P2PEnabledConference extends JitsiConference {
                     `Will start P2P with: ${jid
                          } after ${this.backToP2PDelay} seconds...`);
                 this.deferredStartP2P = window.setTimeout(
-                    this._startPeer2PeerSession.bind(this, jid),
+                    this._startP2PSession.bind(this, jid),
                     this.backToP2PDelay * 1000);
             } else {
                 logger.info(`Will start P2P with: ${jid}`);
-                this._startPeer2PeerSession(jid);
+                this._startP2PSession(jid);
             }
         } else if (isModerator && this.p2pJingleSession && !shouldBeInP2P) {
             logger.info(
                 `Will stop P2P with: ${this.p2pJingleSession.peerjid}`);
-            this._stopPeer2PeerSession();
+            this._stopP2PSession();
         }
     }
 
@@ -546,7 +546,7 @@ export default class P2PEnabledConference extends JitsiConference {
      * description that will be included in the session terminate message
      * @private
      */
-    _stopPeer2PeerSession(reason, reasonDescription) {
+    _stopP2PSession(reason, reasonDescription) {
         if (!this.p2pJingleSession) {
             logger.error('No P2P session to be stopped!');
 
@@ -672,7 +672,7 @@ export default class P2PEnabledConference extends JitsiConference {
         if (jingleSession === this.p2pJingleSession) {
             // FIXME not sure if that's ok to not call the super
             // check CallStats and other things
-            this._stopPeer2PeerSession();
+            this._stopP2PSession();
         } else {
             super.onCallEnded(jingleSession, reasonCondition, reasonText);
         }
@@ -797,7 +797,7 @@ export default class P2PEnabledConference extends JitsiConference {
     /**
      * Manually starts new P2P session (should be used only in the tests).
      */
-    startPeer2PeerSession() {
+    startP2PSession() {
         const peers = this.getParticipants();
 
         // Start peer to peer session
@@ -805,7 +805,7 @@ export default class P2PEnabledConference extends JitsiConference {
         if (peers.length === 1) {
             const peerJid = peers[0].getJid();
 
-            this._startPeer2PeerSession(peerJid);
+            this._startP2PSession(peerJid);
         } else {
             throw new Error(
                 'There must be exactly 1 participant '
@@ -816,8 +816,8 @@ export default class P2PEnabledConference extends JitsiConference {
     /**
      * Manually stops the current P2P session (should be used only in the tests)
      */
-    stopPeer2PeerSession() {
-        this._stopPeer2PeerSession();
+    stopP2PSession() {
+        this._stopP2PSession();
     }
 }
 
@@ -887,7 +887,7 @@ class FakeChatRoomLayer {
                     self.p2pConf.onP2PIceConnectionRestored();
                     break;
                 case XMPPEvents.CONNECTION_ICE_FAILED:
-                    self.p2pConf._stopPeer2PeerSession(
+                    self.p2pConf._stopP2PSession(
                             'connectivity-error', 'ICE FAILED');
                     break;
                 }
