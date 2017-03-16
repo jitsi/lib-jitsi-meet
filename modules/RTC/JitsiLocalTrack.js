@@ -602,7 +602,7 @@ JitsiLocalTrack.prototype.getDeviceId = function() {
  * endpoint id/MUC nickname in case of Jitsi-meet.
  */
 JitsiLocalTrack.prototype.getParticipantId = function() {
-    return this.conference ? this.conference.myUserId() : undefined;
+    return this.conference && this.conference.myUserId();
 };
 
 /**
