@@ -263,6 +263,8 @@ export default class RTC extends Listenable {
      * over SDP.
      * @param {Object} iceConfig an object describing the ICE config like
      * defined in the WebRTC specification.
+     * @param {boolean} isP2P indicates whether or not the new TPC will be used
+     * in a peer to peer type of session
      * @param {Object} options the config options
      * @param {boolean} options.disableSimulcast if set to 'true' will disable
      * the simulcast
@@ -270,16 +272,14 @@ export default class RTC extends Listenable {
      * @param {boolean} options.preferH264 if set to 'true' H264 will be
      * preferred over other video codecs.
      * @param {boolean} options.disableRtx <tt>true</tt> to disable RTX
-     * @param {boolean} isP2P indicates whether or not the new TPC will be used
-     * in a peer to peer type of session
      * @return {TraceablePeerConnection}
      */
-    createPeerConnection(signaling, iceConfig, options, isP2P) {
+    createPeerConnection(signaling, iceConfig, isP2P, options) {
         const newConnection
             = new TraceablePeerConnection(
                 this,
                 this.peerConnectionIdCounter,
-                signaling, iceConfig, RTC.getPCConstraints(), options, isP2P);
+                signaling, iceConfig, RTC.getPCConstraints(), isP2P, options);
 
         this.peerConnections.set(newConnection.id, newConnection);
         this.peerConnectionIdCounter += 1;

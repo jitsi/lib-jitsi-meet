@@ -45,14 +45,14 @@ function getUfrag(sdp) {
  * @param {SignalingLayer} signalingLayer the signaling layer instance
  * @param {object} iceConfig WebRTC 'PeerConnection' ICE config
  * @param {object} constraints WebRTC 'PeerConnection' constraints
+ * @param {boolean} isP2P indicates whether or not the new instance will be used
+ * in a peer to peer connection
  * @param {object} options <tt>TracablePeerConnection</tt> config options.
  * @param {boolean} options.disableSimulcast if set to 'true' will disable
  * the simulcast
  * @param {boolean} options.disableRtx if set to 'true' will disable the RTX
  * @param {boolean} options.preferH264 if set to 'true' H264 will be preferred
  * over other video codecs.
- * @param {boolean} isP2P indicates whether or not the new instance will be used
- * in a peer to peer connection
  *
  * FIXME: initially the purpose of TraceablePeerConnection was to be able to
  * debug the peer connection. Since many other responsibilities have been added
@@ -67,8 +67,8 @@ function TraceablePeerConnection(
         signalingLayer,
         iceConfig,
         constraints,
-        options,
-        isP2P) {
+        isP2P,
+        options) {
 
     /**
      * The parent instance of RTC service which created this

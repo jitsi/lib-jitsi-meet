@@ -195,12 +195,12 @@ export default class JingleSessionPC extends JingleSession {
             = this.rtc.createPeerConnection(
                 this.signalingLayer,
                 this.iceConfig,
+                this.isP2P,
                 {
                     disableSimulcast: this.room.options.disableSimulcast,
                     disableRtx: this.room.options.disableRtx,
                     preferH264: this.room.options.preferH264
-                },
-                this.isP2P);
+                });
 
         this.peerconnection.onicecandidate = ev => {
             if (!ev) {
