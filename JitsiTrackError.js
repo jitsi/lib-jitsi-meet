@@ -12,6 +12,10 @@ TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED]
     = 'User canceled Chrome\'s screen sharing prompt';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.CHROME_EXTENSION_GENERIC_ERROR]
     = 'Unknown error from Chrome extension';
+TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR]
+    = 'Unkown error from desktop picker';
+TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND]
+    = 'Failed to detect desktop picker';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.GENERAL]
     = 'Generic getUserMedia error';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.PERMISSION_DENIED]

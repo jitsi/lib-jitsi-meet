@@ -29,6 +29,20 @@ export const CHROME_EXTENSION_USER_CANCELED
 export const CONSTRAINT_FAILED = 'gum.constraint_failed';
 
 /**
+ * A generic error which indicates an error occurred while selecting
+ * a DesktopCapturerSource from the electron app.
+ */
+export const ELECTRON_DESKTOP_PICKER_ERROR
+    = 'gum.electron_desktop_picker_error';
+
+/**
+ * An error which indicates a custom desktop picker could not be detected
+ * for the electron app.
+ */
+export const ELECTRON_DESKTOP_PICKER_NOT_FOUND
+    = 'gum.electron_desktop_picker_not_found';
+
+/**
  * An error which indicates that the jidesha extension for Firefox is
  * needed to proceed with screen sharing, and that it is not installed.
  */
