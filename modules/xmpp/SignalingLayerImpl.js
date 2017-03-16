@@ -24,9 +24,9 @@ export default class SignalingLayerImpl extends SignalingLayer {
          * onaddstream webrtc event where we have only the ssrc
          * FIXME: This map got filled and never cleaned and can grow during long
          * conference
-         * @type {{}} maps SSRC number to jid
+         * @type {Map<string, string>} maps SSRC number to jid
          */
-        this.ssrcOwners = {};
+        this.ssrcOwners = new Map();
 
         /**
          *
@@ -56,25 +56,25 @@ export default class SignalingLayerImpl extends SignalingLayer {
         }
         if (room) {
             // SignalingEvents
-            this._audioMuteHandler = function(node, from) {
+            this._audioMuteHandler = (node, from) => {
                 this.eventEmitter.emit(
                     SignalingEvents.PEER_MUTED_CHANGED,
                     from, MediaType.AUDIO, node.value === 'true');
-            }.bind(this);
+            };
             room.addPresenceListener('audiomuted', this._audioMuteHandler);
 
-            this._videoMuteHandler = function(node, from) {
+            this._videoMuteHandler = (node, from) => {
                 this.eventEmitter.emit(
                     SignalingEvents.PEER_MUTED_CHANGED,
                     from, MediaType.VIDEO, node.value === 'true');
-            }.bind(this);
+            };
             room.addPresenceListener('videomuted', this._videoMuteHandler);
 
-            this._videoTypeHandler = function(node, from) {
+            this._videoTypeHandler = (node, from) => {
                 this.eventEmitter.emit(
                     SignalingEvents.PEER_VIDEO_TYPE_CHANGED,
                     from, node.value);
-            }.bind(this);
+            };
             room.addPresenceListener('videoType', this._videoTypeHandler);
         }
     }
@@ -93,7 +93,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * @inheritDoc
      */
     getSSRCOwner(ssrc) {
-        return this.ssrcOwners[ssrc];
+        return this.ssrcOwners.get(ssrc);
     }
 
     /**
@@ -102,6 +102,6 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * @param {string} endpointId owner's ID (MUC nickname)
      */
     setSSRCOwner(ssrc, endpointId) {
-        this.ssrcOwners[ssrc] = endpointId;
+        this.ssrcOwners.set(ssrc, endpointId);
     }
 }
