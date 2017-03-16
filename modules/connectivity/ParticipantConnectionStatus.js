@@ -102,7 +102,7 @@ export default class ParticipantConnectionStatus {
             this._onEndpointConnStatusChanged);
 
         // Handles P2P status changes
-        this._onP2PStatus = this.refreshStatusForAll.bind(this);
+        this._onP2PStatus = this.refreshConnectionStatusForAll.bind(this);
         this.conference.on(JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
 
         // On some browsers MediaStreamTrack trigger "onmute"/"onunmute"
@@ -335,7 +335,7 @@ export default class ParticipantConnectionStatus {
      * Should be called when a parameter which affects all of the participants
      * is changed (P2P for example).
      */
-    refreshStatusForAll() {
+    refreshConnectionStatusForAll() {
         const participants = this.conference.getParticipants();
 
         for (const participant of participants) {
