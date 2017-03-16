@@ -75,9 +75,9 @@ function JitsiLocalTrack(
     /**
      * An array which stores the peer connection to which this local track is
      * currently attached to. See {@link TraceablePeerConnection.attachTrack}.
-     * @type {Array<TraceablePeerConnection>}
+     * @type {Set<TraceablePeerConnection>}
      */
-    this.peerConnections = [];
+    this.peerConnections = new Set();
 
     /**
      * The facing mode of the camera from which this JitsiLocalTrack instance
@@ -162,14 +162,13 @@ JitsiLocalTrack.prototype._addPeerConnection = function(tpc) {
     if (this._isAttachedToPC(tpc)) {
         logger.error(`${tpc} has been associated with ${this} already !`);
     } else {
-        this.peerConnections.push(tpc);
+        this.peerConnections.add(tpc);
     }
 };
 
 JitsiLocalTrack.prototype._removePeerConnection = function(tpc) {
     if (this._isAttachedToPC(tpc)) {
-        this.peerConnections.splice(
-            this.peerConnections.indexOf(tpc), 1);
+        this.peerConnections.delete(tpc);
     } else {
         logger.error(`${tpc} is not associated with ${this}`);
     }
@@ -184,7 +183,7 @@ JitsiLocalTrack.prototype._removePeerConnection = function(tpc) {
  * peer connection or <tt>false</tt> otherwise.
  */
 JitsiLocalTrack.prototype._isAttachedToPC = function(tpc) {
-    return this.peerConnections.indexOf(tpc) !== -1;
+    return this.peerConnections.has(tpc);
 };
 
 /**
