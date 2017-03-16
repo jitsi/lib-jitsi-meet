@@ -35,6 +35,13 @@ const logger = getLogger(__filename);
  * @param options.connection the JitsiConnection object for this
  * JitsiConference.
  * @constructor
+ *
+ * FIXME Make all methods which are called from lib-internal classes
+ *       to non-public (use _). To name a few:
+ *       {@link JitsiConference.onLocalRoleChanged}
+ *       {@link JitsiConference.onUserRoleChanged}
+ *       {@link JitsiConference.onMemberLeft}
+ *       and so on...
  */
 function JitsiConference(options) {
     if (!options.name || options.name.toLowerCase() !== options.name) {
