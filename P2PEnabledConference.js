@@ -487,7 +487,7 @@ export default class P2PEnabledConference extends JitsiConference {
         // Clear deferred "start P2P" task
         if (!shouldBeInP2P && this.deferredStartP2P) {
             logger.info('Cleared deferred start P2P task');
-            window.clearTimeout(this.deferredStartP2P);
+            clearTimeout(this.deferredStartP2P);
             this.deferredStartP2P = null;
         }
 
@@ -524,7 +524,7 @@ export default class P2PEnabledConference extends JitsiConference {
                 logger.info(
                     `Will start P2P with: ${jid
                          } after ${this.backToP2PDelay} seconds...`);
-                this.deferredStartP2P = window.setTimeout(
+                this.deferredStartP2P = setTimeout(
                     this._startP2PSession.bind(this, jid),
                     this.backToP2PDelay * 1000);
             } else {
