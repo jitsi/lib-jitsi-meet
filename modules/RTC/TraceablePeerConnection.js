@@ -967,7 +967,7 @@ const normalizePlanB = function(desc) {
 TraceablePeerConnection.prototype.getLocalSSRC = function(localTrack) {
     const ssrcInfo = this._getSSRC(localTrack.rtcId);
 
-    return ssrcInfo ? ssrcInfo.ssrcs[0] : undefined;
+    return ssrcInfo && ssrcInfo.ssrcs[0];
 };
 
 /* eslint-disable-next-line vars-on-top */
@@ -997,7 +997,7 @@ const getters = {
                     + '(munge local SDP)', desc);
         }
 
-        return desc ? desc : {};
+        return desc || {};
     },
     remoteDescription() {
         let desc = this.peerconnection.remoteDescription;
@@ -1011,7 +1011,7 @@ const getters = {
                 'getRemoteDescription::postTransform (Plan B)', dumpSDP(desc));
         }
 
-        return desc ? desc : { };
+        return desc || {};
     }
 };
 
@@ -1096,7 +1096,6 @@ TraceablePeerConnection.prototype.addTrack = function(track) {
  * the renegotiation is required or <tt>false</tt> otherwise.
  */
 TraceablePeerConnection.prototype.addTrackUnmute = function(track) {
-
     if (!this._assertTrackBelongs('addTrackUnmute', track)) {
         // Abort
         return false;
@@ -1137,8 +1136,7 @@ TraceablePeerConnection.prototype._addStream = function(mediaStream) {
  * @param {MediaStream} mediaStream
  */
 TraceablePeerConnection.prototype._removeStream = function(mediaStream) {
-    if (RTCBrowserType.getBrowserType()
-            === RTCBrowserType.RTC_BROWSER_FIREFOX) {
+    if (RTCBrowserType.isFirefox()) {
         this._handleFirefoxRemoveStream(mediaStream);
     } else {
         this.peerconnection.removeStream(mediaStream);
@@ -1191,7 +1189,6 @@ TraceablePeerConnection.prototype._isTrackAttached = function(localTrack) {
  * @param {JitsiLocalTrack} localTrack
  */
 TraceablePeerConnection.prototype.detachTrack = function(localTrack) {
-
     if (!this._assertTrackBelongs('detachTrack', localTrack)) {
         // Abort
         return;
@@ -1228,7 +1225,6 @@ TraceablePeerConnection.prototype.detachTrack = function(localTrack) {
  * @param {JitsiLocalTrack} localTrack
  */
 TraceablePeerConnection.prototype.attachTrack = function(localTrack) {
-
     if (!this._assertTrackBelongs('attachTrack', localTrack)) {
         // Abort
         return;
@@ -1289,8 +1285,7 @@ TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
     }
 
     if (webRtcStream) {
-        if (RTCBrowserType.getBrowserType()
-                === RTCBrowserType.RTC_BROWSER_FIREFOX) {
+        if (RTCBrowserType.isFirefox()) {
             this._handleFirefoxRemoveStream(webRtcStream);
         } else {
             this.peerconnection.removeStream(webRtcStream);
@@ -1343,7 +1338,6 @@ TraceablePeerConnection.prototype.removeTrackMute = function(localTrack) {
 TraceablePeerConnection.prototype._handleFirefoxRemoveStream
 = function(stream) {
     if (!stream) {
-
         // There is nothing to be changed
         return;
     }
@@ -1362,9 +1356,7 @@ TraceablePeerConnection.prototype._handleFirefoxRemoveStream
     }
 
     if (!track) {
-        const msg = 'Cannot remove tracks: no tracks.';
-
-        logger.log(msg);
+        logger.error('Cannot remove tracks: no tracks.');
 
         return;
     }
@@ -1399,11 +1391,11 @@ TraceablePeerConnection.prototype.setLocalDescription
 
     this.trace('setLocalDescription::preTransform', dumpSDP(d));
 
-    // if we're running on FF, transform to Plan A first.
+    // if we're using unified plan, transform to it first.
     if (RTCBrowserType.usesUnifiedPlan()) {
         d = this.interop.toUnifiedPlan(d);
         this.trace(
-            'setLocalDescription::postTransform (Plan A)',
+            'setLocalDescription::postTransform (Unified Plan)',
             dumpSDP(d));
     }
 
@@ -1628,7 +1620,7 @@ TraceablePeerConnection.prototype._createOfferOrAnswer
                     `create${logName}OnSuccess::preTransform`,
                     dumpSDP(resultSdp));
 
-                // if we're running on FF, transform to Plan A first.
+                // if we're using unified plan, transform to Plan B.
                 if (RTCBrowserType.usesUnifiedPlan()) {
                     // eslint-disable-next-line no-param-reassign
                     resultSdp = this.interop.toPlanB(resultSdp);
@@ -1647,7 +1639,8 @@ TraceablePeerConnection.prototype._createOfferOrAnswer
                  *  about unmapped ssrcs)
                  */
                 if (!RTCBrowserType.isFirefox()) {
-                    // If there are no local video tracks, then a
+                    // If there are no local video tracks, then a "recvonly"
+                    // SSRC needs to be generated
                     if (!this.getLocalTracks(MediaType.VIDEO).length) {
                         this.sdpConsistency.setPrimarySsrc(
                             SDPUtil.generateSsrc());
@@ -1729,7 +1722,7 @@ TraceablePeerConnection.prototype._createOfferOrAnswer
  * @param {TrackSSRCInfo} ssrcObj
  * @return {number|null}
  */
-function extractSSRC(ssrcObj) {
+function extractPrimarySSRC(ssrcObj) {
     if (ssrcObj && ssrcObj.groups && ssrcObj.groups.length) {
         return ssrcObj.groups[0].ssrcs[0];
     } else if (ssrcObj && ssrcObj.ssrcs && ssrcObj.ssrcs.length) {
@@ -1757,8 +1750,8 @@ TraceablePeerConnection.prototype._applyLocalSSRCMap = function(ssrcMap) {
                 return;
             }
             const oldSSRC = this.localSSRCs.get(track.rtcId);
-            const newSSRCNum = extractSSRC(newSSRC);
-            const oldSSRCNum = extractSSRC(oldSSRC);
+            const newSSRCNum = extractPrimarySSRC(newSSRC);
+            const oldSSRCNum = extractPrimarySSRC(oldSSRC);
 
             // eslint-disable-next-line no-negated-condition
             if (newSSRCNum !== oldSSRCNum) {
