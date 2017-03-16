@@ -350,8 +350,8 @@ export default class P2PEnabledConference extends JitsiConference {
      * @inheritDoc
      * @override
      */
-    _removeTrackAsMute(track) {
-        const allPromises = [ super._removeTrackAsMute(track) ];
+    _removeLocalTrackAsMute(track) {
+        const allPromises = [ super._removeLocalTrackAsMute(track) ];
 
         if (this.p2pJingleSession) {
             allPromises.push(this.p2pJingleSession.removeTrackAsMute(track));

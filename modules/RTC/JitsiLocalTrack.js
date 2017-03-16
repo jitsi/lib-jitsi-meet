@@ -485,7 +485,7 @@ JitsiLocalTrack.prototype._removeStreamFromConferenceAsMute
 
         return;
     }
-    this.conference._removeTrackAsMute(this).then(
+    this.conference._removeLocalTrackAsMute(this).then(
         successCallback,
         error => errorCallback(new Error(error)));
 };

@@ -681,7 +681,9 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
 /* eslint-disable max-params */
 
 /**
- * Add track stream.
+ * Method called by the {@link JitsiLocalTrack} (a video one) in order to add
+ * back the underlying WebRTC MediaStream to the PeerConnection (which has
+ * removed on video mute).
  * @param {JitsiLocalTrack} track the local track that will be added as part of
  * the unmute operation.
  * @return {Promise} resolved when the process is done or rejected with a string
@@ -700,11 +702,13 @@ JitsiConference.prototype._addLocalTrackAsUnmute = function(track) {
 };
 
 /**
- * Removes given local track, as part of the mute operation.
+ * Method called by the {@link JitsiLocalTrack} (a video one) in order to remove
+ * the underlying WebRTC MediaStream from the PeerConnection. The purpose of
+ * that is to stop sending any data and turn off the HW camera device.
  * @param {JitsiLocalTrack} track the local track that will be removed.
  * @return {Promise}
  */
-JitsiConference.prototype._removeTrackAsMute = function(track) {
+JitsiConference.prototype._removeLocalTrackAsMute = function(track) {
     if (this.jvbJingleSession) {
         return this.jvbJingleSession.removeTrackAsMute(track);
     }
