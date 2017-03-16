@@ -15,10 +15,10 @@ const logger = getLogger(__filename);
  *
  * FIXME audio SSRC is not consistent, between attach and detach
  */
-export default class MungeLocalSdp {
+export default class LocalSdpMunger {
 
     /**
-     * Creates new <tt>MungeLocalSdp</tt> instance.
+     * Creates new <tt>LocalSdpMunger</tt> instance.
      *
      * @param {TraceablePeerConnection} tpc
      */

@@ -6,7 +6,7 @@ import { getValues } from '../util/JSUtil';
 import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import * as MediaType from '../../service/RTC/MediaType';
-import MungeLocalSdp from './MungeLocalSdp';
+import LocalSdpMunger from './LocalSdpMunger';
 import RTC from './RTC';
 import RTCBrowserType from './RTCBrowserType.js';
 import RTCEvents from '../../service/RTC/RTCEvents';
@@ -180,9 +180,9 @@ function TraceablePeerConnection(
     /**
      * Munges local SDP provided to the Jingle Session in order to prevent from
      * sending SSRC updates on attach/detach and mute/unmute (for video).
-     * @type {MungeLocalSdp}
+     * @type {LocalSdpMunger}
      */
-    this.mungeLocalSdp = new MungeLocalSdp(this);
+    this.localSdpMunger = new LocalSdpMunger(this);
 
     /**
      * TracablePeerConnection uses RTC's eventEmitter
@@ -1017,7 +1017,7 @@ const getters = {
         }
 
         if (RTCBrowserType.doesVideoMuteByStreamRemove()) {
-            this.mungeLocalSdp.maybeMungeLocalSdp(desc);
+            this.localSdpMunger.maybeMungeLocalSdp(desc);
             logger.debug(
                 'getLocalDescription::postTransform '
                     + '(munge local SDP)', desc);
@@ -1209,7 +1209,7 @@ TraceablePeerConnection.prototype._isTrackAttached = function(localTrack) {
 /**
  * Detaches given local track from this peer connection. A detached track will
  * be removed from the underlying <tt>PeerConnection</tt>, but it will remain
- * associated with this TPC. The {@link MungeLocalSdp} module will fake the
+ * associated with this TPC. The {@link LocalSdpMunger} module will fake the
  * local description exposed to {@link JingleSessionPC} in the way that track's
  * SSRC will be still on place. It will prevent from any signaling updates and
  * make other participants think that the track is still there even though they
@@ -1249,7 +1249,7 @@ TraceablePeerConnection.prototype.detachTrack = function(localTrack) {
 /**
  * This operation reverts {@link detachTrack} (see for more info). The
  * underlying <tt>MediaStream</tt> will be added back to the peer connection
- * and {@link MungeLocalSdp} module will no longer fake it's SSRC through the
+ * and {@link LocalSdpMunger} module will no longer fake it's SSRC through the
  * local description exposed to {@link JingleSessionPC}.
  * @param {JitsiLocalTrack} localTrack
  */
