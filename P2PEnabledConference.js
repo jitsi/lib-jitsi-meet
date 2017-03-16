@@ -305,6 +305,18 @@ export default class P2PEnabledConference extends JitsiConference {
     }
 
     /**
+     * Clears the deferred start P2P task if it has been scheduled.
+     * @private
+     */
+    _maybeClearDeferredStartP2P() {
+        if (this.deferredStartP2P) {
+            logger.info('Cleared deferred start P2P task');
+            clearTimeout(this.deferredStartP2P);
+            this.deferredStartP2P = null;
+        }
+    }
+
+    /**
      * Removes from the conference remote tracks associated with the JVB
      * connection.
      * @private
@@ -418,10 +430,7 @@ export default class P2PEnabledConference extends JitsiConference {
      * @private
      */
     _startP2PSession(peerJid) {
-        if (this.deferredStartP2P) {
-            // Make note that the task has been executed
-            this.deferredStartP2P = null;
-        }
+        this._maybeClearDeferredStartP2P();
         if (this.p2pJingleSession) {
             logger.error('P2P session already started!');
 
@@ -486,9 +495,7 @@ export default class P2PEnabledConference extends JitsiConference {
 
         // Clear deferred "start P2P" task
         if (!shouldBeInP2P && this.deferredStartP2P) {
-            logger.info('Cleared deferred start P2P task');
-            clearTimeout(this.deferredStartP2P);
-            this.deferredStartP2P = null;
+            this._maybeClearDeferredStartP2P();
         }
 
         // Start peer to peer session
