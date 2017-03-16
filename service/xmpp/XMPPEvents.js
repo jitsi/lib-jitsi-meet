@@ -28,7 +28,7 @@ const XMPPEvents = {
     CONFERENCE_SETUP_FAILED: 'xmpp.conference_setup_failed',
 
     /**
-     * This event is when the ICE connects for the first time.
+     * This event is triggered when the ICE connects for the first time.
      */
     CONNECTION_ESTABLISHED: 'xmpp.connection.connected',
 
