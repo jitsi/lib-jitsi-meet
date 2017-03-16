@@ -16,10 +16,10 @@ const logger = getLogger(__filename);
  * joins.
  *
  * When the conference is being switched from one mode to another the local
- * tracks are detached from inactive session (through JingleSessionPC). It means
- * that locally those tracks are removed from the underlying PeerConnection, but
- * are still signaled to the remote participants. No data is being sent for
- * those tracks.
+ * tracks are detached from the inactive session (through
+ * {@link JingleSessionPC}). It means that locally those tracks are removed from
+ * the underlying PeerConnection, but are still signaled to the remote
+ * participants. No data is being sent for those tracks.
  * As for the remote tracks those are replaced by generating fake "remote track
  * added/removed" events.
  */
@@ -63,7 +63,6 @@ export default class P2PEnabledConference extends JitsiConference {
          * after the 3rd participant has left.
          * @type {number}
          */
-
         this.backToP2PDelay = isNaN(delay) ? 5 : delay;
         logger.info(`backToP2PDelay: ${this.backToP2PDelay}`);
 
