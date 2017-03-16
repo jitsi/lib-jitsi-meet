@@ -695,7 +695,7 @@ JitsiConference.prototype._addLocalTrackAsUnmute = function(track) {
     }
 
     // We are done immediately
-    logger.warn(
+    logger.info(
         'Add local MediaStream as unmute - no JingleSession started yet');
 
     return Promise.resolve();
@@ -714,8 +714,7 @@ JitsiConference.prototype._removeLocalTrackAsMute = function(track) {
     }
 
     // We are done immediately
-    logger.warn(
-        'Remove local MediaStream - no JVBJingleSession started yet');
+    logger.info('Remove local MediaStream - no JVBJingleSession started yet');
 
     return Promise.resolve();
 };
