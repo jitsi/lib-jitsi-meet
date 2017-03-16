@@ -630,15 +630,15 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
             JitsiConferenceEvents.CONNECTION_STATS, stats);
     });
 
-    conference.statistics.addByteSentStatsListener((tPeerConn, stats) => {
+    conference.statistics.addByteSentStatsListener((tpc, stats) => {
         conference.getLocalTracks(MediaType.AUDIO).forEach(track => {
-            const ssrc = tPeerConn.getLocalSSRC(track);
+            const ssrc = tpc.getLocalSSRC(track);
 
             if (!ssrc || !stats.hasOwnProperty(ssrc)) {
                 return;
             }
 
-            track._setByteSent(tPeerConn, stats[ssrc]);
+            track._setByteSent(tpc, stats[ssrc]);
         });
     });
 };
