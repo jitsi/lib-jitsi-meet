@@ -678,8 +678,6 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
 };
 
-/* eslint-disable max-params */
-
 /**
  * Method called by the {@link JitsiLocalTrack} (a video one) in order to add
  * back the underlying WebRTC MediaStream to the PeerConnection (which has
@@ -718,8 +716,6 @@ JitsiConference.prototype._removeLocalTrackAsMute = function(track) {
 
     return Promise.resolve();
 };
-
-/* eslint-enable max-params */
 
 /**
  * Get role of the local user.
