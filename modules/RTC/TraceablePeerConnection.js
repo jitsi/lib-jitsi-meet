@@ -2,7 +2,6 @@
     RTCPeerConnection, RTCSessionDescription */
 
 import { getLogger } from 'jitsi-meet-logger';
-import { getValues } from '../util/JSUtil';
 import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import * as MediaType from '../../service/RTC/MediaType';
@@ -93,15 +92,15 @@ function TraceablePeerConnection(
     // FIXME: We should support multiple streams per jid.
     /**
      * The map holds remote tracks associated with this peer connection.
-     * @type {Object<string, Object.<MediaType, JitsiRemoteTrack>>}
+     * @type {Map<string, Map<MediaType, JitsiRemoteTrack>>}
      */
-    this.remoteTracks = {};
+    this.remoteTracks = new Map();
 
     /**
      * A map which stores local tracks mapped by {@link JitsiLocalTrack.rtcId}
-     * @type {Object.<string, JitsiLocalTrack>}
+     * @type {Map<number, JitsiLocalTrack>}
      */
-    this.localTracks = {};
+    this.localTracks = new Map();
 
     /**
      * @typedef {Object} TPCGroupInfo
@@ -119,9 +118,9 @@ function TraceablePeerConnection(
     /**
      * Holds the info about local track's SSRCs mapped per their
      * {@link JitsiLocalTrack.rtcId}
-     * @type {Object.<string, TPCSSRCInfo>}
+     * @type {Map<number, TPCSSRCInfo>}
      */
-    this.localSSRCs = {};
+    this.localSSRCs = new Map();
 
     /**
      * The local ICE username fragment for this session.
@@ -394,7 +393,7 @@ TraceablePeerConnection.prototype._peerMutedChanged
 };
 
 TraceablePeerConnection.prototype.getLocalTracks = function(mediaType) {
-    let tracks = getValues(this.localTracks);
+    let tracks = Array.from(this.localTracks.values());
 
     if (mediaType !== undefined) {
         tracks = tracks.filter(track => track.getType() === mediaType);
@@ -414,15 +413,22 @@ TraceablePeerConnection.prototype.getRemoteTracks
 = function(endpointId, mediaType) {
     const remoteTracks = [];
     const endpoints
-        = endpointId ? [ endpointId ] : Object.keys(this.remoteTracks);
+        = endpointId ? [ endpointId ] : this.remoteTracks.keys();
 
     for (const endpoint of endpoints) {
-        const endpointTracks = this.remoteTracks[endpoint] || { };
+        const endpointTrackMap = this.remoteTracks.get(endpoint);
 
-        for (const trackMediaType of Object.keys(endpointTracks)) {
+        if (!endpointTrackMap) {
+
+            // Otherwise an empty Map() would have to be allocated above
+            // eslint-disable-next-line no-continue
+            continue;
+        }
+
+        for (const trackMediaType of endpointTrackMap.keys()) {
             // per media type filtering
             if (!mediaType || mediaType === trackMediaType) {
-                const mediaTrack = endpointTracks[trackMediaType];
+                const mediaTrack = endpointTrackMap.get(trackMediaType);
 
                 if (mediaTrack) {
                     remoteTracks.push(mediaTrack);
@@ -593,16 +599,19 @@ TraceablePeerConnection.prototype._createRemoteTrack
             this.rtc, this.rtc.conference,
             ownerEndpointId,
             stream, track, mediaType, videoType, ssrc, muted, this.isP2P);
-    const remoteTracks
-        = this.remoteTracks[ownerEndpointId]
-            || (this.remoteTracks[ownerEndpointId] = { });
+    let remoteTracksMap = this.remoteTracks.get(ownerEndpointId);
 
-    if (remoteTracks[mediaType]) {
+    if (!remoteTracksMap) {
+        remoteTracksMap = new Map();
+        this.remoteTracks.set(ownerEndpointId, remoteTracksMap);
+    }
+
+    if (remoteTracksMap.has(mediaType)) {
         logger.error(
             `${this} overwriting remote track! ${remoteTrack}`,
             ownerEndpointId, mediaType);
     }
-    remoteTracks[mediaType] = remoteTrack;
+    remoteTracksMap.set(mediaType, remoteTrack);
 
     // FIXME not cool to use RTC's eventEmitter
     this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack);
@@ -693,62 +702,21 @@ TraceablePeerConnection.prototype._remoteTrackRemoved
  */
 TraceablePeerConnection.prototype._getRemoteTrackById
 = function(streamId, trackId) {
-    let result;
-
     // .find will break the loop once the first match is found
-    Object.keys(this.remoteTracks).find(endpoint => {
-        const endpointTracks = this.remoteTracks[endpoint];
+    for (const endpointTrackMap of this.remoteTracks.values()) {
+        for (const mediaTrack of endpointTrackMap.values()) {
+            // FIXME verify and try to use ===
+            /* eslint-disable eqeqeq */
+            if (mediaTrack.getStreamId() == streamId
+                && mediaTrack.getTrackId() == trackId) {
+                return mediaTrack;
+            }
 
-        return endpointTracks && Object.keys(endpointTracks).find(
-                mediaType => {
-                    const mediaTrack = endpointTracks[mediaType];
-
-                    // FIXME verify and try to use ===
-                    /* eslint-disable eqeqeq */
-                    if (mediaTrack
-                        && mediaTrack.getStreamId() == streamId
-                        && mediaTrack.getTrackId() == trackId) {
-                        result = mediaTrack;
-
-                        return true;
-                    }
-
-                    /* eslint-enable eqeqeq */
-
-                    return false;
-                });
-    });
-
-    return result;
-};
-
-/**
- * Removes and disposes <tt>JitsiRemoteTrack</tt> identified by given stream and
- * track ids.
- *
- * @param {string} streamId the media stream id as defined by the WebRTC
- * @param {string} trackId the media track id as defined by the WebRTC
- * @returns {JitsiRemoteTrack|undefined} the track which has been removed or
- * <tt>undefined</tt> if no track matching given stream and track ids was
- * found.
- */
-TraceablePeerConnection.prototype._removeRemoteTrack
-= function(streamId, trackId) {
-
-    const toBeRemoved = this._getRemoteTrackById(streamId, trackId);
-
-    if (toBeRemoved) {
-        toBeRemoved.dispose();
-
-        delete this.remoteTracks[
-            toBeRemoved.getParticipantId()][toBeRemoved.getType()];
-
-        // FIXME not cool to use RTC's eventEmitter
-        this.rtc.eventEmitter.emit(
-            RTCEvents.REMOTE_TRACK_REMOVED, toBeRemoved);
+            /* eslint-enable eqeqeq */
+        }
     }
 
-    return toBeRemoved;
+    return undefined;
 };
 
 /**
@@ -760,17 +728,16 @@ TraceablePeerConnection.prototype._removeRemoteTrack
  */
 TraceablePeerConnection.prototype.removeRemoteTracks = function(owner) {
     const removedTracks = [];
+    const remoteTracksMap = this.remoteTracks.get(owner);
 
-    if (this.remoteTracks[owner]) {
-        const removedAudioTrack
-            = this.remoteTracks[owner][MediaType.AUDIO];
-        const removedVideoTrack
-            = this.remoteTracks[owner][MediaType.VIDEO];
+    if (remoteTracksMap) {
+        const removedAudioTrack = remoteTracksMap.get(MediaType.AUDIO);
+        const removedVideoTrack = remoteTracksMap.get(MediaType.VIDEO);
 
         removedAudioTrack && removedTracks.push(removedAudioTrack);
         removedVideoTrack && removedTracks.push(removedVideoTrack);
 
-        delete this.remoteTracks[owner];
+        this.remoteTracks.delete(owner);
     }
 
     logger.debug(
@@ -798,8 +765,15 @@ TraceablePeerConnection.prototype._removeRemoteTrack
     if (toBeRemoved) {
         toBeRemoved.dispose();
 
-        delete this.remoteTracks[
-            toBeRemoved.getParticipantId()][toBeRemoved.getType()];
+        const remoteTracksMap
+            = this.remoteTracks.get(toBeRemoved.getParticipantId());
+
+        // If _getRemoteTrackById succeeded it must be a valid value or
+        // we're good to crash
+        if (!remoteTracksMap.delete(toBeRemoved.getType())) {
+            logger.error(
+                `Failed to remove ${toBeRemoved} - type mapping messed up ?`);
+        }
 
         // FIXME not cool to use RTC's eventEmitter
         this.rtc.eventEmitter.emit(
@@ -1051,7 +1025,7 @@ Object.keys(getters).forEach(prop => {
 });
 
 TraceablePeerConnection.prototype._getSSRC = function(rtcId) {
-    return this.localSSRCs[rtcId];
+    return this.localSSRCs.get(rtcId);
 };
 
 /**
@@ -1063,13 +1037,13 @@ TraceablePeerConnection.prototype.addTrack = function(track) {
 
     logger.info(`add ${track} to: ${this}`);
 
-    if (this.localTracks[rtcId]) {
+    if (this.localTracks.has(rtcId)) {
         logger.error(`${track} is already in ${this}`);
 
         return;
     }
 
-    this.localTracks[rtcId] = track;
+    this.localTracks.set(rtcId, track);
     track._addPeerConnection(this);
 
     const webrtcStream = track.getOriginalStream();
@@ -1184,7 +1158,7 @@ TraceablePeerConnection.prototype._removeStream = function(mediaStream) {
  */
 TraceablePeerConnection.prototype._assertTrackBelongs
 = function(methodName, localTrack) {
-    const doesBelong = Boolean(this.localTracks[localTrack.rtcId]);
+    const doesBelong = this.localTracks.has(localTrack.rtcId);
 
     if (!doesBelong) {
         logger.error(
@@ -1306,8 +1280,8 @@ TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
         // Abort - nothing to be done here
         return;
     }
-    delete this.localTracks[localTrack.rtcId];
-    delete this.localSSRCs[localTrack.rtcId];
+    this.localTracks.delete(localTrack.rtcId);
+    this.localSSRCs.delete(localTrack.rtcId);
 
     // A detached track will not require removal
     if (this._isTrackAttached(localTrack)) {
@@ -1771,7 +1745,7 @@ function extractSSRC(ssrcObj) {
  * @private
  */
 TraceablePeerConnection.prototype._applyLocalSSRCMap = function(ssrcMap) {
-    getValues(this.localTracks).forEach(track => {
+    for (const track of this.localTracks.values()) {
         const trackMSID = track.getMSID();
 
         if (ssrcMap.has(trackMSID)) {
@@ -1782,7 +1756,7 @@ TraceablePeerConnection.prototype._applyLocalSSRCMap = function(ssrcMap) {
 
                 return;
             }
-            const oldSSRC = this.localSSRCs[track.rtcId];
+            const oldSSRC = this.localSSRCs.get(track.rtcId);
             const newSSRCNum = extractSSRC(newSSRC);
             const oldSSRCNum = extractSSRC(oldSSRC);
 
@@ -1797,7 +1771,7 @@ TraceablePeerConnection.prototype._applyLocalSSRCMap = function(ssrcMap) {
                         `Overwriting SSRC for ${track} ${trackMSID} in ${this
                         } with: `, newSSRC);
                 }
-                this.localSSRCs[track.rtcId] = newSSRC;
+                this.localSSRCs.set(track.rtcId, newSSRC);
             } else {
                 logger.debug(
                     `Not updating local SSRC for ${track} ${trackMSID} to: `
@@ -1806,7 +1780,7 @@ TraceablePeerConnection.prototype._applyLocalSSRCMap = function(ssrcMap) {
         } else {
             logger.warn(`No local track matched with: ${trackMSID} in ${this}`);
         }
-    });
+    }
 };
 
 TraceablePeerConnection.prototype.addIceCandidate
@@ -1898,7 +1872,7 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {
         }
     }
     ssrcInfo.msid = track.storedMSID;
-    this.localSSRCs[rtcId] = ssrcInfo;
+    this.localSSRCs.set(rtcId, ssrcInfo);
 
     return ssrcInfo;
 };
