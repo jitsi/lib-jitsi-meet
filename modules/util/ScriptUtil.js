@@ -61,10 +61,16 @@ const ScriptUtil = {
         }
 
         script.src = src;
-        if (prepend) {
-            referenceNode.parentNode.insertBefore(script, referenceNode);
-        } else {
-            referenceNode.parentNode.appendChild(script);
+
+        // Some environments (e.g. React-Native) do not have <script> tags and
+        // do load not JS files in this way, so we need add additional safe
+        // checks here.
+        if (referenceNode && referenceNode.parentNode) {
+            if (prepend) {
+                referenceNode.parentNode.insertBefore(script, referenceNode);
+            } else {
+                referenceNode.parentNode.appendChild(script);
+            }
         }
     }
 };
