@@ -537,7 +537,6 @@ export default class ChatRoom extends Listenable {
             let tagHandlers = this.presHandlers[node.tagName];
 
             if (node.tagName.startsWith('jitsi_participant_')) {
-                // NOTE should we allow more than one handler ?
                 tagHandlers = [ this.participantPropertyListener ];
             }
 
