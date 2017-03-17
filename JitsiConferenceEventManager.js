@@ -117,11 +117,15 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     this.chatRoomForwarder = new EventEmitterForwarder(chatRoom,
         this.conference.eventEmitter);
 
-    chatRoom.addListener(XMPPEvents.ICE_RESTARTING, () => {
-        // All data channels have to be closed, before ICE restart
-        // otherwise Chrome will not trigger "opened" event for the channel
-        // established with the new bridge
-        conference.rtc.closeAllDataChannels();
+    chatRoom.addListener(XMPPEvents.ICE_RESTARTING, jingleSession => {
+        if (!jingleSession.isP2P) {
+            // All data channels have to be closed, before ICE restart
+            // otherwise Chrome will not trigger "opened" event for the channel
+            // established with the new bridge
+            conference.rtc.closeAllDataChannels();
+        }
+
+        // else: there are not DataChannels in P2P session (at least for now)
     });
 
     chatRoom.addListener(XMPPEvents.AUDIO_MUTED_BY_FOCUS,
@@ -146,7 +150,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     // send some analytics events
     chatRoom.addListener(XMPPEvents.MUC_JOINED,
         () => {
-            this.conference.connectionIsInterrupted = false;
+            this.conference.isJvbConnectionIsInterrupted = false;
 
             Object.keys(chatRoom.connectionTimes).forEach(key => {
                 const value = chatRoom.connectionTimes[key];
@@ -200,16 +204,16 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     chatRoom.addListener(XMPPEvents.JINGLE_FATAL_ERROR,
         (session, error) => {
-            conference.eventEmitter.emit(
-                JitsiConferenceEvents.CONFERENCE_FAILED,
-                JitsiConferenceErrors.JINGLE_FATAL_ERROR, error);
+            if (!session.isP2P) {
+                conference.eventEmitter.emit(
+                    JitsiConferenceEvents.CONFERENCE_FAILED,
+                    JitsiConferenceErrors.JINGLE_FATAL_ERROR, error);
+            }
         });
 
     chatRoom.addListener(XMPPEvents.CONNECTION_ICE_FAILED,
-        () => {
-            chatRoom.eventEmitter.emit(
-                XMPPEvents.CONFERENCE_SETUP_FAILED,
-                new Error('ICE fail'));
+        jingleSession => {
+            conference._onIceConnectionFailed(jingleSession);
         });
 
     this.chatRoomForwarder.forward(XMPPEvents.MUC_DESTROYED,
@@ -236,7 +240,11 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         = reason => Statistics.sendEventToAll(`conference.error.${reason}`);
 
     chatRoom.addListener(XMPPEvents.SESSION_ACCEPT_TIMEOUT,
-        eventLogHandler.bind(null, 'sessionAcceptTimeout'));
+        jingleSession => {
+            eventLogHandler(
+                jingleSession.isP2P
+                    ? 'p2pSessionAcceptTimeout' : 'sessionAcceptTimeout');
+        });
 
     this.chatRoomForwarder.forward(XMPPEvents.RECORDER_STATE_CHANGED,
         JitsiConferenceEvents.RECORDER_STATE_CHANGED);
@@ -244,9 +252,16 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     this.chatRoomForwarder.forward(XMPPEvents.PHONE_NUMBER_CHANGED,
         JitsiConferenceEvents.PHONE_NUMBER_CHANGED);
 
-    this.chatRoomForwarder.forward(XMPPEvents.CONFERENCE_SETUP_FAILED,
-        JitsiConferenceEvents.CONFERENCE_FAILED,
-        JitsiConferenceErrors.SETUP_FAILED);
+    chatRoom.addListener(
+        XMPPEvents.CONFERENCE_SETUP_FAILED,
+        (jingleSession, error) => {
+            if (!jingleSession.isP2P) {
+                conference.eventEmitter.emit(
+                    JitsiConferenceEvents.CONFERENCE_FAILED,
+                    JitsiConferenceErrors.SETUP_FAILED,
+                    error);
+            }
+        });
 
     chatRoom.setParticipantPropertyListener((node, from) => {
         const participant = conference.getParticipantById(from);
@@ -429,7 +444,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     if (conference.statistics) {
         // FIXME ICE related events should end up in RTCEvents eventually
         chatRoom.addListener(XMPPEvents.CONNECTION_ICE_FAILED,
-            pc => {
+            (session, pc) => {
                 conference.statistics.sendIceConnectionFailedEvent(pc);
             });
         chatRoom.addListener(XMPPEvents.ADD_ICE_CANDIDATE_FAILED,

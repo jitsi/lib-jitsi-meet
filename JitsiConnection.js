@@ -1,6 +1,5 @@
 import JitsiConference from './JitsiConference';
 import * as JitsiConnectionEvents from './JitsiConnectionEvents';
-import P2PEnabledConference from './P2PEnabledConference';
 import Statistics from './modules/statistics/statistics';
 import XMPP from './modules/xmpp/xmpp';
 
@@ -90,14 +89,6 @@ JitsiConnection.prototype.setToken = function(token) {
  * @returns {JitsiConference} returns the new conference object.
  */
 JitsiConnection.prototype.initJitsiConference = function(name, options) {
-    if (options.enableP2P) {
-        return new P2PEnabledConference({
-            name,
-            config: options,
-            connection: this
-        });
-    }
-
     return new JitsiConference({
         name,
         config: options,

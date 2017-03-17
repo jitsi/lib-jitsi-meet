@@ -252,7 +252,7 @@ export default class JingleSessionPC extends JingleSession {
                 (this.peerconnection.signalingState === 'closed'
                 || this.peerconnection.connectionState === 'closed')
                 && !this.closed) {
-                this.room.eventEmitter.emit(XMPPEvents.SUSPEND_DETECTED);
+                this.room.eventEmitter.emit(XMPPEvents.SUSPEND_DETECTED, this);
             }
         };
 
@@ -268,18 +268,21 @@ export default class JingleSessionPC extends JingleSession {
             }
             const now = window.performance.now();
 
-            this.room.connectionTimes[
+            if (!this.isP2P) {
+                this.room.connectionTimes[
                     `ice.state.${this.peerconnection.iceConnectionState}`]
-                = now;
+                    = now;
+            }
             logger.log(
                 `(TIME) ICE ${this.peerconnection.iceConnectionState}`
-                    + ` ${this.isP2P}:\t`,
+                    + ` P2P? ${this.isP2P}:\t`,
                 now);
             Statistics.analytics.sendEvent(
                 `ice.${this.peerconnection.iceConnectionState}`,
                 { value: now });
             this.room.eventEmitter.emit(
                 XMPPEvents.ICE_CONNECTION_STATE_CHANGED,
+                this,
                 this.peerconnection.iceConnectionState);
             switch (this.peerconnection.iceConnectionState) {
             case 'connected':
@@ -307,12 +310,16 @@ export default class JingleSessionPC extends JingleSession {
                     // interrupted.
                 if (this.wasstable) {
                     this.room.eventEmitter.emit(
-                            XMPPEvents.CONNECTION_INTERRUPTED);
+                        XMPPEvents.CONNECTION_INTERRUPTED, this);
                 }
                 break;
             case 'failed':
                 this.room.eventEmitter.emit(
-                        XMPPEvents.CONNECTION_ICE_FAILED, this.peerconnection);
+                    XMPPEvents.CONNECTION_ICE_FAILED, this);
+                this.room.eventEmitter.emit(
+                    XMPPEvents.CONFERENCE_SETUP_FAILED,
+                    this,
+                    new Error('ICE fail'));
                 break;
             }
         };
@@ -683,7 +690,7 @@ export default class JingleSessionPC extends JingleSession {
         // We need to first set an offer without the 'data' section to have the
         // SCTP stack cleaned up. After that the original offer is set to have
         // the SCTP connection established with the new bridge.
-        this.room.eventEmitter.emit(XMPPEvents.ICE_RESTARTING);
+        this.room.eventEmitter.emit(XMPPEvents.ICE_RESTARTING, this);
         const originalOffer = jingleOfferElem.clone();
 
         jingleOfferElem.find('>content[name=\'data\']').remove();
@@ -751,7 +758,8 @@ export default class JingleSessionPC extends JingleSession {
 
                 // 'session-accept' is a critical timeout and we'll
                 // have to restart
-                this.room.eventEmitter.emit(XMPPEvents.SESSION_ACCEPT_TIMEOUT);
+                this.room.eventEmitter.emit(
+                    XMPPEvents.SESSION_ACCEPT_TIMEOUT, this);
             }),
             IQ_TIMEOUT);
 
@@ -1759,7 +1767,7 @@ export default class JingleSessionPC extends JingleSession {
     static onJingleFatalError(session, error) {
         if (this.room) {
             this.room.eventEmitter.emit(
-                XMPPEvents.CONFERENCE_SETUP_FAILED, error);
+                XMPPEvents.CONFERENCE_SETUP_FAILED, session, error);
             this.room.eventEmitter.emit(
                 XMPPEvents.JINGLE_FATAL_ERROR, session, error);
         }
