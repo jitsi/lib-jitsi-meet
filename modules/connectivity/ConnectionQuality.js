@@ -396,8 +396,7 @@ export default class ConnectionQuality {
         const data = {
             bitrate: this._localStats.bitrate,
             packetLoss: this._localStats.packetLoss,
-            connectionQuality: this._localStats.connectionQuality,
-            framerate: this._localStats.framerate
+            connectionQuality: this._localStats.connectionQuality
         };
 
         // TODO: It looks like the remote participants don't really "care"
@@ -478,8 +477,7 @@ export default class ConnectionQuality {
         this._remoteStats[id] = {
             bitrate: data.bitrate,
             packetLoss: data.packetLoss,
-            connectionQuality: data.connectionQuality,
-            framerate: data.framerate
+            connectionQuality: data.connectionQuality
         };
 
         this.eventEmitter.emit(
