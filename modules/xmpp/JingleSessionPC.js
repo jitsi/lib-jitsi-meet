@@ -263,7 +263,8 @@ export default class JingleSessionPC extends JingleSession {
          * the value of RTCPeerConnection.iceConnectionState changes.
          */
         this.peerconnection.oniceconnectionstatechange = () => {
-            if (!this.peerconnection) {
+            if (!this.peerconnection
+                    || this.state === JingleSessionState.ENDED) {
                 return;
             }
             const now = window.performance.now();
