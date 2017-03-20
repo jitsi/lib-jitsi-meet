@@ -1154,10 +1154,11 @@ class RTCUtils extends Listenable {
             throw new Error('WebRTC not ready yet');
         }
 
-        return Boolean(navigator.mediaDevices
-            && navigator.mediaDevices.enumerateDevices
-            && typeof MediaStreamTrack !== 'undefined'
-            && MediaStreamTrack.getSources);
+        return Boolean(
+            (navigator.mediaDevices
+                && navigator.mediaDevices.enumerateDevices)
+            || (typeof MediaStreamTrack !== 'undefined'
+                && MediaStreamTrack.getSources));
     }
 
     /**
