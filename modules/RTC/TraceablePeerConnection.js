@@ -1387,22 +1387,22 @@ TraceablePeerConnection.prototype.createDataChannel = function(label, opts) {
 
 TraceablePeerConnection.prototype.setLocalDescription
 = function(description, successCallback, failureCallback) {
-    let d = description;
+    let localSdp = description;
 
-    this.trace('setLocalDescription::preTransform', dumpSDP(d));
+    this.trace('setLocalDescription::preTransform', dumpSDP(localSdp));
 
     // if we're using unified plan, transform to it first.
     if (RTCBrowserType.usesUnifiedPlan()) {
-        d = this.interop.toUnifiedPlan(d);
+        localSdp = this.interop.toUnifiedPlan(localSdp);
         this.trace(
             'setLocalDescription::postTransform (Unified Plan)',
-            dumpSDP(d));
+            dumpSDP(localSdp));
     }
 
-    this.peerconnection.setLocalDescription(description,
+    this.peerconnection.setLocalDescription(localSdp,
         () => {
             this.trace('setLocalDescriptionOnSuccess');
-            const localUfrag = getUfrag(description.sdp);
+            const localUfrag = getUfrag(localSdp.sdp);
 
             if (localUfrag !== this.localUfrag) {
                 this.localUfrag = localUfrag;
