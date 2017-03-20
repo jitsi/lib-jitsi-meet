@@ -18,6 +18,7 @@ import * as MediaType from './service/RTC/MediaType';
 import ParticipantConnectionStatus
     from './modules/connectivity/ParticipantConnectionStatus';
 import RTC from './modules/RTC/RTC';
+import RTCBrowserType from './modules/RTC/RTCBrowserType';
 import * as RTCEvents from './service/RTC/RTCEvents';
 import Statistics from './modules/statistics/statistics';
 import TalkMutedDetection from './modules/TalkMutedDetection';
@@ -1210,6 +1211,14 @@ JitsiConference.prototype.onIncomingCall
         if (role !== 'moderator') {
             // Reject incoming P2P call
             this._rejectIncomingCallNonModerator(jingleSession);
+        } else if (!RTCBrowserType.isP2PSupported()) {
+            // Reject incoming P2P call (already in progress)
+            this._rejectIncomingCall(
+                jingleSession, {
+                    reasonTag: 'unsupported-applications',
+                    reasonMsg: 'P2P not supported',
+                    errorMsg: 'This client does not support P2P connections'
+                });
         } else if (this.p2pJingleSession) {
             // Reject incoming P2P call (already in progress)
             this._rejectIncomingCall(
@@ -2125,7 +2134,7 @@ JitsiConference.prototype._startP2PSession = function(peerJid) {
  * @private
  */
 JitsiConference.prototype._startStopP2PSession = function(userLeftEvent) {
-    if (!this.options.config.enableP2P) {
+    if (!this.options.config.enableP2P || !RTCBrowserType.isP2PSupported()) {
         logger.info('Auto P2P disabled');
 
         return;

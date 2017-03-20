@@ -114,6 +114,15 @@ const RTCBrowserType = {
     },
 
     /**
+     * Check whether or not the current browser support peer to peer connections
+     * @return {boolean} <tt>true</tt> if p2p is supported or <tt>false</tt>
+     * otherwise.
+     */
+    isP2PSupported() {
+        return !RTCBrowserType.isReactNative();
+    },
+
+    /**
      * Checks if current environment is React Native.
      * @returns {boolean}
      */
