@@ -88,8 +88,6 @@ export default class LocalSdpMunger {
                 continue;
             }
 
-            // FIXME come up with a message
-            // when there should not be audio SSRC anymore
             if (audioMLine.getSSRCCount() > 0) {
                 logger.debug(
                     'Doing nothing - audio SSRCs are still there');
