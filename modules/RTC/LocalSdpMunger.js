@@ -249,58 +249,11 @@ export default class LocalSdpMunger {
             }
 
             // Insert RTX
-            // FIXME in P2P RTX is used by Chrome regardless of this
-            // option status
-            if (this.tpc.options.disableRtx) {
-
-                // eslint-disable-next-line no-continue
-                continue;
-            }
-
-            // FIXME rtxModifier should be reused for this part
-            const rtxSSRCs = this.tpc.rtxModifier.correspondingRtxSsrcs;
-
-            // These are the SSRC object that contain "msid"
-            const streamSSRCs
-                = videoMLine.ssrcs.filter(
-                    ssrcObj => ssrcObj.attribute === 'msid');
-
-            for (const ssrcObj of streamSSRCs) {
-                const correspondingSSRC = rtxSSRCs.get(ssrcObj.id);
-
-                if (correspondingSSRC) {
-                    // Remove old attributes
-                    videoMLine.removeSSRC(correspondingSSRC);
-
-                    // Add new
-                    videoMLine.addSSRCAttribute({
-                        id: correspondingSSRC,
-                        attribute: 'msid',
-                        value: ssrcObj.value
-                    });
-                    videoMLine.addSSRCAttribute({
-                        id: correspondingSSRC,
-                        attribute: 'cname',
-                        value: primaryCname
-                    });
-                    const rtxGroup = {
-                        ssrcs: `${ssrcObj.id} ${correspondingSSRC}`,
-                        semantics: 'FID'
-                    };
-
-                    if (!videoMLine.findGroup('FID', rtxGroup.ssrcs)) {
-                        videoMLine.addSSRCGroup(rtxGroup);
-                        logger.debug(
-                            `Injecting RTX group for: ${ssrcObj.id}`, rtxGroup);
-                    }
-                } else {
-                    // FIXME explain better
-                    // Logging on debug, because it's normal
-                    // if the SSRCs are already in the SDP
-                    logger.debug(
-                        `No corresponding SSRC found for: ${ssrcObj.id}`,
-                        rtxSSRCs);
-                }
+            // FIXME in P2P RTX is used by Chrome regardless of config option
+            // status. Because of that 'source-remove'/'source-add'
+            // notifications are still sent to remove/add RTX SSRC and FID group
+            if (!this.tpc.options.disableRtx) {
+                this.tpc.rtxModifier.modifyRtxSsrcs2(videoMLine);
             }
         }
 
