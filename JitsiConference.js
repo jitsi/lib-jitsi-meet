@@ -995,7 +995,7 @@ JitsiConference.prototype.onMemberJoined = function(jid, nick, role, isHidden) {
             participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
             this.updateDTMFSupport();
         },
-        error => logger.error(error));
+        error => logger.error(`Failed to discover features of ${jid}`, error));
 
     this._startStopP2PSession();
 };
