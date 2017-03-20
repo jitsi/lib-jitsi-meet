@@ -266,9 +266,15 @@ export default class LocalSdpMunger {
      * description.
      */
     maybeMungeLocalSdp(desc) {
+        // FIXME why long check fails on mobile ?
+        // '!this.tpc.peerconnection.localDescription.sdp'
+        //
         // Nothing to be done in early stage when localDescription
         // is not available yet
-        if (!this.tpc.peerconnection.localDescription.sdp) {
+        if (!this.tpc
+                || !this.tpc.peerconnection
+                || !this.tpc.peerconnection.localDescription
+                || !this.tpc.peerconnection.localDescription.sdp) {
             return;
         }
 
