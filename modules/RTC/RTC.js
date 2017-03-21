@@ -85,6 +85,7 @@ export default class RTC extends Listenable {
 
         // Defines the last N endpoints list. It can be null or an array once
         // initialised with a datachannel last N event.
+        // @type {Array<string>|null}
         this._lastNEndpoints = null;
 
         // The last N change listener.
