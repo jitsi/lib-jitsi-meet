@@ -1770,9 +1770,12 @@ export default class JingleSessionPC extends JingleSession {
                 error.reason = 'timeout';
             }
 
-            error.source = null;
+            error.source = request;
             if (request && typeof request.tree === 'function') {
                 error.source = request.tree();
+            }
+            if (error.source && error.source.outerHTML) {
+                error.source = error.source.outerHTML;
             }
 
             // Commented to fix JSON.stringify(error) exception for circular
