@@ -369,7 +369,7 @@ export default class ParticipantConnectionStatus {
         const isVideoTrackFrozen = this.isVideoTrackFrozen(participant);
         let isConnActiveByJvb = this.connStatusFromJvb[id];
 
-        if (this.conference.isP2PEstablished()) {
+        if (this.conference.isP2PActive()) {
             logger.debug('Assuming connection active by JVB - in P2P mode');
             isConnActiveByJvb = true;
         } else if (typeof isConnActiveByJvb !== 'boolean') {

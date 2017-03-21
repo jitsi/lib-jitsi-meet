@@ -150,7 +150,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     // send some analytics events
     chatRoom.addListener(XMPPEvents.MUC_JOINED,
         () => {
-            this.conference.isJvbConnectionIsInterrupted = false;
+            this.conference.isJvbConnectionInterrupted = false;
 
             Object.keys(chatRoom.connectionTimes).forEach(key => {
                 const value = chatRoom.connectionTimes[key];

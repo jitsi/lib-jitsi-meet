@@ -107,7 +107,7 @@ function JitsiConference(options) {
     /**
      * Indicates whether the connection is interrupted or not.
      */
-    this.isJvbConnectionIsInterrupted = false;
+    this.isJvbConnectionInterrupted = false;
 
     /* P2P related fields below: */
 
@@ -139,10 +139,11 @@ function JitsiConference(options) {
 
     /**
      * Flag set to <tt>true</tt> when P2P session has been established
-     * (ICE has been connected).
+     * (ICE has been connected) and this conference is currently in the peer to
+     * peer mode (P2P connection is the active one).
      * @type {boolean}
      */
-    this.p2pEstablished = false;
+    this.p2p = false;
 
     /**
      * A JingleSession for the direct peer to peer connection.
@@ -1078,12 +1079,12 @@ JitsiConference.prototype.onDisplayNameChanged = function(jid, displayName) {
  * JitsiConference
  */
 JitsiConference.prototype.onRemoteTrackAdded = function(track) {
-    if (track.isP2P && !this.isP2PEstablished()) {
+    if (track.isP2P && !this.isP2PActive()) {
         logger.info(
             'Trying to add remote P2P track, when not in P2P - IGNORED');
 
         return;
-    } else if (!track.isP2P && this.isP2PEstablished()) {
+    } else if (!track.isP2P && this.isP2PActive()) {
         logger.info(
             'Trying to add remote JVB track, when in P2P - IGNORED');
 
@@ -1186,8 +1187,8 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
     }, this);
 
     if (!consumed) {
-        if ((this.isP2PEstablished() && !removedTrack.isP2P)
-             || (!this.isP2PEstablished() && removedTrack.isP2P)) {
+        if ((this.isP2PActive() && !removedTrack.isP2P)
+             || (!this.isP2PActive() && removedTrack.isP2P)) {
             // This track has been removed explicitly by P2PEnabledConference
             return;
         }
@@ -1350,15 +1351,6 @@ JitsiConference.prototype._startRemoteStats = function() {
     if (activePeerConnection) {
         this.statistics.startRemoteStats(activePeerConnection);
     }
-};
-
-/**
- * Tells if the P2P connection is up and running.
- * @return {boolean} <tt>true</tt> if this conference is currently using direct
- * peer to peer connection or <tt>false</tt> if the JVB one is in use.
- */
-JitsiConference.prototype.isP2PEstablished = function() {
-    return false;
 };
 
 /**
@@ -1587,7 +1579,7 @@ JitsiConference.prototype.getPhonePin = function() {
  * @protected
  */
 JitsiConference.prototype.getActivePeerConnection = function() {
-    if (this.isP2PEstablished()) {
+    if (this.isP2PActive()) {
         return this.p2pJingleSession.peerconnection;
     }
 
@@ -1795,8 +1787,8 @@ JitsiConference.prototype.broadcastEndpointMessage = function(payload) {
 };
 
 JitsiConference.prototype.isConnectionInterrupted = function() {
-    return this.isP2PEstablished()
-        ? this.isP2PConnectionInterrupted : this.isJvbConnectionIsInterrupted;
+    return this.isP2PActive()
+        ? this.isP2PConnectionInterrupted : this.isJvbConnectionInterrupted;
 };
 
 /**
@@ -1808,9 +1800,9 @@ JitsiConference.prototype._onIceConnectionInterrupted = function(session) {
     if (session.isP2P) {
         this.isP2PConnectionInterrupted = true;
     } else {
-        this.isJvbConnectionIsInterrupted = true;
+        this.isJvbConnectionInterrupted = true;
     }
-    if (session.isP2P === this.isP2PEstablished()) {
+    if (session.isP2P === this.isP2PActive()) {
         this.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_INTERRUPTED);
     }
 };
@@ -1835,10 +1827,10 @@ JitsiConference.prototype._onIceConnectionRestored = function(session) {
     if (session.isP2P) {
         this.isP2PConnectionInterrupted = false;
     } else {
-        this.isJvbConnectionIsInterrupted = false;
+        this.isJvbConnectionInterrupted = false;
     }
 
-    if (session.isP2P === this.isP2PEstablished()) {
+    if (session.isP2P === this.isP2PActive()) {
         this.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_RESTORED);
     }
 };
@@ -2056,12 +2048,12 @@ JitsiConference.prototype._removeRemoteTracks
  * @private
  */
 JitsiConference.prototype._setP2PStatus = function(newStatus) {
-    if (this.p2pEstablished === newStatus) {
+    if (this.p2p === newStatus) {
         logger.error(`Called _setP2PStatus with the same status: ${newStatus}`);
 
         return;
     }
-    this.p2pEstablished = newStatus;
+    this.p2p = newStatus;
     if (newStatus) {
         logger.info('Peer to peer connection established!');
     } else {
@@ -2075,7 +2067,7 @@ JitsiConference.prototype._setP2PStatus = function(newStatus) {
     this.eventEmitter.emit(
         JitsiConferenceEvents.P2P_STATUS,
         this,
-        this.p2pEstablished);
+        this.p2p);
 
     // Refresh connection interrupted/restored
     this.eventEmitter.emit(
@@ -2215,7 +2207,7 @@ JitsiConference.prototype._stopP2PSession
         return;
     }
 
-    const wasP2PEstablished = this.isP2PEstablished();
+    const wasP2PEstablished = this.isP2PActive();
 
     // Swap remote tracks, but only if the P2P has been fully established
     if (wasP2PEstablished) {
@@ -2264,10 +2256,12 @@ JitsiConference.prototype._stopP2PSession
 
 /**
  * Checks whether or not the conference is currently in the peer to peer mode.
+ * Being in peer to peer mode means that the direct connection has been
+ * established and the P2P connection is being used for media transmission.
  * @return {boolean} <tt>true</tt> if in P2P mode or <tt>false</tt> otherwise.
  */
-JitsiConference.prototype.isP2PEstablished = function() {
-    return this.p2pEstablished;
+JitsiConference.prototype.isP2PActive = function() {
+    return this.p2p;
 };
 
 /**
@@ -2277,7 +2271,7 @@ JitsiConference.prototype.isP2PEstablished = function() {
  * no P2P connection.
  */
 JitsiConference.prototype.getP2PConnectionState = function() {
-    if (this.isP2PEstablished() && this.p2pJingleSession) {
+    if (this.isP2PActive()) {
         return this.p2pJingleSession.peerconnection.getConnectionState();
     }
 

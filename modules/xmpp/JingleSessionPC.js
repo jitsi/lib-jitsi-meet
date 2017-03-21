@@ -71,11 +71,13 @@ export default class JingleSessionPC extends JingleSession {
 
         /**
          * Stores "delayed" ICE candidates which are added to the PC once
-         * the first sRD/sLD cycle is done.
+         * the first sRD/sLD cycle is done. If there was at least one sRD/sLD
+         * cycle already then the candidates are added as they come and this
+         * queue is skipped.
          * @type {Array} an array of ICE candidate lines which can be added
          * directly to the PC
          */
-        this.candidiates = [];
+        this.delayedIceCandidiates = [];
 
         this.lasticecandidate = false;
         this.closed = false;
@@ -156,7 +158,7 @@ export default class JingleSessionPC extends JingleSession {
      * @private
      */
     _dequeIceCandidates() {
-        this.candidiates.forEach(candidate => {
+        this.delayedIceCandidiates.forEach(candidate => {
             const line = candidate.candidate;
 
             this.peerconnection.addIceCandidate(
@@ -169,7 +171,7 @@ export default class JingleSessionPC extends JingleSession {
                         `Add ICE candidate failed ${this}: ${line}`, error);
                 });
         });
-        this.candidiates = [];
+        this.delayedIceCandidiates = [];
     }
 
     /**
@@ -519,7 +521,7 @@ export default class JingleSessionPC extends JingleSession {
                         });
                 } else {
                     logger.debug(`Delaying ICE candidate: ${line}`);
-                    this.candidiates.push(rtcCandidate);
+                    this.delayedIceCandidiates.push(rtcCandidate);
                 }
             });
         });
