@@ -443,6 +443,11 @@ StatsCollector.prototype.processStatsReport = function() {
         }
         const now = this.currentStatsReport[idx];
 
+        // The browser API may return "undefined" values in the array
+        if (!now) {
+            continue;
+        }
+
         try {
             const receiveBandwidth = getStatValue(now, 'receiveBandwidth');
             const sendBandwidth = getStatValue(now, 'sendBandwidth');
