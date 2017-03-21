@@ -246,8 +246,8 @@ class JingleConnectionPlugin extends ConnectionPlugin {
     newP2PJingleSession(me, peer) {
         const sess
             = new JingleSessionPC(
-                    me,
                     RandomUtil.randomHexString(12),
+                    me,
                     peer,
                     this.connection,
                     this.mediaConstraints,
