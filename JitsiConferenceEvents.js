@@ -90,6 +90,11 @@ export const KICKED = 'conferenece.kicked';
 
 /**
  * The Last N set is changed.
+ *
+ * @param {Array<string>|null} leavingEndpointIds the ids of all the endpoints
+ * which are leaving Last N
+ * @param {Array<string>|null} enteringEndpointIds the ids of all the endpoints
+ * which are entering Last N
  */
 export const LAST_N_ENDPOINTS_CHANGED = 'conference.lastNEndpointsChanged';
 

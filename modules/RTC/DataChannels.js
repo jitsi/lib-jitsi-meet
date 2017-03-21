@@ -99,15 +99,10 @@ DataChannels.prototype.onDataChannel = function(event) {
                 // The new/latest list of last-n endpoint IDs.
                 const lastNEndpoints = obj.lastNEndpoints;
 
-                // The list of endpoint IDs which are entering the list of
-                // last-n at this time i.e. were not in the old list of last-n
-                // endpoint IDs.
-                const endpointsEnteringLastN = obj.endpointsEnteringLastN;
-
                 logger.info('Data channel new last-n event: ',
-                    lastNEndpoints, endpointsEnteringLastN, obj);
+                    lastNEndpoints, obj);
                 self.eventEmitter.emit(RTCEvents.LASTN_ENDPOINT_CHANGED,
-                    lastNEndpoints, endpointsEnteringLastN, obj);
+                    lastNEndpoints, obj);
             } else if (colibriClass === 'EndpointMessage') {
                 self.eventEmitter.emit(
                     RTCEvents.ENDPOINT_MESSAGE_RECEIVED, obj.from,
