@@ -132,6 +132,26 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Checks whether or not this session instance has been ended and eventually
+     * logs a message which mentions that given <tt>actionName</tt> was
+     * cancelled.
+     * @param {string} actionName
+     * @return {boolean} <tt>true</tt> if this {@link JingleSessionPC} has
+     * entered {@link JingleSessionState.ENDED} or <tt>false</tt> otherwise.
+     * @private
+     */
+    _assertNotEnded(actionName) {
+        if (this.state === JingleSessionState.ENDED) {
+            logger.log(
+                `The session has ended - cancelling action: ${actionName}`);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Adds all "delayed" ICE candidates to the PeerConnection.
      * @private
      */
@@ -264,7 +284,7 @@ export default class JingleSessionPC extends JingleSession {
          */
         this.peerconnection.oniceconnectionstatechange = () => {
             if (!this.peerconnection
-                    || this.state === JingleSessionState.ENDED) {
+                    || !this._assertNotEnded('oniceconnectionstatechange')) {
                 return;
             }
             const now = window.performance.now();
@@ -383,6 +403,11 @@ export default class JingleSessionPC extends JingleSession {
      * @param candidates
      */
     sendIceCandidates(candidates) {
+        if (!this._assertNotEnded('sendIceCandidates')) {
+
+            return;
+        }
+
         logger.log('sendIceCandidates', candidates);
         const cand = $iq({ to: this.peerjid,
             type: 'set' })
@@ -998,10 +1023,11 @@ export default class JingleSessionPC extends JingleSession {
      * @param elem An array of Jingle "content" elements.
      */
     addRemoteStream(elem) {
-        // FIXME there is not stop condition for this wait !!!
         if (!this.peerconnection.localDescription) {
             logger.warn('addSource - localDescription not ready yet');
-            setTimeout(() => this.addRemoteStream(elem), 200);
+            if (this._assertNotEnded('addRemoteStream')) {
+                setTimeout(() => this.addRemoteStream(elem), 200);
+            }
 
             return;
         }
@@ -1034,10 +1060,11 @@ export default class JingleSessionPC extends JingleSession {
      * @param elem An array of Jingle "content" elements.
      */
     removeRemoteStream(elem) {
-        // FIXME there is no stop condition for this wait !
         if (!this.peerconnection.localDescription) {
             logger.warn('removeSource - localDescription not ready yet');
-            setTimeout(() => this.removeRemoteStream(elem), 200);
+            if (this._assertNotEnded('removeRemoteStream')) {
+                setTimeout(() => this.removeRemoteStream(elem), 200);
+            }
 
             return;
         }
