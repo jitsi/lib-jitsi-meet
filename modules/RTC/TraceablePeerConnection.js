@@ -24,19 +24,6 @@ const SIMULCAST_LAYERS = 3;
 /* eslint-disable max-params */
 
 /**
- * Extracts the ICE username fragment from an SDP string.
- * @param {string} sdp the SDP in raw text format
- */
-function getUfrag(sdp) {
-    const ufragLines
-        = sdp.split('\n').filter(line => line.startsWith('a=ice-ufrag:'));
-
-    if (ufragLines.length > 0) {
-        return ufragLines[0].substr('a=ice-ufrag:'.length);
-    }
-}
-
-/**
  * Creates new instance of 'TraceablePeerConnection'.
  *
  * @param {RTC} rtc the instance of <tt>RTC</tt> service
@@ -1402,7 +1389,7 @@ TraceablePeerConnection.prototype.setLocalDescription
     this.peerconnection.setLocalDescription(localSdp,
         () => {
             this.trace('setLocalDescriptionOnSuccess');
-            const localUfrag = getUfrag(localSdp.sdp);
+            const localUfrag = SDPUtil.getUfrag(localSdp.sdp);
 
             if (localUfrag !== this.localUfrag) {
                 this.localUfrag = localUfrag;
@@ -1462,7 +1449,7 @@ TraceablePeerConnection.prototype.setRemoteDescription
         description,
         () => {
             this.trace('setRemoteDescriptionOnSuccess');
-            const remoteUfrag = getUfrag(description.sdp);
+            const remoteUfrag = SDPUtil.getUfrag(description.sdp);
 
             if (remoteUfrag !== this.remoteUfrag) {
                 this.remoteUfrag = remoteUfrag;
