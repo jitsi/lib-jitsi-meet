@@ -997,7 +997,7 @@ JitsiConference.prototype.onMemberJoined = function(jid, nick, role, isHidden) {
         },
         error => logger.error(`Failed to discover features of ${jid}`, error));
 
-    this._startStopP2PSession();
+    this._maybeStartOrStopP2P();
 };
 
 /* eslint-enable max-params */
@@ -1024,7 +1024,7 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
             JitsiConferenceEvents.USER_LEFT, id, participant);
     }
 
-    this._startStopP2PSession(true /* triggered by user left event */);
+    this._maybeStartOrStopP2P(true /* triggered by user left event */);
 };
 
 /**
@@ -1037,7 +1037,7 @@ JitsiConference.prototype.onLocalRoleChanged = function(role) {
         JitsiConferenceEvents.USER_ROLE_CHANGED, this.myUserId(), role);
 
     // Maybe start P2P
-    this._startStopP2PSession();
+    this._maybeStartOrStopP2P();
 };
 
 JitsiConference.prototype.onUserRoleChanged = function(jid, role) {
@@ -1078,12 +1078,12 @@ JitsiConference.prototype.onDisplayNameChanged = function(jid, displayName) {
  * JitsiConference
  */
 JitsiConference.prototype.onRemoteTrackAdded = function(track) {
-    if (track.isP2P && !this.p2pEstablished) {
+    if (track.isP2P && !this.isP2PEstablished()) {
         logger.info(
             'Trying to add remote P2P track, when not in P2P - IGNORED');
 
         return;
-    } else if (!track.isP2P && this.p2pEstablished) {
+    } else if (!track.isP2P && this.isP2PEstablished()) {
         logger.info(
             'Trying to add remote JVB track, when in P2P - IGNORED');
 
@@ -1186,8 +1186,8 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
     }, this);
 
     if (!consumed) {
-        if ((this.p2pEstablished && !removedTrack.isP2P)
-             || (!this.p2pEstablished && removedTrack.isP2P)) {
+        if ((this.isP2PEstablished() && !removedTrack.isP2P)
+             || (!this.isP2PEstablished() && removedTrack.isP2P)) {
             // This track has been removed explicitly by P2PEnabledConference
             return;
         }
@@ -1233,9 +1233,7 @@ JitsiConference.prototype.onIncomingCall
         }
 
         return;
-    }
-
-    if (!this.room.isFocus(jingleSession.peerjid)) {
+    } else if (!this.room.isFocus(jingleSession.peerjid)) {
         this._rejectIncomingCall(jingleSession);
 
         return;
@@ -1726,6 +1724,8 @@ JitsiConference.prototype._onTrackAttach = function(track, container) {
     let ssrc = null;
 
     if (isLocal) {
+        // FIXME currently we do CallStats only for JVB, but the same logic will
+        // need to happen for the P2P as well once the support is added.
         // Local tracks have SSRC stored on per peer connection basis
         const peerConnection
             = this.jvbJingleSession && this.jvbJingleSession.peerconnection;
@@ -1795,7 +1795,7 @@ JitsiConference.prototype.broadcastEndpointMessage = function(payload) {
 };
 
 JitsiConference.prototype.isConnectionInterrupted = function() {
-    return this.p2pEstablished
+    return this.isP2PEstablished()
         ? this.isP2PConnectionInterrupted : this.isJvbConnectionIsInterrupted;
 };
 
@@ -1810,7 +1810,7 @@ JitsiConference.prototype._onIceConnectionInterrupted = function(session) {
     } else {
         this.isJvbConnectionIsInterrupted = true;
     }
-    if (session.isP2P === this.p2pEstablished) {
+    if (session.isP2P === this.isP2PEstablished()) {
         this.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_INTERRUPTED);
     }
 };
@@ -1838,7 +1838,7 @@ JitsiConference.prototype._onIceConnectionRestored = function(session) {
         this.isJvbConnectionIsInterrupted = false;
     }
 
-    if (session.isP2P === this.p2pEstablished) {
+    if (session.isP2P === this.isP2PEstablished()) {
         this.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_RESTORED);
     }
 };
@@ -1949,10 +1949,9 @@ JitsiConference.prototype._addRemoteTracks = function(logName, jingleSession) {
 JitsiConference.prototype._onP2PConnectionEstablished
 = function(jingleSession) {
     if (!jingleSession.isP2P) {
-
         return;
     } else if (this.p2pJingleSession !== jingleSession) {
-        logger.error('CONNECTION_ESTABLISHED - not P2P session ?!');
+        logger.error('CONNECTION_ESTABLISHED - wrong P2P session instance ?!');
 
         return;
     }
@@ -2133,7 +2132,7 @@ JitsiConference.prototype._startP2PSession = function(peerJid) {
  * originates from the user left event.
  * @private
  */
-JitsiConference.prototype._startStopP2PSession = function(userLeftEvent) {
+JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
     if (!this.options.config.enableP2P || !RTCBrowserType.isP2PSupported()) {
         logger.info('Auto P2P disabled');
 
@@ -2216,7 +2215,7 @@ JitsiConference.prototype._stopP2PSession
         return;
     }
 
-    const wasP2PEstablished = this.p2pEstablished;
+    const wasP2PEstablished = this.isP2PEstablished();
 
     // Swap remote tracks, but only if the P2P has been fully established
     if (wasP2PEstablished) {
@@ -2278,7 +2277,7 @@ JitsiConference.prototype.isP2PEstablished = function() {
  * no P2P connection.
  */
 JitsiConference.prototype.getP2PConnectionState = function() {
-    if (this.p2pEstablished && this.p2pJingleSession) {
+    if (this.isP2PEstablished() && this.p2pJingleSession) {
         return this.p2pJingleSession.peerconnection.getConnectionState();
     }
 
