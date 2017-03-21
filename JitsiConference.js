@@ -2216,13 +2216,13 @@ JitsiConference.prototype._stopP2PSession
         return;
     }
 
-    // Add local track to JVB
-    this._attachLocalTracksToJvbSession();
-
     const wasP2PEstablished = this.p2pEstablished;
 
     // Swap remote tracks, but only if the P2P has been fully established
     if (wasP2PEstablished) {
+        // Add local track to JVB
+        this._attachLocalTracksToJvbSession();
+
         // Remove remote P2P tracks
         this._removeRemoteP2PTracks();
     }
