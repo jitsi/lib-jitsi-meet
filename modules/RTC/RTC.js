@@ -2,6 +2,7 @@
 import DataChannels from './DataChannels';
 import { getLogger } from 'jitsi-meet-logger';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import JitsiLocalTrack from './JitsiLocalTrack.js';
 import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
@@ -90,7 +91,7 @@ export default class RTC extends Listenable {
         this._lastNEndpoints = null;
 
         // The last N change listener.
-        this._lastNChangeListener = null;
+        this._lastNChangeListener = this._onLastNChanged.bind(this);
 
         // Switch audio output device on all remote audio tracks. Local audio
         // tracks handle this event by themselves.
@@ -169,13 +170,37 @@ export default class RTC extends Listenable {
                 this._dataChannelOpenListener);
 
             // Add Last N change listener.
-            this._lastNChangeListener = lastNEndpoints => {
-                this._lastNEndpoints = lastNEndpoints;
-            };
-
             this.addListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
                 this._lastNChangeListener);
         }
+    }
+
+    /**
+     * Receives events when Last N had changed.
+     * @param {array} lastNEndpoints the new Last N endpoints.
+     * @private
+     */
+    _onLastNChanged(lastNEndpoints) {
+        const oldLastNEndpoints = this._lastNEndpoints;
+        let leavingLastNEndpoints = [];
+        let enteringLastNEndpoints = [];
+
+        this._lastNEndpoints = lastNEndpoints;
+
+        if (oldLastNEndpoints) {
+            leavingLastNEndpoints = oldLastNEndpoints.filter(
+                id => !this.isInLastN(id));
+
+            if (lastNEndpoints) {
+                enteringLastNEndpoints = lastNEndpoints.filter(
+                    id => oldLastNEndpoints.indexOf(id) === -1);
+            }
+        }
+
+        this.conference.eventEmitter.emit(
+            JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED,
+            leavingLastNEndpoints,
+            enteringLastNEndpoints);
     }
 
     /**
@@ -600,10 +625,8 @@ export default class RTC extends Listenable {
             this.dataChannels.closeAllChannels();
             this.dataChannelsOpen = false;
 
-            if (this._lastNChangeListener) {
-                this.removeListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
-                    this._lastNChangeListener);
-            }
+            this.removeListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
+                this._lastNChangeListener);
         }
     }
 

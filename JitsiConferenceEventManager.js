@@ -461,9 +461,6 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
     const conference = this.conference;
     const rtc = conference.rtc;
 
-    this.rtcForwarder
-        = new EventEmitterForwarder(rtc, this.conference.eventEmitter);
-
     rtc.addListener(
         RTCEvents.REMOTE_TRACK_ADDED,
         conference.onRemoteTrackAdded.bind(conference));
@@ -493,9 +490,6 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
         Statistics.analytics.sendEvent('conference.dataChannel.open',
             { value: now });
     });
-
-    this.rtcForwarder.forward(RTCEvents.LASTN_ENDPOINT_CHANGED,
-        JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED);
 
     rtc.addListener(
         RTCEvents.AVAILABLE_DEVICES_CHANGED,
