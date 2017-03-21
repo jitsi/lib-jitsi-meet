@@ -12,7 +12,6 @@ const RTCEvents = {
     RTC_READY: 'rtc.ready',
     DATA_CHANNEL_OPEN: 'rtc.data_channel_open',
     ENDPOINT_CONN_STATUS_CHANGED: 'rtc.endpoint_conn_status_changed',
-    LASTN_CHANGED: 'rtc.lastn_changed',
     DOMINANT_SPEAKER_CHANGED: 'rtc.dominant_speaker_changed',
     LASTN_ENDPOINT_CHANGED: 'rtc.lastn_endpoint_changed',
     AVAILABLE_DEVICES_CHANGED: 'rtc.available_devices_changed',

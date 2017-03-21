@@ -494,9 +494,6 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
             { value: now });
     });
 
-    this.rtcForwarder.forward(RTCEvents.LASTN_CHANGED,
-        JitsiConferenceEvents.IN_LAST_N_CHANGED);
-
     this.rtcForwarder.forward(RTCEvents.LASTN_ENDPOINT_CHANGED,
         JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED);
 

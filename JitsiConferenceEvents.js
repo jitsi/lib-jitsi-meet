@@ -84,11 +84,6 @@ export const DTMF_SUPPORT_CHANGED = 'conference.dtmfSupportChanged';
 export const ENDPOINT_MESSAGE_RECEIVED = 'conference.endpoint_message_received';
 
 /**
- * You are included / excluded in somebody's last N set
- */
-export const IN_LAST_N_CHANGED = 'conference.inLastNChanged';
-
-/**
  * You are kicked from the conference.
  */
 export const KICKED = 'conferenece.kicked';
