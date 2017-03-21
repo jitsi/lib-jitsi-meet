@@ -7,8 +7,8 @@ import { SdpTransformWrap } from '../xmpp/SdpTransformUtil';
 const logger = getLogger(__filename);
 
 /**
- * Fakes local SDP, so that it will reflect current local tracks status inside
- * of the {@link TraceablePeerConnection} and make operations like
+ * Fakes local SDP, so that it will reflect detached local tracks associated
+ * with the {@link TraceablePeerConnection} and make operations like
  * attach/detach and video mute/unmute local operations. That means it prevents
  * from SSRC updates being sent to Jicofo/remote peer, so that there is no
  * sRD/sLD cycle on the remote side.
@@ -25,21 +25,23 @@ export default class LocalSdpMunger {
     }
 
     /**
-     * Makes sure local SDP for audio media reflects current local tracks status
-     * of the parent TPC.
+     * Makes sure that detached local audio tracks stored in the parent
+     * {@link TraceablePeerConnection} are described in the local SDP.
+     * It's done in order to prevent from sending 'source-remove'/'source-add'
+     * Jingle notifications when local audio track is detached from
+     * the {@link TraceablePeerConnection}.
      * @param {SdpTransformWrap} transformer the transformer instance which will
      * be used to process the SDP.
-     * @return {boolean} <tt>true</tt> if any modification were made.
+     * @return {boolean} <tt>true</tt> if there were any modifications to
+     * the SDP wrapped by <tt>transformer</tt>.
      * @private
      */
-    _describeLocalAudioTracks(transformer) {
+    _addDetachedLocalAudioTracksToSDP(transformer) {
         const localAudio = this.tpc.getLocalTracks(MediaType.AUDIO);
 
         if (!localAudio.length) {
             return false;
         }
-
-
         const audioMLine = transformer.selectMedia('audio');
 
         if (!audioMLine) {
@@ -123,17 +125,21 @@ export default class LocalSdpMunger {
     }
 
     /**
-     * Makes sure local SDP for video media reflects current local tracks status
-     * of the parent TPC.
+     * Makes sure that detached (or muted) local video tracks associated with
+     * the parent {@link TraceablePeerConnection} are described in the local
+     * SDP. It's done in order to prevent from sending
+     * 'source-remove'/'source-add' Jingle notifications when local video track
+     * is detached from the {@link TraceablePeerConnection} (or muted).
      *
      * NOTE 1 video track is assumed
      *
      * @param {SdpTransformWrap} transformer the transformer instance which will
      * be used to process the SDP.
-     * @return {boolean} <tt>true</tt> if any modification were made.
+     * @return {boolean} <tt>true</tt> if there were any modifications to
+     * the SDP wrapped by <tt>transformer</tt>.
      * @private
      */
-    _describeLocalVideoTracks(transformer) {
+    _addDetachedLocalVideoTracksToSDP(transformer) {
         // Go over each video tracks and check if the SDP has to be changed
         const localVideos = this.tpc.getLocalTracks(MediaType.VIDEO);
 
@@ -270,22 +276,16 @@ export default class LocalSdpMunger {
      * description.
      */
     maybeMungeLocalSdp(desc) {
-        // FIXME why long check fails on mobile ?
-        // '!this.tpc.peerconnection.localDescription.sdp'
-        //
         // Nothing to be done in early stage when localDescription
         // is not available yet
-        if (!this.tpc
-                || !this.tpc.peerconnection
-                || !this.tpc.peerconnection.localDescription
-                || !this.tpc.peerconnection.localDescription.sdp) {
+        if (!desc || !desc.sdp) {
             return;
         }
 
         const transformer = new SdpTransformWrap(desc.sdp);
-        let modified = this._describeLocalAudioTracks(transformer);
+        let modified = this._addDetachedLocalAudioTracksToSDP(transformer);
 
-        if (this._describeLocalVideoTracks(transformer)) {
+        if (this._addDetachedLocalVideoTracksToSDP(transformer)) {
             modified = true;
         }
         if (modified) {
