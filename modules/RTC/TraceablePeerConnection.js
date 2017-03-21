@@ -79,6 +79,8 @@ function TraceablePeerConnection(
     // FIXME: We should support multiple streams per jid.
     /**
      * The map holds remote tracks associated with this peer connection.
+     * It maps user's JID to media type and remote track
+     * (one track per media type per user's JID).
      * @type {Map<string, Map<MediaType, JitsiRemoteTrack>>}
      */
     this.remoteTracks = new Map();
@@ -1281,7 +1283,7 @@ TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
 };
 
 /**
- * Removes local track as part of the unmute operation.
+ * Removes local track as part of the mute operation.
  * @param {JitsiLocalTrack} localTrack the local track to be remove as part of
  * the mute operation.
  * @return {boolean} <tt>true</tt> if the underlying PeerConnection's state has
