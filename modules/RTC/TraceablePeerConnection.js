@@ -1507,7 +1507,7 @@ TraceablePeerConnection.prototype.generateRecvonlySsrc = function() {
  */
 TraceablePeerConnection.prototype.clearRecvonlySsrc = function() {
     logger.info('Clearing primary video SSRC!');
-    this.sdpConsistency.clearSsrcCache();
+    this.sdpConsistency.clearVideoSsrcCache();
 };
 
 TraceablePeerConnection.prototype.close = function() {
@@ -1648,9 +1648,12 @@ TraceablePeerConnection.prototype._createOfferOrAnswer
                     resultSdp.sdp
                         = this.sdpConsistency.makeVideoPrimarySsrcsConsistent(
                             resultSdp.sdp);
+                    resultSdp.sdp
+                        = this.sdpConsistency.makeAudioSSRCConsistent(
+                            resultSdp.sdp);
                     this.trace(
                         `create${logName}OnSuccess::postTransform `
-                             + '(make primary video ssrcs consistent)',
+                             + '(make primary audio/video ssrcs consistent)',
                         dumpSDP(resultSdp));
                 }
 

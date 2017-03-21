@@ -12,8 +12,6 @@ const logger = getLogger(__filename);
  * attach/detach and video mute/unmute local operations. That means it prevents
  * from SSRC updates being sent to Jicofo/remote peer, so that there is no
  * sRD/sLD cycle on the remote side.
- *
- * FIXME audio SSRC is not consistent, between attach and detach
  */
 export default class LocalSdpMunger {
 
@@ -76,14 +74,20 @@ export default class LocalSdpMunger {
 
             // Inject removed SSRCs
             const audioSSRC = this.tpc.getLocalSSRC(audioTrack);
+            const audioMSID = audioTrack.storedMSID;
 
             if (!audioSSRC) {
                 logger.error(
-                    `Can't fake SDP for ${
-                        audioTrack} - no SSRC stored`);
+                    `Can't fake SDP for ${audioTrack} - no SSRC stored`);
 
                 // Aborts the forEach on this particular track,
                 // but will continue with the other ones
+                // eslint-disable-next-line no-continue
+                continue;
+            } else if (!audioMSID) {
+                logger.error(
+                    `No MSID stored for local audio SSRC: ${audioSSRC}`);
+
                 // eslint-disable-next-line no-continue
                 continue;
             }
@@ -111,7 +115,7 @@ export default class LocalSdpMunger {
             audioMLine.addSSRCAttribute({
                 id: audioSSRC,
                 attribute: 'msid',
-                value: audioTrack.storedMSID
+                value: audioMSID
             });
         }
 

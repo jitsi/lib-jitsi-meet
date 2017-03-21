@@ -194,6 +194,18 @@ class MLineWrap {
     }
 
     /**
+     * @param {string|null} msid the media stream id or <tt>null</tt> to match
+     * the first SSRC object with any 'msid' value.
+     * @return {Object|undefined} the SSRC object as defined by 'sdp-transform'
+     * lib.
+     */
+    findSSRCByMSID(msid) {
+        return this.ssrcs.find(
+            ssrcObj => ssrcObj.attribute === 'msid'
+                && (msid === null || ssrcObj.value === msid));
+    }
+
+    /**
      * Gets the SSRC count for the underlying media description.
      * @return {number}
      */
