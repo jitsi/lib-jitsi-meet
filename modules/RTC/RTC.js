@@ -364,21 +364,6 @@ export default class RTC extends Listenable {
     }
 
     /**
-     * Runs a callback on each PeerConnection currently stored in the RTC
-     * module. If callback return any non-null value during execution
-     * the execution loop will be aborted and the result will be returned.
-     * @param {function(TraceablePeerConnection)} callback the function to be
-     * executed
-     * @return {*} any first non-null nor undefined value returned by
-     * the callback.
-     * @private
-     */
-    _iteratePeerConnections(callback) {
-        return Array.from(this.peerConnections.values())
-                    .find(pc => callback.apply(this, [ pc ]));
-    }
-
-    /**
      * Obtains all remote tracks currently known to this RTC module instance.
      * @param {MediaType} [mediaType] the remote tracks will be filtered
      * by their media type if this argument is specified.
@@ -387,13 +372,13 @@ export default class RTC extends Listenable {
     getRemoteTracks(mediaType) {
         let remoteTracks = [];
 
-        this._iteratePeerConnections(pc => {
-            const pcRemoteTracks = pc.getRemoteTracks(undefined, mediaType);
+        for (const tpc of this.peerConnections.values()) {
+            const pcRemoteTracks = tpc.getRemoteTracks(undefined, mediaType);
 
             if (pcRemoteTracks) {
                 remoteTracks = remoteTracks.concat(pcRemoteTracks);
             }
-        });
+        }
 
         return remoteTracks;
     }
@@ -440,11 +425,11 @@ export default class RTC extends Listenable {
     removeRemoteTracks(owner) {
         let removedTracks = [];
 
-        this._iteratePeerConnections(pc => {
-            const pcRemovedTracks = pc.removeRemoteTracks(owner);
+        for (const tpc of this.peerConnections.values()) {
+            const pcRemovedTracks = tpc.removeRemoteTracks(owner);
 
             removedTracks = removedTracks.concat(pcRemovedTracks);
-        });
+        }
 
         logger.debug(
             `Removed remote tracks for ${owner}`
