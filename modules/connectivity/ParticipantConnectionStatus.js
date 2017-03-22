@@ -367,6 +367,7 @@ export default class ParticipantConnectionStatus {
 
         const isVideoMuted = participant.isVideoMuted();
         const isVideoTrackFrozen = this.isVideoTrackFrozen(participant);
+        const isInLastN = this.rtc.isInLastN(id);
         let isConnActiveByJvb = this.connStatusFromJvb[id];
 
         if (this.conference.isP2PActive()) {
@@ -380,12 +381,14 @@ export default class ParticipantConnectionStatus {
         }
 
         const isConnectionActive
-            = isConnActiveByJvb && (isVideoMuted || !isVideoTrackFrozen);
+            = isConnActiveByJvb
+                && (isVideoMuted || (isInLastN && !isVideoTrackFrozen));
 
         logger.debug(
             `Figure out conn status, is video muted: ${isVideoMuted
                  } is active(jvb): ${isConnActiveByJvb
                  } video track frozen: ${isVideoTrackFrozen
+                 } is in last N: ${isInLastN
                  } => ${isConnectionActive}`);
 
         this._changeConnectionStatus(participant, isConnectionActive);

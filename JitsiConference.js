@@ -26,7 +26,10 @@ import Transcriber from './modules/transcription/transcriber';
 import VideoType from './service/RTC/VideoType';
 import * as XMPPEvents from './service/xmpp/XMPPEvents';
 
+import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
+
 const logger = getLogger(__filename);
+
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -109,6 +112,11 @@ function JitsiConference(options) {
      * Indicates whether the connection is interrupted or not.
      */
     this.isJvbConnectionInterrupted = false;
+
+    /**
+     * The object which tracks active speaker times
+     */
+    this.speakerStatsCollector = new SpeakerStatsCollector(this);
 
     /* P2P related fields below: */
 
@@ -899,6 +907,18 @@ JitsiConference.prototype.setLastN = function(lastN) {
         throw new RangeError('lastN cannot be smaller than -1');
     }
     this.rtc.setLastN(n);
+};
+
+/**
+ * Checks if the participant given by participantId is currently included in
+ * the last N.
+ * @param {string} participantId the identifier of the participant we would
+ * like to check.
+ * @return {boolean} true if the participant with id is in the last N set or
+ * if there's no last N set, false otherwise.
+ */
+JitsiConference.prototype.isInLastN = function(participantId) {
+    return this.rtc.isInLastN(participantId);
 };
 
 /**
@@ -2309,6 +2329,14 @@ JitsiConference.prototype.startP2PSession = function() {
  */
 JitsiConference.prototype.stopP2PSession = function() {
     this._stopP2PSession();
+};
+
+/**
+ * Get a summary of how long current participants have been the dominant speaker
+ * @returns {object}
+ */
+JitsiConference.prototype.getSpeakerStats = function() {
+    return this.speakerStatsCollector.getStats();
 };
 
 module.exports = JitsiConference;

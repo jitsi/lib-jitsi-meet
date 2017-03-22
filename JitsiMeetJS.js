@@ -64,7 +64,7 @@ function getLowerResolution(resolution) {
  * @returns {*}
  */
 function addDeviceTypeToAnalyticsEvent(name, options) {
-    let ret;
+    let ret = name;
 
     if (options.devices.indexOf('audio') !== -1) {
         ret += '.audio';

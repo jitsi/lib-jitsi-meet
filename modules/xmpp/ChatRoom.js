@@ -620,8 +620,6 @@ export default class ChatRoom extends Listenable {
                 reason = reasonSelect.text();
             }
 
-            this._dispose();
-
             this.eventEmitter.emit(XMPPEvents.MUC_DESTROYED, reason);
             this.connection.emuc.doLeave(this.roomjid);
 
@@ -668,7 +666,6 @@ export default class ChatRoom extends Listenable {
         }
 
         if (isKick && this.myroomjid === from) {
-            this._dispose();
             this.eventEmitter.emit(XMPPEvents.KICKED);
         }
     }
