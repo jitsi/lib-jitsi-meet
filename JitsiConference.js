@@ -43,7 +43,8 @@ const logger = getLogger(__filename);
  * made. If the connection succeeds the conference will stop sending data
  * through the JVB connection and will use the direct one instead.
  * @param {number} [options.config.backToP2PDelay=5] a delay given in seconds,
- * before the conference switches back to P2P after the 3rd participant has left
+ * before the conference switches back to P2P, after the 3rd participant has
+ * left the room.
  * @constructor
  *
  * FIXME Make all methods which are called from lib-internal classes
@@ -117,7 +118,7 @@ function JitsiConference(options) {
      * could be just a page reload).
      * @type {number|null}
      */
-    this.deferredStartP2P = null;
+    this.deferredStartP2PTask = null;
 
     const delay = parseInt(options.config.backToP2PDelay, 10);
 
@@ -184,7 +185,7 @@ JitsiConference.prototype._init = function(options = {}) {
         XMPPEvents.CONNECTION_RESTORED, this._onIceConnectionRestored);
 
     this._onIceConnectionEstablished
-        = this._onP2PConnectionEstablished.bind(this);
+        = this._onIceConnectionEstablished.bind(this);
     this.room.addListener(
         XMPPEvents.CONNECTION_ESTABLISHED, this._onIceConnectionEstablished);
 
@@ -765,10 +766,10 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
  * which describes the error.
  */
 JitsiConference.prototype._addLocalTrackAsUnmute = function(track) {
-    const addAsMutePromises = [];
+    const addAsUnmutePromises = [];
 
     if (this.jvbJingleSession) {
-        addAsMutePromises.push(this.jvbJingleSession.addTrackAsUnmute(track));
+        addAsUnmutePromises.push(this.jvbJingleSession.addTrackAsUnmute(track));
     } else {
         logger.info(
             'Add local MediaStream as unmute -'
@@ -776,14 +777,14 @@ JitsiConference.prototype._addLocalTrackAsUnmute = function(track) {
     }
 
     if (this.p2pJingleSession) {
-        addAsMutePromises.push(this.p2pJingleSession.addTrackAsUnmute(track));
+        addAsUnmutePromises.push(this.p2pJingleSession.addTrackAsUnmute(track));
     } else {
         logger.info(
             'Add local MediaStream as unmute -'
                 + ' no P2P Jingle session started yet');
     }
 
-    return Promise.all(addAsMutePromises);
+    return Promise.all(addAsUnmutePromises);
 };
 
 /**
@@ -1189,7 +1190,11 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
     if (!consumed) {
         if ((this.isP2PActive() && !removedTrack.isP2P)
              || (!this.isP2PActive() && removedTrack.isP2P)) {
-            // This track has been removed explicitly by P2PEnabledConference
+            // A remote track can be removed either as a result of
+            // 'source-remove' or the P2P logic which removes remote tracks
+            // explicitly when switching between JVB and P2P connections.
+            // The check above filters out the P2P logic case which should not
+            // result in an error (which just goes over all remote tracks).
             return;
         }
         logger.error(
@@ -1813,6 +1818,8 @@ JitsiConference.prototype._onIceConnectionInterrupted = function(session) {
  * @private
  */
 JitsiConference.prototype._onIceConnectionFailed = function(session) {
+    // We do nothing for the JVB connection, because it's up to the Jicofo to
+    // eventually come up with the new offer (at least for the time being).
     if (session.isP2P) {
         this._stopP2PSession('connectivity-error', 'ICE FAILED');
     }
@@ -1938,8 +1945,9 @@ JitsiConference.prototype._addRemoteTracks = function(logName, jingleSession) {
  * @param {JingleSessionPC} jingleSession the session instance.
  * @private
  */
-JitsiConference.prototype._onP2PConnectionEstablished
+JitsiConference.prototype._onIceConnectionEstablished
 = function(jingleSession) {
+    // We don't care about the JVB case, there's nothing to be done
     if (!jingleSession.isP2P) {
         return;
     } else if (this.p2pJingleSession !== jingleSession) {
@@ -1991,10 +1999,10 @@ JitsiConference.prototype._detachLocalTracksFromJvbSession = function() {
  * @private
  */
 JitsiConference.prototype._maybeClearDeferredStartP2P = function() {
-    if (this.deferredStartP2P) {
+    if (this.deferredStartP2PTask) {
         logger.info('Cleared deferred start P2P task');
-        clearTimeout(this.deferredStartP2P);
-        this.deferredStartP2P = null;
+        clearTimeout(this.deferredStartP2PTask);
+        this.deferredStartP2PTask = null;
     }
 };
 
@@ -2142,7 +2150,7 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
             }, peerCount: ${peerCount} => ${shouldBeInP2P}`);
 
     // Clear deferred "start P2P" task
-    if (!shouldBeInP2P && this.deferredStartP2P) {
+    if (!shouldBeInP2P && this.deferredStartP2PTask) {
         this._maybeClearDeferredStartP2P();
     }
 
@@ -2170,7 +2178,7 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
         const jid = peer.getJid();
 
         if (userLeftEvent) {
-            if (this.deferredStartP2P) {
+            if (this.deferredStartP2PTask) {
                 logger.error('Deferred start P2P task\'s been set already!');
 
                 return;
@@ -2178,7 +2186,7 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
             logger.info(
                 `Will start P2P with: ${jid
                     } after ${this.backToP2PDelay} seconds...`);
-            this.deferredStartP2P = setTimeout(
+            this.deferredStartP2PTask = setTimeout(
                 this._startP2PSession.bind(this, jid),
                 this.backToP2PDelay * 1000);
         } else {
