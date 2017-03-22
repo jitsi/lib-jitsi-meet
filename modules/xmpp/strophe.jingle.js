@@ -155,10 +155,9 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                         fromJid,
                         this.connection,
                         this.mediaConstraints,
-
-                        // Only P2P makes use of the ICE config
                         isP2P ? this.p2pIceConfig : this.jvbIceConfig,
-                        isP2P /* P2P */, false /* initiator */,
+                        isP2P /* P2P */,
+                        false /* initiator */,
                         this.xmpp.options);
 
             this.sessions[sess.sid] = sess;
