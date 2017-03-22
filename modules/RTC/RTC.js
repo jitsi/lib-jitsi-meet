@@ -271,7 +271,6 @@ export default class RTC extends Listenable {
      * @param {boolean} options.disableRtx if set to 'true' will disable the RTX
      * @param {boolean} options.preferH264 if set to 'true' H264 will be
      * preferred over other video codecs.
-     * @param {boolean} options.disableRtx <tt>true</tt> to disable RTX
      * @return {TraceablePeerConnection}
      */
     createPeerConnection(signaling, iceConfig, isP2P, options) {
@@ -618,7 +617,11 @@ export default class RTC extends Listenable {
     }
 
     /**
+     * Finds a track (either local or remote) which runs on the given SSRC.
+     * @param {string|number} ssrc
+     * @return {JitsiTrack|undefined}
      *
+     * FIXME figure out where SSRC is stored as a string and convert to number
      * @private
      */
     _getTrackBySSRC(ssrc) {
