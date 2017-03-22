@@ -125,7 +125,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
             conference.rtc.closeAllDataChannels();
         }
 
-        // else: there are not DataChannels in P2P session (at least for now)
+        // else: there are no DataChannels in P2P session (at least for now)
     });
 
     chatRoom.addListener(XMPPEvents.AUDIO_MUTED_BY_FOCUS,
