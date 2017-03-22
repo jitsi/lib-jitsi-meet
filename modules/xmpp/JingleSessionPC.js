@@ -355,8 +355,9 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     *
-     * @param candidate
+     * Sends given candidate in Jingle 'transport-info' message.
+     * @param {RTCIceCandidate} candidate the WebRTC ICE candidate instance
+     * @private
      */
     sendIceCandidate(candidate) {
         const localSDP = new SDP(this.peerconnection.localDescription.sdp);
@@ -401,8 +402,10 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     *
-     * @param candidates
+     * Sends given candidates in Jingle 'transport-info' message.
+     * @param {Array<RTCIceCandidate>} candidates an array of the WebRTC ICE
+     * candidate instances
+     * @private
      */
     sendIceCandidates(candidates) {
         if (!this._assertNotEnded('sendIceCandidates')) {
@@ -612,6 +615,7 @@ export default class JingleSessionPC extends JingleSession {
      * Sends 'session-initiate' to the remote peer.
      * @param {object} sdp the local session description object as defined by
      * the WebRTC standard.
+     * @private
      */
     sendSessionInitiate(sdp) {
         logger.log('createdOffer', sdp);
@@ -748,6 +752,7 @@ export default class JingleSessionPC extends JingleSession {
      *        packet for the 'session-accept'
      * @param {function(error)} failure called when we receive an error response
      *        or when the request has timed out.
+     * @private
      */
     sendSessionAccept(success, failure) {
         // NOTE: since we're just reading from it, we don't need to be within
@@ -820,6 +825,7 @@ export default class JingleSessionPC extends JingleSession {
      *        'transport-replace'
      * @param failure function(error) called when we receive an error response
      *        or when the request has timed out.
+     * @private
      */
     sendTransportAccept(localSDP, success, failure) {
         let transportAccept = $iq({ to: this.peerjid,
@@ -864,6 +870,9 @@ export default class JingleSessionPC extends JingleSession {
      *        'transport-replace'
      * @param failure function(error) called when we receive an error response
      *        or when the request has timed out.
+     *
+     * FIXME method should be marked as private, but there's some spaghetti that
+     *       needs to be fixed prior doing that
      */
     sendTransportReject(success, failure) {
         // Send 'transport-reject', so that the focus will
@@ -1221,7 +1230,6 @@ export default class JingleSessionPC extends JingleSession {
      * @private
      */
     _responderRenegotiate(remoteDescription, resolve, reject) {
-
         // FIXME use WebRTC promise API to simplify things
         logger.debug('Renegotiate: setting remote description');
         this.peerconnection.setRemoteDescription(
@@ -1258,10 +1266,8 @@ export default class JingleSessionPC extends JingleSession {
      * @param {function} resolve the success callback
      * @param {function} reject the failure callback
      * @private
-     * @private
      */
     _initiatorRenegotiate(remoteDescription, resolve, reject) {
-
         // FIXME use WebRTC promise API to simplify things
         if (this.peerconnection.signalingState === 'have-local-offer') {
 
