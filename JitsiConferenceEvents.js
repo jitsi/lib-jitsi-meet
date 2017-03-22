@@ -133,6 +133,13 @@ export const PARTICIPANT_PROPERTY_CHANGED
     = 'conference.participant_property_changed';
 
 /**
+ * Indicates that the conference has switched between JVB and P2P connections.
+ * The first argument of this event is a <tt>boolean</tt> which when set to
+ * <tt>true</tt> means that the conference is running on the P2P connection.
+ */
+export const P2P_STATUS = 'conference.p2pStatus';
+
+/**
  * Indicates that phone number changed.
  */
 export const PHONE_NUMBER_CHANGED = 'conference.phoneNumberChanged';

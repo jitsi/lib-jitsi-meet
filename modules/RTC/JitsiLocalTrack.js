@@ -20,6 +20,7 @@ const logger = getLogger(__filename);
 /**
  * Represents a single media track(either audio or video).
  * One <tt>JitsiLocalTrack</tt> corresponds to one WebRTC MediaStreamTrack.
+ * @param {number} rtcId the ID assigned by the RTC module
  * @param stream WebRTC MediaStream, parent of the track
  * @param track underlying WebRTC MediaStreamTrack for new JitsiRemoteTrack
  * @param mediaType the MediaType of the JitsiRemoteTrack
@@ -30,6 +31,7 @@ const logger = getLogger(__filename);
  * @constructor
  */
 function JitsiLocalTrack(
+        rtcId,
         stream,
         track,
         mediaType,
@@ -37,6 +39,12 @@ function JitsiLocalTrack(
         resolution,
         deviceId,
         facingMode) {
+
+    /**
+     * The ID assigned by the RTC module on instance creation.
+     * @type {number}
+     */
+    this.rtcId = rtcId;
     JitsiTrack.call(
         this,
         null /* RTC */,
@@ -49,8 +57,7 @@ function JitsiLocalTrack(
             this.dontFireRemoveEvent = false;
         } /* inactiveHandler */,
         mediaType,
-        videoType,
-        null /* ssrc */);
+        videoType);
     this.dontFireRemoveEvent = false;
     this.resolution = resolution;
 
@@ -62,8 +69,15 @@ function JitsiLocalTrack(
 
     this.deviceId = deviceId;
     this.startMuted = false;
-    this.initialMSID = this.getMSID();
+    this.storedMSID = this.getMSID();
     this.inMuteOrUnmuteProgress = false;
+
+    /**
+     * An array which stores the peer connection to which this local track is
+     * currently attached to. See {@link TraceablePeerConnection.attachTrack}.
+     * @type {Set<TraceablePeerConnection>}
+     */
+    this.peerConnections = new Set();
 
     /**
      * The facing mode of the camera from which this JitsiLocalTrack instance
@@ -143,6 +157,34 @@ function JitsiLocalTrack(
 
 JitsiLocalTrack.prototype = Object.create(JitsiTrack.prototype);
 JitsiLocalTrack.prototype.constructor = JitsiLocalTrack;
+
+JitsiLocalTrack.prototype._addPeerConnection = function(tpc) {
+    if (this._isAttachedToPC(tpc)) {
+        logger.error(`${tpc} has been associated with ${this} already !`);
+    } else {
+        this.peerConnections.add(tpc);
+    }
+};
+
+JitsiLocalTrack.prototype._removePeerConnection = function(tpc) {
+    if (this._isAttachedToPC(tpc)) {
+        this.peerConnections.delete(tpc);
+    } else {
+        logger.error(`${tpc} is not associated with ${this}`);
+    }
+};
+
+/**
+ * Checks whether or not this instance is attached to given
+ * <tt>TraceablePeerConnection</tt>. See
+ * {@link TraceablePeerConnection.attachTrack} for more info.
+ * @param {TraceablePeerConnection.attachTrack} tpc
+ * @return {boolean} <tt>true</tt> if this tracks is currently attached to given
+ * peer connection or <tt>false</tt> otherwise.
+ */
+JitsiLocalTrack.prototype._isAttachedToPC = function(tpc) {
+    return this.peerConnections.has(tpc);
+};
 
 /**
  * Returns if associated MediaStreamTrack is in the 'ended' state
@@ -238,6 +280,23 @@ JitsiLocalTrack.prototype._setRealDeviceIdFromDeviceList = function(devices) {
 };
 
 /**
+ * Sets the stream property of JitsiLocalTrack object and sets all stored
+ * handlers to it.
+ * @param {MediaStream} stream the new stream.
+ */
+JitsiLocalTrack.prototype._setStream = function(stream) {
+    JitsiTrack.prototype._setStream.call(this, stream);
+
+    // Store the MSID for video mute/unmute purposes
+    if (stream) {
+        this.storedMSID = this.getMSID();
+        logger.debug(`Setting new MSID: ${this.storedMSID} on ${this}`);
+    } else {
+        logger.debug(`Setting 'null' stream on ${this}`);
+    }
+};
+
+/**
  * Mutes the track. Will reject the Promise if there is mute/unmute operation
  * in progress.
  * @returns {Promise}
@@ -300,22 +359,30 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
     // Local track can be used out of conference, so we need to handle that
     // case and mark that track should start muted or not when added to
     // conference.
+    // Pawel: track's muted status should be taken into account when track is
+    // being added to the conference/JingleSessionPC/TraceablePeerConnection.
+    // There's no need to add such fields. It is logical that when muted track
+    // is being added to a conference it "starts muted"...
     if (!this.conference || !this.conference.room) {
         this.startMuted = mute;
     }
 
     this.dontFireRemoveEvent = false;
 
-    // FIXME FF does not support 'removeStream' method used to mute
+    // A function that will print info about muted status transition
+    const logMuteInfo = () => logger.info(`Mute ${this}: ${mute}`);
+
     if (this.isAudioTrack()
         || this.videoType === VideoType.DESKTOP
-        || RTCBrowserType.isFirefox()) {
+        || !RTCBrowserType.doesVideoMuteByStreamRemove()) {
+        logMuteInfo();
         if (this.track) {
             this.track.enabled = !mute;
         }
     } else if (mute) {
         this.dontFireRemoveEvent = true;
         promise = new Promise((resolve, reject) => {
+            logMuteInfo();
             this._removeStreamFromConferenceAsMute(() => {
                 // FIXME: Maybe here we should set the SRC for the containers
                 // to something
@@ -327,6 +394,8 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
             });
         });
     } else {
+        logMuteInfo();
+
         // This path is only for camera.
         const streamOptions = {
             cameraDeviceId: this.getDeviceId(),
@@ -352,7 +421,7 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
                     // unmute, but let's not crash here
                     if (self.videoType !== streamInfo.videoType) {
                         logger.warn(
-                            'Video type has changed after unmute!',
+                            `${this}: video type has changed after unmute!`,
                             self.videoType, streamInfo.videoType);
                         self.videoType = streamInfo.videoType;
                     }
@@ -387,18 +456,18 @@ JitsiLocalTrack.prototype._addStreamToConferenceAsUnmute = function() {
         return Promise.resolve();
     }
 
+    // FIXME it would be good to not included conference as part of this process
+    // Only TraceablePeerConnections to which the track is attached should care
+    // about this action. The TPCs to which the track is not attached can sync
+    // up when track is re-attached.
+    // A problem with that is that the "modify sources" queue is part of
+    // the JingleSessionPC and it would be excluded from the process. One
+    // solution would be to extract class between TPC and JingleSessionPC which
+    // would contain the queue and would notify the signaling layer when local
+    // SSRCs are changed. This would help to separate XMPP from the RTC module.
     return new Promise((resolve, reject) => {
-        this.conference._addLocalStream(
-            this.stream,
-            resolve,
-            error => reject(new Error(error)),
-            {
-                mtype: this.type,
-                type: 'unmute',
-                ssrcs: this.ssrc && this.ssrc.ssrcs,
-                groups: this.ssrc && this.ssrc.groups,
-                msid: this.getMSID()
-            });
+        this.conference._addLocalTrackAsUnmute(this)
+            .then(resolve, error => reject(new Error(error)));
     });
 };
 
@@ -415,17 +484,9 @@ JitsiLocalTrack.prototype._removeStreamFromConferenceAsMute
 
         return;
     }
-
-    this.conference.removeLocalStream(
-        this.stream,
+    this.conference._removeLocalTrackAsMute(this).then(
         successCallback,
-        error => errorCallback(new Error(error)),
-        {
-            mtype: this.type,
-            type: 'mute',
-            ssrcs: this.ssrc && this.ssrc.ssrcs,
-            groups: this.ssrc && this.ssrc.groups
-        });
+        error => errorCallback(new Error(error)));
 };
 
 /**
@@ -503,15 +564,6 @@ JitsiLocalTrack.prototype.isMuted = function() {
 };
 
 /**
- * Updates the SSRC associated with the MediaStream in JitsiLocalTrack object.
- * @ssrc the new ssrc
- */
-JitsiLocalTrack.prototype._setSSRC = function(ssrc) {
-    this.ssrc = ssrc;
-};
-
-
-/**
  * Sets the JitsiConference object associated with the track. This is temp
  * solution.
  * @param conference the JitsiConference object
@@ -526,24 +578,6 @@ JitsiLocalTrack.prototype._setConference = function(conference) {
     for (let i = 0; i < this.containers.length; i++) {
         this._maybeFireTrackAttached(this.containers[i]);
     }
-};
-
-/**
- * Gets the SSRC of this local track if it's available already or <tt>null</tt>
- * otherwise. That's because we don't know the SSRC until local description is
- * created.
- * In case of video and simulcast returns the the primarySSRC.
- * @returns {string} or {null}
- */
-JitsiLocalTrack.prototype.getSSRC = function() {
-    if (this.ssrc && this.ssrc.groups && this.ssrc.groups.length) {
-        return this.ssrc.groups[0].ssrcs[0];
-    } else if (this.ssrc && this.ssrc.ssrcs && this.ssrc.ssrcs.length) {
-        return this.ssrc.ssrcs[0];
-    }
-
-    return null;
-
 };
 
 /**
@@ -563,22 +597,29 @@ JitsiLocalTrack.prototype.getDeviceId = function() {
 };
 
 /**
+ * Returns the participant id which owns the track.
+ * @returns {string} the id of the participants. It corresponds to the Colibri
+ * endpoint id/MUC nickname in case of Jitsi-meet.
+ */
+JitsiLocalTrack.prototype.getParticipantId = function() {
+    return this.conference && this.conference.myUserId();
+};
+
+/**
  * Sets the value of bytes sent statistic.
- * @param bytesSent {integer} the new value (FIXME: what is an integer in js?)
+ * @param {TraceablePeerConnection} tpc the source of the "bytes sent" stat
+ * @param {number} bytesSent the new value
  * NOTE: used only for audio tracks to detect audio issues.
  */
-JitsiLocalTrack.prototype._setByteSent = function(bytesSent) {
+JitsiLocalTrack.prototype._setByteSent = function(tpc, bytesSent) {
     this._bytesSent = bytesSent;
-
-    // FIXME it's a shame that PeerConnection and ICE status does not belong
-    // to the RTC module and it has to be accessed through
-    // the conference(and through the XMPP chat room ???) instead
-    const iceConnectionState
-        = this.conference ? this.conference.getConnectionState() : null;
+    const iceConnectionState = tpc.getConnectionState();
 
     if (this._testByteSent && iceConnectionState === 'connected') {
         setTimeout(() => {
             if (this._bytesSent <= 0) {
+                logger.warn(`${this} 'bytes sent' <= 0: ${this._bytesSent}`);
+
                 // we are not receiving anything from the microphone
                 this._fireNoDataFromSourceEvent();
             }
@@ -674,6 +715,14 @@ JitsiLocalTrack.prototype._isReceivingData = function() {
     return this.stream.getTracks().some(track =>
         (!('readyState' in track) || track.readyState === 'live')
             && (!('muted' in track) || track.muted !== true));
+};
+
+/**
+ * Creates a text representation of this local track instance.
+ * @return {string}
+ */
+JitsiLocalTrack.prototype.toString = function() {
+    return `LocalTrack[${this.rtcId},${this.getType()}]`;
 };
 
 module.exports = JitsiLocalTrack;

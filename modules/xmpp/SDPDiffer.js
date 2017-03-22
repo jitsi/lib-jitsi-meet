@@ -92,8 +92,7 @@ SDPDiffer.prototype.getNewMedia = function() {
                 const mySsrcGroup = myMedia.ssrcGroups[i];
 
                 if (otherSsrcGroup.semantics === mySsrcGroup.semantics
-                    && arrayEquals(otherSsrcGroup.ssrcs,
-                                      [ mySsrcGroup.ssrcs ])) {
+                    && arrayEquals(otherSsrcGroup.ssrcs, mySsrcGroup.ssrcs)) {
 
                     matched = true;
                     break;

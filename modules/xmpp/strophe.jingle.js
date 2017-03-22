@@ -1,11 +1,13 @@
-/* global $, $iq, Strophe */
+/* global $, $iq, __filename, Strophe */
 
 import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 
 import JingleSessionPC from './JingleSessionPC';
+import * as JingleSessionState from './JingleSessionState';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import RandomUtil from '../util/RandomUtil';
 import Statistics from '../statistics/statistics';
 import ConnectionPlugin from './ConnectionPlugin';
 
@@ -18,16 +20,24 @@ import ConnectionPlugin from './ConnectionPlugin';
  */
 class JingleConnectionPlugin extends ConnectionPlugin {
     /**
-     *
-     * @param xmpp
-     * @param eventEmitter
+     * Creates new <tt>JingleConnectionPlugin</tt>
+     * @param {XMPP} xmpp
+     * @param {EventEmitter} eventEmitter
+     * @param {Array<Object>} p2pStunServers an array which is part of the ice
+     * config passed to the <tt>PeerConnection</tt> with the structure defined
+     * by the WebRTC standard.
      */
-    constructor(xmpp, eventEmitter) {
+    constructor(xmpp, eventEmitter, p2pStunServers) {
         super();
         this.xmpp = xmpp;
         this.eventEmitter = eventEmitter;
         this.sessions = {};
-        this.iceConfig = { iceServers: [] };
+        this.jvbIceConfig = { iceServers: [ ] };
+        this.p2pIceConfig = { iceServers: [ ] };
+        if (Array.isArray(p2pStunServers)) {
+            logger.info('Configured STUN servers: ', p2pStunServers);
+            this.p2pIceConfig.iceServers = p2pStunServers;
+        }
         this.mediaConstraints = {
             mandatory: {
                 'OfferToReceiveAudio': true,
@@ -128,15 +138,27 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                 const videoMuted = startMuted.attr('video');
 
                 this.eventEmitter.emit(XMPPEvents.START_MUTED_FROM_FOCUS,
-                            audioMuted === 'true', videoMuted === 'true');
+                        audioMuted === 'true', videoMuted === 'true');
             }
+
+            // FIXME that should work most of the time, but we'd have to
+            // think how secure it is to assume that user with "focus"
+            // nickname is Jicofo.
+            const isP2P = Strophe.getResourceFromJid(fromJid) !== 'focus';
+
+            logger.info(
+                `Marking session from ${fromJid
+                } as ${isP2P ? '' : '*not*'} P2P`);
             sess = new JingleSessionPC(
                         $(iq).find('jingle').attr('sid'),
                         $(iq).attr('to'),
                         fromJid,
                         this.connection,
                         this.mediaConstraints,
-                        this.iceConfig, this.xmpp.options);
+                        isP2P ? this.p2pIceConfig : this.jvbIceConfig,
+                        isP2P /* P2P */,
+                        false /* initiator */,
+                        this.xmpp.options);
 
             this.sessions[sess.sid] = sess;
 
@@ -144,6 +166,16 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     sess, $(iq).find('>jingle'), now);
             Statistics.analytics.sendEvent(
                     'xmpp.session-initiate', { value: now });
+            break;
+        }
+        case 'session-accept': {
+            this.eventEmitter.emit(
+                XMPPEvents.CALL_ACCEPTED, sess, $(iq).find('>jingle'));
+            break;
+        }
+        case 'transport-info': {
+            this.eventEmitter.emit(
+                XMPPEvents.TRANSPORT_INFO, sess, $(iq).find('>jingle'));
             break;
         }
         case 'session-terminate': {
@@ -156,9 +188,10 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     = $(iq).find('>jingle>reason>:first')[0].tagName;
                 reasonText = $(iq).find('>jingle>reason>text').text();
             }
+            sess.state = JingleSessionState.ENDED;
             this.terminate(sess.sid, reasonCondition, reasonText);
             this.eventEmitter.emit(XMPPEvents.CALL_ENDED,
-                    sess, reasonCondition, reasonText);
+                sess, reasonCondition, reasonText);
             break;
         }
         case 'transport-replace':
@@ -200,6 +233,31 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         this.connection.send(ack);
 
         return true;
+    }
+
+    /**
+     * Creates new <tt>JingleSessionPC</tt> meant to be used in a direct P2P
+     * connection, configured as 'initiator'.
+     * @param {string} me our JID
+     * @param {string} peer remote participant's JID
+     * @return {JingleSessionPC}
+     */
+    newP2PJingleSession(me, peer) {
+        const sess
+            = new JingleSessionPC(
+                    RandomUtil.randomHexString(12),
+                    me,
+                    peer,
+                    this.connection,
+                    this.mediaConstraints,
+                    this.p2pIceConfig,
+                    true /* P2P */,
+                    true /* initiator */,
+                    this.xmpp.options);
+
+        this.sessions[sess.sid] = sess;
+
+        return sess;
     }
 
     /**
@@ -296,7 +354,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     }
                     }
                 });
-                this.iceConfig.iceServers = iceservers;
+                this.jvbIceConfig.iceServers = iceservers;
             }, err => {
                 logger.warn('getting turn credentials failed', err);
                 logger.warn('is mod_turncredentials or similar installed?');
@@ -331,8 +389,8 @@ class JingleConnectionPlugin extends ConnectionPlugin {
 
 /* eslint-enable newline-per-chained-call */
 
-module.exports = function(XMPP, eventEmitter) {
+module.exports = function(XMPP, eventEmitter, p2pStunServers) {
     Strophe.addConnectionPlugin(
         'jingle',
-        new JingleConnectionPlugin(XMPP, eventEmitter));
+        new JingleConnectionPlugin(XMPP, eventEmitter, p2pStunServers));
 };

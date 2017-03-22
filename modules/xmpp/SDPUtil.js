@@ -547,6 +547,20 @@ const SDPUtil = {
     },
 
     /**
+     * Extracts the ICE username fragment from an SDP string.
+     * @param {string} sdp the SDP in raw text format
+     */
+    getUfrag(sdp) {
+        const ufragLines
+            = sdp.split('\n').filter(
+                    line => line.startsWith('a=ice-ufrag:'));
+
+        if (ufragLines.length > 0) {
+            return ufragLines[0].substr('a=ice-ufrag:'.length);
+        }
+    },
+
+    /**
      * Sets the given codecName as the preferred codec by
      *  moving it to the beginning of the payload types
      *  list (modifies the given mline in place).  If there

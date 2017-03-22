@@ -5,6 +5,7 @@ import ConnectionQuality from './modules/connectivity/ConnectionQuality';
 import { getLogger } from 'jitsi-meet-logger';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import EventEmitter from 'events';
+import * as JingleSessionState from './modules/xmpp/JingleSessionState';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
@@ -17,12 +18,13 @@ import * as MediaType from './service/RTC/MediaType';
 import ParticipantConnectionStatus
     from './modules/connectivity/ParticipantConnectionStatus';
 import RTC from './modules/RTC/RTC';
-import RTCBrowserType from './modules/RTC/RTCBrowserType.js';
+import RTCBrowserType from './modules/RTC/RTCBrowserType';
 import * as RTCEvents from './service/RTC/RTCEvents';
 import Statistics from './modules/statistics/statistics';
 import TalkMutedDetection from './modules/TalkMutedDetection';
 import Transcriber from './modules/transcription/transcriber';
 import VideoType from './service/RTC/VideoType';
+import * as XMPPEvents from './service/xmpp/XMPPEvents';
 
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 
@@ -38,7 +40,22 @@ const logger = getLogger(__filename);
  * @param options.name the name of the conference
  * @param options.connection the JitsiConnection object for this
  * JitsiConference.
+ * @param {boolean} [options.config.enableP2P] when set to <tt>true</tt>
+ * the peer to peer mode will be enabled. It means that when there are only 2
+ * participants in the conference an attempt to make direct connection will be
+ * made. If the connection succeeds the conference will stop sending data
+ * through the JVB connection and will use the direct one instead.
+ * @param {number} [options.config.backToP2PDelay=5] a delay given in seconds,
+ * before the conference switches back to P2P, after the 3rd participant has
+ * left the room.
  * @constructor
+ *
+ * FIXME Make all methods which are called from lib-internal classes
+ *       to non-public (use _). To name a few:
+ *       {@link JitsiConference.onLocalRoleChanged}
+ *       {@link JitsiConference.onUserRoleChanged}
+ *       {@link JitsiConference.onMemberLeft}
+ *       and so on...
  */
 function JitsiConference(options) {
     if (!options.name || options.name.toLowerCase() !== options.name) {
@@ -57,10 +74,10 @@ function JitsiConference(options) {
     this.participants = {};
 
     /**
-     * Jingle Session instance
+     * Jingle session instance for the JVB connection.
      * @type {JingleSessionPC}
      */
-    this.jingleSession = null;
+    this.jvbJingleSession = null;
     this.lastDominantSpeaker = null;
     this.dtmfManager = null;
     this.somebodySupportsDTMF = false;
@@ -94,18 +111,63 @@ function JitsiConference(options) {
     /**
      * Indicates whether the connection is interrupted or not.
      */
-    this.connectionIsInterrupted = false;
+    this.isJvbConnectionInterrupted = false;
 
     /**
      * The object which tracks active speaker times
      */
     this.speakerStatsCollector = new SpeakerStatsCollector(this);
+
+    /* P2P related fields below: */
+
+    /**
+     * Stores reference to deferred start P2P task. It's created when 3rd
+     * participant leaves the room in order to avoid ping pong effect (it
+     * could be just a page reload).
+     * @type {number|null}
+     */
+    this.deferredStartP2PTask = null;
+
+    const delay = parseInt(options.config.backToP2PDelay, 10);
+
+    /**
+     * A delay given in seconds, before the conference switches back to P2P
+     * after the 3rd participant has left.
+     * @type {number}
+     */
+    this.backToP2PDelay = isNaN(delay) ? 5 : delay;
+    logger.info(`backToP2PDelay: ${this.backToP2PDelay}`);
+
+    /**
+     * If set to <tt>true</tt> it means the P2P ICE is no longer connected.
+     * When <tt>false</tt> it means that P2P ICE (media) connection is up
+     * and running.
+     * @type {boolean}
+     */
+    this.isP2PConnectionInterrupted = false;
+
+    /**
+     * Flag set to <tt>true</tt> when P2P session has been established
+     * (ICE has been connected) and this conference is currently in the peer to
+     * peer mode (P2P connection is the active one).
+     * @type {boolean}
+     */
+    this.p2p = false;
+
+    /**
+     * A JingleSession for the direct peer to peer connection.
+     * @type {JingleSessionPC}
+     */
+    this.p2pJingleSession = null;
 }
+
+// FIXME convert JitsiConference to ES6 - ASAP !
+JitsiConference.prototype.constructor = JitsiConference;
 
 /**
  * Initializes the conference object properties
  * @param options {object}
- * @param connection {JitsiConnection} overrides this.connection
+ * @param options.connection {JitsiConnection} overrides this.connection
  */
 JitsiConference.prototype._init = function(options = {}) {
     // Override connection and xmpp properties (Usefull if the connection
@@ -119,6 +181,21 @@ JitsiConference.prototype._init = function(options = {}) {
     }
 
     this.room = this.xmpp.createRoom(this.options.name, this.options.config);
+
+    // Connection interrupted/restored listeners
+    this._onIceConnectionInterrupted
+        = this._onIceConnectionInterrupted.bind(this);
+    this.room.addListener(
+        XMPPEvents.CONNECTION_INTERRUPTED, this._onIceConnectionInterrupted);
+
+    this._onIceConnectionRestored = this._onIceConnectionRestored.bind(this);
+    this.room.addListener(
+        XMPPEvents.CONNECTION_RESTORED, this._onIceConnectionRestored);
+
+    this._onIceConnectionEstablished
+        = this._onIceConnectionEstablished.bind(this);
+    this.room.addListener(
+        XMPPEvents.CONNECTION_ESTABLISHED, this._onIceConnectionEstablished);
 
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
 
@@ -199,6 +276,17 @@ JitsiConference.prototype.leave = function() {
     if (this.room) {
         const room = this.room;
 
+        // Unregister connection state listeners
+        room.removeListener(
+            XMPPEvents.CONNECTION_INTERRUPTED,
+            this._onIceConnectionInterrupted);
+        room.removeListener(
+            XMPPEvents.CONNECTION_RESTORED,
+            this._onIceConnectionRestored);
+        room.removeListener(
+            XMPPEvents.CONNECTION_ESTABLISHED,
+            this._onIceConnectionEstablished);
+
         this.room = null;
 
         return room.leave().catch(() => {
@@ -209,9 +297,9 @@ JitsiConference.prototype.leave = function() {
                 participant => this.onMemberLeft(participant.getJid()));
 
             // Close the JingleSession
-            if (this.jingleSession) {
-                this.jingleSession.close();
-                this.jingleSession = null;
+            if (this.jvbJingleSession) {
+                this.jvbJingleSession.close();
+                this.jvbJingleSession = null;
             }
         });
     }
@@ -516,15 +604,12 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
  * @param track the JitsiLocalTrack object.
  */
 JitsiConference.prototype.onLocalTrackRemoved = function(track) {
-    track._setSSRC(null);
     track._setConference(null);
     this.rtc.removeLocalTrack(track);
     track.removeEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED,
         track.muteHandler);
     track.removeEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
         track.audioLevelHandler);
-    this.rtc.removeListener(RTCEvents.SENDRECV_STREAMS_CHANGED,
-        track.ssrcHandler);
 
     // send event for stopping screen sharing
     // FIXME: we assume we have only one screen sharing track
@@ -568,21 +653,6 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
             return Promise.reject(
                 new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
         }
-
-        // Set up the ssrcHandler for the new track before we add it at the
-        // lower levels
-        newTrack.ssrcHandler = function(conference, ssrcMap) {
-            const trackSSRCInfo = ssrcMap.get(this.getMSID());
-
-            if (trackSSRCInfo) {
-                this._setSSRC(trackSSRCInfo);
-                conference.rtc.removeListener(
-                    RTCEvents.SENDRECV_STREAMS_CHANGED,
-                    this.ssrcHandler);
-            }
-        }.bind(newTrack, this);
-        this.rtc.addListener(RTCEvents.SENDRECV_STREAMS_CHANGED,
-            newTrack.ssrcHandler);
     }
 
     // Now replace the stream at the lower levels
@@ -609,16 +679,28 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
  * the process or <tt>null</t> if the method should act as "add track"
  * @param {JitsiLocalTrack|null} newTrack the new track to be added or
  * <tt>null</tt> if the method should act as "remove track"
- * @return {Promise}
+ * @return {Promise} resolved when the process is done or rejected with a string
+ * which describes the error.
  * @private
  */
 JitsiConference.prototype._doReplaceTrack = function(oldTrack, newTrack) {
-    if (this.jingleSession) {
-        return this.jingleSession.replaceTrack(oldTrack, newTrack);
+    const replaceTrackPromises = [];
+
+    if (this.jvbJingleSession) {
+        replaceTrackPromises.push(
+            this.jvbJingleSession.replaceTrack(oldTrack, newTrack));
+    } else {
+        logger.info('_doReplaceTrack - no JVB JingleSession');
     }
 
-    return Promise.resolve();
+    if (this.p2pJingleSession) {
+        replaceTrackPromises.push(
+            this.p2pJingleSession.replaceTrack(oldTrack, newTrack));
+    } else {
+        logger.info('_doReplaceTrack - no P2P JingleSession');
+    }
 
+    return Promise.all(replaceTrackPromises);
 };
 
 /**
@@ -682,83 +764,63 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
 };
 
-/* eslint-disable max-params */
-
 /**
- * Adds loca WebRTC stream to the conference.
- * @param {MediaStream} stream new stream that will be added.
- * @param {function} callback callback executed after successful stream
- * addition.
- * @param {function(error)} errorCallback callback executed if stream addition
- * fail.
- * @param {object} ssrcInfo object with information about the SSRCs associated
- * with the stream.
- * @param {boolean} [dontModifySources] if <tt>true</tt> _modifySources won't be
- * called. The option is used for adding stream, before the Jingle call is
- * started. That is before the 'session-accept' is sent.
+ * Method called by the {@link JitsiLocalTrack} (a video one) in order to add
+ * back the underlying WebRTC MediaStream to the PeerConnection (which has
+ * removed on video mute).
+ * @param {JitsiLocalTrack} track the local track that will be added as part of
+ * the unmute operation.
+ * @return {Promise} resolved when the process is done or rejected with a string
+ * which describes the error.
  */
-JitsiConference.prototype._addLocalStream = function(
-        stream,
-        callback,
-        errorCallback,
-        ssrcInfo,
-        dontModifySources) {
-    if (this.jingleSession) {
-        this.jingleSession.addStream(
-            stream,
-            callback,
-            errorCallback,
-            ssrcInfo,
-            dontModifySources);
+JitsiConference.prototype._addLocalTrackAsUnmute = function(track) {
+    const addAsUnmutePromises = [];
+
+    if (this.jvbJingleSession) {
+        addAsUnmutePromises.push(this.jvbJingleSession.addTrackAsUnmute(track));
     } else {
-        // We are done immediately
-        logger.warn('Add local MediaStream - no JingleSession started yet');
-        callback();
+        logger.info(
+            'Add local MediaStream as unmute -'
+                + ' no JVB Jingle session started yet');
     }
+
+    if (this.p2pJingleSession) {
+        addAsUnmutePromises.push(this.p2pJingleSession.addTrackAsUnmute(track));
+    } else {
+        logger.info(
+            'Add local MediaStream as unmute -'
+                + ' no P2P Jingle session started yet');
+    }
+
+    return Promise.all(addAsUnmutePromises);
 };
 
 /**
- * Remove local WebRTC media stream.
- * @param {MediaStream} stream the stream that will be removed.
- * @param {function} callback callback executed after successful stream removal.
- * @param {function} errorCallback callback executed if stream removal fail.
- * @param {object} ssrcInfo object with information about the SSRCs associated
- * with the stream.
+ * Method called by the {@link JitsiLocalTrack} (a video one) in order to remove
+ * the underlying WebRTC MediaStream from the PeerConnection. The purpose of
+ * that is to stop sending any data and turn off the HW camera device.
+ * @param {JitsiLocalTrack} track the local track that will be removed.
+ * @return {Promise}
  */
-JitsiConference.prototype.removeLocalStream = function(
-        stream,
-        callback,
-        errorCallback,
-        ssrcInfo) {
-    if (this.jingleSession) {
-        this.jingleSession.removeStream(
-            stream,
-            callback,
-            errorCallback,
-            ssrcInfo);
+JitsiConference.prototype._removeLocalTrackAsMute = function(track) {
+    const removeAsMutePromises = [];
+
+    if (this.jvbJingleSession) {
+        removeAsMutePromises.push(
+            this.jvbJingleSession.removeTrackAsMute(track));
     } else {
-        // We are done immediately
-        logger.warn('Remove local MediaStream - no JingleSession started yet');
-        callback();
+        logger.info(
+            'Remove local MediaStream - no JVB JingleSession started yet');
     }
-};
-
-/* eslint-enable max-params */
-
-/**
- * Generate ssrc info object for a stream with the following properties:
- * - ssrcs - Array of the ssrcs associated with the stream.
- * - groups - Array of the groups associated with the stream.
- */
-JitsiConference.prototype._generateNewStreamSSRCInfo = function() {
-    if (!this.jingleSession) {
-        logger.warn('The call haven\'t been started. '
-            + 'Cannot generate ssrc info at the moment!');
-
-        return null;
+    if (this.p2pJingleSession) {
+        removeAsMutePromises.push(
+            this.p2pJingleSession.removeTrackAsMute(track));
+    } else {
+        logger.info(
+            'Remove local MediaStream - no P2P JingleSession started yet');
     }
 
-    return this.jingleSession.generateNewStreamSSRCInfo();
+    return Promise.all(removeAsMutePromises);
 };
 
 /**
@@ -955,7 +1017,9 @@ JitsiConference.prototype.onMemberJoined = function(jid, nick, role, isHidden) {
             participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
             this.updateDTMFSupport();
         },
-        error => logger.error(error));
+        error => logger.error(`Failed to discover features of ${jid}`, error));
+
+    this._maybeStartOrStopP2P();
 };
 
 /* eslint-enable max-params */
@@ -981,6 +1045,21 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
         this.eventEmitter.emit(
             JitsiConferenceEvents.USER_LEFT, id, participant);
     }
+
+    this._maybeStartOrStopP2P(true /* triggered by user left event */);
+};
+
+/**
+ * Method called on local MUC role change.
+ * @param {string} role the name of new user's role as defined by XMPP MUC.
+ */
+JitsiConference.prototype.onLocalRoleChanged = function(role) {
+    // Emit role changed for local  JID
+    this.eventEmitter.emit(
+        JitsiConferenceEvents.USER_ROLE_CHANGED, this.myUserId(), role);
+
+    // Maybe start P2P
+    this._maybeStartOrStopP2P();
 };
 
 JitsiConference.prototype.onUserRoleChanged = function(jid, role) {
@@ -1021,6 +1100,18 @@ JitsiConference.prototype.onDisplayNameChanged = function(jid, displayName) {
  * JitsiConference
  */
 JitsiConference.prototype.onRemoteTrackAdded = function(track) {
+    if (track.isP2P && !this.isP2PActive()) {
+        logger.info(
+            'Trying to add remote P2P track, when not in P2P - IGNORED');
+
+        return;
+    } else if (!track.isP2P && this.isP2PActive()) {
+        logger.info(
+            'Trying to add remote JVB track, when in P2P - IGNORED');
+
+        return;
+    }
+
     const id = track.getParticipantId();
     const participant = this.getParticipantById(id);
 
@@ -1056,6 +1147,35 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
 };
 
 /**
+ * Callback called by the Jingle plugin when 'session-answer' is received.
+ * @param {JingleSessionPC} session the Jingle session for which an answer was
+ * received.
+ * @param {jQuery} answer a jQuery selector pointing to 'jingle' IQ element
+ */
+// eslint-disable-next-line no-unused-vars
+JitsiConference.prototype.onCallAccepted = function(session, answer) {
+    if (this.p2pJingleSession === session) {
+        logger.info('P2P setAnswer');
+        this.p2pJingleSession.setAnswer(answer);
+    }
+};
+
+/**
+ * Callback called by the Jingle plugin when 'transport-info' is received.
+ * @param {JingleSessionPC} session the Jingle session for which the IQ was
+ * received
+ * @param {jQuery} transportInfo a jQuery selector pointing to 'jingle' IQ
+ * element
+ */
+// eslint-disable-next-line no-unused-vars
+JitsiConference.prototype.onTransportInfo = function(session, transportInfo) {
+    if (this.p2pJingleSession === session) {
+        logger.info('P2P addIceCandidates');
+        this.p2pJingleSession.addIceCandidates(transportInfo);
+    }
+};
+
+/**
  * Notifies this JitsiConference that a JitsiRemoteTrack was removed from
  * the conference.
  *
@@ -1064,7 +1184,7 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
 JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
     let consumed = false;
 
-    this.getParticipants().forEach(function(participant) {
+    this.getParticipants().forEach(participant => {
         const tracks = participant.getTracks();
 
         for (let i = 0; i < tracks.length; i++) {
@@ -1088,6 +1208,15 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
     }, this);
 
     if (!consumed) {
+        if ((this.isP2PActive() && !removedTrack.isP2P)
+             || (!this.isP2PActive() && removedTrack.isP2P)) {
+            // A remote track can be removed either as a result of
+            // 'source-remove' or the P2P logic which removes remote tracks
+            // explicitly when switching between JVB and P2P connections.
+            // The check above filters out the P2P logic case which should not
+            // result in an error (which just goes over all remote tracks).
+            return;
+        }
         logger.error(
             'Failed to match remote track on remove'
                 + ' with any of the participants',
@@ -1101,30 +1230,43 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
  */
 JitsiConference.prototype.onIncomingCall
 = function(jingleSession, jingleOffer, now) {
-    if (!this.room.isFocus(jingleSession.peerjid)) {
-        // Error cause this should never happen unless something is wrong!
-        const errmsg = `Rejecting session-initiate from non-focus user: ${
-                 jingleSession.peerjid}`;
+    // Handle incoming P2P call
+    if (jingleSession.isP2P) {
+        const role = this.room.getMemberRole(jingleSession.peerjid);
 
-        GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
-        logger.error(errmsg);
+        if (role !== 'moderator') {
+            // Reject incoming P2P call
+            this._rejectIncomingCallNonModerator(jingleSession);
+        } else if (!RTCBrowserType.isP2PSupported()) {
+            // Reject incoming P2P call (already in progress)
+            this._rejectIncomingCall(
+                jingleSession, {
+                    reasonTag: 'unsupported-applications',
+                    reasonMsg: 'P2P not supported',
+                    errorMsg: 'This client does not support P2P connections'
+                });
+        } else if (this.p2pJingleSession) {
+            // Reject incoming P2P call (already in progress)
+            this._rejectIncomingCall(
+                jingleSession, {
+                    reasonTag: 'busy',
+                    reasonMsg: 'P2P already in progress',
+                    errorMsg: 'Duplicated P2P "session-initiate"'
+                });
+        } else {
+            // Accept incoming P2P call
+            this._acceptP2PIncomingCall(jingleSession, jingleOffer);
+        }
 
-        // Terminate  the jingle session with a reason
-        jingleSession.terminate(
-            'security-error', 'Only focus can start new sessions',
-            null /* success callback => we don't care */,
-            error => {
-                logger.warn(
-                    'An error occurred while trying to terminate invalid Jingle'
-                        + ' session',
-                    error);
-            });
+        return;
+    } else if (!this.room.isFocus(jingleSession.peerjid)) {
+        this._rejectIncomingCall(jingleSession);
 
         return;
     }
 
     // Accept incoming call
-    this.jingleSession = jingleSession;
+    this.jvbJingleSession = jingleSession;
     this.room.connectionTimes['session.initiate'] = now;
 
     // Log "session.restart"
@@ -1151,139 +1293,142 @@ JitsiConference.prototype.onIncomingCall
 
     this.rtc.initializeDataChannels(jingleSession.peerconnection);
 
-    // Add local Tracks to the ChatRoom
-    this.getLocalTracks().forEach(localTrack => {
-        let ssrcInfo = null;
+    // Add local tracks to the session
+    try {
+        jingleSession.addLocalTracks(this.getLocalTracks()).then(() => {
+            jingleSession.acceptOffer(jingleOffer, null,
+                error => {
+                    GlobalOnErrorHandler.callErrorHandler(error);
+                    logger.error(
+                        'Failed to accept incoming Jingle session', error);
+                }
+            );
 
-        /**
-         * We don't do this for Firefox because, on Firefox, we keep the
-         *  stream in the peer connection and just set 'enabled' on the
-         *  track to false (see JitsiLocalTrack::_setMute).  This means
-         *  that if we generated an ssrc here and set it in the cache, it
-         *  would clash with the one firefox generates (since, unlike chrome,
-         *  the stream is still attached to the peer connection) and causes
-         *  problems between sdp-interop and trying to keep the ssrcs
-         *  consistent
-         */
+            // Start callstats as soon as peerconnection is initialized,
+            // do not wait for XMPPEvents.PEERCONNECTION_READY, as it may never
+            // happen in case if user doesn't have or denied permission to
+            // both camera and microphone.
+            this.statistics.startCallStats(jingleSession);
+            this._startRemoteStats();
+        });
+    } catch (e) {
+        GlobalOnErrorHandler.callErrorHandler(e);
+        logger.error(e);
+    }
+};
 
-        if (localTrack.isVideoTrack()
-                && localTrack.isMuted()
-                && !RTCBrowserType.isFirefox()) {
-            /**
-             * Handles issues when the stream is added before the peerconnection
-             * is created. The peerconnection is created when second participant
-             * enters the call. In that use case the track doesn't have
-             * information about it's ssrcs and no jingle packets are sent. That
-             * can cause inconsistent behavior later.
-             *
-             * For example:
-             * If we mute the stream and than second participant enter it's
-             * remote SDP won't include that track. On unmute we are not sending
-             * any jingle packets which will brake the unmute.
-             *
-             * In order to solve issues like the above one here we have to
-             * generate the ssrc information for the track .
-             */
-            localTrack._setSSRC(this._generateNewStreamSSRCInfo());
-            ssrcInfo = {
-                mtype: localTrack.getType(),
-                type: 'addMuted',
-                ssrcs: localTrack.ssrc.ssrcs,
-                groups: localTrack.ssrc.groups,
-                msid: localTrack.initialMSID
-            };
-        }
-        try {
-            this._addLocalStream(
-                localTrack.getOriginalStream(),
-                () => {
-                    // There is nothing to be done after the stream is added.
-                },
-                () => {
-                    // TODO: Maybe report the error to the user?
-                },
-                ssrcInfo,
-                true /* don't modify SSRCs */);
-        } catch (e) {
-            GlobalOnErrorHandler.callErrorHandler(e);
-            logger.error(e);
-        }
-    });
+/**
+ * Rejects incoming Jingle call with 'security-error'. Method should be used to
+ * reject calls initiated by unauthorised entities.
+ * @param {JingleSessionPC} jingleSession the session instance to be rejected.
+ * @private
+ */
+JitsiConference.prototype._rejectIncomingCallNonModerator
+= function(jingleSession) {
+    this._rejectIncomingCall(
+        jingleSession,
+        {
+            reasonTag: 'security-error',
+            reasonMsg: 'Only focus can start new sessions',
+            errorMsg: 'Rejecting session-initiate from non-focus and'
+                        + `non-moderator user: ${jingleSession.peerjid}`
+        });
+};
 
-    // Generate the 'recvonly' SSRC in case there are no video tracks
-    if (!this.getLocalTracks(MediaType.VIDEO).length) {
-        jingleSession.generateRecvonlySsrc();
+/**
+ * Rejects incoming Jingle call.
+ * @param {JingleSessionPC} jingleSession the session instance to be rejected.
+ * @param {object} [options]
+ * @param {string} options.reasonTag the name of the reason element as defined
+ * by Jingle
+ * @param {string} options.reasonMsg the reason description which will
+ * be included in Jingle 'session-terminate' message.
+ * @param {string} options.errorMsg an error message to be logged on global
+ * error handler
+ * @private
+ */
+JitsiConference.prototype._rejectIncomingCall
+= function(jingleSession, options) {
+    if (options && options.errorMsg) {
+        GlobalOnErrorHandler.callErrorHandler(new Error(options.errorMsg));
     }
 
-    jingleSession.acceptOffer(jingleOffer, null,
+    // Terminate  the jingle session with a reason
+    jingleSession.terminate(
+        options && options.reasonTag,
+        options && options.reasonMsg,
+        null /* success callback => we don't care */,
         error => {
-            GlobalOnErrorHandler.callErrorHandler(error);
-            logger.error(
-                'Failed to accept incoming Jingle session', error);
-        }
-    );
+            logger.warn(
+                'An error occurred while trying to terminate'
+                    + ' invalid Jingle session', error);
+        });
+};
 
-    // Start callstats as soon as peerconnection is initialized,
-    // do not wait for XMPPEvents.PEERCONNECTION_READY, as it may never
-    // happen in case if user doesn't have or denied permission to
-    // both camera and microphone.
-    this.statistics.startCallStats(jingleSession);
-    this.statistics.startRemoteStats(jingleSession.peerconnection);
+/**
+ * Method called to start remote stats for the current peer connection (if
+ * available).
+ * @private
+ */
+JitsiConference.prototype._startRemoteStats = function() {
+    const activePeerConnection = this.getActivePeerConnection();
+
+    if (activePeerConnection) {
+        this.statistics.startRemoteStats(activePeerConnection);
+    }
 };
 
 /**
  * Handles the call ended event.
- * @param {JingleSessionPC} JingleSession the jingle session which has been
+ * @param {JingleSessionPC} jingleSession the jingle session which has been
  * terminated.
  * @param {String} reasonCondition the Jingle reason condition.
  * @param {String|null} reasonText human readable reason text which may provide
  * more details about why the call has been terminated.
  */
 JitsiConference.prototype.onCallEnded
-= function(JingleSession, reasonCondition, reasonText) {
-    logger.info(`Call ended: ${reasonCondition} - ${reasonText}`);
-    this.wasStopped = true;
+= function(jingleSession, reasonCondition, reasonText) {
+    logger.info(
+        `Call ended: ${reasonCondition} - ${reasonText
+            } P2P ?${jingleSession.isP2P}`);
+    if (jingleSession === this.jvbJingleSession) {
+        this.wasStopped = true;
 
-    // Send session.terminate event
-    Statistics.sendEventToAll('session.terminate');
+        // Send session.terminate event
+        Statistics.sendEventToAll('session.terminate');
 
-    // Stop the stats
-    if (this.statistics) {
-        this.statistics.stopRemoteStats();
-        this.statistics.stopCallStats();
+        // Stop the stats
+        if (this.statistics) {
+            this.statistics.stopRemoteStats();
+            this.statistics.stopCallStats();
+        }
+
+        // Current JVB JingleSession is no longer valid, so set it to null
+        this.jvbJingleSession = null;
+
+        // Let the RTC service do any cleanups
+        this.rtc.onCallEnded();
+    } else if (jingleSession === this.p2pJingleSession) {
+        this._stopP2PSession();
+    } else {
+        logger.error(
+            'Received onCallEnded for invalid session',
+            jingleSession.sid,
+            jingleSession.peerjid,
+            reasonCondition,
+            reasonText);
     }
-
-    // Current JingleSession is invalid so set it to null on the room
-    this.jingleSession = null;
-
-    // Let the RTC service do any cleanups
-    this.rtc.onCallEnded();
-
-    // PeerConnection has been closed which means that SSRCs stored in
-    // JitsiLocalTrack will not match those assigned by the old PeerConnection
-    // and SSRC replacement logic will not work as expected.
-    // We want to re-register 'ssrcHandler' of our local tracks, so that they
-    // will learn what their SSRC from the new PeerConnection which will be
-    // created on incoming call event.
-    const self = this;
-
-    this.getLocalTracks().forEach(localTrack => {
-        // Reset SSRC as it will no longer be valid
-        localTrack._setSSRC(null);
-
-        // Bind the handler to fetch new SSRC, it will un register itself once
-        // it reads the values
-        self.rtc.addListener(
-            RTCEvents.SENDRECV_STREAMS_CHANGED, localTrack.ssrcHandler);
-    });
 };
 
 /**
  * Handles the suspend detected event. Leaves the room and fires suspended.
+ * @param {JingleSessionPC} jingleSession
  */
-JitsiConference.prototype.onSuspendDetected = function() {
-    this.leave();
-    this.eventEmitter.emit(JitsiConferenceEvents.SUSPEND_DETECTED);
+JitsiConference.prototype.onSuspendDetected = function(jingleSession) {
+    if (!jingleSession.isP2P) {
+        this.leave();
+        this.eventEmitter.emit(JitsiConferenceEvents.SUSPEND_DETECTED);
+    }
 };
 
 JitsiConference.prototype.updateDTMFSupport = function() {
@@ -1327,15 +1472,8 @@ JitsiConference.prototype.myUserId = function() {
 };
 
 JitsiConference.prototype.sendTones = function(tones, duration, pause) {
-    // FIXME P2P 'dtmfManager' must be cleared, after switching jingleSessions
     if (!this.dtmfManager) {
-        if (!this.jingleSession) {
-            logger.warn('cannot sendTones: no jingle session');
-
-            return;
-        }
-
-        const peerConnection = this.jingleSession.peerconnection;
+        const peerConnection = this.getActivePeerConnection();
 
         if (!peerConnection) {
             logger.warn('cannot sendTones: no peer connection');
@@ -1458,15 +1596,33 @@ JitsiConference.prototype.getPhonePin = function() {
 };
 
 /**
- * Returns the connection state for the current room. Its ice connection state
- * for its session.
+ * Will return P2P or JVB <tt>TraceablePeerConnection</tt> depending on
+ * which connection is currently active.
+ *
+ * @return {TraceablePeerConnection|null} null if there isn't any active
+ * <tt>TraceablePeerConnection</tt> currently available.
+ * @protected
  */
-JitsiConference.prototype.getConnectionState = function() {
-    if (this.jingleSession) {
-        return this.jingleSession.getIceConnectionState();
+JitsiConference.prototype.getActivePeerConnection = function() {
+    if (this.isP2PActive()) {
+        return this.p2pJingleSession.peerconnection;
     }
 
-    return null;
+    return this.jvbJingleSession ? this.jvbJingleSession.peerconnection : null;
+};
+
+/**
+ * Returns the connection state for the current room. Its ice connection state
+ * for its session.
+ * NOTE that "completed" ICE state which can appear on the P2P connection will
+ * be converted to "connected".
+ * @return {string|null} ICE state name or <tt>null</tt> if there is no active
+ * peer connection at this time.
+ */
+JitsiConference.prototype.getConnectionState = function() {
+    const peerConnection = this.getActivePeerConnection();
+
+    return peerConnection ? peerConnection.getConnectionState() : null;
 };
 
 /**
@@ -1577,17 +1733,31 @@ JitsiConference.prototype.isCallstatsEnabled = function() {
 /**
  * Handles track attached to container (Calls associateStreamWithVideoTag method
  * from statistics module)
- * @param track the track
+ * @param {JitsiLocalTrack|JitsiRemoteTrack} track the track
  * @param container the container
  */
 JitsiConference.prototype._onTrackAttach = function(track, container) {
-    const ssrc = track.getSSRC();
+    const isLocal = track.isLocal();
+    let ssrc = null;
 
+    if (isLocal) {
+        // FIXME currently we do CallStats only for JVB, but the same logic will
+        // need to happen for the P2P as well once the support is added.
+        // Local tracks have SSRC stored on per peer connection basis
+        const peerConnection
+            = this.jvbJingleSession && this.jvbJingleSession.peerconnection;
+
+        if (peerConnection) {
+            ssrc = peerConnection.getLocalSSRC(track);
+        }
+    } else {
+        ssrc = track.getSSRC();
+    }
     if (!container.id || !ssrc) {
         return;
     }
     this.statistics.associateStreamWithVideoTag(
-        ssrc, track.isLocal(), track.getUsageLabel(), container.id);
+        ssrc, isLocal, track.getUsageLabel(), container.id);
 };
 
 /**
@@ -1642,7 +1812,523 @@ JitsiConference.prototype.broadcastEndpointMessage = function(payload) {
 };
 
 JitsiConference.prototype.isConnectionInterrupted = function() {
-    return this.connectionIsInterrupted;
+    return this.isP2PActive()
+        ? this.isP2PConnectionInterrupted : this.isJvbConnectionInterrupted;
+};
+
+/**
+ * Handles {@link XMPPEvents.CONNECTION_INTERRUPTED}
+ * @param {JingleSessionPC} session
+ * @private
+ */
+JitsiConference.prototype._onIceConnectionInterrupted = function(session) {
+    if (session.isP2P) {
+        this.isP2PConnectionInterrupted = true;
+    } else {
+        this.isJvbConnectionInterrupted = true;
+    }
+    if (session.isP2P === this.isP2PActive()) {
+        this.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_INTERRUPTED);
+    }
+};
+
+/**
+ * Handles {@link XMPPEvents.CONNECTION_ICE_FAILED}
+ * @param {JingleSessionPC} session
+ * @private
+ */
+JitsiConference.prototype._onIceConnectionFailed = function(session) {
+    // We do nothing for the JVB connection, because it's up to the Jicofo to
+    // eventually come up with the new offer (at least for the time being).
+    if (session.isP2P) {
+        this._stopP2PSession('connectivity-error', 'ICE FAILED');
+    }
+};
+
+/**
+ * Handles {@link XMPPEvents.CONNECTION_RESTORED}
+ * @param {JingleSessionPC} session
+ * @private
+ */
+JitsiConference.prototype._onIceConnectionRestored = function(session) {
+    if (session.isP2P) {
+        this.isP2PConnectionInterrupted = false;
+    } else {
+        this.isJvbConnectionInterrupted = false;
+    }
+
+    if (session.isP2P === this.isP2PActive()) {
+        this.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_RESTORED);
+    }
+};
+
+/**
+ * Accept incoming P2P Jingle call.
+ * @param {JingleSessionPC} jingleSession the session instance
+ * @param {jQuery} jingleOffer a jQuery selector pointing to 'jingle' IQ element
+ * @private
+ */
+JitsiConference.prototype._acceptP2PIncomingCall
+= function(jingleSession, jingleOffer) {
+    jingleSession.setSSRCOwnerJid(this.room.myroomjid);
+
+    this.isP2PConnectionInterrupted = false;
+
+    // Accept the offer
+    this.p2pJingleSession = jingleSession;
+
+    this.p2pJingleSession.initialize(
+        false /* initiator */, this.room, this.rtc);
+
+    const localTracks = this.getLocalTracks();
+
+    logger.debug(`Adding ${localTracks} to P2P...`);
+    this.p2pJingleSession.addLocalTracks(localTracks).then(
+        () => {
+            logger.debug(`Add ${localTracks} to P2P done!`);
+            this.p2pJingleSession.acceptOffer(
+                jingleOffer,
+                () => {
+                    logger.debug('Got RESULT for P2P "session-accept"');
+                },
+                error => {
+                    logger.error(
+                        'Failed to accept incoming P2P Jingle session', error);
+                }
+            );
+        },
+        error => {
+            logger.error(
+                `Failed to add ${localTracks} to the P2P connection`, error);
+        });
+};
+
+/**
+ * Attaches local tracks back to the JVB connection.
+ * @private
+ */
+JitsiConference.prototype._attachLocalTracksToJvbSession = function() {
+    const localTracks = this.getLocalTracks();
+
+    logger.info(`Attaching ${localTracks} to JVB`);
+    this.jvbJingleSession.attachLocalTracks(localTracks).then(
+        () => {
+            logger.info(`Attach ${localTracks} to JVB success!`);
+        },
+        error => {
+            logger.error(`Attach ${localTracks} to JVB failed!`, error);
+        });
+};
+
+/**
+ * Adds remote tracks to the conference associated with the JVB session.
+ * @private
+ */
+JitsiConference.prototype._addRemoteJVBTracks = function() {
+    this._addRemoteTracks('JVB', this.jvbJingleSession);
+};
+
+/**
+ * Adds remote tracks to the conference associated with the P2P session.
+ * @private
+ */
+JitsiConference.prototype._addRemoteP2PTracks = function() {
+    this._addRemoteTracks('P2P', this.p2pJingleSession);
+};
+
+/**
+ * Generates fake "remote track added" events for given Jingle session.
+ * @param {string} logName the session's nickname which will appear in log
+ * messages.
+ * @param {JingleSessionPC} jingleSession the session for which remote tracks
+ * will be added.
+ * @private
+ */
+JitsiConference.prototype._addRemoteTracks = function(logName, jingleSession) {
+    if (!jingleSession) {
+        logger.info(`Not adding remote ${logName} tracks - no session yet`);
+
+        return;
+    }
+    const remoteTracks = jingleSession.peerconnection.getRemoteTracks();
+
+    for (const track of remoteTracks) {
+        logger.info(`Adding remote ${logName} track: ${track}`);
+        this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, track);
+    }
+};
+
+/**
+ * Called when {@link XMPPEvents.CONNECTION_ESTABLISHED} event is
+ * triggered for a {@link JingleSessionPC}. Switches the conference to use
+ * the P2P connection if the event comes from the P2P session.
+ * @param {JingleSessionPC} jingleSession the session instance.
+ * @private
+ */
+JitsiConference.prototype._onIceConnectionEstablished
+= function(jingleSession) {
+    // We don't care about the JVB case, there's nothing to be done
+    if (!jingleSession.isP2P) {
+        return;
+    } else if (this.p2pJingleSession !== jingleSession) {
+        logger.error('CONNECTION_ESTABLISHED - wrong P2P session instance ?!');
+
+        return;
+    }
+
+    // Update P2P status and emit events
+    this._setP2PStatus(true);
+
+    // Remove remote tracks
+    this._removeRemoteJVBTracks();
+
+    // Add remote tracks
+    this._addRemoteP2PTracks();
+
+    // Remove local tracks from JVB PC
+    // But only if it has started
+    if (this.jvbJingleSession) {
+        this._detachLocalTracksFromJvbSession();
+    }
+
+    // Start remote stats
+    logger.info('Starting remote stats with p2p connection');
+    this._startRemoteStats();
+};
+
+/**
+ * Detaches local tracks from the JVB connection.
+ * @private
+ */
+JitsiConference.prototype._detachLocalTracksFromJvbSession = function() {
+    const localTracks = this.getLocalTracks();
+
+    logger.info(`Detaching local tracks from JVB: ${localTracks}`);
+    this.jvbJingleSession.detachLocalTracks(localTracks).then(
+        () => {
+            logger.info(`Detach local tracks from JVB done!${localTracks}`);
+        },
+        error => {
+            logger.info(
+                `Detach local tracks from JVB failed!${localTracks}`, error);
+        });
+};
+
+/**
+ * Clears the deferred start P2P task if it has been scheduled.
+ * @private
+ */
+JitsiConference.prototype._maybeClearDeferredStartP2P = function() {
+    if (this.deferredStartP2PTask) {
+        logger.info('Cleared deferred start P2P task');
+        clearTimeout(this.deferredStartP2PTask);
+        this.deferredStartP2PTask = null;
+    }
+};
+
+/**
+ * Removes from the conference remote tracks associated with the JVB
+ * connection.
+ * @private
+ */
+JitsiConference.prototype._removeRemoteJVBTracks = function() {
+    this._removeRemoteTracks('JVB', this.jvbJingleSession);
+};
+
+/**
+ * Removes from the conference remote tracks associated with the P2P
+ * connection.
+ * @private
+ */
+JitsiConference.prototype._removeRemoteP2PTracks = function() {
+    this._removeRemoteTracks('P2P', this.p2pJingleSession);
+};
+
+/**
+ * Generates fake "remote track removed" events for given Jingle session.
+ * @param {string} sessionNickname the session's nickname which will appear in
+ * log messages.
+ * @param {JingleSessionPC} jingleSession the session for which remote tracks
+ * will be removed.
+ * @private
+ */
+JitsiConference.prototype._removeRemoteTracks
+= function(sessionNickname, jingleSession) {
+    if (!jingleSession) {
+        logger.info(
+            `Not removing remote ${sessionNickname} tracks - no session yet`);
+
+        return;
+    }
+    const remoteTracks = jingleSession.peerconnection.getRemoteTracks();
+
+    for (const track of remoteTracks) {
+        logger.info(`Removing remote ${sessionNickname} track: ${track}`);
+        this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_REMOVED, track);
+    }
+};
+
+/**
+ * Sets new P2P status and updates some events/states hijacked from
+ * the <tt>JitsiConference</tt>.
+ * @param {boolean} newStatus the new P2P status value, <tt>true</tt> means that
+ * P2P is now in use, <tt>false</tt> means that the JVB connection is now in use
+ * @private
+ */
+JitsiConference.prototype._setP2PStatus = function(newStatus) {
+    if (this.p2p === newStatus) {
+        logger.error(`Called _setP2PStatus with the same status: ${newStatus}`);
+
+        return;
+    }
+    this.p2p = newStatus;
+    if (newStatus) {
+        logger.info('Peer to peer connection established!');
+    } else {
+        logger.info('Peer to peer connection closed!');
+    }
+
+    // Clear dtmfManager, so that it can be recreated with new connection
+    this.dtmfManager = null;
+
+    // Update P2P status
+    this.eventEmitter.emit(
+        JitsiConferenceEvents.P2P_STATUS,
+        this,
+        this.p2p);
+
+    // Refresh connection interrupted/restored
+    this.eventEmitter.emit(
+        this.isConnectionInterrupted()
+            ? JitsiConferenceEvents.CONNECTION_INTERRUPTED
+            : JitsiConferenceEvents.CONNECTION_RESTORED);
+};
+
+/**
+ * Starts new P2P session.
+ * @param {string} peerJid the JID of the remote participant
+ * @private
+ */
+JitsiConference.prototype._startP2PSession = function(peerJid) {
+    this._maybeClearDeferredStartP2P();
+    if (this.p2pJingleSession) {
+        logger.error('P2P session already started!');
+
+        return;
+    }
+
+    this.isP2PConnectionInterrupted = false;
+    this.p2pJingleSession
+        = this.xmpp.connection.jingle.newP2PJingleSession(
+                this.room.myroomjid,
+                peerJid);
+    this.p2pJingleSession.setSSRCOwnerJid(this.room.myroomjid);
+
+    logger.info('Created new P2P JingleSession', this.room.myroomjid, peerJid);
+
+    this.p2pJingleSession.initialize(true /* initiator */, this.room, this.rtc);
+
+    // NOTE one may consider to start P2P with the local tracks detached,
+    // but no data will be sent until ICE succeeds anyway. And we switch
+    // immediately once the P2P ICE connects.
+    const localTracks = this.getLocalTracks();
+
+    logger.info(`Adding ${localTracks} to P2P...`);
+    this.p2pJingleSession.addLocalTracks(localTracks).then(
+        () => {
+            logger.info(`Added ${localTracks} to P2P`);
+            logger.info('About to send P2P \'session-initiate\'...');
+            this.p2pJingleSession.invite();
+        },
+        error => {
+            logger.error(`Failed to add ${localTracks} to P2P`, error);
+        });
+};
+
+/**
+ * Method when called will decide whether it's the time to start or stop
+ * the P2P session.
+ * @param {boolean} userLeftEvent if <tt>true</tt> it means that the call
+ * originates from the user left event.
+ * @private
+ */
+JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
+    if (!this.options.config.enableP2P || !RTCBrowserType.isP2PSupported()) {
+        logger.info('Auto P2P disabled');
+
+        return;
+    }
+    const peers = this.getParticipants();
+    const peerCount = peers.length;
+    const isModerator = this.isModerator();
+
+    // FIXME 1 peer and it must *support* P2P switching
+    const shouldBeInP2P = peerCount === 1;
+
+    logger.debug(
+        `P2P? isModerator: ${isModerator
+            }, peerCount: ${peerCount} => ${shouldBeInP2P}`);
+
+    // Clear deferred "start P2P" task
+    if (!shouldBeInP2P && this.deferredStartP2PTask) {
+        this._maybeClearDeferredStartP2P();
+    }
+
+    // Start peer to peer session
+    if (isModerator && !this.p2pJingleSession && shouldBeInP2P) {
+        const peer = peerCount && peers[0];
+
+        // Everyone is a moderator ?
+        if (isModerator && peer.getRole() === 'moderator') {
+            const myId = this.myUserId();
+            const peersId = peer.getId();
+
+            if (myId > peersId) {
+                logger.debug(
+                    'Everyone\'s a moderator - '
+                    + 'the other peer should start P2P', myId, peersId);
+
+                return;
+            } else if (myId === peersId) {
+                logger.error('The same IDs ? ', myId, peersId);
+
+                return;
+            }
+        }
+        const jid = peer.getJid();
+
+        if (userLeftEvent) {
+            if (this.deferredStartP2PTask) {
+                logger.error('Deferred start P2P task\'s been set already!');
+
+                return;
+            }
+            logger.info(
+                `Will start P2P with: ${jid
+                    } after ${this.backToP2PDelay} seconds...`);
+            this.deferredStartP2PTask = setTimeout(
+                this._startP2PSession.bind(this, jid),
+                this.backToP2PDelay * 1000);
+        } else {
+            logger.info(`Will start P2P with: ${jid}`);
+            this._startP2PSession(jid);
+        }
+    } else if (isModerator && this.p2pJingleSession && !shouldBeInP2P) {
+        logger.info(`Will stop P2P with: ${this.p2pJingleSession.peerjid}`);
+        this._stopP2PSession();
+    }
+};
+
+/**
+ * Stops the current P2P session.
+ * @param {string} [reason="success"] one of the Jingle "reason" element
+ * names as defined by https://xmpp.org/extensions/xep-0166.html#def-reason
+ * @param {string} [reasonDescription="Turing off P2P session"] text
+ * description that will be included in the session terminate message
+ * @private
+ */
+JitsiConference.prototype._stopP2PSession
+= function(reason, reasonDescription) {
+    if (!this.p2pJingleSession) {
+        logger.error('No P2P session to be stopped!');
+
+        return;
+    }
+
+    const wasP2PEstablished = this.isP2PActive();
+
+    // Swap remote tracks, but only if the P2P has been fully established
+    if (wasP2PEstablished) {
+        // Add local track to JVB
+        this._attachLocalTracksToJvbSession();
+
+        // Remove remote P2P tracks
+        this._removeRemoteP2PTracks();
+    }
+
+    // Stop P2P stats
+    logger.info('Stopping remote stats with P2P connection');
+    this.statistics.stopRemoteStats();
+
+    if (JingleSessionState.ENDED !== this.p2pJingleSession.state) {
+        this.p2pJingleSession.terminate(
+            reason ? reason : 'success',
+            reasonDescription
+                ? reasonDescription : 'Turing off P2P session',
+            () => {
+                logger.info('P2P session terminate RESULT');
+            },
+            error => {
+                logger.warn(
+                    'An error occurred while trying to terminate'
+                    + ' P2P Jingle session', error);
+            });
+    }
+
+    this.p2pJingleSession = null;
+
+    // Update P2P status and other affected events/states
+    this._setP2PStatus(false);
+
+    if (wasP2PEstablished) {
+        // Add back remote JVB tracks
+        this._addRemoteJVBTracks();
+    }
+
+    // Start remote stats
+    logger.info('Starting remote stats with JVB connection');
+    if (this.jvbJingleSession) {
+        this._startRemoteStats();
+    }
+};
+
+/**
+ * Checks whether or not the conference is currently in the peer to peer mode.
+ * Being in peer to peer mode means that the direct connection has been
+ * established and the P2P connection is being used for media transmission.
+ * @return {boolean} <tt>true</tt> if in P2P mode or <tt>false</tt> otherwise.
+ */
+JitsiConference.prototype.isP2PActive = function() {
+    return this.p2p;
+};
+
+/**
+ * Returns the current ICE state of the P2P connection.
+ * NOTE: method is used by the jitsi-meet-torture tests.
+ * @return {string|null} an ICE state or <tt>null</tt> if there's currently
+ * no P2P connection.
+ */
+JitsiConference.prototype.getP2PConnectionState = function() {
+    if (this.isP2PActive()) {
+        return this.p2pJingleSession.peerconnection.getConnectionState();
+    }
+
+    return null;
+};
+
+
+/**
+ * Manually starts new P2P session (should be used only in the tests).
+ */
+JitsiConference.prototype.startP2PSession = function() {
+    const peers = this.getParticipants();
+
+    // Start peer to peer session
+    if (peers.length === 1) {
+        const peerJid = peers[0].getJid();
+
+        this._startP2PSession(peerJid);
+    } else {
+        throw new Error(
+            'There must be exactly 1 participant to start the P2P session !');
+    }
+};
+
+/**
+ * Manually stops the current P2P session (should be used only in the tests)
+ */
+JitsiConference.prototype.stopP2PSession = function() {
+    this._stopP2PSession();
 };
 
 /**

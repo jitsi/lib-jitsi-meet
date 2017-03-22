@@ -10,6 +10,11 @@ const XMPPEvents = {
     AUTHENTICATION_REQUIRED: 'xmpp.authentication_required',
     BRIDGE_DOWN: 'xmpp.bridge_down',
 
+    /**
+     * Triggered when 'session-accept' is received from the responder.
+     */
+    CALL_ACCEPTED: 'xmpp.callaccepted.jingle',
+
     // Designates an event indicating that an offer (e.g. Jingle
     // session-initiate) was received.
     CALL_INCOMING: 'xmpp.callincoming.jingle',
@@ -21,6 +26,11 @@ const XMPPEvents = {
     CALL_ENDED: 'xmpp.callended.jingle',
     CHAT_ERROR_RECEIVED: 'xmpp.chat_error_received',
     CONFERENCE_SETUP_FAILED: 'xmpp.conference_setup_failed',
+
+    /**
+     * This event is triggered when the ICE connects for the first time.
+     */
+    CONNECTION_ESTABLISHED: 'xmpp.connection.connected',
 
     // Designates an event indicating that the connection to the XMPP server
     // failed.
@@ -181,16 +191,14 @@ const XMPPEvents = {
     // changed.
     SUBJECT_CHANGED: 'xmpp.subject_changed',
 
+    // FIXME: how does it belong to XMPP ? - it's detected by the PeerConnection
     // suspending detected
     SUSPEND_DETECTED: 'xmpp.suspend_detected',
 
-    // Designates an event indicating that the local ICE username fragment of
-    // the jingle session has changed.
-    LOCAL_UFRAG_CHANGED: 'xmpp.local_ufrag_changed',
-
-    // Designates an event indicating that the local ICE username fragment of
-    // the jingle session has changed.
-    REMOTE_UFRAG_CHANGED: 'xmpp.remote_ufrag_changed',
+    /**
+     * Event fired when 'transport-info' with new ICE candidates is received.
+     */
+    TRANSPORT_INFO: 'xmpp.transportinfo.jingle',
 
     // Designates an event indicating that the local ICE connection state has
     // changed.

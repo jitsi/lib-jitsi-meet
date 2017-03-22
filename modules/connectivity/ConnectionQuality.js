@@ -214,8 +214,8 @@ export default class ConnectionQuality {
 
         conference.room.addListener(
             XMPPEvents.ICE_CONNECTION_STATE_CHANGED,
-            newState => {
-                if (newState === 'connected') {
+            (jingleSession, newState) => {
+                if (!jingleSession.isP2P && newState === 'connected') {
                     this._timeIceConnected = window.performance.now();
                 }
             });

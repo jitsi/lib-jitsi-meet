@@ -1,8 +1,7 @@
-const JitsiConference = require('./JitsiConference');
-
+import JitsiConference from './JitsiConference';
 import * as JitsiConnectionEvents from './JitsiConnectionEvents';
+import Statistics from './modules/statistics/statistics';
 import XMPP from './modules/xmpp/xmpp';
-const Statistics = require('./modules/statistics/statistics');
 
 /**
  * Creates new connection object for the Jitsi Meet server side video
@@ -90,9 +89,11 @@ JitsiConnection.prototype.setToken = function(token) {
  * @returns {JitsiConference} returns the new conference object.
  */
 JitsiConnection.prototype.initJitsiConference = function(name, options) {
-    return new JitsiConference({ name,
+    return new JitsiConference({
+        name,
         config: options,
-        connection: this });
+        connection: this
+    });
 };
 
 /**

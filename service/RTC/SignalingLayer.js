@@ -1,19 +1,21 @@
 
+import Listenable from '../../modules/util/Listenable';
+
 /**
  * An object that carries the info about specific media type advertised by
- * participant in the signalling channel.
+ * participant in the signaling channel.
  * @typedef {Object} PeerMediaInfo
  * @property {boolean} muted indicates if the media is currently muted
  * @property {VideoType|undefined} videoType the type of the video if applicable
  */
 
 /**
- * Interface used to expose the information carried over the signalling channel
+ * Interface used to expose the information carried over the signaling channel
  * which is not available to the RTC module in the media SDP.
  *
  * @interface SignalingLayer
  */
-export default class SignalingLayer {
+export default class SignalingLayer extends Listenable {
 
     /**
      * Obtains the endpoint ID for given SSRC.
