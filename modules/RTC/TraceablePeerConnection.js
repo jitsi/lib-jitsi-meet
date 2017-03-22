@@ -748,7 +748,6 @@ TraceablePeerConnection.prototype.removeRemoteTracks = function(owner) {
  */
 TraceablePeerConnection.prototype._removeRemoteTrack
 = function(streamId, trackId) {
-
     const toBeRemoved = this._getRemoteTrackById(streamId, trackId);
 
     if (toBeRemoved) {
@@ -982,8 +981,7 @@ const getters = {
         if (RTCBrowserType.doesVideoMuteByStreamRemove()) {
             this.localSdpMunger.maybeMungeLocalSdp(desc);
             logger.debug(
-                'getLocalDescription::postTransform '
-                    + '(munge local SDP)', desc);
+                'getLocalDescription::postTransform (munge local SDP)', desc);
         }
 
         return desc || {};
@@ -1253,6 +1251,9 @@ TraceablePeerConnection.prototype.attachTrack = function(localTrack) {
 /**
  * Remove local track from this TPC.
  * @param {JitsiLocalTrack} localTrack the track to be removed from this TPC.
+ *
+ * FIXME It should probably remove a boolean just like {@link removeTrackMute}
+ *       The same applies to addTrack.
  */
 TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
     const webRtcStream = localTrack.getOriginalStream();
@@ -1468,12 +1469,6 @@ TraceablePeerConnection.prototype.setRemoteDescription
                 this.peerconnection);
             failureCallback(err);
         });
-
-    /*
-     if (this.statsinterval === null && this.maxstats > 0) {
-     // start gathering stats
-     }
-     */
 };
 
 /**
@@ -1710,9 +1705,9 @@ TraceablePeerConnection.prototype._createOfferOrAnswer
 /* eslint-enable max-params */
 
 /**
- *
+ * Extract primary SSRC from given {@link TrackSSRCInfo} object.
  * @param {TrackSSRCInfo} ssrcObj
- * @return {number|null}
+ * @return {number|null} the primary SSRC or <tt>null</tt>
  */
 function extractPrimarySSRC(ssrcObj) {
     if (ssrcObj && ssrcObj.groups && ssrcObj.groups.length) {
