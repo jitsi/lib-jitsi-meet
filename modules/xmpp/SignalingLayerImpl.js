@@ -44,9 +44,6 @@ export default class SignalingLayerImpl extends SignalingLayer {
 
         this.chatRoom = room;
         if (oldChatRoom) {
-            // FIXME ChatRoom removes all listeners, will not be capable of
-            // working with multiple listeners per type (multiple JingleSessions
-            // required for P2P).
             oldChatRoom.removePresenceListener(
                 'audiomuted', this._audioMuteHandler);
             oldChatRoom.removePresenceListener(
