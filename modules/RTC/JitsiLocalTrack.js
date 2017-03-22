@@ -370,19 +370,19 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
     this.dontFireRemoveEvent = false;
 
     // A function that will print info about muted status transition
-    const loggerMuteInfo = () => logger.info(`Mute ${this}: ${mute}`);
+    const logMuteInfo = () => logger.info(`Mute ${this}: ${mute}`);
 
     if (this.isAudioTrack()
         || this.videoType === VideoType.DESKTOP
         || !RTCBrowserType.doesVideoMuteByStreamRemove()) {
-        loggerMuteInfo();
+        logMuteInfo();
         if (this.track) {
             this.track.enabled = !mute;
         }
     } else if (mute) {
         this.dontFireRemoveEvent = true;
         promise = new Promise((resolve, reject) => {
-            loggerMuteInfo();
+            logMuteInfo();
             this._removeStreamFromConferenceAsMute(() => {
                 // FIXME: Maybe here we should set the SRC for the containers
                 // to something
@@ -394,7 +394,7 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
             });
         });
     } else {
-        loggerMuteInfo();
+        logMuteInfo();
 
         // This path is only for camera.
         const streamOptions = {
