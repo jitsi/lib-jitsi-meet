@@ -27,6 +27,9 @@ import Statistics from './modules/statistics/statistics';
 
 const logger = Logger.getLogger(__filename);
 
+
+// TORTURE TRIGGER - DO NOT MERGE
+
 // The amount of time to wait until firing
 // JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN event
 const USER_MEDIA_PERMISSION_PROMPT_TIMEOUT = 500;
