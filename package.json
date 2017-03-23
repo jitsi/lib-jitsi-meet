@@ -23,10 +23,11 @@
     "retry": "0.6.1",
     "sdp-interop": "0.1.11",
     "sdp-simulcast": "0.1.11",
-    "sdp-transform": "1.5.3",
+    "sdp-transform": "^2.0.3",
     "socket.io-client": "1.4.5",
     "strophe": "1.2.4",
-    "strophejs-plugins": "0.0.7"
+    "strophejs-plugins": "0.0.7",
+    "yaeti": "^0.0.6"
   },
   "devDependencies": {
     "babel-core": "6.24.0",

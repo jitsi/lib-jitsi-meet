@@ -10,6 +10,7 @@ import RTC from './RTC';
 import RTCBrowserType from './RTCBrowserType.js';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import RtxModifier from '../xmpp/RtxModifier.js';
+import edgeRTCPeerConnection from './edgeRTCPeerConnection.js';
 
 // FIXME SDP tools should end up in some kind of util module
 import SDP from '../xmpp/SDP';
@@ -142,6 +143,8 @@ function TraceablePeerConnection(
 
     if (RTCBrowserType.isFirefox()) {
         RTCPeerConnectionType = mozRTCPeerConnection;
+    } else if (RTCBrowserType.isEdge()) {
+        RTCPeerConnectionType = edgeRTCPeerConnection;
     } else if (RTCBrowserType.isTemasysPluginUsed()) {
         RTCPeerConnectionType = RTCPeerConnection;
     } else {
