@@ -25,7 +25,7 @@ import RTCEvents from '../../service/RTC/RTCEvents';
 import screenObtainer from './ScreenObtainer';
 import SDPUtil from '../xmpp/SDPUtil';
 import VideoType from '../../service/RTC/VideoType';
-import edgeRTCPeerConnection from './edgeRTCPeerConnection.js';
+import ortcRTCPeerConnection from './ortc/RTCPeerConnection.js';
 
 const logger = getLogger(__filename);
 
@@ -868,7 +868,7 @@ class RTCUtils extends Listenable {
                 }
 
             } else if (RTCBrowserType.isEdge()) {
-                this.peerconnection = edgeRTCPeerConnection;
+                this.peerconnection = ortcRTCPeerConnection;
                 this.getUserMedia
                     = wrapGetUserMedia(
                         navigator.mediaDevices.getUserMedia.bind(

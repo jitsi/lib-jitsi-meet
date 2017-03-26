@@ -4,9 +4,9 @@ import yaeti from 'yaeti';
 const logger = getLogger(__filename);
 
 /**
- * RTCPeerConnection shim for Microsoft EDGE.
+ * RTCPeerConnection shim for ORTC based endpoints (such as Edge).
  */
-export default class edgeRTCPeerConnection extends yaeti.EventTarget {
+export default class ortcRTCPeerConnection extends yaeti.EventTarget {
     /**
      * Constructor.
      *
