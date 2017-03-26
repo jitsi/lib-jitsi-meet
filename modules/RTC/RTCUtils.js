@@ -25,7 +25,6 @@ import RTCEvents from '../../service/RTC/RTCEvents';
 import screenObtainer from './ScreenObtainer';
 import SDPUtil from '../xmpp/SDPUtil';
 import VideoType from '../../service/RTC/VideoType';
-import ortcRTCPeerConnection from './ortc/RTCPeerConnection.js';
 
 const logger = getLogger(__filename);
 
@@ -44,8 +43,6 @@ const devices = {
     audio: false,
     video: false
 };
-
-const NativeMediaStream = window.webkitMediaStream || window.MediaStream;
 
 // Currently audio output device change is supported only in Chrome and
 // default output always has 'default' device ID
@@ -598,6 +595,8 @@ function handleLocalStream(streams, resolution) {
         const audioVideo = streams.audioVideo;
 
         if (audioVideo) {
+            const NativeMediaStream
+                 = window.webkitMediaStream || window.MediaStream;
             const audioTracks = audioVideo.getAudioTracks();
 
             if (audioTracks.length) {
@@ -791,7 +790,6 @@ class RTCUtils extends Listenable {
                 };
 
                 /* eslint-disable no-global-assign, no-native-reassign */
-
                 RTCSessionDescription = mozRTCSessionDescription;
                 RTCIceCandidate = mozRTCIceCandidate;
 
@@ -835,7 +833,6 @@ class RTCUtils extends Listenable {
                     // XXX The return statement is affected by automatic
                     // semicolon insertion (ASI). No line terminator is allowed
                     // between the return keyword and the expression.
-
                     return (
                         typeof id === 'number'
                             ? id
@@ -866,9 +863,11 @@ class RTCUtils extends Listenable {
                         return this.audioTracks;
                     };
                 }
-
             } else if (RTCBrowserType.isEdge()) {
-                this.peerconnection = ortcRTCPeerConnection;
+                // TODO: Uncomment when done. For now use the Edge native
+                // RTCPeerConnection.
+                // this.peerconnection = ortcRTCPeerConnection;
+                this.peerconnection = RTCPeerConnection;
                 this.getUserMedia
                     = wrapGetUserMedia(
                         navigator.mediaDevices.getUserMedia.bind(
@@ -894,7 +893,6 @@ class RTCUtils extends Listenable {
                             ? id
                             : SDPUtil.filterSpecialChars(id));
                 };
-
             } else if (RTCBrowserType.isTemasysPluginUsed()) {
                 // Detect IE/Safari
                 const webRTCReadyCb = () => {
