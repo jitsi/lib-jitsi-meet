@@ -84,17 +84,17 @@ export const DTMF_SUPPORT_CHANGED = 'conference.dtmfSupportChanged';
 export const ENDPOINT_MESSAGE_RECEIVED = 'conference.endpoint_message_received';
 
 /**
- * You are included / excluded in somebody's last N set
- */
-export const IN_LAST_N_CHANGED = 'conference.inLastNChanged';
-
-/**
  * You are kicked from the conference.
  */
 export const KICKED = 'conferenece.kicked';
 
 /**
  * The Last N set is changed.
+ *
+ * @param {Array<string>|null} leavingEndpointIds the ids of all the endpoints
+ * which are leaving Last N
+ * @param {Array<string>|null} enteringEndpointIds the ids of all the endpoints
+ * which are entering Last N
  */
 export const LAST_N_ENDPOINTS_CHANGED = 'conference.lastNEndpointsChanged';
 
@@ -131,6 +131,13 @@ export const PARTCIPANT_FEATURES_CHANGED
  */
 export const PARTICIPANT_PROPERTY_CHANGED
     = 'conference.participant_property_changed';
+
+/**
+ * Indicates that the conference has switched between JVB and P2P connections.
+ * The first argument of this event is a <tt>boolean</tt> which when set to
+ * <tt>true</tt> means that the conference is running on the P2P connection.
+ */
+export const P2P_STATUS = 'conference.p2pStatus';
 
 /**
  * Indicates that phone number changed.

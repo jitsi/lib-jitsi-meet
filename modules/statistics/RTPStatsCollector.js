@@ -473,12 +473,15 @@ StatsCollector.prototype.processStatsReport = function() {
 
             if (!conferenceStatsTransport.some(
                     t =>
-                        t.ip === ip
-                        && t.type === type
-                        && t.localip === localip)) {
-                conferenceStatsTransport.push({ ip,
+                       t.ip === ip
+                       && t.type === type
+                       && t.localip === localip)) {
+                conferenceStatsTransport.push({
+                    ip,
                     type,
-                    localip });
+                    localip,
+                    p2p: this.peerconnection.isP2P
+                });
             }
             continue;
         }
@@ -495,7 +498,8 @@ StatsCollector.prototype.processStatsReport = function() {
             this.conferenceStats.transport.push({
                 ip: `${remote.ipAddress}:${remote.portNumber}`,
                 type: local.transport,
-                localip: `${local.ipAddress}:${local.portNumber}`
+                localip: `${local.ipAddress}:${local.portNumber}`,
+                p2p: this.peerconnection.isP2P
             });
         }
 
@@ -661,7 +665,8 @@ StatsCollector.prototype.processStatsReport = function() {
         this
     );
 
-    this.eventEmitter.emit(StatisticsEvents.BYTE_SENT_STATS, byteSentStats);
+    this.eventEmitter.emit(
+        StatisticsEvents.BYTE_SENT_STATS, this.peerconnection, byteSentStats);
 
     this.conferenceStats.bitrate
       = { 'upload': bitrateUpload,

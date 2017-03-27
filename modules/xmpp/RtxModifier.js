@@ -120,17 +120,30 @@ export default class RtxModifier {
 
             return sdpStr;
         }
+
+        return this.modifyRtxSsrcs2(videoMLine)
+            ? sdpTransformer.toRawSDP() : sdpStr;
+    }
+
+    /**
+     * Does the same thing as {@link modifyRtxSsrcs}, but takes the
+     *  {@link MLineWrap} instance wrapping video media as an argument.
+     * @param {MLineWrap} videoMLine
+     * @return {boolean} <tt>true</tt> if the SDP wrapped by
+     *  {@link SdpTransformWrap} has been modified or <tt>false</tt> otherwise.
+     */
+    modifyRtxSsrcs2(videoMLine) {
         if (videoMLine.direction === 'inactive'
-                || videoMLine.direction === 'recvonly') {
+            || videoMLine.direction === 'recvonly') {
             logger.debug('RtxModifier doing nothing, video '
                 + 'm line is inactive or recvonly');
 
-            return sdpStr;
+            return false;
         }
         if (videoMLine.getSSRCCount() < 1) {
             logger.debug('RtxModifier doing nothing, no video ssrcs present');
 
-            return sdpStr;
+            return false;
         }
         logger.debug('Current ssrc mapping: ', this.correspondingRtxSsrcs);
         const primaryVideoSsrcs = videoMLine.getPrimaryVideoSSRCs();
@@ -179,7 +192,9 @@ export default class RtxModifier {
                 correspondingRtxSsrc);
         }
 
-        return sdpTransformer.toRawSDP();
+        // FIXME we're not looking into much details whether the SDP has been
+        // modified or not once the precondition requirements are met.
+        return true;
     }
 
     /**

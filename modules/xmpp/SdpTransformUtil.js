@@ -54,14 +54,28 @@ class MLineWrap {
     }
 
     /**
+     * Getter for the mLine's "ssrcs" array. If the array was undefined an empty
+     * one will be preassigned.
      *
+     * @return {Array<Object>} an array of 'sdp-transform' SSRC attributes
+     * objects.
      */
-    get _ssrcs() {
+    get ssrcs() {
         if (!this.mLine.ssrcs) {
             this.mLine.ssrcs = [];
         }
 
         return this.mLine.ssrcs;
+    }
+
+    /**
+     * Setter for the mLine's "ssrcs" array.
+     *
+     * @param {Array<Object>} ssrcs an array of 'sdp-transform' SSRC attributes
+     * objects.
+     */
+    set ssrcs(ssrcs) {
+        this.mLine.ssrcs = ssrcs;
     }
 
     /**
@@ -110,7 +124,7 @@ class MLineWrap {
      * <tt>undefined</tt> if no such attribute exists.
      */
     getSSRCAttrValue(ssrcNumber, attrName) {
-        const attribute = this._ssrcs.find(
+        const attribute = this.ssrcs.find(
             ssrcObj => ssrcObj.id === ssrcNumber
             && ssrcObj.attribute === attrName);
 
@@ -138,7 +152,7 @@ class MLineWrap {
      * the 'sdp-transform' lib.
      */
     addSSRCAttribute(ssrcObj) {
-        this._ssrcs.push(ssrcObj);
+        this.ssrcs.push(ssrcObj);
     }
 
     /**
@@ -180,6 +194,18 @@ class MLineWrap {
     }
 
     /**
+     * @param {string|null} msid the media stream id or <tt>null</tt> to match
+     * the first SSRC object with any 'msid' value.
+     * @return {Object|undefined} the SSRC object as defined by 'sdp-transform'
+     * lib.
+     */
+    findSSRCByMSID(msid) {
+        return this.ssrcs.find(
+            ssrcObj => ssrcObj.attribute === 'msid'
+                && (msid === null || ssrcObj.value === msid));
+    }
+
+    /**
      * Gets the SSRC count for the underlying media description.
      * @return {number}
      */
@@ -212,7 +238,7 @@ class MLineWrap {
         const numSsrcs = _getSSRCCount(this.mLine);
 
         if (numSsrcs === 1) {
-            // Not using _ssrcs on purpose here
+            // Not using "ssrcs" getter on purpose here
             return this.mLine.ssrcs[0].id;
         }
 
@@ -252,7 +278,7 @@ class MLineWrap {
      * @return {Array.<number>} an array with all SSRC as numbers.
      */
     getSSRCs() {
-        return this._ssrcs
+        return this.ssrcs
             .map(ssrcInfo => ssrcInfo.id)
             .filter((ssrc, index, array) => array.indexOf(ssrc) === index);
     }

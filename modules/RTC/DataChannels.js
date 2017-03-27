@@ -95,45 +95,14 @@ DataChannels.prototype.onDataChannel = function(event) {
                     dominantSpeakerEndpoint);
                 self.eventEmitter.emit(RTCEvents.DOMINANT_SPEAKER_CHANGED,
                   dominantSpeakerEndpoint);
-            } else if (colibriClass === 'InLastNChangeEvent') {
-                let oldValue = obj.oldValue;
-                let newValue = obj.newValue;
-
-                // Make sure that oldValue and newValue are of type boolean.
-                let type;
-
-                if ((type = typeof oldValue) !== 'boolean') {
-                    if (type === 'string') {
-                        oldValue = oldValue === 'true';
-                    } else {
-                        oldValue = Boolean(oldValue);
-                    }
-                }
-                if ((type = typeof newValue) !== 'boolean') {
-                    if (type === 'string') {
-                        newValue = newValue === 'true';
-                    } else {
-                        newValue = Boolean(newValue);
-                    }
-                }
-
-                self.eventEmitter.emit(
-                    RTCEvents.LASTN_CHANGED,
-                    oldValue,
-                    newValue);
             } else if (colibriClass === 'LastNEndpointsChangeEvent') {
                 // The new/latest list of last-n endpoint IDs.
                 const lastNEndpoints = obj.lastNEndpoints;
 
-                // The list of endpoint IDs which are entering the list of
-                // last-n at this time i.e. were not in the old list of last-n
-                // endpoint IDs.
-                const endpointsEnteringLastN = obj.endpointsEnteringLastN;
-
                 logger.info('Data channel new last-n event: ',
-                    lastNEndpoints, endpointsEnteringLastN, obj);
+                    lastNEndpoints, obj);
                 self.eventEmitter.emit(RTCEvents.LASTN_ENDPOINT_CHANGED,
-                    lastNEndpoints, endpointsEnteringLastN, obj);
+                    lastNEndpoints, obj);
             } else if (colibriClass === 'EndpointMessage') {
                 self.eventEmitter.emit(
                     RTCEvents.ENDPOINT_MESSAGE_RECEIVED, obj.from,
