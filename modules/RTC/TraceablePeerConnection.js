@@ -142,6 +142,11 @@ function TraceablePeerConnection(
 
     if (RTCBrowserType.isFirefox()) {
         RTCPeerConnectionType = mozRTCPeerConnection;
+    } else if (RTCBrowserType.isEdge()) {
+        // TODO: Uncomment when done. For now use the Edge native
+        // RTCPeerConnection.
+        // RTCPeerConnectionType = ortcRTCPeerConnection;
+        RTCPeerConnectionType = RTCPeerConnection;
     } else if (RTCBrowserType.isTemasysPluginUsed()) {
         RTCPeerConnectionType = RTCPeerConnection;
     } else {

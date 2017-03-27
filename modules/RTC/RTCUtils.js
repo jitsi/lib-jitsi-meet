@@ -112,8 +112,18 @@ let rtcReady = false;
  * @param constraints
  * @param resolution
  */
-function setResolutionConstraints(constraints, resolution) {
+function setResolutionConstraints(
+    constraints, isNewStyleConstraintsSupported, resolution) {
     if (Resolutions[resolution]) {
+        if (isNewStyleConstraintsSupported) {
+            constraints.video.width = {
+                exact: Resolutions[resolution].width
+            };
+            constraints.video.height = {
+                exact: Resolutions[resolution].height
+            };
+        }
+
         constraints.video.mandatory.minWidth = Resolutions[resolution].width;
         constraints.video.mandatory.minHeight = Resolutions[resolution].height;
     }
@@ -155,6 +165,7 @@ function getConstraints(um, options) {
     // @see https://github.com/jitsi/lib-jitsi-meet/pull/136
     const isNewStyleConstraintsSupported
         = RTCBrowserType.isFirefox()
+        || RTCBrowserType.isEdge()
         || RTCBrowserType.isReactNative()
         || RTCBrowserType.isTemasysPluginUsed();
 
@@ -202,7 +213,8 @@ function getConstraints(um, options) {
             }
         }
 
-        setResolutionConstraints(constraints, options.resolution);
+        setResolutionConstraints(
+            constraints, isNewStyleConstraintsSupported, options.resolution);
     }
     if (um.indexOf('audio') >= 0) {
         if (RTCBrowserType.isReactNative()) {
@@ -456,19 +468,46 @@ const getUserMediaStatus = {
  * @param {Function} getUserMedia native function
  * @returns {Function} wrapped function
  */
-function wrapGetUserMedia(getUserMedia) {
-    return function(constraints, successCallback, errorCallback) {
-        getUserMedia(constraints, stream => {
-            maybeApply(successCallback, [ stream ]);
-            if (!getUserMediaStatus.initialized) {
-                getUserMediaStatus.initialized = true;
-                getUserMediaStatus.callbacks.forEach(callback => callback());
-                getUserMediaStatus.callbacks.length = 0;
-            }
-        }, error => {
-            maybeApply(errorCallback, [ error ]);
-        });
-    };
+function wrapGetUserMedia(getUserMedia, usePromises = false) {
+    let gUM;
+
+    if (usePromises) {
+        gUM = function(constraints, successCallback, errorCallback) {
+            return getUserMedia(constraints)
+                .then(stream => {
+                    maybeApply(successCallback, [ stream ]);
+                    if (!getUserMediaStatus.initialized) {
+                        getUserMediaStatus.initialized = true;
+                        getUserMediaStatus.callbacks.forEach(
+                            callback => callback());
+                        getUserMediaStatus.callbacks.length = 0;
+                    }
+
+                    return stream;
+                })
+                .catch(error => {
+                    maybeApply(errorCallback, [ error ]);
+
+                    throw error;
+                });
+        };
+    } else {
+        gUM = function(constraints, successCallback, errorCallback) {
+            getUserMedia(constraints, stream => {
+                maybeApply(successCallback, [ stream ]);
+                if (!getUserMediaStatus.initialized) {
+                    getUserMediaStatus.initialized = true;
+                    getUserMediaStatus.callbacks.forEach(
+                        callback => callback());
+                    getUserMediaStatus.callbacks.length = 0;
+                }
+            }, error => {
+                maybeApply(errorCallback, [ error ]);
+            });
+        };
+    }
+
+    return gUM;
 }
 
 /**
@@ -556,11 +595,13 @@ function handleLocalStream(streams, resolution) {
         const audioVideo = streams.audioVideo;
 
         if (audioVideo) {
+            const NativeMediaStream
+                 = window.webkitMediaStream || window.MediaStream;
             const audioTracks = audioVideo.getAudioTracks();
 
             if (audioTracks.length) {
                 // eslint-disable-next-line new-cap
-                audioStream = new webkitMediaStream();
+                audioStream = new NativeMediaStream();
                 for (let i = 0; i < audioTracks.length; i++) {
                     audioStream.addTrack(audioTracks[i]);
                 }
@@ -570,14 +611,14 @@ function handleLocalStream(streams, resolution) {
 
             if (videoTracks.length) {
                 // eslint-disable-next-line new-cap
-                videoStream = new webkitMediaStream();
+                videoStream = new NativeMediaStream();
                 for (let j = 0; j < videoTracks.length; j++) {
                     videoStream.addTrack(videoTracks[j]);
                 }
             }
         } else {
           // On other types of browser (e.g. Firefox) we choose (namely,
-          // obtainAudioAndVideoPermissions) to call getUsermedia per device
+          // obtainAudioAndVideoPermissions) to call getUserMedia per device
           // (type).
             audioStream = streams.audio;
             videoStream = streams.video;
@@ -749,7 +790,6 @@ class RTCUtils extends Listenable {
                 };
 
                 /* eslint-disable no-global-assign, no-native-reassign */
-
                 RTCSessionDescription = mozRTCSessionDescription;
                 RTCIceCandidate = mozRTCIceCandidate;
 
@@ -793,7 +833,6 @@ class RTCUtils extends Listenable {
                     // XXX The return statement is affected by automatic
                     // semicolon insertion (ASI). No line terminator is allowed
                     // between the return keyword and the expression.
-
                     return (
                         typeof id === 'number'
                             ? id
@@ -824,6 +863,36 @@ class RTCUtils extends Listenable {
                         return this.audioTracks;
                     };
                 }
+            } else if (RTCBrowserType.isEdge()) {
+                // TODO: Uncomment when done. For now use the Edge native
+                // RTCPeerConnection.
+                // this.peerconnection = ortcRTCPeerConnection;
+                this.peerconnection = RTCPeerConnection;
+                this.getUserMedia
+                    = wrapGetUserMedia(
+                        navigator.mediaDevices.getUserMedia.bind(
+                            navigator.mediaDevices),
+                            true);
+                this.enumerateDevices
+                    = wrapEnumerateDevices(
+                        navigator.mediaDevices.enumerateDevices.bind(
+                            navigator.mediaDevices));
+                this.attachMediaStream
+                    = wrapAttachMediaStream((element, stream) => {
+                        defaultSetVideoSrc(element, stream);
+
+                        return element;
+                    });
+
+                // TODO: needed in Edge?
+                this.getStreamID = function(stream) {
+                    const id = stream.id;
+
+                    return (
+                        typeof id === 'number'
+                            ? id
+                            : SDPUtil.filterSpecialChars(id));
+                };
             } else if (RTCBrowserType.isTemasysPluginUsed()) {
                 // Detect IE/Safari
                 const webRTCReadyCb = () => {

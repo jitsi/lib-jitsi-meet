@@ -16,6 +16,8 @@ const RTCBrowserType = {
 
     RTC_BROWSER_IEXPLORER: 'rtc_browser.iexplorer',
 
+    RTC_BROWSER_EDGE: 'rtc_browser.edge',
+
     RTC_BROWSER_SAFARI: 'rtc_browser.safari',
 
     RTC_BROWSER_NWJS: 'rtc_browser.nwjs',
@@ -87,6 +89,14 @@ const RTCBrowserType = {
      */
     isIExplorer() {
         return currentBrowser === RTCBrowserType.RTC_BROWSER_IEXPLORER;
+    },
+
+    /**
+     * Checks if current browser is Microsoft Edge.
+     * @returns {boolean}
+     */
+    isEdge() {
+        return currentBrowser === RTCBrowserType.RTC_BROWSER_EDGE;
     },
 
     /**
@@ -178,6 +188,15 @@ const RTCBrowserType = {
      */
     getIExplorerVersion() {
         return RTCBrowserType.isIExplorer() ? browserVersion : null;
+    },
+
+    /**
+     * Returns Edge version.
+     *
+     * @returns {number|null}
+     */
+    getEdgeVersion() {
+        return RTCBrowserType.isEdge() ? browserVersion : null;
     },
 
     usesPlanB() {
@@ -278,7 +297,7 @@ function detectSafari() {
 }
 
 /**
- *
+ * Detects IE.
  */
 function detectIE() {
     let version;
@@ -300,16 +319,25 @@ function detectIE() {
         version = parseInt(ua.substring(rv + 3, ua.indexOf('.', rv)), 10);
     }
 
+    return version;
+}
+
+/**
+ * Detects Edge.
+ */
+function detectEdge() {
+    let version;
+    const ua = window.navigator.userAgent;
+
     const edge = ua.indexOf('Edge/');
 
     if (!version && edge > 0) {
-        // IE 12 => return version number
         version = parseInt(ua.substring(edge + 5, ua.indexOf('.', edge)), 10);
     }
 
     if (version) {
-        currentBrowser = RTCBrowserType.RTC_BROWSER_IEXPLORER;
-        logger.info(`This appears to be IExplorer, ver: ${version}`);
+        currentBrowser = RTCBrowserType.RTC_BROWSER_EDGE;
+        logger.info(`This appears to be Edge, ver: ${version}`);
     }
 
     return version;
@@ -394,6 +422,7 @@ function detectBrowser() {
         detectOpera,
         detectChrome,
         detectFirefox,
+        detectEdge,
         detectIE,
         detectSafari
     ];
