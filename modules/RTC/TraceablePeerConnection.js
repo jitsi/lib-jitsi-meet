@@ -1592,114 +1592,114 @@ TraceablePeerConnection.prototype._createOfferOrAnswer
 
     this.trace(`create${logName}`, JSON.stringify(constraints, null, ' '));
 
-    const offerOrAnswerMethod
-        = isOffer
-            ? this.peerconnection.createOffer.bind(this.peerconnection)
-            : this.peerconnection.createAnswer.bind(this.peerconnection);
+    const _successCallback = resultSdp => {
+        try {
+            this.trace(
+                `create${logName}OnSuccess::preTransform`, dumpSDP(resultSdp));
 
-    offerOrAnswerMethod(
-        resultSdp => {
-            try {
+            // if we're using unified plan, transform to Plan B.
+            if (RTCBrowserType.usesUnifiedPlan()) {
+                // eslint-disable-next-line no-param-reassign
+                resultSdp = this.interop.toPlanB(resultSdp);
                 this.trace(
-                    `create${logName}OnSuccess::preTransform`,
+                    `create${logName}OnSuccess::postTransform (Plan B)`,
                     dumpSDP(resultSdp));
-
-                // if we're using unified plan, transform to Plan B.
-                if (RTCBrowserType.usesUnifiedPlan()) {
-                    // eslint-disable-next-line no-param-reassign
-                    resultSdp = this.interop.toPlanB(resultSdp);
-                    this.trace(
-                        `create${logName}OnSuccess::postTransform (Plan B)`,
-                        dumpSDP(resultSdp));
-                }
-
-                /**
-                 * We don't keep ssrcs consitent for Firefox because rewriting
-                 *  the ssrcs between createAnswer and setLocalDescription
-                 *  breaks the caching in sdp-interop (sdp-interop must
-                 *  know about all ssrcs, and it updates its cache in
-                 *  toPlanB so if we rewrite them after that, when we
-                 *  try and go back to unified plan it will complain
-                 *  about unmapped ssrcs)
-                 */
-                if (!RTCBrowserType.isFirefox()) {
-                    // If there are no local video tracks, then a "recvonly"
-                    // SSRC needs to be generated
-                    if (!this.getLocalTracks(MediaType.VIDEO).length) {
-                        this.sdpConsistency.setPrimarySsrc(
-                            SDPUtil.generateSsrc());
-                    }
-                    resultSdp.sdp
-                        = this.sdpConsistency.makeVideoPrimarySsrcsConsistent(
-                            resultSdp.sdp);
-                    resultSdp.sdp
-                        = this.sdpConsistency.makeAudioSSRCConsistent(
-                            resultSdp.sdp);
-                    this.trace(
-                        `create${logName}OnSuccess::postTransform `
-                             + '(make primary audio/video ssrcs consistent)',
-                        dumpSDP(resultSdp));
-                }
-
-                // Add simulcast streams if simulcast is enabled
-                if (this.isSimulcastOn()) {
-
-                    // eslint-disable-next-line no-param-reassign
-                    resultSdp = this.simulcast.mungeLocalDescription(resultSdp);
-                    this.trace(
-                        `create${logName}`
-                            + 'OnSuccess::postTransform (simulcast)',
-                        dumpSDP(resultSdp));
-                }
-
-                if (!this.options.disableRtx && RTCBrowserType.supportsRtx()) {
-                    resultSdp.sdp
-                        = this.rtxModifier.modifyRtxSsrcs(resultSdp.sdp);
-                    this.trace(
-                        `create${logName}`
-                             + 'OnSuccess::postTransform (rtx modifier)',
-                        dumpSDP(resultSdp));
-                }
-
-                // Fix the setup attribute (see _fixAnswerRFC4145Setup for
-                //  details)
-                if (!isOffer) {
-                    const remoteDescription
-                        = new SDP(this.remoteDescription.sdp);
-                    const localDescription = new SDP(resultSdp.sdp);
-
-                    _fixAnswerRFC4145Setup(remoteDescription, localDescription);
-                    resultSdp.sdp = localDescription.raw;
-                }
-
-                const ssrcMap = extractSSRCMap(resultSdp);
-
-                logger.info('Got SSRC MAP: ', ssrcMap);
-
-                // Set up the ssrcHandler for the new track before we add it at
-                // the lower levels
-                this._applyLocalSSRCMap(ssrcMap);
-
-                successCallback(resultSdp);
-            } catch (e) {
-                this.trace(`create${logName}OnError`, e);
-                this.trace(`create${logName}OnError`, dumpSDP(resultSdp));
-                logger.error(
-                    `create${logName}OnError`, e, dumpSDP(resultSdp));
-                failureCallback(e);
             }
-        },
-        err => {
-            this.trace(`create${logName}OnFailure`, err);
-            const eventType
-                = isOffer
-                    ? RTCEvents.CREATE_OFFER_FAILED
-                    : RTCEvents.CREATE_ANSWER_FAILED;
 
-            this.eventEmitter.emit(eventType, err, this.peerconnection);
-            failureCallback(err);
-        },
-        constraints);
+            /**
+             * We don't keep ssrcs consitent for Firefox because rewriting
+             *  the ssrcs between createAnswer and setLocalDescription breaks
+             *  the caching in sdp-interop (sdp-interop must know about all
+             *  ssrcs, and it updates its cache in toPlanB so if we rewrite them
+             *  after that, when we try and go back to unified plan it will
+             *  complain about unmapped ssrcs)
+             */
+            if (!RTCBrowserType.isFirefox()) {
+                // If there are no local video tracks, then a "recvonly"
+                // SSRC needs to be generated
+                if (!this.getLocalTracks(MediaType.VIDEO).length) {
+                    this.sdpConsistency.setPrimarySsrc(
+                        SDPUtil.generateSsrc());
+                }
+                resultSdp.sdp
+                    = this.sdpConsistency.makeVideoPrimarySsrcsConsistent(
+                        resultSdp.sdp);
+                resultSdp.sdp
+                    = this.sdpConsistency.makeAudioSSRCConsistent(
+                        resultSdp.sdp);
+                this.trace(
+                    `create${logName}OnSuccess::postTransform `
+                         + '(make primary audio/video ssrcs consistent)',
+                    dumpSDP(resultSdp));
+            }
+
+            // Add simulcast streams if simulcast is enabled
+            if (this.isSimulcastOn()) {
+
+                // eslint-disable-next-line no-param-reassign
+                resultSdp = this.simulcast.mungeLocalDescription(resultSdp);
+                this.trace(
+                    `create${logName}`
+                        + 'OnSuccess::postTransform (simulcast)',
+                    dumpSDP(resultSdp));
+            }
+
+            if (!this.options.disableRtx && RTCBrowserType.supportsRtx()) {
+                resultSdp.sdp
+                    = this.rtxModifier.modifyRtxSsrcs(resultSdp.sdp);
+                this.trace(
+                    `create${logName}`
+                         + 'OnSuccess::postTransform (rtx modifier)',
+                    dumpSDP(resultSdp));
+            }
+
+            // Fix the setup attribute (see _fixAnswerRFC4145Setup for
+            //  details)
+            if (!isOffer) {
+                const remoteDescription
+                    = new SDP(this.remoteDescription.sdp);
+                const localDescription = new SDP(resultSdp.sdp);
+
+                _fixAnswerRFC4145Setup(remoteDescription, localDescription);
+                resultSdp.sdp = localDescription.raw;
+            }
+
+            const ssrcMap = extractSSRCMap(resultSdp);
+
+            logger.info('Got SSRC MAP: ', ssrcMap);
+
+            // Set up the ssrcHandler for the new track before we add it at
+            // the lower levels
+            this._applyLocalSSRCMap(ssrcMap);
+
+            successCallback(resultSdp);
+        } catch (e) {
+            this.trace(`create${logName}OnError`, e);
+            this.trace(`create${logName}OnError`, dumpSDP(resultSdp));
+            logger.error(`create${logName}OnError`, e, dumpSDP(resultSdp));
+            failureCallback(e);
+        }
+    };
+
+    const _errorCallback = err => {
+        this.trace(`create${logName}OnFailure`, err);
+        const eventType
+            = isOffer
+                ? RTCEvents.CREATE_OFFER_FAILED
+                : RTCEvents.CREATE_ANSWER_FAILED;
+
+        this.eventEmitter.emit(eventType, err, this.peerconnection);
+        failureCallback(err);
+    };
+
+    // NOTE Temasys plugin does not support "bind" on peerconnection methods
+    if (isOffer) {
+        this.peerconnection.createOffer(
+            _successCallback, _errorCallback, constraints);
+    } else {
+        this.peerconnection.createAnswer(
+            _successCallback, _errorCallback, constraints);
+    }
 };
 
 /* eslint-enable max-params */
