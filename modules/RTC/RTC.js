@@ -180,22 +180,18 @@ export default class RTC extends Listenable {
      * @param {array} lastNEndpoints the new Last N endpoints.
      * @private
      */
-    _onLastNChanged(lastNEndpoints) {
-        const oldLastNEndpoints = this._lastNEndpoints;
+    _onLastNChanged(lastNEndpoints = []) {
+        const oldLastNEndpoints = this._lastNEndpoints || [];
         let leavingLastNEndpoints = [];
         let enteringLastNEndpoints = [];
 
         this._lastNEndpoints = lastNEndpoints;
 
-        if (oldLastNEndpoints) {
-            leavingLastNEndpoints = oldLastNEndpoints.filter(
-                id => !this.isInLastN(id));
+        leavingLastNEndpoints = oldLastNEndpoints.filter(
+            id => !this.isInLastN(id));
 
-            if (lastNEndpoints) {
-                enteringLastNEndpoints = lastNEndpoints.filter(
-                    id => oldLastNEndpoints.indexOf(id) === -1);
-            }
-        }
+        enteringLastNEndpoints = lastNEndpoints.filter(
+            id => oldLastNEndpoints.indexOf(id) === -1);
 
         this.conference.eventEmitter.emit(
             JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED,
