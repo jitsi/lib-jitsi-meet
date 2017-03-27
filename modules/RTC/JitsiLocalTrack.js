@@ -73,13 +73,6 @@ function JitsiLocalTrack(
     this.inMuteOrUnmuteProgress = false;
 
     /**
-     * An array which stores the peer connection to which this local track is
-     * currently attached to. See {@link TraceablePeerConnection.attachTrack}.
-     * @type {Set<TraceablePeerConnection>}
-     */
-    this.peerConnections = new Set();
-
-    /**
      * The facing mode of the camera from which this JitsiLocalTrack instance
      * was obtained.
      */
@@ -157,34 +150,6 @@ function JitsiLocalTrack(
 
 JitsiLocalTrack.prototype = Object.create(JitsiTrack.prototype);
 JitsiLocalTrack.prototype.constructor = JitsiLocalTrack;
-
-JitsiLocalTrack.prototype._addPeerConnection = function(tpc) {
-    if (this._isAttachedToPC(tpc)) {
-        logger.error(`${tpc} has been associated with ${this} already !`);
-    } else {
-        this.peerConnections.add(tpc);
-    }
-};
-
-JitsiLocalTrack.prototype._removePeerConnection = function(tpc) {
-    if (this._isAttachedToPC(tpc)) {
-        this.peerConnections.delete(tpc);
-    } else {
-        logger.error(`${tpc} is not associated with ${this}`);
-    }
-};
-
-/**
- * Checks whether or not this instance is attached to given
- * <tt>TraceablePeerConnection</tt>. See
- * {@link TraceablePeerConnection.attachTrack} for more info.
- * @param {TraceablePeerConnection.attachTrack} tpc
- * @return {boolean} <tt>true</tt> if this tracks is currently attached to given
- * peer connection or <tt>false</tt> otherwise.
- */
-JitsiLocalTrack.prototype._isAttachedToPC = function(tpc) {
-    return this.peerConnections.has(tpc);
-};
 
 /**
  * Returns if associated MediaStreamTrack is in the 'ended' state

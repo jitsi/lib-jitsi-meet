@@ -22,12 +22,6 @@ export default class SdpConsistency {
      */
     constructor() {
         this.clearVideoSsrcCache();
-
-        /**
-         * Cached audio SSRC.
-         * @type {number|null}
-         */
-        this.cachedAudioSSRC = null;
     }
 
     /**
@@ -70,12 +64,6 @@ export default class SdpConsistency {
 
         if (!videoMLine) {
             logger.error(`No 'video' media found in the sdp: ${sdpStr}`);
-
-            return sdpStr;
-        }
-        if (videoMLine.direction === 'inactive') {
-            logger.info(
-                'Sdp-consistency doing nothing, video mline is inactive');
 
             return sdpStr;
         }
@@ -122,54 +110,6 @@ export default class SdpConsistency {
                     `Sdp-consistency caching primary ssrc ${
                         this.cachedPrimarySsrc}`);
             }
-        }
-
-        return sdpTransformer.toRawSDP();
-    }
-
-    /**
-     * Makes sure that audio SSRC is preserved between "detach" and "attach"
-     *  operations. The code assumes there can be only 1 audio track added to
-     *  the peer connection at a time.
-     * @param {string} sdpStr the sdp string to (potentially)
-     *  change to make the audio ssrc consistent
-     * @returns {string} a (potentially) modified sdp string
-     *  with ssrcs consistent with this class' cache
-     */
-    makeAudioSSRCConsistent(sdpStr) {
-        const sdpTransformer = new SdpTransformWrap(sdpStr);
-        const audioMLine = sdpTransformer.selectMedia('audio');
-
-        if (!audioMLine) {
-            logger.error(`No 'audio' media found in the sdp: ${sdpStr}`);
-
-            return sdpStr;
-        }
-        if (audioMLine.direction === 'inactive') {
-            logger.info(
-                'Sdp-consistency doing nothing, audio mline is inactive');
-
-            return sdpStr;
-        }
-
-        const audioSSRCObj = audioMLine.findSSRCByMSID(null);
-
-        if (audioSSRCObj) {
-            if (this.cachedAudioSSRC) {
-                const oldSSRC = audioSSRCObj.id;
-
-                if (oldSSRC !== this.cachedAudioSSRC) {
-                    logger.info(
-                        `Replacing audio SSRC ${
-                            oldSSRC} with ${this.cachedAudioSSRC}`);
-                    audioMLine.replaceSSRC(oldSSRC, this.cachedAudioSSRC);
-                }
-            } else {
-                this.cachedAudioSSRC = audioSSRCObj.id;
-                logger.info(`Storing audio SSRC: ${this.cachedAudioSSRC}`);
-            }
-        } else {
-            logger.info('Doing nothing - no audio stream in the SDP');
         }
 
         return sdpTransformer.toRawSDP();

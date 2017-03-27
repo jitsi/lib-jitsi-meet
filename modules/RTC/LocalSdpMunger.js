@@ -25,106 +25,6 @@ export default class LocalSdpMunger {
     }
 
     /**
-     * Makes sure that detached local audio tracks stored in the parent
-     * {@link TraceablePeerConnection} are described in the local SDP.
-     * It's done in order to prevent from sending 'source-remove'/'source-add'
-     * Jingle notifications when local audio track is detached from
-     * the {@link TraceablePeerConnection}.
-     * @param {SdpTransformWrap} transformer the transformer instance which will
-     * be used to process the SDP.
-     * @return {boolean} <tt>true</tt> if there were any modifications to
-     * the SDP wrapped by <tt>transformer</tt>.
-     * @private
-     */
-    _addDetachedLocalAudioTracksToSDP(transformer) {
-        const localAudio = this.tpc.getLocalTracks(MediaType.AUDIO);
-
-        if (!localAudio.length) {
-            return false;
-        }
-        const audioMLine = transformer.selectMedia('audio');
-
-        if (!audioMLine) {
-            logger.error(
-                'Unable to hack local audio track SDP - no "audio" media');
-
-            return false;
-        }
-
-        if (audioMLine.direction === 'inactive') {
-            logger.error(
-                'Not doing local audio transform for "inactive" direction');
-
-            return false;
-        }
-
-        let modified = false;
-
-        for (const audioTrack of localAudio) {
-            const isAttached = audioTrack._isAttachedToPC(this.tpc);
-            const shouldFake = !isAttached;
-
-            logger.debug(
-                `${audioTrack} isAttached: ${isAttached
-                    } => should fake audio SDP ?: ${shouldFake}`);
-
-            if (!shouldFake) {
-                // not using continue increases indentation
-                // eslint-disable-next-line no-continue
-                continue;
-            }
-
-            // Inject removed SSRCs
-            const audioSSRC = this.tpc.getLocalSSRC(audioTrack);
-            const audioMSID = audioTrack.storedMSID;
-
-            if (!audioSSRC) {
-                logger.error(
-                    `Can't fake SDP for ${audioTrack} - no SSRC stored`);
-
-                // Aborts the forEach on this particular track,
-                // but will continue with the other ones
-                // eslint-disable-next-line no-continue
-                continue;
-            } else if (!audioMSID) {
-                logger.error(
-                    `No MSID stored for local audio SSRC: ${audioSSRC}`);
-
-                // eslint-disable-next-line no-continue
-                continue;
-            }
-
-            if (audioMLine.getSSRCCount() > 0) {
-                logger.debug(
-                    'Doing nothing - audio SSRCs are still there');
-
-                // audio SSRCs are still there
-                // eslint-disable-next-line no-continue
-                continue;
-            }
-
-            modified = true;
-
-            // We need to fake sendrecv
-            audioMLine.direction = 'sendrecv';
-
-            logger.debug(`Injecting audio SSRC: ${audioSSRC}`);
-            audioMLine.addSSRCAttribute({
-                id: audioSSRC,
-                attribute: 'cname',
-                value: `injected-${audioSSRC}`
-            });
-            audioMLine.addSSRCAttribute({
-                id: audioSSRC,
-                attribute: 'msid',
-                value: audioMSID
-            });
-        }
-
-        return modified;
-    }
-
-    /**
      * Makes sure that detached (or muted) local video tracks associated with
      * the parent {@link TraceablePeerConnection} are described in the local
      * SDP. It's done in order to prevent from sending
@@ -138,6 +38,9 @@ export default class LocalSdpMunger {
      * @return {boolean} <tt>true</tt> if there were any modifications to
      * the SDP wrapped by <tt>transformer</tt>.
      * @private
+     *
+     * FIXME rename to "muted video tracks"
+     *
      */
     _addDetachedLocalVideoTracksToSDP(transformer) {
         // Go over each video tracks and check if the SDP has to be changed
@@ -160,26 +63,17 @@ export default class LocalSdpMunger {
             return false;
         }
 
-        if (videoMLine.direction === 'inactive') {
-            logger.error(
-                'Not doing local video transform for "inactive" direction.');
-
-            return false;
-        }
-
         let modified = false;
 
         for (const videoTrack of localVideos) {
             const isMuted = videoTrack.isMuted();
             const muteInProgress = videoTrack.inMuteOrUnmuteProgress;
-            const isAttached = videoTrack._isAttachedToPC(this.tpc);
-            const shouldFakeSdp = isMuted || muteInProgress || !isAttached;
+            const shouldFakeSdp = isMuted || muteInProgress;
 
             logger.debug(
                 `${videoTrack
                  } isMuted: ${isMuted
                  }, is mute in progress: ${muteInProgress
-                 }, is attached ? : ${isAttached
                  } => should fake sdp ? : ${shouldFakeSdp}`);
 
             if (!shouldFakeSdp) {
@@ -211,7 +105,11 @@ export default class LocalSdpMunger {
 
             modified = true;
 
-            // We need to fake sendrecv
+            // We need to fake sendrecv.
+            // NOTE the SDP produced here goes only to Jicofo and is never set
+            // as localDescription. That's why
+            // {@link TraceablePeerConnection.mediaTransferActive} is ignored
+            // here.
             videoMLine.direction = 'sendrecv';
 
             // Check if the recvonly has MSID
@@ -283,12 +181,8 @@ export default class LocalSdpMunger {
         }
 
         const transformer = new SdpTransformWrap(desc.sdp);
-        let modified = this._addDetachedLocalAudioTracksToSDP(transformer);
 
         if (this._addDetachedLocalVideoTracksToSDP(transformer)) {
-            modified = true;
-        }
-        if (modified) {
             // Write
             desc.sdp = transformer.toRawSDP();
 

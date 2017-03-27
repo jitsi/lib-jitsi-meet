@@ -14,6 +14,7 @@ import RtxModifier from '../xmpp/RtxModifier.js';
 // FIXME SDP tools should end up in some kind of util module
 import SDP from '../xmpp/SDP';
 import SdpConsistency from '../xmpp/SdpConsistency.js';
+import { SdpTransformWrap } from '../xmpp/SdpTransformUtil';
 import SDPUtil from '../xmpp/SDPUtil';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import transform from 'sdp-transform';
@@ -55,6 +56,16 @@ function TraceablePeerConnection(
         constraints,
         isP2P,
         options) {
+
+    /**
+     * Indicates whether or not this peer connection instance is actively
+     * sending/receiving media. When set to <tt>false</tt> the SDP media
+     * direction will be adjusted to 'inactive' in order to suspend media
+     * transmission.
+     * @type {boolean}
+     * @private
+     */
+    this.mediaTransferActive = true;
 
     /**
      * The parent instance of RTC service which created this
@@ -326,6 +337,27 @@ TraceablePeerConnection.prototype.getConnectionState = function() {
 };
 
 /**
+ * Obtains the media direction for given {@link MediaType}. The method takes
+ * into account whether or not there are any local tracks for media and
+ * the {@link mediaTransferActive} flag.
+ * @param {MediaType} mediaType
+ * @return {string} one of the SDP direction constants ('sendrecv, 'recvonly'
+ * etc.) which should be used when setting local description on the peer
+ * connection.
+ * @private
+ */
+TraceablePeerConnection.prototype._getDesiredMediaDirection
+= function(mediaType) {
+    const anyLocalTracks = this.hasAnyTracksOfType(mediaType);
+
+    if (this.mediaTransferActive) {
+        return anyLocalTracks ? 'sendrecv' : 'recvonly';
+    }
+
+    return 'inactive';
+};
+
+/**
  * Tells whether or not this TPC instance is using Simulcast.
  * @return {boolean} <tt>true</tt> if simulcast is enabled and active or
  * <tt>false</tt> if it's turned off.
@@ -381,6 +413,12 @@ TraceablePeerConnection.prototype._peerMutedChanged
     }
 };
 
+/**
+ * Obtains local tracks for given {@link MediaType}. If the <tt>mediaType</tt>
+ * argument is omitted the list of all local tracks will be returned.
+ * @param {MediaType} [mediaType]
+ * @return {Array<JitsiLocalTrack>}
+ */
 TraceablePeerConnection.prototype.getLocalTracks = function(mediaType) {
     let tracks = Array.from(this.localTracks.values());
 
@@ -389,6 +427,20 @@ TraceablePeerConnection.prototype.getLocalTracks = function(mediaType) {
     }
 
     return tracks;
+};
+
+/**
+ * Checks whether or not this {@link TraceablePeerConnection} instance contains
+ * any local tracks for given <tt>mediaType</tt>.
+ * @param {MediaType} mediaType
+ * @return {boolean}
+ */
+TraceablePeerConnection.prototype.hasAnyTracksOfType = function(mediaType) {
+    if (!mediaType) {
+        throw new Error('"mediaType" is required');
+    }
+
+    return this.getLocalTracks(mediaType).length > 0;
 };
 
 /**
@@ -1031,7 +1083,6 @@ TraceablePeerConnection.prototype.addTrack = function(track) {
     }
 
     this.localTracks.set(rtcId, track);
-    track._addPeerConnection(this);
 
     const webrtcStream = track.getOriginalStream();
 
@@ -1088,25 +1139,18 @@ TraceablePeerConnection.prototype.addTrackUnmute = function(track) {
         return false;
     }
 
-    if (track._isAttachedToPC(this)) {
-        logger.info(`Adding ${track} as unmute to ${this}`);
-        const webRtcStream = track.getOriginalStream();
+    logger.info(`Adding ${track} as unmute to ${this}`);
+    const webRtcStream = track.getOriginalStream();
 
-        if (!webRtcStream) {
-            logger.error(
-                `Unable to add ${track} as unmute to ${this}`
-                    + ' - no WebRTC stream');
+    if (!webRtcStream) {
+        logger.error(
+            `Unable to add ${track} as unmute to ${this} - no WebRTC stream`);
 
-            return false;
-        }
-        this._addStream(webRtcStream);
-
-        return true;
+        return false;
     }
+    this._addStream(webRtcStream);
 
-    logger.info(`Not adding detached ${track} as unmute to ${this}`);
-
-    return false;
+    return true;
 };
 
 /**
@@ -1154,101 +1198,6 @@ TraceablePeerConnection.prototype._assertTrackBelongs
 };
 
 /**
- * Checks whether given track is attached to this TPC. See
- * {@link JitsiLocalTrack._isAttachedToPC} and {@link attachTrack} for more
- * info.
- * @param {JitsiLocalTrack} localTrack
- * @return {boolean} <tt>true</tt> if attached or <tt>false</tt> otherwise
- * @private
- */
-TraceablePeerConnection.prototype._isTrackAttached = function(localTrack) {
-    return localTrack._isAttachedToPC(this);
-};
-
-/**
- * Detaches given local track from this peer connection. A detached track will
- * be removed from the underlying <tt>PeerConnection</tt>, but it will remain
- * associated with this TPC. The {@link LocalSdpMunger} module will fake the
- * local description exposed to {@link JingleSessionPC} in the way that track's
- * SSRC will be still on place. It will prevent from any signaling updates and
- * make other participants think that the track is still there even though they
- * will receive no data for the underlying media stream.
- * @param {JitsiLocalTrack} localTrack
- */
-TraceablePeerConnection.prototype.detachTrack = function(localTrack) {
-    if (!this._assertTrackBelongs('detachTrack', localTrack)) {
-        // Abort
-        return;
-    } else if (!localTrack._isAttachedToPC(this)) {
-        // Abort
-        logger.error(
-            'An attempt to detach a not-attached '
-                + `${localTrack} from ${this} was made`);
-
-        return;
-    }
-
-    const webRtcStream = localTrack.getOriginalStream();
-
-    // Muted video track will not have WebRTC stream
-    if (webRtcStream) {
-        this._removeStream(webRtcStream);
-    } else if (localTrack.isVideoTrack() && localTrack.isMuted()) {
-        // It is normal that muted video track does not have WebRTC stream
-    } else {
-        logger.error(`${this} detach ${localTrack} - no WebRTC stream`);
-    }
-
-    localTrack._removePeerConnection(this);
-
-    logger.debug(`Detached ${localTrack} from ${this}`);
-};
-
-/**
- * This operation reverts {@link detachTrack} (see for more info). The
- * underlying <tt>MediaStream</tt> will be added back to the peer connection
- * and {@link LocalSdpMunger} module will no longer fake it's SSRC through the
- * local description exposed to {@link JingleSessionPC}.
- * @param {JitsiLocalTrack} localTrack
- */
-TraceablePeerConnection.prototype.attachTrack = function(localTrack) {
-    if (!this._assertTrackBelongs('attachTrack', localTrack)) {
-        // Abort
-        return;
-    } else if (localTrack._isAttachedToPC(this)) {
-        // Abort
-        logger.error(
-            'An attempt to attach an already attached '
-            + `${localTrack} to ${this} was made`);
-
-        return;
-    }
-
-    localTrack._addPeerConnection(this);
-
-    logger.debug(`Attached ${localTrack} to ${this}`);
-
-    // Muted video tracks are not added to the PeerConnection
-    if (!localTrack.isVideoTrack() || !localTrack.isMuted()) {
-        const webRtcStream = localTrack.getOriginalStream();
-
-        if (webRtcStream) {
-            this._addStream(webRtcStream);
-
-            return true;
-        }
-
-        logger.error(`${this} attach - no WebRTC stream for: ${localTrack}`);
-
-        return false;
-    }
-
-    logger.debug(`${this} attach ${localTrack} - not adding to PC`);
-
-    return false;
-};
-
-/**
  * Remove local track from this TPC.
  * @param {JitsiLocalTrack} localTrack the track to be removed from this TPC.
  *
@@ -1268,11 +1217,6 @@ TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
     }
     this.localTracks.delete(localTrack.rtcId);
     this.localSSRCs.delete(localTrack.rtcId);
-
-    // A detached track will not require removal
-    if (this._isTrackAttached(localTrack)) {
-        localTrack._removePeerConnection(this);
-    }
 
     if (webRtcStream) {
         if (RTCBrowserType.isFirefox()) {
@@ -1299,12 +1243,6 @@ TraceablePeerConnection.prototype.removeTrackMute = function(localTrack) {
 
     if (!this._assertTrackBelongs('removeStreamMute', localTrack)) {
         // Abort - nothing to be done here
-        return false;
-    } else if (!localTrack._isAttachedToPC(this)) {
-        // Abort - nothing to be done here
-        logger.warn(
-            `Not removing detached ${localTrack} as unmute from ${this}`);
-
         return false;
     }
 
@@ -1375,11 +1313,61 @@ TraceablePeerConnection.prototype.createDataChannel = function(label, opts) {
     return this.peerconnection.createDataChannel(label, opts);
 };
 
+/**
+ * Will adjust audio and video media direction in the given SDP object to
+ * reflect the current status of the {@link mediaTransferActive} flag.
+ * @param {Object} localDescription the WebRTC session description instance for
+ * the local description.
+ * @private
+ */
+TraceablePeerConnection.prototype._adjustLocalMediaDirection
+= function(localDescription) {
+    const transformer = new SdpTransformWrap(localDescription.sdp);
+    let modifiedDirection = false;
+    const audioMedia = transformer.selectMedia('audio');
+
+    if (audioMedia) {
+        const desiredAudioDirection
+            = this._getDesiredMediaDirection(MediaType.AUDIO);
+
+        if (audioMedia.direction !== desiredAudioDirection) {
+            audioMedia.direction = desiredAudioDirection;
+            logger.info(
+                `Adjusted local audio direction to ${desiredAudioDirection}`);
+            modifiedDirection = true;
+        }
+    } else {
+        logger.warn('No "audio" media found int the local description');
+    }
+
+    const videoMedia = transformer.selectMedia('video');
+
+    if (videoMedia) {
+        const desiredVideoDirection
+            = this._getDesiredMediaDirection(MediaType.VIDEO);
+
+        if (videoMedia.direction !== desiredVideoDirection) {
+            videoMedia.direction = desiredVideoDirection;
+            logger.info(
+                `Adjusted local video direction to ${desiredVideoDirection}`);
+            modifiedDirection = true;
+        }
+    } else {
+        logger.warn('No "video" media found in the local description');
+    }
+
+    if (modifiedDirection) {
+        localDescription.sdp = transformer.toRawSDP();
+    }
+};
+
 TraceablePeerConnection.prototype.setLocalDescription
 = function(description, successCallback, failureCallback) {
     let localSdp = description;
 
     this.trace('setLocalDescription::preTransform', dumpSDP(localSdp));
+
+    this._adjustLocalMediaDirection(localSdp);
 
     // if we're using unified plan, transform to it first.
     if (RTCBrowserType.usesUnifiedPlan()) {
@@ -1409,6 +1397,19 @@ TraceablePeerConnection.prototype.setLocalDescription
             failureCallback(err);
         }
     );
+};
+
+/**
+ * Enables/disables media transmission on this peer connection. When disabled
+ * the SDP media direction in the local SDP will be adjusted to 'inactive' which
+ * means that no data will be received or sent, but the connection should be
+ * kept alive.
+ * @param {boolean} active <tt>true</tt> to enable the media transmission or
+ * <tt>false</tt> to disable.
+ * @public
+ */
+TraceablePeerConnection.prototype.setMediaTransferActive = function(active) {
+    this.mediaTransferActive = active;
 };
 
 TraceablePeerConnection.prototype.setRemoteDescription
@@ -1623,9 +1624,6 @@ TraceablePeerConnection.prototype._createOfferOrAnswer
                 }
                 resultSdp.sdp
                     = this.sdpConsistency.makeVideoPrimarySsrcsConsistent(
-                        resultSdp.sdp);
-                resultSdp.sdp
-                    = this.sdpConsistency.makeAudioSSRCConsistent(
                         resultSdp.sdp);
                 this.trace(
                     `create${logName}OnSuccess::postTransform `
