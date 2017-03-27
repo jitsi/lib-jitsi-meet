@@ -1475,11 +1475,9 @@ TraceablePeerConnection.prototype.setRemoteDescription
 /**
  * Makes the underlying TraceablePeerConnection generate new SSRC for
  * the recvonly video stream.
- * @deprecated
  */
 TraceablePeerConnection.prototype.generateRecvonlySsrc = function() {
-    // FIXME replace with SDPUtil.generateSsrc (when it's added)
-    const newSSRC = this.generateNewStreamSSRCInfo().ssrcs[0];
+    const newSSRC = SDPUtil.generateSsrc();
 
     logger.info(`Generated new recvonly SSRC: ${newSSRC}`);
     this.sdpConsistency.setPrimarySsrc(newSSRC);
@@ -1488,7 +1486,6 @@ TraceablePeerConnection.prototype.generateRecvonlySsrc = function() {
 /**
  * Makes the underlying TraceablePeerConnection forget the current primary video
  * SSRC.
- * @deprecated
  */
 TraceablePeerConnection.prototype.clearRecvonlySsrc = function() {
     logger.info('Clearing primary video SSRC!');
@@ -1616,15 +1613,18 @@ TraceablePeerConnection.prototype._createOfferOrAnswer
              *  complain about unmapped ssrcs)
              */
             if (!RTCBrowserType.isFirefox()) {
+                const isVideoRecvOnly
+                    = !this.hasAnyTracksOfType(MediaType.VIDEO);
+
                 // If there are no local video tracks, then a "recvonly"
                 // SSRC needs to be generated
-                if (!this.getLocalTracks(MediaType.VIDEO).length) {
-                    this.sdpConsistency.setPrimarySsrc(
-                        SDPUtil.generateSsrc());
+                if (isVideoRecvOnly
+                    && !this.sdpConsistency.hasPrimarySsrcCached()) {
+                    this.generateRecvonlySsrc();
                 }
                 resultSdp.sdp
                     = this.sdpConsistency.makeVideoPrimarySsrcsConsistent(
-                        resultSdp.sdp);
+                        resultSdp.sdp, isVideoRecvOnly);
                 this.trace(
                     `create${logName}OnSuccess::postTransform `
                          + '(make primary audio/video ssrcs consistent)',
