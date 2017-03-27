@@ -2,7 +2,7 @@
 import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 
-import EventEmitter from 'events';
+import Listenable from '../util/Listenable';
 
 import * as Constants from './VideoSIPGWConstants';
 
@@ -16,7 +16,7 @@ const STATE_CHANGED = 'STATE_CHANGED';
  * Jitsi video SIP GW session. Holding its state and able to start/stop it.
  * When session is in OFF or FAILED stated it cannot be used anymore.
  */
-export default class JitsiVideoSIPGWSession {
+export default class JitsiVideoSIPGWSession extends Listenable {
 
     /**
      * Creates new session with the desired sip address and display name.
@@ -28,11 +28,16 @@ export default class JitsiVideoSIPGWSession {
      * @param {ChatRoom} chatRoom - The chat room this session is bound to.
      */
     constructor(sipAddress, displayName, chatRoom) {
+        super();
+
         this.sipAddress = sipAddress;
         this.displayName = displayName;
         this.chatRoom = chatRoom;
 
-        this.eventEmitter = new EventEmitter();
+        // The initial state is undefined. Initial state cannot be STATE_OFF,
+        // the session enters this state when it was in STATE_ON and was stopped
+        // and such session cannot be used anymore
+        this.state = undefined;
     }
 
     /**
@@ -96,7 +101,7 @@ export default class JitsiVideoSIPGWSession {
      * @param {Function} listener - The function that will receive the event.
      */
     addStateListener(listener) {
-        this.eventEmitter.addListener(STATE_CHANGED, listener);
+        this.addListener(STATE_CHANGED, listener);
     }
 
     /**
@@ -105,17 +110,14 @@ export default class JitsiVideoSIPGWSession {
      * @param {Function} listener - The function to be removed.
      */
     removeStateListener(listener) {
-        this.eventEmitter.removeListener(STATE_CHANGED, listener);
+        this.removeListener(STATE_CHANGED, listener);
     }
 
     /**
      * Sends a jibri command using an iq.
      *
      * @private
-     * @param {JitsiVideoSIPGWSession} videoSIPGWSession - The session
-     * sending the command.
      * @param {string} action - The action to send ('start' or 'stop').
-     * @param {ChatRoom} chatRoom - The chat room to send the iq to.
      */
     _sendJibriIQ(action) {
         const attributes = {

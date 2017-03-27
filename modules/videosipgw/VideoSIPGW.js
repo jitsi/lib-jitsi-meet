@@ -23,6 +23,9 @@ export default class VideoSIPGW {
 
         this.sessionStateChangeListener = this.sessionStateChanged.bind(this);
 
+        // VideoSIPGW, JitsiConference and ChatRoom are not reusable and no
+        // more than one VideoSIPGW can be created per JitsiConference,
+        // so we don't bother to cleanup
         chatRoom.addPresenceListener('jibri-sip-status',
             this.handleJibriSIPStatus.bind(this));
         chatRoom.addPresenceListener('jibri-sip-call-state',
@@ -32,7 +35,8 @@ export default class VideoSIPGW {
     /**
      * Handles presence nodes with name: jibri-sip-status.
      *
-     * @param node the presence node to handle.
+     * @param {Object} node the presence node Object to handle.
+     * Object representing part of the presence received over xmpp.
      */
     handleJibriSIPStatus(node) {
         const attributes = node.attributes;
@@ -58,7 +62,8 @@ export default class VideoSIPGW {
     /**
      * Handles presence nodes with name: jibri-sip-call-state.
      *
-     * @param node the presence node to handle.
+     * @param {Object} node the presence node Object to handle.
+     * Object representing part of the presence received over xmpp.
      */
     handleJibriSIPState(node) {
         const attributes = node.attributes;
@@ -111,6 +116,12 @@ export default class VideoSIPGW {
             sipAddress, displayName, this.chatRoom);
 
         session.addStateListener(this.sessionStateChangeListener);
+
+        if (this.sessions[sipAddress]) {
+            logger.warn('There was already a Video SIP GW session for address',
+                sipAddress);
+        }
+
         this.sessions[sipAddress] = session;
 
         return session;
@@ -136,6 +147,13 @@ export default class VideoSIPGW {
         if (event.newState === Constants.STATE_OFF
             || event.newState === Constants.STATE_FAILED) {
             const session = this.sessions[address];
+
+            if (!session) {
+                logger.error('Missing Video SIP GW session with address:',
+                    address);
+
+                return;
+            }
 
             session.removeStateListener(this.sessionStateChangeListener);
             delete this.sessions[address];

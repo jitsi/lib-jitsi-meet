@@ -2341,13 +2341,26 @@ JitsiConference.prototype.getSpeakerStats = function() {
 };
 
 /**
+ * Get video SIP GW handler, if missing will create one.
+ *
+ * @returns {VideoSIPGW} video SIP GW handler.
+ */
+JitsiConference.prototype._getVideoSIPGWHandle = function() {
+    if (!this.videoSIPGWHandler) {
+        this.videoSIPGWHandler = new VideoSIPGW(this.room);
+        logger.info('Created VideoSIPGW');
+    }
+
+    return this.videoSIPGWHandler;
+};
+
+/**
  * Checks whether video SIP GW service is available.
  *
  * @returns {boolean} whether video SIP GW service is available.
  */
 JitsiConference.prototype.isVideoSIPGWAvailable = function() {
-    return this.videoSIPGWHandler
-        && this.videoSIPGWHandler.isVideoSIPGWAvailable();
+    return this._getVideoSIPGWHandle().isVideoSIPGWAvailable();
 };
 
 /**
@@ -2355,7 +2368,8 @@ JitsiConference.prototype.isVideoSIPGWAvailable = function() {
  *
  * @param {string} sipAddress - The sip address to be used.
  * @param {string} displayName - The display name to be used for this session.
- * @returns {JitsiVideoSIPGWSession|null}
+ * @returns {JitsiVideoSIPGWSession|null} Returns null if conference is not
+ * initialised and there is no room.
  */
 JitsiConference.prototype.createVideoSIPGWSession
     = function(sipAddress, displayName) {
@@ -2363,12 +2377,7 @@ JitsiConference.prototype.createVideoSIPGWSession
             return null;
         }
 
-        if (!this.videoSIPGWHandler) {
-            this.videoSIPGWHandler = new VideoSIPGW(this.room);
-            logger.info('Created VideoSIPGW');
-        }
-
-        return this.videoSIPGWHandler
+        return this._getVideoSIPGWHandle()
             .createVideoSIPGWSession(sipAddress, displayName);
     };
 
