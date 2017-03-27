@@ -24,6 +24,7 @@ import RTCUIHelper from './modules/RTC/RTCUIHelper';
 import ScriptUtil from './modules/util/ScriptUtil';
 import Settings from './modules/settings/Settings';
 import Statistics from './modules/statistics/statistics';
+import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 
 const logger = Logger.getLogger(__filename);
 
@@ -88,6 +89,9 @@ const LibJitsiMeet = {
     version: '{#COMMIT_HASH#}',
 
     JitsiConnection,
+    constants: {
+        sipVideoGW: VideoSIPGWConstants
+    },
     events: {
         conference: JitsiConferenceEvents,
         connection: JitsiConnectionEvents,

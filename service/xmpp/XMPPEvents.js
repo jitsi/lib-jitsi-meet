@@ -200,6 +200,14 @@ const XMPPEvents = {
      */
     TRANSPORT_INFO: 'xmpp.transportinfo.jingle',
 
+    /**
+     * Indicates that video SIP GW state changed.
+     *
+     * @param {VideoSIPGWConstants} status - Any of the following statuses:
+     * STATUS_BUSY, STATUS_AVAILABLE or STATUS_UNDEFINED.
+     */
+    VIDEO_SIP_GW_AVAILABILITY_CHANGED: 'xmpp.videoSIPGWAvailabilityChanged',
+
     // Designates an event indicating that the local ICE connection state has
     // changed.
     ICE_CONNECTION_STATE_CHANGED: 'xmpp.ice_connection_state_changed'

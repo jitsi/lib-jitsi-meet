@@ -150,6 +150,13 @@ export const PHONE_NUMBER_CHANGED = 'conference.phoneNumberChanged';
 export const RECORDER_STATE_CHANGED = 'conference.recorderStateChanged';
 
 /**
+ * Indicates that video SIP GW state changed.
+ * @param {VideoSIPGWConstants} status.
+ */
+export const VIDEO_SIP_GW_AVAILABILITY_CHANGED
+    = 'conference.videoSIPGWAvailabilityChanged';
+
+/**
  * Indicates that start muted settings changed.
  */
 export const START_MUTED_POLICY_CHANGED
