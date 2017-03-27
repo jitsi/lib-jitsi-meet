@@ -4,7 +4,7 @@ const logger = getLogger(__filename);
 
 import Listenable from '../util/Listenable';
 
-import * as Constants from './VideoSIPGWConstants';
+import * as VideoSIPGWConstants from './VideoSIPGWConstants';
 
 /**
  * The event name for current sip video session state changed.
@@ -34,9 +34,13 @@ export default class JitsiVideoSIPGWSession extends Listenable {
         this.displayName = displayName;
         this.chatRoom = chatRoom;
 
-        // The initial state is undefined. Initial state cannot be STATE_OFF,
-        // the session enters this state when it was in STATE_ON and was stopped
-        // and such session cannot be used anymore
+        /*
+         * The initial state is undefined. Initial state cannot be STATE_OFF,
+         * the session enters this state when it was in STATE_ON and was stopped
+         * and such session cannot be used anymore.
+         *
+         * @type {VideoSIPGWConstants|undefined}
+         */
         this.state = undefined;
     }
 
@@ -44,8 +48,8 @@ export default class JitsiVideoSIPGWSession extends Listenable {
      * Stops the current session.
      */
     stop() {
-        if (this.state === Constants.STATE_OFF
-            || this.state === Constants.STATE_FAILED) {
+        if (this.state === VideoSIPGWConstants.STATE_OFF
+            || this.state === VideoSIPGWConstants.STATE_FAILED) {
             logger.warn('Video SIP GW session already stopped or failed!');
 
             return;
@@ -60,10 +64,10 @@ export default class JitsiVideoSIPGWSession extends Listenable {
     start() {
         // if state is off, this session was active for some reason
         // and we should create new one, rather than reusing it
-        if (this.state === Constants.STATE_ON
-            || this.state === Constants.STATE_OFF
-            || this.state === Constants.STATE_PENDING
-            || this.state === Constants.STATE_RETRYING) {
+        if (this.state === VideoSIPGWConstants.STATE_ON
+            || this.state === VideoSIPGWConstants.STATE_OFF
+            || this.state === VideoSIPGWConstants.STATE_PENDING
+            || this.state === VideoSIPGWConstants.STATE_RETRYING) {
             logger.warn('Video SIP GW session already started!');
 
             return;
@@ -148,7 +152,7 @@ export default class JitsiVideoSIPGWSession extends Listenable {
             error => {
                 logger.log('Failed to start video SIP GW session, error: ',
                     error);
-                this.setState(Constants.STATE_FAILED);
+                this.setState(VideoSIPGWConstants.STATE_FAILED);
             });
     }
 }

@@ -2364,7 +2364,12 @@ JitsiConference.prototype.isVideoSIPGWAvailable = function() {
 };
 
 /**
- * Creates a video SIP GW session and returns it if service is enabled.
+ * Creates a video SIP GW session and returns it if service is enabled. Before
+ * creating a session one need to check whether video SIP GW service is
+ * available in the system {@link JitsiConference.isVideoSIPGWAvailable}. Even
+ * if there are available nodes to serve this request, after creating the
+ * session those nodes can be taken and the request about using the
+ * created session can fail.
  *
  * @param {string} sipAddress - The sip address to be used.
  * @param {string} displayName - The display name to be used for this session.
