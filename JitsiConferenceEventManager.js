@@ -588,6 +588,10 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
 
     conference.xmpp.addListener(XMPPEvents.START_MUTED_FROM_FOCUS,
         (audioMuted, videoMuted) => {
+            if (conference.options.config.ignoreStartMuted) {
+                return;
+            }
+
             conference.startAudioMuted = audioMuted;
             conference.startVideoMuted = videoMuted;
 
