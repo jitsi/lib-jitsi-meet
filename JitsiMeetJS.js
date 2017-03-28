@@ -15,6 +15,7 @@ import JitsiRecorderErrors from './JitsiRecorderErrors';
 import JitsiTrackError from './JitsiTrackError';
 import * as JitsiTrackErrors from './JitsiTrackErrors';
 import * as JitsiTrackEvents from './JitsiTrackEvents';
+import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import Logger from 'jitsi-meet-logger';
 import * as MediaType from './service/RTC/MediaType';
 import Resolutions from './service/RTC/Resolutions';
@@ -388,6 +389,27 @@ const LibJitsiMeet = {
             + 'JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead');
 
         return this.mediaDevices.isDeviceChangeAvailable(deviceType);
+    },
+
+
+    /**
+     * Checks if the current environment supports having multiple audio
+     * input devices in use simultaneously.
+     *
+     * @returns {boolean} True if multiple audio input devices can be used.
+     */
+    isMultipleAudioInputSupported() {
+        return this.mediaDevices.isMultipleAudioInputSupported();
+    },
+
+    /**
+     * Checks if local tracks can collect stats and collection is enabled.
+     *
+     * @param {boolean} True if stats are being collected for local tracks.
+     */
+    isCollectingLocalStats() {
+        return Statistics.audioLevelsEnabled
+            && LocalStatsCollector.isLocalStatsSupported();
     },
 
     /**
