@@ -7,11 +7,12 @@ import { SdpTransformWrap } from '../xmpp/SdpTransformUtil';
 const logger = getLogger(__filename);
 
 /**
- * Fakes local SDP, so that it will reflect detached local tracks associated
- * with the {@link TraceablePeerConnection} and make operations like
- * attach/detach and video mute/unmute local operations. That means it prevents
- * from SSRC updates being sent to Jicofo/remote peer, so that there is no
- * sRD/sLD cycle on the remote side.
+ * Fakes local SDP exposed to {@link JingleSessionPC} through the local
+ * description getter. Modifies the SDP, so that it will contain muted local
+ * video tracks description, even though their underlying {MediaStreamTrack}s
+ * are no longer in the WebRTC peerconnection. That prevents from SSRC updates
+ * being sent to Jicofo/remote peer and prevents sRD/sLD cycle on the remote
+ * side.
  */
 export default class LocalSdpMunger {
 
@@ -25,11 +26,11 @@ export default class LocalSdpMunger {
     }
 
     /**
-     * Makes sure that detached (or muted) local video tracks associated with
-     * the parent {@link TraceablePeerConnection} are described in the local
-     * SDP. It's done in order to prevent from sending
-     * 'source-remove'/'source-add' Jingle notifications when local video track
-     * is detached from the {@link TraceablePeerConnection} (or muted).
+     * Makes sure that muted local video tracks associated with the parent
+     * {@link TraceablePeerConnection} are described in the local SDP. It's done
+     * in order to prevent from sending 'source-remove'/'source-add' Jingle
+     * notifications when local video track is muted (<tt>MediaStream</tt> is
+     * removed from the peerconnection).
      *
      * NOTE 1 video track is assumed
      *
@@ -38,11 +39,8 @@ export default class LocalSdpMunger {
      * @return {boolean} <tt>true</tt> if there were any modifications to
      * the SDP wrapped by <tt>transformer</tt>.
      * @private
-     *
-     * FIXME rename to "muted video tracks"
-     *
      */
-    _addDetachedLocalVideoTracksToSDP(transformer) {
+    _addMutedLocalVideoTracksToSDP(transformer) {
         // Go over each video tracks and check if the SDP has to be changed
         const localVideos = this.tpc.getLocalTracks(MediaType.VIDEO);
 
@@ -170,8 +168,8 @@ export default class LocalSdpMunger {
     }
 
     /**
-     * Maybe modifies local description to fake local tracks SDP when those are
-     * either muted or detached from the <tt>PeerConnection</tt>.
+     * Maybe modifies local description to fake local video tracks SDP when
+     * those are muted.
      *
      * @param {object} desc the WebRTC SDP object instance for the local
      * description.
@@ -185,7 +183,7 @@ export default class LocalSdpMunger {
 
         const transformer = new SdpTransformWrap(desc.sdp);
 
-        if (this._addDetachedLocalVideoTracksToSDP(transformer)) {
+        if (this._addMutedLocalVideoTracksToSDP(transformer)) {
             // Write
             desc.sdp = transformer.toRawSDP();
 
