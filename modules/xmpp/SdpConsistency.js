@@ -65,12 +65,10 @@ export default class SdpConsistency {
      *   to match the ones previously cached
      * @param {string} sdpStr the sdp string to (potentially)
      *  change to make the video ssrcs consistent
-     * @param {boolean} isVideoRecvOnly <tt>true</tt> if the video media
-     * is currently in the receive only mode (does not send any video tracks).
      * @returns {string} a (potentially) modified sdp string
      *  with ssrcs consistent with this class' cache
      */
-    makeVideoPrimarySsrcsConsistent(sdpStr, isVideoRecvOnly) {
+    makeVideoPrimarySsrcsConsistent(sdpStr) {
         const sdpTransformer = new SdpTransformWrap(sdpStr);
         const videoMLine = sdpTransformer.selectMedia('video');
 
@@ -80,7 +78,7 @@ export default class SdpConsistency {
 
             return sdpStr;
         }
-        if (isVideoRecvOnly) {
+        if (videoMLine.direction === 'recvonly') {
             // If the mline is recvonly, we'll add the primary
             //  ssrc as a recvonly ssrc
             if (this.cachedPrimarySsrc) {

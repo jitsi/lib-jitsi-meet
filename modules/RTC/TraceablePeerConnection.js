@@ -1613,18 +1613,15 @@ TraceablePeerConnection.prototype._createOfferOrAnswer
              *  complain about unmapped ssrcs)
              */
             if (!RTCBrowserType.isFirefox()) {
-                const isVideoRecvOnly
-                    = !this.hasAnyTracksOfType(MediaType.VIDEO);
-
                 // If there are no local video tracks, then a "recvonly"
                 // SSRC needs to be generated
-                if (isVideoRecvOnly
+                if (!this.hasAnyTracksOfType(MediaType.VIDEO)
                     && !this.sdpConsistency.hasPrimarySsrcCached()) {
                     this.generateRecvonlySsrc();
                 }
                 resultSdp.sdp
                     = this.sdpConsistency.makeVideoPrimarySsrcsConsistent(
-                        resultSdp.sdp, isVideoRecvOnly);
+                        resultSdp.sdp);
                 this.trace(
                     `create${logName}OnSuccess::postTransform `
                          + '(make primary audio/video ssrcs consistent)',
