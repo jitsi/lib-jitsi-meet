@@ -32,6 +32,8 @@ import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 const logger = getLogger(__filename);
 
 
+// test
+
 /**
  * Creates a JitsiConference object with the given name and properties.
  * Note: this constructor is not a part of the public API (objects should be
