@@ -18,6 +18,8 @@ import * as JitsiTrackEvents from './JitsiTrackEvents';
 import Logger from 'jitsi-meet-logger';
 import * as MediaType from './service/RTC/MediaType';
 import Resolutions from './service/RTC/Resolutions';
+import { ParticipantConnectionStatus }
+    from './modules/connectivity/ParticipantConnectionStatus';
 import RTC from './modules/RTC/RTC';
 import RTCBrowserType from './modules/RTC/RTCBrowserType';
 import RTCUIHelper from './modules/RTC/RTCUIHelper';
@@ -90,6 +92,7 @@ const LibJitsiMeet = {
 
     JitsiConnection,
     constants: {
+        participantConnectionStatus: ParticipantConnectionStatus,
         sipVideoGW: VideoSIPGWConstants
     },
     events: {

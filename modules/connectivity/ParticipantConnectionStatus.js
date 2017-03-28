@@ -18,10 +18,45 @@ const logger = getLogger(__filename);
 const DEFAULT_RTC_MUTE_TIMEOUT = 2000;
 
 /**
+ * Participant connection statuses.
+ *
+ * @type {{
+ *      ACTIVE: string,
+ *      INACTIVE: string,
+ *      INTERRUPTED: string,
+ *      RESTORING: string
+ * }}
+ */
+export const ParticipantConnectionStatus = {
+    /**
+     * Status indicating that connection is currently active.
+     */
+    ACTIVE: 'active',
+
+    /**
+     * Status indicating that connection is currently inactive.
+     * Inactive means the connection was stopped on purpose from the bridge,
+     * like exiting lastN or adaptivity decided to drop video because of not
+     * enough bandwidth.
+     */
+    INACTIVE: 'inactive',
+
+    /**
+     * Status indicating that connection is currently interrupted.
+     */
+    INTERRUPTED: 'interrupted',
+
+    /**
+     * Status indicating that connection is currently restoring.
+     */
+    RESTORING: 'restoring'
+};
+
+/**
  * Class is responsible for emitting
  * JitsiConferenceEvents.PARTICIPANT_CONN_STATUS_CHANGED events.
  */
-export default class ParticipantConnectionStatus {
+export default class ParticipantConnectionStatusHandler {
     /**
      * Creates new instance of <tt>ParticipantConnectionStatus</tt>.
      *
@@ -135,6 +170,11 @@ export default class ParticipantConnectionStatus {
             this._onSignallingMuteChanged
                 = this.onSignallingMuteChanged.bind(this);
         }
+
+        this._onLastNChanged = this._onLastNChanged.bind(this);
+        this.conference.on(
+            JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED,
+            this._onLastNChanged);
     }
 
     /**
@@ -162,6 +202,10 @@ export default class ParticipantConnectionStatus {
                 JitsiConferenceEvents.TRACK_REMOVED,
                 this._onRemoteTrackRemoved);
         }
+
+        this.conference.off(
+            JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED,
+            this._onLastNChanged);
 
         this.conference.off(
             JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
@@ -199,16 +243,16 @@ export default class ParticipantConnectionStatus {
     }
 
     /**
-     *
-     * @param participant
+     * Changes connection status.
+     * @param {JitsiParticipant} participant
      * @param newStatus
      */
     _changeConnectionStatus(participant, newStatus) {
-        if (participant.isConnectionActive() !== newStatus) {
+        if (participant.getConnectionStatus() !== newStatus) {
 
             const endpointId = participant.getId();
 
-            participant._setIsConnectionActive(newStatus);
+            participant._setConnectionStatus(newStatus);
 
             logger.debug(
                 `Emit endpoint conn status(${Date.now()}) ${endpointId}: ${
@@ -380,18 +424,53 @@ export default class ParticipantConnectionStatus {
             isConnActiveByJvb = true;
         }
 
-        const isConnectionActive
-            = isConnActiveByJvb
-                && (isVideoMuted || (isInLastN && !isVideoTrackFrozen));
+        let newState = ParticipantConnectionStatus.INACTIVE;
+
+        if (isConnActiveByJvb) {
+            if (isInLastN) {
+                if (isVideoTrackFrozen) {
+                    // if participant was inactive, and is in lastN,
+                    // it is restoring
+                    const isInactive = participant.getConnectionStatus()
+                        === ParticipantConnectionStatus.INACTIVE;
+
+                    newState = isInactive
+                        ? ParticipantConnectionStatus.RESTORING
+                            : ParticipantConnectionStatus.INTERRUPTED;
+                } else {
+                    newState = ParticipantConnectionStatus.ACTIVE;
+                }
+            }
+        } else if (isInLastN && isVideoTrackFrozen) {
+            newState = ParticipantConnectionStatus.INTERRUPTED;
+        }
 
         logger.debug(
-            `Figure out conn status, is video muted: ${isVideoMuted
+            `Figure out conn status for ${id}, is video muted: ${isVideoMuted
                  } is active(jvb): ${isConnActiveByJvb
                  } video track frozen: ${isVideoTrackFrozen
                  } is in last N: ${isInLastN
-                 } => ${isConnectionActive}`);
+                 } current2NewStatus: ${participant.getConnectionStatus()
+                 } => ${newState}`);
 
-        this._changeConnectionStatus(participant, isConnectionActive);
+        this._changeConnectionStatus(participant, newState);
+    }
+
+    /**
+     * On change in Last N set check all leaving and entering participants to
+     * change their corresponding statuses.
+     *
+     * @param leavingLastN
+     * @param enteringLastN
+     * @private
+     */
+    _onLastNChanged(leavingLastN, enteringLastN) {
+        if (leavingLastN) {
+            leavingLastN.forEach(id => this.figureOutConnectionStatus(id));
+        }
+        if (enteringLastN) {
+            enteringLastN.forEach(id => this.figureOutConnectionStatus(id));
+        }
     }
 
     /**

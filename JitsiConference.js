@@ -15,7 +15,7 @@ import JitsiTrackError from './JitsiTrackError';
 import * as JitsiTrackErrors from './JitsiTrackErrors';
 import * as JitsiTrackEvents from './JitsiTrackEvents';
 import * as MediaType from './service/RTC/MediaType';
-import ParticipantConnectionStatus
+import ParticipantConnectionStatusHandler
     from './modules/connectivity/ParticipantConnectionStatus';
 import RTC from './modules/RTC/RTC';
 import RTCBrowserType from './modules/RTC/RTCBrowserType';
@@ -206,7 +206,7 @@ JitsiConference.prototype._init = function(options = {}) {
     }
 
     this.participantConnectionStatus
-        = new ParticipantConnectionStatus(
+        = new ParticipantConnectionStatusHandler(
                 this.rtc, this,
                 options.config.peerDisconnectedThroughRtcTimeout);
     this.participantConnectionStatus.init();
