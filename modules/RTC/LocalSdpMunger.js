@@ -50,7 +50,7 @@ export default class LocalSdpMunger {
             return false;
         } else if (localVideos.length !== 1) {
             logger.error(
-                'There is more than 1 video track ! '
+                `${this.tpc} there is more than 1 video track ! `
                     + 'Strange things may happen !', localVideos);
         }
 
@@ -58,7 +58,8 @@ export default class LocalSdpMunger {
 
         if (!videoMLine) {
             logger.error(
-                'Unable to hack local video track SDP - no "video" media');
+                `${this.tpc} unable to hack local video track SDP`
+                    + '- no "video" media');
 
             return false;
         }
@@ -71,7 +72,7 @@ export default class LocalSdpMunger {
             const shouldFakeSdp = isMuted || muteInProgress;
 
             logger.debug(
-                `${videoTrack
+                `${this.tpc} ${videoTrack
                  } isMuted: ${isMuted
                  }, is mute in progress: ${muteInProgress
                  } => should fake sdp ? : ${shouldFakeSdp}`);
@@ -96,8 +97,8 @@ export default class LocalSdpMunger {
             }
             if (!videoMLine.getSSRCCount()) {
                 logger.error(
-                    'No video SSRCs found '
-                        + '(should be at least the recv-only one');
+                    `${this.tpc} - no video SSRCs found`
+                        + '(should be at least the recv-only one)');
 
                 // eslint-disable-next-line no-continue
                 continue;
@@ -128,7 +129,8 @@ export default class LocalSdpMunger {
 
                 // Inject
                 logger.debug(
-                    `Injecting video SSRC: ${ssrcNum} for ${videoTrack}`);
+                    `${this.tpc} injecting video SSRC: `
+                        + `${ssrcNum} for ${videoTrack}`);
                 videoMLine.addSSRCAttribute({
                     id: ssrcNum,
                     attribute: 'cname',
@@ -149,7 +151,8 @@ export default class LocalSdpMunger {
                 if (!videoMLine.findGroup(group.semantics, group.ssrcs)) {
                     // Inject the group
                     logger.debug(
-                        `Injecting SIM group for ${videoTrack}`, group);
+                        `${this.tpc} injecting SIM group for ${videoTrack}`,
+                        group);
                     videoMLine.addSSRCGroup(group);
                 }
             }

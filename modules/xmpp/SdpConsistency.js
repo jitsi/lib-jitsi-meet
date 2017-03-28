@@ -19,9 +19,11 @@ const logger = getLogger(__filename);
 export default class SdpConsistency {
     /**
      * Constructor
+     * @param {TraceablePeerConnection} tpc parent peer connection instance
      */
-    constructor() {
+    constructor(tpc) {
         this.clearVideoSsrcCache();
+        this.tpc = tpc;
     }
 
     /**
@@ -73,7 +75,8 @@ export default class SdpConsistency {
         const videoMLine = sdpTransformer.selectMedia('video');
 
         if (!videoMLine) {
-            logger.error(`No 'video' media found in the sdp: ${sdpStr}`);
+            logger.error(
+                `${this.tpc} no 'video' media found in the sdp: ${sdpStr}`);
 
             return sdpStr;
         }
@@ -87,20 +90,24 @@ export default class SdpConsistency {
                     value: `recvonly-${this.cachedPrimarySsrc}`
                 });
             } else {
-                logger.error('No SSRC found for the recvonly video stream!');
+                logger.error(
+                    `${this.tpc} no SSRC found for the recvonly video stream!`);
             }
         } else {
             const newPrimarySsrc = videoMLine.getPrimaryVideoSsrc();
 
             if (!newPrimarySsrc) {
-                logger.info('Sdp-consistency couldn\'t parse new primary ssrc');
+                logger.info(
+                    `${this.tpc} sdp-consistency couldn't`
+                        + ' parse new primary ssrc');
 
                 return sdpStr;
             }
             if (this.cachedPrimarySsrc) {
                 logger.info(
-                    `Sdp-consistency replacing new ssrc ${newPrimarySsrc
-                        } with cached ${this.cachedPrimarySsrc}`);
+                    `${this.tpc} sdp-consistency replacing new ssrc`
+                        + `${newPrimarySsrc} with cached `
+                        + `${this.cachedPrimarySsrc}`);
                 videoMLine.replaceSSRC(newPrimarySsrc, this.cachedPrimarySsrc);
                 for (const group of videoMLine.ssrcGroups) {
                     if (group.semantics === 'FID') {
@@ -117,8 +124,8 @@ export default class SdpConsistency {
             } else {
                 this.cachedPrimarySsrc = newPrimarySsrc;
                 logger.info(
-                    `Sdp-consistency caching primary ssrc ${
-                        this.cachedPrimarySsrc}`);
+                    `${this.tpc} sdp-consistency caching primary ssrc`
+                        + `${this.cachedPrimarySsrc}`);
             }
         }
 

@@ -174,7 +174,7 @@ function TraceablePeerConnection(
 
     this.simulcast = new Simulcast({ numOfLayers: SIMULCAST_LAYERS,
         explodeRemoteSimulcast: false });
-    this.sdpConsistency = new SdpConsistency();
+    this.sdpConsistency = new SdpConsistency(this);
 
     /**
      * Munges local SDP provided to the Jingle Session in order to prevent from
@@ -1479,7 +1479,7 @@ TraceablePeerConnection.prototype.setRemoteDescription
 TraceablePeerConnection.prototype.generateRecvonlySsrc = function() {
     const newSSRC = SDPUtil.generateSsrc();
 
-    logger.info(`Generated new recvonly SSRC: ${newSSRC}`);
+    logger.info(`${this} generated new recvonly SSRC: ${newSSRC}`);
     this.sdpConsistency.setPrimarySsrc(newSSRC);
 };
 
