@@ -174,7 +174,7 @@ function TraceablePeerConnection(
 
     this.simulcast = new Simulcast({ numOfLayers: SIMULCAST_LAYERS,
         explodeRemoteSimulcast: false });
-    this.sdpConsistency = new SdpConsistency(this);
+    this.sdpConsistency = new SdpConsistency(this.toString());
 
     /**
      * Munges local SDP provided to the Jingle Session in order to prevent from
