@@ -585,6 +585,7 @@ export default class JingleSessionPC extends JingleSession {
         }
     }
 
+    /* eslint-disable max-params */
     /**
      * Accepts incoming Jingle 'session-initiate' and should send
      * 'session-accept' in result.
@@ -595,8 +596,12 @@ export default class JingleSessionPC extends JingleSession {
      * @param failure function(error) called if for any reason we fail to accept
      *        the incoming offer. 'error' argument can be used to log some
      *        details about the error.
+     * @param {Array<JitsiLocalTrack>} [localTracks] the optional list of
+     * the local tracks that will be added, before the offer/answer cycle
+     * executes (for the local track addition to be an atomic operation together
+     * with the offer/answer).
      */
-    acceptOffer(jingleOffer, success, failure) {
+    acceptOffer(jingleOffer, success, failure, localTracks) {
         this.setOfferAnswerCycle(
             jingleOffer,
             () => {
@@ -607,15 +612,24 @@ export default class JingleSessionPC extends JingleSession {
                 // modify sendSessionAccept method to do that
                 this.sendSessionAccept(success, failure);
             },
-            failure);
+            failure,
+            localTracks);
     }
+
+    /* eslint-enable max-params */
 
     /**
      * Creates an offer and sends Jingle 'session-initiate' to the remote peer.
+     * @param {Array<JitsiLocalTrack>} localTracks the local tracks that will be
+     * added, before the offer/answer cycle executes (for the local track
+     * addition to be an atomic operation together with the offer/answer).
      */
-    invite() {
+    invite(localTracks) {
         if (!this.isInitiator) {
             throw new Error('Trying to invite from the responder session');
+        }
+        for (const localTrack of localTracks) {
+            this.peerconnection.addTrack(localTrack);
         }
         this.peerconnection.createOffer(
             this.sendSessionInitiate.bind(this),
@@ -686,6 +700,7 @@ export default class JingleSessionPC extends JingleSession {
             });
     }
 
+    /* eslint-disable max-params */
     /**
      * This is a setRemoteDescription/setLocalDescription cycle which starts at
      * converting Strophe Jingle IQ into remote offer SDP. Once converted
@@ -695,9 +710,20 @@ export default class JingleSessionPC extends JingleSession {
      * @param success callback called when sRD/sLD cycle finishes successfully.
      * @param failure callback called with an error object as an argument if we
      *        fail at any point during setRD, createAnswer, setLD.
+     * @param {Array<JitsiLocalTrack>} [localTracks] the optional list of
+     * the local tracks that will be added, before the offer/answer cycle
+     * executes (for the local track addition to be an atomic operation together
+     * with the offer/answer).
      */
-    setOfferAnswerCycle(jingleOfferAnswerIq, success, failure) {
+    setOfferAnswerCycle(jingleOfferAnswerIq, success, failure, localTracks) {
         const workFunction = finishedCallback => {
+
+            if (localTracks) {
+                for (const track of localTracks) {
+                    this.peerconnection.addTrack(track);
+                }
+            }
+
             const newRemoteSdp
                 = this._processNewJingleOfferIq(jingleOfferAnswerIq);
 
@@ -720,6 +746,8 @@ export default class JingleSessionPC extends JingleSession {
                 error ? failure(error) : success();
             });
     }
+
+    /* eslint-enable max-params */
 
     /**
      * Although it states "replace transport" it does accept full Jingle offer
@@ -1441,35 +1469,6 @@ export default class JingleSessionPC extends JingleSession {
         });
 
         return removeSsrcInfo;
-    }
-
-    /**
-     * Adds <tt>JitsiLocalTrack</tt>s to this session.
-     * @param {JitsiLocalTrack[]} tracks new local tracks that will be added.
-     * @return {Promise} a promise that will resolve once all local tracks are
-     * added. Will be rejected with a <tt>string</tt> which describes the error.
-     * NOTE(brian): there is a decent amount of overlap here with replaceStream
-     *  that could be re-used...however we can't leverage that currently because
-     *  the extra work we do here must be in the work function context and if we
-     *  then called replaceTrack we'd be adding another task on the queue
-     *  from within a task which would then deadlock.  The 'replaceTrack' core
-     *  logic should be moved into a helper function that could be called within
-     *  the 'doReplaceStream' task or the 'doAddStream' task (for example)
-     */
-    addLocalTracks(tracks) {
-        const workFunction = () => {
-            if (!this.peerconnection) {
-                return 'Error: tried adding stream with no active peer'
-                    + ' connection';
-            }
-            for (const track of tracks) {
-                this.peerconnection.addTrack(track);
-            }
-
-            return true;
-        };
-
-        return this._doRenegotiate('addStreams', workFunction);
     }
 
     /**
