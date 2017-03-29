@@ -1925,7 +1925,8 @@ JitsiConference.prototype._attachLocalTracksToJvbSession = function() {
  * @private
  */
 JitsiConference.prototype._addRemoteJVBTracks = function() {
-    this._addRemoteTracks('JVB', this.jvbJingleSession);
+    this._addRemoteTracks(
+        'JVB', this.jvbJingleSession.peerconnection.getRemoteTracks());
 };
 
 /**
@@ -1933,25 +1934,18 @@ JitsiConference.prototype._addRemoteJVBTracks = function() {
  * @private
  */
 JitsiConference.prototype._addRemoteP2PTracks = function() {
-    this._addRemoteTracks('P2P', this.p2pJingleSession);
+    this._addRemoteTracks(
+        'P2P', this.p2pJingleSession.peerconnection.getRemoteTracks());
 };
 
 /**
  * Generates fake "remote track added" events for given Jingle session.
  * @param {string} logName the session's nickname which will appear in log
  * messages.
- * @param {JingleSessionPC} jingleSession the session for which remote tracks
- * will be added.
+ * @param {Array<JitsiRemoteTrack>} remoteTracks the tracks that will be added
  * @private
  */
-JitsiConference.prototype._addRemoteTracks = function(logName, jingleSession) {
-    if (!jingleSession) {
-        logger.info(`Not adding remote ${logName} tracks - no session yet`);
-
-        return;
-    }
-    const remoteTracks = jingleSession.peerconnection.getRemoteTracks();
-
+JitsiConference.prototype._addRemoteTracks = function(logName, remoteTracks) {
     for (const track of remoteTracks) {
         logger.info(`Adding remote ${logName} track: ${track}`);
         this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, track);
@@ -1980,7 +1974,11 @@ JitsiConference.prototype._onIceConnectionEstablished
     this._setP2PStatus(true);
 
     // Remove remote tracks
-    this._removeRemoteJVBTracks();
+    if (this.jvbJingleSession) {
+        this._removeRemoteJVBTracks();
+    } else {
+        logger.info('Not removing remote JVB tracks - no session yet');
+    }
 
     // Add remote tracks
     this._addRemoteP2PTracks();
@@ -2032,7 +2030,8 @@ JitsiConference.prototype._maybeClearDeferredStartP2P = function() {
  * @private
  */
 JitsiConference.prototype._removeRemoteJVBTracks = function() {
-    this._removeRemoteTracks('JVB', this.jvbJingleSession);
+    this._removeRemoteTracks(
+        'JVB', this.jvbJingleSession.peerconnection.getRemoteTracks());
 };
 
 /**
@@ -2041,27 +2040,19 @@ JitsiConference.prototype._removeRemoteJVBTracks = function() {
  * @private
  */
 JitsiConference.prototype._removeRemoteP2PTracks = function() {
-    this._removeRemoteTracks('P2P', this.p2pJingleSession);
+    this._removeRemoteTracks(
+        'P2P', this.p2pJingleSession.peerconnection.getRemoteTracks());
 };
 
 /**
  * Generates fake "remote track removed" events for given Jingle session.
  * @param {string} sessionNickname the session's nickname which will appear in
  * log messages.
- * @param {JingleSessionPC} jingleSession the session for which remote tracks
- * will be removed.
+ * @param {Array<JitsiRemoteTrack>} remoteTracks the tracks that will be removed
  * @private
  */
 JitsiConference.prototype._removeRemoteTracks
-= function(sessionNickname, jingleSession) {
-    if (!jingleSession) {
-        logger.info(
-            `Not removing remote ${sessionNickname} tracks - no session yet`);
-
-        return;
-    }
-    const remoteTracks = jingleSession.peerconnection.getRemoteTracks();
-
+= function(sessionNickname, remoteTracks) {
     for (const track of remoteTracks) {
         logger.info(`Removing remote ${sessionNickname} track: ${track}`);
         this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_REMOVED, track);
@@ -2272,7 +2263,11 @@ JitsiConference.prototype._stopP2PSession
 
     if (wasP2PEstablished) {
         // Add back remote JVB tracks
-        this._addRemoteJVBTracks();
+        if (this.jvbJingleSession) {
+            this._addRemoteJVBTracks();
+        } else {
+            logger.info('Not adding remote JVB tracks - no session yet');
+        }
     }
 
     // Start remote stats
