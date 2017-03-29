@@ -98,6 +98,16 @@ export default class JingleSessionPC extends JingleSession {
         this.isP2P = isP2P;
 
         /**
+         * Stores a state for
+         * {@link TraceablePeerConnection.mediaTransferActive} until
+         * {@link JingleSessionPC.peerconnection} is initialised and capable of
+         * handling the value.
+         * @type {boolean}
+         * @private
+         */
+        this.mediaTransferActive = true;
+
+        /**
          * The signaling layer implementation.
          * @type {SignalingLayerImpl}
          */
@@ -223,6 +233,8 @@ export default class JingleSessionPC extends JingleSession {
                     disableRtx: this.room.options.disableRtx,
                     preferH264: this.room.options.preferH264
                 });
+
+        this.peerconnection.setMediaTransferActive(this.mediaTransferActive);
 
         this.peerconnection.onicecandidate = ev => {
             if (!ev) {
@@ -1431,8 +1443,6 @@ export default class JingleSessionPC extends JingleSession {
         return removeSsrcInfo;
     }
 
-    /* eslint-disable max-params */
-
     /**
      * Adds <tt>JitsiLocalTrack</tt>s to this session.
      * @param {JitsiLocalTrack[]} tracks new local tracks that will be added.
@@ -1462,8 +1472,6 @@ export default class JingleSessionPC extends JingleSession {
         return this._doRenegotiate('addStreams', workFunction);
     }
 
-    /* eslint-enable max-params */
-
     /**
      * Adds local track back to this session, as part of the unmute operation.
      * @param {JitsiLocalTrack} track
@@ -1486,35 +1494,6 @@ export default class JingleSessionPC extends JingleSession {
         };
 
         return this._doRenegotiate('addStreamAsUnmute', workFunction);
-    }
-
-    /* eslint-disable max-params */
-
-    /**
-     * Attached previously detached local tracks back to this session.
-     * @param {JitsiLocalTrack[]} localTracks
-     * @return {Promise} a promise that will be resolved once the local tracks
-     * are attached back to this session and the renegotiation is performed.
-     * Will be rejected with a <tt>string</tt> describing the error if anything
-     * goes wrong.
-     */
-    attachLocalTracks(localTracks) {
-        if (!localTracks) {
-            return Promise.reject('invalid "localTracks" argument value');
-        }
-        const workFunction = () => {
-            if (!this.peerconnection) {
-                return 'Error: '
-                    + 'tried adding stream with no active peer connection';
-            }
-            for (const track of localTracks) {
-                this.peerconnection.attachTrack(track);
-            }
-
-            return true;
-        };
-
-        return this._doRenegotiate('attachTracks', workFunction);
     }
 
     /**
@@ -1635,44 +1614,33 @@ export default class JingleSessionPC extends JingleSession {
         });
     }
 
-    /* eslint-enable max-params */
-
     /**
-     * Detaches local track from this session. A detached track does no longer
-     * stream any media to the remote participant, but is logically bound to
-     * this session and is still advertised to other conference participants and
-     * handles "mute"/"unmute" actions.
-     * @param {JitsiLocalTrack} track the local track to be detached.
-     * @return {Promise}
+     * Resumes or suspends media transfer over the underlying peer connection.
+     * @param {boolean} active <tt>true</tt> to enable media transfer or
+     * <tt>false</tt> to suspend any media transmission.
+     * @return {Promise} a <tt>Promise</tt> which will resolve once
+     * the operation is done. It will be rejected with an error description as
+     * a string in case anything goes wrong.
      */
-    detachLocalTrack(track) {
-        return this.detachLocalTracks([ track ]);
-    }
-
-    /**
-     * Detaches multiple local tracks in one operation. See
-     * {@link detachLocalTrack}.
-     * @param {JitsiLocalTrack[]} tracks an array of local tracks to be detached
-     * @return {Promise} the same as in {@link detachLocalTrack}.
-     */
-    detachLocalTracks(tracks) {
-        if (!tracks) {
-            return Promise.reject('invalid "tracks" argument value');
-        }
+    setMediaTransferActive(active) {
         const workFunction = () => {
-            if (!this.peerconnection) {
-                return false; // Do not renegotiate
-            }
-            for (const track of tracks) {
-                this.peerconnection.detachTrack(track);
+            this.mediaTransferActive = active;
+            if (this.peerconnection) {
+                this.peerconnection.setMediaTransferActive(
+                    this.mediaTransferActive);
+
+                // Will do the sRD/sLD cycle to update SDPs and adjust the media
+                // direction
+                return true;
             }
 
-            // FIXME it would be possible to optimise by making detach return
-            // true only if any modifications were done
-            return true;
+            return false; // Do not renegotiate
         };
 
-        return this._doRenegotiate('detach track', workFunction);
+        const logStr = active ? 'active' : 'inactive';
+
+        return this._doRenegotiate(
+            `make media transfer ${logStr}`, workFunction);
     }
 
     /**

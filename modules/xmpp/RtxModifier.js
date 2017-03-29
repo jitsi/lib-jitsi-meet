@@ -133,10 +133,8 @@ export default class RtxModifier {
      *  {@link SdpTransformWrap} has been modified or <tt>false</tt> otherwise.
      */
     modifyRtxSsrcs2(videoMLine) {
-        if (videoMLine.direction === 'inactive'
-            || videoMLine.direction === 'recvonly') {
-            logger.debug('RtxModifier doing nothing, video '
-                + 'm line is inactive or recvonly');
+        if (videoMLine.direction === 'recvonly') {
+            logger.debug('RtxModifier doing nothing, video m line is recvonly');
 
             return false;
         }
@@ -211,10 +209,8 @@ export default class RtxModifier {
 
             return sdpStr;
         }
-        if (videoMLine.direction === 'inactive'
-                || videoMLine.direction === 'recvonly') {
-            logger.debug('RtxModifier doing nothing, video '
-                + 'm line is inactive or recvonly');
+        if (videoMLine.direction === 'recvonly') {
+            logger.debug('RtxModifier doing nothing, video m line is recvonly');
 
             return sdpStr;
         }

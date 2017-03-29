@@ -19,15 +19,13 @@ const logger = getLogger(__filename);
 export default class SdpConsistency {
     /**
      * Constructor
+     * @param {string} logPrefix the log prefix appended to every logged
+     * message, currently used to distinguish for which
+     * <tt>TraceablePeerConnection</tt> the instance works.
      */
-    constructor() {
+    constructor(logPrefix) {
         this.clearVideoSsrcCache();
-
-        /**
-         * Cached audio SSRC.
-         * @type {number|null}
-         */
-        this.cachedAudioSSRC = null;
+        this.logPrefix = logPrefix;
     }
 
     /**
@@ -54,6 +52,14 @@ export default class SdpConsistency {
     }
 
     /**
+     * Checks whether or not there is a primary video SSRC cached already.
+     * @return {boolean}
+     */
+    hasPrimarySsrcCached() {
+        return Boolean(this.cachedPrimarySsrc);
+    }
+
+    /**
      * Given an sdp string, either:
      *  1) record the primary video and primary rtx ssrcs to be
      *   used in future calls to makeVideoPrimarySsrcsConsistent or
@@ -69,13 +75,9 @@ export default class SdpConsistency {
         const videoMLine = sdpTransformer.selectMedia('video');
 
         if (!videoMLine) {
-            logger.error(`No 'video' media found in the sdp: ${sdpStr}`);
-
-            return sdpStr;
-        }
-        if (videoMLine.direction === 'inactive') {
-            logger.info(
-                'Sdp-consistency doing nothing, video mline is inactive');
+            logger.error(
+                `${this.logPrefix} no 'video' media found in the sdp: `
+                    + `${sdpStr}`);
 
             return sdpStr;
         }
@@ -89,20 +91,25 @@ export default class SdpConsistency {
                     value: `recvonly-${this.cachedPrimarySsrc}`
                 });
             } else {
-                logger.error('No SSRC found for the recvonly video stream!');
+                logger.error(
+                    `${this.logPrefix} no SSRC found for the recvonly video`
+                        + 'stream!');
             }
         } else {
             const newPrimarySsrc = videoMLine.getPrimaryVideoSsrc();
 
             if (!newPrimarySsrc) {
-                logger.info('Sdp-consistency couldn\'t parse new primary ssrc');
+                logger.info(
+                    `${this.logPrefix} sdp-consistency couldn't`
+                        + ' parse new primary ssrc');
 
                 return sdpStr;
             }
             if (this.cachedPrimarySsrc) {
                 logger.info(
-                    `Sdp-consistency replacing new ssrc ${newPrimarySsrc
-                        } with cached ${this.cachedPrimarySsrc}`);
+                    `${this.logPrefix} sdp-consistency replacing new ssrc`
+                        + `${newPrimarySsrc} with cached `
+                        + `${this.cachedPrimarySsrc}`);
                 videoMLine.replaceSSRC(newPrimarySsrc, this.cachedPrimarySsrc);
                 for (const group of videoMLine.ssrcGroups) {
                     if (group.semantics === 'FID') {
@@ -119,57 +126,9 @@ export default class SdpConsistency {
             } else {
                 this.cachedPrimarySsrc = newPrimarySsrc;
                 logger.info(
-                    `Sdp-consistency caching primary ssrc ${
-                        this.cachedPrimarySsrc}`);
+                    `${this.logPrefix} sdp-consistency caching primary ssrc`
+                        + `${this.cachedPrimarySsrc}`);
             }
-        }
-
-        return sdpTransformer.toRawSDP();
-    }
-
-    /**
-     * Makes sure that audio SSRC is preserved between "detach" and "attach"
-     *  operations. The code assumes there can be only 1 audio track added to
-     *  the peer connection at a time.
-     * @param {string} sdpStr the sdp string to (potentially)
-     *  change to make the audio ssrc consistent
-     * @returns {string} a (potentially) modified sdp string
-     *  with ssrcs consistent with this class' cache
-     */
-    makeAudioSSRCConsistent(sdpStr) {
-        const sdpTransformer = new SdpTransformWrap(sdpStr);
-        const audioMLine = sdpTransformer.selectMedia('audio');
-
-        if (!audioMLine) {
-            logger.error(`No 'audio' media found in the sdp: ${sdpStr}`);
-
-            return sdpStr;
-        }
-        if (audioMLine.direction === 'inactive') {
-            logger.info(
-                'Sdp-consistency doing nothing, audio mline is inactive');
-
-            return sdpStr;
-        }
-
-        const audioSSRCObj = audioMLine.findSSRCByMSID(null);
-
-        if (audioSSRCObj) {
-            if (this.cachedAudioSSRC) {
-                const oldSSRC = audioSSRCObj.id;
-
-                if (oldSSRC !== this.cachedAudioSSRC) {
-                    logger.info(
-                        `Replacing audio SSRC ${
-                            oldSSRC} with ${this.cachedAudioSSRC}`);
-                    audioMLine.replaceSSRC(oldSSRC, this.cachedAudioSSRC);
-                }
-            } else {
-                this.cachedAudioSSRC = audioSSRCObj.id;
-                logger.info(`Storing audio SSRC: ${this.cachedAudioSSRC}`);
-            }
-        } else {
-            logger.info('Doing nothing - no audio stream in the SDP');
         }
 
         return sdpTransformer.toRawSDP();

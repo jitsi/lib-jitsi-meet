@@ -1905,23 +1905,6 @@ JitsiConference.prototype._acceptP2PIncomingCall
 };
 
 /**
- * Attaches local tracks back to the JVB connection.
- * @private
- */
-JitsiConference.prototype._attachLocalTracksToJvbSession = function() {
-    const localTracks = this.getLocalTracks();
-
-    logger.info(`Attaching ${localTracks} to JVB`);
-    this.jvbJingleSession.attachLocalTracks(localTracks).then(
-        () => {
-            logger.info(`Attach ${localTracks} to JVB success!`);
-        },
-        error => {
-            logger.error(`Attach ${localTracks} to JVB failed!`, error);
-        });
-};
-
-/**
  * Adds remote tracks to the conference associated with the JVB session.
  * @private
  */
@@ -1986,33 +1969,14 @@ JitsiConference.prototype._onIceConnectionEstablished
     // Add remote tracks
     this._addRemoteP2PTracks();
 
-    // Remove local tracks from JVB PC
-    // But only if it has started
+    // Stop media transfer over the JVB connection
     if (this.jvbJingleSession) {
-        this._detachLocalTracksFromJvbSession();
+        this._suspendMediaTransferForJvbConnection();
     }
 
     // Start remote stats
     logger.info('Starting remote stats with p2p connection');
     this._startRemoteStats();
-};
-
-/**
- * Detaches local tracks from the JVB connection.
- * @private
- */
-JitsiConference.prototype._detachLocalTracksFromJvbSession = function() {
-    const localTracks = this.getLocalTracks();
-
-    logger.info(`Detaching local tracks from JVB: ${localTracks}`);
-    this.jvbJingleSession.detachLocalTracks(localTracks).then(
-        () => {
-            logger.info(`Detach local tracks from JVB done!${localTracks}`);
-        },
-        error => {
-            logger.info(
-                `Detach local tracks from JVB failed!${localTracks}`, error);
-        });
 };
 
 /**
@@ -2067,6 +2031,23 @@ JitsiConference.prototype._removeRemoteTracks
         logger.info(`Removing remote ${sessionNickname} track: ${track}`);
         this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_REMOVED, track);
     }
+};
+
+/**
+ * Resumes media transfer over the JVB connection.
+ * @private
+ */
+JitsiConference.prototype._resumeMediaTransferForJvbConnection = function() {
+    logger.info('Resuming media transfer over the JVB connection...');
+    this.jvbJingleSession.setMediaTransferActive(true).then(
+        () => {
+            logger.info('Resumed media transfer over the JVB connection!');
+        },
+        error => {
+            logger.error(
+                'Failed to resume media transfer over the JVB connection:',
+                error);
+        });
 };
 
 /**
@@ -2143,6 +2124,23 @@ JitsiConference.prototype._startP2PSession = function(peerJid) {
         },
         error => {
             logger.error(`Failed to add ${localTracks} to P2P`, error);
+        });
+};
+
+/**
+ * Suspends media transfer over the JVB connection.
+ * @private
+ */
+JitsiConference.prototype._suspendMediaTransferForJvbConnection = function() {
+    logger.info('Suspending media transfer over the JVB connection...');
+    this.jvbJingleSession.setMediaTransferActive(false).then(
+        () => {
+            logger.info('Suspended media transfer over the JVB connection !');
+        },
+        error => {
+            logger.error(
+                'Failed to suspend media transfer over the JVB connection:',
+                error);
         });
 };
 
@@ -2240,8 +2238,7 @@ JitsiConference.prototype._stopP2PSession
 
     // Swap remote tracks, but only if the P2P has been fully established
     if (wasP2PEstablished) {
-        // Add local track to JVB
-        this._attachLocalTracksToJvbSession();
+        this._resumeMediaTransferForJvbConnection();
 
         // Remove remote P2P tracks
         this._removeRemoteP2PTracks();
