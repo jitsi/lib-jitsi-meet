@@ -348,10 +348,8 @@ TraceablePeerConnection.prototype.getConnectionState = function() {
  */
 TraceablePeerConnection.prototype._getDesiredMediaDirection
 = function(mediaType) {
-    const anyLocalTracks = this.hasAnyTracksOfType(mediaType);
-
     if (this.mediaTransferActive) {
-        return anyLocalTracks ? 'sendrecv' : 'recvonly';
+        return this.hasAnyTracksOfType(mediaType) ? 'sendrecv' : 'recvonly';
     }
 
     return 'inactive';
