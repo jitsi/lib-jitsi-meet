@@ -319,6 +319,11 @@ function detectIE() {
         version = parseInt(ua.substring(rv + 3, ua.indexOf('.', rv)), 10);
     }
 
+    if (version) {
+        currentBrowser = RTCBrowserType.RTC_BROWSER_IEXPLORER;
+        logger.info(`This appears to be IExplorer, ver: ${version}`);
+    }
+
     return version;
 }
 
