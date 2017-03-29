@@ -69,16 +69,6 @@ export default class JingleSessionPC extends JingleSession {
             options) {
         super(sid, me, peerjid, connection, mediaConstraints, iceConfig);
 
-        /**
-         * Stores "delayed" ICE candidates which are added to the PC once
-         * the first sRD/sLD cycle is done. If there was at least one sRD/sLD
-         * cycle already then the candidates are added as they come and this
-         * queue is skipped.
-         * @type {Array} an array of ICE candidate lines which can be added
-         * directly to the PC
-         */
-        this.delayedIceCandidiates = [];
-
         this.lasticecandidate = false;
         this.closed = false;
 
@@ -161,27 +151,6 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         return true;
-    }
-
-    /**
-     * Adds all "delayed" ICE candidates to the PeerConnection.
-     * @private
-     */
-    _dequeIceCandidates() {
-        this.delayedIceCandidiates.forEach(candidate => {
-            const line = candidate.candidate;
-
-            this.peerconnection.addIceCandidate(
-                candidate,
-                () => {
-                    logger.debug(`Add ICE candidate OK ${this}: ${line}`);
-                },
-                error => {
-                    logger.error(
-                        `Add ICE candidate failed ${this}: ${line}`, error);
-                });
-        });
-        this.delayedIceCandidiates = [];
     }
 
     /**
@@ -505,41 +474,69 @@ export default class JingleSessionPC extends JingleSession {
             return;
         }
 
-        // NOTE operates on each content element, can't use () =>
-        elem.each((contentIdx, content) => {
-            $(content).find('transport>candidate')
+        const iceCandidates = [];
+
+        elem.find('>content>transport>candidate')
             .each((idx, candidate) => {
                 let line = SDPUtil.candidateFromJingle(candidate);
 
                 line = line.replace('\r\n', '').replace('a=', '');
 
-                // FIXME this code does not care to handle non-bundle transport
+                // FIXME this code does not care to handle
+                // non-bundle transport
                 const rtcCandidate = new RTCIceCandidate({
                     sdpMLineIndex: 0,
 
                     // FF comes up with more complex names like audio-23423,
                     // Given that it works on both Chrome and FF without
-                    // providing it, let's leave it like this for the time being
+                    // providing it, let's leave it like this for the time
+                    // being...
                     // sdpMid: 'audio',
                     candidate: line
                 });
 
-                // Will delay the addition until the remoteDescription is set
-                if (this.peerconnection.remoteDescription.sdp) {
-                    logger.debug(`Trying to add ICE candidate: ${line}`);
-                    this.peerconnection.addIceCandidate(
-                        rtcCandidate,
-                        () => logger.debug(`addIceCandidate ok: ${line}`),
-                        error => {
-                            logger.error(
-                                `addIceCandidate failed: ${line}`, error);
-                        });
-                } else {
-                    logger.debug(`Delaying ICE candidate: ${line}`);
-                    this.delayedIceCandidiates.push(rtcCandidate);
-                }
+                iceCandidates.push(rtcCandidate);
             });
-        });
+
+        if (!iceCandidates.length) {
+            logger.error(
+                'No ICE candidates to add ?', elem[0] && elem[0].outerHTML);
+
+            return;
+        }
+
+        // We want to have this task queued, so that we know it is executed,
+        // after the initial sRD/sLD offer/answer cycle was done (based on
+        // the assumption that candidates are spawned after the offer/answer
+        // and XMPP preserves order).
+        const workFunction = () => {
+            for (const iceCandidate of iceCandidates) {
+                this.peerconnection.addIceCandidate(
+                    iceCandidate,
+                    () => {
+                        logger.debug('addIceCandidate ok!');
+                    },
+                    error => {
+                        logger.error('addIceCandidate failed!', error);
+                    });
+            }
+
+            // There's no need to renegotiate for ICE candidates added with
+            // 'peerconnection.addIceCandidate'
+            return false;
+        };
+
+        logger.debug(`Queued add ICE candidates(${iceCandidates.length}) task`);
+        this._doRenegotiate('add ICE candidate', workFunction)
+            .then(() => {
+                logger.debug('Add ICE candidate done !');
+            },
+            error => {
+                logger.error(
+                    'Failed to add ICE candidate',
+                    elem[0] && elem[0].outerHTML,
+                    error);
+            });
     }
 
     /**
@@ -1282,7 +1279,6 @@ export default class JingleSessionPC extends JingleSession {
                         this.peerconnection.setLocalDescription(
                             answer,
                             () => {
-                                this._dequeIceCandidates();
                                 resolve();
                             },
                             error => {
@@ -1317,7 +1313,6 @@ export default class JingleSessionPC extends JingleSession {
             this.peerconnection.setRemoteDescription(
                 remoteDescription,
                 () => {
-                    this._dequeIceCandidates();
                     resolve();
                 },
                 error => reject(`setRemoteDescription failed: ${error}`)
@@ -1334,7 +1329,6 @@ export default class JingleSessionPC extends JingleSession {
                             this.peerconnection.setRemoteDescription(
                                 remoteDescription,
                                 () => {
-                                    this._dequeIceCandidates();
                                     resolve();
                                 },
                                 error => reject(
