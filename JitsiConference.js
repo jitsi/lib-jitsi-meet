@@ -1296,22 +1296,23 @@ JitsiConference.prototype.onIncomingCall
 
     // Add local tracks to the session
     try {
-        jingleSession.addLocalTracks(this.getLocalTracks()).then(() => {
-            jingleSession.acceptOffer(jingleOffer, null,
-                error => {
-                    GlobalOnErrorHandler.callErrorHandler(error);
-                    logger.error(
-                        'Failed to accept incoming Jingle session', error);
-                }
-            );
+        jingleSession.acceptOffer(
+            jingleOffer,
+            null /* success */,
+            error => {
+                GlobalOnErrorHandler.callErrorHandler(error);
+                logger.error(
+                    'Failed to accept incoming Jingle session', error);
+            },
+            this.getLocalTracks()
+        );
 
-            // Start callstats as soon as peerconnection is initialized,
-            // do not wait for XMPPEvents.PEERCONNECTION_READY, as it may never
-            // happen in case if user doesn't have or denied permission to
-            // both camera and microphone.
-            this.statistics.startCallStats(jingleSession);
-            this._startRemoteStats();
-        });
+        // Start callstats as soon as peerconnection is initialized,
+        // do not wait for XMPPEvents.PEERCONNECTION_READY, as it may never
+        // happen in case if user doesn't have or denied permission to
+        // both camera and microphone.
+        this.statistics.startCallStats(jingleSession);
+        this._startRemoteStats();
     } catch (e) {
         GlobalOnErrorHandler.callErrorHandler(e);
         logger.error(e);
@@ -1883,25 +1884,16 @@ JitsiConference.prototype._acceptP2PIncomingCall
 
     const localTracks = this.getLocalTracks();
 
-    logger.debug(`Adding ${localTracks} to P2P...`);
-    this.p2pJingleSession.addLocalTracks(localTracks).then(
+    this.p2pJingleSession.acceptOffer(
+        jingleOffer,
         () => {
-            logger.debug(`Add ${localTracks} to P2P done!`);
-            this.p2pJingleSession.acceptOffer(
-                jingleOffer,
-                () => {
-                    logger.debug('Got RESULT for P2P "session-accept"');
-                },
-                error => {
-                    logger.error(
-                        'Failed to accept incoming P2P Jingle session', error);
-                }
-            );
+            logger.debug('Got RESULT for P2P "session-accept"');
         },
         error => {
             logger.error(
-                `Failed to add ${localTracks} to the P2P connection`, error);
-        });
+                'Failed to accept incoming P2P Jingle session', error);
+        },
+        localTracks);
 };
 
 /**
@@ -2106,16 +2098,7 @@ JitsiConference.prototype._startP2PSession = function(peerJid) {
     // immediately once the P2P ICE connects.
     const localTracks = this.getLocalTracks();
 
-    logger.info(`Adding ${localTracks} to P2P...`);
-    this.p2pJingleSession.addLocalTracks(localTracks).then(
-        () => {
-            logger.info(`Added ${localTracks} to P2P`);
-            logger.info('About to send P2P \'session-initiate\'...');
-            this.p2pJingleSession.invite();
-        },
-        error => {
-            logger.error(`Failed to add ${localTracks} to P2P`, error);
-        });
+    this.p2pJingleSession.invite(localTracks);
 };
 
 /**

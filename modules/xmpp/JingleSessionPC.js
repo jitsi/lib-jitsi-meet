@@ -69,16 +69,6 @@ export default class JingleSessionPC extends JingleSession {
             options) {
         super(sid, me, peerjid, connection, mediaConstraints, iceConfig);
 
-        /**
-         * Stores "delayed" ICE candidates which are added to the PC once
-         * the first sRD/sLD cycle is done. If there was at least one sRD/sLD
-         * cycle already then the candidates are added as they come and this
-         * queue is skipped.
-         * @type {Array} an array of ICE candidate lines which can be added
-         * directly to the PC
-         */
-        this.delayedIceCandidiates = [];
-
         this.lasticecandidate = false;
         this.closed = false;
 
@@ -161,27 +151,6 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         return true;
-    }
-
-    /**
-     * Adds all "delayed" ICE candidates to the PeerConnection.
-     * @private
-     */
-    _dequeIceCandidates() {
-        this.delayedIceCandidiates.forEach(candidate => {
-            const line = candidate.candidate;
-
-            this.peerconnection.addIceCandidate(
-                candidate,
-                () => {
-                    logger.debug(`Add ICE candidate OK ${this}: ${line}`);
-                },
-                error => {
-                    logger.error(
-                        `Add ICE candidate failed ${this}: ${line}`, error);
-                });
-        });
-        this.delayedIceCandidiates = [];
     }
 
     /**
@@ -505,41 +474,69 @@ export default class JingleSessionPC extends JingleSession {
             return;
         }
 
-        // NOTE operates on each content element, can't use () =>
-        elem.each((contentIdx, content) => {
-            $(content).find('transport>candidate')
+        const iceCandidates = [];
+
+        elem.find('>content>transport>candidate')
             .each((idx, candidate) => {
                 let line = SDPUtil.candidateFromJingle(candidate);
 
                 line = line.replace('\r\n', '').replace('a=', '');
 
-                // FIXME this code does not care to handle non-bundle transport
+                // FIXME this code does not care to handle
+                // non-bundle transport
                 const rtcCandidate = new RTCIceCandidate({
                     sdpMLineIndex: 0,
 
                     // FF comes up with more complex names like audio-23423,
                     // Given that it works on both Chrome and FF without
-                    // providing it, let's leave it like this for the time being
+                    // providing it, let's leave it like this for the time
+                    // being...
                     // sdpMid: 'audio',
                     candidate: line
                 });
 
-                // Will delay the addition until the remoteDescription is set
-                if (this.peerconnection.remoteDescription.sdp) {
-                    logger.debug(`Trying to add ICE candidate: ${line}`);
-                    this.peerconnection.addIceCandidate(
-                        rtcCandidate,
-                        () => logger.debug(`addIceCandidate ok: ${line}`),
-                        error => {
-                            logger.error(
-                                `addIceCandidate failed: ${line}`, error);
-                        });
-                } else {
-                    logger.debug(`Delaying ICE candidate: ${line}`);
-                    this.delayedIceCandidiates.push(rtcCandidate);
-                }
+                iceCandidates.push(rtcCandidate);
             });
-        });
+
+        if (!iceCandidates.length) {
+            logger.error(
+                'No ICE candidates to add ?', elem[0] && elem[0].outerHTML);
+
+            return;
+        }
+
+        // We want to have this task queued, so that we know it is executed,
+        // after the initial sRD/sLD offer/answer cycle was done (based on
+        // the assumption that candidates are spawned after the offer/answer
+        // and XMPP preserves order).
+        const workFunction = () => {
+            for (const iceCandidate of iceCandidates) {
+                this.peerconnection.addIceCandidate(
+                    iceCandidate,
+                    () => {
+                        logger.debug('addIceCandidate ok!');
+                    },
+                    error => {
+                        logger.error('addIceCandidate failed!', error);
+                    });
+            }
+
+            // There's no need to renegotiate for ICE candidates added with
+            // 'peerconnection.addIceCandidate'
+            return false;
+        };
+
+        logger.debug(`Queued add ICE candidates(${iceCandidates.length}) task`);
+        this._doRenegotiate('add ICE candidate', workFunction)
+            .then(() => {
+                logger.debug('Add ICE candidate done !');
+            },
+            error => {
+                logger.error(
+                    'Failed to add ICE candidate',
+                    elem[0] && elem[0].outerHTML,
+                    error);
+            });
     }
 
     /**
@@ -585,18 +582,27 @@ export default class JingleSessionPC extends JingleSession {
         }
     }
 
+    /* eslint-disable max-params */
     /**
      * Accepts incoming Jingle 'session-initiate' and should send
      * 'session-accept' in result.
      * @param jingleOffer jQuery selector pointing to the jingle element of
-     *        the offer IQ
+     * the offer IQ
      * @param success callback called when we accept incoming session
-     *        successfully and receive RESULT packet to 'session-accept' sent.
+     * successfully and receive RESULT packet to 'session-accept' sent.
      * @param failure function(error) called if for any reason we fail to accept
-     *        the incoming offer. 'error' argument can be used to log some
-     *        details about the error.
+     * the incoming offer. 'error' argument can be used to log some details
+     * about the error.
+     * @param {Array<JitsiLocalTrack>} [localTracks] the optional list of
+     * the local tracks that will be added, before the offer/answer cycle
+     * executes. We allow the localTracks to optionally be passed in so that
+     * the addition of the local tracks and the processing of the initial offer
+     * can all be done atomically. We want to make sure that any other
+     * operations which originate in the XMPP Jingle messages related with
+     * this session to be executed with an assumption that the initial
+     * offer/answer cycle has been executed already.
      */
-    acceptOffer(jingleOffer, success, failure) {
+    acceptOffer(jingleOffer, success, failure, localTracks) {
         this.setOfferAnswerCycle(
             jingleOffer,
             () => {
@@ -607,15 +613,24 @@ export default class JingleSessionPC extends JingleSession {
                 // modify sendSessionAccept method to do that
                 this.sendSessionAccept(success, failure);
             },
-            failure);
+            failure,
+            localTracks);
     }
+
+    /* eslint-enable max-params */
 
     /**
      * Creates an offer and sends Jingle 'session-initiate' to the remote peer.
+     * @param {Array<JitsiLocalTrack>} localTracks the local tracks that will be
+     * added, before the offer/answer cycle executes (for the local track
+     * addition to be an atomic operation together with the offer/answer).
      */
-    invite() {
+    invite(localTracks) {
         if (!this.isInitiator) {
             throw new Error('Trying to invite from the responder session');
+        }
+        for (const localTrack of localTracks) {
+            this.peerconnection.addTrack(localTrack);
         }
         this.peerconnection.createOffer(
             this.sendSessionInitiate.bind(this),
@@ -686,6 +701,7 @@ export default class JingleSessionPC extends JingleSession {
             });
     }
 
+    /* eslint-disable max-params */
     /**
      * This is a setRemoteDescription/setLocalDescription cycle which starts at
      * converting Strophe Jingle IQ into remote offer SDP. Once converted
@@ -695,9 +711,20 @@ export default class JingleSessionPC extends JingleSession {
      * @param success callback called when sRD/sLD cycle finishes successfully.
      * @param failure callback called with an error object as an argument if we
      *        fail at any point during setRD, createAnswer, setLD.
+     * @param {Array<JitsiLocalTrack>} [localTracks] the optional list of
+     * the local tracks that will be added, before the offer/answer cycle
+     * executes (for the local track addition to be an atomic operation together
+     * with the offer/answer).
      */
-    setOfferAnswerCycle(jingleOfferAnswerIq, success, failure) {
+    setOfferAnswerCycle(jingleOfferAnswerIq, success, failure, localTracks) {
         const workFunction = finishedCallback => {
+
+            if (localTracks) {
+                for (const track of localTracks) {
+                    this.peerconnection.addTrack(track);
+                }
+            }
+
             const newRemoteSdp
                 = this._processNewJingleOfferIq(jingleOfferAnswerIq);
 
@@ -720,6 +747,8 @@ export default class JingleSessionPC extends JingleSession {
                 error ? failure(error) : success();
             });
     }
+
+    /* eslint-enable max-params */
 
     /**
      * Although it states "replace transport" it does accept full Jingle offer
@@ -1254,7 +1283,6 @@ export default class JingleSessionPC extends JingleSession {
                         this.peerconnection.setLocalDescription(
                             answer,
                             () => {
-                                this._dequeIceCandidates();
                                 resolve();
                             },
                             error => {
@@ -1289,7 +1317,6 @@ export default class JingleSessionPC extends JingleSession {
             this.peerconnection.setRemoteDescription(
                 remoteDescription,
                 () => {
-                    this._dequeIceCandidates();
                     resolve();
                 },
                 error => reject(`setRemoteDescription failed: ${error}`)
@@ -1306,7 +1333,6 @@ export default class JingleSessionPC extends JingleSession {
                             this.peerconnection.setRemoteDescription(
                                 remoteDescription,
                                 () => {
-                                    this._dequeIceCandidates();
                                     resolve();
                                 },
                                 error => reject(
@@ -1441,35 +1467,6 @@ export default class JingleSessionPC extends JingleSession {
         });
 
         return removeSsrcInfo;
-    }
-
-    /**
-     * Adds <tt>JitsiLocalTrack</tt>s to this session.
-     * @param {JitsiLocalTrack[]} tracks new local tracks that will be added.
-     * @return {Promise} a promise that will resolve once all local tracks are
-     * added. Will be rejected with a <tt>string</tt> which describes the error.
-     * NOTE(brian): there is a decent amount of overlap here with replaceStream
-     *  that could be re-used...however we can't leverage that currently because
-     *  the extra work we do here must be in the work function context and if we
-     *  then called replaceTrack we'd be adding another task on the queue
-     *  from within a task which would then deadlock.  The 'replaceTrack' core
-     *  logic should be moved into a helper function that could be called within
-     *  the 'doReplaceStream' task or the 'doAddStream' task (for example)
-     */
-    addLocalTracks(tracks) {
-        const workFunction = () => {
-            if (!this.peerconnection) {
-                return 'Error: tried adding stream with no active peer'
-                    + ' connection';
-            }
-            for (const track of tracks) {
-                this.peerconnection.addTrack(track);
-            }
-
-            return true;
-        };
-
-        return this._doRenegotiate('addStreams', workFunction);
     }
 
     /**
