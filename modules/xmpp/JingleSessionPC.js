@@ -587,16 +587,20 @@ export default class JingleSessionPC extends JingleSession {
      * Accepts incoming Jingle 'session-initiate' and should send
      * 'session-accept' in result.
      * @param jingleOffer jQuery selector pointing to the jingle element of
-     *        the offer IQ
+     * the offer IQ
      * @param success callback called when we accept incoming session
-     *        successfully and receive RESULT packet to 'session-accept' sent.
+     * successfully and receive RESULT packet to 'session-accept' sent.
      * @param failure function(error) called if for any reason we fail to accept
-     *        the incoming offer. 'error' argument can be used to log some
-     *        details about the error.
+     * the incoming offer. 'error' argument can be used to log some details
+     * about the error.
      * @param {Array<JitsiLocalTrack>} [localTracks] the optional list of
      * the local tracks that will be added, before the offer/answer cycle
-     * executes (for the local track addition to be an atomic operation together
-     * with the offer/answer).
+     * executes. We allow the localTracks to optionally be passed in so that
+     * the addition of the local tracks and the processing of the initial offer
+     * can all be done atomically. We want to make sure that any other
+     * operations which originate in the XMPP Jingle messages related with
+     * this session to be executed with an assumption that the initial
+     * offer/answer cycle has been executed already.
      */
     acceptOffer(jingleOffer, success, failure, localTracks) {
         this.setOfferAnswerCycle(
