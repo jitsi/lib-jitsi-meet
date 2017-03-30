@@ -1,5 +1,7 @@
 /* global Strophe */
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
+import { ParticipantConnectionStatus }
+    from './modules/connectivity/ParticipantConnectionStatus';
 import * as MediaType from './service/RTC/MediaType';
 
 /**
@@ -33,7 +35,7 @@ export default class JitsiParticipant {
             video: undefined
         };
         this._hidden = hidden;
-        this._connectionStatus = null;
+        this._connectionStatus = ParticipantConnectionStatus.ACTIVE;
         this._properties = {};
     }
 
