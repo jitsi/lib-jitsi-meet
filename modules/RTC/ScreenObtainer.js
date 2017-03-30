@@ -116,13 +116,25 @@ const ScreenObtainer = {
                     });
             };
         } else if (RTCBrowserType.isElectron()) {
-            obtainDesktopStream = (_, onSuccess, onFailure) =>
-                window.JitsiMeetElectron.obtainDesktopStream(
-                    streamId =>
-                        onGetStreamResponse({ streamId }, onSuccess, onFailure),
-                    err => onFailure(new JitsiTrackError(
-                        JitsiTrackErrors.CHROME_EXTENSION_GENERIC_ERROR, err))
-                );
+            obtainDesktopStream = (_, onSuccess, onFailure) => {
+                if (window.JitsiMeetScreenObtainer
+                    && window.JitsiMeetScreenObtainer.openDesktopPicker) {
+                    window.JitsiMeetScreenObtainer.openDesktopPicker(
+                        streamId =>
+                            onGetStreamResponse({ streamId },
+                            onSuccess,
+                            onFailure
+                        ),
+                        err => onFailure(new JitsiTrackError(
+                            JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR,
+                            err
+                        ))
+                    );
+                } else {
+                    onFailure(new JitsiTrackError(
+                        JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND));
+                }
+            };
         } else if (RTCBrowserType.isTemasysPluginUsed()) {
             // XXX Don't require Temasys unless it's to be used because it
             // doesn't run on React Native, for example.
