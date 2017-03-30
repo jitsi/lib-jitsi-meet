@@ -1531,49 +1531,8 @@ export default class JingleSessionPC extends JingleSession {
      * goes wrong.
      */
     addTrackAsUnmute(track) {
-        if (!track) {
-            return Promise.reject('invalid "track" argument value');
-        }
-        const workFunction = finishedCallback => {
-            if (!this.peerconnection) {
-                finishedCallback('Error: '
-                    + 'tried adding track with no active peer connection');
-
-                return;
-            }
-
-            const oldLocalSDP = this.peerconnection.localDescription.sdp;
-
-            if (!this.peerconnection.addTrackUnmute(track)) {
-                finishedCallback('addTrackUnmute failed!');
-            } else if (!oldLocalSDP
-                || !this.peerconnection.remoteDescription.sdp) {
-                finishedCallback();
-            } else {
-                this._renegotiate()
-                    .then(() => {
-                        // The results are ignored, as this check failure is not
-                        // enough to fail the whole operation. It will log
-                        // an error inside.
-                        this._verifyNoSSRCChanged(
-                            'addTrackUnmute', new SDP(oldLocalSDP));
-                        finishedCallback();
-                    },
-                    finishedCallback /* will be called with an error */);
-            }
-        };
-
-        return new Promise((resolve, reject) => {
-            this.modificationQueue.push(
-                workFunction,
-                error => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve();
-                    }
-                });
-        });
+        return this._addRemoveTrackAsMuteUnmute(
+            false /* add as unmute */, track);
     }
 
     /**
@@ -1585,23 +1544,41 @@ export default class JingleSessionPC extends JingleSession {
      * the error if anything goes wrong.
      */
     removeTrackAsMute(track) {
+        return this._addRemoveTrackAsMuteUnmute(
+            true /* remove as mute */, track);
+    }
+
+    /**
+     * See {@link addTrackAsUnmute} and {@link removeTrackAsMute}.
+     * @param {boolean} isMute <tt>true</tt> for "remove as mute" or
+     * <tt>false</tt> for "add as unmute".
+     * @param {JitsiLocalTrack} track the track that will be added/removed
+     * @private
+     */
+    _addRemoveTrackAsMuteUnmute(isMute, track) {
         if (!track) {
             return Promise.reject('invalid "track" argument value');
         }
+        const operationName = isMute ? 'removeTrackMute' : 'addTrackUnmute';
         const workFunction = finishedCallback => {
-            if (!this.peerconnection) {
-                finishedCallback('Error: '
-                    + 'tried removing track with no active peer connection');
+            const tpc = this.peerconnection;
+
+            if (!tpc) {
+                finishedCallback(
+                    `Error:  tried ${operationName} track with no active peer`
+                        + 'connection');
 
                 return;
             }
+            const oldLocalSDP = tpc.localDescription.sdp;
+            const tpcOperation
+                = isMute
+                    ? tpc.removeTrackMute.bind(tpc, track)
+                    : tpc.addTrackUnmute.bind(tpc, track);
 
-            const oldLocalSDP = this.peerconnection.localDescription.sdp;
-
-            if (!this.peerconnection.removeTrackMute(track)) {
-                finishedCallback('removeTrackMute failed !');
-            } else if (!oldLocalSDP
-                    || !this.peerconnection.remoteDescription.sdp) {
+            if (!tpcOperation()) {
+                finishedCallback(`${operationName} failed!`);
+            } else if (!oldLocalSDP || !tpc.remoteDescription.sdp) {
                 finishedCallback();
             } else {
                 this._renegotiate()
@@ -1610,7 +1587,7 @@ export default class JingleSessionPC extends JingleSession {
                         // enough to fail the whole operation. It will log
                         // an error inside.
                         this._verifyNoSSRCChanged(
-                            'removeTrackMute', new SDP(oldLocalSDP));
+                            operationName, new SDP(oldLocalSDP));
                         finishedCallback();
                     },
                     finishedCallback /* will be called with an error */);
