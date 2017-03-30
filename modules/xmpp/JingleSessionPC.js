@@ -22,6 +22,148 @@ const logger = getLogger(__filename);
 const IQ_TIMEOUT = 10000;
 
 /**
+ * The task which is executed on {@link JingleSessionPC.modificationQueue}
+ * which synchronizes modifications to the underlying
+ * {@link TraceablePeerConnection} state. All work that could change how either
+ * local or remote description will look should be executed through that queue.
+ *
+ * A task instance should be queued with {@link JingleSessionPC._doRenegotiate}
+ * which wraps common checks around renegotiation process (sRD/sLD cycle) and
+ * makes sure to send 'source-add/'source-remove' notifications in order to
+ * broadcast local stream description to all conference participants
+ * (through Jicofo).
+ *
+ * Class takes as an argument a worker function which should modify the
+ * instance state in a way which would reflect the result of the job performed.
+ * The instance is passed as an argument to the worker function. Once the task
+ * was executed the {@link ModificationQueueTask} state will be examined by
+ * taking into account the following:
+ *
+ * 1. If a worker function encounters critical error which should prevent from
+ * triggering renegotiation it should call
+ * {@link ModificationQueueTask.setError} and pass meaningful error description
+ * as a <tt>string</tt>. Further processing will stop at this point.
+ * 2. If a worker function succeeds and wants to provide new remote description
+ * for the renegotiation it should call
+ * {@link ModificationQueueTask.setRemoteDescription} and pass it as
+ * an argument. In case remote description is provided step 3 is omitted in
+ * the processing.
+ * 3. If a worker function finishes it's job it should set
+ * {@link ModificationQueueTask.setShouldRenegotiate} to <tt>true</tt> if any
+ * changes requiring renegotiation were done or <tt>false</tt> if there's no
+ * need to renegotiate.
+ *
+ * Given that the renegotiation will happen the local description from before
+ * and after the task execution are compared and 'source-remove'/'source-add'
+ * notifications will be triggered accordingly.
+ */
+class ModificationQueueTask {
+
+    /**
+     * Creates new instance of {@link ModificationQueueTask}.
+     * @param {function(ModificationQueueTask)} workFunction the worker function
+     * which should execute in synchronous manner. The instance created by this
+     * constructor will be passed as an argument during execution on
+     * the modification queue.
+     */
+    constructor(workFunction) {
+        this._workFunction = workFunction;
+
+        /**
+         * The remote SDP that will be used for renegotiation. If set then
+         * then the renegotiation will be attempted regardless of the
+         * {@link shouldRenegotiate} value.
+         * @type {Object|null}
+         * @private
+         */
+        this._remoteDescription = null;
+
+        /**
+         * Stores the execution error.
+         * @type {string|null}
+         * @private
+         */
+        this._error = null;
+
+        /**
+         * Indicates whether or not renegotiation should be attempted.
+         * Both {@link _error} and {@link _remoteDescription} take precedence
+         * over this field's value.
+         * @type {boolean}
+         * @private
+         */
+        this._renegotiate = false;
+    }
+
+    /**
+     * Executed the underlying worker function by passing this instance as
+     * an argument. See class description for more info.
+     */
+    execute() {
+        this._workFunction(this);
+    }
+
+    /**
+     * Obtains the error description which occurred during worker function
+     * execution. If not <tt>null</tt> the renegotiation will not happen.
+     * @return {string|null}
+     */
+    getError() {
+        return this._error;
+    }
+
+    /**
+     * Obtains the new remote description which should be used in
+     * the renegotiation. If non <tt>null</tt> it means that the renegotiation
+     * needs to happen and there's no need to call {@link setShouldRenegotiate}.
+     * @return {Object|null}
+     */
+    getRemoteDescription() {
+        return this._remoteDescription;
+    }
+
+    /**
+     * Sets an error description which is the reason for the task execution
+     * failure. If non <tt>null</tt> the renegotiation will not happen.
+     * @param {string|null} error
+     */
+    setError(error) {
+        this._error = error;
+    }
+
+    /**
+     * Sets the new remote description which is to be used during
+     * the renegotiation. When set to not <tt>null</tt> there's no need to call
+     * {@link setShouldRenegotiate} - the renegotiation will be attempted
+     * anyway.
+     * @param {Object|null} newRemoteDesc the remote SDP instance as defined by
+     * the WebRTC.
+     */
+    setRemoteDescription(newRemoteDesc) {
+        this._remoteDescription = newRemoteDesc;
+    }
+
+    /**
+     * Sets to <tt>true</tt> during worker function execution if
+     * the renegotiation should be attempted, or <tt>false</tt> otherwise.
+     * @param {boolean} renegotiate
+     */
+    setShouldRenegotiate(renegotiate) {
+        this._renegotiate = renegotiate;
+    }
+
+    /**
+     * Indicates whether or not the renegotiation should follow worker function
+     * execution. This value is examined ony after both {@link getError} and
+     * {@link getRemoteDescription} return <tt>null</tt> values.
+     * @return {boolean}
+     */
+    shouldRenegotiate() {
+        return this._renegotiate;
+    }
+}
+
+/**
  *
  */
 export default class JingleSessionPC extends JingleSession {
@@ -1060,16 +1202,16 @@ export default class JingleSessionPC extends JingleSession {
 
         this.readSsrcInfo(elem);
 
-        const workFunction = () => {
+        const queueTask = new ModificationQueueTask(thisTask => {
             const sdp = new SDP(this.peerconnection.remoteDescription.sdp);
             const addSsrcInfo = this._parseSsrcInfoFromSourceAdd(elem, sdp);
             const newRemoteSdp = this._processRemoteAddSource(addSsrcInfo);
 
-            return newRemoteSdp;
-        };
+            thisTask.setRemoteDescription(newRemoteSdp);
+        });
 
         // Queue and execute
-        this._doRenegotiate('source-add', workFunction)
+        this._doRenegotiate('source-add', queueTask)
             .then(() => {
                 logger.info('source-add - done!');
             })
@@ -1092,7 +1234,7 @@ export default class JingleSessionPC extends JingleSession {
             return;
         }
 
-        const workFunction = () => {
+        const queueTask = new ModificationQueueTask(thisTask => {
             logger.log('Remove remote stream');
             logger.log(
                 'ICE connection state: ',
@@ -1101,14 +1243,13 @@ export default class JingleSessionPC extends JingleSession {
             const sdp = new SDP(this.peerconnection.remoteDescription.sdp);
             const removeSsrcInfo
                 = this._parseSsrcInfoFromSourceRemove(elem, sdp);
-            const newRemoteSdp
-                = this._processRemoteRemoveSource(removeSsrcInfo);
 
-            return newRemoteSdp;
-        };
+            thisTask.setRemoteDescription(
+                this._processRemoteRemoveSource(removeSsrcInfo));
+        });
 
         // Queue and execute
-        this._doRenegotiate('source-remove', workFunction)
+        this._doRenegotiate('source-remove', queueTask)
             .then(() => {
                 logger.info('source-remove - done!');
             })
@@ -1335,7 +1476,7 @@ export default class JingleSessionPC extends JingleSession {
      *  with no arguments or rejects with an error {string}
      */
     replaceTrack(oldTrack, newTrack) {
-        const workFunction = () => {
+        const queueTask = new ModificationQueueTask(thisTask => {
             // NOTE the code below assumes that no more than 1 video track
             // can be added to the peer connection.
             // Transition from no video to video (possibly screen sharing)
@@ -1364,10 +1505,10 @@ export default class JingleSessionPC extends JingleSession {
                 this.peerconnection.addTrack(newTrack);
             }
 
-            return Boolean(oldTrack || newTrack); // Try to renegotiate
-        };
+            thisTask.setShouldRenegotiate(Boolean(oldTrack || newTrack));
+        });
 
-        return this._doRenegotiate('replaceTrack', workFunction);
+        return this._doRenegotiate('replaceTrack', queueTask);
     }
 
     /**
@@ -1457,19 +1598,19 @@ export default class JingleSessionPC extends JingleSession {
      *  the 'doReplaceStream' task or the 'doAddStream' task (for example)
      */
     addLocalTracks(tracks) {
-        const workFunction = () => {
-            if (!this.peerconnection) {
-                return 'Error: tried adding stream with no active peer'
-                    + ' connection';
+        const queueTask = new ModificationQueueTask(thisTask => {
+            if (this.peerconnection) {
+                for (const track of tracks) {
+                    this.peerconnection.addTrack(track);
+                    thisTask.setShouldRenegotiate(true);
+                }
+            } else {
+                thisTask.setError(
+                    'Error: tried adding stream with no active peerconnection');
             }
-            for (const track of tracks) {
-                this.peerconnection.addTrack(track);
-            }
+        });
 
-            return true;
-        };
-
-        return this._doRenegotiate('addStreams', workFunction);
+        return this._doRenegotiate('addStreams', queueTask);
     }
 
     /**
@@ -1484,16 +1625,17 @@ export default class JingleSessionPC extends JingleSession {
         if (!track) {
             return Promise.reject('invalid "track" argument value');
         }
-        const workFunction = () => {
-            if (!this.peerconnection) {
-                return 'Error: '
-                    + 'tried adding track with no active peer connection';
+        const queueTask = new ModificationQueueTask(thisTask => {
+            if (this.peerconnection) {
+                thisTask.setShouldRenegotiate(
+                    this.peerconnection.addTrackUnmute(track));
+            } else {
+                thisTask.setError(
+                    'Error: tried adding track with no active peerconnection');
             }
+        });
 
-            return this.peerconnection.addTrackUnmute(track);
-        };
-
-        return this._doRenegotiate('addStreamAsUnmute', workFunction);
+        return this._doRenegotiate('addStreamAsUnmute', queueTask);
     }
 
     /**
@@ -1508,61 +1650,48 @@ export default class JingleSessionPC extends JingleSession {
         if (!track) {
             return Promise.reject('invalid "stream" argument value');
         }
-        const workFunction = () => {
-            if (!this.peerconnection) {
-                return false;
+        const queueTask = new ModificationQueueTask(thisTask => {
+            if (this.peerconnection) {
+                thisTask.setShouldRenegotiate(
+                    this.peerconnection.removeTrackMute(track));
             }
+        });
 
-            return this.peerconnection.removeTrackMute(track);
-        };
-
-        return this._doRenegotiate('remove-as-mute', workFunction);
+        return this._doRenegotiate('remove-as-mute', queueTask);
     }
 
     /**
-     * A worker function that is scheduled and executed on the
-     * {@link modificationQueue}. Local SDPs from before and after the function
-     * is executed are compared and 'source-add'/'source-remove' notifications
-     * are being sent to remote participants (to propagate changes in local
-     * streams description).
-     * @name JingleSessionPC~WorkerFunction
-     * @function
-     * @returns {boolean|string|SDP} there are several things that this
-     * function can return:
-     * <tt>true</tt> if the renegotiation should follow the function execution
-     * <tt>false</tt> if there should be no renegotiation
-     * <tt>SDP</tt> that will be set as the remote description in the
-     * renegotiation process
-     * <tt>string</tt> which stands for the error description, no renegotiation
-     * will be done in that case it's returned
-     */
-    /**
      * Does the logic of doing the session renegotiation by updating local and
      * remote session descriptions. Will compare the local description, before
-     * and after the renegotiation to update local streams description (sends
-     * "source-add"/"source-remove" notifications).
+     * and after the {@link ModificationQueueTask} execution to update local
+     * streams description (sends "source-add"/"source-remove" notifications).
+     * See {@link ModificationQueueTask} description for more info.
      * @param {string} actionName the name of the action which will appear in
      * the events logged to the logger.
-     * @param {WorkerFunction} workFunction a function that will be executed on
-     * the queue. See type description for moe info.
+     * @param {ModificationQueueTask} modificationQueueTask the task to be
+     * executed on the queue. Check {@link ModificationQueueTask} for more info.
      * @private
      */
-    _doRenegotiate(actionName, workFunction) {
+    _doRenegotiate(actionName, modificationQueueTask) {
         const workFunctionWrap = finishedCallback => {
             // Remember localSDP from before any modifications are done, by
             // the worker function
             let oldSdp = this.peerconnection.localDescription.sdp;
-            let remoteSdp = null;
 
-            let modifySources = workFunction();
+            modificationQueueTask.execute();
 
-            // workFunction can return error description
-            if (typeof modifySources === 'string') {
-                finishedCallback(modifySources);
+            const taskError = modificationQueueTask.getError();
+
+            if (taskError) {
+                finishedCallback(taskError);
 
                 return;
-            } else if (typeof modifySources === 'object') {
-                remoteSdp = modifySources;
+            }
+
+            let modifySources = modificationQueueTask.shouldRenegotiate();
+            const remoteSdp = modificationQueueTask.getRemoteDescription();
+
+            if (remoteSdp) {
                 modifySources = true;
             }
 
@@ -1623,7 +1752,7 @@ export default class JingleSessionPC extends JingleSession {
      * a string in case anything goes wrong.
      */
     setMediaTransferActive(active) {
-        const workFunction = () => {
+        const queueTask = new ModificationQueueTask(thisTask => {
             this.mediaTransferActive = active;
             if (this.peerconnection) {
                 this.peerconnection.setMediaTransferActive(
@@ -1631,16 +1760,13 @@ export default class JingleSessionPC extends JingleSession {
 
                 // Will do the sRD/sLD cycle to update SDPs and adjust the media
                 // direction
-                return true;
+                thisTask.setShouldRenegotiate(true);
             }
-
-            return false; // Do not renegotiate
-        };
+        });
 
         const logStr = active ? 'active' : 'inactive';
 
-        return this._doRenegotiate(
-            `make media transfer ${logStr}`, workFunction);
+        return this._doRenegotiate(`make media transfer ${logStr}`, queueTask);
     }
 
     /**
