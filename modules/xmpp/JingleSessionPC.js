@@ -1485,6 +1485,44 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Will print an error if there is any difference, between the SSRCs given
+     * in the <tt>oldSDP</tt> and the ones currently described in
+     * the peerconnection's local description.
+     * @param {string} operationName the operation's name which will be printed
+     * in the error message.
+     * @param {SDP} oldSDP the old local SDP which will be compared with
+     * the current one.
+     * @return {boolean} <tt>true</tt> if there was any change or <tt>false</tt>
+     * otherwise.
+     * @private
+     */
+    _verifyNoSSRCChanged(operationName, oldSDP) {
+        const currentLocalSDP
+            = new SDP(this.peerconnection.localDescription.sdp);
+        let sdpDiff = new SDPDiffer(oldSDP, currentLocalSDP);
+        const addedMedia = sdpDiff.getNewMedia();
+
+        if (Object.keys(addedMedia).length) {
+            logger.error(
+                `Some SSRC were added on ${operationName}`, addedMedia);
+
+            return false;
+        }
+
+        sdpDiff = new SDPDiffer(currentLocalSDP, oldSDP);
+        const removedMedia = sdpDiff.getNewMedia();
+
+        if (Object.keys(removedMedia).length) {
+            logger.error(
+                `Some SSRCs were removed on ${operationName}`, removedMedia);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Adds local track back to this session, as part of the unmute operation.
      * @param {JitsiLocalTrack} track
      * @return {Promise} a promise that will resolve once the local track is
@@ -1504,17 +1542,23 @@ export default class JingleSessionPC extends JingleSession {
                 return;
             }
 
+            // FIXME it can happen that mute is scheduled,
+            // before the initial offer/answer and local description is not
+            // available. Also _renegotiate will crash with no remote
+            // description.
+            const oldLocalSDP = this.peerconnection.localDescription.sdp;
+
             if (this.peerconnection.addTrackUnmute(track)) {
-                // FIXME add a check
-                // Local SDPs are not compared and no SSRC updates are
-                // sent, because it is not expected to have local SDP changed as
-                // a result of this operation. But in case of errors of
-                // the underlying layers which prevent from local SDP change it
-                // will be harder to detect the problem.
                 this._renegotiate()
-                    .then(
-                        finishedCallback,
-                        finishedCallback /* will be called with an error */);
+                    .then(() => {
+                        // The results are ignored, as this check failure is not
+                        // enough to fail the whole operation. It will log
+                        // an error inside.
+                        this._verifyNoSSRCChanged(
+                            'addTrackUnmute', new SDP(oldLocalSDP));
+                        finishedCallback();
+                    },
+                    finishedCallback /* will be called with an error */);
             } else {
                 finishedCallback('addTrackUnmute failed!');
             }
@@ -1553,17 +1597,23 @@ export default class JingleSessionPC extends JingleSession {
                 return;
             }
 
+            // FIXME it can happen that mute is scheduled,
+            // before the initial offer/answer and local description is not
+            // available. Also _renegotiate will crash with no remote
+            // description.
+            const oldLocalSDP = this.peerconnection.localDescription.sdp;
+
             if (this.peerconnection.removeTrackMute(track)) {
-                // FIXME add a check
-                // Local SDPs are not compared and no SSRC updates are
-                // sent, because it is not expected to have local SDP changed as
-                // a result of this operation. But in case of errors of
-                // the underlying layers which prevent from local SDP change it
-                // will be harder to detect the problem.
                 this._renegotiate()
-                    .then(
-                        finishedCallback,
-                        finishedCallback /* will be called with an error */);
+                    .then(() => {
+                        // The results are ignored, as this check failure is not
+                        // enough to fail the whole operation. It will log
+                        // an error inside.
+                        this._verifyNoSSRCChanged(
+                            'removeTrackMute', new SDP(oldLocalSDP));
+                        finishedCallback();
+                    },
+                    finishedCallback /* will be called with an error */);
             } else {
                 finishedCallback('removeTrackMute failed !');
             }
