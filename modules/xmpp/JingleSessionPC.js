@@ -1542,13 +1542,14 @@ export default class JingleSessionPC extends JingleSession {
                 return;
             }
 
-            // FIXME it can happen that mute is scheduled,
-            // before the initial offer/answer and local description is not
-            // available. Also _renegotiate will crash with no remote
-            // description.
             const oldLocalSDP = this.peerconnection.localDescription.sdp;
 
-            if (this.peerconnection.addTrackUnmute(track)) {
+            if (!this.peerconnection.addTrackUnmute(track)) {
+                finishedCallback('addTrackUnmute failed!');
+            } else if (!oldLocalSDP
+                || !this.peerconnection.remoteDescription.sdp) {
+                finishedCallback();
+            } else {
                 this._renegotiate()
                     .then(() => {
                         // The results are ignored, as this check failure is not
@@ -1559,8 +1560,6 @@ export default class JingleSessionPC extends JingleSession {
                         finishedCallback();
                     },
                     finishedCallback /* will be called with an error */);
-            } else {
-                finishedCallback('addTrackUnmute failed!');
             }
         };
 
@@ -1597,13 +1596,14 @@ export default class JingleSessionPC extends JingleSession {
                 return;
             }
 
-            // FIXME it can happen that mute is scheduled,
-            // before the initial offer/answer and local description is not
-            // available. Also _renegotiate will crash with no remote
-            // description.
             const oldLocalSDP = this.peerconnection.localDescription.sdp;
 
-            if (this.peerconnection.removeTrackMute(track)) {
+            if (!this.peerconnection.removeTrackMute(track)) {
+                finishedCallback('removeTrackMute failed !');
+            } else if (!oldLocalSDP
+                    || !this.peerconnection.remoteDescription.sdp) {
+                finishedCallback();
+            } else {
                 this._renegotiate()
                     .then(() => {
                         // The results are ignored, as this check failure is not
@@ -1614,8 +1614,6 @@ export default class JingleSessionPC extends JingleSession {
                         finishedCallback();
                     },
                     finishedCallback /* will be called with an error */);
-            } else {
-                finishedCallback('removeTrackMute failed !');
             }
         };
 
