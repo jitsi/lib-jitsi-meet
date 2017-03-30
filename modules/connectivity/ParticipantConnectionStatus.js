@@ -148,6 +148,7 @@ export default class ParticipantConnectionStatusHandler {
          * A map of the "endpoint ID"(which corresponds to the resource part
          * of MUC JID(nickname)) to the restoring timeout callback IDs
          * scheduled using window.setTimeout.
+         *
          * @type {Object.<string, number>}
          */
         this.restoringTimers = [];
@@ -255,8 +256,8 @@ export default class ParticipantConnectionStatusHandler {
      * Handles RTCEvents.ENDPOINT_CONN_STATUS_CHANGED triggered when we receive
      * notification over the data channel from the bridge about endpoint's
      * connection status update.
-     * @param endpointId {string} the endpoint ID(MUC nickname/resource JID)
-     * @param isActive {boolean} true if the connection is OK or false otherwise
+     * @param {string} endpointId the endpoint ID(MUC nickname/resource JID)
+     * @param {boolean} isActive true if the connection is OK or false otherwise
      */
     onEndpointConnStatusChanged(endpointId, isActive) {
 
@@ -310,7 +311,7 @@ export default class ParticipantConnectionStatusHandler {
      * Reset the postponed "connection interrupted" event which was previously
      * scheduled as a timeout on RTC 'onmute' event.
      *
-     * @param participantId the participant for which the "connection
+     * @param {string} participantId the participant for which the "connection
      * interrupted" timeout was scheduled
      */
     clearTimeout(participantId) {
@@ -322,8 +323,8 @@ export default class ParticipantConnectionStatusHandler {
 
     /**
      * Clears the timestamp of the RTC muted event for participant's video track
-     * @param participantId the id of the conference participant which is
-     * the same as the Colibri endpoint ID of the video channel allocated for
+     * @param {string} participantId the id of the conference participant which
+     * is the same as the Colibri endpoint ID of the video channel allocated for
      * the user on the videobridge.
      */
     clearRtcMutedTimestamp(participantId) {
@@ -494,8 +495,8 @@ export default class ParticipantConnectionStatusHandler {
      * On change in Last N set check all leaving and entering participants to
      * change their corresponding statuses.
      *
-     * @param leavingLastN
-     * @param enteringLastN
+     * @param {Array<string>} leavingLastN array of ids leaving lastN.
+     * @param {Array<string>} enteringLastN array of ids entering lastN.
      * @private
      */
     _onLastNChanged(leavingLastN, enteringLastN) {
@@ -520,8 +521,8 @@ export default class ParticipantConnectionStatusHandler {
      * Clears the restoring timer for participant's video track and the
      * timestamp for entering lastN.
      *
-     * @param participantId the id of the conference participant which is
-     * the same as the Colibri endpoint ID of the video channel allocated for
+     * @param {string} participantId the id of the conference participant which
+     * is the same as the Colibri endpoint ID of the video channel allocated for
      * the user on the videobridge.
      */
     _clearRestoringTimer(participantId) {
@@ -537,8 +538,8 @@ export default class ParticipantConnectionStatusHandler {
      * timedout and there is no timer added, add new timer in order to give it
      * more time to become active or mark it as interrupted on next check.
      *
-     * @param participantId the id of the conference participant which is
-     * the same as the Colibri endpoint ID of the video channel allocated for
+     * @param {string} participantId the id of the conference participant which
+     * is the same as the Colibri endpoint ID of the video channel allocated for
      * the user on the videobridge.
      * @returns {boolean} <tt>true</tt> if the track was in restoring state
      * more than the timeout ({@link DEFAULT_RESTORING_TIMEOUT}.) in order to
