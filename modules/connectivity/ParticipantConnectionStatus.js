@@ -18,6 +18,16 @@ const logger = getLogger(__filename);
 const DEFAULT_RTC_MUTE_TIMEOUT = 2000;
 
 /**
+ * The time to wait a track to be restored. Track which was out of lastN
+ * should be inactive and when entering lastN it becomes restoring and when
+ * data is received from bridge it will become active, but if no data is
+ * received for some time we set status of that participant connection to
+ * interrupted.
+ * @type {number}
+ */
+const DEFAULT_RESTORING_TIMEOUT = 5000;
+
+/**
  * Participant connection statuses.
  *
  * @type {{
@@ -121,6 +131,26 @@ export default class ParticipantConnectionStatusHandler {
          */
         this.rtcMutedTimestamp = { };
         logger.info(`RtcMuteTimeout set to: ${this.rtcMuteTimeout}`);
+
+        /**
+         * This map holds the timestamps indicating when participant's video
+         * entered lastN set. Participants entering lastN will have connection
+         * status restoring and when we start receiving video will become
+         * active, but if video is not received for certain time
+         * {@link DEFAULT_RESTORING_TIMEOUT} that participant connection status
+         * will become interrupted.
+         *
+         * @type {Object.<string, number>}
+         */
+        this.enteredLastNTimestamp = {};
+
+        /**
+         * A map of the "endpoint ID"(which corresponds to the resource part
+         * of MUC JID(nickname)) to the restoring timeout callback IDs
+         * scheduled using window.setTimeout.
+         * @type {Object.<string, number>}
+         */
+        this.restoringTimers = [];
     }
 
     /**
@@ -429,20 +459,24 @@ export default class ParticipantConnectionStatusHandler {
         if (isConnActiveByJvb) {
             if (isInLastN) {
                 if (isVideoTrackFrozen) {
-                    // if participant was inactive, and is in lastN,
-                    // it is restoring
-                    const isInactive = participant.getConnectionStatus()
-                        === ParticipantConnectionStatus.INACTIVE;
-
-                    newState = isInactive
-                        ? ParticipantConnectionStatus.RESTORING
-                            : ParticipantConnectionStatus.INTERRUPTED;
+                    newState = this._isRestoringTimedout(id)
+                        ? ParticipantConnectionStatus.INTERRUPTED
+                            : ParticipantConnectionStatus.RESTORING;
                 } else {
                     newState = ParticipantConnectionStatus.ACTIVE;
                 }
             }
-        } else if (isInLastN && isVideoTrackFrozen) {
+        } else {
+            // when there is a connection problem signaled from jvb
+            // it means no media was flowing for at least 15secs, so everything
+            // should be interrupted, when in p2p mode we will never end up here
             newState = ParticipantConnectionStatus.INTERRUPTED;
+        }
+
+        // if the new state is not restoring clear timers and timestamps
+        // that we use to track the restoring state
+        if (newState !== ParticipantConnectionStatus.RESTORING) {
+            this._clearRestoringTimer(id);
         }
 
         logger.debug(
@@ -466,11 +500,71 @@ export default class ParticipantConnectionStatusHandler {
      */
     _onLastNChanged(leavingLastN, enteringLastN) {
         if (leavingLastN) {
-            leavingLastN.forEach(id => this.figureOutConnectionStatus(id));
+            leavingLastN.forEach(id => {
+                delete this.enteredLastNTimestamp[id];
+                this._clearRestoringTimer(id);
+                this.figureOutConnectionStatus(id);
+            });
         }
         if (enteringLastN) {
-            enteringLastN.forEach(id => this.figureOutConnectionStatus(id));
+            enteringLastN.forEach(id => {
+                // store the timestamp this id is entering lastN
+                this.enteredLastNTimestamp[id] = Date.now();
+
+                this.figureOutConnectionStatus(id);
+            });
         }
+    }
+
+    /**
+     * Clears the restoring timer for participant's video track and the
+     * timestamp for entering lastN.
+     *
+     * @param participantId the id of the conference participant which is
+     * the same as the Colibri endpoint ID of the video channel allocated for
+     * the user on the videobridge.
+     */
+    _clearRestoringTimer(participantId) {
+        if (this.restoringTimers[participantId]) {
+            clearTimeout(this.restoringTimers[participantId]);
+            delete this.restoringTimers[participantId];
+        }
+    }
+
+    /**
+     * Checks whether a track had stayed enough in restoring state, compares
+     * current time and the time the track entered in lastN. If it hasn't
+     * timedout and there is no timer added, add new timer in order to give it
+     * more time to become active or mark it as interrupted on next check.
+     *
+     * @param participantId the id of the conference participant which is
+     * the same as the Colibri endpoint ID of the video channel allocated for
+     * the user on the videobridge.
+     * @returns {boolean} <tt>true</tt> if the track was in restoring state
+     * more than the timeout ({@link DEFAULT_RESTORING_TIMEOUT}.) in order to
+     * set its status to interrupted.
+     * @private
+     */
+    _isRestoringTimedout(participantId) {
+        const enteredLastNTimestamp
+            = this.enteredLastNTimestamp[participantId];
+
+        if (typeof enteredLastNTimestamp === 'number'
+            && (Date.now() - enteredLastNTimestamp)
+            >= DEFAULT_RESTORING_TIMEOUT) {
+            return true;
+        }
+
+        // still haven't reached timeout, if there is no timer scheduled,
+        // schedule one so we can track the restoring state and change it after
+        // reaching the timeout
+        if (!this.restoringTimers[participantId]) {
+            this.restoringTimers[participantId] = setTimeout(
+                this.figureOutConnectionStatus.bind(this, participantId),
+                DEFAULT_RESTORING_TIMEOUT);
+        }
+
+        return false;
     }
 
     /**
