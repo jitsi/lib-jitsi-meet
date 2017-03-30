@@ -1065,47 +1065,7 @@ export default class JingleSessionPC extends JingleSession {
      * @param elem An array of Jingle "content" elements.
      */
     addRemoteStream(elem) {
-        // FIXME there's no need for that when it's put on the queue
-        if (!this.peerconnection.localDescription) {
-            logger.warn('addSource - localDescription not ready yet');
-            if (this._assertNotEnded('addRemoteStream')) {
-                setTimeout(() => this.addRemoteStream(elem), 200);
-            }
-
-            return;
-        }
-        logger.log('Processing add remote stream');
-        logger.log(
-            'ICE connection state: ', this.peerconnection.iceConnectionState);
-
-        this.readSsrcInfo(elem);
-
-        const workFunction = finishedCallback => {
-            const oldLocalSdp
-                = new SDP(this.peerconnection.localDescription.sdp);
-            const sdp = new SDP(this.peerconnection.remoteDescription.sdp);
-            const addSsrcInfo = this._parseSsrcInfoFromSourceAdd(elem, sdp);
-            const newRemoteSdp = this._processRemoteAddSource(addSsrcInfo);
-
-            this._renegotiate(newRemoteSdp)
-                .then(() => {
-                    const newLocalSdp
-                        = new SDP(this.peerconnection.localDescription.sdp);
-
-                    logger.log(
-                        'addRemoteStream - OK, SDPs: ',
-                        oldLocalSdp,
-                        newLocalSdp);
-                    this.notifyMySSRCUpdate(oldLocalSdp, newLocalSdp);
-                    finishedCallback();
-                }, error => {
-                    logger.error('addRemoteStream failed: ', error);
-                    finishedCallback(error);
-                });
-        };
-
-        // Queue and execute
-        this.modificationQueue.push(workFunction);
+        this._addOrRemoveRemoteStream(true /* add */, elem);
     }
 
     /**
@@ -1113,29 +1073,53 @@ export default class JingleSessionPC extends JingleSession {
      * @param elem An array of Jingle "content" elements.
      */
     removeRemoteStream(elem) {
-        // FIXME there's no need for that when it's put on the queue
+        this._addOrRemoveRemoteStream(false /* remove */, elem);
+    }
+
+    /**
+     * Handles either Jingle 'source-add' or 'source-remove' message for this
+     * Jingle session.
+     * @param {boolean} isAdd <tt>true</tt> for 'source-add' or <tt>false</tt>
+     * otherwise.
+     * @param {Array<Element>} elem an array of Jingle "content" elements.
+     * @private
+     */
+    _addOrRemoveRemoteStream(isAdd, elem) {
+        const logPrefix = isAdd ? 'addRemoteStream' : 'removeRemoteStream';
+
+        // FIXME it's possible that there's no need for timeout when this task
+        // is put on the queue, as we may assume initial Offer/Answer is
+        // the first task executed for a JingleSession.
         if (!this.peerconnection.localDescription) {
-            logger.warn('removeSource - localDescription not ready yet');
-            if (this._assertNotEnded('removeRemoteStream')) {
-                setTimeout(() => this.removeRemoteStream(elem), 200);
+            logger.warn(`${logPrefix} - localDescription not ready yet`);
+            if (this._assertNotEnded(logPrefix)) {
+                setTimeout(() => {
+                    this._addOrRemoveRemoteStream(isAdd, elem);
+                }, 200);
             }
 
             return;
         }
+        logger.log(`Processing ${logPrefix}`);
+        logger.log(
+            'ICE connection state: ', this.peerconnection.iceConnectionState);
+
+        if (isAdd) {
+            this.readSsrcInfo(elem);
+        }
 
         const workFunction = finishedCallback => {
-            logger.log('Remove remote stream');
-            logger.log(
-                'ICE connection state: ',
-                this.peerconnection.iceConnectionState);
-
             const oldLocalSdp
                 = new SDP(this.peerconnection.localDescription.sdp);
             const sdp = new SDP(this.peerconnection.remoteDescription.sdp);
-            const removeSsrcInfo
-                = this._parseSsrcInfoFromSourceRemove(elem, sdp);
+            const addOrRemoveSsrcInfo
+                = isAdd
+                    ? this._parseSsrcInfoFromSourceAdd(elem, sdp)
+                    : this._parseSsrcInfoFromSourceRemove(elem, sdp);
             const newRemoteSdp
-                = this._processRemoteRemoveSource(removeSsrcInfo);
+                = isAdd
+                    ? this._processRemoteAddSource(addOrRemoveSsrcInfo)
+                    : this._processRemoteRemoveSource(addOrRemoveSsrcInfo);
 
             this._renegotiate(newRemoteSdp)
                 .then(() => {
@@ -1143,13 +1127,11 @@ export default class JingleSessionPC extends JingleSession {
                         = new SDP(this.peerconnection.localDescription.sdp);
 
                     logger.log(
-                        'removeRemoteStream - OK, SDPs: ',
-                        oldLocalSdp,
-                        newLocalSdp);
+                        `${logPrefix} - OK, SDPs: `, oldLocalSdp, newLocalSdp);
                     this.notifyMySSRCUpdate(oldLocalSdp, newLocalSdp);
                     finishedCallback();
                 }, error => {
-                    logger.error('removeRemoteStream failed: ', error);
+                    logger.error(`${logPrefix} failed:`, error);
                     finishedCallback(error);
                 });
         };
