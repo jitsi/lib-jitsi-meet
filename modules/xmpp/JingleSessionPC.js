@@ -1087,28 +1087,26 @@ export default class JingleSessionPC extends JingleSession {
     _addOrRemoveRemoteStream(isAdd, elem) {
         const logPrefix = isAdd ? 'addRemoteStream' : 'removeRemoteStream';
 
-        // FIXME it's possible that there's no need for timeout when this task
-        // is put on the queue, as we may assume initial Offer/Answer is
-        // the first task executed for a JingleSession.
-        if (!this.peerconnection.localDescription) {
-            logger.warn(`${logPrefix} - localDescription not ready yet`);
-            if (this._assertNotEnded(logPrefix)) {
-                setTimeout(() => {
-                    this._addOrRemoveRemoteStream(isAdd, elem);
-                }, 200);
-            }
-
-            return;
-        }
-        logger.log(`Processing ${logPrefix}`);
-        logger.log(
-            'ICE connection state: ', this.peerconnection.iceConnectionState);
-
         if (isAdd) {
             this.readSsrcInfo(elem);
         }
 
         const workFunction = finishedCallback => {
+            if (!this.peerconnection.localDescription
+                || !this.peerconnection.localDescription.sdp) {
+                const errMsg = `${logPrefix} - localDescription not ready yet`;
+
+                logger.error(errMsg);
+                finishedCallback(errMsg);
+
+                return;
+            }
+
+            logger.log(`Processing ${logPrefix}`);
+            logger.log(
+                'ICE connection state: ',
+                this.peerconnection.iceConnectionState);
+
             const oldLocalSdp
                 = new SDP(this.peerconnection.localDescription.sdp);
             const sdp = new SDP(this.peerconnection.remoteDescription.sdp);
