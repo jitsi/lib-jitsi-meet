@@ -41,7 +41,7 @@ export const ParticipantConnectionStatus = {
     /**
      * Status indicating that connection is currently active.
      */
-    ACTIVE: Symbol('active'),
+    ACTIVE: 'active',
 
     /**
      * Status indicating that connection is currently inactive.
@@ -49,17 +49,17 @@ export const ParticipantConnectionStatus = {
      * like exiting lastN or adaptivity decided to drop video because of not
      * enough bandwidth.
      */
-    INACTIVE: Symbol('inactive'),
+    INACTIVE: 'inactive',
 
     /**
      * Status indicating that connection is currently interrupted.
      */
-    INTERRUPTED: Symbol('interrupted'),
+    INTERRUPTED: 'interrupted',
 
     /**
      * Status indicating that connection is currently restoring.
      */
-    RESTORING: Symbol('restoring')
+    RESTORING: 'restoring'
 };
 
 /**
