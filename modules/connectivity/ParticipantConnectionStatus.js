@@ -41,7 +41,7 @@ export const ParticipantConnectionStatus = {
     /**
      * Status indicating that connection is currently active.
      */
-    ACTIVE: 'active',
+    ACTIVE: Symbol('active'),
 
     /**
      * Status indicating that connection is currently inactive.
@@ -49,17 +49,17 @@ export const ParticipantConnectionStatus = {
      * like exiting lastN or adaptivity decided to drop video because of not
      * enough bandwidth.
      */
-    INACTIVE: 'inactive',
+    INACTIVE: Symbol('inactive'),
 
     /**
      * Status indicating that connection is currently interrupted.
      */
-    INTERRUPTED: 'interrupted',
+    INTERRUPTED: Symbol('interrupted'),
 
     /**
      * Status indicating that connection is currently restoring.
      */
-    RESTORING: 'restoring'
+    RESTORING: Symbol('restoring')
 };
 
 /**
@@ -140,18 +140,18 @@ export default class ParticipantConnectionStatusHandler {
          * {@link DEFAULT_RESTORING_TIMEOUT} that participant connection status
          * will become interrupted.
          *
-         * @type {Object.<string, number>}
+         * @type {Map<string, number>}
          */
-        this.enteredLastNTimestamp = {};
+        this.enteredLastNTimestamp = new Map();
 
         /**
          * A map of the "endpoint ID"(which corresponds to the resource part
          * of MUC JID(nickname)) to the restoring timeout callback IDs
          * scheduled using window.setTimeout.
          *
-         * @type {Object.<string, number>}
+         * @type {Map<string, number>}
          */
-        this.restoringTimers = [];
+        this.restoringTimers = new Map();
     }
 
     /**
@@ -485,8 +485,8 @@ export default class ParticipantConnectionStatusHandler {
                  } is active(jvb): ${isConnActiveByJvb
                  } video track frozen: ${isVideoTrackFrozen
                  } is in last N: ${isInLastN
-                 } current2NewStatus: ${participant.getConnectionStatus()
-                 } => ${newState}`);
+                 } currentStatus => newStatus: 
+                    ${participant.getConnectionStatus()} => ${newState}`);
 
         this._changeConnectionStatus(participant, newState);
     }
@@ -499,21 +499,17 @@ export default class ParticipantConnectionStatusHandler {
      * @param {Array<string>} enteringLastN array of ids entering lastN.
      * @private
      */
-    _onLastNChanged(leavingLastN, enteringLastN) {
-        if (leavingLastN) {
-            leavingLastN.forEach(id => {
-                delete this.enteredLastNTimestamp[id];
-                this._clearRestoringTimer(id);
-                this.figureOutConnectionStatus(id);
-            });
+    _onLastNChanged(leavingLastN = [], enteringLastN = []) {
+        for (const id of leavingLastN) {
+            this.enteredLastNTimestamp.delete(id);
+            this._clearRestoringTimer(id);
+            this.figureOutConnectionStatus(id);
         }
-        if (enteringLastN) {
-            enteringLastN.forEach(id => {
-                // store the timestamp this id is entering lastN
-                this.enteredLastNTimestamp[id] = Date.now();
+        for (const id of enteringLastN) {
+            // store the timestamp this id is entering lastN
+            this.enteredLastNTimestamp.set(id, Date.now());
 
-                this.figureOutConnectionStatus(id);
-            });
+            this.figureOutConnectionStatus(id);
         }
     }
 
@@ -526,9 +522,11 @@ export default class ParticipantConnectionStatusHandler {
      * the user on the videobridge.
      */
     _clearRestoringTimer(participantId) {
-        if (this.restoringTimers[participantId]) {
-            clearTimeout(this.restoringTimers[participantId]);
-            delete this.restoringTimers[participantId];
+        const rTimer = this.restoringTimers.get(participantId);
+
+        if (rTimer) {
+            clearTimeout(rTimer);
+            this.restoringTimers.delete(participantId);
         }
     }
 
@@ -548,21 +546,23 @@ export default class ParticipantConnectionStatusHandler {
      */
     _isRestoringTimedout(participantId) {
         const enteredLastNTimestamp
-            = this.enteredLastNTimestamp[participantId];
+            = this.enteredLastNTimestamp.get(participantId);
 
-        if (typeof enteredLastNTimestamp === 'number'
+        if (enteredLastNTimestamp
             && (Date.now() - enteredLastNTimestamp)
-            >= DEFAULT_RESTORING_TIMEOUT) {
+                >= DEFAULT_RESTORING_TIMEOUT) {
             return true;
         }
 
         // still haven't reached timeout, if there is no timer scheduled,
         // schedule one so we can track the restoring state and change it after
         // reaching the timeout
-        if (!this.restoringTimers[participantId]) {
-            this.restoringTimers[participantId] = setTimeout(
-                this.figureOutConnectionStatus.bind(this, participantId),
-                DEFAULT_RESTORING_TIMEOUT);
+        const rTimer = this.restoringTimers.get(participantId);
+
+        if (!rTimer) {
+            this.restoringTimers.set(participantId, setTimeout(
+                () => this.figureOutConnectionStatus(participantId),
+                DEFAULT_RESTORING_TIMEOUT));
         }
 
         return false;
