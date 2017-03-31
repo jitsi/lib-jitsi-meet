@@ -49,8 +49,8 @@
     "webpack": "1.14.0"
   },
   "scripts": {
-    "install": "webpack -p",
     "lint": "jshint . && eslint . && flow",
+    "postinstall": "webpack -p",
     "test": "karma start karma.conf.js",
     "validate": "npm ls"
   },
