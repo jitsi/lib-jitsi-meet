@@ -1307,7 +1307,8 @@ JitsiConference.prototype.onIncomingCall
         // do not wait for XMPPEvents.PEERCONNECTION_READY, as it may never
         // happen in case if user doesn't have or denied permission to
         // both camera and microphone.
-        this.statistics.startCallStats(jingleSession);
+        this.statistics.startCallStats(
+            this.jvbJingleSession.peerconnection, this.myUserId());
         this._startRemoteStats();
     } catch (e) {
         GlobalOnErrorHandler.callErrorHandler(e);

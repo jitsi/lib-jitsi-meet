@@ -11,6 +11,8 @@ const ScriptUtil = require('../util/ScriptUtil');
 
 import * as StatisticsEvents from '../../service/statistics/Events';
 
+import Settings from '../settings/Settings';
+
 /**
  * True if callstats API is loaded
  */
@@ -230,13 +232,31 @@ Statistics.prototype.stopRemoteStats = function() {
 
 /**
  * Initializes the callstats.io API.
- * @param peerConnection {JingleSessionPC} the session object
+ * @param {TraceablePeerConnection} tpc the {@link TraceablePeerConnection}
+ * instance for which CalStats will be started.
+ * @param {string} aliasName an alias name for the local endpoint which will be
+ * used for reporting the new CallStats session.
  */
-Statistics.prototype.startCallStats = function(session) {
+Statistics.prototype.startCallStats = function(tpc, aliasName) {
     if (this.callStatsIntegrationEnabled && !this.callStatsStarted) {
+        /* eslint-disable prefer-template */
+        // The confID is case sensitive!!!
+        const confID
+            = this.options.callStatsConfIDNamespace
+                + '/' + this.options.roomName;
+
+        /* eslint-enable prefer-template */
+        const options = {
+            confID,
+            aliasName,
+            userName: Settings.getCallStatsUserName(),
+            callStatsID: this.options.callStatsID,
+            callStatsSecret: this.options.callStatsSecret
+        };
+
         // Here we overwrite the previous instance, but it must be bound to
         // the new PeerConnection
-        this.callstats = new CallStats(session, this.options);
+        this.callstats = new CallStats(tpc, options);
         Statistics.callsStatsInstances.push(this.callstats);
         this.callStatsStarted = true;
     }

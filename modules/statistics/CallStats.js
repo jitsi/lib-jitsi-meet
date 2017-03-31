@@ -1,8 +1,6 @@
-/* global $, Strophe, callstats */
+/* global $, callstats */
 const logger = require('jitsi-meet-logger').getLogger(__filename);
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
-
-import Settings from '../settings/Settings';
 
 const jsSHA = require('jssha');
 const io = require('socket.io-client');
@@ -92,24 +90,29 @@ function tryCatch(f) {
 
 /**
  * Creates new CallStats instance that handles all callstats API calls.
- * @param peerConnection {JingleSessionPC} the session object
- * @param options {object} credentials for callstats.
+ * @param {TraceablePeerConnection} tpc
+ * @param {Object} options
+ * @param {String} options.callStatsID CallStats credentials - ID
+ * @param {String} options.callStatsSecret CallStats credentials - secret
+ * @param {string} options.confID the conference ID that wil be used to report
+ * the session.
+ * @param {string} options.userName the <tt>userName</tt> part of
+ * the <tt>userID</tt> aka display name, see CallStats docs for more info.
+ * @param {string} options.aliasName the <tt>aliasName</tt> part of
+ * the <tt>userID</tt> aka endpoint ID, see CallStats docs for more info.
  */
-const CallStats = tryCatch(function(jingleSession, options) {
+const CallStats = tryCatch(function(tpc, options) {
     try {
         CallStats.feedbackEnabled = false;
         callStatsBackend
             = new callstats($, io, jsSHA); // eslint-disable-line new-cap
 
-        this.peerconnection = jingleSession.peerconnection.peerconnection;
-
+        this.peerconnection = tpc.peerconnection;
         this.userID = {
-            aliasName: Strophe.getResourceFromJid(jingleSession.room.myroomjid),
-            userName: Settings.getCallStatsUserName()
+            aliasName: options.aliasName,
+            userName: options.userName
         };
-
-        // The confID is case sensitive!!!
-        this.confID = `${options.callStatsConfIDNamespace}/${options.roomName}`;
+        this.confID = options.confID;
 
         this.callStatsID = options.callStatsID;
         this.callStatsSecret = options.callStatsSecret;
