@@ -1664,11 +1664,8 @@ TraceablePeerConnection.prototype._createOfferOrAnswer
 
             const ssrcMap = extractSSRCMap(resultSdp);
 
-            logger.info('Got SSRC MAP: ', ssrcMap);
-
-            // Set up the ssrcHandler for the new track before we add it at
-            // the lower levels
-            this._applyLocalSSRCMap(ssrcMap);
+            logger.debug('Got local SSRCs MAP: ', ssrcMap);
+            this._processLocalSSRCsMap(ssrcMap);
 
             successCallback(resultSdp);
         } catch (e) {
@@ -1718,11 +1715,13 @@ function extractPrimarySSRC(ssrcObj) {
 }
 
 /**
- * Applies SSRC map extracted from the latest local description to local tracks.
+ * Goes over the SSRC map extracted from the latest local description and tries
+ * to match them with the local tracks (by MSID). Will update the values
+ * currently stored in the {@link TraceablePeerConnection.localSSRCs} map.
  * @param {Map<string,TrackSSRCInfo>} ssrcMap
  * @private
  */
-TraceablePeerConnection.prototype._applyLocalSSRCMap = function(ssrcMap) {
+TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
     for (const track of this.localTracks.values()) {
         const trackMSID = track.getMSID();
 
@@ -1742,7 +1741,7 @@ TraceablePeerConnection.prototype._applyLocalSSRCMap = function(ssrcMap) {
             if (newSSRCNum !== oldSSRCNum) {
                 if (oldSSRCNum === null) {
                     logger.info(
-                        `Setting new local SSRC for ${track} in ${this}`,
+                        `Storing new local SSRC for ${track} in ${this}`,
                         newSSRC);
                 } else {
                     logger.error(
@@ -1752,8 +1751,8 @@ TraceablePeerConnection.prototype._applyLocalSSRCMap = function(ssrcMap) {
                 this.localSSRCs.set(track.rtcId, newSSRC);
             } else {
                 logger.debug(
-                    `Not updating local SSRC for ${track} ${trackMSID} to: `
-                        + `${newSSRCNum} in ${this}`);
+                    `The local SSRC(${newSSRCNum}) for ${track} ${trackMSID}`
+                     + `is still up to date in ${this}`);
             }
         } else {
             logger.warn(`No local track matched with: ${trackMSID} in ${this}`);
