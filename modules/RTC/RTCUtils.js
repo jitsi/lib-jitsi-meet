@@ -864,6 +864,15 @@ class RTCUtils extends Listenable {
                     };
                 }
             } else if (RTCBrowserType.isEdge()) {
+                // TODO: Remove when EDGE is fully supported. For now ensure
+                // that, if EDGE is detected, it's just unsupported.
+                if (RTCBrowserType.isEdge()) {
+                    rejectWithWebRTCNotSupported(
+                        'Microsoft EDGE not yet supported', reject);
+
+                    return;
+                }
+
                 // TODO: Uncomment when done. For now use the Edge native
                 // RTCPeerConnection.
                 // this.peerconnection = ortcRTCPeerConnection;
