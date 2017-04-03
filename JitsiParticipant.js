@@ -1,5 +1,7 @@
 /* global Strophe */
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
+import { ParticipantConnectionStatus }
+    from './modules/connectivity/ParticipantConnectionStatus';
 import * as MediaType from './service/RTC/MediaType';
 
 /**
@@ -33,7 +35,7 @@ export default class JitsiParticipant {
             video: undefined
         };
         this._hidden = hidden;
-        this._isConnectionActive = true;
+        this._connectionStatus = ParticipantConnectionStatus.ACTIVE;
         this._properties = {};
     }
 
@@ -72,22 +74,23 @@ export default class JitsiParticipant {
 
     /**
      * Updates participant's connection status.
-     * @param {boolean} isActive true if the user's connection is fine or false
-     * when the user is having connectivity issues.
+     * @param {string} state the current participant connection state.
+     * {@link ParticipantConnectionStatus}.
      * @private
      */
-    _setIsConnectionActive(isActive) {
-        this._isConnectionActive = isActive;
+    _setConnectionStatus(status) {
+        this._connectionStatus = status;
     }
 
     /**
-     * Checks participant's connectivity status.
+     * Return participant's connectivity status.
      *
-     * @returns {boolean} true if the connection is currently ok or false when
-     * the user is having connectivity issues.
+     * @returns {string} the connection status
+     * <tt>ParticipantConnectionStatus</tt> of the user.
+     * {@link ParticipantConnectionStatus}.
      */
-    isConnectionActive() {
-        return this._isConnectionActive;
+    getConnectionStatus() {
+        return this._connectionStatus;
     }
 
     /**

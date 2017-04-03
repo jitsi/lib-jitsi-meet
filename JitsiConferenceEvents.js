@@ -110,11 +110,17 @@ export const MESSAGE_RECEIVED = 'conference.messageReceived';
 
 /**
  * Event fired when JVB sends notification about interrupted/restored user's
- * ICE connection status. First argument is the ID of the participant and
- * the seconds is a boolean indicating if the connection is currently
- * active(true = active, false = interrupted).
+ * ICE connection status or we detect local problem with the video track.
+ * First argument is the ID of the participant and
+ * the seconds is a string indicating if the connection is currently
+ * - active - the connection is active
+ * - inactive - the connection is inactive, was intentionally interrupted by
+ * the bridge
+ * - interrupted - a network problem occurred
+ * - restoring - the connection was inactive and is restoring now
+ *
  * The current status value can be obtained by calling
- * JitsiParticipant.isConnectionActive().
+ * JitsiParticipant.getConnectionStatus().
  */
 export const PARTICIPANT_CONN_STATUS_CHANGED
     = 'conference.participant_conn_status_changed';

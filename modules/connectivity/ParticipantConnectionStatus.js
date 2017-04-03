@@ -18,10 +18,55 @@ const logger = getLogger(__filename);
 const DEFAULT_RTC_MUTE_TIMEOUT = 2000;
 
 /**
+ * The time to wait a track to be restored. Track which was out of lastN
+ * should be inactive and when entering lastN it becomes restoring and when
+ * data is received from bridge it will become active, but if no data is
+ * received for some time we set status of that participant connection to
+ * interrupted.
+ * @type {number}
+ */
+const DEFAULT_RESTORING_TIMEOUT = 5000;
+
+/**
+ * Participant connection statuses.
+ *
+ * @type {{
+ *      ACTIVE: string,
+ *      INACTIVE: string,
+ *      INTERRUPTED: string,
+ *      RESTORING: string
+ * }}
+ */
+export const ParticipantConnectionStatus = {
+    /**
+     * Status indicating that connection is currently active.
+     */
+    ACTIVE: 'active',
+
+    /**
+     * Status indicating that connection is currently inactive.
+     * Inactive means the connection was stopped on purpose from the bridge,
+     * like exiting lastN or adaptivity decided to drop video because of not
+     * enough bandwidth.
+     */
+    INACTIVE: 'inactive',
+
+    /**
+     * Status indicating that connection is currently interrupted.
+     */
+    INTERRUPTED: 'interrupted',
+
+    /**
+     * Status indicating that connection is currently restoring.
+     */
+    RESTORING: 'restoring'
+};
+
+/**
  * Class is responsible for emitting
  * JitsiConferenceEvents.PARTICIPANT_CONN_STATUS_CHANGED events.
  */
-export default class ParticipantConnectionStatus {
+export default class ParticipantConnectionStatusHandler {
     /**
      * Creates new instance of <tt>ParticipantConnectionStatus</tt>.
      *
@@ -86,6 +131,27 @@ export default class ParticipantConnectionStatus {
          */
         this.rtcMutedTimestamp = { };
         logger.info(`RtcMuteTimeout set to: ${this.rtcMuteTimeout}`);
+
+        /**
+         * This map holds the timestamps indicating when participant's video
+         * entered lastN set. Participants entering lastN will have connection
+         * status restoring and when we start receiving video will become
+         * active, but if video is not received for certain time
+         * {@link DEFAULT_RESTORING_TIMEOUT} that participant connection status
+         * will become interrupted.
+         *
+         * @type {Map<string, number>}
+         */
+        this.enteredLastNTimestamp = new Map();
+
+        /**
+         * A map of the "endpoint ID"(which corresponds to the resource part
+         * of MUC JID(nickname)) to the restoring timeout callback IDs
+         * scheduled using window.setTimeout.
+         *
+         * @type {Map<string, number>}
+         */
+        this.restoringTimers = new Map();
     }
 
     /**
@@ -135,6 +201,11 @@ export default class ParticipantConnectionStatus {
             this._onSignallingMuteChanged
                 = this.onSignallingMuteChanged.bind(this);
         }
+
+        this._onLastNChanged = this._onLastNChanged.bind(this);
+        this.conference.on(
+            JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED,
+            this._onLastNChanged);
     }
 
     /**
@@ -164,6 +235,10 @@ export default class ParticipantConnectionStatus {
         }
 
         this.conference.off(
+            JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED,
+            this._onLastNChanged);
+
+        this.conference.off(
             JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
 
         const participantIds = Object.keys(this.trackTimers);
@@ -181,8 +256,8 @@ export default class ParticipantConnectionStatus {
      * Handles RTCEvents.ENDPOINT_CONN_STATUS_CHANGED triggered when we receive
      * notification over the data channel from the bridge about endpoint's
      * connection status update.
-     * @param endpointId {string} the endpoint ID(MUC nickname/resource JID)
-     * @param isActive {boolean} true if the connection is OK or false otherwise
+     * @param {string} endpointId the endpoint ID(MUC nickname/resource JID)
+     * @param {boolean} isActive true if the connection is OK or false otherwise
      */
     onEndpointConnStatusChanged(endpointId, isActive) {
 
@@ -199,16 +274,16 @@ export default class ParticipantConnectionStatus {
     }
 
     /**
-     *
-     * @param participant
+     * Changes connection status.
+     * @param {JitsiParticipant} participant
      * @param newStatus
      */
     _changeConnectionStatus(participant, newStatus) {
-        if (participant.isConnectionActive() !== newStatus) {
+        if (participant.getConnectionStatus() !== newStatus) {
 
             const endpointId = participant.getId();
 
-            participant._setIsConnectionActive(newStatus);
+            participant._setConnectionStatus(newStatus);
 
             logger.debug(
                 `Emit endpoint conn status(${Date.now()}) ${endpointId}: ${
@@ -236,7 +311,7 @@ export default class ParticipantConnectionStatus {
      * Reset the postponed "connection interrupted" event which was previously
      * scheduled as a timeout on RTC 'onmute' event.
      *
-     * @param participantId the participant for which the "connection
+     * @param {string} participantId the participant for which the "connection
      * interrupted" timeout was scheduled
      */
     clearTimeout(participantId) {
@@ -248,8 +323,8 @@ export default class ParticipantConnectionStatus {
 
     /**
      * Clears the timestamp of the RTC muted event for participant's video track
-     * @param participantId the id of the conference participant which is
-     * the same as the Colibri endpoint ID of the video channel allocated for
+     * @param {string} participantId the id of the conference participant which
+     * is the same as the Colibri endpoint ID of the video channel allocated for
      * the user on the videobridge.
      */
     clearRtcMutedTimestamp(participantId) {
@@ -380,18 +455,117 @@ export default class ParticipantConnectionStatus {
             isConnActiveByJvb = true;
         }
 
-        const isConnectionActive
-            = isConnActiveByJvb
-                && (isVideoMuted || (isInLastN && !isVideoTrackFrozen));
+        let newState = ParticipantConnectionStatus.INACTIVE;
+
+        if (isConnActiveByJvb) {
+            if (isInLastN) {
+                if (isVideoTrackFrozen) {
+                    newState = this._isRestoringTimedout(id)
+                        ? ParticipantConnectionStatus.INTERRUPTED
+                            : ParticipantConnectionStatus.RESTORING;
+                } else {
+                    newState = ParticipantConnectionStatus.ACTIVE;
+                }
+            }
+        } else {
+            // when there is a connection problem signaled from jvb
+            // it means no media was flowing for at least 15secs, so everything
+            // should be interrupted, when in p2p mode we will never end up here
+            newState = ParticipantConnectionStatus.INTERRUPTED;
+        }
+
+        // if the new state is not restoring clear timers and timestamps
+        // that we use to track the restoring state
+        if (newState !== ParticipantConnectionStatus.RESTORING) {
+            this._clearRestoringTimer(id);
+        }
 
         logger.debug(
-            `Figure out conn status, is video muted: ${isVideoMuted
+            `Figure out conn status for ${id}, is video muted: ${isVideoMuted
                  } is active(jvb): ${isConnActiveByJvb
                  } video track frozen: ${isVideoTrackFrozen
                  } is in last N: ${isInLastN
-                 } => ${isConnectionActive}`);
+                 } currentStatus => newStatus: 
+                    ${participant.getConnectionStatus()} => ${newState}`);
 
-        this._changeConnectionStatus(participant, isConnectionActive);
+        this._changeConnectionStatus(participant, newState);
+    }
+
+    /**
+     * On change in Last N set check all leaving and entering participants to
+     * change their corresponding statuses.
+     *
+     * @param {Array<string>} leavingLastN array of ids leaving lastN.
+     * @param {Array<string>} enteringLastN array of ids entering lastN.
+     * @private
+     */
+    _onLastNChanged(leavingLastN = [], enteringLastN = []) {
+        for (const id of leavingLastN) {
+            this.enteredLastNTimestamp.delete(id);
+            this._clearRestoringTimer(id);
+            this.figureOutConnectionStatus(id);
+        }
+        for (const id of enteringLastN) {
+            // store the timestamp this id is entering lastN
+            this.enteredLastNTimestamp.set(id, Date.now());
+
+            this.figureOutConnectionStatus(id);
+        }
+    }
+
+    /**
+     * Clears the restoring timer for participant's video track and the
+     * timestamp for entering lastN.
+     *
+     * @param {string} participantId the id of the conference participant which
+     * is the same as the Colibri endpoint ID of the video channel allocated for
+     * the user on the videobridge.
+     */
+    _clearRestoringTimer(participantId) {
+        const rTimer = this.restoringTimers.get(participantId);
+
+        if (rTimer) {
+            clearTimeout(rTimer);
+            this.restoringTimers.delete(participantId);
+        }
+    }
+
+    /**
+     * Checks whether a track had stayed enough in restoring state, compares
+     * current time and the time the track entered in lastN. If it hasn't
+     * timedout and there is no timer added, add new timer in order to give it
+     * more time to become active or mark it as interrupted on next check.
+     *
+     * @param {string} participantId the id of the conference participant which
+     * is the same as the Colibri endpoint ID of the video channel allocated for
+     * the user on the videobridge.
+     * @returns {boolean} <tt>true</tt> if the track was in restoring state
+     * more than the timeout ({@link DEFAULT_RESTORING_TIMEOUT}.) in order to
+     * set its status to interrupted.
+     * @private
+     */
+    _isRestoringTimedout(participantId) {
+        const enteredLastNTimestamp
+            = this.enteredLastNTimestamp.get(participantId);
+
+        if (enteredLastNTimestamp
+            && (Date.now() - enteredLastNTimestamp)
+                >= DEFAULT_RESTORING_TIMEOUT) {
+            return true;
+        }
+
+        // still haven't reached timeout, if there is no timer scheduled,
+        // schedule one so we can track the restoring state and change it after
+        // reaching the timeout
+        const rTimer = this.restoringTimers.get(participantId);
+
+        if (!rTimer) {
+            this.restoringTimers.set(participantId, setTimeout(
+                () => this.figureOutConnectionStatus(participantId),
+                DEFAULT_RESTORING_TIMEOUT));
+        }
+
+        return false;
     }
 
     /**
