@@ -68,7 +68,6 @@ function JitsiLocalTrack(
     }
 
     this.deviceId = deviceId;
-    this.startMuted = false;
     this.storedMSID = this.getMSID();
     this.inMuteOrUnmuteProgress = false;
 
@@ -323,17 +322,6 @@ JitsiLocalTrack.prototype._setMute = function(mute) {
 
     let promise = Promise.resolve();
     const self = this;
-
-    // Local track can be used out of conference, so we need to handle that
-    // case and mark that track should start muted or not when added to
-    // conference.
-    // Pawel: track's muted status should be taken into account when track is
-    // being added to the conference/JingleSessionPC/TraceablePeerConnection.
-    // There's no need to add such fields. It is logical that when muted track
-    // is being added to a conference it "starts muted"...
-    if (!this.conference || !this.conference.room) {
-        this.startMuted = mute;
-    }
 
     this.dontFireRemoveEvent = false;
 

@@ -735,10 +735,6 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
     }
     this.rtc.addLocalTrack(newTrack);
 
-    if (newTrack.startMuted) {
-        newTrack.mute();
-    }
-
     // ensure that we're sharing proper "is muted" state
     if (newTrack.isAudioTrack()) {
         this.room.setAudioMute(newTrack.isMuted());
