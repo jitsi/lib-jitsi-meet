@@ -75,6 +75,9 @@ function JitsiLocalTrack(
     /**
      * The facing mode of the camera from which this JitsiLocalTrack instance
      * was obtained.
+     *
+     * @private
+     * @type {CameraFacingMode|undefined}
      */
     this._facingMode = facingMode;
 
@@ -641,6 +644,32 @@ JitsiLocalTrack.prototype._stopMediaStream = function() {
     this.stopStreamInProgress = true;
     RTCUtils.stopMediaStream(this.stream);
     this.stopStreamInProgress = false;
+};
+
+/**
+ * Switches the camera facing mode if the WebRTC implementation supports the
+ * custom MediaStreamTrack._switchCamera method. Currently, the method in
+ * question is implemented in react-native-webrtc only. When such a WebRTC
+ * implementation is executing, the method is the preferred way to switch
+ * between the front/user-facing and the back/environment-facing cameras because
+ * it will likely be (as is the case of react-native-webrtc) noticeably faster
+ * that creating a new MediaStreamTrack via a new getUserMedia call with the
+ * switched facingMode constraint value. Moreover, the approach with a new
+ * getUserMedia call may not even work: WebRTC on Android and iOS is either very
+ * slow to open the camera a second time or plainly freezes attempting to do
+ * that.
+ */
+JitsiLocalTrack.prototype._switchCamera = function() {
+    if (this.isVideoTrack()
+            && this.videoType === VideoType.CAMERA
+            && typeof this.track._switchCamera === 'function') {
+        this.track._switchCamera();
+
+        this._facingMode
+            = this._facingMode === CameraFacingMode.ENVIRONMENT
+                ? CameraFacingMode.USER
+                : CameraFacingMode.ENVIRONMENT;
+    }
 };
 
 /**
