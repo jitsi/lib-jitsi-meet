@@ -436,9 +436,19 @@ CallStats.sendAddIceCandidateFailed = tryCatch((e, pc, cs) => {
  * @param {Error} e error to send or {String} message
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendApplicationLog = tryCatch((e, cs) => {
-    CallStats._reportError.call(cs, wrtcFuncNames.applicationLog, e, null);
-});
+CallStats.sendApplicationLog = (e, cs) => {
+    try {
+        CallStats._reportError.call(cs, wrtcFuncNames.applicationLog, e, null);
+    } catch (error) {
+        // If sendApplicationLog fails it should not be printed to the logger,
+        // because it will try to push the logs again
+        // (through sendApplicationLog) and an endless loop is created.
+        if (console && (typeof console.error === 'function')) {
+            // FIXME send analytics event as well
+            console.error('sendApplicationLog failed', error);
+        }
+    }
+};
 
 /**
  * Clears allocated resources.
