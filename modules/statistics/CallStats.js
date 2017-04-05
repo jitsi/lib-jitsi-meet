@@ -233,7 +233,7 @@ CallStats.sendMuteEvent = tryCatch((mute, type, cs) => {
         event = mute ? fabricEvent.audioMute : fabricEvent.audioUnmute;
     }
 
-    CallStats._reportEvent.call(cs, event);
+    CallStats._reportEvent(cs, event);
 });
 
 /**
@@ -243,7 +243,7 @@ CallStats.sendMuteEvent = tryCatch((mute, type, cs) => {
  * @param {CallStats} cs callstats instance related to the event
  */
 CallStats.sendScreenSharingEvent = tryCatch((start, cs) => {
-    CallStats._reportEvent.call(
+    CallStats._reportEvent(
         cs,
         start ? fabricEvent.screenShareStart : fabricEvent.screenShareStop);
 });
@@ -253,7 +253,7 @@ CallStats.sendScreenSharingEvent = tryCatch((start, cs) => {
  * @param {CallStats} cs callstats instance related to the event
  */
 CallStats.sendDominantSpeakerEvent = tryCatch(cs => {
-    CallStats._reportEvent.call(cs, fabricEvent.dominantSpeaker);
+    CallStats._reportEvent(cs, fabricEvent.dominantSpeaker);
 });
 
 /**
@@ -262,22 +262,23 @@ CallStats.sendDominantSpeakerEvent = tryCatch(cs => {
  * @param {CallStats} cs callstats instance related to the event
  */
 CallStats.sendActiveDeviceListEvent = tryCatch((devicesData, cs) => {
-    CallStats._reportEvent.call(cs, fabricEvent.activeDeviceList, devicesData);
+    CallStats._reportEvent(cs, fabricEvent.activeDeviceList, devicesData);
 });
 
 /**
  * Reports an error to callstats.
  *
+ * @param {CallStats} cs
  * @param type the type of the error, which will be one of the wrtcFuncNames
  * @param e the error
  * @param pc the peerconnection
  * @param eventData additional data to pass to event
  * @private
  */
-CallStats._reportEvent = function(event, eventData) {
+CallStats._reportEvent = function(cs, event, eventData) {
     if (CallStats.initialized) {
         callStatsBackend.sendFabricEvent(
-            this.peerconnection, event, this.confID, eventData);
+            cs.peerconnection, event, cs.confID, eventData);
     } else {
         CallStats.reportsQueue.push({
             type: reportType.EVENT,
@@ -307,7 +308,7 @@ CallStats.prototype.sendTerminateEvent = tryCatch(function() {
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
 CallStats.prototype.sendIceConnectionFailedEvent = tryCatch((pc, cs) => {
-    CallStats._reportError.call(
+    CallStats._reportError(
         cs, wrtcFuncNames.iceConnectionFailure, null, pc);
 });
 
@@ -334,15 +335,17 @@ function(overallFeedback, detailedFeedback) {
 
 /* eslint-enable no-invalid-this */
 
+/* eslint-disable max-params */
 /**
  * Reports an error to callstats.
  *
+ * @param {CallStats} cs
  * @param type the type of the error, which will be one of the wrtcFuncNames
  * @param e the error
  * @param pc the peerconnection
  * @private
  */
-CallStats._reportError = function(type, e, pc) {
+CallStats._reportError = function(cs, type, e, pc) {
     let error = e;
 
     if (!error) {
@@ -350,7 +353,7 @@ CallStats._reportError = function(type, e, pc) {
         error = new Error('Unknown error');
     }
     if (CallStats.initialized) {
-        callStatsBackend.reportError(pc, this.confID, type, error);
+        callStatsBackend.reportError(pc, cs.confID, type, error);
     } else {
         CallStats.reportsQueue.push({
             type: reportType.ERROR,
@@ -365,6 +368,8 @@ CallStats._reportError = function(type, e, pc) {
     // else just ignore it
 };
 
+/* eslint-enable max-params */
+
 /**
  * Notifies CallStats that getUserMedia failed.
  *
@@ -372,7 +377,7 @@ CallStats._reportError = function(type, e, pc) {
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
 CallStats.sendGetUserMediaFailed = tryCatch((e, cs) => {
-    CallStats._reportError.call(cs, wrtcFuncNames.getUserMedia, e, null);
+    CallStats._reportError(cs, wrtcFuncNames.getUserMedia, e, null);
 });
 
 /**
@@ -383,7 +388,7 @@ CallStats.sendGetUserMediaFailed = tryCatch((e, cs) => {
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
 CallStats.sendCreateOfferFailed = tryCatch((e, pc, cs) => {
-    CallStats._reportError.call(cs, wrtcFuncNames.createOffer, e, pc);
+    CallStats._reportError(cs, wrtcFuncNames.createOffer, e, pc);
 });
 
 /**
@@ -394,7 +399,7 @@ CallStats.sendCreateOfferFailed = tryCatch((e, pc, cs) => {
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
 CallStats.sendCreateAnswerFailed = tryCatch((e, pc, cs) => {
-    CallStats._reportError.call(cs, wrtcFuncNames.createAnswer, e, pc);
+    CallStats._reportError(cs, wrtcFuncNames.createAnswer, e, pc);
 });
 
 /**
@@ -405,7 +410,7 @@ CallStats.sendCreateAnswerFailed = tryCatch((e, pc, cs) => {
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
 CallStats.sendSetLocalDescFailed = tryCatch((e, pc, cs) => {
-    CallStats._reportError.call(cs, wrtcFuncNames.setLocalDescription, e, pc);
+    CallStats._reportError(cs, wrtcFuncNames.setLocalDescription, e, pc);
 });
 
 /**
@@ -416,7 +421,7 @@ CallStats.sendSetLocalDescFailed = tryCatch((e, pc, cs) => {
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
 CallStats.sendSetRemoteDescFailed = tryCatch((e, pc, cs) => {
-    CallStats._reportError.call(cs, wrtcFuncNames.setRemoteDescription, e, pc);
+    CallStats._reportError(cs, wrtcFuncNames.setRemoteDescription, e, pc);
 });
 
 /**
@@ -427,7 +432,7 @@ CallStats.sendSetRemoteDescFailed = tryCatch((e, pc, cs) => {
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
 CallStats.sendAddIceCandidateFailed = tryCatch((e, pc, cs) => {
-    CallStats._reportError.call(cs, wrtcFuncNames.addIceCandidate, e, pc);
+    CallStats._reportError(cs, wrtcFuncNames.addIceCandidate, e, pc);
 });
 
 /**
@@ -438,7 +443,7 @@ CallStats.sendAddIceCandidateFailed = tryCatch((e, pc, cs) => {
  */
 CallStats.sendApplicationLog = (e, cs) => {
     try {
-        CallStats._reportError.call(cs, wrtcFuncNames.applicationLog, e, null);
+        CallStats._reportError(cs, wrtcFuncNames.applicationLog, e, null);
     } catch (error) {
         // If sendApplicationLog fails it should not be printed to the logger,
         // because it will try to push the logs again
@@ -499,8 +504,8 @@ function initCallback(err, msg) {
             if (report.type === reportType.ERROR) {
                 const error = report.data;
 
-                CallStats._reportError.call(this, error.type, error.error,
-                    error.pc);
+                // FIXME 'initCallback' is bound to CallStats instance
+                CallStats._reportError(this, error.type, error.error, error.pc);
             } else if (report.type === reportType.EVENT
                 && fabricInitialized) {
                 // if we have and event to report and we failed to add fabric
