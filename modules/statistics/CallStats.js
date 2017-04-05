@@ -117,8 +117,6 @@ const CallStats = tryCatch(function(tpc, options) {
         this.callStatsID = options.callStatsID;
         this.callStatsSecret = options.callStatsSecret;
 
-        CallStats.initializeInProgress = true;
-
         // userID is generated or given by the origin server
         callStatsBackend.initialize(this.callStatsID,
             this.callStatsSecret,
@@ -150,42 +148,10 @@ CallStats.reportsQueue = [];
 CallStats.initialized = false;
 
 /**
- * Whether we are in progress of initializing.
- * @type {boolean}
- */
-CallStats.initializeInProgress = false;
-
-/**
- * Whether we tried to initialize and it failed.
- * @type {boolean}
- */
-CallStats.initializeFailed = false;
-
-/**
  * Shows weather sending feedback is enabled or not
  * @type {boolean}
  */
 CallStats.feedbackEnabled = false;
-
-/**
- * Checks whether we need to re-initialize callstats and starts the process.
- * @private
- */
-CallStats._checkInitialize = function() {
-    if (CallStats.initialized || !CallStats.initializeFailed
-        || !callStatsBackend || CallStats.initializeInProgress) {
-        return;
-    }
-
-    // callstats object created, not initialized and it had previously failed,
-    // and there is no init in progress, so lets try initialize it again
-    CallStats.initializeInProgress = true;
-    callStatsBackend.initialize(
-        callStatsBackend.callStatsID,
-        callStatsBackend.callStatsSecret,
-        callStatsBackend.userID,
-        initCallback.bind(callStatsBackend));
-};
 
 CallStats.prototype.pcCallback = tryCatch((err, msg) => {
     if (callStatsBackend && err !== 'success') {
@@ -246,7 +212,6 @@ CallStats.prototype.associateStreamWithVideoTag = function(
                     usageLabel
                 }
             });
-            CallStats._checkInitialize();
         }
     })();
 };
@@ -319,7 +284,6 @@ CallStats._reportEvent = function(event, eventData) {
             data: { event,
                 eventData }
         });
-        CallStats._checkInitialize();
     }
 };
 
@@ -396,7 +360,6 @@ CallStats._reportError = function(type, e, pc) {
                 type
             }
         });
-        CallStats._checkInitialize();
     }
 
     // else just ignore it
@@ -485,8 +448,6 @@ CallStats.dispose = function() {
     // even after the conference has been destroyed.
     // callStats = null;
     CallStats.initialized = false;
-    CallStats.initializeFailed = false;
-    CallStats.initializeInProgress = false;
 };
 
 /* eslint-disable no-invalid-this */
@@ -499,11 +460,8 @@ CallStats.dispose = function() {
 function initCallback(err, msg) {
     logger.log(`CallStats Status: err=${err} msg=${msg}`);
 
-    CallStats.initializeInProgress = false;
-
     // there is no lib, nothing to report to
     if (err !== 'success') {
-        CallStats.initializeFailed = true;
 
         return;
     }
@@ -517,13 +475,11 @@ function initCallback(err, msg) {
     const fabricInitialized = ret.status === 'success';
 
     if (!fabricInitialized) {
-        CallStats.initializeFailed = true;
         logger.log('callstats fabric not initilized', ret.message);
 
         return;
     }
 
-    CallStats.initializeFailed = false;
     CallStats.initialized = true;
     CallStats.feedbackEnabled = true;
 
