@@ -85,6 +85,17 @@ export default class RTC extends Listenable {
         // this happen
         this.dataChannelsOpen = false;
 
+        /**
+         * The value specified to the last invocation of setLastN before the
+         * data channels completed opening. If non-null, the value will be sent
+         * through a data channel (once) as soon as it opens and will then be
+         * discarded.
+         *
+         * @private
+         * @type {number}
+         */
+        this._lastN = null;
+
         // Defines the last N endpoints list. It can be null or an array once
         // initialised with a datachannel last N event.
         // @type {Array<string>|null}
@@ -165,6 +176,14 @@ export default class RTC extends Listenable {
                 this.removeListener(RTCEvents.DATA_CHANNEL_OPEN,
                     this._dataChannelOpenListener);
                 this._dataChannelOpenListener = null;
+
+                // If setLastN was invoked before the data channels completed
+                // opening, apply the specified value now that the data channels
+                // are open.
+                if (this._lastN !== null) {
+                    this.setLastN(this._lastN);
+                    this._lastN = null;
+                }
             };
             this.addListener(RTCEvents.DATA_CHANNEL_OPEN,
                 this._dataChannelOpenListener);
@@ -722,14 +741,16 @@ export default class RTC extends Listenable {
      * Selects a new value for "lastN". The requested amount of videos are going
      * to be delivered after the value is in effect. Set to -1 for unlimited or
      * all available videos.
-     * @param value {int} the new value for lastN.
-     * @trows Error if there is no data channel created.
+     * @param value {number} the new value for lastN.
      */
     setLastN(value) {
-        if (this.dataChannels) {
+        if (this.dataChannels && this.dataChannelsOpen) {
             this.dataChannels.sendSetLastNMessage(value);
         } else {
-            throw new Error('Data channels support is disabled!');
+            // No data channel has been initialized or has completed opening
+            // yet. Remember the specified value and apply it as soon as a data
+            // channel opens.
+            this._lastN = value;
         }
     }
 
