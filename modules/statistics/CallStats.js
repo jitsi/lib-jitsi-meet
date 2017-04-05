@@ -47,7 +47,7 @@ const fabricEvent = {
     activeDeviceList: 'activeDeviceList'
 };
 
-let callStats = null;
+let callStatsBackend = null;
 
 /**
  * The user id to report to callstats as destination.
@@ -98,7 +98,8 @@ function tryCatch(f) {
 const CallStats = tryCatch(function(jingleSession, options) {
     try {
         CallStats.feedbackEnabled = false;
-        callStats = new callstats($, io, jsSHA); // eslint-disable-line new-cap
+        callStatsBackend
+            = new callstats($, io, jsSHA); // eslint-disable-line new-cap
 
         this.peerconnection = jingleSession.peerconnection.peerconnection;
 
@@ -116,7 +117,7 @@ const CallStats = tryCatch(function(jingleSession, options) {
         CallStats.initializeInProgress = true;
 
         // userID is generated or given by the origin server
-        callStats.initialize(this.callStatsID,
+        callStatsBackend.initialize(this.callStatsID,
             this.callStatsSecret,
             this.userID,
             initCallback.bind(this));
@@ -126,7 +127,7 @@ const CallStats = tryCatch(function(jingleSession, options) {
         // did not succeed in general or on time). Further attempts to utilize
         // it cannot possibly succeed.
         GlobalOnErrorHandler.callErrorHandler(e);
-        callStats = null;
+        callStatsBackend = null;
         logger.error(e);
     }
 });
@@ -169,22 +170,22 @@ CallStats.feedbackEnabled = false;
  */
 CallStats._checkInitialize = function() {
     if (CallStats.initialized || !CallStats.initializeFailed
-        || !callStats || CallStats.initializeInProgress) {
+        || !callStatsBackend || CallStats.initializeInProgress) {
         return;
     }
 
     // callstats object created, not initialized and it had previously failed,
     // and there is no init in progress, so lets try initialize it again
     CallStats.initializeInProgress = true;
-    callStats.initialize(
-        callStats.callStatsID,
-        callStats.callStatsSecret,
-        callStats.userID,
-        initCallback.bind(callStats));
+    callStatsBackend.initialize(
+        callStatsBackend.callStatsID,
+        callStatsBackend.callStatsSecret,
+        callStatsBackend.userID,
+        initCallback.bind(callStatsBackend));
 };
 
 CallStats.prototype.pcCallback = tryCatch((err, msg) => {
-    if (callStats && err !== 'success') {
+    if (callStatsBackend && err !== 'success') {
         logger.error(`Monitoring status: ${err} msg: ${msg}`);
     }
 });
@@ -208,7 +209,7 @@ CallStats.prototype.associateStreamWithVideoTag = function(
         isLocal,
         usageLabel,
         containerId) {
-    if (!callStats) {
+    if (!callStatsBackend) {
         return;
     }
 
@@ -225,7 +226,7 @@ CallStats.prototype.associateStreamWithVideoTag = function(
             usageLabel,
             containerId);
         if (CallStats.initialized) {
-            callStats.associateMstWithUserID(
+            callStatsBackend.associateMstWithUserID(
                 this.peerconnection,
                 callStatsId,
                 this.confID,
@@ -307,7 +308,7 @@ CallStats.sendActiveDeviceListEvent = tryCatch((devicesData, cs) => {
  */
 CallStats._reportEvent = function(event, eventData) {
     if (CallStats.initialized) {
-        callStats.sendFabricEvent(
+        callStatsBackend.sendFabricEvent(
             this.peerconnection, event, this.confID, eventData);
     } else {
         CallStats.reportsQueue.push({
@@ -327,8 +328,8 @@ CallStats.prototype.sendTerminateEvent = tryCatch(function() {
     if (!CallStats.initialized) {
         return;
     }
-    callStats.sendFabricEvent(this.peerconnection,
-        callStats.fabricEvent.fabricTerminated, this.confID);
+    callStatsBackend.sendFabricEvent(this.peerconnection,
+        callStatsBackend.fabricEvent.fabricTerminated, this.confID);
 });
 
 /* eslint-enable no-invalid-this */
@@ -357,7 +358,7 @@ function(overallFeedback, detailedFeedback) {
         return;
     }
 
-    callStats.sendUserFeedback(this.confID, {
+    callStatsBackend.sendUserFeedback(this.confID, {
         userID: this.userID,
         overall: overallFeedback,
         comment: detailedFeedback
@@ -382,7 +383,7 @@ CallStats._reportError = function(type, e, pc) {
         error = new Error('Unknown error');
     }
     if (CallStats.initialized) {
-        callStats.reportError(pc, this.confID, type, error);
+        callStatsBackend.reportError(pc, this.confID, type, error);
     } else {
         CallStats.reportsQueue.push({
             type: reportType.ERROR,
@@ -504,9 +505,9 @@ function initCallback(err, msg) {
         return;
     }
 
-    const ret = callStats.addNewFabric(this.peerconnection,
+    const ret = callStatsBackend.addNewFabric(this.peerconnection,
         DEFAULT_REMOTE_USER,
-        callStats.fabricUsage.multiplex,
+        callStatsBackend.fabricUsage.multiplex,
         this.confID,
         this.pcCallback.bind(this));
 
@@ -537,7 +538,7 @@ function initCallback(err, msg) {
                 // this event will not be reported anyway, returning an error
                 const eventData = report.data;
 
-                callStats.sendFabricEvent(
+                callStatsBackend.sendFabricEvent(
                     this.peerconnection,
                     eventData.event,
                     this.confID,
@@ -545,7 +546,7 @@ function initCallback(err, msg) {
             } else if (report.type === reportType.MST_WITH_USERID) {
                 const data = report.data;
 
-                callStats.associateMstWithUserID(
+                callStatsBackend.associateMstWithUserID(
                     this.peerconnection,
                     data.callStatsId,
                     this.confID,
