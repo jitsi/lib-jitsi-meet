@@ -204,6 +204,92 @@ CallStats.initBackend = function(options) {
     }
 };
 
+/* eslint-disable no-invalid-this */
+
+/**
+ *
+ * @param err
+ * @param msg
+ */
+function initCallback(err, msg) {
+    logger.log(`CallStats Status: err=${err} msg=${msg}`);
+
+    // there is no lib, nothing to report to
+    if (err !== 'success') {
+
+        return;
+    }
+
+    // I hate that
+    let atLeastOneFabric = false;
+    let defaultInstance = null;
+
+    for (const callStatsInstance of CallStats.fabrics.values()) {
+        if (!callStatsInstance.hasFabric) {
+            logger.debug('addNewFabric - initCallback');
+            if (callStatsInstance._addNewFabric()) {
+                atLeastOneFabric = true;
+                if (!defaultInstance) {
+                    defaultInstance = callStatsInstance;
+                }
+            }
+        }
+    }
+
+    if (!atLeastOneFabric) {
+
+        return;
+    }
+
+    CallStats.initialized = true;
+
+    // There is no conference ID nor a PeerConnection available when some of
+    // the events are scheduled on the reportsQueue, so those will be reported
+    // on the first initialized fabric.
+    const defaultConfID = defaultInstance.confID;
+    const defaultPC = defaultInstance.peerconnection;
+
+
+    // notify callstats about failures if there were any
+    if (CallStats.reportsQueue.length) {
+        CallStats.reportsQueue.forEach(report => {
+            if (report.type === reportType.ERROR) {
+                const error = report.data;
+
+                CallStats._reportError(
+                    defaultInstance,
+                    error.type,
+                    error.error,
+                    error.pc || defaultPC);
+            } else if (report.type === reportType.EVENT) {
+                // if we have and event to report and we failed to add fabric
+                // this event will not be reported anyway, returning an error
+                const eventData = report.data;
+
+                callStatsBackend.sendFabricEvent(
+                    report.pc || defaultPC,
+                    eventData.event,
+                    defaultConfID,
+                    eventData.eventData);
+            } else if (report.type === reportType.MST_WITH_USERID) {
+                const data = report.data;
+
+                callStatsBackend.associateMstWithUserID(
+                    report.pc || defaultPC,
+                    data.callStatsId,
+                    defaultConfID,
+                    data.ssrc,
+                    data.usageLabel,
+                    data.containerId
+                );
+            }
+        });
+        CallStats.reportsQueue.length = 0;
+    }
+}
+
+/* eslint-enable no-invalid-this */
+
 /**
  * Checks if the CallStats backend has been created. It does not mean that it
  * has been initialized, but only that the API instance has been allocated
@@ -591,91 +677,5 @@ CallStats.sendApplicationLog = (e, cs) => {
         }
     }
 };
-
-/* eslint-disable no-invalid-this */
-
-/**
- *
- * @param err
- * @param msg
- */
-function initCallback(err, msg) {
-    logger.log(`CallStats Status: err=${err} msg=${msg}`);
-
-    // there is no lib, nothing to report to
-    if (err !== 'success') {
-
-        return;
-    }
-
-    // I hate that
-    let atLeastOneFabric = false;
-    let defaultInstance = null;
-
-    for (const callStatsInstance of CallStats.fabrics.values()) {
-        if (!callStatsInstance.hasFabric) {
-            logger.debug('addNewFabric - initCallback');
-            if (callStatsInstance._addNewFabric()) {
-                atLeastOneFabric = true;
-                if (!defaultInstance) {
-                    defaultInstance = callStatsInstance;
-                }
-            }
-        }
-    }
-
-    if (!atLeastOneFabric) {
-
-        return;
-    }
-
-    CallStats.initialized = true;
-
-    // There is no conference ID nor a PeerConnection available when some of
-    // the events are scheduled on the reportsQueue, so those will be reported
-    // on the first initialized fabric.
-    const defaultConfID = defaultInstance.confID;
-    const defaultPC = defaultInstance.peerconnection;
-
-
-    // notify callstats about failures if there were any
-    if (CallStats.reportsQueue.length) {
-        CallStats.reportsQueue.forEach(report => {
-            if (report.type === reportType.ERROR) {
-                const error = report.data;
-
-                CallStats._reportError(
-                    defaultInstance,
-                    error.type,
-                    error.error,
-                    error.pc || defaultPC);
-            } else if (report.type === reportType.EVENT) {
-                // if we have and event to report and we failed to add fabric
-                // this event will not be reported anyway, returning an error
-                const eventData = report.data;
-
-                callStatsBackend.sendFabricEvent(
-                    report.pc || defaultPC,
-                    eventData.event,
-                    defaultConfID,
-                    eventData.eventData);
-            } else if (report.type === reportType.MST_WITH_USERID) {
-                const data = report.data;
-
-                callStatsBackend.associateMstWithUserID(
-                    report.pc || defaultPC,
-                    data.callStatsId,
-                    defaultConfID,
-                    data.ssrc,
-                    data.usageLabel,
-                    data.containerId
-                );
-            }
-        });
-        CallStats.reportsQueue.length = 0;
-    }
-}
-
-/* eslint-enable no-invalid-this */
 
 module.exports = CallStats;
