@@ -86,54 +86,35 @@ function tryCatch(f) {
     };
 }
 
-/* eslint-disable no-invalid-this */
-
 /**
- * Creates new CallStats instance that handles all callstats API calls.
+ * Creates new CallStats instance that handles all callstats API calls for given
+ * {@link TraceablePeerConnection}. Each instance is meant to handle one
+ * CallStats fabric added with 'addFabric' API method for the
+ * {@link TraceablePeerConnection} instance passed in the constructor.
  * @param {TraceablePeerConnection} tpc
  * @param {Object} options
- * @param {String} options.callStatsID CallStats credentials - ID
- * @param {String} options.callStatsSecret CallStats credentials - secret
  * @param {string} options.confID the conference ID that wil be used to report
  * the session.
- * @param {string} options.userName the <tt>userName</tt> part of
- * the <tt>userID</tt> aka display name, see CallStats docs for more info.
- * @param {string} options.aliasName the <tt>aliasName</tt> part of
- * the <tt>userID</tt> aka endpoint ID, see CallStats docs for more info.
+ * @param {string} [options.remoteUserID='jitsi'] the remote user ID to which
+ * given <tt>tpc</tt> is connected.
  */
-const CallStats = tryCatch(function(tpc, options) {
-    try {
-        CallStats.feedbackEnabled = false;
-        callStatsBackend
-            = new callstats($, io, jsSHA); // eslint-disable-line new-cap
-
-        this.peerconnection = tpc.peerconnection;
-        this.userID = {
-            aliasName: options.aliasName,
-            userName: options.userName
-        };
-        this.confID = options.confID;
-
-        this.callStatsID = options.callStatsID;
-        this.callStatsSecret = options.callStatsSecret;
-
-        // userID is generated or given by the origin server
-        callStatsBackend.initialize(this.callStatsID,
-            this.callStatsSecret,
-            this.userID,
-            initCallback.bind(this));
-
-    } catch (e) {
-        // The callstats.io API failed to initialize (e.g. because its download
-        // did not succeed in general or on time). Further attempts to utilize
-        // it cannot possibly succeed.
-        GlobalOnErrorHandler.callErrorHandler(e);
-        callStatsBackend = null;
-        logger.error(e);
+const CallStats = function(tpc, options) {
+    if (!callStatsBackend) {
+        throw new Error('CallStats backend not intiialized!');
     }
-});
 
-/* eslint-enable no-invalid-this */
+    this.confID = options.confID;
+    this.tpc = tpc;
+    this.peerconnection = tpc.peerconnection;
+    this.remoteUserID = options.remoteUserID || DEFAULT_REMOTE_USER;
+    this.hasFabric = false;
+
+    CallStats.fabrics.add(this);
+
+    if (CallStats.initialized) {
+        this._addNewFabric();
+    }
+};
 
 // some errors/events may happen before CallStats init
 // in this case we accumulate them in this array
@@ -142,18 +123,161 @@ CallStats.reportsQueue = [];
 
 /**
  * Whether the library was successfully initialized using its initialize method.
- * And whether we had successfully called addNewFabric.
+ * And whether we had successfully called addNewFabric at least once.
  * @type {boolean}
  */
 CallStats.initialized = false;
 
 /**
- * Shows weather sending feedback is enabled or not
- * @type {boolean}
+ * Part of the CallStats credentials - application ID
+ * @type {string}
  */
-CallStats.feedbackEnabled = false;
+CallStats.callStatsID = null;
 
-CallStats.prototype.pcCallback = tryCatch((err, msg) => {
+/**
+ * Part of the CallStats credentials - application secret
+ * @type {string}
+ */
+CallStats.callStatsSecret = null;
+
+/**
+ * Local CallStats user ID structure. Can be set only once when
+ * {@link callStatsBackend} is initialized, so it's static for the time being.
+ * See CallStats API for more info:
+ * https://www.callstats.io/api/#userid
+ * @type {object}
+ */
+CallStats.userID = null;
+
+/**
+ * Set of currently existing {@link CallStats} instances.
+ * @type {Set<CallStats>}
+ */
+CallStats.fabrics = new Set();
+
+/**
+ * Initializes the CallStats backend. Should be called only if
+ * {@link CallStats.isBackendInitialized} returns <tt>false</tt>.
+ * @param {object} options
+ * @param {String} options.callStatsID CallStats credentials - ID
+ * @param {String} options.callStatsSecret CallStats credentials - secret
+ * @param {string} options.userName the <tt>userName</tt> part of
+ * the <tt>userID</tt> aka display name, see CallStats docs for more info.
+ * @param {string} options.aliasName the <tt>aliasName</tt> part of
+ * the <tt>userID</tt> aka endpoint ID, see CallStats docs for more info.
+ *
+ */
+CallStats.initBackend = function(options) {
+    if (callStatsBackend) {
+        throw new Error('CallStats backend has been initialized already!');
+    }
+    try {
+        callStatsBackend
+            = new callstats($, io, jsSHA); // eslint-disable-line new-cap
+
+        CallStats._traceBackendCalls(callStatsBackend);
+
+        CallStats.userID = {
+            aliasName: options.aliasName,
+            userName: options.userName
+        };
+        CallStats.callStatsID = options.callStatsID;
+        CallStats.callStatsSecret = options.callStatsSecret;
+
+        // userID is generated or given by the origin server
+        callStatsBackend.initialize(
+            CallStats.callStatsID,
+            CallStats.callStatsSecret,
+            CallStats.userID,
+            initCallback);
+
+        return true;
+    } catch (e) {
+        // The callstats.io API failed to initialize (e.g. because its download
+        // did not succeed in general or on time). Further attempts to utilize
+        // it cannot possibly succeed.
+        GlobalOnErrorHandler.callErrorHandler(e);
+        callStatsBackend = null;
+        logger.error(e);
+
+        return false;
+    }
+};
+
+/**
+ * Checks if the CallStats backend has been created. It does not mean that it
+ * has been initialized, but only that the API instance has been allocated
+ * successfully.
+ * @return {boolean} <tt>true</tt> if backend exists or <tt>false</tt> otherwise
+ */
+CallStats.isBackendInitialized = function() {
+    return Boolean(callStatsBackend);
+};
+
+/**
+ * Wraps some of the CallStats API method and logs their calls with arguments on
+ * the debug logging level.
+ * @param {callstats} backend
+ * @private
+ */
+CallStats._traceBackendCalls = function(backend) {
+    const originalsendFabricEvent = backend.sendFabricEvent;
+
+    backend.sendFabricEvent = function(...theArguments) {
+        logger.debug('sendFabricEvent', theArguments);
+        originalsendFabricEvent.apply(backend, theArguments);
+    };
+    const originalReportError = backend.reportError;
+
+    // eslint-disable-next-line max-params
+    backend.reportError = function(pc, cs, type, error, ...otherArguments) {
+        const allArguments = [ pc, cs, type, error ].concat(otherArguments);
+
+        // Logs from the logger are submitted on the applicationLog event
+        // "type". Logging the arguments on the logger will create endless loop,
+        // because it will put all the logs to the logger queue again.
+        if (type === wrtcFuncNames.applicationLog) {
+            console && console.debug('reportError', allArguments);
+        } else {
+            logger.debug('reportError', allArguments);
+        }
+        originalReportError.apply(backend, allArguments);
+    };
+    const originalSendUserFeedback = backend.sendUserFeedback;
+
+    backend.sendUserFeedback = function(...theArguments) {
+        logger.debug('sendUserFeedback', theArguments);
+        originalSendUserFeedback.apply(backend, theArguments);
+    };
+};
+
+/**
+ * Initializes CallStats fabric by calling "addNewFabric" for
+ * the peer connection associated with this instance.
+ * @return {boolean} true if the call was successful or false otherwise.
+ */
+CallStats.prototype._addNewFabric = function() {
+    logger.info('addNewFabric', this.remoteUserID, this);
+    const ret
+        = callStatsBackend.addNewFabric(
+            this.peerconnection,
+            this.remoteUserID,
+            callStatsBackend.fabricUsage.multiplex,
+            this.confID,
+            CallStats.pcCallback);
+
+    this.hasFabric = true;
+
+    const success = ret.status === 'success';
+
+    if (!success) {
+        logger.error('callstats fabric not initilized', ret.message);
+    }
+
+    return success;
+};
+
+CallStats.pcCallback = tryCatch((err, msg) => {
     if (callStatsBackend && err !== 'success') {
         logger.error(`Monitoring status: ${err} msg: ${msg}`);
     }
@@ -165,17 +289,19 @@ CallStats.prototype.pcCallback = tryCatch((err, msg) => {
  * Lets CallStats module know where is given SSRC rendered by providing renderer
  * tag ID.
  * If the lib is not initialized yet queue the call for later, when its ready.
- * @param ssrc {number} the SSRC of the stream
- * @param isLocal {boolean} <tt>true<tt> if this stream is local or
- *        <tt>false</tt> otherwise.
- * @param usageLabel {string} meaningful usage label of this stream like
+ * @param {number} ssrc the SSRC of the stream
+ * @param {boolean} isLocal indicates whether this the stream is local
+ * @param {string|null} streamEndpointId if the stream is not local the it needs
+ * to contain the stream owner's ID
+ * @param {string} usageLabel meaningful usage label of this stream like
  *        'microphone', 'camera' or 'screen'.
- * @param containerId {string} the id of media 'audio' or 'video' tag which
+ * @param {string} containerId  the id of media 'audio' or 'video' tag which
  *        renders the stream.
  */
 CallStats.prototype.associateStreamWithVideoTag = function(
         ssrc,
         isLocal,
+        streamEndpointId,
         usageLabel,
         containerId) {
     if (!callStatsBackend) {
@@ -183,7 +309,7 @@ CallStats.prototype.associateStreamWithVideoTag = function(
     }
 
     // 'jitsi' is default remote user ID for now
-    const callStatsId = isLocal ? this.userID : DEFAULT_REMOTE_USER;
+    const callStatsId = isLocal ? CallStats.userID : streamEndpointId;
 
     tryCatch(() => {
         logger.debug(
@@ -205,6 +331,7 @@ CallStats.prototype.associateStreamWithVideoTag = function(
         } else {
             CallStats.reportsQueue.push({
                 type: reportType.MST_WITH_USERID,
+                pc: this.peerconnection,
                 data: {
                     callStatsId,
                     containerId,
@@ -269,18 +396,20 @@ CallStats.sendActiveDeviceListEvent = tryCatch((devicesData, cs) => {
  * Reports an error to callstats.
  *
  * @param {CallStats} cs
- * @param type the type of the error, which will be one of the wrtcFuncNames
- * @param e the error
- * @param pc the peerconnection
+ * @param event the type of the event, which will be one of the fabricEvent
  * @param eventData additional data to pass to event
  * @private
  */
 CallStats._reportEvent = function(cs, event, eventData) {
+    const pc = cs && cs.peerconnection;
+    const confID = cs && cs.confID;
+
     if (CallStats.initialized) {
-        callStatsBackend.sendFabricEvent(
-            cs.peerconnection, event, cs.confID, eventData);
+        callStatsBackend.sendFabricEvent(pc, event, confID, eventData);
     } else {
         CallStats.reportsQueue.push({
+            confID,
+            pc,
             type: reportType.EVENT,
             data: { event,
                 eventData }
@@ -290,47 +419,51 @@ CallStats._reportEvent = function(cs, event, eventData) {
 
 /* eslint-disable no-invalid-this */
 /**
- * Notifies CallStats for connection setup errors
+ * Notifies CallStats that the fabric for the underlying peerconnection was
+ * closed and no evens should be reported, after this call.
  */
 CallStats.prototype.sendTerminateEvent = tryCatch(function() {
-    if (!CallStats.initialized) {
-        return;
+    if (CallStats.initialized) {
+        callStatsBackend.sendFabricEvent(
+            this.peerconnection,
+            callStatsBackend.fabricEvent.fabricTerminated,
+            this.confID);
     }
-    callStatsBackend.sendFabricEvent(this.peerconnection,
-        callStatsBackend.fabricEvent.fabricTerminated, this.confID);
 });
 
 /* eslint-enable no-invalid-this */
 
 /**
  * Notifies CallStats for ice connection failed
- * @param {RTCPeerConnection} pc connection on which failure occured.
- * @param {CallStats} cs callstats instance related to the error (optional)
+ * @param {CallStats} cs callstats instance related to the error
  */
-CallStats.prototype.sendIceConnectionFailedEvent = tryCatch((pc, cs) => {
+CallStats.prototype.sendIceConnectionFailedEvent = tryCatch(cs => {
     CallStats._reportError(
-        cs, wrtcFuncNames.iceConnectionFailure, null, pc);
+        cs, wrtcFuncNames.iceConnectionFailure, null, cs.peerconnection);
 });
 
 /* eslint-disable no-invalid-this */
 /**
  * Sends the given feedback through CallStats.
  *
+ * @param {string} conferenceID the conference ID for which the feedback will be
+ * reported.
  * @param overallFeedback an integer between 1 and 5 indicating the
  * user feedback
  * @param detailedFeedback detailed feedback from the user. Not yet used
  */
-CallStats.prototype.sendFeedback = tryCatch(
-function(overallFeedback, detailedFeedback) {
-    if (!CallStats.feedbackEnabled) {
-        return;
+CallStats.sendFeedback = tryCatch(
+(conferenceID, overallFeedback, detailedFeedback) => {
+    if (callStatsBackend) {
+        callStatsBackend.sendUserFeedback(
+            conferenceID, {
+                userID: CallStats.userID,
+                overall: overallFeedback,
+                comment: detailedFeedback
+            });
+    } else {
+        logger.error('Failed to submit feedback to CallStats - no backend');
     }
-
-    callStatsBackend.sendUserFeedback(this.confID, {
-        userID: this.userID,
-        overall: overallFeedback,
-        comment: detailedFeedback
-    });
 });
 
 /* eslint-enable no-invalid-this */
@@ -339,7 +472,7 @@ function(overallFeedback, detailedFeedback) {
 /**
  * Reports an error to callstats.
  *
- * @param {CallStats} cs
+ * @param {CallStats} [cs]
  * @param type the type of the error, which will be one of the wrtcFuncNames
  * @param e the error
  * @param pc the peerconnection
@@ -353,7 +486,7 @@ CallStats._reportError = function(cs, type, e, pc) {
         error = new Error('Unknown error');
     }
     if (CallStats.initialized) {
-        callStatsBackend.reportError(pc, cs.confID, type, error);
+        callStatsBackend.reportError(pc, cs && cs.confID, type, error);
     } else {
         CallStats.reportsQueue.push({
             type: reportType.ERROR,
@@ -443,7 +576,11 @@ CallStats.sendAddIceCandidateFailed = tryCatch((e, pc, cs) => {
  */
 CallStats.sendApplicationLog = (e, cs) => {
     try {
-        CallStats._reportError(cs, wrtcFuncNames.applicationLog, e, null);
+        CallStats._reportError(
+            cs,
+            wrtcFuncNames.applicationLog,
+            e,
+            cs && cs.peerconnection);
     } catch (error) {
         // If sendApplicationLog fails it should not be printed to the logger,
         // because it will try to push the logs again
@@ -453,16 +590,6 @@ CallStats.sendApplicationLog = (e, cs) => {
             console.error('sendApplicationLog failed', error);
         }
     }
-};
-
-/**
- * Clears allocated resources.
- */
-CallStats.dispose = function() {
-    // The next line is commented because we need to be able to send feedback
-    // even after the conference has been destroyed.
-    // callStats = null;
-    CallStats.initialized = false;
 };
 
 /* eslint-disable no-invalid-this */
@@ -481,55 +608,70 @@ function initCallback(err, msg) {
         return;
     }
 
-    const ret = callStatsBackend.addNewFabric(this.peerconnection,
-        DEFAULT_REMOTE_USER,
-        callStatsBackend.fabricUsage.multiplex,
-        this.confID,
-        this.pcCallback.bind(this));
+    // I hate that
+    let atLeastOneFabric = false;
+    let defaultInstance = null;
 
-    const fabricInitialized = ret.status === 'success';
+    for (const callStatsInstance of CallStats.fabrics.values()) {
+        if (!callStatsInstance.hasFabric) {
+            logger.debug('addNewFabric - initCallback');
+            if (callStatsInstance._addNewFabric()) {
+                atLeastOneFabric = true;
+                if (!defaultInstance) {
+                    defaultInstance = callStatsInstance;
+                }
+            }
+        }
+    }
 
-    if (!fabricInitialized) {
-        logger.log('callstats fabric not initilized', ret.message);
+    if (!atLeastOneFabric) {
 
         return;
     }
 
     CallStats.initialized = true;
-    CallStats.feedbackEnabled = true;
+
+    // There is no conference ID nor a PeerConnection available when some of
+    // the events are scheduled on the reportsQueue, so those will be reported
+    // on the first initialized fabric.
+    const defaultConfID = defaultInstance.confID;
+    const defaultPC = defaultInstance.peerconnection;
+
 
     // notify callstats about failures if there were any
     if (CallStats.reportsQueue.length) {
-        CallStats.reportsQueue.forEach(function(report) {
+        CallStats.reportsQueue.forEach(report => {
             if (report.type === reportType.ERROR) {
                 const error = report.data;
 
-                // FIXME 'initCallback' is bound to CallStats instance
-                CallStats._reportError(this, error.type, error.error, error.pc);
-            } else if (report.type === reportType.EVENT
-                && fabricInitialized) {
+                CallStats._reportError(
+                    defaultInstance,
+                    error.type,
+                    error.error,
+                    error.pc || defaultPC);
+            } else if (report.type === reportType.EVENT) {
                 // if we have and event to report and we failed to add fabric
                 // this event will not be reported anyway, returning an error
                 const eventData = report.data;
 
                 callStatsBackend.sendFabricEvent(
-                    this.peerconnection,
+                    report.pc || defaultPC,
                     eventData.event,
-                    this.confID,
+                    defaultConfID,
                     eventData.eventData);
             } else if (report.type === reportType.MST_WITH_USERID) {
                 const data = report.data;
 
                 callStatsBackend.associateMstWithUserID(
-                    this.peerconnection,
+                    report.pc || defaultPC,
                     data.callStatsId,
-                    this.confID,
+                    defaultConfID,
                     data.ssrc,
                     data.usageLabel,
                     data.containerId
                 );
             }
-        }, this);
+        });
         CallStats.reportsQueue.length = 0;
     }
 }

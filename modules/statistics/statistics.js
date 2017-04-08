@@ -98,11 +98,6 @@ function Statistics(xmpp, options) {
     this.xmpp = xmpp;
     this.options = options || {};
 
-    /**
-     *
-     * @type {CallStats|null}
-     */
-    this.callStats = null;
     this.callStatsIntegrationEnabled
         = this.options.callStatsID && this.options.callStatsSecret
 
@@ -114,9 +109,15 @@ function Statistics(xmpp, options) {
         loadCallStatsAPI(this.options.callStatsCustomScriptUrl);
     }
 
-    // Flag indicates whether or not the CallStats have been started for this
-    // Statistics instance
-    this.callStatsStarted = false;
+    /**
+     * Stores {@link CallStats} instances for each
+     * {@link TraceablePeerConnection} (one {@link CallStats} instance serves
+     * one TPC). The instances are mapped by {@link TraceablePeerConnection.id}.
+     * @type {Map<number, CallStats>}
+     */
+    this.callsStatsInstances = new Map();
+
+    Statistics.instances.add(this);
 }
 Statistics.audioLevelsEnabled = false;
 Statistics.audioLevelsInterval = 200;
@@ -124,10 +125,10 @@ Statistics.disableThirdPartyRequests = false;
 Statistics.analytics = analytics;
 
 /**
- * Array of callstats instances. Used to call Statistics static methods and
- * send stats to all cs instances.
+ * Stores all active {@link Statistics} instances.
+ * @type {Set<Statistics>}
  */
-Statistics.callsStatsInstances = [];
+Statistics.instances = new Set();
 
 Statistics.prototype.startRemoteStats = function(peerconnection) {
     this.stopRemoteStats();
@@ -199,13 +200,19 @@ Statistics.prototype.removeByteSentStatsListener = function(listener) {
 };
 
 Statistics.prototype.dispose = function() {
-    if (this.eventEmitter) {
-        this.eventEmitter.emit(StatisticsEvents.BEFORE_DISPOSED);
-    }
-    this.stopCallStats();
-    this.stopRemoteStats();
-    if (this.eventEmitter) {
-        this.eventEmitter.removeAllListeners();
+    try {
+        if (this.eventEmitter) {
+            this.eventEmitter.emit(StatisticsEvents.BEFORE_DISPOSED);
+        }
+        for (const callStats of this.callsStatsInstances.values()) {
+            this.stopCallStats(callStats.tpc);
+        }
+        this.stopRemoteStats();
+        if (this.eventEmitter) {
+            this.eventEmitter.removeAllListeners();
+        }
+    } finally {
+        Statistics.instances.delete(this);
     }
 };
 
@@ -239,50 +246,87 @@ Statistics.prototype.stopRemoteStats = function() {
  * Initializes the callstats.io API.
  * @param {TraceablePeerConnection} tpc the {@link TraceablePeerConnection}
  * instance for which CalStats will be started.
- * @param {string} aliasName an alias name for the local endpoint which will be
- * used for reporting the new CallStats session.
+ * @param {string} remoteUserID
  */
-Statistics.prototype.startCallStats = function(tpc, aliasName) {
-    if (this.callStatsIntegrationEnabled && !this.callStatsStarted) {
-        /* eslint-disable prefer-template */
-        // The confID is case sensitive!!!
-        const confID
-            = this.options.callStatsConfIDNamespace
-                + '/' + this.options.roomName;
+Statistics.prototype.startCallStats = function(tpc, remoteUserID) {
+    if (!this.callStatsIntegrationEnabled) {
 
-        /* eslint-enable prefer-template */
-        const options = {
-            confID,
-            aliasName,
-            userName: Settings.getCallStatsUserName(),
-            callStatsID: this.options.callStatsID,
-            callStatsSecret: this.options.callStatsSecret
-        };
+        return;
+    } else if (this.callsStatsInstances.has(tpc.id)) {
+        logger.error('CallStats instance for ${tpc} exists already');
 
-        // Here we overwrite the previous instance, but it must be bound to
-        // the new PeerConnection
-        this.callStats = new CallStats(tpc, options);
-        Statistics.callsStatsInstances.push(this.callStats);
-        this.callStatsStarted = true;
+        return;
     }
+
+    if (!CallStats.isBackendInitialized()) {
+        const userName = Settings.getCallStatsUserName();
+
+        if (!CallStats.initBackend({
+            callStatsID: this.options.callStatsID,
+            callStatsSecret: this.options.callStatsSecret,
+            userName,
+            aliasName: this.options.callStatsAliasName
+        })) {
+
+            // Backend initialization failed bad
+            return;
+        }
+    }
+
+    logger.info(`Starting CallStats for ${tpc}...`);
+
+    /* eslint-enable prefer-template */
+    const newInstance
+        = new CallStats(
+            tpc,
+            {
+                confID: this._getCallStatsConfID(),
+                remoteUserID
+            });
+
+    this.callsStatsInstances.set(tpc.id, newInstance);
+};
+
+/**
+ * Obtains the list of *all* {@link CallStats} instances collected from every
+ * valid {@link Statistics} instance.
+ * @return {Set<CallStats>}
+ * @private
+ */
+Statistics._getAllCallStatsInstances = function() {
+    const csInstances = new Set();
+
+    for (const statistics of Statistics.instances) {
+        for (const cs of statistics.callsStatsInstances.values()) {
+            csInstances.add(cs);
+        }
+    }
+
+    return csInstances;
+};
+
+/**
+ * Constructs the CallStats conference ID based on the options currently
+ * configured in this instance.
+ * @return {string}
+ * @private
+ */
+Statistics.prototype._getCallStatsConfID = function() {
+    // The conference ID is case sensitive!!!
+    return `${this.options.callStatsConfIDNamespace}/${this.options.roomName}`;
 };
 
 /**
  * Removes the callstats.io instances.
  */
-Statistics.prototype.stopCallStats = function() {
-    if (this.callStatsStarted) {
-        const index = Statistics.callsStatsInstances.indexOf(this.callStats);
+Statistics.prototype.stopCallStats = function(tpc) {
+    const callStatsInstance = this.callsStatsInstances.get(tpc.id);
 
-        if (index > -1) {
-            Statistics.callsStatsInstances.splice(index, 1);
-        }
+    if (callStatsInstance) {
+        this.callsStatsInstances.delete(tpc.id);
 
-        // The next line is commented because we need to be able to send
-        // feedback even after the conference has been destroyed.
-        // this.callStats = null;
-        CallStats.dispose();
-        this.callStatsStarted = false;
+        // The fabric needs to be terminated when being stopped
+        callStatsInstance.sendTerminateEvent();
     }
 };
 
@@ -299,24 +343,27 @@ Statistics.prototype.isCallstatsEnabled = function() {
 
 /**
  * Notifies CallStats and analytics(if present) for ice connection failed
- * @param {RTCPeerConnection} pc connection on which failure occured.
+ * @param {TraceablePeerConnection} tpc connection on which failure occurred.
  */
-Statistics.prototype.sendIceConnectionFailedEvent = function(pc) {
-    if (this.callStats) {
-        this.callStats.sendIceConnectionFailedEvent(pc, this.callStats);
+Statistics.prototype.sendIceConnectionFailedEvent = function(tpc) {
+    const instance = this.callsStatsInstances.get(tpc.id);
+
+    if (instance) {
+        instance.sendIceConnectionFailedEvent(instance);
     }
     Statistics.analytics.sendEvent('connection.ice_failed');
 };
 
 /**
  * Notifies CallStats for mute events
- * @param mute {boolean} true for muted and false for not muted
- * @param type {String} "audio"/"video"
+ * @param {TraceablePeerConnection} tpc connection on which failure occurred.
+ * @param {boolean} muted true for muted and false for not muted
+ * @param {String} type "audio"/"video"
  */
-Statistics.prototype.sendMuteEvent = function(muted, type) {
-    if (this.callStats) {
-        CallStats.sendMuteEvent(muted, type, this.callStats);
-    }
+Statistics.prototype.sendMuteEvent = function(tpc, muted, type) {
+    const instance = tpc && this.callsStatsInstances.get(tpc.id);
+
+    CallStats.sendMuteEvent(muted, type, instance);
 };
 
 /**
@@ -325,8 +372,8 @@ Statistics.prototype.sendMuteEvent = function(muted, type) {
  * false for not stopping
  */
 Statistics.prototype.sendScreenSharingEvent = function(start) {
-    if (this.callStats) {
-        CallStats.sendScreenSharingEvent(start, this.callStats);
+    for (const cs of this.callsStatsInstances.values()) {
+        CallStats.sendScreenSharingEvent(start, cs);
     }
 };
 
@@ -335,8 +382,8 @@ Statistics.prototype.sendScreenSharingEvent = function(start) {
  * conference.
  */
 Statistics.prototype.sendDominantSpeakerEvent = function() {
-    if (this.callStats) {
-        CallStats.sendDominantSpeakerEvent(this.callStats);
+    for (const cs of this.callsStatsInstances.values()) {
+        CallStats.sendDominantSpeakerEvent(cs);
     }
 };
 
@@ -346,10 +393,12 @@ Statistics.prototype.sendDominantSpeakerEvent = function() {
  *      their data
  */
 Statistics.sendActiveDeviceListEvent = function(devicesData) {
-    if (Statistics.callsStatsInstances.length) {
-        Statistics.callsStatsInstances.forEach(cs => {
+    const globalSet = Statistics._getAllCallStatsInstances();
+
+    if (globalSet.size) {
+        for (const cs of globalSet) {
             CallStats.sendActiveDeviceListEvent(devicesData, cs);
-        });
+        }
     } else {
         CallStats.sendActiveDeviceListEvent(devicesData, null);
     }
@@ -360,24 +409,33 @@ Statistics.sendActiveDeviceListEvent = function(devicesData) {
 /**
  * Lets the underlying statistics module know where is given SSRC rendered by
  * providing renderer tag ID.
- * @param ssrc {number} the SSRC of the stream
- * @param isLocal {boolean} <tt>true<tt> if this stream is local or
- *        <tt>false</tt> otherwise.
- * @param usageLabel {string} meaningful usage label of this stream like
+ * @param {TraceablePeerConnection} tpc the connection to which the stream
+ * belongs to
+ * @param {number} ssrc the SSRC of the stream
+ * @param {boolean} isLocal
+ * @param {string} userId
+ * @param {string} usageLabel  meaningful usage label of this stream like
  *        'microphone', 'camera' or 'screen'.
- * @param containerId {string} the id of media 'audio' or 'video' tag which
+ * @param {string} containerId the id of media 'audio' or 'video' tag which
  *        renders the stream.
  */
 Statistics.prototype.associateStreamWithVideoTag = function(
+        tpc,
         ssrc,
         isLocal,
+        userId,
         usageLabel,
         containerId) {
-    this.callStats && this.callStats.associateStreamWithVideoTag(
-        ssrc,
-        isLocal,
-        usageLabel,
-        containerId);
+    const instance = this.callsStatsInstances.get(tpc.id);
+
+    if (instance) {
+        instance.associateStreamWithVideoTag(
+            ssrc,
+            isLocal,
+            userId,
+            usageLabel,
+            containerId);
+    }
 };
 
 /* eslint-enable max-params */
@@ -388,21 +446,17 @@ Statistics.prototype.associateStreamWithVideoTag = function(
  * @param {Error} e error to send
  */
 Statistics.sendGetUserMediaFailed = function(e) {
+    const error
+        = e instanceof JitsiTrackError
+            ? formatJitsiTrackErrorForCallStats(e) : e;
+    const globalSet = Statistics._getAllCallStatsInstances();
 
-    if (Statistics.callsStatsInstances.length) {
-        Statistics.callsStatsInstances.forEach(
-            cs =>
-                CallStats.sendGetUserMediaFailed(
-                    e instanceof JitsiTrackError
-                        ? formatJitsiTrackErrorForCallStats(e)
-                        : e,
-                    cs));
+    if (globalSet.size) {
+        for (const cs of globalSet) {
+            CallStats.sendGetUserMediaFailed(error, cs);
+        }
     } else {
-        CallStats.sendGetUserMediaFailed(
-            e instanceof JitsiTrackError
-                ? formatJitsiTrackErrorForCallStats(e)
-                : e,
-            null);
+        CallStats.sendGetUserMediaFailed(error, null);
     }
 };
 
@@ -410,11 +464,13 @@ Statistics.sendGetUserMediaFailed = function(e) {
  * Notifies CallStats that peer connection failed to create offer.
  *
  * @param {Error} e error to send
- * @param {RTCPeerConnection} pc connection on which failure occured.
+ * @param {TraceablePeerConnection} tpc connection on which failure occurred.
  */
-Statistics.prototype.sendCreateOfferFailed = function(e, pc) {
-    if (this.callStats) {
-        CallStats.sendCreateOfferFailed(e, pc, this.callStats);
+Statistics.prototype.sendCreateOfferFailed = function(e, tpc) {
+    const instance = this.callsStatsInstances.get(tpc.id);
+
+    if (instance) {
+        CallStats.sendCreateOfferFailed(e, tpc.peerconnection, instance);
     }
 };
 
@@ -422,11 +478,13 @@ Statistics.prototype.sendCreateOfferFailed = function(e, pc) {
  * Notifies CallStats that peer connection failed to create answer.
  *
  * @param {Error} e error to send
- * @param {RTCPeerConnection} pc connection on which failure occured.
+ * @param {TraceablePeerConnection} tpc connection on which failure occured.
  */
-Statistics.prototype.sendCreateAnswerFailed = function(e, pc) {
-    if (this.callStats) {
-        CallStats.sendCreateAnswerFailed(e, pc, this.callStats);
+Statistics.prototype.sendCreateAnswerFailed = function(e, tpc) {
+    const instance = this.callsStatsInstances.get(tpc.id);
+
+    if (instance) {
+        CallStats.sendCreateAnswerFailed(e, tpc.peerconnection, instance);
     }
 };
 
@@ -434,11 +492,13 @@ Statistics.prototype.sendCreateAnswerFailed = function(e, pc) {
  * Notifies CallStats that peer connection failed to set local description.
  *
  * @param {Error} e error to send
- * @param {RTCPeerConnection} pc connection on which failure occured.
+ * @param {TraceablePeerConnection} tpc connection on which failure occurred.
  */
-Statistics.prototype.sendSetLocalDescFailed = function(e, pc) {
-    if (this.callStats) {
-        CallStats.sendSetLocalDescFailed(e, pc, this.callStats);
+Statistics.prototype.sendSetLocalDescFailed = function(e, tpc) {
+    const instance = this.callsStatsInstances.get(tpc.id);
+
+    if (instance) {
+        CallStats.sendSetLocalDescFailed(e, tpc.peerconnection, instance);
     }
 };
 
@@ -446,11 +506,13 @@ Statistics.prototype.sendSetLocalDescFailed = function(e, pc) {
  * Notifies CallStats that peer connection failed to set remote description.
  *
  * @param {Error} e error to send
- * @param {RTCPeerConnection} pc connection on which failure occured.
+ * @param {TraceablePeerConnection} tpc connection on which failure occurred.
  */
-Statistics.prototype.sendSetRemoteDescFailed = function(e, pc) {
-    if (this.callStats) {
-        CallStats.sendSetRemoteDescFailed(e, pc, this.callStats);
+Statistics.prototype.sendSetRemoteDescFailed = function(e, tpc) {
+    const instance = this.callsStatsInstances.get(tpc.id);
+
+    if (instance) {
+        CallStats.sendSetRemoteDescFailed(e, tpc.peerconnection, instance);
     }
 };
 
@@ -458,11 +520,13 @@ Statistics.prototype.sendSetRemoteDescFailed = function(e, pc) {
  * Notifies CallStats that peer connection failed to add ICE candidate.
  *
  * @param {Error} e error to send
- * @param {RTCPeerConnection} pc connection on which failure occured.
+ * @param {TraceablePeerConnection} tpc connection on which failure occurred.
  */
-Statistics.prototype.sendAddIceCandidateFailed = function(e, pc) {
-    if (this.callStats) {
-        CallStats.sendAddIceCandidateFailed(e, pc, this.callStats);
+Statistics.prototype.sendAddIceCandidateFailed = function(e, tpc) {
+    const instance = this.callsStatsInstances.get(tpc.id);
+
+    if (instance) {
+        CallStats.sendSetRemoteDescFailed(e, tpc.peerconnection, instance);
     }
 };
 
@@ -472,9 +536,22 @@ Statistics.prototype.sendAddIceCandidateFailed = function(e, pc) {
  * @param {String} a log message to send or an {Error} object to be reported
  */
 Statistics.sendLog = function(m) {
-    if (Statistics.callsStatsInstances.length) {
-        Statistics.callsStatsInstances.forEach(
-            cs => CallStats.sendApplicationLog(m, cs));
+    const globalSubSet = new Set();
+
+    // FIXME we don't want to duplicate logs over P2P instance, but
+    // here we should go over instances and call this method for each
+    // unique conference ID rather than selecting the first one.
+    // We don't have such use case though, so leaving as is for now.
+    for (const stats of Statistics.instances) {
+        if (stats.callsStatsInstances.size) {
+            globalSubSet.add(stats.callsStatsInstances.values().next().value);
+        }
+    }
+
+    if (globalSubSet.size) {
+        for (const csPerStats of globalSubSet) {
+            CallStats.sendApplicationLog(m, csPerStats);
+        }
     } else {
         CallStats.sendApplicationLog(m, null);
     }
@@ -487,9 +564,7 @@ Statistics.sendLog = function(m) {
  * @param detailed detailed feedback from the user. Not yet used
  */
 Statistics.prototype.sendFeedback = function(overall, detailed) {
-    if (this.callStats) {
-        this.callStats.sendFeedback(overall, detailed);
-    }
+    CallStats.sendFeedback(this._getCallStatsConfID(), overall, detailed);
     Statistics.analytics.sendEvent('feedback.rating',
         { value: overall,
             detailed });
