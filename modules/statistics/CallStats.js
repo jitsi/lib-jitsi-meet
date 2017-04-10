@@ -87,6 +87,10 @@ function tryCatch(f) {
 }
 
 /**
+ *
+ */
+export default class CallStats {
+/**
  * Creates new CallStats instance that handles all callstats API calls for given
  * {@link TraceablePeerConnection}. Each instance is meant to handle one
  * CallStats fabric added with 'addFabric' API method for the
@@ -98,7 +102,7 @@ function tryCatch(f) {
  * @param {string} [options.remoteUserID='jitsi'] the remote user ID to which
  * given <tt>tpc</tt> is connected.
  */
-const CallStats = function(tpc, options) {
+constructor(tpc, options) {
     if (!callStatsBackend) {
         throw new Error('CallStats backend not intiialized!');
     }
@@ -114,46 +118,7 @@ const CallStats = function(tpc, options) {
     if (CallStats.initialized) {
         this._addNewFabric();
     }
-};
-
-// some errors/events may happen before CallStats init
-// in this case we accumulate them in this array
-// and send them to callstats on init
-CallStats.reportsQueue = [];
-
-/**
- * Whether the library was successfully initialized using its initialize method.
- * And whether we had successfully called addNewFabric at least once.
- * @type {boolean}
- */
-CallStats.initialized = false;
-
-/**
- * Part of the CallStats credentials - application ID
- * @type {string}
- */
-CallStats.callStatsID = null;
-
-/**
- * Part of the CallStats credentials - application secret
- * @type {string}
- */
-CallStats.callStatsSecret = null;
-
-/**
- * Local CallStats user ID structure. Can be set only once when
- * {@link callStatsBackend} is initialized, so it's static for the time being.
- * See CallStats API for more info:
- * https://www.callstats.io/api/#userid
- * @type {object}
- */
-CallStats.userID = null;
-
-/**
- * Set of currently existing {@link CallStats} instances.
- * @type {Set<CallStats>}
- */
-CallStats.fabrics = new Set();
+}
 
 /**
  * Initializes the CallStats backend. Should be called only if
@@ -167,7 +132,7 @@ CallStats.fabrics = new Set();
  * the <tt>userID</tt> aka endpoint ID, see CallStats docs for more info.
  *
  */
-CallStats.initBackend = function(options) {
+static initBackend(options) {
     if (callStatsBackend) {
         throw new Error('CallStats backend has been initialized already!');
     }
@@ -189,7 +154,7 @@ CallStats.initBackend = function(options) {
             CallStats.callStatsID,
             CallStats.callStatsSecret,
             CallStats.userID,
-            initCallback);
+            CallStats._initCallback);
 
         return true;
     } catch (e) {
@@ -202,7 +167,7 @@ CallStats.initBackend = function(options) {
 
         return false;
     }
-};
+}
 
 /* eslint-disable no-invalid-this */
 
@@ -211,7 +176,7 @@ CallStats.initBackend = function(options) {
  * @param err
  * @param msg
  */
-function initCallback(err, msg) {
+static _initCallback(err, msg) {
     logger.log(`CallStats Status: err=${err} msg=${msg}`);
 
     // there is no lib, nothing to report to
@@ -296,9 +261,9 @@ function initCallback(err, msg) {
  * successfully.
  * @return {boolean} <tt>true</tt> if backend exists or <tt>false</tt> otherwise
  */
-CallStats.isBackendInitialized = function() {
+static isBackendInitialized() {
     return Boolean(callStatsBackend);
-};
+}
 
 /**
  * Wraps some of the CallStats API method and logs their calls with arguments on
@@ -306,7 +271,7 @@ CallStats.isBackendInitialized = function() {
  * @param {callstats} backend
  * @private
  */
-CallStats._traceBackendCalls = function(backend) {
+static _traceBackendCalls(backend) {
     const originalsendFabricEvent = backend.sendFabricEvent;
 
     backend.sendFabricEvent = function(...theArguments) {
@@ -335,14 +300,14 @@ CallStats._traceBackendCalls = function(backend) {
         logger.debug('sendUserFeedback', theArguments);
         originalSendUserFeedback.apply(backend, theArguments);
     };
-};
+}
 
 /**
  * Initializes CallStats fabric by calling "addNewFabric" for
  * the peer connection associated with this instance.
  * @return {boolean} true if the call was successful or false otherwise.
  */
-CallStats.prototype._addNewFabric = function() {
+_addNewFabric() {
     logger.info('addNewFabric', this.remoteUserID, this);
     const ret
         = callStatsBackend.addNewFabric(
@@ -361,13 +326,13 @@ CallStats.prototype._addNewFabric = function() {
     }
 
     return success;
-};
+}
 
-CallStats.pcCallback = function(err, msg) {
+static pcCallback(err, msg) {
     if (callStatsBackend && err !== 'success') {
         logger.error(`Monitoring status: ${err} msg: ${msg}`);
     }
-};
+}
 
 /* eslint-disable max-params */
 
@@ -384,7 +349,7 @@ CallStats.pcCallback = function(err, msg) {
  * @param {string} containerId  the id of media 'audio' or 'video' tag which
  *        renders the stream.
  */
-CallStats.prototype.associateStreamWithVideoTag = function(
+associateStreamWithVideoTag(
         ssrc,
         isLocal,
         streamEndpointId,
@@ -427,7 +392,7 @@ CallStats.prototype.associateStreamWithVideoTag = function(
             });
         }
     })();
-};
+}
 
 /* eslint-enable max-params */
 
@@ -437,7 +402,7 @@ CallStats.prototype.associateStreamWithVideoTag = function(
  * @param type {String} "audio"/"video"
  * @param {CallStats} cs callstats instance related to the event
  */
-CallStats.sendMuteEvent = function(mute, type, cs) {
+static sendMuteEvent(mute, type, cs) {
     let event;
 
     if (type === 'video') {
@@ -447,7 +412,7 @@ CallStats.sendMuteEvent = function(mute, type, cs) {
     }
 
     CallStats._reportEvent(cs, event);
-};
+}
 
 /**
  * Notifies CallStats for screen sharing events
@@ -455,28 +420,28 @@ CallStats.sendMuteEvent = function(mute, type, cs) {
  * false for not stopping
  * @param {CallStats} cs callstats instance related to the event
  */
-CallStats.sendScreenSharingEvent = function(start, cs) {
+static sendScreenSharingEvent(start, cs) {
     CallStats._reportEvent(
         cs,
         start ? fabricEvent.screenShareStart : fabricEvent.screenShareStop);
-};
+}
 
 /**
  * Notifies CallStats that we are the new dominant speaker in the conference.
  * @param {CallStats} cs callstats instance related to the event
  */
-CallStats.sendDominantSpeakerEvent = function(cs) {
+static sendDominantSpeakerEvent(cs) {
     CallStats._reportEvent(cs, fabricEvent.dominantSpeaker);
-};
+}
 
 /**
  * Notifies CallStats about active device.
  * @param {{deviceList: {String:String}}} list of devices with their data
  * @param {CallStats} cs callstats instance related to the event
  */
-CallStats.sendActiveDeviceListEvent = function(devicesData, cs) {
+static sendActiveDeviceListEvent(devicesData, cs) {
     CallStats._reportEvent(cs, fabricEvent.activeDeviceList, devicesData);
-};
+}
 
 /**
  * Reports an error to callstats.
@@ -486,7 +451,7 @@ CallStats.sendActiveDeviceListEvent = function(devicesData, cs) {
  * @param eventData additional data to pass to event
  * @private
  */
-CallStats._reportEvent = function(cs, event, eventData) {
+static _reportEvent(cs, event, eventData) {
     const pc = cs && cs.peerconnection;
     const confID = cs && cs.confID;
 
@@ -501,21 +466,21 @@ CallStats._reportEvent = function(cs, event, eventData) {
                 eventData }
         });
     }
-};
+}
 
 /* eslint-disable no-invalid-this */
 /**
  * Notifies CallStats that the fabric for the underlying peerconnection was
  * closed and no evens should be reported, after this call.
  */
-CallStats.prototype.sendTerminateEvent = function() {
+sendTerminateEvent() {
     if (CallStats.initialized) {
         callStatsBackend.sendFabricEvent(
             this.peerconnection,
             callStatsBackend.fabricEvent.fabricTerminated,
             this.confID);
     }
-};
+}
 
 /* eslint-enable no-invalid-this */
 
@@ -523,10 +488,10 @@ CallStats.prototype.sendTerminateEvent = function() {
  * Notifies CallStats for ice connection failed
  * @param {CallStats} cs callstats instance related to the error
  */
-CallStats.prototype.sendIceConnectionFailedEvent = function(cs) {
+sendIceConnectionFailedEvent(cs) {
     CallStats._reportError(
         cs, wrtcFuncNames.iceConnectionFailure, null, cs.peerconnection);
-};
+}
 
 /* eslint-disable no-invalid-this */
 /**
@@ -538,8 +503,7 @@ CallStats.prototype.sendIceConnectionFailedEvent = function(cs) {
  * user feedback
  * @param detailedFeedback detailed feedback from the user. Not yet used
  */
-CallStats.sendFeedback
-= function(conferenceID, overallFeedback, detailedFeedback) {
+static sendFeedback(conferenceID, overallFeedback, detailedFeedback) {
     if (callStatsBackend) {
         callStatsBackend.sendUserFeedback(
             conferenceID, {
@@ -550,7 +514,7 @@ CallStats.sendFeedback
     } else {
         logger.error('Failed to submit feedback to CallStats - no backend');
     }
-};
+}
 
 /* eslint-enable no-invalid-this */
 
@@ -564,7 +528,7 @@ CallStats.sendFeedback
  * @param pc the peerconnection
  * @private
  */
-CallStats._reportError = function(cs, type, e, pc) {
+static _reportError(cs, type, e, pc) {
     let error = e;
 
     if (!error) {
@@ -585,7 +549,7 @@ CallStats._reportError = function(cs, type, e, pc) {
     }
 
     // else just ignore it
-};
+}
 
 /* eslint-enable max-params */
 
@@ -595,9 +559,9 @@ CallStats._reportError = function(cs, type, e, pc) {
  * @param {Error} e error to send
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendGetUserMediaFailed = function(e, cs) {
+static sendGetUserMediaFailed(e, cs) {
     CallStats._reportError(cs, wrtcFuncNames.getUserMedia, e, null);
-};
+}
 
 /**
  * Notifies CallStats that peer connection failed to create offer.
@@ -606,9 +570,11 @@ CallStats.sendGetUserMediaFailed = function(e, cs) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendCreateOfferFailed = function(e, pc, cs) {
+static sendCreateOfferFailed(e, pc, cs) {
+    // FIXME this should not be static (both CallStats and PeerConnection
+    // should be available)
     CallStats._reportError(cs, wrtcFuncNames.createOffer, e, pc);
-};
+}
 
 /**
  * Notifies CallStats that peer connection failed to create answer.
@@ -617,9 +583,11 @@ CallStats.sendCreateOfferFailed = function(e, pc, cs) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendCreateAnswerFailed = function(e, pc, cs) {
+static sendCreateAnswerFailed(e, pc, cs) {
+    // FIXME this should not be static (both CallStats and PeerConnection
+    // should be available)
     CallStats._reportError(cs, wrtcFuncNames.createAnswer, e, pc);
-};
+}
 
 /**
  * Notifies CallStats that peer connection failed to set local description.
@@ -628,9 +596,11 @@ CallStats.sendCreateAnswerFailed = function(e, pc, cs) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendSetLocalDescFailed = function(e, pc, cs) {
+static sendSetLocalDescFailed(e, pc, cs) {
+    // FIXME this should not be static (both CallStats and PeerConnection
+    // should be available)
     CallStats._reportError(cs, wrtcFuncNames.setLocalDescription, e, pc);
-};
+}
 
 /**
  * Notifies CallStats that peer connection failed to set remote description.
@@ -639,9 +609,11 @@ CallStats.sendSetLocalDescFailed = function(e, pc, cs) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendSetRemoteDescFailed = function(e, pc, cs) {
+static sendSetRemoteDescFailed(e, pc, cs) {
+    // FIXME this should not be static (both CallStats and PeerConnection
+    // should be available)
     CallStats._reportError(cs, wrtcFuncNames.setRemoteDescription, e, pc);
-};
+}
 
 /**
  * Notifies CallStats that peer connection failed to add ICE candidate.
@@ -650,9 +622,11 @@ CallStats.sendSetRemoteDescFailed = function(e, pc, cs) {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendAddIceCandidateFailed = function(e, pc, cs) {
+static sendAddIceCandidateFailed(e, pc, cs) {
+    // FIXME this should not be static (both CallStats and PeerConnection
+    // should be available)
     CallStats._reportError(cs, wrtcFuncNames.addIceCandidate, e, pc);
-};
+}
 
 /**
  * Notifies CallStats that there is a log we want to report.
@@ -660,7 +634,7 @@ CallStats.sendAddIceCandidateFailed = function(e, pc, cs) {
  * @param {Error} e error to send or {String} message
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendApplicationLog = (e, cs) => {
+static sendApplicationLog(e, cs) {
     try {
         CallStats._reportError(
             cs,
@@ -676,6 +650,44 @@ CallStats.sendApplicationLog = (e, cs) => {
             console.error('sendApplicationLog failed', error);
         }
     }
-};
+}
+}
 
-module.exports = CallStats;
+// some errors/events may happen before CallStats init
+// in this case we accumulate them in this array
+// and send them to callstats on init
+CallStats.reportsQueue = [];
+
+/**
+ * Whether the library was successfully initialized using its initialize method.
+ * And whether we had successfully called addNewFabric at least once.
+ * @type {boolean}
+ */
+CallStats.initialized = false;
+
+/**
+ * Part of the CallStats credentials - application ID
+ * @type {string}
+ */
+CallStats.callStatsID = null;
+
+/**
+ * Part of the CallStats credentials - application secret
+ * @type {string}
+ */
+CallStats.callStatsSecret = null;
+
+/**
+ * Local CallStats user ID structure. Can be set only once when
+ * {@link callStatsBackend} is initialized, so it's static for the time being.
+ * See CallStats API for more info:
+ * https://www.callstats.io/api/#userid
+ * @type {object}
+ */
+CallStats.userID = null;
+
+/**
+ * Set of currently existing {@link CallStats} instances.
+ * @type {Set<CallStats>}
+ */
+CallStats.fabrics = new Set();

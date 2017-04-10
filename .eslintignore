@@ -16,3 +16,5 @@ modules/RTC/adapter.screenshare.js
 
 # Source code written in ES5 which is not processed through Babel.
 connection_optimization/external_connect.js
+
+modules/statistics/CallStats.js
