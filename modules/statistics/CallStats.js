@@ -70,26 +70,6 @@ const reportType = {
 /* eslint-enable no-invalid-this */
 
 /**
- * Returns a function which invokes f in a try/catch block, logs any exception
- * to the console, and then swallows it.
- *
- * @param f the function to invoke in a try/catch block
- * @return a function which invokes f in a try/catch block, logs any exception
- * to the console, and then swallows it
- */
-function tryCatch(f) {
-    return function() {
-        try {
-
-            // eslint-disable-next-line no-invalid-this
-            f.apply(this, arguments); // eslint-disable-line prefer-rest-params
-        } catch (e) {
-            GlobalOnErrorHandler.callErrorHandler(e);
-        }
-    };
-}
-
-/**
  *
  */
 export default class CallStats {
@@ -143,7 +123,7 @@ export default class CallStats {
             backend
                 = new callstats($, io, jsSHA); // eslint-disable-line new-cap
 
-            CallStats._traceBackendCalls(backend);
+            CallStats._traceAndCatchBackendCalls(backend);
 
             CallStats.userID = {
                 aliasName: options.aliasName,
@@ -269,17 +249,48 @@ export default class CallStats {
 
     /**
      * Wraps some of the CallStats API method and logs their calls with
-     * arguments on the debug logging level.
+     * arguments on the debug logging level. Also wraps some of the backend
+     * methods execution into try catch blocks to not crash the app in case
+     * there is a problem with the backend itself.
      * @param {callstats} theBackend
      * @private
      */
-    static _traceBackendCalls(theBackend) {
-        const originalsendFabricEvent = theBackend.sendFabricEvent;
+    static _traceAndCatchBackendCalls(theBackend) {
+        const tryCatchMethods = [
+            'associateMstWithUserID',
+            'sendFabricEvent',
+            'sendUserFeedback'
 
-        theBackend.sendFabricEvent = function(...theArguments) {
-            logger.debug('sendFabricEvent', theArguments);
-            originalsendFabricEvent.apply(theBackend, theArguments);
-        };
+            // 'reportError', - this one needs special handling - see code below
+        ];
+
+        for (const methodName of tryCatchMethods) {
+            const originalMethod = theBackend[methodName];
+
+            theBackend[methodName] = function(...theArguments) {
+                try {
+                    return originalMethod.apply(theBackend, theArguments);
+                } catch (e) {
+                    GlobalOnErrorHandler.callErrorHandler(e);
+                }
+            };
+        }
+        const debugMethods = [
+            'associateMstWithUserID',
+            'sendFabricEvent',
+            'sendUserFeedback'
+
+            // 'reportError', - this one needs special handling - see code below
+        ];
+
+        for (const methodName of debugMethods) {
+            const originalMethod = theBackend[methodName];
+
+            theBackend[methodName] = function(...theArguments) {
+                logger.debug(methodName, theArguments);
+                originalMethod.apply(theBackend, theArguments);
+            };
+        }
         const originalReportError = theBackend.reportError;
 
         /* eslint-disable max-params */
@@ -295,16 +306,18 @@ export default class CallStats {
             } else {
                 logger.debug('reportError', allArguments);
             }
-            originalReportError.apply(theBackend, allArguments);
+            try {
+                originalReportError.apply(theBackend, allArguments);
+            } catch (exception) {
+                if (type === wrtcFuncNames.applicationLog) {
+                    console && console.error('reportError', allArguments);
+                } else {
+                    GlobalOnErrorHandler.callErrorHandler(exception);
+                }
+            }
         };
 
         /* eslint-enable max-params */
-        const originalSendUserFeedback = theBackend.sendUserFeedback;
-
-        theBackend.sendUserFeedback = function(...theArguments) {
-            logger.debug('sendUserFeedback', theArguments);
-            originalSendUserFeedback.apply(theBackend, theArguments);
-        };
     }
 
     /**
@@ -314,23 +327,30 @@ export default class CallStats {
      */
     _addNewFabric() {
         logger.info('addNewFabric', this.remoteUserID, this);
-        const ret
-            = backend.addNewFabric(
-                this.peerconnection,
-                this.remoteUserID,
-                backend.fabricUsage.multiplex,
-                this.confID,
-                CallStats.pcCallback);
+        try {
+            const ret
+                = backend.addNewFabric(
+                    this.peerconnection,
+                    this.remoteUserID,
+                    backend.fabricUsage.multiplex,
+                    this.confID,
+                    CallStats.pcCallback);
 
-        this.hasFabric = true;
+            this.hasFabric = true;
 
-        const success = ret.status === 'success';
+            const success = ret.status === 'success';
 
-        if (!success) {
-            logger.error('callstats fabric not initilized', ret.message);
+            if (!success) {
+                logger.error('callstats fabric not initilized', ret.message);
+            }
+
+            return success;
+
+        } catch (error) {
+            GlobalOnErrorHandler.callErrorHandler(error);
+
+            return false;
         }
-
-        return success;
     }
 
     /**
@@ -372,36 +392,26 @@ export default class CallStats {
 
         const callStatsId = isLocal ? CallStats.userID : streamEndpointId;
 
-        tryCatch(() => {
-            logger.debug(
-                'Calling callStats.associateMstWithUserID with:',
+        if (CallStats.initialized) {
+            backend.associateMstWithUserID(
                 this.peerconnection,
                 callStatsId,
                 this.confID,
                 ssrc,
                 usageLabel,
                 containerId);
-            if (CallStats.initialized) {
-                backend.associateMstWithUserID(
-                    this.peerconnection,
+        } else {
+            CallStats.reportsQueue.push({
+                type: reportType.MST_WITH_USERID,
+                pc: this.peerconnection,
+                data: {
                     callStatsId,
-                    this.confID,
+                    containerId,
                     ssrc,
-                    usageLabel,
-                    containerId);
-            } else {
-                CallStats.reportsQueue.push({
-                    type: reportType.MST_WITH_USERID,
-                    pc: this.peerconnection,
-                    data: {
-                        callStatsId,
-                        containerId,
-                        ssrc,
-                        usageLabel
-                    }
-                });
-            }
-        })();
+                    usageLabel
+                }
+            });
+        }
     }
 
     /* eslint-enable max-params */
