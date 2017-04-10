@@ -495,11 +495,13 @@ export default class CallStats {
 
     /**
      * Notifies CallStats for ice connection failed
-     * @param {CallStats} cs callstats instance related to the error
      */
-    sendIceConnectionFailedEvent(cs) {
+    sendIceConnectionFailedEvent() {
         CallStats._reportError(
-            cs, wrtcFuncNames.iceConnectionFailure, null, cs.peerconnection);
+            this,
+            wrtcFuncNames.iceConnectionFailure,
+            null,
+            this.peerconnection);
     }
 
     /* eslint-disable no-invalid-this */
@@ -576,65 +578,50 @@ export default class CallStats {
      * Notifies CallStats that peer connection failed to create offer.
      *
      * @param {Error} e error to send
-     * @param {RTCPeerConnection} pc connection on which failure occured.
-     * @param {CallStats} cs callstats instance related to the error (optional)
      */
-    static sendCreateOfferFailed(e, pc, cs) {
-        // FIXME this should not be static (both CallStats and PeerConnection
-        // should be available)
-        CallStats._reportError(cs, wrtcFuncNames.createOffer, e, pc);
+    sendCreateOfferFailed(e) {
+        CallStats._reportError(
+            this, wrtcFuncNames.createOffer, e, this.peerconnection);
     }
 
     /**
      * Notifies CallStats that peer connection failed to create answer.
      *
      * @param {Error} e error to send
-     * @param {RTCPeerConnection} pc connection on which failure occured.
-     * @param {CallStats} cs callstats instance related to the error (optional)
      */
-    static sendCreateAnswerFailed(e, pc, cs) {
-        // FIXME this should not be static (both CallStats and PeerConnection
-        // should be available)
-        CallStats._reportError(cs, wrtcFuncNames.createAnswer, e, pc);
+    sendCreateAnswerFailed(e) {
+        CallStats._reportError(
+            this, wrtcFuncNames.createAnswer, e, this.peerconnection);
     }
 
     /**
      * Notifies CallStats that peer connection failed to set local description.
      *
      * @param {Error} e error to send
-     * @param {RTCPeerConnection} pc connection on which failure occured.
-     * @param {CallStats} cs callstats instance related to the error (optional)
      */
-    static sendSetLocalDescFailed(e, pc, cs) {
-        // FIXME this should not be static (both CallStats and PeerConnection
-        // should be available)
-        CallStats._reportError(cs, wrtcFuncNames.setLocalDescription, e, pc);
+    sendSetLocalDescFailed(e) {
+        CallStats._reportError(
+            this, wrtcFuncNames.setLocalDescription, e, this.peerconnection);
     }
 
     /**
      * Notifies CallStats that peer connection failed to set remote description.
      *
      * @param {Error} e error to send
-     * @param {RTCPeerConnection} pc connection on which failure occured.
-     * @param {CallStats} cs callstats instance related to the error (optional)
      */
-    static sendSetRemoteDescFailed(e, pc, cs) {
-        // FIXME this should not be static (both CallStats and PeerConnection
-        // should be available)
-        CallStats._reportError(cs, wrtcFuncNames.setRemoteDescription, e, pc);
+    sendSetRemoteDescFailed(e) {
+        CallStats._reportError(
+            this, wrtcFuncNames.setRemoteDescription, e, this.peerconnection);
     }
 
     /**
      * Notifies CallStats that peer connection failed to add ICE candidate.
      *
      * @param {Error} e error to send
-     * @param {RTCPeerConnection} pc connection on which failure occured.
-     * @param {CallStats} cs callstats instance related to the error (optional)
      */
-    static sendAddIceCandidateFailed(e, pc, cs) {
-        // FIXME this should not be static (both CallStats and PeerConnection
-        // should be available)
-        CallStats._reportError(cs, wrtcFuncNames.addIceCandidate, e, pc);
+    sendAddIceCandidateFailed(e) {
+        CallStats._reportError(
+            this, wrtcFuncNames.addIceCandidate, e, this.peerconnection);
     }
 
     /**

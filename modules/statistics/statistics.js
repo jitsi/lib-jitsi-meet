@@ -349,7 +349,7 @@ Statistics.prototype.sendIceConnectionFailedEvent = function(tpc) {
     const instance = this.callsStatsInstances.get(tpc.id);
 
     if (instance) {
-        instance.sendIceConnectionFailedEvent(instance);
+        instance.sendIceConnectionFailedEvent();
     }
     Statistics.analytics.sendEvent('connection.ice_failed');
 };
@@ -470,7 +470,7 @@ Statistics.prototype.sendCreateOfferFailed = function(e, tpc) {
     const instance = this.callsStatsInstances.get(tpc.id);
 
     if (instance) {
-        CallStats.sendCreateOfferFailed(e, tpc.peerconnection, instance);
+        instance.sendCreateOfferFailed(e);
     }
 };
 
@@ -484,7 +484,7 @@ Statistics.prototype.sendCreateAnswerFailed = function(e, tpc) {
     const instance = this.callsStatsInstances.get(tpc.id);
 
     if (instance) {
-        CallStats.sendCreateAnswerFailed(e, tpc.peerconnection, instance);
+        instance.sendCreateAnswerFailed(e);
     }
 };
 
@@ -498,7 +498,7 @@ Statistics.prototype.sendSetLocalDescFailed = function(e, tpc) {
     const instance = this.callsStatsInstances.get(tpc.id);
 
     if (instance) {
-        CallStats.sendSetLocalDescFailed(e, tpc.peerconnection, instance);
+        instance.sendSetLocalDescFailed(e);
     }
 };
 
@@ -512,7 +512,7 @@ Statistics.prototype.sendSetRemoteDescFailed = function(e, tpc) {
     const instance = this.callsStatsInstances.get(tpc.id);
 
     if (instance) {
-        CallStats.sendSetRemoteDescFailed(e, tpc.peerconnection, instance);
+        instance.sendSetRemoteDescFailed(e);
     }
 };
 
@@ -526,14 +526,14 @@ Statistics.prototype.sendAddIceCandidateFailed = function(e, tpc) {
     const instance = this.callsStatsInstances.get(tpc.id);
 
     if (instance) {
-        CallStats.sendSetRemoteDescFailed(e, tpc.peerconnection, instance);
+        instance.sendAddIceCandidateFailed(e);
     }
 };
 
 /**
  * Adds to CallStats an application log.
  *
- * @param {String} a log message to send or an {Error} object to be reported
+ * @param {String} m a log message to send or an {Error} object to be reported
  */
 Statistics.sendLog = function(m) {
     const globalSubSet = new Set();
