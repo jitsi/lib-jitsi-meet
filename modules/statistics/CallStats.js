@@ -373,7 +373,6 @@ export default class CallStats {
             return;
         }
 
-        // 'jitsi' is default remote user ID for now
         const callStatsId = isLocal ? CallStats.userID : streamEndpointId;
 
         tryCatch(() => {
