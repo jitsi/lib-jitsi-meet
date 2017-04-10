@@ -185,7 +185,6 @@ export default class CallStats {
 
         // there is no lib, nothing to report to
         if (err !== 'success') {
-
             return;
         }
 
@@ -206,7 +205,6 @@ export default class CallStats {
         }
 
         if (!atLeastOneFabric) {
-
             return;
         }
 

@@ -253,7 +253,6 @@ Statistics.prototype.stopRemoteStats = function() {
  */
 Statistics.prototype.startCallStats = function(tpc, remoteUserID) {
     if (!this.callStatsIntegrationEnabled) {
-
         return;
     } else if (this.callsStatsInstances.has(tpc.id)) {
         logger.error('CallStats instance for ${tpc} exists already');
