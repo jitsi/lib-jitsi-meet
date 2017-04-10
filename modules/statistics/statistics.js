@@ -275,7 +275,6 @@ Statistics.prototype.startCallStats = function(tpc, remoteUserID) {
 
     logger.info(`Starting CallStats for ${tpc}...`);
 
-    /* eslint-enable prefer-template */
     const newInstance
         = new CallStats(
             tpc,
