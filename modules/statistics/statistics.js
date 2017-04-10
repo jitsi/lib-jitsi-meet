@@ -84,7 +84,6 @@ Statistics.init = function(options) {
     }
 
     Statistics.disableThirdPartyRequests = options.disableThirdPartyRequests;
-
 };
 
 /**
@@ -107,6 +106,10 @@ function Statistics(xmpp, options) {
             && (Statistics.disableThirdPartyRequests !== true);
     if (this.callStatsIntegrationEnabled) {
         loadCallStatsAPI(this.options.callStatsCustomScriptUrl);
+
+        if (!this.options.callStatsConfIDNamespace) {
+            logger.warn('"callStatsConfIDNamespace" is not defined');
+        }
     }
 
     /**
@@ -312,7 +315,9 @@ Statistics._getAllCallStatsInstances = function() {
  */
 Statistics.prototype._getCallStatsConfID = function() {
     // The conference ID is case sensitive!!!
-    return `${this.options.callStatsConfIDNamespace}/${this.options.roomName}`;
+    return this.options.callStatsConfIDNamespace
+        ? `${this.options.callStatsConfIDNamespace}/${this.options.roomName}`
+        : this.options.roomName;
 };
 
 /**
