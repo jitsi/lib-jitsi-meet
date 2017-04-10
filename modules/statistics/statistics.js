@@ -1,6 +1,6 @@
 /* global require */
 import analytics from './AnalyticsAdapter';
-const CallStats = require('./CallStats');
+import CallStats from './CallStats';
 const EventEmitter = require('events');
 
 import JitsiTrackError from '../../JitsiTrackError';
