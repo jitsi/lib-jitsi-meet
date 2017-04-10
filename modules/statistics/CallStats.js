@@ -45,7 +45,11 @@ const fabricEvent = {
     activeDeviceList: 'activeDeviceList'
 };
 
-let callStatsBackend = null;
+/**
+ * The CallStats API backend instance
+ * @type {callstats}
+ */
+let backend = null;
 
 /**
  * The user id to report to callstats as destination.
@@ -103,7 +107,7 @@ export default class CallStats {
      * which given <tt>tpc</tt> is connected.
      */
     constructor(tpc, options) {
-        if (!callStatsBackend) {
+        if (!backend) {
             throw new Error('CallStats backend not intiialized!');
         }
 
@@ -133,14 +137,14 @@ export default class CallStats {
      *
      */
     static initBackend(options) {
-        if (callStatsBackend) {
+        if (backend) {
             throw new Error('CallStats backend has been initialized already!');
         }
         try {
-            callStatsBackend
+            backend
                 = new callstats($, io, jsSHA); // eslint-disable-line new-cap
 
-            CallStats._traceBackendCalls(callStatsBackend);
+            CallStats._traceBackendCalls(backend);
 
             CallStats.userID = {
                 aliasName: options.aliasName,
@@ -150,7 +154,7 @@ export default class CallStats {
             CallStats.callStatsSecret = options.callStatsSecret;
 
             // userID is generated or given by the origin server
-            callStatsBackend.initialize(
+            backend.initialize(
                 CallStats.callStatsID,
                 CallStats.callStatsSecret,
                 CallStats.userID,
@@ -162,7 +166,7 @@ export default class CallStats {
             // download did not succeed in general or on time). Further attempts
             // to utilize it cannot possibly succeed.
             GlobalOnErrorHandler.callErrorHandler(e);
-            callStatsBackend = null;
+            backend = null;
             logger.error(e);
 
             return false;
@@ -231,7 +235,7 @@ export default class CallStats {
                     // an error
                     const eventData = report.data;
 
-                    callStatsBackend.sendFabricEvent(
+                    backend.sendFabricEvent(
                         report.pc || defaultPC,
                         eventData.event,
                         defaultConfID,
@@ -239,7 +243,7 @@ export default class CallStats {
                 } else if (report.type === reportType.MST_WITH_USERID) {
                     const data = report.data;
 
-                    callStatsBackend.associateMstWithUserID(
+                    backend.associateMstWithUserID(
                         report.pc || defaultPC,
                         data.callStatsId,
                         defaultConfID,
@@ -263,26 +267,27 @@ export default class CallStats {
      * otherwise
      */
     static isBackendInitialized() {
-        return Boolean(callStatsBackend);
+        return Boolean(backend);
     }
 
     /**
      * Wraps some of the CallStats API method and logs their calls with
      * arguments on the debug logging level.
-     * @param {callstats} backend
+     * @param {callstats} theBackend
      * @private
      */
-    static _traceBackendCalls(backend) {
-        const originalsendFabricEvent = backend.sendFabricEvent;
+    static _traceBackendCalls(theBackend) {
+        const originalsendFabricEvent = theBackend.sendFabricEvent;
 
-        backend.sendFabricEvent = function(...theArguments) {
+        theBackend.sendFabricEvent = function(...theArguments) {
             logger.debug('sendFabricEvent', theArguments);
-            originalsendFabricEvent.apply(backend, theArguments);
+            originalsendFabricEvent.apply(theBackend, theArguments);
         };
-        const originalReportError = backend.reportError;
+        const originalReportError = theBackend.reportError;
 
-        // eslint-disable-next-line max-params
-        backend.reportError = function(pc, cs, type, error, ...otherArguments) {
+        /* eslint-disable max-params */
+        theBackend.reportError
+        = function(pc, cs, type, error, ...otherArguments) {
             const allArguments = [ pc, cs, type, error ].concat(otherArguments);
 
             // Logs from the logger are submitted on the applicationLog event
@@ -293,13 +298,15 @@ export default class CallStats {
             } else {
                 logger.debug('reportError', allArguments);
             }
-            originalReportError.apply(backend, allArguments);
+            originalReportError.apply(theBackend, allArguments);
         };
-        const originalSendUserFeedback = backend.sendUserFeedback;
 
-        backend.sendUserFeedback = function(...theArguments) {
+        /* eslint-enable max-params */
+        const originalSendUserFeedback = theBackend.sendUserFeedback;
+
+        theBackend.sendUserFeedback = function(...theArguments) {
             logger.debug('sendUserFeedback', theArguments);
-            originalSendUserFeedback.apply(backend, theArguments);
+            originalSendUserFeedback.apply(theBackend, theArguments);
         };
     }
 
@@ -311,10 +318,10 @@ export default class CallStats {
     _addNewFabric() {
         logger.info('addNewFabric', this.remoteUserID, this);
         const ret
-            = callStatsBackend.addNewFabric(
+            = backend.addNewFabric(
                 this.peerconnection,
                 this.remoteUserID,
-                callStatsBackend.fabricUsage.multiplex,
+                backend.fabricUsage.multiplex,
                 this.confID,
                 CallStats.pcCallback);
 
@@ -335,7 +342,7 @@ export default class CallStats {
      * @param msg
      */
     static pcCallback(err, msg) {
-        if (callStatsBackend && err !== 'success') {
+        if (backend && err !== 'success') {
             logger.error(`Monitoring status: ${err} msg: ${msg}`);
         }
     }
@@ -362,7 +369,7 @@ export default class CallStats {
             streamEndpointId,
             usageLabel,
             containerId) {
-        if (!callStatsBackend) {
+        if (!backend) {
             return;
         }
 
@@ -379,7 +386,7 @@ export default class CallStats {
                 usageLabel,
                 containerId);
             if (CallStats.initialized) {
-                callStatsBackend.associateMstWithUserID(
+                backend.associateMstWithUserID(
                     this.peerconnection,
                     callStatsId,
                     this.confID,
@@ -465,7 +472,7 @@ export default class CallStats {
         const confID = cs && cs.confID;
 
         if (CallStats.initialized) {
-            callStatsBackend.sendFabricEvent(pc, event, confID, eventData);
+            backend.sendFabricEvent(pc, event, confID, eventData);
         } else {
             CallStats.reportsQueue.push({
                 confID,
@@ -484,9 +491,9 @@ export default class CallStats {
      */
     sendTerminateEvent() {
         if (CallStats.initialized) {
-            callStatsBackend.sendFabricEvent(
+            backend.sendFabricEvent(
                 this.peerconnection,
-                callStatsBackend.fabricEvent.fabricTerminated,
+                backend.fabricEvent.fabricTerminated,
                 this.confID);
         }
     }
@@ -515,8 +522,8 @@ export default class CallStats {
      * @param detailedFeedback detailed feedback from the user. Not yet used
      */
     static sendFeedback(conferenceID, overallFeedback, detailedFeedback) {
-        if (callStatsBackend) {
-            callStatsBackend.sendUserFeedback(
+        if (backend) {
+            backend.sendUserFeedback(
                 conferenceID, {
                     userID: CallStats.userID,
                     overall: overallFeedback,
@@ -547,7 +554,7 @@ export default class CallStats {
             error = new Error('Unknown error');
         }
         if (CallStats.initialized) {
-            callStatsBackend.reportError(pc, cs && cs.confID, type, error);
+            backend.reportError(pc, cs && cs.confID, type, error);
         } else {
             CallStats.reportsQueue.push({
                 type: reportType.ERROR,
@@ -675,7 +682,7 @@ CallStats.callStatsSecret = null;
 
 /**
  * Local CallStats user ID structure. Can be set only once when
- * {@link callStatsBackend} is initialized, so it's static for the time being.
+ * {@link backend} is initialized, so it's static for the time being.
  * See CallStats API for more info:
  * https://www.callstats.io/api/#userid
  * @type {object}
