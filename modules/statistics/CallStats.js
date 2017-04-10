@@ -85,7 +85,6 @@ function tryCatch(f) {
             f.apply(this, arguments); // eslint-disable-line prefer-rest-params
         } catch (e) {
             GlobalOnErrorHandler.callErrorHandler(e);
-            logger.error(e);
         }
     };
 }
