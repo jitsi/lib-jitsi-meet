@@ -363,11 +363,11 @@ CallStats.prototype._addNewFabric = function() {
     return success;
 };
 
-CallStats.pcCallback = tryCatch((err, msg) => {
+CallStats.pcCallback = function(err, msg) {
     if (callStatsBackend && err !== 'success') {
         logger.error(`Monitoring status: ${err} msg: ${msg}`);
     }
-});
+};
 
 /* eslint-disable max-params */
 
@@ -437,7 +437,7 @@ CallStats.prototype.associateStreamWithVideoTag = function(
  * @param type {String} "audio"/"video"
  * @param {CallStats} cs callstats instance related to the event
  */
-CallStats.sendMuteEvent = tryCatch((mute, type, cs) => {
+CallStats.sendMuteEvent = function(mute, type, cs) {
     let event;
 
     if (type === 'video') {
@@ -447,7 +447,7 @@ CallStats.sendMuteEvent = tryCatch((mute, type, cs) => {
     }
 
     CallStats._reportEvent(cs, event);
-});
+};
 
 /**
  * Notifies CallStats for screen sharing events
@@ -455,28 +455,28 @@ CallStats.sendMuteEvent = tryCatch((mute, type, cs) => {
  * false for not stopping
  * @param {CallStats} cs callstats instance related to the event
  */
-CallStats.sendScreenSharingEvent = tryCatch((start, cs) => {
+CallStats.sendScreenSharingEvent = function(start, cs) {
     CallStats._reportEvent(
         cs,
         start ? fabricEvent.screenShareStart : fabricEvent.screenShareStop);
-});
+};
 
 /**
  * Notifies CallStats that we are the new dominant speaker in the conference.
  * @param {CallStats} cs callstats instance related to the event
  */
-CallStats.sendDominantSpeakerEvent = tryCatch(cs => {
+CallStats.sendDominantSpeakerEvent = function(cs) {
     CallStats._reportEvent(cs, fabricEvent.dominantSpeaker);
-});
+};
 
 /**
  * Notifies CallStats about active device.
  * @param {{deviceList: {String:String}}} list of devices with their data
  * @param {CallStats} cs callstats instance related to the event
  */
-CallStats.sendActiveDeviceListEvent = tryCatch((devicesData, cs) => {
+CallStats.sendActiveDeviceListEvent = function(devicesData, cs) {
     CallStats._reportEvent(cs, fabricEvent.activeDeviceList, devicesData);
-});
+};
 
 /**
  * Reports an error to callstats.
@@ -508,14 +508,14 @@ CallStats._reportEvent = function(cs, event, eventData) {
  * Notifies CallStats that the fabric for the underlying peerconnection was
  * closed and no evens should be reported, after this call.
  */
-CallStats.prototype.sendTerminateEvent = tryCatch(function() {
+CallStats.prototype.sendTerminateEvent = function() {
     if (CallStats.initialized) {
         callStatsBackend.sendFabricEvent(
             this.peerconnection,
             callStatsBackend.fabricEvent.fabricTerminated,
             this.confID);
     }
-});
+};
 
 /* eslint-enable no-invalid-this */
 
@@ -523,10 +523,10 @@ CallStats.prototype.sendTerminateEvent = tryCatch(function() {
  * Notifies CallStats for ice connection failed
  * @param {CallStats} cs callstats instance related to the error
  */
-CallStats.prototype.sendIceConnectionFailedEvent = tryCatch(cs => {
+CallStats.prototype.sendIceConnectionFailedEvent = function(cs) {
     CallStats._reportError(
         cs, wrtcFuncNames.iceConnectionFailure, null, cs.peerconnection);
-});
+};
 
 /* eslint-disable no-invalid-this */
 /**
@@ -538,8 +538,8 @@ CallStats.prototype.sendIceConnectionFailedEvent = tryCatch(cs => {
  * user feedback
  * @param detailedFeedback detailed feedback from the user. Not yet used
  */
-CallStats.sendFeedback = tryCatch(
-(conferenceID, overallFeedback, detailedFeedback) => {
+CallStats.sendFeedback
+= function(conferenceID, overallFeedback, detailedFeedback) {
     if (callStatsBackend) {
         callStatsBackend.sendUserFeedback(
             conferenceID, {
@@ -550,7 +550,7 @@ CallStats.sendFeedback = tryCatch(
     } else {
         logger.error('Failed to submit feedback to CallStats - no backend');
     }
-});
+};
 
 /* eslint-enable no-invalid-this */
 
@@ -595,9 +595,9 @@ CallStats._reportError = function(cs, type, e, pc) {
  * @param {Error} e error to send
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendGetUserMediaFailed = tryCatch((e, cs) => {
+CallStats.sendGetUserMediaFailed = function(e, cs) {
     CallStats._reportError(cs, wrtcFuncNames.getUserMedia, e, null);
-});
+};
 
 /**
  * Notifies CallStats that peer connection failed to create offer.
@@ -606,9 +606,9 @@ CallStats.sendGetUserMediaFailed = tryCatch((e, cs) => {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendCreateOfferFailed = tryCatch((e, pc, cs) => {
+CallStats.sendCreateOfferFailed = function(e, pc, cs) {
     CallStats._reportError(cs, wrtcFuncNames.createOffer, e, pc);
-});
+};
 
 /**
  * Notifies CallStats that peer connection failed to create answer.
@@ -617,9 +617,9 @@ CallStats.sendCreateOfferFailed = tryCatch((e, pc, cs) => {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendCreateAnswerFailed = tryCatch((e, pc, cs) => {
+CallStats.sendCreateAnswerFailed = function(e, pc, cs) {
     CallStats._reportError(cs, wrtcFuncNames.createAnswer, e, pc);
-});
+};
 
 /**
  * Notifies CallStats that peer connection failed to set local description.
@@ -628,9 +628,9 @@ CallStats.sendCreateAnswerFailed = tryCatch((e, pc, cs) => {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendSetLocalDescFailed = tryCatch((e, pc, cs) => {
+CallStats.sendSetLocalDescFailed = function(e, pc, cs) {
     CallStats._reportError(cs, wrtcFuncNames.setLocalDescription, e, pc);
-});
+};
 
 /**
  * Notifies CallStats that peer connection failed to set remote description.
@@ -639,9 +639,9 @@ CallStats.sendSetLocalDescFailed = tryCatch((e, pc, cs) => {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendSetRemoteDescFailed = tryCatch((e, pc, cs) => {
+CallStats.sendSetRemoteDescFailed = function(e, pc, cs) {
     CallStats._reportError(cs, wrtcFuncNames.setRemoteDescription, e, pc);
-});
+};
 
 /**
  * Notifies CallStats that peer connection failed to add ICE candidate.
@@ -650,9 +650,9 @@ CallStats.sendSetRemoteDescFailed = tryCatch((e, pc, cs) => {
  * @param {RTCPeerConnection} pc connection on which failure occured.
  * @param {CallStats} cs callstats instance related to the error (optional)
  */
-CallStats.sendAddIceCandidateFailed = tryCatch((e, pc, cs) => {
+CallStats.sendAddIceCandidateFailed = function(e, pc, cs) {
     CallStats._reportError(cs, wrtcFuncNames.addIceCandidate, e, pc);
-});
+};
 
 /**
  * Notifies CallStats that there is a log we want to report.
