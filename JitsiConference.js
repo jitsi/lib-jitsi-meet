@@ -1839,6 +1839,9 @@ JitsiConference.prototype._onIceConnectionFailed = function(session) {
     // We do nothing for the JVB connection, because it's up to the Jicofo to
     // eventually come up with the new offer (at least for the time being).
     if (session.isP2P) {
+        if (this.p2pJingleSession && this.p2pJingleSession.isInitiator) {
+            Statistics.sendEventToAll('p2p.ice_failed');
+        }
         this._stopP2PSession('connectivity-error', 'ICE FAILED');
     }
 };
@@ -1963,6 +1966,11 @@ JitsiConference.prototype._onIceConnectionEstablished
     // Start remote stats
     logger.info('Starting remote stats with p2p connection');
     this._startRemoteStats();
+
+    // Log the P2P established event
+    if (this.p2pJingleSession.isInitiator) {
+        Statistics.sendEventToAll('p2p.established');
+    }
 };
 
 /**
@@ -2184,6 +2192,11 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
         }
     } else if (isModerator && this.p2pJingleSession && !shouldBeInP2P) {
         logger.info(`Will stop P2P with: ${this.p2pJingleSession.peerjid}`);
+
+        // Log that there will be a switch back to the JVB connection
+        if (this.p2pJingleSession.isInitiator && peerCount > 1) {
+            Statistics.sendEventToAll('p2p.switch_to_jvb');
+        }
         this._stopP2PSession();
     }
 };
