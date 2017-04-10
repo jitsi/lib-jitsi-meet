@@ -29,11 +29,11 @@
     "strophejs-plugins": "0.0.7"
   },
   "devDependencies": {
-    "babel-core": "6.24.0",
+    "babel-core": "6.24.1",
     "babel-eslint": "7.2.1",
     "babel-loader": "6.4.1",
-    "babel-preset-es2015": "6.24.0",
-    "eslint": "3.18.0",
+    "babel-preset-es2015": "6.24.1",
+    "eslint": "3.19.0",
     "eslint-plugin-flowtype": "2.30.4",
     "eslint-plugin-import": "2.2.0",
     "flow-bin": "0.38.0",
@@ -44,7 +44,7 @@
     "karma-jasmine": "0.3.8",
     "karma-webpack": "1.8.1",
     "precommit-hook": "3.0.0",
-    "string-replace-loader": "1.1.0",
+    "string-replace-loader": "1.2.0",
     "webpack": "1.14.0"
   },
   "scripts": {
