@@ -96,8 +96,7 @@ function LocalStatsCollector(stream, interval, callback) {
  * Starts the collecting the statistics.
  */
 LocalStatsCollector.prototype.start = function() {
-    if (!context
-        || RTCBrowserType.isTemasysPluginUsed()) {
+    if (!LocalStatsCollector.isLocalStatsSupported()) {
         return;
     }
     context.resume();
@@ -137,6 +136,16 @@ LocalStatsCollector.prototype.stop = function() {
         clearInterval(this.intervalId);
         this.intervalId = null;
     }
+};
+
+/**
+ * Checks if the environment has the necessary conditions to support
+ * collecting stats from local streams.
+ *
+ * @returns {boolean}
+ */
+LocalStatsCollector.isLocalStatsSupported = function() {
+    return Boolean(context && !RTCBrowserType.isTemasysPluginUsed());
 };
 
 module.exports = LocalStatsCollector;

@@ -2,6 +2,7 @@ import EventEmitter from 'events';
 import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
 import * as MediaType from './service/RTC/MediaType';
 import RTC from './modules/RTC/RTC';
+import RTCBrowserType from './modules/RTC/RTCBrowserType';
 import RTCEvents from './service/RTC/RTCEvents';
 import Statistics from './modules/statistics/statistics';
 
@@ -70,6 +71,16 @@ const JitsiMediaDevices = {
         default:
             return permissions.video === true && permissions.audio === true;
         }
+    },
+
+    /**
+     * Returns true if it is possible to be simultaneously capturing audio
+     * from more than one device.
+     *
+     * @returns {boolean}
+     */
+    isMultipleAudioInputSupported() {
+        return !RTCBrowserType.isFirefox();
     },
 
     /**
