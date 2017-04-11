@@ -62,7 +62,16 @@ const reportType = {
 };
 
 /**
+ * An instance of this class is a wrapper for the CallStats API fabric. A fabric
+ * reports one peer connection the the CallStats backend and is allocated with
+ * {@link callstats.addNewFabric}. It has a bunch of instance methods for
+ * reporting various events. A fabric is considered disposed when
+ * {@link CallStats.sendTerminateEvent} is executed.
  *
+ * Currently only one backend instance can be created ever and it's done using
+ * {@link CallStats.initBackend}. At the time of this writing there is no way to
+ * explicitly shutdown the backend, but it's supposed to close it's connection
+ * automatically, after all fabrics have been terminated.
  */
 export default class CallStats {
     /**
