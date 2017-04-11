@@ -188,7 +188,7 @@ export default class CallStats {
             CallStats.reportsQueue.push({
                 type: reportType.ERROR,
                 data: {
-                    _error,
+                    error: _error,
                     pc,
                     type
                 }
