@@ -186,42 +186,40 @@ export default class CallStats {
         const defaultPC = defaultInstance.peerconnection;
 
         // notify callstats about failures if there were any
-        if (CallStats.reportsQueue.length) {
-            CallStats.reportsQueue.forEach(report => {
-                if (report.type === reportType.ERROR) {
-                    const error = report.data;
+        for (const report of CallStats.reportsQueue) {
+            if (report.type === reportType.ERROR) {
+                const error = report.data;
 
-                    CallStats._reportError(
-                        defaultInstance,
-                        error.type,
-                        error.error,
-                        error.pc || defaultPC);
-                } else if (report.type === reportType.EVENT) {
-                    // if we have and event to report and we failed to add
-                    // fabric this event will not be reported anyway, returning
-                    // an error
-                    const eventData = report.data;
+                CallStats._reportError(
+                    defaultInstance,
+                    error.type,
+                    error.error,
+                    error.pc || defaultPC);
+            } else if (report.type === reportType.EVENT) {
+                // if we have and event to report and we failed to add
+                // fabric this event will not be reported anyway, returning
+                // an error
+                const eventData = report.data;
 
-                    CallStats.backend.sendFabricEvent(
-                        report.pc || defaultPC,
-                        eventData.event,
-                        defaultConfID,
-                        eventData.eventData);
-                } else if (report.type === reportType.MST_WITH_USERID) {
-                    const data = report.data;
+                CallStats.backend.sendFabricEvent(
+                    report.pc || defaultPC,
+                    eventData.event,
+                    defaultConfID,
+                    eventData.eventData);
+            } else if (report.type === reportType.MST_WITH_USERID) {
+                const data = report.data;
 
-                    CallStats.backend.associateMstWithUserID(
-                        report.pc || defaultPC,
-                        data.callStatsId,
-                        defaultConfID,
-                        data.ssrc,
-                        data.usageLabel,
-                        data.containerId
-                    );
-                }
-            });
-            CallStats.reportsQueue.length = 0;
+                CallStats.backend.associateMstWithUserID(
+                    report.pc || defaultPC,
+                    data.callStatsId,
+                    defaultConfID,
+                    data.ssrc,
+                    data.usageLabel,
+                    data.containerId
+                );
+            }
         }
+        CallStats.reportsQueue.length = 0;
     }
 
     /**
