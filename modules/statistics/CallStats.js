@@ -394,15 +394,6 @@ export default class CallStats {
     }
 
     /**
-     * Notifies CallStats that we are the new dominant speaker in the
-     * conference.
-     * @param {CallStats} cs callstats instance related to the event
-     */
-    static sendDominantSpeakerEvent(cs) {
-        CallStats._reportEvent(cs, fabricEvent.dominantSpeaker);
-    }
-
-    /**
      * Sends the given feedback through CallStats.
      *
      * @param {string} conferenceID the conference ID for which the feedback
@@ -450,18 +441,6 @@ export default class CallStats {
         }
 
         CallStats._reportEvent(cs, event);
-    }
-
-    /**
-     * Notifies CallStats for screen sharing events
-     * @param {boolean} start true for starting screen sharing and
-     * false for not stopping
-     * @param {CallStats} cs callstats instance related to the event
-     */
-    static sendScreenSharingEvent(start, cs) {
-        CallStats._reportEvent(
-            cs,
-            start ? fabricEvent.screenShareStart : fabricEvent.screenShareStop);
     }
 
     /**
@@ -580,6 +559,14 @@ export default class CallStats {
     /* eslint-enable max-params */
 
     /**
+     * Notifies CallStats that we are the new dominant speaker in the
+     * conference.
+     */
+    sendDominantSpeakerEvent() {
+        CallStats._reportEvent(this, fabricEvent.dominantSpeaker);
+    }
+
+    /**
      * Notifies CallStats that the fabric for the underlying peerconnection was
      * closed and no evens should be reported, after this call.
      */
@@ -621,6 +608,17 @@ export default class CallStats {
     sendCreateAnswerFailed(e) {
         CallStats._reportError(
             this, wrtcFuncNames.createAnswer, e, this.peerconnection);
+    }
+
+    /**
+     * Notifies CallStats for screen sharing events
+     * @param {boolean} start true for starting screen sharing and
+     * false for not stopping
+     */
+    sendScreenSharingEvent(start) {
+        CallStats._reportEvent(
+            this,
+            start ? fabricEvent.screenShareStart : fabricEvent.screenShareStop);
     }
 
     /**

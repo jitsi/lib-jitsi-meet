@@ -376,7 +376,7 @@ Statistics.prototype.sendMuteEvent = function(tpc, muted, type) {
  */
 Statistics.prototype.sendScreenSharingEvent = function(start) {
     for (const cs of this.callsStatsInstances.values()) {
-        CallStats.sendScreenSharingEvent(start, cs);
+        cs.sendScreenSharingEvent(start);
     }
 };
 
@@ -386,7 +386,7 @@ Statistics.prototype.sendScreenSharingEvent = function(start) {
  */
 Statistics.prototype.sendDominantSpeakerEvent = function() {
     for (const cs of this.callsStatsInstances.values()) {
-        CallStats.sendDominantSpeakerEvent(cs);
+        cs.sendDominantSpeakerEvent();
     }
 };
 
