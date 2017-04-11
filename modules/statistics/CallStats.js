@@ -529,24 +529,24 @@ export default class CallStats {
      *
      * @param {CallStats} [cs]
      * @param type the type of the error, which will be one of the wrtcFuncNames
-     * @param e the error
+     * @param error the error
      * @param pc the peerconnection
      * @private
      */
-    static _reportError(cs, type, e, pc) {
-        let error = e;
+    static _reportError(cs, type, error, pc) {
+        let _error = error;
 
-        if (!error) {
+        if (!_error) {
             logger.warn('No error is passed!');
-            error = new Error('Unknown error');
+            _error = new Error('Unknown error');
         }
         if (CallStats.initialized) {
-            CallStats.backend.reportError(pc, cs && cs.confID, type, error);
+            CallStats.backend.reportError(pc, cs && cs.confID, type, _error);
         } else {
             CallStats.reportsQueue.push({
                 type: reportType.ERROR,
                 data: {
-                    error,
+                    _error,
                     pc,
                     type
                 }
