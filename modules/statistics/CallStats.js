@@ -61,8 +61,6 @@ const reportType = {
     MST_WITH_USERID: 'mstWithUserID'
 };
 
-/* eslint-enable no-invalid-this */
-
 /**
  *
  */
@@ -146,8 +144,6 @@ export default class CallStats {
         }
     }
 
-    /* eslint-disable no-invalid-this */
-
     /**
      *
      * @param err
@@ -227,8 +223,6 @@ export default class CallStats {
             CallStats.reportsQueue.length = 0;
         }
     }
-
-    /* eslint-enable no-invalid-this */
 
     /**
      * Checks if the CallStats backend has been created. It does not mean that
@@ -484,7 +478,6 @@ export default class CallStats {
         }
     }
 
-    /* eslint-disable no-invalid-this */
     /**
      * Notifies CallStats that the fabric for the underlying peerconnection was
      * closed and no evens should be reported, after this call.
@@ -498,8 +491,6 @@ export default class CallStats {
         }
     }
 
-    /* eslint-enable no-invalid-this */
-
     /**
      * Notifies CallStats for ice connection failed
      */
@@ -511,7 +502,6 @@ export default class CallStats {
             this.peerconnection);
     }
 
-    /* eslint-disable no-invalid-this */
     /**
      * Sends the given feedback through CallStats.
      *
@@ -533,8 +523,6 @@ export default class CallStats {
             logger.error('Failed to submit feedback to CallStats - no backend');
         }
     }
-
-    /* eslint-enable no-invalid-this */
 
     /* eslint-disable max-params */
     /**
