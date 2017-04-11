@@ -345,6 +345,20 @@ Statistics.prototype.isCallstatsEnabled = function() {
 };
 
 /**
+ * Logs either resume or hold event for the given peer connection.
+ * @param {TraceablePeerConnection} tpc the connection for which event will be
+ * reported
+ * @param {boolean} isResume true for resume or false for hold
+ */
+Statistics.prototype.sendConnectionResumeOrHoldEvent = function(tpc, isResume) {
+    const instance = this.callsStatsInstances.get(tpc.id);
+
+    if (instance) {
+        instance.sendResumeOrHoldEvent(isResume);
+    }
+};
+
+/**
  * Notifies CallStats and analytics(if present) for ice connection failed
  * @param {TraceablePeerConnection} tpc connection on which failure occurred.
  */

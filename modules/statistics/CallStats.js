@@ -611,6 +611,17 @@ export default class CallStats {
     }
 
     /**
+     * Sends either resume or hold event for the fabric associated with
+     * the underlying peerconnection.
+     * @param {boolean} isResume true to resume or false to hold
+     */
+    sendResumeOrHoldEvent(isResume) {
+        CallStats._reportEvent(
+            this,
+            isResume ? fabricEvent.fabricResume : fabricEvent.fabricHold);
+    }
+
+    /**
      * Notifies CallStats for screen sharing events
      * @param {boolean} start true for starting screen sharing and
      * false for not stopping

@@ -2071,6 +2071,12 @@ JitsiConference.prototype._setP2PStatus = function(newStatus) {
         logger.info('Peer to peer connection closed!');
     }
 
+    // Put the JVB connection on hold/resume
+    if (this.jvbJingleSession) {
+        this.statistics.sendConnectionResumeOrHoldEvent(
+            this.jvbJingleSession.peerconnection, !newStatus);
+    }
+
     // Clear dtmfManager, so that it can be recreated with new connection
     this.dtmfManager = null;
 
