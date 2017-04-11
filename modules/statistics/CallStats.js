@@ -280,6 +280,8 @@ export default class CallStats {
             if (type === wrtcFuncNames.applicationLog) {
                 // NOTE otherArguments are not logged to the console on purpose
                 // to not log the whole log batch
+                // FIXME check the current logging level (currently not exposed
+                // by the logger implementation)
                 console && console.debug('reportError', pc, cs, type);
             } else {
                 logger.debug('reportError', pc, cs, type, ...otherArguments);
