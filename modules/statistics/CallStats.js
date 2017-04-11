@@ -66,94 +66,28 @@ const reportType = {
  */
 export default class CallStats {
     /**
-     * Creates new CallStats instance that handles all callstats API calls for
-     * given {@link TraceablePeerConnection}. Each instance is meant to handle
-     * one CallStats fabric added with 'addFabric' API method for the
-     * {@link TraceablePeerConnection} instance passed in the constructor.
-     * @param {TraceablePeerConnection} tpc
-     * @param {Object} options
-     * @param {string} options.confID the conference ID that wil be used to
-     * report the session.
-     * @param {string} [options.remoteUserID='jitsi'] the remote user ID to
-     * which given <tt>tpc</tt> is connected.
+     * A callback passed to {@link callstats.addNewFabric}.
+     * @param {string} error 'success' means ok
+     * @param {string} msg some more details
+     * @private
      */
-    constructor(tpc, options) {
-        if (!CallStats.backend) {
-            throw new Error('CallStats backend not intiialized!');
-        }
-
-        this.confID = options.confID;
-        this.tpc = tpc;
-        this.peerconnection = tpc.peerconnection;
-        this.remoteUserID = options.remoteUserID || DEFAULT_REMOTE_USER;
-        this.hasFabric = false;
-
-        CallStats.fabrics.add(this);
-
-        if (CallStats.initialized) {
-            this._addNewFabric();
+    static _addNewFabricCallback(error, msg) {
+        if (CallStats.backend && error !== 'success') {
+            logger.error(`Monitoring status: ${error} msg: ${msg}`);
         }
     }
 
     /**
-     * Initializes the CallStats backend. Should be called only if
-     * {@link CallStats.isBackendInitialized} returns <tt>false</tt>.
-     * @param {object} options
-     * @param {String} options.callStatsID CallStats credentials - ID
-     * @param {String} options.callStatsSecret CallStats credentials - secret
-     * @param {string} options.userName the <tt>userName</tt> part of
-     * the <tt>userID</tt> aka display name, see CallStats docs for more info.
-     * @param {string} options.aliasName the <tt>aliasName</tt> part of
-     * the <tt>userID</tt> aka endpoint ID, see CallStats docs for more info.
-     *
+     * Callback passed to {@link callstats.initialize} (backend initialization)
+     * @param {string} error 'success' means ok
+     * @param {String} msg
+     * @private
      */
-    static initBackend(options) {
-        if (CallStats.backend) {
-            throw new Error('CallStats backend has been initialized already!');
-        }
-        try {
-            CallStats.backend
-                = new callstats($, io, jsSHA); // eslint-disable-line new-cap
-
-            CallStats._traceAndCatchBackendCalls(CallStats.backend);
-
-            CallStats.userID = {
-                aliasName: options.aliasName,
-                userName: options.userName
-            };
-            CallStats.callStatsID = options.callStatsID;
-            CallStats.callStatsSecret = options.callStatsSecret;
-
-            // userID is generated or given by the origin server
-            CallStats.backend.initialize(
-                CallStats.callStatsID,
-                CallStats.callStatsSecret,
-                CallStats.userID,
-                CallStats._initCallback);
-
-            return true;
-        } catch (e) {
-            // The callstats.io API failed to initialize (e.g. because its
-            // download did not succeed in general or on time). Further attempts
-            // to utilize it cannot possibly succeed.
-            GlobalOnErrorHandler.callErrorHandler(e);
-            CallStats.backend = null;
-            logger.error(e);
-
-            return false;
-        }
-    }
-
-    /**
-     *
-     * @param err
-     * @param msg
-     */
-    static _initCallback(err, msg) {
-        logger.log(`CallStats Status: err=${err} msg=${msg}`);
+    static _initCallback(error, msg) {
+        logger.log(`CallStats Status: err=${error} msg=${msg}`);
 
         // there is no lib, nothing to report to
-        if (err !== 'success') {
+        if (error !== 'success') {
             return;
         }
 
@@ -188,13 +122,13 @@ export default class CallStats {
         // notify callstats about failures if there were any
         for (const report of CallStats.reportsQueue) {
             if (report.type === reportType.ERROR) {
-                const error = report.data;
+                const errorData = report.data;
 
                 CallStats._reportError(
                     defaultInstance,
-                    error.type,
-                    error.error,
-                    error.pc || defaultPC);
+                    errorData.type,
+                    errorData.error,
+                    errorData.pc || defaultPC);
             } else if (report.type === reportType.EVENT) {
                 // if we have and event to report and we failed to add
                 // fabric this event will not be reported anyway, returning
@@ -222,15 +156,64 @@ export default class CallStats {
         CallStats.reportsQueue.length = 0;
     }
 
+    /* eslint-disable max-params */
     /**
-     * Checks if the CallStats backend has been created. It does not mean that
-     * it has been initialized, but only that the API instance has been
-     * allocated successfully.
-     * @return {boolean} <tt>true</tt> if backend exists or <tt>false</tt>
-     * otherwise
+     * Reports an error to callstats.
+     *
+     * @param {CallStats} [cs]
+     * @param type the type of the error, which will be one of the wrtcFuncNames
+     * @param error the error
+     * @param pc the peerconnection
+     * @private
      */
-    static isBackendInitialized() {
-        return Boolean(CallStats.backend);
+    static _reportError(cs, type, error, pc) {
+        let _error = error;
+
+        if (!_error) {
+            logger.warn('No error is passed!');
+            _error = new Error('Unknown error');
+        }
+        if (CallStats.initialized) {
+            CallStats.backend.reportError(pc, cs && cs.confID, type, _error);
+        } else {
+            CallStats.reportsQueue.push({
+                type: reportType.ERROR,
+                data: {
+                    _error,
+                    pc,
+                    type
+                }
+            });
+        }
+
+        // else just ignore it
+    }
+
+    /* eslint-enable max-params */
+
+    /**
+     * Reports an error to callstats.
+     *
+     * @param {CallStats} cs
+     * @param event the type of the event, which will be one of the fabricEvent
+     * @param eventData additional data to pass to event
+     * @private
+     */
+    static _reportEvent(cs, event, eventData) {
+        const pc = cs && cs.peerconnection;
+        const confID = cs && cs.confID;
+
+        if (CallStats.initialized) {
+            CallStats.backend.sendFabricEvent(pc, event, confID, eventData);
+        } else {
+            CallStats.reportsQueue.push({
+                confID,
+                pc,
+                type: reportType.EVENT,
+                data: { event,
+                    eventData }
+            });
+        }
     }
 
     /**
@@ -308,6 +291,201 @@ export default class CallStats {
     }
 
     /**
+     * Initializes the CallStats backend. Should be called only if
+     * {@link CallStats.isBackendInitialized} returns <tt>false</tt>.
+     * @param {object} options
+     * @param {String} options.callStatsID CallStats credentials - ID
+     * @param {String} options.callStatsSecret CallStats credentials - secret
+     * @param {string} options.userName the <tt>userName</tt> part of
+     * the <tt>userID</tt> aka display name, see CallStats docs for more info.
+     * @param {string} options.aliasName the <tt>aliasName</tt> part of
+     * the <tt>userID</tt> aka endpoint ID, see CallStats docs for more info.
+     *
+     */
+    static initBackend(options) {
+        if (CallStats.backend) {
+            throw new Error('CallStats backend has been initialized already!');
+        }
+        try {
+            CallStats.backend
+                = new callstats($, io, jsSHA); // eslint-disable-line new-cap
+
+            CallStats._traceAndCatchBackendCalls(CallStats.backend);
+
+            CallStats.userID = {
+                aliasName: options.aliasName,
+                userName: options.userName
+            };
+            CallStats.callStatsID = options.callStatsID;
+            CallStats.callStatsSecret = options.callStatsSecret;
+
+            // userID is generated or given by the origin server
+            CallStats.backend.initialize(
+                CallStats.callStatsID,
+                CallStats.callStatsSecret,
+                CallStats.userID,
+                CallStats._initCallback);
+
+            return true;
+        } catch (e) {
+            // The callstats.io API failed to initialize (e.g. because its
+            // download did not succeed in general or on time). Further attempts
+            // to utilize it cannot possibly succeed.
+            GlobalOnErrorHandler.callErrorHandler(e);
+            CallStats.backend = null;
+            logger.error(e);
+
+            return false;
+        }
+    }
+
+    /**
+     * Checks if the CallStats backend has been created. It does not mean that
+     * it has been initialized, but only that the API instance has been
+     * allocated successfully.
+     * @return {boolean} <tt>true</tt> if backend exists or <tt>false</tt>
+     * otherwise
+     */
+    static isBackendInitialized() {
+        return Boolean(CallStats.backend);
+    }
+
+    /**
+     * Notifies CallStats about active device.
+     * @param {{deviceList: {String:String}}} devicesData list of devices with
+     * their data
+     * @param {CallStats} cs callstats instance related to the event
+     */
+    static sendActiveDeviceListEvent(devicesData, cs) {
+        CallStats._reportEvent(cs, fabricEvent.activeDeviceList, devicesData);
+    }
+
+    /**
+     * Notifies CallStats that there is a log we want to report.
+     *
+     * @param {Error} e error to send or {String} message
+     * @param {CallStats} cs callstats instance related to the error (optional)
+     */
+    static sendApplicationLog(e, cs) {
+        try {
+            CallStats._reportError(
+                cs,
+                wrtcFuncNames.applicationLog,
+                e,
+                cs && cs.peerconnection);
+        } catch (error) {
+            // If sendApplicationLog fails it should not be printed to
+            // the logger, because it will try to push the logs again
+            // (through sendApplicationLog) and an endless loop is created.
+            if (console && (typeof console.error === 'function')) {
+                // FIXME send analytics event as well
+                console.error('sendApplicationLog failed', error);
+            }
+        }
+    }
+
+    /**
+     * Notifies CallStats that we are the new dominant speaker in the
+     * conference.
+     * @param {CallStats} cs callstats instance related to the event
+     */
+    static sendDominantSpeakerEvent(cs) {
+        CallStats._reportEvent(cs, fabricEvent.dominantSpeaker);
+    }
+
+    /**
+     * Sends the given feedback through CallStats.
+     *
+     * @param {string} conferenceID the conference ID for which the feedback
+     * will be reported.
+     * @param overallFeedback an integer between 1 and 5 indicating the
+     * user feedback
+     * @param detailedFeedback detailed feedback from the user. Not yet used
+     */
+    static sendFeedback(conferenceID, overallFeedback, detailedFeedback) {
+        if (CallStats.backend) {
+            CallStats.backend.sendUserFeedback(
+                conferenceID, {
+                    userID: CallStats.userID,
+                    overall: overallFeedback,
+                    comment: detailedFeedback
+                });
+        } else {
+            logger.error('Failed to submit feedback to CallStats - no backend');
+        }
+    }
+
+    /**
+     * Notifies CallStats that getUserMedia failed.
+     *
+     * @param {Error} e error to send
+     * @param {CallStats} cs callstats instance related to the error (optional)
+     */
+    static sendGetUserMediaFailed(e, cs) {
+        CallStats._reportError(cs, wrtcFuncNames.getUserMedia, e, null);
+    }
+
+    /**
+     * Notifies CallStats for mute events
+     * @param mute {boolean} true for muted and false for not muted
+     * @param type {String} "audio"/"video"
+     * @param {CallStats} cs callstats instance related to the event
+     */
+    static sendMuteEvent(mute, type, cs) {
+        let event;
+
+        if (type === 'video') {
+            event = mute ? fabricEvent.videoPause : fabricEvent.videoResume;
+        } else {
+            event = mute ? fabricEvent.audioMute : fabricEvent.audioUnmute;
+        }
+
+        CallStats._reportEvent(cs, event);
+    }
+
+    /**
+     * Notifies CallStats for screen sharing events
+     * @param {boolean} start true for starting screen sharing and
+     * false for not stopping
+     * @param {CallStats} cs callstats instance related to the event
+     */
+    static sendScreenSharingEvent(start, cs) {
+        CallStats._reportEvent(
+            cs,
+            start ? fabricEvent.screenShareStart : fabricEvent.screenShareStop);
+    }
+
+    /**
+     * Creates new CallStats instance that handles all callstats API calls for
+     * given {@link TraceablePeerConnection}. Each instance is meant to handle
+     * one CallStats fabric added with 'addFabric' API method for the
+     * {@link TraceablePeerConnection} instance passed in the constructor.
+     * @param {TraceablePeerConnection} tpc
+     * @param {Object} options
+     * @param {string} options.confID the conference ID that wil be used to
+     * report the session.
+     * @param {string} [options.remoteUserID='jitsi'] the remote user ID to
+     * which given <tt>tpc</tt> is connected.
+     */
+    constructor(tpc, options) {
+        if (!CallStats.backend) {
+            throw new Error('CallStats backend not intiialized!');
+        }
+
+        this.confID = options.confID;
+        this.tpc = tpc;
+        this.peerconnection = tpc.peerconnection;
+        this.remoteUserID = options.remoteUserID || DEFAULT_REMOTE_USER;
+        this.hasFabric = false;
+
+        CallStats.fabrics.add(this);
+
+        if (CallStats.initialized) {
+            this._addNewFabric();
+        }
+    }
+
+    /**
      * Initializes CallStats fabric by calling "addNewFabric" for
      * the peer connection associated with this instance.
      * @return {boolean} true if the call was successful or false otherwise.
@@ -321,7 +499,7 @@ export default class CallStats {
                     this.remoteUserID,
                     CallStats.backend.fabricUsage.multiplex,
                     this.confID,
-                    CallStats.pcCallback);
+                    CallStats._addNewFabricCallback);
 
             this.hasFabric = true;
 
@@ -337,17 +515,6 @@ export default class CallStats {
             GlobalOnErrorHandler.callErrorHandler(error);
 
             return false;
-        }
-    }
-
-    /**
-     * FIXME finish JSDoc
-     * @param err
-     * @param msg
-     */
-    static pcCallback(err, msg) {
-        if (CallStats.backend && err !== 'success') {
-            logger.error(`Monitoring status: ${err} msg: ${msg}`);
         }
     }
 
@@ -404,80 +571,6 @@ export default class CallStats {
     /* eslint-enable max-params */
 
     /**
-     * Notifies CallStats for mute events
-     * @param mute {boolean} true for muted and false for not muted
-     * @param type {String} "audio"/"video"
-     * @param {CallStats} cs callstats instance related to the event
-     */
-    static sendMuteEvent(mute, type, cs) {
-        let event;
-
-        if (type === 'video') {
-            event = mute ? fabricEvent.videoPause : fabricEvent.videoResume;
-        } else {
-            event = mute ? fabricEvent.audioMute : fabricEvent.audioUnmute;
-        }
-
-        CallStats._reportEvent(cs, event);
-    }
-
-    /**
-     * Notifies CallStats for screen sharing events
-     * @param start {boolean} true for starting screen sharing and
-     * false for not stopping
-     * @param {CallStats} cs callstats instance related to the event
-     */
-    static sendScreenSharingEvent(start, cs) {
-        CallStats._reportEvent(
-            cs,
-            start ? fabricEvent.screenShareStart : fabricEvent.screenShareStop);
-    }
-
-    /**
-     * Notifies CallStats that we are the new dominant speaker in the
-     * conference.
-     * @param {CallStats} cs callstats instance related to the event
-     */
-    static sendDominantSpeakerEvent(cs) {
-        CallStats._reportEvent(cs, fabricEvent.dominantSpeaker);
-    }
-
-    /**
-     * Notifies CallStats about active device.
-     * @param {{deviceList: {String:String}}} devicesData list of devices with
-     * their data
-     * @param {CallStats} cs callstats instance related to the event
-     */
-    static sendActiveDeviceListEvent(devicesData, cs) {
-        CallStats._reportEvent(cs, fabricEvent.activeDeviceList, devicesData);
-    }
-
-    /**
-     * Reports an error to callstats.
-     *
-     * @param {CallStats} cs
-     * @param event the type of the event, which will be one of the fabricEvent
-     * @param eventData additional data to pass to event
-     * @private
-     */
-    static _reportEvent(cs, event, eventData) {
-        const pc = cs && cs.peerconnection;
-        const confID = cs && cs.confID;
-
-        if (CallStats.initialized) {
-            CallStats.backend.sendFabricEvent(pc, event, confID, eventData);
-        } else {
-            CallStats.reportsQueue.push({
-                confID,
-                pc,
-                type: reportType.EVENT,
-                data: { event,
-                    eventData }
-            });
-        }
-    }
-
-    /**
      * Notifies CallStats that the fabric for the underlying peerconnection was
      * closed and no evens should be reported, after this call.
      */
@@ -499,73 +592,6 @@ export default class CallStats {
             wrtcFuncNames.iceConnectionFailure,
             null,
             this.peerconnection);
-    }
-
-    /**
-     * Sends the given feedback through CallStats.
-     *
-     * @param {string} conferenceID the conference ID for which the feedback
-     * will be reported.
-     * @param overallFeedback an integer between 1 and 5 indicating the
-     * user feedback
-     * @param detailedFeedback detailed feedback from the user. Not yet used
-     */
-    static sendFeedback(conferenceID, overallFeedback, detailedFeedback) {
-        if (CallStats.backend) {
-            CallStats.backend.sendUserFeedback(
-                conferenceID, {
-                    userID: CallStats.userID,
-                    overall: overallFeedback,
-                    comment: detailedFeedback
-                });
-        } else {
-            logger.error('Failed to submit feedback to CallStats - no backend');
-        }
-    }
-
-    /* eslint-disable max-params */
-    /**
-     * Reports an error to callstats.
-     *
-     * @param {CallStats} [cs]
-     * @param type the type of the error, which will be one of the wrtcFuncNames
-     * @param error the error
-     * @param pc the peerconnection
-     * @private
-     */
-    static _reportError(cs, type, error, pc) {
-        let _error = error;
-
-        if (!_error) {
-            logger.warn('No error is passed!');
-            _error = new Error('Unknown error');
-        }
-        if (CallStats.initialized) {
-            CallStats.backend.reportError(pc, cs && cs.confID, type, _error);
-        } else {
-            CallStats.reportsQueue.push({
-                type: reportType.ERROR,
-                data: {
-                    _error,
-                    pc,
-                    type
-                }
-            });
-        }
-
-        // else just ignore it
-    }
-
-    /* eslint-enable max-params */
-
-    /**
-     * Notifies CallStats that getUserMedia failed.
-     *
-     * @param {Error} e error to send
-     * @param {CallStats} cs callstats instance related to the error (optional)
-     */
-    static sendGetUserMediaFailed(e, cs) {
-        CallStats._reportError(cs, wrtcFuncNames.getUserMedia, e, null);
     }
 
     /**
@@ -616,30 +642,6 @@ export default class CallStats {
     sendAddIceCandidateFailed(e) {
         CallStats._reportError(
             this, wrtcFuncNames.addIceCandidate, e, this.peerconnection);
-    }
-
-    /**
-     * Notifies CallStats that there is a log we want to report.
-     *
-     * @param {Error} e error to send or {String} message
-     * @param {CallStats} cs callstats instance related to the error (optional)
-     */
-    static sendApplicationLog(e, cs) {
-        try {
-            CallStats._reportError(
-                cs,
-                wrtcFuncNames.applicationLog,
-                e,
-                cs && cs.peerconnection);
-        } catch (error) {
-            // If sendApplicationLog fails it should not be printed to
-            // the logger, because it will try to push the logs again
-            // (through sendApplicationLog) and an endless loop is created.
-            if (console && (typeof console.error === 'function')) {
-                // FIXME send analytics event as well
-                console.error('sendApplicationLog failed', error);
-            }
-        }
     }
 }
 
