@@ -278,9 +278,9 @@ export default class CallStats {
             // "type". Logging the arguments on the logger will create endless
             // loop, because it will put all the logs to the logger queue again.
             if (type === wrtcFuncNames.applicationLog) {
-                console
-                    && console.debug(
-                        'reportError', pc, cs, type, ...otherArguments);
+                // NOTE otherArguments are not logged to the console on purpose
+                // to not log the whole log batch
+                console && console.debug('reportError', pc, cs, type);
             } else {
                 logger.debug('reportError', pc, cs, type, ...otherArguments);
             }
