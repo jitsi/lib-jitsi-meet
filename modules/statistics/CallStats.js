@@ -281,22 +281,23 @@ export default class CallStats {
 
         /* eslint-disable max-params */
         theBackend.reportError
-        = function(pc, cs, type, error, ...otherArguments) {
-            const allArguments = [ pc, cs, type, error ].concat(otherArguments);
-
+        = function(pc, cs, type, ...otherArguments) {
             // Logs from the logger are submitted on the applicationLog event
             // "type". Logging the arguments on the logger will create endless
             // loop, because it will put all the logs to the logger queue again.
             if (type === wrtcFuncNames.applicationLog) {
-                console && console.debug('reportError', allArguments);
+                console
+                    && console.debug(
+                        'reportError', pc, cs, type, ...otherArguments);
             } else {
-                logger.debug('reportError', allArguments);
+                logger.debug('reportError', pc, cs, type, ...otherArguments);
             }
             try {
-                originalReportError.apply(theBackend, allArguments);
+                originalReportError.call(
+                    theBackend, pc, cs, type, ...otherArguments);
             } catch (exception) {
                 if (type === wrtcFuncNames.applicationLog) {
-                    console && console.error('reportError', allArguments);
+                    console && console.error('reportError', exception);
                 } else {
                     GlobalOnErrorHandler.callErrorHandler(exception);
                 }
