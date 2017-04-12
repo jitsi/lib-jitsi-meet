@@ -26,7 +26,17 @@ function JitsiConferenceEventManager(conference) {
             if (!track.isLocal() || !conference.statistics) {
                 return;
             }
-            conference.statistics.sendMuteEvent(track.isMuted(),
+            const session
+                = track.isP2P
+                    ? conference.p2pJingleSession : conference.jvbJingleSession;
+
+            // TPC will be null, before the conference starts, but the event
+            // still should be queued
+            const tpc = (session && session.peerconnection) || null;
+
+            conference.statistics.sendMuteEvent(
+                tpc,
+                track.isMuted(),
                 track.getType());
         });
     conference.on(
@@ -447,9 +457,12 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     if (conference.statistics) {
         // FIXME ICE related events should end up in RTCEvents eventually
         chatRoom.addListener(XMPPEvents.CONNECTION_ICE_FAILED,
-            (session, pc) => {
-                conference.statistics.sendIceConnectionFailedEvent(pc);
+            session => {
+                conference.statistics.sendIceConnectionFailedEvent(
+                    session.peerconnection);
             });
+
+        // FIXME XMPPEvents.ADD_ICE_CANDIDATE_FAILED is never emitted
         chatRoom.addListener(XMPPEvents.ADD_ICE_CANDIDATE_FAILED,
             (e, pc) => {
                 conference.statistics.sendAddIceCandidateFailed(e, pc);
@@ -537,23 +550,23 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
 
     if (conference.statistics) {
         rtc.addListener(RTCEvents.CREATE_ANSWER_FAILED,
-            (e, pc) => {
-                conference.statistics.sendCreateAnswerFailed(e, pc);
+            (e, tpc) => {
+                conference.statistics.sendCreateAnswerFailed(e, tpc);
             });
 
         rtc.addListener(RTCEvents.CREATE_OFFER_FAILED,
-            (e, pc) => {
-                conference.statistics.sendCreateOfferFailed(e, pc);
+            (e, tpc) => {
+                conference.statistics.sendCreateOfferFailed(e, tpc);
             });
 
         rtc.addListener(RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
-            (e, pc) => {
-                conference.statistics.sendSetLocalDescFailed(e, pc);
+            (e, tpc) => {
+                conference.statistics.sendSetLocalDescFailed(e, tpc);
             });
 
         rtc.addListener(RTCEvents.SET_REMOTE_DESCRIPTION_FAILED,
-            (e, pc) => {
-                conference.statistics.sendSetRemoteDescFailed(e, pc);
+            (e, tpc) => {
+                conference.statistics.sendSetRemoteDescFailed(e, tpc);
             });
     }
 };

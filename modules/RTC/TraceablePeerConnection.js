@@ -1396,7 +1396,7 @@ TraceablePeerConnection.prototype.setLocalDescription
             this.trace('setLocalDescriptionOnFailure', err);
             this.eventEmitter.emit(
                 RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
-                err, this.peerconnection);
+                err, this);
             failureCallback(err);
         }
     );
@@ -1470,7 +1470,7 @@ TraceablePeerConnection.prototype.setRemoteDescription
             this.eventEmitter.emit(
                 RTCEvents.SET_REMOTE_DESCRIPTION_FAILED,
                 err,
-                this.peerconnection);
+                this);
             failureCallback(err);
         });
 };
@@ -1683,7 +1683,7 @@ TraceablePeerConnection.prototype._createOfferOrAnswer
                 ? RTCEvents.CREATE_OFFER_FAILED
                 : RTCEvents.CREATE_ANSWER_FAILED;
 
-        this.eventEmitter.emit(eventType, err, this.peerconnection);
+        this.eventEmitter.emit(eventType, err, this);
         failureCallback(err);
     };
 
