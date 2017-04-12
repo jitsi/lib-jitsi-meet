@@ -1,14 +1,17 @@
+import EventEmitter from 'events';
+
 import analytics from './AnalyticsAdapter';
 import CallStats from './CallStats';
-import JitsiTrackError from '../../JitsiTrackError';
 import LocalStats from './LocalStatsCollector';
 import RTPStats from './RTPStatsCollector';
-import * as StatisticsEvents from '../../service/statistics/Events';
-import Settings from '../settings/Settings';
 
-const EventEmitter = require('events');
+import RTCBrowserType from '../RTC/RTCBrowserType';
+import Settings from '../settings/Settings';
+import ScriptUtil from '../util/ScriptUtil';
+import JitsiTrackError from '../../JitsiTrackError';
+import * as StatisticsEvents from '../../service/statistics/Events';
+
 const logger = require('jitsi-meet-logger').getLogger(__filename);
-const ScriptUtil = require('../util/ScriptUtil');
 
 /**
  * Stores all active {@link Statistics} instances.
@@ -113,7 +116,9 @@ export default function Statistics(xmpp, options) {
             // requests to any third parties.
             && (Statistics.disableThirdPartyRequests !== true);
     if (this.callStatsIntegrationEnabled) {
-        loadCallStatsAPI(this.options.callStatsCustomScriptUrl);
+        if (!RTCBrowserType.isReactNative()) {
+            loadCallStatsAPI(this.options.callStatsCustomScriptUrl);
+        }
 
         if (!this.options.callStatsConfIDNamespace) {
             logger.warn('"callStatsConfIDNamespace" is not defined');

@@ -1,7 +1,9 @@
 /* global callstats */
-const logger = require('jitsi-meet-logger').getLogger(__filename);
-const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
+import RTCBrowserType from '../RTC/RTCBrowserType';
+import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+
+const logger = require('jitsi-meet-logger').getLogger(__filename);
 
 /**
  * We define enumeration of wrtcFuncNames as we need them before
@@ -334,8 +336,15 @@ export default class CallStats {
             throw new Error('CallStats backend has been initialized already!');
         }
         try {
-            // eslint-disable-next-line new-cap
-            CallStats.backend = new callstats();
+            // In react-native we need to import the callstats module, but
+            // imports are only allowed at top-level, so we must use require
+            // here. Sigh.
+            const CallStatsBackend
+                = RTCBrowserType.isReactNative()
+                    ? require('react-native-callstats/callstats')
+                    : callstats;
+
+            CallStats.backend = new CallStatsBackend();
 
             CallStats._traceAndCatchBackendCalls(CallStats.backend);
 
