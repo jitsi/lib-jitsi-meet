@@ -578,6 +578,7 @@ export default class CallStats {
                 CallStats.backend.fabricEvent.fabricTerminated,
                 this.confID);
         }
+        CallStats.fabrics.delete(this);
     }
 
     /**
