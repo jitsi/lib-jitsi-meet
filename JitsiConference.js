@@ -2248,7 +2248,7 @@ JitsiConference.prototype._stopP2PSession
     }
 
     // Stop P2P stats
-    logger.info('Stopping remote stats with P2P connection');
+    logger.info('Stopping remote stats for P2P connection');
     this.statistics.stopRemoteStats();
     logger.info('Stopping CallStats for P2P connection');
     this.statistics.stopCallStats(

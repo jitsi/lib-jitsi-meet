@@ -273,7 +273,7 @@ export default class CallStats {
 
         /* eslint-disable max-params */
         theBackend.reportError
-        = function(pc, cs, type, ...otherArguments) {
+        = function(pc, cs, type, ...args) {
             // Logs from the logger are submitted on the applicationLog event
             // "type". Logging the arguments on the logger will create endless
             // loop, because it will put all the logs to the logger queue again.
@@ -284,11 +284,10 @@ export default class CallStats {
                 // by the logger implementation)
                 console && console.debug('reportError', pc, cs, type);
             } else {
-                logger.debug('reportError', pc, cs, type, ...otherArguments);
+                logger.debug('reportError', pc, cs, type, ...args);
             }
             try {
-                originalReportError.call(
-                    theBackend, pc, cs, type, ...otherArguments);
+                originalReportError.call(theBackend, pc, cs, type, ...args);
             } catch (exception) {
                 if (type === wrtcFuncNames.applicationLog) {
                     console && console.error('reportError', exception);
@@ -307,10 +306,10 @@ export default class CallStats {
      * @param {object} options
      * @param {String} options.callStatsID CallStats credentials - ID
      * @param {String} options.callStatsSecret CallStats credentials - secret
-     * @param {string} options.userName the <tt>userName</tt> part of
-     * the <tt>userID</tt> aka display name, see CallStats docs for more info.
      * @param {string} options.aliasName the <tt>aliasName</tt> part of
      * the <tt>userID</tt> aka endpoint ID, see CallStats docs for more info.
+     * @param {string} options.userName the <tt>userName</tt> part of
+     * the <tt>userID</tt> aka display name, see CallStats docs for more info.
      *
      */
     static initBackend(options) {
