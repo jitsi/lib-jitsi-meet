@@ -182,8 +182,8 @@ export default class CallStats {
             logger.warn('No error is passed!');
             _error = new Error('Unknown error');
         }
-        if (CallStats.initialized) {
-            CallStats.backend.reportError(pc, cs && cs.confID, type, _error);
+        if (CallStats.initialized && cs) {
+            CallStats.backend.reportError(pc, cs.confID, type, _error);
         } else {
             CallStats.reportsQueue.push({
                 type: reportType.ERROR,
@@ -212,7 +212,7 @@ export default class CallStats {
         const pc = cs && cs.peerconnection;
         const confID = cs && cs.confID;
 
-        if (CallStats.initialized) {
+        if (CallStats.initialized && cs) {
             CallStats.backend.sendFabricEvent(pc, event, confID, eventData);
         } else {
             CallStats.reportsQueue.push({

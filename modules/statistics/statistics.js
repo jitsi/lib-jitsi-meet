@@ -204,7 +204,14 @@ Statistics.prototype.removeByteSentStatsListener = function(listener) {
 
 Statistics.prototype.dispose = function() {
     try {
-        if (this.eventEmitter) {
+        // NOTE Before reading this please see the comment in stopCallStats...
+        //
+        // Here we prevent from emitting the event twice in case it will be
+        // triggered from stopCallStats.
+        // If the event is triggered from here it means that the logs will not
+        // be submitted anyway (because there is no CallStats instance), but
+        // we're doing that for the sake of some kind of consistency.
+        if (!this.callsStatsInstances.size) {
             this.eventEmitter.emit(StatisticsEvents.BEFORE_DISPOSED);
         }
         for (const callStats of this.callsStatsInstances.values()) {
@@ -326,6 +333,18 @@ Statistics.prototype.stopCallStats = function(tpc) {
     const callStatsInstance = this.callsStatsInstances.get(tpc.id);
 
     if (callStatsInstance) {
+        // FIXME the original purpose of adding BEFORE_DISPOSED event was to be
+        // able to submit the last log batch from jitsi-meet to CallStats. After
+        // recent changes we dispose the CallStats earlier
+        // (before Statistics.dispose), so we need to emit this event here to
+        // give this last chance for final log batch submission.
+        //
+        // Eventually there should be a separate module called "log storage"
+        // which should emit proper events when it's underlying
+        // CallStats instance is going away.
+        if (this.callsStatsInstances.size === 1) {
+            this.eventEmitter.emit(StatisticsEvents.BEFORE_DISPOSED);
+        }
         this.callsStatsInstances.delete(tpc.id);
 
         // The fabric needs to be terminated when being stopped
