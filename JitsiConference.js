@@ -244,11 +244,20 @@ JitsiConference.prototype._init = function(options = {}) {
     this.participantConnectionStatus.init();
 
     if (!this.statistics) {
+        // XXX The property location on the global variable window is not
+        // defined in all execution environments (e.g. react-native). While
+        // jitsi-meet may polyfill it when executing on react-native, it is
+        // better for the cross-platform support to not require window.location
+        // especially when there is a worthy alternative (as demonstrated
+        // bellow).
+        const windowLocation = window.location;
+
         this.statistics = new Statistics(this.xmpp, {
             callStatsAliasName: this.myUserId(),
             callStatsConfIDNamespace:
                 config.callStatsConfIDNamespace
-                    || window.location.hostname,
+                    || (windowLocation && windowLocation.hostname)
+                    || (config.hosts && config.hosts.domain),
             callStatsCustomScriptUrl: config.callStatsCustomScriptUrl,
             callStatsID: config.callStatsID,
             callStatsSecret: config.callStatsSecret,
