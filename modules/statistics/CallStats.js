@@ -1,9 +1,7 @@
-/* global $, callstats */
+/* global callstats */
 const logger = require('jitsi-meet-logger').getLogger(__filename);
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
-const jsSHA = require('jssha');
-const io = require('socket.io-client');
 
 /**
  * We define enumeration of wrtcFuncNames as we need them before
@@ -336,8 +334,8 @@ export default class CallStats {
             throw new Error('CallStats backend has been initialized already!');
         }
         try {
-            CallStats.backend
-                = new callstats($, io, jsSHA); // eslint-disable-line new-cap
+            // eslint-disable-next-line new-cap
+            CallStats.backend = new callstats();
 
             CallStats._traceAndCatchBackendCalls(CallStats.backend);
 
