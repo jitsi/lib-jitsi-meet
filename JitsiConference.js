@@ -1857,7 +1857,7 @@ JitsiConference.prototype._onIceConnectionFailed = function(session) {
     // eventually come up with the new offer (at least for the time being).
     if (session.isP2P) {
         if (this.p2pJingleSession && this.p2pJingleSession.isInitiator) {
-            Statistics.sendEventToAll('p2p.ice_failed');
+            Statistics.sendEventToAll('p2p.failed');
         }
         this._stopP2PSession('connectivity-error', 'ICE FAILED');
     }
