@@ -67,6 +67,93 @@ export const ParticipantConnectionStatus = {
  * JitsiConferenceEvents.PARTICIPANT_CONN_STATUS_CHANGED events.
  */
 export default class ParticipantConnectionStatusHandler {
+    /* eslint-disable max-params*/
+    /**
+     * Calculates the new {@link ParticipantConnectionStatus} based on
+     * the values given for some specific remote user. It is assumed that
+     * the conference is currently in the JVB mode (in contrary to the P2P mode)
+     * @param {boolean} isConnectionActiveByJvb true if the JVB did not get any
+     * data from the user for the last 15 seconds.
+     * @param {boolean} isInLastN indicates whether the user is in the last N
+     * set. When set to false it means that JVB is not sending any video for
+     * the user.
+     * @param {boolean} isRestoringTimedout if true it means that the user has
+     * been outside of last N too long to be considered
+     * {@link ParticipantConnectionStatus.RESTORING}.
+     * @param {boolean} isVideoMuted true if the user is video muted and we
+     * should not expect to receive any video.
+     * @param {boolean} isVideoTrackFrozen if the current browser support video
+     * frozen detection then it will be set to true when the video track is
+     * frozen. If the current browser does not support frozen detection the it's
+     * always false.
+     * @return {ParticipantConnectionStatus} the new connection status for
+     * the user for whom the values above were provided.
+     * @private
+     */
+    static _getNewStateForJvbMode(
+        isConnectionActiveByJvb,
+        isInLastN,
+        isRestoringTimedout,
+        isVideoMuted,
+        isVideoTrackFrozen) {
+
+        if (!isConnectionActiveByJvb) {
+            // when there is a connection problem signaled from jvb
+            // it means no media was flowing for at least 15secs, so both audio
+            // and video are most likely interrupted
+            return ParticipantConnectionStatus.INTERRUPTED;
+        } else if (isVideoMuted) {
+            // If the connection is active according to JVB and the user is
+            // video muted there is no way for the connection to be inactive,
+            // because the detection logic below only makes sense for video.
+            return ParticipantConnectionStatus.ACTIVE;
+        }
+
+        // Logic when isVideoTrackFrozen is supported
+        if (RTCBrowserType.isVideoMuteOnConnInterruptedSupported()) {
+            if (!isVideoTrackFrozen) {
+                // If the video is playing we're good
+                return ParticipantConnectionStatus.ACTIVE;
+            } else if (isInLastN) {
+                return isRestoringTimedout
+                    ? ParticipantConnectionStatus.INTERRUPTED
+                    : ParticipantConnectionStatus.RESTORING;
+            }
+
+            return ParticipantConnectionStatus.INACTIVE;
+        }
+
+        // Because this browser is incapable of detecting frozen video we must
+        // rely on the lastN value
+        return isInLastN
+            ? ParticipantConnectionStatus.ACTIVE
+            : ParticipantConnectionStatus.INACTIVE;
+    }
+
+    /* eslint-enable max-params*/
+
+    /**
+     * In P2P mode we don't care about any values coming from the JVB and
+     * the connection status can be only active or inactive.
+     * @param {boolean} isVideoMuted the user if video muted
+     * @param {boolean} isVideoTrackFrozen true if the video track for
+     * the remote user is currently frozen. If the current browser does not
+     * support video frozen detection then it's always false.
+     * @return {ParticipantConnectionStatus}
+     * @private
+     */
+    static _getNewStateForP2PMode(isVideoMuted, isVideoTrackFrozen) {
+        if (!RTCBrowserType.isVideoMuteOnConnInterruptedSupported()) {
+            // There's no way to detect problems in P2P when there's no video
+            // track frozen detection...
+            return ParticipantConnectionStatus.ACTIVE;
+        }
+
+        return isVideoMuted || !isVideoTrackFrozen
+            ? ParticipantConnectionStatus.ACTIVE
+            : ParticipantConnectionStatus.INACTIVE;
+    }
+
     /**
      * Creates new instance of <tt>ParticipantConnectionStatus</tt>.
      *
@@ -440,39 +527,31 @@ export default class ParticipantConnectionStatusHandler {
             return;
         }
 
+        const inP2PMode = this.conference.isP2PActive();
+        const isRestoringTimedOut = this._isRestoringTimedout(id);
         const isVideoMuted = participant.isVideoMuted();
         const isVideoTrackFrozen = this.isVideoTrackFrozen(participant);
         const isInLastN = this.rtc.isInLastN(id);
         let isConnActiveByJvb = this.connStatusFromJvb[id];
 
-        if (this.conference.isP2PActive()) {
-            logger.debug('Assuming connection active by JVB - in P2P mode');
-            isConnActiveByJvb = true;
-        } else if (typeof isConnActiveByJvb !== 'boolean') {
+        if (typeof isConnActiveByJvb !== 'boolean') {
             // If no status was received from the JVB it means that it's active
             // (the bridge does not send notification unless there is a problem)
             logger.debug('Assuming connection active by JVB - no notification');
             isConnActiveByJvb = true;
         }
 
-        let newState = ParticipantConnectionStatus.INACTIVE;
-
-        if (isConnActiveByJvb) {
-            if (isInLastN) {
-                if (isVideoTrackFrozen) {
-                    newState = this._isRestoringTimedout(id)
-                        ? ParticipantConnectionStatus.INTERRUPTED
-                            : ParticipantConnectionStatus.RESTORING;
-                } else {
-                    newState = ParticipantConnectionStatus.ACTIVE;
-                }
-            }
-        } else {
-            // when there is a connection problem signaled from jvb
-            // it means no media was flowing for at least 15secs, so everything
-            // should be interrupted, when in p2p mode we will never end up here
-            newState = ParticipantConnectionStatus.INTERRUPTED;
-        }
+        const newState
+            = inP2PMode
+                ? ParticipantConnectionStatusHandler._getNewStateForP2PMode(
+                    isVideoMuted,
+                    isVideoTrackFrozen)
+                : ParticipantConnectionStatusHandler._getNewStateForJvbMode(
+                    isConnActiveByJvb,
+                    isInLastN,
+                    isRestoringTimedOut,
+                    isVideoMuted,
+                    isVideoTrackFrozen);
 
         // if the new state is not restoring clear timers and timestamps
         // that we use to track the restoring state
@@ -484,6 +563,7 @@ export default class ParticipantConnectionStatusHandler {
             `Figure out conn status for ${id}, is video muted: ${isVideoMuted
                  } is active(jvb): ${isConnActiveByJvb
                  } video track frozen: ${isVideoTrackFrozen
+                 } p2p mode: ${inP2PMode
                  } is in last N: ${isInLastN
                  } currentStatus => newStatus: 
                     ${participant.getConnectionStatus()} => ${newState}`);
