@@ -1762,7 +1762,7 @@ JitsiConference.prototype._onTrackAttach = function(track, container) {
     } else {
         ssrc = track.getSSRC();
     }
-    if (!container.id || !ssrc) {
+    if (!container.id || !ssrc || !peerConnection) {
         return;
     }
 
