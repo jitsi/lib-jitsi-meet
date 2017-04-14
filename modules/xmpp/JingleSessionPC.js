@@ -282,7 +282,8 @@ export default class JingleSessionPC extends JingleSession {
                     + ` P2P? ${this.isP2P}:\t`,
                 now);
             Statistics.analytics.sendEvent(
-                `ice.${this.peerconnection.iceConnectionState}`,
+                `${this.isP2P ? 'p2p.ice.' : 'ice.'}`
+                    + `${this.peerconnection.iceConnectionState}`,
                 { value: now });
             this.room.eventEmitter.emit(
                 XMPPEvents.ICE_CONNECTION_STATE_CHANGED,
