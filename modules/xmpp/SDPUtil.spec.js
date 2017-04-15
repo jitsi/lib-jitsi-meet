@@ -1,4 +1,4 @@
-import * as SDPUtil from './SDPUtil';
+import SDPUtil from './SDPUtil';
 import * as SampleSdpStrings from './SampleSdpStrings.js';
 
 describe('SDPUtil', () => {

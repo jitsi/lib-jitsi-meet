@@ -2,7 +2,7 @@
 
 import { getLogger } from 'jitsi-meet-logger';
 import { parseSecondarySSRC, SdpTransformWrap } from './SdpTransformUtil';
-import * as SDPUtil from './SDPUtil';
+import SDPUtil from './SDPUtil';
 
 const logger = getLogger(__filename);
 

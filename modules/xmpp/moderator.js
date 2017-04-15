@@ -41,7 +41,7 @@ function createExpBackoffTimer(step) {
  * @param emitter
  * @param options
  */
-function Moderator(roomName, xmpp, emitter, options) {
+export default function Moderator(roomName, xmpp, emitter, options) {
     this.roomName = roomName;
     this.xmppService = xmpp;
     this.getNextTimeout = createExpBackoffTimer(1000);
@@ -552,5 +552,3 @@ Moderator.prototype.logout = function(callback) {
         }
     );
 };
-
-module.exports = Moderator;

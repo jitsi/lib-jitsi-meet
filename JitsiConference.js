@@ -31,7 +31,6 @@ import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 
 const logger = getLogger(__filename);
 
-
 /**
  * Creates a JitsiConference object with the given name and properties.
  * Note: this constructor is not a part of the public API (objects should be
@@ -58,7 +57,7 @@ const logger = getLogger(__filename);
  *       {@link JitsiConference.onMemberLeft}
  *       and so on...
  */
-function JitsiConference(options) {
+export default function JitsiConference(options) {
     if (!options.name || options.name.toLowerCase() !== options.name) {
         const errmsg
             = 'Invalid conference name (no conference name passed or it '
@@ -2405,5 +2404,3 @@ JitsiConference.prototype.createVideoSIPGWSession
         return this._getVideoSIPGWHandle()
             .createVideoSIPGWSession(sipAddress, displayName);
     };
-
-module.exports = JitsiConference;

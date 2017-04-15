@@ -5,7 +5,7 @@ import SpeakerStats from './SpeakerStats';
  * A collection for tracking speaker stats. Attaches listeners
  * to the conference to automatically update on tracked events.
  */
-class SpeakerStatsCollector {
+export default class SpeakerStatsCollector {
     /**
      * Initializes a new SpeakerStatsCollector instance.
      *
@@ -119,5 +119,3 @@ class SpeakerStatsCollector {
         return this.stats.users;
     }
 }
-
-module.exports = SpeakerStatsCollector;

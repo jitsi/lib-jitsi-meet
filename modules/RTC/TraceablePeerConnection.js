@@ -2,22 +2,23 @@
     RTCPeerConnection, RTCSessionDescription */
 
 import { getLogger } from 'jitsi-meet-logger';
+import transform from 'sdp-transform';
+
 import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import * as MediaType from '../../service/RTC/MediaType';
 import LocalSdpMunger from './LocalSdpMunger';
 import RTC from './RTC';
-import RTCBrowserType from './RTCBrowserType.js';
+import RTCBrowserType from './RTCBrowserType';
 import RTCEvents from '../../service/RTC/RTCEvents';
-import RtxModifier from '../xmpp/RtxModifier.js';
+import RtxModifier from '../xmpp/RtxModifier';
 
 // FIXME SDP tools should end up in some kind of util module
 import SDP from '../xmpp/SDP';
-import SdpConsistency from '../xmpp/SdpConsistency.js';
+import SdpConsistency from '../xmpp/SdpConsistency';
 import { SdpTransformWrap } from '../xmpp/SdpTransformUtil';
 import SDPUtil from '../xmpp/SDPUtil';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
-import transform from 'sdp-transform';
 
 const logger = getLogger(__filename);
 const SIMULCAST_LAYERS = 3;
@@ -48,7 +49,7 @@ const SIMULCAST_LAYERS = 3;
  *
  * @constructor
  */
-function TraceablePeerConnection(
+export default function TraceablePeerConnection(
         rtc,
         id,
         signalingLayer,
@@ -1862,5 +1863,3 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {
 TraceablePeerConnection.prototype.toString = function() {
     return `TPC[${this.id},p2p:${this.isP2P}]`;
 };
-
-module.exports = TraceablePeerConnection;

@@ -2,7 +2,7 @@ import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 
 import RandomUtil from '../util/RandomUtil';
-const RTCBrowserType = require('../RTC/RTCBrowserType');
+import RTCBrowserType from '../RTC/RTCBrowserType';
 
 const SDPUtil = {
     filterSpecialChars(text) {
@@ -594,4 +594,4 @@ const SDPUtil = {
     }
 };
 
-module.exports = SDPUtil;
+export default SDPUtil;

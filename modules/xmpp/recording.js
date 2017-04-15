@@ -17,7 +17,7 @@ const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
  * @param jirecon
  * @param roomjid
  */
-function Recording(
+export default function Recording(
         type,
         eventEmitter,
         connection,
@@ -345,5 +345,3 @@ Recording.prototype.getState = function() {
 Recording.prototype.getURL = function() {
     return this.url;
 };
-
-module.exports = Recording;

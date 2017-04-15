@@ -4,7 +4,7 @@
 import RtxModifier from './RtxModifier.js';
 import * as SampleSdpStrings from './SampleSdpStrings.js';
 import * as transform from 'sdp-transform';
-import * as SDPUtil from './SDPUtil';
+import SDPUtil from './SDPUtil';
 
 /**
  * Returns the number of video ssrcs in the given sdp

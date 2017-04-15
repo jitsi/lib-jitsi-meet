@@ -1,10 +1,8 @@
-/* global require */
+import RTCBrowserType from '../RTC/RTCBrowserType';
+import * as StatisticsEvents from '../../service/statistics/Events';
 
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 const logger = require('jitsi-meet-logger').getLogger(__filename);
-const RTCBrowserType = require('../RTC/RTCBrowserType');
-
-import * as StatisticsEvents from '../../service/statistics/Events';
 
 /* Whether we support the browser we are running into for logging statistics */
 const browserSupported = RTCBrowserType.isChrome()
@@ -179,7 +177,7 @@ function ConferenceStats() {
  * @param eventEmitter
  * @constructor
  */
-function StatsCollector(
+export default function StatsCollector(
         peerconnection,
         audioLevelsInterval,
         statsInterval,
@@ -236,8 +234,6 @@ function StatsCollector(
 }
 
 /* eslint-enable max-params */
-
-module.exports = StatsCollector;
 
 /**
  * Stops stats updates.

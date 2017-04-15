@@ -1,6 +1,6 @@
 /* global $, APP */
 
-const SDPUtil = require('./SDPUtil');
+import SDPUtil from './SDPUtil';
 
 /**
  *

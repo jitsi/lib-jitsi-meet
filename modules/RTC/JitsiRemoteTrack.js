@@ -1,10 +1,10 @@
-const JitsiTrack = require('./JitsiTrack');
-
+import JitsiTrack from './JitsiTrack';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import RTCBrowserType from './RTCBrowserType';
+import Statistics from '../statistics/statistics';
+
 const logger = require('jitsi-meet-logger').getLogger(__filename);
-const RTCBrowserType = require('./RTCBrowserType');
 const RTCEvents = require('../../service/RTC/RTCEvents');
-const Statistics = require('../statistics/statistics');
 
 let ttfmTrackerAudioAttached = false;
 let ttfmTrackerVideoAttached = false;
@@ -28,7 +28,7 @@ let ttfmTrackerVideoAttached = false;
  * session
  * @constructor
  */
-function JitsiRemoteTrack(
+export default function JitsiRemoteTrack(
         rtc,
         conference,
         ownerEndpointId,
@@ -230,5 +230,3 @@ JitsiRemoteTrack.prototype.toString = function() {
     return `RemoteTrack[${this.ownerEndpointId}, ${this.getType()
             }, p2p: ${this.isP2P}]`;
 };
-
-module.exports = JitsiRemoteTrack;

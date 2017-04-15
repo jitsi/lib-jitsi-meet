@@ -1,17 +1,14 @@
-/* global require */
 import analytics from './AnalyticsAdapter';
 import CallStats from './CallStats';
-const EventEmitter = require('events');
-
 import JitsiTrackError from '../../JitsiTrackError';
-const logger = require('jitsi-meet-logger').getLogger(__filename);
-const LocalStats = require('./LocalStatsCollector.js');
-const RTPStats = require('./RTPStatsCollector.js');
-const ScriptUtil = require('../util/ScriptUtil');
-
+import LocalStats from './LocalStatsCollector';
+import RTPStats from './RTPStatsCollector';
 import * as StatisticsEvents from '../../service/statistics/Events';
-
 import Settings from '../settings/Settings';
+
+const EventEmitter = require('events');
+const logger = require('jitsi-meet-logger').getLogger(__filename);
+const ScriptUtil = require('../util/ScriptUtil');
 
 /**
  * True if callstats API is loaded
@@ -91,7 +88,7 @@ Statistics.init = function(options) {
  * @param xmpp
  * @param options
  */
-function Statistics(xmpp, options) {
+export default function Statistics(xmpp, options) {
     this.rtpStats = null;
     this.eventEmitter = new EventEmitter();
     this.xmpp = xmpp;
@@ -631,5 +628,3 @@ Statistics.sendEventToAll = function(eventName, data) {
     Statistics.sendLog(JSON.stringify({ name: eventName,
         data }));
 };
-
-module.exports = Statistics;

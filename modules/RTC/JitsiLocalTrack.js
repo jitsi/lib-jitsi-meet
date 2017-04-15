@@ -30,7 +30,7 @@ const logger = getLogger(__filename);
  * @param facingMode the camera facing mode used in getUserMedia call
  * @constructor
  */
-function JitsiLocalTrack(
+export default function JitsiLocalTrack(
         rtcId,
         stream,
         track,
@@ -708,5 +708,3 @@ JitsiLocalTrack.prototype._isReceivingData = function() {
 JitsiLocalTrack.prototype.toString = function() {
     return `LocalTrack[${this.rtcId},${this.getType()}]`;
 };
-
-module.exports = JitsiLocalTrack;

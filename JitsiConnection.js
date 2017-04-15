@@ -13,7 +13,7 @@ import XMPP from './modules/xmpp/xmpp';
  * the server.
  * @constructor
  */
-function JitsiConnection(appID, token, options) {
+export default function JitsiConnection(appID, token, options) {
     this.appID = appID;
     this.token = token;
     this.options = options;
@@ -142,5 +142,3 @@ JitsiConnection.prototype.addFeature = function(feature, submit = false) {
 JitsiConnection.prototype.removeFeature = function(feature, submit = false) {
     return this.xmpp.caps.removeFeature(feature, submit);
 };
-
-module.exports = JitsiConnection;

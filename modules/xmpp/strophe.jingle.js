@@ -389,8 +389,14 @@ class JingleConnectionPlugin extends ConnectionPlugin {
 
 /* eslint-enable newline-per-chained-call */
 
-module.exports = function(XMPP, eventEmitter, p2pStunServers) {
+/**
+ *
+ * @param XMPP
+ * @param eventEmitter
+ * @param p2pStunServers
+ */
+export default function initJingle(XMPP, eventEmitter, p2pStunServers) {
     Strophe.addConnectionPlugin(
         'jingle',
         new JingleConnectionPlugin(XMPP, eventEmitter, p2pStunServers));
-};
+}

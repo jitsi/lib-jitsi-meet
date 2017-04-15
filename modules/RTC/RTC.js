@@ -1,15 +1,17 @@
 /* global __filename */
-import DataChannels from './DataChannels';
+
 import { getLogger } from 'jitsi-meet-logger';
+
+import DataChannels from './DataChannels';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import JitsiLocalTrack from './JitsiLocalTrack.js';
+import JitsiLocalTrack from './JitsiLocalTrack';
 import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
 import Listenable from '../util/Listenable';
 import * as MediaType from '../../service/RTC/MediaType';
-import RTCEvents from '../../service/RTC/RTCEvents.js';
-import RTCUtils from './RTCUtils.js';
+import RTCEvents from '../../service/RTC/RTCEvents';
+import RTCUtils from './RTCUtils';
 import TraceablePeerConnection from './TraceablePeerConnection';
 import VideoType from '../../service/RTC/VideoType';
 

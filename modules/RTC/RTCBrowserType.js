@@ -448,4 +448,4 @@ function detectBrowser() {
 
 browserVersion = detectBrowser();
 
-module.exports = RTCBrowserType;
+export default RTCBrowserType;

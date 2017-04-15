@@ -155,4 +155,4 @@ RTC.addListener(
             JitsiMediaDevices.getAudioOutputDevice(),
             devices));
 
-module.exports = JitsiMediaDevices;
+export default JitsiMediaDevices;

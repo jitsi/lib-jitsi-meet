@@ -1,4 +1,4 @@
-const SDPUtil = require('./SDPUtil');
+import SDPUtil from './SDPUtil';
 
 // this could be useful in Array.prototype.
 /**

@@ -1,5 +1,6 @@
+import Statistics from '../statistics/statistics';
+
 const logger = require('jitsi-meet-logger').getLogger(__filename);
-const Statistics = require('../statistics/statistics');
 
 /**
  * The constant for the name of the focus component.

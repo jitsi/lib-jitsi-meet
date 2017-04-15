@@ -68,7 +68,7 @@ function addMediaStreamInactiveHandler(mediaStream, handler) {
  * @param trackMediaType the media type of the JitsiTrack
  * @param videoType the VideoType for this track if any
  */
-function JitsiTrack(
+export default function JitsiTrack(
     conference,
     stream,
     track,
@@ -445,5 +445,3 @@ JitsiTrack.prototype.setAudioOutput = function(audioOutputDeviceId) {
                     audioOutputDeviceId);
             }));
 };
-
-module.exports = JitsiTrack;

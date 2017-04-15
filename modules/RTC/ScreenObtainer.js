@@ -1,11 +1,11 @@
 /* global chrome, $, alert */
 
-const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
-const logger = require('jitsi-meet-logger').getLogger(__filename);
-const RTCBrowserType = require('./RTCBrowserType');
-
 import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
+import RTCBrowserType from './RTCBrowserType';
+
+const logger = require('jitsi-meet-logger').getLogger(__filename);
+const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
 /**
  * Indicates whether the Chrome desktop sharing extension is installed.
@@ -629,4 +629,4 @@ function initFirefoxExtensionDetection(options) {
     img.setAttribute('src', src);
 }
 
-module.exports = ScreenObtainer;
+export default ScreenObtainer;

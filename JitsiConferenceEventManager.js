@@ -17,7 +17,7 @@ const logger = getLogger(__filename);
  * Setups all event listeners related to conference
  * @param conference {JitsiConference} the conference
  */
-function JitsiConferenceEventManager(conference) {
+export default function JitsiConferenceEventManager(conference) {
     this.conference = conference;
 
     // Listeners related to the conference only
@@ -668,5 +668,3 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
         });
     });
 };
-
-module.exports = JitsiConferenceEventManager;

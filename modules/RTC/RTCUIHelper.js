@@ -1,7 +1,8 @@
 /* global $ */
 
+import RTCBrowserType from './RTCBrowserType';
+
 const logger = require('jitsi-meet-logger').getLogger(__filename);
-const RTCBrowserType = require('./RTCBrowserType');
 
 const RTCUIHelper = {
 
@@ -68,4 +69,4 @@ const RTCUIHelper = {
     }
 };
 
-module.exports = RTCUIHelper;
+export default RTCUIHelper;
