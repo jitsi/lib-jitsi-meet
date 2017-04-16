@@ -7,7 +7,12 @@ const webpack = require('webpack');
 const minimize
     = process.argv.indexOf('-p') !== -1
         || process.argv.indexOf('--optimize-minimize') !== -1;
-const plugins = [];
+const plugins = [
+    new webpack.LoaderOptionsPlugin({
+        debug: !minimize,
+        minimize
+    })
+];
 
 if (minimize) {
     // While webpack will automatically insert UglifyJsPlugin when minimize is
@@ -21,6 +26,7 @@ if (minimize) {
             // webpack 2.
             warnings: true
         },
+        extractComments: true,
 
         // Use the source map to map error message locations to modules. The
         // default is false in webpack 2.
@@ -34,11 +40,11 @@ module.exports = {
         'lib-jitsi-meet': './index.js'
     },
     module: {
-        loaders: [ {
+        rules: [ {
             // Version this build of the lib-jitsi-meet library.
 
             loader: 'string-replace-loader',
-            query: {
+            options: {
                 flags: 'g',
                 replace:
                     child_process.execSync( // eslint-disable-line camelcase
@@ -62,9 +68,15 @@ module.exports = {
                 `${__dirname}/node_modules/`
             ],
             loader: 'babel-loader',
-            query: {
+            options: {
                 presets: [
-                    'es2015'
+                    [
+                        'es2015',
+
+                        // Tell babel to avoid compiling imports into CommonJS
+                        // so that webpack may do tree shaking.
+                        { modules: false }
+                    ]
                 ]
             },
             test: /\.js$/
