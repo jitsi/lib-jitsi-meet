@@ -355,7 +355,12 @@ TraceablePeerConnection.prototype.getConnectionState = function() {
 TraceablePeerConnection.prototype._getDesiredMediaDirection
 = function(mediaType) {
     if (this.mediaTransferActive) {
-        return this.hasAnyTracksOfType(mediaType) ? 'sendrecv' : 'recvonly';
+	// XXX this option is used in the grid hammer and for debugging only.
+	if (this.options._sdpAnswerDirection) {
+		return this.options._sdpAnswerDirection;
+	} else {
+		return this.hasAnyTracksOfType(mediaType) ? 'sendrecv' : 'recvonly';
+	}
     }
 
     return 'inactive';
