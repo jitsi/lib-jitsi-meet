@@ -1625,6 +1625,7 @@ TraceablePeerConnection.prototype.close = function() {
         window.clearInterval(this.statsinterval);
         this.statsinterval = null;
     }
+    logger.info(`Closing ${this}...`);
     this.peerconnection.close();
 };
 
