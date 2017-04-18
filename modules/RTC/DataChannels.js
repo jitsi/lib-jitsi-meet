@@ -49,7 +49,7 @@ DataChannels.prototype.onDataChannel = function(event) {
     const self = this;
 
     dataChannel.onopen = function() {
-        logger.info('Data channel opened by the Videobridge!', dataChannel);
+        logger.info('Data channel opened by the Videobridge!');
 
         // Code sample for sending string and/or binary data
         // Sends String message to the bridge
