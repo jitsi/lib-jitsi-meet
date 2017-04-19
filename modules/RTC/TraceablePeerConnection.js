@@ -1318,6 +1318,43 @@ TraceablePeerConnection.prototype.createDataChannel = function(label, opts) {
 };
 
 /**
+ * Ensures that the simulcast ssrc-group appears after any other ssrc-groups
+ * in the SDP so that simulcast is properly activated.
+ *
+ * @param {Object} localSdp the WebRTC session description instance for
+ * the local description.
+ * @private
+ */
+TraceablePeerConnection.prototype._ensureSimulcastGroupIsLast
+= function(localSdp) {
+    let sdpStr = localSdp.sdp;
+
+    const videoStartIndex = sdpStr.indexOf('m=video');
+    const simStartIndex = sdpStr.indexOf('a=ssrc-group:SIM', videoStartIndex);
+    let otherStartIndex = sdpStr.lastIndexOf('a=ssrc-group');
+
+    if (simStartIndex === -1
+        || otherStartIndex === -1
+        || otherStartIndex === simStartIndex) {
+        return;
+    }
+
+    const simEndIndex = sdpStr.indexOf('\r\n', simStartIndex);
+    const simStr = sdpStr.substring(simStartIndex, simEndIndex + 2);
+
+    sdpStr = sdpStr.replace(simStr, '');
+    otherStartIndex = sdpStr.lastIndexOf('a=ssrc-group');
+    const otherEndIndex = sdpStr.indexOf('\r\n', otherStartIndex);
+    const sdpHead = sdpStr.slice(0, otherEndIndex);
+    const simStrTrimmed = simStr.trim();
+    const sdpTail = sdpStr.slice(otherEndIndex);
+
+    sdpStr = `${sdpHead}\r\n${simStrTrimmed}${sdpTail}`;
+
+    localSdp.sdp = sdpStr;
+};
+
+/**
  * Will adjust audio and video media direction in the given SDP object to
  * reflect the current status of the {@link mediaTransferActive} flag.
  * @param {Object} localDescription the WebRTC session description instance for
@@ -1372,6 +1409,8 @@ TraceablePeerConnection.prototype.setLocalDescription
     this.trace('setLocalDescription::preTransform', dumpSDP(localSdp));
 
     this._adjustLocalMediaDirection(localSdp);
+
+    this._ensureSimulcastGroupIsLast(localSdp);
 
     // if we're using unified plan, transform to it first.
     if (RTCBrowserType.usesUnifiedPlan()) {
