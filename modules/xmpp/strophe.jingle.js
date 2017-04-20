@@ -4,7 +4,6 @@ import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 
 import JingleSessionPC from './JingleSessionPC';
-import * as JingleSessionState from './JingleSessionState';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import RandomUtil from '../util/RandomUtil';
@@ -188,7 +187,6 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     = $(iq).find('>jingle>reason>:first')[0].tagName;
                 reasonText = $(iq).find('>jingle>reason>text').text();
             }
-            sess.state = JingleSessionState.ENDED;
             this.terminate(sess.sid, reasonCondition, reasonText);
             this.eventEmitter.emit(XMPPEvents.CALL_ENDED,
                 sess, reasonCondition, reasonText);
