@@ -1235,8 +1235,6 @@ JitsiConference.prototype.onTransportInfo = function(session, transportInfo) {
  * @param {JitsiRemoteTrack} removedTrack
  */
 JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
-    let consumed = false;
-
     this.getParticipants().forEach(participant => {
         const tracks = participant.getTracks();
 
@@ -1253,29 +1251,10 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
                     this.transcriber.removeTrack(removedTrack);
                 }
 
-                consumed = true;
-
                 break;
             }
         }
     }, this);
-
-    if (!consumed) {
-        if ((this.isP2PActive() && !removedTrack.isP2P)
-             || (!this.isP2PActive() && removedTrack.isP2P)) {
-            // A remote track can be removed either as a result of
-            // 'source-remove' or the P2P logic which removes remote tracks
-            // explicitly when switching between JVB and P2P connections.
-            // The check above filters out the P2P logic case which should not
-            // result in an error (which just goes over all remote tracks).
-            return;
-        }
-        logger.error(
-            'Failed to match remote track on remove'
-                + ' with any of the participants',
-            removedTrack.getStreamId(),
-            removedTrack.getParticipantId());
-    }
 };
 
 /**
