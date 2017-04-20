@@ -2023,6 +2023,9 @@ JitsiConference.prototype._onIceConnectionEstablished
 
     // Stop media transfer over the JVB connection
     if (this.jvbJingleSession) {
+        // FIXME if for whatever reason invite from Jicofo for the JVB
+        // connection arrives, after the P2P has been established
+        // this needs to be called as well.
         this._suspendMediaTransferForJvbConnection();
     }
 
@@ -2295,7 +2298,9 @@ JitsiConference.prototype._stopP2PSession
 
     // Swap remote tracks, but only if the P2P has been fully established
     if (wasP2PEstablished) {
-        this._resumeMediaTransferForJvbConnection();
+        if (this.jvbJingleSession) {
+            this._resumeMediaTransferForJvbConnection();
+        }
 
         // Remove remote P2P tracks
         this._removeRemoteP2PTracks();
