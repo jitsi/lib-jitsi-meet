@@ -674,8 +674,6 @@ export default class JingleSessionPC extends JingleSession {
         this.setOfferAnswerCycle(
             jingleOffer,
             () => {
-                this.state = JingleSessionState.ACTIVE;
-
                 // FIXME we may not care about RESULT packet for session-accept
                 // then we should either call 'success' here immediately or
                 // modify sendSessionAccept method to do that
@@ -697,22 +695,49 @@ export default class JingleSessionPC extends JingleSession {
         if (!this.isInitiator) {
             throw new Error('Trying to invite from the responder session');
         }
-        for (const localTrack of localTracks) {
-            this.peerconnection.addTrack(localTrack);
-        }
-        this.peerconnection.createOffer(
-            this.sendSessionInitiate.bind(this),
-            error => logger.error('Failed to create offer', error),
-            this.mediaConstraints);
+        const workFunction = finishedCallback => {
+            for (const localTrack of localTracks) {
+                this.peerconnection.addTrack(localTrack);
+            }
+            this.peerconnection.createOffer(
+                sdp => {
+                    this.sendSessionInitiate(
+                        sdp,
+                        finishedCallback,
+                        finishedCallback
+                    );
+                },
+                error => {
+                    logger.error(
+                        'Failed to create an offer',
+                        error,
+                        this.mediaConstraints);
+                    finishedCallback(error);
+                },
+                this.mediaConstraints);
+        };
+
+        this.modificationQueue.push(
+            workFunction,
+            error => {
+                if (error) {
+                    logger.error('invite error', error);
+                } else {
+                    logger.debug('invite executed - OK');
+                }
+            });
     }
 
     /**
      * Sends 'session-initiate' to the remote peer.
      * @param {object} sdp the local session description object as defined by
      * the WebRTC standard.
+     * @param {function} success executed when the operation succeeds.
+     * @param {function(error)} failure executed when the operation fails with
+     * an error passed as an argument.
      * @private
      */
-    sendSessionInitiate(sdp) {
+    sendSessionInitiate(sdp, success, failure) {
         logger.log('createdOffer', sdp);
         const sendJingle = () => {
             let init = $iq({
@@ -740,12 +765,17 @@ export default class JingleSessionPC extends JingleSession {
                     logger.error('"session-initiate" error', error);
                 },
                 IQ_TIMEOUT);
+
+            // NOTE the callback is executed immediately as we don't want to
+            // wait for the XMPP response which would delay the startup process.
+            success();
         };
 
         this.peerconnection.setLocalDescription(
             sdp, sendJingle,
             error => {
                 logger.error('session-init setLocalDescription failed', error);
+                failure(error);
             }
         );
     }
@@ -761,7 +791,6 @@ export default class JingleSessionPC extends JingleSession {
         this.setOfferAnswerCycle(
             jingleAnswer,
             () => {
-                this.state = JingleSessionState.ACTIVE;
                 logger.info('setAnswer - succeeded');
             },
             error => {
@@ -795,9 +824,27 @@ export default class JingleSessionPC extends JingleSession {
 
             const newRemoteSdp
                 = this._processNewJingleOfferIq(jingleOfferAnswerIq);
+            const oldLocalSdp
+                = this.peerconnection.localDescription.sdp;
 
             this._renegotiate(newRemoteSdp)
                 .then(() => {
+                    if (this.state === JingleSessionState.PENDING) {
+                        this.state = JingleSessionState.ACTIVE;
+                    }
+
+                    // Old local SDP will be available when we're setting answer
+                    // for the first time, but not when offer and it's fine
+                    // since we're generating an answer now it will contain all
+                    // our SSRCs
+                    if (oldLocalSdp) {
+                        const newLocalSdp
+                            = new SDP(this.peerconnection.localDescription.sdp);
+
+                        this.notifyMySSRCUpdate(
+                            new SDP(oldLocalSdp), newLocalSdp);
+                    }
+
                     finishedCallback();
                 }, error => {
                     logger.error(
@@ -1310,9 +1357,19 @@ export default class JingleSessionPC extends JingleSession {
      *  rejects with an error {string}
      */
     _renegotiate(optionalRemoteSdp) {
+        const currentRemoteSdp = this.peerconnection.remoteDescription.sdp;
+
+        // FIXME new SDP() may not be necessary - raw SDP is needed anyway
         const remoteSdp
             = optionalRemoteSdp
-                || new SDP(this.peerconnection.remoteDescription.sdp);
+                || (currentRemoteSdp && new SDP(currentRemoteSdp));
+
+        if (!remoteSdp) {
+            return Promise.reject(
+                'Can not renegotiate without remote description,'
+                    + `- current state: ${this.state}`);
+        }
+
         const remoteDescription = new RTCSessionDescription({
             type: this.isInitiator ? 'answer' : 'offer',
             sdp: remoteSdp.raw
@@ -1461,7 +1518,8 @@ export default class JingleSessionPC extends JingleSession {
                 this.peerconnection.addTrack(newTrack);
             }
 
-            if ((oldTrack || newTrack) && oldLocalSdp) {
+            if ((oldTrack || newTrack)
+                && this.state === JingleSessionState.ACTIVE) {
                 this._renegotiate()
                     .then(() => {
                         const newLocalSDP
