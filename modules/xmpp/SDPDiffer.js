@@ -42,6 +42,11 @@ function arrayEquals(array1, array2) {
 export default function SDPDiffer(mySDP, otherSDP) {
     this.mySDP = mySDP;
     this.otherSDP = otherSDP;
+    if (!mySDP) {
+        throw new Error('"mySDP" is undefined!');
+    } else if (!otherSDP) {
+        throw new Error('"otherSDP" is undefined!');
+    }
 }
 
 /**
