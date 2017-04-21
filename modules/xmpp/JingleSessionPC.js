@@ -1753,6 +1753,16 @@ export default class JingleSessionPC extends JingleSession {
      */
     setMediaTransferActive(active) {
         const workFunction = finishedCallback => {
+
+            // Because the value is modified on the queue it's impossible to
+            // check it's final value reliably prior to submitting the task.
+            // The rule here is that the last submitted state counts.
+            // Check the value here to avoid unnecessary renegotiation cycle.
+            if (this.mediaTransferActive === active) {
+                finishedCallback();
+
+                return;
+            }
             this.mediaTransferActive = active;
             if (this.peerconnection) {
                 this.peerconnection.setMediaTransferActive(

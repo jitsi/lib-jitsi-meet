@@ -1331,7 +1331,14 @@ JitsiConference.prototype.onIncomingCall
     try {
         jingleSession.acceptOffer(
             jingleOffer,
-            null /* success */,
+            () => {
+                // If for any reason invite for the JVB session arrived after
+                // the P2P has been established already the media transfer needs
+                // to be turned off here.
+                if (this.isP2PActive() && this.jvbJingleSession) {
+                    this._suspendMediaTransferForJvbConnection();
+                }
+            },
             error => {
                 GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error(
@@ -2002,9 +2009,6 @@ JitsiConference.prototype._onIceConnectionEstablished
 
     // Stop media transfer over the JVB connection
     if (this.jvbJingleSession) {
-        // FIXME if for whatever reason invite from Jicofo for the JVB
-        // connection arrives, after the P2P has been established
-        // this needs to be called as well.
         this._suspendMediaTransferForJvbConnection();
     }
 
