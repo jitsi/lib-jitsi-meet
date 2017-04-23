@@ -138,20 +138,20 @@ export default class JingleSession {
      */
     removeSources(contents) {}
 
-    /* eslint-disable max-params */
-
     /**
      * Terminates this Jingle session by sending session-terminate
-     * @param reason XMPP Jingle error condition
-     * @param text some meaningful error message
      * @param success a callback called once the 'session-terminate' packet has
      * been acknowledged with RESULT.
      * @param failure a callback called when either timeout occurs or ERROR
      * response is received.
+     * @param {Object} options
+     * @param {string} [options.reason] XMPP Jingle error condition
+     * @param {string} [options.reasonDescription] some meaningful error message
+     * @param {boolean} [options.sendSessionTerminate=true] set to false to skip
+     * sending session-terminate. It may not make sense to send it if the XMPP
+     * connection has been closed already or if the remote peer has disconnected
      */
-    terminate(reason, text, success, failure) {}
-
-    /* eslint-enable max-params */
+    terminate(success, failure, options) {}
 
     /**
      * Handles an offer from the remote peer (prepares to accept a session).

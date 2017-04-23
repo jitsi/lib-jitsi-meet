@@ -1051,44 +1051,50 @@ export default class JingleSessionPC extends JingleSession {
             IQ_TIMEOUT);
     }
 
-    /* eslint-disable max-params */
-
     /**
      * @inheritDoc
      */
-    terminate(reason, text, success, failure) {
-        let sessionTerminate = $iq({
-            to: this.peerjid,
-            type: 'set'
-        })
-        .c('jingle', {
-            xmlns: 'urn:xmpp:jingle:1',
-            action: 'session-terminate',
-            initiator: this.initiator,
-            sid: this.sid
-        })
-        .c('reason')
-        .c(reason || 'success');
-
-        if (text) {
-            // eslint-disable-next-line newline-per-chained-call
-            sessionTerminate.up().c('text').t(text);
+    terminate(success, failure, options) {
+        if (this.state === JingleSessionState.ENDED) {
+            return;
         }
 
-        // Calling tree() to print something useful
-        sessionTerminate = sessionTerminate.tree();
-        logger.info('Sending session-terminate', sessionTerminate);
+        if (!options || Boolean(options.sendSessionTerminate)) {
+            let sessionTerminate
+                = $iq({
+                    to: this.peerjid,
+                    type: 'set'
+                })
+                .c('jingle', {
+                    xmlns: 'urn:xmpp:jingle:1',
+                    action: 'session-terminate',
+                    initiator: this.initiator,
+                    sid: this.sid
+                })
+                .c('reason')
+                .c((options && options.reason) || 'success');
 
-        this.connection.sendIQ(
-            sessionTerminate,
-            success,
-            this.newJingleErrorHandler(sessionTerminate, failure), IQ_TIMEOUT);
+            if (options && options.reasonDescription) {
+                sessionTerminate.up()
+                    .c('text')
+                    .t(options.reasonDescription);
+            }
+
+            // Calling tree() to print something useful
+            sessionTerminate = sessionTerminate.tree();
+            logger.info('Sending session-terminate', sessionTerminate);
+            this.connection.sendIQ(
+                sessionTerminate,
+                success,
+                this.newJingleErrorHandler(sessionTerminate, failure),
+                IQ_TIMEOUT);
+        } else {
+            logger.info(`Skipped sending session-terminate for ${this}`);
+        }
 
         // this should result in 'onTerminated' being called by strope.jingle.js
         this.connection.jingle.terminate(this.sid);
     }
-
-    /* eslint-enable max-params */
 
     /**
      *
@@ -1912,9 +1918,10 @@ export default class JingleSessionPC extends JingleSession {
             // FIXME: Maybe we can include part of the session object
             // error.session = this;
 
-            logger.error('Jingle error', error);
             if (failureCb) {
                 failureCb(error);
+            } else {
+                logger.error('Jingle error', error);
             }
         };
     }
