@@ -1,5 +1,4 @@
-/* global __filename, mozRTCPeerConnection, webkitRTCPeerConnection,
-    RTCPeerConnection, RTCSessionDescription */
+/* global __filename, RTCSessionDescription */
 
 import { getLogger } from 'jitsi-meet-logger';
 import transform from 'sdp-transform';
@@ -9,6 +8,7 @@ import JitsiRemoteTrack from './JitsiRemoteTrack';
 import * as MediaType from '../../service/RTC/MediaType';
 import LocalSdpMunger from './LocalSdpMunger';
 import RTC from './RTC';
+import RTCUtils from './RTCUtils';
 import RTCBrowserType from './RTCBrowserType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import RtxModifier from '../xmpp/RtxModifier';
@@ -150,21 +150,9 @@ export default function TraceablePeerConnection(
         SignalingEvents.PEER_MUTED_CHANGED,
         this._peerMutedChanged);
     this.options = options;
-    let RTCPeerConnectionType = null;
 
-    if (RTCBrowserType.isFirefox()) {
-        RTCPeerConnectionType = mozRTCPeerConnection;
-    } else if (RTCBrowserType.isEdge()) {
-        // TODO: Uncomment when done. For now use the Edge native
-        // RTCPeerConnection.
-        // RTCPeerConnectionType = ortcRTCPeerConnection;
-        RTCPeerConnectionType = RTCPeerConnection;
-    } else if (RTCBrowserType.isTemasysPluginUsed()) {
-        RTCPeerConnectionType = RTCPeerConnection;
-    } else {
-        RTCPeerConnectionType = webkitRTCPeerConnection;
-    }
-    this.peerconnection = new RTCPeerConnectionType(iceConfig, constraints);
+    this.peerconnection
+        = new RTCUtils.RTCPeerConnectionType(iceConfig, constraints);
     this.updateLog = [];
     this.stats = {};
     this.statsinterval = null;
