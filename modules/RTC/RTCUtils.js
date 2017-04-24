@@ -746,7 +746,7 @@ class RTCUtils extends Listenable {
 
                     return;
                 }
-                this.peerconnection = mozRTCPeerConnection;
+                this.RTCPeerConnectionType = mozRTCPeerConnection;
                 this.getUserMedia
                     = wrapGetUserMedia(
                         navigator.mozGetUserMedia.bind(navigator));
@@ -800,7 +800,7 @@ class RTCUtils extends Listenable {
                     || RTCBrowserType.isElectron()
                     || RTCBrowserType.isReactNative()) {
 
-                this.peerconnection = webkitRTCPeerConnection;
+                this.RTCPeerConnectionType = webkitRTCPeerConnection;
                 const getUserMedia
                     = navigator.webkitGetUserMedia.bind(navigator);
 
@@ -875,8 +875,8 @@ class RTCUtils extends Listenable {
 
                 // TODO: Uncomment when done. For now use the Edge native
                 // RTCPeerConnection.
-                // this.peerconnection = ortcRTCPeerConnection;
-                this.peerconnection = RTCPeerConnection;
+                // this.RTCPeerConnectionType = ortcRTCPeerConnection;
+                this.RTCPeerConnectionType = RTCPeerConnection;
                 this.getUserMedia
                     = wrapGetUserMedia(
                         navigator.mediaDevices.getUserMedia.bind(
@@ -905,7 +905,7 @@ class RTCUtils extends Listenable {
             } else if (RTCBrowserType.isTemasysPluginUsed()) {
                 // Detect IE/Safari
                 const webRTCReadyCb = () => {
-                    this.peerconnection = RTCPeerConnection;
+                    this.RTCPeerConnectionType = RTCPeerConnection;
                     this.getUserMedia = window.getUserMedia;
                     this.enumerateDevices
                         = enumerateDevicesThroughMediaStreamTrack;
