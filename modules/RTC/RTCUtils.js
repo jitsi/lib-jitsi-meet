@@ -22,11 +22,15 @@ import * as MediaType from '../../service/RTC/MediaType';
 import Resolutions from '../../service/RTC/Resolutions';
 import RTCBrowserType from './RTCBrowserType';
 import RTCEvents from '../../service/RTC/RTCEvents';
+import ortcRTCPeerConnection from './ortc/RTCPeerConnection';
 import screenObtainer from './ScreenObtainer';
 import SDPUtil from '../xmpp/SDPUtil';
 import VideoType from '../../service/RTC/VideoType';
 
 const logger = getLogger(__filename);
+
+// Disable Edge until fully implemented.
+const ENABLE_EDGE = false;
 
 // XXX Don't require Temasys unless it's to be used because it doesn't run on
 // React Native, for example.
@@ -864,19 +868,15 @@ class RTCUtils extends Listenable {
                     };
                 }
             } else if (RTCBrowserType.isEdge()) {
-                // TODO: Remove when EDGE is fully supported. For now ensure
-                // that, if EDGE is detected, it's just unsupported.
-                if (RTCBrowserType.isEdge()) {
+                // Disable until fully implemented.
+                if (!ENABLE_EDGE) {
                     rejectWithWebRTCNotSupported(
-                        'Microsoft EDGE not yet supported', reject);
+                        'Microsoft Edge not yet supported', reject);
 
                     return;
                 }
 
-                // TODO: Uncomment when done. For now use the Edge native
-                // RTCPeerConnection.
-                // this.RTCPeerConnectionType = ortcRTCPeerConnection;
-                this.RTCPeerConnectionType = RTCPeerConnection;
+                this.RTCPeerConnectionType = ortcRTCPeerConnection;
                 this.getUserMedia
                     = wrapGetUserMedia(
                         navigator.mediaDevices.getUserMedia.bind(
