@@ -8,7 +8,7 @@ const logger = require('jitsi-meet-logger').getLogger(__filename);
 const browserSupported = RTCBrowserType.isChrome()
         || RTCBrowserType.isOpera() || RTCBrowserType.isFirefox()
         || RTCBrowserType.isNWJS() || RTCBrowserType.isElectron()
-        || RTCBrowserType.isTemasysPluginUsed();
+        || RTCBrowserType.isTemasysPluginUsed() || RTCBrowserType.isEdge();
 
 /**
  * The lib-jitsi-meet browser-agnostic names of the browser-specific keys
@@ -47,6 +47,28 @@ KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME] = {
     'audioInputLevel': 'audioInputLevel',
     'audioOutputLevel': 'audioOutputLevel',
     'currentRoundTripTime': 'googRtt'
+};
+KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_EDGE] = {
+    'sendBandwidth': 'googAvailableSendBandwidth',
+    'remoteAddress': 'remoteAddress',
+    'transportType': 'protocol',
+    'localAddress': 'localAddress',
+    'activeConnection': 'activeConnection',
+    'ssrc': 'ssrc',
+    'packetsReceived': 'packetsReceived',
+    'packetsSent': 'packetsSent',
+    'packetsLost': 'packetsLost',
+    'bytesReceived': 'bytesReceived',
+    'bytesSent': 'bytesSent',
+    'googFrameHeightReceived': 'frameHeight',
+    'googFrameWidthReceived': 'frameWidth',
+    'googFrameHeightSent': 'frameHeight',
+    'googFrameWidthSent': 'frameWidth',
+    'googFrameRateReceived': 'framesPerSecond',
+    'googFrameRateSent': 'framesPerSecond',
+    'audioInputLevel': 'audioLevel',
+    'audioOutputLevel': 'audioLevel',
+    'currentRoundTripTime': 'roundTripTime'
 };
 KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_OPERA]
     = KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
@@ -314,6 +336,7 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                             // chrome
                             results = report.result();
                         }
+
                         self.currentStatsReport = results;
                         try {
                             self.processStatsReport();
@@ -394,6 +417,9 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
 
             return value;
         };
+        break;
+    case RTCBrowserType.RTC_BROWSER_EDGE:
+        itemStatByKey = (item, key) => item[key];
         break;
     default:
         itemStatByKey = (item, key) => item[key];
@@ -513,13 +539,35 @@ StatsCollector.prototype.processStatsReport = function() {
             });
         }
 
+        // NOTE: Edge's proprietary stats via RTCIceTransport.msGetStats().
+        if (now.msType === 'transportdiagnostics') {
+            this.conferenceStats.transport.push({
+                ip: now.remoteAddress,
+                type: now.protocol,
+                localip: now.localAddress,
+                p2p: this.peerconnection.isP2P
+            });
+        }
+
         if (now.type !== 'ssrc' && now.type !== 'outboundrtp'
-            && now.type !== 'inboundrtp') {
+            && now.type !== 'inboundrtp' && now.type !== 'track') {
+            continue;
+        }
+
+        // NOTE: In Edge, stats with type "inboundrtp" and "outboundrtp" are
+        // completely useless, so ignore them.
+        if (RTCBrowserType.isEdge()
+            && (now.type === 'inboundrtp' || now.type === 'outboundrtp')) {
             continue;
         }
 
         const before = this.previousStatsReport[idx];
-        const ssrc = this.getNonNegativeStat(now, 'ssrc');
+        let ssrc = this.getNonNegativeStat(now, 'ssrc');
+
+        // If type="track", take the first SSRC from ssrcIds.
+        if (now.type === 'track' && Array.isArray(now.ssrcIds)) {
+            ssrc = Number(now.ssrcIds[0]);
+        }
 
         if (!before || !ssrc) {
             continue;
@@ -529,10 +577,12 @@ StatsCollector.prototype.processStatsReport = function() {
         // according to the spec
         // https://www.w3.org/TR/webrtc-stats/#dom-rtcrtpstreamstats-isremote
         // when isRemote is true indicates that the measurements were done at
-        // the remote endpoint and reported in an RTCP RR/XR
+        // the remote endpoint and reported in an RTCP RR/XR.
         // Fixes a problem where we are calculating local stats wrong adding
-        // the sent bytes to the local download bitrate
-        if (now.isRemote === true) {
+        // the sent bytes to the local download bitrate.
+        // In new W3 stats spec, type="track" has a remoteSource boolean
+        // property.
+        if (now.isRemote === true || now.remoteSource === true) {
             continue;
         }
 
@@ -615,8 +665,10 @@ StatsCollector.prototype.processStatsReport = function() {
             'upload': bitrateSentKbps
         });
 
-        const resolution = { height: null,
-            width: null };
+        const resolution = {
+            height: null,
+            width: null
+        };
 
         try {
             let height, width;
@@ -763,6 +815,7 @@ StatsCollector.prototype.processStatsReport = function() {
         upload:
             calculatePacketLoss(lostPackets.upload, totalPackets.upload)
     };
+
     this.eventEmitter.emit(
         StatisticsEvents.CONNECTION_STATS,
         this.peerconnection,
@@ -794,12 +847,16 @@ StatsCollector.prototype.processAudioLevelReport = function() {
 
         const now = this.currentAudioLevelsReport[idx];
 
-        if (now.type !== 'ssrc') {
+        if (now.type !== 'ssrc' && now.type !== 'track') {
             continue;
         }
 
         const before = this.baselineAudioLevelsReport[idx];
-        const ssrc = this.getNonNegativeStat(now, 'ssrc');
+        let ssrc = this.getNonNegativeStat(now, 'ssrc');
+
+        if (!ssrc && Array.isArray(now.ssrcIds)) {
+            ssrc = Number(now.ssrcIds[0]);
+        }
 
         if (!before) {
             logger.warn(`${ssrc} not enough data`);
@@ -828,11 +885,33 @@ StatsCollector.prototype.processAudioLevelReport = function() {
         }
 
         if (audioLevel) {
-            const isLocal = !getStatValue(now, 'packetsReceived');
+            let isLocal;
+
+            // If type="ssrc" (legacy) check whether they are received packets.
+            if (now.type === 'ssrc') {
+                isLocal = !getStatValue(now, 'packetsReceived');
+
+            // If type="track", check remoteSource boolean property.
+            } else {
+                isLocal = !now.remoteSource;
+            }
+
+            // According to the W3C WebRTC Stats spec, audioLevel should be in
+            // 0..1 range (0 == silence). However browsers don't behave that
+            // way so we must convert it to 0..1.
+            //
+            // In Edge the range is -100..0 (-100 == silence) measured in dB,
+            // so convert to linear. The levels are set to 0 for remote tracks,
+            // so don't convert those, since 0 means "the maximum" in Edge.
+            if (RTCBrowserType.isEdge()) {
+                audioLevel = audioLevel < 0 ? Math.pow(10, audioLevel / 20) : 0;
 
             // TODO: Can't find specs about what this value really is, but it
             // seems to vary between 0 and around 32k.
-            audioLevel = audioLevel / 32767;
+            } else {
+                audioLevel = audioLevel / 32767;
+            }
+
             this.eventEmitter.emit(
                 StatisticsEvents.AUDIO_LEVEL,
                 this.peerconnection,
