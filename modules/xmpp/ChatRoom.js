@@ -1137,7 +1137,7 @@ export default class ChatRoom extends Listenable {
      */
     dial(number) {
         return this.connection.rayo.dial(number, 'fromnumber',
-            Strophe.getNodeFromJid(this.myroomjid), this.password,
+            Strophe.getBareJidFromJid(this.myroomjid), this.password,
             this.focusMucJid);
     }
 
