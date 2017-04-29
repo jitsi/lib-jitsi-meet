@@ -11,6 +11,12 @@ const logger = require('jitsi-meet-logger').getLogger(__filename);
 const ScriptUtil = require('../util/ScriptUtil');
 
 /**
+ * Stores all active {@link Statistics} instances.
+ * @type {Set<Statistics>}
+ */
+let _instances;
+
+/**
  * True if callstats API is loaded
  */
 let isCallstatsLoaded = false;
@@ -124,11 +130,20 @@ Statistics.audioLevelsInterval = 200;
 Statistics.disableThirdPartyRequests = false;
 Statistics.analytics = analytics;
 
-/**
- * Stores all active {@link Statistics} instances.
- * @type {Set<Statistics>}
- */
-Statistics.instances = new Set();
+Object.defineProperty(Statistics, 'instances', {
+    /**
+     * Returns the Set holding all active {@link Statistics} instances. Lazily
+     * initializes the Set to allow any Set polyfills to be applied.
+     * @type {Set<Statistics>}
+     */
+    get() {
+        if (!_instances) {
+            _instances = new Set();
+        }
+
+        return _instances;
+    }
+});
 
 Statistics.prototype.startRemoteStats = function(peerconnection) {
     this.stopRemoteStats();
