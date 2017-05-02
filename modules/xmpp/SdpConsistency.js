@@ -35,6 +35,7 @@ export default class SdpConsistency {
      */
     clearVideoSsrcCache() {
         this.cachedPrimarySsrc = null;
+        this.injectRecvOnly = false;
     }
 
     /**
@@ -81,17 +82,18 @@ export default class SdpConsistency {
 
             return sdpStr;
         }
+
         if (videoMLine.direction === 'recvonly') {
             // If the mline is recvonly, we'll add the primary
             //  ssrc as a recvonly ssrc
-            if (this.cachedPrimarySsrc) {
+            if (this.cachedPrimarySsrc && this.injectRecvOnly) {
                 videoMLine.addSSRCAttribute({
                     id: this.cachedPrimarySsrc,
                     attribute: 'cname',
                     value: `recvonly-${this.cachedPrimarySsrc}`
                 });
             } else {
-                logger.error(
+                logger.info(
                     `${this.logPrefix} no SSRC found for the recvonly video`
                         + 'stream!');
             }
@@ -129,6 +131,8 @@ export default class SdpConsistency {
                     `${this.logPrefix} sdp-consistency caching primary ssrc`
                         + `${this.cachedPrimarySsrc}`);
             }
+
+            this.injectRecvOnly = true;
         }
 
         return sdpTransformer.toRawSDP();
