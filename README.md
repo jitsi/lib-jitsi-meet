@@ -12,8 +12,3 @@ To build the library, just type:
 ```
 npm install
 ```
-
-## Discuss
-
-Please use the [Jitsi dev mailing list](http://lists.jitsi.org/pipermail/dev/) to discuss feature requests before
-opening an issue on GithHub.
