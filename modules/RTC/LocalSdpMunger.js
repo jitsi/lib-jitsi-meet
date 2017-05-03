@@ -93,14 +93,6 @@ export default class LocalSdpMunger {
                 // eslint-disable-next-line no-continue
                 continue;
             }
-            if (!videoMLine.getSSRCCount()) {
-                logger.error(
-                    `${this.tpc} - no video SSRCs found`
-                        + '(should be at least the recv-only one)');
-
-                // eslint-disable-next-line no-continue
-                continue;
-            }
 
             modified = true;
 
