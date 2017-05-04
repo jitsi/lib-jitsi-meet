@@ -62,6 +62,12 @@ const reportType = {
 };
 
 /**
+ * Set of currently existing {@link CallStats} instances.
+ * @type {Set<CallStats>}
+ */
+let _fabrics;
+
+/**
  * An instance of this class is a wrapper for the CallStats API fabric. A fabric
  * reports one peer connection the the CallStats backend and is allocated with
  * {@link callstats.addNewFabric}. It has a bunch of instance methods for
@@ -298,6 +304,19 @@ export default class CallStats {
         };
 
         /* eslint-enable max-params */
+    }
+
+    /**
+     * Returns the Set with the currently existing {@link CallStats} instances.
+     * Lazily initializes the Set to allow any Set polyfills to be applied.
+     * @type {Set<CallStats>}
+     */
+    static get fabrics() {
+        if (!_fabrics) {
+            _fabrics = new Set();
+        }
+
+        return _fabrics;
     }
 
     /**
@@ -703,9 +722,3 @@ CallStats.callStatsSecret = null;
  * @type {object}
  */
 CallStats.userID = null;
-
-/**
- * Set of currently existing {@link CallStats} instances.
- * @type {Set<CallStats>}
- */
-CallStats.fabrics = new Set();
