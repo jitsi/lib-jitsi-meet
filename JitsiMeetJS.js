@@ -248,6 +248,18 @@ export default {
                         RTCBrowserType.getBrowserName());
                 }
             }, USER_MEDIA_PERMISSION_PROMPT_TIMEOUT);
+
+            // The call to gum is not guaranteed to complete within
+            // USER_MEDIA_PERMISSION_PROMPT_TIMEOUT. On supported browsers,
+            // checking for permission prompt display can at least prevent some
+            // erroneous cases of firing the PERMISSION_PROMPT_IS_SHOWN event in
+            // the case of slow gum.
+            RTC.mightShowPermissionPrompt()
+                .then(mightShowPermissionPrompt => {
+                    if (!promiseFulfilled) {
+                        promiseFulfilled = !mightShowPermissionPrompt;
+                    }
+                });
         }
 
         if (!window.connectionTimes) {

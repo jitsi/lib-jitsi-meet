@@ -618,6 +618,16 @@ export default class RTC extends Listenable {
     }
 
     /**
+     * Returns whether or not the permission prompt for user media might
+     * display.
+     *
+     * @returns {Promise<boolean>}
+     */
+    static mightShowPermissionPrompt() {
+        return RTCUtils.mightShowPermissionPrompt();
+    }
+
+    /**
      * A method to handle stopping of the stream.
      * One point to handle the differences in various implementations.
      * @param mediaStream MediaStream object to stop.
