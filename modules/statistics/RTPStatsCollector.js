@@ -516,6 +516,17 @@ StatsCollector.prototype.processStatsReport = function() {
             continue;
         }
 
+        // isRemote is available only in FF and is ignored in case of chrome
+        // according to the spec
+        // https://www.w3.org/TR/webrtc-stats/#dom-rtcrtpstreamstats-isremote
+        // when isRemote is true indicates that the measurements were done at
+        // the remote endpoint and reported in an RTCP RR/XR
+        // Fixes a problem where we are calculating local stats wrong adding
+        // the sent bytes to the local download bitrate
+        if (now.isRemote === true) {
+            continue;
+        }
+
         const ssrcStats
           = this.ssrc2stats[ssrc] || (this.ssrc2stats[ssrc] = new SsrcStats());
 
