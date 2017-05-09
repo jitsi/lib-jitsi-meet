@@ -108,6 +108,17 @@ const RTCBrowserType = {
     },
 
     /**
+     * Checks if the current client supports Simulcast.
+     * @return {boolean} <tt>true</tt> if Simulcast is supported or
+     * <tt>false</tt> otherwise.
+     */
+    isSimulcastSupported() {
+        // Possibly it could work with anything that uses "official" WebRTC
+        // stack, but only Chrome was tested.
+        return RTCBrowserType.isChrome();
+    },
+
+    /**
      * Checks if current environment is NWJS.
      * @returns {boolean}
      */

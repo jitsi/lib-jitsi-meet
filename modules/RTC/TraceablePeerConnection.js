@@ -356,7 +356,7 @@ TraceablePeerConnection.prototype._getDesiredMediaDirection
  */
 TraceablePeerConnection.prototype.isSimulcastOn = function() {
     return !this.options.disableSimulcast
-        && this.simulcast.isSupported()
+        && RTCBrowserType.isSimulcastSupported()
         && !this.isP2P;
 };
 
