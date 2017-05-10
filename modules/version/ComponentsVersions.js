@@ -28,7 +28,7 @@ ComponentsVersions.XMPP_SERVER_COMPONENT = 'xmpp';
  *        listen for focus presence updates.
  * @constructor
  */
-function ComponentsVersions(conference) {
+export default function ComponentsVersions(conference) {
 
     this.versions = {};
 
@@ -99,5 +99,3 @@ ComponentsVersions.prototype.processPresence
 ComponentsVersions.prototype.getComponentVersion = function(componentName) {
     return this.versions[componentName];
 };
-
-module.exports = ComponentsVersions;

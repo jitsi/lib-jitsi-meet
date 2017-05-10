@@ -6,7 +6,7 @@ import SDPUtil from './SDPUtil';
  *
  * @param sdp
  */
-function SDP(sdp) {
+export default function SDP(sdp) {
     const media = sdp.split('\r\nm=');
 
     for (let i = 1, length = media.length; i < length; i++) {
@@ -852,5 +852,3 @@ SDP.prototype.jingle2media = function(content) {
 
     return media;
 };
-
-module.exports = SDP;

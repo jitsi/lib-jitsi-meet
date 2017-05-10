@@ -39,7 +39,7 @@ function arrayEquals(array1, array2) {
  * @param mySDP
  * @param otherSDP
  */
-function SDPDiffer(mySDP, otherSDP) {
+export default function SDPDiffer(mySDP, otherSDP) {
     this.mySDP = mySDP;
     this.otherSDP = otherSDP;
 }
@@ -190,5 +190,3 @@ SDPDiffer.prototype.toJingle = function(modify) {
 
     return modified;
 };
-
-module.exports = SDPDiffer;

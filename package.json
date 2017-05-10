@@ -57,6 +57,6 @@
   "pre-commit": [
     "lint"
   ],
-  "main": "./JitsiMeetJS.js",
+  "main": "./index.js",
   "license": "Apache-2.0"
 }

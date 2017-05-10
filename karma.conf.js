@@ -15,7 +15,7 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
         files: [
-            './JitsiMeetJS.js',
+            './index.js',
             './modules/**/*.spec.js'
         ],
 
@@ -29,7 +29,7 @@ module.exports = function(config) {
     // available preprocessors:
     //  https://npmjs.org/browse/keyword/karma-preprocessor
         preprocessors: {
-            './JitsiMeetJS.js': [ 'webpack' ],
+            './index.js': [ 'webpack' ],
             './**/*.spec.js': [ 'webpack' ]
         },
 

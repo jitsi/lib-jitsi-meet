@@ -31,7 +31,7 @@ if (minimize) {
 module.exports = {
     devtool: 'source-map',
     entry: {
-        'lib-jitsi-meet': './JitsiMeetJS.js'
+        'lib-jitsi-meet': './index.js'
     },
     module: {
         loaders: [ {

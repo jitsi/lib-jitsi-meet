@@ -10,8 +10,8 @@ const browserSupported = RTCBrowserType.isChrome()
         || RTCBrowserType.isNWJS() || RTCBrowserType.isElectron();
 
 /**
- * The LibJitsiMeet browser-agnostic names of the browser-specific keys reported
- * by RTCPeerConnection#getStats mapped by RTCBrowserType.
+ * The lib-jitsi-meet browser-agnostic names of the browser-specific keys
+ * reported by RTCPeerConnection#getStats mapped by RTCBrowserType.
  */
 const KEYS_BY_BROWSER_TYPE = {};
 
@@ -207,8 +207,9 @@ export default function StatsCollector(
 
     /**
      * The function which is to be used to retrieve the value associated in a
-     * report returned by RTCPeerConnection#getStats with a LibJitsiMeet
+     * report returned by RTCPeerConnection#getStats with a lib-jitsi-meet
      * browser-agnostic name/key.
+     *
      * @function
      * @private
      */
@@ -329,13 +330,13 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
 /**
  * Defines a function which (1) is to be used as a StatsCollector method and (2)
  * gets the value from a specific report returned by RTCPeerConnection#getStats
- * associated with a LibJitsiMeet browser-agnostic name.
+ * associated with a lib-jitsi-meet browser-agnostic name.
  *
  * @param {Object.<string,string>} keys the map of LibJitsi browser-agnostic
  * names to RTCPeerConnection#getStats browser-specific keys
  */
 StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
-    // Define the function which converts a LibJitsiMeet browser-asnostic name
+    // Define the function which converts a lib-jitsi-meet browser-asnostic name
     // to a browser-specific key of a report returned by
     // RTCPeerConnection#getStats.
     const keyFromName = function(name) {
@@ -395,10 +396,8 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
 
     // Compose the 2 functions defined above to get a function which retrieves
     // the value from a specific report returned by RTCPeerConnection#getStats
-    // associated with a specific LibJitsiMeet browser-agnostic name.
-    return function(item, name) {
-        return itemStatByKey(item, keyFromName(name));
-    };
+    // associated with a specific lib-jitsi-meet browser-agnostic name.
+    return (item, name) => itemStatByKey(item, keyFromName(name));
 };
 
 /* eslint-disable no-continue */
