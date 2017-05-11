@@ -89,6 +89,15 @@ export default class JingleSessionPC extends JingleSession {
          */
         this._gatheringStartedTimestamp = null;
 
+        /**
+         * Marks that ICE gathering duration has been reported already. That
+         * prevents reporting it again, after eventual 'transport-replace' (JVB
+         * conference migration/ICE restart).
+         * @type {boolean}
+         * @private
+         */
+        this._gatheringReported = false;
+
         this.lasticecandidate = false;
         this.closed = false;
 
@@ -259,7 +268,7 @@ export default class JingleSessionPC extends JingleSession {
                         }
                     }
                 }
-            } else {
+            } else if (!this._gatheringReported) {
                 // End of gathering
                 let eventName = this.isP2P ? 'p2p.ice.' : 'ice.';
 
@@ -268,6 +277,7 @@ export default class JingleSessionPC extends JingleSession {
                 Statistics.analytics.sendEvent(
                     eventName,
                     { value: now - this._gatheringStartedTimestamp });
+                this._gatheringReported = true;
             }
             this.sendIceCandidate(candidate);
         };
