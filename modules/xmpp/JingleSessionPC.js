@@ -69,6 +69,26 @@ export default class JingleSessionPC extends JingleSession {
             options) {
         super(sid, me, peerjid, connection, mediaConstraints, iceConfig);
 
+        /**
+         * Stores result of {@link window.performance.now()} at the time when
+         * ICE enters 'checking' state.
+         * @type {number|null} null if no value has been stored yet
+         * @private
+         */
+        this._iceCheckingStartedTimestamp = null;
+
+        /**
+         * Stores result of {@link window.performance.now()} at the time when
+         * first ICE candidate is spawned by the peerconnection to mark when
+         * ICE gathering started. That's, because ICE gathering state changed
+         * events are not supported by most of the browsers, so we try something
+         * that will work everywhere. It may not be as accurate, but given that
+         * 'host' candidate usually comes first, the delay should be minimal.
+         * @type {number|null} null if no value has been stored yet
+         * @private
+         */
+        this._gatheringStartedTimestamp = null;
+
         this.lasticecandidate = false;
         this.closed = false;
 
@@ -217,8 +237,13 @@ export default class JingleSessionPC extends JingleSession {
 
             // XXX this is broken, candidate is not parsed.
             const candidate = ev.candidate;
+            const now = window.performance.now();
 
             if (candidate) {
+                if (this._gatheringStartedTimestamp === null) {
+                    this._gatheringStartedTimestamp = now;
+                }
+
                 // Discard candidates of disabled protocols.
                 let protocol = candidate.protocol;
 
@@ -234,6 +259,15 @@ export default class JingleSessionPC extends JingleSession {
                         }
                     }
                 }
+            } else {
+                // End of gathering
+                let eventName = this.isP2P ? 'p2p.ice.' : 'ice.';
+
+                eventName += this.isInitiator ? 'initiator' : 'responder';
+                eventName += '.gatheringDuration';
+                Statistics.analytics.sendEvent(
+                    eventName,
+                    { value: now - this._gatheringStartedTimestamp });
             }
             this.sendIceCandidate(candidate);
         };
@@ -290,6 +324,9 @@ export default class JingleSessionPC extends JingleSession {
                 this,
                 this.peerconnection.iceConnectionState);
             switch (this.peerconnection.iceConnectionState) {
+            case 'checking':
+                this._iceCheckingStartedTimestamp = now;
+                break;
             case 'connected':
                 // Informs interested parties that the connection has been
                 // restored.
@@ -297,11 +334,22 @@ export default class JingleSessionPC extends JingleSession {
                     if (this.isreconnect) {
                         this.room.eventEmitter.emit(
                             XMPPEvents.CONNECTION_RESTORED, this);
-                    } else if (!this.wasConnected) {
-                        this.room.eventEmitter.emit(
-                            XMPPEvents.CONNECTION_ESTABLISHED, this);
                     }
+                }
+
+                if (!this.wasConnected && this.wasstable) {
+                    let eventName = this.isP2P ? 'p2p.ice.' : 'ice.';
+
+                    eventName += this.isInitiator ? 'initiator.' : 'responder.';
+                    eventName += 'checksDuration';
+                    Statistics.analytics.sendEvent(
+                        eventName,
+                        {
+                            value: now - this._iceCheckingStartedTimestamp
+                        });
                     this.wasConnected = true;
+                    this.room.eventEmitter.emit(
+                            XMPPEvents.CONNECTION_ESTABLISHED, this);
                 }
                 this.isreconnect = false;
                 break;
