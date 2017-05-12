@@ -108,17 +108,6 @@ const RTCBrowserType = {
     },
 
     /**
-     * Checks if the current client supports Simulcast.
-     * @return {boolean} <tt>true</tt> if Simulcast is supported or
-     * <tt>false</tt> otherwise.
-     */
-    isSimulcastSupported() {
-        // Possibly it could work with anything that uses "official" WebRTC
-        // stack, but only Chrome was tested.
-        return RTCBrowserType.isChrome();
-    },
-
-    /**
      * Checks if current environment is NWJS.
      * @returns {boolean}
      */
@@ -223,10 +212,9 @@ const RTCBrowserType = {
      * @returns {boolean}
      */
     supportsSimulcast() {
-        // This mirrors what sdp-simulcast uses (which is used when deciding
-        // whether to actually enable simulcast or not).
-        // TODO: the logic should be in one single place.
-        return window.chrome !== undefined;
+        return RTCBrowserType.isChrome()
+            || RTCBrowserType.isElectron()
+            || RTCBrowserType.isNWJS();
     },
 
     supportsRtx() {

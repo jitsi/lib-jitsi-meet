@@ -2,7 +2,6 @@ import * as ConnectionQualityEvents
     from '../../service/connectivity/ConnectionQualityEvents';
 import * as ConferenceEvents from '../../JitsiConferenceEvents';
 import { getLogger } from 'jitsi-meet-logger';
-import RTCBrowserType from '../RTC/RTCBrowserType';
 
 const XMPPEvents = require('../../service/xmpp/XMPPEvents');
 const VideoType = require('../../service/RTC/VideoType');
@@ -158,13 +157,6 @@ export default class ConnectionQuality {
          * The owning JitsiConference.
          */
         this._conference = conference;
-
-        /**
-         * Whether simulcast is supported. Note that even if supported, it is
-         * currently not used for screensharing.
-         */
-        this._simulcast
-            = !options.disableSimulcast && RTCBrowserType.supportsSimulcast();
 
         /**
          * Holds statistics about the local connection quality.
@@ -346,9 +338,14 @@ export default class ConnectionQuality {
             const millisSinceStart = window.performance.now()
                     - Math.max(this._timeVideoUnmuted, this._timeIceConnected);
 
+            // Figure out if simulcast is in use
+            const activeTPC = this._conference.getActivePeerConnection();
+            const isSimulcastOn
+                = Boolean(activeTPC && activeTPC.isSimulcastOn());
+
             // expected sending bitrate in perfect conditions
             let target
-                = getTarget(this._simulcast, resolution, millisSinceStart);
+                = getTarget(isSimulcastOn, resolution, millisSinceStart);
 
             target = 0.9 * target;
 
