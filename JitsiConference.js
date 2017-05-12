@@ -1,5 +1,6 @@
 /* global __filename, Strophe, Promise */
 
+import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import ConnectionQuality from './modules/connectivity/ConnectionQuality';
 import { getLogger } from 'jitsi-meet-logger';
@@ -40,6 +41,9 @@ const logger = getLogger(__filename);
  * @param options.name the name of the conference
  * @param options.connection the JitsiConnection object for this
  * JitsiConference.
+ * @param {number} [options.config.avgRtpStatsN=15] how many samples are to be
+ * collected by {@link AvgRTPStatsReporter}, before arithmetic mean is
+ * calculated and submitted to the analytics module.
  * @param {boolean} [options.config.enableP2P] when set to <tt>true</tt>
  * the peer to peer mode will be enabled. It means that when there are only 2
  * participants in the conference an attempt to make direct connection will be
@@ -107,6 +111,13 @@ export default function JitsiConference(options) {
      */
     this.connectionQuality
         = new ConnectionQuality(this, this.eventEmitter, options);
+
+    /**
+     * Reports average RTP statistics to the analytics module.
+     * @type {AvgRTPStatsReporter}
+     */
+    this.avgRtpStatsReporter
+        = new AvgRTPStatsReporter(this, options.config.avgRtpStatsN || 15);
 
     /**
      * Indicates whether the connection is interrupted or not.
@@ -264,6 +275,10 @@ JitsiConference.prototype.leave = function() {
     if (this.participantConnectionStatus) {
         this.participantConnectionStatus.dispose();
         this.participantConnectionStatus = null;
+    }
+    if (this.avgRtpStatsReporter) {
+        this.avgRtpStatsReporter.dispose();
+        this.avgRtpStatsReporter = null;
     }
 
     this.getLocalTracks().forEach(track => this.onLocalTrackRemoved(track));
