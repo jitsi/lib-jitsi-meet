@@ -297,7 +297,7 @@ export default class XMPP extends Listenable {
 
             if (this.options.hosts.anonymousdomain
                     && (window.location.search.indexOf('login=true') !== -1
-                        || this.options.token)) {
+                        || this.token)) {
                 configDomain = this.options.hosts.domain;
             }
 
