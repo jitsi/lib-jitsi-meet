@@ -185,6 +185,14 @@ export default class AvgRTPStatsReporter {
         this._avgRemoteFPS = new AverageStatReport('stat.avg.framerate.remote');
 
         /**
+         * Map stores average RTT to the JVB reported by remote participants.
+         * Mapped per participant id {@link JitsiParticipant.getId}.
+         * @type {Map<string,AverageStatReport>}
+         * @private
+         */
+        this._avgRemoteRTTMap = new Map();
+
+        /**
          * Average round trip time reported by the ICE candidate pair.
          * FIXME currently reported only for P2P
          * @type {AverageStatReport}
@@ -212,6 +220,12 @@ export default class AvgRTPStatsReporter {
             ConnectionQualityEvents.LOCAL_STATS_UPDATED,
             this._onLocalStatsUpdated);
 
+        this._onRemoteStatsUpdated
+            = (id, data) => this._processRemoteStats(id, data);
+        conference.on(
+            ConnectionQualityEvents.REMOTE_STATS_UPDATED,
+            this._onRemoteStatsUpdated);
+
         this._onP2PStatusChanged = () => {
             logger.debug('Resetting average stats calculation');
             this._resetAvgStats();
@@ -219,6 +233,33 @@ export default class AvgRTPStatsReporter {
         conference.on(
             ConferenceEvents.P2P_STATUS,
             this._onP2PStatusChanged);
+
+        this._onUserLeft = id => this._avgRemoteRTTMap.delete(id);
+        conference.on(ConferenceEvents.USER_LEFT, this._onUserLeft);
+    }
+
+    /**
+     * Calculates arithmetic mean of all RTTs towards the JVB reported by
+     * participants.
+     * @return {number|NaN} NaN if not available (not enough data)
+     * @private
+     */
+    _calculateAvgRemoteRTT() {
+        let count = 0, sum = 0;
+
+        // FIXME should we ignore RTT for participant
+        // who "is having connectivity issues" ?
+        for (const remoteAvg of this._avgRemoteRTTMap.values()) {
+            const avg = remoteAvg.calculate();
+
+            if (!isNaN(avg)) {
+                sum += avg;
+                count += 1;
+                remoteAvg.reset();
+            }
+        }
+
+        return sum / count;
     }
 
     /**
@@ -290,8 +331,7 @@ export default class AvgRTPStatsReporter {
         this._avgCQ.addNext(data.connectionQuality);
 
         if (RTCBrowserType.supportsRTTStatistics()) {
-            // FIXME implement JVB end-to-end RTT
-            if (isP2P && data.transport && data.transport.length) {
+            if (data.transport && data.transport.length) {
                 this._avgRTT.addNext(data.transport[0].rtt);
             } else {
                 this._avgRTT.reset();
@@ -321,9 +361,18 @@ export default class AvgRTPStatsReporter {
             this._avgLocalFPS.report(isP2P);
             this._avgCQ.report(isP2P);
 
-            // FIXME implement JVB end-to-end RTT
-            if (isP2P && RTCBrowserType.supportsRTTStatistics()) {
+            if (RTCBrowserType.supportsRTTStatistics()) {
                 this._avgRTT.report(isP2P);
+                if (!isP2P) {
+                    const avgRemoteRTT = this._calculateAvgRemoteRTT();
+                    const avgLocalRTT = this._avgRTT.calculate();
+
+                    if (!isNaN(avgLocalRTT) && !isNaN(avgRemoteRTT)) {
+                        Statistics.analytics.sendEvent(
+                            'stat.avg.end2endrtt',
+                            avgLocalRTT + avgRemoteRTT);
+                    }
+                }
             }
 
             this._resetAvgStats();
@@ -367,6 +416,29 @@ export default class AvgRTPStatsReporter {
     }
 
     /**
+     * Processes {@link ConnectionQualityEvents.REMOTE_STATS_UPDATED} to analyse
+     * RTT towards the JVB reported by each participant.
+     * @param {string} id {@link JitsiParticipant.getId}
+     * @param {go figure in ConnectionQuality.js} data
+     * @private
+     */
+    _processRemoteStats(id, data) {
+        const validData = typeof data.jvbRTT === 'number';
+        let rttAvg = this._avgRemoteRTTMap.get(id);
+
+        if (!rttAvg && validData) {
+            rttAvg = new AverageStatReport(`${id}.stat.rtt`);
+            this._avgRemoteRTTMap.set(id, rttAvg);
+        }
+
+        if (validData) {
+            rttAvg.addNext(data.jvbRTT);
+        } else if (rttAvg) {
+            this._avgRemoteRTTMap.delete(id);
+        }
+    }
+
+    /**
      * Reset cache of all averages and {@link _sampleIdx}.
      * @private
      */
@@ -381,6 +453,7 @@ export default class AvgRTPStatsReporter {
         this._avgLocalFPS.reset();
         this._avgCQ.reset();
         this._avgRTT.reset();
+        this._avgRemoteRTTMap.clear();
         this._sampleIdx = 0;
     }
 
@@ -388,15 +461,17 @@ export default class AvgRTPStatsReporter {
      * Unregisters all event listeners and stops working.
      */
     dispose() {
-        if (this._onP2PStatusChanged) {
-            this._conference.off(
-                ConferenceEvents.P2P_STATUS,
-                this._onP2PStatusChanged);
-        }
-        if (this._onLocalStatsUpdated) {
-            this._conference.off(
-                ConnectionQualityEvents.LOCAL_STATS_UPDATED,
-                this._onLocalStatsUpdated);
-        }
+        this._conference.off(
+            ConferenceEvents.P2P_STATUS,
+            this._onP2PStatusChanged);
+        this._conference.off(
+            ConnectionQualityEvents.LOCAL_STATS_UPDATED,
+            this._onLocalStatsUpdated);
+        this._conference.off(
+            ConnectionQualityEvents.REMOTE_STATS_UPDATED,
+            this._onRemoteStatsUpdated);
+        this._conference.off(
+            ConferenceEvents.USER_LEFT,
+            this._onUserLeft);
     }
 }

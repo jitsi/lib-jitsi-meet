@@ -396,7 +396,11 @@ export default class ConnectionQuality {
         const data = {
             bitrate: this._localStats.bitrate,
             packetLoss: this._localStats.packetLoss,
-            connectionQuality: this._localStats.connectionQuality
+            connectionQuality: this._localStats.connectionQuality,
+            jvbRTT: this._localStats.transport
+                    && this._localStats.transport.length
+                    && !this._localStats.transport[0].p2p
+                        ? this._localStats.transport[0].rtt : undefined
         };
 
         // TODO: It looks like the remote participants don't really "care"
@@ -477,7 +481,8 @@ export default class ConnectionQuality {
         this._remoteStats[id] = {
             bitrate: data.bitrate,
             packetLoss: data.packetLoss,
-            connectionQuality: data.connectionQuality
+            connectionQuality: data.connectionQuality,
+            jvbRTT: data.jvbRTT
         };
 
         this.eventEmitter.emit(
