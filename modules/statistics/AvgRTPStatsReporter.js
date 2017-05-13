@@ -222,7 +222,7 @@ export default class AvgRTPStatsReporter {
         const isP2P = this._conference.isP2PActive();
         const peerCount = this._conference.getParticipants().length;
 
-        if (!isP2P && peerCount < 2) {
+        if (!isP2P && peerCount < 1) {
 
             // There's no point in collecting stats for a JVB conference of 1.
             // That happens for short period of time after everyone leaves
