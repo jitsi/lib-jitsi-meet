@@ -208,6 +208,17 @@ const RTCBrowserType = {
     },
 
     /**
+     * Checks if the current browser reports upload and download bandwidth
+     * statistics.
+     * @return {boolean}
+     */
+    supportsBandwidthStatistics() {
+        // FIXME bandwidth stats are currently not implemented for FF on our
+        // side, but not sure if not possible ?
+        return !RTCBrowserType.isFirefox();
+    },
+
+    /**
      * Whether jitsi-meet supports simulcast on the current browser.
      * @returns {boolean}
      */

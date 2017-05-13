@@ -4,6 +4,7 @@ import { getLogger } from 'jitsi-meet-logger';
 import * as ConnectionQualityEvents
     from '../../service/connectivity/ConnectionQualityEvents';
 import * as ConferenceEvents from '../../JitsiConferenceEvents';
+import RTCBrowserType from '../RTC/RTCBrowserType';
 import Statistics from './statistics';
 
 const logger = getLogger(__filename);
@@ -32,7 +33,8 @@ class AverageStatReport {
     addNext(nextValue) {
         if (typeof nextValue !== 'number') {
             logger.error(
-                `${this.name} - invalid value for idx: ${this.count}`);
+                `${this.name} - invalid value for idx: ${this.count}`,
+                nextValue);
 
             return;
         }
@@ -268,8 +270,12 @@ export default class AvgRTPStatsReporter {
 
         this._avgBitrateUp.addNext(bitrate.upload);
         this._avgBitrateDown.addNext(bitrate.download);
-        this._avgBandwidthUp.addNext(bandwidth.upload);
-        this._avgBandwidthDown.addNext(bandwidth.download);
+
+        if (RTCBrowserType.supportsBandwidthStatistics()) {
+            this._avgBandwidthUp.addNext(bandwidth.upload);
+            this._avgBandwidthDown.addNext(bandwidth.download);
+        }
+
         this._avgPacketLossUp.addNext(packetLoss.upload);
         this._avgPacketLossDown.addNext(packetLoss.download);
         this._avgPacketLossTotal.addNext(packetLoss.total);
@@ -287,8 +293,10 @@ export default class AvgRTPStatsReporter {
         if (this._sampleIdx >= this._n) {
             this._avgBitrateUp.report(isP2P);
             this._avgBitrateDown.report(isP2P);
-            this._avgBandwidthUp.report(isP2P);
-            this._avgBandwidthDown.report(isP2P);
+            if (RTCBrowserType.supportsBandwidthStatistics()) {
+                this._avgBandwidthUp.report(isP2P);
+                this._avgBandwidthDown.report(isP2P);
+            }
             this._avgPacketLossUp.report(isP2P);
             this._avgPacketLossDown.report(isP2P);
             this._avgPacketLossTotal.report(isP2P);
