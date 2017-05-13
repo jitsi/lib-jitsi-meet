@@ -44,7 +44,8 @@ KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME] = {
     'googFrameRateReceived': 'googFrameRateReceived',
     'googFrameRateSent': 'googFrameRateSent',
     'audioInputLevel': 'audioInputLevel',
-    'audioOutputLevel': 'audioOutputLevel'
+    'audioOutputLevel': 'audioOutputLevel',
+    'currentRoundTripTime': 'googRtt'
 };
 KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_OPERA]
     = KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
@@ -457,13 +458,14 @@ StatsCollector.prototype.processStatsReport = function() {
         } catch (e) { /* not supported*/ }
 
         if (now.type === 'googCandidatePair') {
-            let active, ip, localip, type;
+            let active, ip, localip, rtt, type;
 
             try {
                 ip = getStatValue(now, 'remoteAddress');
                 type = getStatValue(now, 'transportType');
                 localip = getStatValue(now, 'localAddress');
                 active = getStatValue(now, 'activeConnection');
+                rtt = getNonNegativeStat(now, 'currentRoundTripTime');
             } catch (e) { /* not supported*/ }
             if (!ip || !type || !localip || active !== 'true') {
                 continue;
@@ -481,7 +483,8 @@ StatsCollector.prototype.processStatsReport = function() {
                     ip,
                     type,
                     localip,
-                    p2p: this.peerconnection.isP2P
+                    p2p: this.peerconnection.isP2P,
+                    rtt
                 });
             }
             continue;

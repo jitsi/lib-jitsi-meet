@@ -185,6 +185,14 @@ export default class AvgRTPStatsReporter {
         this._avgRemoteFPS = new AverageStatReport('stat.avg.framerate.remote');
 
         /**
+         * Average round trip time reported by the ICE candidate pair.
+         * FIXME currently reported only for P2P
+         * @type {AverageStatReport}
+         * @private
+         */
+        this._avgRTT = new AverageStatReport('stat.avg.rtt');
+
+        /**
          * Average FPS for local video
          * @type {AverageStatReport}
          * @private
@@ -281,6 +289,15 @@ export default class AvgRTPStatsReporter {
         this._avgPacketLossTotal.addNext(packetLoss.total);
         this._avgCQ.addNext(data.connectionQuality);
 
+        if (RTCBrowserType.supportsRTTStatistics()) {
+            // FIXME implement JVB end-to-end RTT
+            if (isP2P && data.transport && data.transport.length) {
+                this._avgRTT.addNext(data.transport[0].rtt);
+            } else {
+                this._avgRTT.reset();
+            }
+        }
+
         if (frameRate) {
             this._avgRemoteFPS.addNext(
                 this._calculateAvgVideoFps(frameRate, false /* remote */));
@@ -303,6 +320,11 @@ export default class AvgRTPStatsReporter {
             this._avgRemoteFPS.report(isP2P);
             this._avgLocalFPS.report(isP2P);
             this._avgCQ.report(isP2P);
+
+            // FIXME implement JVB end-to-end RTT
+            if (isP2P && RTCBrowserType.supportsRTTStatistics()) {
+                this._avgRTT.report(isP2P);
+            }
 
             this._resetAvgStats();
         }
@@ -358,6 +380,7 @@ export default class AvgRTPStatsReporter {
         this._avgRemoteFPS.reset();
         this._avgLocalFPS.reset();
         this._avgCQ.reset();
+        this._avgRTT.reset();
         this._sampleIdx = 0;
     }
 

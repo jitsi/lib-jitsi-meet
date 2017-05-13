@@ -219,6 +219,23 @@ const RTCBrowserType = {
     },
 
     /**
+     * Checks if the current browser reports round trip time statistics for
+     * the ICE candidate pair.
+     * @return {boolean}
+     */
+    supportsRTTStatistics() {
+        // Firefox does not seem to report RTT for ICE candidate pair:
+        // eslint-disable-next-line max-len
+        // https://www.w3.org/TR/webrtc-stats/#dom-rtcicecandidatepairstats-currentroundtriptime
+        // It does report mozRTT for RTP streams, but at the time of this
+        // writing it's value does not make sense most of the time
+        // (is reported as 1):
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1241066
+        // For Chrome and others we rely on 'googRtt'.
+        return !RTCBrowserType.isFirefox();
+    },
+
+    /**
      * Whether jitsi-meet supports simulcast on the current browser.
      * @returns {boolean}
      */
