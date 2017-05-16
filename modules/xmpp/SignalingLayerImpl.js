@@ -24,7 +24,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
          * onaddstream webrtc event where we have only the ssrc
          * FIXME: This map got filled and never cleaned and can grow during long
          * conference
-         * @type {Map<string, string>} maps SSRC number to jid
+         * @type {Map<number, string>} maps SSRC number to jid
          */
         this.ssrcOwners = new Map();
 
@@ -95,7 +95,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
 
     /**
      * Set an SSRC owner.
-     * @param {string} ssrc an SSRC to be owned
+     * @param {number} ssrc an SSRC to be owned
      * @param {string} endpointId owner's ID (MUC nickname)
      */
     setSSRCOwner(ssrc, endpointId) {

@@ -670,7 +670,7 @@ export default class RTC extends Listenable {
     /**
      * Searches in localTracks(session stores ssrc for audio and video) and
      * remoteTracks for the ssrc and returns the corresponding resource.
-     * @param ssrc the ssrc to check.
+     * @param {number} ssrc the ssrc to check.
      */
     getResourceBySSRC(ssrc) {
         const track = this._getTrackBySSRC(ssrc);
@@ -680,22 +680,16 @@ export default class RTC extends Listenable {
 
     /**
      * Finds a track (either local or remote) which runs on the given SSRC.
-     * @param {string|number} ssrc
+     * @param {number} ssrc
      * @return {JitsiTrack|undefined}
-     *
-     * FIXME figure out where SSRC is stored as a string and convert to number
      * @private
      */
     _getTrackBySSRC(ssrc) {
         let track
             = this.getLocalTracks().find(
                 localTrack =>
-
-                    // It is important that SSRC is not compared with ===,
-                    // because the code calling this method is inconsistent
-                    // about string vs number types
                     Array.from(this.peerConnections.values())
-                         .find(pc => pc.getLocalSSRC(localTrack) == ssrc) // eslint-disable-line eqeqeq, max-len
+                         .find(pc => pc.getLocalSSRC(localTrack) === ssrc)
                 );
 
         if (!track) {
@@ -708,19 +702,14 @@ export default class RTC extends Listenable {
     /**
      * Searches in remoteTracks for the ssrc and returns the corresponding
      * track.
-     * @param ssrc the ssrc to check.
+     * @param {number} ssrc the ssrc to check.
      * @return {JitsiRemoteTrack|undefined} return the first remote track that
      * matches given SSRC or <tt>undefined</tt> if no such track was found.
      * @private
      */
     _getRemoteTrackBySSRC(ssrc) {
-        /* eslint-disable eqeqeq */
-        // FIXME: Convert the SSRCs in whole project to use the same type.
-        // Now we are using number and string.
         return this.getRemoteTracks().find(
-            remoteTrack => ssrc == remoteTrack.getSSRC());
-
-        /* eslint-enable eqeqeq */
+            remoteTrack => ssrc === remoteTrack.getSSRC());
     }
 
     /**

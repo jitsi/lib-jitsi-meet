@@ -542,7 +542,11 @@ export default class JingleSessionPC extends JingleSession {
                         + 'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
 
             ssrcs.each((i2, ssrcElement) => {
-                const ssrc = ssrcElement.getAttribute('ssrc');
+                const ssrc = Number(ssrcElement.getAttribute('ssrc'));
+
+                if (isNaN(ssrc)) {
+                    return;
+                }
 
                 $(ssrcElement)
                     .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')

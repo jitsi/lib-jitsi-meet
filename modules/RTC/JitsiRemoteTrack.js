@@ -22,7 +22,7 @@ let ttfmTrackerVideoAttached = false;
  *        the new JitsiRemoteTrack
  * @param {MediaType} mediaType the type of the media
  * @param {VideoType} videoType the type of the video if applicable
- * @param {string} ssrc the SSRC number of the Media Stream
+ * @param {number} ssrc the SSRC number of the Media Stream
  * @param {boolean} muted the initial muted state
  * @param {boolean} isP2P indicates whether or not this track belongs to a P2P
  * session
@@ -50,6 +50,11 @@ export default function JitsiRemoteTrack(
         mediaType,
         videoType);
     this.rtc = rtc;
+
+    // Prevent from mixing up type of SSRC which should be a number
+    if (typeof ssrc !== 'number') {
+        throw new Error(`SSRC ${ssrc} is not a number`);
+    }
     this.ssrc = ssrc;
     this.ownerEndpointId = ownerEndpointId;
     this.muted = muted;
@@ -147,7 +152,7 @@ JitsiRemoteTrack.prototype.isLocal = function() {
 
 /**
  * Returns the synchronization source identifier (SSRC) of this remote track.
- * @returns {string} the SSRC of this remote track
+ * @returns {number} the SSRC of this remote track
  */
 JitsiRemoteTrack.prototype.getSSRC = function() {
     return this.ssrc;
