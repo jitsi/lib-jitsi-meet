@@ -406,7 +406,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
 
 /**
  * Obtains a stat value from given stat and converts it to a non-negative
- * number. If the value is invalid <tt>NaN</tt> is returned.
+ * number. If the value is either invalid or negative then 0 will be returned.
  * @param report
  * @param {string} name
  * @return {number}
