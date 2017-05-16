@@ -45,6 +45,15 @@ const RTCUIHelper = {
     },
 
     /**
+     * Returns whether or not the video element fires resize events.
+     *
+     * @returns {boolean}
+     */
+    isResizeEventSupported() {
+        return !RTCBrowserType.isTemasysPluginUsed();
+    },
+
+    /**
      * Sets 'volume' property of given HTML element displaying RTC audio or
      * video stream.
      * @param streamElement HTML element to which the RTC stream is attached to.
