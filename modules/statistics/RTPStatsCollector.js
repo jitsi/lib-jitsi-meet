@@ -469,7 +469,7 @@ StatsCollector.prototype.processStatsReport = function() {
                 type = getStatValue(now, 'transportType');
                 localip = getStatValue(now, 'localAddress');
                 active = getStatValue(now, 'activeConnection');
-                rtt = getNonNegativeStat(now, 'currentRoundTripTime');
+                rtt = this.getNonNegativeStat(now, 'currentRoundTripTime');
             } catch (e) { /* not supported*/ }
             if (!ip || !type || !localip || active !== 'true') {
                 continue;
