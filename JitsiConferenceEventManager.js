@@ -57,8 +57,7 @@ function mapResolutionsByUserId(conference, resolutions) {
 
     // preprocess resolutions: group by user id, skip incorrect
     // resolutions etc.
-    for (const ssrc of resolutions.keys()) {
-        const resolution = resolutions.get(ssrc);
+    for (const [ ssrc, resolution ] of resolutions) {
         const id = conference.rtc.getResourceBySSRC(ssrc);
 
         if (id
@@ -85,8 +84,7 @@ function mapFrameratesByUserId(conference, framerates) {
     const id2framerate = {};
 
     // preprocess framerates: group by user id
-    for (const ssrc of framerates.keys()) {
-        const framerate = framerates.get(ssrc);
+    for (const [ ssrc, framerate ] of framerates) {
         const id = conference.rtc.getResourceBySSRC(ssrc);
 
         if (framerate !== 0 && id) {
