@@ -48,59 +48,6 @@ export default function JitsiConferenceEventManager(conference) {
 }
 
 /**
- * Groups resolutions by user id, skip incorrect resolutions.
- * @param conference {JitsiConference} the conference
- * @param resolutions map of resolutions by ssrc
- */
-function mapResolutionsByUserId(conference, resolutions) {
-    const id2resolution = {};
-
-    // preprocess resolutions: group by user id, skip incorrect
-    // resolutions etc.
-    for (const [ ssrc, resolution ] of resolutions) {
-        const id = conference.rtc.getResourceBySSRC(ssrc);
-
-        if (id
-            && resolution.width && resolution.height
-            && resolution.width !== -1 && resolution.height !== -1) {
-            // ssrc to resolution map for user id
-            const idResolutions = id2resolution[id] || {};
-
-            idResolutions[ssrc] = resolution;
-
-            id2resolution[id] = idResolutions;
-        }
-    }
-
-    return id2resolution;
-}
-
-/**
- * Groups framerates by user id, skip framerates with value of 0.
- * @param conference {JitsiConference} the conference
- * @param framerates map of framerates by ssrc
- */
-function mapFrameratesByUserId(conference, framerates) {
-    const id2framerate = {};
-
-    // preprocess framerates: group by user id
-    for (const [ ssrc, framerate ] of framerates) {
-        const id = conference.rtc.getResourceBySSRC(ssrc);
-
-        if (framerate !== 0 && id) {
-            // ssrc to framerate map for user id
-            const id2framerates = id2framerate[id] || {};
-
-            id2framerates[ssrc] = framerate;
-
-            id2framerate[id] = id2framerates;
-        }
-    }
-
-    return id2framerate;
-}
-
-/**
  * Setups event listeners related to conference.chatRoom
  */
 JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
@@ -621,22 +568,23 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
         return;
     }
 
-    conference.statistics.addAudioLevelListener((ssrc, level) => {
-        conference.rtc.setAudioLevel(ssrc, level);
+    /* eslint-disable max-params */
+    conference.statistics.addAudioLevelListener((tpc, ssrc, level, isLocal) => {
+        conference.rtc.setAudioLevel(tpc, ssrc, level, isLocal);
     });
+
+    /* eslint-enable max-params */
 
     // Forward the "before stats disposed" event
     conference.statistics.addBeforeDisposedListener(() => {
         conference.eventEmitter.emit(
             JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED);
     });
-    conference.statistics.addConnectionStatsListener(stats => {
-
-        stats.resolution = mapResolutionsByUserId(conference, stats.resolution);
-        stats.framerate = mapFrameratesByUserId(conference, stats.framerate);
-
-        conference.eventEmitter.emit(
-            JitsiConferenceEvents.CONNECTION_STATS, stats);
+    conference.statistics.addConnectionStatsListener((tpc, stats) => {
+        if (conference.getActivePeerConnection() === tpc) {
+            conference.eventEmitter.emit(
+                JitsiConferenceEvents.CONNECTION_STATS, stats);
+        }
     });
 
     conference.statistics.addByteSentStatsListener((tpc, stats) => {
