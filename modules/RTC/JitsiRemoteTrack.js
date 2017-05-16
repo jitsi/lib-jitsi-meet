@@ -26,6 +26,7 @@ let ttfmTrackerVideoAttached = false;
  * @param {boolean} muted the initial muted state
  * @param {boolean} isP2P indicates whether or not this track belongs to a P2P
  * session
+ * @throws {TypeError} if <tt>ssrc</tt> is not a number.
  * @constructor
  */
 export default function JitsiRemoteTrack(
@@ -53,7 +54,7 @@ export default function JitsiRemoteTrack(
 
     // Prevent from mixing up type of SSRC which should be a number
     if (typeof ssrc !== 'number') {
-        throw new Error(`SSRC ${ssrc} is not a number`);
+        throw new TypeError(`SSRC ${ssrc} is not a number`);
     }
     this.ssrc = ssrc;
     this.ownerEndpointId = ownerEndpointId;
