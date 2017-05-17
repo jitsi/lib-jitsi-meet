@@ -544,18 +544,20 @@ export default class JingleSessionPC extends JingleSession {
             ssrcs.each((i2, ssrcElement) => {
                 const ssrc = Number(ssrcElement.getAttribute('ssrc'));
 
-                if (isNaN(ssrc)) {
-                    return;
-                }
-
                 $(ssrcElement)
                     .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
                     .each((i3, ssrcInfoElement) => {
                         const owner = ssrcInfoElement.getAttribute('owner');
 
                         if (owner && owner.length) {
-                            this.signalingLayer.setSSRCOwner(
-                                ssrc, Strophe.getResourceFromJid(owner));
+                            if (isNaN(ssrc) || ssrc < 0) {
+                                logger.warn(
+                                    `Invalid SSRC ${ssrc} value received`
+                                        + ` for ${owner}`);
+                            } else {
+                                this.signalingLayer.setSSRCOwner(
+                                    ssrc, Strophe.getResourceFromJid(owner));
+                            }
                         }
                     }
                 );

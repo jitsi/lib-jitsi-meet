@@ -97,8 +97,12 @@ export default class SignalingLayerImpl extends SignalingLayer {
      * Set an SSRC owner.
      * @param {number} ssrc an SSRC to be owned
      * @param {string} endpointId owner's ID (MUC nickname)
+     * @throws TypeError if <tt>ssrc</tt> is not a number
      */
     setSSRCOwner(ssrc, endpointId) {
+        if (typeof ssrc !== 'number') {
+            throw new TypeError(`SSRC(${ssrc}) must be a number`);
+        }
         this.ssrcOwners.set(ssrc, endpointId);
     }
 }

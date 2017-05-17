@@ -579,10 +579,10 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
     const trackSsrc = Number(ssrcStr);
     const ownerEndpointId = this.signalingLayer.getSSRCOwner(trackSsrc);
 
-    if (isNaN(trackSsrc)) {
+    if (isNaN(trackSsrc) || trackSsrc < 0) {
         GlobalOnErrorHandler.callErrorHandler(
             new Error(
-                `Failed to parse SSRC: ${ssrcStr
+                `Invalid SSRC: ${ssrcStr
                     } for remote track, msid: ${streamId
                     } media type: ${mediaType}`));
 
