@@ -410,6 +410,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
  * @param report
  * @param {string} name
  * @return {number}
+ * @private
  */
 StatsCollector.prototype.getNonNegativeStat = function(report, name) {
     let value = this._getStatValue(report, name);
