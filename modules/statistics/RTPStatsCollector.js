@@ -667,9 +667,7 @@ StatsCollector.prototype.processStatsReport = function() {
     const resolutions = new Map();
     const framerates = new Map();
 
-    for (const ssrc of this.ssrc2stats.keys()) {
-        const ssrcStats = this.ssrc2stats.get(ssrc);
-
+    for (const [ ssrc, ssrcStats ] of this.ssrc2stats) {
         // process packet loss stats
         const loss = ssrcStats.loss;
         const type = loss.isDownloadStream ? 'download' : 'upload';
