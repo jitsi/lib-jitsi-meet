@@ -568,6 +568,7 @@ export default class AvgRTPStatsReporter {
         this._avgBandwidthDown.reset();
         this._avgPacketLossUp.reset();
         this._avgPacketLossDown.reset();
+        this._avgPacketLossTotal.reset();
         this._avgRemoteFPS.reset();
         this._avgLocalFPS.reset();
         this._avgCQ.reset();
