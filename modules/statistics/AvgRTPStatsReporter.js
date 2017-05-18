@@ -35,11 +35,10 @@ class AverageStatReport {
             logger.error(
                 `${this.name} - invalid value for idx: ${this.count}`,
                 nextValue);
-
-            return;
+        } else if (!isNaN(nextValue)) {
+            this.sum += nextValue;
+            this.count += 1;
         }
-        this.sum += nextValue;
-        this.count += 1;
     }
 
     /**
@@ -533,16 +532,23 @@ export default class AvgRTPStatsReporter {
                 const videos = frameRate[peerID];
                 const ssrcs = Object.keys(videos);
 
-                if (ssrcs.length) {
-                    let peerAvg = 0;
+                let peerFpsSum = 0;
+                let peerSsrcCount = 0;
 
-                    for (const ssrc of ssrcs) {
-                        peerAvg += parseInt(videos[ssrc], 10);
+                for (const ssrc of ssrcs) {
+                    const peerSsrcFps = parseInt(videos[ssrc], 10);
+
+                    // FPS is reported as 0 for users with no video
+                    if (peerSsrcFps > 0) {
+                        peerFpsSum += peerSsrcFps;
+                        peerSsrcCount += 1;
                     }
+                }
 
-                    peerAvg /= ssrcs.length;
+                if (peerSsrcCount > 0) {
+                    peerFpsSum /= peerSsrcCount;
 
-                    subFrameAvg += peerAvg;
+                    subFrameAvg += peerFpsSum / peerSsrcCount;
                     peerCount += 1;
                 }
             }
