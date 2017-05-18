@@ -59,6 +59,7 @@ export const CONNECTION_RESTORED = 'conference.connectionRestored';
 /**
  * New local connection statistics are received.
  * @deprecated Use ConnectionQualityEvents.LOCAL_STATS_UPDATED instead.
+ * FIXME remove unused
  */
 export const CONNECTION_STATS = 'conference.connectionStats';
 

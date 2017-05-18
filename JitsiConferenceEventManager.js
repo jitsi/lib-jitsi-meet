@@ -580,13 +580,6 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
         conference.eventEmitter.emit(
             JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED);
     });
-    conference.statistics.addConnectionStatsListener((tpc, stats) => {
-        if (conference.getActivePeerConnection() === tpc) {
-            conference.eventEmitter.emit(
-                JitsiConferenceEvents.CONNECTION_STATS, stats);
-        }
-    });
-
     conference.statistics.addByteSentStatsListener((tpc, stats) => {
         conference.getLocalTracks(MediaType.AUDIO).forEach(track => {
             const ssrc = tpc.getLocalSSRC(track);
