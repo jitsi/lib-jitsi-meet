@@ -19,7 +19,7 @@ export default class SignalingLayer extends Listenable {
 
     /**
      * Obtains the endpoint ID for given SSRC.
-     * @param {string} ssrc a string representation of the SSRC number.
+     * @param {number} ssrc the SSRC number.
      * @return {string|null} the endpoint ID for given media SSRC.
      */
     getSSRCOwner(ssrc) { // eslint-disable-line no-unused-vars

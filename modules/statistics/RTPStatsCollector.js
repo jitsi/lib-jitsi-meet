@@ -231,8 +231,11 @@ export default function StatsCollector(
     this.statsIntervalId = null;
     this.statsIntervalMilis = statsInterval;
 
-    // Map of ssrcs to SsrcStats
-    this.ssrc2stats = {};
+    /**
+     * Maps SSRC numbers to {@link SsrcStats}.
+     * @type {Map<number,SsrcStats}
+     */
+    this.ssrc2stats = new Map();
 }
 
 /* eslint-enable max-params */
@@ -401,6 +404,28 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
     return (item, name) => itemStatByKey(item, keyFromName(name));
 };
 
+/**
+ * Obtains a stat value from given stat and converts it to a non-negative
+ * number. If the value is either invalid or negative then 0 will be returned.
+ * @param report
+ * @param {string} name
+ * @return {number}
+ * @private
+ */
+StatsCollector.prototype.getNonNegativeStat = function(report, name) {
+    let value = this._getStatValue(report, name);
+
+    if (typeof value !== 'number') {
+        value = Number(value);
+    }
+
+    if (isNaN(value)) {
+        return 0;
+    }
+
+    return Math.max(0, value);
+};
+
 /* eslint-disable no-continue */
 
 /**
@@ -412,25 +437,6 @@ StatsCollector.prototype.processStatsReport = function() {
     }
 
     const getStatValue = this._getStatValue;
-
-    /**
-     *
-     * @param report
-     * @param name
-     */
-    function getNonNegativeStat(report, name) {
-        let value = getStatValue(report, name);
-
-        if (typeof value !== 'number') {
-            value = Number(value);
-        }
-
-        if (isNaN(value)) {
-            return 0;
-        }
-
-        return Math.max(0, value);
-    }
     const byteSentStats = {};
 
     for (const idx in this.currentStatsReport) {
@@ -464,7 +470,7 @@ StatsCollector.prototype.processStatsReport = function() {
                 type = getStatValue(now, 'transportType');
                 localip = getStatValue(now, 'localAddress');
                 active = getStatValue(now, 'activeConnection');
-                rtt = getNonNegativeStat(now, 'currentRoundTripTime');
+                rtt = this.getNonNegativeStat(now, 'currentRoundTripTime');
             } catch (e) { /* not supported*/ }
             if (!ip || !type || !localip || active !== 'true') {
                 continue;
@@ -512,7 +518,7 @@ StatsCollector.prototype.processStatsReport = function() {
         }
 
         const before = this.previousStatsReport[idx];
-        const ssrc = getStatValue(now, 'ssrc');
+        const ssrc = this.getNonNegativeStat(now, 'ssrc');
 
         if (!before || !ssrc) {
             continue;
@@ -529,8 +535,12 @@ StatsCollector.prototype.processStatsReport = function() {
             continue;
         }
 
-        const ssrcStats
-          = this.ssrc2stats[ssrc] || (this.ssrc2stats[ssrc] = new SsrcStats());
+        let ssrcStats = this.ssrc2stats.get(ssrc);
+
+        if (!ssrcStats) {
+            ssrcStats = new SsrcStats();
+            this.ssrc2stats.set(ssrc, ssrcStats);
+        }
 
         let isDownloadStream = true;
         let key = 'packetsReceived';
@@ -550,11 +560,13 @@ StatsCollector.prototype.processStatsReport = function() {
             packetsNow = 0;
         }
 
-        const packetsBefore = getNonNegativeStat(before, key);
+        const packetsBefore = this.getNonNegativeStat(before, key);
         const packetsDiff = Math.max(0, packetsNow - packetsBefore);
 
-        const packetsLostNow = getNonNegativeStat(now, 'packetsLost');
-        const packetsLostBefore = getNonNegativeStat(before, 'packetsLost');
+        const packetsLostNow
+            = this.getNonNegativeStat(now, 'packetsLost');
+        const packetsLostBefore
+            = this.getNonNegativeStat(before, 'packetsLost');
         const packetsLostDiff = Math.max(0, packetsLostNow - packetsLostBefore);
 
         ssrcStats.setLoss({
@@ -563,8 +575,10 @@ StatsCollector.prototype.processStatsReport = function() {
             isDownloadStream
         });
 
-        const bytesReceivedNow = getNonNegativeStat(now, 'bytesReceived');
-        const bytesReceivedBefore = getNonNegativeStat(before, 'bytesReceived');
+        const bytesReceivedNow
+            = this.getNonNegativeStat(now, 'bytesReceived');
+        const bytesReceivedBefore
+            = this.getNonNegativeStat(before, 'bytesReceived');
         const bytesReceived
             = Math.max(0, bytesReceivedNow - bytesReceivedBefore);
 
@@ -628,7 +642,7 @@ StatsCollector.prototype.processStatsReport = function() {
             // let's try with another one (FF)
             try {
                 ssrcStats.setFramerate(Math.round(
-                    getNonNegativeStat(now, 'framerateMean')));
+                    this.getNonNegativeStat(now, 'framerateMean')));
             } catch (err) { /* not supported*/ }
         }
 
@@ -650,34 +664,29 @@ StatsCollector.prototype.processStatsReport = function() {
     };
     let bitrateDownload = 0;
     let bitrateUpload = 0;
-    const resolutions = {};
-    const framerates = {};
+    const resolutions = new Map();
+    const framerates = new Map();
 
-    Object.keys(this.ssrc2stats).forEach(
-        function(ssrc) {
-            const ssrcStats = this.ssrc2stats[ssrc];
+    for (const [ ssrc, ssrcStats ] of this.ssrc2stats) {
+        // process packet loss stats
+        const loss = ssrcStats.loss;
+        const type = loss.isDownloadStream ? 'download' : 'upload';
 
-            // process packet loss stats
-            const loss = ssrcStats.loss;
-            const type = loss.isDownloadStream ? 'download' : 'upload';
+        totalPackets[type] += loss.packetsTotal;
+        lostPackets[type] += loss.packetsLost;
 
-            totalPackets[type] += loss.packetsTotal;
-            lostPackets[type] += loss.packetsLost;
+        // process bitrate stats
+        bitrateDownload += ssrcStats.bitrate.download;
+        bitrateUpload += ssrcStats.bitrate.upload;
 
-            // process bitrate stats
-            bitrateDownload += ssrcStats.bitrate.download;
-            bitrateUpload += ssrcStats.bitrate.upload;
+        ssrcStats.resetBitrate();
 
-            ssrcStats.resetBitrate();
+        // collect resolutions
+        resolutions.set(ssrc, ssrcStats.resolution);
 
-            // collect resolutions
-            resolutions[ssrc] = ssrcStats.resolution;
-
-            // collect framerates
-            framerates[ssrc] = ssrcStats.framerate;
-        },
-        this
-    );
+        // collect framerates
+        framerates.set(ssrc, ssrcStats.framerate);
+    }
 
     this.eventEmitter.emit(
         StatisticsEvents.BYTE_SENT_STATS, this.peerconnection, byteSentStats);
@@ -728,7 +737,7 @@ StatsCollector.prototype.processAudioLevelReport = function() {
         }
 
         const before = this.baselineAudioLevelsReport[idx];
-        const ssrc = getStatValue(now, 'ssrc');
+        const ssrc = this.getNonNegativeStat(now, 'ssrc');
 
         if (!before) {
             logger.warn(`${ssrc} not enough data`);

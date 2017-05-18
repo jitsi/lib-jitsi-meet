@@ -53,32 +53,24 @@ export default function JitsiConferenceEventManager(conference) {
  * @param resolutions map of resolutions by ssrc
  */
 function mapResolutionsByUserId(conference, resolutions) {
-
     const id2resolution = {};
 
     // preprocess resolutions: group by user id, skip incorrect
     // resolutions etc.
-    Object.keys(resolutions).forEach(ssrc => {
-        const resolution = resolutions[ssrc];
-
-        if (!resolution.width || !resolution.height
-            || resolution.width === -1 || resolution.height === -1) {
-            return;
-        }
-
+    for (const [ ssrc, resolution ] of resolutions) {
         const id = conference.rtc.getResourceBySSRC(ssrc);
 
-        if (!id) {
-            return;
+        if (id
+            && resolution.width && resolution.height
+            && resolution.width !== -1 && resolution.height !== -1) {
+            // ssrc to resolution map for user id
+            const idResolutions = id2resolution[id] || {};
+
+            idResolutions[ssrc] = resolution;
+
+            id2resolution[id] = idResolutions;
         }
-
-        // ssrc to resolution map for user id
-        const idResolutions = id2resolution[id] || {};
-
-        idResolutions[ssrc] = resolution;
-
-        id2resolution[id] = idResolutions;
-    });
+    }
 
     return id2resolution;
 }
@@ -89,30 +81,21 @@ function mapResolutionsByUserId(conference, resolutions) {
  * @param framerates map of framerates by ssrc
  */
 function mapFrameratesByUserId(conference, framerates) {
-
     const id2framerate = {};
 
     // preprocess framerates: group by user id
-    Object.keys(framerates).forEach(ssrc => {
-        const framerate = framerates[ssrc];
-
-        if (framerate === 0) {
-            return;
-        }
-
+    for (const [ ssrc, framerate ] of framerates) {
         const id = conference.rtc.getResourceBySSRC(ssrc);
 
-        if (!id) {
-            return;
+        if (framerate !== 0 && id) {
+            // ssrc to framerate map for user id
+            const id2framerates = id2framerate[id] || {};
+
+            id2framerates[ssrc] = framerate;
+
+            id2framerate[id] = id2framerates;
         }
-
-        // ssrc to framerate map for user id
-        const id2framerates = id2framerate[id] || {};
-
-        id2framerates[ssrc] = framerate;
-
-        id2framerate[id] = id2framerates;
-    });
+    }
 
     return id2framerate;
 }

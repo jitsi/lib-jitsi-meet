@@ -600,7 +600,7 @@ export default class JingleSessionPC extends JingleSession {
                         + 'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
 
             ssrcs.each((i2, ssrcElement) => {
-                const ssrc = ssrcElement.getAttribute('ssrc');
+                const ssrc = Number(ssrcElement.getAttribute('ssrc'));
 
                 $(ssrcElement)
                     .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
@@ -608,8 +608,14 @@ export default class JingleSessionPC extends JingleSession {
                         const owner = ssrcInfoElement.getAttribute('owner');
 
                         if (owner && owner.length) {
-                            this.signalingLayer.setSSRCOwner(
-                                ssrc, Strophe.getResourceFromJid(owner));
+                            if (isNaN(ssrc) || ssrc < 0) {
+                                logger.warn(
+                                    `Invalid SSRC ${ssrc} value received`
+                                        + ` for ${owner}`);
+                            } else {
+                                this.signalingLayer.setSSRCOwner(
+                                    ssrc, Strophe.getResourceFromJid(owner));
+                            }
                         }
                     }
                 );
