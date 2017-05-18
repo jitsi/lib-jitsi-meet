@@ -229,7 +229,8 @@ export default class JingleSessionPC extends JingleSession {
                 {
                     disableSimulcast: this.room.options.disableSimulcast,
                     disableRtx: this.room.options.disableRtx,
-                    preferH264: this.room.options.preferH264
+                    preferH264: this.room.options.preferH264,
+                    _sdpAnswerDirection: this.room.options._sdpAnswerDirection
                 });
 
         this.peerconnection.setMediaTransferActive(this.mediaTransferActive);
