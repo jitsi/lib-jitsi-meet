@@ -189,7 +189,7 @@ class ConnectionAvgStats {
                     if (!isNaN(avgLocalRTT) && !isNaN(avgRemoteRTT)) {
                         Statistics.analytics.sendEvent(
                             'stat.avg.end2endrtt',
-                            avgLocalRTT + avgRemoteRTT);
+                            { value: avgLocalRTT + avgRemoteRTT });
                     }
                 }
             }
