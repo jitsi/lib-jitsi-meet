@@ -666,6 +666,10 @@ StatsCollector.prototype.processStatsReport = function() {
     let bitrateUpload = 0;
     const resolutions = {};
     const framerates = {};
+    let audioBitrateDownload = 0;
+    let audioBitrateUpload = 0;
+    let videoBitrateDownload = 0;
+    let videoBitrateUpload = 0;
 
     for (const [ ssrc, ssrcStats ] of this.ssrc2stats) {
         // process packet loss stats
@@ -679,12 +683,18 @@ StatsCollector.prototype.processStatsReport = function() {
         bitrateDownload += ssrcStats.bitrate.download;
         bitrateUpload += ssrcStats.bitrate.upload;
 
-        ssrcStats.resetBitrate();
-
         // collect resolutions and framerates
         const track = this.peerconnection.getTrackBySSRC(ssrc);
 
         if (track) {
+            if (track.isAudioTrack()) {
+                audioBitrateDownload += ssrcStats.bitrate.download;
+                audioBitrateUpload += ssrcStats.bitrate.upload;
+            } else {
+                videoBitrateDownload += ssrcStats.bitrate.download;
+                videoBitrateUpload += ssrcStats.bitrate.upload;
+            }
+
             const participantId = track.getParticipantId();
 
             if (participantId) {
@@ -721,14 +731,27 @@ StatsCollector.prototype.processStatsReport = function() {
                 `JitsiTrack not found for SSRC ${ssrc}`
                     + ` in ${this.peerconnection}`);
         }
+
+        ssrcStats.resetBitrate();
     }
 
     this.eventEmitter.emit(
         StatisticsEvents.BYTE_SENT_STATS, this.peerconnection, byteSentStats);
 
-    this.conferenceStats.bitrate
-      = { 'upload': bitrateUpload,
-          'download': bitrateDownload };
+    this.conferenceStats.bitrate = {
+        'upload': bitrateUpload,
+        'download': bitrateDownload
+    };
+
+    this.conferenceStats.bitrate.audio = {
+        'upload': audioBitrateUpload,
+        'download': audioBitrateDownload
+    };
+
+    this.conferenceStats.bitrate.video = {
+        'upload': videoBitrateUpload,
+        'download': videoBitrateDownload
+    };
 
     this.conferenceStats.packetLoss = {
         total:

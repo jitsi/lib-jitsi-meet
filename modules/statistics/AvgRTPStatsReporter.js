@@ -323,19 +323,36 @@ export default class AvgRTPStatsReporter {
         this._conference = conference;
 
         /**
-         * Average upload bitrate
+         * Average audio upload bitrate
          * @type {AverageStatReport}
          * @private
          */
-        this._avgBitrateUp = new AverageStatReport('stat.avg.bitrate.upload');
+        this._avgAudioBitrateUp
+            = new AverageStatReport('stat.avg.bitrate.audio.upload');
 
         /**
-         * Average download bitrate
+         * Average audio download bitrate
          * @type {AverageStatReport}
          * @private
          */
-        this._avgBitrateDown
-            = new AverageStatReport('stat.avg.bitrate.download');
+        this._avgAudioBitrateDown
+            = new AverageStatReport('stat.avg.bitrate.audio.download');
+
+        /**
+         * Average video upload bitrate
+         * @type {AverageStatReport}
+         * @private
+         */
+        this._avgVideoBitrateUp
+            = new AverageStatReport('stat.avg.bitrate.video.upload');
+
+        /**
+         * Average video download bitrate
+         * @type {AverageStatReport}
+         * @private
+         */
+        this._avgVideoBitrateDown
+            = new AverageStatReport('stat.avg.bitrate.video.download');
 
         /**
          * Average upload bandwidth
@@ -494,8 +511,11 @@ export default class AvgRTPStatsReporter {
             return;
         }
 
-        this._avgBitrateUp.addNext(bitrate.upload);
-        this._avgBitrateDown.addNext(bitrate.download);
+        this._avgAudioBitrateUp.addNext(bitrate.audio.upload);
+        this._avgAudioBitrateDown.addNext(bitrate.audio.download);
+
+        this._avgVideoBitrateUp.addNext(bitrate.video.upload);
+        this._avgVideoBitrateDown.addNext(bitrate.video.download);
 
         if (RTCBrowserType.supportsBandwidthStatistics()) {
             this._avgBandwidthUp.addNext(bandwidth.upload);
@@ -505,6 +525,7 @@ export default class AvgRTPStatsReporter {
         this._avgPacketLossUp.addNext(packetLoss.upload);
         this._avgPacketLossDown.addNext(packetLoss.download);
         this._avgPacketLossTotal.addNext(packetLoss.total);
+
         this._avgCQ.addNext(data.connectionQuality);
 
         if (frameRate) {
@@ -526,8 +547,12 @@ export default class AvgRTPStatsReporter {
         this._sampleIdx += 1;
 
         if (this._sampleIdx >= this._n) {
-            this._avgBitrateUp.report(isP2P);
-            this._avgBitrateDown.report(isP2P);
+            this._avgAudioBitrateUp.report(isP2P);
+            this._avgAudioBitrateDown.report(isP2P);
+
+            this._avgVideoBitrateUp.report(isP2P);
+            this._avgVideoBitrateDown.report(isP2P);
+
             if (RTCBrowserType.supportsBandwidthStatistics()) {
                 this._avgBandwidthUp.report(isP2P);
                 this._avgBandwidthDown.report(isP2P);
@@ -535,6 +560,7 @@ export default class AvgRTPStatsReporter {
             this._avgPacketLossUp.report(isP2P);
             this._avgPacketLossDown.report(isP2P);
             this._avgPacketLossTotal.report(isP2P);
+
             this._avgRemoteFPS.report(isP2P);
             if (!isNaN(this._avgRemoteScreenFPS.calculate())) {
                 this._avgRemoteScreenFPS.report(isP2P);
@@ -543,6 +569,7 @@ export default class AvgRTPStatsReporter {
             if (!isNaN(this._avgLocalScreenFPS.calculate())) {
                 this._avgLocalScreenFPS.report(isP2P);
             }
+
             this._avgCQ.report(isP2P);
 
             this._resetAvgStats();
@@ -647,18 +674,26 @@ export default class AvgRTPStatsReporter {
      * @private
      */
     _resetAvgStats() {
-        this._avgBitrateUp.reset();
-        this._avgBitrateDown.reset();
+        this._avgAudioBitrateUp.reset();
+        this._avgAudioBitrateDown.reset();
+
+        this._avgVideoBitrateUp.reset();
+        this._avgVideoBitrateDown.reset();
+
         this._avgBandwidthUp.reset();
         this._avgBandwidthDown.reset();
+
         this._avgPacketLossUp.reset();
         this._avgPacketLossDown.reset();
         this._avgPacketLossTotal.reset();
+
         this._avgRemoteFPS.reset();
         this._avgRemoteScreenFPS.reset();
         this._avgLocalFPS.reset();
         this._avgLocalScreenFPS.reset();
+
         this._avgCQ.reset();
+
         this._sampleIdx = 0;
     }
 
