@@ -52,6 +52,9 @@ const logger = getLogger(__filename);
  * @param {number} [options.config.backToP2PDelay=5] a delay given in seconds,
  * before the conference switches back to P2P, after the 3rd participant has
  * left the room.
+ * @param {number} [options.config.channelLastN=-1] The requested amount of
+ * videos are going to be delivered after the value is in effect. Set to -1 for
+ * unlimited or all available videos.
  * @constructor
  *
  * FIXME Make all methods which are called from lib-internal classes
@@ -247,6 +250,10 @@ JitsiConference.prototype._init = function(options = {}) {
             this,
             () =>
                 this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED));
+    }
+
+    if ('channelLastN' in options.config) {
+        this.setLastN(options.config.channelLastN);
     }
 };
 
