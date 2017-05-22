@@ -352,7 +352,7 @@ export default class JingleSessionPC extends JingleSession {
 
                     eventName += this.isInitiator ? 'initiator.' : 'responder.';
                     Statistics.analytics.sendEvent(
-                        `${eventName}checkDuration`,
+                        `${eventName}checksDuration`,
                         {
                             value: now - this._iceCheckingStartedTimestamp
                         });
@@ -361,10 +361,9 @@ export default class JingleSessionPC extends JingleSession {
                     // started first (scenarios are different for initiator
                     // vs responder)
                     const iceStarted
-                        = this._gatheringStartedTimestamp
-                            < this._iceCheckingStartedTimestamp
-                                ? this._gatheringStartedTimestamp
-                                : this._iceCheckingStartedTimestamp;
+                        = Math.min(
+                            this._iceCheckingStartedTimestamp,
+                            this._gatheringStartedTimestamp);
 
                     Statistics.analytics.sendEvent(
                         `${eventName}establishmentDuration`,
