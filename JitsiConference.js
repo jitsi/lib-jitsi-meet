@@ -603,8 +603,11 @@ JitsiConference.prototype._fireAudioLevelChangeEvent
 = function(tpc, audioLevel) {
     const activeTpc = this.getActivePeerConnection();
 
-    // There can be no TraceablePeerConnection if audio levels do not come from
-    // a peerconnection (see LocalStatsCollector.js)
+    // There will be no TraceablePeerConnection if audio levels do not come from
+    // a peerconnection. LocalStatsCollector.js measures audio levels using Web
+    // Audio Analyser API and emits local audio levels events through
+    // JitsiTrack.setAudioLevel, but does not provide TPC instance which is
+    // optional.
     if (tpc === null || activeTpc === tpc) {
         this.eventEmitter.emit(
             JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED,
