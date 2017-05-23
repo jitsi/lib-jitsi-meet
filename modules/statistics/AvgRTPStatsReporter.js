@@ -170,8 +170,6 @@ class ConnectionAvgStats {
         if (RTCBrowserType.supportsRTTStatistics()) {
             if (data.transport && data.transport.length) {
                 this._avgRTT.addNext(data.transport[0].rtt);
-            } else {
-                this._avgRTT.reset();
             }
         }
 
