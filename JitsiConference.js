@@ -1308,8 +1308,8 @@ JitsiConference.prototype.onIncomingCall
     // add info whether call is cross-region
     let crossRegion = null;
 
-    if (window.jitsiRegionInfo) {
-        crossRegion = window.jitsiRegionInfo.CrossRegion;
+    if (window.jitsiAnalyticsPermanentProperties) {
+        crossRegion = window.jitsiAnalyticsPermanentProperties.CrossRegion;
     }
     Statistics.analytics.sendEvent(
         'session.initiate', {

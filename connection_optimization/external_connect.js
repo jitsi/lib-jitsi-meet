@@ -41,16 +41,6 @@ function createConnectionExternally( // eslint-disable-line no-unused-vars
             if (xhttp.status == HTTP_STATUS_OK) {
                 try {
                     var data = JSON.parse(xhttp.responseText);
-
-                    var proxyRegion = xhttp.getResponseHeader('X-Proxy-Region');
-                    var jitsiRegion = xhttp.getResponseHeader('X-Jitsi-Region');
-                    window.jitsiRegionInfo = {
-                        'ProxyRegion' : proxyRegion,
-                        'Region' : jitsiRegion,
-                        'Shard' : xhttp.getResponseHeader('X-Jitsi-Shard'),
-                        'CrossRegion': proxyRegion !== jitsiRegion ? 1 : 0
-                    };
-
                     successCallback(data);
                 } catch (e) {
                     error_callback(e);
