@@ -351,11 +351,24 @@ export default class JingleSessionPC extends JingleSession {
                     let eventName = this.isP2P ? 'p2p.ice.' : 'ice.';
 
                     eventName += this.isInitiator ? 'initiator.' : 'responder.';
-                    eventName += 'checksDuration';
                     Statistics.analytics.sendEvent(
-                        eventName,
+                        `${eventName}checksDuration`,
                         {
                             value: now - this._iceCheckingStartedTimestamp
+                        });
+
+                    // Switch between ICE gathering and ICE checking whichever
+                    // started first (scenarios are different for initiator
+                    // vs responder)
+                    const iceStarted
+                        = Math.min(
+                            this._iceCheckingStartedTimestamp,
+                            this._gatheringStartedTimestamp);
+
+                    Statistics.analytics.sendEvent(
+                        `${eventName}establishmentDuration`,
+                        {
+                            value: now - iceStarted
                         });
                     this.wasConnected = true;
                     this.room.eventEmitter.emit(
