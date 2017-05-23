@@ -161,7 +161,10 @@ export default class ConnectionQuality {
         /**
          * Holds statistics about the local connection quality.
          */
-        this._localStats = { connectionQuality: 100 };
+        this._localStats = {
+            connectionQuality: 100,
+            jvbRTT: undefined
+        };
 
         /**
          * The time this._localStats.connectionQuality was last updated.
@@ -232,8 +235,7 @@ export default class ConnectionQuality {
         // jitsi-meet
         // TODO: We should keep track of the remote resolution in _remoteStats,
         // and notify about changes via separate events.
-        conference.on(
-            ConferenceEvents.CONNECTION_STATS,
+        conference.statistics.addConnectionStatsListener(
             this._updateLocalStats.bind(this));
 
         // Save the last time we were unmuted.
@@ -394,10 +396,7 @@ export default class ConnectionQuality {
             bitrate: this._localStats.bitrate,
             packetLoss: this._localStats.packetLoss,
             connectionQuality: this._localStats.connectionQuality,
-            jvbRTT: this._localStats.transport
-                    && this._localStats.transport.length
-                    && !this._localStats.transport[0].p2p
-                        ? this._localStats.transport[0].rtt : undefined
+            jvbRTT: this._localStats.jvbRTT
         };
 
         // TODO: It looks like the remote participants don't really "care"
@@ -429,9 +428,26 @@ export default class ConnectionQuality {
 
     /**
      * Updates the local statistics
+     * @param {TraceablePeerConnection} tpc the peerconnection which emitted
+     * the stats
      * @param data new statistics
      */
-    _updateLocalStats(data) {
+    _updateLocalStats(tpc, data) {
+        // Update jvbRTT
+        if (!tpc.isP2P) {
+            const jvbRTT
+                = data.transport
+                    && data.transport.length && data.transport[0].rtt;
+
+            this._localStats.jvbRTT = jvbRTT ? jvbRTT : undefined;
+        }
+
+        // Do not continue with processing of other stats if they do not
+        // originate from the active peerconnection
+        if (tpc !== this._conference.getActivePeerConnection()) {
+            return;
+        }
+
         let key;
         const updateLocalConnectionQuality
             = !this._conference.isConnectionInterrupted();

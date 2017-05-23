@@ -647,70 +647,32 @@ export default class RTC extends Listenable {
         }
     }
 
+    /* eslint-disable max-params */
     /**
      *
-     * @param resource
-     * @param audioLevel
+     * @param {TraceablePeerConnection} tpc
+     * @param {number} ssrc
+     * @param {number} audioLevel
+     * @param {boolean} isLocal
      */
-    setAudioLevel(ssrc, audioLevel) {
-        const track = this._getTrackBySSRC(ssrc);
+    setAudioLevel(tpc, ssrc, audioLevel, isLocal) {
+        const track = tpc.getTrackBySSRC(ssrc);
 
         if (!track) {
             return;
-        }
-        if (!track.isAudioTrack()) {
+        } else if (!track.isAudioTrack()) {
             logger.warn(`Received audio level for non-audio track: ${ssrc}`);
 
             return;
+        } else if (track.isLocal() !== isLocal) {
+            logger.error(
+                `${track} was expected to ${isLocal ? 'be' : 'not be'} local`);
         }
 
-        track.setAudioLevel(audioLevel);
+        track.setAudioLevel(tpc, audioLevel);
     }
 
-    /**
-     * Searches in localTracks(session stores ssrc for audio and video) and
-     * remoteTracks for the ssrc and returns the corresponding resource.
-     * @param {number} ssrc the ssrc to check.
-     */
-    getResourceBySSRC(ssrc) {
-        const track = this._getTrackBySSRC(ssrc);
-
-        return track ? track.getParticipantId() : null;
-    }
-
-    /**
-     * Finds a track (either local or remote) which runs on the given SSRC.
-     * @param {number} ssrc
-     * @return {JitsiTrack|undefined}
-     * @private
-     */
-    _getTrackBySSRC(ssrc) {
-        let track
-            = this.getLocalTracks().find(
-                localTrack =>
-                    Array.from(this.peerConnections.values())
-                         .find(pc => pc.getLocalSSRC(localTrack) === ssrc)
-                );
-
-        if (!track) {
-            track = this._getRemoteTrackBySSRC(ssrc);
-        }
-
-        return track;
-    }
-
-    /**
-     * Searches in remoteTracks for the ssrc and returns the corresponding
-     * track.
-     * @param {number} ssrc the ssrc to check.
-     * @return {JitsiRemoteTrack|undefined} return the first remote track that
-     * matches given SSRC or <tt>undefined</tt> if no such track was found.
-     * @private
-     */
-    _getRemoteTrackBySSRC(ssrc) {
-        return this.getRemoteTracks().find(
-            remoteTrack => ssrc === remoteTrack.getSSRC());
-    }
+    /* eslint-enable max-params */
 
     /**
      * Sends message via the datachannels.

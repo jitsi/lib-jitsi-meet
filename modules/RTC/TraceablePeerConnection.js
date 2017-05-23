@@ -474,6 +474,30 @@ TraceablePeerConnection.prototype.getRemoteTracks
 };
 
 /**
+ * Tries to find {@link JitsiTrack} for given SSRC number. It will search both
+ * local and remote tracks bound to this instance.
+ * @param {number} ssrc
+ * @return {JitsiTrack|null}
+ */
+TraceablePeerConnection.prototype.getTrackBySSRC = function(ssrc) {
+    if (typeof ssrc !== 'number') {
+        throw new Error(`SSRC ${ssrc} is not a number`);
+    }
+    for (const localTrack of this.localTracks.values()) {
+        if (this.getLocalSSRC(localTrack) === ssrc) {
+            return localTrack;
+        }
+    }
+    for (const remoteTrack of this.getRemoteTracks()) {
+        if (remoteTrack.getSSRC() === ssrc) {
+            return remoteTrack;
+        }
+    }
+
+    return null;
+};
+
+/**
  * Called when new remote MediaStream is added to the PeerConnection.
  * @param {MediaStream} stream the WebRTC MediaStream for remote participant
  */

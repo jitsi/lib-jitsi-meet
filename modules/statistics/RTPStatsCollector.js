@@ -664,8 +664,12 @@ StatsCollector.prototype.processStatsReport = function() {
     };
     let bitrateDownload = 0;
     let bitrateUpload = 0;
-    const resolutions = new Map();
-    const framerates = new Map();
+    const resolutions = {};
+    const framerates = {};
+    let audioBitrateDownload = 0;
+    let audioBitrateUpload = 0;
+    let videoBitrateDownload = 0;
+    let videoBitrateUpload = 0;
 
     for (const [ ssrc, ssrcStats ] of this.ssrc2stats) {
         // process packet loss stats
@@ -679,21 +683,75 @@ StatsCollector.prototype.processStatsReport = function() {
         bitrateDownload += ssrcStats.bitrate.download;
         bitrateUpload += ssrcStats.bitrate.upload;
 
+        // collect resolutions and framerates
+        const track = this.peerconnection.getTrackBySSRC(ssrc);
+
+        if (track) {
+            if (track.isAudioTrack()) {
+                audioBitrateDownload += ssrcStats.bitrate.download;
+                audioBitrateUpload += ssrcStats.bitrate.upload;
+            } else {
+                videoBitrateDownload += ssrcStats.bitrate.download;
+                videoBitrateUpload += ssrcStats.bitrate.upload;
+            }
+
+            const participantId = track.getParticipantId();
+
+            if (participantId) {
+                const resolution = ssrcStats.resolution;
+
+                if (resolution.width
+                        && resolution.height
+                        && resolution.width !== -1
+                        && resolution.height !== -1) {
+                    const userResolutions = resolutions[participantId] || {};
+
+                    userResolutions[ssrc] = resolution;
+                    resolutions[participantId] = userResolutions;
+                }
+                if (ssrcStats.framerate !== 0) {
+                    const userFramerates = framerates[participantId] || {};
+
+                    userFramerates[ssrc] = ssrcStats.framerate;
+                    framerates[participantId] = userFramerates;
+                }
+            } else {
+                logger.error(`No participant ID returned by ${track}`);
+            }
+        } else if (this.peerconnection.isP2P) {
+            // NOTE For JVB connection there are JVB tracks reported in
+            // the stats, but they do not have corresponding JitsiRemoteTrack
+            // instances stored in TPC. It is not trivial to figure out that
+            // a SSRC belongs to JVB, so we print this error ony for the P2P
+            // connection for the time being.
+            //
+            // Also there will be reports for tracks removed from the session,
+            // for the users who have left the conference.
+            logger.error(
+                `JitsiTrack not found for SSRC ${ssrc}`
+                    + ` in ${this.peerconnection}`);
+        }
+
         ssrcStats.resetBitrate();
-
-        // collect resolutions
-        resolutions.set(ssrc, ssrcStats.resolution);
-
-        // collect framerates
-        framerates.set(ssrc, ssrcStats.framerate);
     }
 
     this.eventEmitter.emit(
         StatisticsEvents.BYTE_SENT_STATS, this.peerconnection, byteSentStats);
 
-    this.conferenceStats.bitrate
-      = { 'upload': bitrateUpload,
-          'download': bitrateDownload };
+    this.conferenceStats.bitrate = {
+        'upload': bitrateUpload,
+        'download': bitrateDownload
+    };
+
+    this.conferenceStats.bitrate.audio = {
+        'upload': audioBitrateUpload,
+        'download': audioBitrateDownload
+    };
+
+    this.conferenceStats.bitrate.video = {
+        'upload': videoBitrateUpload,
+        'download': videoBitrateDownload
+    };
 
     this.conferenceStats.packetLoss = {
         total:
@@ -704,14 +762,17 @@ StatsCollector.prototype.processStatsReport = function() {
         upload:
             calculatePacketLoss(lostPackets.upload, totalPackets.upload)
     };
-    this.eventEmitter.emit(StatisticsEvents.CONNECTION_STATS, {
-        'bandwidth': this.conferenceStats.bandwidth,
-        'bitrate': this.conferenceStats.bitrate,
-        'packetLoss': this.conferenceStats.packetLoss,
-        'resolution': resolutions,
-        'framerate': framerates,
-        'transport': this.conferenceStats.transport
-    });
+    this.eventEmitter.emit(
+        StatisticsEvents.CONNECTION_STATS,
+        this.peerconnection,
+        {
+            'bandwidth': this.conferenceStats.bandwidth,
+            'bitrate': this.conferenceStats.bitrate,
+            'packetLoss': this.conferenceStats.packetLoss,
+            'resolution': resolutions,
+            'framerate': framerates,
+            'transport': this.conferenceStats.transport
+        });
     this.conferenceStats.transport = [];
 };
 
@@ -772,7 +833,11 @@ StatsCollector.prototype.processAudioLevelReport = function() {
             // seems to vary between 0 and around 32k.
             audioLevel = audioLevel / 32767;
             this.eventEmitter.emit(
-                StatisticsEvents.AUDIO_LEVEL, ssrc, audioLevel, isLocal);
+                StatisticsEvents.AUDIO_LEVEL,
+                this.peerconnection,
+                ssrc,
+                audioLevel,
+                isLocal);
         }
     }
 };

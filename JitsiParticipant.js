@@ -122,6 +122,15 @@ export default class JitsiParticipant {
     }
 
     /**
+     * @param {MediaType} mediaType
+     * @returns {Array.<JitsiTrack>} an array of media tracks for this
+     * participant, for given media type.
+     */
+    getTracksByMediaType(mediaType) {
+        return this.getTracks().filter(track => track.getType() === mediaType);
+    }
+
+    /**
      * @returns {String} The ID of this participant.
      */
     getId() {
