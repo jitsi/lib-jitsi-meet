@@ -584,7 +584,7 @@ export default class AvgRTPStatsReporter {
      * @private
      */
     _calculateAvgVideoFps(frameRate, isLocal, videoType) {
-        let avgRemoteFps = 0;
+        let peerFpsSum = 0;
         let peerCount = 0;
         const myID = this._conference.myUserId();
 
@@ -602,14 +602,14 @@ export default class AvgRTPStatsReporter {
                             videosFps, participant, videoType);
 
                     if (!isNaN(peerAvgFPS)) {
-                        avgRemoteFps += peerAvgFPS;
+                        peerFpsSum += peerAvgFPS;
                         peerCount += 1;
                     }
                 }
             }
         }
 
-        return avgRemoteFps / peerCount;
+        return peerFpsSum / peerCount;
     }
 
     /**
