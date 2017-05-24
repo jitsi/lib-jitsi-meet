@@ -129,13 +129,14 @@ export default {
         }
 
         // Log deployment-specific information, if available.
-        if (window.jitsiAnalyticsPermanentProperties
-            && Object.keys(window.jitsiAnalyticsPermanentProperties).length > 0) {
+        const aprops = window.jitsiAnalyticsPermanentProperties;
+
+        if (aprops && Object.keys(aprops).length > 0) {
             const logObject = {};
 
-            for (const attr in window.jitsiAnalyticsPermanentProperties) {
-                if (window.jitsiAnalyticsPermanentProperties.hasOwnProperty(attr)) {
-                    logObject[attr] = window.jitsiAnalyticsPermanentProperties[attr];
+            for (const attr in aprops) {
+                if (aprops.hasOwnProperty(attr)) {
+                    logObject[attr] = aprops[attr];
                 }
             }
 
