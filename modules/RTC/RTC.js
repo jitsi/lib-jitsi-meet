@@ -98,10 +98,29 @@ export default class RTC extends Listenable {
          */
         this._lastN = null;
 
-        // Defines the last N endpoints list. It can be null or an array once
-        // initialised with a datachannel last N event.
-        // @type {Array<string>|null}
+        /**
+         * Defines the last N endpoints list. It can be null or an array once
+         * initialised with a datachannel last N event.
+         * @type {Array<string>|null}
+         * @private
+         */
         this._lastNEndpoints = null;
+
+        /**
+         * The endpoint ID of currently pinned participant or <tt>null</tt> if
+         * no user is pinned.
+         * @type {string|null}
+         * @private
+         */
+        this._pinnedEndpoint = null;
+
+        /**
+         * The endpoint ID of currently selected participant or <tt>null</tt> if
+         * no user is selected.
+         * @type {string|null}
+         * @private
+         */
+        this._selectedEndpoint = null;
 
         // The last N change listener.
         this._lastNChangeListener = this._onLastNChanged.bind(this);
@@ -165,14 +184,17 @@ export default class RTC extends Listenable {
                 // about video selections so that it can do adaptive simulcast,
                 // we want the notification to trigger even if userJid
                 // is undefined, or null.
-                // XXX why do we not do the same for pinned endpoints?
                 try {
+                    this.dataChannels.sendPinnedEndpointMessage(
+                        this._pinnedEndpoint);
                     this.dataChannels.sendSelectedEndpointMessage(
-                        this.selectedEndpoint);
+                        this._selectedEndpoint);
                 } catch (error) {
                     GlobalOnErrorHandler.callErrorHandler(error);
-                    logger.error('Cannot sendSelectedEndpointMessage ',
-                        this.selectedEndpoint, '. Error: ', error);
+                    logger.error(
+                        `Cannot send selected(${this._selectedEndpoint})`
+                        + `pinned(${this._pinnedEndpoint}) endpoint message.`,
+                        error);
                 }
 
                 this.removeListener(RTCEvents.DATA_CHANNEL_OPEN,
@@ -247,7 +269,7 @@ export default class RTC extends Listenable {
      */
     selectEndpoint(id) {
         // cache the value if channel is missing, till we open it
-        this.selectedEndpoint = id;
+        this._selectedEndpoint = id;
         if (this.dataChannels && this.dataChannelsOpen) {
             this.dataChannels.sendSelectedEndpointMessage(id);
         }
@@ -262,12 +284,10 @@ export default class RTC extends Listenable {
      * fails.
      */
     pinEndpoint(id) {
-        if (this.dataChannels) {
+        // cache the value if channel is missing, till we open it
+        this._pinnedEndpoint = id;
+        if (this.dataChannels && this.dataChannelsOpen) {
             this.dataChannels.sendPinnedEndpointMessage(id);
-        } else {
-            // FIXME: cache value while there is no data channel created
-            // and send the cached state once channel is created
-            throw new Error('Data channels support is disabled!');
         }
     }
 
