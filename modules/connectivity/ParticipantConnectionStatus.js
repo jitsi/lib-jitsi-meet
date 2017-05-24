@@ -10,6 +10,14 @@ import Statistics from '../statistics/statistics';
 const logger = getLogger(__filename);
 
 /**
+ * Default value of 500 milliseconds for
+ * {@link ParticipantConnectionStatus.outOfLastNTimeout}.
+ *
+ * @type {number}
+ */
+const DEFAULT_NOT_IN_LAST_N_TIMEOUT = 500;
+
+/**
  * Default value of 2000 milliseconds for
  * {@link ParticipantConnectionStatus.rtcMuteTimeout}.
  *
@@ -160,10 +168,13 @@ export default class ParticipantConnectionStatusHandler {
      * @constructor
      * @param {RTC} rtc the RTC service instance
      * @param {JitsiConference} conference parent conference instance
-     * @param {number} rtcMuteTimeout (optional) custom value for
+     * @param {Object} options
+     * @param {number} [options.rtcMuteTimeout=2000] custom value for
      * {@link ParticipantConnectionStatus.rtcMuteTimeout}.
+     * @param {number} [options.outOfLastNTimeout=500] custom value for
+     * {@link ParticipantConnectionStatus.outOfLastNTimeout}.
      */
-    constructor(rtc, conference, rtcMuteTimeout) {
+    constructor(rtc, conference, options) {
         this.rtc = rtc;
         this.conference = conference;
 
@@ -184,6 +195,21 @@ export default class ParticipantConnectionStatusHandler {
         this.connStatusFromJvb = { };
 
         /**
+         * If video track frozen detection through RTC mute event is supported,
+         * we wait some time until video track is considered frozen. But because
+         * when the user falls out of last N it is expected for the video to
+         * freeze this timeout must be significantly reduced in "out of last N"
+         * case.
+         *
+         * Basically this value is used instead of {@link rtcMuteTimeout} when
+         * user is not in last N.
+         * @type {number}
+         */
+        this.outOfLastNTimeout
+            = typeof options.outOfLastNTimeout === 'number'
+                ? options.outOfLastNTimeout : DEFAULT_NOT_IN_LAST_N_TIMEOUT;
+
+        /**
          * How long we're going to wait after the RTC video track muted event
          * for the corresponding signalling mute event, before the connection
          * interrupted is fired. The default value is
@@ -192,8 +218,8 @@ export default class ParticipantConnectionStatusHandler {
          * @type {number} amount of time in milliseconds
          */
         this.rtcMuteTimeout
-            = typeof rtcMuteTimeout === 'number'
-                ? rtcMuteTimeout : DEFAULT_RTC_MUTE_TIMEOUT;
+            = typeof options.rtcMuteTimeout === 'number'
+                ? options.rtcMuteTimeout : DEFAULT_RTC_MUTE_TIMEOUT;
 
         /**
          * This map holds a timestamp indicating  when participant's video track
@@ -239,6 +265,18 @@ export default class ParticipantConnectionStatusHandler {
          * @type {Map<string, number>}
          */
         this.restoringTimers = new Map();
+    }
+
+    /**
+     * Gets the video frozen timeout for given user.
+     * @param {string} id endpoint/participant ID
+     * @return {number} how long are we going to wait since RTC video muted
+     * even, before a video track is considered frozen.
+     * @private
+     */
+    _getVideoFrozenTimeout(id) {
+        return this.rtc.isInLastN(id)
+            ? this.rtcMuteTimeout : this.outOfLastNTimeout;
     }
 
     /**
@@ -479,13 +517,14 @@ export default class ParticipantConnectionStatusHandler {
             return false;
         }
 
+        const id = participant.getId();
         const hasAnyVideoRTCMuted = participant.hasAnyVideoTrackWebRTCMuted();
-        const rtcMutedTimestamp
-            = this.rtcMutedTimestamp[participant.getId()];
+        const rtcMutedTimestamp = this.rtcMutedTimestamp[id];
+        const timeout = this._getVideoFrozenTimeout(id);
 
         return hasAnyVideoRTCMuted
             && typeof rtcMutedTimestamp === 'number'
-            && (Date.now() - rtcMutedTimestamp) >= this.rtcMuteTimeout;
+            && (Date.now() - rtcMutedTimestamp) >= timeout;
     }
 
     /**
@@ -576,14 +615,23 @@ export default class ParticipantConnectionStatusHandler {
      * @private
      */
     _onLastNChanged(leavingLastN = [], enteringLastN = []) {
+        const now = Date.now();
+
+        logger.info(
+            'leaving/entering lastN',
+            leavingLastN, enteringLastN, Date.now());
+
         for (const id of leavingLastN) {
+            logger.info(`${id} is leaving last N`, Date.now());
             this.enteredLastNTimestamp.delete(id);
             this._clearRestoringTimer(id);
             this.figureOutConnectionStatus(id);
         }
         for (const id of enteringLastN) {
+            logger.info(`${id} is entering last N`, Date.now());
+
             // store the timestamp this id is entering lastN
-            this.enteredLastNTimestamp.set(id, Date.now());
+            this.enteredLastNTimestamp.set(id, now);
 
             this.figureOutConnectionStatus(id);
         }
@@ -654,7 +702,7 @@ export default class ParticipantConnectionStatusHandler {
         const participantId = track.getParticipantId();
         const participant = this.conference.getParticipantById(participantId);
 
-        logger.debug(`Detector track RTC muted: ${participantId}`);
+        logger.debug(`Detector track RTC muted: ${participantId}`, Date.now());
         if (!participant) {
             logger.error(`No participant for id: ${participantId}`);
 
@@ -666,11 +714,17 @@ export default class ParticipantConnectionStatusHandler {
             // it some time, before the connection interrupted event is
             // triggered.
             this.clearTimeout(participantId);
+
+            // The timeout is reduced when user is not in the last N
+            const timeout = this._getVideoFrozenTimeout(participantId);
+
             this.trackTimers[participantId] = window.setTimeout(() => {
-                logger.debug(`RTC mute timeout for: ${participantId}`);
+                logger.debug(
+                    `Set RTC mute timeout for: ${participantId}\
+                     of ${timeout} ms`);
                 this.clearTimeout(participantId);
                 this.figureOutConnectionStatus(participantId);
-            }, this.rtcMuteTimeout);
+            }, timeout);
         }
     }
 
@@ -683,7 +737,8 @@ export default class ParticipantConnectionStatusHandler {
     onTrackRtcUnmuted(track) {
         const participantId = track.getParticipantId();
 
-        logger.debug(`Detector track RTC unmuted: ${participantId}`);
+        logger.debug(
+            `Detector track RTC unmuted: ${participantId}`, Date.now());
 
         this.clearTimeout(participantId);
         this.clearRtcMutedTimestamp(participantId);

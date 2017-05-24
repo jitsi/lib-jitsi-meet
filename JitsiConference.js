@@ -220,8 +220,17 @@ JitsiConference.prototype._init = function(options = {}) {
 
     this.participantConnectionStatus
         = new ParticipantConnectionStatusHandler(
-                this.rtc, this,
-                options.config.peerDisconnectedThroughRtcTimeout);
+            this.rtc,
+            this,
+            {   // Both these options are not public API, leaving it here only
+                // as an entry point through config for tuning up purposes.
+                // Default values should be adjusted as soon as optimal values
+                // are discovered.
+                rtcMuteTimeout:
+                    this.options.config._peerConnStatusRtcMuteTimeout,
+                outOfLastNTimeout:
+                    this.options.config._peerConnStatusOutOfLastNTimeout
+            });
     this.participantConnectionStatus.init();
 
     if (!this.statistics) {
