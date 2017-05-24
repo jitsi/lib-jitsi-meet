@@ -950,6 +950,8 @@ JitsiConference.prototype.setLastN = function(lastN) {
  * like to check.
  * @return {boolean} true if the participant with id is in the last N set or
  * if there's no last N set, false otherwise.
+ * @deprecated this method should never be used to figure out the UI, but
+ * {@link ParticipantConnectionStatus} should be used instead.
  */
 JitsiConference.prototype.isInLastN = function(participantId) {
     return this.rtc.isInLastN(participantId);
