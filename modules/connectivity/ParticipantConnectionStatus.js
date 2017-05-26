@@ -617,22 +617,17 @@ export default class ParticipantConnectionStatusHandler {
     _onLastNChanged(leavingLastN = [], enteringLastN = []) {
         const now = Date.now();
 
-        logger.info(
-            'leaving/entering lastN',
-            leavingLastN, enteringLastN, Date.now());
+        logger.debug(
+            'leaving/entering lastN', leavingLastN, enteringLastN, now);
 
         for (const id of leavingLastN) {
-            logger.info(`${id} is leaving last N`, Date.now());
             this.enteredLastNTimestamp.delete(id);
             this._clearRestoringTimer(id);
             this.figureOutConnectionStatus(id);
         }
         for (const id of enteringLastN) {
-            logger.info(`${id} is entering last N`, Date.now());
-
             // store the timestamp this id is entering lastN
             this.enteredLastNTimestamp.set(id, now);
-
             this.figureOutConnectionStatus(id);
         }
     }
