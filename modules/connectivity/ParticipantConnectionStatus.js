@@ -331,6 +331,11 @@ export default class ParticipantConnectionStatusHandler {
         this.conference.on(
             JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED,
             this._onLastNChanged);
+
+        this._onLastNValueChanged
+            = this.refreshConnectionStatusForAll.bind(this);
+        this.rtc.on(
+            RTCEvents.LASTN_VALUE_CHANGED, this._onLastNValueChanged);
     }
 
     /**
@@ -362,6 +367,9 @@ export default class ParticipantConnectionStatusHandler {
         this.conference.off(
             JitsiConferenceEvents.LAST_N_ENDPOINTS_CHANGED,
             this._onLastNChanged);
+
+        this.rtc.removeListener(
+            RTCEvents.LASTN_VALUE_CHANGED, this._onLastNValueChanged);
 
         this.conference.off(
             JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
@@ -564,7 +572,11 @@ export default class ParticipantConnectionStatusHandler {
 
         const inP2PMode = this.conference.isP2PActive();
         const isRestoringTimedOut = this._isRestoringTimedout(id);
-        const isVideoMuted = participant.isVideoMuted();
+        const audioOnlyMode = this.rtc.getLastN() === 0;
+
+        // NOTE Overriding videoMuted to true for audioOnlyMode should disable
+        // any detection based on video playback or the last N.
+        const isVideoMuted = participant.isVideoMuted() || audioOnlyMode;
         const isVideoTrackFrozen = this.isVideoTrackFrozen(participant);
         const isInLastN = this.rtc.isInLastN(id);
         let isConnActiveByJvb = this.connStatusFromJvb[id];
