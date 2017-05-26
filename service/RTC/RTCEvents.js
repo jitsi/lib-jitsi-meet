@@ -14,6 +14,13 @@ const RTCEvents = {
     ENDPOINT_CONN_STATUS_CHANGED: 'rtc.endpoint_conn_status_changed',
     DOMINANT_SPEAKER_CHANGED: 'rtc.dominant_speaker_changed',
     LASTN_ENDPOINT_CHANGED: 'rtc.lastn_endpoint_changed',
+
+    /**
+     * Event emitted when {@link RTC.setLastN} method is called to update with
+     * the new value set.
+     * The first argument is the value passed to {@link RTC.setLastN}.
+     */
+    LASTN_VALUE_CHANGED: 'rtc.lastn_value_changed',
     AVAILABLE_DEVICES_CHANGED: 'rtc.available_devices_changed',
     TRACK_ATTACHED: 'rtc.track_attached',
 

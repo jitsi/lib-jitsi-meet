@@ -76,9 +76,9 @@ export default function JitsiConference(options) {
     this.eventEmitter = new EventEmitter();
     this.options = options;
     this.eventManager = new JitsiConferenceEventManager(this);
+    this.participants = {};
     this._init(options);
     this.componentsVersions = new ComponentsVersions(this);
-    this.participants = {};
 
     /**
      * Jingle session instance for the JVB connection.
@@ -220,8 +220,17 @@ JitsiConference.prototype._init = function(options = {}) {
 
     this.participantConnectionStatus
         = new ParticipantConnectionStatusHandler(
-                this.rtc, this,
-                options.config.peerDisconnectedThroughRtcTimeout);
+            this.rtc,
+            this,
+            {   // Both these options are not public API, leaving it here only
+                // as an entry point through config for tuning up purposes.
+                // Default values should be adjusted as soon as optimal values
+                // are discovered.
+                rtcMuteTimeout:
+                    this.options.config._peerConnStatusRtcMuteTimeout,
+                outOfLastNTimeout:
+                    this.options.config._peerConnStatusOutOfLastNTimeout
+            });
     this.participantConnectionStatus.init();
 
     if (!this.statistics) {
@@ -950,6 +959,8 @@ JitsiConference.prototype.setLastN = function(lastN) {
  * like to check.
  * @return {boolean} true if the participant with id is in the last N set or
  * if there's no last N set, false otherwise.
+ * @deprecated this method should never be used to figure out the UI, but
+ * {@link ParticipantConnectionStatus} should be used instead.
  */
 JitsiConference.prototype.isInLastN = function(participantId) {
     return this.rtc.isInLastN(participantId);

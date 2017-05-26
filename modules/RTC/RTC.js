@@ -96,7 +96,7 @@ export default class RTC extends Listenable {
          * @private
          * @type {number}
          */
-        this._lastN = null;
+        this._lastN = -1;
 
         /**
          * Defines the last N endpoints list. It can be null or an array once
@@ -203,10 +203,10 @@ export default class RTC extends Listenable {
 
                 // If setLastN was invoked before the data channels completed
                 // opening, apply the specified value now that the data channels
-                // are open.
-                if (this._lastN !== null) {
-                    this.setLastN(this._lastN);
-                    this._lastN = null;
+                // are open. NOTE that -1 is the default value assumed by both
+                // RTC module and the JVB.
+                if (this._lastN !== -1) {
+                    this.dataChannels.sendSetLastNMessage(this._lastN);
                 }
             };
             this.addListener(RTCEvents.DATA_CHANNEL_OPEN,
@@ -400,6 +400,15 @@ export default class RTC extends Listenable {
         this.localTracks.push(track);
 
         track.conference = this.conference;
+    }
+
+    /**
+     * Returns the current value for "lastN" - the amount of videos are going
+     * to be delivered. When set to -1 for unlimited or all available videos.
+     * @return {number}
+     */
+    getLastN() {
+        return this._lastN;
     }
 
     /**
@@ -717,13 +726,12 @@ export default class RTC extends Listenable {
      * @param value {number} the new value for lastN.
      */
     setLastN(value) {
-        if (this.dataChannels && this.dataChannelsOpen) {
-            this.dataChannels.sendSetLastNMessage(value);
-        } else {
-            // No data channel has been initialized or has completed opening
-            // yet. Remember the specified value and apply it as soon as a data
-            // channel opens.
+        if (this._lastN !== value) {
             this._lastN = value;
+            if (this.dataChannels && this.dataChannelsOpen) {
+                this.dataChannels.sendSetLastNMessage(value);
+            }
+            this.eventEmitter.emit(RTCEvents.LASTN_VALUE_CHANGED, value);
         }
     }
 
