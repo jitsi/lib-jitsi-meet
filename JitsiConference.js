@@ -76,9 +76,9 @@ export default function JitsiConference(options) {
     this.eventEmitter = new EventEmitter();
     this.options = options;
     this.eventManager = new JitsiConferenceEventManager(this);
+    this.participants = {};
     this._init(options);
     this.componentsVersions = new ComponentsVersions(this);
-    this.participants = {};
 
     /**
      * Jingle session instance for the JVB connection.
