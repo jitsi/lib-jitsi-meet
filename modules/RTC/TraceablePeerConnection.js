@@ -214,20 +214,6 @@ export default function TraceablePeerConnection(
             this.onicecandidate(event);
         }
     };
-    this.onaddstream = null;
-    this.peerconnection.onaddstream = event => {
-        this.trace('onaddstream', event.stream.id);
-        if (this.onaddstream !== null) {
-            this.onaddstream(event);
-        }
-    };
-    this.onremovestream = null;
-    this.peerconnection.onremovestream = event => {
-        this.trace('onremovestream', event.stream.id);
-        if (this.onremovestream !== null) {
-            this.onremovestream(event);
-        }
-    };
     this.peerconnection.onaddstream
         = event => this._remoteStreamAdded(event.stream);
     this.peerconnection.onremovestream
