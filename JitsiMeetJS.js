@@ -129,7 +129,8 @@ export default {
         }
 
         // Log deployment-specific information, if available.
-        const aprops = window.jitsiAnalyticsPermanentProperties;
+        // Defined outside the application by individual deployments
+        const aprops = window.jitsiDeploymentInfo;
 
         if (aprops && Object.keys(aprops).length > 0) {
             const logObject = {};
