@@ -129,13 +129,15 @@ export default {
         }
 
         // Log deployment-specific information, if available.
-        if (window.jitsiRegionInfo
-            && Object.keys(window.jitsiRegionInfo).length > 0) {
+        // Defined outside the application by individual deployments
+        const aprops = window.jitsiDeploymentInfo;
+
+        if (aprops && Object.keys(aprops).length > 0) {
             const logObject = {};
 
-            for (const attr in window.jitsiRegionInfo) {
-                if (window.jitsiRegionInfo.hasOwnProperty(attr)) {
-                    logObject[attr] = window.jitsiRegionInfo[attr];
+            for (const attr in aprops) {
+                if (aprops.hasOwnProperty(attr)) {
+                    logObject[attr] = aprops[attr];
                 }
             }
 
