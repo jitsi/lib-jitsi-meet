@@ -31,6 +31,9 @@ import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 
 const logger = Logger.getLogger(__filename);
 
+
+// TORTURE TRIGGER - DO NOT MERGE3
+
 // The amount of time to wait until firing
 // JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN event
 const USER_MEDIA_PERMISSION_PROMPT_TIMEOUT = 500;
