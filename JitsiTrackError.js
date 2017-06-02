@@ -88,7 +88,7 @@ function JitsiTrackError(error, options, devices) {
             break;
         case 'ConstraintNotSatisfiedError':
         case 'OverconstrainedError': {
-            const constraintName = error.constraintName;
+            const constraintName = error.constraintName || error.constraint;
 
             if (options
                     && options.video
