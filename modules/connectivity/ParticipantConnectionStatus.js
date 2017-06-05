@@ -142,7 +142,7 @@ export default class ParticipantConnectionStatusHandler {
 
     /**
      * In P2P mode we don't care about any values coming from the JVB and
-     * the connection status can be only active or inactive.
+     * the connection status can be only active or interrupted.
      * @param {boolean} isVideoMuted the user if video muted
      * @param {boolean} isVideoTrackFrozen true if the video track for
      * the remote user is currently frozen. If the current browser does not
@@ -159,7 +159,7 @@ export default class ParticipantConnectionStatusHandler {
 
         return isVideoMuted || !isVideoTrackFrozen
             ? ParticipantConnectionStatus.ACTIVE
-            : ParticipantConnectionStatus.INACTIVE;
+            : ParticipantConnectionStatus.INTERRUPTED;
     }
 
     /**
