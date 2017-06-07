@@ -33,7 +33,7 @@ const logger = Logger.getLogger(__filename);
 
 // The amount of time to wait until firing
 // JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN event
-const USER_MEDIA_PERMISSION_PROMPT_TIMEOUT = 500;
+const USER_MEDIA_PERMISSION_PROMPT_TIMEOUT = 1000;
 
 /**
  *
