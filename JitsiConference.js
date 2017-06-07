@@ -1452,7 +1452,16 @@ JitsiConference.prototype.onIncomingCall = function(
                 });
 
             return;
+        } else if (this.options.config.disableJvb) {
+            this._rejectIncomingCall(
+                jingleSession, {
+                    reasonTag: 'decline',
+                    reasonMsg: 'JVB connection was disabled in the config'
+                });
+
+            return;
         }
+
         this._acceptJvbIncomingCall(jingleSession, jingleOffer, now);
     }
 };
