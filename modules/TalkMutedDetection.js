@@ -1,7 +1,14 @@
 import * as JitsiConferenceEvents from '../JitsiConferenceEvents';
 
 /**
- *
+ * The value which we use to say, every sound over this threshold
+ * is talking on the mic.
+ * @type {number}
+ */
+const SPEECH_DETECT_THRESHOLD = 0.6;
+
+/**
+ * Detect user trying to speek while is locally muted and fires an event.
  */
 export default class TalkMutedDetection {
     /**
@@ -54,21 +61,22 @@ export default class TalkMutedDetection {
     /**
      * Receives audio level events for all send and receive streams.
      *
-     * @param pc - WebRTC PeerConnection object of the
-     * @param ssrc - The synchronization source identifier (SSRC) of the
-     * endpoint/participant/stream being reported.
+     * @param {TraceablePeerConnection} pc - WebRTC PeerConnection object of the
+     * @param {number} ssrc - The synchronization source identifier (SSRC) of
+     * the endpoint/participant/stream being reported.
      * @param {number} audioLevel - The audio level of <tt>ssrc</tt>.
      * @param {boolean} isLocal - <tt>true</tt> if <tt>ssrc</tt> represents a
      * local/send stream or <tt>false</tt> for a remote/receive stream.
      */
-    _audioLevel(pc, ssrc, audioLevel, isLocal) {
+    _audioLevel(tpc, ssrc, audioLevel, isLocal) {
         // We are interested in the local audio stream only and if event is not
         // sent yet.
         if (!isLocal || !this.audioTrack || this._eventFired) {
             return;
         }
 
-        if (this.audioTrack.isMuted() && audioLevel > 0.6) {
+        if (this.audioTrack.isMuted()
+            && audioLevel > SPEECH_DETECT_THRESHOLD) {
             this._eventFired = true;
             this._callback();
         }

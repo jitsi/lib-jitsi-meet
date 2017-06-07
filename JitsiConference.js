@@ -18,6 +18,7 @@ import * as JitsiTrackEvents from './JitsiTrackEvents';
 import * as MediaType from './service/RTC/MediaType';
 import ParticipantConnectionStatusHandler
     from './modules/connectivity/ParticipantConnectionStatus';
+import P2PDominantSpeakerDetection from './modules/P2PDominantSpeakerDetection';
 import RTC from './modules/RTC/RTC';
 import RTCBrowserType from './modules/RTC/RTCBrowserType';
 import * as RTCEvents from './service/RTC/RTCEvents';
@@ -264,6 +265,9 @@ JitsiConference.prototype._init = function(options = {}) {
     if ('channelLastN' in options.config) {
         this.setLastN(options.config.channelLastN);
     }
+
+    // creates dominant speaker detection that works only in p2p mode
+    this.p2pDominantSpeakerDetection = new P2PDominantSpeakerDetection(this);
 };
 
 /**
