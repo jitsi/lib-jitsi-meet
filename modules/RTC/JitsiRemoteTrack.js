@@ -78,30 +78,53 @@ JitsiRemoteTrack.prototype = Object.create(JitsiTrack.prototype);
 JitsiRemoteTrack.prototype.constructor = JitsiRemoteTrack;
 
 JitsiRemoteTrack.prototype._bindMuteHandlers = function() {
-    // Bind 'onmute'
+    // Use feature detection for finding what event handling function is
+    // supported. On Internet Explorer, which uses uses temasys/firebreath, the
+    // track will have attachEvent instead of addEventListener.
+    //
     // FIXME it would be better to use recently added '_setHandler' method, but
     // 1. It does not allow to set more than one handler to the event
     // 2. It does mix MediaStream('inactive') with MediaStreamTrack events
     // 3. Allowing to bind more than one event handler requires too much
     //    refactoring around camera issues detection.
-    this.track.addEventListener('mute', () => {
+    if (this.track.addEventListener) {
+        this.track.addEventListener('mute', () => this._onTrackMute());
+        this.track.addEventListener('unmute', () => this._onTrackUnmute());
+    } else if (this.track.attachEvent) {
+        // FIXME Internet Explorer is not emitting out mute/unmute events.
+        this.track.attachEvent('onmute', () => this._onTrackMute());
+        this.track.attachEvent('onunmute', () => this._onTrackUnmute());
+    }
+};
 
-        logger.debug(
-            `"onmute" event(${Date.now()}): `,
-            this.getParticipantId(), this.getType(), this.getSSRC());
+/**
+ * Callback invoked when the track is muted. Emits an event notifying listeners
+ * of the mute event.
+ *
+ * @private
+ * @returns {void}
+ */
+JitsiRemoteTrack.prototype._onTrackMute = function() {
+    logger.debug(
+        `"onmute" event(${Date.now()}): `,
+        this.getParticipantId(), this.getType(), this.getSSRC());
 
-        this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_MUTE, this);
-    });
+    this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_MUTE, this);
+};
 
-    // Bind 'onunmute'
-    this.track.addEventListener('unmute', () => {
+/**
+ * Callback invoked when the track is unmuted. Emits an event notifying
+ * listeners of the mute event.
+ *
+ * @private
+ * @returns {void}
+ */
+JitsiRemoteTrack.prototype._onTrackUnmute = function() {
+    logger.debug(
+        `"onunmute" event(${Date.now()}): `,
+        this.getParticipantId(), this.getType(), this.getSSRC());
 
-        logger.debug(
-            `"onunmute" event(${Date.now()}): `,
-            this.getParticipantId(), this.getType(), this.getSSRC());
-
-        this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_UNMUTE, this);
-    });
+    this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_UNMUTE, this);
 };
 
 /**

@@ -7,7 +7,8 @@ const logger = require('jitsi-meet-logger').getLogger(__filename);
 /* Whether we support the browser we are running into for logging statistics */
 const browserSupported = RTCBrowserType.isChrome()
         || RTCBrowserType.isOpera() || RTCBrowserType.isFirefox()
-        || RTCBrowserType.isNWJS() || RTCBrowserType.isElectron();
+        || RTCBrowserType.isNWJS() || RTCBrowserType.isElectron()
+        || RTCBrowserType.isTemasysPluginUsed();
 
 /**
  * The lib-jitsi-meet browser-agnostic names of the browser-specific keys
