@@ -172,6 +172,10 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                 XMPPEvents.CALL_ACCEPTED, sess, $(iq).find('>jingle'));
             break;
         }
+        case 'session-modify': {
+            sess.modifyContents($(iq).find('>jingle'));
+            break;
+        }
         case 'transport-info': {
             this.eventEmitter.emit(
                 XMPPEvents.TRANSPORT_INFO, sess, $(iq).find('>jingle'));

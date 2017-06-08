@@ -953,6 +953,20 @@ JitsiConference.prototype.setLastN = function(lastN) {
         throw new RangeError('lastN cannot be smaller than -1');
     }
     this.rtc.setLastN(n);
+
+    // If the P2P session is not fully established yet, we wait until it gets
+    // established.
+    if (this.p2pJingleSession) {
+        const isVideoActive = n !== 0;
+
+        this.p2pJingleSession
+            .setMediaTransferActive(true, isVideoActive)
+            .catch(error => {
+                logger.error(
+                    `Failed to adjust video transfer status (${isVideoActive})`,
+                    error);
+            });
+    }
 };
 
 /**
@@ -2076,7 +2090,7 @@ JitsiConference.prototype._removeRemoteTracks
  */
 JitsiConference.prototype._resumeMediaTransferForJvbConnection = function() {
     logger.info('Resuming media transfer over the JVB connection...');
-    this.jvbJingleSession.setMediaTransferActive(true).then(
+    this.jvbJingleSession.setMediaTransferActive(true, true).then(
         () => {
             logger.info('Resumed media transfer over the JVB connection!');
         },
@@ -2103,6 +2117,18 @@ JitsiConference.prototype._setP2PStatus = function(newStatus) {
     this.p2p = newStatus;
     if (newStatus) {
         logger.info('Peer to peer connection established!');
+
+        // Sync up video transfer active in case p2pJingleSession not existed
+        // when the lastN value was being adjusted.
+        const isVideoActive = this.rtc.getLastN() !== 0;
+
+        this.p2pJingleSession
+            .setMediaTransferActive(true, isVideoActive)
+            .catch(error => {
+                logger.error(
+                    'Failed to sync up P2P video transfer status'
+                        + `(${isVideoActive})`, error);
+            });
     } else {
         logger.info('Peer to peer connection closed!');
     }
@@ -2172,7 +2198,7 @@ JitsiConference.prototype._startP2PSession = function(peerJid) {
  */
 JitsiConference.prototype._suspendMediaTransferForJvbConnection = function() {
     logger.info('Suspending media transfer over the JVB connection...');
-    this.jvbJingleSession.setMediaTransferActive(false).then(
+    this.jvbJingleSession.setMediaTransferActive(false, false).then(
         () => {
             logger.info('Suspended media transfer over the JVB connection !');
         },

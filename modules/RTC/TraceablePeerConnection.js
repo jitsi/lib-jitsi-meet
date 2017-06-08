@@ -60,13 +60,23 @@ export default function TraceablePeerConnection(
 
     /**
      * Indicates whether or not this peer connection instance is actively
-     * sending/receiving media. When set to <tt>false</tt> the SDP media
-     * direction will be adjusted to 'inactive' in order to suspend media
-     * transmission.
+     * sending/receiving audio media. When set to <tt>false</tt> the SDP audio
+     * media direction will be adjusted to 'inactive' in order to suspend
+     * the transmission.
      * @type {boolean}
      * @private
      */
-    this.mediaTransferActive = true;
+    this.audioTransferActive = true;
+
+    /**
+     * Indicates whether or not this peer connection instance is actively
+     * sending/receiving video media. When set to <tt>false</tt> the SDP video
+     * media direction will be adjusted to 'inactive' in order to suspend
+     * the transmission.
+     * @type {boolean}
+     * @private
+     */
+    this.videoTransferActive = true;
 
     /**
      * The parent instance of RTC service which created this
@@ -319,7 +329,7 @@ TraceablePeerConnection.prototype.getConnectionState = function() {
 /**
  * Obtains the media direction for given {@link MediaType}. The method takes
  * into account whether or not there are any local tracks for media and
- * the {@link mediaTransferActive} flag.
+ * the {@link audioTransferActive} and {@link videoTransferActive} flags.
  * @param {MediaType} mediaType
  * @return {string} one of the SDP direction constants ('sendrecv, 'recvonly'
  * etc.) which should be used when setting local description on the peer
@@ -328,7 +338,14 @@ TraceablePeerConnection.prototype.getConnectionState = function() {
  */
 TraceablePeerConnection.prototype._getDesiredMediaDirection
 = function(mediaType) {
-    if (this.mediaTransferActive) {
+    let mediaTransferActive = true;
+
+    if (mediaType === MediaType.AUDIO) {
+        mediaTransferActive = this.audioTransferActive;
+    } else if (mediaType === MediaType.VIDEO) {
+        mediaTransferActive = this.videoTransferActive;
+    }
+    if (mediaTransferActive) {
         return this.hasAnyTracksOfType(mediaType) ? 'sendrecv' : 'recvonly';
     }
 
@@ -1369,7 +1386,8 @@ TraceablePeerConnection.prototype._ensureSimulcastGroupIsLast
 
 /**
  * Will adjust audio and video media direction in the given SDP object to
- * reflect the current status of the {@link mediaTransferActive} flag.
+ * reflect the current status of the {@link audioTransferActive} and
+ * {@link videoTransferActive} flags.
  * @param {Object} localDescription the WebRTC session description instance for
  * the local description.
  * @private
@@ -1456,16 +1474,28 @@ TraceablePeerConnection.prototype.setLocalDescription
 };
 
 /**
- * Enables/disables media transmission on this peer connection. When disabled
- * the SDP media direction in the local SDP will be adjusted to 'inactive' which
- * means that no data will be received or sent, but the connection should be
- * kept alive.
- * @param {boolean} active <tt>true</tt> to enable the media transmission or
- * <tt>false</tt> to disable.
+ * Enables/disables audio media transmission on this peer connection. When
+ * disabled the SDP audio media direction in the local SDP will be adjusted to
+ * 'inactive' which means that no data will be sent nor accepted, but
+ * the connection should be kept alive.
+ * @param {boolean} [active] <tt>true</tt> to enable video media transmission or
+ * <tt>false</tt> to disable. If the value is not a boolean the call will have
+ * no effect.
+ * @return {boolean} <tt>true</tt> if the value has changed and sRD/sLD cycle
+ * needs to be executed in order for the changes to take effect or
+ * <tt>false</tt> if the given value was the same as the previous one.
  * @public
  */
-TraceablePeerConnection.prototype.setMediaTransferActive = function(active) {
-    this.mediaTransferActive = active;
+TraceablePeerConnection.prototype.setAudioTransferActive = function(active) {
+    logger.debug(`${this} audio transfer active: ${active}`);
+    let changed = false;
+
+    if (typeof active === 'boolean') {
+        changed = this.audioTransferActive !== active;
+        this.audioTransferActive = active;
+    }
+
+    return changed;
 };
 
 TraceablePeerConnection.prototype.setRemoteDescription
@@ -1526,6 +1556,31 @@ TraceablePeerConnection.prototype.setRemoteDescription
                 this);
             failureCallback(err);
         });
+};
+
+/**
+ * Enables/disables video media transmission on this peer connection. When
+ * disabled the SDP video media direction in the local SDP will be adjusted to
+ * 'inactive' which means that no data will be sent nor accepted, but
+ * the connection should be kept alive.
+ * @param {boolean} [active] <tt>true</tt> to enable video media transmission or
+ * <tt>false</tt> to disable. If the value is not a boolean the call will have
+ * no effect.
+ * @return {boolean} <tt>true</tt> if the value has changed and sRD/sLD cycle
+ * needs to be executed in order for the changes to take effect or
+ * <tt>false</tt> if the given value was the same as the previous one.
+ * @public
+ */
+TraceablePeerConnection.prototype.setVideoTransferActive = function(active) {
+    logger.debug(`${this} video transfer active: ${active}`);
+    let changed = false;
+
+    if (typeof active === 'boolean') {
+        changed = this.videoTransferActive !== active;
+        this.videoTransferActive = active;
+    }
+
+    return changed;
 };
 
 /**

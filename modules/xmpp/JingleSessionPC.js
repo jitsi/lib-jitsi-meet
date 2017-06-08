@@ -90,6 +90,34 @@ export default class JingleSessionPC extends JingleSession {
         this._gatheringStartedTimestamp = null;
 
         /**
+         * Indicates whether or not this session is willing to send/receive
+         * video media. When set to <tt>false</tt> the underlying peer
+         * connection will disable local video transfer and the remote peer will
+         * be will be asked to stop sending video via 'session-modify' IQ
+         * (the senders attribute of video contents will be adjusted
+         * accordingly). Note that this notification is sent only in P2P
+         * session, because Jicofo does not support it yet. Obviously when
+         * the value is changed from <tt>false</tt> to <tt>true</tt> another
+         * notification will be sent to resume video transfer on the remote
+         * side.
+         * @type {boolean}
+         * @private
+         */
+        this._localVideoActive = true;
+
+        /**
+         * Indicates whether or not the remote peer has video transfer active.
+         * When set to <tt>true</tt> it means that remote peer is neither
+         * sending nor willing to receive video. In such case we'll ask
+         * our peerconnection to stop sending video by calling
+         * {@link TraceablePeerConnection.setVideoTransferActive} with
+         * <tt>false</tt>.
+         * @type {boolean}
+         * @private
+         */
+        this._remoteVideoActive = true;
+
+        /**
          * Marks that ICE gathering duration has been reported already. That
          * prevents reporting it again, after eventual 'transport-replace' (JVB
          * conference migration/ICE restart).
@@ -115,16 +143,6 @@ export default class JingleSessionPC extends JingleSession {
          * session or <tt>false</tt> if it's a JVB session
          */
         this.isP2P = isP2P;
-
-        /**
-         * Stores a state for
-         * {@link TraceablePeerConnection.mediaTransferActive} until
-         * {@link JingleSessionPC.peerconnection} is initialised and capable of
-         * handling the value.
-         * @type {boolean}
-         * @private
-         */
-        this.mediaTransferActive = true;
 
         /**
          * The signaling layer implementation.
@@ -231,8 +249,6 @@ export default class JingleSessionPC extends JingleSession {
                     disableRtx: this.room.options.disableRtx,
                     preferH264: this.room.options.preferH264
                 });
-
-        this.peerconnection.setMediaTransferActive(this.mediaTransferActive);
 
         this.peerconnection.onicecandidate = ev => {
             if (!ev) {
@@ -831,6 +847,22 @@ export default class JingleSessionPC extends JingleSession {
                 .then(() => {
                     if (this.state === JingleSessionState.PENDING) {
                         this.state = JingleSessionState.ACTIVE;
+
+                        // Sync up video transfer active/inactive only after
+                        // the initial O/A cycle. We want to adjust the video
+                        // media direction only in the local SDP and the Jingle
+                        // contents direction included in the initial
+                        // offer/answer is mapped to the remote SDP. Jingle
+                        // 'session-modify' IQ is processed in a way that it
+                        // will only modify local SDP when remote peer is no
+                        // longer interested in receiving video content.
+                        // Changing media direction in the remote SDP will mess
+                        // up our SDP translation chain (simulcast, video mute,
+                        // RTX etc.)
+                        if (this.isP2P && !this._localVideoActive) {
+                            this.sendSessionModify(
+                                this._localVideoActive);
+                        }
                     }
 
                     // Old local SDP will be available when we're setting answer
@@ -971,6 +1003,44 @@ export default class JingleSessionPC extends JingleSession {
         // 'session-accept' and any immediate requests).
         //
         // this.connection.flush();
+    }
+
+    /**
+     * Will send 'session-modify' IQ in order to ask the remote peer to
+     * either stop or resume sending video media.
+     * @param {boolean} videoTransferActive <tt>false</tt> to let the other peer
+     * know that we're not sending nor interested in receiving video contents.
+     * When set to <tt>true</tt> remote peer will be asked to resume video
+     * transfer.
+     * @private
+     */
+    sendSessionModify(videoTransferActive) {
+        const newSendersValue = videoTransferActive ? 'both' : 'none';
+
+        const sessionModify
+            = $iq({
+                to: this.peerjid,
+                type: 'set'
+            })
+            .c('jingle', {
+                xmlns: 'urn:xmpp:jingle:1',
+                action: 'session-modify',
+                initiator: this.initiator,
+                sid: this.sid
+            })
+            .c('content', {
+                name: 'video',
+                senders: newSendersValue
+            });
+
+        logger.info(
+            `Sending session-modify, video senders: ${newSendersValue}`);
+
+        this.connection.sendIQ(
+            sessionModify,
+            null,
+            this.newJingleErrorHandler(sessionModify),
+            IQ_TIMEOUT);
     }
 
     /**
@@ -1747,31 +1817,73 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Resumes or suspends media transfer over the underlying peer connection.
-     * @param {boolean} active <tt>true</tt> to enable media transfer or
-     * <tt>false</tt> to suspend any media transmission.
+     * @param {boolean} [audioActive] <tt>true</tt> to enable audio media
+     * transfer or <tt>false</tt> to suspend audio media transmission.
+     * @param {boolean} [videoActive] <tt>true</tt> to enable video media
+     * transfer or <tt>false</tt> to suspend video media transmission.
      * @return {Promise} a <tt>Promise</tt> which will resolve once
      * the operation is done. It will be rejected with an error description as
      * a string in case anything goes wrong.
      */
-    setMediaTransferActive(active) {
+    setMediaTransferActive(audioActive, videoActive) {
+        if (!this.peerconnection) {
+            return Promise.reject(
+                'Can not modify transfer active state,'
+                    + ' before "initialize" is called');
+        }
+
+        const logAudioStr
+            = typeof audioActive === 'boolean'
+                ? audioActive ? 'audio active' : 'audio inactive'
+                : null;
+
+        const logVideoStr
+            = typeof videoActive === 'boolean'
+                ? videoActive ? 'video active' : 'video inactive'
+                : null;
+
+        // Called without any valid arguments ?
+        if (logVideoStr === null && logAudioStr === null) {
+            return Promise.reject('At least one argument is required');
+        }
+
+        logger.info(`Queued make ${logVideoStr}, ${logAudioStr} task...`);
+
         const workFunction = finishedCallback => {
+            const isSessionActive = this.state === JingleSessionState.ACTIVE;
 
             // Because the value is modified on the queue it's impossible to
             // check it's final value reliably prior to submitting the task.
             // The rule here is that the last submitted state counts.
-            // Check the value here to avoid unnecessary renegotiation cycle.
-            if (this.mediaTransferActive === active) {
-                finishedCallback();
+            // Check the values here to avoid unnecessary renegotiation cycle.
+            const audioActiveChanged
+                = this.peerconnection.setAudioTransferActive(audioActive);
 
-                return;
+            if (typeof videoActive === 'boolean'
+                    && this._localVideoActive !== videoActive) {
+                this._localVideoActive = videoActive;
+
+                // Do only for P2P - Jicofo will reply with 'bad-request'
+                // We don't want to send 'session-modify', before the initial
+                // O/A (state === JingleSessionState.ACTIVE), because that will
+                // mess up video media direction in the remote SDP.
+                // 'session-modify' when processed only affects the media
+                // direction in the local SDP. We're doing that, because setting
+                // 'inactive' on video media in remote SDP will mess up our SDP
+                // translation chain (simulcast, RTX, video mute etc.).
+                if (this.isP2P && isSessionActive) {
+                    this.sendSessionModify(videoActive);
+                }
             }
-            this.mediaTransferActive = active;
-            if (this.peerconnection) {
-                this.peerconnection.setMediaTransferActive(
-                    this.mediaTransferActive);
 
-                // Will do the sRD/sLD cycle to update SDPs and adjust the media
-                // direction
+            const pcVideoActiveChanged
+                = this.peerconnection.setVideoTransferActive(
+                    this._localVideoActive && this._remoteVideoActive);
+
+            // Will do the sRD/sLD cycle to update SDPs and adjust the media
+            // direction
+            if (isSessionActive
+                    && (audioActiveChanged || pcVideoActiveChanged)) {
                 this._renegotiate()
                     .then(
                         finishedCallback,
@@ -1780,10 +1892,6 @@ export default class JingleSessionPC extends JingleSession {
                 finishedCallback();
             }
         };
-
-        const logStr = active ? 'active' : 'inactive';
-
-        logger.info(`Queued make media transfer ${logStr} task...`);
 
         return new Promise((resolve, reject) => {
             this.modificationQueue.push(
@@ -1796,6 +1904,113 @@ export default class JingleSessionPC extends JingleSession {
                     }
                 });
         });
+    }
+
+    /**
+     * Will put and execute on the queue a session modify task. Currently it
+     * only checks the senders attribute of the video content in order to figure
+     * out if the remote peer has video in the inactive state (stored locally
+     * in {@link _remoteVideoActive} - see field description for more info).
+     * @param {jQuery} jingleContents jQuery selector pointing to the jingle
+     * element of the session modify IQ.
+     * @see {@link _remoteVideoActive}
+     * @see {@link _localVideoActive}
+     */
+    modifyContents(jingleContents) {
+        const workFunction = finishedCallback => {
+            if (this._assertNotEnded('modify contents')) {
+                if (this._parseContentSenders(jingleContents)) {
+                    // Will do the sRD/sLD cycle to update SDPs and adjust
+                    // the media direction
+                    this._renegotiate()
+                        .then(finishedCallback, finishedCallback /* (error) */);
+                } else {
+                    finishedCallback();
+                }
+            } else {
+                finishedCallback();
+            }
+        };
+
+        logger.debug('Queued modify contents task');
+
+        this.modificationQueue.push(
+            workFunction,
+            error => {
+                if (error) {
+                    logger.error('modifyContents failed', error);
+                }
+            });
+    }
+
+    /**
+     *
+     * @param jingleContents
+     * @param finishedCallback
+     * @return {boolean}
+     * @private
+     */
+    _parseContentSenders(jingleContents) {
+        const isRemoteVideoActive
+            = this._parseVideoSenders(jingleContents);
+
+        if (isRemoteVideoActive !== null
+            && isRemoteVideoActive !== this._remoteVideoActive) {
+            logger.debug(
+                `${this} new remote video active: ${isRemoteVideoActive}`);
+            this._remoteVideoActive = isRemoteVideoActive;
+        }
+
+        return this.peerconnection.setVideoTransferActive(
+            this._localVideoActive && this._remoteVideoActive);
+    }
+
+    /**
+     * Parses 'senders' attribute of the video content and figures out if remote
+     * peer is interested in receiving our video.
+     * @param {jQuery} jingleContents
+     * @return {boolean|null} <tt>true</tt> if the remote peer is interested in
+     * receiving our video or <tt>false</tt> otherwise (which means that we
+     * should stop sending video). <tt>null</tt> is returned when it failed to
+     * parse the senders attribute of Jingle video contents.
+     * @private
+     */
+    _parseVideoSenders(jingleContents) {
+
+        const videoContents = jingleContents.find('>content[name="video"]');
+        let newDirection = null;
+
+        if (videoContents.length) {
+            const senders = videoContents[0].getAttribute('senders');
+
+            if (senders) {
+                switch (senders) {
+                case 'both':
+                    newDirection = 'sendrecv';
+                    break;
+                case 'initiator':
+                    newDirection
+                        = this.isInitiator ? 'recvonly' : 'sendonly';
+                    break;
+                case 'responder':
+                    newDirection
+                        = this.isInitiator ? 'sendonly' : 'recvonly';
+                    break;
+                case 'none':
+                    newDirection = 'none';
+                    break;
+                }
+
+                logger.debug(
+                    `${this} parsed direction: video: ${newDirection}`);
+            }
+        }
+
+        if (newDirection === null) {
+            return null;
+        }
+
+        return newDirection === 'sendrecv' || newDirection === 'recvonly';
     }
 
     /**
