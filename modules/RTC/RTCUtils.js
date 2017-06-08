@@ -555,6 +555,49 @@ function enumerateDevicesThroughMediaStreamTrack(callback) {
 }
 
 /**
+ * Returns a promise to check whether or not the permission prompt for user
+ * media might display. The promise returns a boolean but the boolean value is
+ * not a definitive indicator, except in the case of false as then it is certain
+ * no prompt will display.
+ *
+ * @param {Function} enumerateDevices - The native enumerate devices function.
+ * @returns {Promise<boolean>}
+ */
+function mightShowPermissionPrompt(enumerateDevices) {
+    // The focus check is necessary for browsers (Firefox) that do not complete
+    // getUserMedia when the browser tab is not in focus. In those cases, it is
+    // not known with certainty if the permission prompt will display or not.
+    if (!document.hasFocus()) {
+        return Promise.resolve(true);
+    }
+
+    return enumerateDevices()
+        .then(mediaDevices => {
+            let hasAudioPermission = false;
+            let hasVideoPermission = false;
+
+            // Check for the existence of a label on an audio and video device.
+            // Labels should only be present if permission has been granted.
+            for (let i = 0; i < mediaDevices.length; i++) {
+                const device = mediaDevices[i];
+
+                if (device.kind === 'audioinput'
+                    && device.label) {
+                    hasAudioPermission = true;
+                } else if (device.kind === 'videoinput'
+                    && device.label) {
+                    hasVideoPermission = true;
+                }
+            }
+
+            // Return false if it is certain audio and video permissions have
+            // been granted because the permission prompt will not display.
+            return !(hasAudioPermission && hasVideoPermission);
+        })
+        .catch(() => true);
+}
+
+/**
  * Converts MediaStreamTrack Source to enumerateDevices format.
  * @param {Object} source
  */
@@ -754,10 +797,17 @@ class RTCUtils extends Listenable {
                 this.getUserMedia
                     = wrapGetUserMedia(
                         navigator.mozGetUserMedia.bind(navigator));
+
+                const boundEnumerateDevices
+                    = navigator.mediaDevices.enumerateDevices
+                        .bind(navigator.mediaDevices);
+
                 this.enumerateDevices
-                    = wrapEnumerateDevices(
-                        navigator.mediaDevices.enumerateDevices.bind(
-                            navigator.mediaDevices));
+                    = wrapEnumerateDevices(boundEnumerateDevices);
+                this.mightShowPermissionPrompt
+                    = mightShowPermissionPrompt.bind(
+                        null, boundEnumerateDevices);
+
                 this.pcConstraints = {};
                 this.attachMediaStream
                     = wrapAttachMediaStream((element, stream) => {
@@ -810,14 +860,22 @@ class RTCUtils extends Listenable {
 
                 if (navigator.mediaDevices) {
                     this.getUserMedia = wrapGetUserMedia(getUserMedia);
+
+                    const boundEnumerateDevices
+                        = navigator.mediaDevices.enumerateDevices
+                            .bind(navigator.mediaDevices);
+
                     this.enumerateDevices
-                        = wrapEnumerateDevices(
-                            navigator.mediaDevices.enumerateDevices.bind(
-                                navigator.mediaDevices));
+                        = wrapEnumerateDevices(boundEnumerateDevices);
+                    this.mightShowPermissionPrompt
+                        = mightShowPermissionPrompt.bind(
+                            null, boundEnumerateDevices);
                 } else {
                     this.getUserMedia = getUserMedia;
                     this.enumerateDevices
                       = enumerateDevicesThroughMediaStreamTrack;
+                    this.mightShowPermissionPrompt
+                        = () => Promise.resolve(true);
                 }
                 this.attachMediaStream
                     = wrapAttachMediaStream((element, stream) => {
@@ -882,10 +940,17 @@ class RTCUtils extends Listenable {
                         navigator.mediaDevices.getUserMedia.bind(
                             navigator.mediaDevices),
                             true);
+
+                const boundEnumerateDevices
+                    = navigator.mediaDevices.enumerateDevices
+                        .bind(navigator.mediaDevices);
+
                 this.enumerateDevices
-                    = wrapEnumerateDevices(
-                        navigator.mediaDevices.enumerateDevices.bind(
-                            navigator.mediaDevices));
+                    = wrapEnumerateDevices(boundEnumerateDevices);
+                this.mightShowPermissionPrompt
+                    = mightShowPermissionPrompt.bind(
+                        null, boundEnumerateDevices);
+
                 this.attachMediaStream
                     = wrapAttachMediaStream((element, stream) => {
                         defaultSetVideoSrc(element, stream);
@@ -909,6 +974,8 @@ class RTCUtils extends Listenable {
                     this.getUserMedia = window.getUserMedia;
                     this.enumerateDevices
                         = enumerateDevicesThroughMediaStreamTrack;
+                    this.mightShowPermissionPrompt
+                        = () => Promise.resolve(true);
                     this.attachMediaStream
                         = wrapAttachMediaStream((element, stream) => {
                             if (stream) {
