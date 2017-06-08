@@ -252,7 +252,7 @@ The object represents a conference. We have the following methods to control the
 
 2. leave() - leaves the conference. Returns Promise.
 
-2. myUserId() - get local user ID.
+3. myUserId() - get local user ID.
 
 4. getLocalTracks() - Returns array with JitsiTrack objects for the local streams.
 
