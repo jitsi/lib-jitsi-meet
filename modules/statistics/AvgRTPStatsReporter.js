@@ -25,6 +25,7 @@ class AverageStatReport {
         this.name = name;
         this.count = 0;
         this.sum = 0;
+        this.samples = [];
     }
 
     /**
@@ -39,6 +40,7 @@ class AverageStatReport {
                 nextValue);
         } else if (!isNaN(nextValue)) {
             this.sum += nextValue;
+            this.samples.push(nextValue);
             this.count += 1;
         }
     }
@@ -62,7 +64,10 @@ class AverageStatReport {
     report(isP2P) {
         Statistics.analytics.sendEvent(
             `${isP2P ? 'p2p.' : ''}${this.name}`,
-            { value: this.calculate() });
+            {
+                value: this.calculate(),
+                samples: this.samples
+            });
     }
 
     /**
@@ -70,6 +75,7 @@ class AverageStatReport {
      * calculated using this instance.
      */
     reset() {
+        this.samples = [];
         this.sum = 0;
         this.count = 0;
     }
