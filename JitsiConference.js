@@ -14,6 +14,7 @@ import JitsiParticipant from './JitsiParticipant';
 import JitsiTrackError from './JitsiTrackError';
 import * as JitsiTrackErrors from './JitsiTrackErrors';
 import * as JitsiTrackEvents from './JitsiTrackEvents';
+import Jvb121EventGenerator from './modules/event/Jvb121EventGenerator';
 import * as MediaType from './service/RTC/MediaType';
 import ParticipantConnectionStatusHandler
     from './modules/connectivity/ParticipantConnectionStatus';
@@ -264,6 +265,12 @@ JitsiConference.prototype._init = function(options = {}) {
     if ('channelLastN' in options.config) {
         this.setLastN(options.config.channelLastN);
     }
+
+    /**
+     * Emits {@link JitsiConferenceEvents.JVB121_STATUS}.
+     * @type {Jvb121EventGenerator}
+     */
+    this.jvb121Status = new Jvb121EventGenerator(this);
 
     // creates dominant speaker detection that works only in p2p mode
     this.p2pDominantSpeakerDetection = new P2PDominantSpeakerDetection(this);

@@ -507,6 +507,19 @@ export default class AvgRTPStatsReporter {
             ConferenceEvents.P2P_STATUS,
             this._onP2PStatusChanged);
 
+        this._onJvb121StatusChanged = (oldStatus, newStatus) => {
+            // We want to reset only on the transition from false => true,
+            // because otherwise those stats are resetted on JVB <=> P2P
+            // transition.
+            if (newStatus === true) {
+                logger.info('Resetting JVB avg RTP stats');
+                this._resetAvgJvbStats();
+            }
+        };
+        conference.on(
+            ConferenceEvents.JVB121_STATUS,
+            this._onJvb121StatusChanged);
+
         this.jvbStatsMonitor
             = new ConnectionAvgStats(conference, false /* JVB */, n);
 
@@ -733,6 +746,18 @@ export default class AvgRTPStatsReporter {
     }
 
     /**
+     * Resets the stats related to JVB connection. Must not be called when in
+     * P2P mode, because then the {@link AverageStatReport} instances are
+     * tracking P2P stats. Note that this should never happen unless something
+     * is wrong with the P2P and JVB121 events.
+     * @private
+     */
+    _resetAvgJvbStats() {
+        this._resetAvgStats();
+        this.jvbStatsMonitor._resetAvgStats();
+    }
+
+    /**
      * Reset cache of all averages and {@link _sampleIdx}.
      * @private
      */
@@ -770,6 +795,9 @@ export default class AvgRTPStatsReporter {
         this._conference.off(
             ConnectionQualityEvents.LOCAL_STATS_UPDATED,
             this._onLocalStatsUpdated);
+        this._conference.off(
+            ConferenceEvents.JVB121_STATUS,
+            this._onJvb121StatusChanged);
         this.jvbStatsMonitor.dispose();
         this.p2pStatsMonitor.dispose();
     }
