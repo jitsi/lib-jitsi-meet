@@ -45,6 +45,20 @@ const AVG_RTP_STATS_EVENT = 'avg.rtp.stats';
 const logger = getLogger(__filename);
 
 /**
+ * Figures out what prefix should be added to the stat name.
+ * @param {boolean} isP2P is it P2P or JVB conference ?
+ * @param {number} conferenceSize how many participants are there in
+ * the conference (including us)
+ * @return {string} "" (for JVB conference) or "p2p_" (for P2P) or "jvb121_"
+ * (for JVB 2 participant conference).
+ */
+function getPrefix(isP2P, conferenceSize) {
+    return isP2P
+        ? 'p2p_'
+        : conferenceSize === 2 ? 'jvb121_' : '';
+}
+
+/**
  * This will calculate an average for one, named stat and submit it to
  * the analytics module when requested. It automatically counts the samples.
  */
@@ -89,14 +103,15 @@ class AverageStatReport {
 
     /**
      * Appends the report to the analytics "data" object. The object will be
-     * added under {@link this.name} key or "p2p_" + {@link this.name} if
-     * <tt>isP2P</tt> is <tt>true</tt>.
+     * set under <tt>prefix</tt> + {@link this.name} key.
      * @param {Object} report the analytics "data" object
-     * @param {boolean} isP2P <tt>true</tt> if the stats is being report for
-     * P2P connection or <tt>false</tt> for the JVB connection.
+     * @param {string} prefix the prefix string that will be added at
+     * the beginning of the key name.
      */
-    appendReport(report, isP2P) {
-        report[`${isP2P ? 'p2p_' : ''}${this.name}`] = {
+    appendReport(report, prefix) {
+        const keyName = `${prefix}${this.name}`;
+
+        report[keyName] = {
             value: this.calculate(),
             samples: this.samples
         };
@@ -216,8 +231,10 @@ class ConnectionAvgStats {
         if (this._sampleIdx >= this._n) {
             if (RTCBrowserType.supportsRTTStatistics()) {
                 const batchReport = { };
+                const confSize = this._conference.getParticipantCount();
+                const prefix = getPrefix(this.isP2P, confSize);
 
-                this._avgRTT.appendReport(batchReport, this.isP2P);
+                this._avgRTT.appendReport(batchReport, prefix);
 
                 // Report end to end RTT only for JVB
                 if (!this.isP2P) {
@@ -226,7 +243,7 @@ class ConnectionAvgStats {
 
                     if (!isNaN(avgLocalRTT) && !isNaN(avgRemoteRTT)) {
                         // eslint-disable-next-line camelcase
-                        batchReport.stat_avg_end2endrtt
+                        batchReport[`${prefix}stat_avg_end2endrtt`]
                             = { value: avgLocalRTT + avgRemoteRTT };
                     }
                 }
@@ -506,9 +523,10 @@ export default class AvgRTPStatsReporter {
     _calculateAvgStats(data) {
 
         const isP2P = this._conference.isP2PActive();
-        const peerCount = this._conference.getParticipants().length;
+        const confSize = this._conference.getParticipantCount();
+        const prefix = getPrefix(isP2P, confSize);
 
-        if (!isP2P && peerCount < 1) {
+        if (!isP2P && confSize < 2) {
 
             // There's no point in collecting stats for a JVB conference of 1.
             // That happens for short period of time after everyone leaves
@@ -590,30 +608,30 @@ export default class AvgRTPStatsReporter {
         if (this._sampleIdx >= this._n) {
             const batchReport = { };
 
-            this._avgAudioBitrateUp.appendReport(batchReport, isP2P);
-            this._avgAudioBitrateDown.appendReport(batchReport, isP2P);
+            this._avgAudioBitrateUp.appendReport(batchReport, prefix);
+            this._avgAudioBitrateDown.appendReport(batchReport, prefix);
 
-            this._avgVideoBitrateUp.appendReport(batchReport, isP2P);
-            this._avgVideoBitrateDown.appendReport(batchReport, isP2P);
+            this._avgVideoBitrateUp.appendReport(batchReport, prefix);
+            this._avgVideoBitrateDown.appendReport(batchReport, prefix);
 
             if (RTCBrowserType.supportsBandwidthStatistics()) {
-                this._avgBandwidthUp.appendReport(batchReport, isP2P);
-                this._avgBandwidthDown.appendReport(batchReport, isP2P);
+                this._avgBandwidthUp.appendReport(batchReport, prefix);
+                this._avgBandwidthDown.appendReport(batchReport, prefix);
             }
-            this._avgPacketLossUp.appendReport(batchReport, isP2P);
-            this._avgPacketLossDown.appendReport(batchReport, isP2P);
-            this._avgPacketLossTotal.appendReport(batchReport, isP2P);
+            this._avgPacketLossUp.appendReport(batchReport, prefix);
+            this._avgPacketLossDown.appendReport(batchReport, prefix);
+            this._avgPacketLossTotal.appendReport(batchReport, prefix);
 
-            this._avgRemoteFPS.appendReport(batchReport, isP2P);
+            this._avgRemoteFPS.appendReport(batchReport, prefix);
             if (!isNaN(this._avgRemoteScreenFPS.calculate())) {
-                this._avgRemoteScreenFPS.appendReport(batchReport, isP2P);
+                this._avgRemoteScreenFPS.appendReport(batchReport, prefix);
             }
-            this._avgLocalFPS.appendReport(batchReport, isP2P);
+            this._avgLocalFPS.appendReport(batchReport, prefix);
             if (!isNaN(this._avgLocalScreenFPS.calculate())) {
-                this._avgLocalScreenFPS.appendReport(batchReport, isP2P);
+                this._avgLocalScreenFPS.appendReport(batchReport, prefix);
             }
 
-            this._avgCQ.appendReport(batchReport, isP2P);
+            this._avgCQ.appendReport(batchReport, prefix);
 
             Statistics.analytics.sendEvent(AVG_RTP_STATS_EVENT, batchReport);
 
