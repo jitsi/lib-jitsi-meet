@@ -56,6 +56,10 @@ const logger = getLogger(__filename);
  * @param {number} [options.config.channelLastN=-1] The requested amount of
  * videos are going to be delivered after the value is in effect. Set to -1 for
  * unlimited or all available videos.
+ * @param {number} [options.config.forceJVB121Ratio]
+ * "Math.random() < forceJVB121Ratio" will determine whether a 2 people
+ * conference should be moved to the JVB instead of P2P. The decision is made on
+ * the responder side, after ICE succeeds on the P2P connection.
  * @constructor
  *
  * FIXME Make all methods which are called from lib-internal classes
@@ -1466,6 +1470,18 @@ JitsiConference.prototype.onCallEnded
         // Let the RTC service do any cleanups
         this.rtc.onCallEnded();
     } else if (jingleSession === this.p2pJingleSession) {
+        // It's the responder who decides to enforce JVB mode, so that both
+        // initiator and responder are aware if it was intentional.
+        if (reasonCondition === 'decline' && reasonText === 'force JVB121') {
+            logger.info('In forced JVB 121 mode...');
+            Statistics.analytics.addPermanentProperties({ forceJvb121: true });
+        } else if (reasonCondition === 'connectivity-error'
+            && reasonText === 'ICE FAILED') {
+            // It can happen that the other peer detects ICE failed and
+            // terminates the session, before we get the event on our side.
+            // But we are able to parse the reason and mark it here.
+            Statistics.analytics.addPermanentProperties({ p2pFailed: true });
+        }
         this._stopP2PSession();
     } else {
         logger.error(
@@ -1905,6 +1921,11 @@ JitsiConference.prototype._onIceConnectionFailed = function(session) {
     // We do nothing for the JVB connection, because it's up to the Jicofo to
     // eventually come up with the new offer (at least for the time being).
     if (session.isP2P) {
+        // Add p2pFailed property to analytics to distinguish, between "good"
+        // and "bad" connection
+        Statistics.analytics.addPermanentProperties({ p2pFailed: true });
+
+        // Log analytics event, but only for the initiator to not count it twice
         if (this.p2pJingleSession && this.p2pJingleSession.isInitiator) {
             Statistics.sendEventToAll('p2p.failed');
         }
@@ -2007,11 +2028,25 @@ JitsiConference.prototype._addRemoteTracks = function(logName, remoteTracks) {
  */
 JitsiConference.prototype._onIceConnectionEstablished
 = function(jingleSession) {
+    const forceJVB121Ratio = this.options.config.forceJVB121Ratio;
+
     // We don't care about the JVB case, there's nothing to be done
     if (!jingleSession.isP2P) {
         return;
     } else if (this.p2pJingleSession !== jingleSession) {
         logger.error('CONNECTION_ESTABLISHED - wrong P2P session instance ?!');
+
+        return;
+    } else if (!jingleSession.isInitiator
+        && typeof forceJVB121Ratio === 'number'
+        && Math.random() < forceJVB121Ratio) {
+        logger.info(`Forcing JVB 121 mode (ratio=${forceJVB121Ratio})...`);
+        this._rejectIncomingCall(
+            jingleSession, {
+                reasonTag: 'decline',
+                reasonMsg: 'force JVB121'
+            });
+        Statistics.analytics.addPermanentProperties({ forceJvb121: true });
 
         return;
     }
@@ -2124,6 +2159,13 @@ JitsiConference.prototype._setP2PStatus = function(newStatus) {
     this.p2p = newStatus;
     if (newStatus) {
         logger.info('Peer to peer connection established!');
+
+        // When we end up in a valid P2P session need to reset the properties
+        // in case they have persisted, after session with another peer.
+        Statistics.analytics.addPermanentProperties({
+            p2pFailed: false,
+            forceJvb121: false
+        });
 
         // Sync up video transfer active in case p2pJingleSession not existed
         // when the lastN value was being adjusted.
