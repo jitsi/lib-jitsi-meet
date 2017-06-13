@@ -275,8 +275,7 @@ export default {
 
                         if (track.getType() === MediaType.AUDIO) {
                             Statistics.startLocalStats(mStream,
-                                track.setAudioLevel.bind(
-                                    track, null /* no TPC */));
+                                track.setAudioLevel.bind(track));
                             track.addEventListener(
                                 JitsiTrackEvents.LOCAL_TRACK_STOPPED,
                                 () => {
