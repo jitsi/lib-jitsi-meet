@@ -2,7 +2,7 @@
 
 import { getLogger } from 'jitsi-meet-logger';
 
-import DataChannels from './DataChannels';
+import BridgeChannel from './BridgeChannel';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import JitsiLocalTrack from './JitsiLocalTrack';
@@ -81,18 +81,24 @@ export default class RTC extends Listenable {
 
         this.options = options;
 
-        // A flag whether we had received that the data channel had opened
-        // we can get this flag out of sync if for some reason data channel got
-        // closed from server, a desired behaviour so we can see errors when
-        // this happen
-        this.dataChannelsOpen = false;
+        // BridgeChannel instance.
+        // @private
+        // @type {BridgeChannel}
+        this._channel = null;
+
+        // A flag whether we had received that the channel had opened we can
+        // get this flag out of sync if for some reason channel got closed
+        // from server, a desired behaviour so we can see errors when this
+        // happen.
+        // @private
+        // @type {boolean}
+        this._channelOpen = false;
 
         /**
          * The value specified to the last invocation of setLastN before the
-         * data channels completed opening. If non-null, the value will be sent
-         * through a data channel (once) as soon as it opens and will then be
+         * channel completed opening. If non-null, the value will be sent
+         * through a channel (once) as soon as it opens and will then be
          * discarded.
-         *
          * @private
          * @type {number}
          */
@@ -100,7 +106,7 @@ export default class RTC extends Listenable {
 
         /**
          * Defines the last N endpoints list. It can be null or an array once
-         * initialised with a datachannel last N event.
+         * initialised with a channel last N event.
          * @type {Array<string>|null}
          * @private
          */
@@ -142,13 +148,13 @@ export default class RTC extends Listenable {
 
     /**
      * Creates the local MediaStreams.
-     * @param {Object} [options] optional parameters
-     * @param {Array} options.devices the devices that will be requested
-     * @param {string} options.resolution resolution constraints
-     * @param {bool} options.dontCreateJitsiTrack if <tt>true</tt> objects with
-     * the following structure {stream: the Media Stream, type: "audio" or
-     * "video", videoType: "camera" or "desktop"} will be returned trough the
-     * Promise, otherwise JitsiTrack objects will be returned.
+     * @param {object} [options] Optional parameters.
+     * @param {array} options.devices The devices that will be requested.
+     * @param {string} options.resolution Resolution constraints.
+     * @param {bool} options.dontCreateJitsiTrack If <tt>true</tt> objects with
+     *     the following structure {stream: the Media Stream, type: "audio" or
+     *     "video", videoType: "camera" or "desktop"} will be returned trough
+     *     the Promise, otherwise JitsiTrack objects will be returned.
      * @param {string} options.cameraDeviceId
      * @param {string} options.micDeviceId
      * @returns {*} Promise object that will receive the new JitsiTracks
@@ -168,59 +174,62 @@ export default class RTC extends Listenable {
     }
 
     /**
-     * Initializes the data channels of this instance.
-     * @param peerconnection the associated PeerConnection.
+     * Initializes the bridge channel of this instance.
+     * At least one of both, peerconnection or wsUrl parameters, must be
+     * given.
+     * @param {RTCPeerConnection} [peerconnection] WebRTC peer connection
+     * instance.
+     * @param {string} [wsUrl] WebSocket URL.
      */
-    initializeDataChannels(peerconnection) {
-        if (this.options.config.openSctp) {
-            this.dataChannels = new DataChannels(peerconnection,
-                this.eventEmitter);
+    initializeBridgeChannel(peerconnection, wsUrl) {
+        this._channel = new BridgeChannel(
+            peerconnection, wsUrl, this.eventEmitter);
 
-            this._dataChannelOpenListener = () => {
-                // mark that dataChannel is opened
-                this.dataChannelsOpen = true;
+        this._channelOpenListener = () => {
+            // Mark that channel as opened.
+            this._channelOpen = true;
 
-                // when the data channel becomes available, tell the bridge
-                // about video selections so that it can do adaptive simulcast,
-                // we want the notification to trigger even if userJid
-                // is undefined, or null.
-                try {
-                    this.dataChannels.sendPinnedEndpointMessage(
-                        this._pinnedEndpoint);
-                    this.dataChannels.sendSelectedEndpointMessage(
-                        this._selectedEndpoint);
-                } catch (error) {
-                    GlobalOnErrorHandler.callErrorHandler(error);
-                    logger.error(
-                        `Cannot send selected(${this._selectedEndpoint})`
-                        + `pinned(${this._pinnedEndpoint}) endpoint message.`,
-                        error);
-                }
+            // When the channel becomes available, tell the bridge about
+            // video selections so that it can do adaptive simulcast,
+            // we want the notification to trigger even if userJid
+            // is undefined, or null.
+            try {
+                this._channel.sendPinnedEndpointMessage(
+                    this._pinnedEndpoint);
+                this._channel.sendSelectedEndpointMessage(
+                    this._selectedEndpoint);
+            } catch (error) {
+                GlobalOnErrorHandler.callErrorHandler(error);
+                logger.error(
+                    `Cannot send selected(${this._selectedEndpoint})`
+                    + `pinned(${this._pinnedEndpoint}) endpoint message.`,
+                    error);
+            }
 
-                this.removeListener(RTCEvents.DATA_CHANNEL_OPEN,
-                    this._dataChannelOpenListener);
-                this._dataChannelOpenListener = null;
+            this.removeListener(RTCEvents.DATA_CHANNEL_OPEN,
+                this._channelOpenListener);
+            this._channelOpenListener = null;
 
-                // If setLastN was invoked before the data channels completed
-                // opening, apply the specified value now that the data channels
-                // are open. NOTE that -1 is the default value assumed by both
-                // RTC module and the JVB.
-                if (this._lastN !== -1) {
-                    this.dataChannels.sendSetLastNMessage(this._lastN);
-                }
-            };
-            this.addListener(RTCEvents.DATA_CHANNEL_OPEN,
-                this._dataChannelOpenListener);
+            // If setLastN was invoked before the bridge channel completed
+            // opening, apply the specified value now that the channel
+            // is open. NOTE that -1 is the default value assumed by both
+            // RTC module and the JVB.
+            if (this._lastN !== -1) {
+                this._channel.sendSetLastNMessage(this._lastN);
+            }
+        };
 
-            // Add Last N change listener.
-            this.addListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
-                this._lastNChangeListener);
-        }
+        this.addListener(RTCEvents.DATA_CHANNEL_OPEN,
+            this._channelOpenListener);
+
+        // Add Last N change listener.
+        this.addListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
+            this._lastNChangeListener);
     }
 
     /**
      * Receives events when Last N had changed.
-     * @param {array} lastNEndpoints the new Last N endpoints.
+     * @param {array} lastNEndpoints The new Last N endpoints.
      * @private
      */
     _onLastNChanged(lastNEndpoints = []) {
@@ -247,13 +256,19 @@ export default class RTC extends Listenable {
      * PeerConnection has been closed using PeerConnection.close() method.
      */
     onCallEnded() {
-        if (this.dataChannels) {
-            // DataChannels are not explicitly closed as the PeerConnection
-            // is closed on call ended which triggers data channel onclose
-            // events. The reference is cleared to disable any logic related
-            // to the data channels.
-            this.dataChannels = null;
-            this.dataChannelsOpen = false;
+        if (this._channel) {
+            // The BridgeChannel is not explicitly closed as the PeerConnection
+            // is closed on call ended which triggers datachannel onclose
+            // events. If using a WebSocket, the channel must be closed since
+            // it is not managed by the PeerConnection.
+            // The reference is cleared to disable any logic related to the
+            // channel.
+            if (this._channel && this._channel.mode === 'websocket') {
+                this._channel.close();
+            }
+
+            this._channel = null;
+            this._channelOpen = false;
         }
     }
 
@@ -261,17 +276,17 @@ export default class RTC extends Listenable {
      * Elects the participant with the given id to be the selected participant
      * in order to always receive video for this participant (even when last n
      * is enabled).
-     * If there is no data channel we store it and send it through the channel
-     * once it is created.
-     * @param id {string} the user id.
+     * If there is no channel we store it and send it through the channel once
+     * it is created.
+     * @param {string} id The user id.
      * @throws NetworkError or InvalidStateError or Error if the operation
      * fails.
      */
     selectEndpoint(id) {
-        // cache the value if channel is missing, till we open it
+        // Cache the value if channel is missing, till we open it.
         this._selectedEndpoint = id;
-        if (this.dataChannels && this.dataChannelsOpen) {
-            this.dataChannels.sendSelectedEndpointMessage(id);
+        if (this._channel && this._channelOpen) {
+            this._channel.sendSelectedEndpointMessage(id);
         }
     }
 
@@ -279,15 +294,15 @@ export default class RTC extends Listenable {
      * Elects the participant with the given id to be the pinned participant in
      * order to always receive video for this participant (even when last n is
      * enabled).
-     * @param id {string} the user id
+     * @param {stirng} id The user id.
      * @throws NetworkError or InvalidStateError or Error if the operation
      * fails.
      */
     pinEndpoint(id) {
-        // cache the value if channel is missing, till we open it
+        // Cache the value if channel is missing, till we open it.
         this._pinnedEndpoint = id;
-        if (this.dataChannels && this.dataChannelsOpen) {
-            this.dataChannels.sendPinnedEndpointMessage(id);
+        if (this._channel && this._channelOpen) {
+            this._channel.sendPinnedEndpointMessage(id);
         }
     }
 
@@ -337,19 +352,20 @@ export default class RTC extends Listenable {
 
     /**
      * Creates new <tt>TraceablePeerConnection</tt>
-     * @param {SignalingLayer} signaling the signaling layer that will
-     * provide information about the media or participants which is not carried
-     * over SDP.
-     * @param {Object} iceConfig an object describing the ICE config like
-     * defined in the WebRTC specification.
-     * @param {boolean} isP2P indicates whether or not the new TPC will be used
-     * in a peer to peer type of session
-     * @param {Object} options the config options
-     * @param {boolean} options.disableSimulcast if set to 'true' will disable
-     * the simulcast
-     * @param {boolean} options.disableRtx if set to 'true' will disable the RTX
-     * @param {boolean} options.preferH264 if set to 'true' H264 will be
-     * preferred over other video codecs.
+     * @param {SignalingLayer} signaling The signaling layer that will
+     *      provide information about the media or participants which is not
+     *      carried over SDP.
+     * @param {object} iceConfig An object describing the ICE config like
+     *      defined in the WebRTC specification.
+     * @param {boolean} isP2P Indicates whether or not the new TPC will be used
+     *      in a peer to peer type of session.
+     * @param {object} options The config options.
+     * @param {boolean} options.disableSimulcast If set to 'true' will disable
+     *      the simulcast.
+     * @param {boolean} options.disableRtx If set to 'true' will disable the
+     *      RTX.
+     * @param {boolean} options.preferH264 If set to 'true' H264 will be
+     *      preferred over other video codecs.
      * @return {TraceablePeerConnection}
      */
     createPeerConnection(signaling, iceConfig, isP2P, options) {
@@ -436,7 +452,7 @@ export default class RTC extends Listenable {
     /**
      * Returns the local tracks of the given media type, or all local tracks if
      * no specific type is given.
-     * @param {MediaType} [mediaType] optional media type filter
+     * @param {MediaType} [mediaType] Optional media type filter.
      * (audio or video).
      */
     getLocalTracks(mediaType) {
@@ -452,8 +468,8 @@ export default class RTC extends Listenable {
 
     /**
      * Obtains all remote tracks currently known to this RTC module instance.
-     * @param {MediaType} [mediaType] the remote tracks will be filtered
-     * by their media type if this argument is specified.
+     * @param {MediaType} [mediaType] The remote tracks will be filtered
+     *      by their media type if this argument is specified.
      * @return {Array<JitsiRemoteTrack>}
      */
     getRemoteTracks(mediaType) {
@@ -472,7 +488,7 @@ export default class RTC extends Listenable {
 
     /**
      * Set mute for all local audio streams attached to the conference.
-     * @param value the mute value
+     * @param value The mute value.
      * @returns {Promise}
      */
     setAudioMute(value) {
@@ -506,7 +522,7 @@ export default class RTC extends Listenable {
      * Removes all JitsiRemoteTracks associated with given MUC nickname
      * (resource part of the JID). Returns array of removed tracks.
      *
-     * @param {string} owner - The resource part of the MUC JID.
+     * @param {string} Owner The resource part of the MUC JID.
      * @returns {JitsiRemoteTrack[]}
      */
     removeRemoteTracks(owner) {
@@ -560,7 +576,7 @@ export default class RTC extends Listenable {
     /**
      * Returns true if changing the input (camera / microphone) or output
      * (audio) device is supported and false if not.
-     * @params {string} [deviceType] - type of device to change. Default is
+     * @param {string} [deviceType] Type of device to change. Default is
      *      undefined or 'input', 'output' - for audio output device change.
      * @returns {boolean} true if available, false otherwise.
      */
@@ -580,7 +596,7 @@ export default class RTC extends Listenable {
     /**
      * Returns list of available media devices if its obtained, otherwise an
      * empty array is returned/
-     * @returns {Array} list of available media devices.
+     * @returns {array} list of available media devices.
      */
     static getCurrentlyAvailableMediaDevices() {
         return RTCUtils.getCurrentlyAvailableMediaDevices();
@@ -596,9 +612,9 @@ export default class RTC extends Listenable {
 
     /**
      * Sets current audio output device.
-     * @param {string} deviceId - id of 'audiooutput' device from
-     *      navigator.mediaDevices.enumerateDevices()
-     * @returns {Promise} - resolves when audio output is changed, is rejected
+     * @param {string} deviceId Id of 'audiooutput' device from
+     *      navigator.mediaDevices.enumerateDevices().
+     * @returns {Promise} resolves when audio output is changed, is rejected
      *      otherwise
      */
     static setAudioOutputDevice(deviceId) {
@@ -614,7 +630,7 @@ export default class RTC extends Listenable {
      * "streams/channels/tracks" for receiving remote stream/tracks, as opposed
      * to Plan B where there are only 3 channels: audio, video and data.
      *
-     * @param {MediaStream} stream the WebRTC MediaStream instance
+     * @param {MediaStream} stream The WebRTC MediaStream instance.
      * @returns {boolean}
      */
     static isUserStream(stream) {
@@ -630,7 +646,7 @@ export default class RTC extends Listenable {
      * "streams/channels/tracks" for receiving remote stream/tracks, as opposed
      * to Plan B where there are only 3 channels: audio, video and data.
      *
-     * @param {string} streamId the id of WebRTC MediaStream
+     * @param {string} streamId The id of WebRTC MediaStream.
      * @returns {boolean}
      */
     static isUserStreamById(streamId) {
@@ -640,7 +656,8 @@ export default class RTC extends Listenable {
 
     /**
      * Allows to receive list of available cameras/microphones.
-     * @param {function} callback would receive array of devices as an argument
+     * @param {function} callback Would receive array of devices as an
+     *      argument.
      */
     static enumerateDevices(callback) {
         RTCUtils.enumerateDevices(callback);
@@ -649,7 +666,7 @@ export default class RTC extends Listenable {
     /**
      * A method to handle stopping of the stream.
      * One point to handle the differences in various implementations.
-     * @param mediaStream MediaStream object to stop.
+     * @param {MediaStream} mediaStream MediaStream object to stop.
      */
     static stopMediaStream(mediaStream) {
         RTCUtils.stopMediaStream(mediaStream);
@@ -664,12 +681,12 @@ export default class RTC extends Listenable {
     }
 
     /**
-     * Closes all currently opened data channels.
+     * Closes the currently opened bridge channel.
      */
-    closeAllDataChannels() {
-        if (this.dataChannels) {
-            this.dataChannels.closeAllChannels();
-            this.dataChannelsOpen = false;
+    closeBridgeChannel() {
+        if (this._channel) {
+            this._channel.close();
+            this._channelOpen = false;
 
             this.removeListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
                 this._lastNChangeListener);
@@ -704,18 +721,18 @@ export default class RTC extends Listenable {
     /* eslint-enable max-params */
 
     /**
-     * Sends message via the datachannels.
-     * @param to {string} the id of the endpoint that should receive the
-     * message. If "" the message will be sent to all participants.
-     * @param payload {object} the payload of the message.
+     * Sends message via the bridge channel.
+     * @param {string} to The id of the endpoint that should receive the
+     *      message. If "" the message will be sent to all participants.
+     * @param {object} payload The payload of the message.
      * @throws NetworkError or InvalidStateError or Error if the operation
-     * fails or there is no data channel created
+     * fails or there is no data channel created.
      */
-    sendDataChannelMessage(to, payload) {
-        if (this.dataChannels) {
-            this.dataChannels.sendDataChannelMessage(to, payload);
+    sendChannelMessage(to, payload) {
+        if (this._channel) {
+            this._channel.sendMessage(to, payload);
         } else {
-            throw new Error('Data channels support is disabled!');
+            throw new Error('Channel support is disabled!');
         }
     }
 
@@ -723,13 +740,13 @@ export default class RTC extends Listenable {
      * Selects a new value for "lastN". The requested amount of videos are going
      * to be delivered after the value is in effect. Set to -1 for unlimited or
      * all available videos.
-     * @param value {number} the new value for lastN.
+     * @param {number} value the new value for lastN.
      */
     setLastN(value) {
         if (this._lastN !== value) {
             this._lastN = value;
-            if (this.dataChannels && this.dataChannelsOpen) {
-                this.dataChannels.sendSetLastNMessage(value);
+            if (this._channel && this._channelOpen) {
+                this._channel.sendSetLastNMessage(value);
             }
             this.eventEmitter.emit(RTCEvents.LASTN_VALUE_CHANGED, value);
         }
@@ -737,13 +754,12 @@ export default class RTC extends Listenable {
 
     /**
      * Indicates if the endpoint id is currently included in the last N.
-     *
-     * @param {string} id the endpoint id that we check for last N.
+     * @param {string} id The endpoint id that we check for last N.
      * @returns {boolean} true if the endpoint id is in the last N or if we
-     * don't have data channel support, otherwise we return false.
+     * don't have bridge channel support, otherwise we return false.
      */
     isInLastN(id) {
-        return !this._lastNEndpoints // lastNEndpoints not initialised yet
+        return !this._lastNEndpoints // lastNEndpoints not initialised yet.
             || this._lastNEndpoints.indexOf(id) > -1;
     }
 }

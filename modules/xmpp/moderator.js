@@ -1,11 +1,13 @@
 /* global $, $iq, Promise, Strophe */
 
 const logger = require('jitsi-meet-logger').getLogger(__filename);
+
 const XMPPEvents = require('../../service/xmpp/XMPPEvents');
 const AuthenticationEvents
     = require('../../service/authentication/AuthenticationEvents');
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
+import RTCBrowserType from '../RTC/RTCBrowserType';
 import Settings from '../settings/Settings';
 
 /**
@@ -210,13 +212,30 @@ Moderator.prototype.createConferenceIq = function() {
                 value: this.options.conference.minBitrate
             }).up();
     }
-    if (this.options.conference.openSctp !== undefined) {
-        elem.c(
-            'property', {
-                name: 'openSctp',
-                value: this.options.conference.openSctp
-            }).up();
+
+    let openSctp;
+
+    switch (this.options.conference.openBridgeChannel) {
+    case 'datachannel':
+    case true:
+    case undefined:
+        openSctp = true;
+        break;
+    case 'websocket':
+        openSctp = false;
+        break;
     }
+
+    if (openSctp && !RTCBrowserType.supportsDataChannels()) {
+        openSctp = false;
+    }
+
+    elem.c(
+        'property', {
+            name: 'openSctp',
+            value: openSctp
+        }).up();
+
     if (this.options.conference.startAudioMuted !== undefined) {
         elem.c(
             'property', {

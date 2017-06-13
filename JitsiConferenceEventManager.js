@@ -59,10 +59,12 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     chatRoom.addListener(XMPPEvents.ICE_RESTARTING, jingleSession => {
         if (!jingleSession.isP2P) {
-            // All data channels have to be closed, before ICE restart
-            // otherwise Chrome will not trigger "opened" event for the channel
-            // established with the new bridge
-            conference.rtc.closeAllDataChannels();
+            // If using DataChannel as bridge channel, it must be closed
+            // before ICE restart, otherwise Chrome will not trigger "opened"
+            // event for the channel established with the new bridge.
+            // TODO: This may be bypassed when using a WebSocket as bridge
+            // channel.
+            conference.rtc.closeBridgeChannel();
         }
 
         // else: there are no DataChannels in P2P session (at least for now)
