@@ -827,7 +827,7 @@ export default class JingleSessionPC extends JingleSession {
             const oldLocalSdp
                 = this.peerconnection.localDescription.sdp;
 
-            this._renegotiate(newRemoteSdp)
+            this._renegotiate(newRemoteSdp.raw)
                 .then(() => {
                     if (this.state === JingleSessionState.PENDING) {
                         this.state = JingleSessionState.ACTIVE;
@@ -1250,7 +1250,7 @@ export default class JingleSessionPC extends JingleSession {
                     ? this._processRemoteAddSource(addOrRemoveSsrcInfo)
                     : this._processRemoteRemoveSource(addOrRemoveSsrcInfo);
 
-            this._renegotiate(newRemoteSdp)
+            this._renegotiate(newRemoteSdp.raw)
                 .then(() => {
                     const newLocalSdp
                         = new SDP(this.peerconnection.localDescription.sdp);
@@ -1355,7 +1355,7 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Do a new o/a flow using the existing remote description
-     * @param {SDP object} optionalRemoteSdp optional remote sdp
+     * @param {string} [optionalRemoteSdp] optional, raw remote sdp
      *  to use.  If not provided, the remote sdp from the
      *  peerconnection will be used
      * @returns {Promise} promise which resolves when the
@@ -1363,12 +1363,8 @@ export default class JingleSessionPC extends JingleSession {
      *  rejects with an error {string}
      */
     _renegotiate(optionalRemoteSdp) {
-        const currentRemoteSdp = this.peerconnection.remoteDescription.sdp;
-
-        // FIXME new SDP() may not be necessary - raw SDP is needed anyway
         const remoteSdp
-            = optionalRemoteSdp
-                || (currentRemoteSdp && new SDP(currentRemoteSdp));
+            = optionalRemoteSdp || this.peerconnection.remoteDescription.sdp;
 
         if (!remoteSdp) {
             return Promise.reject(
@@ -1378,7 +1374,7 @@ export default class JingleSessionPC extends JingleSession {
 
         const remoteDescription = new RTCSessionDescription({
             type: this.isInitiator ? 'answer' : 'offer',
-            sdp: remoteSdp.raw
+            sdp: remoteSdp
         });
 
         return new Promise((resolve, reject) => {
