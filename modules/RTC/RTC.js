@@ -698,7 +698,7 @@ export default class RTC extends Listenable {
                 `${track} was expected to ${isLocal ? 'be' : 'not be'} local`);
         }
 
-        track.setAudioLevel(tpc, audioLevel);
+        track.setAudioLevel(audioLevel, tpc);
     }
 
     /* eslint-enable max-params */

@@ -616,11 +616,11 @@ JitsiConference.prototype.addTrack = function(track) {
 
 /**
  * Fires TRACK_AUDIO_LEVEL_CHANGED change conference event (for local tracks).
- * @param {TraceablePeerConnection|null} tpc
- * @param audioLevel the audio level
+ * @param {number} audioLevel the audio level
+ * @param {TraceablePeerConnection} [tpc]
  */
 JitsiConference.prototype._fireAudioLevelChangeEvent
-= function(tpc, audioLevel) {
+= function(audioLevel, tpc) {
     const activeTpc = this.getActivePeerConnection();
 
     // There will be no TraceablePeerConnection if audio levels do not come from
@@ -628,7 +628,7 @@ JitsiConference.prototype._fireAudioLevelChangeEvent
     // Audio Analyser API and emits local audio levels events through
     // JitsiTrack.setAudioLevel, but does not provide TPC instance which is
     // optional.
-    if (tpc === null || activeTpc === tpc) {
+    if (!tpc || activeTpc === tpc) {
         this.eventEmitter.emit(
             JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED,
             this.myUserId(), audioLevel);
@@ -1184,7 +1184,7 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
         () => emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track));
     track.addEventListener(
         JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
-        (tpc, audioLevel) => {
+        (audioLevel, tpc) => {
             const activeTPC = this.getActivePeerConnection();
 
             if (activeTPC === tpc) {
