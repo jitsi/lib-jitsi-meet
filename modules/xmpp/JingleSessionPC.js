@@ -2060,7 +2060,7 @@ export default class JingleSessionPC extends JingleSession {
      *  reason: {the name of XMPP error reason element or 'timeout' if the
       *          request has timed out within <tt>IQ_TIMEOUT</tt> milliseconds}
      *  source: {request.tree() that provides original request}
-     *  session: {JingleSessionPC instance on which the error occurred}
+     *  session: {this JingleSessionPC.toString()}
      * }
      * @param request Strophe IQ instance which is the request to be dumped into
      *        the error structure
@@ -2097,10 +2097,7 @@ export default class JingleSessionPC extends JingleSession {
                 error.source = error.source.outerHTML;
             }
 
-            // Commented to fix JSON.stringify(error) exception for circular
-            // dependancies when we print that error.
-            // FIXME: Maybe we can include part of the session object
-            // error.session = this;
+            error.session = this.toString();
 
             if (failureCb) {
                 failureCb(error);
