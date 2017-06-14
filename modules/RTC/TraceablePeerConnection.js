@@ -666,8 +666,7 @@ TraceablePeerConnection.prototype._createRemoteTrack
     }
     remoteTracksMap.set(mediaType, remoteTrack);
 
-    // FIXME not cool to use RTC's eventEmitter
-    this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack);
+    this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack);
 };
 
 /* eslint-enable max-params */
@@ -728,7 +727,7 @@ TraceablePeerConnection.prototype._remoteTrackRemoved
         return;
     }
 
-    if (!this._removeRemoteTrack(streamId, trackId)) {
+    if (!this._removeRemoteTrackById(streamId, trackId)) {
         // NOTE this warning is always printed when user leaves the room,
         // because we remove remote tracks manually on MUC member left event,
         // before the SSRCs are removed by Jicofo. In most cases it is fine to
@@ -801,6 +800,26 @@ TraceablePeerConnection.prototype.removeRemoteTracks = function(owner) {
 };
 
 /**
+ * Removes and disposes given <tt>JitsiRemoteTrack</tt> instance. Emits
+ * {@link RTCEvents.REMOTE_TRACK_REMOVED}.
+ * @param {JitsiRemoteTrack} toBeRemoved
+ */
+TraceablePeerConnection.prototype._removeRemoteTrack = function(toBeRemoved) {
+    toBeRemoved.dispose();
+    const participantId = toBeRemoved.getParticipantId();
+    const remoteTracksMap = this.remoteTracks.get(participantId);
+
+    if (!remoteTracksMap) {
+        logger.error(
+            `removeRemoteTrack: no remote tracks map for ${participantId}`);
+    } else if (!remoteTracksMap.delete(toBeRemoved.getType())) {
+        logger.error(
+            `Failed to remove ${toBeRemoved} - type mapping messed up ?`);
+    }
+    this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_REMOVED, toBeRemoved);
+};
+
+/**
  * Removes and disposes <tt>JitsiRemoteTrack</tt> identified by given stream and
  * track ids.
  *
@@ -810,26 +829,12 @@ TraceablePeerConnection.prototype.removeRemoteTracks = function(owner) {
  * <tt>undefined</tt> if no track matching given stream and track ids was
  * found.
  */
-TraceablePeerConnection.prototype._removeRemoteTrack
+TraceablePeerConnection.prototype._removeRemoteTrackById
 = function(streamId, trackId) {
     const toBeRemoved = this._getRemoteTrackById(streamId, trackId);
 
     if (toBeRemoved) {
-        toBeRemoved.dispose();
-
-        const remoteTracksMap
-            = this.remoteTracks.get(toBeRemoved.getParticipantId());
-
-        // If _getRemoteTrackById succeeded it must be a valid value or
-        // we're good to crash
-        if (!remoteTracksMap.delete(toBeRemoved.getType())) {
-            logger.error(
-                `Failed to remove ${toBeRemoved} - type mapping messed up ?`);
-        }
-
-        // FIXME not cool to use RTC's eventEmitter
-        this.rtc.eventEmitter.emit(
-            RTCEvents.REMOTE_TRACK_REMOVED, toBeRemoved);
+        this._removeRemoteTrack(toBeRemoved);
     }
 
     return toBeRemoved;
@@ -1435,7 +1440,7 @@ TraceablePeerConnection.prototype.setLocalDescription
 
             if (localUfrag !== this.localUfrag) {
                 this.localUfrag = localUfrag;
-                this.rtc.eventEmitter.emit(
+                this.eventEmitter.emit(
                     RTCEvents.LOCAL_UFRAG_CHANGED, this, localUfrag);
             }
             successCallback();
@@ -1508,7 +1513,7 @@ TraceablePeerConnection.prototype.setRemoteDescription
 
             if (remoteUfrag !== this.remoteUfrag) {
                 this.remoteUfrag = remoteUfrag;
-                this.rtc.eventEmitter.emit(
+                this.eventEmitter.emit(
                     RTCEvents.REMOTE_UFRAG_CHANGED, this, remoteUfrag);
             }
             successCallback();
@@ -1543,6 +1548,11 @@ TraceablePeerConnection.prototype.clearRecvonlySsrc = function() {
     this.sdpConsistency.clearVideoSsrcCache();
 };
 
+/**
+ * Closes underlying WebRTC PeerConnection instance and removes all remote
+ * tracks by emitting {@link RTCEvents.REMOTE_TRACK_REMOVED} for each one of
+ * them.
+ */
 TraceablePeerConnection.prototype.close = function() {
     this.trace('stop');
 
@@ -1551,6 +1561,13 @@ TraceablePeerConnection.prototype.close = function() {
         SignalingEvents.PEER_MUTED_CHANGED, this._peerMutedChanged);
     this.signalingLayer.off(
         SignalingEvents.PEER_VIDEO_TYPE_CHANGED, this._peerVideoTypeChanged);
+
+    for (const peerTracks of this.remoteTracks.values()) {
+        for (const remoteTrack of peerTracks.values()) {
+            this._removeRemoteTrack(remoteTrack);
+        }
+    }
+    this.remoteTracks.clear();
 
     if (!this.rtc._removePeerConnection(this)) {
         logger.error('RTC._removePeerConnection returned false');

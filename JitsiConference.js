@@ -6,7 +6,6 @@ import ConnectionQuality from './modules/connectivity/ConnectionQuality';
 import { getLogger } from 'jitsi-meet-logger';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import EventEmitter from 'events';
-import * as JingleSessionState from './modules/xmpp/JingleSessionState';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
@@ -1235,8 +1234,6 @@ JitsiConference.prototype.onTransportInfo = function(session, transportInfo) {
  * @param {JitsiRemoteTrack} removedTrack
  */
 JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
-    let consumed = false;
-
     this.getParticipants().forEach(participant => {
         const tracks = participant.getTracks();
 
@@ -1253,29 +1250,10 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
                     this.transcriber.removeTrack(removedTrack);
                 }
 
-                consumed = true;
-
                 break;
             }
         }
     }, this);
-
-    if (!consumed) {
-        if ((this.isP2PActive() && !removedTrack.isP2P)
-             || (!this.isP2PActive() && removedTrack.isP2P)) {
-            // A remote track can be removed either as a result of
-            // 'source-remove' or the P2P logic which removes remote tracks
-            // explicitly when switching between JVB and P2P connections.
-            // The check above filters out the P2P logic case which should not
-            // result in an error (which just goes over all remote tracks).
-            return;
-        }
-        logger.error(
-            'Failed to match remote track on remove'
-                + ' with any of the participants',
-            removedTrack.getStreamId(),
-            removedTrack.getParticipantId());
-    }
 };
 
 /**
@@ -1352,7 +1330,14 @@ JitsiConference.prototype.onIncomingCall
     try {
         jingleSession.acceptOffer(
             jingleOffer,
-            null /* success */,
+            () => {
+                // If for any reason invite for the JVB session arrived after
+                // the P2P has been established already the media transfer needs
+                // to be turned off here.
+                if (this.isP2PActive() && this.jvbJingleSession) {
+                    this._suspendMediaTransferForJvbConnection();
+                }
+            },
             error => {
                 GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error(
@@ -1414,13 +1399,15 @@ JitsiConference.prototype._rejectIncomingCall
 
     // Terminate  the jingle session with a reason
     jingleSession.terminate(
-        options && options.reasonTag,
-        options && options.reasonMsg,
         null /* success callback => we don't care */,
         error => {
             logger.warn(
                 'An error occurred while trying to terminate'
                     + ' invalid Jingle session', error);
+        }, {
+            reason: options.reasonTag,
+            reasonDescription: options.reasonMsg,
+            sendSessionTerminate: true
         });
 };
 
@@ -2264,7 +2251,7 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
             logger.info(`Will start P2P with: ${jid}`);
             this._startP2PSession(jid);
         }
-    } else if (isModerator && this.p2pJingleSession && !shouldBeInP2P) {
+    } else if (this.p2pJingleSession && !shouldBeInP2P) {
         logger.info(`Will stop P2P with: ${this.p2pJingleSession.peerjid}`);
 
         // Log that there will be a switch back to the JVB connection
@@ -2295,7 +2282,9 @@ JitsiConference.prototype._stopP2PSession
 
     // Swap remote tracks, but only if the P2P has been fully established
     if (wasP2PEstablished) {
-        this._resumeMediaTransferForJvbConnection();
+        if (this.jvbJingleSession) {
+            this._resumeMediaTransferForJvbConnection();
+        }
 
         // Remove remote P2P tracks
         this._removeRemoteP2PTracks();
@@ -2305,23 +2294,39 @@ JitsiConference.prototype._stopP2PSession
     logger.info('Stopping remote stats for P2P connection');
     this.statistics.stopRemoteStats(this.p2pJingleSession.peerconnection);
     logger.info('Stopping CallStats for P2P connection');
-    this.statistics.stopCallStats(
-        this.p2pJingleSession.peerconnection);
+    this.statistics.stopCallStats(this.p2pJingleSession.peerconnection);
 
-    if (JingleSessionState.ENDED !== this.p2pJingleSession.state) {
-        this.p2pJingleSession.terminate(
-            reason ? reason : 'success',
-            reasonDescription
-                ? reasonDescription : 'Turing off P2P session',
-            () => {
-                logger.info('P2P session terminate RESULT');
-            },
-            error => {
-                logger.warn(
+    this.p2pJingleSession.terminate(
+        () => {
+            logger.info('P2P session terminate RESULT');
+        },
+        error => {
+            // Because both initiator and responder are simultaneously
+            // terminating their JingleSessions in case of the 'to JVB switch'
+            // when 3rd participant joins, both will dispose their sessions and
+            // reply with 'item-not-found' (see strophe.jingle.js). We don't
+            // want to log this as an error since it's expected behaviour.
+            //
+            // We want them both to terminate, because in case of initiator's
+            // crash the responder would stay in P2P mode until ICE fails which
+            // could take up to 20 seconds.
+            //
+            // NOTE lack of 'reason' is considered as graceful session terminate
+            // where both initiator and responder terminate their sessions
+            // simultaneously.
+            if (reason) {
+                logger.error(
                     'An error occurred while trying to terminate'
-                    + ' P2P Jingle session', error);
-            });
-    }
+                        + ' P2P Jingle session', error);
+            }
+        }, {
+            reason: reason ? reason : 'success',
+            reasonDescription: reasonDescription
+                ? reasonDescription : 'Turing off P2P session',
+            sendSessionTerminate: this.room
+                && this.getParticipantById(
+                    Strophe.getResourceFromJid(this.p2pJingleSession.peerjid))
+        });
 
     this.p2pJingleSession = null;
 
