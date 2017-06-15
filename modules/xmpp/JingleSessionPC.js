@@ -1817,9 +1817,9 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Resumes or suspends media transfer over the underlying peer connection.
-     * @param {boolean} [audioActive] <tt>true</tt> to enable audio media
+     * @param {boolean} audioActive <tt>true</tt> to enable audio media
      * transfer or <tt>false</tt> to suspend audio media transmission.
-     * @param {boolean} [videoActive] <tt>true</tt> to enable video media
+     * @param {boolean} videoActive <tt>true</tt> to enable video media
      * transfer or <tt>false</tt> to suspend video media transmission.
      * @return {Promise} a <tt>Promise</tt> which will resolve once
      * the operation is done. It will be rejected with an error description as
@@ -1832,20 +1832,8 @@ export default class JingleSessionPC extends JingleSession {
                     + ' before "initialize" is called');
         }
 
-        const logAudioStr
-            = typeof audioActive === 'boolean'
-                ? audioActive ? 'audio active' : 'audio inactive'
-                : null;
-
-        const logVideoStr
-            = typeof videoActive === 'boolean'
-                ? videoActive ? 'video active' : 'video inactive'
-                : null;
-
-        // Called without any valid arguments ?
-        if (logVideoStr === null && logAudioStr === null) {
-            return Promise.reject('At least one argument is required');
-        }
+        const logAudioStr = audioActive ? 'audio active' : 'audio inactive';
+        const logVideoStr = videoActive ? 'video active' : 'video inactive';
 
         logger.info(`Queued make ${logVideoStr}, ${logAudioStr} task...`);
 
@@ -1859,8 +1847,7 @@ export default class JingleSessionPC extends JingleSession {
             const audioActiveChanged
                 = this.peerconnection.setAudioTransferActive(audioActive);
 
-            if (typeof videoActive === 'boolean'
-                    && this._localVideoActive !== videoActive) {
+            if (this._localVideoActive !== videoActive) {
                 this._localVideoActive = videoActive;
 
                 // Do only for P2P - Jicofo will reply with 'bad-request'

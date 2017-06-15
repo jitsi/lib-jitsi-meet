@@ -1478,7 +1478,7 @@ TraceablePeerConnection.prototype.setLocalDescription
  * disabled the SDP audio media direction in the local SDP will be adjusted to
  * 'inactive' which means that no data will be sent nor accepted, but
  * the connection should be kept alive.
- * @param {boolean} [active] <tt>true</tt> to enable video media transmission or
+ * @param {boolean} active <tt>true</tt> to enable video media transmission or
  * <tt>false</tt> to disable. If the value is not a boolean the call will have
  * no effect.
  * @return {boolean} <tt>true</tt> if the value has changed and sRD/sLD cycle
@@ -1488,12 +1488,9 @@ TraceablePeerConnection.prototype.setLocalDescription
  */
 TraceablePeerConnection.prototype.setAudioTransferActive = function(active) {
     logger.debug(`${this} audio transfer active: ${active}`);
-    let changed = false;
+    const changed = this.audioTransferActive !== active;
 
-    if (typeof active === 'boolean') {
-        changed = this.audioTransferActive !== active;
-        this.audioTransferActive = active;
-    }
+    this.audioTransferActive = active;
 
     return changed;
 };
@@ -1563,7 +1560,7 @@ TraceablePeerConnection.prototype.setRemoteDescription
  * disabled the SDP video media direction in the local SDP will be adjusted to
  * 'inactive' which means that no data will be sent nor accepted, but
  * the connection should be kept alive.
- * @param {boolean} [active] <tt>true</tt> to enable video media transmission or
+ * @param {boolean} active <tt>true</tt> to enable video media transmission or
  * <tt>false</tt> to disable. If the value is not a boolean the call will have
  * no effect.
  * @return {boolean} <tt>true</tt> if the value has changed and sRD/sLD cycle
@@ -1573,12 +1570,9 @@ TraceablePeerConnection.prototype.setRemoteDescription
  */
 TraceablePeerConnection.prototype.setVideoTransferActive = function(active) {
     logger.debug(`${this} video transfer active: ${active}`);
-    let changed = false;
+    const changed = this.videoTransferActive !== active;
 
-    if (typeof active === 'boolean') {
-        changed = this.videoTransferActive !== active;
-        this.videoTransferActive = active;
-    }
+    this.videoTransferActive = active;
 
     return changed;
 };
