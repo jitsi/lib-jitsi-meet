@@ -981,7 +981,7 @@ export default class ChatRoom extends Listenable {
                         .up();
 
                     // Fixes a bug in prosody 0.9.+
-                    // https://code.google.com/p/lxmppd/issues/detail?id=373
+                    // https://prosody.im/issues/issue/373
                     formsubmit
                         .c('field', { 'var': 'muc#roomconfig_whois' })
                         .c('value')
