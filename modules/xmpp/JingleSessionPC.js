@@ -39,14 +39,11 @@ export default class JingleSessionPC extends JingleSession {
         if (videoContents.length) {
             const senders = videoContents[0].getAttribute('senders');
 
-            switch (senders) {
-            case 'both':
-            case 'initiator':
-            case 'responder':
-            case 'none':
+            if (senders === 'both'
+                || senders === 'initiator'
+                || senders === 'responder'
+                || senders === 'none') {
                 return senders;
-            default:
-                return null;
             }
         }
 
