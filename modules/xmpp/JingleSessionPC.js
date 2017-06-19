@@ -25,6 +25,33 @@ const IQ_TIMEOUT = 10000;
  *
  */
 export default class JingleSessionPC extends JingleSession {
+    /**
+     * Parses 'senders' attribute of the video content.
+     * @param {jQuery} jingleContents
+     * @return {string|null} one of the values of content "senders" attribute
+     * defined by Jingle. If there is no "senders" attribute or if the value is
+     * invalid then <tt>null</tt> will be returned.
+     * @private
+     */
+    static parseVideoSenders(jingleContents) {
+        const videoContents = jingleContents.find('>content[name="video"]');
+
+        if (videoContents.length) {
+            const senders = videoContents[0].getAttribute('senders');
+
+            switch (senders) {
+            case 'both':
+            case 'initiator':
+            case 'responder':
+            case 'none':
+                return senders;
+            default:
+                return null;
+            }
+        }
+
+        return null;
+    }
 
     /* eslint-disable max-params */
 
@@ -1904,9 +1931,20 @@ export default class JingleSessionPC extends JingleSession {
      * @see {@link _localVideoActive}
      */
     modifyContents(jingleContents) {
+        const newVideoSenders
+            = JingleSessionPC.parseVideoSenders(jingleContents);
+
+        if (newVideoSenders === null) {
+            logger.error(
+                `${this} - failed to parse video "senders" attribute in`
+                    + '"content-modify" action');
+
+            return;
+        }
+
         const workFunction = finishedCallback => {
-            if (this._assertNotEnded('modify contents')
-                    && this._parseContentSenders(jingleContents)) {
+            if (this._assertNotEnded('content-modify')
+                    && this._modifyRemoteVideoActive(newVideoSenders)) {
                 // Will do the sRD/sLD cycle to update SDPs and adjust
                 // the media direction
                 this._renegotiate()
@@ -1916,30 +1954,36 @@ export default class JingleSessionPC extends JingleSession {
             }
         };
 
-        logger.debug('Queued modify contents task');
+        logger.debug(
+            `${this} queued "content-modify" task`
+                + `(video senders="${newVideoSenders}")`);
 
         this.modificationQueue.push(
             workFunction,
             error => {
                 if (error) {
-                    logger.error('modifyContents failed', error);
+                    logger.error('"content-modify" failed', error);
                 }
             });
     }
 
     /**
-     *
-     * @param jingleContents
-     * @param finishedCallback
-     * @return {boolean}
+     * Processes new value of remote video "senders" Jingle attribute and tries
+     * to apply it for {@link _remoteVideoActive}.
+     * @param {string} remoteVideoSenders the value of "senders" attribute of
+     * Jingle video content element advertised by remote peer.
+     * @return {boolean} <tt>true</tt> if the change affected state of
+     * the underlying peerconnection and renegotiation is required for
+     * the changes to take effect.
      * @private
      */
-    _parseContentSenders(jingleContents) {
+    _modifyRemoteVideoActive(remoteVideoSenders) {
         const isRemoteVideoActive
-            = this._parseVideoSenders(jingleContents);
+            = remoteVideoSenders === 'both'
+                || (remoteVideoSenders === 'initiator' && this.isInitiator)
+                || (remoteVideoSenders === 'responder' && !this.isInitiator);
 
-        if (isRemoteVideoActive !== null
-            && isRemoteVideoActive !== this._remoteVideoActive) {
+        if (isRemoteVideoActive !== this._remoteVideoActive) {
             logger.debug(
                 `${this} new remote video active: ${isRemoteVideoActive}`);
             this._remoteVideoActive = isRemoteVideoActive;
@@ -1947,54 +1991,6 @@ export default class JingleSessionPC extends JingleSession {
 
         return this.peerconnection.setVideoTransferActive(
             this._localVideoActive && this._remoteVideoActive);
-    }
-
-    /**
-     * Parses 'senders' attribute of the video content and figures out if remote
-     * peer is interested in receiving our video.
-     * @param {jQuery} jingleContents
-     * @return {boolean|null} <tt>true</tt> if the remote peer is interested in
-     * receiving our video or <tt>false</tt> otherwise (which means that we
-     * should stop sending video). <tt>null</tt> is returned when it failed to
-     * parse the senders attribute of Jingle video contents.
-     * @private
-     */
-    _parseVideoSenders(jingleContents) {
-
-        const videoContents = jingleContents.find('>content[name="video"]');
-        let newDirection = null;
-
-        if (videoContents.length) {
-            const senders = videoContents[0].getAttribute('senders');
-
-            if (senders) {
-                switch (senders) {
-                case 'both':
-                    newDirection = 'sendrecv';
-                    break;
-                case 'initiator':
-                    newDirection
-                        = this.isInitiator ? 'recvonly' : 'sendonly';
-                    break;
-                case 'responder':
-                    newDirection
-                        = this.isInitiator ? 'sendonly' : 'recvonly';
-                    break;
-                case 'none':
-                    newDirection = 'none';
-                    break;
-                }
-
-                logger.debug(
-                    `${this} parsed direction: video: ${newDirection}`);
-            }
-        }
-
-        if (newDirection === null) {
-            return null;
-        }
-
-        return newDirection === 'sendrecv' || newDirection === 'recvonly';
     }
 
     /**
