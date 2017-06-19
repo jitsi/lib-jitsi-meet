@@ -120,7 +120,7 @@ export default class JingleSessionPC extends JingleSession {
          * Indicates whether or not this session is willing to send/receive
          * video media. When set to <tt>false</tt> the underlying peer
          * connection will disable local video transfer and the remote peer will
-         * be will be asked to stop sending video via 'session-modify' IQ
+         * be will be asked to stop sending video via 'content-modify' IQ
          * (the senders attribute of video contents will be adjusted
          * accordingly). Note that this notification is sent only in P2P
          * session, because Jicofo does not support it yet. Obviously when
@@ -880,15 +880,14 @@ export default class JingleSessionPC extends JingleSession {
                         // media direction only in the local SDP and the Jingle
                         // contents direction included in the initial
                         // offer/answer is mapped to the remote SDP. Jingle
-                        // 'session-modify' IQ is processed in a way that it
+                        // 'content-modify' IQ is processed in a way that it
                         // will only modify local SDP when remote peer is no
                         // longer interested in receiving video content.
                         // Changing media direction in the remote SDP will mess
                         // up our SDP translation chain (simulcast, video mute,
                         // RTX etc.)
                         if (this.isP2P && !this._localVideoActive) {
-                            this.sendSessionModify(
-                                this._localVideoActive);
+                            this.sendContentModify(this._localVideoActive);
                         }
                     }
 
@@ -1033,7 +1032,7 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Will send 'session-modify' IQ in order to ask the remote peer to
+     * Will send 'content-modify' IQ in order to ask the remote peer to
      * either stop or resume sending video media.
      * @param {boolean} videoTransferActive <tt>false</tt> to let the other peer
      * know that we're not sending nor interested in receiving video contents.
@@ -1041,7 +1040,7 @@ export default class JingleSessionPC extends JingleSession {
      * transfer.
      * @private
      */
-    sendSessionModify(videoTransferActive) {
+    sendContentModify(videoTransferActive) {
         const newSendersValue = videoTransferActive ? 'both' : 'none';
 
         const sessionModify
@@ -1051,7 +1050,7 @@ export default class JingleSessionPC extends JingleSession {
             })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
-                action: 'session-modify',
+                action: 'content-modify',
                 initiator: this.initiator,
                 sid: this.sid
             })
@@ -1061,7 +1060,7 @@ export default class JingleSessionPC extends JingleSession {
             });
 
         logger.info(
-            `Sending session-modify, video senders: ${newSendersValue}`);
+            `Sending content-modify, video senders: ${newSendersValue}`);
 
         this.connection.sendIQ(
             sessionModify,
@@ -1878,15 +1877,15 @@ export default class JingleSessionPC extends JingleSession {
                 this._localVideoActive = videoActive;
 
                 // Do only for P2P - Jicofo will reply with 'bad-request'
-                // We don't want to send 'session-modify', before the initial
+                // We don't want to send 'content-modify', before the initial
                 // O/A (state === JingleSessionState.ACTIVE), because that will
                 // mess up video media direction in the remote SDP.
-                // 'session-modify' when processed only affects the media
+                // 'content-modify' when processed only affects the media
                 // direction in the local SDP. We're doing that, because setting
                 // 'inactive' on video media in remote SDP will mess up our SDP
                 // translation chain (simulcast, RTX, video mute etc.).
                 if (this.isP2P && isSessionActive) {
-                    this.sendSessionModify(videoActive);
+                    this.sendContentModify(videoActive);
                 }
             }
 
