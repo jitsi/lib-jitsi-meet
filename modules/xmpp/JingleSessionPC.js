@@ -1905,15 +1905,12 @@ export default class JingleSessionPC extends JingleSession {
      */
     modifyContents(jingleContents) {
         const workFunction = finishedCallback => {
-            if (this._assertNotEnded('modify contents')) {
-                if (this._parseContentSenders(jingleContents)) {
-                    // Will do the sRD/sLD cycle to update SDPs and adjust
-                    // the media direction
-                    this._renegotiate()
-                        .then(finishedCallback, finishedCallback /* (error) */);
-                } else {
-                    finishedCallback();
-                }
+            if (this._assertNotEnded('modify contents')
+                    && this._parseContentSenders(jingleContents)) {
+                // Will do the sRD/sLD cycle to update SDPs and adjust
+                // the media direction
+                this._renegotiate()
+                    .then(finishedCallback, finishedCallback /* (error) */);
             } else {
                 finishedCallback();
             }
