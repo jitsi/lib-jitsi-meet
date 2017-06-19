@@ -1855,6 +1855,7 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
             null,
             callback,
             errback || (() => {
+
                 // Making sure that getStats won't fail if error callback is
                 // not passed.
             }));
