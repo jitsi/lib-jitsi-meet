@@ -78,6 +78,22 @@ export const DTMF_SUPPORT_CHANGED = 'conference.dtmfSupportChanged';
 export const ENDPOINT_MESSAGE_RECEIVED = 'conference.endpoint_message_received';
 
 /**
+ * NOTE This is lib-jitsi-meet internal event and can be removed at any time !
+ *
+ * Event emitted when conference transits, between one to one and multiparty JVB
+ * conference. If the conference switches to P2P it's neither one to one nor
+ * a multiparty JVB conference, but P2P (the status argument of this event will
+ * be <tt>false</tt>).
+ *
+ * The first argument is a boolean which carries the previous value and
+ * the seconds argument is a boolean with the new status. The event is emitted
+ * only if the previous and the new values are different.
+ *
+ * @type {string}
+ */
+export const JVB121_STATUS = 'conference.jvb121Status';
+
+/**
  * You are kicked from the conference.
  */
 export const KICKED = 'conferenece.kicked';
