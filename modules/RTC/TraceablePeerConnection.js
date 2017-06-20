@@ -1035,6 +1035,33 @@ const normalizePlanB = function(desc) {
 };
 
 /**
+ * Makes sure that both audio and video directions are configured as 'sendrecv'.
+ * @param {Object} localDescription the SDP object as defined by WebRTC.
+ */
+const enforceSendRecv = function(localDescription) {
+    if (localDescription && localDescription.sdp) {
+        const transformer = new SdpTransformWrap(localDescription.sdp);
+        const audioMedia = transformer.selectMedia('audio');
+        let changed = false;
+
+        if (audioMedia && audioMedia.direction !== 'sendrecv') {
+            audioMedia.direction = 'sendrecv';
+            changed = true;
+        }
+        const videoMedia = transformer.selectMedia('video');
+
+        if (videoMedia && videoMedia.direction !== 'sendrecv') {
+            videoMedia.direction = 'sendrecv';
+            changed = true;
+        }
+
+        if (changed) {
+            localDescription.sdp = transformer.toRawSDP();
+        }
+    }
+};
+
+/**
  *
  * @param {JitsiLocalTrack} localTrack
  */
@@ -1069,6 +1096,16 @@ const getters = {
             logger.debug(
                 'getLocalDescription::postTransform (munge local SDP)', desc);
         }
+
+        // What comes out of this getter will be signalled over Jingle to
+        // the other peer, so we need to make sure the media direction is
+        // 'sendrecv' because we won't change the direction later and don't want
+        // the other peer to think we can't send or receive.
+        //
+        // Note that the description we set in chrome does have the accurate
+        // direction (e.g. 'recvonly'), since that is technically what is
+        // happening (check setLocalDescription impl).
+        enforceSendRecv(desc);
 
         return desc || {};
     },
