@@ -121,10 +121,11 @@ const ScreenObtainer = {
                     && window.JitsiMeetScreenObtainer.openDesktopPicker) {
                     window.JitsiMeetScreenObtainer.openDesktopPicker(
                         streamId =>
-                            onGetStreamResponse({ streamId },
-                            onSuccess,
-                            onFailure
-                        ),
+                            onGetStreamResponse(
+                                { streamId },
+                                onSuccess,
+                                onFailure
+                            ),
                         err => onFailure(new JitsiTrackError(
                             JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR,
                             err
@@ -565,18 +566,21 @@ function waitForExtensionAfterInstall(options, waitInterval, retries) {
  * @param {Function} onSuccess - callback for success.
  * @param {Function} onFailure - callback for failure.
  */
-function onGetStreamResponse(response, onSuccess, onFailure) {
-    if (response.streamId) {
+function onGetStreamResponse({ streamId, error }, onSuccess, onFailure) {
+    if (streamId) {
         gumFunction(
             [ 'desktop' ],
-            stream => onSuccess(stream),
+            stream => onSuccess({
+                stream,
+                sourceId: streamId
+            }),
             onFailure,
-            { desktopStream: response.streamId });
+            { desktopStream: streamId });
     } else {
         // As noted in Chrome Desktop Capture API:
         // If user didn't select any source (i.e. canceled the prompt)
         // then the callback is called with an empty streamId.
-        if (response.streamId === '') {
+        if (streamId === '') {
             onFailure(new JitsiTrackError(
                 JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED));
 
@@ -585,7 +589,7 @@ function onGetStreamResponse(response, onSuccess, onFailure) {
 
         onFailure(new JitsiTrackError(
             JitsiTrackErrors.CHROME_EXTENSION_GENERIC_ERROR,
-            response.error));
+            error));
     }
 }
 
