@@ -1,5 +1,4 @@
 /* eslint-disable max-len*/
-/* jshint maxlen:false*/
 import * as transform from 'sdp-transform';
 
 // A generic sdp session block

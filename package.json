@@ -39,7 +39,6 @@
     "eslint-plugin-import": "2.3.0",
     "flow-bin": "0.38.0",
     "jasmine-core": "2.5.2",
-    "jshint": "2.9.4",
     "karma": "0.13.22",
     "karma-chrome-launcher": "0.2.3",
     "karma-jasmine": "0.3.8",
@@ -49,7 +48,7 @@
     "webpack": "2.6.1"
   },
   "scripts": {
-    "lint": "jshint . && eslint . && flow",
+    "lint": "eslint . && flow",
     "postinstall": "webpack -p",
     "test": "karma start karma.conf.js",
     "validate": "npm ls"
