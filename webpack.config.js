@@ -76,7 +76,8 @@ module.exports = {
                         // Tell babel to avoid compiling imports into CommonJS
                         // so that webpack may do tree shaking.
                         { modules: false }
-                    ]
+                    ],
+                    'stage-1'
                 ]
             },
             test: /\.js$/
