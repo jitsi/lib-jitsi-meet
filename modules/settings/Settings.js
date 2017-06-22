@@ -13,8 +13,15 @@ function getLocalStorage() {
 
     // eslint-disable-next-line no-invalid-this
     const global = typeof window === 'undefined' ? this : window;
+    let storage;
 
-    return global.localStorage;
+    try {
+        storage = global.localStorage;
+    } catch (error) {
+        logger.error(error);
+    }
+
+    return storage;
 }
 
 /**
