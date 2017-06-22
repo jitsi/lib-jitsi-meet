@@ -46,20 +46,25 @@ function createMuteUnmutePromise(track, mute) {
  * One <tt>JitsiLocalTrack</tt> corresponds to one WebRTC MediaStreamTrack.
  */
 export default class JitsiLocalTrack extends JitsiTrack {
-    /* eslint-disable max-params */
     /**
      * Constructs new JitsiLocalTrack instanse.
-     * @param {number} rtcId the ID assigned by the RTC module
-     * @param stream WebRTC MediaStream, parent of the track
-     * @param track underlying WebRTC MediaStreamTrack for new JitsiRemoteTrack
-     * @param mediaType the MediaType of the JitsiRemoteTrack
-     * @param videoType the VideoType of the JitsiRemoteTrack
-     * @param resolution the video resolution if it's a video track
-     * @param deviceId the ID of the local device for this track
-     * @param facingMode the camera facing mode used in getUserMedia call
+     * @param {Object} trackInfo
+     * @param {number} trackInfo.rtcId the ID assigned by the RTC module
+     * @param trackInfo.stream WebRTC MediaStream, parent of the track
+     * @param trackInfo.track underlying WebRTC MediaStreamTrack for new
+     * JitsiRemoteTrack
+     * @param trackInfo.mediaType the MediaType of the JitsiRemoteTrack
+     * @param trackInfo.videoType the VideoType of the JitsiRemoteTrack
+     * @param trackInfo.resolution the video resolution if it's a video track
+     * @param trackInfo.deviceId the ID of the local device for this track
+     * @param trackInfo.facingMode the camera facing mode used in getUserMedia
+     * call
+     * @param {sourceId} trackInfo.sourceId - The id of the desktop sharing
+     * source. NOTE: defined for desktop sharing tracks only.
      * @constructor
      */
-    constructor(
+    constructor(trackInfo) {
+        const {
             rtcId,
             stream,
             track,
@@ -67,7 +72,10 @@ export default class JitsiLocalTrack extends JitsiTrack {
             videoType,
             resolution,
             deviceId,
-            facingMode) {
+            facingMode,
+            sourceId
+        } = trackInfo;
+
         super(
             null /* RTC */,
             stream,
@@ -88,6 +96,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this.rtcId = rtcId;
         this.dontFireRemoveEvent = false;
         this.resolution = resolution;
+        this.sourceId = sourceId;
 
         // FIXME: currently firefox is ignoring our constraints about
         // resolutions so we do not store it, to avoid wrong reporting of local
@@ -176,8 +185,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         this._initNoDataFromSourceHandlers();
     }
-
-    /* eslint-enable max-params */
 
     /**
      * Returns if associated MediaStreamTrack is in the 'ended' state

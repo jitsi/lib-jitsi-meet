@@ -628,14 +628,16 @@ function handleLocalStream(streams, resolution) {
             videoStream = streams.video;
         }
 
-        // Again, different choices on different types of browser.
-        desktopStream = streams.desktopStream || streams.desktop;
+        desktopStream = streams.desktop;
     }
 
     if (desktopStream) {
+        const { stream, sourceId } = desktopStream;
+
         res.push({
-            stream: desktopStream,
-            track: desktopStream.getVideoTracks()[0],
+            stream,
+            sourceId,
+            track: stream.getVideoTracks()[0],
             mediaType: MediaType.VIDEO,
             videoType: VideoType.DESKTOP
         });
@@ -1186,9 +1188,9 @@ class RTCUtils extends Listenable {
                             if (hasDesktop) {
                                 screenObtainer.obtainStream(
                                     dsOptions,
-                                    desktopStream => {
+                                    desktop => {
                                         successCallback({ audioVideo: stream,
-                                            desktopStream });
+                                            desktop });
                                     }, error => {
                                         self.stopMediaStream(stream);
 
@@ -1203,7 +1205,7 @@ class RTCUtils extends Listenable {
                 } else if (hasDesktop) {
                     screenObtainer.obtainStream(
                         dsOptions,
-                        stream => successCallback({ desktopStream: stream }),
+                        desktop => successCallback({ desktop }),
                         error => reject(error));
                 }
             }
