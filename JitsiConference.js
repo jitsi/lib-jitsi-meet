@@ -1958,8 +1958,6 @@ JitsiConference.prototype._onIceConnectionRestored = function(session) {
  */
 JitsiConference.prototype._acceptP2PIncomingCall
 = function(jingleSession, jingleOffer) {
-    jingleSession.setSSRCOwnerJid(this.room.myroomjid);
-
     this.isP2PConnectionInterrupted = false;
 
     // Accept the offer
@@ -2222,8 +2220,6 @@ JitsiConference.prototype._startP2PSession = function(peerJid) {
         = this.xmpp.connection.jingle.newP2PJingleSession(
                 this.room.myroomjid,
                 peerJid);
-    this.p2pJingleSession.setSSRCOwnerJid(this.room.myroomjid);
-
     logger.info('Created new P2P JingleSession', this.room.myroomjid, peerJid);
 
     this.p2pJingleSession.initialize(true /* initiator */, this.room, this.rtc);

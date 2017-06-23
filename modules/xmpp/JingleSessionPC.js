@@ -188,21 +188,14 @@ export default class JingleSessionPC extends JingleSession {
             = async.queue(this._processQueueTasks.bind(this), 1);
 
         /**
-         * This is the MUC JID which will be used to add "owner" extension to
-         * each of the local SSRCs signaled over Jingle.
-         * Usually those are added automatically by Jicofo, but it is not
-         * involved in a P2P session.
-         * @type {string}
-         */
-        this.ssrcOwnerJid = null;
-
-        /**
          * Flag used to guarantee that the connection established event is
          * triggered just once.
          * @type {boolean}
          */
         this.wasConnected = false;
     }
+
+    /* eslint-enable max-params */
 
     /**
      * Checks whether or not this session instance has been ended and eventually
@@ -223,32 +216,6 @@ export default class JingleSessionPC extends JingleSession {
 
         return true;
     }
-
-    /**
-     * Finds all "source" elements under RTC "description" in given Jingle IQ
-     * and adds 'ssrc-info' with the owner attribute set to
-     * {@link ssrcOwnerJid}.
-     * @param jingleIq the IQ to be modified
-     * @private
-     */
-    _markAsSSRCOwner(jingleIq) {
-        $(jingleIq).find('description source')
-                   .append(
-                        '<ssrc-info xmlns="http://jitsi.org/jitmeet" '
-                            + `owner="${this.ssrcOwnerJid}"></ssrc-info>`);
-    }
-
-    /**
-     * Sets the JID which will be as an owner value for the local SSRCs
-     * signaled over Jingle. Should be our MUC JID.
-     * @param {string} ownerJid
-     */
-    setSSRCOwnerJid(ownerJid) {
-        this.ssrcOwnerJid = ownerJid;
-    }
-
-
-    /* eslint-enable max-params */
 
     /**
      *
@@ -643,15 +610,19 @@ export default class JingleSessionPC extends JingleSession {
      * @param contents
      */
     readSsrcInfo(contents) {
-        $(contents).each((i1, content) => {
-            const ssrcs
-                = $(content).find(
-                    'description>'
-                        + 'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
+        const ssrcs
+            = $(contents).find(
+                '>description>'
+                    + 'source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
 
-            ssrcs.each((i2, ssrcElement) => {
-                const ssrc = Number(ssrcElement.getAttribute('ssrc'));
+        ssrcs.each((i, ssrcElement) => {
+            const ssrc = Number(ssrcElement.getAttribute('ssrc'));
 
+            if (this.isP2P) {
+                // In P2P all SSRCs are owner by the remote peer
+                this.signalingLayer.setSSRCOwner(
+                    ssrc, Strophe.getResourceFromJid(this.peerjid));
+            } else {
                 $(ssrcElement)
                     .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
                     .each((i3, ssrcInfoElement) => {
@@ -664,12 +635,11 @@ export default class JingleSessionPC extends JingleSession {
                                         + ` for ${owner}`);
                             } else {
                                 this.signalingLayer.setSSRCOwner(
-                                    ssrc, Strophe.getResourceFromJid(owner));
+                                ssrc, Strophe.getResourceFromJid(owner));
                             }
                         }
-                    }
-                );
-            });
+                    });
+            }
         });
     }
 
@@ -792,7 +762,6 @@ export default class JingleSessionPC extends JingleSession {
                 init,
                 this.initiator === this.me ? 'initiator' : 'responder');
             init = init.tree();
-            this._markAsSSRCOwner(init);
             logger.info('Session-initiate: ', init);
             this.connection.sendIQ(init,
                 () => {
@@ -990,7 +959,6 @@ export default class JingleSessionPC extends JingleSession {
 
         // Calling tree() to print something useful
         accept = accept.tree();
-        this._markAsSSRCOwner(accept);
         logger.info('Sending session-accept', accept);
         this.connection.sendIQ(accept,
             success,
