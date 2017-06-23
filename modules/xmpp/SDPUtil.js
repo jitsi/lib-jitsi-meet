@@ -569,15 +569,20 @@ const SDPUtil = {
      *  that is found.
      * @param {object} videoMLine the video mline object from
      *  an sdp as parsed by transform.parse
-     * @param {string} the name of the preferred codec
+     * @param {string} codecName the name of the preferred codec
      */
     preferVideoCodec(videoMLine, codecName) {
         let payloadType = null;
 
+        if (!codecName) {
+            return;
+        }
+
         for (let i = 0; i < videoMLine.rtp.length; ++i) {
             const rtp = videoMLine.rtp[i];
 
-            if (rtp.codec === codecName) {
+            if (rtp.codec
+                && rtp.codec.toLowerCase() === codecName.toLowerCase()) {
                 payloadType = rtp.payload;
                 break;
             }
