@@ -219,6 +219,15 @@ const RTCBrowserType = {
     },
 
     /**
+     * Checks if the current browser supports WebRTC datachannels.
+     * @return {boolean}
+     */
+    supportsDataChannels() {
+        // NOTE: Edge does not yet implement DataChannel.
+        return !RTCBrowserType.isEdge();
+    },
+
+    /**
      * Checks if the current browser reports round trip time statistics for
      * the ICE candidate pair.
      * @return {boolean}

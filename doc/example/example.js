@@ -12,7 +12,7 @@ const options = {
 };
 
 const confOptions = {
-    openSctp: true
+    openBridgeChannel: true
 };
 
 let connection = null;

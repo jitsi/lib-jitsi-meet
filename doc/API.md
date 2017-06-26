@@ -217,7 +217,7 @@ This objects represents the server connection. You can create new ```JitsiConnec
 4. initJitsiConference(name, options) - creates new ```JitsiConference``` object.
     - name - the name of the conference
     - options - JS object with configuration options for the conference. You can change the following properties there:
-        1. openSctp - boolean property. Enables/disables datachannel support. **NOTE: we recommend to set that option to true**
+        1. openBridgeChannel - Enables/disables bridge channel. Values can be "datachannel", "websocket", true (treat it as "datachannel"), undefined (treat it as "datachannel") and false (don't open any channel). **NOTE: we recommend to set that option to true**
         2. recordingType - the type of recording to be used
         3. jirecon
         4. callStatsID - callstats credentials

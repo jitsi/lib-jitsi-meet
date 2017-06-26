@@ -60,6 +60,10 @@ const logger = getLogger(__filename);
  * "Math.random() < forceJVB121Ratio" will determine whether a 2 people
  * conference should be moved to the JVB instead of P2P. The decision is made on
  * the responder side, after ICE succeeds on the P2P connection.
+ * @param {*} [options.config.openBridgeChannel] Which kind of communication to
+ * open with the videobridge. Values can be "datachannel", "websocket", true
+ * (treat it as "datachannel"), undefined (treat it as "datachannel") and false
+ * (don't open any channel).
  * @constructor
  *
  * FIXME Make all methods which are called from lib-internal classes
@@ -313,7 +317,7 @@ JitsiConference.prototype.leave = function() {
 
     this.getLocalTracks().forEach(track => this.onLocalTrackRemoved(track));
 
-    this.rtc.closeAllDataChannels();
+    this.rtc.closeBridgeChannel();
     if (this.statistics) {
         this.statistics.dispose();
     }
@@ -1349,8 +1353,6 @@ JitsiConference.prototype.onIncomingCall
         GlobalOnErrorHandler.callErrorHandler(error);
     }
 
-    this.rtc.initializeDataChannels(jingleSession.peerconnection);
-
     // Add local tracks to the session
     try {
         jingleSession.acceptOffer(
@@ -1362,6 +1364,9 @@ JitsiConference.prototype.onIncomingCall
                 if (this.isP2PActive() && this.jvbJingleSession) {
                     this._suspendMediaTransferForJvbConnection();
                 }
+
+                // Open a channel with the videobridge.
+                this._setBridgeChannel();
             },
             error => {
                 GlobalOnErrorHandler.callErrorHandler(error);
@@ -1383,6 +1388,37 @@ JitsiConference.prototype.onIncomingCall
     } catch (e) {
         GlobalOnErrorHandler.callErrorHandler(e);
         logger.error(e);
+    }
+};
+
+/**
+ * Sets the BridgeChannel.
+ */
+JitsiConference.prototype._setBridgeChannel = function() {
+    const jingleSession = this.jvbJingleSession;
+    const wsUrl = jingleSession.bridgeWebSocketUrl;
+    let bridgeChannelType;
+
+    switch (this.options.config.openBridgeChannel) {
+    case 'datachannel':
+    case true:
+    case undefined:
+        bridgeChannelType = 'datachannel';
+        break;
+    case 'websocket':
+        bridgeChannelType = 'websocket';
+        break;
+    }
+
+    if (bridgeChannelType === 'datachannel'
+        && !RTCBrowserType.supportsDataChannels()) {
+        bridgeChannelType = 'websocket';
+    }
+
+    if (bridgeChannelType === 'datachannel') {
+        this.rtc.initializeBridgeChannel(jingleSession.peerconnection, null);
+    } else if (bridgeChannelType === 'websocket' && wsUrl) {
+        this.rtc.initializeBridgeChannel(null, wsUrl);
     }
 };
 
@@ -1879,7 +1915,7 @@ JitsiConference.prototype._fireIncompatibleVersionsEvent = function() {
  * @throws NetworkError or InvalidStateError or Error if the operation fails.
  */
 JitsiConference.prototype.sendEndpointMessage = function(to, payload) {
-    this.rtc.sendDataChannelMessage(to, payload);
+    this.rtc.sendChannelMessage(to, payload);
 };
 
 /**
