@@ -362,7 +362,11 @@ const ScreenObtainer = {
  * 'about:config'.
  */
 function obtainWebRTCScreen(options, streamCallback, failCallback) {
-    gumFunction([ 'screen' ], streamCallback, failCallback);
+    gumFunction(
+        [ 'screen' ],
+        stream => streamCallback({ stream }),
+        failCallback
+    );
 }
 
 /**
