@@ -574,6 +574,7 @@ export default class JingleSessionPC extends JingleSession {
                     // providing it, let's leave it like this for the time
                     // being...
                     // sdpMid: 'audio',
+                    sdpMid: '',
                     candidate: line
                 });
 

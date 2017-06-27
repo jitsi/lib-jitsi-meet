@@ -129,7 +129,7 @@ const RTCBrowserType = {
      * otherwise.
      */
     isP2PSupported() {
-        return !RTCBrowserType.isReactNative();
+        return true;
     },
 
     /**
