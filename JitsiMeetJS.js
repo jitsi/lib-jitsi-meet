@@ -304,7 +304,7 @@ export default {
                 promiseFulfilled = true;
 
                 if (error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
-                    const oldResolution = options.resolution || '360';
+                    const oldResolution = options.resolution || '720';
                     const newResolution = getLowerResolution(oldResolution);
 
                     if (newResolution !== null) {
