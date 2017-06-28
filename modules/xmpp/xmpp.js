@@ -443,8 +443,11 @@ export default class XMPP extends Listenable {
      *
      */
     _initStrophePlugins() {
+        const p2pStunServers = this.options.p2p
+            && this.options.p2p.enabled && this.options.p2p.stunServers;
+
         initEmuc(this);
-        initJingle(this, this.eventEmitter, this.options.p2pStunServers);
+        initJingle(this, this.eventEmitter, p2pStunServers);
         initStropheUtil();
         initPing(this);
         initRayo();

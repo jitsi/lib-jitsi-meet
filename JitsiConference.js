@@ -45,14 +45,14 @@ const logger = getLogger(__filename);
  * @param {number} [options.config.avgRtpStatsN=15] how many samples are to be
  * collected by {@link AvgRTPStatsReporter}, before arithmetic mean is
  * calculated and submitted to the analytics module.
- * @param {boolean} [options.config.enableP2P] when set to <tt>true</tt>
+ * @param {boolean} [options.config.p2p.enabled] when set to <tt>true</tt>
  * the peer to peer mode will be enabled. It means that when there are only 2
  * participants in the conference an attempt to make direct connection will be
  * made. If the connection succeeds the conference will stop sending data
  * through the JVB connection and will use the direct one instead.
- * @param {number} [options.config.backToP2PDelay=5] a delay given in seconds,
- * before the conference switches back to P2P, after the 3rd participant has
- * left the room.
+ * @param {number} [options.config.p2p.backToP2PDelay=5] a delay given in
+ * seconds, before the conference switches back to P2P, after the 3rd
+ * participant has left the room.
  * @param {number} [options.config.channelLastN=-1] The requested amount of
  * videos are going to be delivered after the value is in effect. Set to -1 for
  * unlimited or all available videos.
@@ -151,7 +151,8 @@ export default function JitsiConference(options) {
      */
     this.deferredStartP2PTask = null;
 
-    const delay = parseInt(options.config.backToP2PDelay, 10);
+    const delay
+        = parseInt(options.config.p2p && options.config.p2p.backToP2PDelay, 10);
 
     /**
      * A delay given in seconds, before the conference switches back to P2P
@@ -2298,7 +2299,8 @@ JitsiConference.prototype._suspendMediaTransferForJvbConnection = function() {
  * @private
  */
 JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
-    if (!this.options.config.enableP2P || !RTCBrowserType.isP2PSupported()) {
+    if (!(RTCBrowserType.isP2PSupported()
+            && this.options.config.p2p && this.options.config.p2p.enabled)) {
         logger.info('Auto P2P disabled');
 
         return;
