@@ -443,8 +443,14 @@ export default class XMPP extends Listenable {
      *
      */
     _initStrophePlugins() {
-        const p2pStunServers = this.options.p2p
-            && this.options.p2p.enabled && this.options.p2p.stunServers;
+        // FIXME: remove once we have a default config template. -saghul
+        const defaultStunServers = [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' }
+        ];
+        const p2pStunServers = (this.options.p2p
+            && this.options.p2p.stunServers) || defaultStunServers;
 
         initEmuc(this);
         initJingle(this, this.eventEmitter, p2pStunServers);

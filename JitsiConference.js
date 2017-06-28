@@ -2300,7 +2300,10 @@ JitsiConference.prototype._suspendMediaTransferForJvbConnection = function() {
  */
 JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
     if (!(RTCBrowserType.isP2PSupported()
-            && this.options.config.p2p && this.options.config.p2p.enabled)) {
+            && ((this.options.config.p2p && this.options.config.p2p.enabled)
+
+            // FIXME: remove once we have a default config template. -saghul
+            || typeof this.options.config.p2p === 'undefined'))) {
         logger.info('Auto P2P disabled');
 
         return;
