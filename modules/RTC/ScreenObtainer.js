@@ -57,6 +57,14 @@ const CHROME_NO_EXTENSION_ERROR_MSG // eslint-disable-line no-unused-vars
     = 'Could not establish connection. Receiving end does not exist.';
 
 /**
+ * The error message returned by chrome when the extension install action needs
+ * to be initiated by a user gesture.
+ * @type {string}
+ */
+const CHROME_USER_GESTURE_REQ_ERROR
+    = 'Chrome Web Store installations can only be initated by a user gesture.';
+
+/**
  * Handles obtaining a stream from a screen capture on different browsers.
  */
 const ScreenObtainer = {
@@ -394,9 +402,13 @@ const ScreenObtainer = {
             = `Failed to install the extension from ${webStoreInstallUrl}`;
 
         logger.log(msg, e);
-        failCallback(new JitsiTrackError(
-            JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR,
-            msg));
+
+        const error
+            = e === CHROME_USER_GESTURE_REQ_ERROR
+                ? JitsiTrackErrors.CHROME_EXTENSION_USER_GESTURE_REQUIRED
+                : JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR;
+
+        failCallback(new JitsiTrackError(error, msg));
     },
 
     /* eslint-enable max-params */
