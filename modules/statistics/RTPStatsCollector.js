@@ -686,19 +686,19 @@ StatsCollector.prototype.processStatsReport = function() {
         } catch (e) { /* not supported*/ }
 
         // Tries to get frame rate
+        let frameRate;
+
         try {
-            ssrcStats.setFramerate(
-                getStatValue(now, 'googFrameRateReceived')
-                || getStatValue(now, 'googFrameRateSent')
-                || 0);
+            frameRate = getStatValue(now, 'googFrameRateReceived')
+                || getStatValue(now, 'googFrameRateSent') || 0;
         } catch (e) {
             // if it fails with previous properties(chrome),
             // let's try with another one (FF)
             try {
-                ssrcStats.setFramerate(Math.round(
-                    this.getNonNegativeStat(now, 'framerateMean')));
+                frameRate = this.getNonNegativeStat(now, 'framerateMean');
             } catch (err) { /* not supported*/ }
         }
+        ssrcStats.setFramerate(Math.round(frameRate || 0));
 
         if (resolution.height && resolution.width) {
             ssrcStats.setResolution(resolution);
