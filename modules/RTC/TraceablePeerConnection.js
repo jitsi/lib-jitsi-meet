@@ -517,12 +517,12 @@ TraceablePeerConnection.prototype._remoteStreamAdded = function(stream) {
 
     // Bind 'addtrack'/'removetrack' event handlers
     if (RTCBrowserType.isChrome() || RTCBrowserType.isNWJS()
-        || RTCBrowserType.isElectron()) {
+        || RTCBrowserType.isElectron() || RTCBrowserType.isEdge()) {
         stream.onaddtrack = event => {
-            this._remoteTrackAdded(event.target, event.track);
+            this._remoteTrackAdded(stream, event.track);
         };
         stream.onremovetrack = event => {
-            this._remoteTrackRemoved(event.target, event.track);
+            this._remoteTrackRemoved(stream, event.track);
         };
     }
 
@@ -726,7 +726,7 @@ TraceablePeerConnection.prototype._remoteStreamRemoved = function(stream) {
 TraceablePeerConnection.prototype._remoteTrackRemoved
 = function(stream, track) {
     const streamId = RTC.getStreamID(stream);
-    const trackId = track && track.id;
+    const trackId = track && RTC.getTrackID(track);
 
     logger.info(`${this} - remote track removed: ${streamId}, ${trackId}`);
 

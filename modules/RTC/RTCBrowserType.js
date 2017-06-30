@@ -34,7 +34,7 @@ const RTCBrowserType = {
      * strategy or <tt>false</tt> otherwise.
      */
     doesVideoMuteByStreamRemove() {
-        return !RTCBrowserType.isFirefox();
+        return !(RTCBrowserType.isFirefox() || RTCBrowserType.isEdge());
     },
 
     /**
@@ -129,7 +129,7 @@ const RTCBrowserType = {
      * otherwise.
      */
     isP2PSupported() {
-        return true;
+        return !RTCBrowserType.isEdge();
     },
 
     /**
@@ -215,7 +215,7 @@ const RTCBrowserType = {
     supportsBandwidthStatistics() {
         // FIXME bandwidth stats are currently not implemented for FF on our
         // side, but not sure if not possible ?
-        return !RTCBrowserType.isFirefox();
+        return !RTCBrowserType.isFirefox() && !RTCBrowserType.isEdge();
     },
 
     /**
@@ -241,7 +241,7 @@ const RTCBrowserType = {
         // (is reported as 1):
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1241066
         // For Chrome and others we rely on 'googRtt'.
-        return !RTCBrowserType.isFirefox();
+        return !RTCBrowserType.isFirefox() && !RTCBrowserType.isEdge();
     },
 
     /**

@@ -554,11 +554,19 @@ export default class RTC extends Listenable {
     }
 
     /**
-     *
-     * @param stream
+     * Returns the id of the given stream.
+     * @param {MediaStream} stream
      */
     static getStreamID(stream) {
         return RTCUtils.getStreamID(stream);
+    }
+
+    /**
+     * Returns the id of the given track.
+     * @param {MediaStreamTrack} track
+     */
+    static getTrackID(track) {
+        return RTCUtils.getTrackID(track);
     }
 
     /**
