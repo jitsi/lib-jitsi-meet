@@ -1340,8 +1340,11 @@ JitsiConference.prototype.onIncomingCall
 
     // TODO: remove deprecated cross region property from this specific event
     // once all existing deployments include analytics changes
-    if (window.jitsiDeploymentInfo) {
-        crossRegion = window.jitsiDeploymentInfo.CrossRegion;
+    if (this.options.config.deploymentInfo) {
+        crossRegion
+            = this.options.config.deploymentInfo.region
+                    !== this.options.config.deploymentInfo.userRegion;
+        crossRegion = crossRegion ? 0 : 1;
     }
     Statistics.analytics.sendEvent(
         'session.initiate', {
