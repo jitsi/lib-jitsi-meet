@@ -582,7 +582,9 @@ StatsCollector.prototype.processStatsReport = function() {
         // the sent bytes to the local download bitrate.
         // In new W3 stats spec, type="track" has a remoteSource boolean
         // property.
-        if (now.isRemote === true || now.remoteSource === true) {
+        // Edge uses the new format, so skip this check.
+        if (!RTCBrowserType.isEdge()
+                && (now.isRemote === true || now.remoteSource === true)) {
             continue;
         }
 
@@ -604,7 +606,6 @@ StatsCollector.prototype.processStatsReport = function() {
             packetsNow = getStatValue(now, key);
             if (typeof packetsNow === 'undefined' || packetsNow === null) {
                 logger.warn('No packetsReceived nor packetsSent stat found');
-                continue;
             }
         }
         if (!packetsNow || packetsNow < 0) {
