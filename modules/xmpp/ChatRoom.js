@@ -150,13 +150,13 @@ export default class ChatRoom extends Listenable {
         this.addVideoInfoToPresence(false);
 
         if (options.deploymentInfo && options.deploymentInfo.userRegion) {
-            this.presMap.nodes.push(
-                { 'tagName': 'region',
-                    'attributes': {
-                        id: options.deploymentInfo.userRegion,
-                        xmlns: 'http://jitsi.org/jitsi-meet'
-                    }
-                });
+            this.presMap.nodes.push({
+                'tagName': 'region',
+                'attributes': {
+                    id: options.deploymentInfo.userRegion,
+                    xmlns: 'http://jitsi.org/jitsi-meet'
+                }
+            });
         }
     }
 
