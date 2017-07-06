@@ -176,7 +176,7 @@ export default class BridgeChannel {
         const emitter = this._eventEmitter;
 
         channel.onopen = () => {
-            logger.info('Channel opened by the Videobridge!', channel);
+            logger.info(`${this._mode} channel opened`);
 
             // Code sample for sending string and/or binary data.
             // Sends string message to the bridge:
@@ -188,7 +188,7 @@ export default class BridgeChannel {
         };
 
         channel.onerror = error => {
-            logger.error('Channel error:', error, channel);
+            logger.error('Channel error:', error);
         };
 
         channel.onmessage = ({ data }) => {
@@ -201,7 +201,7 @@ export default class BridgeChannel {
                 GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error(
                     'Failed to parse channel message as JSON: ',
-                    data, channel, error);
+                    data, error);
 
                 return;
             }
@@ -264,7 +264,7 @@ export default class BridgeChannel {
         };
 
         channel.onclose = () => {
-            logger.info('Channel closed', channel);
+            logger.info('Channel closed');
 
             // Remove the channel.
             this._channel = null;
