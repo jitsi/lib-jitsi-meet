@@ -357,11 +357,13 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     }
                 });
 
-                if (this.xmpp.options.useStunTurn) {
+                const options = this.xmpp.options;
+
+                if (options.useStunTurn) {
                     this.jvbIceConfig.iceServers = iceservers;
                 }
 
-                if (this.xmpp.options.p2p.useStunTurn) {
+                if (options.p2p && options.p2p.useStunTurn) {
                     this.p2pIceConfig.iceServers = iceservers;
                 }
 
