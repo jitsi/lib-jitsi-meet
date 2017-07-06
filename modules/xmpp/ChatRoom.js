@@ -119,7 +119,7 @@ export default class ChatRoom extends Listenable {
                 connection: this.xmpp.options,
                 conference: this.options
             });
-        this.initPresenceMap();
+        this.initPresenceMap(options);
         this.lastPresences = {};
         this.phoneNumber = null;
         this.phonePin = null;
@@ -134,7 +134,7 @@ export default class ChatRoom extends Listenable {
     /**
      *
      */
-    initPresenceMap() {
+    initPresenceMap(options = {}) {
         this.presMap.to = this.myroomjid;
         this.presMap.xns = 'http://jabber.org/protocol/muc';
         this.presMap.nodes = [];
@@ -148,6 +148,16 @@ export default class ChatRoom extends Listenable {
         // Jicofo makes decisions based on that. Initialize it with 'false'
         // here.
         this.addVideoInfoToPresence(false);
+
+        if (options.deploymentInfo && options.deploymentInfo.userRegion) {
+            this.presMap.nodes.push({
+                'tagName': 'region',
+                'attributes': {
+                    id: options.deploymentInfo.userRegion,
+                    xmlns: 'http://jitsi.org/jitsi-meet'
+                }
+            });
+        }
     }
 
     /**
