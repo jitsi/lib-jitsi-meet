@@ -133,7 +133,8 @@ export default class XMPP extends Listenable {
             now);
         if (status === Strophe.Status.CONNECTED
             || status === Strophe.Status.ATTACHED) {
-            if (this.options.useStunTurn || this.options.p2p.useStunTurn) {
+            if (this.options.useStunTurn
+                || (this.options.p2p && this.options.p2p.useStunTurn)) {
                 this.connection.jingle.getStunAndTurnCredentials();
             }
 
