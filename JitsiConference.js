@@ -303,6 +303,17 @@ JitsiConference.prototype.isJoined = function() {
 };
 
 /**
+ * Tells whether or not the P2P mode is enabled in the configuration.
+ * @return {boolean}
+ */
+JitsiConference.prototype.isP2PEnabled = function() {
+    return Boolean(this.options.config.p2p && this.options.config.p2p.enabled)
+
+        // FIXME: remove once we have a default config template. -saghul
+        || typeof this.options.config.p2p === 'undefined';
+};
+
+/**
  * Leaves the conference.
  * @returns {Promise}
  */
@@ -1306,6 +1317,13 @@ JitsiConference.prototype.onIncomingCall
                     reasonMsg: 'P2P not supported',
                     errorMsg: 'This client does not support P2P connections'
                 });
+        } else if (!this.isP2PEnabled()) {
+            this._rejectIncomingCall(
+                jingleSession, {
+                    reasonTag: 'decline',
+                    reasonMsg: 'P2P disabled',
+                    errorMsg: 'P2P mode disabled in the configuration'
+                });
         } else if (this.p2pJingleSession) {
             // Reject incoming P2P call (already in progress)
             this._rejectIncomingCall(
@@ -2299,11 +2317,7 @@ JitsiConference.prototype._suspendMediaTransferForJvbConnection = function() {
  * @private
  */
 JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
-    if (!(RTCBrowserType.isP2PSupported()
-            && ((this.options.config.p2p && this.options.config.p2p.enabled)
-
-            // FIXME: remove once we have a default config template. -saghul
-            || typeof this.options.config.p2p === 'undefined'))) {
+    if (!RTCBrowserType.isP2PSupported() || !this.isP2PEnabled()) {
         logger.info('Auto P2P disabled');
 
         return;
