@@ -10,11 +10,16 @@ import Statistics from './statistics';
 import * as VideoType from '../../service/RTC/VideoType';
 
 /**
- * All avg RTP stats are currently reported under 1 event name, but under
- * different keys. This constant stores the name of this event.
- * Example structure of "avg.rtp.stats" analytics event:
+ * All avg RTP stats are currently reported under 1 event name, but with
+ * different properties that allows to distinguish between a P2P call, a call
+ * relayed through TURN or the JVB, and multiparty vs 1:1. This constant stores
+ * the name of this event. Example structure of "avg.rtp.stats" analytics event:
  *
  * {
+ *   p2p: true,
+ *   conferenceSize: 1,
+ *   relayed: true,
+ *
  *   "stat_avg_rtt": {
  *     value: 200,
  *     samples: [ 100, 200, 300 ]
@@ -22,10 +27,6 @@ import * as VideoType from '../../service/RTC/VideoType';
  *   "stat_avg_packetloss_total": {
  *     value: 10,
  *     samples: [ 5, 10, 15]
- *   },
- *   "p2p_stat_avg_packetloss_total": {
- *     value: 15,
- *     samples: [ 10, 15, 20]
  *   }
  * }
  *
@@ -43,20 +44,6 @@ import * as VideoType from '../../service/RTC/VideoType';
 const AVG_RTP_STATS_EVENT = 'avg.rtp.stats';
 
 const logger = getLogger(__filename);
-
-/**
- * Figures out what prefix should be added to the stat name.
- * @param {boolean} isP2P is it P2P or JVB conference ?
- * @param {number} conferenceSize how many participants are there in
- * the conference (including us)
- * @return {string} "" (for JVB conference) or "p2p_" (for P2P) or "jvb121_"
- * (for JVB 2 participant conference).
- */
-function getPrefix(isP2P, conferenceSize) {
-    return isP2P
-        ? 'p2p_'
-        : conferenceSize === 2 ? 'jvb121_' : '';
-}
 
 /**
  * This will calculate an average for one, named stat and submit it to
@@ -105,16 +92,18 @@ class AverageStatReport {
      * Appends the report to the analytics "data" object. The object will be
      * set under <tt>prefix</tt> + {@link this.name} key.
      * @param {Object} report the analytics "data" object
-     * @param {string} prefix the prefix string that will be added at
-     * the beginning of the key name.
+     * @param {Object} extra properties to append to the analytics "data" object
      */
-    appendReport(report, prefix) {
-        const keyName = `${prefix}${this.name}`;
+    appendReport(report, props) {
 
-        report[keyName] = {
+        const reportValue = {
             value: this.calculate(),
             samples: this.samples
         };
+
+        Object.assign(reportValue, props);
+
+        report[this.name] = reportValue;
     }
 
     /**
@@ -231,10 +220,13 @@ class ConnectionAvgStats {
         if (this._sampleIdx >= this._n) {
             if (RTCBrowserType.supportsRTTStatistics()) {
                 const batchReport = { };
-                const confSize = this._conference.getParticipantCount();
-                const prefix = getPrefix(this.isP2P, confSize);
+                const props = {
+                    relayed: data.relayed,
+                    p2p: this.isP2P,
+                    size: this._conference.getParticipantCount()
+                };
 
-                this._avgRTT.appendReport(batchReport, prefix);
+                this._avgRTT.appendReport(batchReport, props);
 
                 // Report end to end RTT only for JVB
                 if (!this.isP2P) {
@@ -243,8 +235,14 @@ class ConnectionAvgStats {
 
                     if (!isNaN(avgLocalRTT) && !isNaN(avgRemoteRTT)) {
                         // eslint-disable-next-line camelcase
-                        batchReport[`${prefix}stat_avg_end2endrtt`]
-                            = { value: avgLocalRTT + avgRemoteRTT };
+                        const reportValue = {
+                            value: avgLocalRTT + avgRemoteRTT
+                        };
+
+                        Object.assign(reportValue, props);
+
+                        // eslint-disable-next-line dot-notation
+                        batchReport['stat_avg_end2endrtt'] = reportValue;
                     }
                 }
 
@@ -537,7 +535,11 @@ export default class AvgRTPStatsReporter {
 
         const isP2P = this._conference.isP2PActive();
         const confSize = this._conference.getParticipantCount();
-        const prefix = getPrefix(isP2P, confSize);
+        const props = {
+            relayed: data.relayed,
+            p2p: isP2P,
+            size: confSize
+        };
 
         if (!isP2P && confSize < 2) {
 
@@ -621,30 +623,30 @@ export default class AvgRTPStatsReporter {
         if (this._sampleIdx >= this._n) {
             const batchReport = { };
 
-            this._avgAudioBitrateUp.appendReport(batchReport, prefix);
-            this._avgAudioBitrateDown.appendReport(batchReport, prefix);
+            this._avgAudioBitrateUp.appendReport(batchReport, props);
+            this._avgAudioBitrateDown.appendReport(batchReport, props);
 
-            this._avgVideoBitrateUp.appendReport(batchReport, prefix);
-            this._avgVideoBitrateDown.appendReport(batchReport, prefix);
+            this._avgVideoBitrateUp.appendReport(batchReport, props);
+            this._avgVideoBitrateDown.appendReport(batchReport, props);
 
             if (RTCBrowserType.supportsBandwidthStatistics()) {
-                this._avgBandwidthUp.appendReport(batchReport, prefix);
-                this._avgBandwidthDown.appendReport(batchReport, prefix);
+                this._avgBandwidthUp.appendReport(batchReport, props);
+                this._avgBandwidthDown.appendReport(batchReport, props);
             }
-            this._avgPacketLossUp.appendReport(batchReport, prefix);
-            this._avgPacketLossDown.appendReport(batchReport, prefix);
-            this._avgPacketLossTotal.appendReport(batchReport, prefix);
+            this._avgPacketLossUp.appendReport(batchReport, props);
+            this._avgPacketLossDown.appendReport(batchReport, props);
+            this._avgPacketLossTotal.appendReport(batchReport, props);
 
-            this._avgRemoteFPS.appendReport(batchReport, prefix);
+            this._avgRemoteFPS.appendReport(batchReport, props);
             if (!isNaN(this._avgRemoteScreenFPS.calculate())) {
-                this._avgRemoteScreenFPS.appendReport(batchReport, prefix);
+                this._avgRemoteScreenFPS.appendReport(batchReport, props);
             }
-            this._avgLocalFPS.appendReport(batchReport, prefix);
+            this._avgLocalFPS.appendReport(batchReport, props);
             if (!isNaN(this._avgLocalScreenFPS.calculate())) {
-                this._avgLocalScreenFPS.appendReport(batchReport, prefix);
+                this._avgLocalScreenFPS.appendReport(batchReport, props);
             }
 
-            this._avgCQ.appendReport(batchReport, prefix);
+            this._avgCQ.appendReport(batchReport, props);
 
             Statistics.analytics.sendEvent(AVG_RTP_STATS_EVENT, batchReport);
 
