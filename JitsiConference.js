@@ -1485,8 +1485,8 @@ JitsiConference.prototype._rejectIncomingCall
                 'An error occurred while trying to terminate'
                     + ' invalid Jingle session', error);
         }, {
-            reason: options.reasonTag,
-            reasonDescription: options.reasonMsg,
+            reason: options && options.reasonTag,
+            reasonDescription: options && options.reasonMsg,
             sendSessionTerminate: true
         });
 };
