@@ -314,6 +314,16 @@ JitsiConference.prototype.isP2PEnabled = function() {
 };
 
 /**
+ * When in P2P test mode, the conference will not automatically switch to P2P
+ * when there 2 participants.
+ * @return {boolean}
+ */
+JitsiConference.prototype.isP2PTestModeEnabled = function() {
+    return Boolean(this.options.config.testing
+        && this.options.config.testing.p2pTestMode);
+};
+
+/**
  * Leaves the conference.
  * @returns {Promise}
  */
@@ -1317,7 +1327,7 @@ JitsiConference.prototype.onIncomingCall
                     reasonMsg: 'P2P not supported',
                     errorMsg: 'This client does not support P2P connections'
                 });
-        } else if (!this.isP2PEnabled()) {
+        } else if (!this.isP2PEnabled() && !this.isP2PTestModeEnabled()) {
             this._rejectIncomingCall(
                 jingleSession, {
                     reasonTag: 'decline',
@@ -2317,7 +2327,9 @@ JitsiConference.prototype._suspendMediaTransferForJvbConnection = function() {
  * @private
  */
 JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
-    if (!RTCBrowserType.isP2PSupported() || !this.isP2PEnabled()) {
+    if (!RTCBrowserType.isP2PSupported()
+        || !this.isP2PEnabled()
+        || this.isP2PTestModeEnabled()) {
         logger.info('Auto P2P disabled');
 
         return;
