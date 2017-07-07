@@ -120,9 +120,12 @@ const ScreenObtainer = {
                 if (window.JitsiMeetScreenObtainer
                     && window.JitsiMeetScreenObtainer.openDesktopPicker) {
                     window.JitsiMeetScreenObtainer.openDesktopPicker(
-                        streamId =>
+                        (streamId, streamType) =>
                             onGetStreamResponse(
-                                { streamId },
+                                {
+                                    streamId,
+                                    streamType
+                                },
                                 onSuccess,
                                 onFailure
                             ),
@@ -570,13 +573,17 @@ function waitForExtensionAfterInstall(options, waitInterval, retries) {
  * @param {Function} onSuccess - callback for success.
  * @param {Function} onFailure - callback for failure.
  */
-function onGetStreamResponse({ streamId, error }, onSuccess, onFailure) {
+function onGetStreamResponse(
+        { streamId, streamType, error },
+        onSuccess,
+        onFailure) {
     if (streamId) {
         gumFunction(
             [ 'desktop' ],
             stream => onSuccess({
                 stream,
-                sourceId: streamId
+                sourceId: streamId,
+                sourceType: streamType
             }),
             onFailure,
             { desktopStream: streamId });

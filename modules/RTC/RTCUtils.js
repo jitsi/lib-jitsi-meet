@@ -629,11 +629,12 @@ function handleLocalStream(streams, resolution) {
     }
 
     if (desktopStream) {
-        const { stream, sourceId } = desktopStream;
+        const { stream, sourceId, sourceType } = desktopStream;
 
         res.push({
             stream,
             sourceId,
+            sourceType,
             track: stream.getVideoTracks()[0],
             mediaType: MediaType.VIDEO,
             videoType: VideoType.DESKTOP
