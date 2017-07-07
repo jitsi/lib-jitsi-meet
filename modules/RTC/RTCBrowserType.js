@@ -250,12 +250,17 @@ const RTCBrowserType = {
      */
     supportsSimulcast() {
         return RTCBrowserType.isChrome()
+            || RTCBrowserType.isFirefox()
             || RTCBrowserType.isElectron()
             || RTCBrowserType.isNWJS();
     },
 
     supportsRtx() {
         return !RTCBrowserType.isFirefox();
+    },
+
+    supportsRtpSender() {
+        return RTCBrowserType.isFirefox();
     }
 
     // Add version getters for other browsers when needed
