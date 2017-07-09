@@ -1062,8 +1062,10 @@ class RTCUtils extends Listenable {
     obtainAudioAndVideoPermissions(options = {}) {
         const self = this;
 
-        const dsOptions = options.desktopSharingExtensionExternalInstallation;
-
+        const dsOptions = {
+            ...options.desktopSharingExtensionExternalInstallation,
+            desktopSharingSources: options.desktopSharingSources
+        };
 
         return new Promise((resolve, reject) => {
             const successCallback = function(stream) {
