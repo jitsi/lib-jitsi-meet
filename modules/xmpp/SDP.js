@@ -366,6 +366,37 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                 });
             }
 
+            const ridLines = SDPUtil.findLines(this.media[i], 'a=rid');
+
+            if (ridLines.length) {
+                // Map a line which looks like "a=rid:2 send" to just
+                // the rid ("2")
+                const rids = ridLines
+                    .map(ridLine => ridLine.split(':')[1])
+                    .map(ridInfo => ridInfo.split(' ')[0]);
+
+                rids.forEach(rid => {
+                    elem.c('source', {
+                        rid,
+                        xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0'
+                    });
+                    elem.up();
+                });
+                const unifiedSimulcast
+                    = SDPUtil.findLine(this.media[i], 'a=simulcast');
+
+                if (unifiedSimulcast) {
+                    elem.c('rid-group', {
+                        semantics: 'SIM',
+                        xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0'
+                    });
+                    rids.forEach(rid => {
+                        elem.c('source', { rid }).up();
+                    });
+                    elem.up();
+                }
+            }
+
             if (SDPUtil.findLine(this.media[i], 'a=rtcp-mux')) {
                 elem.c('rtcp-mux').up();
             }
