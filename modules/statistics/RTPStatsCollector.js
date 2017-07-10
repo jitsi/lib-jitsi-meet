@@ -456,21 +456,19 @@ StatsCollector.prototype.getNonNegativeStat = function(report, name) {
 /**
  * Determines whether the local ICE candidate address is a relayed one.
  *
- * @param {TraceablePeerConnection} rtcPeerConnection the peer connection that
- * has the local ICE candidate address.
- * @param {Array} localAddressArray an array in the form
- * [ ip address, port ].
- * @return {boolean} true if the local ICE candidate is a relayed one, otherwise
+ * @param {RTCSessionDescription} rtcSessionDescription the session description
+ * that has the local ICE candidate address.
+ * @param {Array} addressArray an array in the form [ ip address, port ].
+ * @return {boolean} true if the ICE candidate is a relayed one, otherwise
  * false.
  */
-function isRelayed(rtcPeerConnection, localAddressArray) {
-    const localSdpLines
-        = rtcPeerConnection.localDescription.sdp.match(/[^\r\n]+/g);
+function isRelayed(rtcSessionDescription, addressArray) {
+    const sdpLines = rtcSessionDescription.sdp.match(/[^\r\n]+/g);
 
-    for (const idx in localSdpLines) {
-        if (localSdpLines[idx].indexOf(localAddressArray[0])
-            && localSdpLines[idx].indexOf(localAddressArray[1])) {
-            return localSdpLines[idx].indexOf('relay') !== -1;
+    for (const idx in sdpLines) {
+        if (sdpLines[idx].indexOf(addressArray[0])
+            && sdpLines[idx].indexOf(addressArray[1])) {
+            return sdpLines[idx].indexOf('relay') !== -1;
         }
     }
 
@@ -517,14 +515,18 @@ StatsCollector.prototype.processStatsReport = function() {
         } catch (e) { /* not supported*/ }
 
         if (now.type === 'googCandidatePair') {
-            let active, ip, localip, rtt, type;
-            let relayed = false;
+            let active, ip, localip, remoteip, rtt, type;
+            let localrelayed = false, remoterelayed = false;
 
             try {
                 ip = getStatValue(now, 'remoteAddress');
                 type = getStatValue(now, 'transportType');
                 localip = getStatValue(now, 'localAddress');
-                relayed = isRelayed(this.peerconnection, localip.split(':'));
+                localrelayed = isRelayed(
+                    this.peerconnection.localDescription, localip.split(':'));
+                remoteip = getStatValue(now, 'remoteAddress');
+                remoterelayed = isRelayed(
+                    this.peerconnection.remoteDescription, remoteip.split(':'));
                 active = getStatValue(now, 'activeConnection');
                 rtt = this.getNonNegativeStat(now, 'currentRoundTripTime');
             } catch (e) { /* not supported*/ }
@@ -544,8 +546,10 @@ StatsCollector.prototype.processStatsReport = function() {
                     ip,
                     type,
                     localip,
+                    remoteip,
                     p2p: this.peerconnection.isP2P,
-                    relayed,
+                    localrelayed,
+                    remoterelayed,
                     rtt
                 });
             }
@@ -560,13 +564,19 @@ StatsCollector.prototype.processStatsReport = function() {
 
             const local = this.currentStatsReport[now.localCandidateId];
             const remote = this.currentStatsReport[now.remoteCandidateId];
+            const localrelayed = isRelayed(this.peerconnection.localDescription,
+                [ local.ipAddress, local.portNumber ]);
+            const remoterelayed
+                = isRelayed(this.peerconnection.remoteDescription,
+                [ remote.ipAddress, remote.portNumber ]);
 
             this.conferenceStats.transport.push({
                 ip: `${remote.ipAddress}:${remote.portNumber}`,
                 type: local.transport,
                 localip: `${local.ipAddress}:${local.portNumber}`,
-                relayed: isRelayed(
-                    this.peerconnection, [ local.ipAddress, local.portNumber ]),
+                remoteip: `${remote.ipAddress}:${remote.portNumber}`,
+                localrelayed,
+                remoterelayed,
                 p2p: this.peerconnection.isP2P
             });
         }

@@ -18,7 +18,8 @@ import * as VideoType from '../../service/RTC/VideoType';
  * {
  *   p2p: true,
  *   conferenceSize: 1,
- *   relayed: true,
+ *   localrelayed: true,
+ *   remoterelayed: false,
  *
  *   "stat_avg_rtt": {
  *     value: 200,
@@ -221,7 +222,8 @@ class ConnectionAvgStats {
             if (RTCBrowserType.supportsRTTStatistics()) {
                 const batchReport = { };
                 const props = {
-                    relayed: data.relayed,
+                    localrelayed: data.localrelayed,
+                    remoterelayed: data.remoterelayed,
                     p2p: this.isP2P,
                     size: this._conference.getParticipantCount()
                 };
@@ -536,7 +538,8 @@ export default class AvgRTPStatsReporter {
         const isP2P = this._conference.isP2PActive();
         const confSize = this._conference.getParticipantCount();
         const props = {
-            relayed: data.relayed,
+            localrelayed: data.localrelayed,
+            remoterelayed: data.remoterelayed,
             p2p: isP2P,
             size: confSize
         };
