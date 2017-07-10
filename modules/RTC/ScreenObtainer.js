@@ -116,26 +116,7 @@ const ScreenObtainer = {
                     });
             };
         } else if (RTCBrowserType.isElectron()) {
-            obtainDesktopStream = (_, onSuccess, onFailure) => {
-                if (window.JitsiMeetScreenObtainer
-                    && window.JitsiMeetScreenObtainer.openDesktopPicker) {
-                    window.JitsiMeetScreenObtainer.openDesktopPicker(
-                        streamId =>
-                            onGetStreamResponse(
-                                { streamId },
-                                onSuccess,
-                                onFailure
-                            ),
-                        err => onFailure(new JitsiTrackError(
-                            JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR,
-                            err
-                        ))
-                    );
-                } else {
-                    onFailure(new JitsiTrackError(
-                        JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND));
-                }
-            };
+            obtainDesktopStream = this.obtainScreenOnElectron;
         } else if (RTCBrowserType.isTemasysPluginUsed()) {
             // XXX Don't require Temasys unless it's to be used because it
             // doesn't run on React Native, for example.
@@ -257,12 +238,65 @@ const ScreenObtainer = {
     },
 
     /**
+     * Obtains a screen capture stream on Electron.
+     *
+     * @param {Object} [options] - Screen sharing options.
+     * @param {Array<string>} [options.desktopSharingSources] - Array with the
+     * sources that have to be displayed in the desktop picker window ('screen',
+     * 'window', etc.).
+     * @param onSuccess - Success callback.
+     * @param onFailure - Failure callback.
+     */
+    obtainScreenOnElectron(options = {}, onSuccess, onFailure) {
+        if (window.JitsiMeetScreenObtainer
+            && window.JitsiMeetScreenObtainer.openDesktopPicker) {
+            window.JitsiMeetScreenObtainer.openDesktopPicker(
+                {
+                    desktopSharingSources:
+                        options.desktopSharingSources
+                            || this.options.desktopSharingChromeSources
+                },
+                (streamId, streamType) =>
+                    onGetStreamResponse(
+                        {
+                            streamId,
+                            streamType
+                        },
+                        onSuccess,
+                        onFailure
+                    ),
+                err => onFailure(new JitsiTrackError(
+                    JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR,
+                    err
+                ))
+            );
+        } else {
+            onFailure(new JitsiTrackError(
+                JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND));
+        }
+    },
+
+    /**
      * Asks Chrome extension to call chooseDesktopMedia and gets chrome
      * 'desktop' stream for returned stream token.
      */
     obtainScreenFromExtension(options, streamCallback, failCallback) {
+        const {
+            desktopSharingChromeExtId,
+            desktopSharingChromeSources
+        } = this.options;
+
+        const gumOptions = {
+            desktopSharingChromeExtId,
+            desktopSharingChromeSources:
+                options.desktopSharingSources
+                    || desktopSharingChromeSources
+        };
+
         if (chromeExtInstalled) {
-            doGetStreamFromExtension(this.options, streamCallback,
+            doGetStreamFromExtension(
+                gumOptions,
+                streamCallback,
                 failCallback);
         } else {
             if (chromeExtUpdateRequired) {
@@ -285,8 +319,10 @@ const ScreenObtainer = {
                         // available.
                         waitForExtensionAfterInstall(this.options, 200, 10)
                             .then(() => {
-                                doGetStreamFromExtension(this.options,
-                                    streamCallback, failCallback);
+                                doGetStreamFromExtension(
+                                    gumOptions,
+                                    streamCallback,
+                                    failCallback);
                             })
                             .catch(() => {
                                 this.handleExtensionInstallationError(options,
@@ -570,13 +606,17 @@ function waitForExtensionAfterInstall(options, waitInterval, retries) {
  * @param {Function} onSuccess - callback for success.
  * @param {Function} onFailure - callback for failure.
  */
-function onGetStreamResponse({ streamId, error }, onSuccess, onFailure) {
+function onGetStreamResponse(
+        { streamId, streamType, error },
+        onSuccess,
+        onFailure) {
     if (streamId) {
         gumFunction(
             [ 'desktop' ],
             stream => onSuccess({
                 stream,
-                sourceId: streamId
+                sourceId: streamId,
+                sourceType: streamType
             }),
             onFailure,
             { desktopStream: streamId });

@@ -629,11 +629,12 @@ function handleLocalStream(streams, resolution) {
     }
 
     if (desktopStream) {
-        const { stream, sourceId } = desktopStream;
+        const { stream, sourceId, sourceType } = desktopStream;
 
         res.push({
             stream,
             sourceId,
+            sourceType,
             track: stream.getVideoTracks()[0],
             mediaType: MediaType.VIDEO,
             videoType: VideoType.DESKTOP
@@ -1061,8 +1062,10 @@ class RTCUtils extends Listenable {
     obtainAudioAndVideoPermissions(options = {}) {
         const self = this;
 
-        const dsOptions = options.desktopSharingExtensionExternalInstallation;
-
+        const dsOptions = {
+            ...options.desktopSharingExtensionExternalInstallation,
+            desktopSharingSources: options.desktopSharingSources
+        };
 
         return new Promise((resolve, reject) => {
             const successCallback = function(stream) {

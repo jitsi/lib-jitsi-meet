@@ -73,7 +73,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
             resolution,
             deviceId,
             facingMode,
-            sourceId
+            sourceId,
+            sourceType
         } = trackInfo;
 
         super(
@@ -97,6 +98,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this.dontFireRemoveEvent = false;
         this.resolution = resolution;
         this.sourceId = sourceId;
+        this.sourceType = sourceType;
 
         // FIXME: currently firefox is ignoring our constraints about
         // resolutions so we do not store it, to avoid wrong reporting of local
