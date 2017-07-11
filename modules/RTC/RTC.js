@@ -369,7 +369,8 @@ export default class RTC extends Listenable {
             = new TraceablePeerConnection(
                 this,
                 this.peerConnectionIdCounter,
-                signaling, iceConfig, RTC.getPCConstraints(), isP2P, options);
+                signaling,
+                iceConfig, RTC.getPCConstraints(isP2P), isP2P, options);
 
         this.peerConnections.set(newConnection.id, newConnection);
         this.peerConnectionIdCounter += 1;
@@ -540,8 +541,8 @@ export default class RTC extends Listenable {
     /**
      *
      */
-    static getPCConstraints() {
-        return RTCUtils.pcConstraints;
+    static getPCConstraints(isP2P) {
+        return isP2P ? RTCUtils.p2pPcConstraints : RTCUtils.pcConstraints;
     }
 
     /**
