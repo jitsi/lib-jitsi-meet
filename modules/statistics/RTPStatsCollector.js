@@ -453,33 +453,6 @@ StatsCollector.prototype.getNonNegativeStat = function(report, name) {
     return Math.max(0, value);
 };
 
-/**
- * Determines whether the local ICE candidate address is a relayed one.
- *
- * @param {TraceablePeerConnection} rtcPeerConnection the peer connection that
- * has the local ICE candidate address.
- * @param {Array} localAddressArray an array in the form
- * [ ip address, port ].
- * @return {boolean} true if the local ICE candidate is a relayed one, otherwise
- * false.
- */
-function isRelayed(rtcPeerConnection, localAddressArray) {
-    const localSdpLines
-        = rtcPeerConnection.localDescription.sdp.match(/[^\r\n]+/g);
-
-    for (const idx in localSdpLines) {
-        if (localSdpLines[idx].indexOf(localAddressArray[0])
-            && localSdpLines[idx].indexOf(localAddressArray[1])) {
-            return localSdpLines[idx].indexOf('relay') !== -1;
-        }
-    }
-
-    logger
-        .warn('The candidate address was not found in the local description.');
-
-    return false;
-}
-
 /* eslint-disable no-continue */
 
 /**
@@ -517,14 +490,18 @@ StatsCollector.prototype.processStatsReport = function() {
         } catch (e) { /* not supported*/ }
 
         if (now.type === 'googCandidatePair') {
-            let active, ip, localip, rtt, type;
-            let relayed = false;
+            let active, ip, localip, remoteip, rtt, type;
+            let localrelayed = false, remoterelayed = false;
 
             try {
                 ip = getStatValue(now, 'remoteAddress');
                 type = getStatValue(now, 'transportType');
                 localip = getStatValue(now, 'localAddress');
-                relayed = isRelayed(this.peerconnection, localip.split(':'));
+                localrelayed = this.peerconnection
+                    .checkLocalCandidateType(localip.split(':'), 'relay');
+                remoteip = getStatValue(now, 'remoteAddress');
+                remoterelayed = this.peerconnection
+                    .checkRemoteCandidateType(remoteip.split(':'), 'relay');
                 active = getStatValue(now, 'activeConnection');
                 rtt = this.getNonNegativeStat(now, 'currentRoundTripTime');
             } catch (e) { /* not supported*/ }
@@ -544,8 +521,10 @@ StatsCollector.prototype.processStatsReport = function() {
                     ip,
                     type,
                     localip,
+                    remoteip,
                     p2p: this.peerconnection.isP2P,
-                    relayed,
+                    localrelayed,
+                    remoterelayed,
                     rtt
                 });
             }
@@ -560,13 +539,19 @@ StatsCollector.prototype.processStatsReport = function() {
 
             const local = this.currentStatsReport[now.localCandidateId];
             const remote = this.currentStatsReport[now.remoteCandidateId];
+            const localrelayed = this.peerconnection.checkLocalCandidateType(
+                [ local.ipAddress, local.portNumber ], 'relay');
+            const remoterelayed
+                = this.peerconnection.checkRemoteCandidateType(
+                    [ remote.ipAddress, remote.portNumber ], 'relay');
 
             this.conferenceStats.transport.push({
                 ip: `${remote.ipAddress}:${remote.portNumber}`,
                 type: local.transport,
                 localip: `${local.ipAddress}:${local.portNumber}`,
-                relayed: isRelayed(
-                    this.peerconnection, [ local.ipAddress, local.portNumber ]),
+                remoteip: `${remote.ipAddress}:${remote.portNumber}`,
+                localrelayed,
+                remoterelayed,
                 p2p: this.peerconnection.isP2P
             });
         }

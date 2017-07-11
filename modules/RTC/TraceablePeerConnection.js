@@ -307,6 +307,32 @@ const dumpSDP = function(description) {
     return `type: ${description.type}\r\n${description.sdp}`;
 };
 
+/**
+ * Determines whether the ICE candidate address is a relayed one.
+ *
+ * @param {RTCSessionDescription} rtcSessionDescription the session description
+ * that has the local ICE candidate address.
+ * @param {Array} addressArray an array in the form [ ip address, port ].
+ * @param {String} candidateType the candidate type: One of "host", "srflx",
+ * "prflx", or "relay"
+ * @return {boolean} true if the ICE candidate is a relayed one, otherwise
+ * false.
+ */
+function isRelay(rtcSessionDescription, addressArray, candidateType) {
+    const sdpLines = rtcSessionDescription.sdp.match(/[^\r\n]+/g);
+
+    for (const idx in sdpLines) {
+        if (sdpLines[idx].indexOf(addressArray[0])
+            && sdpLines[idx].indexOf(addressArray[1])) {
+            return sdpLines[idx].indexOf(candidateType) !== -1;
+        }
+    }
+
+    logger
+        .warn('The candidate address was not found in the local description.');
+
+    return false;
+}
 
 /**
  * Forwards the {@link peerconnection.iceConnectionState} state except that it
@@ -2005,6 +2031,36 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {
     this.localSSRCs.set(rtcId, ssrcInfo);
 
     return ssrcInfo;
+};
+
+/**
+ * Determines whether the local ICE candidate address is a relay one.
+ *
+ * @param {Array} addressArray an array in the form [ ip address, port ].
+ * @param {String} candidateType the candidate type: One of "host", "srflx",
+ * "prflx", or "relay"
+ * @return {boolean} true if the ICE candidate is a relayed one, otherwise
+ * false.
+ */
+TraceablePeerConnection.prototype.checkLocalCandidateType
+= function(addressArray, candidateType) {
+    return isRelay(
+        this.peerconnection.localDescription, addressArray, candidateType);
+};
+
+/**
+ * Determines whether the remote ICE candidate address is a relay one.
+ *
+ * @param {Array} addressArray an array in the form [ ip address, port ].
+ * @param {String} candidateType the candidate type: One of "host", "srflx",
+ * "prflx", or "relay"
+ * @return {boolean} true if the ICE candidate is a relayed one, otherwise
+ * false.
+ */
+TraceablePeerConnection.prototype.checkRemoteCandidateType
+= function(addressArray, candidateType) {
+    return isRelay(
+        this.peerconnection.remoteDescription, addressArray, candidateType);
 };
 
 /**
