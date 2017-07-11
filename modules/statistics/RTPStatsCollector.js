@@ -453,31 +453,6 @@ StatsCollector.prototype.getNonNegativeStat = function(report, name) {
     return Math.max(0, value);
 };
 
-/**
- * Determines whether the local ICE candidate address is a relayed one.
- *
- * @param {RTCSessionDescription} rtcSessionDescription the session description
- * that has the local ICE candidate address.
- * @param {Array} addressArray an array in the form [ ip address, port ].
- * @return {boolean} true if the ICE candidate is a relayed one, otherwise
- * false.
- */
-function isRelayed(rtcSessionDescription, addressArray) {
-    const sdpLines = rtcSessionDescription.sdp.match(/[^\r\n]+/g);
-
-    for (const idx in sdpLines) {
-        if (sdpLines[idx].indexOf(addressArray[0])
-            && sdpLines[idx].indexOf(addressArray[1])) {
-            return sdpLines[idx].indexOf('relay') !== -1;
-        }
-    }
-
-    logger
-        .warn('The candidate address was not found in the local description.');
-
-    return false;
-}
-
 /* eslint-disable no-continue */
 
 /**
@@ -522,11 +497,11 @@ StatsCollector.prototype.processStatsReport = function() {
                 ip = getStatValue(now, 'remoteAddress');
                 type = getStatValue(now, 'transportType');
                 localip = getStatValue(now, 'localAddress');
-                localrelayed = isRelayed(
-                    this.peerconnection.localDescription, localip.split(':'));
+                localrelayed = this.peerconnection
+                    .checkLocalCandidateType(localip.split(':'), 'relay');
                 remoteip = getStatValue(now, 'remoteAddress');
-                remoterelayed = isRelayed(
-                    this.peerconnection.remoteDescription, remoteip.split(':'));
+                remoterelayed = this.peerconnection
+                    .checkRemoteCandidateType(remoteip.split(':'), 'relay');
                 active = getStatValue(now, 'activeConnection');
                 rtt = this.getNonNegativeStat(now, 'currentRoundTripTime');
             } catch (e) { /* not supported*/ }
@@ -564,11 +539,11 @@ StatsCollector.prototype.processStatsReport = function() {
 
             const local = this.currentStatsReport[now.localCandidateId];
             const remote = this.currentStatsReport[now.remoteCandidateId];
-            const localrelayed = isRelayed(this.peerconnection.localDescription,
-                [ local.ipAddress, local.portNumber ]);
+            const localrelayed = this.peerconnection.checkLocalCandidateType(
+                [ local.ipAddress, local.portNumber ], 'relay');
             const remoterelayed
-                = isRelayed(this.peerconnection.remoteDescription,
-                [ remote.ipAddress, remote.portNumber ]);
+                = this.peerconnection.checkRemoteCandidateType(
+                    [ remote.ipAddress, remote.portNumber ], 'relay');
 
             this.conferenceStats.transport.push({
                 ip: `${remote.ipAddress}:${remote.portNumber}`,
