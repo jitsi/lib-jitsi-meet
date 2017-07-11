@@ -1104,12 +1104,15 @@ TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast
                     ssrcs.push(ssrc.id);
                 }
             });
-            video.ssrcGroups = [
-                {
-                    semantics: 'SIM',
-                    ssrcs: ssrcs.join(' ')
-                }
-            ];
+            video.ssrcGroups = video.ssrcGroups || [];
+            if (video.ssrcGroups.find(group => group.semantics === 'SIM')) {
+                // Group already exists, no need to do anything
+                return desc;
+            }
+            video.ssrcGroups.push({
+                semantics: 'SIM',
+                ssrcs: ssrcs.join(' ')
+            });
         }
         desc.sdp = transform.write(sdp);
 
@@ -1583,9 +1586,12 @@ TraceablePeerConnection.prototype.setAudioTransferActive = function(active) {
 /**
  * Takes in a *unified plan* offer and inserts the appropriate
  * parameters for adding simulcast receive support.
- * @param {} A session description object (with 'type' and 'sdp' fields)
- * @return {} A session description object with its sdp field modified to
- * advertise simulcast receive support
+ * @param {Object} desc - A session description object
+ * @param {String} desc.type - the type (offer/answer)
+ * @param {String} desc.sdp - the sdp content
+ *
+ * @return {Object} A session description (same format as above) object
+ * with its sdp field modified to advertise simulcast receive support
  */
 TraceablePeerConnection.prototype._insertUnifiedPlanSimulcastReceive
     = function(desc) {
@@ -1608,7 +1614,7 @@ TraceablePeerConnection.prototype._insertUnifiedPlanSimulcastReceive
             }
         ];
         // eslint-disable-next-line camelcase
-        video.simulcast_04 = {
+        video.simulcast_03 = {
             value: `recv rid=${SIM_LAYER_RIDS.join(';')}`
         };
         desc.sdp = transform.write(sdp);
