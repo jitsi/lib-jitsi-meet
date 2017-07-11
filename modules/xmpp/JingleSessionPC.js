@@ -199,6 +199,14 @@ export default class JingleSessionPC extends JingleSession {
          * @type {boolean}
          */
         this.wasConnected = false;
+
+        /**
+         * Keeps track of how long (in ms) it took from ICE start to ICE
+         * connect.
+         *
+         * @type {number}
+         */
+        this.establishmentDuration = undefined;
     }
 
     /* eslint-enable max-params */
@@ -381,10 +389,12 @@ export default class JingleSessionPC extends JingleSession {
                             this._iceCheckingStartedTimestamp,
                             this._gatheringStartedTimestamp);
 
+                    this.establishmentDuration = now - iceStarted;
+
                     Statistics.analytics.sendEvent(
                         `${eventName}establishmentDuration`,
                         {
-                            value: now - iceStarted
+                            value: this.establishmentDuration
                         });
                     this.wasConnected = true;
                     this.room.eventEmitter.emit(
@@ -1187,6 +1197,7 @@ export default class JingleSessionPC extends JingleSession {
      */
     onTerminated(reasonCondition, reasonText) {
         this.state = JingleSessionState.ENDED;
+        this.establishmentDuration = undefined;
 
         // Do something with reason and reasonCondition when we start to care
         // this.reasonCondition = reasonCondition;
