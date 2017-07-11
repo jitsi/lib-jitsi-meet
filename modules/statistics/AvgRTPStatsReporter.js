@@ -61,6 +61,7 @@ class AverageStatReport {
         this.count = 0;
         this.sum = 0;
         this.samples = [];
+        this.latestAvg = undefined;
     }
 
     /**
@@ -86,7 +87,9 @@ class AverageStatReport {
      * if no samples were collected.
      */
     calculate() {
-        return this.sum / this.count;
+        this.latestAvg = this.sum / this.count;
+
+        return this.latestAvg;
     }
 
     /**
@@ -115,6 +118,7 @@ class AverageStatReport {
         this.samples = [];
         this.sum = 0;
         this.count = 0;
+        this.latestAvg = undefined;
     }
 }
 
@@ -178,6 +182,16 @@ class ConnectionAvgStats {
          */
         this._conference = conference;
 
+        /**
+         * The latest average E2E RTT for the JVB connection only.
+         *
+         * This is used only when {@link ConnectionAvgStats.isP2P} equals to
+         * <tt>false</tt>.
+         *
+         * @type {number}
+         */
+        this._avgEnd2EndRTT = undefined;
+
         this._onConnectionStats = (tpc, stats) => {
             if (this.isP2P === tpc.isP2P) {
                 this._calculateAvgStats(stats);
@@ -230,21 +244,32 @@ class ConnectionAvgStats {
 
                 this._avgRTT.appendReport(batchReport, props);
 
-                // Report end to end RTT only for JVB
-                if (!this.isP2P) {
+                if (this.isP2P) {
+                    // Report RTT diff only for P2P.
+                    const jvbEnd2EndRTT = this._conference.avgRtpStatsReporter
+                        .jvbStatsMonitor._avgEnd2EndRTT;
+
+                    if (!isNaN(jvbEnd2EndRTT)) {
+                        const avgRTTDiff
+                            = this._avgRTT.latestAvg - jvbEnd2EndRTT;
+
+                        // eslint-disable-next-line dot-notation
+                        batchReport['stat_avg_rtt_diff'] = {
+                            value: avgRTTDiff
+                        };
+                    }
+                } else {
+                    // Report end to end RTT only for JVB.
                     const avgRemoteRTT = this._calculateAvgRemoteRTT();
                     const avgLocalRTT = this._avgRTT.calculate();
 
+                    this._avgEnd2EndRTT = avgLocalRTT + avgRemoteRTT;
+
                     if (!isNaN(avgLocalRTT) && !isNaN(avgRemoteRTT)) {
-                        // eslint-disable-next-line camelcase
-                        const reportValue = {
-                            value: avgLocalRTT + avgRemoteRTT
-                        };
-
-                        Object.assign(reportValue, props);
-
                         // eslint-disable-next-line dot-notation
-                        batchReport['stat_avg_end2endrtt'] = reportValue;
+                        batchReport['stat_avg_end2endrtt'] = {
+                            value: this._avgEnd2EndRTT
+                        };
                     }
                 }
 
@@ -313,6 +338,7 @@ class ConnectionAvgStats {
             this._avgRemoteRTTMap.clear();
         }
         this._sampleIdx = 0;
+        this._avgEnd2EndRTT = undefined;
     }
 
     /**
