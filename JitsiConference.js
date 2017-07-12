@@ -2104,12 +2104,8 @@ JitsiConference.prototype._onIceConnectionEstablished
         && typeof forceJVB121Ratio === 'number'
         && Math.random() < forceJVB121Ratio) {
         logger.info(`Forcing JVB 121 mode (ratio=${forceJVB121Ratio})...`);
-        this._rejectIncomingCall(
-            jingleSession, {
-                reasonTag: 'decline',
-                reasonMsg: 'force JVB121'
-            });
         Statistics.analytics.addPermanentProperties({ forceJvb121: true });
+        this._stopP2PSession('decline', 'force JVB121');
 
         return;
     }
