@@ -16,9 +16,9 @@ JWT token authentication currently works only with BOSH connections.
 
 The following JWT claims are used in authentication token:
 - 'iss' specifies *application ID* which identifies the client app connecting to the server
-- 'room' contains the name of the room for which the token has been allocated. This is *NOT* full MUC room address. Example assuming that we have full MUC 'conference1@muc.server.net' then 'conference1' should be used here.
+- 'room' contains the name of the room for which the token has been allocated. This is *NOT* full MUC room address. Example assuming that we have full MUC 'conference1@muc.server.net' then 'conference1' should be used here.  Alternately, a '*' may be provided, allowing access to all rooms within the domain.
 - 'exp' token expiration timstamp as defined in the RFC
-- 'aud' contains the name of the domain used when authenticating with this token. By default assuming that we have full MUC 'conference1@muc.server.net' then 'server.net' should be used here.
+- 'sub' contains the name of the domain used when authenticating with this token. By default assuming that we have full MUC 'conference1@muc.server.net' then 'server.net' should be used here.
 
 Secret is used to compute HMAC hash value and verify the token.
 
