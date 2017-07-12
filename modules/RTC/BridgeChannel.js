@@ -170,6 +170,20 @@ export default class BridgeChannel {
     }
 
     /**
+     * Sends a "receiver video constraint" message via the channel.
+     * @param {Number} maxFrameHeightPixels the maximum fram height,
+     * in pixels, this receiver is willing to receive
+     */
+    sendReceiverVideoConstraintMessage(maxFrameHeightPixels) {
+        logger.log('sending a ReceiverVideoConstraint message with '
+            + `a maxFrameHeight of ${maxFrameHeightPixels} pixels`);
+        this._send({
+            colibriClass: 'ReceiverVideoConstraint',
+            maxFrameHeight: maxFrameHeightPixels
+        });
+    }
+
+    /**
      * Set events on the given RTCDataChannel or WebSocket instance.
      */
     _handleChannel(channel) {
