@@ -1576,6 +1576,18 @@ export default class JingleSessionPC extends JingleSession {
      */
     replaceTrack(oldTrack, newTrack) {
         const workFunction = finishedCallback => {
+            // Check if the connection was closed and pretend everything is OK.
+            // This can happen if a track removal is scheduled but takes place
+            // after the connection is closed.
+            if (this.peerconnection.signalingState === 'closed'
+                || this.peerconnection.connectionState === 'closed'
+                || this.closed) {
+
+                finishedCallback();
+
+                return;
+            }
+
             const oldLocalSdp = this.peerconnection.localDescription.sdp;
 
             // NOTE the code below assumes that no more than 1 video track
