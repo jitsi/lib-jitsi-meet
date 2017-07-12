@@ -364,6 +364,14 @@ TraceablePeerConnection.prototype._getDesiredMediaDirection
 TraceablePeerConnection.prototype.isSimulcastOn = function() {
     return !this.options.disableSimulcast
         && RTCBrowserType.supportsSimulcast()
+
+        // Firefox has been added as supporting simulcast, but it is
+        // experimental so we only want to do it for firefox if the config
+        // option is set.  Unfortunately, RTCBrowserType::supportsSimulcast()
+        // doesn't have a reference to the config options, so we have
+        // to do it here
+        && (!RTCBrowserType.isFirefox()
+            || this.options.enableFirefoxSimulcast)
         && !this.isP2P;
 };
 
