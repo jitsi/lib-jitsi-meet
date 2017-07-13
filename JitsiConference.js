@@ -2091,21 +2091,52 @@ JitsiConference.prototype._addRemoteTracks = function(logName, remoteTracks) {
  */
 JitsiConference.prototype._onIceConnectionEstablished
 = function(jingleSession) {
+
+    if (this.p2pJingleSession !== null) {
+        // store the establishment time of the p2p session as a field of the
+        // JitsiConference because the p2pJingleSession might get disposed (thus
+        // the value is lost).
+        this.p2pEstablishmentDuration
+            = this.p2pJingleSession.establishmentDuration;
+    }
+
+    if (this.jvbJingleSession !== null) {
+        this.jvbEstablishmentDuration
+            = this.jvbJingleSession.establishmentDuration;
+    }
+
+    let done = false;
     const forceJVB121Ratio = this.options.config.forceJVB121Ratio;
 
     // We don't care about the JVB case, there's nothing to be done
     if (!jingleSession.isP2P) {
-        return;
+        done = true;
     } else if (this.p2pJingleSession !== jingleSession) {
         logger.error('CONNECTION_ESTABLISHED - wrong P2P session instance ?!');
 
-        return;
+        done = true;
     } else if (!jingleSession.isInitiator
         && typeof forceJVB121Ratio === 'number'
         && Math.random() < forceJVB121Ratio) {
         logger.info(`Forcing JVB 121 mode (ratio=${forceJVB121Ratio})...`);
         Statistics.analytics.addPermanentProperties({ forceJvb121: true });
         this._stopP2PSession('decline', 'force JVB121');
+
+        done = true;
+    }
+
+    if (!isNaN(this.p2pEstablishmentDuration)
+        && !isNaN(this.jvbEstablishmentDuration)) {
+        const establishmentDurationDiff
+            = this.p2pEstablishmentDuration - this.jvbEstablishmentDuration;
+
+        Statistics.analytics.sendEvent({
+            'name': 'ice.establishmentDurationDiff',
+            'value': establishmentDurationDiff
+        });
+    }
+
+    if (done) {
 
         return;
     }

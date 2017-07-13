@@ -17,8 +17,10 @@ import * as VideoType from '../../service/RTC/VideoType';
  *
  * {
  *   p2p: true,
- *   conferenceSize: 1,
- *   relayed: true,
+ *   conferenceSize: 2,
+ *   localCandidateType: "relay",
+ *   remoteCandidateType: "relay",
+ *   transportType: "udp",
  *
  *   "stat_avg_rtt": {
  *     value: 200,
@@ -92,18 +94,12 @@ class AverageStatReport {
      * Appends the report to the analytics "data" object. The object will be
      * set under <tt>prefix</tt> + {@link this.name} key.
      * @param {Object} report the analytics "data" object
-     * @param {Object} extra properties to append to the analytics "data" object
      */
-    appendReport(report, props) {
-
-        const reportValue = {
+    appendReport(report) {
+        report[this.name] = {
             value: this.calculate(),
             samples: this.samples
         };
-
-        Object.assign(reportValue, props);
-
-        report[this.name] = reportValue;
     }
 
     /**
@@ -125,12 +121,12 @@ class AverageStatReport {
 class ConnectionAvgStats {
     /**
      * Creates new <tt>ConnectionAvgStats</tt>
-     * @param {JitsiConference} conference
+     * @param {AvgRTPStatsReporter} avgRtpStatsReporter
      * @param {boolean} isP2P
      * @param {number} n the number of samples, before arithmetic mean is to be
      * calculated and values submitted to the analytics module.
      */
-    constructor(conference, isP2P, n) {
+    constructor(avgRtpStatsReporter, isP2P, n) {
         /**
          * Is this instance for JVB or P2P connection ?
          * @type {boolean}
@@ -175,13 +171,26 @@ class ConnectionAvgStats {
          * @type {JitsiConference}
          * @private
          */
-        this._conference = conference;
+        this._avgRtpStatsReporter = avgRtpStatsReporter;
+
+        /**
+         * The latest average E2E RTT for the JVB connection only.
+         *
+         * This is used only when {@link ConnectionAvgStats.isP2P} equals to
+         * <tt>false</tt>.
+         *
+         * @type {number}
+         */
+        this._avgEnd2EndRTT = undefined;
 
         this._onConnectionStats = (tpc, stats) => {
             if (this.isP2P === tpc.isP2P) {
                 this._calculateAvgStats(stats);
             }
         };
+
+        const conference = avgRtpStatsReporter._conference;
+
         conference.statistics.addConnectionStatsListener(
             this._onConnectionStats);
 
@@ -219,30 +228,51 @@ class ConnectionAvgStats {
 
         if (this._sampleIdx >= this._n) {
             if (RTCBrowserType.supportsRTTStatistics()) {
-                const batchReport = { };
-                const props = {
-                    relayed: data.relayed,
+                const conference = this._avgRtpStatsReporter._conference;
+
+                const batchReport = {
                     p2p: this.isP2P,
-                    size: this._conference.getParticipantCount()
+                    size: conference.getParticipantCount()
                 };
 
-                this._avgRTT.appendReport(batchReport, props);
+                if (data.transport && data.transport.length) {
+                    Object.assign(batchReport, {
+                        localCandidateType:
+                            data.transport[0].localCandidateType,
+                        remoteCandidateType:
+                            data.transport[0].remoteCandidateType,
+                        transportType: data.transport[0].type
+                    });
+                }
 
-                // Report end to end RTT only for JVB
-                if (!this.isP2P) {
+                this._avgRTT.appendReport(batchReport);
+
+                if (this.isP2P) {
+                    // Report RTT diff only for P2P.
+                    const jvbEnd2EndRTT = this
+                        ._avgRtpStatsReporter.jvbStatsMonitor._avgEnd2EndRTT;
+
+                    if (!isNaN(jvbEnd2EndRTT)) {
+                        const avgRTTDiff
+                            = this._avgRTT.calculate() - jvbEnd2EndRTT;
+
+                        // eslint-disable-next-line dot-notation
+                        batchReport['stat_avg_rtt_diff'] = {
+                            value: avgRTTDiff
+                        };
+                    }
+                } else {
+                    // Report end to end RTT only for JVB.
                     const avgRemoteRTT = this._calculateAvgRemoteRTT();
                     const avgLocalRTT = this._avgRTT.calculate();
 
+                    this._avgEnd2EndRTT = avgLocalRTT + avgRemoteRTT;
+
                     if (!isNaN(avgLocalRTT) && !isNaN(avgRemoteRTT)) {
-                        // eslint-disable-next-line camelcase
-                        const reportValue = {
-                            value: avgLocalRTT + avgRemoteRTT
-                        };
-
-                        Object.assign(reportValue, props);
-
                         // eslint-disable-next-line dot-notation
-                        batchReport['stat_avg_end2endrtt'] = reportValue;
+                        batchReport['stat_avg_end2endrtt'] = {
+                            value: this._avgEnd2EndRTT
+                        };
                     }
                 }
 
@@ -317,13 +347,16 @@ class ConnectionAvgStats {
      *
      */
     dispose() {
-        this._conference.statistics.removeConnectionStatsListener(
+
+        const conference = this._avgRtpStatsReporter._conference;
+
+        conference.statistics.removeConnectionStatsListener(
             this._onConnectionStats);
         if (!this.isP2P) {
-            this._conference.off(
+            conference.off(
                 ConnectionQualityEvents.REMOTE_STATS_UPDATED,
                 this._onRemoteStatsUpdated);
-            this._conference.off(
+            conference.off(
                 ConferenceEvents.USER_LEFT,
                 this._onUserLeft);
         }
@@ -519,10 +552,10 @@ export default class AvgRTPStatsReporter {
             this._onJvb121StatusChanged);
 
         this.jvbStatsMonitor
-            = new ConnectionAvgStats(conference, false /* JVB */, n);
+            = new ConnectionAvgStats(this, false /* JVB */, n);
 
         this.p2pStatsMonitor
-            = new ConnectionAvgStats(conference, true /* P2P */, n);
+            = new ConnectionAvgStats(this, true /* P2P */, n);
     }
 
     /**
@@ -533,13 +566,14 @@ export default class AvgRTPStatsReporter {
      */
     _calculateAvgStats(data) {
 
+        if (!data) {
+            logger.error('No stats');
+
+            return;
+        }
+
         const isP2P = this._conference.isP2PActive();
         const confSize = this._conference.getParticipantCount();
-        const props = {
-            relayed: data.relayed,
-            p2p: isP2P,
-            size: confSize
-        };
 
         if (!isP2P && confSize < 2) {
 
@@ -555,12 +589,6 @@ export default class AvgRTPStatsReporter {
                 logger.info(`local stat ${key}: `, data[key]);
             }
         } */
-
-        if (!data) {
-            logger.error('No stats');
-
-            return;
-        }
 
         const bitrate = data.bitrate;
         const bandwidth = data.bandwidth;
@@ -621,32 +649,44 @@ export default class AvgRTPStatsReporter {
         this._sampleIdx += 1;
 
         if (this._sampleIdx >= this._n) {
-            const batchReport = { };
 
-            this._avgAudioBitrateUp.appendReport(batchReport, props);
-            this._avgAudioBitrateDown.appendReport(batchReport, props);
+            const batchReport = {
+                p2p: isP2P,
+                size: confSize
+            };
 
-            this._avgVideoBitrateUp.appendReport(batchReport, props);
-            this._avgVideoBitrateDown.appendReport(batchReport, props);
+            if (data.transport && data.transport.length) {
+                Object.assign(batchReport, {
+                    localCandidateType: data.transport[0].localCandidateType,
+                    remoteCandidateType: data.transport[0].remoteCandidateType,
+                    transportType: data.transport[0].type
+                });
+            }
+
+            this._avgAudioBitrateUp.appendReport(batchReport);
+            this._avgAudioBitrateDown.appendReport(batchReport);
+
+            this._avgVideoBitrateUp.appendReport(batchReport);
+            this._avgVideoBitrateDown.appendReport(batchReport);
 
             if (RTCBrowserType.supportsBandwidthStatistics()) {
-                this._avgBandwidthUp.appendReport(batchReport, props);
-                this._avgBandwidthDown.appendReport(batchReport, props);
+                this._avgBandwidthUp.appendReport(batchReport);
+                this._avgBandwidthDown.appendReport(batchReport);
             }
-            this._avgPacketLossUp.appendReport(batchReport, props);
-            this._avgPacketLossDown.appendReport(batchReport, props);
-            this._avgPacketLossTotal.appendReport(batchReport, props);
+            this._avgPacketLossUp.appendReport(batchReport);
+            this._avgPacketLossDown.appendReport(batchReport);
+            this._avgPacketLossTotal.appendReport(batchReport);
 
-            this._avgRemoteFPS.appendReport(batchReport, props);
+            this._avgRemoteFPS.appendReport(batchReport);
             if (!isNaN(this._avgRemoteScreenFPS.calculate())) {
-                this._avgRemoteScreenFPS.appendReport(batchReport, props);
+                this._avgRemoteScreenFPS.appendReport(batchReport);
             }
-            this._avgLocalFPS.appendReport(batchReport, props);
+            this._avgLocalFPS.appendReport(batchReport);
             if (!isNaN(this._avgLocalScreenFPS.calculate())) {
-                this._avgLocalScreenFPS.appendReport(batchReport, props);
+                this._avgLocalScreenFPS.appendReport(batchReport);
             }
 
-            this._avgCQ.appendReport(batchReport, props);
+            this._avgCQ.appendReport(batchReport);
 
             Statistics.analytics.sendEvent(AVG_RTP_STATS_EVENT, batchReport);
 

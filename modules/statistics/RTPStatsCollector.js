@@ -46,7 +46,9 @@ KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME] = {
     'googFrameRateSent': 'googFrameRateSent',
     'audioInputLevel': 'audioInputLevel',
     'audioOutputLevel': 'audioOutputLevel',
-    'currentRoundTripTime': 'googRtt'
+    'currentRoundTripTime': 'googRtt',
+    'remoteCandidateType': 'googRemoteCandidateType',
+    'localCandidateType': 'googLocalCandidateType'
 };
 KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_EDGE] = {
     'sendBandwidth': 'googAvailableSendBandwidth',
@@ -453,33 +455,6 @@ StatsCollector.prototype.getNonNegativeStat = function(report, name) {
     return Math.max(0, value);
 };
 
-/**
- * Determines whether the local ICE candidate address is a relayed one.
- *
- * @param {TraceablePeerConnection} rtcPeerConnection the peer connection that
- * has the local ICE candidate address.
- * @param {Array} localAddressArray an array in the form
- * [ ip address, port ].
- * @return {boolean} true if the local ICE candidate is a relayed one, otherwise
- * false.
- */
-function isRelayed(rtcPeerConnection, localAddressArray) {
-    const localSdpLines
-        = rtcPeerConnection.localDescription.sdp.match(/[^\r\n]+/g);
-
-    for (const idx in localSdpLines) {
-        if (localSdpLines[idx].indexOf(localAddressArray[0])
-            && localSdpLines[idx].indexOf(localAddressArray[1])) {
-            return localSdpLines[idx].indexOf('relay') !== -1;
-        }
-    }
-
-    logger
-        .warn('The candidate address was not found in the local description.');
-
-    return false;
-}
-
 /* eslint-disable no-continue */
 
 /**
@@ -517,15 +492,20 @@ StatsCollector.prototype.processStatsReport = function() {
         } catch (e) { /* not supported*/ }
 
         if (now.type === 'googCandidatePair') {
-            let active, ip, localip, rtt, type;
-            let relayed = false;
+            let active, ip, localCandidateType, localip,
+                remoteCandidateType, rtt, type;
 
             try {
+                active = getStatValue(now, 'activeConnection');
+                if (!active) {
+                    continue;
+                }
+
                 ip = getStatValue(now, 'remoteAddress');
                 type = getStatValue(now, 'transportType');
                 localip = getStatValue(now, 'localAddress');
-                relayed = isRelayed(this.peerconnection, localip.split(':'));
-                active = getStatValue(now, 'activeConnection');
+                localCandidateType = getStatValue(now, 'localCandidateType');
+                remoteCandidateType = getStatValue(now, 'remoteCandidateType');
                 rtt = this.getNonNegativeStat(now, 'currentRoundTripTime');
             } catch (e) { /* not supported*/ }
             if (!ip || !type || !localip || active !== 'true') {
@@ -545,7 +525,8 @@ StatsCollector.prototype.processStatsReport = function() {
                     type,
                     localip,
                     p2p: this.peerconnection.isP2P,
-                    relayed,
+                    localCandidateType,
+                    remoteCandidateType,
                     rtt
                 });
             }
@@ -565,9 +546,9 @@ StatsCollector.prototype.processStatsReport = function() {
                 ip: `${remote.ipAddress}:${remote.portNumber}`,
                 type: local.transport,
                 localip: `${local.ipAddress}:${local.portNumber}`,
-                relayed: isRelayed(
-                    this.peerconnection, [ local.ipAddress, local.portNumber ]),
-                p2p: this.peerconnection.isP2P
+                p2p: this.peerconnection.isP2P,
+                localCandidateType: local.candidateType,
+                remoteCandidateType: remote.candidateType
             });
         }
 
