@@ -76,11 +76,9 @@ const ScreenObtainer = {
         this.options = options = options || {};
         gumFunction = gum;
 
-        if (RTCBrowserType.isFirefox()) {
-            initFirefoxExtensionDetection(options);
-        }
-
-        if (RTCBrowserType.isNWJS()) {
+        if (this.options.disableDesktopSharing) {
+            // Do not initialize any of the methods below
+        } else if (RTCBrowserType.isNWJS()) {
             obtainDesktopStream = (_, onSuccess, onFailure) => {
                 window.JitsiMeetNW.obtainDesktopStream(
                     onSuccess,
@@ -158,6 +156,7 @@ const ScreenObtainer = {
                     + 'Use of HTTPS is required.');
                 obtainDesktopStream = null;
             } else {
+                initFirefoxExtensionDetection(options);
                 obtainDesktopStream = this.obtainScreenOnFirefox;
             }
         }
