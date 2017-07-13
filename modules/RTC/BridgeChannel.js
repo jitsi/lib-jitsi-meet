@@ -171,7 +171,7 @@ export default class BridgeChannel {
 
     /**
      * Sends a "receiver video constraint" message via the channel.
-     * @param {Number} maxFrameHeightPixels the maximum fram height,
+     * @param {Number} maxFrameHeightPixels the maximum frame height,
      * in pixels, this receiver is willing to receive
      */
     sendReceiverVideoConstraintMessage(maxFrameHeightPixels) {
