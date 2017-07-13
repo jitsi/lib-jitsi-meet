@@ -851,13 +851,6 @@ class RTCUtils extends Listenable {
 
                 this.pcConstraints = { optional: [] };
 
-                // Allows sending of video to be suspended if the bandwidth
-                // estimation is too low.
-                if (!options.disableSuspendVideo) {
-                    this.pcConstraints.optional.push(
-                        { googSuspendBelowMinBitrate: true });
-                }
-
                 if (options.useIPv6) {
                     // https://code.google.com/p/webrtc/issues/detail?id=2828
                     this.pcConstraints.optional.push({ googIPv6: true });
@@ -873,6 +866,21 @@ class RTCUtils extends Listenable {
                         return this.audioTracks;
                     };
                 }
+
+                this.p2pPcConstraints
+                    = JSON.parse(JSON.stringify(this.pcConstraints));
+
+                // Allows sending of video to be suspended if the bandwidth
+                // estimation is too low.
+                if (!options.disableSuspendVideo) {
+                    this.pcConstraints.optional.push(
+                        { googSuspendBelowMinBitrate: true });
+                }
+
+                // There's no reason not to use this for p2p
+                this.p2pPcConstraints.optional.push({
+                    googSuspendBelowMinBitrate: true
+                });
             } else if (RTCBrowserType.isEdge()) {
                 this.RTCPeerConnectionType = ortcRTCPeerConnection;
                 this.getUserMedia
@@ -985,6 +993,8 @@ class RTCUtils extends Listenable {
 
                 return;
             }
+
+            this.p2pPcConstraints = this.p2pPcConstraints || this.pcConstraints;
 
             // Call onReady() if Temasys plugin is not used
             if (!RTCBrowserType.isTemasysPluginUsed()) {
