@@ -61,7 +61,7 @@ const featureDetectionAudioEl = document.createElement('audio');
 const isAudioOutputDeviceChangeAvailable
     = typeof featureDetectionAudioEl.setSinkId !== 'undefined';
 
-let currentlyAvailableMediaDevices;
+let currentlyAvailableMediaDevices = [];
 
 /**
  * "rawEnumerateDevicesWithCallback" will be initialized only after WebRTC is
@@ -400,7 +400,7 @@ function pollForAvailableMediaDevices() {
         rawEnumerateDevicesWithCallback(ds => {
             // We don't fire RTCEvents.DEVICE_LIST_CHANGED for the first time
             // we call enumerateDevices(). This is the initial step.
-            if (typeof currentlyAvailableMediaDevices === 'undefined') {
+            if (!currentlyAvailableMediaDevices.length) {
                 currentlyAvailableMediaDevices = ds.slice(0);
             } else if (compareAvailableMediaDevices(ds)) {
                 onMediaDevicesListChanged(ds);
