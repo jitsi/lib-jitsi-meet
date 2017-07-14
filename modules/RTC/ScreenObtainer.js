@@ -66,29 +66,53 @@ const ScreenObtainer = {
      * Initializes the function used to obtain a screen capture
      * (this.obtainStream).
      *
-     * @param options {object}
-     * @param gum {Function} GUM method
+     * @param {object} options
+     * @param {boolean} [options.disableDesktopSharing]
+     * @param {boolean} [options.desktopSharingChromeDisabled]
+     * @param {boolean} [options.desktopSharingChromeExtId]
+     * @param {boolean} [options.desktopSharingFirefoxDisabled]
+     * @param {boolean} [options.desktopSharingFirefoxExtId] (deprecated)
+     * @param {Function} gum GUM method
      */
-    init(options, gum) {
-        let obtainDesktopStream = null;
-
+    init(options = {
+        disableDesktopSharing: false,
+        desktopSharingChromeDisabled: false,
+        desktopSharingChromeExtId: null,
+        desktopSharingFirefoxDisabled: false,
+        desktopSharingFirefoxExtId: null
+    }, gum) {
         // eslint-disable-next-line no-param-reassign
         this.options = options = options || {};
         gumFunction = gum;
 
-        if (RTCBrowserType.isFirefox()) {
-            initFirefoxExtensionDetection(options);
-        }
+        this.obtainStream
+            = this.options.disableDesktopSharing
+                ? null : this._createObtainStreamMethod(options);
 
+        if (!this.obtainStream) {
+            logger.info('Desktop sharing disabled');
+        }
+    },
+
+    /**
+     * Returns a method which will be used to obtain the screen sharing stream
+     * (based on the browser type).
+     *
+     * @param {object} options passed from {@link init} - check description
+     * there
+     * @returns {Function}
+     * @private
+     */
+    _createObtainStreamMethod(options) {
         if (RTCBrowserType.isNWJS()) {
-            obtainDesktopStream = (_, onSuccess, onFailure) => {
+            return (_, onSuccess, onFailure) => {
                 window.JitsiMeetNW.obtainDesktopStream(
                     onSuccess,
                     (error, constraints) => {
                         let jitsiError;
 
                         // FIXME:
-                        // This is very very durty fix for recognising that the
+                        // This is very very dirty fix for recognising that the
                         // user have clicked the cancel button from the Desktop
                         // sharing pick window. The proper solution would be to
                         // detect this in the NWJS application by checking the
@@ -116,57 +140,67 @@ const ScreenObtainer = {
                     });
             };
         } else if (RTCBrowserType.isElectron()) {
-            obtainDesktopStream = this.obtainScreenOnElectron;
+            return this.obtainScreenOnElectron;
         } else if (RTCBrowserType.isTemasysPluginUsed()) {
             // XXX Don't require Temasys unless it's to be used because it
             // doesn't run on React Native, for example.
             const plugin
                 = require('./adapter.screenshare').WebRTCPlugin.plugin;
 
-            if (plugin.HasScreensharingFeature) {
-                if (plugin.isScreensharingAvailable) {
-                    obtainDesktopStream = obtainWebRTCScreen;
-                    logger.info('Using Temasys plugin for desktop sharing');
-                } else {
-                    logger.info(
-                        'Screensharing not available with Temasys plugin on'
-                            + ' this site');
-                }
-            } else {
-                logger.info(
+            if (!plugin.HasScreensharingFeature) {
+                logger.warn(
                     'Screensharing not supported by this plugin version');
+
+                return null;
+            } else if (!plugin.isScreensharingAvailable) {
+                logger.warn(
+                    'Screensharing not available with Temasys plugin on'
+                        + ' this site');
+
+                return null;
             }
+
+            logger.info('Using Temasys plugin for desktop sharing');
+
+            return obtainWebRTCScreen;
         } else if (RTCBrowserType.isChrome()) {
-            if (options.desktopSharingChromeDisabled
+            if (RTCBrowserType.getChromeVersion() < 34) {
+                logger.info('Chrome extension not supported until ver 34');
+
+                return null;
+            } else if (options.desktopSharingChromeDisabled
                 || options.desktopSharingChromeMethod === false
                 || !options.desktopSharingChromeExtId) {
+
                 // TODO: desktopSharingChromeMethod is deprecated, remove.
-                obtainDesktopStream = null;
-            } else if (RTCBrowserType.getChromeVersion() >= 34) {
-                obtainDesktopStream
-                    = this.obtainScreenFromExtension;
-                logger.info('Using Chrome extension for desktop sharing');
-                initChromeExtension(options);
-            } else {
-                logger.info('Chrome extension not supported until ver 34');
+                return null;
             }
+
+            logger.info('Using Chrome extension for desktop sharing');
+            initChromeExtension(options);
+
+            return this.obtainScreenFromExtension;
         } else if (RTCBrowserType.isFirefox()) {
             if (options.desktopSharingFirefoxDisabled) {
-                obtainDesktopStream = null;
+                return null;
             } else if (window.location.protocol === 'http:') {
                 logger.log('Screen sharing is not supported over HTTP. '
                     + 'Use of HTTPS is required.');
-                obtainDesktopStream = null;
-            } else {
-                obtainDesktopStream = this.obtainScreenOnFirefox;
+
+                return null;
             }
+
+            initFirefoxExtensionDetection(options);
+
+            return this.obtainScreenOnFirefox;
         }
 
-        if (!obtainDesktopStream) {
-            logger.info('Desktop sharing disabled');
-        }
+        logger.warn(
+            'Screen sharing not supported by the current browser: ',
+            RTCBrowserType.getBrowserType(),
+            RTCBrowserType.getBrowserName());
 
-        this.obtainStream = obtainDesktopStream;
+        return null;
     },
 
     /**
