@@ -618,6 +618,11 @@ export default class ChatRoom extends Listenable {
      * @param from
      */
     onPresenceUnavailable(pres, from) {
+        // ignore presence
+        if ($(pres).find('>ignore[xmlns="http://jitsi.org/jitmeet/"]').length) {
+            return true;
+        }
+
         // room destroyed ?
         if ($(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]'
             + '>destroy').length) {
