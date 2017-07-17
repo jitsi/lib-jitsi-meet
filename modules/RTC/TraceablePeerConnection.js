@@ -22,6 +22,10 @@ import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 
 const logger = getLogger(__filename);
 const SIMULCAST_LAYERS = 3;
+const SIM_LAYER_1_RID = '1';
+const SIM_LAYER_2_RID = '2';
+const SIM_LAYER_3_RID = '3';
+const SIM_LAYER_RIDS = [ SIM_LAYER_1_RID, SIM_LAYER_2_RID, SIM_LAYER_3_RID ];
 
 /* eslint-disable max-params */
 
@@ -360,6 +364,14 @@ TraceablePeerConnection.prototype._getDesiredMediaDirection
 TraceablePeerConnection.prototype.isSimulcastOn = function() {
     return !this.options.disableSimulcast
         && RTCBrowserType.supportsSimulcast()
+
+        // Firefox has been added as supporting simulcast, but it is
+        // experimental so we only want to do it for firefox if the config
+        // option is set.  Unfortunately, RTCBrowserType::supportsSimulcast()
+        // doesn't have a reference to the config options, so we have
+        // to do it here
+        && (!RTCBrowserType.isFirefox()
+            || this.options.enableFirefoxSimulcast)
         && !this.isP2P;
 };
 
@@ -1071,6 +1083,50 @@ TraceablePeerConnection.prototype.getLocalSSRC = function(localTrack) {
     return ssrcInfo && ssrcInfo.ssrcs[0];
 };
 
+/**
+ * When doing unified plan simulcast, we'll have a set of ssrcs with the
+ * same msid but no ssrc-group, since unified plan signals the simulcast
+ * group via the a=simulcast line.  Unfortunately, Jicofo will complain
+ * if it sees ssrcs with matching msids but no ssrc-group, so we'll inject
+ * an ssrc-group line to make Jicofo happy.
+ * NOTE: unlike plan B simulcast, the ssrcs in this inject ssrc-group will
+ * NOT necessarily be in order of quality (low to high) because:
+ * a) when translating between unified plan and plan b the order of the ssrcs
+ * is not preserved and
+ * b) it isn't guaranteed that firefox will give them to us in order to begin
+ * with
+ * @param desc A session description object (with 'type' and 'sdp' fields)
+ * @return A session description object with its sdp field modified to
+ * contain an inject ssrc-group for simulcast
+ */
+TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast
+    = function(desc) {
+        const sdp = transform.parse(desc.sdp);
+        const video = sdp.media.find(mline => mline.type === 'video');
+
+        if (video.simulcast_03) {
+            const ssrcs = [];
+
+            video.ssrcs.forEach(ssrc => {
+                if (ssrc.attribute === 'msid') {
+                    ssrcs.push(ssrc.id);
+                }
+            });
+            video.ssrcGroups = video.ssrcGroups || [];
+            if (video.ssrcGroups.find(group => group.semantics === 'SIM')) {
+                // Group already exists, no need to do anything
+                return desc;
+            }
+            video.ssrcGroups.push({
+                semantics: 'SIM',
+                ssrcs: ssrcs.join(' ')
+            });
+        }
+        desc.sdp = transform.write(sdp);
+
+        return desc;
+    };
+
 /* eslint-disable-next-line vars-on-top */
 const getters = {
     signalingState() {
@@ -1085,9 +1141,12 @@ const getters = {
         this.trace('getLocalDescription::preTransform', dumpSDP(desc));
 
         // if we're running on FF, transform to Plan B first.
-        if (RTCBrowserType.usesUnifiedPlan()) {
+        if (desc && RTCBrowserType.usesUnifiedPlan()) {
             desc = this.interop.toPlanB(desc);
             this.trace('getLocalDescription::postTransform (Plan B)',
+                dumpSDP(desc));
+            desc = this._injectSsrcGroupForUnifiedSimulcast(desc);
+            this.trace('getLocalDescription::postTransform (inject ssrc group)',
                 dumpSDP(desc));
         }
 
@@ -1532,6 +1591,45 @@ TraceablePeerConnection.prototype.setAudioTransferActive = function(active) {
     return changed;
 };
 
+/**
+ * Takes in a *unified plan* offer and inserts the appropriate
+ * parameters for adding simulcast receive support.
+ * @param {Object} desc - A session description object
+ * @param {String} desc.type - the type (offer/answer)
+ * @param {String} desc.sdp - the sdp content
+ *
+ * @return {Object} A session description (same format as above) object
+ * with its sdp field modified to advertise simulcast receive support
+ */
+TraceablePeerConnection.prototype._insertUnifiedPlanSimulcastReceive
+    = function(desc) {
+        const sdp = transform.parse(desc.sdp);
+        const video = sdp.media.find(mline => mline.type === 'video');
+
+        // In order of lowest to highest spatial quality
+        video.rids = [
+            {
+                id: SIM_LAYER_1_RID,
+                direction: 'recv'
+            },
+            {
+                id: SIM_LAYER_2_RID,
+                direction: 'recv'
+            },
+            {
+                id: SIM_LAYER_3_RID,
+                direction: 'recv'
+            }
+        ];
+        // eslint-disable-next-line camelcase
+        video.simulcast_03 = {
+            value: `recv rid=${SIM_LAYER_RIDS.join(';')}`
+        };
+        desc.sdp = transform.write(sdp);
+
+        return desc;
+    };
+
 TraceablePeerConnection.prototype.setRemoteDescription
 = function(description, successCallback, failureCallback) {
     this.trace('setRemoteDescription::preTransform', dumpSDP(description));
@@ -1563,6 +1661,11 @@ TraceablePeerConnection.prototype.setRemoteDescription
         this.trace(
                 'setRemoteDescription::postTransform (Plan A)',
                 dumpSDP(description));
+
+        // eslint-disable-next-line no-param-reassign
+        description = this._insertUnifiedPlanSimulcastReceive(description);
+        this.trace('setRemoteDescription::postTransform (sim receive)',
+            dumpSDP(description));
     } else {
         // Plan B
         // eslint-disable-next-line no-param-reassign
@@ -1727,6 +1830,29 @@ const _fixAnswerRFC4145Setup = function(offer, answer) {
 
 TraceablePeerConnection.prototype.createAnswer
 = function(successCallback, failureCallback, constraints) {
+    if (RTCBrowserType.supportsRtpSender()
+            && this.isSimulcastOn()) {
+        const videoSender
+            = this.peerconnection.getSenders().find(sender =>
+                sender.track.kind === 'video');
+        const simParams = {
+            encodings: [
+                {
+                    rid: SIM_LAYER_1_RID,
+                    scaleResolutionDownBy: 4
+                },
+                {
+                    rid: SIM_LAYER_2_RID,
+                    scaleResolutionDownBy: 2
+                },
+                {
+                    rid: SIM_LAYER_3_RID
+                }
+            ]
+        };
+
+        videoSender.setParameters(simParams);
+    }
     this._createOfferOrAnswer(
         false /* answer */, successCallback, failureCallback, constraints);
 };
@@ -1757,6 +1883,14 @@ TraceablePeerConnection.prototype._createOfferOrAnswer
                 this.trace(
                     `create${logName}OnSuccess::postTransform (Plan B)`,
                     dumpSDP(resultSdp));
+                if (this.isSimulcastOn()) {
+                    // eslint-disable-next-line no-param-reassign
+                    resultSdp
+                        = this._injectSsrcGroupForUnifiedSimulcast(resultSdp);
+                    this.trace(
+                        `create${logName}OnSuccess::postTransform`
+                        + '(inject ssrc group)', dumpSDP(resultSdp));
+                }
             }
 
             /**

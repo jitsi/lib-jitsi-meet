@@ -255,7 +255,9 @@ export default class JingleSessionPC extends JingleSession {
                     preferH264: this.isP2P
                         ? this.room.options.p2p
                             && this.room.options.p2p.preferH264
-                        : this.room.options.preferH264
+                        : this.room.options.preferH264,
+                    enableFirefoxSimulcast:
+                        this.room.options.enableFirefoxSimulcast
                 });
 
         this.peerconnection.onicecandidate = ev => {
