@@ -214,11 +214,18 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         console.log(`(TIME) Render ${type}:\t`, now);
         this.conference.getConnectionTimes()[`${type}.render`] = now;
 
+        // The conference can be started without calling GUM
+        // FIXME if there would be a module for connection times this kind
+        // of logic (gumDuration or ttfm) should end up there
+        const gumStart = window.connectionTimes['obtainPermissions.start'];
+        const gumEnd = window.connectionTimes['obtainPermissions.end'];
+        const gumDuration
+            = !isNaN(gumEnd) && !isNaN(gumStart) ? gumEnd - gumStart : 0;
+
         const ttfm = now
             - (this.conference.getConnectionTimes()['session.initiate']
             - this.conference.getConnectionTimes()['muc.joined'])
-            - (window.connectionTimes['obtainPermissions.end']
-            - window.connectionTimes['obtainPermissions.start']);
+            - gumDuration;
 
         this.conference.getConnectionTimes()[`${type}.ttfm`] = ttfm;
         console.log(`(TIME) TTFM ${type}:\t`, ttfm);

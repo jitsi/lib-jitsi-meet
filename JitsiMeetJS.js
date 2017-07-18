@@ -118,6 +118,12 @@ export default {
     init(options) {
         Statistics.init(options);
 
+        // Initialize global window.connectionTimes
+        // FIXME do not use 'window'
+        if (!window.connectionTimes) {
+            window.connectionTimes = {};
+        }
+
         this.analytics = Statistics.analytics;
         if (options.enableAnalyticsLogging === true) {
             this.analytics.init(RTCBrowserType.getBrowserName());
