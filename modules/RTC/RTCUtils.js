@@ -468,14 +468,9 @@ function maybeApply(fn, args) {
     fn && fn(...args);
 }
 
-const getUserMediaStatus = {
-    initialized: false,
-    callbacks: []
-};
-
 /**
- * Wrap `getUserMedia` to allow others to know if it was executed at least
- * once or not. Wrapper function uses `getUserMediaStatus` object.
+ * Wrap `getUserMedia` in order to convert between callback and Promise based
+ * APIs.
  * @param {Function} getUserMedia native function
  * @returns {Function} wrapped function
  */
@@ -487,12 +482,6 @@ function wrapGetUserMedia(getUserMedia, usePromises = false) {
             return getUserMedia(constraints)
                 .then(stream => {
                     maybeApply(successCallback, [ stream ]);
-                    if (!getUserMediaStatus.initialized) {
-                        getUserMediaStatus.initialized = true;
-                        getUserMediaStatus.callbacks.forEach(
-                            callback => callback());
-                        getUserMediaStatus.callbacks.length = 0;
-                    }
 
                     return stream;
                 })
@@ -506,12 +495,6 @@ function wrapGetUserMedia(getUserMedia, usePromises = false) {
         gUM = function(constraints, successCallback, errorCallback) {
             getUserMedia(constraints, stream => {
                 maybeApply(successCallback, [ stream ]);
-                if (!getUserMediaStatus.initialized) {
-                    getUserMediaStatus.initialized = true;
-                    getUserMediaStatus.callbacks.forEach(
-                        callback => callback());
-                    getUserMediaStatus.callbacks.length = 0;
-                }
             }, error => {
                 maybeApply(errorCallback, [ error ]);
             });
@@ -519,36 +502,6 @@ function wrapGetUserMedia(getUserMedia, usePromises = false) {
     }
 
     return gUM;
-}
-
-/**
- * Execute function after getUserMedia was executed at least once.
- * @param {Function} callback function to execute after getUserMedia
- */
-function afterUserMediaInitialized(callback) {
-    if (getUserMediaStatus.initialized) {
-        callback();
-    } else {
-        getUserMediaStatus.callbacks.push(callback);
-    }
-}
-
-/**
- * Wrapper function which makes enumerateDevices to wait
- * until someone executes getUserMedia first time.
- * @param {Function} enumerateDevices native function
- * @returns {Funtion} wrapped function
- */
-function wrapEnumerateDevices(enumerateDevices) {
-    return function(callback) {
-        // enumerate devices only after initial getUserMedia
-        afterUserMediaInitialized(() => {
-            enumerateDevices().then(callback, err => {
-                logger.error('cannot enumerate devices: ', err);
-                callback([]);
-            });
-        });
-    };
 }
 
 /**
@@ -760,6 +713,9 @@ class RTCUtils extends Listenable {
             logger.info(`Disable HPF: ${disableHPF}`);
         }
 
+        // Initialize rawEnumerateDevicesWithCallback
+        initRawEnumerateDevicesWithCallback();
+
         return new Promise((resolve, reject) => {
             if (RTCBrowserType.isFirefox()) {
                 const FFversion = RTCBrowserType.getFirefoxVersion();
@@ -776,10 +732,7 @@ class RTCUtils extends Listenable {
                 this.getUserMedia
                     = wrapGetUserMedia(
                         navigator.mozGetUserMedia.bind(navigator));
-                this.enumerateDevices
-                    = wrapEnumerateDevices(
-                        navigator.mediaDevices.enumerateDevices.bind(
-                            navigator.mediaDevices));
+                this.enumerateDevices = rawEnumerateDevicesWithCallback;
                 this.pcConstraints = {};
                 this.attachMediaStream
                     = wrapAttachMediaStream((element, stream) => {
@@ -833,17 +786,9 @@ class RTCUtils extends Listenable {
                 const getUserMedia
                     = navigator.webkitGetUserMedia.bind(navigator);
 
-                if (navigator.mediaDevices) {
-                    this.getUserMedia = wrapGetUserMedia(getUserMedia);
-                    this.enumerateDevices
-                        = wrapEnumerateDevices(
-                            navigator.mediaDevices.enumerateDevices.bind(
-                                navigator.mediaDevices));
-                } else {
-                    this.getUserMedia = getUserMedia;
-                    this.enumerateDevices
-                      = enumerateDevicesThroughMediaStreamTrack;
-                }
+                this.getUserMedia = wrapGetUserMedia(getUserMedia);
+                this.enumerateDevices = rawEnumerateDevicesWithCallback;
+
                 this.attachMediaStream
                     = wrapAttachMediaStream((element, stream) => {
                         defaultSetVideoSrc(element, stream);
@@ -910,10 +855,7 @@ class RTCUtils extends Listenable {
                         navigator.mediaDevices.getUserMedia.bind(
                             navigator.mediaDevices),
                             true);
-                this.enumerateDevices
-                    = wrapEnumerateDevices(
-                        navigator.mediaDevices.enumerateDevices.bind(
-                            navigator.mediaDevices));
+                this.enumerateDevices = rawEnumerateDevicesWithCallback;
                 this.attachMediaStream
                     = wrapAttachMediaStream((element, stream) => {
                         defaultSetVideoSrc(element, stream);
@@ -1510,9 +1452,6 @@ function onReady(options, GUM) {
     rtcReady = true;
     eventEmitter.emit(RTCEvents.RTC_READY, true);
     screenObtainer.init(options, GUM);
-
-    // Initialize rawEnumerateDevicesWithCallback
-    initRawEnumerateDevicesWithCallback();
 
     if (rtcUtils.isDeviceListAvailable() && rawEnumerateDevicesWithCallback) {
         rawEnumerateDevicesWithCallback(ds => {
