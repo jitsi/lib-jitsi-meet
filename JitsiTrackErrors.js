@@ -16,6 +16,16 @@ export const CHROME_EXTENSION_INSTALLATION_ERROR
     = 'gum.chrome_extension_installation_error';
 
 /**
+ * This error indicates that the attempt to start screensharing was initiated by
+ * a script which did not originate in user gesture handler. It means that
+ * you should to trigger the action again in response to a button click for
+ * example.
+ * @type {string}
+ */
+export const CHROME_EXTENSION_USER_GESTURE_REQUIRED
+    = 'gum.chrome_extension_user_gesture_required';
+
+/**
  * An error which indicates that user canceled screen sharing window
  * selection dialog in jidesha extension for Chrome.
  */

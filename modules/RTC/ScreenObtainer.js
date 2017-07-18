@@ -51,15 +51,40 @@ const CHROME_EXTENSION_IFRAME_ERROR
     = 'Chrome Web Store installations can only be started by the top frame.';
 
 /**
+ * The error returned by chrome when trying to start inline installation
+ * not from the "main" whitelisted site.
+ * @type {string}
+ */
+const CHROME_EXTENSION_INLINE_ERROR
+    = 'Installs can only be initiated by one of'
+        + ' the Chrome Web Store item\'s verified sites.';
+
+/**
  * The error message returned by chrome when the extension is installed.
  */
 const CHROME_NO_EXTENSION_ERROR_MSG // eslint-disable-line no-unused-vars
     = 'Could not establish connection. Receiving end does not exist.';
 
 /**
+ * The error message returned by chrome when the extension install action needs
+ * to be initiated by a user gesture.
+ * @type {string}
+ */
+const CHROME_USER_GESTURE_REQ_ERROR
+    = 'Chrome Web Store installations can only be initated by a user gesture.';
+
+/**
  * Handles obtaining a stream from a screen capture on different browsers.
  */
 const ScreenObtainer = {
+    /**
+     * If not <tt>null</tt> it means that the initialization process is still in
+     * progress. It is used to make desktop stream request wait and continue
+     * after it's done.
+     * {@type Promise|null}
+     */
+    intChromeExtPromise: null,
+
     obtainStream: null,
 
     /**
@@ -177,7 +202,10 @@ const ScreenObtainer = {
             }
 
             logger.info('Using Chrome extension for desktop sharing');
-            initChromeExtension(options);
+            this.intChromeExtPromise
+                = initChromeExtension(options).then(() => {
+                    this.intChromeExtPromise = null;
+                });
 
             return this.obtainScreenFromExtension;
         } else if (RTCBrowserType.isFirefox()) {
@@ -315,6 +343,15 @@ const ScreenObtainer = {
      * 'desktop' stream for returned stream token.
      */
     obtainScreenFromExtension(options, streamCallback, failCallback) {
+        if (this.intChromeExtPromise !== null) {
+            this.intChromeExtPromise.then(() => {
+                this.obtainScreenFromExtension(
+                    options, streamCallback, failCallback);
+            });
+
+            return;
+        }
+
         const {
             desktopSharingChromeExtId,
             desktopSharingChromeSources
@@ -379,7 +416,8 @@ const ScreenObtainer = {
         const webStoreInstallUrl = getWebStoreInstallUrl(this.options);
 
         if ((CHROME_EXTENSION_POPUP_ERROR === e
-             || CHROME_EXTENSION_IFRAME_ERROR === e)
+             || CHROME_EXTENSION_IFRAME_ERROR === e
+             || CHROME_EXTENSION_INLINE_ERROR === e)
                 && options.interval > 0
                 && typeof options.checkAgain === 'function'
                 && typeof options.listener === 'function') {
@@ -394,9 +432,13 @@ const ScreenObtainer = {
             = `Failed to install the extension from ${webStoreInstallUrl}`;
 
         logger.log(msg, e);
-        failCallback(new JitsiTrackError(
-            JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR,
-            msg));
+
+        const error
+            = e === CHROME_USER_GESTURE_REQ_ERROR
+                ? JitsiTrackErrors.CHROME_EXTENSION_USER_GESTURE_REQUIRED
+                : JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR;
+
+        failCallback(new JitsiTrackError(error, msg));
     },
 
     /* eslint-enable max-params */
@@ -583,19 +625,25 @@ function initInlineInstalls(options) {
 /**
  *
  * @param options
+ *
+ * @return {Promise} - a Promise resolved once the initialization process is
+ * finished.
  */
 function initChromeExtension(options) {
     // Initialize Chrome extension inline installs
     initInlineInstalls(options);
 
-    // Check if extension is installed
-    checkChromeExtInstalled((installed, updateRequired) => {
-        chromeExtInstalled = installed;
-        chromeExtUpdateRequired = updateRequired;
-        logger.info(
-            `Chrome extension installed: ${chromeExtInstalled
-                } updateRequired: ${chromeExtUpdateRequired}`);
-    }, options);
+    return new Promise(resolve => {
+        // Check if extension is installed
+        checkChromeExtInstalled((installed, updateRequired) => {
+            chromeExtInstalled = installed;
+            chromeExtUpdateRequired = updateRequired;
+            logger.info(
+                `Chrome extension installed: ${chromeExtInstalled
+                    } updateRequired: ${chromeExtUpdateRequired}`);
+            resolve();
+        }, options);
+    });
 }
 
 /**

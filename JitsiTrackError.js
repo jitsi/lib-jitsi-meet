@@ -8,6 +8,10 @@ TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.FIREFOX_EXTENSION_NEEDED]
     = 'Firefox extension is not installed';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR]
     = 'Failed to install Chrome extension';
+TRACK_ERROR_TO_MESSAGE_MAP[
+    JitsiTrackErrors.CHROME_EXTENSION_USER_GESTURE_REQUIRED]
+    = 'Failed to install Chrome extension - installations can only be initiated'
+        + ' by a user gesture.';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED]
     = 'User canceled Chrome\'s screen sharing prompt';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.CHROME_EXTENSION_GENERIC_ERROR]
