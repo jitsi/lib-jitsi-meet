@@ -244,21 +244,35 @@ export default class JingleSessionPC extends JingleSession {
         this.wasstable = false;
 
         // Create new peer connection instance
-        this.peerconnection
-            = this.rtc.createPeerConnection(
+        if (this.isP2P) {
+            this.peerconnection = this.rtc.createPeerConnection(
                 this.signalingLayer,
                 this.iceConfig,
                 this.isP2P,
                 {
-                    disableSimulcast: this.room.options.disableSimulcast,
+                    // simulcast needs to be disabled for P2P (121) calls
+                    disableSimulcast: true,
                     disableRtx: this.room.options.disableRtx,
-                    preferH264: this.isP2P
-                        ? this.room.options.p2p
-                            && this.room.options.p2p.preferH264
-                        : this.room.options.preferH264,
+                    preferH264: this.room.options.p2p
+                        && this.room.options.p2p.preferH264,
+                    enableFirefoxSimulcast: false
+                });
+        } else {
+            this.peerconnection = this.rtc.createPeerConnection(
+                this.signalingLayer,
+                this.iceConfig,
+                this.isP2P,
+                {
+                    // H264 does not support simulcast, so it needs to be
+                    // disabled.
+                    disableSimulcast: this.room.options.disableSimulcast
+                        || this.room.options.preferH264,
+                    disableRtx: this.room.options.disableRtx,
+                    preferH264: this.room.options.preferH264,
                     enableFirefoxSimulcast:
                         this.room.options.enableFirefoxSimulcast
                 });
+        }
 
         this.peerconnection.onicecandidate = ev => {
             if (!ev) {
