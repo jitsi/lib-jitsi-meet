@@ -371,8 +371,7 @@ TraceablePeerConnection.prototype.isSimulcastOn = function() {
         // doesn't have a reference to the config options, so we have
         // to do it here
         && (!RTCBrowserType.isFirefox()
-            || this.options.enableFirefoxSimulcast)
-        && !this.isP2P;
+            || this.options.enableFirefoxSimulcast);
 };
 
 /**
