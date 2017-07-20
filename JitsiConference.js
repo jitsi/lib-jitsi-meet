@@ -973,6 +973,14 @@ JitsiConference.prototype.pinParticipant = function(participantId) {
 };
 
 /**
+ * Obtains the current value for "lastN". See {@link setLastN} for more info.
+ * @returns {number}
+ */
+JitsiConference.prototype.getLastN = function() {
+    return this.rtc.getLastN();
+};
+
+/**
  * Selects a new value for "lastN". The requested amount of videos are going
  * to be delivered after the value is in effect. Set to -1 for unlimited or
  * all available videos.
