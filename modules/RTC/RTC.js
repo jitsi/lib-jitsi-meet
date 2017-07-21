@@ -269,6 +269,20 @@ export default class RTC extends Listenable {
     }
 
     /**
+     * Sets the maximum video size the local participant should receive from
+     * remote participants. Will no-op if no data channel has been established.
+     *
+     * @param {number} maxFrameHeightPixels the maximum frame height, in pixels,
+     * this receiver is willing to receive.
+     * @returns {void}
+     */
+    setReceiverVideoConstraint(maxFrameHeight) {
+        if (this._channel) {
+            this._channel.sendReceiverVideoConstraintMessage(maxFrameHeight);
+        }
+    }
+
+    /**
      * Elects the participant with the given id to be the selected participant
      * in order to always receive video for this participant (even when last n
      * is enabled).
