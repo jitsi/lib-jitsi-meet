@@ -1663,10 +1663,12 @@ TraceablePeerConnection.prototype.setRemoteDescription
                 'setRemoteDescription::postTransform (Plan A)',
                 dumpSDP(description));
 
-        // eslint-disable-next-line no-param-reassign
-        description = this._insertUnifiedPlanSimulcastReceive(description);
-        this.trace('setRemoteDescription::postTransform (sim receive)',
-            dumpSDP(description));
+        if (this.isSimulcastOn()) {
+            // eslint-disable-next-line no-param-reassign
+            description = this._insertUnifiedPlanSimulcastReceive(description);
+            this.trace('setRemoteDescription::postTransform (sim receive)',
+                dumpSDP(description));
+        }
     } else {
         // Plan B
         // eslint-disable-next-line no-param-reassign
