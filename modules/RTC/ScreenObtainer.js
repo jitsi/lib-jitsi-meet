@@ -223,7 +223,7 @@ const ScreenObtainer = {
             return this.obtainScreenOnFirefox;
         }
 
-        logger.warn(
+        logger.log(
             'Screen sharing not supported by the current browser: ',
             RTCBrowserType.getBrowserType(),
             RTCBrowserType.getBrowserName());
