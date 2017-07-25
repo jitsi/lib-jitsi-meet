@@ -67,7 +67,7 @@ let disableNS = false;
 let disableAGC = false;
 
 // Disables Highpass Filter
-let disableHPF= false;
+let disableHPF = false;
 
 const featureDetectionAudioEl = document.createElement('audio');
 const isAudioOutputDeviceChangeAvailable
