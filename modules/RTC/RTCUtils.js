@@ -51,11 +51,20 @@ let audioOutputDeviceId = 'default'; // default device
 // whether user has explicitly set a device to use
 let audioOutputChanged = false;
 
+// Disables all audio processing
+let disableAP = false;
+
 // Disables Acoustic Echo Cancellation
 let disableAEC = false;
 
 // Disables Noise Suppression
 let disableNS = false;
+
+// Disables Automatic Gain Control
+let disableAGC = false;
+
+// Disables Highpass Filter
+let disableHPF = false;
 
 const featureDetectionAudioEl = document.createElement('audio');
 const isAudioOutputDeviceChangeAvailable
@@ -251,13 +260,14 @@ function getConstraints(um, options) {
 
             // if it is good enough for hangouts...
             constraints.audio.optional.push(
+                { echoCancellation: !disableAP },
                 { googEchoCancellation: !disableAEC },
-                { googAutoGainControl: true },
+                { googAutoGainControl: !disableAGC },
                 { googNoiseSupression: !disableNS },
-                { googHighpassFilter: true },
+                { googHighpassFilter: !disableHPF },
                 { googNoiseSuppression2: !disableNS },
                 { googEchoCancellation2: !disableAEC },
-                { googAutoGainControl2: true }
+                { googAutoGainControl2: !disableAGC }
             );
         }
     }
@@ -736,6 +746,18 @@ class RTCUtils extends Listenable {
         if (typeof options.disableNS === 'boolean') {
             disableNS = options.disableNS;
             logger.info(`Disable NS: ${disableNS}`);
+        }
+        if (typeof options.disableAP === 'boolean') {
+            disableAP = options.disableAP;
+            logger.info(`Disable AP: ${disableAP}`);
+        }
+        if (typeof options.disableAGC === 'boolean') {
+            disableAGC = options.disableAGC;
+            logger.info(`Disable AGC: ${disableAGC}`);
+        }
+        if (typeof options.disableHPF === 'boolean') {
+            disableHPF = options.disableHPF;
+            logger.info(`Disable HPF: ${disableHPF}`);
         }
 
         return new Promise((resolve, reject) => {
