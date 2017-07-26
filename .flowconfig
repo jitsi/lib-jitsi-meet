@@ -5,8 +5,7 @@
 ; sync (e.g. the flow-bin version).
 ;
 [ignore]
-; Ignore packages in node_modules which we (i.e. the lib-jitsi-meet project)
-; have seen to cause errors and we have chosen not to fix.
+.*/\.git/.*
 
 [include]
 
