@@ -2138,10 +2138,10 @@ JitsiConference.prototype._onIceConnectionEstablished
         const establishmentDurationDiff
             = this.p2pEstablishmentDuration - this.jvbEstablishmentDuration;
 
-        Statistics.analytics.sendEvent({
-            'name': 'ice.establishmentDurationDiff',
-            'value': establishmentDurationDiff
-        });
+        Statistics.analytics.sendEvent(
+            'ice.establishmentDurationDiff', {
+                'value': establishmentDurationDiff
+            });
     }
 
     if (done) {
