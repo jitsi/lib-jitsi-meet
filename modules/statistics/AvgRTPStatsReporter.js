@@ -516,6 +516,41 @@ export default class AvgRTPStatsReporter {
             = new AverageStatReport('stat_avg_framerate_screen_local');
 
         /**
+         * Average pixels for remote screen streaming videos (reported only if
+         * not a <tt>NaN</tt>).
+         * @type {AverageStatReport}
+         * @private
+         */
+        this._avgRemoteCameraPixels
+            = new AverageStatReport('stat_avg_pixels_remote');
+
+        /**
+         * Average pixels for remote screen streaming videos (reported only if
+         * not a <tt>NaN</tt>).
+         * @type {AverageStatReport}
+         * @private
+         */
+        this._avgRemoteScreenPixels
+            = new AverageStatReport('stat_avg_pixels_screen_remote');
+
+        /**
+         * Average pixels for local video (camera)
+         * @type {AverageStatReport}
+         * @private
+         */
+        this._avgLocalCameraPixels
+            = new AverageStatReport('stat_avg_pixels_local');
+
+        /**
+         * Average pixels for local screen streaming video (reported only if not
+         * a <tt>NaN</tt>).
+         * @type {AverageStatReport}
+         * @private
+         */
+        this._avgLocalScreenPixels
+            = new AverageStatReport('stat_avg_pixels_screen_local');
+
+        /**
          * Average connection quality as defined by
          * the {@link ConnectionQuality} module.
          * @type {AverageStatReport}
@@ -594,6 +629,7 @@ export default class AvgRTPStatsReporter {
         const bandwidth = data.bandwidth;
         const packetLoss = data.packetLoss;
         const frameRate = data.framerate;
+        const resolution = data.resolution;
 
         if (!bitrate) {
             logger.error('No "bitrate"');
@@ -609,6 +645,10 @@ export default class AvgRTPStatsReporter {
             return;
         } else if (!frameRate) {
             logger.error('No "framerate"');
+
+            return;
+        } else if (!resolution) {
+            logger.error('No resolution');
 
             return;
         }
@@ -644,6 +684,24 @@ export default class AvgRTPStatsReporter {
             this._avgLocalScreenFPS.addNext(
                 this._calculateAvgVideoFps(
                     frameRate, true /* local */, VideoType.DESKTOP));
+        }
+
+        if (resolution) {
+            this._avgRemoteCameraPixels.addNext(
+                this._calculateAvgVideoPixels(
+                    resolution, false /* remote */, VideoType.CAMERA));
+
+            this._avgRemoteScreenPixels.addNext(
+                this._calculateAvgVideoPixels(
+                    resolution, false /* remote */, VideoType.DESKTOP));
+
+            this._avgLocalCameraPixels.addNext(
+                this._calculateAvgVideoPixels(
+                    resolution, true /* local */, VideoType.CAMERA));
+
+            this._avgLocalScreenPixels.addNext(
+                this._calculateAvgVideoPixels(
+                    resolution, true /* local */, VideoType.DESKTOP));
         }
 
         this._sampleIdx += 1;
@@ -686,6 +744,15 @@ export default class AvgRTPStatsReporter {
                 this._avgLocalScreenFPS.appendReport(batchReport);
             }
 
+            this._avgRemoteCameraPixels.appendReport(batchReport);
+            if (!isNaN(this._avgRemoteScreenPixels.calculate())) {
+                this._avgRemoteScreenPixels.appendReport(batchReport);
+            }
+            this._avgLocalCameraPixels.appendReport(batchReport);
+            if (!isNaN(this._avgLocalScreenPixels.calculate())) {
+                this._avgLocalScreenPixels.appendReport(batchReport);
+            }
+
             this._avgCQ.appendReport(batchReport);
 
             Statistics.analytics.sendEvent(AVG_RTP_STATS_EVENT, batchReport);
@@ -693,6 +760,102 @@ export default class AvgRTPStatsReporter {
             this._resetAvgStats();
         }
     }
+
+    /**
+     * Calculates average number of pixels for the report
+     *
+     * @param {map} peerResolutions a map of peer resolutions
+     * @param {boolean} isLocal if the average is to be calculated for the local
+     * video or <tt>false</tt> if for remote videos.
+     * @param {VideoType} videoType
+     * @return {number|NaN} average number of pixels or <tt>NaN</tt> if there
+     * are no samples.
+     * @private
+     */
+    _calculateAvgVideoPixels(peerResolutions, isLocal, videoType) {
+        let peerPixelsSum = 0;
+        let peerCount = 0;
+        const myID = this._conference.myUserId();
+
+        for (const peerID of Object.keys(peerResolutions)) {
+            if (isLocal ? peerID === myID : peerID !== myID) {
+                const participant
+                    = isLocal
+                    ? null : this._conference.getParticipantById(peerID);
+                const videosResolution = peerResolutions[peerID];
+
+                // Do not continue without participant for non local peerID
+                if ((isLocal || participant) && videosResolution) {
+                    const peerAvgPixels = this._calculatePeerAvgVideoPixels(
+                        videosResolution, participant, videoType);
+
+                    if (!isNaN(peerAvgPixels)) {
+                        peerPixelsSum += peerAvgPixels;
+                        peerCount += 1;
+                    }
+                }
+            }
+        }
+
+        return peerPixelsSum / peerCount;
+    }
+
+    /**
+     * Calculate average pixels for either remote or local participant
+     * @param {object} videos maps resolution per video SSRC
+     * @param {JitsiParticipant|null} participant remote participant or
+     * <tt>null</tt> for local video pixels calculation.
+     * @param {VideoType} videoType the type of the video for which an average
+     * will be calculated.
+     * @return {number|NaN} average video pixels of all participant's videos or
+     * <tt>NaN</tt> if currently not available
+     * @private
+     */
+    _calculatePeerAvgVideoPixels(videos, participant, videoType) {
+        let ssrcs = Object.keys(videos).map(ssrc => Number(ssrc));
+        let videoTracks = null;
+
+        // NOTE that this method is supposed to be called for the stats
+        // received from the current peerconnection.
+        const tpc = this._conference.getActivePeerConnection();
+
+        if (participant) {
+            videoTracks = participant.getTracksByMediaType(MediaType.VIDEO);
+            if (videoTracks) {
+                ssrcs
+                    = ssrcs.filter(
+                    ssrc => videoTracks.find(
+                        track => !track.isMuted()
+                            && track.getSSRC() === ssrc
+                            && track.videoType === videoType));
+            }
+        } else {
+            videoTracks = this._conference.getLocalTracks(MediaType.VIDEO);
+            ssrcs
+                = ssrcs.filter(
+                ssrc => videoTracks.find(
+                    track => !track.isMuted()
+                        && tpc.getLocalSSRC(track) === ssrc
+                        && track.videoType === videoType));
+        }
+
+        let peerPixelsSum = 0;
+        let peerSsrcCount = 0;
+
+        for (const ssrc of ssrcs) {
+            const peerSsrcPixels
+                = Number(videos[ssrc].height) * Number(videos[ssrc].width);
+
+            // FPS is reported as 0 for users with no video
+            if (!isNaN(peerSsrcPixels) && peerSsrcPixels > 0) {
+                peerPixelsSum += peerSsrcPixels;
+                peerSsrcCount += 1;
+            }
+        }
+
+        return peerPixelsSum / peerSsrcCount;
+    }
+
 
     /**
      * Calculates average FPS for the report
@@ -821,6 +984,11 @@ export default class AvgRTPStatsReporter {
         this._avgRemoteScreenFPS.reset();
         this._avgLocalFPS.reset();
         this._avgLocalScreenFPS.reset();
+
+        this._avgRemoteCameraPixels.reset();
+        this._avgRemoteScreenPixels.reset();
+        this._avgLocalCameraPixels.reset();
+        this._avgLocalScreenPixels.reset();
 
         this._avgCQ.reset();
 
