@@ -25,8 +25,6 @@
     "sdp-simulcast": "0.2.1",
     "sdp-transform": "2.3.0",
     "socket.io-client": "1.4.5",
-    "strophe": "1.2.4",
-    "strophejs-plugins": "0.0.7",
     "yaeti": "1.0.1"
   },
   "devDependencies": {
