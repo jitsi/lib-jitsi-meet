@@ -1557,7 +1557,16 @@ export default class JingleSessionPC extends JingleSession {
             this.peerconnection.setRemoteDescription(
                 remoteDescription,
                 () => {
-                    resolve();
+                    // In case when the answer is being set for the first time,
+                    // full sRD/sLD cycle is required to have the local
+                    // description updated and SSRCs synchronized correctly.
+                    // Otherwise SSRCs for streams added after invite, but
+                    // before the answer was accepted will not be detected.
+                    // The reason for that is that renegotiate can not be called
+                    // when adding tracks and they will not be reflected in
+                    // the local SDP.
+                    this._initiatorRenegotiate(
+                        remoteDescription, resolve, reject);
                 },
                 error => reject(`setRemoteDescription failed: ${error}`)
             );
