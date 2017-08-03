@@ -150,12 +150,6 @@ export default class JingleSessionPC extends JingleSession {
          */
         this._gatheringReported = false;
 
-        /**
-         * WebSocket URL for the bridge channel with the videobridge.
-         * @type {string}
-         */
-        this.bridgeWebSocketUrl = null;
-
         this.lasticecandidate = false;
         this.closed = false;
 
@@ -676,22 +670,6 @@ export default class JingleSessionPC extends JingleSession {
                     });
             }
         });
-    }
-
-    /**
-     * Reads the "url" parameter in the <web-socket> tag of the jingle offer iq
-     * and stores it into this.bridgeWebSocketUrl.
-     * @param contets
-     */
-    readBridgeWebSocketUrl(contents) {
-        const webSocket
-            = $(contents)
-                .find('transport>web-socket')
-                .first();
-
-        if (webSocket.length === 1) {
-            this.bridgeWebSocketUrl = webSocket[0].getAttribute('url');
-        }
     }
 
     /**
@@ -1417,7 +1395,6 @@ export default class JingleSessionPC extends JingleSession {
 
         remoteSdp.fromJingle(offerIq);
         this.readSsrcInfo($(offerIq).find('>content'));
-        this.readBridgeWebSocketUrl($(offerIq).find('>content'));
 
         return remoteSdp;
     }
