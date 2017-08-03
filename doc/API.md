@@ -175,7 +175,6 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - CONSTRAINT_FAILED - getUserMedia-related error, indicates that some of requested constraints in getUserMedia call were not satisfied.
         - TRACK_IS_DISPOSED - an error which indicates that track has been already disposed and cannot be longer used.
         - TRACK_NO_STREAM_FOUND - an error which indicates that track has no MediaStream associated.
-        - TRACK_MUTE_UNMUTE_IN_PROGRESS - an error which indicates that track is currently in progress of muting or unmuting itself.
         - CHROME_EXTENSION_GENERIC_ERROR - generic error for jidesha extension for Chrome.
         - CHROME_EXTENSION_USER_CANCELED - an error which indicates that user canceled screen sharing window selection dialog in jidesha extension for Chrome.
         - CHROME_EXTENSION_INSTALLATION_ERROR - an error which indicates that the jidesha extension for Chrome is failed to install.

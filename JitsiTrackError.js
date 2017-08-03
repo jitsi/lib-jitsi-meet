@@ -32,8 +32,6 @@ TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_IS_DISPOSED]
     = 'Track has been already disposed';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_NO_STREAM_FOUND]
     = 'Track does not have an associated Media Stream';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_MUTE_UNMUTE_IN_PROGRESS]
-    = 'Track mute/unmute process is currently in progress';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.NO_DATA_FROM_SOURCE]
     = 'The track has stopped receiving data from it\'s source';
 

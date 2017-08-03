@@ -81,12 +81,6 @@ export const PERMISSION_DENIED = 'gum.permission_denied';
 export const TRACK_IS_DISPOSED = 'track.track_is_disposed';
 
 /**
- * An error which indicates that track is currently in progress of muting or
- * unmuting itself.
- */
-export const TRACK_MUTE_UNMUTE_IN_PROGRESS = 'track.mute_unmute_inprogress';
-
-/**
  * An error which indicates that track has no MediaStream associated.
  */
 export const TRACK_NO_STREAM_FOUND = 'track.no_stream_found';

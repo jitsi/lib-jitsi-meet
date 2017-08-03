@@ -16,29 +16,20 @@ import VideoType from '../../service/RTC/VideoType';
 const logger = getLogger(__filename);
 
 /**
- * Creates Promise for mute/unmute operation.
+ * Creates Promise for mute/unmute operation. Mute operations are chained, so
+ * this function can be called as many times as needed in a row and operations
+ * will be executed in a serialized fashion.
  *
  * @param {JitsiLocalTrack} track - The track that will be muted/unmuted.
  * @param {boolean} mute - Whether to mute or unmute the track.
  * @returns {Promise}
  */
 function createMuteUnmutePromise(track, mute) {
-    if (track.inMuteOrUnmuteProgress) {
-        return Promise.reject(
-            new JitsiTrackError(JitsiTrackErrors.TRACK_MUTE_UNMUTE_IN_PROGRESS)
-        );
-    }
+    const doMute = () => track._setMute(mute);
 
-    track.inMuteOrUnmuteProgress = true;
+    track._mutePromise = track._mutePromise.then(doMute, doMute);
 
-    return track._setMute(mute)
-        .then(() => {
-            track.inMuteOrUnmuteProgress = false;
-        })
-        .catch(status => {
-            track.inMuteOrUnmuteProgress = false;
-            throw status;
-        });
+    return track._mutePromise;
 }
 
 /**
@@ -109,7 +100,15 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         this.deviceId = deviceId;
         this.storedMSID = this.getMSID();
-        this.inMuteOrUnmuteProgress = false;
+
+        /**
+         * The promise which indicates a mute or unmute operation is in
+         * progress.
+         *
+         * @private
+         * @type {Promise}
+         */
+        this._mutePromise = Promise.resolve();
 
         /**
          * The facing mode of the camera from which this JitsiLocalTrack
