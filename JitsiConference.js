@@ -1,4 +1,4 @@
-/* global __filename, Strophe, Promise */
+/* global __filename, $, Strophe, Promise */
 
 import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import ComponentsVersions from './modules/version/ComponentsVersions';
@@ -1390,6 +1390,9 @@ JitsiConference.prototype.onIncomingCall
         GlobalOnErrorHandler.callErrorHandler(error);
     }
 
+    // Open a channel with the videobridge.
+    this._setBridgeChannel(jingleOffer, jingleSession.peerconnection);
+
     // Add local tracks to the session
     try {
         jingleSession.acceptOffer(
@@ -1401,9 +1404,6 @@ JitsiConference.prototype.onIncomingCall
                 if (this.isP2PActive() && this.jvbJingleSession) {
                     this._suspendMediaTransferForJvbConnection();
                 }
-
-                // Open a channel with the videobridge.
-                this._setBridgeChannel();
             },
             error => {
                 GlobalOnErrorHandler.callErrorHandler(error);
@@ -1430,10 +1430,24 @@ JitsiConference.prototype.onIncomingCall
 
 /**
  * Sets the BridgeChannel.
+ *
+ * @param {jQuery} offerIq a jQuery selector pointing to the jingle element of
+ * the offer IQ which may carry the WebSocket URL for the 'websocket'
+ * BridgeChannel mode.
+ * @param {TraceablePeerConnection} pc the peer connection which will be used
+ * to listen for new WebRTC Data Channels (in the 'datachannel' mode).
  */
-JitsiConference.prototype._setBridgeChannel = function() {
-    const jingleSession = this.jvbJingleSession;
-    const wsUrl = jingleSession.bridgeWebSocketUrl;
+JitsiConference.prototype._setBridgeChannel = function(offerIq, pc) {
+    let wsUrl = null;
+    const webSocket
+        = $(offerIq)
+            .find('>content>transport>web-socket')
+            .first();
+
+    if (webSocket.length === 1) {
+        wsUrl = webSocket[0].getAttribute('url');
+    }
+
     let bridgeChannelType;
 
     switch (this.options.config.openBridgeChannel) {
@@ -1453,7 +1467,7 @@ JitsiConference.prototype._setBridgeChannel = function() {
     }
 
     if (bridgeChannelType === 'datachannel') {
-        this.rtc.initializeBridgeChannel(jingleSession.peerconnection, null);
+        this.rtc.initializeBridgeChannel(pc, null);
     } else if (bridgeChannelType === 'websocket' && wsUrl) {
         this.rtc.initializeBridgeChannel(null, wsUrl);
     }
