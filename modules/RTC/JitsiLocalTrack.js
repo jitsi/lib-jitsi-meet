@@ -16,23 +16,6 @@ import VideoType from '../../service/RTC/VideoType';
 const logger = getLogger(__filename);
 
 /**
- * Creates Promise for mute/unmute operation. Mute operations are chained, so
- * this function can be called as many times as needed in a row and operations
- * will be executed in a serialized fashion.
- *
- * @param {JitsiLocalTrack} track - The track that will be muted/unmuted.
- * @param {boolean} mute - Whether to mute or unmute the track.
- * @returns {Promise}
- */
-function createMuteUnmutePromise(track, mute) {
-    const doMute = () => track._setMute(mute);
-
-    track._mutePromise = track._mutePromise.then(doMute, doMute);
-
-    return track._mutePromise;
-}
-
-/**
  * Represents a single media track(either audio or video).
  * One <tt>JitsiLocalTrack</tt> corresponds to one WebRTC MediaStreamTrack.
  */
@@ -102,13 +85,14 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this.storedMSID = this.getMSID();
 
         /**
-         * The promise which indicates a mute or unmute operation is in
-         * progress.
+         * The <tt>Promise</tt> which represents the progress of a previously
+         * queued/scheduled {@link _setMute} (from the point of view of
+         * {@link _queueSetMute}).
          *
          * @private
          * @type {Promise}
          */
-        this._mutePromise = Promise.resolve();
+        this._prevSetMute = Promise.resolve();
 
         /**
          * The facing mode of the camera from which this JitsiLocalTrack
@@ -306,7 +290,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {Promise}
      */
     mute() {
-        return createMuteUnmutePromise(this, true);
+        return this._queueSetMute(true);
     }
 
     /**
@@ -315,7 +299,24 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {Promise}
      */
     unmute() {
-        return createMuteUnmutePromise(this, false);
+        return this._queueSetMute(false);
+    }
+
+    /**
+     * Initializes a new Promise to execute {@link _setMute}. May be called
+     * multiple times in a row and the invocations of {@link _setMute} and,
+     * consequently, {@link mute} and/or {@link unmute} will be resolved in a
+     * serialized fashion.
+     *
+     * @param {boolean} mute - Whether to mute or unmute this track.
+     * @returns {Promise}
+     */
+    _queueSetMute(mute) {
+        const setMute = this._setMute.bind(this, mute);
+
+        this._prevSetMute = this._prevSetMute.then(setMute, setMute);
+
+        return this._prevSetMute;
     }
 
     /**
