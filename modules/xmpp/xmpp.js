@@ -289,21 +289,29 @@ export default class XMPP extends Listenable {
             password
         };
         if (!jid) {
-            let configDomain
-                = this.options.hosts.anonymousdomain
-                    || this.options.hosts.domain;
+            const { anonymousdomain, domain } = this.options.hosts;
+            let configDomain = anonymousdomain || domain;
 
             // Force authenticated domain if room is appended with '?login=true'
             // or if we're joining with the token
 
-            if (this.options.hosts.anonymousdomain
-                    && (window.location.search.indexOf('login=true') !== -1
-                        || this.token)) {
-                configDomain = this.options.hosts.domain;
+            // FIXME Do not rely on window.location because (1) React Native
+            // does not have a window.location by default and (2) here we cannot
+            // know for sure that query/search has not be stripped from
+            // window.location by the time the following executes.
+            const { location } = window;
+
+            if (anonymousdomain) {
+                const search = location && location.search;
+
+                if ((search && search.indexOf('login=true') !== -1)
+                        || this.token) {
+                    configDomain = domain;
+                }
             }
 
             // eslint-disable-next-line no-param-reassign
-            jid = configDomain || window.location.hostname;
+            jid = configDomain || (location && location.hostname);
         }
 
         return this._connect(jid, password);
