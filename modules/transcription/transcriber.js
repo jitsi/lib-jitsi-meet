@@ -1,14 +1,14 @@
-var AudioRecorder = require( './audioRecorder');
-var SphinxService = require(
+const AudioRecorder = require('./audioRecorder');
+const SphinxService = require(
     './transcriptionServices/SphinxTranscriptionService');
 
-var BEFORE_STATE = "before";
-var RECORDING_STATE = "recording";
-var TRANSCRIBING_STATE = "transcribing";
-var FINISHED_STATE = "finished";
+const BEFORE_STATE = 'before';
+const RECORDING_STATE = 'recording';
+const TRANSCRIBING_STATE = 'transcribing';
+const FINISHED_STATE = 'finished';
 
-//the amount of characters each line in the transcription will have
-var MAXIMUM_SENTENCE_LENGTH = 80;
+// the amount of characters each line in the transcription will have
+const MAXIMUM_SENTENCE_LENGTH = 80;
 
 /**
  * This is the main object for handing the Transcription. It interacts with
@@ -17,41 +17,50 @@ var MAXIMUM_SENTENCE_LENGTH = 80;
  * will be merged to create a transcript
  * @param {AudioRecorder} audioRecorder An audioRecorder recording a conference
  */
-var transcriber = function() {
-    //the object which can record all audio in the conference
+function Transcriber() {
+    // the object which can record all audio in the conference
     this.audioRecorder = new AudioRecorder();
-    //this object can send the recorder audio to a speech-to-text service
-    this.transcriptionService =  new SphinxService();
-    //holds a counter to keep track if merging can start
+
+    // this object can send the recorder audio to a speech-to-text service
+    this.transcriptionService = new SphinxService();
+
+    // holds a counter to keep track if merging can start
     this.counter = null;
-    //holds the date when transcription started which makes it possible
-    //to calculate the offset between recordings
+
+    // holds the date when transcription started which makes it possible
+    // to calculate the offset between recordings
     this.startTime = null;
-    //will hold the transcription once it is completed
+
+    // will hold the transcription once it is completed
     this.transcription = null;
-    //this will be a method which will be called once the transcription is done
-    //with the transcription as parameter
-    this.callback =  null;
-    //stores all the retrieved speech-to-text results to merge together
-    //this value will store an Array<Word> object
+
+    // this will be a method which will be called once the transcription is done
+    // with the transcription as parameter
+    this.callback = null;
+
+    // stores all the retrieved speech-to-text results to merge together
+    // this value will store an Array<Word> object
     this.results = [];
+
     // Stores the current state of the transcription process
     this.state = BEFORE_STATE;
-    //Used in the updateTranscription method to add a new line when the
-    //sentence becomes to long
+
+    // Used in the updateTranscription method to add a new line when the
+    // sentence becomes to long
     this.lineLength = 0;
-};
+}
 
 /**
  * Method to start the transcription process. It will tell the audioRecorder
  * to start storing all audio streams and record the start time for merging
  * purposes
  */
-transcriber.prototype.start = function start() {
-    if(this.state !== BEFORE_STATE){
-        throw new Error("The transcription can only start when it's in the" +
-            "\"" + BEFORE_STATE + "\" state. It's currently in the " +
-            "\"" + this.state + "\" state");
+Transcriber.prototype.start = function start() {
+    if (this.state !== BEFORE_STATE) {
+        throw new Error(
+            `The transcription can only start when it's in the "${
+                 BEFORE_STATE}" state. It's currently in the "${
+                 this.state}" state`);
     }
     this.state = RECORDING_STATE;
     this.audioRecorder.start();
@@ -64,26 +73,30 @@ transcriber.prototype.start = function start() {
 
  * @param callback a callback which will receive the transcription
  */
-transcriber.prototype.stop = function stop(callback) {
-    if(this.state !== RECORDING_STATE){
-        throw new Error("The transcription can only stop when it's in the" +
-            "\"" + RECORDING_STATE + "\" state. It's currently in the " +
-            "\"" + this.state + "\" state");
+Transcriber.prototype.stop = function stop(callback) {
+    if (this.state !== RECORDING_STATE) {
+        throw new Error(
+            `The transcription can only stop when it's in the "${
+                 RECORDING_STATE}" state. It's currently in the "${
+                 this.state}" state`);
     }
-    //stop the recording
-    console.log("stopping recording and sending audio files");
-    this.audioRecorder.stop();
-    //and send all recorded audio the the transcription service
-    var t = this;
 
-    var callBack = blobCallBack.bind(this);
-    this.audioRecorder.getRecordingResults().forEach(function(recordingResult){
-        t.transcriptionService.send(recordingResult, callBack);
-        t.counter++;
+    // stop the recording
+    console.log('stopping recording and sending audio files');
+    this.audioRecorder.stop();
+
+    // and send all recorded audio the the transcription service
+    const callBack = blobCallBack.bind(null, this);
+
+    this.audioRecorder.getRecordingResults().forEach(recordingResult => {
+        this.transcriptionService.send(recordingResult, callBack);
+        this.counter++;
     });
-    //set the state to "transcribing" so that maybeMerge() functions correctly
+
+    // set the state to "transcribing" so that maybeMerge() functions correctly
     this.state = TRANSCRIBING_STATE;
-    //and store the callback for later
+
+    // and store the callback for later
     this.callback = callback;
 };
 
@@ -93,52 +106,60 @@ transcriber.prototype.stop = function stop(callback) {
  * when every send request has been received
  *
  * note: Make sure to bind this as a Transcription object
- *
+ * @param {Transcriber} transcriber the transcriber instance
  * @param {RecordingResult} answer a RecordingResult object with a defined
  * WordArray
  */
-var blobCallBack = function(answer){
-    console.log("retrieved an answer from the transcription service. The" +
-        " answer has an array of length: " + answer.wordArray.length);
-    //first add the offset between the start of the transcription and
-    //the start of the recording to all start and end times
-    if(answer.wordArray.length > 0) {
-        var offset = answer.startTime.getUTCMilliseconds() -
-            this.startTime.getUTCMilliseconds();
-        //transcriber time will always be earlier
+function blobCallBack(transcriber, answer) {
+    console.log(
+        'retrieved an answer from the transcription service. The answer has an'
+            + ` array of length: ${answer.wordArray.length}`);
+
+    // first add the offset between the start of the transcription and
+    // the start of the recording to all start and end times
+    if (answer.wordArray.length > 0) {
+        let offset = answer.startTime.getUTCMilliseconds()
+            - transcriber.startTime.getUTCMilliseconds();
+
+        // transcriber time will always be earlier
+
         if (offset < 0) {
-            offset = 0; //presume 0 if it somehow not earlier
+            offset = 0; // presume 0 if it somehow not earlier
         }
 
-        var array = "[";
-        answer.wordArray.forEach(function(wordObject) {
+        let array = '[';
+
+        answer.wordArray.forEach(wordObject => {
             wordObject.begin += offset;
             wordObject.end += offset;
-            array += wordObject.word+",";
+            array += `${wordObject.word},`;
         });
-        array += "]";
+        array += ']';
         console.log(array);
-        //give a name value to the Array object so that the merging can access
-        //the name value without having to use the whole recordingResult object
-        //in the algorithm
+
+        // give a name value to the Array object so that the merging can access
+        // the name value without having to use the whole recordingResult object
+        // in the algorithm
         answer.wordArray.name = answer.name;
     }
-    //then store the array and decrease the counter
-    this.results.push(answer.wordArray);
-    this.counter--;
-    console.log("current counter: " + this.counter);
-    //and check if all results have been received.
-    this.maybeMerge();
-};
+
+    // then store the array and decrease the counter
+    transcriber.results.push(answer.wordArray);
+    transcriber.counter--;
+    console.log(`current counter: ${transcriber.counter}`);
+
+    // and check if all results have been received.
+    transcriber.maybeMerge();
+}
 
 /**
  * this method will check if the counter is zero. If it is, it will call
  * the merging method
  */
-transcriber.prototype.maybeMerge = function(){
-    if(this.state === TRANSCRIBING_STATE && this.counter === 0){
-        //make sure to include the events in the result arrays before
-        //merging starts
+Transcriber.prototype.maybeMerge = function() {
+    if (this.state === TRANSCRIBING_STATE && this.counter === 0) {
+        // make sure to include the events in the result arrays before
+        // merging starts
         this.merge();
     }
 };
@@ -147,62 +168,70 @@ transcriber.prototype.maybeMerge = function(){
  * This method will merge all speech-to-text arrays together in one
  * readable transcription string
  */
-transcriber.prototype.merge = function() {
-    console.log("starting merge process!\n The length of the array: " +
-        this.results.length);
-    this.transcription = "";
-    //the merging algorithm will look over all Word objects who are at pos 0 in
-    //every array. It will then select the one closest in time to the
-    //previously placed word, while removing the selected word from its array
-    //note: words can be skipped the skipped word's begin and end time somehow
-    //end up between the closest word start and end time
-    var arrays = this.results;
-    //arrays of Word objects
-    var potentialWords = []; //array of the first Word objects
-    //check if any arrays are already empty and remove them
+Transcriber.prototype.merge = function() {
+    console.log(
+        `starting merge process!\n The length of the array: ${
+             this.results.length}`);
+    this.transcription = '';
+
+    // the merging algorithm will look over all Word objects who are at pos 0 in
+    // every array. It will then select the one closest in time to the
+    // previously placed word, while removing the selected word from its array
+    // note: words can be skipped the skipped word's begin and end time somehow
+    // end up between the closest word start and end time
+    const arrays = this.results;
+
+    // arrays of Word objects
+    const potentialWords = []; // array of the first Word objects
+    // check if any arrays are already empty and remove them
+
     hasPopulatedArrays(arrays);
 
-    //populate all the potential Words for a first time
-    arrays.forEach(function (array){
-        pushWordToSortedArray(potentialWords, array);
-    });
+    // populate all the potential Words for a first time
+    arrays.forEach(array => pushWordToSortedArray(potentialWords, array));
 
-    //keep adding words to transcription until all arrays are exhausted
-    var lowestWordArray;
-    var wordToAdd;
-    var foundSmaller;
-    while(hasPopulatedArrays(arrays)){
-        //first select the lowest array;
-        lowestWordArray = arrays[0];
-        arrays.forEach(function(wordArray){
-           if(wordArray[0].begin < lowestWordArray[0].begin){
-               lowestWordArray = wordArray;
-           }
+    // keep adding words to transcription until all arrays are exhausted
+    while (hasPopulatedArrays(arrays)) {
+        // first select the lowest array;
+        let lowestWordArray = arrays[0];
+
+        arrays.forEach(wordArray => {
+            if (wordArray[0].begin < lowestWordArray[0].begin) {
+                lowestWordArray = wordArray;
+            }
         });
-        //put the word in the transcription
-        wordToAdd = lowestWordArray.shift();
-        this.updateTranscription(wordToAdd,lowestWordArray.name);
 
-        //keep going until a word in another array has a smaller time
-        //or the array is empty
-        while(!foundSmaller && lowestWordArray.length > 0){
-            arrays.forEach(function(wordArray){
-                if(wordArray[0].begin < lowestWordArray[0].begin){
+        // put the word in the transcription
+        let wordToAdd = lowestWordArray.shift();
+
+        this.updateTranscription(wordToAdd, lowestWordArray.name);
+
+        // keep going until a word in another array has a smaller time
+        // or the array is empty
+        while (lowestWordArray.length > 0) {
+            let foundSmaller = false;
+            const wordToCompare = lowestWordArray[0].begin;
+
+            arrays.forEach(wordArray => {
+                if (wordArray[0].begin < wordToCompare) {
                     foundSmaller = true;
                 }
             });
-            //add next word if no smaller time has been found
-            if(!foundSmaller){
-                wordToAdd = lowestWordArray.shift();
-                this.updateTranscription(wordToAdd, null);
+
+            // add next word if no smaller time has been found
+            if (foundSmaller) {
+                break;
             }
+
+            wordToAdd = lowestWordArray.shift();
+            this.updateTranscription(wordToAdd, null);
         }
 
     }
 
-    //set the state to finished and do the necessary left-over tasks
+    // set the state to finished and do the necessary left-over tasks
     this.state = FINISHED_STATE;
-    if(this.callback){
+    if (this.callback) {
         this.callback(this.transcription);
     }
 };
@@ -213,17 +242,17 @@ transcriber.prototype.merge = function() {
  * @param {Word} word the Word object holding the word to append
  * @param {String|null} name the name of a new speaker. Null if not applicable
  */
-transcriber.prototype.updateTranscription = function(word, name){
-    if(name !== undefined && name !== null){
-        this.transcription += "\n" + name + ":";
-        this.lineLength = name.length + 1; //+1 for the semi-colon
+Transcriber.prototype.updateTranscription = function(word, name) {
+    if (name !== undefined && name !== null) {
+        this.transcription += `\n${name}:`;
+        this.lineLength = name.length + 1; // +1 for the semi-colon
     }
-    if(this.lineLength + word.word.length > MAXIMUM_SENTENCE_LENGTH){
-        this.transcription += "\n    ";
-        this.lineLength = 4; //because of the 4 spaces after the new line
+    if (this.lineLength + word.word.length > MAXIMUM_SENTENCE_LENGTH) {
+        this.transcription += '\n    ';
+        this.lineLength = 4; // because of the 4 spaces after the new line
     }
-    this.transcription += " " + word.word;
-    this.lineLength += word.word.length + 1; //+1 for the space
+    this.transcription += ` ${word.word}`;
+    this.lineLength += word.word.length + 1; // +1 for the space
 };
 
 /**
@@ -234,15 +263,15 @@ transcriber.prototype.updateTranscription = function(word, name){
  * @param {Array<Array>} twoDimensionalArray the array to check
  * @returns {boolean} true if any non-zero arrays inside, otherwise false
  */
-var hasPopulatedArrays = function(twoDimensionalArray){
-    var i;
-    for(i = 0; i < twoDimensionalArray.length; i++){
-        if(twoDimensionalArray[i].length === 0){
+function hasPopulatedArrays(twoDimensionalArray) {
+    for (let i = 0; i < twoDimensionalArray.length; i++) {
+        if (twoDimensionalArray[i].length === 0) {
             twoDimensionalArray.splice(i, 1);
         }
     }
+
     return twoDimensionalArray.length > 0;
-};
+}
 
 /**
  * Push a word to the right location in a sorted array. The array is sorted
@@ -252,25 +281,26 @@ var hasPopulatedArrays = function(twoDimensionalArray){
  * @param {Array<Word>} array the sorted array to push to
  * @param {Word} word the word to push into the array
  */
-var pushWordToSortedArray = function(array, word){
-    if(array.length === 0) {
+function pushWordToSortedArray(array, word) {
+    if (array.length === 0) {
         array.push(word);
-    }
-    else{
-        if(array[array.length - 1].begin <= word.begin){
+    } else {
+        if (array[array.length - 1].begin <= word.begin) {
             array.push(word);
+
             return;
         }
-        var i;
-        for(i = 0; i < array.length; i++){
-            if(word.begin < array[i].begin){
+
+        for (let i = 0; i < array.length; i++) {
+            if (word.begin < array[i].begin) {
                 array.splice(i, 0, word);
+
                 return;
             }
         }
-        array.push(word); //fail safe
+        array.push(word); // fail safe
     }
-};
+}
 
 /**
  * Gives the transcriber a JitsiTrack holding an audioStream to transcribe.
@@ -278,7 +308,7 @@ var pushWordToSortedArray = function(array, word){
  * audiostream, it will not be added by the audioRecorder
  * @param {JitsiTrack} track the track to give to the audioRecorder
  */
-transcriber.prototype.addTrack = function(track){
+Transcriber.prototype.addTrack = function(track) {
     this.audioRecorder.addTrack(track);
 };
 
@@ -286,7 +316,7 @@ transcriber.prototype.addTrack = function(track){
  * Remove the given track from the auioRecorder
  * @param track
  */
-transcriber.prototype.removeTrack = function(track){
+Transcriber.prototype.removeTrack = function(track) {
     this.audioRecorder.removeTrack(track);
 };
 
@@ -295,19 +325,21 @@ transcriber.prototype.removeTrack = function(track){
  * when it's not done yet
  * @returns {String} the transcription as a String
  */
-transcriber.prototype.getTranscription = function(){
-    if(this.state !== FINISHED_STATE){
-        throw new Error("The transcription can only be retrieved when it's in" +
-            " the\"" + FINISHED_STATE + "\" state. It's currently in the " +
-            "\"" + this.state + "\" state");
+Transcriber.prototype.getTranscription = function() {
+    if (this.state !== FINISHED_STATE) {
+        throw new Error(
+            `The transcription can only be retrieved when it's in the "${
+                 FINISHED_STATE}" state. It's currently in the "${
+                 this.state}" state`);
     }
+
     return this.transcription;
 };
 
 /**
  * Returns the current state of the transcription process
  */
-transcriber.prototype.getState = function(){
+Transcriber.prototype.getState = function() {
     return this.state;
 };
 
@@ -315,7 +347,7 @@ transcriber.prototype.getState = function(){
  * Resets the state to the "before" state, such that it's again possible to
  * call the start method
  */
-transcriber.prototype.reset = function() {
+Transcriber.prototype.reset = function() {
     this.state = BEFORE_STATE;
     this.counter = null;
     this.transcription = null;
@@ -325,4 +357,4 @@ transcriber.prototype.reset = function() {
     this.lineLength = 0;
 };
 
-module.exports = transcriber;
+module.exports = Transcriber;

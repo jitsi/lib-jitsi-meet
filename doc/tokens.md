@@ -16,8 +16,9 @@ JWT token authentication currently works only with BOSH connections.
 
 The following JWT claims are used in authentication token:
 - 'iss' specifies *application ID* which identifies the client app connecting to the server
-- 'room' contains the name of the room for which the token has been allocated. This is *NOT* full MUC room address. Example assuming that we have full MUC 'conference1@muc.server.net' then 'conference1' should be used here.
+- 'room' contains the name of the room for which the token has been allocated. This is *NOT* full MUC room address. Example assuming that we have full MUC 'conference1@muc.server.net' then 'conference1' should be used here.  Alternately, a '*' may be provided, allowing access to all rooms within the domain.
 - 'exp' token expiration timstamp as defined in the RFC
+- 'sub' contains the name of the domain used when authenticating with this token. By default assuming that we have full MUC 'conference1@muc.server.net' then 'server.net' should be used here.
 
 Secret is used to compute HMAC hash value and verify the token.
 
@@ -46,7 +47,7 @@ JitsiMeetJS.init(initOptions).then(function(){
 
 In order to start jitsi-meet conference with token you need to specify the token as URL param:
 ```
-https://example.com/angrywhalesgrowhigh#config.token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"
+https://example.com/angrywhalesgrowhigh?jwt="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"
 ```
 At current level of integration every user that joins the conference has to provide the token and not just the one who
 creates the room. It should be possible to change that by using second anonymous domain, but that hasn't been tested
@@ -109,7 +110,7 @@ VirtualHost "jitmeet.example.com"
     									   -- generator and the plugin
 ```
 
-\3. Enable token verification plugin in your MUC component config section:
+\3. Enable room name token verification plugin in your MUC component config section:
 
 ```lua
 Component "conference.jitmeet.example.com" "muc"

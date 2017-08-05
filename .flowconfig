@@ -1,0 +1,35 @@
+; XXX The origin of the source code of this .flowconfig file is the jitsi-meet
+; project. As the NPM package jitsi-meet builds the NPM package lib-jitsi-meet
+; and jitsi-meet's react-native requires specific .flowconfig contents, it is
+; mandatory to keep the .flowconfig files of jitsi-meet and lib-jitsi-meet in
+; sync (e.g. the flow-bin version).
+;
+[ignore]
+.*/\.git/.*
+
+[include]
+
+[libs]
+flow/
+
+[options]
+emoji=true
+
+module.system=node
+
+experimental.strict_type_args=true
+
+munge_underscores=true
+
+module.name_mapper='^[./a-zA-Z0-9$_-]+\.\(bmp\|gif\|jpg\|jpeg\|png\|psd\|svg\|webp\|m4v\|mov\|mp4\|mpeg\|mpg\|webm\|aac\|aiff\|caf\|m4a\|mp3\|wav\|html\|pdf\)$' -> 'RelativeImageStub'
+
+suppress_type=$FlowIssue
+suppress_type=$FlowFixMe
+suppress_type=$FixMe
+
+suppress_comment=\\(.\\|\n\\)*\\$FlowFixedInNextDeploy
+
+unsafe.enable_getters_and_setters=true
+
+[version]
+^0.38.0

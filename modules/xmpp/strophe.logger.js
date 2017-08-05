@@ -1,30 +1,48 @@
 /* global Strophe */
-import ConnectionPlugin from "./ConnectionPlugin";
+import ConnectionPlugin from './ConnectionPlugin';
 
 /**
  *  Logs raw stanzas and makes them available for download as JSON
  */
 class StropheLogger extends ConnectionPlugin {
+    /**
+     *
+     */
     constructor() {
         super();
         this.log = [];
     }
 
-    init (connection) {
+    /**
+     *
+     * @param connection
+     */
+    init(connection) {
         super.init(connection);
-        this.connection.rawInput = this.log_incoming.bind(this);
-        this.connection.rawOutput = this.log_outgoing.bind(this);
+        this.connection.rawInput = this.logIncoming.bind(this);
+        this.connection.rawOutput = this.logOutgoing.bind(this);
     }
 
-    log_incoming (stanza) {
-        this.log.push([new Date().getTime(), 'incoming', stanza]);
+    /**
+     *
+     * @param stanza
+     */
+    logIncoming(stanza) {
+        this.log.push([ new Date().getTime(), 'incoming', stanza ]);
     }
 
-    log_outgoing (stanza) {
-        this.log.push([new Date().getTime(), 'outgoing', stanza]);
+    /**
+     *
+     * @param stanza
+     */
+    logOutgoing(stanza) {
+        this.log.push([ new Date().getTime(), 'outgoing', stanza ]);
     }
 }
 
-export default function () {
+/**
+ *
+ */
+export default function() {
     Strophe.addConnectionPlugin('logger', new StropheLogger());
 }

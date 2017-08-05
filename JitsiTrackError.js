@@ -1,33 +1,39 @@
-import * as JitsiTrackErrors from "./JitsiTrackErrors";
+import * as JitsiTrackErrors from './JitsiTrackErrors';
 
 const TRACK_ERROR_TO_MESSAGE_MAP = {};
 
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.UNSUPPORTED_RESOLUTION]
-    = "Video resolution is not supported: ";
+    = 'Video resolution is not supported: ';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.FIREFOX_EXTENSION_NEEDED]
-    = "Firefox extension is not installed";
+    = 'Firefox extension is not installed';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR]
-    = "Failed to install Chrome extension";
+    = 'Failed to install Chrome extension';
+TRACK_ERROR_TO_MESSAGE_MAP[
+    JitsiTrackErrors.CHROME_EXTENSION_USER_GESTURE_REQUIRED]
+    = 'Failed to install Chrome extension - installations can only be initiated'
+        + ' by a user gesture.';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED]
-    = "User canceled Chrome's screen sharing prompt";
+    = 'User canceled Chrome\'s screen sharing prompt';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.CHROME_EXTENSION_GENERIC_ERROR]
-    = "Unknown error from Chrome extension";
+    = 'Unknown error from Chrome extension';
+TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR]
+    = 'Unkown error from desktop picker';
+TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND]
+    = 'Failed to detect desktop picker';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.GENERAL]
-    = "Generic getUserMedia error";
+    = 'Generic getUserMedia error';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.PERMISSION_DENIED]
-    = "User denied permission to use device(s): ";
+    = 'User denied permission to use device(s): ';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.NOT_FOUND]
-    = "Requested device(s) was/were not found: ";
+    = 'Requested device(s) was/were not found: ';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.CONSTRAINT_FAILED]
-    = "Constraint could not be satisfied: ";
+    = 'Constraint could not be satisfied: ';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_IS_DISPOSED]
-    = "Track has been already disposed";
+    = 'Track has been already disposed';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_NO_STREAM_FOUND]
-    = "Track does not have an associated Media Stream";
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_MUTE_UNMUTE_IN_PROGRESS]
-    = "Track mute/unmute process is currently in progress";
+    = 'Track does not have an associated Media Stream';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.NO_DATA_FROM_SOURCE]
-    = "The track has stopped receiving data from it's source";
+    = 'The track has stopped receiving data from it\'s source';
 
 
 // FIXME: Using prototype inheritance because otherwise instanceof is not
@@ -49,7 +55,7 @@ TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.NO_DATA_FROM_SOURCE]
  * list of getUserMedia requested devices
  */
 function JitsiTrackError(error, options, devices) {
-    if (typeof error === "object" && typeof error.name !== "undefined") {
+    if (typeof error === 'object' && typeof error.name !== 'undefined') {
         /**
          * Additional information about original getUserMedia error
          * and constraints.
@@ -68,33 +74,33 @@ function JitsiTrackError(error, options, devices) {
         };
 
         switch (error.name) {
-        case "PermissionDeniedError":
-        case "SecurityError":
+        case 'PermissionDeniedError':
+        case 'SecurityError':
             this.name = JitsiTrackErrors.PERMISSION_DENIED;
             this.message
                 = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
-                    + (this.gum.devices || []).join(", ");
+                    + (this.gum.devices || []).join(', ');
             break;
-        case "DevicesNotFoundError":
-        case "NotFoundError":
+        case 'DevicesNotFoundError':
+        case 'NotFoundError':
             this.name = JitsiTrackErrors.NOT_FOUND;
             this.message
                 = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
-                    + (this.gum.devices || []).join(", ");
+                    + (this.gum.devices || []).join(', ');
             break;
-        case "ConstraintNotSatisfiedError":
-        case "OverconstrainedError":
-            var constraintName = error.constraintName;
+        case 'ConstraintNotSatisfiedError':
+        case 'OverconstrainedError': {
+            const constraintName = error.constraintName || error.constraint;
 
             if (options
                     && options.video
                     && (!devices || devices.indexOf('video') > -1)
-                    && (constraintName === "minWidth"
-                        || constraintName === "maxWidth"
-                        || constraintName === "minHeight"
-                        || constraintName === "maxHeight"
-                        || constraintName === "width"
-                        || constraintName === "height")) {
+                    && (constraintName === 'minWidth'
+                        || constraintName === 'maxWidth'
+                        || constraintName === 'minHeight'
+                        || constraintName === 'maxHeight'
+                        || constraintName === 'width'
+                        || constraintName === 'height')) {
                 this.name = JitsiTrackErrors.UNSUPPORTED_RESOLUTION;
                 this.message
                     = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
@@ -108,13 +114,15 @@ function JitsiTrackError(error, options, devices) {
                         + error.constraintName;
             }
             break;
+        }
+
         default:
             this.name = JitsiTrackErrors.GENERAL;
             this.message
                 = error.message || TRACK_ERROR_TO_MESSAGE_MAP[this.name];
             break;
         }
-    } else if (typeof error === "string") {
+    } else if (typeof error === 'string') {
         if (TRACK_ERROR_TO_MESSAGE_MAP[error]) {
             this.name = error;
             this.message = options || TRACK_ERROR_TO_MESSAGE_MAP[error];
@@ -125,14 +133,14 @@ function JitsiTrackError(error, options, devices) {
             this.message = error;
         }
     } else {
-        throw new Error("Invalid arguments");
+        throw new Error('Invalid arguments');
     }
 
     this.stack = error.stack || (new Error()).stack;
 }
 
 JitsiTrackError.prototype = Object.create(Error.prototype);
- JitsiTrackError.prototype.constructor = JitsiTrackError;
+JitsiTrackError.prototype.constructor = JitsiTrackError;
 
 /**
  * Gets failed resolution constraint from corresponding object.
@@ -143,16 +151,16 @@ JitsiTrackError.prototype = Object.create(Error.prototype);
 function getResolutionFromFailedConstraint(failedConstraintName, constraints) {
     if (constraints && constraints.video && constraints.video.mandatory) {
         switch (failedConstraintName) {
-        case "width":
+        case 'width':
             return constraints.video.mandatory.minWidth;
-        case "height":
+        case 'height':
             return constraints.video.mandatory.minHeight;
         default:
-            return constraints.video.mandatory[failedConstraintName] || "";
+            return constraints.video.mandatory[failedConstraintName] || '';
         }
     }
 
-    return "";
+    return '';
 }
 
 export default JitsiTrackError;

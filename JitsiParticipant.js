@@ -1,11 +1,16 @@
 /* global Strophe */
-import * as JitsiConferenceEvents from "./JitsiConferenceEvents";
-import * as MediaType from "./service/RTC/MediaType";
+import * as JitsiConferenceEvents from './JitsiConferenceEvents';
+import { ParticipantConnectionStatus }
+    from './modules/connectivity/ParticipantConnectionStatus';
+import * as MediaType from './service/RTC/MediaType';
 
 /**
  * Represents a participant in (i.e. a member of) a conference.
  */
 export default class JitsiParticipant {
+
+    /* eslint-disable max-params */
+
     /**
      * Initializes a new JitsiParticipant instance.
      *
@@ -30,9 +35,11 @@ export default class JitsiParticipant {
             video: undefined
         };
         this._hidden = hidden;
-        this._isConnectionActive = true;
+        this._connectionStatus = ParticipantConnectionStatus.ACTIVE;
         this._properties = {};
     }
+
+    /* eslint-enable max-params */
 
     /**
      * @returns {JitsiConference} The conference that this participant belongs
@@ -58,30 +65,32 @@ export default class JitsiParticipant {
      * {@link JitsiTrack.isWebRTCTrackMuted}.
      */
     hasAnyVideoTrackWebRTCMuted() {
-        return this.getTracks().some(function(jitsiTrack) {
-            return jitsiTrack.getType() === MediaType.VIDEO
-                && jitsiTrack.isWebRTCTrackMuted();
-        });
+        return (
+            this.getTracks().some(
+                jitsiTrack =>
+                    jitsiTrack.getType() === MediaType.VIDEO
+                        && jitsiTrack.isWebRTCTrackMuted()));
     }
 
     /**
      * Updates participant's connection status.
-     * @param {boolean} isActive true if the user's connection is fine or false
-     * when the user is having connectivity issues.
+     * @param {string} state the current participant connection state.
+     * {@link ParticipantConnectionStatus}.
      * @private
      */
-    _setIsConnectionActive(isActive) {
-        this._isConnectionActive = isActive;
+    _setConnectionStatus(status) {
+        this._connectionStatus = status;
     }
 
     /**
-     * Checks participant's connectivity status.
+     * Return participant's connectivity status.
      *
-     * @returns {boolean} true if the connection is currently ok or false when
-     * the user is having connectivity issues.
+     * @returns {string} the connection status
+     * <tt>ParticipantConnectionStatus</tt> of the user.
+     * {@link ParticipantConnectionStatus}.
      */
-    isConnectionActive() {
-        return this._isConnectionActive;
+    getConnectionStatus() {
+        return this._connectionStatus;
     }
 
     /**
@@ -91,7 +100,7 @@ export default class JitsiParticipant {
      * @value the value to set.
      */
     setProperty(name, value) {
-        var oldValue = this._properties[name];
+        const oldValue = this._properties[name];
 
         if (value !== oldValue) {
             this._properties[name] = value;
@@ -110,6 +119,15 @@ export default class JitsiParticipant {
      */
     getTracks() {
         return this._tracks.slice();
+    }
+
+    /**
+     * @param {MediaType} mediaType
+     * @returns {Array.<JitsiTrack>} an array of media tracks for this
+     * participant, for given media type.
+     */
+    getTracksByMediaType(mediaType) {
+        return this.getTracks().filter(track => track.getType() === mediaType);
     }
 
     /**
@@ -136,7 +154,7 @@ export default class JitsiParticipant {
     /**
      * @returns {String} The status of the participant.
      */
-    getStatus () {
+    getStatus() {
         return this._status;
     }
 
@@ -157,8 +175,8 @@ export default class JitsiParticipant {
     }
 
     // Gets a link to an etherpad instance advertised by the participant?
-    //getEtherpad() {
-    //}
+    // getEtherpad() {
+    // }
 
     /**
      * @returns {Boolean} Whether this participant has muted their audio.
@@ -193,14 +211,6 @@ export default class JitsiParticipant {
     }
 
     /**
-     * @returns {???} The latest statistics reported by this participant (i.e.
-     * info used to populate the GSM bars)
-     * TODO: do we expose this or handle it internally?
-     */
-    getLatestStats() {
-    }
-
-    /**
      * @returns {String} The role of this participant.
      */
     getRole() {
@@ -208,52 +218,8 @@ export default class JitsiParticipant {
     }
 
     /**
-     * @returns {Boolean} Whether this participant is the conference focus (i.e.
-     * jicofo).
+     *
      */
-    isFocus() {
-    }
-
-    /**
-     * @returns {Boolean} Whether this participant is a conference recorder
-     * (i.e. jirecon).
-     */
-    isRecorder() {
-    }
-
-    /**
-     * @returns {Boolean} Whether this participant is a SIP gateway (i.e.
-     * jigasi).
-     */
-    isSipGateway() {
-    }
-
-    /**
-     * @returns {Boolean} Whether this participant is currently sharing their
-     * screen.
-     */
-    isScreenSharing() {
-    }
-
-    /**
-     * @returns {String} The user agent of this participant (i.e. browser
-     * userAgent string).
-     */
-    getUserAgent() {
-    }
-
-    /**
-     * Kicks the participant from the conference (requires certain privileges).
-     */
-    kick() {
-    }
-
-    /**
-     * Asks this participant to mute themselves.
-     */
-    askToMute() {
-    }
-
     supportsDTMF() {
         return this._supportsDTMF;
     }

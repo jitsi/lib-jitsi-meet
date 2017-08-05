@@ -5,10 +5,11 @@
  * @param dest {object} instance of EventEmitter or another class that
  * implements emit method which will emit an event.
  */
-function EventEmitterForwarder (src, dest) {
-    if (!src || !dest || typeof(src.addListener) !== "function" ||
-        typeof(dest.emit) !== "function")
-        throw new Error("Invalid arguments passed to EventEmitterForwarder");
+function EventEmitterForwarder(src, dest) {
+    if (!src || !dest || typeof src.addListener !== 'function'
+        || typeof dest.emit !== 'function') {
+        throw new Error('Invalid arguments passed to EventEmitterForwarder');
+    }
     this.src = src;
     this.dest = dest;
 }
@@ -21,14 +22,16 @@ function EventEmitterForwarder (src, dest) {
  * @param arguments all other passed arguments are going to be fired with
  * dstEvent.
  */
-EventEmitterForwarder.prototype.forward = function () {
-    // This line is only for fixing jshint errors.
-    var args = arguments;
-    var srcEvent = args[0];
-    //This will be the "this" value for emit function.
+EventEmitterForwarder.prototype.forward = function(...args) {
+    const srcEvent = args[0];
+
+    // This will be the "this" value for emit function.
+
     args[0] = this.dest;
-    //Using bind.apply to pass the arguments as Array-like object ("arguments")
-    this.src.addListener(srcEvent,
+
+    // Using bind.apply to pass the arguments as Array-like object ("arguments")
+    this.src.addListener(
+        srcEvent,
         Function.prototype.bind.apply(this.dest.emit, args));
 };
 

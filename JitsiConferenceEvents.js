@@ -5,171 +5,241 @@
 /**
  * Indicates that authentication status changed.
  */
-export const AUTH_STATUS_CHANGED = "conference.auth_status_changed";
+export const AUTH_STATUS_CHANGED = 'conference.auth_status_changed';
+
 /**
  * Indicates that available devices changed.
  */
-export const AVAILABLE_DEVICES_CHANGED = "conference.availableDevicesChanged";
+export const AVAILABLE_DEVICES_CHANGED = 'conference.availableDevicesChanged';
+
 /**
  * A participant avatar has changed.
  */
-export const AVATAR_CHANGED = "conference.avatarChanged";
+export const AVATAR_CHANGED = 'conference.avatarChanged';
 
 /**
  * Fired just before the statistics module is disposed and it's the last chance
  * to submit some logs to the statistics service (ex. CallStats if enabled),
  * before it's disconnected.
  */
-export const BEFORE_STATISTICS_DISPOSED = "conference.beforeStatisticsDisposed";
+export const BEFORE_STATISTICS_DISPOSED = 'conference.beforeStatisticsDisposed';
 
 /**
  * Indicates that an error occured.
  */
-export const CONFERENCE_ERROR = "conference.error";
+export const CONFERENCE_ERROR = 'conference.error';
+
 /**
  * Indicates that conference failed.
  */
-export const CONFERENCE_FAILED = "conference.failed";
+export const CONFERENCE_FAILED = 'conference.failed';
+
 /**
  * Indicates that conference has been joined. The event does NOT provide any
  * parameters to its listeners.
  */
-export const CONFERENCE_JOINED = "conference.joined";
+export const CONFERENCE_JOINED = 'conference.joined';
+
 /**
  * Indicates that conference has been left.
  */
-export const CONFERENCE_LEFT = "conference.left";
+export const CONFERENCE_LEFT = 'conference.left';
+
 /**
  * Indicates that the connection to the conference has been interrupted for some
  * reason.
  */
-export const CONNECTION_INTERRUPTED = "conference.connectionInterrupted";
+export const CONNECTION_INTERRUPTED = 'conference.connectionInterrupted';
+
 /**
  * Indicates that the connection to the conference has been restored.
  */
-export const CONNECTION_RESTORED = "conference.connectionRestored";
-/**
- * New local connection statistics are received.
- * @deprecated Use ConnectionQualityEvents.LOCAL_STATS_UPDATED instead.
- */
-export const CONNECTION_STATS = "conference.connectionStats";
+export const CONNECTION_RESTORED = 'conference.connectionRestored';
+
 /**
  * A user has changed it display name
  */
-export const DISPLAY_NAME_CHANGED = "conference.displayNameChanged";
+export const DISPLAY_NAME_CHANGED = 'conference.displayNameChanged';
+
 /**
  * The dominant speaker was changed.
  */
-export const DOMINANT_SPEAKER_CHANGED = "conference.dominantSpeaker";
+export const DOMINANT_SPEAKER_CHANGED = 'conference.dominantSpeaker';
+
 /**
  * Indicates that DTMF support changed.
  */
-export const DTMF_SUPPORT_CHANGED = "conference.dtmfSupportChanged";
+export const DTMF_SUPPORT_CHANGED = 'conference.dtmfSupportChanged';
+
 /**
  * Indicates that a message from another participant is received on data
  * channel.
  */
-export const ENDPOINT_MESSAGE_RECEIVED = "conference.endpoint_message_received";
+export const ENDPOINT_MESSAGE_RECEIVED = 'conference.endpoint_message_received';
+
 /**
- * You are included / excluded in somebody's last N set
+ * NOTE This is lib-jitsi-meet internal event and can be removed at any time !
+ *
+ * Event emitted when conference transits, between one to one and multiparty JVB
+ * conference. If the conference switches to P2P it's neither one to one nor
+ * a multiparty JVB conference, but P2P (the status argument of this event will
+ * be <tt>false</tt>).
+ *
+ * The first argument is a boolean which carries the previous value and
+ * the seconds argument is a boolean with the new status. The event is emitted
+ * only if the previous and the new values are different.
+ *
+ * @type {string}
  */
-export const IN_LAST_N_CHANGED = "conference.inLastNChanged";
+export const JVB121_STATUS = 'conference.jvb121Status';
+
 /**
  * You are kicked from the conference.
  */
-export const KICKED = "conferenece.kicked";
+export const KICKED = 'conferenece.kicked';
+
 /**
  * The Last N set is changed.
+ *
+ * @param {Array<string>|null} leavingEndpointIds the ids of all the endpoints
+ * which are leaving Last N
+ * @param {Array<string>|null} enteringEndpointIds the ids of all the endpoints
+ * which are entering Last N
  */
-export const LAST_N_ENDPOINTS_CHANGED = "conference.lastNEndpointsChanged";
+export const LAST_N_ENDPOINTS_CHANGED = 'conference.lastNEndpointsChanged';
+
 /**
  * Indicates that the room has been locked or unlocked.
  */
-export const LOCK_STATE_CHANGED = "conference.lock_state_changed";
+export const LOCK_STATE_CHANGED = 'conference.lock_state_changed';
+
 /**
  * New text message was received.
  */
-export const MESSAGE_RECEIVED = "conference.messageReceived";
+export const MESSAGE_RECEIVED = 'conference.messageReceived';
+
 /**
  * Event fired when JVB sends notification about interrupted/restored user's
- * ICE connection status. First argument is the ID of the participant and
- * the seconds is a boolean indicating if the connection is currently
- * active(true = active, false = interrupted).
+ * ICE connection status or we detect local problem with the video track.
+ * First argument is the ID of the participant and
+ * the seconds is a string indicating if the connection is currently
+ * - active - the connection is active
+ * - inactive - the connection is inactive, was intentionally interrupted by
+ * the bridge
+ * - interrupted - a network problem occurred
+ * - restoring - the connection was inactive and is restoring now
+ *
  * The current status value can be obtained by calling
- * JitsiParticipant.isConnectionActive().
+ * JitsiParticipant.getConnectionStatus().
  */
 export const PARTICIPANT_CONN_STATUS_CHANGED
-    = "conference.participant_conn_status_changed";
+    = 'conference.participant_conn_status_changed';
+
+/**
+ * Indicates that the features of the participant has been changed.
+ */
+export const PARTCIPANT_FEATURES_CHANGED
+    = 'conference.partcipant_features_changed';
+
 /**
  * Indicates that a the value of a specific property of a specific participant
  * has changed.
  */
 export const PARTICIPANT_PROPERTY_CHANGED
-    = "conference.participant_property_changed";
+    = 'conference.participant_property_changed';
+
+/**
+ * Indicates that the conference has switched between JVB and P2P connections.
+ * The first argument of this event is a <tt>boolean</tt> which when set to
+ * <tt>true</tt> means that the conference is running on the P2P connection.
+ */
+export const P2P_STATUS = 'conference.p2pStatus';
+
 /**
  * Indicates that phone number changed.
  */
-export const PHONE_NUMBER_CHANGED = "conference.phoneNumberChanged";
+export const PHONE_NUMBER_CHANGED = 'conference.phoneNumberChanged';
+
 /**
  * Indicates that recording state changed.
  */
-export const RECORDER_STATE_CHANGED = "conference.recorderStateChanged";
+export const RECORDER_STATE_CHANGED = 'conference.recorderStateChanged';
+
+/**
+ * Indicates that video SIP GW state changed.
+ * @param {VideoSIPGWConstants} status.
+ */
+export const VIDEO_SIP_GW_AVAILABILITY_CHANGED
+    = 'conference.videoSIPGWAvailabilityChanged';
+
 /**
  * Indicates that start muted settings changed.
  */
 export const START_MUTED_POLICY_CHANGED
-    = "conference.start_muted_policy_changed";
+    = 'conference.start_muted_policy_changed';
+
 /**
  * Indicates that the local user has started muted.
  */
-export const STARTED_MUTED = "conference.started_muted";
+export const STARTED_MUTED = 'conference.started_muted';
+
 /**
  * Indicates that subject of the conference has changed.
  */
-export const SUBJECT_CHANGED = "conference.subjectChanged";
+export const SUBJECT_CHANGED = 'conference.subjectChanged';
+
 /**
  * Indicates that DTMF support changed.
  */
-export const SUSPEND_DETECTED = "conference.suspendDetected";
+export const SUSPEND_DETECTED = 'conference.suspendDetected';
+
 /**
  * Event indicates that local user is talking while he muted himself
  */
-export const TALK_WHILE_MUTED = "conference.talk_while_muted";
+export const TALK_WHILE_MUTED = 'conference.talk_while_muted';
+
 /**
  * A new media track was added to the conference. The event provides the
  * following parameters to its listeners:
  *
  * @param {JitsiTrack} track the added JitsiTrack
  */
-export const TRACK_ADDED = "conference.trackAdded";
+export const TRACK_ADDED = 'conference.trackAdded';
+
 /**
  * Audio levels of a media track ( attached to the conference) was changed.
  */
-export const TRACK_AUDIO_LEVEL_CHANGED = "conference.audioLevelsChanged";
+export const TRACK_AUDIO_LEVEL_CHANGED = 'conference.audioLevelsChanged';
+
 /**
  * A media track ( attached to the conference) mute status was changed.
  */
-export const TRACK_MUTE_CHANGED = "conference.trackMuteChanged";
+export const TRACK_MUTE_CHANGED = 'conference.trackMuteChanged';
+
 /**
  * The media track was removed from the conference. The event provides the
  * following parameters to its listeners:
  *
  * @param {JitsiTrack} track the removed JitsiTrack
  */
-export const TRACK_REMOVED = "conference.trackRemoved";
+export const TRACK_REMOVED = 'conference.trackRemoved';
+
 /**
  * A new user joinned the conference.
  */
-export const USER_JOINED = "conference.userJoined";
+export const USER_JOINED = 'conference.userJoined';
+
 /**
  * A user has left the conference.
  */
-export const USER_LEFT = "conference.userLeft";
+export const USER_LEFT = 'conference.userLeft';
+
 /**
  * User role changed.
  */
-export const USER_ROLE_CHANGED = "conference.roleChanged";
+export const USER_ROLE_CHANGED = 'conference.roleChanged';
+
 /**
  * User status changed.
  */
-export const USER_STATUS_CHANGED = "conference.statusChanged";
+export const USER_STATUS_CHANGED = 'conference.statusChanged';

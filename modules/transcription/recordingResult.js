@@ -1,3 +1,5 @@
+/* eslint-disable max-params */
+
 /**
  * This object stores variables needed around the recording of an audio stream
  * and passing this recording along with additional information along to
@@ -8,11 +10,13 @@
  * @param wordArray the recorder audio stream transcribed as an array of Word
  *                  objects
  */
-var RecordingResult = function(blob, name, startTime, wordArray){
+const RecordingResult = function(blob, name, startTime, wordArray) {
     this.blob = blob;
     this.name = name;
     this.startTime = startTime;
     this.wordArray = wordArray;
 };
+
+/* eslint-enable max-params */
 
 module.exports = RecordingResult;

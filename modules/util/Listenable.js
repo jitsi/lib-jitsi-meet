@@ -1,4 +1,4 @@
-import EventEmitter from "events";
+import EventEmitter from 'events';
 
 /**
  * The class implements basic event operations - add/remove listener.
@@ -13,6 +13,7 @@ export default class Listenable {
      */
     constructor(eventEmitter = new EventEmitter()) {
         this.eventEmitter = eventEmitter;
+
         // aliases for addListener/removeListener
         this.addEventListener = this.on = this.addListener;
         this.removeEventListener = this.off = this.removeListener;
@@ -23,7 +24,7 @@ export default class Listenable {
      * @param {String} eventName the name of the event
      * @param {Function} listener the listener.
      */
-    addListener (eventName, listener) {
+    addListener(eventName, listener) {
         this.eventEmitter.addListener(eventName, listener);
     }
 
@@ -33,7 +34,7 @@ export default class Listenable {
      * listener
      * @param {Function} listener the listener.
      */
-    removeListener (eventName, listener) {
+    removeListener(eventName, listener) {
         this.eventEmitter.removeListener(eventName, listener);
     }
 }

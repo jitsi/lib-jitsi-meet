@@ -1,20 +1,28 @@
-import Listenable from "../util/Listenable";
+import Listenable from '../util/Listenable';
 
 /**
  * Creates ConnectionPlugin class that extends the passed class.
  * @param {Class} base the definition of the class that will be extended by
  * ConnectionPlugin
  */
-function getConnectionPluginDefinition(base = class{}) {
+function getConnectionPluginDefinition(base = class {}) {
     /**
      * Base class for strophe connection plugins.
      */
     return class extends base {
+        /**
+         *
+         */
         constructor(...args) {
             super(...args);
             this.connection = null;
         }
-        init (connection) {
+
+        /**
+         *
+         * @param connection
+         */
+        init(connection) {
             this.connection = connection;
         }
     };

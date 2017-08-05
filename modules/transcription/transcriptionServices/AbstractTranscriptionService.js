@@ -2,9 +2,9 @@
  * Abstract class representing an interface to implement a speech-to-text
  * service on.
  */
-var TranscriptionService = function() {
-    throw new Error("TranscriptionService is abstract and cannot be" +
-        "created");
+const TranscriptionService = function() {
+    throw new Error('TranscriptionService is abstract and cannot be'
+        + 'created');
 };
 
 /**
@@ -16,19 +16,15 @@ var TranscriptionService = function() {
  * @param {Function} callback  which will retrieve the a RecordingResult with
  *        the answer as a WordArray
  */
-TranscriptionService.prototype.send = function send(recordingResult, callback){
-    var t = this;
-    this.sendRequest(recordingResult.blob, function(response){
-        if(!t.verify(response)){
-               console.log("the retrieved response from the server" +
-                   " is not valid!");
+TranscriptionService.prototype.send = function send(recordingResult, callback) {
+    this.sendRequest(recordingResult.blob, response => {
+        if (this.verify(response)) {
+            recordingResult.wordArray = this.formatResponse(response);
+        } else {
+            console.log('the retrieved response from the server is not valid!');
             recordingResult.wordArray = [];
-            callback(recordingResult);
         }
-        else{
-            recordingResult.wordArray = t.formatResponse(response);
-            callback(recordingResult);
-        }
+        callback(recordingResult);
     });
 };
 
@@ -43,7 +39,7 @@ TranscriptionService.prototype.send = function send(recordingResult, callback){
  */
 // eslint-disable-next-line no-unused-vars
 TranscriptionService.prototype.sendRequest = function(audioBlob, callback) {
-    throw new Error("TranscriptionService.sendRequest is abstract");
+    throw new Error('TranscriptionService.sendRequest is abstract');
 };
 
 /**
@@ -62,8 +58,8 @@ TranscriptionService.prototype.sendRequest = function(audioBlob, callback) {
  * @return {Array<Word>} an array of Word objects
  */
 // eslint-disable-next-line no-unused-vars
-TranscriptionService.prototype.formatResponse = function(response){
-    throw new Error("TranscriptionService.format is abstract");
+TranscriptionService.prototype.formatResponse = function(response) {
+    throw new Error('TranscriptionService.format is abstract');
 };
 
 /**
@@ -73,8 +69,8 @@ TranscriptionService.prototype.formatResponse = function(response){
  * @return {boolean} true if response is valid, false otherwise
  */
 // eslint-disable-next-line no-unused-vars
-TranscriptionService.prototype.verify = function(response){
-      throw new Error("TranscriptionService.verify is abstract");
+TranscriptionService.prototype.verify = function(response) {
+    throw new Error('TranscriptionService.verify is abstract');
 };
 
 module.exports = TranscriptionService;

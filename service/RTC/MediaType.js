@@ -1,15 +1,9 @@
 /**
- * Enumeration of RTC media stream types
- * @type {{AUDIO: string, VIDEO: string}}
+ * The audio type.
  */
-var MediaType = {
-    /**
-     * The audio type.
-     */
-    AUDIO: "audio",
-    /**
-     * The video type.
-     */
-    VIDEO: "video"
-};
-module.exports = MediaType;
+export const AUDIO = 'audio';
+
+/**
+ * The video type.
+ */
+export const VIDEO = 'video';

@@ -1,150 +1,168 @@
-/*
+/* global __filename */
+import { getLogger } from 'jitsi-meet-logger';
+import * as JingleSessionState from './JingleSessionState';
+
+const logger = getLogger(__filename);
+
+/**
  * JingleSession provides an API to manage a single Jingle session. We will
  * have different implementations depending on the underlying interface used
  * (i.e. WebRTC and ORTC) and here we hold the code common to all of them.
  */
-import {getLogger} from "jitsi-meet-logger";
-const logger = getLogger(__filename);
+export default class JingleSession {
 
-import * as JingleSessionState from "./JingleSessionState";
-
-function JingleSession(me, sid, peerjid, connection,
-                       media_constraints, ice_config, service, eventEmitter) {
-    /**
-     * Our JID.
-     */
-    this.me = me;
+    /* eslint-disable max-params */
 
     /**
-     * The Jingle session identifier.
+     * Creates new <tt>JingleSession</tt>.
+     * @param {string} sid the Jingle session identifier
+     * @param {string} localJid our JID
+     * @param {string} peerjid the JID of the remote peer
+     * @param {Strophe.Connection} connection the XMPP connection
+     * @param {Object} mediaConstraints the media constraints object passed to
+     * the PeerConnection onCreateAnswer/Offer as defined by the WebRTC.
+     * @param {Object} iceConfig the ICE servers config object as defined by
+     * the WebRTC. Passed to the PeerConnection's constructor.
      */
-    this.sid = sid;
+    constructor(
+            sid,
+            localJid,
+            peerjid,
+            connection,
+            mediaConstraints,
+            iceConfig) {
+        this.sid = sid;
+        this.localJid = localJid;
+        this.peerjid = peerjid;
+        this.connection = connection;
+        this.mediaConstraints = mediaConstraints;
+        this.iceConfig = iceConfig;
 
-    /**
-     * the JID of the remote peer.
-     */
-    this.peerjid = peerjid;
+        /**
+         * Whether to use dripping or not. Dripping is sending trickle
+         * candidates not one-by-one.
+         */
+        this.usedrip = true;
 
-    /**
-     * The XMPP connection.
-     */
-    this.connection = connection;
+        /**
+         *  When dripping is used, stores ICE candidates which are to be sent.
+         */
+        this.dripContainer = [];
 
-    /**
-     * The XMPP service.
-     */
-    this.service = service;
+        /**
+         * The chat room instance associated with the session.
+         * @type {ChatRoom}
+         */
+        this.room = null;
 
-    /**
-     * The event emitter.
-     */
-    this.eventEmitter = eventEmitter;
+        /**
+         * Jingle session state - uninitialized until {@link initialize} is
+         * called @type {JingleSessionState}
+         */
+        this.state = null;
 
-    /**
-     * Whether to use dripping or not. Dripping is sending trickle candidates
-     * not one-by-one.
-     * Note: currently we do not support 'false'.
-     */
-    this.usedrip = true;
-
-    /**
-     *  When dripping is used, stores ICE candidates which are to be sent.
-     */
-    this.drip_container = [];
-
-    // Media constraints. Is this WebRTC only?
-    this.media_constraints = media_constraints;
-
-    // ICE servers config (RTCConfiguration?).
-    this.ice_config = ice_config;
-
-    // The chat room instance associated with the session.
-    this.room = null;
-
-    /**
-     * Jingle session state - uninitialized until {@link initialize} is called
-     * @type {JingleSessionState}
-     */
-    this.state = null;
-}
-
-/**
- * Prepares this object to initiate a session.
- * @param isInitiator whether we will be the Jingle initiator.
- * @param room <tt>ChatRoom<tt> for the conference associated with this session
- */
-JingleSession.prototype.initialize = function(isInitiator, room) {
-    if (this.state !== null) {
-        var errmsg
-            = 'attempt to initiate on session ' + this.sid + 'in state '
-                + this.state;
-        logger.error(errmsg);
-        throw new Error(errmsg);
+        /**
+         * The RTC service instance
+         * @type {RTC}
+         */
+        this.rtc = null;
     }
-    this.room = room;
-    this.state = JingleSessionState.PENDING;
-    this.initiator = isInitiator ? this.me : this.peerjid;
-    this.responder = !isInitiator ? this.me : this.peerjid;
-    this.doInitialize();
-};
 
-/**
- * Finishes initialization.
- */
-JingleSession.prototype.doInitialize = function() {};
+    /* eslint-enable max-params */
 
-/**
- * Adds the ICE candidates found in the 'contents' array as remote candidates?
- * Note: currently only used on transport-info
- */
-// eslint-disable-next-line no-unused-vars
-JingleSession.prototype.addIceCandidates = function(contents) {};
+    /**
+     * Prepares this object to initiate a session.
+     * @param {boolean} isInitiator whether we will be the Jingle initiator.
+     * @param {ChatRoom} room the chat room for the conference associated with
+     * this session
+     * @param {RTC} rtc the RTC service instance
+     */
+    initialize(isInitiator, room, rtc) {
+        if (this.state !== null) {
+            const errmsg
+                = `attempt to initiate on session ${this.sid}
+                   in state ${this.state}`;
 
-/**
- * Returns current state of this <tt>JingleSession</tt> instance.
- * @returns {JingleSessionState} the current state of this session instance.
- */
-JingleSession.prototype.getState = function () {
-    return this.state;
-};
+            logger.error(errmsg);
+            throw new Error(errmsg);
+        }
+        this.room = room;
+        this.rtc = rtc;
+        this.state = JingleSessionState.PENDING;
+        this.initiator = isInitiator ? this.localJid : this.peerjid;
+        this.responder = isInitiator ? this.peerjid : this.localJid;
+        this.doInitialize();
+    }
 
-/**
- * Handles an 'add-source' event.
- *
- * @param contents an array of Jingle 'content' elements.
- */
-// eslint-disable-next-line no-unused-vars
-JingleSession.prototype.addSources = function(contents) {};
+    /**
+     * The implementing class finishes initialization here. Called at the end of
+     * {@link initialize}.
+     * @protected
+     */
+    doInitialize() {} // eslint-disable-line no-empty-function
 
-/**
- * Handles a 'remove-source' event.
- *
- * @param contents an array of Jingle 'content' elements.
- */
-// eslint-disable-next-line no-unused-vars
-JingleSession.prototype.removeSources = function(contents) {};
+    /* eslint-disable no-unused-vars, no-empty-function */
 
-/**
- * Terminates this Jingle session by sending session-terminate
- * @param reason XMPP Jingle error condition
- * @param text some meaningful error message
- * @param success a callback called once the 'session-terminate' packet has been
- * acknowledged with RESULT.
- * @param failure a callback called when either timeout occurs or ERROR response
- * is received.
- */
-// eslint-disable-next-line no-unused-vars
-JingleSession.prototype.terminate = function(reason, text, success, failure) {};
+    /**
+     * Adds the ICE candidates found in the 'contents' array as remote
+     * candidates?
+     * Note: currently only used on transport-info
+     *
+     * @param contents
+     */
+    addIceCandidates(contents) {}
 
-/**
- * Handles an offer from the remote peer (prepares to accept a session).
- * @param jingle the 'jingle' XML element.
- * @param success callback called when we the incoming session has been accepted
- * @param failure callback called when we fail for any reason, will supply error
- *        object with details(which is meant more to be printed to the logger
- *        than analysed in the code, as the error is unrecoverable anyway)
- */
-// eslint-disable-next-line no-unused-vars
-JingleSession.prototype.acceptOffer = function(jingle, success, failure) {};
+    /* eslint-enable no-unused-vars, no-empty-function */
 
-module.exports = JingleSession;
+    /**
+     * Returns current state of this <tt>JingleSession</tt> instance.
+     * @returns {JingleSessionState} the current state of this session instance.
+     */
+    getState() {
+        return this.state;
+    }
+
+    /* eslint-disable no-unused-vars, no-empty-function */
+
+    /**
+     * Handles an 'add-source' event.
+     *
+     * @param contents an array of Jingle 'content' elements.
+     */
+    addSources(contents) {}
+
+    /**
+     * Handles a 'remove-source' event.
+     *
+     * @param contents an array of Jingle 'content' elements.
+     */
+    removeSources(contents) {}
+
+    /**
+     * Terminates this Jingle session by sending session-terminate
+     * @param success a callback called once the 'session-terminate' packet has
+     * been acknowledged with RESULT.
+     * @param failure a callback called when either timeout occurs or ERROR
+     * response is received.
+     * @param {Object} options
+     * @param {string} [options.reason] XMPP Jingle error condition
+     * @param {string} [options.reasonDescription] some meaningful error message
+     * @param {boolean} [options.sendSessionTerminate=true] set to false to skip
+     * sending session-terminate. It may not make sense to send it if the XMPP
+     * connection has been closed already or if the remote peer has disconnected
+     */
+    terminate(success, failure, options) {}
+
+    /**
+     * Handles an offer from the remote peer (prepares to accept a session).
+     * @param jingle the 'jingle' XML element.
+     * @param success callback called when we the incoming session has been
+     * accepted
+     * @param failure callback called when we fail for any reason, will supply
+     * error object with details(which is meant more to be printed to the logger
+     * than analysed in the code, as the error is unrecoverable anyway)
+     */
+    acceptOffer(jingle, success, failure) {}
+
+    /* eslint-enable no-unused-vars, no-empty-function */
+}

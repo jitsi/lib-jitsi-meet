@@ -10,7 +10,8 @@
  *  MediaDeviceInfo-like objects that are currently connected.
  *  @see https://developer.mozilla.org/en-US/docs/Web/API/MediaDeviceInfo
  */
-export const DEVICE_LIST_CHANGED = "mediaDevices.devicechange";
+export const DEVICE_LIST_CHANGED = 'mediaDevices.devicechange';
+
 /**
  * Indicates that the environment is currently showing permission prompt to
  * access camera and/or microphone. The event provides the following
@@ -21,4 +22,4 @@ export const DEVICE_LIST_CHANGED = "mediaDevices.devicechange";
  *  other execution environment.
  */
 export const PERMISSION_PROMPT_IS_SHOWN
-    = "mediaDevices.permissionPromptIsShown";
+    = 'mediaDevices.permissionPromptIsShown';

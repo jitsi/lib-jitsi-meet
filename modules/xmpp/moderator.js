@@ -1,32 +1,54 @@
 /* global $, $iq, Promise, Strophe */
 
-var logger = require("jitsi-meet-logger").getLogger(__filename);
-var XMPPEvents = require("../../service/xmpp/XMPPEvents");
-var AuthenticationEvents
-    = require("../../service/authentication/AuthenticationEvents");
-var GlobalOnErrorHandler = require("../util/GlobalOnErrorHandler");
-import Settings from "../settings/Settings";
+const logger = require('jitsi-meet-logger').getLogger(__filename);
 
+const XMPPEvents = require('../../service/xmpp/XMPPEvents');
+const AuthenticationEvents
+    = require('../../service/authentication/AuthenticationEvents');
+const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
+
+import RTCBrowserType from '../RTC/RTCBrowserType';
+import Settings from '../settings/Settings';
+
+/**
+ *
+ * @param step
+ */
 function createExpBackoffTimer(step) {
-    var count = 1;
-    return function (reset) {
+    let count = 1;
+
+    return function(reset) {
         // Reset call
         if (reset) {
             count = 1;
+
             return;
         }
+
         // Calculate next timeout
-        var timeout = Math.pow(2, count - 1);
+        const timeout = Math.pow(2, count - 1);
+
         count += 1;
+
         return timeout * step;
     };
 }
 
-function Moderator(roomName, xmpp, emitter, options) {
+/* eslint-disable max-params */
+
+/**
+ *
+ * @param roomName
+ * @param xmpp
+ * @param emitter
+ * @param options
+ */
+export default function Moderator(roomName, xmpp, emitter, options) {
     this.roomName = roomName;
     this.xmppService = xmpp;
     this.getNextTimeout = createExpBackoffTimer(1000);
     this.getNextErrorTimeout = createExpBackoffTimer(1000);
+
     // External authentication stuff
     this.externalAuthEnabled = false;
     this.options = options;
@@ -34,86 +56,97 @@ function Moderator(roomName, xmpp, emitter, options) {
     // Sip gateway can be enabled by configuring Jigasi host in config.js or
     // it will be enabled automatically if focus detects the component through
     // service discovery.
-    this.sipGatewayEnabled = this.options.connection.hosts &&
-        this.options.connection.hosts.call_control !== undefined;
+    this.sipGatewayEnabled
+        = this.options.connection.hosts
+            && this.options.connection.hosts.call_control !== undefined;
 
     this.eventEmitter = emitter;
 
     this.connection = this.xmppService.connection;
-    this.focusUserJid;
-    //FIXME:
-    // Message listener that talks to POPUP window
+
+    // FIXME: Message listener that talks to POPUP window
+    /**
+     *
+     * @param event
+     */
     function listener(event) {
         if (event.data && event.data.sessionId) {
             if (event.origin !== window.location.origin) {
-                logger.warn("Ignoring sessionId from different origin: " +
-                    event.origin);
+                logger.warn(
+                    `Ignoring sessionId from different origin: ${
+                        event.origin}`);
+
                 return;
             }
             Settings.setSessionId(event.data.sessionId);
+
             // After popup is closed we will authenticate
         }
     }
+
     // Register
     if (window.addEventListener) {
-        window.addEventListener("message", listener, false);
+        window.addEventListener('message', listener, false);
     } else {
-        window.attachEvent("onmessage", listener);
+        window.attachEvent('onmessage', listener);
     }
 }
 
-Moderator.prototype.isExternalAuthEnabled =  function () {
+/* eslint-enable max-params */
+
+Moderator.prototype.isExternalAuthEnabled = function() {
     return this.externalAuthEnabled;
 };
 
-Moderator.prototype.isSipGatewayEnabled =  function () {
+Moderator.prototype.isSipGatewayEnabled = function() {
     return this.sipGatewayEnabled;
 };
 
+Moderator.prototype.onMucMemberLeft = function(jid) {
+    logger.info(`Someone left is it focus ? ${jid}`);
+    const resource = Strophe.getResourceFromJid(jid);
 
-Moderator.prototype.onMucMemberLeft =  function (jid) {
-    logger.info("Someone left is it focus ? " + jid);
-    var resource = Strophe.getResourceFromJid(jid);
     if (resource === 'focus') {
         logger.info(
-            "Focus has left the room - leaving conference");
+            'Focus has left the room - leaving conference');
         this.eventEmitter.emit(XMPPEvents.FOCUS_LEFT);
     }
 };
 
-
-Moderator.prototype.setFocusUserJid =  function (focusJid) {
+Moderator.prototype.setFocusUserJid = function(focusJid) {
     if (!this.focusUserJid) {
         this.focusUserJid = focusJid;
-        logger.info("Focus jid set to:  " + this.focusUserJid);
+        logger.info(`Focus jid set to:  ${this.focusUserJid}`);
     }
 };
 
-
-Moderator.prototype.getFocusUserJid =  function () {
+Moderator.prototype.getFocusUserJid = function() {
     return this.focusUserJid;
 };
 
-Moderator.prototype.getFocusComponent =  function () {
+Moderator.prototype.getFocusComponent = function() {
     // Get focus component address
-    var focusComponent = this.options.connection.hosts.focus;
+    let focusComponent = this.options.connection.hosts.focus;
+
     // If not specified use default:  'focus.domain'
+
     if (!focusComponent) {
-        focusComponent = 'focus.' + this.options.connection.hosts.domain;
+        focusComponent = `focus.${this.options.connection.hosts.domain}`;
     }
+
     return focusComponent;
 };
 
-Moderator.prototype.createConferenceIq =  function () {
+Moderator.prototype.createConferenceIq = function() {
     // Generate create conference IQ
-    var elem = $iq({to: this.getFocusComponent(), type: 'set'});
+    const elem = $iq({ to: this.getFocusComponent(),
+        type: 'set' });
 
     // Session Id used for authentication
-    var sessionId = Settings.getSessionId();
-    var machineUID = Settings.getMachineId();
+    const sessionId = Settings.getSessionId();
+    const machineUID = Settings.getMachineId();
 
-    logger.info(
-            "Session ID: " + sessionId + " machine UID: " + machineUID);
+    logger.info(`Session ID: ${sessionId} machine UID: ${machineUID}`);
 
     elem.c('conference', {
         xmlns: 'http://jitsi.org/protocol/focus',
@@ -122,7 +155,7 @@ Moderator.prototype.createConferenceIq =  function () {
     });
 
     if (sessionId) {
-        elem.attrs({ 'session-id': sessionId});
+        elem.attrs({ 'session-id': sessionId });
     }
     if (this.options.connection.enforcedBridge !== undefined) {
         elem.c(
@@ -131,9 +164,10 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: this.options.connection.enforcedBridge
             }).up();
     }
+
     // Tell the focus we have Jigasi configured
-    if (this.options.connection.hosts !== undefined &&
-        this.options.connection.hosts.call_control !== undefined) {
+    if (this.options.connection.hosts !== undefined
+        && this.options.connection.hosts.call_control !== undefined) {
         elem.c(
             'property', {
                 name: 'call_control',
@@ -147,37 +181,15 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: this.options.conference.channelLastN
             }).up();
     }
-    if (this.options.conference.adaptiveLastN !== undefined) {
-        elem.c(
-            'property', {
-                name: 'adaptiveLastN',
-                value: this.options.conference.adaptiveLastN
-            }).up();
-    }
-    if (this.options.conference.disableAdaptiveSimulcast !== undefined ||
-        this.options.conference.disableSimulcast) {
-        // disableSimulcast implies disableAdaptiveSimulcast.
-        var value = this.options.conference.disableSimulcast ? true :
-            this.options.conference.disableAdaptiveSimulcast;
-        elem.c(
-            'property', {
-                name: 'disableAdaptiveSimulcast',
-                value: value
-            }).up();
-    }
-    // TODO: re-enable once rtx is stable
-    //if (this.options.conference.disableRtx !== undefined) {
-        elem.c(
-            'property', {
-                name: 'disableRtx',
-                //value: this.options.conference.disableRtx
-                value: true
-            }).up();
-    //}
+    elem.c(
+        'property', {
+            name: 'disableRtx',
+            value: Boolean(this.options.conference.disableRtx)
+        }).up();
     elem.c(
         'property', {
             name: 'enableLipSync',
-            value: false !== this.options.connection.enableLipSync
+            value: this.options.connection.enableLipSync !== false
         }).up();
     if (this.options.conference.audioPacketDelay !== undefined) {
         elem.c(
@@ -200,13 +212,30 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: this.options.conference.minBitrate
             }).up();
     }
-    if (this.options.conference.openSctp !== undefined) {
-        elem.c(
-            'property', {
-                name: 'openSctp',
-                value: this.options.conference.openSctp
-            }).up();
+
+    let openSctp;
+
+    switch (this.options.conference.openBridgeChannel) {
+    case 'datachannel':
+    case true:
+    case undefined:
+        openSctp = true;
+        break;
+    case 'websocket':
+        openSctp = false;
+        break;
     }
+
+    if (openSctp && !RTCBrowserType.supportsDataChannels()) {
+        openSctp = false;
+    }
+
+    elem.c(
+        'property', {
+            name: 'openSctp',
+            value: openSctp
+        }).up();
+
     if (this.options.conference.startAudioMuted !== undefined) {
         elem.c(
             'property', {
@@ -228,13 +257,6 @@ Moderator.prototype.createConferenceIq =  function () {
                 value: this.options.conference.stereo
             }).up();
     }
-
-    elem.c(
-        'property', {
-            name: 'simulcastMode',
-            value: 'rewriting'
-        }).up();
-
     if (this.options.conference.useRoomAsSharedDocumentName !== undefined) {
         elem.c(
             'property', {
@@ -243,43 +265,46 @@ Moderator.prototype.createConferenceIq =  function () {
             }).up();
     }
     elem.up();
+
     return elem;
 };
 
 
-Moderator.prototype.parseSessionId =  function (resultIq) {
-    var sessionId = $(resultIq).find('conference').attr('session-id');
+Moderator.prototype.parseSessionId = function(resultIq) {
+    // eslint-disable-next-line newline-per-chained-call
+    const sessionId = $(resultIq).find('conference').attr('session-id');
+
     if (sessionId) {
-        logger.info('Received sessionId:  ' + sessionId);
+        logger.info(`Received sessionId:  ${sessionId}`);
         Settings.setSessionId(sessionId);
     }
 };
 
-Moderator.prototype.parseConfigOptions =  function (resultIq) {
+Moderator.prototype.parseConfigOptions = function(resultIq) {
+    // eslint-disable-next-line newline-per-chained-call
+    this.setFocusUserJid($(resultIq).find('conference').attr('focusjid'));
 
-    this.setFocusUserJid(
-        $(resultIq).find('conference').attr('focusjid'));
-
-    var authenticationEnabled
+    const authenticationEnabled
         = $(resultIq).find(
-            '>conference>property' +
-            '[name=\'authentication\'][value=\'true\']').length > 0;
+            '>conference>property'
+            + '[name=\'authentication\'][value=\'true\']').length > 0;
 
-    logger.info("Authentication enabled: " + authenticationEnabled);
+    logger.info(`Authentication enabled: ${authenticationEnabled}`);
 
     this.externalAuthEnabled = $(resultIq).find(
-            '>conference>property' +
-            '[name=\'externalAuth\'][value=\'true\']').length > 0;
+            '>conference>property'
+            + '[name=\'externalAuth\'][value=\'true\']').length > 0;
 
     logger.info(
-        'External authentication enabled: ' + this.externalAuthEnabled);
+        `External authentication enabled: ${this.externalAuthEnabled}`);
 
     if (!this.externalAuthEnabled) {
         // We expect to receive sessionId in 'internal' authentication mode
         this.parseSessionId(resultIq);
     }
 
-    var authIdentity = $(resultIq).find('>conference').attr('identity');
+    // eslint-disable-next-line newline-per-chained-call
+    const authIdentity = $(resultIq).find('>conference').attr('identity');
 
     this.eventEmitter.emit(AuthenticationEvents.IDENTITY_UPDATED,
         authenticationEnabled, authIdentity);
@@ -287,12 +312,12 @@ Moderator.prototype.parseConfigOptions =  function (resultIq) {
     // Check if focus has auto-detected Jigasi component(this will be also
     // included if we have passed our host from the config)
     if ($(resultIq).find(
-        '>conference>property' +
-        '[name=\'sipGatewayEnabled\'][value=\'true\']').length) {
+        '>conference>property'
+        + '[name=\'sipGatewayEnabled\'][value=\'true\']').length) {
         this.sipGatewayEnabled = true;
     }
 
-    logger.info("Sip gateway enabled:  " + this.sipGatewayEnabled);
+    logger.info(`Sip gateway enabled:  ${this.sipGatewayEnabled}`);
 };
 
 // FIXME We need to show the fact that we're waiting for the focus to the user
@@ -303,14 +328,16 @@ Moderator.prototype.parseConfigOptions =  function (resultIq) {
  * @param {Function} callback - the function to be called back upon the
  * successful allocation of the conference focus
  */
-Moderator.prototype.allocateConferenceFocus =  function (callback) {
+Moderator.prototype.allocateConferenceFocus = function(callback) {
     // Try to use focus user JID from the config
     this.setFocusUserJid(this.options.connection.focusUserJid);
+
     // Send create conference IQ
     this.connection.sendIQ(
         this.createConferenceIq(),
         result => this._allocateConferenceFocusSuccess(result, callback),
         error => this._allocateConferenceFocusError(error, callback));
+
     // XXX We're pressed for time here because we're beginning a complex and/or
     // lengthy conference-establishment process which supposedly involves
     // multiple RTTs. We don't have the time to wait for Strophe to decide to
@@ -327,59 +354,74 @@ Moderator.prototype.allocateConferenceFocus =  function (callback) {
  * @param {Function} callback - the function to be called back upon the
  * successful allocation of the conference focus
  */
-Moderator.prototype._allocateConferenceFocusError = function (error, callback) {
+Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
     // If the session is invalid, remove and try again without session ID to get
     // a new one
-    var invalidSession = $(error).find('>error>session-invalid').length;
+    const invalidSession = $(error).find('>error>session-invalid').length;
+
     if (invalidSession) {
-        logger.info("Session expired! - removing");
+        logger.info('Session expired! - removing');
         Settings.clearSessionId();
     }
     if ($(error).find('>error>graceful-shutdown').length) {
         this.eventEmitter.emit(XMPPEvents.GRACEFUL_SHUTDOWN);
+
         return;
     }
+
     // Check for error returned by the reservation system
-    var reservationErr = $(error).find('>error>reservation-error');
+    const reservationErr = $(error).find('>error>reservation-error');
+
     if (reservationErr.length) {
         // Trigger error event
-        var errorCode = reservationErr.attr('error-code');
-        var errorTextNode = $(error).find('>error>text');
-        var errorMsg;
+        const errorCode = reservationErr.attr('error-code');
+        const errorTextNode = $(error).find('>error>text');
+        let errorMsg;
+
         if (errorTextNode) {
             errorMsg = errorTextNode.text();
         }
         this.eventEmitter.emit(
                 XMPPEvents.RESERVATION_ERROR, errorCode, errorMsg);
+
         return;
     }
+
     // Not authorized to create new room
     if ($(error).find('>error>not-authorized').length) {
-        logger.warn("Unauthorized to start the conference", error);
-        var toDomain = Strophe.getDomainFromJid(error.getAttribute('to'));
+        logger.warn('Unauthorized to start the conference', error);
+        const toDomain = Strophe.getDomainFromJid(error.getAttribute('to'));
+
         if (toDomain !== this.options.connection.hosts.anonymousdomain) {
-            //FIXME "is external" should come either from the focus or config.js
+            // FIXME "is external" should come either from the focus or
+            // config.js
             this.externalAuthEnabled = true;
         }
         this.eventEmitter.emit(XMPPEvents.AUTHENTICATION_REQUIRED);
+
         return;
     }
-    var waitMs = this.getNextErrorTimeout();
-    var errmsg = "Focus error, retry after "+ waitMs;
+    const waitMs = this.getNextErrorTimeout();
+    const errmsg = `Focus error, retry after ${waitMs}`;
+
     GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
     logger.error(errmsg, error);
+
     // Show message
-    var focusComponent = this.getFocusComponent();
-    var retrySec = waitMs / 1000;
-    //FIXME: message is duplicated ? Do not show in case of session invalid
+    const focusComponent = this.getFocusComponent();
+    const retrySec = waitMs / 1000;
+
+    // FIXME: message is duplicated ? Do not show in case of session invalid
     // which means just a retry
+
     if (!invalidSession) {
         this.eventEmitter.emit(
                 XMPPEvents.FOCUS_DISCONNECTED, focusComponent, retrySec);
     }
+
     // Reset response timeout
     this.getNextTimeout(true);
-    window.setTimeout( () => this.allocateConferenceFocus(callback), waitMs);
+    window.setTimeout(() => this.allocateConferenceFocus(callback), waitMs);
 };
 
 /**
@@ -391,7 +433,7 @@ Moderator.prototype._allocateConferenceFocusError = function (error, callback) {
  * @param {Function} callback - the function to be called back upon the
  * successful allocation of the conference focus
  */
-Moderator.prototype._allocateConferenceFocusSuccess = function (
+Moderator.prototype._allocateConferenceFocusSuccess = function(
         result,
         callback) {
     // Setup config options
@@ -399,20 +441,24 @@ Moderator.prototype._allocateConferenceFocusSuccess = function (
 
     // Reset the error timeout (because we haven't failed here).
     this.getNextErrorTimeout(true);
-    if ('true' === $(result).find('conference').attr('ready')) {
+
+    // eslint-disable-next-line newline-per-chained-call
+    if ($(result).find('conference').attr('ready') === 'true') {
         // Reset the non-error timeout (because we've succeeded here).
         this.getNextTimeout(true);
+
         // Exec callback
         callback();
     } else {
-        var waitMs = this.getNextTimeout();
-        logger.info("Waiting for the focus... " + waitMs);
+        const waitMs = this.getNextTimeout();
+
+        logger.info(`Waiting for the focus... ${waitMs}`);
         window.setTimeout(() => this.allocateConferenceFocus(callback),
             waitMs);
     }
 };
 
-Moderator.prototype.authenticate = function () {
+Moderator.prototype.authenticate = function() {
     return new Promise((resolve, reject) => {
         this.connection.sendIQ(
             this.createConferenceIq(),
@@ -420,14 +466,16 @@ Moderator.prototype.authenticate = function () {
                 this.parseSessionId(result);
                 resolve();
             }, error => {
-                var code = $(error).find('>error').attr('code');
+                // eslint-disable-next-line newline-per-chained-call
+                const code = $(error).find('>error').attr('code');
+
                 reject(error, code);
             }
         );
     });
 };
 
-Moderator.prototype.getLoginUrl = function (urlCallback, failureCallback) {
+Moderator.prototype.getLoginUrl = function(urlCallback, failureCallback) {
     this._getLoginUrl(/* popup */ false, urlCallback, failureCallback);
 };
 
@@ -438,19 +486,22 @@ Moderator.prototype.getLoginUrl = function (urlCallback, failureCallback) {
  * @param urlCb
  * @param failureCb
  */
-Moderator.prototype._getLoginUrl = function (popup, urlCb, failureCb) {
-    var iq = $iq({to: this.getFocusComponent(), type: 'get'});
-    var attrs = {
+Moderator.prototype._getLoginUrl = function(popup, urlCb, failureCb) {
+    const iq = $iq({ to: this.getFocusComponent(),
+        type: 'get' });
+    const attrs = {
         xmlns: 'http://jitsi.org/protocol/focus',
         room: this.roomName,
         'machine-uid': Settings.getMachineId()
     };
-    var str = 'auth url'; // for logger
+    let str = 'auth url'; // for logger
+
     if (popup) {
-       attrs.popup = true;
-       str = 'POPUP ' + str;
+        attrs.popup = true;
+        str = `POPUP ${str}`;
     }
     iq.c('login-url', attrs);
+
     /**
      * Implements a failure callback which reports an error message and an error
      * through (1) GlobalOnErrorHandler, (2) logger, and (3) failureCb.
@@ -465,29 +516,34 @@ Moderator.prototype._getLoginUrl = function (popup, urlCb, failureCb) {
     }
     this.connection.sendIQ(
         iq,
-        function (result) {
-            var url = $(result).find('login-url').attr('url');
+        result => {
+            // eslint-disable-next-line newline-per-chained-call
+            let url = $(result).find('login-url').attr('url');
+
             url = decodeURIComponent(url);
             if (url) {
-                logger.info('Got ' + str + ': ' + url);
+                logger.info(`Got ${str}: ${url}`);
                 urlCb(url);
             } else {
-                reportError('Failed to get ' + str + ' from the focus', result);
+                reportError(`Failed to get ${str} from the focus`, result);
             }
         },
-        reportError.bind(undefined, 'Get ' + str + ' error')
+        reportError.bind(undefined, `Get ${str} error`)
     );
 };
 
-Moderator.prototype.getPopupLoginUrl = function (urlCallback, failureCallback) {
+Moderator.prototype.getPopupLoginUrl = function(urlCallback, failureCallback) {
     this._getLoginUrl(/* popup */ true, urlCallback, failureCallback);
 };
 
-Moderator.prototype.logout =  function (callback) {
-    var iq = $iq({to: this.getFocusComponent(), type: 'set'});
-    var sessionId = Settings.getSessionId();
+Moderator.prototype.logout = function(callback) {
+    const iq = $iq({ to: this.getFocusComponent(),
+        type: 'set' });
+    const sessionId = Settings.getSessionId();
+
     if (!sessionId) {
         callback();
+
         return;
     }
     iq.c('logout', {
@@ -496,21 +552,22 @@ Moderator.prototype.logout =  function (callback) {
     });
     this.connection.sendIQ(
         iq,
-        function (result) {
-            var logoutUrl = $(result).find('logout').attr('logout-url');
+        result => {
+            // eslint-disable-next-line newline-per-chained-call
+            let logoutUrl = $(result).find('logout').attr('logout-url');
+
             if (logoutUrl) {
                 logoutUrl = decodeURIComponent(logoutUrl);
             }
-            logger.info("Log out OK, url: " + logoutUrl, result);
+            logger.info(`Log out OK, url: ${logoutUrl}`, result);
             Settings.clearSessionId();
             callback(logoutUrl);
-        }.bind(this),
-        function (error) {
-            var errmsg = "Logout error";
+        },
+        error => {
+            const errmsg = 'Logout error';
+
             GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
             logger.error(errmsg, error);
         }
     );
 };
-
-module.exports = Moderator;

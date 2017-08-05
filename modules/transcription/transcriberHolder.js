@@ -5,10 +5,10 @@
  * This is probably temporary until there is a better way to expose the
  * Transcriber in a conference
  */
-var transcriberHolder = {
-    transcribers : [],
+const transcriberHolder = {
+    transcribers: [],
 
-    add : function(transcriber){
+    add(transcriber) {
         transcriberHolder.transcribers.push(transcriber);
     }
 };

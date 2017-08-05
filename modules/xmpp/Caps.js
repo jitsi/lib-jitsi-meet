@@ -1,55 +1,65 @@
 /* global $, b64_sha1, Strophe */
-import XMPPEvents from "../../service/xmpp/XMPPEvents";
+import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import Listenable from '../util/Listenable';
 
 /**
  * The property
  */
-const IDENTITY_PROPERTIES = ["category", "type", "lang", "name"];
-const IDENTITY_PROPERTIES_FOR_COMPARE = ["category", "type", "lang"];
-const HASH = "sha-1";
+const IDENTITY_PROPERTIES = [ 'category', 'type', 'lang', 'name' ];
+const IDENTITY_PROPERTIES_FOR_COMPARE = [ 'category', 'type', 'lang' ];
+const HASH = 'sha-1';
 
+/**
+ *
+ * @param a
+ * @param b
+ */
 function compareIdentities(a, b) {
     let res = 0;
+
     IDENTITY_PROPERTIES_FOR_COMPARE.some(key =>
         (res = ((a[key] > b[key]) && 1) || ((a[key] < b[key]) && -1)) !== 0
     );
+
     return res;
 }
 
 /**
  * Implements xep-0115 ( http://xmpp.org/extensions/xep-0115.html )
  */
-export default class Caps {
+export default class Caps extends Listenable {
     /**
      * Constructs new Caps instance.
      * @param {Strophe.Connection} connection the strophe connection object
      * @param {String} node the value of the node attribute of the "c" xml node
      * that will be sent to the other participants
      */
-    constructor(connection = {}, node = "http://jitsi.org/jitsimeet") {
+    constructor(connection = {}, node = 'http://jitsi.org/jitsimeet') {
+        super();
         this.node = node;
         this.disco = connection.disco;
-        if(!this.disco) {
+        if (!this.disco) {
             throw new Error(
-                "Missing strophe-plugins "
-                + "(disco and caps plugins are required)!");
+                'Missing strophe-plugins '
+                + '(disco and caps plugins are required)!');
         }
 
         this.versionToCapabilities = Object.create(null);
         this.jidToVersion = Object.create(null);
-        this.version = "";
+        this.version = '';
         this.rooms = new Set();
 
         const emuc = connection.emuc;
+
         emuc.addListener(XMPPEvents.EMUC_ROOM_ADDED,
             room => this._addChatRoom(room));
         emuc.addListener(XMPPEvents.EMUC_ROOM_REMOVED,
             room => this._removeChatRoom(room));
-        for(let jid in emuc.rooms) {
-            this._addChatRoom(this.emuc.rooms[jid]);
-        }
+        Object.keys(emuc.rooms).forEach(jid => {
+            this._addChatRoom(emuc.rooms[jid]);
+        });
 
-        Strophe.addNamespace("CAPS", "http://jabber.org/protocol/caps");
+        Strophe.addNamespace('CAPS', 'http://jabber.org/protocol/caps');
         this.disco.addFeature(Strophe.NS.CAPS);
         connection.addHandler(this._handleCaps.bind(this), Strophe.NS.CAPS);
 
@@ -66,7 +76,7 @@ export default class Caps {
     addFeature(feature, submit = false) {
         this.disco.addFeature(feature);
         this._generateVersion();
-        if(submit) {
+        if (submit) {
             this.submit();
         }
     }
@@ -81,7 +91,7 @@ export default class Caps {
     removeFeature(feature, submit = false) {
         this.disco.removeFeature(feature);
         this._generateVersion();
-        if(submit) {
+        if (submit) {
             this.submit();
         }
     }
@@ -100,24 +110,32 @@ export default class Caps {
      * @returns {Promise<Set<String>, Error>}
      */
     getFeatures(jid, timeout = 5000) {
-        let user
-            = (jid in this.jidToVersion) ? this.jidToVersion[jid] : null;
-        if(!user || !(user.version in this.versionToCapabilities))
-        {
-            const node = (user)? user.node + "#" + user.version : null;
-            return new Promise ( (resolve, reject) =>
+        const user
+            = jid in this.jidToVersion ? this.jidToVersion[jid] : null;
+
+        if (!user || !(user.version in this.versionToCapabilities)) {
+            const node = user ? `${user.node}#${user.version}` : null;
+
+
+            return new Promise((resolve, reject) =>
                 this.disco.info(jid, node, response => {
-                        const features = new Set();
-                        $(response).find(">query>feature").each((idx, el) =>
-                            features.add(el.getAttribute("var")));
-                        if(user) {
-                            this.versionToCapabilities[user.version]
+                    const features = new Set();
+
+                    $(response)
+                        .find('>query>feature')
+                        .each(
+                            (idx, el) => features.add(el.getAttribute('var')));
+                    if (user) {
+                            // TODO: Maybe use the version + node + hash
+                            // as keys?
+                        this.versionToCapabilities[user.version]
                                 = features;
-                        }
-                        resolve(features);
-                    }, reject , timeout)
+                    }
+                    resolve(features);
+                }, reject, timeout)
             );
         }
+
         return Promise.resolve(this.versionToCapabilities[user.version]);
     }
 
@@ -147,7 +165,7 @@ export default class Caps {
      * @param {ChatRoom} room the room.
      */
     _fixChatRoomPresenceMap(room) {
-        room.addToPresence("c", {
+        room.addToPresence('c', {
             attributes: {
                 xmlns: Strophe.NS.CAPS,
                 hash: HASH,
@@ -161,7 +179,7 @@ export default class Caps {
      * Handles this.version changes.
      */
     _notifyVersionChanged() {
-        //update the version for all rooms
+        // update the version for all rooms
         this.rooms.forEach(room => this._fixChatRoomPresenceMap(room));
         this.submit();
     }
@@ -172,15 +190,19 @@ export default class Caps {
     _generateVersion() {
         const identities = this.disco._identities.sort(compareIdentities);
         const features = this.disco._features.sort();
+
         this.version = b64_sha1(
             identities.reduce(
-                (accumulatedValue, identity) => {
-                    return IDENTITY_PROPERTIES.reduce((tmp, key, idx) => {
-                        return (idx === 0 ? "" : "/") + identity[key];
-                    }, "") + "<";
-                }, ""
-            ) + features.reduce((tmp, feature) => feature + "<", "")
-        );
+                    (accumulatedValue, identity) =>
+                        `${IDENTITY_PROPERTIES.reduce(
+                                (tmp, key, idx) =>
+                                    tmp
+                                        + (idx === 0 ? '' : '/')
+                                        + identity[key],
+                                '')
+                             }<`,
+                    '')
+                + features.reduce((tmp, feature) => `${tmp + feature}<`, ''));
         this._notifyVersionChanged();
     }
 
@@ -189,11 +211,19 @@ export default class Caps {
      * @param {DOMElement} stanza the presence packet
      */
     _handleCaps(stanza) {
-        const from = stanza.getAttribute("from");
-        const caps = stanza.querySelector("c");
-        const version = caps.getAttribute("ver");
-        const node = caps.getAttribute("node");
-        this.jidToVersion[from] = {version, node};
+        const from = stanza.getAttribute('from');
+        const caps = stanza.querySelector('c');
+        const version = caps.getAttribute('ver');
+        const node = caps.getAttribute('node');
+        const oldVersion = this.jidToVersion[from];
+
+        this.jidToVersion[from] = { version,
+            node };
+        if (oldVersion && oldVersion.version !== version) {
+            this.eventEmitter.emit(XMPPEvents.PARTCIPANT_FEATURES_CHANGED,
+                from);
+        }
+
         // return true to not remove the handler from Strophe
         return true;
     }
@@ -203,7 +233,7 @@ export default class Caps {
      * @param {String} jid the jid to be removed.
      */
     _removeJidToVersionEntry(jid) {
-        if(jid in this.jidToVersion) {
+        if (jid in this.jidToVersion) {
             delete this.jidToVersion[jid];
         }
     }

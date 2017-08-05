@@ -1,55 +1,58 @@
-var Resolutions = {
-    "1080": {
+const Resolutions = {
+    '1080': {
         width: 1920,
         height: 1080,
         order: 7
     },
-    "fullhd": {
+    'fullhd': {
         width: 1920,
         height: 1080,
         order: 7
     },
-    "720": {
+    '720': {
         width: 1280,
         height: 720,
         order: 6
     },
-    "hd": {
+    'hd': {
         width: 1280,
         height: 720,
         order: 6
     },
-    "960": {
+    '960': {
         width: 960,
         height: 720,
         order: 5
     },
+
     // 16:9 resolution first.
-    "360": {
+    '360': {
         width: 640,
         height: 360,
         order: 4
     },
-    "640": {
+    '640': {
         width: 640,
         height: 480,
         order: 3
     },
-    "vga": {
+    'vga': {
         width: 640,
         height: 480,
         order: 3
     },
+
     // 16:9 resolution first.
-    "180": {
+    '180': {
         width: 320,
         height: 180,
         order: 2
     },
-    "320": {
+    '320': {
         width: 320,
         height: 240,
         order: 1
     }
 };
+
 module.exports = Resolutions;

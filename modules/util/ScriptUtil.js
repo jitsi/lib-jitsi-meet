@@ -1,11 +1,12 @@
-var currentExecutingScript = require("current-executing-script");
+const currentExecutingScript = require('current-executing-script');
 
+/* eslint-disable max-params */
 
 /**
  * Implements utility functions which facilitate the dealing with scripts such
  * as the download and execution of a JavaScript file.
  */
-var ScriptUtil = {
+const ScriptUtil = {
     /**
      * Loads a script from a specific source.
      *
@@ -21,32 +22,43 @@ var ScriptUtil = {
      * @param loadCallback on load callback function
      * @param errorCallback callback to be called on error loading the script
      */
-    loadScript: function (src, async, prepend, relativeURL,
-                          loadCallback, errorCallback) {
-        var d = document;
-        var tagName = 'script';
-        var script = d.createElement(tagName);
-        var referenceNode = d.getElementsByTagName(tagName)[0];
+    loadScript(
+            src,
+            async,
+            prepend,
+            relativeURL,
+            loadCallback,
+            errorCallback) {
+        const d = document;
+        const tagName = 'script';
+        const script = d.createElement(tagName);
+        const referenceNode = d.getElementsByTagName(tagName)[0];
 
         script.async = async;
 
         if (relativeURL) {
             // finds the src url of the current loaded script
             // and use it as base of the src supplied argument
-            var scriptEl = currentExecutingScript();
-            if(scriptEl) {
-                var scriptSrc = scriptEl.src;
-                var baseScriptSrc
+            const scriptEl = currentExecutingScript();
+
+            if (scriptEl) {
+                const scriptSrc = scriptEl.src;
+                const baseScriptSrc
                     = scriptSrc.substring(0, scriptSrc.lastIndexOf('/') + 1);
-                if (scriptSrc && baseScriptSrc)
+
+                if (scriptSrc && baseScriptSrc) {
+                    // eslint-disable-next-line no-param-reassign
                     src = baseScriptSrc + src;
+                }
             }
         }
 
-        if (loadCallback)
+        if (loadCallback) {
             script.onload = loadCallback;
-        if (errorCallback)
+        }
+        if (errorCallback) {
             script.onerror = errorCallback;
+        }
 
         script.src = src;
         if (prepend) {
@@ -56,5 +68,7 @@ var ScriptUtil = {
         }
     }
 };
+
+/* eslint-enable max-params */
 
 module.exports = ScriptUtil;
