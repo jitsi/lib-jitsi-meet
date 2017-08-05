@@ -279,7 +279,7 @@ const ScreenObtainer = {
                     if (firefoxExtInstalled === null) {
                         firefoxExtInstalled = false;
                     }
-                    this.obtainScreenOnFirefox(callback, errorCallback);
+                    this.obtainScreenOnFirefox(callback, errorCallback, options);
                 },
                 300);
             logger.log(
