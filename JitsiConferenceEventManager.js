@@ -438,7 +438,7 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
         Statistics.analytics.sendEvent('conference.dataChannel.open',
             { value: now });
 
-        conference.eventEmitter.emit(JitsiConferenceEvents.DATA_CHANNEL_OPEN);
+        conference.eventEmitter.emit(JitsiConferenceEvents.DATA_CHANNEL_OPENED);
     });
 
     rtc.addListener(

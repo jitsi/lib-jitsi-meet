@@ -59,7 +59,7 @@ export const CONNECTION_RESTORED = 'conference.connectionRestored';
 /**
  * A connection to the video bridge's data channel has been established.
  */
-export const DATA_CHANNEL_OPEN = 'conference.dataChannelOpen';
+export const DATA_CHANNEL_OPENED = 'conference.dataChannelOpened';
 
 /**
  * A user has changed it display name
