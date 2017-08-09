@@ -128,6 +128,13 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this._realDeviceId = this.deviceId === '' ? undefined : this.deviceId;
 
         /**
+         * Set to <tt>true</tt> when there's ongoing "mute/unmute" operation in
+         * progress. Used by {@link LocalSdpMunger}.
+         * @type {boolean}
+         */
+        this.inMuteOrUnmuteProgress = true;
+
+        /**
          * Indicates that we have called RTCUtils.stopMediaStream for the
          * MediaStream related to this JitsiTrack object.
          */
@@ -334,6 +341,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         let promise = Promise.resolve();
 
+        this.inMuteOrUnmuteProgress = true;
         this.dontFireRemoveEvent = false;
 
         // A function that will print info about muted status transition
@@ -406,6 +414,13 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         return promise
             .then(() => this._sendMuteStatus(mute))
+            .then(() => {
+                this.inMuteOrUnmuteProgress = false;
+            }, error => {
+                this.inMuteOrUnmuteProgress = false;
+
+                throw error;
+            })
             .then(() => {
                 this.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, this);
             });
