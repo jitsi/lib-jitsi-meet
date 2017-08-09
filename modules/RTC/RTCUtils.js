@@ -260,14 +260,14 @@ function getConstraints(um, options) {
 
             // if it is good enough for hangouts...
             constraints.audio.optional.push(
-                { echoCancellation: !disableAP },
-                { googEchoCancellation: !disableAEC },
-                { googAutoGainControl: !disableAGC },
-                { googNoiseSupression: !disableNS },
-                { googHighpassFilter: !disableHPF },
-                { googNoiseSuppression2: !disableNS },
-                { googEchoCancellation2: !disableAEC },
-                { googAutoGainControl2: !disableAGC }
+                { echoCancellation: !disableAEC && !disableAP },
+                { googEchoCancellation: !disableAEC && !disableAP },
+                { googAutoGainControl: !disableAGC && !disableAP },
+                { googNoiseSupression: !disableNS && !disableAP },
+                { googHighpassFilter: !disableHPF && !disableAP },
+                { googNoiseSuppression2: !disableNS && !disableAP },
+                { googEchoCancellation2: !disableAEC && !disableAP },
+                { googAutoGainControl2: !disableAGC && !disableAP }
             );
         }
     }
