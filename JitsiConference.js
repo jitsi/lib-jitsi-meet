@@ -2588,6 +2588,19 @@ JitsiConference.prototype.getSpeakerStats = function() {
 };
 
 /**
+ * Sets the maximum video size the local participant should receive from remote
+ * participants.
+ *
+ * @param {number} maxFrameHeightPixels the maximum frame height, in pixels,
+ * this receiver is willing to receive.
+ * @returns {void}
+ */
+JitsiConference.prototype.setReceiverVideoConstraint
+= function(maxFrameHeight) {
+    this.rtc.setReceiverVideoConstraint(maxFrameHeight);
+};
+
+/**
  * Get video SIP GW handler, if missing will create one.
  *
  * @returns {VideoSIPGW} video SIP GW handler.

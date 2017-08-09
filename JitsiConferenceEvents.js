@@ -57,6 +57,11 @@ export const CONNECTION_INTERRUPTED = 'conference.connectionInterrupted';
 export const CONNECTION_RESTORED = 'conference.connectionRestored';
 
 /**
+ * A connection to the video bridge's data channel has been established.
+ */
+export const DATA_CHANNEL_OPENED = 'conference.dataChannelOpened';
+
+/**
  * A user has changed it display name
  */
 export const DISPLAY_NAME_CHANGED = 'conference.displayNameChanged';
