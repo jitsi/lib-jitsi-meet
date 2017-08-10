@@ -56,10 +56,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             stream,
             track,
             () => {
-                if (!this.dontFireRemoveEvent) {
-                    this.emit(JitsiTrackEvents.LOCAL_TRACK_STOPPED);
-                }
-                this.dontFireRemoveEvent = false;
+                this.emit(JitsiTrackEvents.LOCAL_TRACK_STOPPED);
             } /* inactiveHandler */,
             mediaType,
             videoType);
@@ -69,7 +66,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
          * @type {number}
          */
         this.rtcId = rtcId;
-        this.dontFireRemoveEvent = false;
         this.resolution = resolution;
         this.sourceId = sourceId;
         this.sourceType = sourceType;
@@ -342,7 +338,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
         let promise = Promise.resolve();
 
         this.inMuteOrUnmuteProgress = true;
-        this.dontFireRemoveEvent = false;
 
         // A function that will print info about muted status transition
         const logMuteInfo = () => logger.info(`Mute ${this}: ${mute}`);
@@ -361,6 +356,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 this._removeStreamFromConferenceAsMute(() => {
                     // FIXME: Maybe here we should set the SRC for the
                     // containers to something
+                    // We don't want any events to be fired on this stream
+                    this._unregisterHandlers();
                     this._stopMediaStream();
                     this._setStream(null);
                     resolve();
