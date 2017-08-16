@@ -2264,7 +2264,7 @@ JitsiConference.prototype._resumeMediaTransferForJvbConnection = function() {
  */
 JitsiConference.prototype._setP2PStatus = function(newStatus) {
     if (this.p2p === newStatus) {
-        logger.error(`Called _setP2PStatus with the same status: ${newStatus}`);
+        logger.debug(`Called _setP2PStatus with the same status: ${newStatus}`);
 
         return;
     }
