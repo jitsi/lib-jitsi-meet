@@ -65,19 +65,17 @@ export default class LocalSdpMunger {
         let modified = false;
 
         for (const videoTrack of localVideos) {
-            const isMuted = videoTrack.isMuted();
-            const muteInProgress = videoTrack.inMuteOrUnmuteProgress;
-            const shouldFakeSdp = isMuted || muteInProgress;
+            const muted = videoTrack.isMuted();
+            const { setMutedInProgress } = videoTrack;
+            const shouldFakeSdp = muted || setMutedInProgress;
 
             logger.debug(
-                `${this.tpc} ${videoTrack
-                 } isMuted: ${isMuted
-                 }, is mute in progress: ${muteInProgress
-                 } => should fake sdp ? : ${shouldFakeSdp}`);
+                `${this.tpc} ${videoTrack} muted: ${muted
+                    }, is mute/unmute in progress: ${setMutedInProgress
+                    } => should fake sdp ? : ${shouldFakeSdp}`);
 
             if (!shouldFakeSdp) {
-                // eslint-disable-next-line no-continue
-                continue;
+                continue; // eslint-disable-line no-continue
             }
 
             // Inject removed SSRCs
@@ -90,8 +88,7 @@ export default class LocalSdpMunger {
                 logger.error(
                     `No SSRCs stored for: ${videoTrack} in ${this.tpc}`);
 
-                // eslint-disable-next-line no-continue
-                continue;
+                continue; // eslint-disable-line no-continue
             }
 
             modified = true;
@@ -99,18 +96,16 @@ export default class LocalSdpMunger {
             // We need to fake sendrecv.
             // NOTE the SDP produced here goes only to Jicofo and is never set
             // as localDescription. That's why
-            // {@link TraceablePeerConnection.mediaTransferActive} is ignored
-            // here.
+            // TraceablePeerConnection.mediaTransferActive is ignored here.
             videoMLine.direction = 'sendrecv';
 
             // Check if the recvonly has MSID
             const primarySSRC = requiredSSRCs[0];
 
-            // FIXME the cname could come from the stream, but may
-            // turn out to be too complex. It is fine to come up
-            // with any value, as long as we only care about
-            // the actual SSRC values when deciding whether or not
-            // an update should be sent
+            // FIXME The cname could come from the stream, but may turn out to
+            // be too complex. It is fine to come up with any value, as long as
+            // we only care about the actual SSRC values when deciding whether
+            // or not an update should be sent.
             const primaryCname = `injected-${primarySSRC}`;
 
             for (const ssrcNum of requiredSSRCs) {
@@ -119,8 +114,8 @@ export default class LocalSdpMunger {
 
                 // Inject
                 logger.debug(
-                    `${this.tpc} injecting video SSRC: `
-                        + `${ssrcNum} for ${videoTrack}`);
+                    `${this.tpc} injecting video SSRC: ${ssrcNum} for ${
+                        videoTrack}`);
                 videoMLine.addSSRCAttribute({
                     id: ssrcNum,
                     attribute: 'cname',

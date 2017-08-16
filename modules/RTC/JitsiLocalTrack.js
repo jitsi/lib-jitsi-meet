@@ -4,8 +4,12 @@ import CameraFacingMode from '../../service/RTC/CameraFacingMode';
 import { getLogger } from 'jitsi-meet-logger';
 import JitsiTrack from './JitsiTrack';
 import JitsiTrackError from '../../JitsiTrackError';
-import * as JitsiTrackErrors from '../../JitsiTrackErrors';
-import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import { TRACK_NO_STREAM_FOUND } from '../../JitsiTrackErrors';
+import {
+    LOCAL_TRACK_STOPPED,
+    NO_DATA_FROM_SOURCE,
+    TRACK_MUTE_CHANGED
+} from '../../JitsiTrackEvents';
 import * as MediaType from '../../service/RTC/MediaType';
 import RTCBrowserType from './RTCBrowserType';
 import RTCEvents from '../../service/RTC/RTCEvents';
@@ -37,27 +41,23 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * source. NOTE: defined for desktop sharing tracks only.
      * @constructor
      */
-    constructor(trackInfo) {
-        const {
-            rtcId,
-            stream,
-            track,
-            mediaType,
-            videoType,
-            resolution,
-            deviceId,
-            facingMode,
-            sourceId,
-            sourceType
-        } = trackInfo;
-
+    constructor({
+        deviceId,
+        facingMode,
+        mediaType,
+        resolution,
+        rtcId,
+        sourceId,
+        sourceType,
+        stream,
+        track,
+        videoType
+    }) {
         super(
-            null /* RTC */,
+            /* conference */ null,
             stream,
             track,
-            () => {
-                this.emit(JitsiTrackEvents.LOCAL_TRACK_STOPPED);
-            } /* inactiveHandler */,
+            /* streamInactiveHandler */ () => this.emit(LOCAL_TRACK_STOPPED),
             mediaType,
             videoType);
 
@@ -66,29 +66,25 @@ export default class JitsiLocalTrack extends JitsiTrack {
          * @type {number}
          */
         this.rtcId = rtcId;
-        this.resolution = resolution;
         this.sourceId = sourceId;
         this.sourceType = sourceType;
 
-        // FIXME: currently firefox is ignoring our constraints about
+        // FIXME Currently, Firefox is ignoring our constraints about
         // resolutions so we do not store it, to avoid wrong reporting of local
-        // track resolution
-        if (RTCBrowserType.isFirefox()) {
-            this.resolution = null;
-        }
+        // track resolution.
+        this.resolution = RTCBrowserType.isFirefox() ? null : resolution;
 
         this.deviceId = deviceId;
-        this.storedMSID = this.getMSID();
 
         /**
          * The <tt>Promise</tt> which represents the progress of a previously
-         * queued/scheduled {@link _setMute} (from the point of view of
-         * {@link _queueSetMute}).
+         * queued/scheduled {@link _setMuted} (from the point of view of
+         * {@link _queueSetMuted}).
          *
          * @private
          * @type {Promise}
          */
-        this._prevSetMute = Promise.resolve();
+        this._prevSetMuted = Promise.resolve();
 
         /**
          * The facing mode of the camera from which this JitsiLocalTrack
@@ -122,19 +118,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // tracks with real devices obtained from enumerateDevices() call as
         // soon as it's called.
         this._realDeviceId = this.deviceId === '' ? undefined : this.deviceId;
-
-        /**
-         * Set to <tt>true</tt> when there's ongoing "mute/unmute" operation in
-         * progress. Used by {@link LocalSdpMunger}.
-         * @type {boolean}
-         */
-        this.inMuteOrUnmuteProgress = true;
-
-        /**
-         * Indicates that we have called RTCUtils.stopMediaStream for the
-         * MediaStream related to this JitsiTrack object.
-         */
-        this.stopStreamInProgress = false;
 
         /**
          * On mute event we are waiting for 3s to check if the stream is going
@@ -234,11 +217,10 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Fires JitsiTrackEvents.NO_DATA_FROM_SOURCE and logs it to analytics and
-     * callstats.
+     * Fires NO_DATA_FROM_SOURCE event and logs it to analytics and callstats.
      */
     _fireNoDataFromSourceEvent() {
-        this.emit(JitsiTrackEvents.NO_DATA_FROM_SOURCE);
+        this.emit(NO_DATA_FROM_SOURCE);
         const eventName = `${this.getType()}.no_data_from_source`;
 
         Statistics.analytics.sendEvent(eventName);
@@ -273,13 +255,15 @@ export default class JitsiLocalTrack extends JitsiTrack {
     /**
      * Sets the stream property of JitsiLocalTrack object and sets all stored
      * handlers to it.
+     *
      * @param {MediaStream} stream the new stream.
+     * @protected
      */
     _setStream(stream) {
         super._setStream(stream);
 
-        // Store the MSID for video mute/unmute purposes
         if (stream) {
+            // Store the MSID for video mute/unmute purposes.
             this.storedMSID = this.getMSID();
             logger.debug(`Setting new MSID: ${this.storedMSID} on ${this}`);
         } else {
@@ -288,81 +272,88 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Mutes the track. Will reject the Promise if there is mute/unmute
-     * operation in progress.
+     * Asynchronously mutes this track.
+     *
      * @returns {Promise}
      */
     mute() {
-        return this._queueSetMute(true);
+        return this._queueSetMuted(true);
     }
 
     /**
-     * Unmutes the track. Will reject the Promise if there is mute/unmute
-     * operation in progress.
+     * Asynchronously unmutes this track.
+     *
      * @returns {Promise}
      */
     unmute() {
-        return this._queueSetMute(false);
+        return this._queueSetMuted(false);
     }
 
     /**
-     * Initializes a new Promise to execute {@link _setMute}. May be called
-     * multiple times in a row and the invocations of {@link _setMute} and,
-     * consequently, {@link mute} and/or {@link unmute} will be resolved in a
+     * Initializes a new Promise to execute {@link #_setMuted}. May be called
+     * multiple times in a row and the invocations of {@link #_setMuted} and,
+     * consequently, {@link #mute} and/or {@link #unmute} will be resolved in a
      * serialized fashion.
      *
-     * @param {boolean} mute - Whether to mute or unmute this track.
+     * @param {boolean} muted - The value to invoke <tt>_setMuted</tt> with.
      * @returns {Promise}
      */
-    _queueSetMute(mute) {
-        const setMute = this._setMute.bind(this, mute);
+    _queueSetMuted(muted) {
+        const setMuted = this._setMuted.bind(this, muted);
 
-        this._prevSetMute = this._prevSetMute.then(setMute, setMute);
+        this._prevSetMuted = this._prevSetMuted.then(setMuted, setMuted);
 
-        return this._prevSetMute;
+        return this._prevSetMuted;
     }
 
     /**
-     * Mutes / unmutes the track.
+     * Mutes / unmutes this track.
      *
-     * @param {boolean} mute - If true the track will be muted. Otherwise the
-     * track will be unmuted.
+     * @param {boolean} muted - If <tt>true</tt>, this track will be muted;
+     * otherwise, this track will be unmuted.
      * @private
      * @returns {Promise}
      */
-    _setMute(mute) {
-        if (this.isMuted() === mute) {
+    _setMuted(muted) {
+        if (this.isMuted() === muted) {
             return Promise.resolve();
         }
 
         let promise = Promise.resolve();
 
-        this.inMuteOrUnmuteProgress = true;
+        /**
+         * Set to <tt>true</tt> when there's ongoing "mute/unmute" operation in
+         * progress. Used by {@link LocalSdpMunger}.
+         *
+         * @public
+         * @type {boolean}
+         */
+        this.setMutedInProgress = true;
 
         // A function that will print info about muted status transition
-        const logMuteInfo = () => logger.info(`Mute ${this}: ${mute}`);
+        const logMuteInfo = () => logger.info(`Mute ${this}: ${muted}`);
 
         if (this.isAudioTrack()
-            || this.videoType === VideoType.DESKTOP
-            || !RTCBrowserType.doesVideoMuteByStreamRemove()) {
+                || this.videoType === VideoType.DESKTOP
+                || !RTCBrowserType.doesVideoMuteByStreamRemove()) {
             logMuteInfo();
             if (this.track) {
-                this.track.enabled = !mute;
+                this.track.enabled = !muted;
             }
-        } else if (mute) {
+        } else if (muted) {
             promise = new Promise((resolve, reject) => {
                 logMuteInfo();
-                this._removeStreamFromConferenceAsMute(() => {
-                    // FIXME: Maybe here we should set the SRC for the
-                    // containers to something
-                    // We don't want any events to be fired on this stream
-                    this._unregisterHandlers();
-                    this._stopMediaStream();
-                    this._setStream(null);
-                    resolve();
-                }, err => {
-                    reject(err);
-                });
+                this._removeStreamFromConferenceAsMute(
+                    () => {
+                        // FIXME: Maybe here we should set the SRC for the
+                        // containers to something
+                        // We don't want any events to be fired on this stream
+                        this._unregisterHandlers();
+                        this._stopStream();
+                        this._setStream(null);
+                        resolve();
+                    },
+                    reject);
             });
         } else {
             logMuteInfo();
@@ -397,8 +388,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                             this.videoType = streamInfo.videoType;
                         }
                     } else {
-                        throw new JitsiTrackError(
-                            JitsiTrackErrors.TRACK_NO_STREAM_FOUND);
+                        throw new JitsiTrackError(TRACK_NO_STREAM_FOUND);
                     }
 
                     this.containers = this.containers.map(
@@ -409,17 +399,17 @@ export default class JitsiLocalTrack extends JitsiTrack {
         }
 
         return promise
-            .then(() => this._sendMuteStatus(mute))
-            .then(() => {
-                this.inMuteOrUnmuteProgress = false;
-            }, error => {
-                this.inMuteOrUnmuteProgress = false;
+            .then(() => this._sendMuteStatus(muted))
+            .then(
+                /* onFulfilled */ () => {
+                    this.setMutedInProgress = false;
+                },
+                /* onRejected */ error => {
+                    this.setMutedInProgress = false;
 
-                throw error;
-            })
-            .then(() => {
-                this.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, this);
-            });
+                    throw error;
+                })
+            .then(() => this.emit(TRACK_MUTE_CHANGED, this));
     }
 
     /**
@@ -503,7 +493,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         }
 
         if (this.stream) {
-            this._stopMediaStream();
+            this._stopStream();
             this.detach();
         }
 
@@ -648,10 +638,23 @@ export default class JitsiLocalTrack extends JitsiTrack {
     /**
      * Stops the associated MediaStream.
      */
-    _stopMediaStream() {
-        this.stopStreamInProgress = true;
-        RTCUtils.stopMediaStream(this.stream);
-        this.stopStreamInProgress = false;
+    _stopStream() {
+
+        /**
+         * Indicates that we are executing {@link #_stopStream} i.e.
+         * {@link RTCUtils#stopMediaStream} for the <tt>MediaStream</tt>
+         * associated with this <tt>JitsiTrack</tt> instance.
+         *
+         * @private
+         * @type {boolean}
+         */
+        this._stopStreamInProgress = true;
+
+        try {
+            RTCUtils.stopMediaStream(this.stream);
+        } finally {
+            this._stopStreamInProgress = false;
+        }
     }
 
     /**
@@ -685,8 +688,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {boolean} true if an issue is detected and false otherwise
      */
     _checkForCameraIssues() {
-        if (!this.isVideoTrack() || this.stopStreamInProgress
-            || this.videoType === VideoType.DESKTOP) {
+        if (!this.isVideoTrack()
+                || this._stopStreamInProgress
+                || this.videoType === VideoType.DESKTOP) {
             return false;
         }
 
