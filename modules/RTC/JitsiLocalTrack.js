@@ -350,7 +350,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 this.track.enabled = !mute;
             }
         } else if (mute) {
-            this.dontFireRemoveEvent = true;
             promise = new Promise((resolve, reject) => {
                 logMuteInfo();
                 this._removeStreamFromConferenceAsMute(() => {
