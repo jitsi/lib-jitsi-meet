@@ -300,6 +300,23 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
                 JitsiConferenceEvents.USER_STATUS_CHANGED, id, status);
         });
 
+    chatRoom.addListener(XMPPEvents.JSON_MESSAGE_RECEIVED,
+        (from, payload) => {
+            const participant = conference.getParticipantById(
+                from.split('/')[1]);
+
+            if (participant) {
+                conference.eventEmitter.emit(
+                    JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
+                    participant, payload);
+            } else {
+                logger.warn(
+                    'Ignored ENDPOINT_MESSAGE_RECEIVED for not existing '
+                    + `participant: ${from}`,
+                    payload);
+            }
+        });
+
     chatRoom.addPresenceListener('startmuted', (data, from) => {
         let isModerator = false;
 

@@ -210,7 +210,13 @@ const XMPPEvents = {
 
     // Designates an event indicating that the local ICE connection state has
     // changed.
-    ICE_CONNECTION_STATE_CHANGED: 'xmpp.ice_connection_state_changed'
+    ICE_CONNECTION_STATE_CHANGED: 'xmpp.ice_connection_state_changed',
+
+    /**
+     * Event which is emitted when the body in an XMPP message in the MUC
+     * contains JSON
+     */
+    JSON_MESSAGE_RECEIVED: 'xmmp.json_message_received'
 };
 
 module.exports = XMPPEvents;
