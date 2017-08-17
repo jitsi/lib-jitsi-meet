@@ -79,6 +79,33 @@ function filterNodeFromPresenceJSON(pres, nodeName) {
     return res;
 }
 
+/**
+ * Check if the given argument is a valid JSON string by parsing it.
+ * If it successfully parses, the JSON object is returned.
+ *
+ * @param jsonString check if this string is a valid json string
+ * @returns {boolean, object} if given object is a valid JSON string, return
+ * the json object. Otherwise, return false;
+ */
+function tryParseJSON(jsonString) {
+    try {
+        const o = JSON.parse(jsonString);
+
+        // Handle non-exception-throwing cases:
+        // Neither JSON.parse(false) or JSON.parse(1234) throw errors,
+        // hence the type-checking,
+        // but... JSON.parse(null) returns null, and
+        // typeof null === "object",
+        // so we must check for that, too.
+        // Thankfully, null is falsey, so this suffices:
+        if (o && typeof o === 'object') {
+            return o;
+        }
+    } catch (e) {
+        return false;
+    }
+}
+
 // XXX As ChatRoom constructs XMPP stanzas and Strophe is build around the idea
 // of chaining function calls, allow long function call chains.
 /* eslint-disable newline-per-chained-call */
@@ -740,6 +767,19 @@ export default class ChatRoom extends Listenable {
                             + '>status[code="104"]')
                     .length) {
             this.discoRoomInfo();
+        }
+
+        // todo add a JSON layer such that not every json
+        // passed around in the chat is automatically assumed to be
+        // json used for messaging
+        const json = tryParseJSON(txt);
+
+        if (json) {
+            logger.log('chat json message', from, json);
+            this.eventEmitter.emit(XMPPEvents.JSON_MESSAGE_RECEIVED,
+                from, json);
+
+            return;
         }
 
         if (txt) {
