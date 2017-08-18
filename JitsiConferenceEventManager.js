@@ -514,7 +514,7 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
     conference.xmpp.caps.addListener(XMPPEvents.PARTCIPANT_FEATURES_CHANGED,
         from => {
             const participant
-                = conference.getParticipantId(
+                = conference.getParticipantById(
                     Strophe.getResourceFromJid(from));
 
             if (participant) {
