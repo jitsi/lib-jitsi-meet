@@ -390,15 +390,13 @@ export default class JingleSessionPC extends JingleSession {
                             value: now - this._iceCheckingStartedTimestamp
                         });
 
-                    // Switch between ICE gathering and ICE checking whichever
-                    // started first (scenarios are different for initiator
-                    // vs responder)
-                    const iceStarted
-                        = Math.min(
-                            this._iceCheckingStartedTimestamp,
-                            this._gatheringStartedTimestamp);
-
-                    this.establishmentDuration = now - iceStarted;
+                    // we shouldn't rely on the gathering duration as there
+                    // may be network interfaces without connectivity which add
+                    // to the gathering duration (the timeout from the browser
+                    // is added). This is related:
+                    // https://bugs.chromium.org/p/webrtc/issues/detail?id=4699
+                    this.establishmentDuration
+                        = now - this._iceCheckingStartedTimestamp;
 
                     Statistics.analytics.sendEvent(
                         `${eventName}establishmentDuration`,
