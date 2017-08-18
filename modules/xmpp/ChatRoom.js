@@ -83,7 +83,7 @@ function filterNodeFromPresenceJSON(pres, nodeName) {
  * Check if the given argument is a valid JSON string by parsing it.
  * If it successfully parses, the JSON object is returned.
  *
- * @param jsonString check if this string is a valid json string
+ * @param {string} jsonString check if this string is a valid json string
  * @returns {boolean, object} if given object is a valid JSON string, return
  * the json object. Otherwise, return false;
  */
@@ -775,7 +775,6 @@ export default class ChatRoom extends Listenable {
         const json = tryParseJSON(txt);
 
         if (json) {
-            logger.log('chat json message', from, json);
             this.eventEmitter.emit(XMPPEvents.JSON_MESSAGE_RECEIVED,
                 from, json);
 
