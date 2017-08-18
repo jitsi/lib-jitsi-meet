@@ -80,16 +80,24 @@ function filterNodeFromPresenceJSON(pres, nodeName) {
 }
 
 /**
- * Check if the given argument is a valid JSON string by parsing it.
- * If it successfully parses, the JSON object is returned.
+ * Constants used to verify if a given JSON message via the MUC should be
+ * considered as a ENDPOINT_MESSAGE
+ */
+const VALID_FIELD_NAMES = [ 'jitsi-meet-muc-msg-topic', 'payload' ];
+
+/**
+ * Check if the given argument is a valid JSON ENDPOINT_MESSAGE string by
+ * parsing it and checking if it has a field called 'jitsi-meet-muc-msg-topic'
+ * and a field called 'payload'
  *
  * @param {string} jsonString check if this string is a valid json string
+ * and contains the special structure
  * @returns {boolean, object} if given object is a valid JSON string, return
  * the json object. Otherwise, return false;
  */
-function tryParseJSON(jsonString) {
+function tryParseJSONAndVerify(jsonString) {
     try {
-        const o = JSON.parse(jsonString);
+        const json = JSON.parse(jsonString);
 
         // Handle non-exception-throwing cases:
         // Neither JSON.parse(false) or JSON.parse(1234) throw errors,
@@ -98,12 +106,25 @@ function tryParseJSON(jsonString) {
         // typeof null === "object",
         // so we must check for that, too.
         // Thankfully, null is falsey, so this suffices:
-        if (o && typeof o === 'object') {
-            return o;
+        if (json && typeof json === 'object') {
+            const topic = json[VALID_FIELD_NAMES[0]];
+            const payload = json[VALID_FIELD_NAMES[1]];
+
+            if ((typeof topic === 'string' || topic instanceof String)
+                && payload) {
+
+                return json;
+            }
+
+            console.debug('parsing valid json but does not have correct '
+                + 'structure', 'topic: ', topic, 'payload: ', payload);
         }
     } catch (e) {
+
         return false;
     }
+
+    return false;
 }
 
 // XXX As ChatRoom constructs XMPP stanzas and Strophe is build around the idea
@@ -769,10 +790,7 @@ export default class ChatRoom extends Listenable {
             this.discoRoomInfo();
         }
 
-        // todo add a JSON layer such that not every json
-        // passed around in the chat is automatically assumed to be
-        // json used for messaging
-        const json = tryParseJSON(txt);
+        const json = tryParseJSONAndVerify(txt);
 
         if (json) {
             this.eventEmitter.emit(XMPPEvents.JSON_MESSAGE_RECEIVED,
