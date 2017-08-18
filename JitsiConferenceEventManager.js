@@ -302,8 +302,8 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     chatRoom.addListener(XMPPEvents.JSON_MESSAGE_RECEIVED,
         (from, payload) => {
-            const participant = conference.getParticipantById(
-                from.split('/')[1]);
+            const id = Strophe.getResourceFromJid(from);
+            const participant = conference.getParticipantById(id);
 
             if (participant) {
                 conference.eventEmitter.emit(
@@ -311,7 +311,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
                     participant, payload);
             } else {
                 logger.warn(
-                    'Ignored ENDPOINT_MESSAGE_RECEIVED for not existing '
+                    'Ignored XMPPEvents.JSON_MESSAGE_RECEIVED for not existing '
                     + `participant: ${from}`,
                     payload);
             }
