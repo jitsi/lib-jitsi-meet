@@ -116,7 +116,7 @@ function tryParseJSONAndVerify(jsonString) {
                 return json;
             }
 
-            console.debug('parsing valid json but does not have correct '
+            logger.debug('parsing valid json but does not have correct '
                 + 'structure', 'topic: ', topic, 'payload: ', payload);
         }
     } catch (e) {
