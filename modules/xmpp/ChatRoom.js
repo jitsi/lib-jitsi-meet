@@ -341,7 +341,14 @@ export default class ChatRoom extends Listenable {
         const member = {};
 
         member.show = $(pres).find('>show').text();
-        member.status = $(pres).find('>status').text();
+        const $statusNode = $(pres).find('>status');
+        const hasStatus = $statusNode.length;
+
+        if (hasStatus) {
+            member.status = $statusNode.text();
+        }
+        let hasStatusUpdate = false;
+
         const mucUserItem
             = $(pres).find(
                 '>x[xmlns="http://jabber.org/protocol/muc#user"]>item');
@@ -418,6 +425,8 @@ export default class ChatRoom extends Listenable {
                     XMPPEvents.MUC_MEMBER_JOINED,
                     from, member.nick, member.role, member.isHiddenDomain);
             }
+
+            hasStatusUpdate = member.status !== undefined;
         } else {
             // Presence update for existing participant
             // Watch role change:
@@ -446,6 +455,12 @@ export default class ChatRoom extends Listenable {
             // store the new display name
             if (member.displayName) {
                 memberOfThis.displayName = member.displayName;
+            }
+
+            // update stored status message to be able to detect changes
+            if (memberOfThis.status !== member.status) {
+                hasStatusUpdate = true;
+                memberOfThis.status = member.status;
             }
         }
 
@@ -493,8 +508,8 @@ export default class ChatRoom extends Listenable {
             }
         }
 
-        // Trigger status message update
-        if (member.status) {
+        // Trigger status message update if necessary
+        if (hasStatusUpdate) {
             this.eventEmitter.emit(
                 XMPPEvents.PRESENCE_STATUS,
                 from,
