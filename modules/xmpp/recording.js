@@ -61,6 +61,7 @@ Recording.status = {
     UNAVAILABLE: 'unavailable',
     PENDING: 'pending',
     RETRYING: 'retrying',
+    ERROR: 'error',
     BUSY: 'busy',
     FAILED: 'failed'
 };
