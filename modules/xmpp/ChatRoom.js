@@ -263,6 +263,11 @@ export default class ChatRoom extends Listenable {
                 pres.c('password').t(this.password).up();
             }
             pres.up();
+
+            // Ensure a default presence tag is sent and accepted to clear any
+            // previous presence that may no longer be valid, such as with a
+            // poltergeist participant standing in for the real participant.
+            pres.c('status').t('').up();
         }
 
         parser.json2packet(this.presMap.nodes, pres);
@@ -387,9 +392,12 @@ export default class ChatRoom extends Listenable {
 
         // Parse roles.
         const member = {};
+        const $statusNode = $(pres).find('>status');
+        const hasStatusUpdate = $statusNode.length;
 
+        member.status = $statusNode.text();
         member.show = $(pres).find('>show').text();
-        member.status = $(pres).find('>status').text();
+
         const mucUserItem
             = $(pres).find(
                 '>x[xmlns="http://jabber.org/protocol/muc#user"]>item');
@@ -542,7 +550,7 @@ export default class ChatRoom extends Listenable {
         }
 
         // Trigger status message update
-        if (member.status) {
+        if (hasStatusUpdate) {
             this.eventEmitter.emit(
                 XMPPEvents.PRESENCE_STATUS,
                 from,
