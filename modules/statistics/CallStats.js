@@ -288,7 +288,12 @@ export default class CallStats {
                 // to not log the whole log batch
                 // FIXME check the current logging level (currently not exposed
                 // by the logger implementation)
-                console && console.debug('reportError', pc, cs, type);
+                // NOTE it is not safe to log whole objects on react-native as
+                // those contain too many circular references and may crash
+                // the app.
+                if (!RTCBrowserType.isReactNative()) {
+                    console && console.debug('reportError', pc, cs, type);
+                }
             } else {
                 logger.debug('reportError', pc, cs, type, ...args);
             }
@@ -506,7 +511,7 @@ export default class CallStats {
      * @return {boolean} true if the call was successful or false otherwise.
      */
     _addNewFabric() {
-        logger.info('addNewFabric', this.remoteUserID, this);
+        logger.info('addNewFabric', this.remoteUserID);
         try {
             const ret
                 = CallStats.backend.addNewFabric(
