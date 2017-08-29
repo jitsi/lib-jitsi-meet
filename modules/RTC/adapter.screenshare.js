@@ -373,6 +373,16 @@ AdapterJS.parseWebrtcDetectedBrowser = function () {
     webrtcDetectedType      = isMobile.length === 0 ? 'plugin' : null;
     webrtcDetectedDCSupport = isMobile.length === 0 ? 'SCTP' : null;
 
+  // Detect WebView on iOS (does not support WebRTC yet)
+  } else if (/(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(navigator.userAgent)) {
+    hasMatch = navigator.userAgent.match(/AppleWebKit\/([0-9]+)\./) || [];
+
+    webrtcDetectedBrowser   = 'safari';
+    webrtcDetectedVersion   = parseInt(hasMatch[1] || '0', 10);
+    webrtcMinimumVersion    = 0;
+    webrtcDetectedType      = null;
+    webrtcDetectedDCSupport = null;
+
   }
 
   window.webrtcDetectedBrowser   = webrtcDetectedBrowser;
