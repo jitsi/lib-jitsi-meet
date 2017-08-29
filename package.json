@@ -19,7 +19,7 @@
     "async": "0.9.0",
     "current-executing-script": "0.1.3",
     "jitsi-meet-logger": "jitsi/jitsi-meet-logger",
-    "react-native-callstats": "3.19.8",
+    "react-native-callstats": "3.23.0",
     "retry": "0.6.1",
     "sdp-interop": "0.1.12",
     "sdp-simulcast": "0.2.1",
