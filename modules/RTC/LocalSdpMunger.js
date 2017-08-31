@@ -2,6 +2,7 @@
 
 import { getLogger } from 'jitsi-meet-logger';
 import * as MediaType from '../../service/RTC/MediaType';
+import PrefixedLogger from '../util/PrefixedLogger';
 import { SdpTransformWrap } from '../xmpp/SdpTransformUtil';
 
 const logger = getLogger(__filename);
@@ -23,6 +24,7 @@ export default class LocalSdpMunger {
      */
     constructor(tpc) {
         this.tpc = tpc;
+        this.log = new PrefixedLogger(logger, tpc.toString());
     }
 
     /**
@@ -47,17 +49,14 @@ export default class LocalSdpMunger {
         if (!localVideos.length) {
             return false;
         } else if (localVideos.length !== 1) {
-            logger.error(
-                `${this.tpc} there is more than 1 video track ! `
-                    + 'Strange things may happen !', localVideos);
+            this.log.e('There is more than 1 video track !', localVideos);
         }
 
         const videoMLine = transformer.selectMedia('video');
 
         if (!videoMLine) {
-            logger.error(
-                `${this.tpc} unable to hack local video track SDP`
-                    + '- no "video" media');
+            this.log.e(
+                'Unable to hack local video track SDP - no "video" media');
 
             return false;
         }
@@ -69,8 +68,8 @@ export default class LocalSdpMunger {
             const { setMutedInProgress } = videoTrack;
             const shouldFakeSdp = muted || setMutedInProgress;
 
-            logger.debug(
-                `${this.tpc} ${videoTrack} muted: ${muted
+            this.log.d(
+                `${videoTrack} muted: ${muted
                     }, is mute/unmute in progress: ${setMutedInProgress
                     } => should fake sdp ? : ${shouldFakeSdp}`);
 
@@ -85,8 +84,7 @@ export default class LocalSdpMunger {
                     : [ this.tpc.sdpConsistency.cachedPrimarySsrc ];
 
             if (!requiredSSRCs.length) {
-                logger.error(
-                    `No SSRCs stored for: ${videoTrack} in ${this.tpc}`);
+                this.log.e(`No SSRCs stored for: ${videoTrack}`);
 
                 continue; // eslint-disable-line no-continue
             }
@@ -113,9 +111,8 @@ export default class LocalSdpMunger {
                 videoMLine.removeSSRC(ssrcNum);
 
                 // Inject
-                logger.debug(
-                    `${this.tpc} injecting video SSRC: ${ssrcNum} for ${
-                        videoTrack}`);
+                this.log.d(
+                    `Injecting video SSRC: ${ssrcNum} for ${videoTrack}`);
                 videoMLine.addSSRCAttribute({
                     id: ssrcNum,
                     attribute: 'cname',
@@ -135,9 +132,7 @@ export default class LocalSdpMunger {
 
                 if (!videoMLine.findGroup(group.semantics, group.ssrcs)) {
                     // Inject the group
-                    logger.debug(
-                        `${this.tpc} injecting SIM group for ${videoTrack}`,
-                        group);
+                    this.log.d(`Injecting SIM group for ${videoTrack}`, group);
                     videoMLine.addSSRCGroup(group);
                 }
             }
@@ -173,8 +168,6 @@ export default class LocalSdpMunger {
         if (this._addMutedLocalVideoTracksToSDP(transformer)) {
             // Write
             desc.sdp = transformer.toRawSDP();
-
-            // logger.info("Post TRANSFORM: ", desc.sdp);
         }
     }
 }
