@@ -1,6 +1,7 @@
 /* global __filename */
 
 import { getLogger } from 'jitsi-meet-logger';
+import PrefixedLogger from '../util/PrefixedLogger';
 import {
     parsePrimarySSRC,
     parseSecondarySSRC,
@@ -25,7 +26,7 @@ export default class SdpConsistency {
      */
     constructor(logPrefix) {
         this.clearVideoSsrcCache();
-        this.logPrefix = logPrefix;
+        this.log = new PrefixedLogger(logger, logPrefix);
     }
 
     /**
@@ -76,9 +77,7 @@ export default class SdpConsistency {
         const videoMLine = sdpTransformer.selectMedia('video');
 
         if (!videoMLine) {
-            logger.error(
-                `${this.logPrefix} no 'video' media found in the sdp: `
-                    + `${sdpStr}`);
+            this.log.e(`No 'video' media found in the sdp: ${sdpStr}`);
 
             return sdpStr;
         }
@@ -93,23 +92,19 @@ export default class SdpConsistency {
                     value: `recvonly-${this.cachedPrimarySsrc}`
                 });
             } else {
-                logger.info(
-                    `${this.logPrefix} no SSRC found for the recvonly video`
-                        + 'stream!');
+                this.log.i('No SSRC found for the recvonly video stream!');
             }
         } else {
             const newPrimarySsrc = videoMLine.getPrimaryVideoSsrc();
 
             if (!newPrimarySsrc) {
-                logger.info(
-                    `${this.logPrefix} sdp-consistency couldn't`
-                        + ' parse new primary ssrc');
+                this.log.i('Sdp-consistency couldn\'t parse new primary ssrc');
 
                 return sdpStr;
             }
             if (this.cachedPrimarySsrc) {
-                logger.info(
-                    `${this.logPrefix} sdp-consistency replacing new ssrc`
+                this.log.i(
+                    'Sdp-consistency replacing new ssrc'
                         + `${newPrimarySsrc} with cached `
                         + `${this.cachedPrimarySsrc}`);
                 videoMLine.replaceSSRC(newPrimarySsrc, this.cachedPrimarySsrc);
@@ -127,8 +122,8 @@ export default class SdpConsistency {
                 }
             } else {
                 this.cachedPrimarySsrc = newPrimarySsrc;
-                logger.info(
-                    `${this.logPrefix} sdp-consistency caching primary ssrc`
+                this.log.i(
+                    'Sdp-consistency caching primary ssrc'
                         + `${this.cachedPrimarySsrc}`);
             }
 

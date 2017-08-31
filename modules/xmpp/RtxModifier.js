@@ -1,72 +1,11 @@
 /* global __filename */
 
 import { getLogger } from 'jitsi-meet-logger';
+import PrefixedLogger from '../util/PrefixedLogger';
 import { parseSecondarySSRC, SdpTransformWrap } from './SdpTransformUtil';
 import SDPUtil from './SDPUtil';
 
 const logger = getLogger(__filename);
-
-/**
- * Begin helper functions
- */
-/**
- * Updates or inserts the appropriate rtx information for primarySsrc with
- *  the given rtxSsrc.  If no rtx ssrc for primarySsrc currently exists, it will
- *  add the appropriate ssrc and ssrc group lines.  If primarySsrc already has
- *  an rtx ssrc, the appropriate ssrc and group lines will be updated
- * @param {MLineWrap} mLine
- * @param {object} primarySsrcInfo the info (ssrc, msid & cname) for the
- *  primary ssrc
- * @param {number} rtxSsrc the rtx ssrc to associate with the primary ssrc
- */
-function updateAssociatedRtxStream(mLine, primarySsrcInfo, rtxSsrc) {
-    logger.debug(
-        `Updating mline to associate ${rtxSsrc}`
-        + `rtx ssrc with primary stream, ${primarySsrcInfo.id}`);
-    const primarySsrc = primarySsrcInfo.id;
-    const primarySsrcMsid = primarySsrcInfo.msid;
-    const primarySsrcCname = primarySsrcInfo.cname;
-
-    const previousRtxSSRC = mLine.getRtxSSRC(primarySsrc);
-
-    if (previousRtxSSRC === rtxSsrc) {
-        logger.debug(`${rtxSsrc} was already associated with ${primarySsrc}`);
-
-        return;
-    }
-    if (previousRtxSSRC) {
-        logger.debug(
-            `${primarySsrc} was previously associated with rtx`
-            + `${previousRtxSSRC}, removing all references to it`);
-
-        // Stream already had an rtx ssrc that is different than the one given,
-        //  remove all trace of the old one
-        mLine.removeSSRC(previousRtxSSRC);
-
-        logger.debug(`groups before filtering for ${previousRtxSSRC}`);
-        logger.debug(mLine.dumpSSRCGroups());
-
-        mLine.removeGroupsWithSSRC(previousRtxSSRC);
-    }
-    mLine.addSSRCAttribute({
-        id: rtxSsrc,
-        attribute: 'cname',
-        value: primarySsrcCname
-    });
-    mLine.addSSRCAttribute({
-        id: rtxSsrc,
-        attribute: 'msid',
-        value: primarySsrcMsid
-    });
-    mLine.addSSRCGroup({
-        semantics: 'FID',
-        ssrcs: `${primarySsrc} ${rtxSsrc}`
-    });
-}
-
-/**
- * End helper functions
- */
 
 /**
  * Adds any missing RTX streams for video streams
@@ -75,13 +14,15 @@ function updateAssociatedRtxStream(mLine, primarySsrcInfo, rtxSsrc) {
 export default class RtxModifier {
     /**
      * Constructor
+     * @type {String} logPrefix
      */
-    constructor() {
+    constructor(logPrefix) {
         /**
          * Map of video ssrc to corresponding RTX
          *  ssrc
          */
         this.correspondingRtxSsrcs = new Map();
+        this.log = new PrefixedLogger(logger, logPrefix);
     }
 
     /**
@@ -100,7 +41,7 @@ export default class RtxModifier {
      *  ssrcs to their corresponding rtx ssrcs
      */
     setSsrcCache(ssrcMapping) {
-        logger.debug('Setting ssrc cache to ', ssrcMapping);
+        this.log.d('Setting ssrc cache to ', ssrcMapping);
         this.correspondingRtxSsrcs = ssrcMapping;
     }
 
@@ -116,7 +57,7 @@ export default class RtxModifier {
         const videoMLine = sdpTransformer.selectMedia('video');
 
         if (!videoMLine) {
-            logger.error(`No 'video' media found in the sdp: ${sdpStr}`);
+            this.log.e(`No 'video' media found in the sdp: ${sdpStr}`);
 
             return sdpStr;
         }
@@ -134,19 +75,19 @@ export default class RtxModifier {
      */
     modifyRtxSsrcs2(videoMLine) {
         if (videoMLine.direction === 'recvonly') {
-            logger.debug('RtxModifier doing nothing, video m line is recvonly');
+            this.log.d('RtxModifier doing nothing, video m line is recvonly');
 
             return false;
         }
         if (videoMLine.getSSRCCount() < 1) {
-            logger.debug('RtxModifier doing nothing, no video ssrcs present');
+            this.log.d('RtxModifier doing nothing, no video ssrcs present');
 
             return false;
         }
-        logger.debug('Current ssrc mapping: ', this.correspondingRtxSsrcs);
+        this.log.d('Current ssrc mapping: ', this.correspondingRtxSsrcs);
         const primaryVideoSsrcs = videoMLine.getPrimaryVideoSSRCs();
 
-        logger.debug('Parsed primary video ssrcs ', primaryVideoSsrcs,
+        this.log.d('Parsed primary video ssrcs ', primaryVideoSsrcs,
             ' making sure all have rtx streams');
         for (const ssrc of primaryVideoSsrcs) {
             const msid = videoMLine.getSSRCAttrValue(ssrc, 'msid');
@@ -154,11 +95,11 @@ export default class RtxModifier {
             let correspondingRtxSsrc = this.correspondingRtxSsrcs.get(ssrc);
 
             if (correspondingRtxSsrc) {
-                logger.debug(
+                this.log.d(
                     'Already have an associated rtx ssrc for'
                     + `video ssrc ${ssrc}: ${correspondingRtxSsrc}`);
             } else {
-                logger.debug(
+                this.log.d(
                     `No previously associated rtx ssrc for video ssrc ${ssrc}`);
 
                 // If there's one in the sdp already for it, we'll just set
@@ -166,21 +107,21 @@ export default class RtxModifier {
                 const previousAssociatedRtxStream = videoMLine.getRtxSSRC(ssrc);
 
                 if (previousAssociatedRtxStream) {
-                    logger.debug(
+                    this.log.d(
                         `Rtx stream ${previousAssociatedRtxStream} `
                         + 'already existed in the sdp as an rtx stream for '
                         + `${ssrc}`);
                     correspondingRtxSsrc = previousAssociatedRtxStream;
                 } else {
                     correspondingRtxSsrc = SDPUtil.generateSsrc();
-                    logger.debug(`Generated rtx ssrc ${correspondingRtxSsrc} `
+                    this.log.d(`Generated rtx ssrc ${correspondingRtxSsrc} `
                                  + `for ssrc ${ssrc}`);
                 }
-                logger.debug(`Caching rtx ssrc ${correspondingRtxSsrc} `
+                this.log.d(`Caching rtx ssrc ${correspondingRtxSsrc} `
                              + `for video ssrc ${ssrc}`);
                 this.correspondingRtxSsrcs.set(ssrc, correspondingRtxSsrc);
             }
-            updateAssociatedRtxStream(
+            this._updateAssociatedRtxStream(
                 videoMLine,
                 {
                     id: ssrc,
@@ -205,22 +146,22 @@ export default class RtxModifier {
         const videoMLine = sdpTransformer.selectMedia('video');
 
         if (!videoMLine) {
-            logger.error(`No 'video' media found in the sdp: ${sdpStr}`);
+            this.log.e(`No 'video' media found in the sdp: ${sdpStr}`);
 
             return sdpStr;
         }
         if (videoMLine.direction === 'recvonly') {
-            logger.debug('RtxModifier doing nothing, video m line is recvonly');
+            this.log.d('RtxModifier doing nothing, video m line is recvonly');
 
             return sdpStr;
         }
         if (videoMLine.getSSRCCount() < 1) {
-            logger.debug('RtxModifier doing nothing, no video ssrcs present');
+            this.log.d('RtxModifier doing nothing, no video ssrcs present');
 
             return sdpStr;
         }
         if (!videoMLine.containsAnySSRCGroups()) {
-            logger.debug('RtxModifier doing nothing, '
+            this.log.d('RtxModifier doing nothing, '
               + 'no video ssrcGroups present');
 
             return sdpStr;
@@ -239,5 +180,61 @@ export default class RtxModifier {
         }
 
         return sdpTransformer.toRawSDP();
+    }
+
+    /**
+     * Updates or inserts the appropriate rtx information for primarySsrc with
+     * the given rtxSsrc.  If no rtx ssrc for primarySsrc currently exists, it
+     * will add the appropriate ssrc and ssrc group lines.  If primarySsrc
+     * already has an rtx ssrc, the appropriate ssrc and group lines will be
+     * updated.
+     * @param {MLineWrap} mLine
+     * @param {object} primarySsrcInfo the info (ssrc, msid & cname) for the
+     *  primary ssrc
+     * @param {number} rtxSsrc the rtx ssrc to associate with the primary ssrc
+     */
+    _updateAssociatedRtxStream(mLine, primarySsrcInfo, rtxSsrc) {
+        this.log.d(
+            `Updating mline to associate ${rtxSsrc}`
+                + `rtx ssrc with primary stream, ${primarySsrcInfo.id}`);
+        const primarySsrc = primarySsrcInfo.id;
+        const primarySsrcMsid = primarySsrcInfo.msid;
+        const primarySsrcCname = primarySsrcInfo.cname;
+
+        const previousRtxSSRC = mLine.getRtxSSRC(primarySsrc);
+
+        if (previousRtxSSRC === rtxSsrc) {
+            this.log.d(`${rtxSsrc} was already associated with ${primarySsrc}`);
+
+            return;
+        }
+        if (previousRtxSSRC) {
+            this.log.d(
+                `${primarySsrc} was previously associated with rtx`
+                    + `${previousRtxSSRC}, removing all references to it`);
+
+            // Stream already had an rtx ssrc that is different than the one
+            // given, remove all trace of the old one
+            mLine.removeSSRC(previousRtxSSRC);
+
+            this.log.d(`groups before filtering for ${previousRtxSSRC}`);
+            this.log.d(mLine.dumpSSRCGroups());
+
+            mLine.removeGroupsWithSSRC(previousRtxSSRC);
+        }
+        mLine.addSSRCAttribute({
+            id: rtxSsrc,
+            attribute: 'cname',
+            value: primarySsrcCname
+        });
+        mLine.addSSRCAttribute({
+            id: rtxSsrc,
+            attribute: 'msid',
+            value: primarySsrcMsid
+        });
+        mLine.addSSRCGroup({
+            semantics: 'FID',
+            ssrcs: `${primarySsrc} ${rtxSsrc}`
+        });
     }
 }

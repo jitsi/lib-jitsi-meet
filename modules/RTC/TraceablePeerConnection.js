@@ -7,6 +7,7 @@ import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import * as MediaType from '../../service/RTC/MediaType';
 import LocalSdpMunger from './LocalSdpMunger';
+import PrefixedLogger from '../util/PrefixedLogger';
 import RTC from './RTC';
 import RTCUtils from './RTCUtils';
 import RTCBrowserType from './RTCBrowserType';
@@ -194,21 +195,27 @@ export default function TraceablePeerConnection(
     this.localSdpMunger = new LocalSdpMunger(this);
 
     /**
+     * The logger which adds {@link this.toString()} to every logged msg.
+     * @type {PrefixedLogger}
+     */
+    this.log = new PrefixedLogger(logger, this.toString());
+
+    /**
      * TracablePeerConnection uses RTC's eventEmitter
      * @type {EventEmitter}
      */
     this.eventEmitter = rtc.eventEmitter;
-    this.rtxModifier = new RtxModifier();
+    this.rtxModifier = new RtxModifier(this.toString());
 
     // override as desired
     this.trace = (what, info) => {
-        /* logger.warn('WTRACE', what, info);
+        /* this.log.w('WTRACE', what, info);
         if (info && RTCBrowserType.isIExplorer()) {
             if (info.length > 1024) {
-                logger.warn('WTRACE', what, info.substr(1024));
+                this.log.w('WTRACE', what, info.substr(1024));
             }
             if (info.length > 2048) {
-                logger.warn('WTRACE', what, info.substr(2048));
+                this.log.w('WTRACE', what, info.substr(2048));
             }
         }*/
         this.updateLog.push({
@@ -386,7 +393,7 @@ TraceablePeerConnection.prototype._peerVideoTypeChanged
 = function(endpointId, videoType) {
     // Check if endpointId has a value to avoid action on random track
     if (!endpointId) {
-        logger.error(`No endpointID on peerVideoTypeChanged ${this}`);
+        this.log.e('No endpointID on peerVideoTypeChanged');
 
         return;
     }
@@ -409,7 +416,7 @@ TraceablePeerConnection.prototype._peerMutedChanged
 = function(endpointId, mediaType, isMuted) {
     // Check if endpointId is a value to avoid doing action on all remote tracks
     if (!endpointId) {
-        logger.error('On peerMuteChanged - no endpoint ID');
+        this.log.e('On peerMuteChanged - no endpoint ID');
 
         return;
     }
@@ -521,8 +528,8 @@ TraceablePeerConnection.prototype._remoteStreamAdded = function(stream) {
     const streamId = RTC.getStreamID(stream);
 
     if (!RTC.isUserStreamById(streamId)) {
-        logger.info(
-            `${this} ignored remote 'stream added' event for non-user stream`
+        this.log.i(
+            'Ignored remote \'stream added\' event for non-user stream'
              + `id: ${streamId}`);
 
         return;
@@ -566,7 +573,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
     const streamId = RTC.getStreamID(stream);
     const mediaType = track.kind;
 
-    logger.info(`${this} remote track added:`, streamId, mediaType);
+    this.log.i('Remote track added:', streamId, mediaType);
 
     // look up an associated JID for a stream id
     if (!mediaType) {
@@ -639,7 +646,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
         return;
     }
 
-    logger.log(`${this} associated ssrc`, ownerEndpointId, trackSsrc);
+    this.log.l('Associated ssrc', ownerEndpointId, trackSsrc);
 
     const peerMediaInfo
         = this.signalingLayer.getPeerMediaInfo(ownerEndpointId, mediaType);
@@ -690,9 +697,10 @@ TraceablePeerConnection.prototype._createRemoteTrack
     }
 
     if (remoteTracksMap.has(mediaType)) {
-        logger.error(
-            `${this} overwriting remote track! ${remoteTrack}`,
-            ownerEndpointId, mediaType);
+        this.log.e(
+            `Overwriting remote track! ${remoteTrack}`,
+            ownerEndpointId,
+            mediaType);
     }
     remoteTracksMap.set(mediaType, remoteTrack);
 
@@ -710,7 +718,7 @@ TraceablePeerConnection.prototype._remoteStreamRemoved = function(stream) {
     if (!RTC.isUserStream(stream)) {
         const id = RTC.getStreamID(stream);
 
-        logger.info(
+        this.log.i(
             `Ignored remote 'stream removed' event for non-user stream ${id}`);
 
         return;
@@ -741,7 +749,7 @@ TraceablePeerConnection.prototype._remoteTrackRemoved
     const streamId = RTC.getStreamID(stream);
     const trackId = track && RTC.getTrackID(track);
 
-    logger.info(`${this} - remote track removed: ${streamId}, ${trackId}`);
+    this.log.i(`Remote track removed: ${streamId}, ${trackId}`);
 
     if (!streamId) {
         GlobalOnErrorHandler.callErrorHandler(
@@ -768,8 +776,8 @@ TraceablePeerConnection.prototype._remoteTrackRemoved
         // but the order of the events will change and consuming apps could
         // behave unexpectedly (the "user left" event would come before "track
         // removed" events).
-        logger.warn(
-            `${this} Removed track not found for msid: ${streamId},
+        this.log.w(
+            `Removed track not found for msid: ${streamId},
              track id: ${trackId}`);
     }
 };
@@ -822,9 +830,8 @@ TraceablePeerConnection.prototype.removeRemoteTracks = function(owner) {
         this.remoteTracks.delete(owner);
     }
 
-    logger.debug(
-        `${this} removed remote tracks for ${owner
-            } count: ${removedTracks.length}`);
+    this.log.d(
+        `Removed remote tracks for ${owner} count: ${removedTracks.length}`);
 
     return removedTracks;
 };
@@ -840,10 +847,10 @@ TraceablePeerConnection.prototype._removeRemoteTrack = function(toBeRemoved) {
     const remoteTracksMap = this.remoteTracks.get(participantId);
 
     if (!remoteTracksMap) {
-        logger.error(
+        this.log.e(
             `removeRemoteTrack: no remote tracks map for ${participantId}`);
     } else if (!remoteTracksMap.delete(toBeRemoved.getType())) {
-        logger.error(
+        this.log.e(
             `Failed to remove ${toBeRemoved} - type mapping messed up ?`);
     }
     this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_REMOVED, toBeRemoved);
@@ -1153,7 +1160,7 @@ const getters = {
 
         if (RTCBrowserType.doesVideoMuteByStreamRemove()) {
             this.localSdpMunger.maybeMungeLocalSdp(desc);
-            logger.debug(
+            this.log.d(
                 'getLocalDescription::postTransform (munge local SDP)', desc);
         }
 
@@ -1205,7 +1212,7 @@ TraceablePeerConnection.prototype._getSSRC = function(rtcId) {
 TraceablePeerConnection.prototype.addTrack = function(track) {
     const rtcId = track.rtcId;
 
-    logger.info(`add ${track} to: ${this}`);
+    this.log.i(`add ${track}`);
 
     if (this.localTracks.has(rtcId)) {
         logger.error(`${track} is already in ${this}`);
@@ -1224,7 +1231,7 @@ TraceablePeerConnection.prototype.addTrack = function(track) {
     } else if (!RTCBrowserType.doesVideoMuteByStreamRemove()
                 || track.isAudioTrack()
                 || (track.isVideoTrack() && !track.isMuted())) {
-        logger.error(`${this} no WebRTC stream for: ${track}`);
+        this.log.e(`No WebRTC stream for: ${track}`);
     }
 
     // Muted video tracks do not have WebRTC stream
@@ -1270,12 +1277,11 @@ TraceablePeerConnection.prototype.addTrackUnmute = function(track) {
         return false;
     }
 
-    logger.info(`Adding ${track} as unmute to ${this}`);
+    this.log.i(`Adding ${track} as unmute...`);
     const webRtcStream = track.getOriginalStream();
 
     if (!webRtcStream) {
-        logger.error(
-            `Unable to add ${track} as unmute to ${this} - no WebRTC stream`);
+        this.log.e(`Unable to add ${track} as unmute - no WebRTC stream`);
 
         return false;
     }
@@ -1378,14 +1384,13 @@ TraceablePeerConnection.prototype.removeTrackMute = function(localTrack) {
     }
 
     if (webRtcStream) {
-        logger.info(
-            `Removing ${localTrack} as mute from ${this}`);
+        this.log.i(`Removing ${localTrack} as mute...`);
         this._removeStream(webRtcStream);
 
         return true;
     }
 
-    logger.error(`removeStreamMute - no WebRTC stream for ${localTrack}`);
+    this.log.e(`removeStreamMute - no WebRTC stream for ${localTrack}`);
 
     return false;
 };
@@ -1415,7 +1420,7 @@ TraceablePeerConnection.prototype._handleFirefoxRemoveStream
     }
 
     if (!track) {
-        logger.error('Cannot remove tracks: no tracks.');
+        this.log.e('Cannot remove tracks: no tracks.');
 
         return;
     }
@@ -1434,7 +1439,7 @@ TraceablePeerConnection.prototype._handleFirefoxRemoveStream
     if (sender) {
         this.peerconnection.removeTrack(sender);
     } else {
-        logger.log('Cannot remove tracks: no RTPSender.');
+        this.log.l('Cannot remove tracks: no RTPSender.');
     }
 };
 
@@ -1501,12 +1506,12 @@ TraceablePeerConnection.prototype._adjustLocalMediaDirection
 
         if (audioMedia.direction !== desiredAudioDirection) {
             audioMedia.direction = desiredAudioDirection;
-            logger.info(
+            this.log.i(
                 `Adjusted local audio direction to ${desiredAudioDirection}`);
             modifiedDirection = true;
         }
     } else {
-        logger.warn('No "audio" media found int the local description');
+        this.log.w('No "audio" media found int the local description');
     }
 
     const videoMedia = transformer.selectMedia('video');
@@ -1517,12 +1522,12 @@ TraceablePeerConnection.prototype._adjustLocalMediaDirection
 
         if (videoMedia.direction !== desiredVideoDirection) {
             videoMedia.direction = desiredVideoDirection;
-            logger.info(
+            this.log.i(
                 `Adjusted local video direction to ${desiredVideoDirection}`);
             modifiedDirection = true;
         }
     } else {
-        logger.warn('No "video" media found in the local description');
+        this.log.w('No "video" media found in the local description');
     }
 
     if (modifiedDirection) {
@@ -1584,7 +1589,7 @@ TraceablePeerConnection.prototype.setLocalDescription
  * @public
  */
 TraceablePeerConnection.prototype.setAudioTransferActive = function(active) {
-    logger.debug(`${this} audio transfer active: ${active}`);
+    this.log.d(`Audio transfer active: ${active}`);
     const changed = this.audioTransferActive !== active;
 
     this.audioTransferActive = active;
@@ -1712,7 +1717,7 @@ TraceablePeerConnection.prototype.setRemoteDescription
  * @public
  */
 TraceablePeerConnection.prototype.setVideoTransferActive = function(active) {
-    logger.debug(`${this} video transfer active: ${active}`);
+    this.log.d(`Video transfer active: ${active}`);
     const changed = this.videoTransferActive !== active;
 
     this.videoTransferActive = active;
@@ -1727,7 +1732,7 @@ TraceablePeerConnection.prototype.setVideoTransferActive = function(active) {
 TraceablePeerConnection.prototype.generateRecvonlySsrc = function() {
     const newSSRC = SDPUtil.generateSsrc();
 
-    logger.info(`${this} generated new recvonly SSRC: ${newSSRC}`);
+    this.log.i(`Generated new recvonly SSRC: ${newSSRC}`);
     this.sdpConsistency.setPrimarySsrc(newSSRC);
 };
 
@@ -1736,7 +1741,7 @@ TraceablePeerConnection.prototype.generateRecvonlySsrc = function() {
  * SSRC.
  */
 TraceablePeerConnection.prototype.clearRecvonlySsrc = function() {
-    logger.info('Clearing primary video SSRC!');
+    this.log.i('Clearing primary video SSRC!');
     this.sdpConsistency.clearVideoSsrcCache();
 };
 
@@ -1762,13 +1767,13 @@ TraceablePeerConnection.prototype.close = function() {
     this.remoteTracks.clear();
 
     if (!this.rtc._removePeerConnection(this)) {
-        logger.error('RTC._removePeerConnection returned false');
+        this.log.e('RTC._removePeerConnection returned false');
     }
     if (this.statsinterval !== null) {
         window.clearInterval(this.statsinterval);
         this.statsinterval = null;
     }
-    logger.info(`Closing ${this}...`);
+    this.log.i('Closing...');
     this.peerconnection.close();
 };
 
@@ -1953,14 +1958,14 @@ TraceablePeerConnection.prototype._createOfferOrAnswer
 
             const ssrcMap = extractSSRCMap(resultSdp);
 
-            logger.debug('Got local SSRCs MAP: ', ssrcMap);
+            this.log.d('Got local SSRCs MAP: ', ssrcMap);
             this._processLocalSSRCsMap(ssrcMap);
 
             successCallback(resultSdp);
         } catch (e) {
             this.trace(`create${logName}OnError`, e);
             this.trace(`create${logName}OnError`, dumpSDP(resultSdp));
-            logger.error(`create${logName}OnError`, e, dumpSDP(resultSdp));
+            this.log.e(`create${logName}OnError`, e, dumpSDP(resultSdp));
             failureCallback(e);
         }
     };
@@ -2018,7 +2023,7 @@ TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
             const newSSRC = ssrcMap.get(trackMSID);
 
             if (!newSSRC) {
-                logger.error(`No SSRC found for: ${trackMSID} in ${this}`);
+                this.log.e(`No SSRC found for: ${trackMSID}`);
 
                 return;
             }
@@ -2029,22 +2034,22 @@ TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
             // eslint-disable-next-line no-negated-condition
             if (newSSRCNum !== oldSSRCNum) {
                 if (oldSSRCNum === null) {
-                    logger.info(
-                        `Storing new local SSRC for ${track} in ${this}`,
+                    this.log.i(
+                        `Storing new local SSRC for ${track}`,
                         newSSRC);
                 } else {
-                    logger.error(
-                        `Overwriting SSRC for ${track} ${trackMSID} in ${this
-                        } with: `, newSSRC);
+                    this.log.e(
+                        `Overwriting SSRC for ${track} ${trackMSID} with: `,
+                        newSSRC);
                 }
                 this.localSSRCs.set(track.rtcId, newSSRC);
             } else {
-                logger.debug(
+                this.log.d(
                     `The local SSRC(${newSSRCNum}) for ${track} ${trackMSID}`
-                     + `is still up to date in ${this}`);
+                     + 'is still up to date');
             }
         } else {
-            logger.warn(`No local track matched with: ${trackMSID} in ${this}`);
+            this.log.w(`No local track matched with: ${trackMSID}`);
         }
     }
 };
@@ -2100,7 +2105,7 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {
     let ssrcInfo = this._getSSRC(rtcId);
 
     if (ssrcInfo) {
-        logger.error(`Will overwrite local SSRCs for track ID: ${rtcId}`);
+        this.log.e(`Will overwrite local SSRCs for track ID: ${rtcId}`);
     }
     if (this.isSimulcastOn()) {
         ssrcInfo = {
