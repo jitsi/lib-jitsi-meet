@@ -66,12 +66,18 @@ export default class LocalSdpMunger {
 
         for (const videoTrack of localVideos) {
             const muted = videoTrack.isMuted();
-            const { setMutedInProgress } = videoTrack;
-            const shouldFakeSdp = muted || setMutedInProgress;
+            const mediaStream = videoTrack.getOriginalStream();
+
+            // During the mute/unmute operation there are periods of time when
+            // the track's underlying MediaStream is not added yet to
+            // the PeerConnection. The SDP needs to be munged in such case.
+            const isInPeerConnection
+                = mediaStream && this.tpc.isMediaStreamInPc(mediaStream);
+            const shouldFakeSdp = muted || !isInPeerConnection;
 
             logger.debug(
                 `${this.tpc} ${videoTrack} muted: ${muted
-                    }, is mute/unmute in progress: ${setMutedInProgress
+                    }, is in PeerConnection: ${isInPeerConnection
                     } => should fake sdp ? : ${shouldFakeSdp}`);
 
             if (!shouldFakeSdp) {

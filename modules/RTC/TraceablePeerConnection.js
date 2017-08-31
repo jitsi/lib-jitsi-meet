@@ -120,6 +120,14 @@ export default function TraceablePeerConnection(
     this.localTracks = new Map();
 
     /**
+     * Keeps tracks of the WebRTC <tt>MediaStream</tt>s that have been added to
+     * the underlying WebRTC PeerConnection.
+     * @type {Set}
+     * @private
+     */
+    this._addedStreams = new Set();
+
+    /**
      * @typedef {Object} TPCGroupInfo
      * @property {string} semantics the SSRC groups semantics
      * @property {Array<number>} ssrcs group's SSRCs in order where the first
@@ -1291,6 +1299,7 @@ TraceablePeerConnection.prototype.addTrackUnmute = function(track) {
  */
 TraceablePeerConnection.prototype._addStream = function(mediaStream) {
     this.peerconnection.addStream(mediaStream);
+    this._addedStreams.add(mediaStream);
 };
 
 /**
@@ -1303,6 +1312,7 @@ TraceablePeerConnection.prototype._removeStream = function(mediaStream) {
     } else {
         this.peerconnection.removeStream(mediaStream);
     }
+    this._addedStreams.delete(mediaStream);
 };
 
 /**
@@ -1326,6 +1336,16 @@ TraceablePeerConnection.prototype._assertTrackBelongs
     }
 
     return doesBelong;
+};
+
+/**
+ * Tells if the given WebRTC <tt>MediaStream</tt> has been added to
+ * the underlying WebRTC PeerConnection.
+ * @param {MediaStream} mediaStream
+ * @returns {boolean}
+ */
+TraceablePeerConnection.prototype.isMediaStreamInPc = function(mediaStream) {
+    return this._addedStreams.has(mediaStream);
 };
 
 /**
@@ -1760,6 +1780,8 @@ TraceablePeerConnection.prototype.close = function() {
         }
     }
     this.remoteTracks.clear();
+
+    this._addedStreams.clear();
 
     if (!this.rtc._removePeerConnection(this)) {
         logger.error('RTC._removePeerConnection returned false');

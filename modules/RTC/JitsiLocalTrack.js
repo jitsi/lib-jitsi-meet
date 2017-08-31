@@ -321,15 +321,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         let promise = Promise.resolve();
 
-        /**
-         * Set to <tt>true</tt> when there's ongoing "mute/unmute" operation in
-         * progress. Used by {@link LocalSdpMunger}.
-         *
-         * @public
-         * @type {boolean}
-         */
-        this.setMutedInProgress = true;
-
         // A function that will print info about muted status transition
         const logMuteInfo = () => logger.info(`Mute ${this}: ${muted}`);
 
@@ -400,15 +391,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         return promise
             .then(() => this._sendMuteStatus(muted))
-            .then(
-                /* onFulfilled */ () => {
-                    this.setMutedInProgress = false;
-                },
-                /* onRejected */ error => {
-                    this.setMutedInProgress = false;
-
-                    throw error;
-                })
             .then(() => this.emit(TRACK_MUTE_CHANGED, this));
     }
 
