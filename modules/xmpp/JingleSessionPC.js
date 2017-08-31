@@ -2030,10 +2030,7 @@ export default class JingleSessionPC extends JingleSession {
             logger.info('Sending source-remove', remove.tree());
             this.connection.sendIQ(
                 remove, null,
-                this.newJingleErrorHandler(remove, error => {
-                    GlobalOnErrorHandler.callErrorHandler(
-                        new Error(`Jingle error: ${JSON.stringify(error)}`));
-                }), IQ_TIMEOUT);
+                this.newJingleErrorHandler(remove), IQ_TIMEOUT);
         } else {
             logger.log('removal not necessary');
         }
@@ -2055,10 +2052,7 @@ export default class JingleSessionPC extends JingleSession {
         if (containsNewSSRCs) {
             logger.info('Sending source-add', add.tree());
             this.connection.sendIQ(
-                add, null, this.newJingleErrorHandler(add, error => {
-                    GlobalOnErrorHandler.callErrorHandler(
-                        new Error(`Jingle error: ${JSON.stringify(error)}`));
-                }), IQ_TIMEOUT);
+                add, null, this.newJingleErrorHandler(add), IQ_TIMEOUT);
         } else {
             logger.log('addition not necessary');
         }
@@ -2097,18 +2091,16 @@ export default class JingleSessionPC extends JingleSession {
                 if (errorReasonSel.length) {
                     error.reason = errorReasonSel[0].tagName;
                 }
+
+                const errorMsgSel = errorElSel.find('>text');
+
+                if (errorMsgSel.length) {
+                    error.msg = errorMsgSel.text();
+                }
             }
 
             if (!errResponse) {
                 error.reason = 'timeout';
-            }
-
-            error.source = request;
-            if (request && typeof request.tree === 'function') {
-                error.source = request.tree();
-            }
-            if (error.source && error.source.outerHTML) {
-                error.source = error.source.outerHTML;
             }
 
             error.session = this.toString();
@@ -2122,10 +2114,11 @@ export default class JingleSessionPC extends JingleSession {
                 // it will first send us 'session-terminate' (we enter ENDED)
                 // and then follow with 'item-not-found' for the queued requests
                 // We don't want to have that logged on error level.
-                logger.debug('Jingle error', error);
+                logger.debug(`Jingle error: ${JSON.stringify(error)}`);
             } else {
                 GlobalOnErrorHandler.callErrorHandler(
-                    new Error(`Jingle error: ${JSON.stringify(error)}`));
+                    new Error(
+                        `Jingle error: ${JSON.stringify(error)}`));
             }
         };
     }
