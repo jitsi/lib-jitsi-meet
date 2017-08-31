@@ -1,3 +1,5 @@
+import Settings from '../settings/Settings';
+
 /**
  * Interface for analytics handlers.
  */
@@ -66,6 +68,9 @@ class AnalyticsAdapter {
          * Map of properties that will be added to every event
          */
         this.permanentProperties = Object.create(null);
+
+        this.addPermanentProperties(
+            { callstatsname: Settings.getCallStatsUserName() });
     }
 
     /**
