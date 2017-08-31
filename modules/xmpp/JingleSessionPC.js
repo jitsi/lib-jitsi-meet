@@ -2166,7 +2166,8 @@ export default class JingleSessionPC extends JingleSession {
      * @return {string}
      */
     toString() {
-        return `JingleSessionPC[p2p=${this.isP2P},`
-                    + `initiator=${this.isInitiator},sid=${this.sid}]`;
+        return `JSPC[${this.isP2P ? 'p2p' : 'jvb'},`
+                    + `${this.isInitiator ? 'initiator' : 'responder'}`
+                    + `,${this.sid}]`;
     }
 }
