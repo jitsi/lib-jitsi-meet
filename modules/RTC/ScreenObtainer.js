@@ -60,6 +60,16 @@ const CHROME_EXTENSION_INLINE_ERROR
         + ' the Chrome Web Store item\'s verified sites.';
 
 /**
+ * The error returned by chrome when trying to start inline installation
+ * with extension that doesn't support inline installation.
+ *
+ * @type {string}
+ */
+const CHROME_EXTENSION_INLINE_NOT_SUPPORTED_ERROR
+    = 'Inline installation is not supported for this item. '
+        + 'The user will be redirected to the Chrome Web Store.';
+
+/**
  * The error message returned by chrome when the extension is installed.
  */
 const CHROME_NO_EXTENSION_ERROR_MSG // eslint-disable-line no-unused-vars
@@ -417,7 +427,8 @@ const ScreenObtainer = {
 
         if ((CHROME_EXTENSION_POPUP_ERROR === e
              || CHROME_EXTENSION_IFRAME_ERROR === e
-             || CHROME_EXTENSION_INLINE_ERROR === e)
+             || CHROME_EXTENSION_INLINE_ERROR === e
+             || CHROME_EXTENSION_INLINE_NOT_SUPPORTED_ERROR === e)
                 && options.interval > 0
                 && typeof options.checkAgain === 'function'
                 && typeof options.listener === 'function') {
