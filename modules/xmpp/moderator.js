@@ -465,11 +465,13 @@ Moderator.prototype.authenticate = function() {
             result => {
                 this.parseSessionId(result);
                 resolve();
-            }, error => {
-                // eslint-disable-next-line newline-per-chained-call
-                const code = $(error).find('>error').attr('code');
-
-                reject(error, code);
+            }, errorIq => {
+                reject({
+                    error: $(errorIq).find('iq>error :first')
+                                     .prop('tagName'),
+                    message: $(errorIq).find('iq>error>text')
+                                       .text()
+                });
             }
         );
     });

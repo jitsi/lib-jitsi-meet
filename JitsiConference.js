@@ -6,6 +6,7 @@ import ConnectionQuality from './modules/connectivity/ConnectionQuality';
 import { getLogger } from 'jitsi-meet-logger';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import EventEmitter from 'events';
+import JitsiAuthConnection from './JitsiAuthConnection';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
@@ -301,6 +302,16 @@ JitsiConference.prototype.join = function(password) {
     if (this.room) {
         this.room.join(password);
     }
+};
+
+/**
+ * Creates new {@link JitsiAuthConnection} which authenticates and upgrades
+ * the user's role to moderator.
+ *
+ * @returns {JitsiAuthConnection}
+ */
+JitsiConference.prototype.createAuthenticationConnection = function() {
+    return new JitsiAuthConnection(this);
 };
 
 /**
