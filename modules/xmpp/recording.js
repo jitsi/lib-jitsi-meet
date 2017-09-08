@@ -1,4 +1,4 @@
-  /* global $, $iq */
+/* global $, $iq */
 
 import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);

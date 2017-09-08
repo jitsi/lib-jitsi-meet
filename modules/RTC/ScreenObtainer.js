@@ -81,7 +81,7 @@ const CHROME_NO_EXTENSION_ERROR_MSG // eslint-disable-line no-unused-vars
  * @type {string}
  */
 const CHROME_USER_GESTURE_REQ_ERROR
-    = 'Chrome Web Store installations can only be initated by a user gesture.';
+    = 'Chrome Web Store installations can only be initiated by a user gesture.';
 
 /**
  * Handles obtaining a stream from a screen capture on different browsers.
