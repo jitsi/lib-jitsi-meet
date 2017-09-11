@@ -35,12 +35,11 @@ function createLocalTracks(tracksInfo, options) {
             deviceId = options.cameraDeviceId;
         }
         rtcTrackIdCounter += 1;
-        const localTrack = new JitsiLocalTrack({
-            ...trackInfo,
+        const localTrack = new JitsiLocalTrack(Object.assign({}, trackInfo, {
             deviceId,
             facingMode: options.facingMode,
             rtcId: rtcTrackIdCounter
-        });
+        }));
 
         newTracks.push(localTrack);
     });
