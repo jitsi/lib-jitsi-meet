@@ -6,6 +6,58 @@ const XMPPEvents = require('../../service/xmpp/XMPPEvents');
 const JitsiRecorderErrors = require('../../JitsiRecorderErrors');
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
+/**
+ * Extracts the error details from given error element/node.
+ *
+ * @param {Element|Object} errorIqNode - Either DOM element or the structure
+ * from ChatRoom packet2JSON.
+ * @return {{
+ *      code: string,
+ *      type: string,
+ *      message: string
+ * }}
+ */
+function getJibriErrorDetails(errorIqNode) {
+    if (typeof errorIqNode.querySelector === 'function') {
+        const error = errorIqNode.querySelector('error');
+        const errorText = error && error.querySelector('text');
+
+        return error && {
+            code: error.attributes.code && error.attributes.code.value,
+            type: error.attributes.type && error.attributes.type.value,
+            message: errorText && errorText.textContent
+        };
+    }
+
+    let error = null;
+
+    for (const child of errorIqNode.children) {
+        if (child.tagName === 'error') {
+            error = child;
+            break;
+        }
+    }
+
+    if (!error) {
+        return null;
+    }
+
+    let errorText = null;
+
+    for (const errorChild of error.children) {
+        if (errorChild.tagName === 'text') {
+            errorText = errorChild.value;
+            break;
+        }
+    }
+
+    return {
+        code: error.attributes.code,
+        type: error.attributes.type,
+        message: errorText
+    };
+}
+
 /* eslint-disable max-params */
 
 /**
@@ -35,6 +87,7 @@ export default function Recording(
         = !(
             (type === Recording.types.JIRECON && !this.jirecon)
                 || (type !== Recording.types.JIBRI
+                    && type !== Recording.types.JIBRI_FILE
                     && type !== Recording.types.COLIBRI));
 
     /**
@@ -51,7 +104,8 @@ export default function Recording(
 Recording.types = {
     COLIBRI: 'colibri',
     JIRECON: 'jirecon',
-    JIBRI: 'jibri'
+    JIBRI: 'jibri',
+    JIBRI_FILE: 'jibri_file'
 };
 
 Recording.status = {
@@ -79,8 +133,9 @@ Recording.prototype.handleJibriPresence = function(jibri) {
     }
 
     const newState = attributes.status;
+    const errorDetails = getJibriErrorDetails(jibri);
 
-    logger.log('Handle jibri presence : ', newState);
+    logger.log(`Handle Jibri presence : ${newState}`, errorDetails);
 
     if (newState === this.state) {
         return;
@@ -125,7 +180,12 @@ Recording.prototype.setRecordingJibri = function(
                 'action': state === Recording.status.ON
                         ? Recording.action.START
                         : Recording.action.STOP,
-                'streamid': options.streamId
+                'recording_mode': this.type === Recording.types.JIBRI_FILE
+                        ? 'file'
+                        : 'stream',
+                'streamid': this.type === Recording.types.JIBRI
+                        ? options.streamId
+                        : undefined
             })
             .up();
 
@@ -141,7 +201,8 @@ Recording.prototype.setRecordingJibri = function(
         callback(jibri.attr('state'), jibri.attr('url'));
     },
     error => {
-        logger.log('Failed to start recording, error: ', error);
+        logger.log(
+            'Failed to start recording, error: ', getJibriErrorDetails(error));
         errCallback(error);
     });
 };
@@ -258,6 +319,7 @@ Recording.prototype.setRecording = function(...args) {
         this.setRecordingColibri(...args);
         break;
     case Recording.types.JIBRI:
+    case Recording.types.JIBRI_FILE:
         this.setRecordingJibri(...args);
         break;
     default: {
