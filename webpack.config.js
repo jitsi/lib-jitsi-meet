@@ -11,7 +11,12 @@ const plugins = [
     new webpack.LoaderOptionsPlugin({
         debug: !minimize,
         minimize
-    })
+    }),
+    new webpack.ProvidePlugin({
+        $: 'jquery',
+        jQuery: 'jquery',
+        jquery: 'jquery',
+    }),
 ];
 
 if (minimize) {
