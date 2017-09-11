@@ -26,9 +26,7 @@
     "sdp-transform": "2.3.0",
     "strophe": "1.2.4",
     "strophejs-plugins": "0.0.7",
-    "yaeti": "1.0.1"
-  },
-  "devDependencies": {
+    "yaeti": "1.0.1",
     "babel-core": "6.26.0",
     "babel-eslint": "7.2.3",
     "babel-loader": "7.1.2",
