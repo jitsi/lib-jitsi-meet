@@ -631,6 +631,15 @@ JitsiConference.prototype.getTranscriber = function() {
 };
 
 /**
+ * Returns the transcription status.
+ *
+ * @returns {String} "on" or "off".
+ */
+JitsiConference.prototype.getTranscriptionStatus = function() {
+    return this.room.transcriptionStatus;
+};
+
+/**
  * Adds JitsiLocalTrack object to the conference.
  * @param track the JitsiLocalTrack object.
  * @returns {Promise<JitsiLocalTrack>}

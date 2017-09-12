@@ -196,6 +196,14 @@ const XMPPEvents = {
     SUSPEND_DETECTED: 'xmpp.suspend_detected',
 
     /**
+     * Notifies for transcription status changes. The event provides the
+     * following parameters to its listeners:
+     *
+     * @param {String} status - The new status.
+     */
+    TRANSCRIPTION_STATUS_CHANGED: 'xmpp.transcription_status_changed',
+
+    /**
      * Event fired when 'transport-info' with new ICE candidates is received.
      */
     TRANSPORT_INFO: 'xmpp.transportinfo.jingle',
