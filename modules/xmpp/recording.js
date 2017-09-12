@@ -334,10 +334,15 @@ Recording.prototype.setRecording = function(...args) {
 
 /**
  * Starts/stops the recording.
- * @param token token for authentication
+ * @param {Object} options
+ * @param {string} options.token token for authentication
+ * @param {string} options.streamId the stream ID to be used with Jibri in
+ * the streaming mode.
  * @param statusChangeHandler {function} receives the new status as argument.
  */
-Recording.prototype.toggleRecording = function(options, statusChangeHandler) {
+Recording.prototype.toggleRecording = function(
+    options = { },
+    statusChangeHandler) {
     const oldState = this.state;
 
     // If the recorder is currently unavailable we throw an error.
