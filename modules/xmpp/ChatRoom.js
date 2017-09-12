@@ -1,6 +1,7 @@
 /* global $, $pres, $iq, $msg, __filename, Strophe */
 import { getLogger } from 'jitsi-meet-logger';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
 import Listenable from '../util/Listenable';
 import * as MediaType from '../../service/RTC/MediaType';
 import Moderator from './moderator';
@@ -175,6 +176,7 @@ export default class ChatRoom extends Listenable {
         this.participantPropertyListener = null;
 
         this.locked = false;
+        this.transcriptionStatus = JitsiTranscriptionStatus.OFF;
     }
 
     /* eslint-enable max-params */
@@ -540,6 +542,26 @@ export default class ChatRoom extends Listenable {
             case 'jibri-recording-status':
                 jibri = node;
                 break;
+            case 'transcription-status': {
+                const { attributes } = node;
+
+                if (!attributes) {
+                    break;
+                }
+
+                const { status } = attributes;
+
+                if (status && status !== this.transcriptionStatus) {
+                    this.transcriptionStatus = status;
+                    this.eventEmitter.emit(
+                        XMPPEvents.TRANSCRIPTION_STATUS_CHANGED,
+                        status
+                    );
+                }
+
+
+                break;
+            }
             case 'call-control': {
                 const att = node.attributes;
 

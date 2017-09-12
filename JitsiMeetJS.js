@@ -15,6 +15,7 @@ import JitsiRecorderErrors from './JitsiRecorderErrors';
 import JitsiTrackError from './JitsiTrackError';
 import * as JitsiTrackErrors from './JitsiTrackErrors';
 import * as JitsiTrackEvents from './JitsiTrackEvents';
+import * as JitsiTranscriptionStatus from './JitsiTranscriptionStatus';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import Recording from './modules/xmpp/recording';
 import Logger from 'jitsi-meet-logger';
@@ -97,7 +98,8 @@ export default {
         participantConnectionStatus: ParticipantConnectionStatus,
         recordingStatus: Recording.status,
         recordingTypes: Recording.types,
-        sipVideoGW: VideoSIPGWConstants
+        sipVideoGW: VideoSIPGWConstants,
+        transcriptionStatus: JitsiTranscriptionStatus
     },
     events: {
         conference: JitsiConferenceEvents,
