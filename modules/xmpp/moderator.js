@@ -465,14 +465,13 @@ Moderator.prototype.authenticate = function() {
             result => {
                 this.parseSessionId(result);
                 resolve();
-            }, errorIq => {
-                reject({
-                    error: $(errorIq).find('iq>error :first')
-                                     .prop('tagName'),
-                    message: $(errorIq).find('iq>error>text')
-                                       .text()
-                });
-            }
+            },
+            errorIq => reject({
+                error: $(errorIq).find('iq>error :first')
+                                 .prop('tagName'),
+                message: $(errorIq).find('iq>error>text')
+                                   .text()
+            })
         );
     });
 };

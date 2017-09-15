@@ -6,7 +6,7 @@ import ConnectionQuality from './modules/connectivity/ConnectionQuality';
 import { getLogger } from 'jitsi-meet-logger';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import EventEmitter from 'events';
-import JitsiAuthConnection from './JitsiAuthConnection';
+import authenticateAndUpgradeRole from './authenticateAndUpgradeRole';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
@@ -305,13 +305,15 @@ JitsiConference.prototype.join = function(password) {
 };
 
 /**
- * Creates new {@link JitsiAuthConnection} which authenticates and upgrades
- * the user's role to moderator.
+ * Authenticates and upgrades the role of the local participant/user.
  *
- * @returns {JitsiAuthConnection}
+ * @returns {Object} A <tt>thenable</tt> which (1) settles when the process of
+ * authenticating and upgrading the role of the local participant/user finishes
+ * and (2) has a <tt>cancel</tt> method that allows the caller to interrupt the
+ * process.
  */
-JitsiConference.prototype.createAuthenticationConnection = function() {
-    return new JitsiAuthConnection(this);
+JitsiConference.prototype.authenticateAndUpgradeRole = function(...args) {
+    return authenticateAndUpgradeRole.apply(this, args);
 };
 
 /**
