@@ -17,6 +17,9 @@
   "readmeFilename": "README.md",
   "dependencies": {
     "async": "0.9.0",
+    "babel-loader": "7.1.2",
+    "babel-preset-es2015": "6.24.1",
+    "babel-preset-stage-1": "6.24.1",
     "current-executing-script": "0.1.3",
     "jitsi-meet-logger": "jitsi/jitsi-meet-logger",
     "react-native-callstats": "3.24.1",
@@ -24,16 +27,15 @@
     "sdp-interop": "0.1.12",
     "sdp-simulcast": "0.2.1",
     "sdp-transform": "2.3.0",
+    "string-replace-loader": "1.3.0",
     "strophe": "1.2.4",
     "strophejs-plugins": "0.0.7",
+    "webpack": "3.5.6",
     "yaeti": "1.0.1"
   },
   "devDependencies": {
     "babel-core": "6.26.0",
     "babel-eslint": "7.2.3",
-    "babel-loader": "7.1.2",
-    "babel-preset-es2015": "6.24.1",
-    "babel-preset-stage-1": "6.24.1",
     "eslint": "3.19.0",
     "eslint-plugin-flowtype": "2.30.4",
     "eslint-plugin-import": "2.7.0",
@@ -43,9 +45,7 @@
     "karma-chrome-launcher": "0.2.3",
     "karma-jasmine": "0.3.8",
     "karma-webpack": "1.8.1",
-    "precommit-hook": "3.0.0",
-    "string-replace-loader": "1.3.0",
-    "webpack": "3.5.6"
+    "precommit-hook": "3.0.0"
   },
   "scripts": {
     "lint": "eslint . && flow",
