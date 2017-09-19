@@ -269,8 +269,15 @@ export default {
         window.connectionTimes['obtainPermissions.start']
             = window.performance.now();
 
+        if (!this._inResolutionRollback
+                && RTCBrowserType.isChrome()
+                && RTCBrowserType.getChromeVersion() >= 61) {
+            options.resolution = '1080';
+        }
+
         return RTC.obtainAudioAndVideoPermissions(options || {})
             .then(tracks => {
+                this._inResolutionRollback = false;
                 promiseFulfilled = true;
 
                 window.connectionTimes['obtainPermissions.end']
@@ -315,6 +322,7 @@ export default {
                 promiseFulfilled = true;
 
                 if (error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
+                    this._inResolutionRollback = true;
                     const oldResolution = options.resolution || '720';
                     const newResolution = getLowerResolution(oldResolution);
 
