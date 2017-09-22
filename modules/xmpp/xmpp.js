@@ -119,11 +119,16 @@ export default class XMPP extends Listenable {
 
     /**
      * Receive connection status changes and handles them.
-     * @password {string} the password passed in connect method
-     * @status the connection status
-     * @msg message
+     *
+     * @param {Object} credentials
+     * @param {string} credentials.jid - The user's XMPP ID passed to the
+     * connect method. For example, 'user@xmpp.com'.
+     * @param {string} credentials.password - The password passed to the connect
+     * method.
+     * @param {string} status - One of Strophe's connection status strings.
+     * @param {string} [msg] - The connection error message provided by Strophe.
      */
-    connectionHandler(password, status, msg) {
+    connectionHandler(credentials = {}, status, msg) {
         const now = window.performance.now();
         const statusStr = Strophe.getStatusString(status).toLowerCase();
 
@@ -153,7 +158,7 @@ export default class XMPP extends Listenable {
                     }
                 });
 
-            if (password) {
+            if (credentials.password) {
                 this.authenticatedUser = true;
             }
             if (this.connection && this.connection.connected
@@ -175,7 +180,7 @@ export default class XMPP extends Listenable {
             // Stop ping interval
             this.connection.ping.stopInterval();
             const wasIntentionalDisconnect = this.disconnectInProgress;
-            const errMsg = msg ? msg : this.lastErrorMsg;
+            const errMsg = msg || this.lastErrorMsg;
 
             this.disconnectInProgress = false;
             if (this.anonymousConnectionFailed) {
@@ -206,19 +211,21 @@ export default class XMPP extends Listenable {
                     this.eventEmitter.emit(
                         JitsiConnectionEvents.CONNECTION_FAILED,
                         JitsiConnectionErrors.SERVER_ERROR,
-                        errMsg ? errMsg : 'server-error');
+                        errMsg || 'server-error');
                 } else {
                     this.eventEmitter.emit(
                         JitsiConnectionEvents.CONNECTION_FAILED,
                         JitsiConnectionErrors.CONNECTION_DROPPED_ERROR,
-                        errMsg ? errMsg : 'connection-dropped-error');
+                        errMsg || 'connection-dropped-error');
                 }
             }
         } else if (status === Strophe.Status.AUTHFAIL) {
             // wrong password or username, prompt user
-            this.eventEmitter.emit(JitsiConnectionEvents.CONNECTION_FAILED,
-                JitsiConnectionErrors.PASSWORD_REQUIRED);
-
+            this.eventEmitter.emit(
+                JitsiConnectionEvents.CONNECTION_FAILED,
+                JitsiConnectionErrors.PASSWORD_REQUIRED,
+                msg,
+                credentials);
         }
     }
 
@@ -258,8 +265,13 @@ export default class XMPP extends Listenable {
         this.anonymousConnectionFailed = false;
         this.connectionFailed = false;
         this.lastErrorMsg = undefined;
-        this.connection.connect(jid, password,
-            this.connectionHandler.bind(this, password));
+        this.connection.connect(
+            jid,
+            password,
+            this.connectionHandler.bind(this, {
+                jid,
+                password
+            }));
     }
 
     /**
@@ -275,7 +287,10 @@ export default class XMPP extends Listenable {
         logger.log(`(TIME) Strophe Attaching\t:${now}`);
         this.connection.attach(options.jid, options.sid,
             parseInt(options.rid, 10) + 1,
-            this.connectionHandler.bind(this, options.password));
+            this.connectionHandler.bind(this, {
+                jid: options.jid,
+                password: options.password
+            }));
     }
 
     /**

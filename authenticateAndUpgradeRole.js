@@ -15,6 +15,12 @@ import XMPP from './modules/xmpp/xmpp';
  * returned by Jicofo on authentication attempt. See
  * {@link https://xmpp.org/rfcs/rfc3920.html#streams-error}.
  * @property {String} [message] - More details about the error.
+ * @property {Object} [credentials] - The credentials that failed the
+ * authentication.
+ * @property {String} [credentials.jid] - The XMPP ID part of the credentials
+ * that failed the authentication.
+ * @property {string} [credentials.password] - The password part of the
+ * credentials that failed the authentication.
  *
  * NOTE If neither one of the errors is present, then the operation has been
  * canceled.
@@ -119,9 +125,10 @@ export default function authenticateAndUpgradeRole({
             });
         xmpp.addListener(
             CONNECTION_FAILED,
-            (connectionError, message) => {
+            (connectionError, message, credentials) => {
                 reject({
                     connectionError,
+                    credentials,
                     message
                 });
                 xmpp = undefined;
