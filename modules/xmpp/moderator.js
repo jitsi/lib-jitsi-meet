@@ -357,7 +357,9 @@ Moderator.prototype.allocateConferenceFocus = function(callback) {
 Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
     // If the session is invalid, remove and try again without session ID to get
     // a new one
-    const invalidSession = $(error).find('>error>session-invalid').length;
+    const invalidSession
+        = $(error).find('>error>session-invalid').length
+            || $(error).find('>error>not-acceptable').length;
 
     if (invalidSession) {
         logger.info('Session expired! - removing');
