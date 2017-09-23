@@ -462,7 +462,7 @@ export default {
      * @returns {string} the machine id
      */
     getMachineId() {
-        return Settings.getMachineId();
+        return Settings.machineId;
     },
 
     /**

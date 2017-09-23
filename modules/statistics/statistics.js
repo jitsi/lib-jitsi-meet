@@ -310,7 +310,7 @@ Statistics.prototype.startCallStats = function(tpc, remoteUserID) {
     }
 
     if (!CallStats.isBackendInitialized()) {
-        const userName = Settings.getCallStatsUserName();
+        const userName = Settings.callStatsUserName;
 
         if (!CallStats.initBackend({
             callStatsID: this.options.callStatsID,

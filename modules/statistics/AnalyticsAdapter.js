@@ -70,7 +70,7 @@ class AnalyticsAdapter {
         this.permanentProperties = Object.create(null);
 
         this.addPermanentProperties(
-            { callstatsname: Settings.getCallStatsUserName() });
+            { callstatsname: Settings.callStatsUserName });
     }
 
     /**
