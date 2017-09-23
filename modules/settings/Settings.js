@@ -108,8 +108,17 @@ class Settings {
     }
 
     /**
-     * Returns fake username for callstats
-     * @returns {string} fake username for callstats
+     * Sets the callstats username
+     * @param {string} userName user name for callstats
+     */
+    setCallStatsUserName (userName) {
+        this.callStatsUserName = userName;
+        this.save();
+    }
+
+    /**
+     * Returns username for callstats
+     * @returns {string} username for callstats
      */
     getCallStatsUserName() {
         return this.callStatsUserName;
