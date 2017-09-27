@@ -399,16 +399,6 @@ export default class ConnectionQuality {
             jvbRTT: this._localStats.jvbRTT
         };
 
-        // TODO: It looks like the remote participants don't really "care"
-        // about the resolution, and they look at their local rendered
-        // resolution instead. Consider removing this.
-        const localVideoTrack
-            = this._conference.getLocalVideoTrack();
-
-        if (localVideoTrack && localVideoTrack.resolution) {
-            data.resolution = localVideoTrack.resolution;
-        }
-
         try {
             this._conference.broadcastEndpointMessage({
                 type: STATS_MESSAGE_TYPE,

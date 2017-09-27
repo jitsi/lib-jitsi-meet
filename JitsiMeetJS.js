@@ -249,7 +249,7 @@ export default {
      *     A promise that returns an array of created JitsiTracks if resolved,
      *     or a JitsiConferenceError if rejected.
      */
-    createLocalTracks(options, firePermissionPromptIsShownEvent) {
+    createLocalTracks(options = {}, firePermissionPromptIsShownEvent) {
         let promiseFulfilled = false;
 
         if (firePermissionPromptIsShownEvent === true) {
@@ -268,7 +268,7 @@ export default {
         window.connectionTimes['obtainPermissions.start']
             = window.performance.now();
 
-        return RTC.obtainAudioAndVideoPermissions(options || {})
+        return RTC.obtainAudioAndVideoPermissions(options)
             .then(tracks => {
                 promiseFulfilled = true;
 

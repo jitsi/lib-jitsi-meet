@@ -156,6 +156,19 @@ const RTCBrowserType = {
     },
 
     /**
+     * Returns whether or not the current browser should be using the new
+     * getUserMedia flow, which utilizes the adapter shim. This method should
+     * be temporary and used while migrating all browsers to use adapter and
+     * the new getUserMedia.
+     *
+     * @returns {boolean}
+     */
+    usesNewGumFlow() {
+        return RTCBrowserType.isChrome()
+            && RTCBrowserType.getChromeVersion() >= 61;
+    },
+
+    /**
      * Checks if the current browser triggers 'onmute'/'onunmute' events when
      * user's connection is interrupted and the video stops playback.
      * @returns {*|boolean} 'true' if the event is supported or 'false'
