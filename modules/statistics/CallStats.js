@@ -513,12 +513,19 @@ export default class CallStats {
     _addNewFabric() {
         logger.info('addNewFabric', this.remoteUserID);
         try {
+            const fabricAttributes = {
+                remoteEndpointType:
+                    this.tpc.isP2P
+                        ? CallStats.backend.endpointType.peer
+                        : CallStats.backend.endpointType.server
+            };
             const ret
                 = CallStats.backend.addNewFabric(
                     this.peerconnection,
                     this.remoteUserID,
                     CallStats.backend.fabricUsage.multiplex,
                     this.confID,
+                    fabricAttributes,
                     CallStats._addNewFabricCallback);
 
             this.hasFabric = true;
