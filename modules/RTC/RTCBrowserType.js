@@ -273,11 +273,11 @@ const RTCBrowserType = {
 function detectChrome() {
     if (navigator.webkitGetUserMedia) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_CHROME;
-        const userAgent = navigator.userAgent.toLowerCase();
 
-        // We can assume that user agent is chrome, because it's
-        // enforced when 'ext' streaming method is set
-        const ver = parseInt(userAgent.match(/chrome\/(\d+)\./)[1], 10);
+        // We can assume that user agent is chrome, because it's enforced when
+        // 'ext' streaming method is set.
+        const verMatch = navigator.userAgent.match(/chrome\/(\d+)\./i);
+        const ver = verMatch ? parseInt(verMatch[1], 10) : 'undefined';
 
         logger.log(`This appears to be Chrome, ver: ${ver}`);
 
