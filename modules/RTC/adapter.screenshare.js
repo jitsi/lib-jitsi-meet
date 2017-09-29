@@ -4255,7 +4255,7 @@ if ( (navigator.mozGetUserMedia ||
        window.getUserMedia = navigator.getUserMedia;
     if ( navigator.mediaDevices &&
       typeof Promise !== 'undefined') {
-      navigator.mediaDevices.getUserMedia = requestUserMedia;
+      navigator.mediaDevices.getUserMedia = typeof requestUserMedia === 'undefined' ? undefined : requestUserMedia;
     }
   }
 
