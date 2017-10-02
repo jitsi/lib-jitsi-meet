@@ -1,4 +1,4 @@
-  /* global $, $iq */
+/* global $, $iq */
 
 import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
@@ -12,9 +12,9 @@ const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
  * @param {Element|Object} errorIqNode - Either DOM element or the structure
  * from ChatRoom packet2JSON.
  * @return {{
- *      code: string,
- *      type: string,
- *      message: string
+ *     code: string,
+ *     type: string,
+ *     message: string
  * }}
  */
 function getJibriErrorDetails(errorIqNode) {
@@ -177,13 +177,16 @@ Recording.prototype.setRecordingJibri = function(
         })
             .c('jibri', {
                 'xmlns': 'http://jitsi.org/protocol/jibri',
-                'action': state === Recording.status.ON
+                'action':
+                    state === Recording.status.ON
                         ? Recording.action.START
                         : Recording.action.STOP,
-                'recording_mode': this.type === Recording.types.JIBRI_FILE
+                'recording_mode':
+                    this.type === Recording.types.JIBRI_FILE
                         ? 'file'
                         : 'stream',
-                'streamid': this.type === Recording.types.JIBRI
+                'streamid':
+                    this.type === Recording.types.JIBRI
                         ? options.streamId
                         : undefined
             })
@@ -192,19 +195,20 @@ Recording.prototype.setRecordingJibri = function(
     logger.log(`Set jibri recording: ${state}`, iq.nodeTree);
     logger.log(iq.nodeTree);
     this.connection.sendIQ(
-    iq,
-    result => {
-        logger.log('Result', result);
+        iq,
+        result => {
+            logger.log('Result', result);
 
-        const jibri = $(result).find('jibri');
+            const jibri = $(result).find('jibri');
 
-        callback(jibri.attr('state'), jibri.attr('url'));
-    },
-    error => {
-        logger.log(
-            'Failed to start recording, error: ', getJibriErrorDetails(error));
-        errCallback(error);
-    });
+            callback(jibri.attr('state'), jibri.attr('url'));
+        },
+        error => {
+            logger.log(
+                'Failed to start recording, error: ',
+                getJibriErrorDetails(error));
+            errCallback(error);
+        });
 };
 
 /* eslint-enable max-params */
@@ -215,13 +219,16 @@ Recording.prototype.setRecordingJirecon
             errCallback(new Error('Invalid state!'));
         }
 
-        const iq = $iq({ to: this.jirecon,
-            type: 'set' })
-        .c('recording', { xmlns: 'http://jitsi.org/protocol/jirecon',
-            action: state === Recording.status.ON
-                ? Recording.action.START
-                : Recording.action.STOP,
-            mucjid: this.roomjid });
+        const iq
+            = $iq({
+                to: this.jirecon,
+                type: 'set'
+            })
+                .c('recording', { xmlns: 'http://jitsi.org/protocol/jirecon',
+                    action: state === Recording.status.ON
+                        ? Recording.action.START
+                        : Recording.action.STOP,
+                    mucjid: this.roomjid });
 
         if (state === Recording.status.OFF) {
             iq.attrs({ rid: this.jireconRid });
@@ -231,27 +238,29 @@ Recording.prototype.setRecordingJirecon
         const self = this;
 
         this.connection.sendIQ(
-        iq,
-        result => {
-            // TODO wait for an IQ with the real status, since this is
-            // provisional?
-            // eslint-disable-next-line newline-per-chained-call
-            self.jireconRid = $(result).find('recording').attr('rid');
-            logger.log(
-                `Recording ${
-                    state === Recording.status.ON ? 'started' : 'stopped'
-                    }(jirecon)${result}`);
-            self.state = state;
-            if (state === Recording.status.OFF) {
-                self.jireconRid = null;
-            }
+            iq,
+            result => {
+                // TODO wait for an IQ with the real status, since this is
+                // provisional?
+                // eslint-disable-next-line newline-per-chained-call
+                self.jireconRid = $(result).find('recording').attr('rid');
 
-            callback(state);
-        },
-        error => {
-            logger.log('Failed to start recording, error: ', error);
-            errCallback(error);
-        });
+                const stateStr
+                    = state === Recording.status.ON ? 'started' : 'stopped';
+
+                logger.log(`Recording ${stateStr}(jirecon)${result}`);
+
+                self.state = state;
+                if (state === Recording.status.OFF) {
+                    self.jireconRid = null;
+                }
+
+                callback(state);
+            },
+            error => {
+                logger.log('Failed to start recording, error: ', error);
+                errCallback(error);
+            });
     };
 
 /* eslint-disable max-params */
@@ -341,38 +350,43 @@ Recording.prototype.setRecording = function(...args) {
  * @param statusChangeHandler {function} receives the new status as argument.
  */
 Recording.prototype.toggleRecording = function(
-    options = { },
-    statusChangeHandler) {
+        options = { },
+        statusChangeHandler) {
     const oldState = this.state;
 
     // If the recorder is currently unavailable we throw an error.
     if (oldState === Recording.status.UNAVAILABLE
         || oldState === Recording.status.FAILED) {
-        statusChangeHandler(Recording.status.FAILED,
-                            JitsiRecorderErrors.RECORDER_UNAVAILABLE);
+        statusChangeHandler(
+            Recording.status.FAILED,
+            JitsiRecorderErrors.RECORDER_UNAVAILABLE);
     } else if (oldState === Recording.status.BUSY) {
-        statusChangeHandler(Recording.status.BUSY,
-                            JitsiRecorderErrors.RECORDER_BUSY);
+        statusChangeHandler(
+            Recording.status.BUSY,
+            JitsiRecorderErrors.RECORDER_BUSY);
     }
 
     // If we're about to turn ON the recording we need either a streamId or
     // an authentication token depending on the recording type. If we don't
     // have any of those we throw an error.
     if ((oldState === Recording.status.OFF
-        || oldState === Recording.status.AVAILABLE)
-        && ((!options.token && this.type === Recording.types.COLIBRI)
-        || (!options.streamId && this.type === Recording.types.JIBRI))) {
-        statusChangeHandler(Recording.status.FAILED,
-                            JitsiRecorderErrors.NO_TOKEN);
+                || oldState === Recording.status.AVAILABLE)
+            && ((!options.token && this.type === Recording.types.COLIBRI)
+                || (!options.streamId
+                    && this.type === Recording.types.JIBRI))) {
+        statusChangeHandler(
+            Recording.status.FAILED,
+            JitsiRecorderErrors.NO_TOKEN);
         logger.error('No token passed!');
 
         return;
     }
 
-    const newState = oldState === Recording.status.AVAILABLE
-                    || oldState === Recording.status.OFF
-                    ? Recording.status.ON
-                    : Recording.status.OFF;
+    const newState
+        = oldState === Recording.status.AVAILABLE
+                || oldState === Recording.status.OFF
+            ? Recording.status.ON
+            : Recording.status.OFF;
 
     const self = this;
 

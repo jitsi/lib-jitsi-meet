@@ -162,12 +162,12 @@ export default class XMPP extends Listenable {
                 this.authenticatedUser = true;
             }
             if (this.connection && this.connection.connected
-                && Strophe.getResourceFromJid(this.connection.jid)) {
+                    && Strophe.getResourceFromJid(this.connection.jid)) {
                 // .connected is true while connecting?
-    //                this.connection.send($pres());
+                // this.connection.send($pres());
                 this.eventEmitter.emit(
-                        JitsiConnectionEvents.CONNECTION_ESTABLISHED,
-                        Strophe.getResourceFromJid(this.connection.jid));
+                    JitsiConnectionEvents.CONNECTION_ESTABLISHED,
+                    Strophe.getResourceFromJid(this.connection.jid));
             }
         } else if (status === Strophe.Status.CONNFAIL) {
             if (msg === 'x-strophe-bad-non-anon-jid') {

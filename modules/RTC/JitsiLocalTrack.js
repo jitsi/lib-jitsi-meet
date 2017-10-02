@@ -363,7 +363,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
             promise = RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
                 .then(streamsInfo => {
                     const mediaType = this.getType();
-                    const streamInfo = streamsInfo.find(
+                    const streamInfo
+                        = streamsInfo.find(
                             info => info.mediaType === mediaType);
 
                     if (streamInfo) {

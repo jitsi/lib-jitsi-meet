@@ -552,8 +552,7 @@ const SDPUtil = {
      */
     getUfrag(sdp) {
         const ufragLines
-            = sdp.split('\n').filter(
-                    line => line.startsWith('a=ice-ufrag:'));
+            = sdp.split('\n').filter(line => line.startsWith('a=ice-ufrag:'));
 
         if (ufragLines.length > 0) {
             return ufragLines[0].substr('a=ice-ufrag:'.length);

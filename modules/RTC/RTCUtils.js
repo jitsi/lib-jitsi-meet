@@ -83,25 +83,26 @@ let rawEnumerateDevicesWithCallback;
  *
  */
 function initRawEnumerateDevicesWithCallback() {
-    rawEnumerateDevicesWithCallback = navigator.mediaDevices
-        && navigator.mediaDevices.enumerateDevices
-        ? function(callback) {
-            navigator.mediaDevices.enumerateDevices().then(
-                callback,
-                () => callback([]));
-        }
+    rawEnumerateDevicesWithCallback
+        = navigator.mediaDevices && navigator.mediaDevices.enumerateDevices
+            ? function(callback) {
+                navigator.mediaDevices.enumerateDevices().then(
+                    callback,
+                    () => callback([]));
+            }
 
-        // Safari:
-        // "ReferenceError: Can't find variable: MediaStreamTrack"
-        // when Temasys plugin is not installed yet, have to delay this call
-        // until WebRTC is ready.
-        : MediaStreamTrack && MediaStreamTrack.getSources
-        ? function(callback) {
-            MediaStreamTrack.getSources(
-                sources =>
-                    callback(sources.map(convertMediaStreamTrackSource)));
-        }
-        : undefined;
+            // Safari:
+            // "ReferenceError: Can't find variable: MediaStreamTrack" when
+            // Temasys plugin is not installed yet, have to delay this call
+            // until WebRTC is ready.
+            : MediaStreamTrack && MediaStreamTrack.getSources
+                ? function(callback) {
+                    MediaStreamTrack.getSources(
+                        sources =>
+                            callback(
+                                sources.map(convertMediaStreamTrackSource)));
+                }
+                : undefined;
 }
 
 // TODO: currently no browser supports 'devicechange' event even in nightly
@@ -120,10 +121,13 @@ let rtcReady = false;
 /**
  *
  * @param constraints
+ * @param isNewStyleConstraintsSupported
  * @param resolution
  */
 function setResolutionConstraints(
-    constraints, isNewStyleConstraintsSupported, resolution) {
+        constraints,
+        isNewStyleConstraintsSupported,
+        resolution) {
     if (Resolutions[resolution]) {
         if (isNewStyleConstraintsSupported) {
             constraints.video.width = {
@@ -371,15 +375,14 @@ function compareAvailableMediaDevices(newDevices) {
         return true;
     }
 
+    /* eslint-disable newline-per-chained-call */
+
     return (
-        newDevices
-                .map(mediaDeviceInfoToJSON)
-                .sort()
-                .join('')
+        newDevices.map(mediaDeviceInfoToJSON).sort().join('')
             !== currentlyAvailableMediaDevices
-                .map(mediaDeviceInfoToJSON)
-                .sort()
-                .join(''));
+                .map(mediaDeviceInfoToJSON).sort().join(''));
+
+    /* eslint-enable newline-per-chained-call */
 
     /**
      *
@@ -581,9 +584,9 @@ function handleLocalStream(streams, resolution) {
                 }
             }
         } else {
-          // On other types of browser (e.g. Firefox) we choose (namely,
-          // obtainAudioAndVideoPermissions) to call getUserMedia per device
-          // (type).
+            // On other types of browser (e.g. Firefox) we choose (namely,
+            // obtainAudioAndVideoPermissions) to call getUserMedia per device
+            // (type).
             audioStream = streams.audio;
             videoStream = streams.video;
         }
@@ -854,7 +857,7 @@ class RTCUtils extends Listenable {
                     = wrapGetUserMedia(
                         navigator.mediaDevices.getUserMedia.bind(
                             navigator.mediaDevices),
-                            true);
+                        true);
                 this.enumerateDevices = rawEnumerateDevicesWithCallback;
                 this.attachMediaStream
                     = wrapAttachMediaStream((element, stream) => {
@@ -1245,8 +1248,8 @@ class RTCUtils extends Listenable {
 
             eventEmitter.addListener(RTCEvents.RTC_READY, listener);
 
-                // We have no failed event, so... it either resolves or nothing
-                // happens
+            // We have no failed event, so... it either resolves or nothing
+            // happens.
         });
 
     }
@@ -1499,10 +1502,12 @@ function wrapAttachMediaStream(origAttachMediaStream) {
                         reason: err
                     });
 
-                    logger.warn('Failed to set audio output device for the '
-                        + 'element. Default audio output device will be used '
-                        + 'instead',
-                        element, err);
+                    logger.warn(
+                        'Failed to set audio output device for the element.'
+                            + ' Default audio output device will be used'
+                            + ' instead',
+                        element,
+                        err);
                 });
         }
 

@@ -147,20 +147,19 @@ function onConnectionSuccess() {
     room.on(
         JitsiMeetJS.events.conference.DISPLAY_NAME_CHANGED,
         (userID, displayName) => console.log(`${userID} - ${displayName}`));
-    room.on(JitsiMeetJS.events.conference.TRACK_AUDIO_LEVEL_CHANGED,
-      (userID, audioLevel) => {
-          console.log(`${userID} - ${audioLevel}`);
-      });
-    room.on(JitsiMeetJS.events.conference.RECORDER_STATE_CHANGED, () => {
-        console.log(`${room.isRecordingSupported()} - ${
-             room.getRecordingState()} - ${
-             room.getRecordingURL()}`);
-    });
-    room.on(JitsiMeetJS.events.conference.PHONE_NUMBER_CHANGED, () => {
-        console.log(
-            `${room.getPhoneNumber()} - ${
-             room.getPhonePin()}`);
-    });
+    room.on(
+        JitsiMeetJS.events.conference.TRACK_AUDIO_LEVEL_CHANGED,
+        (userID, audioLevel) => console.log(`${userID} - ${audioLevel}`));
+    room.on(
+        JitsiMeetJS.events.conference.RECORDER_STATE_CHANGED,
+        () =>
+            console.log(
+                `${room.isRecordingSupported()} - ${
+                    room.getRecordingState()} - ${
+                    room.getRecordingURL()}`));
+    room.on(
+        JitsiMeetJS.events.conference.PHONE_NUMBER_CHANGED,
+        () => console.log(`${room.getPhoneNumber()} - ${room.getPhonePin()}`));
     room.join();
 }
 
@@ -216,8 +215,9 @@ function switchVideo() { // eslint-disable-line no-unused-vars
         localTracks[1].dispose();
         localTracks.pop();
     }
-    JitsiMeetJS.createLocalTracks(
-            { devices: isVideo ? [ 'video' ] : [ 'desktop' ] })
+    JitsiMeetJS.createLocalTracks({
+        devices: [ isVideo ? 'video' : 'desktop' ]
+    })
         .then(tracks => {
             localTracks.push(tracks[0]);
             localTracks[1].addEventListener(

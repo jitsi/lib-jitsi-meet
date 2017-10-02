@@ -235,7 +235,8 @@ JitsiConference.prototype._init = function(options = {}) {
         = new ParticipantConnectionStatusHandler(
             this.rtc,
             this,
-            {   // Both these options are not public API, leaving it here only
+            {
+                // Both these options are not public API, leaving it here only
                 // as an entry point through config for tuning up purposes.
                 // Default values should be adjusted as soon as optimal values
                 // are discovered.
@@ -672,7 +673,7 @@ JitsiConference.prototype.addTrack = function(track) {
             }
 
             return Promise.reject(new Error(
-                    'cannot add second video track to the conference'));
+                'cannot add second video track to the conference'));
 
         }
     }
@@ -685,8 +686,9 @@ JitsiConference.prototype.addTrack = function(track) {
  * @param {number} audioLevel the audio level
  * @param {TraceablePeerConnection} [tpc]
  */
-JitsiConference.prototype._fireAudioLevelChangeEvent
-= function(audioLevel, tpc) {
+JitsiConference.prototype._fireAudioLevelChangeEvent = function(
+        audioLevel,
+        tpc) {
     const activeTpc = this.getActivePeerConnection();
 
     // There will be no TraceablePeerConnection if audio levels do not come from
@@ -860,10 +862,12 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
 
     newTrack.muteHandler = this._fireMuteChangeEvent.bind(this, newTrack);
     newTrack.audioLevelHandler = this._fireAudioLevelChangeEvent.bind(this);
-    newTrack.addEventListener(JitsiTrackEvents.TRACK_MUTE_CHANGED,
-                           newTrack.muteHandler);
-    newTrack.addEventListener(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
-                           newTrack.audioLevelHandler);
+    newTrack.addEventListener(
+        JitsiTrackEvents.TRACK_MUTE_CHANGED,
+        newTrack.muteHandler);
+    newTrack.addEventListener(
+        JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
+        newTrack.audioLevelHandler);
 
     newTrack._setConference(this);
 
@@ -1348,8 +1352,10 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
 /**
  * Handles incoming call event.
  */
-JitsiConference.prototype.onIncomingCall
-= function(jingleSession, jingleOffer, now) {
+JitsiConference.prototype.onIncomingCall = function(
+        jingleSession,
+        jingleOffer,
+        now) {
     // Handle incoming P2P call
     if (jingleSession.isP2P) {
         const role = this.room.getMemberRole(jingleSession.peerjid);
@@ -1509,8 +1515,8 @@ JitsiConference.prototype._setBridgeChannel = function(offerIq, pc) {
  * @param {JingleSessionPC} jingleSession the session instance to be rejected.
  * @private
  */
-JitsiConference.prototype._rejectIncomingCallNonModerator
-= function(jingleSession) {
+JitsiConference.prototype._rejectIncomingCallNonModerator = function(
+        jingleSession) {
     this._rejectIncomingCall(
         jingleSession,
         {
@@ -1533,8 +1539,9 @@ JitsiConference.prototype._rejectIncomingCallNonModerator
  * error handler
  * @private
  */
-JitsiConference.prototype._rejectIncomingCall
-= function(jingleSession, options) {
+JitsiConference.prototype._rejectIncomingCall = function(
+        jingleSession,
+        options) {
     if (options && options.errorMsg) {
         GlobalOnErrorHandler.callErrorHandler(new Error(options.errorMsg));
     }
@@ -1561,11 +1568,13 @@ JitsiConference.prototype._rejectIncomingCall
  * @param {String|null} reasonText human readable reason text which may provide
  * more details about why the call has been terminated.
  */
-JitsiConference.prototype.onCallEnded
-= function(jingleSession, reasonCondition, reasonText) {
+JitsiConference.prototype.onCallEnded = function(
+        jingleSession,
+        reasonCondition,
+        reasonText) {
     logger.info(
-        `Call ended: ${reasonCondition} - ${reasonText
-            } P2P ?${jingleSession.isP2P}`);
+        `Call ended: ${reasonCondition} - ${reasonText} P2P ?${
+            jingleSession.isP2P}`);
     if (jingleSession === this.jvbJingleSession) {
         this.wasStopped = true;
 
@@ -1655,10 +1664,9 @@ JitsiConference.prototype.isDTMFSupported = function() {
  */
 JitsiConference.prototype.myUserId = function() {
     return (
-        this.room
-            && this.room.myroomjid
-                ? Strophe.getResourceFromJid(this.room.myroomjid)
-                : null);
+        this.room && this.room.myroomjid
+            ? Strophe.getResourceFromJid(this.room.myroomjid)
+            : null);
 };
 
 JitsiConference.prototype.sendTones = function(tones, duration, pause) {
@@ -1916,8 +1924,9 @@ JitsiConference.prototype.setLocalParticipantProperty = function(name, value) {
  * user feedback
  * @param detailedFeedback detailed feedback from the user. Not yet used
  */
-JitsiConference.prototype.sendFeedback
-= function(overallFeedback, detailedFeedback) {
+JitsiConference.prototype.sendFeedback = function(
+        overallFeedback,
+        detailedFeedback) {
     this.statistics.sendFeedback(overallFeedback, detailedFeedback);
 };
 
@@ -2086,8 +2095,9 @@ JitsiConference.prototype._onIceConnectionRestored = function(session) {
  * @param {jQuery} jingleOffer a jQuery selector pointing to 'jingle' IQ element
  * @private
  */
-JitsiConference.prototype._acceptP2PIncomingCall
-= function(jingleSession, jingleOffer) {
+JitsiConference.prototype._acceptP2PIncomingCall = function(
+        jingleSession,
+        jingleOffer) {
     this.isP2PConnectionInterrupted = false;
 
     // Accept the offer
@@ -2154,9 +2164,8 @@ JitsiConference.prototype._addRemoteTracks = function(logName, remoteTracks) {
  * @param {JingleSessionPC} jingleSession the session instance.
  * @private
  */
-JitsiConference.prototype._onIceConnectionEstablished
-= function(jingleSession) {
-
+JitsiConference.prototype._onIceConnectionEstablished = function(
+        jingleSession) {
     if (this.p2pJingleSession !== null) {
         // store the establishment time of the p2p session as a field of the
         // JitsiConference because the p2pJingleSession might get disposed (thus
@@ -2273,8 +2282,9 @@ JitsiConference.prototype._removeRemoteP2PTracks = function() {
  * @param {Array<JitsiRemoteTrack>} remoteTracks the tracks that will be removed
  * @private
  */
-JitsiConference.prototype._removeRemoteTracks
-= function(sessionNickname, remoteTracks) {
+JitsiConference.prototype._removeRemoteTracks = function(
+        sessionNickname,
+        remoteTracks) {
     for (const track of remoteTracks) {
         logger.info(`Removing remote ${sessionNickname} track: ${track}`);
         this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_REMOVED, track);
@@ -2375,8 +2385,8 @@ JitsiConference.prototype._startP2PSession = function(peerJid) {
     this.isP2PConnectionInterrupted = false;
     this.p2pJingleSession
         = this.xmpp.connection.jingle.newP2PJingleSession(
-                this.room.myroomjid,
-                peerJid);
+            this.room.myroomjid,
+            peerJid);
     logger.info('Created new P2P JingleSession', this.room.myroomjid, peerJid);
 
     this.p2pJingleSession.initialize(true /* initiator */, this.room, this.rtc);
@@ -2434,8 +2444,8 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
     const shouldBeInP2P = peerCount === 1;
 
     logger.debug(
-        `P2P? isModerator: ${isModerator
-            }, peerCount: ${peerCount} => ${shouldBeInP2P}`);
+        `P2P? isModerator: ${isModerator}, peerCount: ${peerCount} => ${
+            shouldBeInP2P}`);
 
     // Clear deferred "start P2P" task
     if (!shouldBeInP2P && this.deferredStartP2PTask) {
@@ -2472,8 +2482,8 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
                 return;
             }
             logger.info(
-                `Will start P2P with: ${jid
-                    } after ${this.backToP2PDelay} seconds...`);
+                `Will start P2P with: ${jid} after ${
+                    this.backToP2PDelay} seconds...`);
             this.deferredStartP2PTask = setTimeout(
                 this._startP2PSession.bind(this, jid),
                 this.backToP2PDelay * 1000);
@@ -2500,8 +2510,9 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
  * description that will be included in the session terminate message
  * @private
  */
-JitsiConference.prototype._stopP2PSession
-= function(reason, reasonDescription) {
+JitsiConference.prototype._stopP2PSession = function(
+        reason,
+        reasonDescription) {
     if (!this.p2pJingleSession) {
         logger.error('No P2P session to be stopped!');
 
@@ -2638,8 +2649,8 @@ JitsiConference.prototype.getSpeakerStats = function() {
  * this receiver is willing to receive.
  * @returns {void}
  */
-JitsiConference.prototype.setReceiverVideoConstraint
-= function(maxFrameHeight) {
+JitsiConference.prototype.setReceiverVideoConstraint = function(
+        maxFrameHeight) {
     this.rtc.setReceiverVideoConstraint(maxFrameHeight);
 };
 

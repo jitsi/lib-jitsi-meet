@@ -517,9 +517,9 @@ StatsCollector.prototype.processStatsReport = function() {
 
             if (!conferenceStatsTransport.some(
                     t =>
-                       t.ip === ip
-                       && t.type === type
-                       && t.localip === localip)) {
+                        t.ip === ip
+                            && t.type === type
+                            && t.localip === localip)) {
                 conferenceStatsTransport.push({
                     ip,
                     type,
@@ -822,8 +822,9 @@ StatsCollector.prototype.processStatsReport = function() {
 
     this.conferenceStats.packetLoss = {
         total:
-            calculatePacketLoss(lostPackets.download + lostPackets.upload,
-                    totalPackets.download + totalPackets.upload),
+            calculatePacketLoss(
+                lostPackets.download + lostPackets.upload,
+                totalPackets.download + totalPackets.upload),
         download:
             calculatePacketLoss(lostPackets.download, totalPackets.download),
         upload:

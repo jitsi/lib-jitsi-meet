@@ -29,9 +29,9 @@ function _getSSRCCount(mLine) {
     }
 
     return mLine.ssrcs
-            .map(ssrcInfo => ssrcInfo.id)
-            .filter((ssrc, index, array) => array.indexOf(ssrc) === index)
-            .length;
+        .map(ssrcInfo => ssrcInfo.id)
+        .filter((ssrc, index, array) => array.indexOf(ssrc) === index)
+        .length;
 }
 
 /**
@@ -242,7 +242,7 @@ class MLineWrap {
             return this.mLine.ssrcs[0].id;
         }
 
-            // Look for a SIM or FID group
+        // Look for a SIM or FID group
         if (this.mLine.ssrcGroups) {
             const simGroup = this.findGroup('SIM');
 
@@ -346,7 +346,7 @@ class MLineWrap {
 
         this.mLine.ssrcGroups
             = this.mLine.ssrcGroups
-                  .filter(groupInfo => groupInfo.semantics !== semantics);
+                .filter(groupInfo => groupInfo.semantics !== semantics);
     }
 
     /**

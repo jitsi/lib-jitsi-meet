@@ -105,8 +105,8 @@ function JitsiTrackError(error, options, devices) {
                 this.message
                     = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
                         + getResolutionFromFailedConstraint(
-                                constraintName,
-                                options);
+                            constraintName,
+                            options);
             } else {
                 this.name = JitsiTrackErrors.CONSTRAINT_FAILED;
                 this.message
