@@ -25,6 +25,7 @@ import RTCEvents from '../../service/RTC/RTCEvents';
 import ortcRTCPeerConnection from './ortc/RTCPeerConnection';
 import screenObtainer from './ScreenObtainer';
 import SDPUtil from '../xmpp/SDPUtil';
+import Statistics from '../statistics/statistics';
 import VideoType from '../../service/RTC/VideoType';
 
 const logger = getLogger(__filename);
@@ -423,6 +424,32 @@ function pollForAvailableMediaDevices() {
 }
 
 /**
+ * Sends analytics event with the passed device list.
+ *
+ * @param {Array<MediaDeviceInfo>} deviceList - List with info about the
+ * available devices.
+ * @returns {void}
+ */
+function sendDeviceListToAnalytics(deviceList) {
+    const devicesPropsArray
+        = deviceList.map(
+            ({ deviceId, groupId, kind, label }) => {
+                // Filter the props of the device object.
+                return {
+                    deviceId,
+                    groupId,
+                    kind,
+                    label
+                };
+            });
+
+    Statistics.analytics.sendEvent(
+        'devices.deviceList', {
+            devices: devicesPropsArray
+        });
+}
+
+/**
  * Event handler for the 'devicechange' event.
  *
  * @param {MediaDeviceInfo[]} devices - list of media devices.
@@ -433,6 +460,8 @@ function onMediaDevicesListChanged(devicesReceived) {
     logger.info(
         'list of media devices has changed:',
         currentlyAvailableMediaDevices);
+
+    sendDeviceListToAnalytics(currentlyAvailableMediaDevices);
 
     const videoInputDevices
         = currentlyAvailableMediaDevices.filter(d => d.kind === 'videoinput');
@@ -1456,6 +1485,9 @@ function onReady(options, GUM) {
     if (rtcUtils.isDeviceListAvailable() && rawEnumerateDevicesWithCallback) {
         rawEnumerateDevicesWithCallback(ds => {
             currentlyAvailableMediaDevices = ds.splice(0);
+
+            logger.info('Available devices: ', currentlyAvailableMediaDevices);
+            sendDeviceListToAnalytics(currentlyAvailableMediaDevices);
 
             eventEmitter.emit(RTCEvents.DEVICE_LIST_AVAILABLE,
                 currentlyAvailableMediaDevices);
