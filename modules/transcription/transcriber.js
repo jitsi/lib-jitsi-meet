@@ -59,8 +59,8 @@ Transcriber.prototype.start = function start() {
     if (this.state !== BEFORE_STATE) {
         throw new Error(
             `The transcription can only start when it's in the "${
-                 BEFORE_STATE}" state. It's currently in the "${
-                 this.state}" state`);
+                BEFORE_STATE}" state. It's currently in the "${
+                this.state}" state`);
     }
     this.state = RECORDING_STATE;
     this.audioRecorder.start();
@@ -77,8 +77,8 @@ Transcriber.prototype.stop = function stop(callback) {
     if (this.state !== RECORDING_STATE) {
         throw new Error(
             `The transcription can only stop when it's in the "${
-                 RECORDING_STATE}" state. It's currently in the "${
-                 this.state}" state`);
+                RECORDING_STATE}" state. It's currently in the "${
+                this.state}" state`);
     }
 
     // stop the recording
@@ -171,7 +171,7 @@ Transcriber.prototype.maybeMerge = function() {
 Transcriber.prototype.merge = function() {
     console.log(
         `starting merge process!\n The length of the array: ${
-             this.results.length}`);
+            this.results.length}`);
     this.transcription = '';
 
     // the merging algorithm will look over all Word objects who are at pos 0 in
@@ -329,8 +329,8 @@ Transcriber.prototype.getTranscription = function() {
     if (this.state !== FINISHED_STATE) {
         throw new Error(
             `The transcription can only be retrieved when it's in the "${
-                 FINISHED_STATE}" state. It's currently in the "${
-                 this.state}" state`);
+                FINISHED_STATE}" state. It's currently in the "${
+                this.state}" state`);
     }
 
     return this.transcription;

@@ -175,7 +175,23 @@ module.exports = {
         'id-blacklist': 0,
         'id-length': 0,
         'id-match': 0,
-        'indent': [ 'error', 4, { 'SwitchCase': 0 } ],
+        'indent': [
+            'error',
+            4,
+            {
+                'CallExpression': {
+                    arguments: 'off'
+                },
+                'FunctionDeclaration': {
+                    parameters: 2
+                },
+                'FunctionExpression': {
+                    parameters: 2
+                },
+                'MemberExpression': 'off',
+                'SwitchCase': 0
+            }
+        ],
         'key-spacing': 2,
         'keyword-spacing': 2,
         'linebreak-style': [ 'error', 'unix' ],

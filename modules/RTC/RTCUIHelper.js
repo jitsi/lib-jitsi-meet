@@ -28,14 +28,15 @@ const RTCUIHelper = {
         if (!RTCBrowserType.isTemasysPluginUsed()) {
             return $(containerElement).find(videoElemName)[0];
         }
-        const matching = $(containerElement).find(
+        const matching
+            = $(containerElement).find(
                 ` ${videoElemName}>param[value="video"]`);
 
         if (matching.length) {
             if (matching.length > 1) {
                 logger.warn(
-                        'Container with more than one video elements: ',
-                        containerElement);
+                    'Container with more than one video elements: ',
+                    containerElement);
             }
 
             return matching.parent()[0];

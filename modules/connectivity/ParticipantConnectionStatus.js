@@ -99,12 +99,11 @@ export default class ParticipantConnectionStatusHandler {
      * @private
      */
     static _getNewStateForJvbMode(
-        isConnectionActiveByJvb,
-        isInLastN,
-        isRestoringTimedout,
-        isVideoMuted,
-        isVideoTrackFrozen) {
-
+            isConnectionActiveByJvb,
+            isInLastN,
+            isRestoringTimedout,
+            isVideoMuted,
+            isVideoTrackFrozen) {
         if (!isConnectionActiveByJvb) {
             // when there is a connection problem signaled from jvb
             // it means no media was flowing for at least 15secs, so both audio
@@ -607,13 +606,13 @@ export default class ParticipantConnectionStatusHandler {
         }
 
         logger.debug(
-            `Figure out conn status for ${id}, is video muted: ${isVideoMuted
-                 } is active(jvb): ${isConnActiveByJvb
-                 } video track frozen: ${isVideoTrackFrozen
-                 } p2p mode: ${inP2PMode
-                 } is in last N: ${isInLastN
-                 } currentStatus => newStatus: 
-                    ${participant.getConnectionStatus()} => ${newState}`);
+            `Figure out conn status for ${id}, is video muted: ${
+                isVideoMuted} is active(jvb): ${
+                isConnActiveByJvb} video track frozen: ${
+                isVideoTrackFrozen} p2p mode: ${
+                inP2PMode} is in last N: ${
+                isInLastN} currentStatus => newStatus: ${
+                participant.getConnectionStatus()} => ${newState}`);
 
         this._changeConnectionStatus(participant, newState);
     }

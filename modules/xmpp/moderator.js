@@ -292,7 +292,7 @@ Moderator.prototype.parseConfigOptions = function(resultIq) {
     logger.info(`Authentication enabled: ${authenticationEnabled}`);
 
     this.externalAuthEnabled = $(resultIq).find(
-            '>conference>property'
+        '>conference>property'
             + '[name=\'externalAuth\'][value=\'true\']').length > 0;
 
     logger.info(
@@ -384,7 +384,9 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
             errorMsg = errorTextNode.text();
         }
         this.eventEmitter.emit(
-                XMPPEvents.RESERVATION_ERROR, errorCode, errorMsg);
+            XMPPEvents.RESERVATION_ERROR,
+            errorCode,
+            errorMsg);
 
         return;
     }
@@ -418,7 +420,9 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
 
     if (!invalidSession) {
         this.eventEmitter.emit(
-                XMPPEvents.FOCUS_DISCONNECTED, focusComponent, retrySec);
+            XMPPEvents.FOCUS_DISCONNECTED,
+            focusComponent,
+            retrySec);
     }
 
     // Reset response timeout
@@ -470,9 +474,9 @@ Moderator.prototype.authenticate = function() {
             },
             errorIq => reject({
                 error: $(errorIq).find('iq>error :first')
-                                 .prop('tagName'),
+                    .prop('tagName'),
                 message: $(errorIq).find('iq>error>text')
-                                   .text()
+                    .text()
             })
         );
     });

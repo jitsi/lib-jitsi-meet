@@ -38,10 +38,10 @@ let isCallstatsLoaded = false;
 function loadCallStatsAPI(customScriptUrl) {
     if (!isCallstatsLoaded) {
         ScriptUtil.loadScript(
-                customScriptUrl ? customScriptUrl
-                    : 'https://api.callstats.io/static/callstats-ws.min.js',
-                /* async */ true,
-                /* prepend */ true);
+            customScriptUrl
+                || 'https://api.callstats.io/static/callstats-ws.min.js',
+            /* async */ true,
+            /* prepend */ true);
         isCallstatsLoaded = true;
     }
 
@@ -164,8 +164,11 @@ Statistics.prototype.startRemoteStats = function(peerconnection) {
 
     try {
         const rtpStats
-            = new RTPStats(peerconnection,
-                    Statistics.audioLevelsInterval, 2000, this.eventEmitter);
+            = new RTPStats(
+                peerconnection,
+                Statistics.audioLevelsInterval,
+                2000,
+                this.eventEmitter);
 
         rtpStats.start(Statistics.audioLevelsEnabled);
         this.rtpStatsMap.set(peerconnection.id, rtpStats);

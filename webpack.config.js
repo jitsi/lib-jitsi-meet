@@ -39,15 +39,15 @@ module.exports = {
                 flags: 'g',
                 replace:
                     child_process.execSync( // eslint-disable-line camelcase
-                            `${__dirname}/get-version.sh`)
+                        `${__dirname}/get-version.sh`)
 
                         // The type of the return value of
                         // child_process.execSync is either Buffer or String.
                         .toString()
 
-                            // Shells may automatically append CR and/or LF
-                            // characters to the output.
-                            .trim(),
+                        // Shells may automatically append CR and/or LF
+                        // characters to the output.
+                        .trim(),
                 search: '{#COMMIT_HASH#}'
             },
             test: `${__dirname}/JitsiMeetJS.js`

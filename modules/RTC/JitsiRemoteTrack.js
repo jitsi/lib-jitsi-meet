@@ -34,16 +34,16 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @constructor
      */
     constructor(
-        rtc,
-        conference,
-        ownerEndpointId,
-        stream,
-        track,
-        mediaType,
-        videoType,
-        ssrc,
-        muted,
-        isP2P) {
+            rtc,
+            conference,
+            ownerEndpointId,
+            stream,
+            track,
+            mediaType,
+            videoType,
+            ssrc,
+            muted,
+            isP2P) {
         super(
             conference,
             stream,
@@ -280,7 +280,9 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @return {string}
      */
     toString() {
-        return `RemoteTrack[${this.ownerEndpointId}, ${this.getType()
-                }, p2p: ${this.isP2P}]`;
+        return `RemoteTrack[${
+            this.ownerEndpointId}, ${
+            this.getType()}, p2p: ${
+            this.isP2P}]`;
     }
 }

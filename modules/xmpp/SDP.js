@@ -56,8 +56,7 @@ SDP.prototype.getMediaSsrcMap = function() {
         tmp = SDPUtil.findLines(self.media[mediaindex], 'a=ssrc:');
         const mid
             = SDPUtil.parseMID(
-                SDPUtil.findLine(self.media[mediaindex],
-                'a=mid:'));
+                SDPUtil.findLine(self.media[mediaindex], 'a=mid:'));
         const media = {
             mediaindex,
             mid,
@@ -782,9 +781,11 @@ SDP.prototype.jingle2media = function(content) {
                 += $(this)
                     .find('parameter')
                     .map(function() {
-                        return (this.getAttribute('name')
-                                ? `${this.getAttribute('name')}=` : '')
-                            + this.getAttribute('value');
+                        const name = this.getAttribute('name');
+
+                        return (
+                            (name ? `${name}=` : '')
+                                + this.getAttribute('value'));
                     })
                     .get()
                     .join('; ');

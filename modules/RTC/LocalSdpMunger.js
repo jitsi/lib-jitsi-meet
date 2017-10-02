@@ -76,9 +76,10 @@ export default class LocalSdpMunger {
             const shouldFakeSdp = muted || !isInPeerConnection;
 
             logger.debug(
-                `${this.tpc} ${videoTrack} muted: ${muted
-                    }, is in PeerConnection: ${isInPeerConnection
-                    } => should fake sdp ? : ${shouldFakeSdp}`);
+                `${this.tpc} ${videoTrack} muted: ${
+                    muted}, is in PeerConnection: ${
+                    isInPeerConnection} => should fake sdp ? : ${
+                    shouldFakeSdp}`);
 
             if (!shouldFakeSdp) {
                 continue; // eslint-disable-line no-continue

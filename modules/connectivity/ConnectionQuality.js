@@ -490,7 +490,7 @@ export default class ConnectionQuality {
      * @param data the statistics received
      */
     _updateRemoteStats(id, data) {
-            // Use only the fields we need
+        // Use only the fields we need
         this._remoteStats[id] = {
             bitrate: data.bitrate,
             packetLoss: data.packetLoss,
@@ -499,9 +499,9 @@ export default class ConnectionQuality {
         };
 
         this.eventEmitter.emit(
-                ConnectionQualityEvents.REMOTE_STATS_UPDATED,
-                id,
-                this._remoteStats[id]);
+            ConnectionQualityEvents.REMOTE_STATS_UPDATED,
+            id,
+            this._remoteStats[id]);
     }
 
     /**

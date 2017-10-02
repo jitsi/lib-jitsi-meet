@@ -407,7 +407,7 @@ export default class JingleSessionPC extends JingleSession {
                         });
                     this.wasConnected = true;
                     this.room.eventEmitter.emit(
-                            XMPPEvents.CONNECTION_ESTABLISHED, this);
+                        XMPPEvents.CONNECTION_ESTABLISHED, this);
                 }
                 this.isreconnect = false;
                 break;
@@ -417,8 +417,8 @@ export default class JingleSessionPC extends JingleSession {
                 }
                 this.isreconnect = true;
 
-                    // Informs interested parties that the connection has been
-                    // interrupted.
+                // Informs interested parties that the connection has been
+                // interrupted.
                 if (this.wasstable) {
                     this.room.eventEmitter.emit(
                         XMPPEvents.CONNECTION_INTERRUPTED, this);
@@ -523,7 +523,7 @@ export default class JingleSessionPC extends JingleSession {
                 ice.xmlns = 'urn:xmpp:jingle:transports:ice-udp:1';
                 cand.c('content', {
                     creator: this.initiator === this.localJid
-                                    ? 'initiator' : 'responder',
+                        ? 'initiator' : 'responder',
                     name: cands[0].sdpMid ? cands[0].sdpMid : mline.media
                 }).c('transport', ice);
                 for (let i = 0; i < cands.length; i++) {
@@ -664,7 +664,8 @@ export default class JingleSessionPC extends JingleSession {
                                         + ` for ${owner}`);
                             } else {
                                 this.signalingLayer.setSSRCOwner(
-                                ssrc, Strophe.getResourceFromJid(owner));
+                                    ssrc,
+                                    Strophe.getResourceFromJid(owner));
                             }
                         }
                     });
@@ -894,8 +895,8 @@ export default class JingleSessionPC extends JingleSession {
                 }, error => {
                     logger.error(
                         `Error renegotiating after setting new remote ${
-                            (this.isInitiator ? 'answer: ' : 'offer: ')
-                            }${error}`, newRemoteSdp);
+                            this.isInitiator ? 'answer: ' : 'offer: '}${error}`,
+                        newRemoteSdp);
                     JingleSessionPC.onJingleFatalError(this, error);
                     finishedCallback(error);
                 });
@@ -1034,16 +1035,16 @@ export default class JingleSessionPC extends JingleSession {
                 to: this.peerjid,
                 type: 'set'
             })
-            .c('jingle', {
-                xmlns: 'urn:xmpp:jingle:1',
-                action: 'content-modify',
-                initiator: this.initiator,
-                sid: this.sid
-            })
-            .c('content', {
-                name: 'video',
-                senders: newSendersValue
-            });
+                .c('jingle', {
+                    xmlns: 'urn:xmpp:jingle:1',
+                    action: 'content-modify',
+                    initiator: this.initiator,
+                    sid: this.sid
+                })
+                .c('content', {
+                    name: 'video',
+                    senders: newSendersValue
+                });
 
         logger.info(
             `Sending content-modify, video senders: ${newSendersValue}`);
@@ -1147,14 +1148,14 @@ export default class JingleSessionPC extends JingleSession {
                     to: this.peerjid,
                     type: 'set'
                 })
-                .c('jingle', {
-                    xmlns: 'urn:xmpp:jingle:1',
-                    action: 'session-terminate',
-                    initiator: this.initiator,
-                    sid: this.sid
-                })
-                .c('reason')
-                .c((options && options.reason) || 'success');
+                    .c('jingle', {
+                        xmlns: 'urn:xmpp:jingle:1',
+                        action: 'session-terminate',
+                        initiator: this.initiator,
+                        sid: this.sid
+                    })
+                    .c('reason')
+                    .c((options && options.reason) || 'success');
 
             if (options && options.reasonDescription) {
                 sessionTerminate.up()
@@ -1228,8 +1229,8 @@ export default class JingleSessionPC extends JingleSession {
 
                     if (ssrcs.length) {
                         lines
-                            += `a=ssrc-group:${semantics} ${ssrcs.join(' ')
-                                }\r\n`;
+                            += `a=ssrc-group:${semantics} ${
+                                ssrcs.join(' ')}\r\n`;
                     }
                 });
 
@@ -1685,8 +1686,8 @@ export default class JingleSessionPC extends JingleSession {
 
                     if (ssrcs.length) {
                         lines
-                            += `a=ssrc-group:${semantics} ${ssrcs.join(' ')
-                                }\r\n`;
+                            += `a=ssrc-group:${semantics} ${
+                                ssrcs.join(' ')}\r\n`;
                     }
 
                     /* eslint-enable no-invalid-this */

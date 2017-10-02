@@ -278,8 +278,7 @@ export default class CallStats {
         const originalReportError = theBackend.reportError;
 
         /* eslint-disable max-params */
-        theBackend.reportError
-        = function(pc, cs, type, ...args) {
+        theBackend.reportError = function(pc, cs, type, ...args) {
             // Logs from the logger are submitted on the applicationLog event
             // "type". Logging the arguments on the logger will create endless
             // loop, because it will put all the logs to the logger queue again.

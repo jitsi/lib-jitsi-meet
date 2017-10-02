@@ -54,7 +54,7 @@ describe('SpeakerStats', () => {
             }
 
             expect(speakerStats.getTotalDominantSpeakerTime())
-              .toBe(domaintSpeakerTime * domaintSpeakerEvents);
+                .toBe(domaintSpeakerTime * domaintSpeakerEvents);
         });
     });
 });

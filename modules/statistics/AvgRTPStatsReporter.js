@@ -781,7 +781,8 @@ export default class AvgRTPStatsReporter {
             if (isLocal ? peerID === myID : peerID !== myID) {
                 const participant
                     = isLocal
-                    ? null : this._conference.getParticipantById(peerID);
+                        ? null
+                        : this._conference.getParticipantById(peerID);
                 const videosResolution = peerResolutions[peerID];
 
                 // Do not continue without participant for non local peerID
@@ -824,19 +825,21 @@ export default class AvgRTPStatsReporter {
             if (videoTracks) {
                 ssrcs
                     = ssrcs.filter(
-                    ssrc => videoTracks.find(
-                        track => !track.isMuted()
-                            && track.getSSRC() === ssrc
-                            && track.videoType === videoType));
+                        ssrc => videoTracks.find(
+                            track =>
+                                !track.isMuted()
+                                    && track.getSSRC() === ssrc
+                                    && track.videoType === videoType));
             }
         } else {
             videoTracks = this._conference.getLocalTracks(MediaType.VIDEO);
             ssrcs
                 = ssrcs.filter(
-                ssrc => videoTracks.find(
-                    track => !track.isMuted()
-                        && tpc.getLocalSSRC(track) === ssrc
-                        && track.videoType === videoType));
+                    ssrc => videoTracks.find(
+                        track =>
+                            !track.isMuted()
+                                && tpc.getLocalSSRC(track) === ssrc
+                                && track.videoType === videoType));
         }
 
         let peerPixelsSum = 0;

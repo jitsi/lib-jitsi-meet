@@ -355,7 +355,7 @@ export default {
                     Statistics.sendLog(JSON.stringify(logObject));
                     Statistics.analytics.sendEvent(
                         `getUserMedia.deviceNotFound.${
-                             error.gum.devices.join('.')}`);
+                            error.gum.devices.join('.')}`);
                 } else {
                     // Report gUM failed to the stats
                     Statistics.sendGetUserMediaFailed(error);
