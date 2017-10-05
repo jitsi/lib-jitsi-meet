@@ -7,6 +7,7 @@ import Listenable from '../util/Listenable';
 import * as MediaType from '../../service/RTC/MediaType';
 import Moderator from './moderator';
 import Recorder from './recording';
+import Settings from '../settings/Settings';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
 const logger = getLogger(__filename);
@@ -194,6 +195,13 @@ export default class ChatRoom extends Listenable {
             'value': navigator.userAgent,
             'attributes': { xmlns: 'http://jitsi.org/jitmeet/user-agent' }
         });
+
+        if (options.enableStatsID) {
+            this.presMap.nodes.push({
+                'tagName': 'stats-id',
+                'value': Settings.callStatsUserName
+            });
+        }
 
         // We need to broadcast 'videomuted' status from the beginning, cause
         // Jicofo makes decisions based on that. Initialize it with 'false'
@@ -441,6 +449,9 @@ export default class ChatRoom extends Listenable {
             case 'userId':
                 member.id = node.value;
                 break;
+            case 'stats-id':
+                member.statsId = node.value;
+                break;
             }
         }
 
@@ -477,7 +488,11 @@ export default class ChatRoom extends Listenable {
             } else {
                 this.eventEmitter.emit(
                     XMPPEvents.MUC_MEMBER_JOINED,
-                    from, member.nick, member.role, member.isHiddenDomain);
+                    from,
+                    member.nick,
+                    member.role,
+                    member.isHiddenDomain,
+                    member.statsId);
             }
 
             hasStatusUpdate = member.status !== undefined;

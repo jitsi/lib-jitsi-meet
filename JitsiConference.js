@@ -254,8 +254,14 @@ JitsiConference.prototype._init = function(options = {}) {
         // bellow).
         const windowLocation = window.location;
 
+        let callStatsAliasName = this.myUserId();
+
+        if (config.enableDisplayNameInStats && config.displayName) {
+            callStatsAliasName = config.displayName;
+        }
+
         this.statistics = new Statistics(this.xmpp, {
-            callStatsAliasName: this.myUserId(),
+            callStatsAliasName,
             callStatsConfIDNamespace:
                 config.callStatsConfIDNamespace
                     || (windowLocation && windowLocation.hostname)
@@ -263,7 +269,8 @@ JitsiConference.prototype._init = function(options = {}) {
             callStatsCustomScriptUrl: config.callStatsCustomScriptUrl,
             callStatsID: config.callStatsID,
             callStatsSecret: config.callStatsSecret,
-            roomName: this.options.name
+            roomName: this.options.name,
+            swapUserNameAndAlias: config.enableStatsID
         });
     }
 
@@ -1138,14 +1145,17 @@ JitsiConference.prototype.muteParticipant = function(id) {
  * @param role the role of the participant in the MUC
  * @param isHidden indicates if this is a hidden participant (system
  * participant for example a recorder).
+ * @param statsId the participant statsId (optional)
  */
-JitsiConference.prototype.onMemberJoined = function(jid, nick, role, isHidden) {
+JitsiConference.prototype.onMemberJoined = function(
+        jid, nick, role, isHidden, statsId) {
     const id = Strophe.getResourceFromJid(jid);
 
     if (id === 'focus' || this.myUserId() === id) {
         return;
     }
-    const participant = new JitsiParticipant(jid, this, nick, isHidden);
+    const participant
+        = new JitsiParticipant(jid, this, nick, isHidden, statsId);
 
     participant._role = role;
     this.participants[id] = participant;
@@ -2107,9 +2117,20 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
         false /* initiator */, this.room, this.rtc);
 
     logger.info('Starting CallStats for P2P connection...');
+
+    let remoteID = Strophe.getResourceFromJid(this.p2pJingleSession.peerjid);
+
+    if (this.options.config.enableStatsID) {
+        const participant = this.participants[remoteID];
+
+        if (participant) {
+            remoteID = participant.getStatsId() || remoteID;
+        }
+    }
+
     this.statistics.startCallStats(
         this.p2pJingleSession.peerconnection,
-        Strophe.getResourceFromJid(this.p2pJingleSession.peerjid));
+        remoteID);
 
     const localTracks = this.getLocalTracks();
 
@@ -2392,9 +2413,20 @@ JitsiConference.prototype._startP2PSession = function(peerJid) {
     this.p2pJingleSession.initialize(true /* initiator */, this.room, this.rtc);
 
     logger.info('Starting CallStats for P2P connection...');
+
+    let remoteID = Strophe.getResourceFromJid(this.p2pJingleSession.peerjid);
+
+    if (this.options.config.enableStatsID) {
+        const participant = this.participants[remoteID];
+
+        if (participant) {
+            remoteID = participant.getStatsId() || remoteID;
+        }
+    }
+
     this.statistics.startCallStats(
         this.p2pJingleSession.peerconnection,
-        Strophe.getResourceFromJid(this.p2pJingleSession.peerjid));
+        remoteID);
 
     // NOTE one may consider to start P2P with the local tracks detached,
     // but no data will be sent until ICE succeeds anyway. And we switch
