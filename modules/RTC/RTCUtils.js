@@ -1079,6 +1079,8 @@ class RTCUtils extends Listenable {
             };
 
             options.devices = options.devices || [ 'audio', 'video' ];
+            options.resolution = options.resolution || '720';
+
             if (!screenObtainer.isSupported()
                 && options.devices.indexOf('desktop') !== -1) {
                 reject(new Error('Desktop sharing is not supported!'));
@@ -1131,7 +1133,7 @@ class RTCUtils extends Listenable {
                         options.devices.indexOf('desktop'),
                         1);
                 }
-                options.resolution = options.resolution || '360';
+
                 if (options.devices.length) {
                     this.getUserMediaWithConstraints(
                         options.devices,
