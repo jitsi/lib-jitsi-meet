@@ -1,3 +1,4 @@
+import RTCBrowserType from '../RTC/RTCBrowserType';
 import Settings from '../settings/Settings';
 
 /**
@@ -59,27 +60,19 @@ const cacheAnalytics = new CacheAnalytics();
  */
 class AnalyticsAdapter {
     /**
-     *
+     * Creates new AnalyticsAdapter instance.
      */
     constructor() {
+        this.disposed = false;
+        this.browserName = RTCBrowserType.getBrowserName();
         this.analyticsHandlers = new Set();
 
         /**
          * Map of properties that will be added to every event
          */
         this.permanentProperties = Object.create(null);
-
         this.addPermanentProperties(
             { callstatsname: Settings.callStatsUserName });
-    }
-
-    /**
-     * Initializes the AnalyticsAdapter. Adds the cacheAnalytics handler to
-     * cache all the events until we have other handlers that are going to send
-     * them.
-     */
-    init(browserName) {
-        this.browserName = browserName;
         this.analyticsHandlers.add(cacheAnalytics);
     }
 
@@ -93,7 +86,12 @@ class AnalyticsAdapter {
             { browserName: this.browserName }, this.permanentProperties, data);
 
         this.analyticsHandlers.forEach(
-            analytics => analytics.sendEvent(action, modifiedData));
+            analytics =>
+                analytics.sendEvent(
+                    action,
+                    analytics === cacheAnalytics ? data : modifiedData
+                )
+        );
     }
 
     /**
@@ -102,6 +100,7 @@ class AnalyticsAdapter {
     dispose() {
         cacheAnalytics.drainCachedEvents();
         this.analyticsHandlers.clear();
+        this.disposed = true;
     }
 
     /**
@@ -110,6 +109,9 @@ class AnalyticsAdapter {
      * @param {Array} handlers the handlers
      */
     setAnalyticsHandlers(handlers) {
+        if (this.disposed) {
+            return;
+        }
         this.analyticsHandlers = new Set(handlers);
         cacheAnalytics.drainCachedEvents().forEach(
             ev => this.sendEvent(ev.action, ev.data));
