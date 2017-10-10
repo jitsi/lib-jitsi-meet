@@ -723,7 +723,7 @@ class RTCUtils extends Listenable {
      *
      * @param options
      */
-    init(options) {
+    init(options = {}) {
         if (typeof options.disableAEC === 'boolean') {
             disableAEC = options.disableAEC;
             logger.info(`Disable AEC: ${disableAEC}`);
@@ -888,7 +888,7 @@ class RTCUtils extends Listenable {
                  * @type {number}
                  */
                 const forceP2PSuspendVideoRatio
-                    = options.testing.forceP2PSuspendVideoRatio;
+                    = (options.testing || {}).forceP2PSuspendVideoRatio;
 
                 // If <tt>forceP2PSuspendVideoRatio</tt> is invalid (not a
                 // number) fallback to the default behavior (enabled for every
