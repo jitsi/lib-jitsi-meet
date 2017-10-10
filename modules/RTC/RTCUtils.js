@@ -876,10 +876,34 @@ class RTCUtils extends Listenable {
                         { googSuspendBelowMinBitrate: true });
                 }
 
-                // There's no reason not to use this for p2p
-                this.p2pPcConstraints.optional.push({
-                    googSuspendBelowMinBitrate: true
-                });
+                /**
+                 * This option is used to enable the suspend video only for
+                 * part of the users on the P2P peer connection. The value of
+                 * the option is the ratio:
+                 * (users with suspended video enabled)/(all users).
+                 *
+                 * Note: The option is not documented because it is temporary
+                 * and only for internal testing purpose.
+                 *
+                 * @type {number}
+                 */
+                const forceP2PSuspendVideoRatio
+                    = options.testing.forceP2PSuspendVideoRatio;
+
+                // If <tt>forceP2PSuspendVideoRatio</tt> is invalid (not a
+                // number) fallback to the default behavior (enabled for every
+                // user).
+                if (typeof forceP2PSuspendVideoRatio !== 'number'
+                        || Math.random() < forceP2PSuspendVideoRatio) {
+                    logger.info(`Enable suspend video mode for p2p (ratio=${
+                        forceP2PSuspendVideoRatio})`);
+                    Statistics.analytics.addPermanentProperties({
+                        forceP2PSuspendVideo: true
+                    });
+                    this.p2pPcConstraints.optional.push({
+                        googSuspendBelowMinBitrate: true
+                    });
+                }
             } else if (RTCBrowserType.isEdge()) {
                 this.RTCPeerConnectionType = ortcRTCPeerConnection;
                 this.getUserMedia
