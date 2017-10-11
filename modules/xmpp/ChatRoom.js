@@ -450,7 +450,7 @@ export default class ChatRoom extends Listenable {
                 member.id = node.value;
                 break;
             case 'stats-id':
-                member.statsId = node.value;
+                member.statsID = node.value;
                 break;
             }
         }
@@ -492,7 +492,7 @@ export default class ChatRoom extends Listenable {
                     member.nick,
                     member.role,
                     member.isHiddenDomain,
-                    member.statsId);
+                    member.statsID);
             }
 
             hasStatusUpdate = member.status !== undefined;

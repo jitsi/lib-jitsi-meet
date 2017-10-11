@@ -1145,17 +1145,17 @@ JitsiConference.prototype.muteParticipant = function(id) {
  * @param role the role of the participant in the MUC
  * @param isHidden indicates if this is a hidden participant (system
  * participant for example a recorder).
- * @param statsId the participant statsId (optional)
+ * @param statsID the participant statsID (optional)
  */
 JitsiConference.prototype.onMemberJoined = function(
-        jid, nick, role, isHidden, statsId) {
+        jid, nick, role, isHidden, statsID) {
     const id = Strophe.getResourceFromJid(jid);
 
     if (id === 'focus' || this.myUserId() === id) {
         return;
     }
     const participant
-        = new JitsiParticipant(jid, this, nick, isHidden, statsId);
+        = new JitsiParticipant(jid, this, nick, isHidden, statsID);
 
     participant._role = role;
     this.participants[id] = participant;
@@ -2124,7 +2124,7 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
         const participant = this.participants[remoteID];
 
         if (participant) {
-            remoteID = participant.getStatsId() || remoteID;
+            remoteID = participant.getStatsID() || remoteID;
         }
     }
 
@@ -2420,7 +2420,7 @@ JitsiConference.prototype._startP2PSession = function(peerJid) {
         const participant = this.participants[remoteID];
 
         if (participant) {
-            remoteID = participant.getStatsId() || remoteID;
+            remoteID = participant.getStatsID() || remoteID;
         }
     }
 

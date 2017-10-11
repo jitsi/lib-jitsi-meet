@@ -20,9 +20,9 @@ export default class JitsiParticipant {
      * @param displayName
      * @param {Boolean} hidden - True if the new JitsiParticipant instance is to
      * represent a hidden participant; otherwise, false.
-     * @param {string} starsId - optional participant statsId
+     * @param {string} statsID - optional participant statsID
      */
-    constructor(jid, conference, displayName, hidden, statsId) {
+    constructor(jid, conference, displayName, hidden, statsID) {
         this._jid = jid;
         this._id = Strophe.getResourceFromJid(jid);
         this._conference = conference;
@@ -36,7 +36,7 @@ export default class JitsiParticipant {
             video: undefined
         };
         this._hidden = hidden;
-        this._statsId = statsId;
+        this._statsID = statsID;
         this._connectionStatus = ParticipantConnectionStatus.ACTIVE;
         this._properties = {};
     }
@@ -156,8 +156,8 @@ export default class JitsiParticipant {
     /**
      * @returns {String} The stats ID of this participant.
      */
-    getStatsId() {
-        return this._statsId;
+    getStatsID() {
+        return this._statsID;
     }
 
     /**
