@@ -241,15 +241,19 @@ const SDPUtil = {
         // proprietary mapping of a=ssrc lines
         // TODO: see "Jingle RTP Source Description" by Juberti and P. Thatcher
         // on google docs and parse according to that
-        const data = {};
+        const data = new Map();
         const lines = desc.split('\r\n');
 
         for (let i = 0; i < lines.length; i++) {
             if (lines[i].substring(0, 7) === 'a=ssrc:') {
-                const idx = lines[i].indexOf(' ');
+                // FIXME: Use regex to smartly find the ssrc.
+                const ssrc = lines[i].split('a=ssrc:')[1].split(' ')[0];
 
-                data[lines[i].substr(idx + 1).split(':', 2)[0]]
-                    = lines[i].substr(idx + 1).split(':', 2)[1];
+                if (!data.get(ssrc)) {
+                    data.set(ssrc, []);
+                }
+
+                data.get(ssrc).push(lines[i]);
             }
         }
 

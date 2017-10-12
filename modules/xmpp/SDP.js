@@ -1,4 +1,4 @@
-/* global $, APP */
+/* global $ */
 
 import SDPUtil from './SDPUtil';
 
@@ -266,26 +266,18 @@ SDP.prototype.toJingle = function(elem, thecreator) {
             }
 
             if (ssrc) {
-                // new style mapping
-                elem.c('source', { ssrc,
-                    xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
+                const ssrcMap = SDPUtil.parseSSRC(this.media[i]);
 
-                // FIXME: group by ssrc and support multiple different ssrcs
-                const ssrclines = SDPUtil.findLines(this.media[i], 'a=ssrc:');
+                for (const [ availableSsrc, ssrcParameters ] of ssrcMap) {
+                    elem.c('source', {
+                        ssrc: availableSsrc,
+                        xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0'
+                    });
 
-                if (ssrclines.length > 0) {
-                    // eslint-disable-next-line no-loop-func
-                    ssrclines.forEach(line => {
-                        const idx = line.indexOf(' ');
-                        const linessrc = line.substr(0, idx).substr(7);
-
-                        if (linessrc !== ssrc) {
-                            elem.up();
-                            ssrc = linessrc;
-                            elem.c('source', { ssrc,
-                                xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
-                        }
-                        const kv = line.substr(idx + 1);
+                    ssrcParameters.forEach(ssrcSdpLine => {
+                        // get everything after first space
+                        const idx = ssrcSdpLine.indexOf(' ');
+                        const kv = ssrcSdpLine.substr(idx + 1);
 
                         elem.c('parameter');
                         if (kv.indexOf(':') === -1) {
@@ -302,50 +294,9 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                         }
                         elem.up();
                     });
-                } else {
+
                     elem.up();
-                    elem.c('source', { ssrc,
-                        xmlns: 'urn:xmpp:jingle:apps:rtp:ssma:0' });
-                    elem.c('parameter');
-                    elem.attrs({
-                        name: 'cname',
-
-                        // eslint-disable-next-line newline-per-chained-call
-                        value: Math.random().toString(36).substring(7)
-                    });
-                    elem.up();
-
-                    // FIXME what case does this code handle ? remove ???
-                    let msid = null;
-
-                    // FIXME what is this ? global APP.RTC in SDP ?
-                    const localTrack = APP.RTC.getLocalTracks(mline.media);
-
-                    // eslint-disable-next-line max-depth
-                    if (localTrack) {
-                        // FIXME before this changes the track id was accessed,
-                        // but msid stands for the stream id, makes no sense ?
-                        msid = localTrack.getTrackId();
-                    }
-
-                    // eslint-disable-next-line max-depth
-                    if (msid !== null) {
-                        msid = SDPUtil.filterSpecialChars(msid);
-                        elem.c('parameter');
-                        elem.attrs({ name: 'msid',
-                            value: msid });
-                        elem.up();
-                        elem.c('parameter');
-                        elem.attrs({ name: 'mslabel',
-                            value: msid });
-                        elem.up();
-                        elem.c('parameter');
-                        elem.attrs({ name: 'label',
-                            value: msid });
-                        elem.up();
-                    }
                 }
-                elem.up();
 
                 // XEP-0339 handle ssrc-group attributes
                 const ssrcGroupLines
