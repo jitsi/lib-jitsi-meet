@@ -162,7 +162,7 @@ const RTCBrowserType = {
      * otherwise.
      */
     isVideoMuteOnConnInterruptedSupported() {
-        return RTCBrowserType.isChrome();
+        return RTCBrowserType.isChrome() || RTCBrowserType.isElectron();
     },
 
     /**
