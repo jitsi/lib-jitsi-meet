@@ -374,6 +374,8 @@ export default class RTC extends Listenable {
      *      the simulcast.
      * @param {boolean} options.disableRtx If set to 'true' will disable the
      *      RTX.
+     * @param {boolean} options.disableH264 If set to 'true' H264 will be
+     *      disabled by removing it from the SDP.
      * @param {boolean} options.preferH264 If set to 'true' H264 will be
      *      preferred over other video codecs.
      * @return {TraceablePeerConnection}

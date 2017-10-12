@@ -22,4 +22,17 @@ describe('SDPUtil', () => {
             expect(newPayloadTypesOrder[0]).toEqual(126);
         });
     });
+
+    describe('stripVideoCodec', () => {
+        it('should remove a codec', () => {
+            const sdp = SampleSdpStrings.multiCodecVideoSdp;
+            const videoMLine = sdp.media.find(m => m.type === 'video');
+
+            SDPUtil.stripVideoCodec(videoMLine, 'H264');
+            const newPayloadTypes = videoMLine.payloads.split(' ').map(Number);
+
+            expect(newPayloadTypes.length).toEqual(1);
+            expect(newPayloadTypes[0]).toEqual(100);
+        });
+    });
 });
