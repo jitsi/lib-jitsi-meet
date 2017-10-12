@@ -45,6 +45,8 @@ const SIM_LAYER_RIDS = [ SIM_LAYER_1_RID, SIM_LAYER_2_RID, SIM_LAYER_3_RID ];
  * @param {boolean} options.disableRtx if set to 'true' will disable the RTX
  * @param {boolean} options.enableFirefoxSimulcast if set to 'true' will enable
  * experimental simulcast support on Firefox.
+ * @param {boolean} options.disableH264 If set to 'true' H264 will be
+ *      disabled by removing it from the SDP.
  * @param {boolean} options.preferH264 if set to 'true' H264 will be preferred
  * over other video codecs.
  *
@@ -1572,14 +1574,19 @@ TraceablePeerConnection.prototype.setLocalDescription = function(
 
     this.trace('setLocalDescription::preTransform', dumpSDP(localSdp));
 
-    if (this.options.preferH264) {
+    if (this.options.disableH264 || this.options.preferH264) {
         const parsedSdp = transform.parse(localSdp.sdp);
         const videoMLine = parsedSdp.media.find(m => m.type === 'video');
 
-        SDPUtil.preferVideoCodec(videoMLine, 'h264');
+        if (this.options.disableH264) {
+            SDPUtil.stripVideoCodec(videoMLine, 'h264');
+        } else {
+            SDPUtil.preferVideoCodec(videoMLine, 'h264');
+        }
+
         localSdp.sdp = transform.write(parsedSdp);
 
-        this.trace('setLocalDescription::postTransform (preferH264)',
+        this.trace('setLocalDescription::postTransform (H264)',
             dumpSDP(localSdp));
     }
 
