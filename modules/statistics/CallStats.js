@@ -359,12 +359,24 @@ export default class CallStats {
             CallStats.callStatsID = options.callStatsID;
             CallStats.callStatsSecret = options.callStatsSecret;
 
+            let configParams;
+
+            if (options.applicationName) {
+                configParams = {
+                    applicationVersion:
+                        `${options.applicationName} (${
+                            RTCBrowserType.getBrowserName()})`
+                };
+            }
+
             // userID is generated or given by the origin server
             CallStats.backend.initialize(
                 CallStats.callStatsID,
                 CallStats.callStatsSecret,
                 CallStats.userID,
-                CallStats._initCallback);
+                CallStats._initCallback,
+                undefined,
+                configParams);
 
             return true;
         } catch (e) {

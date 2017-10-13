@@ -270,7 +270,8 @@ JitsiConference.prototype._init = function(options = {}) {
             callStatsID: config.callStatsID,
             callStatsSecret: config.callStatsSecret,
             roomName: this.options.name,
-            swapUserNameAndAlias: config.enableStatsID
+            swapUserNameAndAlias: config.enableStatsID,
+            applicationName: config.applicationName
         });
     }
 
