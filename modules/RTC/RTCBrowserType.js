@@ -182,6 +182,14 @@ const RTCBrowserType = {
     },
 
     /**
+     * Returns Opera version.
+     * @returns {number|null}
+     */
+    getOperaVersion() {
+        return RTCBrowserType.isOpera() ? browserVersion : null;
+    },
+
+    /**
      * Returns Internet Explorer version.
      *
      * @returns {number|null}

@@ -198,8 +198,9 @@ const ScreenObtainer = {
             logger.info('Using Temasys plugin for desktop sharing');
 
             return obtainWebRTCScreen;
-        } else if (RTCBrowserType.isChrome()) {
-            if (RTCBrowserType.getChromeVersion() < 34) {
+        } else if (RTCBrowserType.isChrome() || RTCBrowserType.isOpera()) {
+            if ((RTCBrowserType.getChromeVersion()
+                    || RTCBrowserType.getOperaVersion()) < 34) {
                 logger.info('Chrome extension not supported until ver 34');
 
                 return null;
@@ -389,6 +390,17 @@ const ScreenObtainer = {
                 /* eslint-enable no-alert */
             }
 
+            // for opera there is no inline install
+            // extension "Download Chrome Extension" allows us to open
+            // the chrome webstore and install from there and then activate our
+            // extension
+            if (RTCBrowserType.isOpera()) {
+                this.handleExternalInstall(options, streamCallback,
+                    failCallback);
+
+                return;
+            }
+
             try {
                 chrome.webstore.install(
                     getWebStoreInstallUrl(this.options),
@@ -422,6 +434,14 @@ const ScreenObtainer = {
 
     /* eslint-disable max-params */
 
+    handleExternalInstall(options, streamCallback, failCallback, e) {
+        const webStoreInstallUrl = getWebStoreInstallUrl(this.options);
+
+        options.listener('waitingForExtension', webStoreInstallUrl);
+        this.checkForChromeExtensionOnInterval(options, streamCallback,
+            failCallback, e);
+    },
+
     handleExtensionInstallationError(options, streamCallback, failCallback, e) {
         const webStoreInstallUrl = getWebStoreInstallUrl(this.options);
 
@@ -432,8 +452,7 @@ const ScreenObtainer = {
                 && options.interval > 0
                 && typeof options.checkAgain === 'function'
                 && typeof options.listener === 'function') {
-            options.listener('waitingForExtension', webStoreInstallUrl);
-            this.checkForChromeExtensionOnInterval(options, streamCallback,
+            this.handleExternalInstall(options, streamCallback,
                 failCallback, e);
 
             return;
