@@ -1,4 +1,5 @@
-/* global __filename, $, Strophe, Promise */
+/* global __filename, $, Promise */
+import { Strophe } from 'strophe.js';
 
 import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import ComponentsVersions from './modules/version/ComponentsVersions';

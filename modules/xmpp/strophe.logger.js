@@ -1,4 +1,5 @@
-/* global Strophe */
+import { Strophe } from 'strophe.js';
+
 import ConnectionPlugin from './ConnectionPlugin';
 
 /**

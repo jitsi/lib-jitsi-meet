@@ -1,4 +1,5 @@
-/* global __filename, Strophe */
+/* global __filename */
+import { Strophe } from 'strophe.js';
 
 import AuthenticationEvents
     from './service/authentication/AuthenticationEvents';

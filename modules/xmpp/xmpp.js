@@ -1,7 +1,8 @@
-/* global $, Strophe */
+/* global $ */
 
 import { getLogger } from 'jitsi-meet-logger';
-const logger = getLogger(__filename);
+import { Strophe } from 'strophe.js';
+import 'strophejs-plugin-disco';
 
 import RandomUtil from '../util/RandomUtil';
 import * as JitsiConnectionErrors from '../../JitsiConnectionErrors';
@@ -15,6 +16,8 @@ import initRayo from './strophe.rayo';
 import initStropheLogger from './strophe.logger';
 import Listenable from '../util/Listenable';
 import Caps from './Caps';
+
+const logger = getLogger(__filename);
 
 /**
  *

@@ -1,4 +1,7 @@
-/* global $, b64_sha1, Strophe */
+/* global $ */
+
+import { b64_sha1, Strophe } from 'strophe.js'; // eslint-disable-line camelcase
+
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import Listenable from '../util/Listenable';
 
@@ -41,7 +44,7 @@ export default class Caps extends Listenable {
         if (!this.disco) {
             throw new Error(
                 'Missing strophe-plugins '
-                + '(disco and caps plugins are required)!');
+                + '(disco plugin is required)!');
         }
 
         this.versionToCapabilities = Object.create(null);

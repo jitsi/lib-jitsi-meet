@@ -1,16 +1,19 @@
-/* global __filename, $, $iq, Strophe */
+/* global __filename, $ */
 
 import async from 'async';
 import { getLogger } from 'jitsi-meet-logger';
-import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import { $iq, Strophe } from 'strophe.js';
+
 import JingleSession from './JingleSession';
+import * as JingleSessionState from './JingleSessionState';
 import SDP from './SDP';
 import SDPDiffer from './SDPDiffer';
 import SDPUtil from './SDPUtil';
 import SignalingLayerImpl from './SignalingLayerImpl';
+
 import Statistics from '../statistics/statistics';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
-import * as JingleSessionState from './JingleSessionState';
+import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
 const logger = getLogger(__filename);
 

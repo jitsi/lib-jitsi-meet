@@ -1,4 +1,6 @@
-/* global Strophe */
+
+import { Strophe } from 'strophe.js';
+
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import { ParticipantConnectionStatus }
     from './modules/connectivity/ParticipantConnectionStatus';
