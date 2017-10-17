@@ -321,7 +321,8 @@ Statistics.prototype.startCallStats = function(tpc, remoteUserID) {
             userName: this.options.swapUserNameAndAlias
                 ? this.options.callStatsAliasName : userName,
             aliasName: this.options.swapUserNameAndAlias
-                ? userName : this.options.callStatsAliasName
+                ? userName : this.options.callStatsAliasName,
+            applicationName: this.options.applicationName
         })) {
 
             // Backend initialization failed bad
