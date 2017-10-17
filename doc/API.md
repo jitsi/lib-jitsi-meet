@@ -224,7 +224,10 @@ This objects represents the server connection. You can create new ```JitsiConnec
         4. callStatsID - callstats credentials
         5. callStatsSecret - callstats credentials
         6. enableTalkWhileMuted - boolean property. Enables/disables talk while muted detection, by default the value is false/disabled.
-        7. ignoreStartMuted - ignores start muted events coming from jicofo. 
+        7. ignoreStartMuted - ignores start muted events coming from jicofo.
+        8. enableStatsID - enables sending callStatsUsername as stats-id in presence, jicofo and videobridge will use it as endpointID to report stats
+        9. enableDisplayNameInStats - enables sending the users display name, if set, to callstats as alias of the endpointID stats 
+
         **NOTE: if 4 and 5 are set the library is going to send events to callstats. Otherwise the callstats integration will be disabled.**
 
 5. addEventListener(event, listener) - Subscribes the passed listener to the event.
