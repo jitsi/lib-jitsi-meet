@@ -97,6 +97,10 @@ const XMPPEvents = {
     // received.
     MESSAGE_RECEIVED: 'xmpp.message_received',
 
+    // Designates an event indicating that a private XMPP message in the MUC was
+    // received.
+    PRIVATE_MESSAGE_RECEIVED: 'xmpp.private_message_received',
+
     // Designates an event indicating that the XMPP MUC was destroyed.
     MUC_DESTROYED: 'xmpp.muc_destroyed',
 
@@ -170,6 +174,10 @@ const XMPPEvents = {
 
     // Designates an event indicating that we sent an XMPP message to the MUC.
     SENDING_CHAT_MESSAGE: 'xmpp.sending_chat_message',
+
+    // Designates an event indicating that we sent a private XMPP message to
+    // a specific user of the muc.
+    SENDING_PRIVATE_CHAT_MESSAGE: 'xmpp.sending_private_chat_message',
 
     /**
      * Event fired when we do not get our 'session-accept' acknowledged by

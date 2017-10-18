@@ -126,6 +126,11 @@ export const LOCK_STATE_CHANGED = 'conference.lock_state_changed';
 export const MESSAGE_RECEIVED = 'conference.messageReceived';
 
 /**
+ * New private text message was received.
+ */
+export const PRIVATE_MESSAGE_RECEIVED = 'conference.privateMessageReceived';
+
+/**
  * Event fired when JVB sends notification about interrupted/restored user's
  * ICE connection status or we detect local problem with the video track.
  * First argument is the ID of the participant and
