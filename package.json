@@ -50,10 +50,12 @@
     "lint": "eslint . && flow",
     "postinstall": "webpack -p",
     "test": "karma start karma.conf.js",
+    "test-watch": "karma start karma.conf.js --no-single-run",
     "validate": "npm ls"
   },
   "pre-commit": [
-    "lint"
+    "lint",
+    "test"
   ],
   "main": "./index.js",
   "license": "Apache-2.0"
