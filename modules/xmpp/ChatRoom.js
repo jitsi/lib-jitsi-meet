@@ -1,14 +1,17 @@
-/* global $, $pres, $iq, $msg, __filename, Strophe */
+/* global $, __filename */
 
 import { getLogger } from 'jitsi-meet-logger';
+import { $iq, $msg, $pres, Strophe } from 'strophe.js';
+
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
 import Listenable from '../util/Listenable';
+import Settings from '../settings/Settings';
 import * as MediaType from '../../service/RTC/MediaType';
+import XMPPEvents from '../../service/xmpp/XMPPEvents';
+
 import Moderator from './moderator';
 import Recorder from './recording';
-import Settings from '../settings/Settings';
-import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
 const logger = getLogger(__filename);
 

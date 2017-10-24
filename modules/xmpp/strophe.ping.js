@@ -1,10 +1,12 @@
-/* global $iq, Strophe */
-
 import { getLogger } from 'jitsi-meet-logger';
-const logger = getLogger(__filename);
+import { $iq, Strophe } from 'strophe.js';
+
+import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
 import ConnectionPlugin from './ConnectionPlugin';
-import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+
+
+const logger = getLogger(__filename);
 
 /**
  * Ping every 10 sec

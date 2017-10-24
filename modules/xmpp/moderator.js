@@ -1,6 +1,8 @@
-/* global $, $iq, Promise, Strophe */
+/* global $, Promise */
 
 const logger = require('jitsi-meet-logger').getLogger(__filename);
+
+import { $iq, Strophe } from 'strophe.js';
 
 const XMPPEvents = require('../../service/xmpp/XMPPEvents');
 const AuthenticationEvents

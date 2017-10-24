@@ -1,14 +1,17 @@
-/* global $, $iq, __filename, Strophe */
+/* global $, __filename */
 
 import { getLogger } from 'jitsi-meet-logger';
-const logger = getLogger(__filename);
+import { $iq, Strophe } from 'strophe.js';
 
-import JingleSessionPC from './JingleSessionPC';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import RandomUtil from '../util/RandomUtil';
 import Statistics from '../statistics/statistics';
+
+import JingleSessionPC from './JingleSessionPC';
 import ConnectionPlugin from './ConnectionPlugin';
+
+const logger = getLogger(__filename);
 
 // XXX Strophe is build around the idea of chaining function calls so allow long
 // function call chains.

@@ -1,10 +1,12 @@
-/* global $, $iq */
+/* global $ */
 import { getLogger } from 'jitsi-meet-logger';
-const logger = getLogger(__filename);
+import { $iq } from 'strophe.js';
 
 import Listenable from '../util/Listenable';
 
 import * as VideoSIPGWConstants from './VideoSIPGWConstants';
+
+const logger = getLogger(__filename);
 
 /**
  * The event name for current sip video session state changed.

@@ -1,10 +1,13 @@
-/* global $, $iq */
+/* global $ */
 
 import { getLogger } from 'jitsi-meet-logger';
-const logger = getLogger(__filename);
+import { $iq } from 'strophe.js';
+
 const XMPPEvents = require('../../service/xmpp/XMPPEvents');
 const JitsiRecorderErrors = require('../../JitsiRecorderErrors');
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
+
+const logger = getLogger(__filename);
 
 /**
  * Extracts the error details from given error element/node.

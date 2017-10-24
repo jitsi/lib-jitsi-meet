@@ -1,9 +1,11 @@
-/* global $, $iq, Strophe */
+/* global $ */
 
 import { getLogger } from 'jitsi-meet-logger';
-const logger = getLogger(__filename);
+import { $iq, Strophe } from 'strophe.js';
 
 import ConnectionPlugin from './ConnectionPlugin';
+
+const logger = getLogger(__filename);
 
 const RAYO_XMLNS = 'urn:xmpp:rayo:1';
 
