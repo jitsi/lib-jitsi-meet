@@ -309,16 +309,6 @@ describe('RtxModifier', () => {
                 expect(newSdpStr).toEqual(this.transform.write(sdp));
             });
 
-            it('should handle an inactive video mline', function() {
-                const sdp = SampleSdpStrings.plainVideoSdp;
-                const videoMLine = sdp.media.find(m => m.type === 'video');
-
-                videoMLine.direction = 'inactive';
-                const newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(sdp));
-
-                expect(newSdpStr).toEqual(this.transform.write(sdp));
-            });
-
             it('should handle a video mline with no video ssrcs', function() {
                 const sdp = SampleSdpStrings.plainVideoSdp;
                 const videoMLine = sdp.media.find(m => m.type === 'video');
