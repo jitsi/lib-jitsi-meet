@@ -499,10 +499,6 @@ export default class CallStats {
      * which given <tt>tpc</tt> is connected.
      */
     constructor(tpc, options) {
-        if (!CallStats.backend) {
-            throw new Error('CallStats backend not intiialized!');
-        }
-
         this.confID = options.confID;
         this.tpc = tpc;
         this.peerconnection = tpc.peerconnection;

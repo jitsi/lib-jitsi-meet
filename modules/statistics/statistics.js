@@ -33,20 +33,48 @@ let isCallstatsLoaded = false;
  * downloading their API as soon as possible and (2) do the downloading
  * asynchronously.
  *
- * @param customScriptUrl
+ * @param {StatisticsOptions} options - Options to use for downloading and
+ * initializing callstats backend.
  */
-function loadCallStatsAPI(customScriptUrl) {
+function loadCallStatsAPI(options) {
     if (!isCallstatsLoaded) {
         ScriptUtil.loadScript(
-            customScriptUrl
+            options.customScriptUrl
                 || 'https://api.callstats.io/static/callstats-ws.min.js',
             /* async */ true,
-            /* prepend */ true);
+            /* prepend */ true,
+            /* relativeURL */ undefined,
+            /* loadCallback */ () => _initCallStatsBackend(options)
+        );
         isCallstatsLoaded = true;
     }
+}
 
-    // FIXME At the time of this writing, we hope that the callstats.io API will
-    // have loaded by the time we needed it (i.e. CallStats.init is invoked).
+/**
+ * Initializes Callstats backend.
+ *
+ * @param {StatisticsOptions} options - The options to use for initializing
+ * callstats backend.
+ * @private
+ */
+function _initCallStatsBackend(options) {
+    if (CallStats.isBackendInitialized()) {
+        return;
+    }
+
+    const userName = Settings.callStatsUserName;
+
+    if (!CallStats.initBackend({
+        callStatsID: options.callStatsID,
+        callStatsSecret: options.callStatsSecret,
+        userName: options.swapUserNameAndAlias
+            ? options.callStatsAliasName : userName,
+        aliasName: options.swapUserNameAndAlias
+            ? userName : options.callStatsAliasName,
+        applicationName: options.applicationName
+    })) {
+        logger.error('CallStats Backend initialization failed bad');
+    }
 }
 
 /**
@@ -93,9 +121,27 @@ Statistics.init = function(options) {
 };
 
 /**
+ * The options to configure Statistics.
+ * @typedef {Object} StatisticsOptions
+ * @property {string} applicationName - The application name to pass to
+ * callstats.
+ * @property {string} callStatsAliasName - The alias name to use when
+ * initializing callstats.
+ * @property {string} callStatsConfIDNamespace - A namespace to prepend the
+ * callstats conference ID with.
+ * @property {string} callStatsID - Callstats credentials - the id.
+ * @property {string} callStatsSecret - Callstats credentials - the secret.
+ * @property {string} customScriptUrl - A custom lib url to use when downloading
+ * callstats library.
+ * @property {string} roomName - The room name we are currently in.
+ * @property {boolean} swapUserNameAndAlias - Whether to swap the places of
+ * username and alias when initiating callstats.
+ */
+/**
  *
  * @param xmpp
- * @param options
+ * @param {StatisticsOptions} options - The options to use creating the
+ * Statistics.
  */
 export default function Statistics(xmpp, options) {
     /**
@@ -116,8 +162,10 @@ export default function Statistics(xmpp, options) {
             // requests to any third parties.
             && (Statistics.disableThirdPartyRequests !== true);
     if (this.callStatsIntegrationEnabled) {
-        if (!RTCBrowserType.isReactNative()) {
-            loadCallStatsAPI(this.options.callStatsCustomScriptUrl);
+        if (RTCBrowserType.isReactNative()) {
+            _initCallStatsBackend(this.options);
+        } else {
+            loadCallStatsAPI(this.options);
         }
 
         if (!this.options.callStatsConfIDNamespace) {
@@ -310,24 +358,6 @@ Statistics.prototype.startCallStats = function(tpc, remoteUserID) {
         logger.error('CallStats instance for ${tpc} exists already');
 
         return;
-    }
-
-    if (!CallStats.isBackendInitialized()) {
-        const userName = Settings.callStatsUserName;
-
-        if (!CallStats.initBackend({
-            callStatsID: this.options.callStatsID,
-            callStatsSecret: this.options.callStatsSecret,
-            userName: this.options.swapUserNameAndAlias
-                ? this.options.callStatsAliasName : userName,
-            aliasName: this.options.swapUserNameAndAlias
-                ? userName : this.options.callStatsAliasName,
-            applicationName: this.options.applicationName
-        })) {
-
-            // Backend initialization failed bad
-            return;
-        }
     }
 
     logger.info(`Starting CallStats for ${tpc}...`);
