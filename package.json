@@ -34,6 +34,7 @@
     "babel-preset-es2015": "6.24.1",
     "babel-preset-stage-1": "6.24.1",
     "eslint": "4.8.0",
+    "eslint-config-jitsi": "jitsi/eslint-config-jitsi#v0.1",
     "eslint-plugin-flowtype": "2.37.0",
     "eslint-plugin-import": "2.7.0",
     "flow-bin": "0.38.0",
