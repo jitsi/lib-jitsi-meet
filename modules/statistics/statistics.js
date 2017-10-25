@@ -33,20 +33,46 @@ let isCallstatsLoaded = false;
  * downloading their API as soon as possible and (2) do the downloading
  * asynchronously.
  *
- * @param customScriptUrl
+ * @param options to use for downloading and initializing callstats backend
  */
-function loadCallStatsAPI(customScriptUrl) {
+function loadCallStatsAPI(options) {
     if (!isCallstatsLoaded) {
         ScriptUtil.loadScript(
-            customScriptUrl
+            options.customScriptUrl
                 || 'https://api.callstats.io/static/callstats-ws.min.js',
             /* async */ true,
-            /* prepend */ true);
+            /* prepend */ true,
+            /* relativeURL */ undefined,
+            /* loadCallback */ () => _initCallStatsBackend(options)
+        );
         isCallstatsLoaded = true;
     }
+}
 
-    // FIXME At the time of this writing, we hope that the callstats.io API will
-    // have loaded by the time we needed it (i.e. CallStats.init is invoked).
+/**
+ * Initializes Callstats backend.
+ *
+ * @param options to use for initializing callstats backend
+ * @private
+ */
+function _initCallStatsBackend(options) {
+    if (CallStats.isBackendInitialized()) {
+        return;
+    }
+
+    const userName = Settings.callStatsUserName;
+
+    if (!CallStats.initBackend({
+        callStatsID: options.callStatsID,
+        callStatsSecret: options.callStatsSecret,
+        userName: options.swapUserNameAndAlias
+            ? options.callStatsAliasName : userName,
+        aliasName: options.swapUserNameAndAlias
+            ? userName : options.callStatsAliasName,
+        applicationName: options.applicationName
+    })) {
+        logger.warn('CallStats Backend initialization failed bad');
+    }
 }
 
 /**
@@ -116,8 +142,10 @@ export default function Statistics(xmpp, options) {
             // requests to any third parties.
             && (Statistics.disableThirdPartyRequests !== true);
     if (this.callStatsIntegrationEnabled) {
-        if (!RTCBrowserType.isReactNative()) {
-            loadCallStatsAPI(this.options.callStatsCustomScriptUrl);
+        if (RTCBrowserType.isReactNative()) {
+            _initCallStatsBackend(this.options);
+        } else {
+            loadCallStatsAPI(this.options);
         }
 
         if (!this.options.callStatsConfIDNamespace) {
@@ -310,24 +338,6 @@ Statistics.prototype.startCallStats = function(tpc, remoteUserID) {
         logger.error('CallStats instance for ${tpc} exists already');
 
         return;
-    }
-
-    if (!CallStats.isBackendInitialized()) {
-        const userName = Settings.callStatsUserName;
-
-        if (!CallStats.initBackend({
-            callStatsID: this.options.callStatsID,
-            callStatsSecret: this.options.callStatsSecret,
-            userName: this.options.swapUserNameAndAlias
-                ? this.options.callStatsAliasName : userName,
-            aliasName: this.options.swapUserNameAndAlias
-                ? userName : this.options.callStatsAliasName,
-            applicationName: this.options.applicationName
-        })) {
-
-            // Backend initialization failed bad
-            return;
-        }
     }
 
     logger.info(`Starting CallStats for ${tpc}...`);
