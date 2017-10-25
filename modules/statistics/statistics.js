@@ -33,7 +33,8 @@ let isCallstatsLoaded = false;
  * downloading their API as soon as possible and (2) do the downloading
  * asynchronously.
  *
- * @param options to use for downloading and initializing callstats backend
+ * @param {StatisticsOptions} options to use for downloading and initializing
+ * callstats backend
  */
 function loadCallStatsAPI(options) {
     if (!isCallstatsLoaded) {
@@ -52,7 +53,7 @@ function loadCallStatsAPI(options) {
 /**
  * Initializes Callstats backend.
  *
- * @param options to use for initializing callstats backend
+ * @param {StatisticsOptions} options to use for initializing callstats backend
  * @private
  */
 function _initCallStatsBackend(options) {
@@ -71,7 +72,7 @@ function _initCallStatsBackend(options) {
             ? userName : options.callStatsAliasName,
         applicationName: options.applicationName
     })) {
-        logger.warn('CallStats Backend initialization failed bad');
+        logger.error('CallStats Backend initialization failed bad');
     }
 }
 
@@ -119,9 +120,26 @@ Statistics.init = function(options) {
 };
 
 /**
+ * The options to configure Statistics.
+ * @typedef {Object} StatisticsOptions
+ * @property {string} applicationName - the application name to pass to
+ * callstats
+ * @property {string} callStatsAliasName - the alias name to use when
+ * initializing callstats
+ * @property {string} callStatsConfIDNamespace - a namespace to prepend the
+ * callstats conference ID with
+ * @property {string} callStatsID - callstats credentials, id
+ * @property {string} callStatsSecret - callstats credentials, secret
+ * @property {string} customScriptUrl - a custom lib url to use when downloading
+ * callstats library.
+ * @property {string} roomName - the room name we are currently in
+ * @property {boolean} swapUserNameAndAlias - whether to swap the places of
+ * username and alias when initiating callstats.
+ */
+/**
  *
  * @param xmpp
- * @param options
+ * @param {StatisticsOptions} options
  */
 export default function Statistics(xmpp, options) {
     /**
