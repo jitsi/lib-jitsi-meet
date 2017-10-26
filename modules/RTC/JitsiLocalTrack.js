@@ -102,16 +102,16 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this._trackEnded = false;
 
         /**
-         * The value of bytes sent received from the statistics module.
+         * Indicates whether data has been sent or not.
          */
-        this._bytesSent = null;
+        this._hasSentData = false;
 
         /**
          * Used only for detection of audio problems. We want to check only once
-         * whether the track is sending bytes ot not. This flag is set to false
+         * whether the track is sending data ot not. This flag is set to false
          * after the check.
          */
-        this._testByteSent = true;
+        this._testDataSent = true;
 
         // Currently there is no way to determine with what device track was
         // created (until getConstraints() support), however we can associate
@@ -553,19 +553,20 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Sets the value of bytes sent statistic.
+     * Handles bytes sent statistics.
      * @param {TraceablePeerConnection} tpc the source of the "bytes sent" stat
      * @param {number} bytesSent the new value
      * NOTE: used only for audio tracks to detect audio issues.
      */
-    _setByteSent(tpc, bytesSent) {
-        this._bytesSent = bytesSent;
+    _onByteSentStatsReceived(tpc, bytesSent) {
+        if (bytesSent > 0) {
+            this._hasSentData = true;
+        }
         const iceConnectionState = tpc.getConnectionState();
 
-        if (this._testByteSent && iceConnectionState === 'connected') {
+        if (this._testDataSent && iceConnectionState === 'connected') {
             setTimeout(() => {
-                if (this._bytesSent <= 0) {
-                    // FIXME: Remove ${this}
+                if (!this._hasSentData) {
                     logger.warn(`${this} 'bytes sent' <= 0: \
                         ${this._bytesSent}`);
 
@@ -573,7 +574,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     this._fireNoDataFromSourceEvent();
                 }
             }, 3000);
-            this._testByteSent = false;
+            this._testDataSent = false;
         }
     }
 
