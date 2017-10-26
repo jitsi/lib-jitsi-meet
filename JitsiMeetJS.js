@@ -91,7 +91,7 @@ function addDeviceTypeToAnalyticsEvent(name, options) {
  */
 export default {
 
-    version: '{#COMMIT_HASH#}',
+    version: 'damencho_hash',
 
     JitsiConnection,
     constants: {
