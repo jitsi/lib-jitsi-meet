@@ -39,7 +39,7 @@
     "eslint-config-jitsi": "jitsi/eslint-config-jitsi#v0.1",
     "eslint-plugin-flowtype": "2.37.0",
     "eslint-plugin-import": "2.7.0",
-    "flow-bin": "0.38.0",
+    "flow-bin": "0.53.0",
     "jasmine-core": "2.5.2",
     "karma": "0.13.22",
     "karma-chrome-launcher": "0.2.3",
