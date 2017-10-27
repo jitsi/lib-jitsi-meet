@@ -33,6 +33,7 @@
     "babel-loader": "7.1.2",
     "babel-preset-es2015": "6.24.1",
     "babel-preset-stage-1": "6.24.1",
+    "core-js": "2.5.1",
     "eslint": "4.8.0",
     "eslint-config-jitsi": "jitsi/eslint-config-jitsi#v0.1",
     "eslint-plugin-flowtype": "2.37.0",
@@ -41,6 +42,7 @@
     "jasmine-core": "2.5.2",
     "karma": "0.13.22",
     "karma-chrome-launcher": "0.2.3",
+    "karma-phantomjs-launcher": "1.0.4",
     "karma-jasmine": "0.3.8",
     "karma-webpack": "1.8.1",
     "precommit-hook": "3.0.0",
@@ -51,10 +53,12 @@
     "lint": "eslint . && flow",
     "postinstall": "webpack -p",
     "test": "karma start karma.conf.js",
+    "test-watch": "karma start karma.conf.js --no-single-run",
     "validate": "npm ls"
   },
   "pre-commit": [
-    "lint"
+    "lint",
+    "test"
   ],
   "main": "./index.js",
   "license": "Apache-2.0"

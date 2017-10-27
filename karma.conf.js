@@ -14,6 +14,7 @@ module.exports = function(config) {
 
         // list of files / patterns to load in the browser
         files: [
+            'node_modules/core-js/index.js',
             './index.js',
             './modules/**/*.spec.js'
         ],
@@ -26,6 +27,7 @@ module.exports = function(config) {
         // available preprocessors:
         //  https://npmjs.org/browse/keyword/karma-preprocessor
         preprocessors: {
+            'node_modules/core-js/**': [ 'webpack' ],
             './index.js': [ 'webpack' ],
             './**/*.spec.js': [ 'webpack' ]
         },
@@ -53,11 +55,11 @@ module.exports = function(config) {
         // start these browsers
         // available browser launchers:
         // https://npmjs.org/browse/keyword/karma-launcher
-        browsers: [ 'Chrome' ],
+        browsers: [ 'PhantomJS' ],
 
         // Continuous Integration mode
         // if true, Karma captures browsers, runs the tests and exits
-        singleRun: false,
+        singleRun: true,
 
         webpack: require('./webpack.config.js')
     });
