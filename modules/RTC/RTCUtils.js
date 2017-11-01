@@ -1257,7 +1257,7 @@ class RTCUtils extends Listenable {
     _newGetDesktopMedia(
             desktopSharingExtensionExternalInstallation,
             desktopSharingSources) {
-        if (!screenObtainer.isSupported()) {
+        if (!screenObtainer.isSupported() || !RTCBrowserType.supportsVideo()) {
             return Promise.reject(
                 new Error('Desktop sharing is not supported!'));
         }
@@ -1532,7 +1532,15 @@ class RTCUtils extends Listenable {
         const maybeRequestCaptureDevices = function() {
             const umDevices = options.devices || [ 'audio', 'video' ];
             const requestedCaptureDevices = umDevices.filter(
-                device => device !== 'desktop');
+                device => {
+                    const isDesktop = device === 'desktop';
+
+                    if (!RTCBrowserType.supportsVideo()) {
+                        return !isDesktop && device !== 'video';
+                    }
+
+                    return !isDesktop;
+                });
 
             if (!requestedCaptureDevices.length) {
                 return Promise.resolve();

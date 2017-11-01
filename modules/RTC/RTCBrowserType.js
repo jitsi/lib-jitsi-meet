@@ -283,6 +283,17 @@ const RTCBrowserType = {
 
     supportsRtpSender() {
         return RTCBrowserType.isFirefox();
+    },
+
+    /**
+     * Returns whether or not the current browser can support capturing video,
+     * be it camera or desktop, and displaying received video.
+     *
+     * @returns {boolean}
+     */
+    supportsVideo() {
+        // Currently all browsers are assumed to support video.
+        return true;
     }
 
     // Add version getters for other browsers when needed
