@@ -587,8 +587,14 @@ const SDPUtil = {
             }
         }
         if (payloadType) {
+            // Call toString() on payloads to get around an issue within
+            // SDPTransform that sets payloads as a number, instead of a string,
+            // when there is only one payload.
             const payloadTypes
-                = videoMLine.payloads.split(' ').map(p => parseInt(p, 10));
+                = videoMLine.payloads
+                    .toString()
+                    .split(' ')
+                    .map(p => parseInt(p, 10));
             const payloadIndex = payloadTypes.indexOf(payloadType);
 
             payloadTypes.splice(payloadIndex, 1);
@@ -629,7 +635,13 @@ const SDPUtil = {
 
             removePts.push(...rtxPts.map(item => item.payload));
 
-            const allPts = videoMLine.payloads.split(' ').map(Number);
+            // Call toString() on payloads to get around an issue within
+            // SDPTransform that sets payloads as a number, instead of a string,
+            // when there is only one payload.
+            const allPts = videoMLine.payloads
+                .toString()
+                .split(' ')
+                .map(Number);
             const keepPts = allPts.filter(pt => removePts.indexOf(pt) === -1);
 
             if (keepPts.length === 0) {

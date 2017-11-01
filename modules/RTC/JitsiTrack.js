@@ -3,7 +3,6 @@ import EventEmitter from 'events';
 import { getLogger } from 'jitsi-meet-logger';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import * as MediaType from '../../service/RTC/MediaType';
-import RTCBrowserType from './RTCBrowserType';
 import RTCUtils from './RTCUtils';
 
 const logger = getLogger(__filename);
@@ -16,29 +15,6 @@ const trackHandler2Prop = {
     'track_unmute': 'onunmute',
     'track_ended': 'onended'
 };
-
-/**
- * This implements 'onended' callback normally fired by WebRTC after the stream
- * is stopped. There is no such behaviour yet in FF, so we have to add it.
- * @param jitsiTrack our track object holding the original WebRTC stream object
- * to which 'onended' handling will be added.
- */
-function implementOnEndedHandling(jitsiTrack) {
-    const stream = jitsiTrack.getOriginalStream();
-
-    if (!stream) {
-        return;
-    }
-
-    const originalStop = stream.stop;
-
-    stream.stop = function() {
-        originalStop.apply(stream);
-        if (jitsiTrack.isActive()) {
-            stream.onended();
-        }
-    };
-}
 
 /**
  * Adds onended/oninactive handler to a MediaStream.
@@ -120,18 +96,6 @@ export default class JitsiTrack extends EventEmitter {
     /* eslint-enable max-params */
 
     /**
-     * Binds the inactive handler.
-     * @param {Function} streamInactiveHandler
-     * @private
-     */
-    _bindInactiveHandler(streamInactiveHandler) {
-        if (RTCBrowserType.isFirefox()) {
-            implementOnEndedHandling(this);
-        }
-        addMediaStreamInactiveHandler(this.stream, streamInactiveHandler);
-    }
-
-    /**
      * Sets handler to the WebRTC MediaStream or MediaStreamTrack object
      * depending on the passed type.
      * @param {string} type the type of the handler that is going to be set
@@ -203,7 +167,8 @@ export default class JitsiTrack extends EventEmitter {
                 this._setHandler(type, this.handlers.get(type));
             }
             if (this._streamInactiveHandler) {
-                this._bindInactiveHandler(this._streamInactiveHandler);
+                addMediaStreamInactiveHandler(
+                    this.stream, this._streamInactiveHandler);
             }
         }
     }
