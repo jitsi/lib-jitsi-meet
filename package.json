@@ -25,6 +25,7 @@
     "sdp-transform": "2.3.0",
     "strophe.js": "1.2.14",
     "strophejs-plugin-disco": "0.0.2",
+    "webrtc-adapter": "webrtc/adapter#1eec19782b4058d186341263e7d049cea3e3290a",
     "yaeti": "1.0.1"
   },
   "devDependencies": {

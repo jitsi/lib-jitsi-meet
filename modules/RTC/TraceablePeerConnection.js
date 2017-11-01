@@ -2137,8 +2137,20 @@ TraceablePeerConnection.prototype.addIceCandidate = function(
      */
 };
 
+/**
+ * Obtains call-related stats from the peer connection.
+ *
+ * @param {Function} callback - The function to invoke after successfully
+ * obtaining stats.
+ * @param {Function} errback - The function to invoke after failing to obtain
+ * stats.
+ * @returns {void}
+ */
 TraceablePeerConnection.prototype.getStats = function(callback, errback) {
     // TODO: Is this the correct way to handle Opera, Temasys?
+    // TODO (brian): After moving all browsers to adapter, check if adapter is
+    // accounting for different getStats apis, making the browser-checking-if
+    // unnecessary.
     if (RTCBrowserType.isFirefox()
             || RTCBrowserType.isTemasysPluginUsed()
             || RTCBrowserType.isReactNative()) {

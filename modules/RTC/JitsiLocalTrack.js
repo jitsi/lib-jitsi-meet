@@ -69,10 +69,20 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this.sourceId = sourceId;
         this.sourceType = sourceType;
 
-        // FIXME Currently, Firefox is ignoring our constraints about
-        // resolutions so we do not store it, to avoid wrong reporting of local
-        // track resolution.
-        this.resolution = RTCBrowserType.isFirefox() ? null : resolution;
+        if (RTCBrowserType.usesNewGumFlow()) {
+            // Get the resolution from the track itself because it cannot be
+            // certain which resolution webrtc has fallen back to using.
+            this.resolution = track.getSettings().height;
+
+            // Cache the constraints of the track in case of any this track
+            // model needs to call getUserMedia again, such as when unmuting.
+            this._constraints = track.getConstraints();
+        } else {
+            // FIXME Currently, Firefox is ignoring our constraints about
+            // resolutions so we do not store it, to avoid wrong reporting of
+            // local track resolution.
+            this.resolution = RTCBrowserType.isFirefox() ? null : resolution;
+        }
 
         this.deviceId = deviceId;
 
@@ -356,38 +366,52 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 facingMode: this.getCameraFacingMode()
             };
 
-            if (this.resolution) {
-                streamOptions.resolution = this.resolution;
+            if (RTCBrowserType.usesNewGumFlow()) {
+                promise
+                    = RTCUtils.newObtainAudioAndVideoPermissions(Object.assign(
+                        {},
+                        streamOptions,
+                        { constraints: { video: this._constraints } }));
+            } else {
+                if (this.resolution) {
+                    streamOptions.resolution = this.resolution;
+                }
+
+                promise
+                    = RTCUtils.obtainAudioAndVideoPermissions(streamOptions);
             }
 
-            promise = RTCUtils.obtainAudioAndVideoPermissions(streamOptions)
-                .then(streamsInfo => {
-                    const mediaType = this.getType();
-                    const streamInfo
-                        = streamsInfo.find(
+
+            promise.then(streamsInfo => {
+                const mediaType = this.getType();
+                const streamInfo
+                    = RTCBrowserType.usesNewGumFlow()
+                        ? streamsInfo.find(
+                            info => info.track.kind === mediaType)
+                        : streamsInfo.find(
                             info => info.mediaType === mediaType);
 
-                    if (streamInfo) {
-                        this._setStream(streamInfo.stream);
-                        this.track = streamInfo.track;
+                if (streamInfo) {
+                    this._setStream(streamInfo.stream);
+                    this.track = streamInfo.track;
 
-                        // This is not good when video type changes after
-                        // unmute, but let's not crash here
-                        if (this.videoType !== streamInfo.videoType) {
-                            logger.warn(
-                                `${this}: video type has changed after unmute!`,
-                                this.videoType, streamInfo.videoType);
-                            this.videoType = streamInfo.videoType;
-                        }
-                    } else {
-                        throw new JitsiTrackError(TRACK_NO_STREAM_FOUND);
+                    // This is not good when video type changes after
+                    // unmute, but let's not crash here
+                    if (this.videoType !== streamInfo.videoType) {
+                        logger.warn(
+                            `${this}: video type has changed after unmute!`,
+                            this.videoType, streamInfo.videoType);
+                        this.videoType = streamInfo.videoType;
                     }
+                } else {
+                    throw new JitsiTrackError(TRACK_NO_STREAM_FOUND);
+                }
 
-                    this.containers = this.containers.map(
-                        cont => RTCUtils.attachMediaStream(cont, this.stream));
+                this.containers = this.containers.map(
+                    cont => RTCUtils.attachMediaStream(cont, this.stream));
 
-                    return this._addStreamToConferenceAsUnmute();
-                });
+                return this._addStreamToConferenceAsUnmute();
+            });
         }
 
         return promise

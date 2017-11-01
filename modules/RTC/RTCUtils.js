@@ -37,10 +37,19 @@ const AdapterJS
         ? require('./adapter.screenshare')
         : undefined;
 
+// Require adapter only for certain browsers. This is being done for
+// react-native, which has its own shims, and while browsers are being migrated
+// over to use adapter's shims.
+if (RTCBrowserType.usesNewGumFlow()) {
+    require('webrtc-adapter');
+}
+
 const eventEmitter = new EventEmitter();
 
 const AVAILABLE_DEVICES_POLL_INTERVAL_TIME = 3000; // ms
 
+// TODO (brian): Move this devices hash, maybe to a model, so RTCUtils remains
+// stateless.
 const devices = {
     audio: false,
     video: false
@@ -341,6 +350,112 @@ function getConstraints(um, options) {
         // multiple audio tracks brake the tests
         // constraints.audio = true;
         constraints.fake = true;
+    }
+
+    return constraints;
+}
+
+/**
+ * Default MediaStreamConstraints to use for calls to getUserMedia.
+ *
+ * @private
+ */
+const DEFAULT_CONSTRAINTS = {
+    video: {
+        aspectRatio: 16 / 9,
+        height: {
+            ideal: 1080,
+            max: 1080,
+            min: 240
+        }
+    }
+};
+
+/**
+ * Creates a constraints object to be passed into a call to getUserMedia.
+ *
+ * @param {Array} um - An array of user media types to get. The accepted
+ * types are "video", "audio", and "desktop."
+ * @param {Object} options - Various values to be added to the constraints.
+ * @param {string} options.cameraDeviceId - The device id for the video
+ * capture device to get video from.
+ * @param {Object} options.constraints - Default constraints object to use
+ * as a base for the returned constraints.
+ * @param {Object} options.desktopStream - The desktop source id from which
+ * to capture a desktop sharing video.
+ * @param {string} options.facingMode - Which direction the camera is
+ * pointing to.
+ * @param {string} options.micDeviceId - The device id for the audio capture
+ * device to get audio from.
+ * @private
+ * @returns {Object}
+ */
+function newGetConstraints(um = [], options = {}) {
+    // Create a deep copy of the constraints to avoid any modification of
+    // the passed in constraints object.
+    const constraints = JSON.parse(JSON.stringify(
+        options.constraints || DEFAULT_CONSTRAINTS));
+
+    if (um.indexOf('video') >= 0) {
+        if (!constraints.video) {
+            constraints.video = {};
+        }
+
+        if (options.cameraDeviceId) {
+            constraints.video.deviceId = options.cameraDeviceId;
+        } else {
+            const facingMode = options.facingMode || CameraFacingMode.USER;
+
+            constraints.video.facingMode = facingMode;
+        }
+    } else {
+        constraints.video = false;
+    }
+
+    if (um.indexOf('audio') >= 0) {
+        if (!constraints.audio || typeof constraints.audio === 'boolean') {
+            constraints.audio = {};
+        }
+
+        // NOTE(brian): the new-style ('advanced' instead of 'optional')
+        // doesn't seem to carry through the googXXX constraints
+        // Changing back to 'optional' here (even with video using
+        // the 'advanced' style) allows them to be passed through
+        // but also requires the device id to capture to be set in optional
+        // as sourceId otherwise the constraints are considered malformed.
+        if (!constraints.audio.optional) {
+            constraints.audio.optional = [];
+        }
+
+        constraints.audio.optional.push(
+            { sourceId: options.micDeviceId },
+            { echoCancellation: !disableAEC && !disableAP },
+            { googEchoCancellation: !disableAEC && !disableAP },
+            { googAutoGainControl: !disableAGC && !disableAP },
+            { googNoiseSupression: !disableNS && !disableAP },
+            { googHighpassFilter: !disableHPF && !disableAP },
+            { googNoiseSuppression2: !disableNS && !disableAP },
+            { googEchoCancellation2: !disableAEC && !disableAP },
+            { googAutoGainControl2: !disableAGC && !disableAP }
+        );
+    } else {
+        constraints.audio = false;
+    }
+
+    if (um.indexOf('desktop') >= 0) {
+        if (!constraints.video || typeof constraints.video === 'boolean') {
+            constraints.video = {};
+        }
+
+        constraints.video = {
+            mandatory: {
+                chromeMediaSource: 'desktop',
+                chromeMediaSourceId: options.desktopStream,
+                maxWidth: window.screen.width,
+                maxHeight: window.screen.height,
+                maxFrameRate: 3
+            }
+        };
     }
 
     return constraints;
@@ -720,8 +835,13 @@ class RTCUtils extends Listenable {
     }
 
     /**
+     * Depending on the browser, sets difference instance methods for
+     * interacting with user media and adds methods to native webrtc related
+     * objects. Also creates an instance variable for peer connection
+     * constraints.
      *
-     * @param options
+     * @param {Object} options
+     * @returns {void}
      */
     init(options = {}) {
         if (typeof options.disableAEC === 'boolean') {
@@ -749,7 +869,49 @@ class RTCUtils extends Listenable {
         initRawEnumerateDevicesWithCallback();
 
         return new Promise((resolve, reject) => {
-            if (RTCBrowserType.isFirefox()) {
+            if (RTCBrowserType.usesNewGumFlow()) {
+                this.RTCPeerConnectionType = window.RTCPeerConnection;
+
+                this.getUserMedia
+                    = (constraints, successCallback, errorCallback) =>
+                        window.navigator.mediaDevices
+                            .getUserMedia(constraints)
+                            .then(stream => {
+                                successCallback && successCallback(stream);
+
+                                return stream;
+                            })
+                            .catch(err => {
+                                errorCallback && errorCallback(err);
+
+                                return Promise.reject(err);
+                            });
+
+                this.enumerateDevices = callback =>
+                    window.navigator.mediaDevices.enumerateDevices()
+                        .then(foundDevices => {
+                            callback(foundDevices);
+
+                            return foundDevices;
+                        })
+                        .catch(err => {
+                            logger.error(`Error enumerating devices: ${err}`);
+
+                            callback([]);
+
+                            return [];
+                        });
+
+                this.attachMediaStream = (element, stream) => {
+                    if (element) {
+                        element.srcObject = stream;
+                    }
+
+                    return element;
+                };
+                this.getStreamID = stream => stream.id;
+                this.getTrackID = track => track.id;
+            } else if (RTCBrowserType.isFirefox()) {
                 const FFversion = RTCBrowserType.getFirefoxVersion();
 
                 if (FFversion < 40) {
@@ -808,8 +970,8 @@ class RTCUtils extends Listenable {
                 RTCIceCandidate = mozRTCIceCandidate;
 
                 /* eslint-enable no-global-assign, no-native-reassign */
-            } else if (RTCBrowserType.isChrome()
-                    || RTCBrowserType.isOpera()
+
+            } else if (RTCBrowserType.isOpera()
                     || RTCBrowserType.isNWJS()
                     || RTCBrowserType.isElectron()
                     || RTCBrowserType.isReactNative()) {
@@ -848,13 +1010,6 @@ class RTCUtils extends Listenable {
                     return track.id;
                 };
 
-                this.pcConstraints = { optional: [] };
-
-                if (options.useIPv6) {
-                    // https://code.google.com/p/webrtc/issues/detail?id=2828
-                    this.pcConstraints.optional.push({ googIPv6: true });
-                }
-
                 if (!webkitMediaStream.prototype.getVideoTracks) {
                     webkitMediaStream.prototype.getVideoTracks = function() {
                         return this.videoTracks;
@@ -864,45 +1019,6 @@ class RTCUtils extends Listenable {
                     webkitMediaStream.prototype.getAudioTracks = function() {
                         return this.audioTracks;
                     };
-                }
-
-                this.p2pPcConstraints
-                    = JSON.parse(JSON.stringify(this.pcConstraints));
-
-                // Allows sending of video to be suspended if the bandwidth
-                // estimation is too low.
-                if (!options.disableSuspendVideo) {
-                    this.pcConstraints.optional.push(
-                        { googSuspendBelowMinBitrate: true });
-                }
-
-                /**
-                 * This option is used to enable the suspend video only for
-                 * part of the users on the P2P peer connection. The value of
-                 * the option is the ratio:
-                 * (users with suspended video enabled)/(all users).
-                 *
-                 * Note: The option is not documented because it is temporary
-                 * and only for internal testing purpose.
-                 *
-                 * @type {number}
-                 */
-                const forceP2PSuspendVideoRatio
-                    = (options.testing || {}).forceP2PSuspendVideoRatio;
-
-                // If <tt>forceP2PSuspendVideoRatio</tt> is invalid (not a
-                // number) fallback to the default behavior (enabled for every
-                // user).
-                if (typeof forceP2PSuspendVideoRatio !== 'number'
-                        || Math.random() < forceP2PSuspendVideoRatio) {
-                    logger.info(`Enable suspend video mode for p2p (ratio=${
-                        forceP2PSuspendVideoRatio})`);
-                    Statistics.analytics.addPermanentProperties({
-                        forceP2PSuspendVideo: true
-                    });
-                    this.p2pPcConstraints.optional.push({
-                        googSuspendBelowMinBitrate: true
-                    });
                 }
             } else if (RTCBrowserType.isEdge()) {
                 this.RTCPeerConnectionType = ortcRTCPeerConnection;
@@ -1014,7 +1130,7 @@ class RTCUtils extends Listenable {
                 return;
             }
 
-            this.p2pPcConstraints = this.p2pPcConstraints || this.pcConstraints;
+            this._initPCConstraints(options);
 
             // Call onReady() if Temasys plugin is not used
             if (!RTCBrowserType.isTemasysPluginUsed()) {
@@ -1022,6 +1138,81 @@ class RTCUtils extends Listenable {
                 resolve();
             }
         });
+    }
+
+    /**
+     * Creates instance objects for peer connection constraints both for p2p
+     * and outside of p2p.
+     *
+     * @params {Object} options - Configuration for setting RTCUtil's instance
+     * objects for peer connection constraints.
+     * @params {boolean} options.useIPv6 - Set to true if IPv6 should be used.
+     * @params {boolean} options.disableSuspendVideo - Whether or not video
+     * should become suspended if bandwidth estimation becomes low.
+     * @params {Object} options.testing - Additional configuration for work in
+     * development.
+     * @params {Object} options.testing.forceP2PSuspendVideoRatio - True if
+     * video should become suspended if bandwidth estimation becomes low while
+     * in peer to peer connection mode.
+     */
+    _initPCConstraints(options) {
+        if (RTCBrowserType.isFirefox()) {
+            this.pcConstraints = {};
+        } else if (RTCBrowserType.isChrome()
+            || RTCBrowserType.isOpera()
+            || RTCBrowserType.isNWJS()
+            || RTCBrowserType.isElectron()
+            || RTCBrowserType.isReactNative()) {
+            this.pcConstraints = { optional: [] };
+
+            if (options.useIPv6) {
+                // https://code.google.com/p/webrtc/issues/detail?id=2828
+                this.pcConstraints.optional.push({ googIPv6: true });
+            }
+
+            this.p2pPcConstraints
+                = JSON.parse(JSON.stringify(this.pcConstraints));
+
+            // Allows sending of video to be suspended if the bandwidth
+            // estimation is too low.
+            if (!options.disableSuspendVideo) {
+                this.pcConstraints.optional.push(
+                    { googSuspendBelowMinBitrate: true });
+            }
+
+            /**
+             * This option is used to enable the suspend video only for
+             * part of the users on the P2P peer connection. The value of
+             * the option is the ratio:
+             * (users with suspended video enabled)/(all users).
+             *
+             * Note: The option is not documented because it is temporary
+             * and only for internal testing purpose.
+             *
+             * @type {number}
+             */
+            const forceP2PSuspendVideoRatio
+                = (options.testing || {}).forceP2PSuspendVideoRatio;
+
+            // If <tt>forceP2PSuspendVideoRatio</tt> is invalid (not a
+            // number) fallback to the default behavior (enabled for every
+            // user).
+            if (typeof forceP2PSuspendVideoRatio !== 'number'
+                    || Math.random() < forceP2PSuspendVideoRatio) {
+                logger.info(`Enable suspend video mode for p2p (ratio=${
+                    forceP2PSuspendVideoRatio})`);
+
+                Statistics.analytics.addPermanentProperties({
+                    forceP2PSuspendVideo: true
+                });
+
+                this.p2pPcConstraints.optional.push({
+                    googSuspendBelowMinBitrate: true
+                });
+            }
+        }
+
+        this.p2pPcConstraints = this.p2pPcConstraints || this.pcConstraints;
     }
 
     /* eslint-disable max-params */
@@ -1072,6 +1263,83 @@ class RTCUtils extends Listenable {
                 failureCallback(new JitsiTrackError(e, constraints, um));
             }
         }
+    }
+
+    /**
+     * Acquires a media stream via getUserMedia that
+     * matches the given constraints
+     *
+     * @param {array} umDevices which devices to acquire (e.g. audio, video)
+     * @param {Object} constraints - Stream specifications to use.
+     * @returns {Promise}
+     */
+    _newGetUserMediaWithConstraints(umDevices, constraints = {}) {
+        return new Promise((resolve, reject) => {
+            try {
+                this.getUserMedia(
+                    constraints,
+                    stream => {
+                        logger.log('onUserMediaSuccess');
+
+                        // TODO(brian): Is this call needed? Why is this
+                        // happening at gUM time? Isn't there an event listener
+                        // for this?
+                        setAvailableDevices(umDevices, stream);
+
+                        resolve(stream);
+                    },
+                    error => {
+                        logger.warn('Failed to get access to local media. '
+                            + ` ${error} ${constraints} `);
+
+                        // TODO(brian): Is this call needed? Why is this
+                        // happening at gUM time? Isn't there an event listener
+                        // for this?
+                        setAvailableDevices(umDevices, undefined);
+                        reject(new JitsiTrackError(
+                            error, constraints, umDevices));
+                    });
+            } catch (error) {
+                logger.error(`GUM failed: ${error}`);
+                reject(new JitsiTrackError(error, constraints, umDevices));
+            }
+        });
+    }
+
+    /**
+     * Acquire a display stream via the screenObtainer. This requires extra
+     * logic compared to use screenObtainer versus normal device capture logic
+     * in RTCUtils#_newGetUserMediaWithConstraints.
+     *
+     * @param {Object} desktopSharingExtensionExternalInstallation
+     * @param {string[]} desktopSharingSources
+     * @returns {Promise} A promise which will be resolved with an object whic
+     * contains the acquired display stream. If desktop sharing is not supported
+     * then a rejected promise will be returned.
+     */
+    _newGetDesktopMedia(
+            desktopSharingExtensionExternalInstallation,
+            desktopSharingSources) {
+        if (!screenObtainer.isSupported()) {
+            return Promise.reject(
+                new Error('Desktop sharing is not supported!'));
+        }
+
+        const desktopSharingOptions = {
+            ...desktopSharingExtensionExternalInstallation,
+            desktopSharingSources
+        };
+
+        return new Promise((resolve, reject) => {
+            screenObtainer.obtainStream(
+                desktopSharingOptions,
+                stream => {
+                    resolve(stream);
+                },
+                error => {
+                    reject(error);
+                });
+        });
     }
 
     /* eslint-enable max-params */
@@ -1251,6 +1519,140 @@ class RTCUtils extends Listenable {
                 }
             }
         });
+    }
+
+    /**
+     * Gets streams from specified device types. This function intentionally
+     * ignores errors for upstream to catch and handle instead.
+     *
+     * @param {Object} options - A hash describing what devices to get and
+     * relevant constraints.
+     * @param {string[]} options.devices - The types of media to capture. Valid
+     * values are "desktop", "audio", and "video".
+     * @returns {Promise} The promise, when successful, will return an array of
+     * meta data for the requested device type, which includes the stream and
+     * track. If an error occurs, it will be deferred to the caller for
+     * handling.
+     */
+    newObtainAudioAndVideoPermissions(options) {
+        logger.info('Using the new gUM flow');
+
+        const mediaStreamsMetaData = [];
+
+        // Declare private functions to be used in the promise chain below.
+        // These functions are declared in the scope of this function because
+        // they are not being used anywhere else, so only this function needs to
+        // know about them.
+
+        /**
+         * Executes a request for desktop media if specified in options.
+         *
+         * @returns {Promise}
+         */
+        const maybeRequestDesktopDevice = function() {
+            const umDevices = options.devices || [];
+            const isDesktopDeviceRequsted = umDevices.indexOf('desktop') !== -1;
+
+            return isDesktopDeviceRequsted
+                ? this._newGetDesktopMedia(
+                    options.desktopSharingExtensionExternalInstallation,
+                    options.desktopSharingSources)
+                : Promise.resolve();
+        }.bind(this);
+
+        /**
+         * Creates a meta data object about the passed in desktopStream and
+         * pushes the meta data to the internal array mediaStreamsMetaData to be
+         * returned later.
+         *
+         * @param {MediaStreamTrack} desktopStream - A track for a desktop
+         * capture.
+         * @returns {void}
+         */
+        const maybeCreateAndAddDesktopTrack = function(desktopStream) {
+            if (!desktopStream) {
+                return;
+            }
+
+            const { stream, sourceId, sourceType } = desktopStream;
+
+            mediaStreamsMetaData.push({
+                stream,
+                sourceId,
+                sourceType,
+                track: stream.getVideoTracks()[0],
+                videoType: VideoType.DESKTOP
+            });
+        };
+
+        /**
+         * Executes a request for audio and/or video, as specified in options.
+         * By default both audio and video will be captured if options.devices
+         * is not defined.
+         *
+         * @returns {Promise}
+         */
+        const maybeRequestCaptureDevices = function() {
+            const umDevices = options.devices || [ 'audio', 'video' ];
+            const requestedCaptureDevices = umDevices.filter(
+                device => device !== 'desktop');
+
+            if (!requestedCaptureDevices.length) {
+                return Promise.resolve();
+            }
+
+            const constraints = newGetConstraints(
+                requestedCaptureDevices, options);
+
+            logger.info('Got media constraints: ', constraints);
+
+            return this._newGetUserMediaWithConstraints(
+                requestedCaptureDevices, constraints);
+        }.bind(this);
+
+        /**
+         * Splits the passed in media stream into separate audio and video
+         * streams and creates meta data objects for each and pushes them to the
+         * internal array mediaStreamsMetaData to be returned later.
+         *
+         * @param {MediaStreamTrack} avStream - A track for with audio and/or
+         * video track.
+         * @returns {void}
+         */
+        const maybeCreateAndAddAVTracks = function(avStream) {
+            if (!avStream) {
+                return;
+            }
+
+            const audioTracks = avStream.getAudioTracks();
+
+            if (audioTracks.length) {
+                const audioStream = new MediaStream(audioTracks);
+
+                mediaStreamsMetaData.push({
+                    stream: audioStream,
+                    track: audioStream.getAudioTracks()[0]
+                });
+            }
+
+            const videoTracks = avStream.getVideoTracks();
+
+            if (videoTracks.length) {
+                const videoStream = new MediaStream(videoTracks);
+
+                mediaStreamsMetaData.push({
+                    stream: videoStream,
+                    track: videoStream.getVideoTracks()[0],
+                    videoType: VideoType.CAMERA
+                });
+            }
+        };
+
+        return maybeRequestDesktopDevice()
+            .then(maybeCreateAndAddDesktopTrack)
+            .then(maybeRequestCaptureDevices)
+            .then(maybeCreateAndAddAVTracks)
+            .then(() => mediaStreamsMetaData);
     }
 
     /**

@@ -10,6 +10,7 @@ import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
 import Listenable from '../util/Listenable';
 import * as MediaType from '../../service/RTC/MediaType';
+import RTCBrowserType from './RTCBrowserType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import RTCUtils from './RTCUtils';
 import TraceablePeerConnection from './TraceablePeerConnection';
@@ -46,6 +47,51 @@ function createLocalTracks(tracksInfo, options) {
     });
 
     return newTracks;
+}
+
+/**
+ * Creates {@code JitsiLocalTrack} instances from the passed in meta information
+ * about MedieaTracks.
+ *
+ * @param {Object[]} mediaStreamMetaData - An array of meta information with
+ * MediaTrack instances. Each can look like:
+ * {{
+ *     stream: MediaStream instance that holds a track with audio or video,
+ *     track: MediaTrack within the MediaStream,
+ *     videoType: "camera" or "desktop" or falsy,
+ *     sourceId: ID of the desktopsharing source,
+ *     sourceType: The desktopsharing source type
+ * }}
+ */
+function _newCreateLocalTracks(mediaStreamMetaData = []) {
+    return mediaStreamMetaData.map(metaData => {
+        const {
+            sourceId,
+            sourceType,
+            stream,
+            track,
+            videoType
+        } = metaData;
+
+        const { deviceId, facingMode } = track.getSettings();
+
+        // FIXME Move rtcTrackIdCounter to a static method in JitsiLocalTrack
+        // so RTC does not need to handle ID management. This move would be
+        // safer to do once the old createLocalTracks is removed.
+        rtcTrackIdCounter += 1;
+
+        return new JitsiLocalTrack({
+            deviceId,
+            facingMode,
+            mediaType: track.kind,
+            rtcId: rtcTrackIdCounter,
+            sourceId,
+            sourceType,
+            stream,
+            track,
+            videoType: videoType || null
+        });
+    });
 }
 
 /**
@@ -156,10 +202,16 @@ export default class RTC extends Listenable {
      * @returns {*} Promise object that will receive the new JitsiTracks
      */
     static obtainAudioAndVideoPermissions(options) {
-        return RTCUtils.obtainAudioAndVideoPermissions(options).then(
-            tracksInfo => {
-                const tracks = createLocalTracks(tracksInfo, options);
+        const usesNewGumFlow = RTCBrowserType.usesNewGumFlow();
+        const obtainMediaPromise = usesNewGumFlow
+            ? RTCUtils.newObtainAudioAndVideoPermissions(options)
+            : RTCUtils.obtainAudioAndVideoPermissions(options);
 
+        return obtainMediaPromise.then(
+            tracksInfo => {
+                const tracks = usesNewGumFlow
+                    ? _newCreateLocalTracks(tracksInfo)
+                    : createLocalTracks(tracksInfo, options);
 
                 return tracks.some(track => !track._isReceivingData())
                     ? Promise.reject(
