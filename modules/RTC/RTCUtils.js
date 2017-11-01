@@ -5,9 +5,6 @@
           RTCIceCandidate: true,
           RTCPeerConnection,
           RTCSessionDescription: true,
-          mozRTCIceCandidate,
-          mozRTCPeerConnection,
-          mozRTCSessionDescription,
           webkitMediaStream,
           webkitRTCPeerConnection,
           webkitURL
@@ -911,66 +908,6 @@ class RTCUtils extends Listenable {
                 };
                 this.getStreamID = stream => stream.id;
                 this.getTrackID = track => track.id;
-            } else if (RTCBrowserType.isFirefox()) {
-                const FFversion = RTCBrowserType.getFirefoxVersion();
-
-                if (FFversion < 40) {
-                    rejectWithWebRTCNotSupported(
-                        `Firefox version too old: ${FFversion}.`
-                            + ' Required >= 40.',
-                        reject);
-
-                    return;
-                }
-                this.RTCPeerConnectionType = mozRTCPeerConnection;
-                this.getUserMedia
-                    = wrapGetUserMedia(
-                        navigator.mozGetUserMedia.bind(navigator));
-                this.enumerateDevices = rawEnumerateDevicesWithCallback;
-                this.pcConstraints = {};
-                this.attachMediaStream
-                    = wrapAttachMediaStream((element, stream) => {
-                        // srcObject is being standardized and FF will
-                        // eventually support that unprefixed. FF also supports
-                        // the "element.src = URL.createObjectURL(...)" combo,
-                        // but that will be deprecated in favour of srcObject.
-                        //
-                        // https://groups.google.com/forum/#!topic/
-                        // mozilla.dev.media/pKOiioXonJg
-                        // https://github.com/webrtc/samples/issues/302
-                        if (element) {
-                            defaultSetVideoSrc(element, stream);
-                            if (stream) {
-                                element.play();
-                            }
-                        }
-
-                        return element;
-                    });
-                this.getStreamID = function(stream) {
-                    let id = stream.id;
-
-                    if (!id) {
-                        let tracks = stream.getVideoTracks();
-
-                        if (!tracks || tracks.length === 0) {
-                            tracks = stream.getAudioTracks();
-                        }
-                        id = tracks[0].id;
-                    }
-
-                    return SDPUtil.filterSpecialChars(id);
-                };
-                this.getTrackID = function(track) {
-                    return track.id;
-                };
-
-                /* eslint-disable no-global-assign, no-native-reassign */
-                RTCSessionDescription = mozRTCSessionDescription;
-                RTCIceCandidate = mozRTCIceCandidate;
-
-                /* eslint-enable no-global-assign, no-native-reassign */
-
             } else if (RTCBrowserType.isOpera()
                     || RTCBrowserType.isNWJS()
                     || RTCBrowserType.isElectron()

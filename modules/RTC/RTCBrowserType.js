@@ -164,8 +164,9 @@ const RTCBrowserType = {
      * @returns {boolean}
      */
     usesNewGumFlow() {
-        return RTCBrowserType.isChrome()
-            && RTCBrowserType.getChromeVersion() >= 61;
+        return (RTCBrowserType.isChrome()
+            && RTCBrowserType.getChromeVersion() >= 61)
+            || RTCBrowserType.isFirefox();
     },
 
     /**
