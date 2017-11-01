@@ -587,6 +587,9 @@ const SDPUtil = {
             }
         }
         if (payloadType) {
+            // Call toString() on payloads to get around an issue within
+            // SDPTransform that sets payloads as a number, instead of a string,
+            // when there is only one payload.
             const payloadTypes
                 = videoMLine.payloads
                     .toString()
@@ -632,6 +635,9 @@ const SDPUtil = {
 
             removePts.push(...rtxPts.map(item => item.payload));
 
+            // Call toString() on payloads to get around an issue within
+            // SDPTransform that sets payloads as a number, instead of a string,
+            // when there is only one payload.
             const allPts = videoMLine.payloads
                 .toString()
                 .split(' ')
