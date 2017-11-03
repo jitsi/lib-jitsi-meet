@@ -1531,16 +1531,9 @@ class RTCUtils extends Listenable {
          */
         const maybeRequestCaptureDevices = function() {
             const umDevices = options.devices || [ 'audio', 'video' ];
-            const requestedCaptureDevices = umDevices.filter(
-                device => {
-                    const isDesktop = device === 'desktop';
-
-                    if (!RTCBrowserType.supportsVideo()) {
-                        return !isDesktop && device !== 'video';
-                    }
-
-                    return !isDesktop;
-                });
+            const requestedCaptureDevices = umDevices.filter(device =>
+                device === 'audio'
+                || (device === 'video' && RTCBrowserType.supportsVideo()));
 
             if (!requestedCaptureDevices.length) {
                 return Promise.resolve();
