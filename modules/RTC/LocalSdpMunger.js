@@ -169,19 +169,19 @@ export default class LocalSdpMunger {
      * description.
      */
     maybeMungeLocalSdp(desc) {
-        // Nothing to be done in early stage when localDescription
-        // is not available yet
-        if (!desc || !desc.sdp) {
-            return;
+        if (!desc || !(desc instanceof RTCSessionDescription)) {
+            throw new Error('Incorrect type, expected RTCSessionDescription');
         }
 
         const transformer = new SdpTransformWrap(desc.sdp);
 
         if (this._addMutedLocalVideoTracksToSDP(transformer)) {
-            // Write
-            desc.sdp = transformer.toRawSDP();
-
-            // logger.info("Post TRANSFORM: ", desc.sdp);
+            return new RTCSessionDescription({
+                type: desc.type,
+                sdp: transformer.toRawSDP()
+            });
         }
+
+        return desc;
     }
 }
