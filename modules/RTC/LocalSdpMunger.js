@@ -167,8 +167,9 @@ export default class LocalSdpMunger {
      *
      * @param {object} desc the WebRTC SDP object instance for the local
      * description.
+     * @returns {RTCSessionDescription}
      */
-    maybeMungeLocalSdp(desc) {
+    maybeAddMutedLocalVideoTracksToSDP(desc) {
         if (!desc || !(desc instanceof RTCSessionDescription)) {
             throw new Error('Incorrect type, expected RTCSessionDescription');
         }

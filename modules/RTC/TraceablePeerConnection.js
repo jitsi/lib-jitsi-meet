@@ -1193,7 +1193,7 @@ const getters = {
         }
 
         if (RTCBrowserType.doesVideoMuteByStreamRemove()) {
-            desc = this.localSdpMunger.maybeMungeLocalSdp(desc);
+            desc = this.localSdpMunger.maybeAddMutedLocalVideoTracksToSDP(desc);
             logger.debug(
                 'getLocalDescription::postTransform (munge local SDP)', desc);
         }
