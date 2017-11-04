@@ -116,7 +116,7 @@ export default class RtxModifier {
         const videoMLine = sdpTransformer.selectMedia('video');
 
         if (!videoMLine) {
-            logger.error(`No 'video' media found in the sdp: ${sdpStr}`);
+            logger.debug(`No 'video' media found in the sdp: ${sdpStr}`);
 
             return sdpStr;
         }
@@ -205,7 +205,7 @@ export default class RtxModifier {
         const videoMLine = sdpTransformer.selectMedia('video');
 
         if (!videoMLine) {
-            logger.error(`No 'video' media found in the sdp: ${sdpStr}`);
+            logger.debug(`No 'video' media found in the sdp: ${sdpStr}`);
 
             return sdpStr;
         }

@@ -55,7 +55,7 @@ export default class LocalSdpMunger {
         const videoMLine = transformer.selectMedia('video');
 
         if (!videoMLine) {
-            logger.error(
+            logger.debug(
                 `${this.tpc} unable to hack local video track SDP`
                     + '- no "video" media');
 
