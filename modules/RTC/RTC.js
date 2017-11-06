@@ -13,6 +13,7 @@ import * as MediaType from '../../service/RTC/MediaType';
 import RTCBrowserType from './RTCBrowserType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import RTCUtils from './RTCUtils';
+import Statistics from '../statistics/statistics';
 import TraceablePeerConnection from './TraceablePeerConnection';
 import VideoType from '../../service/RTC/VideoType';
 
@@ -433,12 +434,22 @@ export default class RTC extends Listenable {
      * @return {TraceablePeerConnection}
      */
     createPeerConnection(signaling, iceConfig, isP2P, options) {
+        const pcConstraints = RTC.getPCConstraints(isP2P);
+
+        if (typeof options.forceSuspendVideo !== 'undefined') {
+            RTCUtils.setSuspendVideo(pcConstraints, options.forceSuspendVideo);
+
+            Statistics.analytics.addPermanentProperties(
+                { abtestP2PSuspendVideo: options.forceSuspendVideo });
+        }
+
         const newConnection
             = new TraceablePeerConnection(
                 this,
                 this.peerConnectionIdCounter,
                 signaling,
-                iceConfig, RTC.getPCConstraints(isP2P), isP2P, options);
+                iceConfig, pcConstraints,
+                isP2P, options);
 
         this.peerConnections.set(newConnection.id, newConnection);
         this.peerConnectionIdCounter += 1;
@@ -610,7 +621,10 @@ export default class RTC extends Listenable {
      *
      */
     static getPCConstraints(isP2P) {
-        return isP2P ? RTCUtils.p2pPcConstraints : RTCUtils.pcConstraints;
+        const pcConstraints
+            = isP2P ? RTCUtils.p2pPcConstraints : RTCUtils.pcConstraints;
+
+        return Object.assign({}, pcConstraints);
     }
 
     /**

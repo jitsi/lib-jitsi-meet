@@ -3,6 +3,7 @@
 import async from 'async';
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, Strophe } from 'strophe.js';
+import { integerHash } from '../util/StringUtils';
 
 import JingleSession from './JingleSession';
 import * as JingleSessionState from './JingleSessionState';
@@ -250,6 +251,12 @@ export default class JingleSessionPC extends JingleSession {
                 = this.room.options.p2p && this.room.options.p2p.disableH264;
             pcOptions.preferH264
                 = this.room.options.p2p && this.room.options.p2p.preferH264;
+
+            const forceSuspendVideo = this._forceSuspendVideo();
+
+            if (typeof forceSuspendVideo !== 'undefined') {
+                pcOptions.forceSuspendVideo = forceSuspendVideo;
+            }
         } else {
             // H264 does not support simulcast, so it needs to be disabled.
             pcOptions.disableSimulcast
@@ -2175,5 +2182,24 @@ export default class JingleSessionPC extends JingleSession {
     toString() {
         return `JingleSessionPC[p2p=${this.isP2P},`
                     + `initiator=${this.isInitiator},sid=${this.sid}]`;
+    }
+
+    /**
+     * If the A/B test for suspend video is disabled according to the room's
+     * configuration, returns undefined. Otherwise returns a boolean which
+     * indicates whether the suspend video option should be enabled or disabled.
+     */
+    _forceSuspendVideo() {
+        if (!this.room.options.abTesting
+            || !this.room.options.abTesting.enableSuspendVideoTest) {
+            return;
+        }
+
+        // We want the two participants in a P2P call to agree on the value of
+        // the "suspend" option. We use the JID of the initiator, because it is
+        // both randomly selected and agreed upon by both participants.
+        const jid = this._getInitiatorJid();
+
+        return integerHash(jid) % 2 === 0;
     }
 }
