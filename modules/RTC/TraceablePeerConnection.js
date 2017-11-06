@@ -1173,10 +1173,16 @@ const getters = {
     localDescription() {
         let desc = this.peerconnection.localDescription;
 
+        if (!desc) {
+            logger.debug('getLocalDescription no localDescription found');
+
+            return {};
+        }
+
         this.trace('getLocalDescription::preTransform', dumpSDP(desc));
 
         // if we're running on FF, transform to Plan B first.
-        if (desc && RTCBrowserType.usesUnifiedPlan()) {
+        if (RTCBrowserType.usesUnifiedPlan()) {
             desc = this.interop.toPlanB(desc);
             this.trace('getLocalDescription::postTransform (Plan B)',
                 dumpSDP(desc));
@@ -1187,7 +1193,7 @@ const getters = {
         }
 
         if (RTCBrowserType.doesVideoMuteByStreamRemove()) {
-            desc = this.localSdpMunger.maybeMungeLocalSdp(desc);
+            desc = this.localSdpMunger.maybeAddMutedLocalVideoTracksToSDP(desc);
             logger.debug(
                 'getLocalDescription::postTransform (munge local SDP)', desc);
         }
@@ -1202,7 +1208,7 @@ const getters = {
         // happening (check setLocalDescription impl).
         desc = enforceSendRecv(desc);
 
-        return desc || {};
+        return desc;
     },
     remoteDescription() {
         let desc = this.peerconnection.remoteDescription;

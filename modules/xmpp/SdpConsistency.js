@@ -76,7 +76,7 @@ export default class SdpConsistency {
         const videoMLine = sdpTransformer.selectMedia('video');
 
         if (!videoMLine) {
-            logger.error(
+            logger.debug(
                 `${this.logPrefix} no 'video' media found in the sdp: `
                     + `${sdpStr}`);
 

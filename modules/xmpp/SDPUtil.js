@@ -573,7 +573,7 @@ const SDPUtil = {
     preferVideoCodec(videoMLine, codecName) {
         let payloadType = null;
 
-        if (!codecName) {
+        if (!videoMLine || !codecName) {
             return;
         }
 
@@ -613,7 +613,7 @@ const SDPUtil = {
      * @param {string} codecName the name of the codec which will be stripped.
      */
     stripVideoCodec(videoMLine, codecName) {
-        if (!codecName) {
+        if (!videoMLine || !codecName) {
             return;
         }
 
