@@ -241,39 +241,33 @@ export default class JingleSessionPC extends JingleSession {
         // Set to true if the connection was ever stable
         this.wasstable = false;
 
-        // Create new peer connection instance
+        const pcOptions = { disableRtx: this.room.options.disableRtx };
+
         if (this.isP2P) {
-            this.peerconnection = this.rtc.createPeerConnection(
-                this.signalingLayer,
-                this.iceConfig,
-                true,
-                {
-                    // simulcast needs to be disabled for P2P (121) calls
-                    disableSimulcast: true,
-                    disableRtx: this.room.options.disableRtx,
-                    disableH264: this.room.options.p2p
-                        && this.room.options.p2p.disableH264,
-                    preferH264: this.room.options.p2p
-                        && this.room.options.p2p.preferH264
-                });
+            // simulcast needs to be disabled for P2P (121) calls
+            pcOptions.disableSimulcast = true;
+            pcOptions.disableH264
+                = this.room.options.p2p && this.room.options.p2p.disableH264;
+            pcOptions.preferH264
+                = this.room.options.p2p && this.room.options.p2p.preferH264;
         } else {
-            this.peerconnection = this.rtc.createPeerConnection(
-                this.signalingLayer,
-                this.iceConfig,
-                false,
-                {
-                    // H264 does not support simulcast, so it needs to be
-                    // disabled.
-                    disableSimulcast: this.room.options.disableSimulcast
-                        || (this.room.options.preferH264
-                            && !this.room.options.disableH264),
-                    disableRtx: this.room.options.disableRtx,
-                    disableH264: this.room.options.disableH264,
-                    preferH264: this.room.options.preferH264,
-                    enableFirefoxSimulcast: this.room.options.testing
-                        && this.room.options.testing.enableFirefoxSimulcast
-                });
+            // H264 does not support simulcast, so it needs to be disabled.
+            pcOptions.disableSimulcast
+                = this.room.options.disableSimulcast
+                    || (this.room.options.preferH264
+                            && !this.room.options.disableH264);
+            pcOptions.preferH264 = this.room.options.preferH264;
+            pcOptions.enableFirefoxSimulcast
+                = this.room.options.testing
+                    && this.room.options.testing.enableFirefoxSimulcast;
         }
+
+        this.peerconnection
+            = this.rtc.createPeerConnection(
+                    this.signalingLayer,
+                    this.iceConfig,
+                    this.isP2P,
+                    pcOptions);
 
         this.peerconnection.onicecandidate = ev => {
             if (!ev) {
