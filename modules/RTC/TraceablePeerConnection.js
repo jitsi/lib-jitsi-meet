@@ -1773,6 +1773,15 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(
         description = normalizePlanB(description);
     }
 
+    // Safari WebRTC errors when no supported video codec is found in the offer.
+    // To prevent the error, inject H264 into the video mLine.
+    if (RTCBrowserType.usesNewGumFlow() && RTCBrowserType.isSafari()) {
+        logger.debug('Maybe injecting H264 into the remote description');
+
+        // eslint-disable-next-line no-param-reassign
+        description = this._injectH264IfNotPresent(description);
+    }
+
     this.peerconnection.setRemoteDescription(
         description,
         () => {
@@ -1794,6 +1803,65 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(
                 this);
             failureCallback(err);
         });
+};
+
+/**
+ * Inserts an H264 payload into the description if not already present.
+ *
+ * @param {RTCSessionDescription} description - An RTCSessionDescription
+ * to inject with an H264 payload.
+ * @returns {RTCSessionDescription}
+ */
+TraceablePeerConnection.prototype._injectH264IfNotPresent = function(
+        description) {
+    const parsedSdp = transform.parse(description.sdp);
+    const videoMLine = parsedSdp.media.find(m => m.type === 'video');
+
+    if (videoMLine.rtp.some(rtp => rtp.codec.toLowerCase() === 'h264')) {
+        logger.debug('H264 codec found in video mLine, no need to inject.');
+
+        return description;
+    }
+
+    const { fmtp, payloads, rtp } = videoMLine;
+    const payloadsArray = payloads.toString().split(' ');
+    let dummyPayloadType;
+
+    for (let i = 127; i >= 96; i--) {
+        if (!payloadsArray.includes(i)) {
+            dummyPayloadType = i;
+            payloadsArray.push(i);
+            videoMLine.payloads = payloadsArray.join(' ');
+            break;
+        }
+    }
+
+    if (typeof dummyPayloadType === 'undefined') {
+        logger.error('Could not find valid payload type to inject.');
+
+        return description;
+    }
+
+    rtp.push({
+        codec: 'H264',
+        payload: dummyPayloadType,
+        rate: 90000
+    });
+
+    fmtp.push({
+        config: 'level-asymmetry-allowed=1;'
+            + 'packetization-mode=1;'
+            + 'profile-level-id=42e01f',
+        payload: dummyPayloadType
+    });
+
+    logger.debug(
+        `Injecting H264 payload type ${dummyPayloadType} into video mLine.`);
+
+    return new RTCSessionDescription({
+        type: description.type,
+        sdp: transform.write(parsedSdp)
+    });
 };
 
 /**
