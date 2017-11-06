@@ -1817,6 +1817,12 @@ TraceablePeerConnection.prototype._injectH264IfNotPresent = function(
     const parsedSdp = transform.parse(description.sdp);
     const videoMLine = parsedSdp.media.find(m => m.type === 'video');
 
+    if (!videoMLine) {
+        logger.debug('No videoMLine found, no need tp inject H264.');
+
+        return description;
+    }
+
     if (videoMLine.rtp.some(rtp => rtp.codec.toLowerCase() === 'h264')) {
         logger.debug('H264 codec found in video mLine, no need to inject.');
 
