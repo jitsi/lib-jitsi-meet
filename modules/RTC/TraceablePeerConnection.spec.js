@@ -29,7 +29,7 @@ describe('TraceablePeerConnection', () => {
             const { sdp } = injectFunction(sessionDescription);
             const expectedH264Payload = [
                 'm=video 9 RTP/SAVPF 100 127',
-                'a=rtpmap:127 h264/90000',
+                'a=rtpmap:127 H264/90000',
                 'a=fmtp:127 level-asymmetry-allowed=1;'
                     + 'packetization-mode=1;'
                     + 'profile-level-id=42e01f'

@@ -1774,9 +1774,9 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(
     }
 
     // Safari WebRTC errors when no supported video codec is found in the offer.
-    // To prevent the error, inject h264 into the video mLine.
+    // To prevent the error, inject H264 into the video mLine.
     if (RTCBrowserType.usesNewGumFlow() && RTCBrowserType.isSafari()) {
-        logger.debug('Maybe injecting h264 into the remote description');
+        logger.debug('Maybe injecting H264 into the remote description');
 
         // eslint-disable-next-line no-param-reassign
         description = this._injectH264IfNotPresent(description);
@@ -1806,10 +1806,10 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(
 };
 
 /**
- * Inserts an h264 payload into the description if not already present.
+ * Inserts an H264 payload into the description if not already present.
  *
  * @param {RTCSessionDescription} description - An RTCSessionDescription
- * to inject with an h264 payload.
+ * to inject with an H264 payload.
  * @returns {RTCSessionDescription}
  */
 TraceablePeerConnection.prototype._injectH264IfNotPresent = function(
@@ -1818,7 +1818,7 @@ TraceablePeerConnection.prototype._injectH264IfNotPresent = function(
     const videoMLine = parsedSdp.media.find(m => m.type === 'video');
 
     if (videoMLine.rtp.some(rtp => rtp.codec.toLowerCase() === 'h264')) {
-        logger.debug('h264 codec found in video mLine, no need to inject.');
+        logger.debug('H264 codec found in video mLine, no need to inject.');
 
         return description;
     }
@@ -1843,7 +1843,7 @@ TraceablePeerConnection.prototype._injectH264IfNotPresent = function(
     }
 
     rtp.push({
-        codec: 'h264',
+        codec: 'H264',
         payload: dummyPayloadType,
         rate: 90000
     });
@@ -1856,7 +1856,7 @@ TraceablePeerConnection.prototype._injectH264IfNotPresent = function(
     });
 
     logger.debug(
-        `Injecting h264 payload type ${dummyPayloadType} into video mLine.`);
+        `Injecting H264 payload type ${dummyPayloadType} into video mLine.`);
 
     return new RTCSessionDescription({
         type: description.type,
