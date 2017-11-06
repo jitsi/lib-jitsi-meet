@@ -1370,7 +1370,7 @@ JitsiConference.prototype.onIncomingCall = function(
         now) {
     // Handle incoming P2P call
     if (jingleSession.isP2P) {
-        const role = this.room.getMemberRole(jingleSession.peerjid);
+        const role = this.room.getMemberRole(jingleSession.remoteJid);
 
         if (role !== 'moderator') {
             // Reject incoming P2P call
@@ -1404,7 +1404,7 @@ JitsiConference.prototype.onIncomingCall = function(
         }
 
         return;
-    } else if (!this.room.isFocus(jingleSession.peerjid)) {
+    } else if (!this.room.isFocus(jingleSession.remoteJid)) {
         this._rejectIncomingCall(jingleSession);
 
         return;
@@ -1535,7 +1535,7 @@ JitsiConference.prototype._rejectIncomingCallNonModerator = function(
             reasonTag: 'security-error',
             reasonMsg: 'Only focus can start new sessions',
             errorMsg: 'Rejecting session-initiate from non-focus and'
-                        + `non-moderator user: ${jingleSession.peerjid}`
+                        + `non-moderator user: ${jingleSession.remoteJid}`
         });
 };
 
@@ -1625,7 +1625,7 @@ JitsiConference.prototype.onCallEnded = function(
         logger.error(
             'Received onCallEnded for invalid session',
             jingleSession.sid,
-            jingleSession.peerjid,
+            jingleSession.remoteJid,
             reasonCondition,
             reasonText);
     }
@@ -2120,7 +2120,7 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
 
     logger.info('Starting CallStats for P2P connection...');
 
-    let remoteID = Strophe.getResourceFromJid(this.p2pJingleSession.peerjid);
+    let remoteID = Strophe.getResourceFromJid(this.p2pJingleSession.remoteJid);
 
     if (this.options.config.enableStatsID) {
         const participant = this.participants[remoteID];
@@ -2394,10 +2394,10 @@ JitsiConference.prototype._setP2PStatus = function(newStatus) {
 
 /**
  * Starts new P2P session.
- * @param {string} peerJid the JID of the remote participant
+ * @param {string} remoteJid the JID of the remote participant
  * @private
  */
-JitsiConference.prototype._startP2PSession = function(peerJid) {
+JitsiConference.prototype._startP2PSession = function(remoteJid) {
     this._maybeClearDeferredStartP2P();
     if (this.p2pJingleSession) {
         logger.error('P2P session already started!');
@@ -2409,14 +2409,15 @@ JitsiConference.prototype._startP2PSession = function(peerJid) {
     this.p2pJingleSession
         = this.xmpp.connection.jingle.newP2PJingleSession(
             this.room.myroomjid,
-            peerJid);
-    logger.info('Created new P2P JingleSession', this.room.myroomjid, peerJid);
+            remoteJid);
+    logger.info(
+        'Created new P2P JingleSession', this.room.myroomjid, remoteJid);
 
     this.p2pJingleSession.initialize(true /* initiator */, this.room, this.rtc);
 
     logger.info('Starting CallStats for P2P connection...');
 
-    let remoteID = Strophe.getResourceFromJid(this.p2pJingleSession.peerjid);
+    let remoteID = Strophe.getResourceFromJid(this.p2pJingleSession.remoteJid);
 
     if (this.options.config.enableStatsID) {
         const participant = this.participants[remoteID];
@@ -2526,7 +2527,7 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
             this._startP2PSession(jid);
         }
     } else if (this.p2pJingleSession && !shouldBeInP2P) {
-        logger.info(`Will stop P2P with: ${this.p2pJingleSession.peerjid}`);
+        logger.info(`Will stop P2P with: ${this.p2pJingleSession.remoteJid}`);
 
         // Log that there will be a switch back to the JVB connection
         if (this.p2pJingleSession.isInitiator && peerCount > 1) {
@@ -2600,7 +2601,7 @@ JitsiConference.prototype._stopP2PSession = function(
                 ? reasonDescription : 'Turing off P2P session',
             sendSessionTerminate: this.room
                 && this.getParticipantById(
-                    Strophe.getResourceFromJid(this.p2pJingleSession.peerjid))
+                    Strophe.getResourceFromJid(this.p2pJingleSession.remoteJid))
         });
 
     this.p2pJingleSession = null;

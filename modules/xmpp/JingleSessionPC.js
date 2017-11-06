@@ -59,8 +59,8 @@ export default class JingleSessionPC extends JingleSession {
      * Creates new <tt>JingleSessionPC</tt>
      * @param {string} sid the Jingle Session ID - random string which
      * identifies the session
-     * @param {string} me our JID
-     * @param {string} peerjid remote peer JID
+     * @param {string} localJid our JID
+     * @param {string} remoteJid remote peer JID
      * @param {Strophe.Connection} connection Strophe XMPP connection instance
      * used to send packets.
      * @param mediaConstraints the media constraints object passed to
@@ -71,7 +71,7 @@ export default class JingleSessionPC extends JingleSession {
      * meant to be used in a direct, peer to peer connection or <tt>false</tt>
      * if it's a JVB connection.
      * @param {boolean} isInitiator indicates whether or not we are the side
-     * which sends the 'session-intiate'.
+     * which sends the 'session-initiate'.
      * @param {object} options a set of config options
      * @param {boolean} options.webrtcIceUdpDisable <tt>true</tt> to block UDP
      * candidates.
@@ -86,15 +86,16 @@ export default class JingleSessionPC extends JingleSession {
      */
     constructor(
             sid,
-            me,
-            peerjid,
+            localJid,
+            remoteJid,
             connection,
             mediaConstraints,
             iceConfig,
             isP2P,
             isInitiator,
             options) {
-        super(sid, me, peerjid, connection, mediaConstraints, iceConfig);
+        super(
+            sid, localJid, remoteJid, connection, mediaConstraints, iceConfig);
 
         /**
          * Stores result of {@link window.performance.now()} at the time when
@@ -245,7 +246,7 @@ export default class JingleSessionPC extends JingleSession {
             this.peerconnection = this.rtc.createPeerConnection(
                 this.signalingLayer,
                 this.iceConfig,
-                this.isP2P,
+                true,
                 {
                     // simulcast needs to be disabled for P2P (121) calls
                     disableSimulcast: true,
@@ -259,7 +260,7 @@ export default class JingleSessionPC extends JingleSession {
             this.peerconnection = this.rtc.createPeerConnection(
                 this.signalingLayer,
                 this.iceConfig,
-                this.isP2P,
+                false,
                 {
                     // H264 does not support simulcast, so it needs to be
                     // disabled.
@@ -509,7 +510,7 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         logger.log('sendIceCandidates', candidates);
-        const cand = $iq({ to: this.peerjid,
+        const cand = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
                 action: 'transport-info',
@@ -657,7 +658,7 @@ export default class JingleSessionPC extends JingleSession {
             if (this.isP2P) {
                 // In P2P all SSRCs are owner by the remote peer
                 this.signalingLayer.setSSRCOwner(
-                    ssrc, Strophe.getResourceFromJid(this.peerjid));
+                    ssrc, Strophe.getResourceFromJid(this.remoteJid));
             } else {
                 $(ssrcElement)
                     .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
@@ -794,7 +795,7 @@ export default class JingleSessionPC extends JingleSession {
      */
     sendSessionInitiate(offerSdp) {
         let init = $iq({
-            to: this.peerjid,
+            to: this.remoteJid,
             type: 'set'
         }).c('jingle', {
             xmlns: 'urn:xmpp:jingle:1',
@@ -967,7 +968,7 @@ export default class JingleSessionPC extends JingleSession {
         // NOTE: since we're just reading from it, we don't need to be within
         //  the modification queue to access the local description
         const localSDP = new SDP(this.peerconnection.localDescription.sdp);
-        let accept = $iq({ to: this.peerjid,
+        let accept = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
                 action: 'session-accept',
@@ -1039,7 +1040,7 @@ export default class JingleSessionPC extends JingleSession {
 
         const sessionModify
             = $iq({
-                to: this.peerjid,
+                to: this.remoteJid,
                 type: 'set'
             })
                 .c('jingle', {
@@ -1074,7 +1075,7 @@ export default class JingleSessionPC extends JingleSession {
      * @private
      */
     sendTransportAccept(localSDP, success, failure) {
-        let transportAccept = $iq({ to: this.peerjid,
+        let transportAccept = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
@@ -1123,7 +1124,7 @@ export default class JingleSessionPC extends JingleSession {
     sendTransportReject(success, failure) {
         // Send 'transport-reject', so that the focus will
         // know that we've failed
-        let transportReject = $iq({ to: this.peerjid,
+        let transportReject = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
@@ -1152,7 +1153,7 @@ export default class JingleSessionPC extends JingleSession {
         if (!options || Boolean(options.sendSessionTerminate)) {
             let sessionTerminate
                 = $iq({
-                    to: this.peerjid,
+                    to: this.remoteJid,
                     type: 'set'
                 })
                     .c('jingle', {
@@ -2025,7 +2026,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // send source-remove IQ.
         let sdpDiffer = new SDPDiffer(newSDP, oldSDP);
-        const remove = $iq({ to: this.peerjid,
+        const remove = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
@@ -2047,7 +2048,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // send source-add IQ.
         sdpDiffer = new SDPDiffer(oldSDP, newSDP);
-        const add = $iq({ to: this.peerjid,
+        const add = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
