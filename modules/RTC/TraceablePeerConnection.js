@@ -1806,10 +1806,15 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(
 };
 
 /**
- * Inserts an H264 payload into the description if not already present.
+ * Inserts an H264 payload into the description if not already present. This is
+ * need for Safari WebRTC, which errors when no supported video codec is found
+ * in the offer. Related bug reports:
+ * https://bugs.webkit.org/show_bug.cgi?id=173141
+ * https://bugs.chromium.org/p/webrtc/issues/detail?id=4957
  *
  * @param {RTCSessionDescription} description - An RTCSessionDescription
  * to inject with an H264 payload.
+ * @private
  * @returns {RTCSessionDescription}
  */
 TraceablePeerConnection.prototype._injectH264IfNotPresent = function(
@@ -1818,7 +1823,7 @@ TraceablePeerConnection.prototype._injectH264IfNotPresent = function(
     const videoMLine = parsedSdp.media.find(m => m.type === 'video');
 
     if (!videoMLine) {
-        logger.debug('No videoMLine found, no need tp inject H264.');
+        logger.debug('No videoMLine found, no need to inject H264.');
 
         return description;
     }
