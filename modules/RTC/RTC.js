@@ -624,7 +624,7 @@ export default class RTC extends Listenable {
         const pcConstraints
             = isP2P ? RTCUtils.p2pPcConstraints : RTCUtils.pcConstraints;
 
-        return Object.assign({}, pcConstraints);
+        return JSON.parse(JSON.stringify(pcConstraints));
     }
 
     /**
