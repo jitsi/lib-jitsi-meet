@@ -436,11 +436,11 @@ export default class RTC extends Listenable {
     createPeerConnection(signaling, iceConfig, isP2P, options) {
         const pcConstraints = RTC.getPCConstraints(isP2P);
 
-        if (typeof options.forceSuspendVideo !== 'undefined') {
-            RTCUtils.setSuspendVideo(pcConstraints, options.forceSuspendVideo);
+        if (typeof options.abtestSuspendVideo !== 'undefined') {
+            RTCUtils.setSuspendVideo(pcConstraints, options.abtestSuspendVideo);
 
             Statistics.analytics.addPermanentProperties(
-                { abtestP2PSuspendVideo: options.forceSuspendVideo });
+                { abtestSuspendVideo: options.abtestSuspendVideo });
         }
 
         const newConnection

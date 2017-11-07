@@ -252,10 +252,10 @@ export default class JingleSessionPC extends JingleSession {
             pcOptions.preferH264
                 = this.room.options.p2p && this.room.options.p2p.preferH264;
 
-            const forceSuspendVideo = this._forceSuspendVideo();
+            const abtestSuspendVideo = this._abtestSuspendVideoEnabled();
 
-            if (typeof forceSuspendVideo !== 'undefined') {
-                pcOptions.forceSuspendVideo = forceSuspendVideo;
+            if (typeof abtestSuspendVideo !== 'undefined') {
+                pcOptions.abtestSuspendVideo = abtestSuspendVideo;
             }
         } else {
             // H264 does not support simulcast, so it needs to be disabled.
@@ -2189,7 +2189,7 @@ export default class JingleSessionPC extends JingleSession {
      * configuration, returns undefined. Otherwise returns a boolean which
      * indicates whether the suspend video option should be enabled or disabled.
      */
-    _forceSuspendVideo() {
+    _abtestSuspendVideoEnabled() {
         if (!this.room.options.abTesting
             || !this.room.options.abTesting.enableSuspendVideoTest) {
             return;
