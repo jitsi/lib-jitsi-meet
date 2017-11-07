@@ -96,9 +96,9 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             }
 
             // local jid is not checked
-            if (fromJid !== sess.peerjid) {
+            if (fromJid !== sess.remoteJid) {
                 logger.warn(
-                    'jid mismatch for session id', sid, sess.peerjid, iq);
+                    'jid mismatch for session id', sid, sess.remoteJid, iq);
                 ack.attrs({ type: 'error' });
                 ack.c('error', { type: 'cancel' })
                     .c('item-not-found', {
@@ -114,7 +114,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             }
         } else if (sess !== undefined) {
             // Existing session with same session id. This might be out-of-order
-            // if the sess.peerjid is the same as from.
+            // if the sess.remoteJid is the same as from.
             ack.attrs({ type: 'error' });
             ack.c('error', { type: 'cancel' })
                 .c('service-unavailable', {

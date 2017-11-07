@@ -3,6 +3,7 @@
 import async from 'async';
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, Strophe } from 'strophe.js';
+import { integerHash } from '../util/StringUtils';
 
 import JingleSession from './JingleSession';
 import * as JingleSessionState from './JingleSessionState';
@@ -59,8 +60,8 @@ export default class JingleSessionPC extends JingleSession {
      * Creates new <tt>JingleSessionPC</tt>
      * @param {string} sid the Jingle Session ID - random string which
      * identifies the session
-     * @param {string} me our JID
-     * @param {string} peerjid remote peer JID
+     * @param {string} localJid our JID
+     * @param {string} remoteJid remote peer JID
      * @param {Strophe.Connection} connection Strophe XMPP connection instance
      * used to send packets.
      * @param mediaConstraints the media constraints object passed to
@@ -71,7 +72,7 @@ export default class JingleSessionPC extends JingleSession {
      * meant to be used in a direct, peer to peer connection or <tt>false</tt>
      * if it's a JVB connection.
      * @param {boolean} isInitiator indicates whether or not we are the side
-     * which sends the 'session-intiate'.
+     * which sends the 'session-initiate'.
      * @param {object} options a set of config options
      * @param {boolean} options.webrtcIceUdpDisable <tt>true</tt> to block UDP
      * candidates.
@@ -86,15 +87,16 @@ export default class JingleSessionPC extends JingleSession {
      */
     constructor(
             sid,
-            me,
-            peerjid,
+            localJid,
+            remoteJid,
             connection,
             mediaConstraints,
             iceConfig,
             isP2P,
             isInitiator,
             options) {
-        super(sid, me, peerjid, connection, mediaConstraints, iceConfig);
+        super(
+            sid, localJid, remoteJid, connection, mediaConstraints, iceConfig);
 
         /**
          * Stores result of {@link window.performance.now()} at the time when
@@ -240,39 +242,39 @@ export default class JingleSessionPC extends JingleSession {
         // Set to true if the connection was ever stable
         this.wasstable = false;
 
-        // Create new peer connection instance
+        const pcOptions = { disableRtx: this.room.options.disableRtx };
+
         if (this.isP2P) {
-            this.peerconnection = this.rtc.createPeerConnection(
-                this.signalingLayer,
-                this.iceConfig,
-                this.isP2P,
-                {
-                    // simulcast needs to be disabled for P2P (121) calls
-                    disableSimulcast: true,
-                    disableRtx: this.room.options.disableRtx,
-                    disableH264: this.room.options.p2p
-                        && this.room.options.p2p.disableH264,
-                    preferH264: this.room.options.p2p
-                        && this.room.options.p2p.preferH264
-                });
+            // simulcast needs to be disabled for P2P (121) calls
+            pcOptions.disableSimulcast = true;
+            pcOptions.disableH264
+                = this.room.options.p2p && this.room.options.p2p.disableH264;
+            pcOptions.preferH264
+                = this.room.options.p2p && this.room.options.p2p.preferH264;
+
+            const abtestSuspendVideo = this._abtestSuspendVideoEnabled();
+
+            if (typeof abtestSuspendVideo !== 'undefined') {
+                pcOptions.abtestSuspendVideo = abtestSuspendVideo;
+            }
         } else {
-            this.peerconnection = this.rtc.createPeerConnection(
-                this.signalingLayer,
-                this.iceConfig,
-                this.isP2P,
-                {
-                    // H264 does not support simulcast, so it needs to be
-                    // disabled.
-                    disableSimulcast: this.room.options.disableSimulcast
-                        || (this.room.options.preferH264
-                            && !this.room.options.disableH264),
-                    disableRtx: this.room.options.disableRtx,
-                    disableH264: this.room.options.disableH264,
-                    preferH264: this.room.options.preferH264,
-                    enableFirefoxSimulcast: this.room.options.testing
-                        && this.room.options.testing.enableFirefoxSimulcast
-                });
+            // H264 does not support simulcast, so it needs to be disabled.
+            pcOptions.disableSimulcast
+                = this.room.options.disableSimulcast
+                    || (this.room.options.preferH264
+                            && !this.room.options.disableH264);
+            pcOptions.preferH264 = this.room.options.preferH264;
+            pcOptions.enableFirefoxSimulcast
+                = this.room.options.testing
+                    && this.room.options.testing.enableFirefoxSimulcast;
         }
+
+        this.peerconnection
+            = this.rtc.createPeerConnection(
+                    this.signalingLayer,
+                    this.iceConfig,
+                    this.isP2P,
+                    pcOptions);
 
         this.peerconnection.onicecandidate = ev => {
             if (!ev) {
@@ -509,7 +511,7 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         logger.log('sendIceCandidates', candidates);
-        const cand = $iq({ to: this.peerjid,
+        const cand = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
                 action: 'transport-info',
@@ -657,7 +659,7 @@ export default class JingleSessionPC extends JingleSession {
             if (this.isP2P) {
                 // In P2P all SSRCs are owner by the remote peer
                 this.signalingLayer.setSSRCOwner(
-                    ssrc, Strophe.getResourceFromJid(this.peerjid));
+                    ssrc, Strophe.getResourceFromJid(this.remoteJid));
             } else {
                 $(ssrcElement)
                     .find('>ssrc-info[xmlns="http://jitsi.org/jitmeet"]')
@@ -794,7 +796,7 @@ export default class JingleSessionPC extends JingleSession {
      */
     sendSessionInitiate(offerSdp) {
         let init = $iq({
-            to: this.peerjid,
+            to: this.remoteJid,
             type: 'set'
         }).c('jingle', {
             xmlns: 'urn:xmpp:jingle:1',
@@ -967,7 +969,7 @@ export default class JingleSessionPC extends JingleSession {
         // NOTE: since we're just reading from it, we don't need to be within
         //  the modification queue to access the local description
         const localSDP = new SDP(this.peerconnection.localDescription.sdp);
-        let accept = $iq({ to: this.peerjid,
+        let accept = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
                 action: 'session-accept',
@@ -1039,7 +1041,7 @@ export default class JingleSessionPC extends JingleSession {
 
         const sessionModify
             = $iq({
-                to: this.peerjid,
+                to: this.remoteJid,
                 type: 'set'
             })
                 .c('jingle', {
@@ -1074,7 +1076,7 @@ export default class JingleSessionPC extends JingleSession {
      * @private
      */
     sendTransportAccept(localSDP, success, failure) {
-        let transportAccept = $iq({ to: this.peerjid,
+        let transportAccept = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
@@ -1123,7 +1125,7 @@ export default class JingleSessionPC extends JingleSession {
     sendTransportReject(success, failure) {
         // Send 'transport-reject', so that the focus will
         // know that we've failed
-        let transportReject = $iq({ to: this.peerjid,
+        let transportReject = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
@@ -1152,7 +1154,7 @@ export default class JingleSessionPC extends JingleSession {
         if (!options || Boolean(options.sendSessionTerminate)) {
             let sessionTerminate
                 = $iq({
-                    to: this.peerjid,
+                    to: this.remoteJid,
                     type: 'set'
                 })
                     .c('jingle', {
@@ -2025,7 +2027,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // send source-remove IQ.
         let sdpDiffer = new SDPDiffer(newSDP, oldSDP);
-        const remove = $iq({ to: this.peerjid,
+        const remove = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
@@ -2047,7 +2049,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // send source-add IQ.
         sdpDiffer = new SDPDiffer(oldSDP, newSDP);
-        const add = $iq({ to: this.peerjid,
+        const add = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
@@ -2180,5 +2182,24 @@ export default class JingleSessionPC extends JingleSession {
     toString() {
         return `JingleSessionPC[p2p=${this.isP2P},`
                     + `initiator=${this.isInitiator},sid=${this.sid}]`;
+    }
+
+    /**
+     * If the A/B test for suspend video is disabled according to the room's
+     * configuration, returns undefined. Otherwise returns a boolean which
+     * indicates whether the suspend video option should be enabled or disabled.
+     */
+    _abtestSuspendVideoEnabled() {
+        if (!this.room.options.abTesting
+            || !this.room.options.abTesting.enableSuspendVideoTest) {
+            return;
+        }
+
+        // We want the two participants in a P2P call to agree on the value of
+        // the "suspend" option. We use the JID of the initiator, because it is
+        // both randomly selected and agreed upon by both participants.
+        const jid = this._getInitiatorJid();
+
+        return integerHash(jid) % 2 === 0;
     }
 }

@@ -1117,36 +1117,10 @@ class RTCUtils extends Listenable {
                     { googSuspendBelowMinBitrate: true });
             }
 
-            /**
-             * This option is used to enable the suspend video only for
-             * part of the users on the P2P peer connection. The value of
-             * the option is the ratio:
-             * (users with suspended video enabled)/(all users).
-             *
-             * Note: The option is not documented because it is temporary
-             * and only for internal testing purpose.
-             *
-             * @type {number}
-             */
-            const forceP2PSuspendVideoRatio
-                = (options.testing || {}).forceP2PSuspendVideoRatio;
-
-            // If <tt>forceP2PSuspendVideoRatio</tt> is invalid (not a
-            // number) fallback to the default behavior (enabled for every
-            // user).
-            if (typeof forceP2PSuspendVideoRatio !== 'number'
-                    || Math.random() < forceP2PSuspendVideoRatio) {
-                logger.info(`Enable suspend video mode for p2p (ratio=${
-                    forceP2PSuspendVideoRatio})`);
-
-                Statistics.analytics.addPermanentProperties({
-                    forceP2PSuspendVideo: true
-                });
-
-                this.p2pPcConstraints.optional.push({
-                    googSuspendBelowMinBitrate: true
-                });
-            }
+            // There's no reason not to use this for p2p
+            this.p2pPcConstraints.optional.push({
+                googSuspendBelowMinBitrate: true
+            });
         }
 
         this.p2pPcConstraints = this.p2pPcConstraints || this.pcConstraints;
@@ -1780,6 +1754,30 @@ class RTCUtils extends Listenable {
         deviceList.push(deviceData);
 
         return { deviceList };
+    }
+
+    /**
+     * Configures the given PeerConnection constraints to either enable or
+     * disable (according to the value of the 'enable' parameter) the
+     * 'googSuspendBelowMinBitrate' option.
+     * @param constraints the constraints on which to operate.
+     * @param enable {boolean} whether to enable or disable the suspend video
+     * option.
+     */
+    setSuspendVideo(constraints, enable) {
+        if (!constraints.optional) {
+            constraints.optional = [];
+        }
+
+        // Get rid of all "googSuspendBelowMinBitrate" constraints (we assume
+        // that the elements of constraints.optional contain a single property).
+        constraints.optional
+            = constraints.optional.filter(
+                c => !c.hasOwnProperty('googSuspendBelowMinBitrate'));
+
+        if (enable) {
+            constraints.optional.push({ googSuspendBelowMinBitrate: 'true' });
+        }
     }
 }
 
