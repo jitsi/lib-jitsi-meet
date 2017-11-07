@@ -32,9 +32,7 @@ const oldOnUnhandledRejection = window.onunhandledrejection;
  */
 function JitsiGlobalUnhandledRejection(event) {
     handlers.forEach(handler => handler(null, null, null, null, event.reason));
-    if (oldOnUnhandledRejection) {
-        oldOnUnhandledRejection(event);
-    }
+    oldOnUnhandledRejection && oldOnUnhandledRejection(event);
 }
 
 // Setting the custom error handlers.
