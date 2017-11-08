@@ -138,6 +138,18 @@ const JitsiMediaDevices = {
      */
     emitEvent(event, ...args) {
         eventEmitter.emit(event, ...args);
+    },
+
+    /**
+     * Returns whether or not the current browser can support capturing video,
+     * be it camera or desktop, and displaying received video.
+     *
+     * @returns {boolean}
+     */
+    supportsVideo() {
+        // Defer to RTCBrowserType to allow exposure of the api to the consumer
+        // but prevent other files from having to import JitsiMediaDevices.
+        return RTCBrowserType.supportsVideo();
     }
 };
 
