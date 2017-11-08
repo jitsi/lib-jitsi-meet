@@ -123,11 +123,12 @@ export default function TraceablePeerConnection(
 
     /**
      * Keeps tracks of the WebRTC <tt>MediaStream</tt>s that have been added to
-     * the underlying WebRTC PeerConnection.
-     * @type {Set}
+     * the underlying WebRTC PeerConnection. An Array is used to avoid errors in
+     * IE11 with adding temasys MediaStream objects into other data structures.
+     * @type {Array}
      * @private
      */
-    this._addedStreams = new Set();
+    this._addedStreams = [];
 
     /**
      * @typedef {Object} TPCGroupInfo
@@ -1332,7 +1333,7 @@ TraceablePeerConnection.prototype.addTrackUnmute = function(track) {
  */
 TraceablePeerConnection.prototype._addStream = function(mediaStream) {
     this.peerconnection.addStream(mediaStream);
-    this._addedStreams.add(mediaStream);
+    this._addedStreams.push(mediaStream);
 };
 
 /**
@@ -1345,7 +1346,8 @@ TraceablePeerConnection.prototype._removeStream = function(mediaStream) {
     } else {
         this.peerconnection.removeStream(mediaStream);
     }
-    this._addedStreams.delete(mediaStream);
+    this._addedStreams
+        = this._addedStreams.filter(stream => stream !== mediaStream);
 };
 
 /**
@@ -1379,7 +1381,7 @@ TraceablePeerConnection.prototype._assertTrackBelongs = function(
  * @returns {boolean}
  */
 TraceablePeerConnection.prototype.isMediaStreamInPc = function(mediaStream) {
-    return this._addedStreams.has(mediaStream);
+    return this._addedStreams.indexOf(mediaStream) > -1;
 };
 
 /**
@@ -1938,7 +1940,7 @@ TraceablePeerConnection.prototype.close = function() {
     }
     this.remoteTracks.clear();
 
-    this._addedStreams.clear();
+    this._addedStreams = [];
 
     if (!this.rtc._removePeerConnection(this)) {
         logger.error('RTC._removePeerConnection returned false');
