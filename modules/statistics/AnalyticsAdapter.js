@@ -70,9 +70,10 @@ class AnalyticsAdapter {
         /**
          * Map of properties that will be added to every event
          */
-        this.permanentProperties = Object.create(null);
-        this.addPermanentProperties(
-            { callstatsname: Settings.callStatsUserName });
+        this.permanentProperties = {
+            callstatsname: Settings.callStatsUserName
+        };
+
         this.analyticsHandlers.add(cacheAnalytics);
     }
 
@@ -122,8 +123,7 @@ class AnalyticsAdapter {
      * @param {Object} properties the map of properties
      */
     addPermanentProperties(properties) {
-        this.permanentProperties
-            = Object.assign(this.permanentProperties, properties);
+        Object.assign(this.permanentProperties, properties);
     }
 }
 
