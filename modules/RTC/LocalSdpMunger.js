@@ -170,8 +170,8 @@ export default class LocalSdpMunger {
      * @returns {RTCSessionDescription}
      */
     maybeAddMutedLocalVideoTracksToSDP(desc) {
-        if (!desc || !(desc instanceof RTCSessionDescription)) {
-            throw new Error('Incorrect type, expected RTCSessionDescription');
+        if (!desc) {
+            throw new Error('No local description passed in.');
         }
 
         const transformer = new SdpTransformWrap(desc.sdp);

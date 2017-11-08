@@ -1076,9 +1076,8 @@ const normalizePlanB = function(desc) {
  * @param {Object} localDescription the SDP object as defined by WebRTC.
  */
 const enforceSendRecv = function(localDescription) {
-    if (!localDescription
-        || !(localDescription instanceof RTCSessionDescription)) {
-        throw new Error('Incorrect type, expected RTCSessionDescription');
+    if (!localDescription) {
+        throw new Error('No local description passed in.');
     }
 
     const transformer = new SdpTransformWrap(localDescription.sdp);
