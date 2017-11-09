@@ -1775,7 +1775,7 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(
 
     // Safari WebRTC errors when no supported video codec is found in the offer.
     // To prevent the error, inject H264 into the video mLine.
-    if (RTCBrowserType.usesNewGumFlow() && RTCBrowserType.isSafari()) {
+    if (RTCBrowserType.isSafariWithWebrtc()) {
         logger.debug('Maybe injecting H264 into the remote description');
 
         // eslint-disable-next-line no-param-reassign
@@ -2296,6 +2296,10 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
                 // Making sure that getStats won't fail if error callback is
                 // not passed.
             }));
+    } else if (RTCBrowserType.isSafariWithWebrtc()) {
+        // FIXME: Safari's native stats implementation is not compatibile with
+        // existing stats processing logic. Skip implementing stats for now to
+        // at least get native webrtc Safari available for use.
     } else {
         this.peerconnection.getStats(callback);
     }

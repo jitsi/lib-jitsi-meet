@@ -34,7 +34,11 @@ const RTCBrowserType = {
      * strategy or <tt>false</tt> otherwise.
      */
     doesVideoMuteByStreamRemove() {
-        return !(RTCBrowserType.isFirefox() || RTCBrowserType.isEdge());
+        return !(
+            RTCBrowserType.isFirefox()
+            || RTCBrowserType.isEdge()
+            || RTCBrowserType.isSafariWithWebrtc()
+        );
     },
 
     /**
@@ -108,6 +112,17 @@ const RTCBrowserType = {
     },
 
     /**
+     * Checks if current browser is a Safari and a version of Safari that
+     * supports native webrtc.
+     *
+     * @returns {boolean}
+     */
+    isSafariWithWebrtc() {
+        return RTCBrowserType.isSafari()
+            && RTCBrowserType.getSafariVersion() >= 11;
+    },
+
+    /**
      * Checks if current environment is NWJS.
      * @returns {boolean}
      */
@@ -149,7 +164,8 @@ const RTCBrowserType = {
         // http://support.temasys.com.sg/support/solutions/articles/
         // 5000654345-can-the-temasys-webrtc-plugin-be-used-with-microsoft-edge-
         return (
-            RTCBrowserType.isSafari()
+            (RTCBrowserType.isSafari()
+                && !RTCBrowserType.isSafariWithWebrtc())
             || (RTCBrowserType.isIExplorer()
                 && RTCBrowserType.getIExplorerVersion() < 12)
         );
@@ -165,8 +181,10 @@ const RTCBrowserType = {
      */
     usesNewGumFlow() {
         return (RTCBrowserType.isChrome()
-            && RTCBrowserType.getChromeVersion() >= 61)
-            || RTCBrowserType.isFirefox();
+                && RTCBrowserType.getChromeVersion() >= 61)
+            || RTCBrowserType.isFirefox()
+            || RTCBrowserType.isSafariWithWebrtc();
+
     },
 
     /**
@@ -219,6 +237,15 @@ const RTCBrowserType = {
      */
     getEdgeVersion() {
         return RTCBrowserType.isEdge() ? browserVersion : null;
+    },
+
+    /**
+     * Returns Safari version.
+     *
+     * @returns {number|null}
+     */
+    getSafariVersion() {
+        return RTCBrowserType.isSafari ? browserVersion : null;
     },
 
     usesPlanB() {
@@ -292,11 +319,10 @@ const RTCBrowserType = {
      * @returns {boolean}
      */
     supportsVideo() {
-        // Currently all browsers are assumed to support video.
-        return true;
+        // Currently Safari using webrtc/adapter does not support video due in
+        // part to Safari only supporting H264 and the bridge sending VP8.
+        return !RTCBrowserType.isSafariWithWebrtc();
     }
-
-    // Add version getters for other browsers when needed
 };
 
 /**
@@ -361,10 +387,15 @@ function detectFirefox() {
 function detectSafari() {
     if (/^((?!chrome).)*safari/i.test(navigator.userAgent)) {
         currentBrowser = RTCBrowserType.RTC_BROWSER_SAFARI;
-        logger.info('This appears to be Safari');
 
-        // FIXME detect Safari version when needed
-        return 1;
+        const matchedVersionParts
+            = navigator.userAgent.match(/version\/(\d+(\.\d+)?)/i);
+        const versionString = matchedVersionParts && matchedVersionParts[1];
+        const version = versionString ? parseInt(versionString, 10) : -1;
+
+        logger.info(`This appears to be Safari, ver: ${version}`);
+
+        return version;
     }
 
     return null;
