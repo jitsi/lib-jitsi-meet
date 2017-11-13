@@ -1,6 +1,5 @@
 /* global __dirname */
 
-const child_process = require('child_process'); // eslint-disable-line camelcase
 const process = require('process');
 const webpack = require('webpack');
 
@@ -38,16 +37,7 @@ module.exports = {
             options: {
                 flags: 'g',
                 replace:
-                    child_process.execSync( // eslint-disable-line camelcase
-                        `${__dirname}/get-version.sh`)
-
-                        // The type of the return value of
-                        // child_process.execSync is either Buffer or String.
-                        .toString()
-
-                        // Shells may automatically append CR and/or LF
-                        // characters to the output.
-                        .trim(),
+                    process.env.LIB_JITSI_MEET_COMMIT_HASH || 'development',
                 search: '{#COMMIT_HASH#}'
             },
             test: `${__dirname}/JitsiMeetJS.js`
