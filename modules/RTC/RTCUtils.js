@@ -899,13 +899,15 @@ class RTCUtils extends Listenable {
                             return [];
                         });
 
-                this.attachMediaStream = (element, stream) => {
-                    if (element) {
-                        element.srcObject = stream;
-                    }
+                this.attachMediaStream
+                    = wrapAttachMediaStream((element, stream) => {
+                        if (element) {
+                            element.srcObject = stream;
+                        }
 
-                    return element;
-                };
+                        return element;
+                    });
+
                 this.getStreamID = stream => stream.id;
                 this.getTrackID = track => track.id;
             } else if (RTCBrowserType.isOpera()
