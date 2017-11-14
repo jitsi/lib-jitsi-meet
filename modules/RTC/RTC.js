@@ -178,14 +178,12 @@ export default class RTC extends Listenable {
         // tracks handle this event by themselves.
         if (RTCUtils.isDeviceChangeAvailable('output')) {
             RTCUtils.addListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
-                deviceId => {
-                    const remoteAudioTracks
-                        = this.getRemoteTracks(MediaType.AUDIO);
+                deviceId => this._updateAudioOutputForAudioTracks(deviceId));
 
-                    for (const track of remoteAudioTracks) {
-                        track.setAudioOutput(deviceId);
-                    }
-                });
+            RTCUtils.addListener(
+                RTCEvents.DEVICE_LIST_CHANGED,
+                () => this._updateAudioOutputForAudioTracks(
+                    RTCUtils.getAudioOutputDevice()));
         }
     }
 
@@ -852,5 +850,21 @@ export default class RTC extends Listenable {
     isInLastN(id) {
         return !this._lastNEndpoints // lastNEndpoints not initialised yet.
             || this._lastNEndpoints.indexOf(id) > -1;
+    }
+
+    /**
+     * Updates the target audio output device for all remote audio tracks.
+     *
+     * @param {string} deviceId - The device id of the audio ouput device to
+     * use for all remote tracks.
+     * @private
+     * @returns {void}
+     */
+    _updateAudioOutputForAudioTracks(deviceId) {
+        const remoteAudioTracks = this.getRemoteTracks(MediaType.AUDIO);
+
+        for (const track of remoteAudioTracks) {
+            track.setAudioOutput(deviceId);
+        }
     }
 }
