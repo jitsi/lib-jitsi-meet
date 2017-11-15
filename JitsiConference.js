@@ -1450,18 +1450,9 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
         Statistics.sendEventToAll('session.restart');
     }
 
-    // add info whether call is cross-region
-    let crossRegion = null;
-
-    if (this.options.config && this.options.config.deploymentInfo
-            && typeof this.options.config.deploymentInfo.crossRegion
-            !== 'undefined') {
-        crossRegion = this.options.config.deploymentInfo.crossRegion;
-    }
     Statistics.analytics.sendEvent(
         'session.initiate', {
-            value: now - this.room.connectionTimes['muc.joined'],
-            label: crossRegion
+            value: now - this.room.connectionTimes['muc.joined']
         });
     try {
         jingleSession.initialize(false /* initiator */, this.room, this.rtc);
