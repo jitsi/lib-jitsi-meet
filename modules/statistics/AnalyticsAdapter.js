@@ -64,14 +64,15 @@ class AnalyticsAdapter {
      */
     constructor() {
         this.disposed = false;
-        this.browserName = RTCBrowserType.getBrowserName();
         this.analyticsHandlers = new Set();
 
         /**
          * Map of properties that will be added to every event
          */
         this.permanentProperties = {
-            callstatsname: Settings.callStatsUserName
+            callstatsname: Settings.callStatsUserName,
+            userAgent: navigator.userAgent,
+            browserName: RTCBrowserType.getBrowserName()
         };
 
         this.analyticsHandlers.add(cacheAnalytics);
@@ -83,8 +84,7 @@ class AnalyticsAdapter {
      * @param {Object} data can be any JSON object
      */
     sendEvent(action, data = {}) {
-        const modifiedData = Object.assign(
-            { browserName: this.browserName }, this.permanentProperties, data);
+        const modifiedData = Object.assign({}, this.permanentProperties, data);
 
         this.analyticsHandlers.forEach(
             analytics =>
