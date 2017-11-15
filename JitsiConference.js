@@ -1362,7 +1362,52 @@ JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
 };
 
 /**
- * Handles incoming call event.
+ * Handles an incoming call event for the P2P jingle session.
+ */
+JitsiConference.prototype._onIncomingCallP2P = function(
+        jingleSession,
+        jingleOffer) {
+
+    let rejectReason;
+    const role = this.room.getMemberRole(jingleSession.remoteJid);
+
+    if (role !== 'moderator') {
+        rejectReason = {
+            reason: 'security-error',
+            reasonDescription: 'Only focus can start new sessions',
+            errorMsg: 'Rejecting session-initiate from non-focus and'
+                        + `non-moderator user: ${jingleSession.remoteJid}`
+        };
+    } else if (!RTCBrowserType.isP2PSupported()) {
+        rejectReason = {
+            reason: 'unsupported-applications',
+            reasonDescription: 'P2P not supported',
+            errorMsg: 'This client does not support P2P connections'
+        };
+    } else if (!this.isP2PEnabled() && !this.isP2PTestModeEnabled()) {
+        rejectReason = {
+            reason: 'decline',
+            reasonDescription: 'P2P disabled',
+            errorMsg: 'P2P mode disabled in the configuration'
+        };
+    } else if (this.p2pJingleSession) {
+        // Reject incoming P2P call (already in progress)
+        rejectReason = {
+            reason: 'busy',
+            reasonDescription: 'P2P already in progress',
+            errorMsg: 'Duplicated P2P "session-initiate"'
+        };
+    }
+
+    if (rejectReason) {
+        this._rejectIncomingCall(jingleSession, rejectReason);
+    } else {
+        this._acceptP2PIncomingCall(jingleSession, jingleOffer);
+    }
+};
+
+/**
+ * Handles an incoming call event.
  */
 JitsiConference.prototype.onIncomingCall = function(
         jingleSession,
@@ -1370,45 +1415,31 @@ JitsiConference.prototype.onIncomingCall = function(
         now) {
     // Handle incoming P2P call
     if (jingleSession.isP2P) {
-        const role = this.room.getMemberRole(jingleSession.remoteJid);
+        this._onIncomingCallP2P(jingleSession, jingleOffer);
+    } else {
+        if (!this.room.isFocus(jingleSession.remoteJid)) {
+            const description = 'Rejecting session-initiate from non-focus.';
 
-        if (role !== 'moderator') {
-            // Reject incoming P2P call
-            this._rejectIncomingCallNonModerator(jingleSession);
-        } else if (!RTCBrowserType.isP2PSupported()) {
-            // Reject incoming P2P call (already in progress)
             this._rejectIncomingCall(
                 jingleSession, {
-                    reasonTag: 'unsupported-applications',
-                    reasonMsg: 'P2P not supported',
-                    errorMsg: 'This client does not support P2P connections'
+                    reason: 'security-error',
+                    reasonDescription: description,
+                    errorMsg: description
                 });
-        } else if (!this.isP2PEnabled() && !this.isP2PTestModeEnabled()) {
-            this._rejectIncomingCall(
-                jingleSession, {
-                    reasonTag: 'decline',
-                    reasonMsg: 'P2P disabled',
-                    errorMsg: 'P2P mode disabled in the configuration'
-                });
-        } else if (this.p2pJingleSession) {
-            // Reject incoming P2P call (already in progress)
-            this._rejectIncomingCall(
-                jingleSession, {
-                    reasonTag: 'busy',
-                    reasonMsg: 'P2P already in progress',
-                    errorMsg: 'Duplicated P2P "session-initiate"'
-                });
-        } else {
-            // Accept incoming P2P call
-            this._acceptP2PIncomingCall(jingleSession, jingleOffer);
+
+            return;
         }
-
-        return;
-    } else if (!this.room.isFocus(jingleSession.remoteJid)) {
-        this._rejectIncomingCall(jingleSession);
-
-        return;
+        this._acceptJvbIncomingCall(jingleSession, jingleOffer, now);
     }
+};
+
+/**
+ * Accepts an incoming call event for the JVB jingle session.
+ */
+JitsiConference.prototype._acceptJvbIncomingCall = function(
+        jingleSession,
+        jingleOffer,
+        now) {
 
     // Accept incoming call
     this.jvbJingleSession = jingleSession;
@@ -1522,30 +1553,12 @@ JitsiConference.prototype._setBridgeChannel = function(offerIq, pc) {
 };
 
 /**
- * Rejects incoming Jingle call with 'security-error'. Method should be used to
- * reject calls initiated by unauthorised entities.
- * @param {JingleSessionPC} jingleSession the session instance to be rejected.
- * @private
- */
-JitsiConference.prototype._rejectIncomingCallNonModerator = function(
-        jingleSession) {
-    this._rejectIncomingCall(
-        jingleSession,
-        {
-            reasonTag: 'security-error',
-            reasonMsg: 'Only focus can start new sessions',
-            errorMsg: 'Rejecting session-initiate from non-focus and'
-                        + `non-moderator user: ${jingleSession.remoteJid}`
-        });
-};
-
-/**
  * Rejects incoming Jingle call.
  * @param {JingleSessionPC} jingleSession the session instance to be rejected.
  * @param {object} [options]
- * @param {string} options.reasonTag the name of the reason element as defined
+ * @param {string} options.reason the name of the reason element as defined
  * by Jingle
- * @param {string} options.reasonMsg the reason description which will
+ * @param {string} options.reasonDescription the reason description which will
  * be included in Jingle 'session-terminate' message.
  * @param {string} options.errorMsg an error message to be logged on global
  * error handler
@@ -1558,7 +1571,7 @@ JitsiConference.prototype._rejectIncomingCall = function(
         GlobalOnErrorHandler.callErrorHandler(new Error(options.errorMsg));
     }
 
-    // Terminate  the jingle session with a reason
+    // Terminate the jingle session with a reason
     jingleSession.terminate(
         null /* success callback => we don't care */,
         error => {
@@ -1566,8 +1579,8 @@ JitsiConference.prototype._rejectIncomingCall = function(
                 'An error occurred while trying to terminate'
                     + ' invalid Jingle session', error);
         }, {
-            reason: options && options.reasonTag,
-            reasonDescription: options && options.reasonMsg,
+            reason: options && options.reason,
+            reasonDescription: options && options.reasonDescription,
             sendSessionTerminate: true
         });
 };
