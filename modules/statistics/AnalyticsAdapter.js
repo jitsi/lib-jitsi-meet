@@ -29,12 +29,12 @@ class CacheAnalytics extends AnalyticsAbstract {
 
     /**
      * Cache analytics event.
-     * @param {String} action the name of the event
+     * @param {String} eventName the name of the event
      * @param {Object} data can be any JSON object
      */
-    sendEvent(action, data = {}) {
+    sendEvent(eventName, data = {}) {
         this.eventCache.push({
-            action,
+            eventName,
             data
         });
     }
@@ -80,16 +80,16 @@ class AnalyticsAdapter {
 
     /**
      * Sends analytics event.
-     * @param {String} action the name of the event
+     * @param {String} eventName the name of the event
      * @param {Object} data can be any JSON object
      */
-    sendEvent(action, data = {}) {
+    sendEvent(eventName, data = {}) {
         const modifiedData = Object.assign({}, this.permanentProperties, data);
 
         this.analyticsHandlers.forEach(
             analytics =>
                 analytics.sendEvent(
-                    action,
+                    eventName,
                     analytics === cacheAnalytics ? data : modifiedData
                 )
         );
@@ -115,7 +115,7 @@ class AnalyticsAdapter {
         }
         this.analyticsHandlers = new Set(handlers);
         cacheAnalytics.drainCachedEvents().forEach(
-            ev => this.sendEvent(ev.action, ev.data));
+            ev => this.sendEvent(ev.eventName, ev.data));
     }
 
     /**
