@@ -1,6 +1,11 @@
 /* global __filename, $ */
 
-import AnalyticsEvents from '../../service/statistics/AnalyticsEvents';
+import {
+    _ICE_CHECKING_DURATION,
+    _ICE_CONNECTION_STATE_,
+    _ICE_ESTABLISHMENT_DURATION,
+    _ICE_GATHERING_DURATION
+} from '../../service/statistics/AnalyticsEvents';
 import async from 'async';
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, Strophe } from 'strophe.js';
@@ -315,8 +320,8 @@ export default class JingleSessionPC extends JingleSession {
                 // End of gathering
                 let eventName = this.isP2P ? 'p2p.ice.' : 'ice.';
 
-                eventName += this.isInitiator ? 'initiator' : 'responder';
-                eventName += `.${AnalyticsEvents._ICE_GATHERING_DURATION}`;
+                eventName += this.isInitiator ? 'initiator.' : 'responder.';
+                eventName += _ICE_GATHERING_DURATION;
                 Statistics.analytics.sendEvent(
                     eventName,
                     { value: now - this._gatheringStartedTimestamp });
@@ -369,8 +374,7 @@ export default class JingleSessionPC extends JingleSession {
                     + ` P2P? ${this.isP2P}:\t`,
                 now);
             const iceConnectionEventName
-                = `${this.isP2P ? 'p2p.' : ''}${
-                    AnalyticsEvents._ICE_CONNECTION_STATE_}.${
+                = `${this.isP2P ? 'p2p.' : ''}${_ICE_CONNECTION_STATE_}.${
                     this.peerconnection.iceConnectionState}`;
 
             Statistics.analytics.sendEvent(
@@ -398,7 +402,7 @@ export default class JingleSessionPC extends JingleSession {
 
                     eventName += this.isInitiator ? 'initiator.' : 'responder.';
                     Statistics.analytics.sendEvent(
-                        `${eventName}${AnalyticsEvents._ICE_CHECKING_DURATION}`,
+                        `${eventName}${_ICE_CHECKING_DURATION}`,
                         {
                             value: now - this._iceCheckingStartedTimestamp
                         });
@@ -414,8 +418,7 @@ export default class JingleSessionPC extends JingleSession {
                     this.establishmentDuration = now - iceStarted;
 
                     Statistics.analytics.sendEvent(
-                        `${eventName}${
-                            AnalyticsEvents._ICE_ESTABLISHMENT_DURATION}`,
+                        `${eventName}${_ICE_ESTABLISHMENT_DURATION}`,
                         {
                             value: this.establishmentDuration
                         });

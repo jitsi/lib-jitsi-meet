@@ -1,6 +1,10 @@
 /* global __filename */
 
-import AnalyticsEvents from './service/statistics/AnalyticsEvents';
+import {
+    GET_USER_MEDIA_DEVICE_NOT_FOUND_, GET_USER_MEDIA_FAIL_,
+    GET_USER_MEDIA_FAILED_, GET_USER_MEDIA_SUCCESS_,
+    GET_USER_MEDIA_USER_CANCEL_
+} from './service/statistics/AnalyticsEvents';
 import AuthUtil from './modules/util/AuthUtil';
 import * as ConnectionQualityEvents
     from './service/connectivity/ConnectionQualityEvents';
@@ -278,8 +282,8 @@ export default {
 
                 Statistics.analytics.sendEvent(
                     addDeviceTypeToAnalyticsEvent(
-                        AnalyticsEvents.GET_USER_MEDIA_SUCCESS_, options),
-                        { value: options });
+                        GET_USER_MEDIA_SUCCESS_, options),
+                    { value: options });
 
                 if (!RTC.options.disableAudioLevels) {
                     for (let i = 0; i < tracks.length; i++) {
@@ -328,8 +332,8 @@ export default {
                             newResolution);
 
                         Statistics.analytics.sendEvent(
-                            `${AnalyticsEvents.GET_USER_MEDIA_FAIL_
-                            }.resolution.${oldResolution}`);
+                            `${GET_USER_MEDIA_FAIL_}.resolution.${
+                                oldResolution}`);
 
                         return this.createLocalTracks(options);
                     }
@@ -347,8 +351,7 @@ export default {
 
                     Statistics.sendLog(JSON.stringify(logObject));
                     Statistics.analytics.sendEvent(
-                        `${AnalyticsEvents.GET_USER_MEDIA_USER_CANCEL_
-                        }.extensionInstall`);
+                        `${GET_USER_MEDIA_USER_CANCEL_}.extensionInstall`);
                 } else if (JitsiTrackErrors.NOT_FOUND === error.name) {
                     // logs not found devices with just application log to cs
                     const logObject = {
@@ -358,15 +361,14 @@ export default {
 
                     Statistics.sendLog(JSON.stringify(logObject));
                     Statistics.analytics.sendEvent(
-                        `${AnalyticsEvents.GET_USER_MEDIA_DEVICE_NOT_FOUND_}.${
+                        `${GET_USER_MEDIA_DEVICE_NOT_FOUND_}.${
                             error.gum.devices.join('.')}`);
                 } else {
                     // Report gUM failed to the stats
                     Statistics.sendGetUserMediaFailed(error);
                     const eventName
                         = addDeviceTypeToAnalyticsEvent(
-                            AnalyticsEvents.GET_USER_MEDIA_FAILED_,
-                            options);
+                            GET_USER_MEDIA_FAILED_, options);
 
                     Statistics.analytics.sendEvent(
                         `${eventName}.${error.name}`,

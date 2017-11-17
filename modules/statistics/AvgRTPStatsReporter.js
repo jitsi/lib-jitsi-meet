@@ -1,6 +1,6 @@
 /* global __filename */
 
-import AnalyticsEvents from '../../service/statistics/AnalyticsEvents';
+import { AVG_RTP_STATS } from '../../service/statistics/AnalyticsEvents';
 import { getLogger } from 'jitsi-meet-logger';
 import * as ConnectionQualityEvents
     from '../../service/connectivity/ConnectionQualityEvents';
@@ -241,8 +241,7 @@ class ConnectionAvgStats {
                     }
                 }
 
-                Statistics.analytics.sendEvent(
-                    AnalyticsEvents.AVG_RTP_STATS, batchReport);
+                Statistics.analytics.sendEvent(AVG_RTP_STATS, batchReport);
             }
 
             this._resetAvgStats();
@@ -720,8 +719,7 @@ export default class AvgRTPStatsReporter {
 
             this._avgCQ.appendReport(batchReport);
 
-            Statistics.analytics.sendEvent(
-                AnalyticsEvents.AVG_RTP_STATS, batchReport);
+            Statistics.analytics.sendEvent(AVG_RTP_STATS, batchReport);
 
             this._resetAvgStats();
         }

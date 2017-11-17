@@ -1,4 +1,7 @@
-import AnalyticsEvents from './service/statistics/AnalyticsEvents';
+import {
+    CONNECTION_DISCONNECTED_,
+    CONNECTION_FAILED_
+} from './service/statistics/AnalyticsEvents';
 import JitsiConference from './JitsiConference';
 import * as JitsiConnectionEvents from './JitsiConnectionEvents';
 import Statistics from './modules/statistics/statistics';
@@ -23,7 +26,7 @@ export default function JitsiConnection(appID, token, options) {
     this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
         (errType, msg) => {
             Statistics.sendEventToAll(
-                `${AnalyticsEvents.CONNECTION_FAILED_}.${errType}`,
+                `${CONNECTION_FAILED_}.${errType}`,
                 { label: msg });
         });
 
@@ -34,7 +37,7 @@ export default function JitsiConnection(appID, token, options) {
             // when there is real error
             if (msg) {
                 Statistics.analytics.sendEvent(
-                    `${AnalyticsEvents.CONNECTION_DISCONNECTED_}.${msg}`);
+                    `${CONNECTION_DISCONNECTED_}.${msg}`);
             }
             Statistics.sendLog(
                 JSON.stringify({ id: 'connection.disconnected',

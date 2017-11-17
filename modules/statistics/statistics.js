@@ -1,7 +1,10 @@
 import EventEmitter from 'events';
 
+import {
+    FEEDBACK,
+    ICE_FAILED
+} from '../../service/statistics/AnalyticsEvents';
 import analytics from './AnalyticsAdapter';
-import AnalyticsEvents from '../../service/statistics/AnalyticsEvents';
 import CallStats from './CallStats';
 import LocalStats from './LocalStatsCollector';
 import RTPStats from './RTPStatsCollector';
@@ -466,7 +469,7 @@ Statistics.prototype.sendIceConnectionFailedEvent = function(tpc) {
     if (instance) {
         instance.sendIceConnectionFailedEvent();
     }
-    Statistics.analytics.sendEvent(AnalyticsEvents.ICE_FAILED);
+    Statistics.analytics.sendEvent(ICE_FAILED);
 };
 
 /**
@@ -681,7 +684,7 @@ Statistics.sendLog = function(m) {
 Statistics.prototype.sendFeedback = function(overall, detailed) {
     CallStats.sendFeedback(this._getCallStatsConfID(), overall, detailed);
     Statistics.analytics.sendEvent(
-        AnalyticsEvents.FEEDBACK,
+        FEEDBACK,
         {
             value: overall,
             detailed
