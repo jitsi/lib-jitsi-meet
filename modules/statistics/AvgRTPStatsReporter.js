@@ -1,5 +1,6 @@
 /* global __filename */
 
+import AnalyticsEvents from '../../service/statistics/AnalyticsEvents';
 import { getLogger } from 'jitsi-meet-logger';
 import * as ConnectionQualityEvents
     from '../../service/connectivity/ConnectionQualityEvents';
@@ -8,42 +9,6 @@ import * as MediaType from '../../service/RTC/MediaType';
 import RTCBrowserType from '../RTC/RTCBrowserType';
 import Statistics from './statistics';
 import * as VideoType from '../../service/RTC/VideoType';
-
-/**
- * All avg RTP stats are currently reported under 1 event name, but with
- * different properties that allows to distinguish between a P2P call, a call
- * relayed through TURN or the JVB, and multiparty vs 1:1. This constant stores
- * the name of this event. Example structure of "avg.rtp.stats" analytics event:
- *
- * {
- *   p2p: true,
- *   conferenceSize: 2,
- *   localCandidateType: "relay",
- *   remoteCandidateType: "relay",
- *   transportType: "udp",
- *
- *   "stat_avg_rtt": {
- *     value: 200,
- *     samples: [ 100, 200, 300 ]
- *   },
- *   "stat_avg_packetloss_total": {
- *     value: 10,
- *     samples: [ 5, 10, 15]
- *   }
- * }
- *
- * Note that the samples array is currently emitted for debug purposes only and
- * can be removed anytime soon from the structure.
- *
- * Also not all values are always present in "avg.rtp.stats", some of the values
- * are obtained and calculated as part of different process/event pipe. For
- * example {@link ConnectionAvgStats} instances are doing the reports for each
- * {@link TraceablePeerConnection} and work independently from the main stats
- * pipe.
- *
- * @type {string}
- */
-const AVG_RTP_STATS_EVENT = 'avg.rtp.stats';
 
 const logger = getLogger(__filename);
 
@@ -277,7 +242,7 @@ class ConnectionAvgStats {
                 }
 
                 Statistics.analytics.sendEvent(
-                    AVG_RTP_STATS_EVENT, batchReport);
+                    AnalyticsEvents.AVG_RTP_STATS, batchReport);
             }
 
             this._resetAvgStats();
@@ -755,7 +720,8 @@ export default class AvgRTPStatsReporter {
 
             this._avgCQ.appendReport(batchReport);
 
-            Statistics.analytics.sendEvent(AVG_RTP_STATS_EVENT, batchReport);
+            Statistics.analytics.sendEvent(
+                AnalyticsEvents.AVG_RTP_STATS, batchReport);
 
             this._resetAvgStats();
         }

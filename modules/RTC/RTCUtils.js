@@ -9,6 +9,7 @@
           webkitRTCPeerConnection,
           webkitURL
 */
+import AnalyticsEvents from '../../service/statistics/AnalyticsEvents';
 import CameraFacingMode from '../../service/RTC/CameraFacingMode';
 import EventEmitter from 'events';
 import { getLogger } from 'jitsi-meet-logger';
@@ -559,9 +560,7 @@ function sendDeviceListToAnalytics(deviceList) {
             });
 
     Statistics.analytics.sendEvent(
-        'devices.deviceList', {
-            devices: devicesPropsArray
-        });
+        AnalyticsEvents.DEVICE_LIST, { devices: devicesPropsArray });
 }
 
 /**

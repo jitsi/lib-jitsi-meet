@@ -1,5 +1,6 @@
 /* global $, __filename */
 
+import AnalyticsEvents from '../../service/statistics/AnalyticsEvents';
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, Strophe } from 'strophe.js';
 
@@ -170,7 +171,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             this.eventEmitter.emit(XMPPEvents.CALL_INCOMING,
                 sess, $(iq).find('>jingle'), now);
             Statistics.analytics.sendEvent(
-                'xmpp.session-initiate', { value: now });
+                AnalyticsEvents.SESSION_INITIATE_RECEIVED, { value: now });
             break;
         }
         case 'session-accept': {
@@ -205,7 +206,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         case 'transport-replace':
             logger.info('(TIME) Start transport replace', now);
             Statistics.analytics.sendEvent(
-                'xmpp.transport-replace.start',
+                AnalyticsEvents.TRANSPORT_REPLACE_START,
                 { value: now });
 
             sess.replaceTransport($(iq).find('>jingle'), () => {
@@ -213,7 +214,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
 
                 logger.info('(TIME) Transport replace success!', successTime);
                 Statistics.analytics.sendEvent(
-                    'xmpp.transport-replace.success',
+                    AnalyticsEvents.TRANSPORT_REPLACE_SUCCESS,
                     { value: successTime });
             }, error => {
                 GlobalOnErrorHandler.callErrorHandler(error);

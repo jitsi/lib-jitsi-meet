@@ -1,5 +1,6 @@
 /* global __filename, Promise */
 
+import AnalyticsEvents from '../../service/statistics/AnalyticsEvents';
 import CameraFacingMode from '../../service/RTC/CameraFacingMode';
 import { getLogger } from 'jitsi-meet-logger';
 import JitsiTrack from './JitsiTrack';
@@ -193,7 +194,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     this._setHandler('track_unmute', () => {
                         this._clearNoDataFromSourceMuteResources();
                         Statistics.sendEventToAll(
-                            `${this.getType()}.track_unmute`,
+                            `${this.getType()}.${
+                                AnalyticsEvents._TRACK_UNMUTE}`,
                             { value: window.performance.now() - now });
                     });
                 }
@@ -231,7 +233,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
      */
     _fireNoDataFromSourceEvent() {
         this.emit(NO_DATA_FROM_SOURCE);
-        const eventName = `${this.getType()}.no_data_from_source`;
+        const eventName
+            = `${this.getType()}.${AnalyticsEvents._NO_DATA_FROM_SOURCE}`;
 
         Statistics.analytics.sendEvent(eventName);
         const log = { name: eventName };

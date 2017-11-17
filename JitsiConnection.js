@@ -1,10 +1,11 @@
+import AnalyticsEvents from './service/statistics/AnalyticsEvents';
 import JitsiConference from './JitsiConference';
 import * as JitsiConnectionEvents from './JitsiConnectionEvents';
 import Statistics from './modules/statistics/statistics';
 import XMPP from './modules/xmpp/xmpp';
 
 /**
- * Creates new connection object for the Jitsi Meet server side video
+ * Creates a new connection object for the Jitsi Meet server side video
  * conferencing service. Provides access to the JitsiConference interface.
  * @param appID identification for the provider of Jitsi Meet video conferencing
  * services.
@@ -21,8 +22,8 @@ export default function JitsiConnection(appID, token, options) {
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
         (errType, msg) => {
-            // sends analytics and callstats event
-            Statistics.sendEventToAll(`connection.failed.${errType}`,
+            Statistics.sendEventToAll(
+                `${AnalyticsEvents.CONNECTION_FAILED_}.${errType}`,
                 { label: msg });
         });
 
@@ -33,7 +34,7 @@ export default function JitsiConnection(appID, token, options) {
             // when there is real error
             if (msg) {
                 Statistics.analytics.sendEvent(
-                    `connection.disconnected.${msg}`);
+                    `${AnalyticsEvents.CONNECTION_DISCONNECTED_}.${msg}`);
             }
             Statistics.sendLog(
                 JSON.stringify({ id: 'connection.disconnected',

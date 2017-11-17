@@ -1,6 +1,7 @@
 /* global __filename, $, Promise */
 import { Strophe } from 'strophe.js';
 
+import AnalyticsEvents from './service/statistics/AnalyticsEvents';
 import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import ConnectionQuality from './modules/connectivity/ConnectionQuality';
@@ -1447,11 +1448,12 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
 
     // Log "session.restart"
     if (this.wasStopped) {
-        Statistics.sendEventToAll('session.restart');
+        Statistics.sendEventToAll(AnalyticsEvents.SESSION_RESTART);
     }
 
     Statistics.analytics.sendEvent(
-        'session.initiate', {
+        AnalyticsEvents.SESSION_INITIATE,
+        {
             value: now - this.room.connectionTimes['muc.joined']
         });
     try {
@@ -1594,8 +1596,7 @@ JitsiConference.prototype.onCallEnded = function(
     if (jingleSession === this.jvbJingleSession) {
         this.wasStopped = true;
 
-        // Send session.terminate event
-        Statistics.sendEventToAll('session.terminate');
+        Statistics.sendEventToAll(AnalyticsEvents.SESSION_TERMINATE);
 
         // Stop the stats
         if (this.statistics) {
@@ -2082,7 +2083,7 @@ JitsiConference.prototype._onIceConnectionFailed = function(session) {
 
         // Log analytics event, but only for the initiator to not count it twice
         if (this.p2pJingleSession && this.p2pJingleSession.isInitiator) {
-            Statistics.sendEventToAll('p2p.failed');
+            Statistics.sendEventToAll(AnalyticsEvents.P2P_FAILED);
         }
         this._stopP2PSession('connectivity-error', 'ICE FAILED');
     }
@@ -2232,9 +2233,8 @@ JitsiConference.prototype._onIceConnectionEstablished = function(
             = this.p2pEstablishmentDuration - this.jvbEstablishmentDuration;
 
         Statistics.analytics.sendEvent(
-            'ice.establishmentDurationDiff', {
-                'value': establishmentDurationDiff
-            });
+            AnalyticsEvents.ICE_ESTABLISHMENT_DURATION_DIFF,
+            { 'value': establishmentDurationDiff });
     }
 
     if (done) {
@@ -2266,7 +2266,7 @@ JitsiConference.prototype._onIceConnectionEstablished = function(
 
     // Log the P2P established event
     if (this.p2pJingleSession.isInitiator) {
-        Statistics.sendEventToAll('p2p.established');
+        Statistics.sendEventToAll(AnalyticsEvents.P2P_ESTABLISHED);
     }
 };
 
@@ -2535,7 +2535,7 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
 
         // Log that there will be a switch back to the JVB connection
         if (this.p2pJingleSession.isInitiator && peerCount > 1) {
-            Statistics.sendEventToAll('p2p.switch_to_jvb');
+            Statistics.sendEventToAll(AnalyticsEvents.P2P_SWITCH_TO_JVB);
         }
         this._stopP2PSession();
     }

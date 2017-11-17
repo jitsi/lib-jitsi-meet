@@ -1,5 +1,6 @@
 /* global __filename */
 
+import AnalyticsEvents from './service/statistics/AnalyticsEvents';
 import AuthUtil from './modules/util/AuthUtil';
 import * as ConnectionQualityEvents
     from './service/connectivity/ConnectionQualityEvents';
@@ -275,8 +276,10 @@ export default {
                 window.connectionTimes['obtainPermissions.end']
                     = window.performance.now();
 
-                Statistics.analytics.sendEvent(addDeviceTypeToAnalyticsEvent(
-                    'getUserMedia.success', options), { value: options });
+                Statistics.analytics.sendEvent(
+                    addDeviceTypeToAnalyticsEvent(
+                        AnalyticsEvents.GET_USER_MEDIA_SUCCESS_, options),
+                        { value: options });
 
                 if (!RTC.options.disableAudioLevels) {
                     for (let i = 0; i < tracks.length; i++) {
@@ -325,7 +328,8 @@ export default {
                             newResolution);
 
                         Statistics.analytics.sendEvent(
-                            `getUserMedia.fail.resolution.${oldResolution}`);
+                            `${AnalyticsEvents.GET_USER_MEDIA_FAIL_
+                            }.resolution.${oldResolution}`);
 
                         return this.createLocalTracks(options);
                     }
@@ -343,7 +347,8 @@ export default {
 
                     Statistics.sendLog(JSON.stringify(logObject));
                     Statistics.analytics.sendEvent(
-                        'getUserMedia.userCancel.extensionInstall');
+                        `${AnalyticsEvents.GET_USER_MEDIA_USER_CANCEL_
+                        }.extensionInstall`);
                 } else if (JitsiTrackErrors.NOT_FOUND === error.name) {
                     // logs not found devices with just application log to cs
                     const logObject = {
@@ -353,18 +358,18 @@ export default {
 
                     Statistics.sendLog(JSON.stringify(logObject));
                     Statistics.analytics.sendEvent(
-                        `getUserMedia.deviceNotFound.${
+                        `${AnalyticsEvents.GET_USER_MEDIA_DEVICE_NOT_FOUND_}.${
                             error.gum.devices.join('.')}`);
                 } else {
                     // Report gUM failed to the stats
                     Statistics.sendGetUserMediaFailed(error);
-                    const event
+                    const eventName
                         = addDeviceTypeToAnalyticsEvent(
-                            'getUserMedia.failed',
+                            AnalyticsEvents.GET_USER_MEDIA_FAILED_,
                             options);
 
                     Statistics.analytics.sendEvent(
-                        `${event}.${error.name}`,
+                        `${eventName}.${error.name}`,
                         { value: options });
                 }
 
@@ -376,7 +381,7 @@ export default {
     },
 
     /**
-     * Checks if its possible to enumerate available cameras/micropones.
+     * Checks if its possible to enumerate available cameras/microphones.
      * @returns {Promise<boolean>} a Promise which will be resolved only once
      * the WebRTC stack is ready, either with true if the device listing is
      * available available or with false otherwise.
