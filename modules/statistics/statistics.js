@@ -1,5 +1,9 @@
 import EventEmitter from 'events';
 
+import {
+    FEEDBACK,
+    ICE_FAILED
+} from '../../service/statistics/AnalyticsEvents';
 import analytics from './AnalyticsAdapter';
 import CallStats from './CallStats';
 import LocalStats from './LocalStatsCollector';
@@ -456,7 +460,7 @@ Statistics.prototype.sendConnectionResumeOrHoldEvent = function(tpc, isResume) {
 };
 
 /**
- * Notifies CallStats and analytics(if present) for ice connection failed
+ * Notifies CallStats and analytics (if present) for ice connection failed
  * @param {TraceablePeerConnection} tpc connection on which failure occurred.
  */
 Statistics.prototype.sendIceConnectionFailedEvent = function(tpc) {
@@ -465,7 +469,7 @@ Statistics.prototype.sendIceConnectionFailedEvent = function(tpc) {
     if (instance) {
         instance.sendIceConnectionFailedEvent();
     }
-    Statistics.analytics.sendEvent('connection.ice_failed');
+    Statistics.analytics.sendEvent(ICE_FAILED);
 };
 
 /**
@@ -679,9 +683,12 @@ Statistics.sendLog = function(m) {
  */
 Statistics.prototype.sendFeedback = function(overall, detailed) {
     CallStats.sendFeedback(this._getCallStatsConfID(), overall, detailed);
-    Statistics.analytics.sendEvent('feedback.rating',
-        { value: overall,
-            detailed });
+    Statistics.analytics.sendEvent(
+        FEEDBACK,
+        {
+            value: overall,
+            detailed
+        });
 };
 
 Statistics.LOCAL_JID = require('../../service/statistics/constants').LOCAL_JID;
@@ -706,6 +713,10 @@ Statistics.reportGlobalError = function(error) {
  */
 Statistics.sendEventToAll = function(eventName, data) {
     this.analytics.sendEvent(eventName, data);
-    Statistics.sendLog(JSON.stringify({ name: eventName,
-        data }));
+    Statistics.sendLog(
+        JSON.stringify(
+            {
+                name: eventName,
+                data
+            }));
 };
