@@ -74,6 +74,7 @@ function JitsiTrackError(error, options, devices) {
         };
 
         switch (error.name) {
+        case 'NotAllowedError':
         case 'PermissionDeniedError':
         case 'SecurityError':
             this.name = JitsiTrackErrors.PERMISSION_DENIED;
