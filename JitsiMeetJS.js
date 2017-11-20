@@ -1,8 +1,10 @@
 /* global __filename */
 
 import {
-    GET_USER_MEDIA_DEVICE_NOT_FOUND_, GET_USER_MEDIA_FAIL_,
-    GET_USER_MEDIA_FAILED_, GET_USER_MEDIA_SUCCESS_,
+    GET_USER_MEDIA_DEVICE_NOT_FOUND_,
+    GET_USER_MEDIA_FAIL_,
+    GET_USER_MEDIA_FAILED_,
+    GET_USER_MEDIA_SUCCESS_,
     GET_USER_MEDIA_USER_CANCEL_
 } from './service/statistics/AnalyticsEvents';
 import AuthUtil from './modules/util/AuthUtil';
