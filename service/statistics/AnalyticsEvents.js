@@ -192,13 +192,6 @@ export const CONNECTION_INTERRUPTED = 'connection.interrupted';
 /**
  * Properties: none
  *
- * TODO: document
- */
-export const CONNECTION_RESTORED = 'connection.restored';
-
-/**
- * Properties: none
- *
  * Known full event names: NONE
  *
  * TODO: document, reformat?, deprecate?
@@ -216,6 +209,13 @@ export const CONNECTION_DISCONNECTED_ = 'connection.disconnected';
  * TODO: document, reformat
  */
 export const CONNECTION_FAILED_ = 'connection.failed';
+
+/**
+ * Properties: none
+ *
+ * TODO: document
+ */
+export const CONNECTION_RESTORED = 'connection.restored';
 
 /**
  * Properties: value
