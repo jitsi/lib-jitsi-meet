@@ -111,13 +111,13 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
             Object.keys(chatRoom.connectionTimes).forEach(key => {
                 const value = chatRoom.connectionTimes[key];
-                const eventName = `conference.${_CONNECTION_TIMES_}.${key}`;
+                const eventName = `conference.${_CONNECTION_TIMES_}${key}`;
 
                 Statistics.analytics.sendEvent(eventName, { value });
             });
             Object.keys(chatRoom.xmpp.connectionTimes).forEach(key => {
                 const value = chatRoom.xmpp.connectionTimes[key];
-                const eventName = `xmpp.${_CONNECTION_TIMES_}.${key}`;
+                const eventName = `xmpp.${_CONNECTION_TIMES_}${key}`;
 
                 Statistics.analytics.sendEvent(eventName, { value });
             });
