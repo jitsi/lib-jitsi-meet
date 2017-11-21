@@ -29,6 +29,7 @@ import TalkMutedDetection from './modules/TalkMutedDetection';
 import Transcriber from './modules/transcription/transcriber';
 import VideoType from './service/RTC/VideoType';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
+import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import * as XMPPEvents from './service/xmpp/XMPPEvents';
 
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
@@ -2701,13 +2702,13 @@ JitsiConference.prototype.setReceiverVideoConstraint = function(
  *
  * @param {string} sipAddress - The sip address to be used.
  * @param {string} displayName - The display name to be used for this session.
- * @returns {JitsiVideoSIPGWSession|null} Returns null if conference is not
+ * @returns {JitsiVideoSIPGWSession|Error} Returns null if conference is not
  * initialised and there is no room.
  */
 JitsiConference.prototype.createVideoSIPGWSession
     = function(sipAddress, displayName) {
         if (!this.room) {
-            return null;
+            return new Error(VideoSIPGWConstants.ERROR_NO_CONNECTION);
         }
 
         return this.videoSIPGWHandler

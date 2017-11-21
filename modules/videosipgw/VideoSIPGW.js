@@ -105,22 +105,25 @@ export default class VideoSIPGW {
     }
 
     /**
-     * Creates new session and stores its reference.
+     * Creates new session and stores its reference if it does not exist or
+     * returns an error otherwise.
      *
      * @param {string} sipAddress - The sip address to use.
      * @param {string} displayName - The display name to use.
-     * @returns {JitsiVideoSIPGWSession}
+     * @returns {JitsiVideoSIPGWSession|Error}
      */
     createVideoSIPGWSession(sipAddress, displayName) {
+        if (this.sessions[sipAddress]) {
+            logger.warn('There was already a Video SIP GW session for address',
+                sipAddress);
+
+            return new Error(Constants.ERROR_SESSION_EXISTS);
+        }
+
         const session = new JitsiVideoSIPGWSession(
             sipAddress, displayName, this.chatRoom);
 
         session.addStateListener(this.sessionStateChangeListener);
-
-        if (this.sessions[sipAddress]) {
-            logger.warn('There was already a Video SIP GW session for address',
-                sipAddress);
-        }
 
         this.sessions[sipAddress] = session;
 
