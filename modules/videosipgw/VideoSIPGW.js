@@ -134,10 +134,11 @@ export default class VideoSIPGW {
      * Listener for session state changed. When a session goes to off or failed
      * we delete its reference.
      *
-     * @param {string} address - The SIP address of the session.
-     * @param {options} event - { name, oldState, newState }
+     * @param {options} event - { address, oldState, newState, displayName }
      */
-    sessionStateChanged(address, event) {
+    sessionStateChanged(event) {
+        const address = event.address;
+
         if (event.newState === Constants.STATE_OFF
             || event.newState === Constants.STATE_FAILED) {
             const session = this.sessions[address];

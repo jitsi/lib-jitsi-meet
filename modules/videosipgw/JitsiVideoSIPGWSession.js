@@ -91,11 +91,12 @@ export default class JitsiVideoSIPGWSession extends Listenable {
         const oldState = this.state;
 
         this.state = newState;
-        this.eventEmitter.emit(this.sipAddress,
+        this.eventEmitter.emit(STATE_CHANGED,
             {
-                name: STATE_CHANGED,
+                address: this.sipAddress,
                 oldState,
-                newState: this.state
+                newState: this.state,
+                displayName: this.displayName
             }
         );
     }
