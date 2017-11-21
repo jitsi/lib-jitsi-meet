@@ -178,6 +178,17 @@ export const VIDEO_SIP_GW_AVAILABILITY_CHANGED
     = 'conference.videoSIPGWAvailabilityChanged';
 
 /**
+ * Indicates that video SIP GW Session state changed.
+ * @param {options} event - {
+ * {string} address,
+ * {VideoSIPGWConstants} oldState,
+ * {VideoSIPGWConstants} newState,
+ * {string} displayName}.
+ */
+export const VIDEO_SIP_GW_SESSION_STATE_CHANGED
+    = 'conference.videoSIPGWSessionStateChanged';
+
+/**
  * Indicates that start muted settings changed.
  */
 export const START_MUTED_POLICY_CHANGED

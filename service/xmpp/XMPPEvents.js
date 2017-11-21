@@ -216,6 +216,17 @@ const XMPPEvents = {
      */
     VIDEO_SIP_GW_AVAILABILITY_CHANGED: 'xmpp.videoSIPGWAvailabilityChanged',
 
+    /**
+     * Indicates that video SIP GW Session state changed.
+     * The statuses are any of the following statuses:
+     * STATE_ON, STATE_OFF, STATE_PENDING, STATE_RETRYING, STATE_FAILED.
+     * {@see VideoSIPGWConstants}
+     *
+     * @param {options} event - {address, oldState, newState, displayName}.
+     */
+    VIDEO_SIP_GW_SESSION_STATE_CHANGED:
+        'conference.videoSIPGWSessionStateChanged',
+
     // Designates an event indicating that the local ICE connection state has
     // changed.
     ICE_CONNECTION_STATE_CHANGED: 'xmpp.ice_connection_state_changed',

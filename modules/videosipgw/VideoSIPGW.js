@@ -153,5 +153,9 @@ export default class VideoSIPGW {
             session.removeStateListener(this.sessionStateChangeListener);
             delete this.sessions[address];
         }
+
+        this.eventEmitter.emit(
+            XMPPEvents.VIDEO_SIP_GW_SESSION_STATE_CHANGED,
+            event);
     }
 }
