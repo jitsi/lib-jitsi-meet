@@ -8,7 +8,10 @@ import CameraFacingMode from '../../service/RTC/CameraFacingMode';
 import { getLogger } from 'jitsi-meet-logger';
 import JitsiTrack from './JitsiTrack';
 import JitsiTrackError from '../../JitsiTrackError';
-import { TRACK_NO_STREAM_FOUND } from '../../JitsiTrackErrors';
+import {
+    TRACK_IS_DISPOSED,
+    TRACK_NO_STREAM_FOUND
+} from '../../JitsiTrackErrors';
 import {
     LOCAL_TRACK_STOPPED,
     NO_DATA_FROM_SOURCE,
@@ -331,6 +334,10 @@ export default class JitsiLocalTrack extends JitsiTrack {
     _setMuted(muted) {
         if (this.isMuted() === muted) {
             return Promise.resolve();
+        }
+
+        if (this.disposed) {
+            return Promise.reject(new JitsiTrackError(TRACK_IS_DISPOSED));
         }
 
         let promise = Promise.resolve();
