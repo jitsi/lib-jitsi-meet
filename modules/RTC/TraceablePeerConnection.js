@@ -1609,8 +1609,6 @@ TraceablePeerConnection.prototype.setLocalDescription = function(
             SDPUtil.stripVideoCodec(videoMLine, 'h264');
         } else {
             SDPUtil.preferVideoCodec(videoMLine, 'h264');
-            SDPUtil.stripVideoCodec(videoMLine, 'VP8');
-            SDPUtil.stripVideoCodec(videoMLine, 'VP9');
         }
 
         localSdp = new RTCSessionDescription({
@@ -1737,8 +1735,6 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(
         const videoMLine = parsedSdp.media.find(m => m.type === 'video');
 
         SDPUtil.preferVideoCodec(videoMLine, 'h264');
-        SDPUtil.stripVideoCodec(videoMLine, 'VP8');
-        SDPUtil.stripVideoCodec(videoMLine, 'VP9');
 
         // eslint-disable-next-line no-param-reassign
         description = new RTCSessionDescription({
