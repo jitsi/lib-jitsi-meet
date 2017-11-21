@@ -47,3 +47,17 @@ export const STATE_RETRYING = 'retrying';
  * @type {string}
  */
 export const STATE_FAILED = 'failed';
+
+/**
+ * Error on trying to create video SIP GW session in conference where
+ * there is no room connection (hasn't joined or has left the room).
+ * @type {string}
+ */
+export const ERROR_NO_CONNECTION = 'error_no_connection';
+
+/**
+ * Error on trying to create video SIP GW session with address for which
+ * there is an already created session.
+ * @type {string}
+ */
+export const ERROR_SESSION_EXISTS = 'error_session_already_exists';

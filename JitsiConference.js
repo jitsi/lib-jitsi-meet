@@ -38,6 +38,7 @@ import TalkMutedDetection from './modules/TalkMutedDetection';
 import Transcriber from './modules/transcription/transcriber';
 import VideoType from './service/RTC/VideoType';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
+import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import * as XMPPEvents from './service/xmpp/XMPPEvents';
 
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
@@ -194,6 +195,8 @@ export default function JitsiConference(options) {
      * @type {JingleSessionPC}
      */
     this.p2pJingleSession = null;
+
+    this.videoSIPGWHandler = new VideoSIPGW(this.room);
 }
 
 // FIXME convert JitsiConference to ES6 - ASAP !
@@ -2702,29 +2705,6 @@ JitsiConference.prototype.setReceiverVideoConstraint = function(
 };
 
 /**
- * Get video SIP GW handler, if missing will create one.
- *
- * @returns {VideoSIPGW} video SIP GW handler.
- */
-JitsiConference.prototype._getVideoSIPGWHandle = function() {
-    if (!this.videoSIPGWHandler) {
-        this.videoSIPGWHandler = new VideoSIPGW(this.room);
-        logger.info('Created VideoSIPGW');
-    }
-
-    return this.videoSIPGWHandler;
-};
-
-/**
- * Checks whether video SIP GW service is available.
- *
- * @returns {boolean} whether video SIP GW service is available.
- */
-JitsiConference.prototype.isVideoSIPGWAvailable = function() {
-    return this._getVideoSIPGWHandle().isVideoSIPGWAvailable();
-};
-
-/**
  * Creates a video SIP GW session and returns it if service is enabled. Before
  * creating a session one need to check whether video SIP GW service is
  * available in the system {@link JitsiConference.isVideoSIPGWAvailable}. Even
@@ -2734,15 +2714,15 @@ JitsiConference.prototype.isVideoSIPGWAvailable = function() {
  *
  * @param {string} sipAddress - The sip address to be used.
  * @param {string} displayName - The display name to be used for this session.
- * @returns {JitsiVideoSIPGWSession|null} Returns null if conference is not
+ * @returns {JitsiVideoSIPGWSession|Error} Returns null if conference is not
  * initialised and there is no room.
  */
 JitsiConference.prototype.createVideoSIPGWSession
     = function(sipAddress, displayName) {
         if (!this.room) {
-            return null;
+            return new Error(VideoSIPGWConstants.ERROR_NO_CONNECTION);
         }
 
-        return this._getVideoSIPGWHandle()
+        return this.videoSIPGWHandler
             .createVideoSIPGWSession(sipAddress, displayName);
     };
