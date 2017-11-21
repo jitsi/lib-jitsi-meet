@@ -225,7 +225,7 @@ const XMPPEvents = {
      * @param {options} event - {address, oldState, newState, displayName}.
      */
     VIDEO_SIP_GW_SESSION_STATE_CHANGED:
-        'conference.videoSIPGWSessionStateChanged',
+        'xmpp.videoSIPGWSessionStateChanged',
 
     // Designates an event indicating that the local ICE connection state has
     // changed.

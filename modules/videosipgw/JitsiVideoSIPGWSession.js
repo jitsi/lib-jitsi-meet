@@ -140,7 +140,7 @@ export default class JitsiVideoSIPGWSession extends Listenable {
             .c('jibri', attributes)
             .up();
 
-        logger.debug('${action} video SIP GW session', iq.nodeTree);
+        logger.debug(`${action} video SIP GW session`, iq.nodeTree);
         this.chatRoom.connection.sendIQ(
             iq,
             () => {}, // eslint-disable-line no-empty-function
