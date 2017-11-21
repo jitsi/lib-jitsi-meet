@@ -18,7 +18,7 @@ export default class VideoSIPGW {
     constructor(chatRoom) {
         this.chatRoom = chatRoom;
         this.eventEmitter = chatRoom.eventEmitter;
-        logger.info('creating VideoSIPGW');
+        logger.debug('creating VideoSIPGW');
         this.sessions = {};
 
         this.sessionStateChangeListener = this.sessionStateChanged.bind(this);
@@ -45,7 +45,7 @@ export default class VideoSIPGW {
             return;
         }
 
-        logger.log('Handle video sip gw status : ', attributes);
+        logger.debug('Handle video sip gw status : ', attributes);
         const newStatus = attributes.status;
 
         // check for global availability of the service
@@ -72,7 +72,7 @@ export default class VideoSIPGW {
             return;
         }
 
-        logger.log('Handle video sip gw state : ', attributes);
+        logger.debug('Handle video sip gw state : ', attributes);
 
         const newState = attributes.state;
 
@@ -125,15 +125,6 @@ export default class VideoSIPGW {
         this.sessions[sipAddress] = session;
 
         return session;
-    }
-
-    /**
-     * Returns whether SIP GW service is available.
-     *
-     * @returns {boolean} whether SIP GW service is available.
-     */
-    isVideoSIPGWAvailable() {
-        return this.status === Constants.STATUS_AVAILABLE;
     }
 
     /**

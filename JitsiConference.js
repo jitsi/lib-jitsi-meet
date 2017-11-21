@@ -185,6 +185,8 @@ export default function JitsiConference(options) {
      * @type {JingleSessionPC}
      */
     this.p2pJingleSession = null;
+
+    this.videoSIPGWHandler = new VideoSIPGW(this.room);
 }
 
 // FIXME convert JitsiConference to ES6 - ASAP !
@@ -2690,29 +2692,6 @@ JitsiConference.prototype.setReceiverVideoConstraint = function(
 };
 
 /**
- * Get video SIP GW handler, if missing will create one.
- *
- * @returns {VideoSIPGW} video SIP GW handler.
- */
-JitsiConference.prototype._getVideoSIPGWHandle = function() {
-    if (!this.videoSIPGWHandler) {
-        this.videoSIPGWHandler = new VideoSIPGW(this.room);
-        logger.info('Created VideoSIPGW');
-    }
-
-    return this.videoSIPGWHandler;
-};
-
-/**
- * Checks whether video SIP GW service is available.
- *
- * @returns {boolean} whether video SIP GW service is available.
- */
-JitsiConference.prototype.isVideoSIPGWAvailable = function() {
-    return this._getVideoSIPGWHandle().isVideoSIPGWAvailable();
-};
-
-/**
  * Creates a video SIP GW session and returns it if service is enabled. Before
  * creating a session one need to check whether video SIP GW service is
  * available in the system {@link JitsiConference.isVideoSIPGWAvailable}. Even
@@ -2731,6 +2710,6 @@ JitsiConference.prototype.createVideoSIPGWSession
             return null;
         }
 
-        return this._getVideoSIPGWHandle()
+        return this.videoSIPGWHandler
             .createVideoSIPGWSession(sipAddress, displayName);
     };
