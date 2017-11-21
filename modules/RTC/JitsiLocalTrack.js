@@ -1,10 +1,5 @@
 /* global __filename, Promise */
 
-import {
-    _NO_DATA_FROM_SOURCE,
-    _TRACK_UNMUTE
-} from '../../service/statistics/AnalyticsEvents';
-import CameraFacingMode from '../../service/RTC/CameraFacingMode';
 import { getLogger } from 'jitsi-meet-logger';
 import JitsiTrack from './JitsiTrack';
 import JitsiTrackError from '../../JitsiTrackError';
@@ -17,12 +12,17 @@ import {
     NO_DATA_FROM_SOURCE,
     TRACK_MUTE_CHANGED
 } from '../../JitsiTrackEvents';
-import * as MediaType from '../../service/RTC/MediaType';
 import RTCBrowserType from './RTCBrowserType';
-import RTCEvents from '../../service/RTC/RTCEvents';
 import RTCUtils from './RTCUtils';
-import Statistics from '../statistics/statistics';
+import CameraFacingMode from '../../service/RTC/CameraFacingMode';
+import * as MediaType from '../../service/RTC/MediaType';
+import RTCEvents from '../../service/RTC/RTCEvents';
 import VideoType from '../../service/RTC/VideoType';
+import {
+    _NO_DATA_FROM_SOURCE,
+    _TRACK_UNMUTE
+} from '../../service/statistics/AnalyticsEvents';
+import Statistics from '../statistics/statistics';
 
 const logger = getLogger(__filename);
 
@@ -33,6 +33,8 @@ const logger = getLogger(__filename);
 export default class JitsiLocalTrack extends JitsiTrack {
     /**
      * Constructs new JitsiLocalTrack instanse.
+     *
+     * @constructor
      * @param {Object} trackInfo
      * @param {number} trackInfo.rtcId the ID assigned by the RTC module
      * @param trackInfo.stream WebRTC MediaStream, parent of the track
@@ -46,7 +48,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * call
      * @param {sourceId} trackInfo.sourceId - The id of the desktop sharing
      * source. NOTE: defined for desktop sharing tracks only.
-     * @constructor
      */
     constructor({
         deviceId,
@@ -70,6 +71,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         /**
          * The ID assigned by the RTC module on instance creation.
+         *
          * @type {number}
          */
         this.rtcId = rtcId;
@@ -176,6 +178,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
     /**
      * Returns if associated MediaStreamTrack is in the 'ended' state
+     *
      * @returns {boolean}
      */
     isEnded() {
@@ -253,8 +256,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * Sets real device ID by comparing track information with device
      * information. This is temporary solution until getConstraints() method
      * will be implemented in browsers.
+     *
      * @param {MediaDeviceInfo[]} devices - list of devices obtained from
-     *  enumerateDevices() call
+     * enumerateDevices() call
      */
     _setRealDeviceIdFromDeviceList(devices) {
         const track = this.getTrack();
@@ -392,7 +396,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     = RTCUtils.obtainAudioAndVideoPermissions(streamOptions);
             }
 
-
             promise.then(streamsInfo => {
                 const mediaType = this.getType();
                 const streamInfo
@@ -459,6 +462,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
     /**
      * Removes stream from conference and marks it as "mute" operation.
+     *
      * @param {Function} successCallback will be called on success
      * @param {Function} errorCallback will be called on error
      * @private
@@ -527,10 +531,11 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Returns <tt>true</tt> - if the stream is muted
-     * and <tt>false</tt> otherwise.
-     * @returns {boolean} <tt>true</tt> - if the stream is muted
-     * and <tt>false</tt> otherwise.
+     * Returns <tt>true</tt> - if the stream is muted and <tt>false</tt>
+     * otherwise.
+     *
+     * @returns {boolean} <tt>true</tt> - if the stream is muted and
+     * <tt>false</tt> otherwise.
      */
     isMuted() {
         // this.stream will be null when we mute local video on Chrome
@@ -542,12 +547,12 @@ export default class JitsiLocalTrack extends JitsiTrack {
         }
 
         return !this.track || !this.track.enabled;
-
     }
 
     /**
      * Sets the JitsiConference object associated with the track. This is temp
      * solution.
+     *
      * @param conference the JitsiConference object
      */
     _setConference(conference) {
@@ -564,6 +569,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
     /**
      * Returns <tt>true</tt>.
+     *
      * @returns {boolean} <tt>true</tt>
      */
     isLocal() {
@@ -572,6 +578,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
     /**
      * Returns device id associated with track.
+     *
      * @returns {string}
      */
     getDeviceId() {
@@ -580,6 +587,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
     /**
      * Returns the participant id which owns the track.
+     *
      * @returns {string} the id of the participants. It corresponds to the
      * Colibri endpoint id/MUC nickname in case of Jitsi-meet.
      */
@@ -589,6 +597,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
     /**
      * Handles bytes sent statistics.
+     *
      * @param {TraceablePeerConnection} tpc the source of the "bytes sent" stat
      * @param {number} bytesSent the new value
      * NOTE: used only for audio tracks to detect audio issues.
@@ -704,6 +713,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
     /**
      * Detects camera issues on ended and mute events from MediaStreamTrack.
+     *
      * @returns {boolean} true if an issue is detected and false otherwise
      */
     _checkForCameraIssues() {
@@ -723,6 +733,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * NOTE: This method doesn't indicate problem with the streams directly.
      * For example in case of video mute the method will return false or if the
      * user has disposed the track.
+     *
      * @returns {boolean} true if the stream is receiving data and false
      * this otherwise.
      */
@@ -745,10 +756,10 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
     /**
      * Creates a text representation of this local track instance.
+     *
      * @return {string}
      */
     toString() {
         return `LocalTrack[${this.rtcId},${this.getType()}]`;
     }
-
 }
