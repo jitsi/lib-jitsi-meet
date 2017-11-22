@@ -470,17 +470,36 @@ export default class XMPP extends Listenable {
      *
      */
     _initStrophePlugins() {
+        const iceConfig = {
+            jvb: { iceServers: [ ] },
+            p2p: { iceServers: [ ] }
+        };
+
         // FIXME: remove once we have a default config template. -saghul
         const defaultStunServers = [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
             { urls: 'stun:stun2.l.google.com:19302' }
         ];
+
         const p2pStunServers = (this.options.p2p
             && this.options.p2p.stunServers) || defaultStunServers;
 
+        if (Array.isArray(p2pStunServers)) {
+            logger.info('P2P STUN servers: ', p2pStunServers);
+            iceConfig.p2p.iceServers = p2pStunServers;
+        }
+
+        if (this.options.p2p && this.options.p2p.iceTransportPolicy) {
+            logger.info('P2P ICE transport policy: ',
+                this.options.p2p.iceTransportPolicy);
+
+            iceConfig.p2p.iceTransportPolicy
+                = this.options.p2p.iceTransportPolicy;
+        }
+
         initEmuc(this);
-        initJingle(this, this.eventEmitter, p2pStunServers);
+        initJingle(this, this.eventEmitter, iceConfig);
         initStropheUtil();
         initPing(this);
         initRayo();
