@@ -1,3 +1,4 @@
+import { _TTFM_ } from '../../service/statistics/AnalyticsEvents';
 import JitsiTrack from './JitsiTrack';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import RTCBrowserType from './RTCBrowserType';
@@ -229,7 +230,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
 
         this.conference.getConnectionTimes()[`${type}.ttfm`] = ttfm;
         console.log(`(TIME) TTFM ${type}:\t`, ttfm);
-        let eventName = `${type}.ttfm`;
+        let eventName = `${type}.${_TTFM_}`;
 
         if (this.hasBeenMuted) {
             eventName += '.muted';

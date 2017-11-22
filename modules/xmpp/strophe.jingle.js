@@ -1,5 +1,10 @@
 /* global $, __filename */
 
+import {
+    SESSION_INITIATE_RECEIVED,
+    TRANSPORT_REPLACE_START,
+    TRANSPORT_REPLACE_SUCCESS
+} from '../../service/statistics/AnalyticsEvents';
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, Strophe } from 'strophe.js';
 
@@ -25,21 +30,16 @@ class JingleConnectionPlugin extends ConnectionPlugin {
      * Creates new <tt>JingleConnectionPlugin</tt>
      * @param {XMPP} xmpp
      * @param {EventEmitter} eventEmitter
-     * @param {Array<Object>} p2pStunServers an array which is part of the ice
-     * config passed to the <tt>PeerConnection</tt> with the structure defined
-     * by the WebRTC standard.
+     * @param {Object} iceConfig an object that holds the iceConfig to be passed
+     * to the p2p and the jvb <tt>PeerConnection</tt>.
      */
-    constructor(xmpp, eventEmitter, p2pStunServers) {
+    constructor(xmpp, eventEmitter, iceConfig) {
         super();
         this.xmpp = xmpp;
         this.eventEmitter = eventEmitter;
         this.sessions = {};
-        this.jvbIceConfig = { iceServers: [ ] };
-        this.p2pIceConfig = { iceServers: [ ] };
-        if (Array.isArray(p2pStunServers)) {
-            logger.info('Configured STUN servers: ', p2pStunServers);
-            this.p2pIceConfig.iceServers = p2pStunServers;
-        }
+        this.jvbIceConfig = iceConfig.jvb;
+        this.p2pIceConfig = iceConfig.p2p;
         this.mediaConstraints = {
             mandatory: {
                 'OfferToReceiveAudio': true,
@@ -170,7 +170,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             this.eventEmitter.emit(XMPPEvents.CALL_INCOMING,
                 sess, $(iq).find('>jingle'), now);
             Statistics.analytics.sendEvent(
-                'xmpp.session-initiate', { value: now });
+                SESSION_INITIATE_RECEIVED, { value: now });
             break;
         }
         case 'session-accept': {
@@ -205,7 +205,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         case 'transport-replace':
             logger.info('(TIME) Start transport replace', now);
             Statistics.analytics.sendEvent(
-                'xmpp.transport-replace.start',
+                TRANSPORT_REPLACE_START,
                 { value: now });
 
             sess.replaceTransport($(iq).find('>jingle'), () => {
@@ -213,7 +213,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
 
                 logger.info('(TIME) Transport replace success!', successTime);
                 Statistics.analytics.sendEvent(
-                    'xmpp.transport-replace.success',
+                    TRANSPORT_REPLACE_SUCCESS,
                     { value: successTime });
             }, error => {
                 GlobalOnErrorHandler.callErrorHandler(error);
@@ -410,10 +410,10 @@ class JingleConnectionPlugin extends ConnectionPlugin {
  *
  * @param XMPP
  * @param eventEmitter
- * @param p2pStunServers
+ * @param iceConfig
  */
-export default function initJingle(XMPP, eventEmitter, p2pStunServers) {
+export default function initJingle(XMPP, eventEmitter, iceConfig) {
     Strophe.addConnectionPlugin(
         'jingle',
-        new JingleConnectionPlugin(XMPP, eventEmitter, p2pStunServers));
+        new JingleConnectionPlugin(XMPP, eventEmitter, iceConfig));
 }

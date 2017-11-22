@@ -1,6 +1,16 @@
 /* global __filename */
 import { Strophe } from 'strophe.js';
 
+import {
+    _CONNECTION_TIMES_,
+    BRIDGE_DOWN,
+    CONFERENCE_ERROR_,
+    CONNECTION_INTERRUPTED,
+    CONNECTION_RESTORED,
+    DATA_CHANNEL_OPEN,
+    FOCUS_LEFT,
+    REMOTELY_MUTED
+} from './service/statistics/AnalyticsEvents';
 import AuthenticationEvents
     from './service/authentication/AuthenticationEvents';
 import EventEmitterForwarder from './modules/util/EventEmitterForwarder';
@@ -42,10 +52,12 @@ export default function JitsiConferenceEventManager(conference) {
         });
     conference.on(
         JitsiConferenceEvents.CONNECTION_INTERRUPTED,
-        Statistics.sendEventToAll.bind(Statistics, 'connection.interrupted'));
+        Statistics.sendEventToAll.bind(
+            Statistics, CONNECTION_INTERRUPTED));
     conference.on(
         JitsiConferenceEvents.CONNECTION_RESTORED,
-        Statistics.sendEventToAll.bind(Statistics, 'connection.restored'));
+        Statistics.sendEventToAll.bind(
+            Statistics, CONNECTION_RESTORED));
 }
 
 /**
@@ -73,7 +85,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     chatRoom.addListener(XMPPEvents.AUDIO_MUTED_BY_FOCUS,
         value => {
-            Statistics.analytics.sendEvent('conference.remotelyMuted');
+            Statistics.analytics.sendEvent(REMOTELY_MUTED);
 
             // set isMutedByFocus when setAudioMute Promise ends
             conference.rtc.setAudioMute(value).then(
@@ -99,13 +111,15 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
             Object.keys(chatRoom.connectionTimes).forEach(key => {
                 const value = chatRoom.connectionTimes[key];
+                const eventName = `conference.${_CONNECTION_TIMES_}${key}`;
 
-                Statistics.analytics.sendEvent(`conference.${key}`, { value });
+                Statistics.analytics.sendEvent(eventName, { value });
             });
             Object.keys(chatRoom.xmpp.connectionTimes).forEach(key => {
                 const value = chatRoom.xmpp.connectionTimes[key];
+                const eventName = `xmpp.${_CONNECTION_TIMES_}${key}`;
 
-                Statistics.analytics.sendEvent(`xmpp.${key}`, { value });
+                Statistics.analytics.sendEvent(eventName, { value });
             });
         });
 
@@ -137,7 +151,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         JitsiConferenceErrors.VIDEOBRIDGE_NOT_AVAILABLE);
     chatRoom.addListener(
         XMPPEvents.BRIDGE_DOWN,
-        () => Statistics.analytics.sendEvent('conference.bridgeDown'));
+        () => Statistics.analytics.sendEvent(BRIDGE_DOWN));
 
     this.chatRoomForwarder.forward(XMPPEvents.RESERVATION_ERROR,
         JitsiConferenceEvents.CONFERENCE_FAILED,
@@ -175,14 +189,14 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     chatRoom.addListener(XMPPEvents.FOCUS_LEFT,
         () => {
-            Statistics.analytics.sendEvent('conference.focusLeft');
+            Statistics.analytics.sendEvent(FOCUS_LEFT);
             conference.eventEmitter.emit(
                 JitsiConferenceEvents.CONFERENCE_FAILED,
                 JitsiConferenceErrors.FOCUS_LEFT);
         });
 
     const eventLogHandler
-        = reason => Statistics.sendEventToAll(`conference.error.${reason}`);
+        = reason => Statistics.sendEventToAll(`${CONFERENCE_ERROR_}.${reason}`);
 
     chatRoom.addListener(XMPPEvents.SESSION_ACCEPT_TIMEOUT,
         jingleSession => {
@@ -199,6 +213,10 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     this.chatRoomForwarder.forward(XMPPEvents.VIDEO_SIP_GW_AVAILABILITY_CHANGED,
         JitsiConferenceEvents.VIDEO_SIP_GW_AVAILABILITY_CHANGED);
+
+    this.chatRoomForwarder.forward(
+        XMPPEvents.VIDEO_SIP_GW_SESSION_STATE_CHANGED,
+        JitsiConferenceEvents.VIDEO_SIP_GW_SESSION_STATE_CHANGED);
 
     this.chatRoomForwarder.forward(XMPPEvents.PHONE_NUMBER_CHANGED,
         JitsiConferenceEvents.PHONE_NUMBER_CHANGED);
@@ -458,8 +476,7 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
 
         logger.log('(TIME) data channel opened ', now);
         conference.room.connectionTimes['data.channel.opened'] = now;
-        Statistics.analytics.sendEvent('conference.dataChannel.open',
-            { value: now });
+        Statistics.analytics.sendEvent(DATA_CHANNEL_OPEN, { value: now });
 
         conference.eventEmitter.emit(JitsiConferenceEvents.DATA_CHANNEL_OPENED);
     });

@@ -9,6 +9,7 @@
           webkitRTCPeerConnection,
           webkitURL
 */
+import { DEVICE_LIST } from '../../service/statistics/AnalyticsEvents';
 import CameraFacingMode from '../../service/RTC/CameraFacingMode';
 import EventEmitter from 'events';
 import { getLogger } from 'jitsi-meet-logger';
@@ -558,10 +559,7 @@ function sendDeviceListToAnalytics(deviceList) {
                 };
             });
 
-    Statistics.analytics.sendEvent(
-        'devices.deviceList', {
-            devices: devicesPropsArray
-        });
+    Statistics.analytics.sendEvent(DEVICE_LIST, { devices: devicesPropsArray });
 }
 
 /**
@@ -1190,9 +1188,8 @@ class RTCUtils extends Listenable {
     _newGetUserMediaWithConstraints(umDevices, constraints = {}) {
         return new Promise((resolve, reject) => {
             try {
-                this.getUserMedia(
-                    constraints,
-                    stream => {
+                this.getUserMedia(constraints)
+                    .then(stream => {
                         logger.log('onUserMediaSuccess');
 
                         // TODO(brian): Is this call needed? Why is this
@@ -1201,8 +1198,8 @@ class RTCUtils extends Listenable {
                         setAvailableDevices(umDevices, stream);
 
                         resolve(stream);
-                    },
-                    error => {
+                    })
+                    .catch(error => {
                         logger.warn('Failed to get access to local media. '
                             + ` ${error} ${constraints} `);
 

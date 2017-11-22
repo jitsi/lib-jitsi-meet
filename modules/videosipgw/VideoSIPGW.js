@@ -18,7 +18,7 @@ export default class VideoSIPGW {
     constructor(chatRoom) {
         this.chatRoom = chatRoom;
         this.eventEmitter = chatRoom.eventEmitter;
-        logger.info('creating VideoSIPGW');
+        logger.debug('creating VideoSIPGW');
         this.sessions = {};
 
         this.sessionStateChangeListener = this.sessionStateChanged.bind(this);
@@ -45,7 +45,7 @@ export default class VideoSIPGW {
             return;
         }
 
-        logger.log('Handle video sip gw status : ', attributes);
+        logger.debug('Handle video sip gw status : ', attributes);
         const newStatus = attributes.status;
 
         // check for global availability of the service
@@ -72,7 +72,7 @@ export default class VideoSIPGW {
             return;
         }
 
-        logger.log('Handle video sip gw state : ', attributes);
+        logger.debug('Handle video sip gw state : ', attributes);
 
         const newState = attributes.state;
 
@@ -105,22 +105,25 @@ export default class VideoSIPGW {
     }
 
     /**
-     * Creates new session and stores its reference.
+     * Creates new session and stores its reference if it does not exist or
+     * returns an error otherwise.
      *
      * @param {string} sipAddress - The sip address to use.
      * @param {string} displayName - The display name to use.
-     * @returns {JitsiVideoSIPGWSession}
+     * @returns {JitsiVideoSIPGWSession|Error}
      */
     createVideoSIPGWSession(sipAddress, displayName) {
+        if (this.sessions[sipAddress]) {
+            logger.warn('There was already a Video SIP GW session for address',
+                sipAddress);
+
+            return new Error(Constants.ERROR_SESSION_EXISTS);
+        }
+
         const session = new JitsiVideoSIPGWSession(
             sipAddress, displayName, this.chatRoom);
 
         session.addStateListener(this.sessionStateChangeListener);
-
-        if (this.sessions[sipAddress]) {
-            logger.warn('There was already a Video SIP GW session for address',
-                sipAddress);
-        }
 
         this.sessions[sipAddress] = session;
 
@@ -128,22 +131,14 @@ export default class VideoSIPGW {
     }
 
     /**
-     * Returns whether SIP GW service is available.
-     *
-     * @returns {boolean} whether SIP GW service is available.
-     */
-    isVideoSIPGWAvailable() {
-        return this.status === Constants.STATUS_AVAILABLE;
-    }
-
-    /**
      * Listener for session state changed. When a session goes to off or failed
      * we delete its reference.
      *
-     * @param {string} address - The SIP address of the session.
-     * @param {options} event - { name, oldState, newState }
+     * @param {options} event - { address, oldState, newState, displayName }
      */
-    sessionStateChanged(address, event) {
+    sessionStateChanged(event) {
+        const address = event.address;
+
         if (event.newState === Constants.STATE_OFF
             || event.newState === Constants.STATE_FAILED) {
             const session = this.sessions[address];
@@ -158,5 +153,9 @@ export default class VideoSIPGW {
             session.removeStateListener(this.sessionStateChangeListener);
             delete this.sessions[address];
         }
+
+        this.eventEmitter.emit(
+            XMPPEvents.VIDEO_SIP_GW_SESSION_STATE_CHANGED,
+            event);
     }
 }
