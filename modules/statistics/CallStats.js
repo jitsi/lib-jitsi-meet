@@ -106,6 +106,8 @@ export default class CallStats {
             return;
         }
 
+        CallStats.backendInitialized = true;
+
         // I hate that
         let atLeastOneFabric = false;
         let defaultInstance = null;
@@ -126,13 +128,21 @@ export default class CallStats {
             return;
         }
 
-        CallStats.initialized = true;
+        CallStats._emptyReportQueue(defaultInstance);
+    }
 
+    /**
+     * Empties report queue.
+     *
+     * @param {CallStats} csInstance - The callstats instance.
+     * @private
+     */
+    static _emptyReportQueue(csInstance) {
         // There is no conference ID nor a PeerConnection available when some of
         // the events are scheduled on the reportsQueue, so those will be
         // reported on the first initialized fabric.
-        const defaultConfID = defaultInstance.confID;
-        const defaultPC = defaultInstance.peerconnection;
+        const defaultConfID = csInstance.confID;
+        const defaultPC = csInstance.peerconnection;
 
         // notify callstats about failures if there were any
         for (const report of CallStats.reportsQueue) {
@@ -140,7 +150,7 @@ export default class CallStats {
                 const errorData = report.data;
 
                 CallStats._reportError(
-                    defaultInstance,
+                    csInstance,
                     errorData.type,
                     errorData.error,
                     errorData.pc || defaultPC);
@@ -188,7 +198,7 @@ export default class CallStats {
             logger.warn('No error is passed!');
             _error = new Error('Unknown error');
         }
-        if (CallStats.initialized && cs) {
+        if (CallStats.backendInitialized && cs) {
             CallStats.backend.reportError(pc, cs.confID, type, _error);
         } else {
             CallStats.reportsQueue.push({
@@ -218,7 +228,7 @@ export default class CallStats {
         const pc = cs && cs.peerconnection;
         const confID = cs && cs.confID;
 
-        if (CallStats.initialized && cs) {
+        if (CallStats.backendInitialized && cs) {
             CallStats.backend.sendFabricEvent(pc, event, confID, eventData);
         } else {
             CallStats.reportsQueue.push({
@@ -507,8 +517,15 @@ export default class CallStats {
 
         CallStats.fabrics.add(this);
 
-        if (CallStats.initialized) {
+        if (CallStats.backendInitialized) {
             this._addNewFabric();
+
+            // if this is the first fabric let's try to empty the
+            // report queue. Reports all events that we recorded between
+            // backend initialization and receiving the first fabric
+            if (CallStats.fabrics.size === 1) {
+                CallStats._emptyReportQueue(this);
+            }
         }
     }
 
@@ -580,7 +597,7 @@ export default class CallStats {
 
         const callStatsId = isLocal ? CallStats.userID : streamEndpointId;
 
-        if (CallStats.initialized) {
+        if (CallStats.backendInitialized) {
             CallStats.backend.associateMstWithUserID(
                 this.peerconnection,
                 callStatsId,
@@ -617,7 +634,7 @@ export default class CallStats {
      * closed and no evens should be reported, after this call.
      */
     sendTerminateEvent() {
-        if (CallStats.initialized) {
+        if (CallStats.backendInitialized) {
             CallStats.backend.sendFabricEvent(
                 this.peerconnection,
                 CallStats.backend.fabricEvent.fabricTerminated,
@@ -722,11 +739,11 @@ CallStats.backend = null;
 CallStats.reportsQueue = [];
 
 /**
- * Whether the library was successfully initialized using its initialize method.
- * And whether we had successfully called addNewFabric at least once.
+ * Whether the library was successfully initialized(the backend) using its
+ * initialize method.
  * @type {boolean}
  */
-CallStats.initialized = false;
+CallStats.backendInitialized = false;
 
 /**
  * Part of the CallStats credentials - application ID
