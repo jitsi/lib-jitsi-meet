@@ -1741,6 +1741,8 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(
             type: description.type,
             sdp: transform.write(parsedSdp)
         });
+
+        description = this._setH264Profile(description);
     }
 
     // If the browser uses unified plan, transform to it first
@@ -1869,6 +1871,70 @@ TraceablePeerConnection.prototype._injectH264IfNotPresent = function(
 
     logger.debug(
         `Injecting H264 payload type ${dummyPayloadType} into video mLine.`);
+
+    return new RTCSessionDescription({
+        type: description.type,
+        sdp: transform.write(parsedSdp)
+    });
+};
+
+/**
+ * Inserts a=fmtp for H264 codec if there is no one.
+ * Also set level-asymmetry-allowed and profile-level-id options
+ * if they aren't there
+ * Firefox at least 57 version ignores H264 if there is no profile set.
+ * @see
+ * https://github.com/jitsi/lib-jitsi-meet/issues/647
+ * https://github.com/jitsi/jicofo/issues/245
+ *
+ * @param {RTCSessionDescription} description - An RTCSessionDescription
+ * to add a=fmtp for an H264 codec.
+ * @private
+ * @returns {RTCSessionDescription}
+ */
+TraceablePeerConnection.prototype._setH264Profile = function(description) {
+    const parsedSdp = transform.parse(description.sdp);
+    const videoMLine = parsedSdp.media.find(m => m.type === 'video');
+
+    if (!videoMLine) {
+        logger.debug('No videoMLine found, no need to set H264 profile.');
+
+        return description;
+    }
+
+    const { fmtp, payloads, rtp } = videoMLine;
+    const h264RTPs = rtp.filter(rtp => rtp.codec.toLowerCase() === 'h264');
+
+    if (!h264RTPs.length) {
+        logger.debug('No H264 codecs found in video mLine, ' +
+                     'no need to set a=fmtp for them.');
+
+        return description;
+    }
+
+    h264RTPs.forEach(function(h264RTP) {
+        const h264FMTP = fmtp.filter(e => e.payload == h264RTP.payload)[0];
+        if(!h264FMTP) {
+            fmtp.push({
+                config: 'profile-level-id=42e01f;'
+                    + 'level-asymmetry-allowed=1',
+                payload: h264RTP.payload
+            });
+
+            logger.debug(`Add a=fmtp for H264 ${h264RTP.payload} codec.`);
+        } else {
+            if(h264FMTP.config.indexOf('profile-level-id') === -1) {
+                h264FMTP.config += ';profile-level-id=42e01f';
+                logger.debug('Add profile-level-id=42e01f for ' +
+                             `H264 ${h264RTP.payload} codec.`);
+            }
+            if(h264FMTP.config.indexOf('level-asymmetry-allowed') === -1) {
+                h264FMTP.config += ';level-asymmetry-allowed=1';
+                logger.debug('Add level-asymmetry-allowed=1 for ' +
+                             `H264 ${h264RTP.payload} codec.`);
+            }
+        }
+    });
 
     return new RTCSessionDescription({
         type: description.type,
