@@ -23,8 +23,9 @@ export default class JitsiParticipant {
      * @param {Boolean} hidden - True if the new JitsiParticipant instance is to
      * represent a hidden participant; otherwise, false.
      * @param {string} statsID - optional participant statsID
+     * @param {string} status - the initial status if any.
      */
-    constructor(jid, conference, displayName, hidden, statsID) {
+    constructor(jid, conference, displayName, hidden, statsID, status) {
         this._jid = jid;
         this._id = Strophe.getResourceFromJid(jid);
         this._conference = conference;
@@ -32,7 +33,7 @@ export default class JitsiParticipant {
         this._supportsDTMF = false;
         this._tracks = [];
         this._role = 'none';
-        this._status = null;
+        this._status = status;
         this._availableDevices = {
             audio: undefined,
             video: undefined

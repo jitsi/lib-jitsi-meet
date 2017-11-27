@@ -486,6 +486,7 @@ export default class ChatRoom extends Listenable {
             // new participant
             this.members[from] = member;
             logger.log('entered', from, member);
+            hasStatusUpdate = member.status !== undefined;
             if (member.isFocus) {
                 this._initFocus(from, jid);
             } else {
@@ -495,10 +496,13 @@ export default class ChatRoom extends Listenable {
                     member.nick,
                     member.role,
                     member.isHiddenDomain,
-                    member.statsID);
-            }
+                    member.statsID,
+                    member.status);
 
-            hasStatusUpdate = member.status !== undefined;
+                // we are reporting the status with the join
+                // so we do not want a second event about status update
+                hasStatusUpdate = false;
+            }
         } else {
             // Presence update for existing participant
             // Watch role change:
