@@ -322,7 +322,8 @@ export default {
             .catch(error => {
                 promiseFulfilled = true;
 
-                if (error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION) {
+                if (error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION
+                    && !RTCBrowserType.usesNewGumFlow()) {
                     const oldResolution = options.resolution || '720';
                     const newResolution = getLowerResolution(oldResolution);
 
