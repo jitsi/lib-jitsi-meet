@@ -1160,16 +1160,17 @@ JitsiConference.prototype.muteParticipant = function(id) {
  * @param isHidden indicates if this is a hidden participant (system
  * participant for example a recorder).
  * @param statsID the participant statsID (optional)
+ * @param status the initial status if any
  */
 JitsiConference.prototype.onMemberJoined = function(
-        jid, nick, role, isHidden, statsID) {
+        jid, nick, role, isHidden, statsID, status) {
     const id = Strophe.getResourceFromJid(jid);
 
     if (id === 'focus' || this.myUserId() === id) {
         return;
     }
     const participant
-        = new JitsiParticipant(jid, this, nick, isHidden, statsID);
+        = new JitsiParticipant(jid, this, nick, isHidden, statsID, status);
 
     participant._role = role;
     this.participants[id] = participant;
