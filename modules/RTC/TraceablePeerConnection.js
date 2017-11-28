@@ -2238,6 +2238,9 @@ TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
                         } with: `, newSSRC);
                 }
                 this.localSSRCs.set(track.rtcId, newSSRC);
+
+                this.eventEmitter.emit(
+                    RTCEvents.LOCAL_TRACK_SSRC_UPDATED, track, newSSRCNum);
             } else {
                 logger.debug(
                     `The local SSRC(${newSSRCNum}) for ${track} ${trackMSID}`
