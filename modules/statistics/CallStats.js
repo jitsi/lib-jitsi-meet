@@ -689,11 +689,20 @@ export default class CallStats {
      * Notifies CallStats for screen sharing events
      * @param {boolean} start true for starting screen sharing and
      * false for not stopping
+     * @param {string|null} ssrc - optional ssrc value, used only when
+     * starting screen sharing.
      */
-    sendScreenSharingEvent(start) {
+    sendScreenSharingEvent(start, ssrc) {
+        let eventData;
+
+        if (ssrc) {
+            eventData = { ssrc };
+        }
+
         CallStats._reportEvent(
             this,
-            start ? fabricEvent.screenShareStart : fabricEvent.screenShareStop);
+            start ? fabricEvent.screenShareStart : fabricEvent.screenShareStop,
+            eventData);
     }
 
     /**

@@ -21,6 +21,15 @@ const RTCEvents = {
      * The first argument is the value passed to {@link RTC.setLastN}.
      */
     LASTN_VALUE_CHANGED: 'rtc.lastn_value_changed',
+
+    /**
+     * Event emitted when ssrc for a local track is extracted and stored
+     * in {@link TraceablePeerConnection}.
+     * @param {JitsiLocalTrack} track which ssrc was updated
+     * @param {string} ssrc that was stored
+     */
+    LOCAL_TRACK_SSRC_UPDATED: 'rtc.local_track_ssrc_updated',
+
     AVAILABLE_DEVICES_CHANGED: 'rtc.available_devices_changed',
     TRACK_ATTACHED: 'rtc.track_attached',
 

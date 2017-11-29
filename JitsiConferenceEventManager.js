@@ -19,6 +19,7 @@ import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import * as MediaType from './service/RTC/MediaType';
 import RTCEvents from './service/RTC/RTCEvents';
+import VideoType from './service/RTC/VideoType';
 import Statistics from './modules/statistics/statistics';
 import XMPPEvents from './service/xmpp/XMPPEvents';
 
@@ -522,27 +523,36 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
             }
         });
 
-    if (conference.statistics) {
-        rtc.addListener(RTCEvents.CREATE_ANSWER_FAILED,
-            (e, tpc) => {
-                conference.statistics.sendCreateAnswerFailed(e, tpc);
-            });
+    rtc.addListener(RTCEvents.CREATE_ANSWER_FAILED,
+        (e, tpc) => {
+            conference.statistics.sendCreateAnswerFailed(e, tpc);
+        });
 
-        rtc.addListener(RTCEvents.CREATE_OFFER_FAILED,
-            (e, tpc) => {
-                conference.statistics.sendCreateOfferFailed(e, tpc);
-            });
+    rtc.addListener(RTCEvents.CREATE_OFFER_FAILED,
+        (e, tpc) => {
+            conference.statistics.sendCreateOfferFailed(e, tpc);
+        });
 
-        rtc.addListener(RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
-            (e, tpc) => {
-                conference.statistics.sendSetLocalDescFailed(e, tpc);
-            });
+    rtc.addListener(RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
+        (e, tpc) => {
+            conference.statistics.sendSetLocalDescFailed(e, tpc);
+        });
 
-        rtc.addListener(RTCEvents.SET_REMOTE_DESCRIPTION_FAILED,
-            (e, tpc) => {
-                conference.statistics.sendSetRemoteDescFailed(e, tpc);
-            });
-    }
+    rtc.addListener(RTCEvents.SET_REMOTE_DESCRIPTION_FAILED,
+        (e, tpc) => {
+            conference.statistics.sendSetRemoteDescFailed(e, tpc);
+        });
+
+    rtc.addListener(RTCEvents.LOCAL_TRACK_SSRC_UPDATED,
+        (track, ssrc) => {
+            // when starting screen sharing, the track is created and when
+            // we do set local description and we process the ssrc we
+            // will be notified for it and we will report it with the event
+            // for screen sharing
+            if (track.isVideoTrack() && track.videoType === VideoType.DESKTOP) {
+                conference.statistics.sendScreenSharingEvent(true, ssrc);
+            }
+        });
 };
 
 /**

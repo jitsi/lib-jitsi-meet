@@ -892,13 +892,6 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
 
     newTrack._setConference(this);
 
-    // send event for starting screen sharing
-    // FIXME: we assume we have only one screen sharing track
-    // if we change this we need to fix this check
-    if (newTrack.isVideoTrack() && newTrack.videoType === VideoType.DESKTOP) {
-        this.statistics.sendScreenSharingEvent(true);
-    }
-
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
 };
 

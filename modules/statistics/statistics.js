@@ -488,12 +488,15 @@ Statistics.prototype.sendMuteEvent = function(tpc, muted, type) {
  * Notifies CallStats for screen sharing events
  * @param start {boolean} true for starting screen sharing and
  * false for not stopping
+ * @param {string|null} ssrc - optional ssrc value, used only when
+ * starting screen sharing.
  */
-Statistics.prototype.sendScreenSharingEvent = function(start) {
-    for (const cs of this.callsStatsInstances.values()) {
-        cs.sendScreenSharingEvent(start);
-    }
-};
+Statistics.prototype.sendScreenSharingEvent
+    = function(start, ssrc) {
+        for (const cs of this.callsStatsInstances.values()) {
+            cs.sendScreenSharingEvent(start, ssrc);
+        }
+    };
 
 /**
  * Notifies the statistics module that we are now the dominant speaker of the
