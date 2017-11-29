@@ -31,7 +31,12 @@ function createConnection(token, bosh = '/http-bind') {
         bosh += `${bosh.indexOf('?') === -1 ? '?' : '&'}token=${token}`;
     }
 
-    return new Strophe.Connection(bosh);
+    const conn = new Strophe.Connection(bosh);
+
+    // The default maxRetries is 5, which is too long.
+    conn.maxRetries = 3;
+
+    return conn;
 }
 
 /**
