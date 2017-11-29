@@ -50,9 +50,7 @@ export default class XMPP extends Listenable {
         this.connection = null;
         this.disconnectInProgress = false;
         this.connectionTimes = {};
-        this.forceMuted = false;
         this.options = options;
-        this.connectParams = {};
         this.token = token;
         this.authenticatedUser = false;
         this._initStrophePlugins(this);
@@ -302,10 +300,6 @@ export default class XMPP extends Listenable {
      * @param password
      */
     connect(jid, password) {
-        this.connectParams = {
-            jid,
-            password
-        };
         if (!jid) {
             const { anonymousdomain, domain } = this.options.hosts;
             let configDomain = anonymousdomain || domain;
