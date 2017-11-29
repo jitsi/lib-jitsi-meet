@@ -177,6 +177,11 @@ export default class XMPP extends Listenable {
                 this.connectionFailed = true;
             }
             this.lastErrorMsg = msg;
+            if (msg === 'giving-up') {
+                this.eventEmitter.emit(
+                    JitsiConnectionEvents.CONNECTION_FAILED,
+                    JitsiConnectionErrors.OTHER_ERROR, msg);
+            }
         } else if (status === Strophe.Status.DISCONNECTED) {
             // Stop ping interval
             this.connection.ping.stopInterval();
