@@ -16,11 +16,6 @@
 export const CONNECTION_DROPPED_ERROR = 'connection.droppedError';
 
 /**
- * Indicates that a connection error occurred when trying to join a conference.
- */
-export const CONNECTION_ERROR = 'connection.connectionError';
-
-/**
  * Not specified errors.
  */
 export const OTHER_ERROR = 'connection.otherError';

@@ -165,8 +165,9 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - FOCUS_DISCONNECTED - focus left the conference
         - CONFERENCE_MAX_USERS - The maximum users limit has been reached
     2. connection
+        - CONNECTION_DROPPED_ERROR - indicates that the connection was dropped with an error which was most likely caused by some networking issues.
         - PASSWORD_REQUIRED - passed when the connection to the server failed. You should try to authenticate with password.
-        - CONNECTION_ERROR - indicates connection failures.
+        - SERVER_ERROR - indicates too many 5XX errors were received from the server.
         - OTHER_ERROR - all other errors
     3. track
         - GENERAL - generic getUserMedia-related error.
