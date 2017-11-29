@@ -388,6 +388,11 @@ export default class CallStats {
                 undefined,
                 configParams);
 
+            if (options.getWiFiStatsMethod) {
+                CallStats.backend.attachWifiStatsHandler(
+                    options.getWiFiStatsMethod);
+            }
+
             return true;
         } catch (e) {
             // The callstats.io API failed to initialize (e.g. because its
