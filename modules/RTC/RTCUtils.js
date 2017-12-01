@@ -430,7 +430,7 @@ function newGetConstraints(um = [], options = {}) {
             { echoCancellation: !disableAEC && !disableAP },
             { googEchoCancellation: !disableAEC && !disableAP },
             { googAutoGainControl: !disableAGC && !disableAP },
-            { googNoiseSupression: !disableNS && !disableAP },
+            { googNoiseSuppression: !disableNS && !disableAP },
             { googHighpassFilter: !disableHPF && !disableAP },
             { googNoiseSuppression2: !disableNS && !disableAP },
             { googEchoCancellation2: !disableAEC && !disableAP },
@@ -1101,7 +1101,15 @@ class RTCUtils extends Listenable {
             || RTCBrowserType.isNWJS()
             || RTCBrowserType.isElectron()
             || RTCBrowserType.isReactNative()) {
-            this.pcConstraints = { optional: [] };
+            this.pcConstraints = { optional: [
+                { googHighStartBitrate: 0 },
+                { googPayloadPadding: true },
+                { googScreencastMinBitrate: 400 },
+                { googCpuOveruseDetection: true },
+                { googCpuOveruseEncodeUsage: true },
+                { googCpuUnderuseThreshold: 55 },
+                { googCpuOveruseThreshold: 85 }
+            ] };
 
             if (options.useIPv6) {
                 // https://code.google.com/p/webrtc/issues/detail?id=2828
