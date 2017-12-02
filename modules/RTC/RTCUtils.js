@@ -275,7 +275,7 @@ function getConstraints(um, options) {
                 { echoCancellation: !disableAEC && !disableAP },
                 { googEchoCancellation: !disableAEC && !disableAP },
                 { googAutoGainControl: !disableAGC && !disableAP },
-                { googNoiseSupression: !disableNS && !disableAP },
+                { googNoiseSuppression: !disableNS && !disableAP },
                 { googHighpassFilter: !disableHPF && !disableAP },
                 { googNoiseSuppression2: !disableNS && !disableAP },
                 { googEchoCancellation2: !disableAEC && !disableAP },
