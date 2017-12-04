@@ -298,6 +298,17 @@ describe('RtxModifier', () => {
             });
         });
 
+        describe('when given an sdp with a flexfec stream', () => {
+            it('should not add rtx for the flexfec ssrc', function() {
+                const flexFecSdp = SampleSdpStrings.flexFecSdp;
+                const newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(flexFecSdp));
+                const newSdp = transform.parse(newSdpStr);
+                const fidGroups = getVideoGroups(newSdp, 'FID');
+
+                expect(fidGroups.length).toEqual(1);
+            });
+        });
+
         describe('(corner cases)', () => {
             it('should handle a recvonly video mline', function() {
                 const sdp = SampleSdpStrings.plainVideoSdp;
