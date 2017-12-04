@@ -181,6 +181,69 @@ const simulcastRtxVideoMLineSdp = ''
 + 'a=ssrc-group:SIM 1757014965 1479742055 1089111804\r\n'
 + 'a=rtcp-mux\r\n';
 
+// An sdp video mline with 1 video ssrc, 1 video rtx ssrc and one flexfec ssrc
+const flexFecVideoMLineSdp = ''
++ 'm=video 9 RTP/SAVPF 100 107 101 96 99 97 109\r\n'
++ 'c=IN IP4 0.0.0.0\r\n'
++ 'a=rtcp:9 IN IP4 0.0.0.0\r\n'
++ 'a=ice-ufrag:aLBh\r\n'
++ 'a=ice-pwd:7IeqrWG5ryCW2X47Lso8XYdK\r\n'
++ 'a=ice-options:trickle\r\n'
++ 'a=fingerprint:sha-256 78:3C:F9:96:85:FB:20:25:F8:2F:AB:37:8B:8B:17:29:EF:54:7B:7C:17:2E:90:02:8A:A1:8F:A7:F9:C5:F2:90\r\n'
++ 'a=setup:active\r\n'
++ 'a=mid:video\r\n'
++ 'a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\n'
++ 'a=sendrecv\r\n'
++ 'a=rtcp-mux\r\n'
++ 'a=rtpmap:100 VP8/90000\r\n'
++ 'a=rtcp-fb:100 goog-remb\r\n'
++ 'a=rtcp-fb:100 ccm fir\r\n'
++ 'a=rtcp-fb:100 nack\r\n'
++ 'a=rtcp-fb:100 nack pli\r\n'
++ 'a=rtpmap:107 h264/90000\r\n'
++ 'a=rtcp-fb:107 goog-remb\r\n'
++ 'a=rtcp-fb:107 ccm fir\r\n'
++ 'a=rtcp-fb:107 nack\r\n'
++ 'a=rtcp-fb:107 nack pli\r\n'
++ 'a=fmtp:107 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f\r\n'
++ 'a=rtpmap:101 VP9/90000\r\n'
++ 'a=rtcp-fb:101 goog-remb\r\n'
++ 'a=rtcp-fb:101 ccm fir\r\n'
++ 'a=rtcp-fb:101 nack\r\n'
++ 'a=rtcp-fb:101 nack pli\r\n'
++ 'a=rtpmap:96 rtx/90000\r\n'
++ 'a=fmtp:96 apt=100\r\n'
++ 'a=rtpmap:99 rtx/90000\r\n'
++ 'a=fmtp:99 apt=107\r\n'
++ 'a=rtpmap:97 rtx/90000\r\n'
++ 'a=fmtp:97 apt=101\r\n'
++ 'a=rtpmap:109 flexfec-03/90000\r\n'
++ 'a=fmtp:109 repair-window=10000000\r\n'
++ 'a=ssrc-group:FID 2864950112 2236303754\r\n'
++ 'a=ssrc-group:FEC-FR 2864950112 116623191\r\n'
++ 'a=ssrc:2864950112 cname:mT86hcsCZwQBPh6R\r\n'
++ 'a=ssrc:2864950112 msid:a2548ae2-32e8-4b09-89bc-b11f3e49ac5a b3e3d760-6b1b-48bd-8519-9d6261311d28\r\n'
++ 'a=ssrc:2864950112 mslabel:a2548ae2-32e8-4b09-89bc-b11f3e49ac5a\r\n'
++ 'a=ssrc:2864950112 label:b3e3d760-6b1b-48bd-8519-9d6261311d28\r\n'
++ 'a=ssrc:2236303754 cname:mT86hcsCZwQBPh6R\r\n'
++ 'a=ssrc:2236303754 msid:a2548ae2-32e8-4b09-89bc-b11f3e49ac5a b3e3d760-6b1b-48bd-8519-9d6261311d28\r\n'
++ 'a=ssrc:2236303754 mslabel:a2548ae2-32e8-4b09-89bc-b11f3e49ac5a\r\n'
++ 'a=ssrc:2236303754 label:b3e3d760-6b1b-48bd-8519-9d6261311d28\r\n'
++ 'a=ssrc:116623191 cname:mT86hcsCZwQBPh6R\r\n'
++ 'a=ssrc:116623191 msid:a2548ae2-32e8-4b09-89bc-b11f3e49ac5a b3e3d760-6b1b-48bd-8519-9d6261311d28\r\n'
++ 'a=ssrc:116623191 mslabel:a2548ae2-32e8-4b09-89bc-b11f3e49ac5a\r\n'
++ 'a=ssrc:116623191 label:b3e3d760-6b1b-48bd-8519-9d6261311d28\r\n'
++ 'm=application 9 DTLS/SCTP 5000\r\n'
++ 'c=IN IP4 0.0.0.0\r\n'
++ 'b=AS:30\r\n'
++ 'a=ice-ufrag:aLBh\r\n'
++ 'a=ice-pwd:7IeqrWG5ryCW2X47Lso8XYdK\r\n'
++ 'a=ice-options:trickle\r\n'
++ 'a=fingerprint:sha-256 78:3C:F9:96:85:FB:20:25:F8:2F:AB:37:8B:8B:17:29:EF:54:7B:7C:17:2E:90:02:8A:A1:8F:A7:F9:C5:F2:90\r\n'
++ 'a=setup:active\r\n'
++ 'a=mid:data\r\n'
++ 'a=sctpmap:5000 webrtc-datachannel 1024\r\n';
+
 // A full sdp string representing a client doing simulcast
 const simulcastSdpStr = baseSessionSdp + baseAudioMLineSdp + simulcastVideoMLineSdp + baseDataMLineSdp;
 
@@ -196,10 +259,14 @@ const rtxVideoSdpStr = baseSessionSdp + baseAudioMLineSdp + rtxVideoMLineSdp + b
 // A full sdp string representing a client doing a single video stream with multiple codec options
 const multiCodecVideoSdpStr = baseSessionSdp + baseAudioMLineSdp + multiCodecVideoMLine + baseDataMLineSdp;
 
+// A full sdp string representing a client doing a single video stream with flexfec
+const flexFecSdpStr = baseSessionSdp + baseAudioMLineSdp + flexFecVideoMLineSdp + baseDataMLineSdp;
+
 export const simulcastSdp = transform.parse(simulcastSdpStr);
 export const simulcastRtxSdp = transform.parse(simulcastRtxSdpStr);
 export const plainVideoSdp = transform.parse(plainVideoSdpStr);
 export const rtxVideoSdp = transform.parse(rtxVideoSdpStr);
 export const multiCodecVideoSdp = transform.parse(multiCodecVideoSdpStr);
+export const flexFecSdp = transform.parse(flexFecSdpStr);
 
 /* eslint-enable max-len*/

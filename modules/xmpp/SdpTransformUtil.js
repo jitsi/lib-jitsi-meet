@@ -242,7 +242,7 @@ class MLineWrap {
             return this.mLine.ssrcs[0].id;
         }
 
-        // Look for a SIM or FID group
+        // Look for a SIM, FID, or FEC-FR group
         if (this.mLine.ssrcGroups) {
             const simGroup = this.findGroup('SIM');
 
@@ -253,6 +253,11 @@ class MLineWrap {
 
             if (fidGroup) {
                 return parsePrimarySSRC(fidGroup);
+            }
+            const fecGroup = this.findGroup('FEC-FR');
+
+            if (fecGroup) {
+                return parsePrimarySSRC(fecGroup);
             }
         }
 
@@ -299,11 +304,12 @@ class MLineWrap {
         const videoSSRCs = this.getSSRCs();
 
         for (const ssrcGroupInfo of this.ssrcGroups) {
-            // Right now, FID groups are the only ones we parse to
+            // Right now, FID and FEC-FR groups are the only ones we parse to
             // disqualify streams.  If/when others arise we'll
             // need to add support for them here
-            if (ssrcGroupInfo.semantics === 'FID') {
-                // secondary FID streams should be filtered out
+            if (ssrcGroupInfo.semantics === 'FID'
+                    || ssrcGroupInfo.semantics === 'FEC-FR') {
+                // secondary streams should be filtered out
                 const secondarySsrc = parseSecondarySSRC(ssrcGroupInfo);
 
                 videoSSRCs.splice(
