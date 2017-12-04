@@ -299,12 +299,9 @@ describe('RtxModifier', () => {
         });
 
         describe('when given an sdp with a flexfec stream', () => {
-            beforeEach(function() {
-                this.multipleVideoSdp = SampleSdpStrings.flexFecSdp;
-            });
-
             it('should not add rtx for the flexfec ssrc', function() {
-                const newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(this.multipleVideoSdp));
+                const flexFecSdp = SampleSdpStrings.flexFecSdp;
+                const newSdpStr = this.rtxModifier.modifyRtxSsrcs(this.transform.write(flexFecSdp));
                 const newSdp = transform.parse(newSdpStr);
                 const fidGroups = getVideoGroups(newSdp, 'FID');
 
