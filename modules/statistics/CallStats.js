@@ -388,9 +388,18 @@ export default class CallStats {
                 undefined,
                 configParams);
 
-            if (options.getWiFiStatsMethod) {
-                CallStats.backend.attachWifiStatsHandler(
-                    options.getWiFiStatsMethod);
+            const getWiFiStatsMethod = options.getWiFiStatsMethod;
+
+            if (getWiFiStatsMethod) {
+                CallStats.backend.attachWifiStatsHandler(getWiFiStatsMethod);
+
+                getWiFiStatsMethod().then(result => {
+                    if (result) {
+                        logger.info('Reported wifi addresses:'
+                            , JSON.parse(result).addresses);
+                    }
+                })
+                .catch(() => {});// eslint-disable-line no-empty-function
             }
 
             return true;
