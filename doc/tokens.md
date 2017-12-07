@@ -15,14 +15,57 @@ JWT token authentication currently works only with BOSH connections.
 ### Token structure
 
 The following JWT claims are used in authentication token:
-- 'iss' specifies *application ID* which identifies the client app connecting to the server
+- 'iss' specifies *application ID* which identifies the client app connecting to the server. It should be negotiated with the service provider before generating the token.
 - 'room' contains the name of the room for which the token has been allocated. This is *NOT* full MUC room address. Example assuming that we have full MUC 'conference1@muc.server.net' then 'conference1' should be used here.  Alternately, a '*' may be provided, allowing access to all rooms within the domain.
 - 'exp' token expiration timestamp as defined in the RFC
 - 'sub' contains the name of the domain used when authenticating with this token. By default assuming that we have full MUC 'conference1@muc.server.net' then 'server.net' should be used here.
-- 'aud' application identifier. Star is supported (aud = '*') and can be used as default value.
+- 'aud' application identifier. This value indicates what service is consuming the token.  It should be negotiated with the service provider before generating the token.
 
-Secret is used to compute HMAC hash value and verify the token.
+Secret is used to compute HMAC hash value and verify the token for HS256 tokens.  
 
+Alternately the token may be signed by a private key and authorized via public keyserver using RS256 tokens.  In this mode, the 'kid' header of the JWT must be set to the name of the public key.  The backend server must be configured to fetch and confirm keys from a pre-configured public keyserver.
+
+### Token Identifiers
+
+In addition to the basic claims used in authentication, the token can also provide user display information in the 'context' field within the JWT payload:
+- 'group' is a string which specifies the group the user belongs to.  Intended for use in reporting/analytics
+- 'user' is an object which contains display information for the current user
+  - 'id' is a user identifier string.  Intended for use in reporting/analytics
+  - 'name' is the display name of the user
+  - 'avatar' is the URL of the avatar for the user
+- 'callee' is an optional object containing display information when launching a 1-1 video call with a single other participant.  It used to display an overlay to the first user, before the second user joins.
+  - 'id' is a user identifier string.  Intended for use in reporting/analytics
+  - 'name' is the display name of the 'callee' user
+  - 'avatar' is the URL of the avatar of the 'callee'
+
+### Example Token
+#### Headers (using RS256 public key validation)
+```
+{
+  "kid": "jitsi/custom_key_name",
+  "typ": "JWT",
+  "alg": "RS256"
+}
+```
+#### Payload
+```
+{
+  "context": {
+    "user": {
+      "avatar": "https:/gravatar.com/avatar/abc123",
+      "name": "John Doe",
+      "email": "jdoe@example.com",
+      "id": "abcd:a1b2c3-d4e5f6-0abc1-23de-abcdef01fedcba"
+    },
+    "group": "a123-123-456-789"
+  },
+  "aud": "jitsi",
+  "iss": "my_client",
+  "sub": "meet.jit.si",
+  "room": "*",
+  "exp": 1500006923
+}
+```
 ### Token verification
 
 JWT token is currently checked in 2 places:
@@ -101,6 +144,12 @@ Modify your Prosody config with these three steps:
 plugin_paths = { "/usr/share/jitsi-meet/prosody-plugins/" }
 ```
 
+Also optionally set the global settings for key authorization.  Both these options default to the '*' parameter which means accept any issuer or audience string in incoming tokens
+```lua
+asap_accepted_issuers = { "jitsi", "some-other-issuer" }
+asap_accepted_audiences = { "jitsi", "some-other-audience" }
+```
+
 \2. Under you domain config change authentication to "token" and provide application ID, secret and optionally token lifetime:
 
 ```lua
@@ -109,7 +158,19 @@ VirtualHost "jitmeet.example.com"
     app_id = "example_app_id";             -- application identifier
     app_secret = "example_app_secret";     -- application secret known only to your token
     									   -- generator and the plugin
+    allow_empty_token = false;             -- tokens are verified only if they are supplied by the client
 ```
+
+Alternately instead of using a shared secret you can set an asap_key_server to the base URL where valid/accepted public keys can be found by taking a sha256() of the 'kid' field in the JWT token header, and appending .pem to the end
+
+```lua
+VirtualHost "jitmeet.example.com"
+    authentication = "token";
+    app_id = "example_app_id";                                  -- application identifier
+    asap_key_server = "https://keyserver.example.com/asap";     -- URL for public keyserver storing keys by kid
+    allow_empty_token = false;                                  -- tokens are verified only if they are supplied
+```
+
 
 \3. Enable room name token verification plugin in your MUC component config section:
 
