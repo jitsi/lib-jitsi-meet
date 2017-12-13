@@ -175,8 +175,9 @@ function setResolutionConstraints(
  * @param {bool} firefox_fake_device
  */
 function getConstraints(um, options) {
-    const constraints = { audio: false,
-        video: false };
+    const constraints = options.constraints || {};
+    if(!constraints.video) { constraints.video = false; }
+    if(!constraints.audio) { constraints.audio = false; }
 
     // Don't mix new and old style settings for Chromium as this leads
     // to TypeError in new Chromium versions. @see
@@ -193,8 +194,8 @@ function getConstraints(um, options) {
 
     if (um.indexOf('video') >= 0) {
         // same behaviour as true
-        constraints.video = { mandatory: {},
-            optional: [] };
+        if(!constraints.video.mandatory) { constraints.video.mandatory = {}; }
+        if(!constraints.video.optional) { constraints.video.optional = []; }
 
         if (options.cameraDeviceId) {
             if (isNewStyleConstraintsSupported) {
@@ -235,8 +236,8 @@ function getConstraints(um, options) {
             }
         }
 
-        setResolutionConstraints(
-            constraints, isNewStyleConstraintsSupported, options.resolution);
+        // setResolutionConstraints(
+        //     constraints, isNewStyleConstraintsSupported, options.resolution);
     }
     if (um.indexOf('audio') >= 0) {
         if (RTCBrowserType.isReactNative()) {
