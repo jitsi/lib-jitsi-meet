@@ -400,6 +400,9 @@ function newGetConstraints(um = [], options = {}) {
             constraints.video = {};
         }
 
+        delete constraints.video.optional;
+        delete constraints.video.mandatory;
+
         if (options.cameraDeviceId) {
             constraints.video.deviceId = options.cameraDeviceId;
         } else {
