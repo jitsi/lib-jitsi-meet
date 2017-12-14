@@ -284,7 +284,8 @@ JitsiConference.prototype._init = function(options = {}) {
             callStatsSecret: config.callStatsSecret,
             roomName: this.options.name,
             swapUserNameAndAlias: config.enableStatsID,
-            applicationName: config.applicationName
+            applicationName: config.applicationName,
+            getWiFiStatsMethod: config.getWiFiStatsMethod
         });
     }
 
