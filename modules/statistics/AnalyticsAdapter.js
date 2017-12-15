@@ -1,130 +1,301 @@
 import RTCBrowserType from '../RTC/RTCBrowserType';
 import Settings from '../settings/Settings';
 
-/**
- * Interface for analytics handlers.
- */
-class AnalyticsAbstract {
-    /**
-     *
-     */
-    sendEvent() {} // eslint-disable-line no-empty-function
-}
+const MAX_CACHE_SIZE = 100;
+
+const TYPE_OPERATIONAL = 'operational';
+const TYPE_PAGE = 'page';
+const TYPE_TRACK = 'track';
+const TYPE_UI = 'ui';
 
 /**
- * Handler that caches all the events.
- * @extends AnalyticsAbstract
- */
-class CacheAnalytics extends AnalyticsAbstract {
-    /**
-     *
-     */
-    constructor() {
-        super();
-
-        // some events may happen before init or implementation script download
-        // in this case we accumulate them in this array and send them on init
-        this.eventCache = [];
-    }
-
-    /**
-     * Cache analytics event.
-     * @param {String} eventName the name of the event
-     * @param {Object} data can be any JSON object
-     */
-    sendEvent(eventName, data = {}) {
-        this.eventCache.push({
-            eventName,
-            data
-        });
-    }
-
-    /**
-     * Clears the cached events.
-     * @returns {Array} with the cached events.
-     */
-    drainCachedEvents() {
-        const eventCacheCopy = this.eventCache.slice();
-
-        this.eventCache = [];
-
-        return eventCacheCopy;
-    }
-
-}
-
-const cacheAnalytics = new CacheAnalytics();
-
-/**
- * This class will store and manage the handlers that are going to be used.
+ * This class provides an API to lib-jitsi-meet and its users for sending
+ * analytics events. It serves as a bridge to different backend implementations
+ * ("analytics handlers") and a cache for events attempted to be sent before
+ * the analytics handlers were enabled.
+ *
+ * The API is designed to be an easy replacement for the previous version of
+ * this adapter, and is meant to be extended with more convenience methods.
+ *
+ *
+ * The API calls are translated to objects with the following structure, which
+ * are then passed to the sendEvent(event) function of the underlying handlers:
+ *
+ * {
+ *    type,
+ *
+ *    action,
+ *    actionSubject,
+ *    actionSubjectId,
+ *    attributes,
+ *    categories,
+ *    containerId,
+ *    containerType,
+ *    name,
+ *    objectId,
+ *    objectType,
+ *    source,
+ *    tags
+ * }
+ *
+ * The 'type' is one of 'operational', 'page', 'track' or 'ui', and some of the
+ * other properties are considered required according to the type.
+ *
+ * For events with type 'page', the required properties are: name.
+ *
+ * For events with type 'operational' and 'ui', the required properties are:
+ * action, actionSubject, source
+ *
+ * For events with type 'page', the required properties are:
+ * action, actionSubject, source, containerType, containerId, objectType,
+ * objectId
  */
 class AnalyticsAdapter {
     /**
      * Creates new AnalyticsAdapter instance.
      */
     constructor() {
+        /**
+         * Whether this AnalyticsAdapter has been disposed or not.
+         * @type {boolean}
+         */
         this.disposed = false;
+
+        /**
+         * The set of handlers to which events will be sent.
+         * @type {Set<any>}
+         */
         this.analyticsHandlers = new Set();
 
         /**
-         * Map of properties that will be added to every event
+         * The cache of events which are not sent yet. The cache is enabled
+         * while this field is truthy, and disabled otherwise.
+         * @type {Array}
          */
-        this.permanentProperties = {
+        this.cache = [];
+
+        /**
+         * Map of properties that will be added to every event. Note that the
+         * keys will be prefixed with "permanent.".
+         */
+        this.permanentProperties = {};
+
+        this.addPermanentProperties({
             callstatsname: Settings.callStatsUserName,
             userAgent: navigator.userAgent,
             browserName: RTCBrowserType.getBrowserName()
-        };
-
-        this.analyticsHandlers.add(cacheAnalytics);
-    }
-
-    /**
-     * Sends analytics event.
-     * @param {String} eventName the name of the event
-     * @param {Object} data can be any JSON object
-     */
-    sendEvent(eventName, data = {}) {
-        const modifiedData = Object.assign({}, this.permanentProperties, data);
-
-        this.analyticsHandlers.forEach(
-            analytics =>
-                analytics.sendEvent(
-                    eventName,
-                    analytics === cacheAnalytics ? data : modifiedData
-                )
-        );
+        });
     }
 
     /**
      * Dispose analytics. Clears all handlers.
      */
     dispose() {
-        cacheAnalytics.drainCachedEvents();
-        this.analyticsHandlers.clear();
+        this.setAnalyticsHandlers([]);
         this.disposed = true;
     }
 
     /**
-     * Sets the handlers that are going to be used to send analytics and send
-     * the cached events.
+     * Sets the handlers that are going to be used to send analytics. Sends any
+     * cached events.
      * @param {Array} handlers the handlers
      */
     setAnalyticsHandlers(handlers) {
         if (this.disposed) {
             return;
         }
+
         this.analyticsHandlers = new Set(handlers);
-        cacheAnalytics.drainCachedEvents().forEach(
-            ev => this.sendEvent(ev.eventName, ev.data));
+
+        // Note that we disable the cache even if the set of handlers is empty.
+        const cache = this.cache;
+
+        this.cache = null;
+        if (cache) {
+            cache.forEach(event => this._sendEvent(event));
+        }
     }
 
     /**
-     * Adds map of properties that will be added to every event.
-     * @param {Object} properties the map of properties
+     * Adds a set of permanent properties to add this this AnalyticsAdapter.
+     * Permanent properties will be added as "attributes" to events sent to
+     * the underlying "analytics handlers", and their keys will be prefixed
+     * by "permanent.", i.e. adding a permanent property {key: "value"} will
+     * result in {"permanent.key": "value"} object to be added to the
+     * "attributes" field of events.
+     *
+     * @param {Object} properties the properties to add
      */
     addPermanentProperties(properties) {
-        Object.assign(this.permanentProperties, properties);
+        for (const property in properties) {
+            if (properties.hasOwnProperty(property)) {
+                this.permanentProperties[`permanent.${property}`]
+                    = properties[property];
+            }
+        }
     }
+
+    /**
+     * Sends an event with a given name and given properties. The event type
+     * is set to "operational", and the required fields are all set to the given
+     * event name.
+     * @param {String} eventName the name of the event
+     * @param {Object} properties the properties/attributes to attach to the
+     * event.
+     */
+    sendEvent(eventName, properties = {}) {
+        const event = {
+            type: TYPE_OPERATIONAL,
+            action: eventName,
+            actionSubject: eventName,
+            source: eventName,
+            attributes: properties
+        };
+
+        this._sendEvent(event);
+    }
+
+    /**
+     *
+     * @param event
+     */
+    sendOperationalEvent(event) {
+        event.type = TYPE_OPERATIONAL;
+
+        if (!AnalyticsAdapter._verifyRequiredFields(event)) {
+            // Error
+            return;
+        }
+
+        this._sendEvent(event);
+    }
+
+    /**
+     *
+     * @param name
+     */
+    sendPageEvent(name) {
+        const event = { type: TYPE_PAGE,
+            name };
+
+        if (!AnalyticsAdapter._verifyRequiredFields(event)) {
+            return;
+        }
+
+        this._sendEvent(event);
+    }
+
+    /**
+     *
+     * @param event
+     */
+    sendUIEvent(event) {
+        event.type = TYPE_UI;
+
+        if (!AnalyticsAdapter._verifyRequiredFields(event)) {
+            // Error
+        }
+
+        this._sendEvent(event);
+
+    }
+
+
+    /**
+     * XXX this deserves an explanation
+     * @param event
+     * @private
+     */
+    static _verifyRequiredFields(event) {
+        const type = event.type;
+
+        if (type !== TYPE_OPERATIONAL && type !== TYPE_PAGE
+            && type !== TYPE_UI && type !== TYPE_TRACK) {
+            return false;
+        }
+
+        if (type === TYPE_PAGE) {
+            return Boolean(event.name);
+        }
+
+        // Try to set some reasonable default values in case some of the
+        // parameters required by the handler API are missing.
+        event.action = event.action || event.name || event.actionSubject;
+        event.actionSubject = event.actionSubject || event.name || event.action;
+        event.source = event.source || event.name || event.action
+            || event.actionSubject;
+
+        if (!event.action || !event.actionSubject || !event.source) {
+            return false;
+        }
+
+        // Track events have additional required fields.
+        if (type === TYPE_TRACK) {
+            event.objectType = event.objectType || 'generic-object-type';
+            event.containerType
+                = event.containerType || 'generic-container-type';
+
+            if (!event.objectType || !event.objectId
+                || !event.containerType || !event.containerId) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Saves an event to the cache, if the cache is enabled.
+     * @param event the event to save.
+     * @returns {boolean} true if the event was saved, and false otherwise (i.e.
+     * if the cache was disabled).
+     * @private
+     */
+    _maybeCacheEvent(event) {
+        if (this.cache) {
+            this.cache.push(event);
+
+            // We limit the size of the cache, in case the user fails to ever
+            // set the analytics handlers.
+            if (this.cache.length > MAX_CACHE_SIZE) {
+                this.cache.splice(0, 1);
+            }
+
+            return true;
+        }
+
+        return false;
+
+    }
+
+    /**
+     *
+     * @param event
+     * @private
+     */
+    _sendEvent(event) {
+        if (this._maybeCacheEvent(event)) {
+            // The event was consumed by the cache.
+        } else {
+            // We append the permanent properties at the time we send the event,
+            // not at the time we receive it.
+            const extendedEvent = this._appendPermanentProperties(event);
+
+            this.analyticsHandlers.forEach(
+                handler => handler.sendEvent(extendedEvent));
+        }
+    }
+
+    /**
+     * Extends an event object with the configured permanent properties.
+     * @param event the event to extend with permanent properties.
+     * @returns {any & ({}|*)} the extended event
+     * @private
+     */
+    _appendPermanentProperties(event) {
+        return Object.assign(event, this.permanentProperties);
+    }
+
 }
 
 export default new AnalyticsAdapter();
