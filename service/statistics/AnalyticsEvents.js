@@ -22,6 +22,53 @@
  * a string to the name of the event.
  */
 
+
+// Kosher:
+
+/**
+ * Indicates the duration of a particular phase of the ICE connectivity
+ * establishment.
+ *
+ * Properties:
+ *      phase: the ICE phase (e.g. 'gathering', 'checking', 'establishment')
+ *      value: the duration in milliseconds.
+ *      p2p: whether the associated ICE connection is p2p or towards a
+ *          jitsi-videobridge
+ *      initiator: whether the local Jingle peer is the initiator or responder
+ *          in the Jingle session. XXX we probably actually care about the ICE
+ *          role (controlling vs controlled), and we assume that this correlates
+ *          with the Jingle initiator.
+ */
+export const ICE_DURATION = 'ice.duration';
+
+/**
+ * Indicates the difference in milliseconds between the ICE establishment time
+ * for the P2P and JVB connections (e.g. a value of 10 would indicate that the
+ * P2P connection took 10ms more than JVB connection to establish).
+ *
+ * Properties:
+ *      value: the difference in establishment durations in milliseconds.
+ *
+ */
+export const ICE_ESTABLISHMENT_DURATION_DIFF
+    = 'ice.establishment.duration.diff';
+
+/**
+ * Indicates that the ICE state has changed.
+ *
+ * Properties:
+ *      state: the ICE state which was entered (e.g. 'checking', 'connected',
+ *          'completed', etc).
+ *      value: the time in milliseconds (as reported by
+ *          window.performance.now()) that the state change occurred.
+ *      p2p: whether the associated ICE connection is p2p or towards a
+ *          jitsi-videobridge
+ */
+export const ICE_STATE_CHANGED = 'ice.state.changed';
+
+
+// Treif:
+
 /**
  * Properties: value
  *
@@ -38,66 +85,6 @@
  * xmpp.session-initiate (???)
  */
 export const _CONNECTION_TIMES_ = '';
-
-/**
- * TODO: document, reformat (group together with other ICE events)
- *
- * Known full event names:
- * ice.initiator.checksDuration
- * ice.responder.checksDuration
- * p2p.ice.initiator.checksDuration
- * p2p.ice.responder.checksDuration
- *
- * Properties: value
- */
-export const _ICE_CHECKING_DURATION = 'checksDuration';
-
-/**
- * TODO: document, reformat
- *
- * Known full event names:
- * ice.checking
- * ice.closed
- * ice.completed
- * ice.connected
- * ice.disconnected
- * ice.failed
- * p2p.ice.checking
- * p2p.ice.closed
- * p2p.ice.completed
- * p2p.ice.connected
- * p2p.ice.disconnected
- * p2p.ice.failed
- *
- * Properties: value
- */
-export const _ICE_CONNECTION_STATE_ = 'ice';
-
-/**
- * TODO: document, reformat (group together with other ICE events)
- *
- * Known full event names:
- * ice.initiator.establishmentDuration
- * ice.responder.establishmentDuration
- * p2p.ice.initiator.establishmentDuration
- * p2p.ice.responder.establishmentDuration
- *
- * Properties: value
- */
-export const _ICE_ESTABLISHMENT_DURATION = 'establishmentDuration';
-
-/**
- * TODO: document, reformat
- *
- * Known full event names:
- * ice.initiator.gatheringDuration
- * ice.responder.gatheringDuration
- * p2p.ice.initiator.gatheringDuration
- * p2p.ice.responder.gatheringDuration
- *
- * Properties: value
- */
-export const _ICE_GATHERING_DURATION = 'gatheringDuration';
 
 /**
  * TODO: document, reformat
@@ -353,16 +340,6 @@ export const GET_USER_MEDIA_SUCCESS_ = 'getUserMedia.success';
  * TODO: document, reformat
  */
 export const GET_USER_MEDIA_USER_CANCEL_ = 'getUserMedia.userCancel';
-
-/**
- * Properties: value
- *
- * The "value" property contains the difference in milliseconds between
- * the ICE establishment time for the P2P and JVB connections (e.g. a value
- * of 10 would indicate that the P2P was 10ms slower than JVB).
- */
-export const ICE_ESTABLISHMENT_DURATION_DIFF
-    = 'ice.establishmentDurationDiff';
 
 /**
  * Properties: none
