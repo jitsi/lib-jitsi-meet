@@ -6,7 +6,6 @@ const RTCEvents = {
 
     /**
      * Indicates error while create offer call.
-     * FIXME not used (yet), but hook up with create offer failure once added
      */
     CREATE_OFFER_FAILED: 'rtc.create_offer_failed',
     RTC_READY: 'rtc.ready',
