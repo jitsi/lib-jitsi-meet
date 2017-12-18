@@ -681,16 +681,16 @@ Statistics.sendLog = function(m) {
 /**
  * Sends the given feedback through CallStats.
  *
- * @param overall an integer between 1 and 5 indicating the user feedback
- * @param detailed detailed feedback from the user. Not yet used
+ * @param overall an integer between 1 and 5 indicating the user's rating.
+ * @param comment the comment from the user.
  */
-Statistics.prototype.sendFeedback = function(overall, detailed) {
-    CallStats.sendFeedback(this._getCallStatsConfID(), overall, detailed);
+Statistics.prototype.sendFeedback = function(overall, comment) {
+    CallStats.sendFeedback(this._getCallStatsConfID(), overall, comment);
     Statistics.analytics.sendEvent(
         FEEDBACK,
         {
             value: overall,
-            detailed
+            comment
         });
 };
 

@@ -26,6 +26,15 @@
 // Kosher:
 
 /**
+ * Indicates that the user of the application provided feedback in terms of a
+ * rating (an integer from 1 to 5) and an optional comment.
+ * Properties:
+ *      value: the user's rating (an integer from 1 to 5)
+ *      comment: the user's comment
+ */
+export const FEEDBACK = 'feedback';
+
+/**
  * Indicates the duration of a particular phase of the ICE connectivity
  * establishment.
  *
@@ -221,13 +230,6 @@ export const DATA_CHANNEL_OPEN = 'conference.dataChannel.open';
  */
 export const DEVICE_LIST = 'devices.deviceList';
 
-/**
- * User feedback event.
- * Properties: value, detailed
- *
- * TODO: document
- */
-export const FEEDBACK = 'feedback.rating';
 
 /**
  * Properties: none
