@@ -1,4 +1,4 @@
-import { _TTFM_ } from '../../service/statistics/AnalyticsEvents';
+import { TTFM } from '../../service/statistics/AnalyticsEvents';
 import JitsiTrack from './JitsiTrack';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import RTCBrowserType from './RTCBrowserType';
@@ -223,19 +223,24 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         const gumDuration
             = !isNaN(gumEnd) && !isNaN(gumStart) ? gumEnd - gumStart : 0;
 
+        // Subtract the muc.joined-to-session-initiate duration because jicofo
+        // waits until there are 2 participants to start Jingle sessions.
         const ttfm = now
             - (this.conference.getConnectionTimes()['session.initiate']
-            - this.conference.getConnectionTimes()['muc.joined'])
+                - this.conference.getConnectionTimes()['muc.joined'])
             - gumDuration;
 
         this.conference.getConnectionTimes()[`${type}.ttfm`] = ttfm;
         console.log(`(TIME) TTFM ${type}:\t`, ttfm);
-        let eventName = `${type}.${_TTFM_}`;
 
-        if (this.hasBeenMuted) {
-            eventName += '.muted';
-        }
-        Statistics.analytics.sendEvent(eventName, { value: ttfm });
+        Statistics.analytics.sendEvent(
+            TTFM,
+            {
+                mediaType: type,
+                muted: this.hasBeenMuted,
+                value: ttfm
+            });
+
     }
 
     /**

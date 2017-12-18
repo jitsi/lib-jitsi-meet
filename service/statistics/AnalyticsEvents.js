@@ -85,6 +85,22 @@ export const NO_DATA_FROM_SOURCE = 'track.no.data.from.source';
  */
 export const TRACK_UNMUTED = 'track.unmuted';
 
+/**
+ * Indicates the Time To First Media (TTFM). It is measured in milliseconds
+ * relative to the beginning of the document's lifetime (i.e. the origin used
+ * by window.performance.now()), and it excludes the following:
+ * 1. The delay due to getUserMedia()
+ * 2. The period between the MUC being joined and the reception of the Jingle
+ * session-initiate from jicofo. This is because jicofo will not start a Jingle
+ * session until there are at least 2 participants in the room.
+ *
+ * Properties:
+ *      mediaType: the media type of the local track ('audio' or 'video').
+ *      muted: whether the track has ever been muted (?)
+ *      value: the TTMF in milliseconds.
+ */
+export const TTFM = 'ttfm';
+
 
 // Treif:
 
@@ -104,19 +120,6 @@ export const TRACK_UNMUTED = 'track.unmuted';
  * xmpp.session-initiate (???)
  */
 export const _CONNECTION_TIMES_ = '';
-
-/**
- * TODO: document, reformat
- *
- * TTMF: Time To First Media
- *
- * Known full event names:
- * audio.ttfm
- * video.ttfm
- * audio.ttfm.muted
- * video.ttfm.muted
- */
-export const _TTFM_ = 'ttfm';
 
 /**
  * All average RTP stats are currently reported under 1 event name, but with
