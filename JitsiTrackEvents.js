@@ -33,7 +33,7 @@ export const TRACK_MUTE_CHANGED = 'track.trackMuteChanged';
 export const TRACK_VIDEOTYPE_CHANGED = 'track.videoTypeChanged';
 
 /**
- * Indicates that the track is no receiving any data without reason(the
- * stream was stopped, etc)
+ * Indicates that the track is not receiving any data even though we expect it
+ * to receive data (i.e. the stream is not stopped).
  */
 export const NO_DATA_FROM_SOURCE = 'track.no_data_from_source';

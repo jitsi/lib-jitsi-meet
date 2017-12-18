@@ -66,6 +66,25 @@ export const ICE_ESTABLISHMENT_DURATION_DIFF
  */
 export const ICE_STATE_CHANGED = 'ice.state.changed';
 
+/**
+ * Indicates that a local track was not able to read data from its source
+ * (a camera or a microphone).
+ *
+ * Properties:
+ *      mediaType: the media type of the local track ('audio' or 'video').
+ */
+export const NO_DATA_FROM_SOURCE = 'track.no.data.from.source';
+
+/**
+ * Indicates that a track was unmuted (?).
+ *
+ * Properties:
+ *      mediaType: the media type of the local track ('audio' or 'video').
+ *      type: the type of the track ('local' or 'remote').
+ *      value: ???
+ */
+export const TRACK_UNMUTED = 'track.unmuted';
+
 
 // Treif:
 
@@ -85,24 +104,6 @@ export const ICE_STATE_CHANGED = 'ice.state.changed';
  * xmpp.session-initiate (???)
  */
 export const _CONNECTION_TIMES_ = '';
-
-/**
- * TODO: document, reformat
- *
- * Known full event names:
- * audio.no_data_from_source
- * video.no_data_from_source
- */
-export const _NO_DATA_FROM_SOURCE = 'no_data_from_source';
-
-/**
- * TODO: document, reformat
- *
- * Known full event names:
- * audio.track_unmute
- * video.track_unmute
- */
-export const _TRACK_UNMUTE = 'track_unmute';
 
 /**
  * TODO: document, reformat

@@ -19,8 +19,8 @@ import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import VideoType from '../../service/RTC/VideoType';
 import {
-    _NO_DATA_FROM_SOURCE,
-    _TRACK_UNMUTE
+    NO_DATA_FROM_SOURCE as ANALYTICS_NO_DATA_FROM_SOURCE,
+    TRACK_UNMUTED
 } from '../../service/statistics/AnalyticsEvents';
 import Statistics from '../statistics/statistics';
 
@@ -203,8 +203,12 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     this._setHandler('track_unmute', () => {
                         this._clearNoDataFromSourceMuteResources();
                         Statistics.sendEventToAll(
-                            `${this.getType()}.${_TRACK_UNMUTE}`,
-                            { value: window.performance.now() - now });
+                            TRACK_UNMUTED,
+                            {
+                                mediaType: this.getType(),
+                                trackType: 'local',
+                                value: window.performance.now() - now
+                            });
                     });
                 }
             });
@@ -241,10 +245,13 @@ export default class JitsiLocalTrack extends JitsiTrack {
      */
     _fireNoDataFromSourceEvent() {
         this.emit(NO_DATA_FROM_SOURCE);
-        const eventName = `${this.getType()}.${_NO_DATA_FROM_SOURCE}`;
 
-        Statistics.analytics.sendEvent(eventName);
-        const log = { name: eventName };
+        Statistics.analytics.sendEvent(
+            ANALYTICS_NO_DATA_FROM_SOURCE,
+            {
+                mediaType: this.getType()
+            });
+        const log = { name: NO_DATA_FROM_SOURCE };
 
         if (this.isAudioTrack()) {
             log.isReceivingData = this._isReceivingData();
@@ -712,7 +719,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Detects camera issues on ended and mute events from MediaStreamTrack.
+     * Detects camera issues, i.e. returns true if we expect this track to be
+     * receiving data from its source, but it isn't receiving data.
      *
      * @returns {boolean} true if an issue is detected and false otherwise
      */
