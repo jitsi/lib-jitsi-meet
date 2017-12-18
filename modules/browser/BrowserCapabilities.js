@@ -80,7 +80,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * otherwise.
      */
     supportsVideoMuteOnConnInterrupted() {
-        return this.isChrome() || this.isElectron();
+        return this.isChrome() || this.isElectron() || this.isReactNative();
     }
 
     /**
