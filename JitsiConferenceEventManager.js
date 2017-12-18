@@ -2,14 +2,14 @@
 import { Strophe } from 'strophe.js';
 
 import {
-    _CONNECTION_TIMES_,
     BRIDGE_DOWN,
     CONFERENCE_ERROR_,
     CONNECTION_INTERRUPTED,
     CONNECTION_RESTORED,
     DATA_CHANNEL_OPEN,
     FOCUS_LEFT,
-    REMOTELY_MUTED
+    REMOTELY_MUTED,
+    createConnectionStageReachedEvent
 } from './service/statistics/AnalyticsEvents';
 import AuthenticationEvents
     from './service/authentication/AuthenticationEvents';
@@ -111,16 +111,20 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
             this.conference.isJvbConnectionInterrupted = false;
 
             Object.keys(chatRoom.connectionTimes).forEach(key => {
-                const value = chatRoom.connectionTimes[key];
-                const eventName = `conference.${_CONNECTION_TIMES_}${key}`;
+                const event
+                    = createConnectionStageReachedEvent(
+                        `conference.${key}`,
+                        { value: chatRoom.connectionTimes[key] });
 
-                Statistics.analytics.sendEvent(eventName, { value });
+                Statistics.analytics.sendEvent(event);
             });
             Object.keys(chatRoom.xmpp.connectionTimes).forEach(key => {
-                const value = chatRoom.xmpp.connectionTimes[key];
-                const eventName = `xmpp.${_CONNECTION_TIMES_}${key}`;
+                const event
+                    = createConnectionStageReachedEvent(
+                        `xmpp.${key}`,
+                        { value: chatRoom.xmpp.connectionTimes[key] });
 
-                Statistics.analytics.sendEvent(eventName, { value });
+                Statistics.analytics.sendEvent(event);
             });
         });
 

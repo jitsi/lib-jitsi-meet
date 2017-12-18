@@ -22,8 +22,73 @@
  * a string to the name of the event.
  */
 
+/**
+ * The constant which identifies an event of type "operational".
+ * @type {string}
+ */
+export const TYPE_OPERATIONAL = 'operational';
+
+/**
+ * The constant which identifies an event of type "page".
+ * @type {string}
+ */
+export const TYPE_PAGE = 'page';
+
+/**
+ * The constant which identifies an event of type "track".
+ * @type {string}
+ */
+export const TYPE_TRACK = 'track';
+
+/**
+ * The constant which identifies an event of type "ui".
+ * @type {string}
+ */
+export const TYPE_UI = 'ui';
 
 // Kosher:
+
+/**
+ * Creates an operational event which indicates that a particular connection
+ * stage was reached (i.e. the XMPP connection transitioned to the "connected"
+ * state).
+ *
+ * @param stage the stage which was reached
+ * @param attributes additional attributes for the event. This should be an
+ * object with a "value" property indicating a timestamp in milliseconds
+ * relative to the beginning of the document's lifetime.
+ *
+ */
+export const createConnectionStageReachedEvent = function(stage, attributes) {
+    const action = 'connection.stage.reached';
+
+    return {
+        action,
+        actionSubject: stage,
+        attributes,
+        source: action,
+        type: TYPE_OPERATIONAL
+    };
+};
+
+/**
+ * Creates an event which indicates the Time To First Media (TTFM).
+ * It is measured in milliseconds relative to the beginning of the document's
+ * lifetime (i.e. the origin used by window.performance.now()), and it excludes
+ * the following:
+ * 1. The delay due to getUserMedia()
+ * 2. The period between the MUC being joined and the reception of the Jingle
+ * session-initiate from jicofo. This is because jicofo will not start a Jingle
+ * session until there are at least 2 participants in the room.
+ *
+ * @param attributes the attributes to att the the event. Currently used fields:
+ *      mediaType: the media type of the local track ('audio' or 'video').
+ *      muted: whether the track has ever been muted (?)
+ *      value: the TTMF in milliseconds.
+ */
+export const createTtfmEvent = function(attributes) {
+    return createConnectionStageReachedEvent('ttfm', attributes);
+};
 
 /**
  * Indicates that the user of the application provided feedback in terms of a
@@ -94,41 +159,8 @@ export const NO_DATA_FROM_SOURCE = 'track.no.data.from.source';
  */
 export const TRACK_UNMUTED = 'track.unmuted';
 
-/**
- * Indicates the Time To First Media (TTFM). It is measured in milliseconds
- * relative to the beginning of the document's lifetime (i.e. the origin used
- * by window.performance.now()), and it excludes the following:
- * 1. The delay due to getUserMedia()
- * 2. The period between the MUC being joined and the reception of the Jingle
- * session-initiate from jicofo. This is because jicofo will not start a Jingle
- * session until there are at least 2 participants in the room.
- *
- * Properties:
- *      mediaType: the media type of the local track ('audio' or 'video').
- *      muted: whether the track has ever been muted (?)
- *      value: the TTMF in milliseconds.
- */
-export const TTFM = 'ttfm';
-
 
 // Treif:
-
-/**
- * Properties: value
- *
- * TODO: document, reformat
- *
- * Full event names (uncertain):
- * conference.muc.joined (???)
- * conference.sharingDesktop.start (???)
- * conference.sharingDesktop.stop (???)
- * xmpp.attached (???)
- * xmpp.attaching (???)
- * xmpp.connected (???)
- * xmpp.connecting (???)
- * xmpp.session-initiate (???)
- */
-export const _CONNECTION_TIMES_ = '';
 
 /**
  * All average RTP stats are currently reported under 1 event name, but with

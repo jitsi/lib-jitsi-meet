@@ -1,12 +1,13 @@
+import {
+    TYPE_OPERATIONAL,
+    TYPE_PAGE,
+    TYPE_TRACK,
+    TYPE_UI
+} from '../../service/statistics/AnalyticsEvents';
 import RTCBrowserType from '../RTC/RTCBrowserType';
 import Settings from '../settings/Settings';
 
 const MAX_CACHE_SIZE = 100;
-
-const TYPE_OPERATIONAL = 'operational';
-const TYPE_PAGE = 'page';
-const TYPE_TRACK = 'track';
-const TYPE_UI = 'ui';
 
 /**
  * This class provides an API to lib-jitsi-meet and its users for sending
@@ -139,20 +140,33 @@ class AnalyticsAdapter {
      * Sends an event with a given name and given properties. The event type
      * is set to "operational", and the required fields are all set to the given
      * event name.
-     * @param {String} eventName the name of the event
+     * @param {String|Object} eventName either a string to be used as the name
+     * of the event, or an event object. If an event object is passed, the
+     * properties parameters is ignored.
      * @param {Object} properties the properties/attributes to attach to the
-     * event.
+     * event, if eventName is a string.
      */
     sendEvent(eventName, properties = {}) {
-        const event = {
-            type: TYPE_OPERATIONAL,
-            action: eventName,
-            actionSubject: eventName,
-            source: eventName,
-            attributes: properties
-        };
+        let event;
 
-        this._sendEvent(event);
+        if (typeof eventName === 'string') {
+            event = {
+                type: TYPE_OPERATIONAL,
+                action: eventName,
+                actionSubject: eventName,
+                source: eventName,
+                attributes: properties
+            };
+        } else if (typeof eventName === 'object') {
+            event = eventName;
+        } else {
+            // Error
+            event = null;
+        }
+
+        if (event) {
+            this._sendEvent(event);
+        }
     }
 
     /**
