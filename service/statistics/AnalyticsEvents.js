@@ -127,6 +127,17 @@ export const createNoDataFromSourceEvent = function(mediaType) {
 };
 
 /**
+ * Indicates that we received a remote command to mute.
+ */
+export const createRemotelyMutedEvent = function() {
+    return {
+        type: TYPE_OPERATIONAL,
+        action: 'remotely.muted',
+        source: SOURCE_SPORADIC
+    };
+};
+
+/**
  * Creates an event which indicates the Time To First Media (TTFM).
  * It is measured in milliseconds relative to the beginning of the document's
  * lifetime (i.e. the origin used by window.performance.now()), and it excludes
@@ -440,13 +451,6 @@ export const P2P_FAILED = 'p2p.failed';
  * TODO: document
  */
 export const P2P_SWITCH_TO_JVB = 'p2p.switch_to_jvb';
-
-/**
- * Properties: none
- *
- * TODO: document
- */
-export const REMOTELY_MUTED = 'conference.remotelyMuted';
 
 /**
  * Properties: value

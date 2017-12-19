@@ -5,10 +5,10 @@ import {
     CONFERENCE_ERROR_,
     CONNECTION_INTERRUPTED,
     CONNECTION_RESTORED,
-    REMOTELY_MUTED,
     createBridgeDownEvent,
     createConnectionStageReachedEvent,
-    createFocusLeftEvent
+    createFocusLeftEvent,
+    createRemotelyMutedEvent
 } from './service/statistics/AnalyticsEvents';
 import AuthenticationEvents
     from './service/authentication/AuthenticationEvents';
@@ -85,7 +85,10 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     chatRoom.addListener(XMPPEvents.AUDIO_MUTED_BY_FOCUS,
         () => {
-            Statistics.analytics.sendEvent(REMOTELY_MUTED);
+            // TODO: Add a way to differentiate between commands which caused
+            // us to mute and those that did not change our state (i.e. we were
+            // already muted).
+            Statistics.analytics.sendEvent(createRemotelyMutedEvent());
 
             // set isMutedByFocus when setAudioMute Promise ends
             conference.rtc.setAudioMute(true).then(
