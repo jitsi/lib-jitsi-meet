@@ -1,9 +1,6 @@
 import EventEmitter from 'events';
 
-import {
-    FEEDBACK,
-    ICE_FAILED
-} from '../../service/statistics/AnalyticsEvents';
+import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
 import analytics from './AnalyticsAdapter';
 import CallStats from './CallStats';
 import LocalStats from './LocalStatsCollector';
@@ -469,7 +466,6 @@ Statistics.prototype.sendIceConnectionFailedEvent = function(tpc) {
     if (instance) {
         instance.sendIceConnectionFailedEvent();
     }
-    Statistics.analytics.sendEvent(ICE_FAILED);
 };
 
 /**

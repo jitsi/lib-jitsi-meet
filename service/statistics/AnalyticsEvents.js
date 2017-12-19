@@ -293,7 +293,6 @@ export const CONNECTION_RESTORED = 'connection.restored';
  */
 export const DEVICE_LIST = 'devices.deviceList';
 
-
 /**
  * Properties: none
  *
@@ -402,14 +401,6 @@ export const GET_USER_MEDIA_SUCCESS_ = 'getUserMedia.success';
  * TODO: document, reformat
  */
 export const GET_USER_MEDIA_USER_CANCEL_ = 'getUserMedia.userCancel';
-
-/**
- * Properties: none
- *
- * TODO: document
- * TODO: do we need this in addition to _ICE_CONNECTION_STATE?
- */
-export const ICE_FAILED = 'connection.ice_failed';
 
 /**
  * Properties: none
