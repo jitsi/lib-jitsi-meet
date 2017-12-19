@@ -6,10 +6,10 @@ import {
     CONNECTION_INTERRUPTED,
     CONNECTION_RESTORED,
     DATA_CHANNEL_OPEN,
-    FOCUS_LEFT,
     REMOTELY_MUTED,
     createBridgeDownEvent,
-    createConnectionStageReachedEvent
+    createConnectionStageReachedEvent,
+    createFocusLeftEvent
 } from './service/statistics/AnalyticsEvents';
 import AuthenticationEvents
     from './service/authentication/AuthenticationEvents';
@@ -194,7 +194,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     chatRoom.addListener(XMPPEvents.FOCUS_LEFT,
         () => {
-            Statistics.analytics.sendEvent(FOCUS_LEFT);
+            Statistics.analytics.sendEvent(createFocusLeftEvent());
             conference.eventEmitter.emit(
                 JitsiConferenceEvents.CONFERENCE_FAILED,
                 JitsiConferenceErrors.FOCUS_LEFT);

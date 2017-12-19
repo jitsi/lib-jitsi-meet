@@ -97,6 +97,20 @@ export const createConnectionStageReachedEvent = function(stage, attributes) {
 };
 
 /**
+ * Creates an event which indicates that the focus has left the MUC.
+ */
+export const createFocusLeftEvent = function() {
+    const action = 'focus.left';
+
+    return {
+        action,
+        actionSubject: action,
+        source: SOURCE_SPORADIC,
+        type: TYPE_OPERATIONAL
+    };
+};
+
+/**
  * Creates an event which indicates that a local track was not able to read
  * data from its source (a camera or a microphone).
  *
@@ -296,13 +310,6 @@ export const DATA_CHANNEL_OPEN = 'conference.dataChannel.open';
  */
 export const DEVICE_LIST = 'devices.deviceList';
 
-
-/**
- * Properties: none
- *
- * TODO: document
- */
-export const FOCUS_LEFT = 'conference.focusLeft';
 
 /**
  * Properties: none
