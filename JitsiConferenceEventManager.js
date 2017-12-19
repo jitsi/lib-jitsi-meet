@@ -5,7 +5,6 @@ import {
     CONFERENCE_ERROR_,
     CONNECTION_INTERRUPTED,
     CONNECTION_RESTORED,
-    DATA_CHANNEL_OPEN,
     REMOTELY_MUTED,
     createBridgeDownEvent,
     createConnectionStageReachedEvent,
@@ -110,6 +109,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         () => {
             this.conference.isJvbConnectionInterrupted = false;
 
+            // TODO: Move all of the 'connectionTimes' logic to its own module.
             Object.keys(chatRoom.connectionTimes).forEach(key => {
                 const event
                     = createConnectionStageReachedEvent(
@@ -118,6 +118,8 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
                 Statistics.analytics.sendEvent(event);
             });
+
+            // TODO: Move all of the 'connectionTimes' logic to its own module.
             Object.keys(chatRoom.xmpp.connectionTimes).forEach(key => {
                 const event
                     = createConnectionStageReachedEvent(
@@ -478,10 +480,13 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
 
     rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, () => {
         const now = window.performance.now();
+        const key = 'data.channel.opened';
 
-        logger.log('(TIME) data channel opened ', now);
-        conference.room.connectionTimes['data.channel.opened'] = now;
-        Statistics.analytics.sendEvent(DATA_CHANNEL_OPEN, { value: now });
+        // TODO: Move all of the 'connectionTimes' logic to its own module.
+        logger.log(`(TIME) ${key}`, now);
+        conference.room.connectionTimes[key] = now;
+        Statistics.analytics.sendEvent(
+            createConnectionStageReachedEvent(key, { value: now }));
 
         conference.eventEmitter.emit(JitsiConferenceEvents.DATA_CHANNEL_OPENED);
     });

@@ -196,15 +196,6 @@ export const ICE_ESTABLISHMENT_DURATION_DIFF
 export const ICE_STATE_CHANGED = 'ice.state.changed';
 
 /**
- * Indicates that a local track was not able to read data from its source
- * (a camera or a microphone).
- *
- * Properties:
- *      mediaType: the media type of the local track ('audio' or 'video').
- */
-export const NO_DATA_FROM_SOURCE = 'track.no.data.from.source';
-
-/**
  * Indicates that a track was unmuted (?).
  *
  * Properties:
@@ -296,14 +287,6 @@ export const CONNECTION_FAILED_ = 'connection.failed';
  * TODO: document
  */
 export const CONNECTION_RESTORED = 'connection.restored';
-
-/**
- * Properties: value
- *
- * TODO: document, deprecate (is it the same as the one which is part of
- * CONNECTION_TIMES?)
- */
-export const DATA_CHANNEL_OPEN = 'conference.dataChannel.open';
 
 /**
  * TODO: document, reformat
