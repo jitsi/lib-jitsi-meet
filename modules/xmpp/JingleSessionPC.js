@@ -241,7 +241,7 @@ export default class JingleSessionPC extends JingleSession {
         this.lasticecandidate = false;
 
         // True if reconnect is in progress
-        this.isreconnect = false;
+        this.isReconnect = false;
 
         // Set to true if the connection was ever stable
         this.wasstable = false;
@@ -393,7 +393,7 @@ export default class JingleSessionPC extends JingleSession {
                 // Informs interested parties that the connection has been
                 // restored.
                 if (this.peerconnection.signalingState === 'stable') {
-                    if (this.isreconnect) {
+                    if (this.isReconnect) {
                         this.room.eventEmitter.emit(
                             XMPPEvents.CONNECTION_RESTORED, this);
                     }
@@ -433,13 +433,13 @@ export default class JingleSessionPC extends JingleSession {
                     this.room.eventEmitter.emit(
                         XMPPEvents.CONNECTION_ESTABLISHED, this);
                 }
-                this.isreconnect = false;
+                this.isReconnect = false;
                 break;
             case 'disconnected':
                 if (this.closed) {
                     break;
                 }
-                this.isreconnect = true;
+                this.isReconnect = true;
 
                 // Informs interested parties that the connection has been
                 // interrupted.
