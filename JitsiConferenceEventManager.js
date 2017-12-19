@@ -2,13 +2,13 @@
 import { Strophe } from 'strophe.js';
 
 import {
-    BRIDGE_DOWN,
     CONFERENCE_ERROR_,
     CONNECTION_INTERRUPTED,
     CONNECTION_RESTORED,
     DATA_CHANNEL_OPEN,
     FOCUS_LEFT,
     REMOTELY_MUTED,
+    createBridgeDownEvent,
     createConnectionStageReachedEvent
 } from './service/statistics/AnalyticsEvents';
 import AuthenticationEvents
@@ -156,7 +156,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         JitsiConferenceErrors.VIDEOBRIDGE_NOT_AVAILABLE);
     chatRoom.addListener(
         XMPPEvents.BRIDGE_DOWN,
-        () => Statistics.analytics.sendEvent(BRIDGE_DOWN));
+        () => Statistics.analytics.sendEvent(createBridgeDownEvent()));
 
     this.chatRoomForwarder.forward(XMPPEvents.RESERVATION_ERROR,
         JitsiConferenceEvents.CONFERENCE_FAILED,

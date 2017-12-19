@@ -19,8 +19,8 @@ import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import VideoType from '../../service/RTC/VideoType';
 import {
-    NO_DATA_FROM_SOURCE as ANALYTICS_NO_DATA_FROM_SOURCE,
-    TRACK_UNMUTED
+    TRACK_UNMUTED,
+    createNoDataFromSourceEvent
 } from '../../service/statistics/AnalyticsEvents';
 import Statistics from '../statistics/statistics';
 
@@ -247,10 +247,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this.emit(NO_DATA_FROM_SOURCE);
 
         Statistics.analytics.sendEvent(
-            ANALYTICS_NO_DATA_FROM_SOURCE,
-            {
-                mediaType: this.getType()
-            });
+            createNoDataFromSourceEvent(this.getType()));
         const log = { name: NO_DATA_FROM_SOURCE };
 
         if (this.isAudioTrack()) {

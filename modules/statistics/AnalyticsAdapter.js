@@ -159,6 +159,11 @@ class AnalyticsAdapter {
             };
         } else if (typeof eventName === 'object') {
             event = eventName;
+            if (!AnalyticsAdapter._verifyRequiredFields(event)) {
+                event = null;
+
+                // Error
+            }
         } else {
             // Error
             event = null;

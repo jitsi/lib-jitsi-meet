@@ -46,7 +46,32 @@ export const TYPE_TRACK = 'track';
  */
 export const TYPE_UI = 'ui';
 
+/**
+ * Events with source 'sporadic' are sent from various places in the code, and
+ * indicate things which happen any action from the user. These events do not
+ * happen in every conference, and do not happen periodically. They are grouped
+ * together by this value for the 'source' attribute, because they may be of
+ * interest when looking for events in a particular conference.
+ * @type {string}
+ */
+const SOURCE_SPORADIC = 'sporadic';
+
 // Kosher:
+
+/**
+ * Creates an operational event which indicates that we have received a
+ * "bridge down" event from jicofo.
+ */
+export const createBridgeDownEvent = function() {
+    const bridgeDown = 'bridge.down';
+
+    return {
+        action: bridgeDown,
+        actionSubject: bridgeDown,
+        source: SOURCE_SPORADIC,
+        type: TYPE_OPERATIONAL
+    };
+};
 
 /**
  * Creates an operational event which indicates that a particular connection
@@ -67,6 +92,22 @@ export const createConnectionStageReachedEvent = function(stage, attributes) {
         actionSubject: stage,
         attributes,
         source: action,
+        type: TYPE_OPERATIONAL
+    };
+};
+
+/**
+ * Creates an event which indicates that a local track was not able to read
+ * data from its source (a camera or a microphone).
+ *
+ * @param mediaType {String} the media type of the local track ('audio' or
+ * 'video').
+ */
+export const createNoDataFromSourceEvent = function(mediaType) {
+    return {
+        attributes: { mediaType },
+        name: 'track.no.data.from.source',
+        source: SOURCE_SPORADIC,
         type: TYPE_OPERATIONAL
     };
 };
@@ -195,13 +236,6 @@ export const TRACK_UNMUTED = 'track.unmuted';
  * from the main stats pipe.
  */
 export const AVG_RTP_STATS = 'avg.rtp.stats';
-
-/**
- * Properties: none
- *
- * TODO: document, deprecate?
- */
-export const BRIDGE_DOWN = 'conference.bridgeDown';
 
 /**
  * Properties: none
