@@ -54,6 +54,7 @@ export const CONNECTION_INTERRUPTED = 'conference.connectionInterrupted';
 
 /**
  * Indicates that the connection to the conference has been restored.
+ * XXX This is currently fired when the *ICE* connection is restored.
  */
 export const CONNECTION_RESTORED = 'conference.connectionRestored';
 

@@ -240,6 +240,9 @@ export const ICE_ESTABLISHMENT_DURATION_DIFF
  *          window.performance.now()) that the state change occurred.
  *      p2p: whether the associated ICE connection is p2p or towards a
  *          jitsi-videobridge
+ *      signalingState: The signaling state of the associated PeerConnection
+ *      reconnect: whether the associated Jingle session is in the process of
+ *          reconnecting (or is it ICE???).
  */
 export const ICE_STATE_CHANGED = 'ice.state.changed';
 
@@ -310,13 +313,6 @@ export const CONNECTION_DISCONNECTED_ = 'connection.disconnected';
  * TODO: document, reformat
  */
 export const CONNECTION_FAILED_ = 'connection.failed';
-
-/**
- * Properties: none
- *
- * TODO: document
- */
-export const CONNECTION_RESTORED = 'connection.restored';
 
 /**
  * Properties: none

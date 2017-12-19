@@ -378,6 +378,8 @@ export default class JingleSessionPC extends JingleSession {
                 {
                     p2p: this.isP2P,
                     state: this.peerconnection.iceConnectionState,
+                    signalingState: this.peerconnection.signalingState,
+                    reconnect: this.isReconnect,
                     value: now
                 });
 

@@ -2105,10 +2105,6 @@ JitsiConference.prototype._onIceConnectionRestored = function(session) {
     } else {
         this.isJvbConnectionInterrupted = false;
     }
-
-    if (session.isP2P === this.isP2PActive()) {
-        this.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_RESTORED);
-    }
 };
 
 /**
