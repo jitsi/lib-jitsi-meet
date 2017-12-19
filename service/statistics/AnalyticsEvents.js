@@ -293,13 +293,6 @@ export const AVG_RTP_STATS = 'avg.rtp.stats';
 /**
  * Properties: none
  *
- * TODO: document
- */
-export const CONNECTION_INTERRUPTED = 'connection.interrupted';
-
-/**
- * Properties: none
- *
  * Known full event names: NONE
  *
  * TODO: document, reformat?, deprecate?

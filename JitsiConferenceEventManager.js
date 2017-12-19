@@ -2,7 +2,6 @@
 import { Strophe } from 'strophe.js';
 
 import {
-    CONNECTION_INTERRUPTED,
     CONNECTION_RESTORED,
     createBridgeDownEvent,
     createConnectionStageReachedEvent,
@@ -50,10 +49,6 @@ export default function JitsiConferenceEventManager(conference) {
                 track.isMuted(),
                 track.getType());
         });
-    conference.on(
-        JitsiConferenceEvents.CONNECTION_INTERRUPTED,
-        Statistics.sendEventToAll.bind(
-            Statistics, CONNECTION_INTERRUPTED));
     conference.on(
         JitsiConferenceEvents.CONNECTION_RESTORED,
         Statistics.sendEventToAll.bind(
