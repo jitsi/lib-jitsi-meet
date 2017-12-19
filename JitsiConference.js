@@ -3,9 +3,7 @@ import { Strophe } from 'strophe.js';
 
 import {
     ICE_ESTABLISHMENT_DURATION_DIFF,
-    SESSION_INITIATE,
-    SESSION_RESTART,
-    SESSION_TERMINATE,
+    createJingleEvent,
     createP2pEvent
 } from './service/statistics/AnalyticsEvents';
 import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
@@ -1451,14 +1449,14 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
 
     // Log "session.restart"
     if (this.wasStopped) {
-        Statistics.sendEventToAll(SESSION_RESTART);
+        Statistics.sendEventToAll(createJingleEvent('restart'));
     }
 
-    Statistics.analytics.sendEvent(
-        SESSION_INITIATE,
+    Statistics.analytics.sendEvent(createJingleEvent(
+        'session-initiate.received',
         {
-            value: now - this.room.connectionTimes['muc.joined']
-        });
+            value: now
+        }));
     try {
         jingleSession.initialize(false /* initiator */, this.room, this.rtc);
     } catch (error) {
@@ -1583,6 +1581,8 @@ JitsiConference.prototype._rejectIncomingCall = function(
 
 /**
  * Handles the call ended event.
+ * XXX is this due to the remote side terminating the Jingle session?
+ *
  * @param {JingleSessionPC} jingleSession the jingle session which has been
  * terminated.
  * @param {String} reasonCondition the Jingle reason condition.
@@ -1599,7 +1599,10 @@ JitsiConference.prototype.onCallEnded = function(
     if (jingleSession === this.jvbJingleSession) {
         this.wasStopped = true;
 
-        Statistics.sendEventToAll(SESSION_TERMINATE);
+        const event = createJingleEvent('terminate');
+
+        Statistics.sendLog(JSON.stringify(event));
+        Statistics.analytics.sendEvent(event);
 
         // Stop the stats
         if (this.statistics) {

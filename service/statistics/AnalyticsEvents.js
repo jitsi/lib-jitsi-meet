@@ -111,6 +111,20 @@ export const createFocusLeftEvent = function() {
 };
 
 /**
+ * Creates an event for a p2p-related event.
+ * @param name the name of the event, to which "p2p." will be prepended.
+ * @param attributes attributes to add to the event.
+ */
+export const createJingleEvent = function(name, attributes = {}) {
+    return {
+        type: TYPE_OPERATIONAL,
+        action: `jingle.${name}`,
+        source: 'jingle',
+        attributes
+    };
+};
+
+/**
  * Creates an event which indicates that a local track was not able to read
  * data from its source (a camera or a microphone).
  *
@@ -131,7 +145,7 @@ export const createNoDataFromSourceEvent = function(mediaType) {
  * @param name the name of the event, to which "p2p." will be prepended.
  * @param attributes attributes to add to the event.
  */
-export const createP2pEvent = function(name, attributes) {
+export const createP2pEvent = function(name, attributes = {}) {
     return {
         type: TYPE_OPERATIONAL,
         action: `p2p.${name}`,
@@ -436,49 +450,3 @@ export const GET_USER_MEDIA_SUCCESS_ = 'getUserMedia.success';
  * TODO: document, reformat
  */
 export const GET_USER_MEDIA_USER_CANCEL_ = 'getUserMedia.userCancel';
-
-/**
- * Properties: value
- *
- * TODO: document
- *
- * The "value" property contains the delay in milliseconds between joining
- * the MUC and receiving a Jingle session-initiate from Jicofo (but not
- * P2P).
- */
-export const SESSION_INITIATE = 'session.initiate';
-
-/**
- * Properties: value
- *
- * TODO: document
- */
-export const SESSION_INITIATE_RECEIVED = 'xmpp.session-initiate';
-
-/**
- * Properties: none
- *
- * TODO: document
- */
-export const SESSION_TERMINATE = 'session.terminate';
-
-/**
- * Properties: none
- *
- * TODO: document
- */
-export const SESSION_RESTART = 'session.restart';
-
-/**
- * Properties: value
- *
- * TODO: document
- */
-export const TRANSPORT_REPLACE_START = 'xmpp.transport-replace.start';
-
-/**
- * Properties: value
- *
- * TODO: document
- */
-export const TRANSPORT_REPLACE_SUCCESS = 'xmpp.transport-replace.success';
