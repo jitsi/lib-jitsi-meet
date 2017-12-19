@@ -127,6 +127,20 @@ export const createNoDataFromSourceEvent = function(mediaType) {
 };
 
 /**
+ * Creates an event for a p2p-related event.
+ * @param name the name of the event, to which "p2p." will be prepended.
+ * @param attributes attributes to add to the event.
+ */
+export const createP2pEvent = function(name, attributes) {
+    return {
+        type: TYPE_OPERATIONAL,
+        action: `p2p.${name}`,
+        source: 'p2p',
+        attributes
+    };
+};
+
+/**
  * Indicates that we received a remote command to mute.
  */
 export const createRemotelyMutedEvent = function() {
@@ -422,27 +436,6 @@ export const GET_USER_MEDIA_SUCCESS_ = 'getUserMedia.success';
  * TODO: document, reformat
  */
 export const GET_USER_MEDIA_USER_CANCEL_ = 'getUserMedia.userCancel';
-
-/**
- * Properties: none
- *
- * TODO: document
- */
-export const P2P_ESTABLISHED = 'p2p.established';
-
-/**
- * Properties: none
- *
- * TODO: document
- */
-export const P2P_FAILED = 'p2p.failed';
-
-/**
- * Properties: none
- *
- * TODO: document
- */
-export const P2P_SWITCH_TO_JVB = 'p2p.switch_to_jvb';
 
 /**
  * Properties: value
