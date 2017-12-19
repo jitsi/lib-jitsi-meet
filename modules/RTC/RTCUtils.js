@@ -9,7 +9,7 @@
           webkitRTCPeerConnection,
           webkitURL
 */
-import { DEVICE_LIST } from '../../service/statistics/AnalyticsEvents';
+import { AVAILABLE_DEVICE } from '../../service/statistics/AnalyticsEvents';
 import CameraFacingMode from '../../service/RTC/CameraFacingMode';
 import EventEmitter from 'events';
 import { getLogger } from 'jitsi-meet-logger';
@@ -547,19 +547,29 @@ function pollForAvailableMediaDevices() {
  * @returns {void}
  */
 function sendDeviceListToAnalytics(deviceList) {
-    const devicesPropsArray
-        = deviceList.map(
-            ({ deviceId, groupId, kind, label }) => {
-                // Filter the props of the device object.
-                return {
-                    deviceId,
-                    groupId,
-                    kind,
-                    label
-                };
-            });
+    const audioInputDeviceCount
+        = deviceList.filter(d => d.kind === 'audioinput').length;
+    const audioOutputDeviceCount
+        = deviceList.filter(d => d.kind === 'audiooutput').length;
+    const videoInputDeviceCount
+        = deviceList.filter(d => d.kind === 'videoinput').length;
+    const videoOutputDeviceCount
+        = deviceList.filter(d => d.kind === 'videooutput').length;
 
-    Statistics.analytics.sendEvent(DEVICE_LIST, { devices: devicesPropsArray });
+    deviceList.forEach(device => {
+        const eventProperties = {
+            audioInputDeviceCount,
+            audioOutputDeviceCount,
+            videoInputDeviceCount,
+            videoOutputDeviceCount,
+            deviceId: device.deviceId,
+            deviceGroupId: device.groupId,
+            deviceKind: device.kind,
+            deviceLabel: device.label
+        };
+
+        Statistics.analytics.sendEvent(AVAILABLE_DEVICE, eventProperties);
+    });
 }
 
 /**

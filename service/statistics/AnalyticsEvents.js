@@ -146,6 +146,29 @@ export const createTtfmEvent = function(attributes) {
 };
 
 /**
+ * The name of an event which indicates an available device. We send one such
+ * event per available device once when the available devices are first known,
+ * and every time that they change
+ * @type {string}
+ *
+ * Properties:
+ *      audioInputDeviceCount: the number of audio input devices available at
+ *          the time the event was sent.
+ *      audioOutputDeviceCount: the number of audio output devices available at
+ *          the time the event was sent.
+ *      videoInputDeviceCount: the number of video input devices available at
+ *          the time the event was sent.
+ *      videoOutputDeviceCount: the number of video output devices available at
+ *          the time the event was sent.
+ *      deviceId: an identifier of the device described in this event.
+ *      deviceGroupId:
+ *      deviceKind: one of 'audioinput', 'audiooutput', 'videoinput' or
+ *          'videooutput'.
+ *      deviceLabel: a string which describes the device.
+ */
+export const AVAILABLE_DEVICE = 'available.device';
+
+/**
  * Indicates that the user of the application provided feedback in terms of a
  * rating (an integer from 1 to 5) and an optional comment.
  * Properties:
@@ -287,11 +310,6 @@ export const CONNECTION_FAILED_ = 'connection.failed';
  * TODO: document
  */
 export const CONNECTION_RESTORED = 'connection.restored';
-
-/**
- * TODO: document, reformat
- */
-export const DEVICE_LIST = 'devices.deviceList';
 
 /**
  * Properties: none
