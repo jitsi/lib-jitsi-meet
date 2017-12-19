@@ -84,11 +84,11 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     });
 
     chatRoom.addListener(XMPPEvents.AUDIO_MUTED_BY_FOCUS,
-        value => {
+        () => {
             Statistics.analytics.sendEvent(REMOTELY_MUTED);
 
             // set isMutedByFocus when setAudioMute Promise ends
-            conference.rtc.setAudioMute(value).then(
+            conference.rtc.setAudioMute(true).then(
                 () => {
                     conference.isMutedByFocus = true;
                 },
