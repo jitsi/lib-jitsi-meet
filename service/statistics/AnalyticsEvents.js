@@ -138,6 +138,20 @@ export const createRemotelyMutedEvent = function() {
 };
 
 /**
+ * Creates an event which indicates that a timeout was reached for a Jingle
+ * session.
+ * @param p2p whether the Jingle session is peer-to-peer or with Jicofo.
+ */
+export const createSessionAcceptTimeoutEvent = function(p2p) {
+    return {
+        type: TYPE_OPERATIONAL,
+        action: 'session.accept.timeout',
+        source: 'jingle',
+        attributes: { p2p }
+    };
+};
+
+/**
  * Creates an event which indicates the Time To First Media (TTFM).
  * It is measured in milliseconds relative to the beginning of the document's
  * lifetime (i.e. the origin used by window.performance.now()), and it excludes
@@ -275,17 +289,6 @@ export const TRACK_UNMUTED = 'track.unmuted';
  * from the main stats pipe.
  */
 export const AVG_RTP_STATS = 'avg.rtp.stats';
-
-/**
- * Properties: none
- *
- * Known full event names:
- * conference.error.p2pSessionAcceptTimeout
- * conference.error.sessionAcceptTimeout
- *
- * TODO: document, reformat
- */
-export const CONFERENCE_ERROR_ = 'conference.error';
 
 /**
  * Properties: none

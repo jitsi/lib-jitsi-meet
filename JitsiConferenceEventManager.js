@@ -2,13 +2,13 @@
 import { Strophe } from 'strophe.js';
 
 import {
-    CONFERENCE_ERROR_,
     CONNECTION_INTERRUPTED,
     CONNECTION_RESTORED,
     createBridgeDownEvent,
     createConnectionStageReachedEvent,
     createFocusLeftEvent,
-    createRemotelyMutedEvent
+    createRemotelyMutedEvent,
+    createSessionAcceptTimeoutEvent
 } from './service/statistics/AnalyticsEvents';
 import AuthenticationEvents
     from './service/authentication/AuthenticationEvents';
@@ -205,14 +205,12 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
                 JitsiConferenceErrors.FOCUS_LEFT);
         });
 
-    const eventLogHandler
-        = reason => Statistics.sendEventToAll(`${CONFERENCE_ERROR_}.${reason}`);
-
     chatRoom.addListener(XMPPEvents.SESSION_ACCEPT_TIMEOUT,
         jingleSession => {
-            eventLogHandler(
-                jingleSession.isP2P
-                    ? 'p2pSessionAcceptTimeout' : 'sessionAcceptTimeout');
+            const event = createSessionAcceptTimeoutEvent(jingleSession.isP2P);
+
+            Statistics.sendLog(JSON.stringify(event));
+            Statistics.analytics.sendEvent(event);
         });
 
     this.chatRoomForwarder.forward(XMPPEvents.RECORDER_STATE_CHANGED,
