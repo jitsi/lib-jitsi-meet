@@ -1,12 +1,6 @@
 /* global __filename */
 
-import {
-    GET_USER_MEDIA_DEVICE_NOT_FOUND_,
-    GET_USER_MEDIA_FAIL_,
-    GET_USER_MEDIA_FAILED_,
-    GET_USER_MEDIA_SUCCESS_,
-    GET_USER_MEDIA_USER_CANCEL_
-} from './service/statistics/AnalyticsEvents';
+import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
 import AuthUtil from './modules/util/AuthUtil';
 import * as ConnectionQualityEvents
     from './service/connectivity/ConnectionQualityEvents';
@@ -69,28 +63,29 @@ function getLowerResolution(resolution) {
 }
 
 /**
- * Checks the available devices in options and concatenate the data to the
- * name, which will be used as analytics event name. Adds resolution for the
- * devices.
- * @param name name of event
- * @param options gum options
- * @returns {*}
+ * Extracts from an 'options' objects with a specific format
+ * (TODO what IS the format?) the attributes which are to be logged in analytics
+ * events.
+ *
+ * @param options gum options (???)
+ * @returns {*} the attributes to attach to analytics events.
  */
-function addDeviceTypeToAnalyticsEvent(name, options) {
-    let ret = name;
+function getAnalyticsAttributesFromOptions(options) {
+    const attributes = {
+        audioRequested:
+            options.devices.indexOf('audio') !== -1,
+        videoRequested:
+            options.devices.indexOf('audio') !== -1,
+        screenSharingRequested:
+            options.devices.indexOf('desktop') !== -1
+    };
 
-    if (options.devices.indexOf('audio') !== -1) {
-        ret += '.audio';
-    }
-    if (options.devices.indexOf('desktop') !== -1) {
-        ret += '.desktop';
-    }
     if (options.devices.indexOf('video') !== -1) {
         // we have video add resolution
-        ret += `.video.${options.resolution}`;
+        attributes.resolution = options.resolution;
     }
 
-    return ret;
+    return attributes;
 }
 
 /**
@@ -283,9 +278,8 @@ export default {
                     = window.performance.now();
 
                 Statistics.analytics.sendEvent(
-                    addDeviceTypeToAnalyticsEvent(
-                        GET_USER_MEDIA_SUCCESS_, options),
-                    { value: options });
+                    createGetUserMediaEvent(
+                        'success', getAnalyticsAttributesFromOptions(options)));
 
                 if (!RTC.options.disableAudioLevels) {
                     for (let i = 0; i < tracks.length; i++) {
@@ -335,15 +329,19 @@ export default {
                             newResolution);
 
                         Statistics.analytics.sendEvent(
-                            `${GET_USER_MEDIA_FAIL_}.resolution.${
-                                oldResolution}`);
+                            'warning',
+                            {
+                                oldResolution,
+                                newResolution,
+                                reason: 'unsupported resolution'
+                            });
 
                         return this.createLocalTracks(options);
                     }
                 }
 
-                if (JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED
-                        === error.name) {
+                if (error.name
+                        === JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED) {
                     // User cancelled action is not really an error, so only
                     // log it as an event to avoid having conference classified
                     // as partially failed
@@ -353,9 +351,14 @@ export default {
                     };
 
                     Statistics.sendLog(JSON.stringify(logObject));
+
                     Statistics.analytics.sendEvent(
-                        `${GET_USER_MEDIA_USER_CANCEL_}.extensionInstall`);
-                } else if (JitsiTrackErrors.NOT_FOUND === error.name) {
+                        createGetUserMediaEvent(
+                            'warning',
+                            {
+                                reason: 'extension install user canceled'
+                            }));
+                } else if (error.name === JitsiTrackErrors.NOT_FOUND) {
                     // logs not found devices with just application log to cs
                     const logObject = {
                         id: 'usermedia_missing_device',
@@ -363,19 +366,26 @@ export default {
                     };
 
                     Statistics.sendLog(JSON.stringify(logObject));
+
+                    const attributes
+                        = getAnalyticsAttributesFromOptions(options);
+
+                    attributes.reason = 'device not found';
+                    attributes.devices = error.gum.devices.join('.');
                     Statistics.analytics.sendEvent(
-                        `${GET_USER_MEDIA_DEVICE_NOT_FOUND_}.${
-                            error.gum.devices.join('.')}`);
+                        createGetUserMediaEvent(
+                            'error', attributes));
                 } else {
                     // Report gUM failed to the stats
                     Statistics.sendGetUserMediaFailed(error);
-                    const eventName
-                        = addDeviceTypeToAnalyticsEvent(
-                            GET_USER_MEDIA_FAILED_, options);
 
+                    const attributes
+                        = getAnalyticsAttributesFromOptions(options);
+
+                    attributes.reason = error.name;
                     Statistics.analytics.sendEvent(
-                        `${eventName}.${error.name}`,
-                        { value: options });
+                        createGetUserMediaEvent(
+                            'error', attributes));
                 }
 
                 window.connectionTimes['obtainPermissions.end']

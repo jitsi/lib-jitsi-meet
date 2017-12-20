@@ -125,6 +125,23 @@ export const createFocusLeftEvent = function() {
 };
 
 /**
+ * Creates an event related to a getUserMedia call.
+ *
+ * @param resultType the type of the result that the event represents: 'error',
+ * 'success', 'warning', etc.
+ * @param attributes the attributes to attach to the event.
+ * @returns {{type: string, source: string, name: string}}
+ */
+export const createGetUserMediaEvent = function(resultType, attributes = {}) {
+    return {
+        type: TYPE_OPERATIONAL,
+        source: 'get.user.media',
+        name: `get.user.media.${resultType}`,
+        attributes
+    };
+};
+
+/**
  * Creates an event for a p2p-related event.
  * @param name the name of the event, to which "p2p." will be prepended.
  * @param attributes attributes to add to the event.
@@ -361,115 +378,3 @@ export const ICE_STATE_CHANGED = 'ice.state.changed';
  *      value: ???
  */
 export const TRACK_UNMUTED = 'track.unmuted';
-
-
-// Treif:
-
-/**
- * Properties: none
- *
- * Known full event names:
- * getUserMedia.deviceNotFound.audio
- * getUserMedia.deviceNotFound.audio.video
- * getUserMedia.deviceNotFound.video
- * getUserMedia.deviceNotFound.screen
- *
- * TODO: document, reformat, merge with GET_USER_MEDIA_FAILED?
- */
-export const GET_USER_MEDIA_DEVICE_NOT_FOUND_
-    = 'getUserMedia.deviceNotFound';
-
-/**
- * Properties: none
- *
- * Known full event names:
- * getUserMedia.fail.resolution.180
- * getUserMedia.fail.resolution.360
- * getUserMedia.fail.resolution.640
- * getUserMedia.fail.resolution.720
- * getUserMedia.fail.resolution.960
- *
- * TODO: reformat, merge with GET_USER_MEDIA_FAILED
- */
-export const GET_USER_MEDIA_FAIL_ = 'getUserMedia.fail';
-
-/**
- * Properties: value
- *
- * Known full event names:
- * getUserMedia.failed.Error
- * getUserMedia.failed.TypeError
- * getUserMedia.failed.audio.TypeError
- * getUserMedia.failed.audio.gum.general
- * getUserMedia.failed.audio.gum.permission_denied
- * getUserMedia.failed.audio.track.no_data_from_source
- * getUserMedia.failed.audio.video.180.gum.general
- * getUserMedia.failed.audio.video.360.gum.general
- * getUserMedia.failed.audio.video.360.gum.permission_denied
- * getUserMedia.failed.audio.video.360.track.no_data_from_source
- * getUserMedia.failed.audio.video.720.TypeError
- * getUserMedia.failed.audio.video.720.gum.constraint_failed
- * getUserMedia.failed.audio.video.720.gum.general
- * getUserMedia.failed.audio.video.720.gum.permission_denied
- * getUserMedia.failed.audio.video.720.track.no_data_from_source
- * getUserMedia.failed.audio.video.960.gum.permission_denied
- * getUserMedia.failed.audio.video.undefined.gum.general
- * getUserMedia.failed.desktop.TypeError
- * getUserMedia.failed.desktop.gum.chrome_extension_generic_error
- * getUserMedia.failed.desktop.gum.chrome_extension_installation_error
- * getUserMedia.failed.desktop.gum.chrome_extension_user_gesture_required
- * getUserMedia.failed.desktop.gum.general
- * getUserMedia.failed.desktop.track.no_data_from_source
- * getUserMedia.failed.gum.chrome_extension_generic_error
- * getUserMedia.failed.gum.chrome_extension_installation_error
- * getUserMedia.failed.gum.constraint_failed
- * getUserMedia.failed.gum.firefox_extension_needed
- * getUserMedia.failed.gum.general
- * getUserMedia.failed.gum.permission_denied
- * getUserMedia.failed.undefined
- * getUserMedia.failed.video.360.gum.permission_denied
- * getUserMedia.failed.video.720.TypeError
- * getUserMedia.failed.video.720.gum.constraint_failed
- * getUserMedia.failed.video.720.gum.general
- * getUserMedia.failed.video.720.gum.permission_denied
- * getUserMedia.failed.video.720.track.no_data_from_source
- * getUserMedia.failed.video.undefined.TypeError
- * getUserMedia.failed.video.undefined.gum.general
- * getUserMedia.failed.video.undefined.track.no_data_from_source
- *
- * TODO: reformat
- */
-export const GET_USER_MEDIA_FAILED_ = 'getUserMedia.failed';
-
-/**
- * Properties: value
- *
- * Known full event names:
- * getUserMedia.success
- * getUserMedia.success.audio
- * getUserMedia.success.audio.video.180
- * getUserMedia.success.audio.video.300
- * getUserMedia.success.audio.video.360
- * getUserMedia.success.audio.video.720
- * getUserMedia.success.audio.video.960
- * getUserMedia.success.audio.video.undefined
- * getUserMedia.success.desktop
- * getUserMedia.success.video.180
- * getUserMedia.success.video.360
- * getUserMedia.success.video.720
- * getUserMedia.success.video.960
- * getUserMedia.success.video.undefined
- *
- * TODO: document, reformat
- */
-export const GET_USER_MEDIA_SUCCESS_ = 'getUserMedia.success';
-
-/**
- * Properties: none
- *
- * Known full event names:
- * getUserMedia.userCancel.extensionInstall
- *
- * TODO: document, reformat
- */
-export const GET_USER_MEDIA_USER_CANCEL_ = 'getUserMedia.userCancel';
