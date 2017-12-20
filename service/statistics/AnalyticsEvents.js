@@ -166,6 +166,58 @@ export const createRemotelyMutedEvent = function() {
 };
 
 /**
+ * Creates an event which contains RTP statistics such as RTT and packet loss.
+ *
+ * All average RTP stats are currently reported under 1 event name, but with
+ * different properties that allows to distinguish between a P2P call, a
+ * call relayed through TURN or the JVB, and multiparty vs 1:1.
+ *
+ * The structure of the event is:
+ *
+ * {
+ *      p2p: true,
+ *      conferenceSize: 2,
+ *      localCandidateType: "relay",
+ *      remoteCandidateType: "relay",
+ *      transportType: "udp",
+ *
+ *      // Average RTT of 200ms
+ *      "rtt.avg": 200,
+ *      "rtt.samples": "[100, 200, 300]",
+ *
+ *      // Average packet loss of 10%
+ *      "packet.loss.avg": 10,
+ *      "packet.loss.samples": '[5, 10, 15]'
+ *
+ *      // Difference in milliseconds in the end-to-end RTT between p2p and jvb.
+ *      // The e2e RTT through jvb is 15ms shorter:
+ *      "rtt.diff": 15,
+ *
+ *      // End-to-end RTT through JVB is ms.
+ *      "end2end.rtt.avg" = 100
+ * }
+ *
+ * Note that the value of the "samples" properties are (JSON encoded) strings,
+ * and not JSON arrays, as events' attributes can not be nested. The samples are
+ * currently included for debug purposes only and can be removed anytime soon
+ * from the structure.
+ *
+ * Also note that not all of values are present in each event, as values are
+ * obtained and calculated as part of different process/event pipe. For example
+ * {@link ConnectionAvgStats} instances are doing the reports for each
+ * {@link TraceablePeerConnection} and work independently from the main stats
+ * pipe.
+ */
+export const createRtpStatsEvent = function(attributes) {
+    return {
+        type: TYPE_OPERATIONAL,
+        name: 'rtp.stats',
+        attributes
+    };
+};
+
+
+/**
  * Creates an event which indicates that a timeout was reached for a Jingle
  * session.
  * @param p2p whether the Jingle session is peer-to-peer or with Jicofo.
@@ -286,40 +338,6 @@ export const TRACK_UNMUTED = 'track.unmuted';
 
 
 // Treif:
-
-/**
- * All average RTP stats are currently reported under 1 event name, but with
- * different properties that allows to distinguish between a P2P call, a
- * call relayed through TURN or the JVB, and multiparty vs 1:1.
- * Example structure of an "avg.rtp.stats" analytics event:
- *
- * {
-     *   p2p: true,
-     *   conferenceSize: 2,
-     *   localCandidateType: "relay",
-     *   remoteCandidateType: "relay",
-     *   transportType: "udp",
-     *
-     *   "stat_avg_rtt": {
-     *     value: 200,
-     *     samples: [ 100, 200, 300 ]
-     *   },
-     *   "stat_avg_packetloss_total": {
-     *     value: 10,
-     *     samples: [ 5, 10, 15]
-     *   }
-     * }
- *
- * Note that the samples array is currently emitted for debug purposes only
- * and can be removed anytime soon from the structure.
- *
- * Also not all values are always present in "avg.rtp.stats", some of the
- * values are obtained and calculated as part of different process/event
- * pipe. For example {@link ConnectionAvgStats} instances are doing the
- * reports for each {@link TraceablePeerConnection} and work independently
- * from the main stats pipe.
- */
-export const AVG_RTP_STATS = 'avg.rtp.stats';
 
 /**
  * Properties: none
