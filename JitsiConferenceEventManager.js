@@ -5,8 +5,8 @@ import {
     createBridgeDownEvent,
     createConnectionStageReachedEvent,
     createFocusLeftEvent,
-    createRemotelyMutedEvent,
-    createSessionAcceptTimeoutEvent
+    createJingleEvent,
+    createRemotelyMutedEvent
 } from './service/statistics/AnalyticsEvents';
 import AuthenticationEvents
     from './service/authentication/AuthenticationEvents';
@@ -197,7 +197,10 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     chatRoom.addListener(XMPPEvents.SESSION_ACCEPT_TIMEOUT,
         jingleSession => {
-            const event = createSessionAcceptTimeoutEvent(jingleSession.isP2P);
+            const event
+                = createJingleEvent(
+                    'session.accept.timeout',
+                    { p2p: jingleSession.isP2P });
 
             Statistics.sendLog(JSON.stringify(event));
             Statistics.analytics.sendEvent(event);
