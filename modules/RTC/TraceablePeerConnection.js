@@ -2257,7 +2257,15 @@ TraceablePeerConnection.prototype.addIceCandidate = function(
         successCallback,
         failureCallback) {
     // var self = this;
-    this.trace('addIceCandidate', JSON.stringify(candidate, null, ' '));
+
+    // Calling JSON.stringify with temasys objects causes a stack overflow, so
+    // instead pick out values to log.
+    this.trace('addIceCandidate', JSON.stringify({
+        candidate: candidate.candidate,
+        sdpMid: candidate.sdpMid,
+        sdpMLineIndex: candidate.sdpMLineIndex,
+        usernameFragment: candidate.usernameFragment
+    }, null, ' '));
     this.peerconnection.addIceCandidate(
         candidate, successCallback, failureCallback);
 
