@@ -74,6 +74,20 @@ export const createBridgeDownEvent = function() {
 };
 
 /**
+ * Creates an event which indicates that the XMPP connection failed
+ * @param errorType ???
+ * @param errorMessage ???
+ */
+export const createConnectionFailedEvent = function(errorType, errorMessage) {
+    return {
+        type: TYPE_OPERATIONAL,
+        name: 'connection.failed',
+        errorType,
+        errorMessage
+    };
+};
+
+/**
  * Creates an operational event which indicates that a particular connection
  * stage was reached (i.e. the XMPP connection transitioned to the "connected"
  * state).
@@ -274,6 +288,18 @@ export const createTtfmEvent = function(attributes) {
 export const AVAILABLE_DEVICE = 'available.device';
 
 /**
+ * This appears to be fired only in certain cases when the XMPP connection
+ * disconnects (and it was intentional?). It is currently never observed to
+ * fire in production.
+ *
+ * TODO: document
+ *
+ * Properties:
+ *      message: an error message
+ */
+export const CONNECTION_DISCONNECTED = 'connection.disconnected';
+
+/**
  * Indicates that the user of the application provided feedback in terms of a
  * rating (an integer from 1 to 5) and an optional comment.
  * Properties:
@@ -338,27 +364,6 @@ export const TRACK_UNMUTED = 'track.unmuted';
 
 
 // Treif:
-
-/**
- * Properties: none
- *
- * Known full event names: NONE
- *
- * TODO: document, reformat?, deprecate?
- */
-export const CONNECTION_DISCONNECTED_ = 'connection.disconnected';
-
-/**
- * Properties: label
- *
- * Known full event names:
- * connection.failed.connection.droppedError
- * connection.failed.connection.otherError
- * connection.failed.connection.passwordRequired
- *
- * TODO: document, reformat
- */
-export const CONNECTION_FAILED_ = 'connection.failed';
 
 /**
  * Properties: none
