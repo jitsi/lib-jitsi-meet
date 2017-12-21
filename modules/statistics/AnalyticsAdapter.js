@@ -4,10 +4,14 @@ import {
     TYPE_TRACK,
     TYPE_UI
 } from '../../service/statistics/AnalyticsEvents';
+import { getLogger } from 'jitsi-meet-logger';
 import RTCBrowserType from '../RTC/RTCBrowserType';
 import Settings from '../settings/Settings';
 
 const MAX_CACHE_SIZE = 100;
+
+// eslist-disable-line no-undef
+const logger = getLogger(__filename);
 
 /**
  * This class provides an API to lib-jitsi-meet and its users for sending
@@ -147,7 +151,7 @@ class AnalyticsAdapter {
      * event, if eventName is a string.
      */
     sendEvent(eventName, properties = {}) {
-        let event;
+        let event = null;
 
         if (typeof eventName === 'string') {
             event = {
@@ -159,19 +163,16 @@ class AnalyticsAdapter {
             };
         } else if (typeof eventName === 'object') {
             event = eventName;
-            if (!AnalyticsAdapter._verifyRequiredFields(event)) {
-                event = null;
-
-                // Error
-            }
-        } else {
-            // Error
-            event = null;
         }
 
-        if (event) {
-            this._sendEvent(event);
+        if (!AnalyticsAdapter._verifyRequiredFields(event)) {
+            logger.warn(
+                `Dropping a mis-formatted event: ${JSON.stringify(event)}`);
+
+            return;
         }
+
+        this._sendEvent(event);
     }
 
     /**
@@ -182,7 +183,10 @@ class AnalyticsAdapter {
         event.type = TYPE_OPERATIONAL;
 
         if (!AnalyticsAdapter._verifyRequiredFields(event)) {
-            // Error
+            logger.warn(
+                `Dropping a mis-formatted operational event: ${
+                    JSON.stringify(event)}`);
+
             return;
         }
 
@@ -198,6 +202,10 @@ class AnalyticsAdapter {
             name };
 
         if (!AnalyticsAdapter._verifyRequiredFields(event)) {
+            logger.warn(
+                `Dropping a mis-formatted page event: ${
+                    JSON.stringify(event)}`);
+
             return;
         }
 
@@ -212,7 +220,10 @@ class AnalyticsAdapter {
         event.type = TYPE_UI;
 
         if (!AnalyticsAdapter._verifyRequiredFields(event)) {
-            // Error
+            logger.warn(
+                `Dropping a mis-formatted UI event: ${JSON.stringify(event)}`);
+
+            return;
         }
 
         this._sendEvent(event);
@@ -226,10 +237,16 @@ class AnalyticsAdapter {
      * @private
      */
     static _verifyRequiredFields(event) {
+        if (!event) {
+            return false;
+        }
+
         const type = event.type;
 
         if (type !== TYPE_OPERATIONAL && type !== TYPE_PAGE
             && type !== TYPE_UI && type !== TYPE_TRACK) {
+            logger.warn(`Unknown event type: ${type}`);
+
             return false;
         }
 
@@ -245,6 +262,9 @@ class AnalyticsAdapter {
             || event.actionSubject;
 
         if (!event.action || !event.actionSubject || !event.source) {
+            logger.warn(
+                'Required field missing (action, actionSubject or source)');
+
             return false;
         }
 
@@ -256,6 +276,10 @@ class AnalyticsAdapter {
 
             if (!event.objectType || !event.objectId
                 || !event.containerType || !event.containerId) {
+                logger.warn(
+                    'Required field missing (containerId, containerType, '
+                        + 'objectId or objectType)');
+
                 return false;
             }
         }
