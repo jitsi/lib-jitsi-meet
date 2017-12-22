@@ -304,11 +304,15 @@ class AnalyticsAdapter {
     /**
      * Extends an event object with the configured permanent properties.
      * @param event the event to extend with permanent properties.
-     * @returns {any & ({}|*)} the extended event
+     * @returns {Object} the extended event
      * @private
      */
     _appendPermanentProperties(event) {
-        return Object.assign(event, this.permanentProperties);
+        if (!event.attributes) {
+            event.attributes = {};
+        }
+
+        return Object.assign(event.attributes, this.permanentProperties);
     }
 
 }

@@ -48,14 +48,14 @@ export const TYPE_UI = 'ui';
 
 /**
  * The "action" value for Jingle events which indicates that the Jingle session
- * was restarted (???)
+ * was restarted (TODO: verify/fix the documentation)
  * @type {string}
  */
 export const ACTION_JINGLE_RESTART = 'restart';
 
 /**
  * The "action" value for Jingle events which indicates that a session-accept
- * timed out (???).
+ * timed out (TODO: verify/fix the documentation)
  * @type {string}
  */
 export const ACTION_JINGLE_SA_TIMEOUT = 'session-accept.timeout';
@@ -68,7 +68,8 @@ export const ACTION_JINGLE_SA_TIMEOUT = 'session-accept.timeout';
 export const ACTION_JINGLE_SI_RECEIVED = 'session-initiate.received';
 
 /**
- * A constant for the "terminate" action for Jingle events. ???
+ * A constant for the "terminate" action for Jingle events. TODO: verify/fix
+ * the documentation)
  * @type {string}
  */
 export const ACTION_JINGLE_TERMINATE = 'terminate';
@@ -83,7 +84,7 @@ export const ACTION_JINGLE_TR_RECEIVED
 
 /**
  * The "action" value for Jingle events which indicates that a transport-replace
- * succeeded (???).
+ * succeeded (TODO: verify/fix the documentation)
  * @type {string}
  */
 export const ACTION_JINGLE_TR_SUCCESS
@@ -91,7 +92,7 @@ export const ACTION_JINGLE_TR_SUCCESS
 
 /**
  * The "action" value for P2P events which indicates that a connection was
- * established (???).
+ * established (TODO: verify/fix the documentation)
  * @type {string}
  */
 export const ACTION_P2P_ESTABLISHED = 'established';
@@ -193,7 +194,7 @@ export const ICE_ESTABLISHMENT_DURATION_DIFF
  *          jitsi-videobridge
  *      signalingState: The signaling state of the associated PeerConnection
  *      reconnect: whether the associated Jingle session is in the process of
- *          reconnecting (or is it ICE???).
+ *          reconnecting (or is it ICE? TODO: verify/fix the documentation)
  */
 export const ICE_STATE_CHANGED = 'ice.state.changed';
 
@@ -202,8 +203,8 @@ export const ICE_STATE_CHANGED = 'ice.state.changed';
  *
  * Properties:
  *      mediaType: the media type of the local track ('audio' or 'video').
- *      type: the type of the track ('local' or 'remote').
- *      value: ???
+ *      trackType: the type of the track ('local' or 'remote').
+ *      value: TODO: document
  */
 export const TRACK_UNMUTED = 'track.unmuted';
 
@@ -223,8 +224,8 @@ export const createBridgeDownEvent = function() {
 
 /**
  * Creates an event which indicates that the XMPP connection failed
- * @param errorType ???
- * @param errorMessage ???
+ * @param errorType TODO
+ * @param errorMessage TODO
  */
 export const createConnectionFailedEvent = function(errorType, errorMessage) {
     return {
@@ -404,7 +405,7 @@ export const createRtpStatsEvent = function(attributes) {
  * session-initiate from jicofo. This is because jicofo will not start a Jingle
  * session until there are at least 2 participants in the room.
  *
- * @param attributes the attributes to att the the event. Currently used fields:
+ * @param attributes the attributes to add to the event. Currently used fields:
  *      mediaType: the media type of the local track ('audio' or 'video').
  *      muted: whether the track has ever been muted (?)
  *      value: the TTMF in milliseconds.
