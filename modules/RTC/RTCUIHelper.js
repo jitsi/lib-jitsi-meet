@@ -55,6 +55,18 @@ const RTCUIHelper = {
     },
 
     /**
+     * Returns whether or not applying filter effects to video elements is known
+     * to cause issues, be it performance (Firefox) or having no effect
+     * (Temsasys).
+     *
+     * @returns {boolean}
+     */
+    isVideoFilterSupported() {
+        return !RTCBrowserType.isFirefox()
+            && !RTCBrowserType.isTemasysPluginUsed();
+    },
+
+    /**
      * Sets 'volume' property of given HTML element displaying RTC audio or
      * video stream.
      * @param streamElement HTML element to which the RTC stream is attached to.
