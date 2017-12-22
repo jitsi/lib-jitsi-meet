@@ -506,7 +506,7 @@ export default class AvgRTPStatsReporter {
          * @private
          */
         this._avgLocalCameraPixels
-            = new AverageStatReport('pixels_.ocal');
+            = new AverageStatReport('pixels.local');
 
         /**
          * Average pixels for local screen streaming video (reported only if not

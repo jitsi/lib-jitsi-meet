@@ -1,4 +1,28 @@
 /**
+ * This class exports constants and factory methods related to the analytics
+ * API provided by AnalyticsAdapter. In order for entries in a database to be
+ * somewhat easily traceable back to the code which produced them, events sent
+ * through analytics should be defined here.
+ *
+ * Since the AnalyticsAdapter API can be used in different ways, for some events
+ * it is more convenient to just define the event name as a constant. For other
+ * events a factory function is easier.
+ *
+ * A general approach for adding a new event:
+ * 1. Determine the event type: track, UI, page, or operational. If in doubt use
+ * operational.
+ * 2. Determine whether the event is related to other existing events, and
+ * which fields are desired to be set: name, action, actionSubject, source.
+ * 3. If the name is sufficient (the other fields are not important), use a
+ * constant. Otherwise use a factory function.
+ *
+ * Note that the AnalyticsAdapter uses the events passed to its functions for
+ * its own purposes, and might modify them. Because of this factory functions
+ * should create new objects.
+ *
+ */
+
+/**
  * The constant which identifies an event of type "operational".
  * @type {string}
  */
@@ -31,6 +55,69 @@ export const TYPE_UI = 'ui';
  * @type {string}
  */
 const SOURCE_SPORADIC = 'sporadic';
+
+/**
+ * The "action" value for Jingle events which indicates that the Jingle session
+ * was restarted (???)
+ * @type {string}
+ */
+export const ACTION_JINGLE_RESTART = 'restart';
+
+/**
+ * The "action" value for Jingle events which indicates that a session-accept
+ * timed out (???).
+ * @type {string}
+ */
+export const ACTION_JINGLE_SA_TIMEOUT = 'session-accept.timeout';
+
+/**
+ * The "action" value for Jingle events which indicates that a session-initiate
+ * was received.
+ * @type {string}
+ */
+export const ACTION_JINGLE_SI_RECEIVED = 'session-initiate.received';
+
+/**
+ * A constant for the "terminate" action for Jingle events. ???
+ * @type {string}
+ */
+export const ACTION_JINGLE_TERMINATE = 'terminate';
+
+/**
+ * The "action" value for Jingle events which indicates that a transport-replace
+ * was received.
+ * @type {string}
+ */
+export const ACTION_JINGLE_TR_RECEIVED
+    = 'transport-replace.received';
+
+/**
+ * The "action" value for Jingle events which indicates that a transport-replace
+ * succeeded (???).
+ * @type {string}
+ */
+export const ACTION_JINGLE_TR_SUCCESS
+    = 'transport-replace.success';
+
+/**
+ * The "action" value for P2P events which indicates that a connection was
+ * established (???).
+ * @type {string}
+ */
+export const ACTION_P2P_ESTABLISHED = 'established';
+
+/**
+ * The "action" value for P2P events which indicates that something failed.
+ * @type {string}
+ */
+export const ACTION_P2P_FAILED = 'failed';
+
+/**
+ * The "action" value for P2P events which indicates that a switch to
+ * jitsi-videobridge happened.
+ * @type {string}
+ */
+export const ACTION_P2P_SWITCH_TO_JVB = 'switch.to.jvb';
 
 /**
  * The name of an event which indicates an available device. We send one such

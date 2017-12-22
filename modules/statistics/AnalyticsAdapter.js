@@ -61,7 +61,9 @@ class AnalyticsAdapter {
      */
     constructor() {
         /**
-         * Whether this AnalyticsAdapter has been disposed or not.
+         * Whether this AnalyticsAdapter has been disposed of or not. Once this
+         * is set to true, the AnalyticsAdapter is disabled and does not accept
+         * any more events, and it can not be re-enabled.
          * @type {boolean}
          */
         this.disposed = false;
@@ -166,7 +168,7 @@ class AnalyticsAdapter {
         }
 
         if (!AnalyticsAdapter._verifyRequiredFields(event)) {
-            logger.warn(
+            logger.error(
                 `Dropping a mis-formatted event: ${JSON.stringify(event)}`);
 
             return;
@@ -183,7 +185,7 @@ class AnalyticsAdapter {
         event.type = TYPE_OPERATIONAL;
 
         if (!AnalyticsAdapter._verifyRequiredFields(event)) {
-            logger.warn(
+            logger.error(
                 `Dropping a mis-formatted operational event: ${
                     JSON.stringify(event)}`);
 
@@ -202,7 +204,7 @@ class AnalyticsAdapter {
             name };
 
         if (!AnalyticsAdapter._verifyRequiredFields(event)) {
-            logger.warn(
+            logger.error(
                 `Dropping a mis-formatted page event: ${
                     JSON.stringify(event)}`);
 
@@ -220,7 +222,7 @@ class AnalyticsAdapter {
         event.type = TYPE_UI;
 
         if (!AnalyticsAdapter._verifyRequiredFields(event)) {
-            logger.warn(
+            logger.error(
                 `Dropping a mis-formatted UI event: ${JSON.stringify(event)}`);
 
             return;
@@ -245,7 +247,7 @@ class AnalyticsAdapter {
 
         if (type !== TYPE_OPERATIONAL && type !== TYPE_PAGE
             && type !== TYPE_UI && type !== TYPE_TRACK) {
-            logger.warn(`Unknown event type: ${type}`);
+            logger.error(`Unknown event type: ${type}`);
 
             return false;
         }
@@ -262,7 +264,7 @@ class AnalyticsAdapter {
             || event.actionSubject;
 
         if (!event.action || !event.actionSubject || !event.source) {
-            logger.warn(
+            logger.error(
                 'Required field missing (action, actionSubject or source)');
 
             return false;
@@ -276,7 +278,7 @@ class AnalyticsAdapter {
 
             if (!event.objectType || !event.objectId
                 || !event.containerType || !event.containerId) {
-                logger.warn(
+                logger.error(
                     'Required field missing (containerId, containerType, '
                         + 'objectId or objectType)');
 

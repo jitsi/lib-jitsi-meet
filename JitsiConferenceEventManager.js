@@ -2,6 +2,7 @@
 import { Strophe } from 'strophe.js';
 
 import {
+    ACTION_JINGLE_SA_TIMEOUT,
     createBridgeDownEvent,
     createConnectionStageReachedEvent,
     createFocusLeftEvent,
@@ -199,7 +200,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         jingleSession => {
             Statistics.sendEventAndLog(
                 createJingleEvent(
-                    'session.accept.timeout',
+                    ACTION_JINGLE_SA_TIMEOUT,
                     { p2p: jingleSession.isP2P }));
         });
 

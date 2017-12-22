@@ -1,6 +1,8 @@
 /* global $, __filename */
 
 import {
+    ACTION_JINGLE_TR_RECEIVED,
+    ACTION_JINGLE_TR_SUCCESS,
     createJingleEvent
 } from '../../service/statistics/AnalyticsEvents';
 import { getLogger } from 'jitsi-meet-logger';
@@ -201,7 +203,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         case 'transport-replace':
             logger.info('(TIME) Start transport replace', now);
             Statistics.analytics.sendEvent(createJingleEvent(
-                'transport-replace.received',
+                ACTION_JINGLE_TR_RECEIVED,
                 { value: now }));
 
             sess.replaceTransport($(iq).find('>jingle'), () => {
@@ -209,7 +211,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
 
                 logger.info('(TIME) Transport replace success!', successTime);
                 Statistics.analytics.sendEvent(createJingleEvent(
-                    'transport-replace.success',
+                    ACTION_JINGLE_TR_SUCCESS,
                     { value: successTime }));
             }, error => {
                 GlobalOnErrorHandler.callErrorHandler(error);
