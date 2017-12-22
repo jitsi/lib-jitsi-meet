@@ -178,64 +178,15 @@ class AnalyticsAdapter {
     }
 
     /**
+     * Checks whether an event has all of the required fields set, and tries
+     * to fill in some of the missing fields with reasonable default values.
+     * Returns true if after this operation the event has all of the required
+     * fields set, and false otherwise (if some of the required fields were not
+     * set and the attempt to fill them in with a default failed).
      *
-     * @param event
-     */
-    sendOperationalEvent(event) {
-        event.type = TYPE_OPERATIONAL;
-
-        if (!AnalyticsAdapter._verifyRequiredFields(event)) {
-            logger.error(
-                `Dropping a mis-formatted operational event: ${
-                    JSON.stringify(event)}`);
-
-            return;
-        }
-
-        this._sendEvent(event);
-    }
-
-    /**
-     *
-     * @param name
-     */
-    sendPageEvent(name) {
-        const event = { type: TYPE_PAGE,
-            name };
-
-        if (!AnalyticsAdapter._verifyRequiredFields(event)) {
-            logger.error(
-                `Dropping a mis-formatted page event: ${
-                    JSON.stringify(event)}`);
-
-            return;
-        }
-
-        this._sendEvent(event);
-    }
-
-    /**
-     *
-     * @param event
-     */
-    sendUIEvent(event) {
-        event.type = TYPE_UI;
-
-        if (!AnalyticsAdapter._verifyRequiredFields(event)) {
-            logger.error(
-                `Dropping a mis-formatted UI event: ${JSON.stringify(event)}`);
-
-            return;
-        }
-
-        this._sendEvent(event);
-
-    }
-
-
-    /**
-     * XXX this deserves an explanation
-     * @param event
+     * @param event the event object.
+     * @return {boolean} true if the event (after the call to this function)
+     * contains all of the required fields, and false otherwise.
      * @private
      */
     static _verifyRequiredFields(event) {
