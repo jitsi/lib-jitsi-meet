@@ -73,11 +73,11 @@ function getLowerResolution(resolution) {
 function getAnalyticsAttributesFromOptions(options) {
     const attributes = {
         audioRequested:
-            options.devices.indexOf('audio') !== -1,
+            options.devices.includes('audio'),
         videoRequested:
-            options.devices.indexOf('video') !== -1,
+            options.devices.includes('video'),
         screenSharingRequested:
-            options.devices.indexOf('desktop') !== -1
+            options.devices.includes('desktop')
     };
 
     if (attributes.videoRequested) {

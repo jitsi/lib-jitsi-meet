@@ -47,16 +47,6 @@ export const TYPE_TRACK = 'track';
 export const TYPE_UI = 'ui';
 
 /**
- * Events with source 'sporadic' are sent from various places in the code, and
- * indicate things which happen any action from the user. These events do not
- * happen in every conference, and do not happen periodically. They are grouped
- * together by this value for the 'source' attribute, because they may be of
- * interest when looking for events in a particular conference.
- * @type {string}
- */
-const SOURCE_SPORADIC = 'sporadic';
-
-/**
  * The "action" value for Jingle events which indicates that the Jingle session
  * was restarted (???)
  * @type {string}
@@ -227,7 +217,6 @@ export const createBridgeDownEvent = function() {
     return {
         action: bridgeDown,
         actionSubject: bridgeDown,
-        source: SOURCE_SPORADIC,
         type: TYPE_OPERATIONAL
     };
 };
@@ -241,8 +230,10 @@ export const createConnectionFailedEvent = function(errorType, errorMessage) {
     return {
         type: TYPE_OPERATIONAL,
         name: 'connection.failed',
-        errorType,
-        errorMessage
+        attributes: {
+            errorType,
+            errorMessage
+        }
     };
 };
 
@@ -278,7 +269,6 @@ export const createFocusLeftEvent = function() {
     return {
         action,
         actionSubject: action,
-        source: SOURCE_SPORADIC,
         type: TYPE_OPERATIONAL
     };
 };
@@ -301,7 +291,7 @@ export const createGetUserMediaEvent = function(action, attributes = {}) {
 };
 
 /**
- * Creates an event for a p2p-related event.
+ * Creates an event for a Jingle-related event.
  * @param action the action of the event
  * @param attributes attributes to add to the event.
  */
@@ -325,7 +315,6 @@ export const createNoDataFromSourceEvent = function(mediaType) {
     return {
         attributes: { mediaType },
         name: 'track.no.data.from.source',
-        source: SOURCE_SPORADIC,
         type: TYPE_OPERATIONAL
     };
 };
@@ -335,7 +324,7 @@ export const createNoDataFromSourceEvent = function(mediaType) {
  * @param action the action of the event
  * @param attributes attributes to add to the event.
  */
-export const createP2pEvent = function(action, attributes = {}) {
+export const createP2PEvent = function(action, attributes = {}) {
     return {
         type: TYPE_OPERATIONAL,
         action,
@@ -350,8 +339,7 @@ export const createP2pEvent = function(action, attributes = {}) {
 export const createRemotelyMutedEvent = function() {
     return {
         type: TYPE_OPERATIONAL,
-        action: 'remotely.muted',
-        source: SOURCE_SPORADIC
+        action: 'remotely.muted'
     };
 };
 

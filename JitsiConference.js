@@ -10,7 +10,7 @@ import {
     ACTION_P2P_SWITCH_TO_JVB,
     ICE_ESTABLISHMENT_DURATION_DIFF,
     createJingleEvent,
-    createP2pEvent
+    createP2PEvent
 } from './service/statistics/AnalyticsEvents';
 import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import ComponentsVersions from './modules/version/ComponentsVersions';
@@ -1453,7 +1453,6 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
     this.jvbJingleSession = jingleSession;
     this.room.connectionTimes['session.initiate'] = now;
 
-    // Log "session.restart"
     if (this.wasStopped) {
         Statistics.sendAnalyticsAndLog(
             createJingleEvent(ACTION_JINGLE_RESTART));
@@ -2094,7 +2093,7 @@ JitsiConference.prototype._onIceConnectionFailed = function(session) {
 
         if (this.p2pJingleSession) {
             Statistics.sendAnalyticsAndLog(
-                createP2pEvent(
+                createP2PEvent(
                     ACTION_P2P_FAILED,
                     {
                         initiator: this.p2pJingleSession.isInitiator
@@ -2279,7 +2278,7 @@ JitsiConference.prototype._onIceConnectionEstablished = function(
     this.statistics.startRemoteStats(this.p2pJingleSession.peerconnection);
 
     Statistics.sendAnalyticsAndLog(
-        createP2pEvent(
+        createP2PEvent(
             ACTION_P2P_ESTABLISHED,
             {
                 initiator: this.p2pJingleSession.isInitiator
@@ -2553,7 +2552,7 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
         // Log that there will be a switch back to the JVB connection
         if (this.p2pJingleSession.isInitiator && peerCount > 1) {
             Statistics.sendAnalyticsAndLog(
-                createP2pEvent(ACTION_P2P_SWITCH_TO_JVB));
+                createP2PEvent(ACTION_P2P_SWITCH_TO_JVB));
         }
         this._stopP2PSession();
     }
