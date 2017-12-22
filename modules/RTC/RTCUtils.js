@@ -568,7 +568,7 @@ function sendDeviceListToAnalytics(deviceList) {
             deviceLabel: device.label
         };
 
-        Statistics.analytics.sendEvent(AVAILABLE_DEVICE, eventProperties);
+        Statistics.sendAnalytics(AVAILABLE_DEVICE, eventProperties);
     });
 }
 

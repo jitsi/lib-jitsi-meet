@@ -234,8 +234,7 @@ class ConnectionAvgStats {
                     }
                 }
 
-                Statistics.analytics.sendEvent(
-                    createRtpStatsEvent(batchReport));
+                Statistics.sendAnalytics(createRtpStatsEvent(batchReport));
             }
 
             this._resetAvgStats();
@@ -722,7 +721,7 @@ export default class AvgRTPStatsReporter {
 
             this._avgCQ.appendReport(batchReport);
 
-            Statistics.analytics.sendEvent(createRtpStatsEvent(batchReport));
+            Statistics.sendAnalytics(createRtpStatsEvent(batchReport));
 
             this._resetAvgStats();
         }

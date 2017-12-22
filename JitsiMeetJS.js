@@ -276,7 +276,7 @@ export default {
                 window.connectionTimes['obtainPermissions.end']
                     = window.performance.now();
 
-                Statistics.analytics.sendEvent(
+                Statistics.sendAnalytics(
                     createGetUserMediaEvent(
                         'success',
                         getAnalyticsAttributesFromOptions(options)));
@@ -328,13 +328,13 @@ export default {
                             'Retry createLocalTracks with resolution',
                             newResolution);
 
-                        Statistics.analytics.sendEvent(
+                        Statistics.sendAnalytics(createGetUserMediaEvent(
                             'warning',
                             {
                                 oldResolution,
                                 newResolution,
                                 reason: 'unsupported resolution'
-                            });
+                            }));
 
                         return this.createLocalTracks(options);
                     }
@@ -352,7 +352,7 @@ export default {
 
                     Statistics.sendLog(JSON.stringify(logObject));
 
-                    Statistics.analytics.sendEvent(
+                    Statistics.sendAnalytics(
                         createGetUserMediaEvent(
                             'warning',
                             {
@@ -372,9 +372,8 @@ export default {
 
                     attributes.reason = 'device not found';
                     attributes.devices = error.gum.devices.join('.');
-                    Statistics.analytics.sendEvent(
-                        createGetUserMediaEvent(
-                            'error', attributes));
+                    Statistics.sendAnalytics(
+                        createGetUserMediaEvent('error', attributes));
                 } else {
                     // Report gUM failed to the stats
                     Statistics.sendGetUserMediaFailed(error);
@@ -383,9 +382,8 @@ export default {
                         = getAnalyticsAttributesFromOptions(options);
 
                     attributes.reason = error.name;
-                    Statistics.analytics.sendEvent(
-                        createGetUserMediaEvent(
-                            'error', attributes));
+                    Statistics.sendAnalytics(
+                        createGetUserMediaEvent('error', attributes));
                 }
 
                 window.connectionTimes['obtainPermissions.end']

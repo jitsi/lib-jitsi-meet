@@ -25,7 +25,7 @@ export default function JitsiConnection(appID, token, options) {
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
         (errType, msg) => {
-            Statistics.sendEventAndLog(
+            Statistics.sendAnalyticsAndLog(
                 createConnectionFailedEvent(errType, msg));
         });
 
@@ -34,8 +34,10 @@ export default function JitsiConnection(appID, token, options) {
             // we can see disconnects from normal tab closing of the browser
             // and then there are no msgs, but we want to log only disconnects
             // when there is real error
+            // XXX Do we need the difference in handling between the log and
+            // analytics event here?
             if (msg) {
-                Statistics.analytics.sendEvent(
+                Statistics.sendAnalytics(
                     ANALYTICS_CONNECTION_DISCONNECTED,
                     { message: msg });
             }

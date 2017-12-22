@@ -316,7 +316,7 @@ export default class JingleSessionPC extends JingleSession {
                 }
             } else if (!this._gatheringReported) {
                 // End of gathering
-                Statistics.analytics.sendEvent(
+                Statistics.sendAnalytics(
                     ICE_DURATION,
                     {
                         phase: 'gathering',
@@ -373,7 +373,7 @@ export default class JingleSessionPC extends JingleSession {
                     + ` P2P? ${this.isP2P}:\t`,
                 now);
 
-            Statistics.analytics.sendEvent(
+            Statistics.sendAnalytics(
                 ICE_STATE_CHANGED,
                 {
                     p2p: this.isP2P,
@@ -403,7 +403,7 @@ export default class JingleSessionPC extends JingleSession {
 
                 if (!this.wasConnected && this.wasstable) {
 
-                    Statistics.analytics.sendEvent(
+                    Statistics.sendAnalytics(
                         ICE_DURATION,
                         {
                             phase: 'checking',
@@ -422,7 +422,7 @@ export default class JingleSessionPC extends JingleSession {
 
                     this.establishmentDuration = now - iceStarted;
 
-                    Statistics.analytics.sendEvent(
+                    Statistics.sendAnalytics(
                         ICE_DURATION,
                         {
                             phase: 'establishment',

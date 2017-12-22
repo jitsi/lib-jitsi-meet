@@ -233,7 +233,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         this.conference.getConnectionTimes()[`${type}.ttfm`] = ttfm;
         console.log(`(TIME) TTFM ${type}:\t`, ttfm);
 
-        Statistics.analytics.sendEvent(createTtfmEvent(
+        Statistics.sendAnalytics(createTtfmEvent(
             {
                 mediaType: type,
                 muted: this.hasBeenMuted,

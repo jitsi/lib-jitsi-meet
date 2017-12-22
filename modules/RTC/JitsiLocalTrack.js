@@ -32,7 +32,7 @@ const logger = getLogger(__filename);
  */
 export default class JitsiLocalTrack extends JitsiTrack {
     /**
-     * Constructs new JitsiLocalTrack instanse.
+     * Constructs new JitsiLocalTrack instance.
      *
      * @constructor
      * @param {Object} trackInfo
@@ -202,7 +202,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                         = setTimeout(_onNoDataFromSourceError, 3000);
                     this._setHandler('track_unmute', () => {
                         this._clearNoDataFromSourceMuteResources();
-                        Statistics.sendEventAndLog(
+                        Statistics.sendAnalyticsAndLog(
                             TRACK_UNMUTED,
                             {
                                 mediaType: this.getType(),
@@ -246,8 +246,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
     _fireNoDataFromSourceEvent() {
         this.emit(NO_DATA_FROM_SOURCE);
 
-        Statistics.analytics.sendEvent(
-            createNoDataFromSourceEvent(this.getType()));
+        Statistics.sendAnalytics(createNoDataFromSourceEvent(this.getType()));
         const log = { name: NO_DATA_FROM_SOURCE };
 
         if (this.isAudioTrack()) {
