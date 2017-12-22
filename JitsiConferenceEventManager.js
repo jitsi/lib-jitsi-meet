@@ -197,13 +197,10 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     chatRoom.addListener(XMPPEvents.SESSION_ACCEPT_TIMEOUT,
         jingleSession => {
-            const event
-                = createJingleEvent(
+            Statistics.sendEventAndLog(
+                createJingleEvent(
                     'session.accept.timeout',
-                    { p2p: jingleSession.isP2P });
-
-            Statistics.sendLog(JSON.stringify(event));
-            Statistics.analytics.sendEvent(event);
+                    { p2p: jingleSession.isP2P }));
         });
 
     this.chatRoomForwarder.forward(XMPPEvents.RECORDER_STATE_CHANGED,

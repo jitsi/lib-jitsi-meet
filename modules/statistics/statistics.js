@@ -706,16 +706,26 @@ Statistics.reportGlobalError = function(error) {
 };
 
 /**
- * Sends event to analytics and callstats.
- * @param {string} eventName the event name.
- * @param {Object} data the data to be sent.
+ * Sends event to analytics and logs a message to callstats.
+ *
+ * @param {string | Object} eventName the event name, or an object which
+ * represents the entire event.
+ * @param {Object} properties properties to attach to the event
  */
-Statistics.sendEventToAll = function(eventName, data) {
-    this.analytics.sendEvent(eventName, data);
-    Statistics.sendLog(
-        JSON.stringify(
-            {
-                name: eventName,
-                data
-            }));
+Statistics.sendEventAndLog = function(eventName, properties = {}) {
+    let eventToLog = null;
+
+    // Also support an API with a single object as an event.
+    if (typeof eventName === 'object') {
+        eventToLog = eventName;
+    } else {
+        eventToLog = {
+            name: eventName,
+            properties
+        };
+    }
+    Statistics.sendLog(JSON.stringify(eventToLog));
+
+    // We do this last, because it may modify the object which is passed.
+    this.analytics.sendEvent(eventName, properties);
 };

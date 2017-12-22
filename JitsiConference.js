@@ -1449,7 +1449,7 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
 
     // Log "session.restart"
     if (this.wasStopped) {
-        Statistics.sendEventToAll(createJingleEvent('restart'));
+        Statistics.sendEventAndLog(createJingleEvent('restart'));
     }
 
     Statistics.analytics.sendEvent(createJingleEvent(
@@ -1601,8 +1601,7 @@ JitsiConference.prototype.onCallEnded = function(
 
         const event = createJingleEvent('terminate');
 
-        Statistics.sendLog(JSON.stringify(event));
-        Statistics.analytics.sendEvent(event);
+        Statistics.sendEventAndLog(event);
 
         // Stop the stats
         if (this.statistics) {
@@ -2095,8 +2094,7 @@ JitsiConference.prototype._onIceConnectionFailed = function(session) {
                         initiator: this.p2pJingleSession.isInitiator
                     });
 
-            Statistics.sendLog(JSON.stringify(event));
-            Statistics.analytics.sendEvent(event);
+            Statistics.sendEventAndLog(event);
         }
         this._stopP2PSession('connectivity-error', 'ICE FAILED');
     }
@@ -2278,8 +2276,7 @@ JitsiConference.prototype._onIceConnectionEstablished = function(
                 initiator: this.p2pJingleSession.isInitiator
             });
 
-    Statistics.sendLog(JSON.stringify(event));
-    Statistics.analytics.sendEvent(event);
+    Statistics.sendEventAndLog(event);
 };
 
 /**
@@ -2547,10 +2544,7 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
 
         // Log that there will be a switch back to the JVB connection
         if (this.p2pJingleSession.isInitiator && peerCount > 1) {
-            const event = createP2pEvent('switch.to.jvb');
-
-            Statistics.sendLog(JSON.stringify(event));
-            Statistics.analytics.sendEvent(event);
+            Statistics.sendEventAndLog(createP2pEvent('switch.to.jvb'));
         }
         this._stopP2PSession();
     }

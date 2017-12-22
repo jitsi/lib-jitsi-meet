@@ -202,7 +202,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                         = setTimeout(_onNoDataFromSourceError, 3000);
                     this._setHandler('track_unmute', () => {
                         this._clearNoDataFromSourceMuteResources();
-                        Statistics.sendEventToAll(
+                        Statistics.sendEventAndLog(
                             TRACK_UNMUTED,
                             {
                                 mediaType: this.getType(),

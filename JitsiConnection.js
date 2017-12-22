@@ -25,10 +25,8 @@ export default function JitsiConnection(appID, token, options) {
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
         (errType, msg) => {
-            const event = createConnectionFailedEvent(errType, msg);
-
-            Statistics.sendLog(JSON.stringify(event));
-            Statistics.analytics.sendEvent(event);
+            Statistics.sendEventAndLog(
+                createConnectionFailedEvent(errType, msg));
         });
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_DISCONNECTED,
