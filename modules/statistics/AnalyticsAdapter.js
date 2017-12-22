@@ -87,6 +87,13 @@ class AnalyticsAdapter {
          */
         this.permanentProperties = {};
 
+        /**
+         * The name of the conference that this AnalyticsAdapter is associated
+         * with.
+         * @type {null}
+         */
+        this.conferenceName = '';
+
         this.addPermanentProperties({
             callstatsname: Settings.callStatsUserName,
             userAgent: navigator.userAgent,
@@ -143,6 +150,15 @@ class AnalyticsAdapter {
     }
 
     /**
+     * Sets the name of the conference that this AnalyticsAdapter is associated
+     * with.
+     * @param name the name to set.
+     */
+    setConferenceName(name) {
+        this.conferenceName = name;
+    }
+
+    /**
      * Sends an event with a given name and given properties. The event type
      * is set to "operational", and the required fields are all set to the given
      * event name.
@@ -167,7 +183,7 @@ class AnalyticsAdapter {
             event = eventName;
         }
 
-        if (!AnalyticsAdapter._verifyRequiredFields(event)) {
+        if (!this._verifyRequiredFields(event)) {
             logger.error(
                 `Dropping a mis-formatted event: ${JSON.stringify(event)}`);
 
@@ -189,7 +205,7 @@ class AnalyticsAdapter {
      * contains all of the required fields, and false otherwise.
      * @private
      */
-    static _verifyRequiredFields(event) {
+    _verifyRequiredFields(event) {
         if (!event) {
             return false;
         }
@@ -224,8 +240,11 @@ class AnalyticsAdapter {
         // Track events have additional required fields.
         if (type === TYPE_TRACK) {
             event.objectType = event.objectType || 'generic-object-type';
-            event.containerType
-                = event.containerType || 'generic-container-type';
+            event.containerType = event.containerType || 'conference';
+            if (event.containerType === 'conference' && !event.containerId) {
+                event.containerId = this.conferenceName;
+            }
+
 
             if (!event.objectType || !event.objectId
                 || !event.containerType || !event.containerId) {
