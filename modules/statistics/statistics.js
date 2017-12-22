@@ -713,7 +713,13 @@ Statistics.reportGlobalError = function(error) {
  * @param {Object} properties properties to attach to the event
  */
 Statistics.sendEventAndLog = function(eventName, properties = {}) {
-    let eventToLog = null;
+    if (!eventName) {
+        logger.warn('No event or event name given.');
+
+        return;
+    }
+
+    let eventToLog;
 
     // Also support an API with a single object as an event.
     if (typeof eventName === 'object') {

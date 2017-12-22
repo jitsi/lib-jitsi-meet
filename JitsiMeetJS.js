@@ -75,13 +75,12 @@ function getAnalyticsAttributesFromOptions(options) {
         audioRequested:
             options.devices.indexOf('audio') !== -1,
         videoRequested:
-            options.devices.indexOf('audio') !== -1,
+            options.devices.indexOf('video') !== -1,
         screenSharingRequested:
             options.devices.indexOf('desktop') !== -1
     };
 
-    if (options.devices.indexOf('video') !== -1) {
-        // we have video add resolution
+    if (attributes.videoRequested) {
         attributes.resolution = options.resolution;
     }
 
@@ -279,7 +278,8 @@ export default {
 
                 Statistics.analytics.sendEvent(
                     createGetUserMediaEvent(
-                        'success', getAnalyticsAttributesFromOptions(options)));
+                        'success',
+                        getAnalyticsAttributesFromOptions(options)));
 
                 if (!RTC.options.disableAudioLevels) {
                     for (let i = 0; i < tracks.length; i++) {

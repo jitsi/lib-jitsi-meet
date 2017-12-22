@@ -1605,9 +1605,7 @@ JitsiConference.prototype.onCallEnded = function(
     if (jingleSession === this.jvbJingleSession) {
         this.wasStopped = true;
 
-        const event = createJingleEvent(ACTION_JINGLE_TERMINATE);
-
-        Statistics.sendEventAndLog(event);
+        Statistics.sendEventAndLog(createJingleEvent(ACTION_JINGLE_TERMINATE));
 
         // Stop the stats
         if (this.statistics) {
@@ -2093,14 +2091,13 @@ JitsiConference.prototype._onIceConnectionFailed = function(session) {
         Statistics.analytics.addPermanentProperties({ p2pFailed: true });
 
         if (this.p2pJingleSession) {
-            const event
-                = createP2pEvent(
+            Statistics.sendEventAndLog(
+                createP2pEvent(
                     ACTION_P2P_FAILED,
                     {
                         initiator: this.p2pJingleSession.isInitiator
-                    });
+                    }));
 
-            Statistics.sendEventAndLog(event);
         }
         this._stopP2PSession('connectivity-error', 'ICE FAILED');
     }
@@ -2279,14 +2276,13 @@ JitsiConference.prototype._onIceConnectionEstablished = function(
     logger.info('Starting remote stats with p2p connection');
     this.statistics.startRemoteStats(this.p2pJingleSession.peerconnection);
 
-    const event
-        = createP2pEvent(
+    Statistics.sendEventAndLog(
+        createP2pEvent(
             ACTION_P2P_ESTABLISHED,
             {
                 initiator: this.p2pJingleSession.isInitiator
-            });
+            }));
 
-    Statistics.sendEventAndLog(event);
 };
 
 /**
