@@ -210,6 +210,10 @@ class AnalyticsAdapter {
             return false;
         }
 
+        if (!event.type) {
+            event.type = TYPE_OPERATIONAL;
+        }
+
         const type = event.type;
 
         if (type !== TYPE_OPERATIONAL && type !== TYPE_PAGE
