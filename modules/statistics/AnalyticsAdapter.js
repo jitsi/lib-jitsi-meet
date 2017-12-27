@@ -159,9 +159,12 @@ class AnalyticsAdapter {
     }
 
     /**
-     * Sends an event with a given name and given properties. The event type
-     * is set to "operational", and the required fields are all set to the given
-     * event name.
+     * Sends an event with a given name and given properties. The first
+     * parameter is either a string or an object. If it is a string, it is used
+     * as the event name and the second parameter is used at the attributes to
+     * attach to the event. If it is an object, it represents the whole event,
+     * including any desired attributes, and the second parameter is ignored.
+     *
      * @param {String|Object} eventName either a string to be used as the name
      * of the event, or an event object. If an event object is passed, the
      * properties parameters is ignored.
