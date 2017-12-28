@@ -557,18 +557,18 @@ function sendDeviceListToAnalytics(deviceList) {
         = deviceList.filter(d => d.kind === 'videooutput').length;
 
     deviceList.forEach(device => {
-        const eventProperties = {
-            audioInputDeviceCount,
-            audioOutputDeviceCount,
-            videoInputDeviceCount,
-            videoOutputDeviceCount,
-            deviceId: device.deviceId,
-            deviceGroupId: device.groupId,
-            deviceKind: device.kind,
-            deviceLabel: device.label
+        const attributes = {
+            'audio_input_device_count': audioInputDeviceCount,
+            'audio_output_device_count': audioOutputDeviceCount,
+            'video_input_device_count': videoInputDeviceCount,
+            'video_output_device_count': videoOutputDeviceCount,
+            'device_id': device.deviceId,
+            'device_group_id': device.groupId,
+            'device_kind': device.kind,
+            'device_label': device.label
         };
 
-        Statistics.sendAnalytics(AVAILABLE_DEVICE, eventProperties);
+        Statistics.sendAnalytics(AVAILABLE_DEVICE, attributes);
     });
 }
 

@@ -205,8 +205,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
                         Statistics.sendAnalyticsAndLog(
                             TRACK_UNMUTED,
                             {
-                                mediaType: this.getType(),
-                                trackType: 'local',
+                                'media_type': this.getType(),
+                                'track_type': 'local',
                                 value: window.performance.now() - now
                             });
                     });

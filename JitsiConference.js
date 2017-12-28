@@ -2249,7 +2249,7 @@ JitsiConference.prototype._onIceConnectionEstablished = function(
 
         Statistics.sendAnalytics(
             ICE_ESTABLISHMENT_DURATION_DIFF,
-            { 'value': establishmentDurationDiff });
+            { value: establishmentDurationDiff });
     }
 
     if (done) {

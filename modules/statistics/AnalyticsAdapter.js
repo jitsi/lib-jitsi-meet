@@ -95,9 +95,9 @@ class AnalyticsAdapter {
         this.conferenceName = '';
 
         this.addPermanentProperties({
-            callstatsname: Settings.callStatsUserName,
-            userAgent: navigator.userAgent,
-            browserName: RTCBrowserType.getBrowserName()
+            'callstats_name': Settings.callStatsUserName,
+            'user_agent': navigator.userAgent,
+            'browser_name': RTCBrowserType.getBrowserName()
         });
     }
 
@@ -131,11 +131,11 @@ class AnalyticsAdapter {
     }
 
     /**
-     * Adds a set of permanent properties to add this this AnalyticsAdapter.
+     * Adds a set of permanent properties to this this AnalyticsAdapter.
      * Permanent properties will be added as "attributes" to events sent to
      * the underlying "analytics handlers", and their keys will be prefixed
-     * by "permanent.", i.e. adding a permanent property {key: "value"} will
-     * result in {"permanent.key": "value"} object to be added to the
+     * by "permanent_", i.e. adding a permanent property {key: "value"} will
+     * result in {"permanent_key": "value"} object to be added to the
      * "attributes" field of events.
      *
      * @param {Object} properties the properties to add
@@ -143,7 +143,7 @@ class AnalyticsAdapter {
     addPermanentProperties(properties) {
         for (const property in properties) {
             if (properties.hasOwnProperty(property)) {
-                this.permanentProperties[`permanent.${property}`]
+                this.permanentProperties[`permanent_${property}`]
                     = properties[property];
             }
         }

@@ -107,7 +107,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
             Object.keys(chatRoom.connectionTimes).forEach(key => {
                 const event
                     = createConnectionStageReachedEvent(
-                        `conference.${key}`,
+                        `conference_${key}`,
                         { value: chatRoom.connectionTimes[key] });
 
                 Statistics.sendAnalytics(event);
@@ -117,7 +117,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
             Object.keys(chatRoom.xmpp.connectionTimes).forEach(key => {
                 const event
                     = createConnectionStageReachedEvent(
-                        `xmpp.${key}`,
+                        `xmpp_${key}`,
                         { value: chatRoom.xmpp.connectionTimes[key] });
 
                 Statistics.sendAnalytics(event);

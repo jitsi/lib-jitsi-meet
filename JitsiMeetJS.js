@@ -72,15 +72,15 @@ function getLowerResolution(resolution) {
  */
 function getAnalyticsAttributesFromOptions(options) {
     const attributes = {
-        audioRequested:
+        'audio_requested':
             options.devices.includes('audio'),
-        videoRequested:
+        'video_requested':
             options.devices.includes('video'),
-        screenSharingRequested:
+        'screen_sharing_requested':
             options.devices.includes('desktop')
     };
 
-    if (attributes.videoRequested) {
+    if (attributes.video_requested) {
         attributes.resolution = options.resolution;
     }
 
@@ -331,8 +331,8 @@ export default {
                         Statistics.sendAnalytics(createGetUserMediaEvent(
                             'warning',
                             {
-                                oldResolution,
-                                newResolution,
+                                'old_resolution': oldResolution,
+                                'new_resolution': newResolution,
                                 reason: 'unsupported resolution'
                             }));
 

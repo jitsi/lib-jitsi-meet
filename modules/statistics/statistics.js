@@ -685,7 +685,7 @@ Statistics.prototype.sendFeedback = function(overall, comment) {
     Statistics.analytics.sendEvent(
         FEEDBACK,
         {
-            value: overall,
+            rating: overall,
             comment
         });
 };

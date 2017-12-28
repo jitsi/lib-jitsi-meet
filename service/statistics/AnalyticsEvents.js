@@ -117,19 +117,19 @@ export const ACTION_P2P_SWITCH_TO_JVB = 'switch.to.jvb';
  * @type {string}
  *
  * Properties:
- *      audioInputDeviceCount: the number of audio input devices available at
+ *      audio_input_device_count: the number of audio input devices available at
  *          the time the event was sent.
- *      audioOutputDeviceCount: the number of audio output devices available at
+ *      audio_output_device_count: the number of audio output devices available
+ *          at the time the event was sent.
+ *      video_input_device_count: the number of video input devices available at
  *          the time the event was sent.
- *      videoInputDeviceCount: the number of video input devices available at
- *          the time the event was sent.
- *      videoOutputDeviceCount: the number of video output devices available at
- *          the time the event was sent.
- *      deviceId: an identifier of the device described in this event.
- *      deviceGroupId:
- *      deviceKind: one of 'audioinput', 'audiooutput', 'videoinput' or
+ *      video_output_device_count: the number of video output devices available
+ *          at the time the event was sent.
+ *      device_id: an identifier of the device described in this event.
+ *      device_group_id:
+ *      device_kind: one of 'audioinput', 'audiooutput', 'videoinput' or
  *          'videooutput'.
- *      deviceLabel: a string which describes the device.
+ *      device_label: a string which describes the device.
  */
 export const AVAILABLE_DEVICE = 'available.device';
 
@@ -232,8 +232,8 @@ export const createConnectionFailedEvent = function(errorType, errorMessage) {
         type: TYPE_OPERATIONAL,
         name: 'connection.failed',
         attributes: {
-            errorType,
-            errorMessage
+            'error_type': errorType,
+            'error_message': errorMessage
         }
     };
 };
@@ -314,7 +314,7 @@ export const createJingleEvent = function(action, attributes = {}) {
  */
 export const createNoDataFromSourceEvent = function(mediaType) {
     return {
-        attributes: { mediaType },
+        attributes: { 'media_type': mediaType },
         name: 'track.no.data.from.source',
         type: TYPE_OPERATIONAL
     };
