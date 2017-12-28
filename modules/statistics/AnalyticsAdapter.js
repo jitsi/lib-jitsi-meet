@@ -301,17 +301,15 @@ class AnalyticsAdapter {
         } else {
             // We append the permanent properties at the time we send the event,
             // not at the time we receive it.
-            const extendedEvent = this._appendPermanentProperties(event);
+            this._appendPermanentProperties(event);
 
-            this.analyticsHandlers.forEach(
-                handler => handler.sendEvent(extendedEvent));
+            this.analyticsHandlers.forEach(handler => handler.sendEvent(event));
         }
     }
 
     /**
      * Extends an event object with the configured permanent properties.
      * @param event the event to extend with permanent properties.
-     * @returns {Object} the extended event
      * @private
      */
     _appendPermanentProperties(event) {
@@ -319,7 +317,8 @@ class AnalyticsAdapter {
             event.attributes = {};
         }
 
-        return Object.assign(event.attributes, this.permanentProperties);
+        event.attributes
+            = Object.assign(event.attributes, this.permanentProperties);
     }
 
 }
