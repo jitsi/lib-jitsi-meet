@@ -156,6 +156,7 @@ class AnalyticsAdapter {
      */
     setConferenceName(name) {
         this.conferenceName = name;
+        this.addPermanentProperties({ 'conference_name': name });
     }
 
     /**
