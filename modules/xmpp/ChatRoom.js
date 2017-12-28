@@ -864,7 +864,6 @@ export default class ChatRoom extends Listenable {
         }
 
         if (txt) {
-            logger.log('chat', nick, txt);
             this.eventEmitter.emit(XMPPEvents.MESSAGE_RECEIVED,
                 from, nick, txt, this.myroomjid, stamp);
         }
