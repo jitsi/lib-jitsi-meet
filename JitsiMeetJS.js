@@ -475,14 +475,6 @@ export default {
     /* eslint-enable max-params */
 
     /**
-     * Returns current machine id saved from the local storage.
-     * @returns {string} the machine id
-     */
-    getMachineId() {
-        return Settings.machineId;
-    },
-
-    /**
      * Represents a hub/namespace for utility functionality which may be of
      * interest to lib-jitsi-meet clients.
      */
