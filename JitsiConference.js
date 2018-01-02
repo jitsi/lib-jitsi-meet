@@ -1455,12 +1455,13 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
 
     if (this.wasStopped) {
         Statistics.sendAnalyticsAndLog(
-            createJingleEvent(ACTION_JINGLE_RESTART));
+            createJingleEvent(ACTION_JINGLE_RESTART, { p2p: false }));
     }
 
     Statistics.sendAnalytics(createJingleEvent(
         ACTION_JINGLE_SI_RECEIVED,
         {
+            p2p: false,
             value: now
         }));
     try {
@@ -1606,7 +1607,7 @@ JitsiConference.prototype.onCallEnded = function(
         this.wasStopped = true;
 
         Statistics.sendAnalyticsAndLog(
-            createJingleEvent(ACTION_JINGLE_TERMINATE));
+            createJingleEvent(ACTION_JINGLE_TERMINATE, { p2p: false }));
 
         // Stop the stats
         if (this.statistics) {

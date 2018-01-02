@@ -28,7 +28,6 @@ import RTC from './modules/RTC/RTC';
 import RTCBrowserType from './modules/RTC/RTCBrowserType';
 import RTCUIHelper from './modules/RTC/RTCUIHelper';
 import ScriptUtil from './modules/util/ScriptUtil';
-import Settings from './modules/settings/Settings';
 import Statistics from './modules/statistics/statistics';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 

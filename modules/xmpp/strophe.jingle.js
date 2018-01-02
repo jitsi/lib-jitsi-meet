@@ -128,6 +128,11 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         }
         const now = window.performance.now();
 
+        // FIXME that should work most of the time, but we'd have to
+        // think how secure it is to assume that user with "focus"
+        // nickname is Jicofo.
+        const isP2P = Strophe.getResourceFromJid(fromJid) !== 'focus';
+
         // see http://xmpp.org/extensions/xep-0166.html#concepts-session
 
         switch (action) {
@@ -144,11 +149,6 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     audioMuted === 'true',
                     videoMuted === 'true');
             }
-
-            // FIXME that should work most of the time, but we'd have to
-            // think how secure it is to assume that user with "focus"
-            // nickname is Jicofo.
-            const isP2P = Strophe.getResourceFromJid(fromJid) !== 'focus';
 
             logger.info(
                 `Marking session from ${fromJid
@@ -204,7 +204,10 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             logger.info('(TIME) Start transport replace', now);
             Statistics.sendAnalytics(createJingleEvent(
                 ACTION_JINGLE_TR_RECEIVED,
-                { value: now }));
+                {
+                    p2p: isP2P,
+                    value: now
+                }));
 
             sess.replaceTransport($(iq).find('>jingle'), () => {
                 const successTime = window.performance.now();
@@ -212,7 +215,10 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                 logger.info('(TIME) Transport replace success!', successTime);
                 Statistics.sendAnalytics(createJingleEvent(
                     ACTION_JINGLE_TR_SUCCESS,
-                    { value: successTime }));
+                    {
+                        p2p: isP2P,
+                        value: successTime
+                    }));
             }, error => {
                 GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error('Transport replace failed', error);
