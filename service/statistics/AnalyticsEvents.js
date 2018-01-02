@@ -230,7 +230,7 @@ export const createBridgeDownEvent = function() {
 export const createConnectionFailedEvent = function(errorType, errorMessage) {
     return {
         type: TYPE_OPERATIONAL,
-        name: 'connection.failed',
+        action: 'connection.failed',
         attributes: {
             'error_type': errorType,
             'error_message': errorMessage
@@ -315,7 +315,7 @@ export const createJingleEvent = function(action, attributes = {}) {
 export const createNoDataFromSourceEvent = function(mediaType) {
     return {
         attributes: { 'media_type': mediaType },
-        name: 'track.no.data.from.source',
+        action: 'track.no.data.from.source',
         type: TYPE_OPERATIONAL
     };
 };
@@ -390,7 +390,7 @@ export const createRemotelyMutedEvent = function() {
 export const createRtpStatsEvent = function(attributes) {
     return {
         type: TYPE_OPERATIONAL,
-        name: 'rtp.stats',
+        action: 'rtp.stats',
         attributes
     };
 };
