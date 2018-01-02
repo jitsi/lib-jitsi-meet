@@ -1606,7 +1606,7 @@ JitsiConference.prototype.onCallEnded = function(
     if (jingleSession === this.jvbJingleSession) {
         this.wasStopped = true;
 
-        Statistics.sendAnalyticsAndLog(
+        Statistics.sendAnalytics(
             createJingleEvent(ACTION_JINGLE_TERMINATE, { p2p: false }));
 
         // Stop the stats

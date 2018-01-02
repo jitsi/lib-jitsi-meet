@@ -706,7 +706,8 @@ Statistics.reportGlobalError = function(error) {
 };
 
 /**
- * Sends event to analytics and logs a message to callstats.
+ * Sends event to analytics and logs a message to the logger/console. Console
+ * messages might also be logged to callstats automatically.
  *
  * @param {string | Object} event the event name, or an object which
  * represents the entire event.
@@ -731,7 +732,8 @@ Statistics.sendAnalyticsAndLog = function(event, properties = {}) {
             properties
         };
     }
-    Statistics.sendLog(JSON.stringify(eventToLog));
+
+    logger.log(JSON.stringify(eventToLog));
 
     // We do this last, because it may modify the object which is passed.
     this.analytics.sendEvent(event, properties);
