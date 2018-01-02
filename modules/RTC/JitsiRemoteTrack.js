@@ -235,7 +235,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
 
         Statistics.sendAnalytics(createTtfmEvent(
             {
-                mediaType: type,
+                'media_type': type,
                 muted: this.hasBeenMuted,
                 value: ttfm
             }));
