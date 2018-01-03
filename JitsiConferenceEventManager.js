@@ -2,14 +2,12 @@
 import { Strophe } from 'strophe.js';
 
 import {
-    _CONNECTION_TIMES_,
-    BRIDGE_DOWN,
-    CONFERENCE_ERROR_,
-    CONNECTION_INTERRUPTED,
-    CONNECTION_RESTORED,
-    DATA_CHANNEL_OPEN,
-    FOCUS_LEFT,
-    REMOTELY_MUTED
+    ACTION_JINGLE_SA_TIMEOUT,
+    createBridgeDownEvent,
+    createConnectionStageReachedEvent,
+    createFocusLeftEvent,
+    createJingleEvent,
+    createRemotelyMutedEvent
 } from './service/statistics/AnalyticsEvents';
 import AuthenticationEvents
     from './service/authentication/AuthenticationEvents';
@@ -51,14 +49,6 @@ export default function JitsiConferenceEventManager(conference) {
                 track.isMuted(),
                 track.getType());
         });
-    conference.on(
-        JitsiConferenceEvents.CONNECTION_INTERRUPTED,
-        Statistics.sendEventToAll.bind(
-            Statistics, CONNECTION_INTERRUPTED));
-    conference.on(
-        JitsiConferenceEvents.CONNECTION_RESTORED,
-        Statistics.sendEventToAll.bind(
-            Statistics, CONNECTION_RESTORED));
 }
 
 /**
@@ -85,11 +75,14 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     });
 
     chatRoom.addListener(XMPPEvents.AUDIO_MUTED_BY_FOCUS,
-        value => {
-            Statistics.analytics.sendEvent(REMOTELY_MUTED);
+        () => {
+            // TODO: Add a way to differentiate between commands which caused
+            // us to mute and those that did not change our state (i.e. we were
+            // already muted).
+            Statistics.sendAnalytics(createRemotelyMutedEvent());
 
             // set isMutedByFocus when setAudioMute Promise ends
-            conference.rtc.setAudioMute(value).then(
+            conference.rtc.setAudioMute(true).then(
                 () => {
                     conference.isMutedByFocus = true;
                 },
@@ -110,17 +103,24 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         () => {
             this.conference.isJvbConnectionInterrupted = false;
 
+            // TODO: Move all of the 'connectionTimes' logic to its own module.
             Object.keys(chatRoom.connectionTimes).forEach(key => {
-                const value = chatRoom.connectionTimes[key];
-                const eventName = `conference.${_CONNECTION_TIMES_}${key}`;
+                const event
+                    = createConnectionStageReachedEvent(
+                        `conference_${key}`,
+                        { value: chatRoom.connectionTimes[key] });
 
-                Statistics.analytics.sendEvent(eventName, { value });
+                Statistics.sendAnalytics(event);
             });
-            Object.keys(chatRoom.xmpp.connectionTimes).forEach(key => {
-                const value = chatRoom.xmpp.connectionTimes[key];
-                const eventName = `xmpp.${_CONNECTION_TIMES_}${key}`;
 
-                Statistics.analytics.sendEvent(eventName, { value });
+            // TODO: Move all of the 'connectionTimes' logic to its own module.
+            Object.keys(chatRoom.xmpp.connectionTimes).forEach(key => {
+                const event
+                    = createConnectionStageReachedEvent(
+                        `xmpp_${key}`,
+                        { value: chatRoom.xmpp.connectionTimes[key] });
+
+                Statistics.sendAnalytics(event);
             });
         });
 
@@ -152,7 +152,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         JitsiConferenceErrors.VIDEOBRIDGE_NOT_AVAILABLE);
     chatRoom.addListener(
         XMPPEvents.BRIDGE_DOWN,
-        () => Statistics.analytics.sendEvent(BRIDGE_DOWN));
+        () => Statistics.sendAnalytics(createBridgeDownEvent()));
 
     this.chatRoomForwarder.forward(XMPPEvents.RESERVATION_ERROR,
         JitsiConferenceEvents.CONFERENCE_FAILED,
@@ -190,20 +190,18 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     chatRoom.addListener(XMPPEvents.FOCUS_LEFT,
         () => {
-            Statistics.analytics.sendEvent(FOCUS_LEFT);
+            Statistics.sendAnalytics(createFocusLeftEvent());
             conference.eventEmitter.emit(
                 JitsiConferenceEvents.CONFERENCE_FAILED,
                 JitsiConferenceErrors.FOCUS_LEFT);
         });
 
-    const eventLogHandler
-        = reason => Statistics.sendEventToAll(`${CONFERENCE_ERROR_}.${reason}`);
-
     chatRoom.addListener(XMPPEvents.SESSION_ACCEPT_TIMEOUT,
         jingleSession => {
-            eventLogHandler(
-                jingleSession.isP2P
-                    ? 'p2pSessionAcceptTimeout' : 'sessionAcceptTimeout');
+            Statistics.sendAnalyticsAndLog(
+                createJingleEvent(
+                    ACTION_JINGLE_SA_TIMEOUT,
+                    { p2p: jingleSession.isP2P }));
         });
 
     this.chatRoomForwarder.forward(XMPPEvents.RECORDER_STATE_CHANGED,
@@ -474,10 +472,13 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
 
     rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, () => {
         const now = window.performance.now();
+        const key = 'data.channel.opened';
 
-        logger.log('(TIME) data channel opened ', now);
-        conference.room.connectionTimes['data.channel.opened'] = now;
-        Statistics.analytics.sendEvent(DATA_CHANNEL_OPEN, { value: now });
+        // TODO: Move all of the 'connectionTimes' logic to its own module.
+        logger.log(`(TIME) ${key}`, now);
+        conference.room.connectionTimes[key] = now;
+        Statistics.sendAnalytics(
+            createConnectionStageReachedEvent(key, { value: now }));
 
         conference.eventEmitter.emit(JitsiConferenceEvents.DATA_CHANNEL_OPENED);
     });

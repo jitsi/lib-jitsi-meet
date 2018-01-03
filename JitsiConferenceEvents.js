@@ -48,11 +48,13 @@ export const CONFERENCE_LEFT = 'conference.left';
 /**
  * Indicates that the connection to the conference has been interrupted for some
  * reason.
+ * XXX This is currently fired when the *ICE* connection is interrupted.
  */
 export const CONNECTION_INTERRUPTED = 'conference.connectionInterrupted';
 
 /**
  * Indicates that the connection to the conference has been restored.
+ * XXX This is currently fired when the *ICE* connection is restored.
  */
 export const CONNECTION_RESTORED = 'conference.connectionRestored';
 

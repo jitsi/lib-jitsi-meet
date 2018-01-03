@@ -1,10 +1,8 @@
 /* global __filename, $ */
 
 import {
-    _ICE_CHECKING_DURATION,
-    _ICE_CONNECTION_STATE_,
-    _ICE_ESTABLISHMENT_DURATION,
-    _ICE_GATHERING_DURATION
+    ICE_DURATION,
+    ICE_STATE_CHANGED
 } from '../../service/statistics/AnalyticsEvents';
 import async from 'async';
 import { getLogger } from 'jitsi-meet-logger';
@@ -243,7 +241,7 @@ export default class JingleSessionPC extends JingleSession {
         this.lasticecandidate = false;
 
         // True if reconnect is in progress
-        this.isreconnect = false;
+        this.isReconnect = false;
 
         // Set to true if the connection was ever stable
         this.wasstable = false;
@@ -318,13 +316,14 @@ export default class JingleSessionPC extends JingleSession {
                 }
             } else if (!this._gatheringReported) {
                 // End of gathering
-                let eventName = this.isP2P ? 'p2p.ice.' : 'ice.';
-
-                eventName += this.isInitiator ? 'initiator.' : 'responder.';
-                eventName += _ICE_GATHERING_DURATION;
-                Statistics.analytics.sendEvent(
-                    eventName,
-                    { value: now - this._gatheringStartedTimestamp });
+                Statistics.sendAnalytics(
+                    ICE_DURATION,
+                    {
+                        phase: 'gathering',
+                        value: now - this._gatheringStartedTimestamp,
+                        p2p: this.isP2P,
+                        initiator: this.isInitiator
+                    });
                 this._gatheringReported = true;
             }
             this.sendIceCandidate(candidate);
@@ -373,12 +372,17 @@ export default class JingleSessionPC extends JingleSession {
                 `(TIME) ICE ${this.peerconnection.iceConnectionState}`
                     + ` P2P? ${this.isP2P}:\t`,
                 now);
-            const iceConnectionEventName
-                = `${this.isP2P ? 'p2p.' : ''}${_ICE_CONNECTION_STATE_}.${
-                    this.peerconnection.iceConnectionState}`;
 
-            Statistics.analytics.sendEvent(
-                iceConnectionEventName, { value: now });
+            Statistics.sendAnalytics(
+                ICE_STATE_CHANGED,
+                {
+                    p2p: this.isP2P,
+                    state: this.peerconnection.iceConnectionState,
+                    'signaling_state': this.peerconnection.signalingState,
+                    reconnect: this.isReconnect,
+                    value: now
+                });
+
             this.room.eventEmitter.emit(
                 XMPPEvents.ICE_CONNECTION_STATE_CHANGED,
                 this,
@@ -391,20 +395,21 @@ export default class JingleSessionPC extends JingleSession {
                 // Informs interested parties that the connection has been
                 // restored.
                 if (this.peerconnection.signalingState === 'stable') {
-                    if (this.isreconnect) {
+                    if (this.isReconnect) {
                         this.room.eventEmitter.emit(
                             XMPPEvents.CONNECTION_RESTORED, this);
                     }
                 }
 
                 if (!this.wasConnected && this.wasstable) {
-                    let eventName = this.isP2P ? 'p2p.ice.' : 'ice.';
 
-                    eventName += this.isInitiator ? 'initiator.' : 'responder.';
-                    Statistics.analytics.sendEvent(
-                        `${eventName}${_ICE_CHECKING_DURATION}`,
+                    Statistics.sendAnalytics(
+                        ICE_DURATION,
                         {
-                            value: now - this._iceCheckingStartedTimestamp
+                            phase: 'checking',
+                            value: now - this._iceCheckingStartedTimestamp,
+                            p2p: this.isP2P,
+                            initiator: this.isInitiator
                         });
 
                     // Switch between ICE gathering and ICE checking whichever
@@ -417,22 +422,26 @@ export default class JingleSessionPC extends JingleSession {
 
                     this.establishmentDuration = now - iceStarted;
 
-                    Statistics.analytics.sendEvent(
-                        `${eventName}${_ICE_ESTABLISHMENT_DURATION}`,
+                    Statistics.sendAnalytics(
+                        ICE_DURATION,
                         {
-                            value: this.establishmentDuration
+                            phase: 'establishment',
+                            value: this.establishmentDuration,
+                            p2p: this.isP2P,
+                            initiator: this.isInitiator
                         });
+
                     this.wasConnected = true;
                     this.room.eventEmitter.emit(
                         XMPPEvents.CONNECTION_ESTABLISHED, this);
                 }
-                this.isreconnect = false;
+                this.isReconnect = false;
                 break;
             case 'disconnected':
                 if (this.closed) {
                     break;
                 }
-                this.isreconnect = true;
+                this.isReconnect = true;
 
                 // Informs interested parties that the connection has been
                 // interrupted.

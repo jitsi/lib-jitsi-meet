@@ -158,13 +158,15 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
     }
 
     /**
-     *
+     * TODO: Document
      * @param iq
      */
     onMute(iq) {
         const from = iq.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
+        // XXX What are the semantics of the return value? Why is it sometimes
+        // undefined and sometimes a boolean?
         if (!room) {
             return;
         }

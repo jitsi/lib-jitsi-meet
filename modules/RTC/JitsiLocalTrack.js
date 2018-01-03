@@ -19,8 +19,8 @@ import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import VideoType from '../../service/RTC/VideoType';
 import {
-    _NO_DATA_FROM_SOURCE,
-    _TRACK_UNMUTE
+    TRACK_UNMUTED,
+    createNoDataFromSourceEvent
 } from '../../service/statistics/AnalyticsEvents';
 import Statistics from '../statistics/statistics';
 
@@ -32,7 +32,7 @@ const logger = getLogger(__filename);
  */
 export default class JitsiLocalTrack extends JitsiTrack {
     /**
-     * Constructs new JitsiLocalTrack instanse.
+     * Constructs new JitsiLocalTrack instance.
      *
      * @constructor
      * @param {Object} trackInfo
@@ -202,9 +202,13 @@ export default class JitsiLocalTrack extends JitsiTrack {
                         = setTimeout(_onNoDataFromSourceError, 3000);
                     this._setHandler('track_unmute', () => {
                         this._clearNoDataFromSourceMuteResources();
-                        Statistics.sendEventToAll(
-                            `${this.getType()}.${_TRACK_UNMUTE}`,
-                            { value: window.performance.now() - now });
+                        Statistics.sendAnalyticsAndLog(
+                            TRACK_UNMUTED,
+                            {
+                                'media_type': this.getType(),
+                                'track_type': 'local',
+                                value: window.performance.now() - now
+                            });
                     });
                 }
             });
@@ -241,10 +245,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
      */
     _fireNoDataFromSourceEvent() {
         this.emit(NO_DATA_FROM_SOURCE);
-        const eventName = `${this.getType()}.${_NO_DATA_FROM_SOURCE}`;
 
-        Statistics.analytics.sendEvent(eventName);
-        const log = { name: eventName };
+        Statistics.sendAnalytics(createNoDataFromSourceEvent(this.getType()));
+        const log = { name: NO_DATA_FROM_SOURCE };
 
         if (this.isAudioTrack()) {
             log.isReceivingData = this._isReceivingData();
@@ -712,7 +715,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Detects camera issues on ended and mute events from MediaStreamTrack.
+     * Detects camera issues, i.e. returns true if we expect this track to be
+     * receiving data from its source, but it isn't receiving data.
      *
      * @returns {boolean} true if an issue is detected and false otherwise
      */

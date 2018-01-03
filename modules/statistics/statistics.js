@@ -1,9 +1,6 @@
 import EventEmitter from 'events';
 
-import {
-    FEEDBACK,
-    ICE_FAILED
-} from '../../service/statistics/AnalyticsEvents';
+import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
 import analytics from './AnalyticsAdapter';
 import CallStats from './CallStats';
 import LocalStats from './LocalStatsCollector';
@@ -470,7 +467,6 @@ Statistics.prototype.sendIceConnectionFailedEvent = function(tpc) {
     if (instance) {
         instance.sendIceConnectionFailedEvent();
     }
-    Statistics.analytics.sendEvent(ICE_FAILED);
 };
 
 /**
@@ -682,16 +678,16 @@ Statistics.sendLog = function(m) {
 /**
  * Sends the given feedback through CallStats.
  *
- * @param overall an integer between 1 and 5 indicating the user feedback
- * @param detailed detailed feedback from the user. Not yet used
+ * @param overall an integer between 1 and 5 indicating the user's rating.
+ * @param comment the comment from the user.
  */
-Statistics.prototype.sendFeedback = function(overall, detailed) {
-    CallStats.sendFeedback(this._getCallStatsConfID(), overall, detailed);
+Statistics.prototype.sendFeedback = function(overall, comment) {
+    CallStats.sendFeedback(this._getCallStatsConfID(), overall, comment);
     Statistics.analytics.sendEvent(
         FEEDBACK,
         {
-            value: overall,
-            detailed
+            rating: overall,
+            comment
         });
 };
 
@@ -711,16 +707,46 @@ Statistics.reportGlobalError = function(error) {
 };
 
 /**
- * Sends event to analytics and callstats.
- * @param {string} eventName the event name.
- * @param {Object} data the data to be sent.
+ * Sends event to analytics and logs a message to the logger/console. Console
+ * messages might also be logged to callstats automatically.
+ *
+ * @param {string | Object} event the event name, or an object which
+ * represents the entire event.
+ * @param {Object} properties properties to attach to the event (if an event
+ * name as opposed to an event object is provided).
  */
-Statistics.sendEventToAll = function(eventName, data) {
-    this.analytics.sendEvent(eventName, data);
-    Statistics.sendLog(
-        JSON.stringify(
-            {
-                name: eventName,
-                data
-            }));
+Statistics.sendAnalyticsAndLog = function(event, properties = {}) {
+    if (!event) {
+        logger.warn('No event or event name given.');
+
+        return;
+    }
+
+    let eventToLog;
+
+    // Also support an API with a single object as an event.
+    if (typeof event === 'object') {
+        eventToLog = event;
+    } else {
+        eventToLog = {
+            name: event,
+            properties
+        };
+    }
+
+    logger.log(JSON.stringify(eventToLog));
+
+    // We do this last, because it may modify the object which is passed.
+    this.analytics.sendEvent(event, properties);
+};
+
+/**
+ * Sends event to analytics.
+ *
+ * @param {string | Object} eventName the event name, or an object which
+ * represents the entire event.
+ * @param {Object} properties properties to attach to the event
+ */
+Statistics.sendAnalytics = function(eventName, properties = {}) {
+    this.analytics.sendEvent(eventName, properties);
 };

@@ -1,6 +1,6 @@
 import {
-    CONNECTION_DISCONNECTED_,
-    CONNECTION_FAILED_
+    CONNECTION_DISCONNECTED as ANALYTICS_CONNECTION_DISCONNECTED,
+    createConnectionFailedEvent
 } from './service/statistics/AnalyticsEvents';
 import JitsiConference from './JitsiConference';
 import * as JitsiConnectionEvents from './JitsiConnectionEvents';
@@ -25,9 +25,8 @@ export default function JitsiConnection(appID, token, options) {
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
         (errType, msg) => {
-            Statistics.sendEventToAll(
-                `${CONNECTION_FAILED_}.${errType}`,
-                { label: msg });
+            Statistics.sendAnalyticsAndLog(
+                createConnectionFailedEvent(errType, msg));
         });
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_DISCONNECTED,
@@ -35,13 +34,19 @@ export default function JitsiConnection(appID, token, options) {
             // we can see disconnects from normal tab closing of the browser
             // and then there are no msgs, but we want to log only disconnects
             // when there is real error
+            // XXX Do we need the difference in handling between the log and
+            // analytics event here?
             if (msg) {
-                Statistics.analytics.sendEvent(
-                    `${CONNECTION_DISCONNECTED_}.${msg}`);
+                Statistics.sendAnalytics(
+                    ANALYTICS_CONNECTION_DISCONNECTED,
+                    { message: msg });
             }
             Statistics.sendLog(
-                JSON.stringify({ id: 'connection.disconnected',
-                    msg }));
+                JSON.stringify(
+                    {
+                        id: ANALYTICS_CONNECTION_DISCONNECTED,
+                        msg
+                    }));
         });
 }
 

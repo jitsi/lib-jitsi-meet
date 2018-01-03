@@ -1,12 +1,6 @@
 /* global __filename */
 
-import {
-    GET_USER_MEDIA_DEVICE_NOT_FOUND_,
-    GET_USER_MEDIA_FAIL_,
-    GET_USER_MEDIA_FAILED_,
-    GET_USER_MEDIA_SUCCESS_,
-    GET_USER_MEDIA_USER_CANCEL_
-} from './service/statistics/AnalyticsEvents';
+import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
 import AuthUtil from './modules/util/AuthUtil';
 import * as ConnectionQualityEvents
     from './service/connectivity/ConnectionQualityEvents';
@@ -34,7 +28,6 @@ import RTC from './modules/RTC/RTC';
 import RTCBrowserType from './modules/RTC/RTCBrowserType';
 import RTCUIHelper from './modules/RTC/RTCUIHelper';
 import ScriptUtil from './modules/util/ScriptUtil';
-import Settings from './modules/settings/Settings';
 import Statistics from './modules/statistics/statistics';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 
@@ -69,28 +62,28 @@ function getLowerResolution(resolution) {
 }
 
 /**
- * Checks the available devices in options and concatenate the data to the
- * name, which will be used as analytics event name. Adds resolution for the
- * devices.
- * @param name name of event
- * @param options gum options
- * @returns {*}
+ * Extracts from an 'options' objects with a specific format
+ * (TODO what IS the format?) the attributes which are to be logged in analytics
+ * events.
+ *
+ * @param options gum options (???)
+ * @returns {*} the attributes to attach to analytics events.
  */
-function addDeviceTypeToAnalyticsEvent(name, options) {
-    let ret = name;
+function getAnalyticsAttributesFromOptions(options) {
+    const attributes = {
+        'audio_requested':
+            options.devices.includes('audio'),
+        'video_requested':
+            options.devices.includes('video'),
+        'screen_sharing_requested':
+            options.devices.includes('desktop')
+    };
 
-    if (options.devices.indexOf('audio') !== -1) {
-        ret += '.audio';
-    }
-    if (options.devices.indexOf('desktop') !== -1) {
-        ret += '.desktop';
-    }
-    if (options.devices.indexOf('video') !== -1) {
-        // we have video add resolution
-        ret += `.video.${options.resolution}`;
+    if (attributes.video_requested) {
+        attributes.resolution = options.resolution;
     }
 
-    return ret;
+    return attributes;
 }
 
 /**
@@ -282,10 +275,10 @@ export default {
                 window.connectionTimes['obtainPermissions.end']
                     = window.performance.now();
 
-                Statistics.analytics.sendEvent(
-                    addDeviceTypeToAnalyticsEvent(
-                        GET_USER_MEDIA_SUCCESS_, options),
-                    { value: options });
+                Statistics.sendAnalytics(
+                    createGetUserMediaEvent(
+                        'success',
+                        getAnalyticsAttributesFromOptions(options)));
 
                 if (!RTC.options.disableAudioLevels) {
                     for (let i = 0; i < tracks.length; i++) {
@@ -334,16 +327,20 @@ export default {
                             'Retry createLocalTracks with resolution',
                             newResolution);
 
-                        Statistics.analytics.sendEvent(
-                            `${GET_USER_MEDIA_FAIL_}.resolution.${
-                                oldResolution}`);
+                        Statistics.sendAnalytics(createGetUserMediaEvent(
+                            'warning',
+                            {
+                                'old_resolution': oldResolution,
+                                'new_resolution': newResolution,
+                                reason: 'unsupported resolution'
+                            }));
 
                         return this.createLocalTracks(options);
                     }
                 }
 
-                if (JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED
-                        === error.name) {
+                if (error.name
+                        === JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED) {
                     // User cancelled action is not really an error, so only
                     // log it as an event to avoid having conference classified
                     // as partially failed
@@ -353,9 +350,14 @@ export default {
                     };
 
                     Statistics.sendLog(JSON.stringify(logObject));
-                    Statistics.analytics.sendEvent(
-                        `${GET_USER_MEDIA_USER_CANCEL_}.extensionInstall`);
-                } else if (JitsiTrackErrors.NOT_FOUND === error.name) {
+
+                    Statistics.sendAnalytics(
+                        createGetUserMediaEvent(
+                            'warning',
+                            {
+                                reason: 'extension install user canceled'
+                            }));
+                } else if (error.name === JitsiTrackErrors.NOT_FOUND) {
                     // logs not found devices with just application log to cs
                     const logObject = {
                         id: 'usermedia_missing_device',
@@ -363,19 +365,24 @@ export default {
                     };
 
                     Statistics.sendLog(JSON.stringify(logObject));
-                    Statistics.analytics.sendEvent(
-                        `${GET_USER_MEDIA_DEVICE_NOT_FOUND_}.${
-                            error.gum.devices.join('.')}`);
+
+                    const attributes
+                        = getAnalyticsAttributesFromOptions(options);
+
+                    attributes.reason = 'device not found';
+                    attributes.devices = error.gum.devices.join('.');
+                    Statistics.sendAnalytics(
+                        createGetUserMediaEvent('error', attributes));
                 } else {
                     // Report gUM failed to the stats
                     Statistics.sendGetUserMediaFailed(error);
-                    const eventName
-                        = addDeviceTypeToAnalyticsEvent(
-                            GET_USER_MEDIA_FAILED_, options);
 
-                    Statistics.analytics.sendEvent(
-                        `${eventName}.${error.name}`,
-                        { value: options });
+                    const attributes
+                        = getAnalyticsAttributesFromOptions(options);
+
+                    attributes.reason = error.name;
+                    Statistics.sendAnalytics(
+                        createGetUserMediaEvent('error', attributes));
                 }
 
                 window.connectionTimes['obtainPermissions.end']
@@ -465,14 +472,6 @@ export default {
     },
 
     /* eslint-enable max-params */
-
-    /**
-     * Returns current machine id saved from the local storage.
-     * @returns {string} the machine id
-     */
-    getMachineId() {
-        return Settings.machineId;
-    },
 
     /**
      * Represents a hub/namespace for utility functionality which may be of

@@ -1,9 +1,9 @@
 /* global $, __filename */
 
 import {
-    SESSION_INITIATE_RECEIVED,
-    TRANSPORT_REPLACE_START,
-    TRANSPORT_REPLACE_SUCCESS
+    ACTION_JINGLE_TR_RECEIVED,
+    ACTION_JINGLE_TR_SUCCESS,
+    createJingleEvent
 } from '../../service/statistics/AnalyticsEvents';
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, Strophe } from 'strophe.js';
@@ -128,6 +128,11 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         }
         const now = window.performance.now();
 
+        // FIXME that should work most of the time, but we'd have to
+        // think how secure it is to assume that user with "focus"
+        // nickname is Jicofo.
+        const isP2P = Strophe.getResourceFromJid(fromJid) !== 'focus';
+
         // see http://xmpp.org/extensions/xep-0166.html#concepts-session
 
         switch (action) {
@@ -144,11 +149,6 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     audioMuted === 'true',
                     videoMuted === 'true');
             }
-
-            // FIXME that should work most of the time, but we'd have to
-            // think how secure it is to assume that user with "focus"
-            // nickname is Jicofo.
-            const isP2P = Strophe.getResourceFromJid(fromJid) !== 'focus';
 
             logger.info(
                 `Marking session from ${fromJid
@@ -169,8 +169,6 @@ class JingleConnectionPlugin extends ConnectionPlugin {
 
             this.eventEmitter.emit(XMPPEvents.CALL_INCOMING,
                 sess, $(iq).find('>jingle'), now);
-            Statistics.analytics.sendEvent(
-                SESSION_INITIATE_RECEIVED, { value: now });
             break;
         }
         case 'session-accept': {
@@ -204,17 +202,23 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         }
         case 'transport-replace':
             logger.info('(TIME) Start transport replace', now);
-            Statistics.analytics.sendEvent(
-                TRANSPORT_REPLACE_START,
-                { value: now });
+            Statistics.sendAnalytics(createJingleEvent(
+                ACTION_JINGLE_TR_RECEIVED,
+                {
+                    p2p: isP2P,
+                    value: now
+                }));
 
             sess.replaceTransport($(iq).find('>jingle'), () => {
                 const successTime = window.performance.now();
 
                 logger.info('(TIME) Transport replace success!', successTime);
-                Statistics.analytics.sendEvent(
-                    TRANSPORT_REPLACE_SUCCESS,
-                    { value: successTime });
+                Statistics.sendAnalytics(createJingleEvent(
+                    ACTION_JINGLE_TR_SUCCESS,
+                    {
+                        p2p: isP2P,
+                        value: successTime
+                    }));
             }, error => {
                 GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error('Transport replace failed', error);
