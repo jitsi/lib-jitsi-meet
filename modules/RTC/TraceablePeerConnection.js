@@ -270,7 +270,7 @@ export default function TraceablePeerConnection(
     };
     this.ondatachannel = null;
     this.peerconnection.ondatachannel = event => {
-        this.trace('ondatachannel', event);
+        this.trace('ondatachannel');
         if (this.ondatachannel !== null) {
             this.ondatachannel(event);
         }
