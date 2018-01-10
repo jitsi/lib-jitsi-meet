@@ -12,3 +12,5 @@ To build the library, just type:
 ```
 npm install
 ```
+
+Test, dummy change.
