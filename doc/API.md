@@ -9,7 +9,7 @@ Installation
 To embed Jitsi Meet API in your application you need to add Jitsi Meet API library
 
 ```javascript
-<script src="https://meet.jit.si/lib-jitsi-meet.js"></script>
+<script src="https://meet.jit.si/libs/lib-jitsi-meet.js"></script>
 ```
 
 Now you can access Jitsi Meet API trough the ```JitsiMeetJS``` global object.
