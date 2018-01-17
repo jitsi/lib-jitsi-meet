@@ -213,7 +213,9 @@ export default function TraceablePeerConnection(
 
     // override as desired
     this.trace = (what, info) => {
-        /* logger.warn('WTRACE', what, info);
+        logger.debug(what, info);
+
+        /*
         if (info && RTCBrowserType.isIExplorer()) {
             if (info.length > 1024) {
                 logger.warn('WTRACE', what, info.substr(1024));
@@ -268,7 +270,7 @@ export default function TraceablePeerConnection(
     };
     this.ondatachannel = null;
     this.peerconnection.ondatachannel = event => {
-        this.trace('ondatachannel', event);
+        this.trace('ondatachannel');
         if (this.ondatachannel !== null) {
             this.ondatachannel(event);
         }

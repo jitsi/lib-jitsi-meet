@@ -481,6 +481,7 @@ export default {
     util: {
         AuthUtil,
         RTCUIHelper,
-        ScriptUtil
+        ScriptUtil,
+        RTCBrowserType
     }
 };
