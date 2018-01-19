@@ -1210,6 +1210,9 @@ const getters = {
         // happening (check setLocalDescription impl).
         desc = enforceSendRecv(desc);
 
+        // See the method's doc for more info about this transformation.
+        desc = this.localSdpMunger.transformStreamIdentifiers(desc);
+
         return desc;
     },
     remoteDescription() {

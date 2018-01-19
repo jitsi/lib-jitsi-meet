@@ -19,6 +19,12 @@ import VideoType from '../../service/RTC/VideoType';
 
 const logger = getLogger(__filename);
 
+/**
+ * The counter used to generated id numbers assigned to peer connections
+ * @type {number}
+ */
+let peerConnectionIdCounter = 1;
+
 let rtcTrackIdCounter = 0;
 
 /**
@@ -113,12 +119,6 @@ export default class RTC extends Listenable {
          * @type {Map.<number, TraceablePeerConnection>}
          */
         this.peerConnections = new Map();
-
-        /**
-         * The counter used to generated id numbers assigned to peer connections
-         * @type {number}
-         */
-        this.peerConnectionIdCounter = 1;
 
         this.localTracks = [];
 
@@ -444,13 +444,13 @@ export default class RTC extends Listenable {
         const newConnection
             = new TraceablePeerConnection(
                 this,
-                this.peerConnectionIdCounter,
+                peerConnectionIdCounter,
                 signaling,
                 iceConfig, pcConstraints,
                 isP2P, options);
 
         this.peerConnections.set(newConnection.id, newConnection);
-        this.peerConnectionIdCounter += 1;
+        peerConnectionIdCounter += 1;
 
         return newConnection;
     }
