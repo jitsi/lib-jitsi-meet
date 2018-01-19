@@ -3,7 +3,7 @@ import { getLogger } from 'jitsi-meet-logger';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import * as MediaType from '../../service/RTC/MediaType';
-import RTCBrowserType from '../RTC/RTCBrowserType';
+import browser from '../browser';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import Statistics from '../statistics/statistics';
 
@@ -117,7 +117,7 @@ export default class ParticipantConnectionStatusHandler {
         }
 
         // Logic when isVideoTrackFrozen is supported
-        if (RTCBrowserType.isVideoMuteOnConnInterruptedSupported()) {
+        if (browser.supportsVideoMuteOnConnInterrupted()) {
             if (!isVideoTrackFrozen) {
                 // If the video is playing we're good
                 return ParticipantConnectionStatus.ACTIVE;
@@ -150,7 +150,7 @@ export default class ParticipantConnectionStatusHandler {
      * @private
      */
     static _getNewStateForP2PMode(isVideoMuted, isVideoTrackFrozen) {
-        if (!RTCBrowserType.isVideoMuteOnConnInterruptedSupported()) {
+        if (!browser.supportsVideoMuteOnConnInterrupted()) {
             // There's no way to detect problems in P2P when there's no video
             // track frozen detection...
             return ParticipantConnectionStatus.ACTIVE;
@@ -298,7 +298,7 @@ export default class ParticipantConnectionStatusHandler {
         // On some browsers MediaStreamTrack trigger "onmute"/"onunmute"
         // events for video type tracks when they stop receiving data which is
         // often a sign that remote user is having connectivity issues
-        if (RTCBrowserType.isVideoMuteOnConnInterruptedSupported()) {
+        if (browser.supportsVideoMuteOnConnInterrupted()) {
 
             this._onTrackRtcMuted = this.onTrackRtcMuted.bind(this);
             this.rtc.addListener(
@@ -347,7 +347,7 @@ export default class ParticipantConnectionStatusHandler {
             RTCEvents.ENDPOINT_CONN_STATUS_CHANGED,
             this._onEndpointConnStatusChanged);
 
-        if (RTCBrowserType.isVideoMuteOnConnInterruptedSupported()) {
+        if (browser.supportsVideoMuteOnConnInterrupted()) {
             this.rtc.removeListener(
                 RTCEvents.REMOTE_TRACK_MUTE,
                 this._onTrackRtcMuted);
@@ -520,7 +520,7 @@ export default class ParticipantConnectionStatusHandler {
      *
      */
     isVideoTrackFrozen(participant) {
-        if (!RTCBrowserType.isVideoMuteOnConnInterruptedSupported()) {
+        if (!browser.supportsVideoMuteOnConnInterrupted()) {
             return false;
         }
 

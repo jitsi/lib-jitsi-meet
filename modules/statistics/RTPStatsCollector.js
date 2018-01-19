@@ -1,22 +1,22 @@
-import RTCBrowserType from '../RTC/RTCBrowserType';
+import browser, { browsers } from '../browser';
 import * as StatisticsEvents from '../../service/statistics/Events';
 
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 const logger = require('jitsi-meet-logger').getLogger(__filename);
 
 /* Whether we support the browser we are running into for logging statistics */
-const browserSupported = RTCBrowserType.isChrome()
-        || RTCBrowserType.isOpera() || RTCBrowserType.isFirefox()
-        || RTCBrowserType.isNWJS() || RTCBrowserType.isElectron()
-        || RTCBrowserType.isTemasysPluginUsed() || RTCBrowserType.isEdge();
+const browserSupported = browser.isChrome()
+        || browser.isOpera() || browser.isFirefox()
+        || browser.isNWJS() || browser.isElectron()
+        || browser.isTemasysPluginUsed() || browser.isEdge();
 
 /**
  * The lib-jitsi-meet browser-agnostic names of the browser-specific keys
- * reported by RTCPeerConnection#getStats mapped by RTCBrowserType.
+ * reported by RTCPeerConnection#getStats mapped by browser.
  */
 const KEYS_BY_BROWSER_TYPE = {};
 
-KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_FIREFOX] = {
+KEYS_BY_BROWSER_TYPE[browsers.FIREFOX] = {
     'ssrc': 'ssrc',
     'packetsReceived': 'packetsReceived',
     'packetsLost': 'packetsLost',
@@ -25,7 +25,7 @@ KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_FIREFOX] = {
     'bytesSent': 'bytesSent',
     'framerateMean': 'framerateMean'
 };
-KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME] = {
+KEYS_BY_BROWSER_TYPE[browsers.CHROME] = {
     'receiveBandwidth': 'googAvailableReceiveBandwidth',
     'sendBandwidth': 'googAvailableSendBandwidth',
     'remoteAddress': 'googRemoteAddress',
@@ -50,7 +50,7 @@ KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME] = {
     'remoteCandidateType': 'googRemoteCandidateType',
     'localCandidateType': 'googLocalCandidateType'
 };
-KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_EDGE] = {
+KEYS_BY_BROWSER_TYPE[browsers.EDGE] = {
     'sendBandwidth': 'googAvailableSendBandwidth',
     'remoteAddress': 'remoteAddress',
     'transportType': 'protocol',
@@ -72,18 +72,18 @@ KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_EDGE] = {
     'audioOutputLevel': 'audioLevel',
     'currentRoundTripTime': 'roundTripTime'
 };
-KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_OPERA]
-    = KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
-KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_NWJS]
-    = KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
-KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_ELECTRON]
-    = KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
-KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_IEXPLORER]
-    = KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
-KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_SAFARI]
-    = KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
-KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_REACT_NATIVE]
-    = KEYS_BY_BROWSER_TYPE[RTCBrowserType.RTC_BROWSER_CHROME];
+KEYS_BY_BROWSER_TYPE[browsers.OPERA]
+    = KEYS_BY_BROWSER_TYPE[browsers.CHROME];
+KEYS_BY_BROWSER_TYPE[browsers.NWJS]
+    = KEYS_BY_BROWSER_TYPE[browsers.CHROME];
+KEYS_BY_BROWSER_TYPE[browsers.ELECTRON]
+    = KEYS_BY_BROWSER_TYPE[browsers.CHROME];
+KEYS_BY_BROWSER_TYPE[browsers.IEXPLORER]
+    = KEYS_BY_BROWSER_TYPE[browsers.CHROME];
+KEYS_BY_BROWSER_TYPE[browsers.SAFARI]
+    = KEYS_BY_BROWSER_TYPE[browsers.CHROME];
+KEYS_BY_BROWSER_TYPE[browsers.REACT_NATIVE]
+    = KEYS_BY_BROWSER_TYPE[browsers.CHROME];
 
 /**
  * Calculates packet lost percent using the number of lost packets and the
@@ -210,7 +210,7 @@ export default function StatsCollector(
         eventEmitter) {
     // StatsCollector depends entirely on the format of the reports returned by
     // RTCPeerConnection#getStats. Given that the value of
-    // RTCBrowserType#getBrowserType() is very unlikely to change at runtime, it
+    // browser#getName() is very unlikely to change at runtime, it
     // makes sense to discover whether StatsCollector supports the executing
     // browser as soon as possible. Otherwise, (1) getStatValue would have to
     // needlessly check a "static" condition multiple times very very often and
@@ -218,12 +218,12 @@ export default function StatsCollector(
     // reported multiple times very very often too late in the execution in some
     // totally unrelated callback.
     /**
-     * The RTCBrowserType supported by this StatsCollector. In other words, the
-     * RTCBrowserType of the browser which initialized this StatsCollector
+     * The browser type supported by this StatsCollector. In other words, the
+     * type of the browser which initialized this StatsCollector
      * instance.
      * @private
      */
-    this._browserType = RTCBrowserType.getBrowserType();
+    this._browserType = browser.getName();
     const keys = KEYS_BY_BROWSER_TYPE[this._browserType];
 
     if (!keys) {
@@ -386,10 +386,10 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
     let itemStatByKey;
 
     switch (this._browserType) {
-    case RTCBrowserType.RTC_BROWSER_CHROME:
-    case RTCBrowserType.RTC_BROWSER_OPERA:
-    case RTCBrowserType.RTC_BROWSER_NWJS:
-    case RTCBrowserType.RTC_BROWSER_ELECTRON:
+    case browsers.CHROME:
+    case browsers.OPERA:
+    case browsers.NWJS:
+    case browsers.ELECTRON:
         // TODO What about other types of browser which are based on Chrome such
         // as NW.js? Every time we want to support a new type browser we have to
         // go and add more conditions (here and in multiple other places).
@@ -399,7 +399,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
         // retrieve the value associated with a specific key.
         itemStatByKey = (item, key) => item.stat(key);
         break;
-    case RTCBrowserType.RTC_BROWSER_REACT_NATIVE:
+    case browsers.REACT_NATIVE:
         // The implementation provided by react-native-webrtc follows the
         // Objective-C WebRTC API: RTCStatsReport has a values property of type
         // Array in which each element is a key-value pair.
@@ -420,7 +420,7 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
             return value;
         };
         break;
-    case RTCBrowserType.RTC_BROWSER_EDGE:
+    case browsers.EDGE:
         itemStatByKey = (item, key) => item[key];
         break;
     default:
@@ -569,7 +569,7 @@ StatsCollector.prototype.processStatsReport = function() {
 
         // NOTE: In Edge, stats with type "inboundrtp" and "outboundrtp" are
         // completely useless, so ignore them.
-        if (RTCBrowserType.isEdge()
+        if (browser.isEdge()
             && (now.type === 'inboundrtp' || now.type === 'outboundrtp')) {
             continue;
         }
@@ -596,7 +596,7 @@ StatsCollector.prototype.processStatsReport = function() {
         // In new W3 stats spec, type="track" has a remoteSource boolean
         // property.
         // Edge uses the new format, so skip this check.
-        if (!RTCBrowserType.isEdge()
+        if (!browser.isEdge()
                 && (now.isRemote === true || now.remoteSource === true)) {
             continue;
         }
@@ -918,7 +918,7 @@ StatsCollector.prototype.processAudioLevelReport = function() {
             // In Edge the range is -100..0 (-100 == silence) measured in dB,
             // so convert to linear. The levels are set to 0 for remote tracks,
             // so don't convert those, since 0 means "the maximum" in Edge.
-            if (RTCBrowserType.isEdge()) {
+            if (browser.isEdge()) {
                 audioLevel = audioLevel < 0 ? Math.pow(10, audioLevel / 20) : 0;
 
             // TODO: Can't find specs about what this value really is, but it

@@ -12,7 +12,7 @@ import {
     NO_DATA_FROM_SOURCE,
     TRACK_MUTE_CHANGED
 } from '../../JitsiTrackEvents';
-import RTCBrowserType from './RTCBrowserType';
+import browser from '../browser';
 import RTCUtils from './RTCUtils';
 import CameraFacingMode from '../../service/RTC/CameraFacingMode';
 import * as MediaType from '../../service/RTC/MediaType';
@@ -78,7 +78,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this.sourceId = sourceId;
         this.sourceType = sourceType;
 
-        if (RTCBrowserType.usesNewGumFlow()) {
+        if (browser.usesNewGumFlow()) {
             // Get the resolution from the track itself because it cannot be
             // certain which resolution webrtc has fallen back to using.
             this.resolution = track.getSettings().height;
@@ -90,7 +90,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             // FIXME Currently, Firefox is ignoring our constraints about
             // resolutions so we do not store it, to avoid wrong reporting of
             // local track resolution.
-            this.resolution = RTCBrowserType.isFirefox() ? null : resolution;
+            this.resolution = browser.isFirefox() ? null : resolution;
         }
 
         this.deviceId = deviceId;
@@ -354,7 +354,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         if (this.isAudioTrack()
                 || this.videoType === VideoType.DESKTOP
-                || !RTCBrowserType.doesVideoMuteByStreamRemove()) {
+                || !browser.doesVideoMuteByStreamRemove()) {
             logMuteInfo();
             if (this.track) {
                 this.track.enabled = !muted;
@@ -384,7 +384,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 facingMode: this.getCameraFacingMode()
             };
 
-            if (RTCBrowserType.usesNewGumFlow()) {
+            if (browser.usesNewGumFlow()) {
                 promise
                     = RTCUtils.newObtainAudioAndVideoPermissions(Object.assign(
                         {},
@@ -402,7 +402,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             promise.then(streamsInfo => {
                 const mediaType = this.getType();
                 const streamInfo
-                    = RTCBrowserType.usesNewGumFlow()
+                    = browser.usesNewGumFlow()
                         ? streamsInfo.find(
                             info => info.track.kind === mediaType)
                         : streamsInfo.find(

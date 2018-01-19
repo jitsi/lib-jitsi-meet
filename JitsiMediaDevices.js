@@ -1,10 +1,12 @@
 import EventEmitter from 'events';
-import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
+
 import * as MediaType from './service/RTC/MediaType';
+import browser from './modules/browser';
 import RTC from './modules/RTC/RTC';
-import RTCBrowserType from './modules/RTC/RTCBrowserType';
 import RTCEvents from './service/RTC/RTCEvents';
 import Statistics from './modules/statistics/statistics';
+
+import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
 
 const eventEmitter = new EventEmitter();
 
@@ -80,7 +82,7 @@ const JitsiMediaDevices = {
      * @returns {boolean}
      */
     isMultipleAudioInputSupported() {
-        return !RTCBrowserType.isFirefox();
+        return !browser.isFirefox();
     },
 
     /**
@@ -147,9 +149,10 @@ const JitsiMediaDevices = {
      * @returns {boolean}
      */
     supportsVideo() {
-        // Defer to RTCBrowserType to allow exposure of the api to the consumer
-        // but prevent other files from having to import JitsiMediaDevices.
-        return RTCBrowserType.supportsVideo();
+        // Defer to the browser capabilities to allow exposure of the api to the
+        // consumer but prevent other files from having to import
+        // JitsiMediaDevices.
+        return browser.supportsVideo();
     }
 };
 

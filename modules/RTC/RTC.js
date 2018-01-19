@@ -10,7 +10,7 @@ import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
 import Listenable from '../util/Listenable';
 import * as MediaType from '../../service/RTC/MediaType';
-import RTCBrowserType from './RTCBrowserType';
+import browser from '../browser';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import RTCUtils from './RTCUtils';
 import Statistics from '../statistics/statistics';
@@ -201,7 +201,7 @@ export default class RTC extends Listenable {
      * @returns {*} Promise object that will receive the new JitsiTracks
      */
     static obtainAudioAndVideoPermissions(options) {
-        const usesNewGumFlow = RTCBrowserType.usesNewGumFlow();
+        const usesNewGumFlow = browser.usesNewGumFlow();
         const obtainMediaPromise = usesNewGumFlow
             ? RTCUtils.newObtainAudioAndVideoPermissions(options)
             : RTCUtils.obtainAudioAndVideoPermissions(options);
