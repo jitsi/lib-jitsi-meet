@@ -24,11 +24,8 @@ if (minimize) {
     }));
 }
 
-module.exports = {
+const config = {
     devtool: 'source-map',
-    entry: {
-        'lib-jitsi-meet': './index.js'
-    },
     module: {
         rules: [ {
             // Version this build of the lib-jitsi-meet library.
@@ -72,9 +69,33 @@ module.exports = {
     },
     output: {
         filename: `[name]${minimize ? '.min' : ''}.js`,
-        library: 'JitsiMeetJS',
-        libraryTarget: 'umd',
         sourceMapFilename: `[name].${minimize ? 'min' : 'js'}.map`
     },
     plugins
 };
+
+module.exports = [
+    Object.assign({}, config, {
+        entry: {
+            'lib-jitsi-meet': './index.js'
+        },
+        output: Object.assign({}, config.output, {
+            library: 'JitsiMeetJS',
+            libraryTarget: 'umd'
+        })
+    }),
+
+    // The Webpack configuration to bundle browser_capabilities.js (API for
+    // browser capabilities).
+    Object.assign({}, config, {
+        entry: {
+            'browser_capabilities':
+                './modules/browser/index.js'
+        },
+        output: Object.assign({}, config.output, {
+            library: 'BrowserCapabilities',
+            libraryExport: 'ExternalBrowserCapabilities',
+            libraryTarget: 'umd'
+        })
+    })
+];

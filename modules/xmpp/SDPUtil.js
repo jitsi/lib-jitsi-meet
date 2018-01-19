@@ -2,7 +2,7 @@ import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 
 import RandomUtil from '../util/RandomUtil';
-import RTCBrowserType from '../RTC/RTCBrowserType';
+import browser from '../browser';
 
 const SDPUtil = {
     filterSpecialChars(text) {
@@ -408,7 +408,7 @@ const SDPUtil = {
 
         // use tcp candidates for FF
 
-        if (RTCBrowserType.isFirefox() && protocol.toLowerCase() === 'ssltcp') {
+        if (browser.isFirefox() && protocol.toLowerCase() === 'ssltcp') {
             protocol = 'tcp';
         }
 

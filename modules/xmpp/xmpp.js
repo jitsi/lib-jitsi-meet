@@ -7,7 +7,7 @@ import 'strophejs-plugin-disco';
 import RandomUtil from '../util/RandomUtil';
 import * as JitsiConnectionErrors from '../../JitsiConnectionErrors';
 import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
-import RTCBrowserType from '../RTC/RTCBrowserType';
+import browser from '../browser';
 import initEmuc from './strophe.emuc';
 import initJingle from './strophe.jingle';
 import initStropheUtil from './strophe.util';
@@ -90,7 +90,7 @@ export default class XMPP extends Listenable {
         this.caps.addFeature('urn:xmpp:jingle:apps:rtp:audio');
         this.caps.addFeature('urn:xmpp:jingle:apps:rtp:video');
 
-        if (!this.options.disableRtx && RTCBrowserType.supportsRtx()) {
+        if (!this.options.disableRtx && browser.supportsRtx()) {
             this.caps.addFeature('urn:ietf:rfc:4588');
         }
 
@@ -106,7 +106,7 @@ export default class XMPP extends Listenable {
         // this.caps.addFeature('urn:ietf:rfc:5576'); // a=ssrc
 
         // Enable Lipsync ?
-        if (RTCBrowserType.isChrome() && this.options.enableLipSync !== false) {
+        if (browser.isChrome() && this.options.enableLipSync !== false) {
             logger.info('Lip-sync enabled !');
             this.caps.addFeature('http://jitsi.org/meet/lipsync');
         }

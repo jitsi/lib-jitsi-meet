@@ -6,7 +6,7 @@ import * as ConnectionQualityEvents
     from '../../service/connectivity/ConnectionQualityEvents';
 import * as ConferenceEvents from '../../JitsiConferenceEvents';
 import * as MediaType from '../../service/RTC/MediaType';
-import RTCBrowserType from '../RTC/RTCBrowserType';
+import browser from '../browser';
 import Statistics from './statistics';
 import * as VideoType from '../../service/RTC/VideoType';
 
@@ -181,7 +181,7 @@ class ConnectionAvgStats {
             return;
         }
 
-        if (RTCBrowserType.supportsRTTStatistics()) {
+        if (browser.supportsRTTStatistics()) {
             if (data.transport && data.transport.length) {
                 this._avgRTT.addNext(data.transport[0].rtt);
             }
@@ -190,7 +190,7 @@ class ConnectionAvgStats {
         this._sampleIdx += 1;
 
         if (this._sampleIdx >= this._n) {
-            if (RTCBrowserType.supportsRTTStatistics()) {
+            if (browser.supportsRTTStatistics()) {
                 const conference = this._avgRtpStatsReporter._conference;
 
                 const batchReport = {
@@ -624,7 +624,7 @@ export default class AvgRTPStatsReporter {
         this._avgVideoBitrateUp.addNext(bitrate.video.upload);
         this._avgVideoBitrateDown.addNext(bitrate.video.download);
 
-        if (RTCBrowserType.supportsBandwidthStatistics()) {
+        if (browser.supportsBandwidthStatistics()) {
             this._avgBandwidthUp.addNext(bandwidth.upload);
             this._avgBandwidthDown.addNext(bandwidth.download);
         }
@@ -694,7 +694,7 @@ export default class AvgRTPStatsReporter {
             this._avgVideoBitrateUp.appendReport(batchReport);
             this._avgVideoBitrateDown.appendReport(batchReport);
 
-            if (RTCBrowserType.supportsBandwidthStatistics()) {
+            if (browser.supportsBandwidthStatistics()) {
                 this._avgBandwidthUp.appendReport(batchReport);
                 this._avgBandwidthDown.appendReport(batchReport);
             }

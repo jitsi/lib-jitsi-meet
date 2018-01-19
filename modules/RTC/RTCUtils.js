@@ -18,7 +18,7 @@ import JitsiTrackError from '../../JitsiTrackError';
 import Listenable from '../util/Listenable';
 import * as MediaType from '../../service/RTC/MediaType';
 import Resolutions from '../../service/RTC/Resolutions';
-import RTCBrowserType from './RTCBrowserType';
+import browser from '../browser';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import ortcRTCPeerConnection from './ortc/RTCPeerConnection';
 import screenObtainer from './ScreenObtainer';
@@ -31,14 +31,14 @@ const logger = getLogger(__filename);
 // XXX Don't require Temasys unless it's to be used because it doesn't run on
 // React Native, for example.
 const AdapterJS
-    = RTCBrowserType.isTemasysPluginUsed()
+    = browser.isTemasysPluginUsed()
         ? require('./adapter.screenshare')
         : undefined;
 
 // Require adapter only for certain browsers. This is being done for
 // react-native, which has its own shims, and while browsers are being migrated
 // over to use adapter's shims.
-if (RTCBrowserType.usesNewGumFlow()) {
+if (browser.usesNewGumFlow()) {
     require('webrtc-adapter');
 }
 
@@ -186,10 +186,10 @@ function getConstraints(um, options) {
     // have stable support of new constraints format. For more information
     // @see https://github.com/jitsi/lib-jitsi-meet/pull/136
     const isNewStyleConstraintsSupported
-        = RTCBrowserType.isFirefox()
-        || RTCBrowserType.isEdge()
-        || RTCBrowserType.isReactNative()
-        || RTCBrowserType.isTemasysPluginUsed();
+        = browser.isFirefox()
+        || browser.isEdge()
+        || browser.isReactNative()
+        || browser.isTemasysPluginUsed();
 
     if (um.indexOf('video') >= 0) {
         // same behaviour as true
@@ -239,11 +239,11 @@ function getConstraints(um, options) {
             constraints, isNewStyleConstraintsSupported, options.resolution);
     }
     if (um.indexOf('audio') >= 0) {
-        if (RTCBrowserType.isReactNative()) {
+        if (browser.isReactNative()) {
             // The react-native-webrtc project that we're currently using
             // expects the audio constraint to be a boolean.
             constraints.audio = true;
-        } else if (RTCBrowserType.isFirefox()) {
+        } else if (browser.isFirefox()) {
             if (options.micDeviceId) {
                 constraints.audio = {
                     mandatory: {},
@@ -284,7 +284,7 @@ function getConstraints(um, options) {
         }
     }
     if (um.indexOf('screen') >= 0) {
-        if (RTCBrowserType.isChrome()) {
+        if (browser.isChrome()) {
             constraints.video = {
                 mandatory: {
                     chromeMediaSource: 'screen',
@@ -294,7 +294,7 @@ function getConstraints(um, options) {
                 },
                 optional: []
             };
-        } else if (RTCBrowserType.isTemasysPluginUsed()) {
+        } else if (browser.isTemasysPluginUsed()) {
             constraints.video = {
                 optional: [
                     {
@@ -302,7 +302,7 @@ function getConstraints(um, options) {
                     }
                 ]
             };
-        } else if (RTCBrowserType.isFirefox()) {
+        } else if (browser.isFirefox()) {
             constraints.video = {
                 mozMediaSource: 'window',
                 mediaSource: 'window'
@@ -343,7 +343,7 @@ function getConstraints(um, options) {
     // seems to work only when enabled in one getUserMedia call, we cannot get
     // fake audio separate by fake video this later can be a problem with some
     // of the tests
-    if (RTCBrowserType.isFirefox() && options.firefox_fake_device) {
+    if (browser.isFirefox() && options.firefox_fake_device) {
         // seems to be fixed now, removing this experimental fix, as having
         // multiple audio tracks brake the tests
         // constraints.audio = true;
@@ -874,7 +874,7 @@ class RTCUtils extends Listenable {
         initRawEnumerateDevicesWithCallback();
 
         return new Promise((resolve, reject) => {
-            if (RTCBrowserType.usesNewGumFlow()) {
+            if (browser.usesNewGumFlow()) {
                 this.RTCPeerConnectionType = window.RTCPeerConnection;
 
                 this.getUserMedia
@@ -918,11 +918,11 @@ class RTCUtils extends Listenable {
 
                 this.getStreamID = stream => stream.id;
                 this.getTrackID = track => track.id;
-            } else if (RTCBrowserType.isChrome() // this is chrome < 61
-                    || RTCBrowserType.isOpera()
-                    || RTCBrowserType.isNWJS()
-                    || RTCBrowserType.isElectron()
-                    || RTCBrowserType.isReactNative()) {
+            } else if (browser.isChrome() // this is chrome < 61
+                    || browser.isOpera()
+                    || browser.isNWJS()
+                    || browser.isElectron()
+                    || browser.isReactNative()) {
 
                 this.RTCPeerConnectionType = webkitRTCPeerConnection;
                 const getUserMedia
@@ -968,7 +968,7 @@ class RTCUtils extends Listenable {
                         return this.audioTracks;
                     };
                 }
-            } else if (RTCBrowserType.isEdge()) {
+            } else if (browser.isEdge()) {
                 this.RTCPeerConnectionType = ortcRTCPeerConnection;
                 this.getUserMedia
                     = wrapGetUserMedia(
@@ -1001,7 +1001,7 @@ class RTCUtils extends Listenable {
                 this.getTrackID = function(track) {
                     return track.jitsiRemoteId || track.id;
                 };
-            } else if (RTCBrowserType.isTemasysPluginUsed()) {
+            } else if (browser.isTemasysPluginUsed()) {
                 // Detect IE/Safari
                 const webRTCReadyCb = () => {
                     this.RTCPeerConnectionType = RTCPeerConnection;
@@ -1021,7 +1021,7 @@ class RTCUtils extends Listenable {
                                 // is in use
                                 const containerSel = $(element);
 
-                                if (RTCBrowserType.isTemasysPluginUsed()
+                                if (browser.isTemasysPluginUsed()
                                         && !containerSel.is(':visible')) {
                                     containerSel.show();
                                 }
@@ -1081,7 +1081,7 @@ class RTCUtils extends Listenable {
             this._initPCConstraints(options);
 
             // Call onReady() if Temasys plugin is not used
-            if (!RTCBrowserType.isTemasysPluginUsed()) {
+            if (!browser.isTemasysPluginUsed()) {
                 onReady(options, this.getUserMediaWithConstraints.bind(this));
                 resolve();
             }
@@ -1104,13 +1104,13 @@ class RTCUtils extends Listenable {
      * in peer to peer connection mode.
      */
     _initPCConstraints(options) {
-        if (RTCBrowserType.isFirefox()) {
+        if (browser.isFirefox()) {
             this.pcConstraints = {};
-        } else if (RTCBrowserType.isChrome()
-            || RTCBrowserType.isOpera()
-            || RTCBrowserType.isNWJS()
-            || RTCBrowserType.isElectron()
-            || RTCBrowserType.isReactNative()) {
+        } else if (browser.isChrome()
+            || browser.isOpera()
+            || browser.isNWJS()
+            || browser.isElectron()
+            || browser.isReactNative()) {
             this.pcConstraints = { optional: [
                 { googHighStartBitrate: 0 },
                 { googPayloadPadding: true },
@@ -1249,7 +1249,7 @@ class RTCUtils extends Listenable {
     _newGetDesktopMedia(
             desktopSharingExtensionExternalInstallation,
             desktopSharingSources) {
-        if (!screenObtainer.isSupported() || !RTCBrowserType.supportsVideo()) {
+        if (!screenObtainer.isSupported() || !browser.supportsVideo()) {
             return Promise.reject(
                 new Error('Desktop sharing is not supported!'));
         }
@@ -1306,7 +1306,7 @@ class RTCUtils extends Listenable {
                 && options.devices.indexOf('desktop') !== -1) {
                 reject(new Error('Desktop sharing is not supported!'));
             }
-            if (RTCBrowserType.isFirefox()
+            if (browser.isFirefox()
 
                     // XXX The react-native-webrtc implementation that we
                     // utilize on React Native at the time of this writing does
@@ -1314,8 +1314,8 @@ class RTCUtils extends Listenable {
                     // https://www.w3.org/TR/mediacapture-streams/#constructors
                     // and instead has a single constructor which expects (an
                     // NSNumber as) a MediaStream ID.
-                    || RTCBrowserType.isReactNative()
-                    || RTCBrowserType.isTemasysPluginUsed()) {
+                    || browser.isReactNative()
+                    || browser.isTemasysPluginUsed()) {
                 const GUM = function(device, s, e) {
                     this.getUserMediaWithConstraints(device, s, e, options);
                 };
@@ -1525,7 +1525,7 @@ class RTCUtils extends Listenable {
             const umDevices = options.devices || [ 'audio', 'video' ];
             const requestedCaptureDevices = umDevices.filter(device =>
                 device === 'audio'
-                || (device === 'video' && RTCBrowserType.supportsVideo()));
+                || (device === 'video' && browser.supportsVideo()));
 
             if (!requestedCaptureDevices.length) {
                 return Promise.resolve();
@@ -1662,13 +1662,13 @@ class RTCUtils extends Listenable {
     isDeviceChangeAvailable(deviceType) {
         return deviceType === 'output' || deviceType === 'audiooutput'
             ? isAudioOutputDeviceChangeAvailable
-            : RTCBrowserType.isChrome()
-                || RTCBrowserType.isFirefox()
-                || RTCBrowserType.isOpera()
-                || RTCBrowserType.isTemasysPluginUsed()
-                || RTCBrowserType.isNWJS()
-                || RTCBrowserType.isElectron()
-                || RTCBrowserType.isEdge();
+            : browser.isChrome()
+                || browser.isFirefox()
+                || browser.isOpera()
+                || browser.isTemasysPluginUsed()
+                || browser.isNWJS()
+                || browser.isElectron()
+                || browser.isEdge();
     }
 
     /**
@@ -1679,7 +1679,7 @@ class RTCUtils extends Listenable {
     stopMediaStream(mediaStream) {
         mediaStream.getTracks().forEach(track => {
             // stop() not supported with IE
-            if (!RTCBrowserType.isTemasysPluginUsed() && track.stop) {
+            if (!browser.isTemasysPluginUsed() && track.stop) {
                 track.stop();
             }
         });

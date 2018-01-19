@@ -2,7 +2,7 @@
 
 import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
-import RTCBrowserType from './RTCBrowserType';
+import browser from '../browser';
 
 const logger = require('jitsi-meet-logger').getLogger(__filename);
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
@@ -139,7 +139,7 @@ const ScreenObtainer = {
      * @private
      */
     _createObtainStreamMethod(options) {
-        if (RTCBrowserType.isNWJS()) {
+        if (browser.isNWJS()) {
             return (_, onSuccess, onFailure) => {
                 window.JitsiMeetNW.obtainDesktopStream(
                     onSuccess,
@@ -174,9 +174,9 @@ const ScreenObtainer = {
                             && onFailure(jitsiError);
                     });
             };
-        } else if (RTCBrowserType.isElectron()) {
+        } else if (browser.isElectron()) {
             return this.obtainScreenOnElectron;
-        } else if (RTCBrowserType.isTemasysPluginUsed()) {
+        } else if (browser.isTemasysPluginUsed()) {
             // XXX Don't require Temasys unless it's to be used because it
             // doesn't run on React Native, for example.
             const plugin
@@ -198,9 +198,8 @@ const ScreenObtainer = {
             logger.info('Using Temasys plugin for desktop sharing');
 
             return obtainWebRTCScreen;
-        } else if (RTCBrowserType.isChrome() || RTCBrowserType.isOpera()) {
-            if ((RTCBrowserType.getChromeVersion()
-                    || RTCBrowserType.getOperaVersion()) < 34) {
+        } else if (browser.isChrome() || browser.isOpera()) {
+            if (browser.isVersionLessThan('34')) {
                 logger.info('Chrome extension not supported until ver 34');
 
                 return null;
@@ -219,7 +218,7 @@ const ScreenObtainer = {
                 });
 
             return this.obtainScreenFromExtension;
-        } else if (RTCBrowserType.isFirefox()) {
+        } else if (browser.isFirefox()) {
             if (options.desktopSharingFirefoxDisabled) {
                 return null;
             } else if (window.location.protocol === 'http:') {
@@ -236,8 +235,7 @@ const ScreenObtainer = {
 
         logger.log(
             'Screen sharing not supported by the current browser: ',
-            RTCBrowserType.getBrowserType(),
-            RTCBrowserType.getBrowserName());
+            browser.getName());
 
         return null;
     },
@@ -262,12 +260,12 @@ const ScreenObtainer = {
 
         if (desktopSharingFirefoxMaxVersionExtRequired === -1
             || (desktopSharingFirefoxMaxVersionExtRequired >= 0
-                && RTCBrowserType.getFirefoxVersion()
-                    <= desktopSharingFirefoxMaxVersionExtRequired)) {
+                && !browser.isVersionGreaterThan(
+                    desktopSharingFirefoxMaxVersionExtRequired))) {
             extensionRequired = true;
             logger.log(
                 `Jidesha extension required on firefox version ${
-                    RTCBrowserType.getFirefoxVersion()}`);
+                    browser.getVersion()}`);
         }
 
         if (!extensionRequired || firefoxExtInstalled === true) {
@@ -394,7 +392,7 @@ const ScreenObtainer = {
             // extension "Download Chrome Extension" allows us to open
             // the chrome webstore and install from there and then activate our
             // extension
-            if (RTCBrowserType.isOpera()) {
+            if (browser.isOpera()) {
                 this.handleExternalInstall(options, streamCallback,
                     failCallback);
 
