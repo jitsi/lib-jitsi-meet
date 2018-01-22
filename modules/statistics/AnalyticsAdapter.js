@@ -5,7 +5,7 @@ import {
     TYPE_UI
 } from '../../service/statistics/AnalyticsEvents';
 import { getLogger } from 'jitsi-meet-logger';
-import RTCBrowserType from '../RTC/RTCBrowserType';
+import browser from '../browser';
 import Settings from '../settings/Settings';
 
 const MAX_CACHE_SIZE = 100;
@@ -97,7 +97,7 @@ class AnalyticsAdapter {
         this.addPermanentProperties({
             'callstats_name': Settings.callStatsUserName,
             'user_agent': navigator.userAgent,
-            'browser_name': RTCBrowserType.getBrowserName()
+            'browser_name': browser.getName()
         });
     }
 

@@ -17,7 +17,7 @@ It also implements Plan-B for multi-stream.
 
 * BUNDLE is assumed (single transport for all the local and remote media streams).
 * `rtcp-mux` is assumed (not a real problem nowadays).
-* Calling `createOffer()` is not implemented, so P2P mode is not supported (`RTCBrowserType.isP2PSupported()` returns `false`).
+* Calling `createOffer()` is not implemented, so P2P mode is not supported (`browser.supportsP2P()` returns `false`).
 * Calling `setRemoteDescription()` with a SDP answer with mangled SSRC values is currently unsupported (those new SSRC values will not be used for sending media).
 * If the app calls `createAnswer()`, mangles SSRC values, and applies by calling `setLocalDescription()`, those new SSRC values are currently ignored.
 * Simulcast not supported (currently Edge supports `maxFramerate` per encoding but it does not support `maxBitrate`, `resolutionScale` or `framerateScale`, so it's not worth it).

@@ -6,7 +6,7 @@ import CallStats from './CallStats';
 import LocalStats from './LocalStatsCollector';
 import RTPStats from './RTPStatsCollector';
 
-import RTCBrowserType from '../RTC/RTCBrowserType';
+import browser from '../browser';
 import Settings from '../settings/Settings';
 import ScriptUtil from '../util/ScriptUtil';
 import JitsiTrackError from '../../JitsiTrackError';
@@ -164,7 +164,7 @@ export default function Statistics(xmpp, options) {
             // requests to any third parties.
             && (Statistics.disableThirdPartyRequests !== true);
     if (this.callStatsIntegrationEnabled) {
-        if (RTCBrowserType.isReactNative()) {
+        if (browser.isReactNative()) {
             _initCallStatsBackend(this.options);
         } else {
             loadCallStatsAPI(this.options);

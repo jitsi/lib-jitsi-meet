@@ -1,6 +1,6 @@
 /* global $ */
 
-import RTCBrowserType from './RTCBrowserType';
+import browser from '../browser';
 
 const logger = require('jitsi-meet-logger').getLogger(__filename);
 
@@ -12,7 +12,7 @@ const RTCUIHelper = {
      * @returns {string} 'video' or 'object' string name of WebRTC video element
      */
     getVideoElementName() {
-        return RTCBrowserType.isTemasysPluginUsed() ? 'object' : 'video';
+        return browser.isTemasysPluginUsed() ? 'object' : 'video';
     },
 
     /**
@@ -25,7 +25,7 @@ const RTCUIHelper = {
     findVideoElement(containerElement) {
         const videoElemName = RTCUIHelper.getVideoElementName();
 
-        if (!RTCBrowserType.isTemasysPluginUsed()) {
+        if (!browser.isTemasysPluginUsed()) {
             return $(containerElement).find(videoElemName)[0];
         }
         const matching
@@ -51,7 +51,7 @@ const RTCUIHelper = {
      * @returns {boolean}
      */
     isResizeEventSupported() {
-        return !RTCBrowserType.isTemasysPluginUsed();
+        return !browser.isTemasysPluginUsed();
     },
 
     /**
@@ -61,7 +61,7 @@ const RTCUIHelper = {
      * @param volume the volume value to be set.
      */
     setVolume(streamElement, volume) {
-        if (!RTCBrowserType.isIExplorer()) {
+        if (!browser.isIExplorer()) {
             streamElement.volume = volume;
         }
     },
@@ -73,7 +73,7 @@ const RTCUIHelper = {
      * @param autoPlay 'true' or 'false'
      */
     setAutoPlay(streamElement, autoPlay) {
-        if (!RTCBrowserType.isIExplorer()) {
+        if (!browser.isIExplorer()) {
             streamElement.autoplay = autoPlay;
         }
     }

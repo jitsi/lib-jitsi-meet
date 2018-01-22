@@ -25,7 +25,7 @@ import Resolutions from './service/RTC/Resolutions';
 import { ParticipantConnectionStatus }
     from './modules/connectivity/ParticipantConnectionStatus';
 import RTC from './modules/RTC/RTC';
-import RTCBrowserType from './modules/RTC/RTCBrowserType';
+import browser from './modules/browser';
 import RTCUIHelper from './modules/RTC/RTCUIHelper';
 import ScriptUtil from './modules/util/ScriptUtil';
 import Statistics from './modules/statistics/statistics';
@@ -257,7 +257,7 @@ export default {
                 if (!promiseFulfilled) {
                     JitsiMediaDevices.emitEvent(
                         JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN,
-                        RTCBrowserType.getBrowserName());
+                        browser.getName());
                 }
             }, USER_MEDIA_PERMISSION_PROMPT_TIMEOUT);
         }
@@ -316,7 +316,7 @@ export default {
                 promiseFulfilled = true;
 
                 if (error.name === JitsiTrackErrors.UNSUPPORTED_RESOLUTION
-                    && !RTCBrowserType.usesNewGumFlow()) {
+                    && !browser.usesNewGumFlow()) {
                     const oldResolution = options.resolution || '720';
                     const newResolution = getLowerResolution(oldResolution);
 
@@ -481,6 +481,6 @@ export default {
         AuthUtil,
         RTCUIHelper,
         ScriptUtil,
-        RTCBrowserType
+        browser
     }
 };
