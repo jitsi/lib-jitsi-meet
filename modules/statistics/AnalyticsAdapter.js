@@ -304,7 +304,13 @@ class AnalyticsAdapter {
             // not at the time we receive it.
             this._appendPermanentProperties(event);
 
-            this.analyticsHandlers.forEach(handler => handler.sendEvent(event));
+            for (const handler of this.analyticsHandlers) {
+                try {
+                    handler.sendEvent(event);
+                } catch (e) {
+                    logger.warn(`Error sending analytics event: ${e}`);
+                }
+            }
         }
     }
 
