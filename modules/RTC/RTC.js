@@ -9,6 +9,7 @@ import JitsiLocalTrack from './JitsiLocalTrack';
 import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
 import Listenable from '../util/Listenable';
+import { safeCounterIncrement } from '../util/MathUtil';
 import * as MediaType from '../../service/RTC/MediaType';
 import browser from '../browser';
 import RTCEvents from '../../service/RTC/RTCEvents';
@@ -23,8 +24,13 @@ const logger = getLogger(__filename);
  * The counter used to generated id numbers assigned to peer connections
  * @type {number}
  */
-let peerConnectionIdCounter = 1;
+let peerConnectionIdCounter = 0;
 
+/**
+ * The counter used to generate id number for the local
+ * <code>MediaStreamTrack</code>s.
+ * @type {number}
+ */
 let rtcTrackIdCounter = 0;
 
 /**
@@ -42,7 +48,7 @@ function createLocalTracks(tracksInfo, options) {
         } else if (trackInfo.videoType === VideoType.CAMERA) {
             deviceId = options.cameraDeviceId;
         }
-        rtcTrackIdCounter += 1;
+        rtcTrackIdCounter = safeCounterIncrement(rtcTrackIdCounter);
         const localTrack = new JitsiLocalTrack({
             ...trackInfo,
             deviceId,
@@ -85,7 +91,7 @@ function _newCreateLocalTracks(mediaStreamMetaData = []) {
         // FIXME Move rtcTrackIdCounter to a static method in JitsiLocalTrack
         // so RTC does not need to handle ID management. This move would be
         // safer to do once the old createLocalTracks is removed.
-        rtcTrackIdCounter += 1;
+        rtcTrackIdCounter = safeCounterIncrement(rtcTrackIdCounter);
 
         return new JitsiLocalTrack({
             deviceId,
@@ -441,6 +447,7 @@ export default class RTC extends Listenable {
                 { abtestSuspendVideo: options.abtestSuspendVideo });
         }
 
+        peerConnectionIdCounter = safeCounterIncrement(peerConnectionIdCounter);
         const newConnection
             = new TraceablePeerConnection(
                 this,
@@ -450,7 +457,6 @@ export default class RTC extends Listenable {
                 isP2P, options);
 
         this.peerConnections.set(newConnection.id, newConnection);
-        peerConnectionIdCounter += 1;
 
         return newConnection;
     }
