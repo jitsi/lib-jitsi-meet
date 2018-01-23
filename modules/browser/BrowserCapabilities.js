@@ -25,7 +25,7 @@ export default class BrowserCapabilities extends BrowserDetection {
 
         const browserCapabilities = capabilitiesDB[this.getName()] || [];
         const capabilitiesByVersion = browserCapabilities.find(({ version }) =>
-            !version || !this.isVersionLessThan(version));
+            !version || !this.isVersionGreaterThan(version));
 
         if (!capabilitiesByVersion || !capabilitiesByVersion.capabilities) {
             this._capabilities = { isSupported: false };
