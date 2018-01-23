@@ -273,7 +273,7 @@ export default class BrowserDetection {
      */
     isVersionGreaterThan(version) {
         if (this._version) {
-            return this.compareVersion(version) === 1;
+            return this.compareVersion(version) === -1;
         }
     }
 
@@ -286,7 +286,7 @@ export default class BrowserDetection {
      */
     isVersionLessThan(version) {
         if (this._version) {
-            return this.compareVersion(version) === -1;
+            return this.compareVersion(version) === 1;
         }
     }
 
