@@ -23,11 +23,13 @@ export default function JitsiConnection(appID, token, options) {
     this.options = options;
     this.xmpp = new XMPP(options, token);
 
+    /* eslint-disable max-params */
     this.addEventListener(JitsiConnectionEvents.CONNECTION_FAILED,
-        (errType, msg) => {
+        (errType, msg, credentials, details) => {
             Statistics.sendAnalyticsAndLog(
-                createConnectionFailedEvent(errType, msg));
+                createConnectionFailedEvent(errType, msg, details));
         });
+    /* eslint-enable max-params */
 
     this.addEventListener(JitsiConnectionEvents.CONNECTION_DISCONNECTED,
         msg => {

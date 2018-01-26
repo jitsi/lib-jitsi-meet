@@ -24,6 +24,19 @@ const PING_TIMEOUT = 15000;
 const PING_THRESHOLD = 3;
 
 /**
+ * The number of timestamps of send pings to keep.
+ * @type {number} number of timestamps.
+ */
+const PING_TIMESTAMPS_TO_KEEP = 12;
+
+/**
+ * If execution of pings is higher than this threshold, we consider that the
+ * ping was suspended.
+ * @type {number}
+ */
+const SUSPEND_INTERVAL_THRESHOLD = PING_TIMEOUT;
+
+/**
  * XEP-0199 ping plugin.
  *
  * Registers "urn:xmpp:ping" namespace under Strophe.NS.PING.
@@ -38,6 +51,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
         super();
         this.failedPings = 0;
         this.xmpp = xmpp;
+        this.pingExecIntervals = new Array(PING_TIMESTAMPS_TO_KEEP);
     }
 
     /**
@@ -60,6 +74,8 @@ class PingConnectionPlugin extends ConnectionPlugin {
      * timeout <tt>error<//t> callback is called with undefined error argument.
      */
     ping(jid, success, error, timeout) {
+        this._addPingExecutionTimestamp();
+
         const iq = $iq({
             type: 'get',
             to: jid
@@ -140,6 +156,52 @@ class PingConnectionPlugin extends ConnectionPlugin {
             this.failedPings = 0;
             logger.info('Ping interval cleared');
         }
+    }
+
+    /**
+     * Adds the current time to the array of send ping timestamps.
+     * @private
+     */
+    _addPingExecutionTimestamp() {
+        this.pingExecIntervals.push(new Date().getTime());
+
+        // keep array length to PING_TIMESTAMPS_TO_KEEP
+        if (this.pingExecIntervals.length > PING_TIMESTAMPS_TO_KEEP) {
+            this.pingExecIntervals.shift();
+        }
+    }
+
+    /**
+     * Was ping suspended
+     * Checks the maximum gap between sending pings, considering and the
+     * current time. Trying to detect computer inactivity (sleep).
+     *
+     * @returns {boolean} whether sending pings was suspended for a long period
+     * of time.
+     */
+    wasPingSuspended() {
+        const pingIntervals = this.pingExecIntervals.slice();
+
+        // we need current time, as if ping was sent now
+        // if computer sleeps we will get correct interval after next
+        // scheduled ping, bet we sometimes need that interval before waiting
+        // for the next ping, on closing the connection on error.
+        pingIntervals.push(new Date().getTime());
+
+        let maxInterval = 0;
+        let previousTS = pingIntervals[0];
+
+        pingIntervals.forEach(e => {
+            const currentInterval = e - previousTS;
+
+            if (currentInterval > maxInterval) {
+                maxInterval = currentInterval;
+            }
+
+            previousTS = e;
+        });
+
+        return maxInterval > SUSPEND_INTERVAL_THRESHOLD;
     }
 }
 
