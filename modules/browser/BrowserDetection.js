@@ -21,6 +21,7 @@ const logger = getLogger(__filename);
  */
 const bowserNameToJitsiName = {
     'Chrome': CHROME,
+    'Chromium': CHROME,
     'Opera': OPERA,
     'Firefox': FIREFOX,
     'Internet Explorer': INTERNET_EXPLORER,
