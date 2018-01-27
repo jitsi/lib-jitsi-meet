@@ -123,6 +123,8 @@ function _detect() {
     const { name, version } = bowser;
 
     if (name in bowserNameToJitsiName) {
+        logger.info(`This appears to be ${name}, ver: ${version}`);
+
         return {
             name: bowserNameToJitsiName[name],
             version
