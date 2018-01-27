@@ -21,6 +21,7 @@ const logger = getLogger(__filename);
  */
 const bowserNameToJitsiName = {
     'Chrome': CHROME,
+    'Chromium': CHROME,
     'Opera': OPERA,
     'Firefox': FIREFOX,
     'Internet Explorer': INTERNET_EXPLORER,
@@ -123,6 +124,8 @@ function _detect() {
     const { name, version } = bowser;
 
     if (name in bowserNameToJitsiName) {
+        logger.info(`This appears to be ${name}, ver: ${version}`);
+
         return {
             name: bowserNameToJitsiName[name],
             version
