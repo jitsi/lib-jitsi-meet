@@ -25,16 +25,10 @@ const PING_THRESHOLD = 3;
 
 /**
  * The number of timestamps of send pings to keep.
+ * The current value is 2 minutes.
  * @type {number} number of timestamps.
  */
-const PING_TIMESTAMPS_TO_KEEP = 12;
-
-/**
- * If execution of pings is higher than this threshold, we consider that the
- * ping was suspended.
- * @type {number}
- */
-const SUSPEND_INTERVAL_THRESHOLD = PING_TIMEOUT;
+const PING_TIMESTAMPS_TO_KEEP = 120000 / PING_INTERVAL;
 
 /**
  * XEP-0199 ping plugin.
@@ -172,14 +166,14 @@ class PingConnectionPlugin extends ConnectionPlugin {
     }
 
     /**
-     * Was ping suspended
+     * Returns the maximum time between the recent sent pings, if there is a
+     * big value it means the computer was inactive for some time(suspended).
      * Checks the maximum gap between sending pings, considering and the
      * current time. Trying to detect computer inactivity (sleep).
      *
-     * @returns {boolean} whether sending pings was suspended for a long period
-     * of time.
+     * @returns {int} the time ping was suspended, if it was not 0 is returned.
      */
-    wasPingSuspended() {
+    getPingSuspendTime() {
         const pingIntervals = this.pingExecIntervals.slice();
 
         // we need current time, as if ping was sent now
@@ -201,7 +195,13 @@ class PingConnectionPlugin extends ConnectionPlugin {
             previousTS = e;
         });
 
-        return maxInterval > SUSPEND_INTERVAL_THRESHOLD;
+        // remove the interval between the ping sent
+        // this way in normal execution there is no suspend and the return
+        // will be 0 or close to 0.
+        maxInterval -= PING_INTERVAL;
+
+        // make sure we do not return less than 0
+        return Math.max(maxInterval, 0);
     }
 }
 

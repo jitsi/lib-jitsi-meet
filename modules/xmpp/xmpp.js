@@ -549,7 +549,7 @@ export default class XMPP extends Listenable {
         }
 
         // check for possible suspend
-        details.suspend = this.connection.ping.wasPingSuspended();
+        details.suspendTime = this.connection.ping.getPingSuspendTime();
 
         return details;
     }
