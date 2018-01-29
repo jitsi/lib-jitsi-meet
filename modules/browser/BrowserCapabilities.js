@@ -24,8 +24,23 @@ export default class BrowserCapabilities extends BrowserDetection {
         super(browserInfo);
 
         const browserCapabilities = capabilitiesDB[this.getName()] || [];
-        const capabilitiesByVersion = browserCapabilities.find(({ version }) =>
-            !version || !this.isVersionGreaterThan(version));
+        let capabilitiesByVersion;
+
+        for (let i = 0; i < browserCapabilities.length; i++) {
+            const capabilities = browserCapabilities[i];
+
+            if (typeof capabilities !== 'object') {
+                // eslint-disable-next-line no-continue
+                continue;
+            }
+
+            const version = capabilities.version;
+
+            if (!version || !this.isVersionGreaterThan(version)) {
+                capabilitiesByVersion = capabilities;
+                break;
+            }
+        }
 
         if (!capabilitiesByVersion || !capabilitiesByVersion.capabilities) {
             this._capabilities = { isSupported: false };
