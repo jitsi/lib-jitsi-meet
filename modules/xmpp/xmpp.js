@@ -548,8 +548,10 @@ export default class XMPP extends Listenable {
             /* eslint-enable camelcase */
         }
 
+        /* eslint-disable camelcase */
         // check for possible suspend
-        details.suspendTime = this.connection.ping.getPingSuspendTime();
+        details.suspend_time = this.connection.ping.getPingSuspendTime();
+        /* eslint-enable camelcase */
 
         return details;
     }
