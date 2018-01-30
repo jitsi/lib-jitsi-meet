@@ -1,16 +1,6 @@
 {
     "safari": [
-        {"version": "6.3" },
-        {
-            "version": "10.2",
-            "capabilities": {
-                "audioIn": true,
-                "audioOut": true,
-                "videoIn": true,
-                "videoOut": true,
-                "screenSharing": true
-            }
-        },
+        {"version": "10.2" },
         {
             "capabilities": {
                 "audioIn": true,
@@ -52,18 +42,6 @@
     ],
     "firefox": [
         {"version": "52.4" },
-        {
-            "capabilities": {
-                "audioIn": true,
-                "audioOut": true,
-                "videoIn": true,
-                "videoOut": true,
-                "screenSharing": true
-            }
-        }
-    ],
-    "iexplorer": [
-        {"version": "9" },
         {
             "capabilities": {
                 "audioIn": true,
