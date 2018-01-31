@@ -226,17 +226,20 @@ export const createBridgeDownEvent = function() {
  * Creates an event which indicates that the XMPP connection failed
  * @param errorType TODO
  * @param errorMessage TODO
+ * @param detail connection failed details.
  */
-export const createConnectionFailedEvent = function(errorType, errorMessage) {
-    return {
-        type: TYPE_OPERATIONAL,
-        action: 'connection.failed',
-        attributes: {
-            'error_type': errorType,
-            'error_message': errorMessage
-        }
+export const createConnectionFailedEvent
+    = function(errorType, errorMessage, details) {
+        return {
+            type: TYPE_OPERATIONAL,
+            action: 'connection.failed',
+            attributes: {
+                'error_type': errorType,
+                'error_message': errorMessage,
+                ...details
+            }
+        };
     };
-};
 
 /**
  * Creates an operational event which indicates that a particular connection

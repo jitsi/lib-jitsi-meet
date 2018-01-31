@@ -24,7 +24,12 @@ export const CONNECTION_ESTABLISHED = 'connection.connectionEstablished';
  * Indicates that the connection has been failed for some reason. The event
  * provides the following parameters to its listeners:
  *
- * @param err {string} the error (message) associated with the failure
+ * @param errType {JitsiConnectionErrors} the type of error associated with
+ * the failure
+ * @param errReason {string} the error (message) associated with the failure
+ * @param credentials {object} the credentials used to connect (if any)
+ * @param errReasonDetails {object} an optional object with details about
+ * the error, like shard moving, suspending. Used for analytics purposes.
  */
 export const CONNECTION_FAILED = 'connection.connectionFailed';
 
