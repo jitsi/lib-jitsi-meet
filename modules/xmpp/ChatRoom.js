@@ -675,7 +675,7 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     *
+     * Send text message to the other participants in the conference
      * @param body
      * @param nickname
      */
@@ -693,6 +693,29 @@ export default class ChatRoom extends Listenable {
         this.connection.send(msg);
         this.eventEmitter.emit(XMPPEvents.SENDING_CHAT_MESSAGE, body);
     }
+
+    /**
+     * Send private text message to another participant of the conference
+     * @param id id/muc resource of the receiver
+     * @param body
+     * @param nickname
+     */
+    sendPrivateMessage(id, body, nickname) {
+        const msg = $msg({ to: `${this.roomjid}/${id}`,
+            type: 'chat' });
+
+        msg.c('body', body).up();
+        if (nickname) {
+            msg.c('nick', { xmlns: 'http://jabber.org/protocol/nick' })
+                .t(nickname)
+                .up()
+                .up();
+        }
+
+        this.connection.send(msg);
+        this.eventEmitter.emit(XMPPEvents.SENDING_PRIVATE_CHAT_MESSAGE, body);
+    }
+
 
     /**
      *
@@ -864,8 +887,16 @@ export default class ChatRoom extends Listenable {
         }
 
         if (txt) {
-            this.eventEmitter.emit(XMPPEvents.MESSAGE_RECEIVED,
-                from, nick, txt, this.myroomjid, stamp);
+            if (type === 'chat') {
+                logger.log('privatechat', nick, txt);
+                this.eventEmitter.emit(XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
+                        from, nick, txt, this.myroomjid, stamp);
+            }
+            if (type === 'groupchat') {
+                logger.log('chat', nick, txt);
+                this.eventEmitter.emit(XMPPEvents.MESSAGE_RECEIVED,
+                        from, nick, txt, this.myroomjid, stamp);
+            }
         }
     }
 

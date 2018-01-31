@@ -584,6 +584,16 @@ JitsiConference.prototype.sendTextMessage = function(message) {
 };
 
 /**
+ * Send private text message to another participant of the conference
+ * @param message the text message.
+ */
+JitsiConference.prototype.sendPrivateTextMessage = function(id, message) {
+    if (this.room) {
+        this.room.sendPrivateMessage(id, message);
+    }
+};
+
+/**
  * Send presence command.
  * @param name {String} the name of the command.
  * @param values {Object} with keys and values that will be sent.

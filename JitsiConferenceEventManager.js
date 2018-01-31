@@ -310,6 +310,18 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
                 id, txt, ts);
         });
 
+    chatRoom.addListener(
+        XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
+
+        // eslint-disable-next-line max-params
+        (jid, displayName, txt, myJid, ts) => {
+            const id = Strophe.getResourceFromJid(jid);
+
+            conference.eventEmitter.emit(
+                JitsiConferenceEvents.PRIVATE_MESSAGE_RECEIVED,
+                id, txt, ts);
+        });
+
     chatRoom.addListener(XMPPEvents.PRESENCE_STATUS,
         (jid, status) => {
             const id = Strophe.getResourceFromJid(jid);
