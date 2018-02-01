@@ -3,7 +3,6 @@ node_modules
 .idea/
 *.iml
 .*.tmp
-browser_capabilities.*
 deploy-local.sh
 .remote-sync.json
 lib-jitsi-meet.*
