@@ -83,19 +83,5 @@ module.exports = [
             library: 'JitsiMeetJS',
             libraryTarget: 'umd'
         })
-    }),
-
-    // The Webpack configuration to bundle browser_capabilities.js (API for
-    // browser capabilities).
-    Object.assign({}, config, {
-        entry: {
-            'browser_capabilities':
-                './modules/browser/index.js'
-        },
-        output: Object.assign({}, config.output, {
-            library: 'BrowserCapabilities',
-            libraryExport: 'ExternalBrowserCapabilities',
-            libraryTarget: 'umd'
-        })
     })
 ];
