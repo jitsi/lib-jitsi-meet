@@ -112,8 +112,11 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @return {boolean}
      */
     supportsMediaStreamConstructor() {
-        return !this.isReactNative()
-            && !this.isTemasysPluginUsed();
+        const shouldCallSeparateGum = this.isReactNative()
+            || this.isTemasysPluginUsed()
+            || (this.isFirefox() && !this.usesNewGumFlow());
+
+        return !shouldCallSeparateGum;
     }
 
     /**
