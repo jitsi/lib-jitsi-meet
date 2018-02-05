@@ -1304,33 +1304,7 @@ class RTCUtils extends Listenable {
 
         let gumPromise;
 
-        // XXX The react-native-webrtc at the time of this writing does not
-        // support MediaStream constructors as defined by
-        // https://www.w3.org/TR/mediacapture-streams/#constructors. Instead it
-        // has a single constructor which expects an NSNumber as a MediaStream
-        // ID. Temasys does not support the constructor at all. So we get audio
-        // and video in two distinct GUM calls and pass them back into a single
-        // object.
-        if (browser.isReactNative() || browser.isTemasysPluginUsed()) {
-            gumPromise = new Promise((resolve, reject) => {
-                const deviceGUM = {
-                    audio: (...args) =>
-                        this.getUserMediaWithConstraints([ 'audio' ], ...args),
-                    video: (...args) =>
-                        this.getUserMediaWithConstraints([ 'video' ], ...args),
-                    desktop: (...args) =>
-                        screenObtainer.obtainStream(dsOptions, ...args)
-                };
-
-                obtainDevices({
-                    devices: options.devices,
-                    streams: [],
-                    successCallback: resolve,
-                    errorCallback: reject,
-                    deviceGUM
-                });
-            });
-        } else {
+        if (browser.supportsMediaStreamConstructor()) {
             options.devices = options.devices.filter(device =>
                 device !== 'desktop');
 
@@ -1390,6 +1364,28 @@ class RTCUtils extends Listenable {
                             });
                     });
                 });
+        } else {
+            // If the MediaStream constructor is not supported, then get tracks
+            // in separate GUM calls in order to keep different tracks separate.
+
+            gumPromise = new Promise((resolve, reject) => {
+                const deviceGUM = {
+                    audio: (...args) =>
+                        this.getUserMediaWithConstraints([ 'audio' ], ...args),
+                    video: (...args) =>
+                        this.getUserMediaWithConstraints([ 'video' ], ...args),
+                    desktop: (...args) =>
+                        screenObtainer.obtainStream(dsOptions, ...args)
+                };
+
+                obtainDevices({
+                    devices: options.devices,
+                    streams: [],
+                    successCallback: resolve,
+                    errorCallback: reject,
+                    deviceGUM
+                });
+            });
         }
 
         return gumPromise.then(streams =>

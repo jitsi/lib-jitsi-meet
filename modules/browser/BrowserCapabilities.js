@@ -103,6 +103,19 @@ export default class BrowserCapabilities extends BrowserDetection {
         return !this.isEdge();
     }
 
+
+    /**
+     * Checks if the current browser supports the MediaStream constructor as
+     * defined by https://www.w3.org/TR/mediacapture-streams/#constructors. In
+     * cases where there is no support, it maybe be necessary to get audio
+     * and video in two distinct GUM calls.
+     * @return {boolean}
+     */
+    supportsMediaStreamConstructor() {
+        return !this.isReactNative()
+            && !this.isTemasysPluginUsed();
+    }
+
     /**
      * Checks if the current browser reports round trip time statistics for
      * the ICE candidate pair.
