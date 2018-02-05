@@ -43,7 +43,7 @@ const config = {
 
             exclude: [
                 `${__dirname}/modules/RTC/adapter.screenshare.js`,
-                `${__dirname}/node_modules/`
+                new RegExp(`${__dirname}/node_modules/(?!js-utils)`)
             ],
             loader: 'babel-loader',
             options: {
