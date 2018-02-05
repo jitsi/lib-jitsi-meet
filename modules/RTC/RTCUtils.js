@@ -1334,8 +1334,8 @@ class RTCUtils extends Listenable {
             options.devices = options.devices.filter(device =>
                 device !== 'desktop');
 
-            const promiseWrappedGum = function(requestedDevices, gumOptions) {
-                return new Promise((resolve, reject) => {
+            const promiseWrappedGum = (requestedDevices, gumOptions) =>
+                new Promise((resolve, reject) => {
 
                     if (requestedDevices.length) {
                         this.getUserMediaWithConstraints(
@@ -1347,7 +1347,6 @@ class RTCUtils extends Listenable {
                         resolve(null);
                     }
                 });
-            }.bind(this);
 
             gumPromise = promiseWrappedGum(options.devices, options)
                 .then(avStream => {
