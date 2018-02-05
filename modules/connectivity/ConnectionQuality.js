@@ -357,6 +357,13 @@ export default class ConnectionQuality {
 
             quality = 100 * this._localStats.bitrate.upload / target;
 
+            // Adjust the quality percentage so that any sending bitrate that
+            // meets a threshold is always represented by a high quality.
+            // This helps in the cases where the bitrate is high but not enough
+            // to fulfill high targets, such as with 1080p.
+            quality = this._localStats.bitrate.upload > 1900
+                ? Math.max(quality, 75) : quality;
+
             // Whatever the bitrate, drop early if there is significant loss
             if (packetLoss && packetLoss >= 10) {
                 quality = Math.min(quality, 30);
