@@ -1172,6 +1172,8 @@ class RTCUtils extends Listenable {
     * @param {string} options.desktopStream
     * @param {string} options.cameraDeviceId
     * @param {string} options.micDeviceId
+    * @returns {Promise} Returns a media stream on success or a JitsiTrackError
+    * on failure.
     **/
     getUserMediaWithConstraints(
             um,
@@ -1182,31 +1184,46 @@ class RTCUtils extends Listenable {
 
         logger.info('Get media constraints', constraints);
 
-        try {
-            this.getUserMedia(
-                constraints,
-                stream => {
-                    logger.log('onUserMediaSuccess');
-                    setAvailableDevices(um, stream);
-                    successCallback(stream);
-                },
-                error => {
-                    setAvailableDevices(um, undefined);
-                    logger.warn('Failed to get access to local media. Error ',
-                        error, constraints);
+        return new Promise((resolve, reject) => {
+            try {
+                this.getUserMedia(
+                    constraints,
+                    stream => {
+                        logger.log('onUserMediaSuccess');
+                        setAvailableDevices(um, stream);
 
-                    if (failureCallback) {
-                        failureCallback(
-                            new JitsiTrackError(error, constraints, um));
-                    }
-                });
-        } catch (e) {
-            logger.error('GUM failed: ', e);
+                        if (successCallback) {
+                            successCallback(stream);
+                        }
 
-            if (failureCallback) {
-                failureCallback(new JitsiTrackError(e, constraints, um));
+                        resolve(stream);
+                    },
+                    error => {
+                        setAvailableDevices(um, undefined);
+                        logger.warn(
+                            'Failed to get access to local media. Error ',
+                            error, constraints);
+                        const jitsiTrackError
+                            = new JitsiTrackError(error, constraints, um);
+
+                        if (failureCallback) {
+                            failureCallback(jitsiTrackError);
+                        }
+
+                        reject(jitsiTrackError);
+                    });
+            } catch (e) {
+                logger.error('GUM failed: ', e);
+                const jitsiTrackError
+                    = new JitsiTrackError(e, constraints, um);
+
+                if (failureCallback) {
+                    failureCallback(jitsiTrackError);
+                }
+
+                reject(jitsiTrackError);
             }
-        }
+        });
     }
 
     /**
@@ -1322,21 +1339,11 @@ class RTCUtils extends Listenable {
             options.devices = options.devices.filter(device =>
                 device !== 'desktop');
 
-            const promiseWrappedGum = (requestedDevices, gumOptions) =>
-                new Promise((resolve, reject) => {
+            gumPromise = options.devices.length
+                ? this.getUserMediaWithConstraints(options.devices, options)
+                : Promise.resolve(null);
 
-                    if (requestedDevices.length) {
-                        this.getUserMediaWithConstraints(
-                            requestedDevices,
-                            resolve,
-                            reject,
-                            gumOptions);
-                    } else {
-                        resolve(null);
-                    }
-                });
-
-            gumPromise = promiseWrappedGum(options.devices, options)
+            gumPromise
                 .then(avStream => {
                     // If any requested devices are missing, call gum again in
                     // an attempt to obtain the actual error. For example, the
@@ -1348,7 +1355,8 @@ class RTCUtils extends Listenable {
                     if (missingTracks.length) {
                         this.stopMediaStream(avStream);
 
-                        return promiseWrappedGum(missingTracks, options)
+                        return this.getUserMediaWithConstraints(
+                            missingTracks, options)
 
                             // GUM has already failed earlier and this success
                             // handling should not be reached.
