@@ -1318,11 +1318,6 @@ class RTCUtils extends Listenable {
      * @returns {*} Promise object that will receive the new JitsiTracks
      */
     obtainAudioAndVideoPermissions(options = {}) {
-        const desktopSharingOptions = {
-            ...options.desktopSharingExtensionExternalInstallation,
-            desktopSharingSources: options.desktopSharingSources
-        };
-
         options.devices = options.devices || [ ...OLD_GUM_DEFAULT_DEVICES ];
         options.resolution = options.resolution || OLD_GUM_DEFAULT_RESOLUTION;
 
@@ -1336,83 +1331,82 @@ class RTCUtils extends Listenable {
         let gumPromise;
 
         if (browser.supportsMediaStreamConstructor()) {
-            options.devices = options.devices.filter(device =>
-                device !== 'desktop');
-
-            gumPromise = options.devices.length
-                ? this.getUserMediaWithConstraints(options.devices, options)
-                : Promise.resolve(null);
-
-            gumPromise
-                .then(avStream => {
-                    // If any requested devices are missing, call gum again in
-                    // an attempt to obtain the actual error. For example, the
-                    // requested video device is missing or permission was
-                    // denied.
-                    const missingTracks
-                        = this._getMissingTracks(options.devices, avStream);
-
-                    if (missingTracks.length) {
-                        this.stopMediaStream(avStream);
-
-                        return this.getUserMediaWithConstraints(
-                            missingTracks, options)
-
-                            // GUM has already failed earlier and this success
-                            // handling should not be reached.
-                            .then(() => Promise.reject(new JitsiTrackError(
-                                { name: 'UnknownError' },
-                                getConstraints(options.devices, options),
-                                missingTracks)));
-                    }
-
-                    return avStream;
-                })
-                .then(audioVideo => {
-                    if (!requestingDesktop) {
-                        return { audioVideo };
-                    }
-
-                    return new Promise((resolve, reject) => {
-                        screenObtainer.obtainStream(
-                            desktopSharingOptions,
-                            desktop => resolve({
-                                audioVideo,
-                                desktop
-                            }),
-                            error => {
-                                this.stopMediaStream(audioVideo);
-                                reject(error);
-                            });
-                    });
-                });
+            gumPromise = this._getAudioAndVideoStreams(options);
         } else {
             // If the MediaStream constructor is not supported, then get tracks
             // in separate GUM calls in order to keep different tracks separate.
-
-            gumPromise = new Promise((resolve, reject) => {
-                const deviceGUM = {
-                    audio: (...args) =>
-                        this.getUserMediaWithConstraints([ 'audio' ], ...args),
-                    video: (...args) =>
-                        this.getUserMediaWithConstraints([ 'video' ], ...args),
-                    desktop: (...args) =>
-                        screenObtainer.obtainStream(
-                            desktopSharingOptions, ...args)
-                };
-
-                obtainDevices({
-                    devices: options.devices,
-                    streams: [],
-                    successCallback: resolve,
-                    errorCallback: reject,
-                    deviceGUM
-                });
-            });
+            gumPromise = this._getAudioAndVideoStreamsSeparately(options);
         }
 
         return gumPromise.then(streams =>
             handleLocalStream(streams, options.resolution));
+    }
+
+    /**
+     * Performs one call to getUserMedia for audio and/or video and another call
+     * for desktop.
+     *
+     * @param {Object} options - An object describing how the gUM request should
+     * be executed. See {@link obtainAudioAndVideoPermissions} for full options.
+     * @returns {*} Promise object that will receive the new JitsiTracks on
+     * success or a JitsiTrackError on failure.
+     */
+    _getAudioAndVideoStreams(options) {
+        const requestingDesktop = options.devices.includes('desktop');
+
+        options.devices = options.devices.filter(device =>
+            device !== 'desktop');
+
+        const gumPromise = options.devices.length
+            ? this.getUserMediaWithConstraints(
+                options.devices, null, null, options)
+            : Promise.resolve(null);
+
+        return gumPromise
+            .then(avStream => {
+                // If any requested devices are missing, call gum again in
+                // an attempt to obtain the actual error. For example, the
+                // requested video device is missing or permission was
+                // denied.
+                const missingTracks
+                    = this._getMissingTracks(options.devices, avStream);
+
+                if (missingTracks.length) {
+                    this.stopMediaStream(avStream);
+
+                    return this.getUserMediaWithConstraints(
+                        missingTracks, options)
+
+                        // GUM has already failed earlier and this success
+                        // handling should not be reached.
+                        .then(() => Promise.reject(new JitsiTrackError(
+                            { name: 'UnknownError' },
+                            getConstraints(options.devices, options),
+                            missingTracks)));
+                }
+
+                return avStream;
+            })
+            .then(audioVideo => {
+                if (!requestingDesktop) {
+                    return { audioVideo };
+                }
+
+                return new Promise((resolve, reject) => {
+                    screenObtainer.obtainStream(
+                        this._parseDesktopSharingOptions(options),
+                        desktop => resolve({
+                            audioVideo,
+                            desktop
+                        }),
+                        error => {
+                            if (audioVideo) {
+                                this.stopMediaStream(audioVideo);
+                            }
+                            reject(error);
+                        });
+                });
+            });
     }
 
     /**
@@ -1446,6 +1440,51 @@ class RTCUtils extends Listenable {
         }
 
         return missingDevices;
+    }
+
+    /**
+     * Performs separate getUserMedia calls for audio and video instead of in
+     * one call. Will also request desktop if specified.
+     *
+     * @param {Object} options - An object describing how the gUM request should
+     * be executed. See {@link obtainAudioAndVideoPermissions} for full options.
+     * @returns {*} Promise object that will receive the new JitsiTracks on
+     * success or a JitsiTrackError on failure.
+     */
+    _getAudioAndVideoStreamsSeparately(options) {
+        return new Promise((resolve, reject) => {
+            const deviceGUM = {
+                audio: (...args) =>
+                    this.getUserMediaWithConstraints([ 'audio' ], ...args),
+                video: (...args) =>
+                    this.getUserMediaWithConstraints([ 'video' ], ...args),
+                desktop: (...args) =>
+                    screenObtainer.obtainStream(
+                        this._parseDesktopSharingOptions(options), ...args)
+            };
+
+            obtainDevices({
+                devices: options.devices,
+                streams: [],
+                successCallback: resolve,
+                errorCallback: reject,
+                deviceGUM
+            });
+        });
+    }
+
+    /**
+     * Returns an object formatted for specifying desktop sharing parameters.
+     *
+     * @param {Object} options - Takes in the same options object as
+     * {@link obtainAudioAndVideoPermissions}.
+     * @returns {Object}
+     */
+    _parseDesktopSharingOptions(options) {
+        return {
+            ...options.desktopSharingExtensionExternalInstallation,
+            desktopSharingSources: options.desktopSharingSources
+        };
     }
 
     /**
