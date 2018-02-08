@@ -1338,13 +1338,13 @@ class RTCUtils extends Listenable {
 
             gumPromise = promiseWrappedGum(options.devices, options)
                 .then(avStream => {
-                    const missingTracks
-                        = this._getMissingTracks(options.devices, avStream);
-
                     // If any requested devices are missing, call gum again in
                     // an attempt to obtain the actual error. For example, the
                     // requested video device is missing or permission was
                     // denied.
+                    const missingTracks
+                        = this._getMissingTracks(options.devices, avStream);
+
                     if (missingTracks.length) {
                         this.stopMediaStream(avStream);
 
