@@ -46,6 +46,36 @@ const eventEmitter = new EventEmitter();
 
 const AVAILABLE_DEVICES_POLL_INTERVAL_TIME = 3000; // ms
 
+/**
+ * Default resolution to obtain for video tracks if no resolution is specified.
+ * This default is used for old gum flow only, as new gum flow uses
+ * {@link DEFAULT_CONSTRAINTS}.
+ */
+const OLD_GUM_DEFAULT_RESOLUTION = 720;
+
+/**
+ * Default devices to obtain when no specific devices are specified. This
+ * default is used for old gum flow only.
+ */
+const OLD_GUM_DEFAULT_DEVICES = [ 'audio', 'video' ];
+
+/**
+ * Default MediaStreamConstraints to use for calls to getUserMedia.
+ *
+ * @private
+ */
+const DEFAULT_CONSTRAINTS = {
+    video: {
+        aspectRatio: 16 / 9,
+        height: {
+            ideal: 1080,
+            max: 1080,
+            min: 240
+        }
+    }
+};
+
+
 // TODO (brian): Move this devices hash, maybe to a model, so RTCUtils remains
 // stateless.
 const devices = {
@@ -352,22 +382,6 @@ function getConstraints(um, options) {
 
     return constraints;
 }
-
-/**
- * Default MediaStreamConstraints to use for calls to getUserMedia.
- *
- * @private
- */
-const DEFAULT_CONSTRAINTS = {
-    video: {
-        aspectRatio: 16 / 9,
-        height: {
-            ideal: 1080,
-            max: 1080,
-            min: 240
-        }
-    }
-};
 
 /**
  * Creates a constraints object to be passed into a call to getUserMedia.
@@ -1287,13 +1301,13 @@ class RTCUtils extends Listenable {
      * @returns {*} Promise object that will receive the new JitsiTracks
      */
     obtainAudioAndVideoPermissions(options = {}) {
-        const dsOptions = {
+        const desktopSharingOptions = {
             ...options.desktopSharingExtensionExternalInstallation,
             desktopSharingSources: options.desktopSharingSources
         };
 
-        options.devices = options.devices || [ 'audio', 'video' ];
-        options.resolution = options.resolution || '720';
+        options.devices = options.devices || [ ...OLD_GUM_DEFAULT_DEVICES ];
+        options.resolution = options.resolution || OLD_GUM_DEFAULT_RESOLUTION;
 
         const requestingDesktop = options.devices.includes('desktop');
 
@@ -1353,7 +1367,7 @@ class RTCUtils extends Listenable {
 
                     return new Promise((resolve, reject) => {
                         screenObtainer.obtainStream(
-                            dsOptions,
+                            desktopSharingOptions,
                             desktop => resolve({
                                 audioVideo,
                                 desktop
@@ -1375,7 +1389,8 @@ class RTCUtils extends Listenable {
                     video: (...args) =>
                         this.getUserMediaWithConstraints([ 'video' ], ...args),
                     desktop: (...args) =>
-                        screenObtainer.obtainStream(dsOptions, ...args)
+                        screenObtainer.obtainStream(
+                            desktopSharingOptions, ...args)
                 };
 
                 obtainDevices({
