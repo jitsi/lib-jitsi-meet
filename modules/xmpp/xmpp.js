@@ -7,7 +7,7 @@ import 'strophejs-plugin-disco';
 import RandomUtil from '../util/RandomUtil';
 import * as JitsiConnectionErrors from '../../JitsiConnectionErrors';
 import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
-import RTCBrowserType from '../RTC/RTCBrowserType';
+import browser from '../browser';
 import initEmuc from './strophe.emuc';
 import initJingle from './strophe.jingle';
 import initStropheUtil from './strophe.util';
@@ -90,7 +90,7 @@ export default class XMPP extends Listenable {
         this.caps.addFeature('urn:xmpp:jingle:apps:rtp:audio');
         this.caps.addFeature('urn:xmpp:jingle:apps:rtp:video');
 
-        if (!this.options.disableRtx && RTCBrowserType.supportsRtx()) {
+        if (!this.options.disableRtx && browser.supportsRtx()) {
             this.caps.addFeature('urn:ietf:rfc:4588');
         }
 
@@ -106,7 +106,7 @@ export default class XMPP extends Listenable {
         // this.caps.addFeature('urn:ietf:rfc:5576'); // a=ssrc
 
         // Enable Lipsync ?
-        if (RTCBrowserType.isChrome() && this.options.enableLipSync !== false) {
+        if (browser.isChrome() && this.options.enableLipSync !== false) {
             logger.info('Lip-sync enabled !');
             this.caps.addFeature('http://jitsi.org/meet/lipsync');
         }
@@ -202,7 +202,10 @@ export default class XMPP extends Listenable {
             } else if (this.connectionFailed) {
                 this.eventEmitter.emit(
                     JitsiConnectionEvents.CONNECTION_FAILED,
-                    JitsiConnectionErrors.OTHER_ERROR, errMsg);
+                    JitsiConnectionErrors.OTHER_ERROR,
+                    errMsg,
+                    undefined, /* credentials */
+                    this._getConnectionFailedReasonDetails());
             } else if (wasIntentionalDisconnect) {
                 this.eventEmitter.emit(
                     JitsiConnectionEvents.CONNECTION_DISCONNECTED, errMsg);
@@ -508,5 +511,48 @@ export default class XMPP extends Listenable {
         initPing(this);
         initRayo();
         initStropheLogger();
+    }
+
+    /**
+     * Returns details about connection failure. Shard change or is it after
+     * suspend.
+     * @returns {object} contains details about a connection failure.
+     * @private
+     */
+    _getConnectionFailedReasonDetails() {
+        const details = {};
+
+        // check for moving between shard if information is available
+        if (this.options.deploymentInfo
+            && this.options.deploymentInfo.shard
+            && this.connection._proto
+            && this.connection._proto.lastResponseHeaders) {
+
+            // split headers by line
+            const headersArr = this.connection._proto.lastResponseHeaders
+                .trim().split(/[\r\n]+/);
+            const headers = {};
+
+            headersArr.forEach(line => {
+                const parts = line.split(': ');
+                const header = parts.shift();
+                const value = parts.join(': ');
+
+                headers[header] = value;
+            });
+
+            /* eslint-disable camelcase */
+            details.shard_changed
+                = this.options.deploymentInfo.shard
+                    !== headers['x-jitsi-shard'];
+            /* eslint-enable camelcase */
+        }
+
+        /* eslint-disable camelcase */
+        // check for possible suspend
+        details.suspend_time = this.connection.ping.getPingSuspendTime();
+        /* eslint-enable camelcase */
+
+        return details;
     }
 }

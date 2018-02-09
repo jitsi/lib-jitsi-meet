@@ -2,7 +2,7 @@
  * Provides statistics for the local stream.
  */
 
-import RTCBrowserType from '../RTC/RTCBrowserType';
+import browser from '../browser';
 
 /**
  * Size of the webaudio analyzer buffer.
@@ -145,5 +145,5 @@ LocalStatsCollector.prototype.stop = function() {
  * @returns {boolean}
  */
 LocalStatsCollector.isLocalStatsSupported = function() {
-    return Boolean(context && !RTCBrowserType.isTemasysPluginUsed());
+    return Boolean(context && !browser.isTemasysPluginUsed());
 };

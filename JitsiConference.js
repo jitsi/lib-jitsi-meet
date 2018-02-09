@@ -33,7 +33,7 @@ import ParticipantConnectionStatusHandler
     from './modules/connectivity/ParticipantConnectionStatus';
 import P2PDominantSpeakerDetection from './modules/P2PDominantSpeakerDetection';
 import RTC from './modules/RTC/RTC';
-import RTCBrowserType from './modules/RTC/RTCBrowserType';
+import browser from './modules/browser';
 import * as RTCEvents from './service/RTC/RTCEvents';
 import Statistics from './modules/statistics/statistics';
 import TalkMutedDetection from './modules/TalkMutedDetection';
@@ -580,6 +580,16 @@ JitsiConference.prototype.removeCommandListener = function(command) {
 JitsiConference.prototype.sendTextMessage = function(message) {
     if (this.room) {
         this.room.sendMessage(message);
+    }
+};
+
+/**
+ * Send private text message to another participant of the conference
+ * @param message the text message.
+ */
+JitsiConference.prototype.sendPrivateTextMessage = function(id, message) {
+    if (this.room) {
+        this.room.sendPrivateMessage(id, message);
     }
 };
 
@@ -1387,7 +1397,7 @@ JitsiConference.prototype._onIncomingCallP2P = function(
             errorMsg: 'Rejecting session-initiate from non-focus and'
                         + `non-moderator user: ${jingleSession.remoteJid}`
         };
-    } else if (!RTCBrowserType.isP2PSupported()) {
+    } else if (!browser.supportsP2P()) {
         rejectReason = {
             reason: 'unsupported-applications',
             reasonDescription: 'P2P not supported',
@@ -1543,7 +1553,7 @@ JitsiConference.prototype._setBridgeChannel = function(offerIq, pc) {
     }
 
     if (bridgeChannelType === 'datachannel'
-        && !RTCBrowserType.supportsDataChannels()) {
+        && !browser.supportsDataChannels()) {
         bridgeChannelType = 'websocket';
     }
 
@@ -2486,7 +2496,7 @@ JitsiConference.prototype._suspendMediaTransferForJvbConnection = function() {
  * @private
  */
 JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
-    if (!RTCBrowserType.isP2PSupported()
+    if (!browser.supportsP2P()
         || !this.isP2PEnabled()
         || this.isP2PTestModeEnabled()) {
         logger.info('Auto P2P disabled');

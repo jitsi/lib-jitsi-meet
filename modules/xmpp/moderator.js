@@ -9,7 +9,7 @@ const AuthenticationEvents
     = require('../../service/authentication/AuthenticationEvents');
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
-import RTCBrowserType from '../RTC/RTCBrowserType';
+import browser from '../browser';
 import Settings from '../settings/Settings';
 
 /**
@@ -228,7 +228,7 @@ Moderator.prototype.createConferenceIq = function() {
         break;
     }
 
-    if (openSctp && !RTCBrowserType.supportsDataChannels()) {
+    if (openSctp && !browser.supportsDataChannels()) {
         openSctp = false;
     }
 

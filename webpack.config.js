@@ -24,11 +24,8 @@ if (minimize) {
     }));
 }
 
-module.exports = {
+const config = {
     devtool: 'source-map',
-    entry: {
-        'lib-jitsi-meet': './index.js'
-    },
     module: {
         rules: [ {
             // Version this build of the lib-jitsi-meet library.
@@ -46,7 +43,7 @@ module.exports = {
 
             exclude: [
                 `${__dirname}/modules/RTC/adapter.screenshare.js`,
-                `${__dirname}/node_modules/`
+                new RegExp(`${__dirname}/node_modules/(?!js-utils)`)
             ],
             loader: 'babel-loader',
             options: {
@@ -72,9 +69,19 @@ module.exports = {
     },
     output: {
         filename: `[name]${minimize ? '.min' : ''}.js`,
-        library: 'JitsiMeetJS',
-        libraryTarget: 'umd',
         sourceMapFilename: `[name].${minimize ? 'min' : 'js'}.map`
     },
     plugins
 };
+
+module.exports = [
+    Object.assign({}, config, {
+        entry: {
+            'lib-jitsi-meet': './index.js'
+        },
+        output: Object.assign({}, config.output, {
+            library: 'JitsiMeetJS',
+            libraryTarget: 'umd'
+        })
+    })
+];

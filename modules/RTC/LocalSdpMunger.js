@@ -162,6 +162,48 @@ export default class LocalSdpMunger {
     }
 
     /**
+     * Modifies 'cname', 'msid', 'label' and 'mslabel' by appending
+     * the id of {@link LocalSdpMunger#tpc} at the end, preceding by a dash
+     * sign.
+     *
+     * @param {MLineWrap} mediaSection - The media part (audio or video) of the
+     * session description which will be modified in place.
+     * @returns {void}
+     * @private
+     */
+    _transformMediaIdentifiers(mediaSection) {
+        const pcId = this.tpc.id;
+
+        for (const ssrcLine of mediaSection.ssrcs) {
+            switch (ssrcLine.attribute) {
+            case 'cname':
+            case 'label':
+            case 'mslabel':
+                ssrcLine.value = ssrcLine.value && `${ssrcLine.value}-${pcId}`;
+                break;
+            case 'msid': {
+                if (ssrcLine.value) {
+                    const streamAndTrackIDs = ssrcLine.value.split(' ');
+
+                    if (streamAndTrackIDs.length === 2) {
+                        const streamId = streamAndTrackIDs[0];
+                        const trackId = streamAndTrackIDs[1];
+
+                        ssrcLine.value
+                            = `${streamId}-${pcId} ${trackId}-${pcId}`;
+                    } else {
+                        logger.warn(
+                            'Unable to munge local MSID'
+                                + `- weird format detected: ${ssrcLine.value}`);
+                    }
+                }
+                break;
+            }
+            }
+        }
+    }
+
+    /**
      * Maybe modifies local description to fake local video tracks SDP when
      * those are muted.
      *
@@ -184,5 +226,45 @@ export default class LocalSdpMunger {
         }
 
         return desc;
+    }
+
+    /**
+     * This transformation will make sure that stream identifiers are unique
+     * across all of the local PeerConnections even if the same stream is used
+     * by multiple instances at the same time.
+     * Each PeerConnection assigns different SSRCs to the same local
+     * MediaStream, but the MSID remains the same as it's used to identify
+     * the stream by the WebRTC backend. The transformation will append
+     * {@link TraceablePeerConnection#id} at the end of each stream's identifier
+     * ("cname", "msid", "label" and "mslabel").
+     *
+     * @param {RTCSessionDescription} sessionDesc - The local session
+     * description (this instance remains unchanged).
+     * @return {RTCSessionDescription} - Transformed local session description
+     * (a modified copy of the one given as the input).
+     */
+    transformStreamIdentifiers(sessionDesc) {
+        // FIXME similar check is probably duplicated in all other transformers
+        if (!sessionDesc || !sessionDesc.sdp || !sessionDesc.type) {
+            return sessionDesc;
+        }
+
+        const transformer = new SdpTransformWrap(sessionDesc.sdp);
+        const audioMLine = transformer.selectMedia('audio');
+
+        if (audioMLine) {
+            this._transformMediaIdentifiers(audioMLine);
+        }
+
+        const videoMLine = transformer.selectMedia('video');
+
+        if (videoMLine) {
+            this._transformMediaIdentifiers(videoMLine);
+        }
+
+        return new RTCSessionDescription({
+            type: sessionDesc.type,
+            sdp: transformer.toRawSDP()
+        });
     }
 }
