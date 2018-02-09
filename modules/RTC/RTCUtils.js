@@ -1441,6 +1441,26 @@ class RTCUtils extends Listenable {
                         error => reject(error),
                         options);
                 } else if (hasDesktop) {
+                    if (options.screenSharingSourceDeviceId) {
+                        this.getUserMediaWithConstraints(
+                            [ 'video' ],
+                            stream => successCallback({
+                                desktop: {
+                                    sourceId: '',
+                                    screenType: 'camera',
+                                    stream
+                                }
+                            }),
+                            error => reject(error),
+                            {
+                                cameraDeviceId:
+                                    options.screenSharingSourceDeviceId
+                            }
+                        );
+
+                        return;
+                    }
+
                     screenObtainer.obtainStream(
                         dsOptions,
                         desktop => successCallback({ desktop }),
@@ -1482,11 +1502,43 @@ class RTCUtils extends Listenable {
             const umDevices = options.devices || [];
             const isDesktopDeviceRequsted = umDevices.indexOf('desktop') !== -1;
 
-            return isDesktopDeviceRequsted
-                ? this._newGetDesktopMedia(
-                    options.desktopSharingExtensionExternalInstallation,
-                    options.desktopSharingSources)
-                : Promise.resolve();
+            let getDesktopPromise;
+
+            if (isDesktopDeviceRequsted) {
+                if (options.screenSharingSourceDeviceId) {
+                    const requestedDevices = [ 'video' ];
+                    const constraints = JSON.parse(JSON.stringify(
+                        options.constraints || DEFAULT_CONSTRAINTS));
+
+                    if (!constraints.video) {
+                        constraints.video = {};
+                    }
+
+                    if (!constraints.video.deviceId) {
+                        constraints.video.deviceId = {};
+                    }
+
+                    constraints.video.deviceId.exact
+                        = options.screenSharingSourceDeviceId;
+
+                    const formattedConstraints = newGetConstraints(
+                        requestedDevices, { constraints });
+
+                    getDesktopPromise = this._newGetUserMediaWithConstraints(
+                        requestedDevices, formattedConstraints)
+                        .then(stream => {
+                            return { stream };
+                        });
+                } else {
+                    getDesktopPromise = this._newGetDesktopMedia(
+                        options.desktopSharingExtensionExternalInstallation,
+                        options.desktopSharingSources);
+                }
+            } else {
+                getDesktopPromise = Promise.resolve();
+            }
+
+            return getDesktopPromise;
         }.bind(this);
 
         /**
