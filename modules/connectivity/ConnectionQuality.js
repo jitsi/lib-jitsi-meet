@@ -58,6 +58,13 @@ const kSimulcastFormats = [
 ];
 
 /**
+ * The maximum bitrate to use as a measurement against the participant's current
+ * bitrate. This cap helps in the cases where the participant's bitrate is high
+ * but not enough to fulfill high targets, such as with 1080p.
+ */
+const MAX_TARGET_BITRATE = 2500;
+
+/**
  * The initial bitrate for video in kbps.
  */
 let startBitrate = 800;
@@ -353,7 +360,7 @@ export default class ConnectionQuality {
             target
                 = getTarget(isSimulcastOn, resolution, millisSinceStart);
 
-            target = 0.9 * target;
+            target = Math.min(0.9 * target, MAX_TARGET_BITRATE);
 
             quality = 100 * this._localStats.bitrate.upload / target;
 
