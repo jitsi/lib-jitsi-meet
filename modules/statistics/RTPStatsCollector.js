@@ -1,4 +1,6 @@
-import browser, { browsers } from '../browser';
+import browser from '../browser';
+import { browsers } from 'js-utils';
+
 import * as StatisticsEvents from '../../service/statistics/Events';
 
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');

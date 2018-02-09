@@ -1,7 +1,9 @@
-import BrowserDetection from './BrowserDetection';
-import capabilitiesDB from './capabilities.json';
+import { getLogger } from 'jitsi-meet-logger';
+import { BrowserDetection } from 'js-utils';
 
-// TODO: All methods should use capabilities.json when possible.
+const logger = getLogger(__filename);
+
+// TODO: Move this code to js-utils.
 
 // NOTE: Now we are extending BrowserDetection in order to preserve
 // RTCBrowserType interface but maybe it worth exporting BrowserCapabilities
@@ -13,52 +15,11 @@ import capabilitiesDB from './capabilities.json';
 export default class BrowserCapabilities extends BrowserDetection {
     /**
      * Creates new BrowserCapabilities instance.
-     *
-     * @param {boolean} [isUsingIFrame] - True if Jitsi Meet is loaded in iframe
-     * and false otherwise.
-     * @param {Object} [browserInfo] - Information about the browser.
-     * @param {string} browserInfo.name - The name of the browser.
-     * @param {string} browserInfo.version - The version of the browser.
      */
-    constructor(isUsingIFrame = false, browserInfo) {
-        super(browserInfo);
-
-        const browserCapabilities = capabilitiesDB[this.getName()] || [];
-        let capabilitiesByVersion;
-
-        for (let i = 0; i < browserCapabilities.length; i++) {
-            const capabilities = browserCapabilities[i];
-
-            if (typeof capabilities !== 'object') {
-                // eslint-disable-next-line no-continue
-                continue;
-            }
-
-            const version = capabilities.version;
-
-            if (!version || !this.isVersionGreaterThan(version)) {
-                capabilitiesByVersion = capabilities;
-                break;
-            }
-        }
-
-        if (!capabilitiesByVersion || !capabilitiesByVersion.capabilities) {
-            this._capabilities = { isSupported: false };
-        } else if (isUsingIFrame) {
-            this._capabilities = {
-                ...capabilitiesByVersion.capabilities,
-                ...capabilitiesByVersion.iframeCapabilities
-            };
-        } else {
-            this._capabilities = capabilitiesByVersion.capabilities;
-        }
-
-        if (typeof this._capabilities.isSupported === 'undefined') {
-            // we have some capabilities but isSupported property is not filled.
-            this._capabilities.isSupported = true;
-        } else if (this._capabilities.isSupported === false) {
-            this._capabilities = { isSupported: false };
-        }
+    constructor() {
+        super();
+        logger.info(
+            `This appears to be ${this.getName()}, ver: ${this.getVersion()}`);
     }
 
     /**
@@ -97,15 +58,6 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Checks whether the browser is supported by Jitsi Meet.
-     *
-     * @returns {boolean}
-     */
-    isSupported() {
-        return this._capabilities.isSupported;
-    }
-
-    /**
      * Checks if Temasys RTC plugin is used.
      * @returns {boolean}
      */
@@ -129,25 +81,6 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     supportsVideoMuteOnConnInterrupted() {
         return this.isChrome() || this.isElectron();
-    }
-
-
-    /**
-     * Checks whether the browser supports incoming audio.
-     *
-     * @returns {boolean}
-     */
-    supportsAudioIn() {
-        return this._capabilities.audioIn || false;
-    }
-
-    /**
-     * Checks whether the browser supports outgoing audio.
-     *
-     * @returns {boolean}
-     */
-    supportsAudioOut() {
-        return this._capabilities.audioOut || false;
     }
 
     /**
@@ -206,15 +139,6 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Checks whether the browser supports screen sharing.
-     *
-     * @returns {boolean}
-     */
-    supportsScreenSharing() {
-        return this._capabilities.screenSharing || false;
-    }
-
-    /**
      * Whether jitsi-meet supports simulcast on the current browser.
      * @returns {boolean}
      */
@@ -239,24 +163,6 @@ export default class BrowserCapabilities extends BrowserDetection {
         // Currently Safari using webrtc/adapter does not support video due in
         // part to Safari only supporting H264 and the bridge sending VP8.
         return !this.isSafariWithWebrtc();
-    }
-
-    /**
-     * Checks whether the browser supports incomming video.
-     *
-     * @returns {boolean}
-     */
-    supportsVideoIn() {
-        return this._capabilities.videoIn || false;
-    }
-
-    /**
-     * Checks whether the browser supports incomming video.
-     *
-     * @returns {boolean}
-     */
-    supportsVideoOut() {
-        return this._capabilities.videoOut || false;
     }
 
     /**
