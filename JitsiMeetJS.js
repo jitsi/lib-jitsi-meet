@@ -130,6 +130,7 @@ export default {
         }
 
         if (options.enableAnalyticsLogging !== true) {
+            logger.warn('Analytics disabled, disposing.');
             this.analytics.dispose();
         }
 

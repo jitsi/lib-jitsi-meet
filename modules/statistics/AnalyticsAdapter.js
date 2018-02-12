@@ -105,6 +105,7 @@ class AnalyticsAdapter {
      * Dispose analytics. Clears all handlers.
      */
     dispose() {
+        logger.warn('Disposing of analytics adapter.');
         this.setAnalyticsHandlers([]);
         this.disposed = true;
     }
@@ -173,6 +174,12 @@ class AnalyticsAdapter {
      * event, if eventName is a string.
      */
     sendEvent(eventName, properties = {}) {
+        if (this.disposed) {
+            logger.warn('Not sending an event, disposed.');
+
+            return;
+        }
+
         let event = null;
 
         if (typeof eventName === 'string') {
