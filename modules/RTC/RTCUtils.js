@@ -83,6 +83,11 @@ const devices = {
     video: false
 };
 
+/**
+ * The frame rate for Screen Sharing.
+ */
+const SS_FRAME_RATE = 5;
+
 // Currently audio output device change is supported only in Chrome and
 // default output always has 'default' device ID
 let audioOutputDeviceId = 'default'; // default device
@@ -320,7 +325,8 @@ function getConstraints(um, options) {
                     chromeMediaSource: 'screen',
                     maxWidth: window.screen.width,
                     maxHeight: window.screen.height,
-                    maxFrameRate: 3
+                    maxFrameRate: SS_FRAME_RATE,
+                    minFrameRate: SS_FRAME_RATE
                 },
                 optional: []
             };
@@ -335,7 +341,11 @@ function getConstraints(um, options) {
         } else if (browser.isFirefox()) {
             constraints.video = {
                 mozMediaSource: 'window',
-                mediaSource: 'window'
+                mediaSource: 'window',
+                frameRate: {
+                    min: SS_FRAME_RATE,
+                    max: SS_FRAME_RATE
+                }
             };
 
         } else {
@@ -354,7 +364,8 @@ function getConstraints(um, options) {
                 chromeMediaSourceId: options.desktopStream,
                 maxWidth: window.screen.width,
                 maxHeight: window.screen.height,
-                maxFrameRate: 3
+                maxFrameRate: SS_FRAME_RATE,
+                minFrameRate: SS_FRAME_RATE
             },
             optional: []
         };
