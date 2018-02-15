@@ -476,7 +476,8 @@ function newGetConstraints(um = [], options = {}) {
                 chromeMediaSourceId: options.desktopStream,
                 maxWidth: window.screen.width,
                 maxHeight: window.screen.height,
-                maxFrameRate: 3
+                maxFrameRate: SS_FRAME_RATE,
+                minFrameRate: SS_FRAME_RATE
             }
         };
     }
