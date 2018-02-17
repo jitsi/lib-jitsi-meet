@@ -46,6 +46,36 @@ const eventEmitter = new EventEmitter();
 
 const AVAILABLE_DEVICES_POLL_INTERVAL_TIME = 3000; // ms
 
+/**
+ * Default resolution to obtain for video tracks if no resolution is specified.
+ * This default is used for old gum flow only, as new gum flow uses
+ * {@link DEFAULT_CONSTRAINTS}.
+ */
+const OLD_GUM_DEFAULT_RESOLUTION = 720;
+
+/**
+ * Default devices to obtain when no specific devices are specified. This
+ * default is used for old gum flow only.
+ */
+const OLD_GUM_DEFAULT_DEVICES = [ 'audio', 'video' ];
+
+/**
+ * Default MediaStreamConstraints to use for calls to getUserMedia.
+ *
+ * @private
+ */
+const DEFAULT_CONSTRAINTS = {
+    video: {
+        aspectRatio: 16 / 9,
+        height: {
+            ideal: 1080,
+            max: 1080,
+            min: 240
+        }
+    }
+};
+
+
 // TODO (brian): Move this devices hash, maybe to a model, so RTCUtils remains
 // stateless.
 const devices = {
@@ -352,22 +382,6 @@ function getConstraints(um, options) {
 
     return constraints;
 }
-
-/**
- * Default MediaStreamConstraints to use for calls to getUserMedia.
- *
- * @private
- */
-const DEFAULT_CONSTRAINTS = {
-    video: {
-        aspectRatio: 16 / 9,
-        height: {
-            ideal: 1080,
-            max: 1080,
-            min: 240
-        }
-    }
-};
 
 /**
  * Creates a constraints object to be passed into a call to getUserMedia.
@@ -1158,6 +1172,8 @@ class RTCUtils extends Listenable {
     * @param {string} options.desktopStream
     * @param {string} options.cameraDeviceId
     * @param {string} options.micDeviceId
+    * @returns {Promise} Returns a media stream on success or a JitsiTrackError
+    * on failure.
     **/
     getUserMediaWithConstraints(
             um,
@@ -1168,31 +1184,46 @@ class RTCUtils extends Listenable {
 
         logger.info('Get media constraints', constraints);
 
-        try {
-            this.getUserMedia(
-                constraints,
-                stream => {
-                    logger.log('onUserMediaSuccess');
-                    setAvailableDevices(um, stream);
-                    successCallback(stream);
-                },
-                error => {
-                    setAvailableDevices(um, undefined);
-                    logger.warn('Failed to get access to local media. Error ',
-                        error, constraints);
+        return new Promise((resolve, reject) => {
+            try {
+                this.getUserMedia(
+                    constraints,
+                    stream => {
+                        logger.log('onUserMediaSuccess');
+                        setAvailableDevices(um, stream);
 
-                    if (failureCallback) {
-                        failureCallback(
-                            new JitsiTrackError(error, constraints, um));
-                    }
-                });
-        } catch (e) {
-            logger.error('GUM failed: ', e);
+                        if (successCallback) {
+                            successCallback(stream);
+                        }
 
-            if (failureCallback) {
-                failureCallback(new JitsiTrackError(e, constraints, um));
+                        resolve(stream);
+                    },
+                    error => {
+                        setAvailableDevices(um, undefined);
+                        logger.warn(
+                            'Failed to get access to local media. Error ',
+                            error, constraints);
+                        const jitsiTrackError
+                            = new JitsiTrackError(error, constraints, um);
+
+                        if (failureCallback) {
+                            failureCallback(jitsiTrackError);
+                        }
+
+                        reject(jitsiTrackError);
+                    });
+            } catch (e) {
+                logger.error('GUM failed: ', e);
+                const jitsiTrackError
+                    = new JitsiTrackError(e, constraints, um);
+
+                if (failureCallback) {
+                    failureCallback(jitsiTrackError);
+                }
+
+                reject(jitsiTrackError);
             }
-        }
+        });
     }
 
     /**
@@ -1287,167 +1318,173 @@ class RTCUtils extends Listenable {
      * @returns {*} Promise object that will receive the new JitsiTracks
      */
     obtainAudioAndVideoPermissions(options = {}) {
-        const self = this;
+        options.devices = options.devices || [ ...OLD_GUM_DEFAULT_DEVICES ];
+        options.resolution = options.resolution || OLD_GUM_DEFAULT_RESOLUTION;
 
-        const dsOptions = {
+        const requestingDesktop = options.devices.includes('desktop');
+
+        if (requestingDesktop && !screenObtainer.isSupported()) {
+            return Promise.reject(
+                new Error('Desktop sharing is not supported!'));
+        }
+
+        let gumPromise;
+
+        if (browser.supportsMediaStreamConstructor()) {
+            gumPromise = this._getAudioAndVideoStreams(options);
+        } else {
+            // If the MediaStream constructor is not supported, then get tracks
+            // in separate GUM calls in order to keep different tracks separate.
+            gumPromise = this._getAudioAndVideoStreamsSeparately(options);
+        }
+
+        return gumPromise.then(streams =>
+            handleLocalStream(streams, options.resolution));
+    }
+
+    /**
+     * Performs one call to getUserMedia for audio and/or video and another call
+     * for desktop.
+     *
+     * @param {Object} options - An object describing how the gUM request should
+     * be executed. See {@link obtainAudioAndVideoPermissions} for full options.
+     * @returns {*} Promise object that will receive the new JitsiTracks on
+     * success or a JitsiTrackError on failure.
+     */
+    _getAudioAndVideoStreams(options) {
+        const requestingDesktop = options.devices.includes('desktop');
+
+        options.devices = options.devices.filter(device =>
+            device !== 'desktop');
+
+        const gumPromise = options.devices.length
+            ? this.getUserMediaWithConstraints(
+                options.devices, null, null, options)
+            : Promise.resolve(null);
+
+        return gumPromise
+            .then(avStream => {
+                // If any requested devices are missing, call gum again in
+                // an attempt to obtain the actual error. For example, the
+                // requested video device is missing or permission was
+                // denied.
+                const missingTracks
+                    = this._getMissingTracks(options.devices, avStream);
+
+                if (missingTracks.length) {
+                    this.stopMediaStream(avStream);
+
+                    return this.getUserMediaWithConstraints(
+                        missingTracks, options)
+
+                        // GUM has already failed earlier and this success
+                        // handling should not be reached.
+                        .then(() => Promise.reject(new JitsiTrackError(
+                            { name: 'UnknownError' },
+                            getConstraints(options.devices, options),
+                            missingTracks)));
+                }
+
+                return avStream;
+            })
+            .then(audioVideo => {
+                if (!requestingDesktop) {
+                    return { audioVideo };
+                }
+
+                return new Promise((resolve, reject) => {
+                    screenObtainer.obtainStream(
+                        this._parseDesktopSharingOptions(options),
+                        desktop => resolve({
+                            audioVideo,
+                            desktop
+                        }),
+                        error => {
+                            if (audioVideo) {
+                                this.stopMediaStream(audioVideo);
+                            }
+                            reject(error);
+                        });
+                });
+            });
+    }
+
+    /**
+     * Private utility for determining if the passed in MediaStream contains
+     * tracks of the type(s) specified in the requested devices.
+     *
+     * @param {string[]} requestedDevices - The track types that are expected to
+     * be includes in the stream.
+     * @param {MediaStream} stream - The MediaStream to check if it has the
+     * expected track types.
+     * @returns {string[]} An array of string with the missing track types. The
+     * array will be empty if all requestedDevices are found in the stream.
+     */
+    _getMissingTracks(requestedDevices = [], stream) {
+        const missingDevices = [];
+
+        const audioDeviceRequested = requestedDevices.includes('audio');
+        const audioTracksReceived
+            = stream && stream.getAudioTracks().length > 0;
+
+        if (audioDeviceRequested && !audioTracksReceived) {
+            missingDevices.push('audio');
+        }
+
+        const videoDeviceRequested = requestedDevices.includes('video');
+        const videoTracksReceived
+            = stream && stream.getVideoTracks().length > 0;
+
+        if (videoDeviceRequested && !videoTracksReceived) {
+            missingDevices.push('video');
+        }
+
+        return missingDevices;
+    }
+
+    /**
+     * Performs separate getUserMedia calls for audio and video instead of in
+     * one call. Will also request desktop if specified.
+     *
+     * @param {Object} options - An object describing how the gUM request should
+     * be executed. See {@link obtainAudioAndVideoPermissions} for full options.
+     * @returns {*} Promise object that will receive the new JitsiTracks on
+     * success or a JitsiTrackError on failure.
+     */
+    _getAudioAndVideoStreamsSeparately(options) {
+        return new Promise((resolve, reject) => {
+            const deviceGUM = {
+                audio: (...args) =>
+                    this.getUserMediaWithConstraints([ 'audio' ], ...args),
+                video: (...args) =>
+                    this.getUserMediaWithConstraints([ 'video' ], ...args),
+                desktop: (...args) =>
+                    screenObtainer.obtainStream(
+                        this._parseDesktopSharingOptions(options), ...args)
+            };
+
+            obtainDevices({
+                devices: options.devices,
+                streams: [],
+                successCallback: resolve,
+                errorCallback: reject,
+                deviceGUM
+            });
+        });
+    }
+
+    /**
+     * Returns an object formatted for specifying desktop sharing parameters.
+     *
+     * @param {Object} options - Takes in the same options object as
+     * {@link obtainAudioAndVideoPermissions}.
+     * @returns {Object}
+     */
+    _parseDesktopSharingOptions(options) {
+        return {
             ...options.desktopSharingExtensionExternalInstallation,
             desktopSharingSources: options.desktopSharingSources
         };
-
-        return new Promise((resolve, reject) => {
-            const successCallback = function(stream) {
-                resolve(handleLocalStream(stream, options.resolution));
-            };
-
-            options.devices = options.devices || [ 'audio', 'video' ];
-            options.resolution = options.resolution || '720';
-
-            if (!screenObtainer.isSupported()
-                && options.devices.indexOf('desktop') !== -1) {
-                reject(new Error('Desktop sharing is not supported!'));
-            }
-            if (browser.isFirefox()
-
-                    // XXX The react-native-webrtc implementation that we
-                    // utilize on React Native at the time of this writing does
-                    // not support the MediaStream constructors defined by
-                    // https://www.w3.org/TR/mediacapture-streams/#constructors
-                    // and instead has a single constructor which expects (an
-                    // NSNumber as) a MediaStream ID.
-                    || browser.isReactNative()
-                    || browser.isTemasysPluginUsed()) {
-                const GUM = function(device, s, e) {
-                    this.getUserMediaWithConstraints(device, s, e, options);
-                };
-
-                const deviceGUM = {
-                    'audio': GUM.bind(self, [ 'audio' ]),
-                    'video': GUM.bind(self, [ 'video' ])
-                };
-
-                if (screenObtainer.isSupported()) {
-                    deviceGUM.desktop = screenObtainer.obtainStream.bind(
-                        screenObtainer,
-                        dsOptions);
-                }
-
-                // With FF/IE we can't split the stream into audio and video
-                // because FF doesn't support media stream constructors. So, we
-                // need to get the audio stream separately from the video stream
-                // using two distinct GUM calls. Not very user friendly :-( but
-                // we don't have many other options neither.
-                //
-                // Note that we pack those 2 streams in a single object and pass
-                // it to the successCallback method.
-                obtainDevices({
-                    devices: options.devices,
-                    streams: [],
-                    successCallback,
-                    errorCallback: reject,
-                    deviceGUM
-                });
-            } else {
-                const hasDesktop = options.devices.indexOf('desktop') > -1;
-
-                if (hasDesktop) {
-                    options.devices.splice(
-                        options.devices.indexOf('desktop'),
-                        1);
-                }
-
-                if (options.devices.length) {
-                    this.getUserMediaWithConstraints(
-                        options.devices,
-                        stream => {
-                            const audioDeviceRequested
-                                = options.devices.indexOf('audio') !== -1;
-                            const videoDeviceRequested
-                                = options.devices.indexOf('video') !== -1;
-                            const audioTracksReceived
-                                = stream.getAudioTracks().length > 0;
-                            const videoTracksReceived
-                                = stream.getVideoTracks().length > 0;
-
-                            if ((audioDeviceRequested && !audioTracksReceived)
-                                    || (videoDeviceRequested
-                                        && !videoTracksReceived)) {
-                                self.stopMediaStream(stream);
-
-                                // We are getting here in case if we requested
-                                // 'audio' or 'video' devices or both, but
-                                // didn't get corresponding MediaStreamTrack in
-                                // response stream. We don't know the reason why
-                                // this happened, so reject with general error.
-                                // eslint-disable-next-line no-shadow
-                                const devices = [];
-
-                                if (audioDeviceRequested
-                                        && !audioTracksReceived) {
-                                    devices.push('audio');
-                                }
-
-                                if (videoDeviceRequested
-                                        && !videoTracksReceived) {
-                                    devices.push('video');
-                                }
-
-                                // we are missing one of the media we requested
-                                // in order to get the actual error that caused
-                                // this missing media we will call one more time
-                                // getUserMedia so we can obtain the actual
-                                // error (Example usecases are requesting
-                                // audio and video and video device is missing
-                                // or device is denied to be used and chrome is
-                                // set to not ask for permissions)
-                                self.getUserMediaWithConstraints(
-                                    devices,
-                                    () => {
-                                        // we already failed to obtain this
-                                        // media, so we are not supposed in any
-                                        // way to receive success for this call
-                                        // any way we will throw an error to be
-                                        // sure the promise will finish
-                                        reject(new JitsiTrackError(
-                                            { name: 'UnknownError' },
-                                            getConstraints(
-                                                options.devices,
-                                                options),
-                                            devices)
-                                        );
-                                    },
-                                    error => {
-                                        // rejects with real error for not
-                                        // obtaining the media
-                                        reject(error);
-                                    }, options);
-
-                                return;
-                            }
-                            if (hasDesktop) {
-                                screenObtainer.obtainStream(
-                                    dsOptions,
-                                    desktop => {
-                                        successCallback({ audioVideo: stream,
-                                            desktop });
-                                    }, error => {
-                                        self.stopMediaStream(stream);
-
-                                        reject(error);
-                                    });
-                            } else {
-                                successCallback({ audioVideo: stream });
-                            }
-                        },
-                        error => reject(error),
-                        options);
-                } else if (hasDesktop) {
-                    screenObtainer.obtainStream(
-                        dsOptions,
-                        desktop => successCallback({ desktop }),
-                        error => reject(error));
-                }
-            }
-        });
     }
 
     /**
