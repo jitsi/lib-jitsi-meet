@@ -84,9 +84,9 @@ const devices = {
 };
 
 /**
- * The frame rate for Screen Sharing.
+ * The default frame rate for Screen Sharing.
  */
-const SS_FRAME_RATE = 5;
+const SS_DEFAULT_FRAME_RATE = 5;
 
 // Currently audio output device change is supported only in Chrome and
 // default output always has 'default' device ID
@@ -208,10 +208,15 @@ function setResolutionConstraints(
  * @param {string} options.micDeviceId
  * @param {CameraFacingMode} options.facingMode
  * @param {bool} firefox_fake_device
+ * @param {Object} options.frameRate - used only for dekstop sharing.
+ * @param {Object} options.frameRate.min - Minimum fps
+ * @param {Object} options.frameRate.max - Maximum fps
  */
-function getConstraints(um, options) {
-    const constraints = { audio: false,
-        video: false };
+function getConstraints(um, options = {}) {
+    const constraints = {
+        audio: false,
+        video: false
+    };
 
     // Don't mix new and old style settings for Chromium as this leads
     // to TypeError in new Chromium versions. @see
@@ -319,17 +324,25 @@ function getConstraints(um, options) {
         }
     }
     if (um.indexOf('screen') >= 0) {
+        const {
+            frameRate = {
+                min: SS_DEFAULT_FRAME_RATE,
+                max: SS_DEFAULT_FRAME_RATE
+            }
+        } = options;
+
         if (browser.isChrome()) {
             constraints.video = {
                 mandatory: {
                     chromeMediaSource: 'screen',
                     maxWidth: window.screen.width,
                     maxHeight: window.screen.height,
-                    maxFrameRate: SS_FRAME_RATE,
-                    minFrameRate: SS_FRAME_RATE
+                    maxFrameRate: frameRate.max,
+                    minFrameRate: frameRate.min
                 },
                 optional: []
             };
+
         } else if (browser.isTemasysPluginUsed()) {
             constraints.video = {
                 optional: [
@@ -342,10 +355,7 @@ function getConstraints(um, options) {
             constraints.video = {
                 mozMediaSource: 'window',
                 mediaSource: 'window',
-                frameRate: {
-                    min: SS_FRAME_RATE,
-                    max: SS_FRAME_RATE
-                }
+                frameRate
             };
 
         } else {
@@ -358,14 +368,21 @@ function getConstraints(um, options) {
         }
     }
     if (um.indexOf('desktop') >= 0) {
+        const {
+            frameRate = {
+                min: SS_DEFAULT_FRAME_RATE,
+                max: SS_DEFAULT_FRAME_RATE
+            }
+        } = options;
+
         constraints.video = {
             mandatory: {
                 chromeMediaSource: 'desktop',
                 chromeMediaSourceId: options.desktopStream,
                 maxWidth: window.screen.width,
                 maxHeight: window.screen.height,
-                maxFrameRate: SS_FRAME_RATE,
-                minFrameRate: SS_FRAME_RATE
+                maxFrameRate: frameRate.max,
+                minFrameRate: frameRate.min
             },
             optional: []
         };
@@ -410,6 +427,9 @@ function getConstraints(um, options) {
  * pointing to.
  * @param {string} options.micDeviceId - The device id for the audio capture
  * device to get audio from.
+ * @param {Object} options.frameRate - used only for dekstop sharing.
+ * @param {Object} options.frameRate.min - Minimum fps
+ * @param {Object} options.frameRate.max - Maximum fps
  * @private
  * @returns {Object}
  */
@@ -470,14 +490,21 @@ function newGetConstraints(um = [], options = {}) {
             constraints.video = {};
         }
 
+        const {
+            frameRate = {
+                min: SS_DEFAULT_FRAME_RATE,
+                max: SS_DEFAULT_FRAME_RATE
+            }
+        } = options;
+
         constraints.video = {
             mandatory: {
                 chromeMediaSource: 'desktop',
                 chromeMediaSourceId: options.desktopStream,
                 maxWidth: window.screen.width,
                 maxHeight: window.screen.height,
-                maxFrameRate: SS_FRAME_RATE,
-                minFrameRate: SS_FRAME_RATE
+                maxFrameRate: frameRate.max,
+                minFrameRate: frameRate.min
             }
         };
     }
@@ -1184,6 +1211,9 @@ class RTCUtils extends Listenable {
     * @param {string} options.desktopStream
     * @param {string} options.cameraDeviceId
     * @param {string} options.micDeviceId
+    * @param {Object} options.frameRate - used only for dekstop sharing.
+    * @param {Object} options.frameRate.min - Minimum fps
+    * @param {Object} options.frameRate.max - Maximum fps
     * @returns {Promise} Returns a media stream on success or a JitsiTrackError
     * on failure.
     **/
@@ -1283,28 +1313,35 @@ class RTCUtils extends Listenable {
      * logic compared to use screenObtainer versus normal device capture logic
      * in RTCUtils#_newGetUserMediaWithConstraints.
      *
-     * @param {Object} desktopSharingExtensionExternalInstallation
-     * @param {string[]} desktopSharingSources
+     * @param {Object} options
+     * @param {Object} options.desktopSharingExtensionExternalInstallation
+     * @param {string[]} options.desktopSharingSources
+     * @param {Object} options.frameRate
+     * @param {Object} options.frameRate.min - Minimum fps
+     * @param {Object} options.frameRate.max - Maximum fps
      * @returns {Promise} A promise which will be resolved with an object whic
      * contains the acquired display stream. If desktop sharing is not supported
      * then a rejected promise will be returned.
      */
-    _newGetDesktopMedia(
-            desktopSharingExtensionExternalInstallation,
-            desktopSharingSources) {
+    _newGetDesktopMedia(options) {
         if (!screenObtainer.isSupported() || !browser.supportsVideo()) {
             return Promise.reject(
                 new Error('Desktop sharing is not supported!'));
         }
 
-        const desktopSharingOptions = {
-            ...desktopSharingExtensionExternalInstallation,
-            desktopSharingSources
-        };
+        const {
+            desktopSharingExtensionExternalInstallation,
+            desktopSharingSources,
+            gumOptions
+        } = options;
 
         return new Promise((resolve, reject) => {
             screenObtainer.obtainStream(
-                desktopSharingOptions,
+                {
+                    ...desktopSharingExtensionExternalInstallation,
+                    desktopSharingSources,
+                    gumOptions
+                },
                 stream => {
                     resolve(stream);
                 },
@@ -1327,6 +1364,9 @@ class RTCUtils extends Listenable {
      * Promise, otherwise JitsiTrack objects will be returned.
      * @param {string} options.cameraDeviceId
      * @param {string} options.micDeviceId
+     * @param {Object} options.desktopSharingFrameRate
+     * @param {Object} options.desktopSharingFrameRate.min - Minimum fps
+     * @param {Object} options.desktopSharingFrameRate.max - Maximum fps
      * @returns {*} Promise object that will receive the new JitsiTracks
      */
     obtainAudioAndVideoPermissions(options = {}) {
@@ -1495,7 +1535,10 @@ class RTCUtils extends Listenable {
     _parseDesktopSharingOptions(options) {
         return {
             ...options.desktopSharingExtensionExternalInstallation,
-            desktopSharingSources: options.desktopSharingSources
+            desktopSharingSources: options.desktopSharingSources,
+            gumOptions: {
+                frameRate: options.desktopSharingFrameRate
+            }
         };
     }
 
@@ -1507,6 +1550,9 @@ class RTCUtils extends Listenable {
      * relevant constraints.
      * @param {string[]} options.devices - The types of media to capture. Valid
      * values are "desktop", "audio", and "video".
+     * @param {Object} options.desktopSharingFrameRate
+     * @param {Object} options.desktopSharingFrameRate.min - Minimum fps
+     * @param {Object} options.desktopSharingFrameRate.max - Maximum fps
      * @returns {Promise} The promise, when successful, will return an array of
      * meta data for the requested device type, which includes the stream and
      * track. If an error occurs, it will be deferred to the caller for
@@ -1531,10 +1577,21 @@ class RTCUtils extends Listenable {
             const umDevices = options.devices || [];
             const isDesktopDeviceRequsted = umDevices.indexOf('desktop') !== -1;
 
+            const {
+                desktopSharingExtensionExternalInstallation,
+                desktopSharingSources,
+                desktopSharingFrameRate
+            } = options;
+
             return isDesktopDeviceRequsted
                 ? this._newGetDesktopMedia(
-                    options.desktopSharingExtensionExternalInstallation,
-                    options.desktopSharingSources)
+                    {
+                        desktopSharingExtensionExternalInstallation,
+                        desktopSharingSources,
+                        gumOptions: {
+                            frameRate: desktopSharingFrameRate
+                        }
+                    })
                 : Promise.resolve();
         }.bind(this);
 

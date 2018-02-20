@@ -116,8 +116,7 @@ const ScreenObtainer = {
         desktopSharingFirefoxDisabled: false,
         desktopSharingFirefoxExtId: null
     }, gum) {
-        // eslint-disable-next-line no-param-reassign
-        this.options = options = options || {};
+        this.options = options;
         gumFunction = gum;
 
         this.obtainStream
@@ -277,7 +276,7 @@ const ScreenObtainer = {
         }
 
         if (!extensionRequired || firefoxExtInstalled === true) {
-            obtainWebRTCScreen(options, callback, errorCallback);
+            obtainWebRTCScreen(options.gumOptions, callback, errorCallback);
 
             return;
         }
@@ -330,17 +329,21 @@ const ScreenObtainer = {
     obtainScreenOnElectron(options = {}, onSuccess, onFailure) {
         if (window.JitsiMeetScreenObtainer
             && window.JitsiMeetScreenObtainer.openDesktopPicker) {
+            const { desktopSharingSources, gumOptions } = options;
+
             window.JitsiMeetScreenObtainer.openDesktopPicker(
                 {
-                    desktopSharingSources:
-                        options.desktopSharingSources
-                            || this.options.desktopSharingChromeSources
+                    desktopSharingSources: desktopSharingSources
+                        || this.options.desktopSharingChromeSources
                 },
                 (streamId, streamType) =>
                     onGetStreamResponse(
                         {
-                            streamId,
-                            streamType
+                            response: {
+                                streamId,
+                                streamType
+                            },
+                            gumOptions
                         },
                         onSuccess,
                         onFailure
@@ -375,16 +378,20 @@ const ScreenObtainer = {
             desktopSharingChromeSources
         } = this.options;
 
-        const gumOptions = {
+        const {
+            gumOptions
+        } = options;
+
+        const doGetStreamFromExtensionOptions = {
             desktopSharingChromeExtId,
             desktopSharingChromeSources:
-                options.desktopSharingSources
-                    || desktopSharingChromeSources
+                options.desktopSharingSources || desktopSharingChromeSources,
+            gumOptions
         };
 
         if (chromeExtInstalled) {
             doGetStreamFromExtension(
-                gumOptions,
+                doGetStreamFromExtensionOptions,
                 streamCallback,
                 failCallback);
         } else {
@@ -420,7 +427,7 @@ const ScreenObtainer = {
                         waitForExtensionAfterInstall(this.options, 200, 10)
                             .then(() => {
                                 doGetStreamFromExtension(
-                                    gumOptions,
+                                    doGetStreamFromExtensionOptions,
                                     streamCallback,
                                     failCallback);
                             })
@@ -514,7 +521,8 @@ function obtainWebRTCScreen(options, streamCallback, failCallback) {
     gumFunction(
         [ 'screen' ],
         stream => streamCallback({ stream }),
-        failCallback
+        failCallback,
+        options
     );
 }
 
@@ -618,13 +626,19 @@ function checkChromeExtInstalled(callback, options) {
  * @param failCallback
  */
 function doGetStreamFromExtension(options, streamCallback, failCallback) {
+    const {
+        desktopSharingChromeSources,
+        desktopSharingChromeExtId,
+        gumOptions
+    } = options;
+
     // Sends 'getStream' msg to the extension.
     // Extension id must be defined in the config.
     chrome.runtime.sendMessage(
-        options.desktopSharingChromeExtId,
+        desktopSharingChromeExtId,
         {
             getStream: true,
-            sources: options.desktopSharingChromeSources
+            sources: desktopSharingChromeSources
         },
         response => {
             if (!response) {
@@ -640,7 +654,14 @@ function doGetStreamFromExtension(options, streamCallback, failCallback) {
                 return;
             }
             logger.log('Response from extension: ', response);
-            onGetStreamResponse(response, streamCallback, failCallback);
+            onGetStreamResponse(
+                {
+                    response,
+                    gumOptions
+                },
+                streamCallback,
+                failCallback
+            );
         }
     );
 }
@@ -720,16 +741,25 @@ function waitForExtensionAfterInstall(options, waitInterval, retries) {
 /**
  * Handles response from external application / extension and calls GUM to
  * receive the desktop streams or reports error.
- * @param {object} response
- * @param {string} response.streamId - the streamId for the desktop stream
- * @param {string} response.error - error to be reported.
+ * @param {object} options
+ * @param {object} options.response
+ * @param {string} options.response.streamId - the streamId for the desktop
+ * stream.
+ * @param {string} options.response.error - error to be reported.
+ * @param {object} options.gumOptions - options passed to GUM.
  * @param {Function} onSuccess - callback for success.
  * @param {Function} onFailure - callback for failure.
+ * @param {object} gumOptions - options passed to GUM.
  */
 function onGetStreamResponse(
-        { streamId, streamType, error },
+        options = {
+            response: {},
+            gumOptions: {}
+        },
         onSuccess,
         onFailure) {
+    const { streamId, streamType, error } = options.response || {};
+
     if (streamId) {
         gumFunction(
             [ 'desktop' ],
@@ -739,7 +769,10 @@ function onGetStreamResponse(
                 sourceType: streamType
             }),
             onFailure,
-            { desktopStream: streamId });
+            {
+                desktopStream: streamId,
+                ...options.gumOptions
+            });
     } else {
         // As noted in Chrome Desktop Capture API:
         // If user didn't select any source (i.e. canceled the prompt)
