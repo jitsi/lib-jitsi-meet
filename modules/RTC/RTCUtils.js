@@ -1316,9 +1316,9 @@ class RTCUtils extends Listenable {
      * @param {Object} options
      * @param {Object} options.desktopSharingExtensionExternalInstallation
      * @param {string[]} options.desktopSharingSources
-     * @param {Object} options.frameRate
-     * @param {Object} options.frameRate.min - Minimum fps
-     * @param {Object} options.frameRate.max - Maximum fps
+     * @param {Object} options.gumOptions.frameRate
+     * @param {Object} options.gumOptions.frameRate.min - Minimum fps
+     * @param {Object} options.gumOptions.frameRate.max - Maximum fps
      * @returns {Promise} A promise which will be resolved with an object whic
      * contains the acquired display stream. If desktop sharing is not supported
      * then a rejected promise will be returned.
