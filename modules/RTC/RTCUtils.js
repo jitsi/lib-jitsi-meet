@@ -324,22 +324,12 @@ function getConstraints(um, options = {}) {
         }
     }
     if (um.indexOf('screen') >= 0) {
-        const {
-            frameRate = {
-                min: SS_DEFAULT_FRAME_RATE,
-                max: SS_DEFAULT_FRAME_RATE
-            }
-        } = options;
-
         if (browser.isChrome()) {
             constraints.video = {
-                mandatory: {
-                    chromeMediaSource: 'screen',
-                    maxWidth: window.screen.width,
-                    maxHeight: window.screen.height,
-                    maxFrameRate: frameRate.max,
-                    minFrameRate: frameRate.min
-                },
+                mandatory: getSSConstraints({
+                    ...options,
+                    source: 'screen'
+                }),
                 optional: []
             };
 
@@ -355,7 +345,10 @@ function getConstraints(um, options = {}) {
             constraints.video = {
                 mozMediaSource: 'window',
                 mediaSource: 'window',
-                frameRate
+                frameRate: options.frameRate || {
+                    min: SS_DEFAULT_FRAME_RATE,
+                    max: SS_DEFAULT_FRAME_RATE
+                }
             };
 
         } else {
@@ -368,22 +361,11 @@ function getConstraints(um, options = {}) {
         }
     }
     if (um.indexOf('desktop') >= 0) {
-        const {
-            frameRate = {
-                min: SS_DEFAULT_FRAME_RATE,
-                max: SS_DEFAULT_FRAME_RATE
-            }
-        } = options;
-
         constraints.video = {
-            mandatory: {
-                chromeMediaSource: 'desktop',
-                chromeMediaSourceId: options.desktopStream,
-                maxWidth: window.screen.width,
-                maxHeight: window.screen.height,
-                maxFrameRate: frameRate.max,
-                minFrameRate: frameRate.min
-            },
+            mandatory: getSSConstraints({
+                ...options,
+                source: 'desktop'
+            }),
             optional: []
         };
     }
@@ -490,23 +472,47 @@ function newGetConstraints(um = [], options = {}) {
             constraints.video = {};
         }
 
-        const {
-            frameRate = {
-                min: SS_DEFAULT_FRAME_RATE,
-                max: SS_DEFAULT_FRAME_RATE
-            }
-        } = options;
-
         constraints.video = {
-            mandatory: {
-                chromeMediaSource: 'desktop',
-                chromeMediaSourceId: options.desktopStream,
-                maxWidth: window.screen.width,
-                maxHeight: window.screen.height,
-                maxFrameRate: frameRate.max,
-                minFrameRate: frameRate.min
-            }
+            mandatory: getSSConstraints({
+                ...options,
+                source: 'desktop'
+            })
         };
+    }
+
+    return constraints;
+}
+
+/**
+ * Generates GUM constraints for screen sharing.
+ *
+ * @param {Object} options - The options passed to
+ * <tt>obtainAudioAndVideoPermissions</tt>.
+ * @returns {Object} - GUM constraints.
+ *
+ * TODO: Currently only the new GUM flow and Chrome is using the method. We
+ * should make it work for all use cases.
+ */
+function getSSConstraints(options = {}) {
+    const { max, min }
+        = options.frameRate || {
+            min: SS_DEFAULT_FRAME_RATE,
+            max: SS_DEFAULT_FRAME_RATE
+        };
+
+    const constraints = {
+        chromeMediaSource: options.source,
+        chromeMediaSourceId: options.desktopStream,
+        maxWidth: window.screen.width,
+        maxHeight: window.screen.height
+    };
+
+    if (typeof min === 'number') {
+        constraints.minFrameRate = min;
+    }
+
+    if (typeof max === 'number') {
+        constraints.maxFrameRate = max;
     }
 
     return constraints;
