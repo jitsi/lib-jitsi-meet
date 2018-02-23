@@ -494,15 +494,17 @@ function newGetConstraints(um = [], options = {}) {
  * should make it work for all use cases.
  */
 function getSSConstraints(options = {}) {
-    const { max, min }
-        = options.frameRate || {
+    const {
+        desktopStream,
+        frameRate = {
             min: SS_DEFAULT_FRAME_RATE,
             max: SS_DEFAULT_FRAME_RATE
-        };
+        }
+    } = options;
+    const { max, min } = frameRate;
 
     const constraints = {
         chromeMediaSource: options.source,
-        chromeMediaSourceId: options.desktopStream,
         maxWidth: window.screen.width,
         maxHeight: window.screen.height
     };
@@ -513,6 +515,10 @@ function getSSConstraints(options = {}) {
 
     if (typeof max === 'number') {
         constraints.maxFrameRate = max;
+    }
+
+    if (typeof desktopStream !== 'undefined') {
+        constraints.chromeMediaSourceId = desktopStream;
     }
 
     return constraints;
