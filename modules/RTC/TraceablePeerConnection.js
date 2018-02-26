@@ -185,9 +185,10 @@ export default function TraceablePeerConnection(
     this.statsinterval = null;
 
     /**
-     * @type {number}
+     * @type {number} The max number of stats to keep in this.stats. Limit to
+     * 300 values, i.e. 5 minutes; set to 0 to disable
      */
-    this.maxstats = 0;
+    this.maxstats = options.maxstats;
     const Interop = require('sdp-interop').Interop;
 
     this.interop = new Interop();
