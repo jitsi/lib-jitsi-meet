@@ -256,20 +256,12 @@ const ScreenObtainer = {
     obtainScreenOnFirefox(options, callback, errorCallback) {
         let extensionRequired = false;
         const { desktopSharingFirefoxMaxVersionExtRequired } = this.options;
-        let maxVersion = desktopSharingFirefoxMaxVersionExtRequired;
 
-        if (typeof maxVersion === 'number') {
-            extensionRequired = maxVersion === -1;
-            if (maxVersion >= 0) {
-                maxVersion = String(maxVersion);
-            }
-        }
-
-        if (typeof maxVersion === 'string') {
-            extensionRequired = !browser.isVersionGreaterThan(maxVersion);
-        }
-
-        if (extensionRequired) {
+        if (desktopSharingFirefoxMaxVersionExtRequired === -1
+            || (desktopSharingFirefoxMaxVersionExtRequired >= 0
+            && !browser.isVersionGreaterThan(
+                desktopSharingFirefoxMaxVersionExtRequired))) {
+            extensionRequired = true;
             logger.log(
                 `Jidesha extension required on firefox version ${
                     browser.getVersion()}`);
