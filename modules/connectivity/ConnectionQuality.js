@@ -292,10 +292,7 @@ export default class ConnectionQuality {
         const resolution = Resolutions[resolutionName];
 
         let quality = 100;
-        let isSimulcastOn;
-        let millisSinceStart;
         let packetLoss;
-        let target;
 
         // TODO: take into account packet loss for received streams
 
@@ -347,17 +344,16 @@ export default class ConnectionQuality {
             // Calculate a value based on the sending bitrate.
 
             // time since sending of video was enabled.
-            millisSinceStart = window.performance.now()
+            const millisSinceStart = window.performance.now()
                     - Math.max(this._timeVideoUnmuted, this._timeIceConnected);
 
             // Figure out if simulcast is in use
             const activeTPC = this._conference.getActivePeerConnection();
-
-            isSimulcastOn
+            const isSimulcastOn
                 = Boolean(activeTPC && activeTPC.isSimulcastOn());
 
             // expected sending bitrate in perfect conditions
-            target
+            let target
                 = getTarget(isSimulcastOn, resolution, millisSinceStart);
 
             target = Math.min(0.9 * target, MAX_TARGET_BITRATE);
@@ -385,22 +381,7 @@ export default class ConnectionQuality {
                         + (diffSeconds * maxIncreasePerSecond));
         }
 
-        const connectionQuality = Math.min(100, quality);
-
-        console.debug('calculated connection quality', JSON.stringify({
-            connectionQuality,
-            isMuted,
-            isSimulcastOn,
-            lastUpdate: this._lastConnectionQualityUpdate,
-            millisSinceStart,
-            packetLoss,
-            resolution,
-            target,
-            upload: this._localStats.bitrate
-                && this._localStats.bitrate.upload
-        }));
-
-        return connectionQuality;
+        return Math.min(100, quality);
     }
 
     /**
