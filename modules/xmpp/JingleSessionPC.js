@@ -29,6 +29,12 @@ const logger = getLogger(__filename);
  */
 const IQ_TIMEOUT = 10000;
 
+/*
+ * The default number of samples (per stat) to keep when webrtc stats gathering
+ * is enabled in TraceablePeerConnection.
+ */
+const DEFAULT_MAX_STATS = 300;
+
 /**
  *
  */
@@ -247,6 +253,10 @@ export default class JingleSessionPC extends JingleSession {
         this.wasstable = false;
 
         const pcOptions = { disableRtx: this.room.options.disableRtx };
+
+        if (this.room.options.gatherStats) {
+            pcOptions.maxstats = DEFAULT_MAX_STATS;
+        }
 
         if (this.isP2P) {
             // simulcast needs to be disabled for P2P (121) calls
