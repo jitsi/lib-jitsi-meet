@@ -12,7 +12,7 @@ const browserSupported = browser.isChrome()
         || browser.isOpera() || browser.isFirefox()
         || browser.isNWJS() || browser.isElectron()
         || browser.isTemasysPluginUsed() || browser.isEdge()
-        || browser.isSafariWithWebrtc();
+        || browser.isSafariWithWebrtc() || browser.isReactNative();
 
 /**
  * The lib-jitsi-meet browser-agnostic names of the browser-specific keys
