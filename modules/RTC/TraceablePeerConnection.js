@@ -532,6 +532,28 @@ TraceablePeerConnection.prototype.getTrackBySSRC = function(ssrc) {
 };
 
 /**
+ * Tries to find SSRC number for given {@link JitsiTrack} id. It will search
+ * both local and remote tracks bound to this instance.
+ * @param {string} id
+ * @return {number|null}
+ */
+TraceablePeerConnection.prototype.getSsrcByTrackId = function(id) {
+
+    for (const localTrack of this.localTracks.values()) {
+        if (localTrack.getTrack().id === id) {
+            return this.getLocalSSRC(localTrack);
+        }
+    }
+    for (const remoteTrack of this.getRemoteTracks()) {
+        if (remoteTrack.getTrack().id === id) {
+            return remoteTrack.getSSRC();
+        }
+    }
+
+    return null;
+};
+
+/**
  * Called when new remote MediaStream is added to the PeerConnection.
  * @param {MediaStream} stream the WebRTC MediaStream for remote participant
  */
@@ -2303,9 +2325,8 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
     // TODO (brian): After moving all browsers to adapter, check if adapter is
     // accounting for different getStats apis, making the browser-checking-if
     // unnecessary.
-    if (browser.isFirefox()
-            || browser.isTemasysPluginUsed()
-            || browser.isReactNative()) {
+    if (browser.isTemasysPluginUsed()
+        || browser.isReactNative()) {
         this.peerconnection.getStats(
             null,
             callback,
@@ -2314,10 +2335,15 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
                 // Making sure that getStats won't fail if error callback is
                 // not passed.
             }));
-    } else if (browser.isSafariWithWebrtc()) {
-        // FIXME: Safari's native stats implementation is not compatibile with
-        // existing stats processing logic. Skip implementing stats for now to
-        // at least get native webrtc Safari available for use.
+    } else if (browser.isSafariWithWebrtc() || browser.isFirefox()) {
+        // uses the new Promise based getStats
+        this.peerconnection.getStats()
+            .then(callback)
+            .catch(errback || (() => {
+
+                // Making sure that getStats won't fail if error callback is
+                // not passed.
+            }));
     } else {
         this.peerconnection.getStats(callback);
     }
