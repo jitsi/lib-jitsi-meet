@@ -2264,6 +2264,10 @@ JitsiConference.prototype._onIceConnectionEstablished = function(
             { value: establishmentDurationDiff });
     }
 
+    if (jingleSession.isP2P === this.isP2PActive()) {
+        this.eventEmitter.emit(JitsiConferenceEvents.CONNECTION_ESTABLISHED);
+    }
+
     if (done) {
 
         return;

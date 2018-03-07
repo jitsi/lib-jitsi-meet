@@ -46,6 +46,13 @@ export const CONFERENCE_JOINED = 'conference.joined';
 export const CONFERENCE_LEFT = 'conference.left';
 
 /**
+ * Indicates that the connection to the conference has been established
+ * XXX This is currently fired whenVthe *ICE* connection enters 'connected'
+ * state for the first time.
+ */
+export const CONNECTION_ESTABLISHED = 'conference.connectionEstablished';
+
+/**
  * Indicates that the connection to the conference has been interrupted for some
  * reason.
  * XXX This is currently fired when the *ICE* connection is interrupted.
