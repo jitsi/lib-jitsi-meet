@@ -539,15 +539,17 @@ TraceablePeerConnection.prototype.getTrackBySSRC = function(ssrc) {
  */
 TraceablePeerConnection.prototype.getSsrcByTrackId = function(id) {
 
-    for (const localTrack of this.localTracks.values()) {
-        if (localTrack.getTrack().id === id) {
-            return this.getLocalSSRC(localTrack);
-        }
+    const findTrackById = track => track.getTrack().id === id;
+    const localTrack = this.getLocalTracks().find(findTrackById);
+
+    if (localTrack) {
+        return this.getLocalSSRC(localTrack);
     }
-    for (const remoteTrack of this.getRemoteTracks()) {
-        if (remoteTrack.getTrack().id === id) {
-            return remoteTrack.getSSRC();
-        }
+
+    const remoteTrack = this.getRemoteTracks().find(findTrackById);
+
+    if (remoteTrack) {
+        return remoteTrack.getSSRC();
     }
 
     return null;

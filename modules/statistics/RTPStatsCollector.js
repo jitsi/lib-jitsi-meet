@@ -242,6 +242,13 @@ export default function StatsCollector(
     }
 
     /**
+     * Whether to use the Promise-based getStats API or not.
+     * @type {boolean}
+     */
+    this._usesPromiseGetStats
+        = browser.isSafariWithWebrtc() || browser.isFirefox();
+
+    /**
      * The function which is to be used to retrieve the value associated in a
      * report returned by RTCPeerConnection#getStats with a lib-jitsi-meet
      * browser-agnostic name/key.
@@ -249,8 +256,10 @@ export default function StatsCollector(
      * @function
      * @private
      */
-    this._getStatValue = this._defineGetStatValueMethod(keys);
-    this._getNewStatValue = this._defineNewGetStatValueMethod(keys);
+    this._getStatValue
+        = this._usesPromiseGetStats
+            ? this._defineNewGetStatValueMethod(keys)
+            : this._defineGetStatValueMethod(keys);
 
     this.peerconnection = peerconnection;
     this.baselineAudioLevelsReport = null;
@@ -322,8 +331,7 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                             results = report.result();
                         }
                         self.currentAudioLevelsReport = results;
-                        if (browser.isSafariWithWebrtc()
-                            || browser.isFirefox()) {
+                        if (this._usesPromiseGetStats) {
                             self.processNewAudioLevelReport();
                         } else {
                             self.processAudioLevelReport();
@@ -358,8 +366,7 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
 
                         self.currentStatsReport = results;
                         try {
-                            if (browser.isSafariWithWebrtc()
-                                || browser.isFirefox()) {
+                            if (this._usesPromiseGetStats) {
                                 self.processNewStatsReport();
                             } else {
                                 self.processStatsReport();
@@ -970,7 +977,7 @@ StatsCollector.prototype.processAudioLevelReport = function() {
 
 /**
  * New promised based getStats report processing.
- * Tested with chrome, firefox and safari. Not switching it on for for chrome as
+ * Tested with chrome, firefox and safari. Not switching it on for chrome as
  * frameRate stat is missing and calculating it using framesSent,
  * gives values double the values seen in webrtc-internals.
  * https://w3c.github.io/webrtc-stats/
@@ -1061,7 +1068,7 @@ StatsCollector.prototype.processNewStatsReport = function() {
         return;
     }
 
-    const getStatValue = this._getNewStatValue;
+    const getStatValue = this._getStatValue;
     const byteSentStats = {};
 
     this.currentStatsReport.forEach(now => {
