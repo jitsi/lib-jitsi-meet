@@ -277,36 +277,26 @@ export default function TraceablePeerConnection(
         }
     };
 
-    // XXX: do all non-firefox browsers which we support also support this?
-    if (!browser.isFirefox() && this.maxstats) {
+    if (this.maxstats) {
         this.statsinterval = window.setInterval(() => {
-            this.peerconnection.getStats(stats => {
-                const results = stats.result();
-                const now = new Date();
+            this.getStats(stats => {
+                if (stats.result
+                    && typeof stats.result === 'function') {
+                    const results = stats.result();
 
-                for (let i = 0; i < results.length; ++i) {
-                    results[i].names().forEach(name => {
-                        // eslint-disable-next-line no-shadow
-                        const id = `${results[i].id}-${name}`;
-                        let s = this.stats[id];
+                    for (let i = 0; i < results.length; ++i) {
+                        const res = results[i];
 
-                        if (!s) {
-                            this.stats[id] = s = {
-                                startTime: now,
-                                endTime: now,
-                                values: [],
-                                times: []
-                            };
-                        }
-                        s.values.push(results[i].stat(name));
-                        s.times.push(now.getTime());
-                        if (s.values.length > this.maxstats) {
-                            s.values.shift();
-                            s.times.shift();
-                        }
-                        s.endTime = now;
-                    });
+                        res.names().forEach(name => {
+                            this._processStat(res, name, res.stat(name));
+                        });
+                    }
+                } else {
+                    stats.forEach(r => this._processStat(r, '', r));
                 }
+            }, () => {
+
+                // empty error callback
             });
         }, 1000);
     }
@@ -315,6 +305,36 @@ export default function TraceablePeerConnection(
 }
 
 /* eslint-enable max-params */
+
+/**
+ * Process stat and adds it to the array of stats we store.
+ * @param report the current stats report.
+ * @param name the name of the report, if available
+ * @param statValue the value to add.
+ * @private
+ */
+TraceablePeerConnection.prototype._processStat
+    = function(report, name, statValue) {
+        const id = `${report.id}-${name}`;
+        let s = this.stats[id];
+        const now = new Date();
+
+        if (!s) {
+            this.stats[id] = s = {
+                startTime: now,
+                endTime: now,
+                values: [],
+                times: []
+            };
+        }
+        s.values.push(statValue);
+        s.times.push(now.getTime());
+        if (s.values.length > this.maxstats) {
+            s.values.shift();
+            s.times.shift();
+        }
+        s.endTime = now;
+    };
 
 /**
  * Returns a string representation of a SessionDescription object.
@@ -526,6 +546,30 @@ TraceablePeerConnection.prototype.getTrackBySSRC = function(ssrc) {
         if (remoteTrack.getSSRC() === ssrc) {
             return remoteTrack;
         }
+    }
+
+    return null;
+};
+
+/**
+ * Tries to find SSRC number for given {@link JitsiTrack} id. It will search
+ * both local and remote tracks bound to this instance.
+ * @param {string} id
+ * @return {number|null}
+ */
+TraceablePeerConnection.prototype.getSsrcByTrackId = function(id) {
+
+    const findTrackById = track => track.getTrack().id === id;
+    const localTrack = this.getLocalTracks().find(findTrackById);
+
+    if (localTrack) {
+        return this.getLocalSSRC(localTrack);
+    }
+
+    const remoteTrack = this.getRemoteTracks().find(findTrackById);
+
+    if (remoteTrack) {
+        return remoteTrack.getSSRC();
     }
 
     return null;
@@ -2303,9 +2347,8 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
     // TODO (brian): After moving all browsers to adapter, check if adapter is
     // accounting for different getStats apis, making the browser-checking-if
     // unnecessary.
-    if (browser.isFirefox()
-            || browser.isTemasysPluginUsed()
-            || browser.isReactNative()) {
+    if (browser.isTemasysPluginUsed()
+        || browser.isReactNative()) {
         this.peerconnection.getStats(
             null,
             callback,
@@ -2314,10 +2357,15 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
                 // Making sure that getStats won't fail if error callback is
                 // not passed.
             }));
-    } else if (browser.isSafariWithWebrtc()) {
-        // FIXME: Safari's native stats implementation is not compatibile with
-        // existing stats processing logic. Skip implementing stats for now to
-        // at least get native webrtc Safari available for use.
+    } else if (browser.isSafariWithWebrtc() || browser.isFirefox()) {
+        // uses the new Promise based getStats
+        this.peerconnection.getStats()
+            .then(callback)
+            .catch(errback || (() => {
+
+                // Making sure that getStats won't fail if error callback is
+                // not passed.
+            }));
     } else {
         this.peerconnection.getStats(callback);
     }

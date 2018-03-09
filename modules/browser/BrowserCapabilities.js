@@ -91,7 +91,8 @@ export default class BrowserCapabilities extends BrowserDetection {
     supportsBandwidthStatistics() {
         // FIXME bandwidth stats are currently not implemented for FF on our
         // side, but not sure if not possible ?
-        return !this.isFirefox() && !this.isEdge();
+        return !this.isFirefox() && !this.isEdge()
+            && !this.isSafariWithWebrtc();
     }
 
     /**
