@@ -277,36 +277,26 @@ export default function TraceablePeerConnection(
         }
     };
 
-    // XXX: do all non-firefox browsers which we support also support this?
-    if (!browser.isFirefox() && this.maxstats) {
+    if (this.maxstats) {
         this.statsinterval = window.setInterval(() => {
-            this.peerconnection.getStats(stats => {
-                const results = stats.result();
-                const now = new Date();
+            this.getStats(stats => {
+                if (stats.result
+                    && typeof stats.result === 'function') {
+                    const results = stats.result();
 
-                for (let i = 0; i < results.length; ++i) {
-                    results[i].names().forEach(name => {
-                        // eslint-disable-next-line no-shadow
-                        const id = `${results[i].id}-${name}`;
-                        let s = this.stats[id];
+                    for (let i = 0; i < results.length; ++i) {
+                        const res = results[i];
 
-                        if (!s) {
-                            this.stats[id] = s = {
-                                startTime: now,
-                                endTime: now,
-                                values: [],
-                                times: []
-                            };
-                        }
-                        s.values.push(results[i].stat(name));
-                        s.times.push(now.getTime());
-                        if (s.values.length > this.maxstats) {
-                            s.values.shift();
-                            s.times.shift();
-                        }
-                        s.endTime = now;
-                    });
+                        res.names().forEach(name => {
+                            this._processStat(res, name, res.stat(name));
+                        });
+                    }
+                } else {
+                    stats.forEach(r => this._processStat(r, '', r));
                 }
+            }, () => {
+
+                // empty error callback
             });
         }, 1000);
     }
@@ -315,6 +305,36 @@ export default function TraceablePeerConnection(
 }
 
 /* eslint-enable max-params */
+
+/**
+ * Process stat and adds it to the array of stats we store.
+ * @param report the current stats report.
+ * @param name the name of the report, if available
+ * @param statValue the value to add.
+ * @private
+ */
+TraceablePeerConnection.prototype._processStat
+    = function(report, name, statValue) {
+        const id = `${report.id}-${name}`;
+        let s = this.stats[id];
+        const now = new Date();
+
+        if (!s) {
+            this.stats[id] = s = {
+                startTime: now,
+                endTime: now,
+                values: [],
+                times: []
+            };
+        }
+        s.values.push(statValue);
+        s.times.push(now.getTime());
+        if (s.values.length > this.maxstats) {
+            s.values.shift();
+            s.times.shift();
+        }
+        s.endTime = now;
+    };
 
 /**
  * Returns a string representation of a SessionDescription object.
