@@ -349,7 +349,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                         dict.url += el.attr('host');
                         const port = el.attr('port');
 
-                        if (port && port !== '3478') {
+                        if (port) {
                             dict.url += `:${el.attr('port')}`;
                         }
                         const transport = el.attr('transport');
