@@ -68,6 +68,13 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
         // @type {RTCIceGatheringState}
         this._iceGatheringState = RTCIceGatheringState.new;
 
+        // Use a promise to signify when the local client has finished gathering
+        // ice candidates. This is needed to prevent errors on offer creation.
+        this._resolveLocalIceGatheringPromise = null;
+        this._iceGatheringCompletePromise = new Promise(resolve => {
+            this._resolveLocalIceGatheringPromise = resolve;
+        });
+
         // RTCIceTransport.
         // @type {RTCIceTransport}
         this._iceTransport = null;
@@ -716,7 +723,10 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
         const localIceParameters = this._iceGatherer.getLocalParameters();
         const localIceCandidates = this._iceGatherer.getLocalCandidates();
         const localDtlsParameters = this._dtlsTransport.getLocalParameters();
-        const remoteDtlsParameters = this._dtlsTransport.getRemoteParameters();
+
+        // remoteDtlsParameters are not needed for offers.
+        const remoteDtlsParameters = type === 'answer'
+            ? this._dtlsTransport.getRemoteParameters() : null;
         const localCapabilities = this._localCapabilities;
         const localTrackInfos = this._localTrackInfos;
 
@@ -1051,9 +1061,32 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
                 `invalid signalingState "${this.signalingState}"`));
         }
 
-        // NOTE: P2P mode not yet supported, so createOffer() should never be
-        // called.
-        return Promise.reject(new Error('createoOffer() not yet supported'));
+        // Use ice gathering complete promise an invalid state error occurs if
+        // creating a local description before it is complete.
+        return this._iceGatheringCompletePromise
+            .then(() => {
+                // Stub out _mids and _localCapabilities if creating an offer
+                // as they are normally set on answer and will cause errors in
+                // create a local description if falsy.
+                if (!this.hasAttemptedOffer) {
+                    if (!this._mids.size) {
+                        this._mids = new Map([
+                            [ 'audio', 'audio' ],
+                            [ 'video', 'video' ]
+                        ]);
+                    }
+
+                    if (!this._localCapabilities) {
+                        this._localCapabilities
+                            = utils.getLocalCapabilities(
+                                RTCRtpSender.getCapabilities());
+                    }
+
+                    this.hasAttemptedOffer = true;
+                }
+
+                return this._createLocalDescription('offer');
+            });
     }
 
     /**
@@ -1938,13 +1971,41 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
     }
 
     /**
+     * Pares STUN and TURN servers to only one. This works around an issue on
+     * edge where an error occurs if multiple are declared.
+     * See https://developer.microsoft.com/en-us/microsoft-edge/platform
+     * /issues/10163458
+     *
+     * @param {array} servers - All STUN AND TURN servers to connect to.
+     * @private
+     * @returns {array} An array with only one STUN server and one TURN server
+     * at the most.
+     */
+    _filterServers(servers = []) {
+        const filteredServers = [];
+        const firstStun = servers.find(server => server.url.startsWith('stun'));
+
+        if (firstStun) {
+            filteredServers.push(firstStun);
+        }
+
+        const firstTurn = servers.find(server => server.url.startsWith('turn'));
+
+        if (firstTurn) {
+            filteredServers.push(firstTurn);
+        }
+
+        return filteredServers;
+    }
+
+    /**
      * Creates the RTCIceGatherer.
      * @private
      */
     _setIceGatherer(pcConfig) {
         const iceGatherOptions = {
             gatherPolicy: pcConfig.iceTransportPolicy || 'all',
-            iceServers: pcConfig.iceServers || []
+            iceServers: this._filterServers(pcConfig.iceServers)
         };
         const iceGatherer = new RTCIceGatherer(iceGatherOptions);
 
@@ -1975,6 +2036,7 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
 
                 this._updateAndEmitIceGatheringStateChange(
                     RTCIceGatheringState.complete);
+                this._resolveLocalIceGatheringPromise();
                 this._emitIceCandidate(null);
             } else {
                 this._emitIceCandidate(candidate);
@@ -2068,10 +2130,26 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
                     `invalid signalingState "${this.signalingState}"`));
             }
 
-            // NOTE: P2P mode not yet supported, so createOffer() should never
-            // has been called, neither setLocalDescription() with an offer.
-            return Promise.reject(new TypeError(
-                'setLocalDescription() with type "offer" not supported'));
+            return Promise.resolve()
+                .then(() => {
+                    const sdpObject = localDescription.sdpObject;
+
+                    // Update local values? Needed?
+                    this._localCapabilities
+                        = utils.extractCapabilities(sdpObject);
+                    this._localDescription = localDescription;
+
+                    // Update signaling state.
+                    this._updateAndEmitSignalingStateChange(
+                        RTCSignalingState.haveLocalOffer);
+                })
+                .catch(error => {
+                    logger.error(
+                        `setLocalDescription() failed: ${error.message}`);
+                    logger.error(error);
+
+                    throw error;
+                });
         }
         case 'answer': {
             if (this.signalingState !== RTCSignalingState.haveRemoteOffer) {
@@ -2167,10 +2245,8 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
                 .then(() => {
                     logger.debug('setRemoteDescription() succeed');
 
-                    // Update remote description.
                     this._remoteDescription = remoteDescription;
 
-                    // Update signaling state.
                     this._updateAndEmitSignalingStateChange(
                         RTCSignalingState.haveRemoteOffer);
                 })
@@ -2186,10 +2262,20 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
                     `invalid signalingState "${this.signalingState}"`));
             }
 
-            // NOTE: P2P mode not yet supported, so createOffer() should never
-            // has been called, neither setRemoteDescription() with an answer.
-            return Promise.reject(new TypeError(
-                'setRemoteDescription() with type "answer" not supported'));
+            return Promise.resolve()
+                .then(() => {
+                    // Update remote description.
+                    this._remoteDescription = remoteDescription;
+
+                    // Update signaling state.
+                    this._updateAndEmitSignalingStateChange(
+                        RTCSignalingState.stable);
+                })
+                .catch(error => {
+                    logger.error(`setRemoteDescription() failed: ${error}`);
+
+                    throw error;
+                });
         }
         default:
             return Promise.reject(new TypeError(
