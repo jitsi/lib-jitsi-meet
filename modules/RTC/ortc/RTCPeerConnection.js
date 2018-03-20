@@ -2007,7 +2007,6 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
             gatherPolicy: pcConfig.iceTransportPolicy || 'all',
             iceServers: this._filterServers(pcConfig.iceServers)
         };
-
         const iceGatherer = new RTCIceGatherer(iceGatherOptions);
 
         // NOTE: Not yet implemented by Edge.
