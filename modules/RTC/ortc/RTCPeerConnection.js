@@ -724,7 +724,7 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
         const localIceCandidates = this._iceGatherer.getLocalCandidates();
         const localDtlsParameters = this._dtlsTransport.getLocalParameters();
 
-        // remoteDtlsParameters is not need for offers.
+        // remoteDtlsParameters are not needed for offers.
         const remoteDtlsParameters = type === 'answer'
             ? this._dtlsTransport.getRemoteParameters() : null;
         const localCapabilities = this._localCapabilities;
@@ -1070,12 +1070,10 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
                 // create a local description if falsy.
                 if (!this.hasAttemptedOffer) {
                     if (!this._mids.size) {
-                        const map = new Map();
-
-                        map.set('audio', 'audio');
-                        map.set('video', 'video');
-
-                        this._mids = map;
+                        this._mids = new Map([
+                            [ 'audio', 'audio' ],
+                            [ 'video', 'video' ]
+                        ]);
                     }
 
                     if (!this._localCapabilities) {
@@ -1973,9 +1971,10 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
     }
 
     /**
-     * Pairs down STUN and TURN servers to only one. This works around an issue
-     * on edge. See https://developer.microsoft.com/en-us/microsoft-edge
-     * /platform/issues/10163458
+     * Pares STUN and TURN servers to only one. This works around an issue on
+     * edge where an error occurs if multiple are declared.
+     * See https://developer.microsoft.com/en-us/microsoft-edge/platform
+     * /issues/10163458
      *
      * @param {array} servers - All STUN AND TURN servers to connect to.
      * @private
