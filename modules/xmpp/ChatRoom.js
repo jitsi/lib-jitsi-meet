@@ -394,7 +394,6 @@ export default class ChatRoom extends Listenable {
         // Parse roles.
         const member = {};
 
-        member.show = $(pres).find('>show').text();
         const $statusNode = $(pres).find('>status');
         const hasStatus = $statusNode.length;
 
