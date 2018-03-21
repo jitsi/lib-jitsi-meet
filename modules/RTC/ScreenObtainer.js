@@ -20,20 +20,6 @@ let chromeExtInstalled = false;
  */
 let chromeExtUpdateRequired = false;
 
-/**
- * Whether the jidesha extension for firefox is installed for the domain on
- * which we are running. Null designates an unknown value.
- * @type {null}
- */
-let firefoxExtInstalled = null;
-
-/**
- * If set to true, detection of an installed firefox extension will be started
- * again the next time obtainScreenOnFirefox is called (e.g. next time the
- * user tries to enable screen sharing).
- */
-let reDetectFirefoxExtension = false;
-
 let gumFunction = null;
 
 /**
@@ -106,15 +92,13 @@ const ScreenObtainer = {
      * @param {boolean} [options.desktopSharingChromeDisabled]
      * @param {boolean} [options.desktopSharingChromeExtId]
      * @param {boolean} [options.desktopSharingFirefoxDisabled]
-     * @param {boolean} [options.desktopSharingFirefoxExtId] (deprecated)
      * @param {Function} gum GUM method
      */
     init(options = {
         disableDesktopSharing: false,
         desktopSharingChromeDisabled: false,
         desktopSharingChromeExtId: null,
-        desktopSharingFirefoxDisabled: false,
-        desktopSharingFirefoxExtId: null
+        desktopSharingFirefoxDisabled: false
     }, gum) {
         this.options = options;
         gumFunction = gum;
@@ -227,8 +211,6 @@ const ScreenObtainer = {
                 return null;
             }
 
-            initFirefoxExtensionDetection(options);
-
             return this.obtainScreenOnFirefox;
         }
 
@@ -254,58 +236,7 @@ const ScreenObtainer = {
      * @param errorCallback
      */
     obtainScreenOnFirefox(options, callback, errorCallback) {
-        let extensionRequired = false;
-        const { desktopSharingFirefoxMaxVersionExtRequired } = this.options;
-
-        if (desktopSharingFirefoxMaxVersionExtRequired === -1
-            || (desktopSharingFirefoxMaxVersionExtRequired >= 0
-            && !browser.isVersionGreaterThan(
-                desktopSharingFirefoxMaxVersionExtRequired))) {
-            extensionRequired = true;
-            logger.log(
-                `Jidesha extension required on firefox version ${
-                    browser.getVersion()}`);
-        }
-
-        if (!extensionRequired || firefoxExtInstalled === true) {
-            obtainWebRTCScreen(options.gumOptions, callback, errorCallback);
-
-            return;
-        }
-
-        if (reDetectFirefoxExtension) {
-            reDetectFirefoxExtension = false;
-            initFirefoxExtensionDetection(this.options);
-        }
-
-        // Give it some (more) time to initialize, and assume lack of
-        // extension if it hasn't.
-        if (firefoxExtInstalled === null) {
-            window.setTimeout(
-                () => {
-                    if (firefoxExtInstalled === null) {
-                        firefoxExtInstalled = false;
-                    }
-                    this.obtainScreenOnFirefox(
-                        options, callback, errorCallback);
-                },
-                300);
-            logger.log(
-                'Waiting for detection of jidesha on firefox to finish.');
-
-            return;
-        }
-
-        // We need an extension and it isn't installed.
-
-        // Make sure we check for the extension when the user clicks again.
-        firefoxExtInstalled = null;
-        reDetectFirefoxExtension = true;
-
-        // Make sure desktopsharing knows that we failed, so that it doesn't get
-        // stuck in 'switching' mode.
-        errorCallback(
-            new JitsiTrackError(JitsiTrackErrors.FIREFOX_EXTENSION_NEEDED));
+        obtainWebRTCScreen(options.gumOptions, callback, errorCallback);
     },
 
     /**
@@ -780,46 +711,6 @@ function onGetStreamResponse(
             JitsiTrackErrors.CHROME_EXTENSION_GENERIC_ERROR,
             error));
     }
-}
-
-/**
- * Starts the detection of an installed jidesha extension for firefox.
- * @param options supports "desktopSharingFirefoxDisabled",
- * "desktopSharingFirefoxExtId"
- */
-function initFirefoxExtensionDetection(options) {
-    if (options.desktopSharingFirefoxDisabled) {
-        return;
-    }
-    if (firefoxExtInstalled === false || firefoxExtInstalled === true) {
-        return;
-    }
-    if (!options.desktopSharingFirefoxExtId) {
-        firefoxExtInstalled = false;
-
-        return;
-    }
-
-    const img = document.createElement('img');
-
-    img.onload = () => {
-        logger.log('Detected firefox screen sharing extension.');
-        firefoxExtInstalled = true;
-    };
-    img.onerror = () => {
-        logger.log('Detected lack of firefox screen sharing extension.');
-        firefoxExtInstalled = false;
-    };
-
-    // The jidesha extension exposes an empty image file under the url:
-    // "chrome://EXT_ID/content/DOMAIN.png"
-    // Where EXT_ID is the ID of the extension with "@" replaced by ".", and
-    // DOMAIN is a domain whitelisted by the extension.
-    const extId = options.desktopSharingFirefoxExtId.replace('@', '.');
-    const domain = document.location.hostname;
-    const src = `chrome://${extId}/content/${domain}.png`;
-
-    img.setAttribute('src', src);
 }
 
 export default ScreenObtainer;
