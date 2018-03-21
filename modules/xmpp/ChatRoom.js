@@ -15,37 +15,26 @@ import Recorder from './recording';
 
 const logger = getLogger(__filename);
 
-const parser = {
-    packet2JSON(packet, nodes) {
-        const self = this;
-
-        // eslint-disable-next-line newline-per-chained-call
-        $(packet).children().each(function() {
-            // eslint-disable-next-line no-invalid-this
-            const tagName = $(this).prop('tagName');
+export const parser = {
+    packet2JSON(xmlElement, nodes) {
+        for (const child of Array.from(xmlElement.children)) {
             const node = {
-                tagName
+                attributes: {},
+                children: [],
+                tagName: child.tagName
             };
 
-            node.attributes = {};
-
-            // eslint-disable-next-line no-invalid-this
-            $($(this)[0].attributes).each((index, attr) => {
+            for (const attr of Array.from(child.attributes)) {
                 node.attributes[attr.name] = attr.value;
-            });
-
-            // eslint-disable-next-line no-invalid-this
-            const text = Strophe.getText($(this)[0]);
+            }
+            const text = Strophe.getText(child);
 
             if (text) {
                 node.value = text;
             }
-            node.children = [];
             nodes.push(node);
-
-            // eslint-disable-next-line no-invalid-this
-            self.packet2JSON($(this), node.children);
-        });
+            this.packet2JSON(child, node.children);
+        }
     },
     json2packet(nodes, packet) {
         for (let i = 0; i < nodes.length; i++) {
