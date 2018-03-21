@@ -390,27 +390,25 @@ export default class ChatRoom extends Listenable {
      */
     onPresence(pres) {
         const from = pres.getAttribute('from');
-
-        // Parse roles.
         const member = {};
+        const statusEl = pres.getElementsByTagName('status')[0];
 
-        const $statusNode = $(pres).find('>status');
-        const hasStatus = $statusNode.length;
-
-        if (hasStatus) {
-            member.status = $statusNode.text();
+        if (statusEl) {
+            member.status = statusEl.textContent || '';
         }
         let hasStatusUpdate = false;
-
+        const xElement
+            = pres.getElementsByTagNameNS(
+                'http://jabber.org/protocol/muc#user', 'x')[0];
         const mucUserItem
-            = $(pres).find(
-                '>x[xmlns="http://jabber.org/protocol/muc#user"]>item');
+            = xElement && xElement.getElementsByTagName('item')[0];
 
-        member.affiliation = mucUserItem.attr('affiliation');
-        member.role = mucUserItem.attr('role');
+        member.affiliation
+            = mucUserItem && mucUserItem.getAttribute('affiliation');
+        member.role = mucUserItem && mucUserItem.getAttribute('role');
 
         // Focus recognition
-        const jid = mucUserItem.attr('jid');
+        const jid = mucUserItem && mucUserItem.getAttribute('jid');
 
         member.jid = jid;
         member.isFocus
@@ -420,7 +418,12 @@ export default class ChatRoom extends Listenable {
                 && this.options.hiddenDomain
                     === jid.substring(jid.indexOf('@') + 1, jid.indexOf('/'));
 
-        $(pres).find('>x').remove();
+        const xEl = pres.querySelectorAll('x')[0];
+
+        if (xEl) {
+            xEl.remove();
+        }
+
         const nodes = [];
 
         parser.packet2JSON(pres, nodes);
@@ -429,6 +432,29 @@ export default class ChatRoom extends Listenable {
 
         // process nodes to extract data needed for MUC_JOINED and
         // MUC_MEMBER_JOINED events
+        const extractIdentityInformation = node => {
+            const identity = {};
+            const userInfo = node.children.find(c => c.tagName === 'user');
+
+            if (userInfo) {
+                identity.user = {};
+                for (const tag of [ 'id', 'name', 'avatar' ]) {
+                    const child
+                        = userInfo.children.find(c => c.tagName === tag);
+
+                    if (child) {
+                        identity.user[tag] = child.value;
+                    }
+                }
+            }
+            const groupInfo = node.children.find(c => c.tagName === 'group');
+
+            if (groupInfo) {
+                identity.group = groupInfo.value;
+            }
+
+            return identity;
+        };
 
         for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
@@ -442,6 +468,9 @@ export default class ChatRoom extends Listenable {
                 break;
             case 'stats-id':
                 member.statsID = node.value;
+                break;
+            case 'identity':
+                member.identity = extractIdentityInformation(node);
                 break;
             }
         }
@@ -485,7 +514,8 @@ export default class ChatRoom extends Listenable {
                     member.role,
                     member.isHiddenDomain,
                     member.statsID,
-                    member.status);
+                    member.status,
+                    member.identity);
 
                 // we are reporting the status with the join
                 // so we do not want a second event about status update

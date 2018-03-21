@@ -1,9 +1,13 @@
-import { parser } from './ChatRoom';
+import ChatRoom, { parser } from './ChatRoom';
 import { $pres } from 'strophe.js';
+import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
 // This rule makes creating the xml elements take up way more
 // space than necessary.
 /* eslint-disable newline-per-chained-call */
+// These rules makes the xml strings harder to read
+/* eslint-disable operator-linebreak */
+/* eslint-disable max-len */
 
 describe('ChatRoom', () => {
     describe('packet2JSON', () => {
@@ -126,4 +130,103 @@ describe('ChatRoom', () => {
             expect(identity.value).toBeFalsy();
         });
     });
+
+    describe('onPresence', () => {
+        let room;
+        let emitterSpy;
+
+        beforeEach(() => {
+            const xmpp = {
+                options: {}
+            };
+
+            room = new ChatRoom(
+                {} /* connection */,
+                'jid',
+                'password',
+                xmpp,
+                {} /* options */);
+            emitterSpy = spyOn(room.eventEmitter, 'emit');
+        });
+        it('parses status correctly', () => {
+            const presStr = '' +
+                '<presence to="tojid" from="fromjid">' +
+                    '<status>status-text</status>' +
+                '</presence>';
+            const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+
+            room.onPresence(pres);
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MUC_MEMBER_JOINED,
+                'fromjid',
+                undefined, // nick
+                undefined, // role
+                undefined, // isHiddenDomain
+                undefined, // statsID
+                'status-text',
+                undefined);
+        });
+
+        it('parses muc user item correctly', () => {
+            const presStr = '' +
+                '<presence to="tojid" from="fromjid">' +
+                    '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                        '<item jid="jid=attr" affiliation="affiliation-attr" role="role-attr"/>' +
+                    '</x>' +
+                '</presence>';
+            const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+
+            room.onPresence(pres);
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MUC_MEMBER_JOINED,
+                'fromjid',
+                undefined, // nick
+                'role-attr', // role
+                jasmine.any(Boolean), // isHiddenDomain
+                undefined, // statsID
+                undefined,
+                undefined);
+        });
+
+        it('parses identity correctly', () => {
+            const presStr = '' +
+                '<presence to="tojid" from="fromjid">' +
+                    '<status>status-text</status>' +
+                    '<identity>' +
+                        '<user>' +
+                            '<id>id-text</id>' +
+                            '<name>name-text</name>' +
+                            '<avatar>avatar-text</avatar>' +
+                        '</user>' +
+                        '<group>group-text</group>' +
+                    '</identity>' +
+                '</presence>';
+            const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+
+            const expectedIdentity = {
+                user: {
+                    id: 'id-text',
+                    name: 'name-text',
+                    avatar: 'avatar-text'
+                },
+                group: 'group-text'
+            };
+
+            room.onPresence(pres);
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MUC_MEMBER_JOINED,
+                'fromjid',
+                undefined, // nick
+                undefined, // role
+                undefined, // isHiddenDomain
+                undefined, // statsID
+                'status-text',
+                expectedIdentity);
+        });
+
+    });
 });
+
