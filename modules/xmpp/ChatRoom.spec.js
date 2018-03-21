@@ -1,0 +1,129 @@
+import { parser } from './ChatRoom';
+import { $pres } from 'strophe.js';
+
+// This rule makes creating the xml elements take up way more
+// space than necessary.
+/* eslint-disable newline-per-chained-call */
+
+describe('ChatRoom', () => {
+    describe('packet2JSON', () => {
+        let nodes = [];
+
+        beforeEach(() => {
+            nodes = [];
+        });
+
+        it('translates attributes correctly', () => {
+            const p = $pres({
+                to: 'tojid',
+                from: 'fromjid'
+            })
+            .c('fake-with-attr', {
+                fakeAttr1: 'attrValue1',
+                fakeAttr2: 'attrValue2'
+            }).up();
+
+            parser.packet2JSON(p.tree(), nodes);
+            expect(nodes.length).toBe(1);
+
+            const fakeWithAttr = nodes
+                .find(n => n.tagName === 'fake-with-attr');
+
+            expect(fakeWithAttr).toBeTruthy();
+            expect(Object.keys(fakeWithAttr.attributes).length).toEqual(2);
+            expect(fakeWithAttr.attributes.fakeAttr1).toBeTruthy();
+            expect(fakeWithAttr.attributes.fakeAttr1).toEqual('attrValue1');
+            expect(fakeWithAttr.attributes.fakeAttr2).toBeTruthy();
+            expect(fakeWithAttr.attributes.fakeAttr2).toEqual('attrValue2');
+            expect(fakeWithAttr.children.length).toEqual(0);
+            expect(fakeWithAttr.value).toBeFalsy();
+        });
+
+        it('translates element text correctly', () => {
+            const p = $pres({
+                to: 'tojid',
+                from: 'fromjid'
+            })
+            .c('user-agent').t('user-agent-text').up();
+
+            parser.packet2JSON(p.tree(), nodes);
+
+            expect(nodes.length).toBe(1);
+            const userAgent = nodes.find(n => n.tagName === 'user-agent');
+
+            expect(userAgent).toBeTruthy();
+            expect(Object.keys(userAgent.attributes).length).toEqual(0);
+            expect(userAgent.children.length).toEqual(0);
+            expect(userAgent.value).toEqual('user-agent-text');
+        });
+
+        it('translates elements with children correctly', () => {
+            const p = $pres({
+                to: 'tojid',
+                from: 'fromjid'
+            })
+            .c('identity')
+                .c('user')
+                    .c('id').t('id-text').up()
+                    .c('name').t('name-text').up()
+                    .c('avatar').t('avatar-text').up()
+                .up()
+                .c('group').t('group-text').up()
+            .up();
+
+            parser.packet2JSON(p.tree(), nodes);
+
+            const identity = nodes.find(n => n.tagName === 'identity');
+
+            expect(identity).toBeTruthy();
+            expect(Object.keys(identity.attributes).length).toEqual(0);
+            expect(identity.children.length).toEqual(2);
+            {
+                const user = identity.children
+                    .find(n => n.tagName === 'user');
+
+                expect(user).toBeTruthy();
+                expect(Object.keys(user.attributes).length).toEqual(0);
+                expect(user.children.length).toEqual(3);
+                {
+                    const id = user.children
+                        .find(n => n.tagName === 'id');
+
+                    expect(id).toBeTruthy();
+                    expect(Object.keys(id.attributes).length).toEqual(0);
+                    expect(id.children.length).toEqual(0);
+                    expect(id.value).toEqual('id-text');
+                }
+                {
+                    const name = user.children
+                        .find(n => n.tagName === 'name');
+
+                    expect(name).toBeTruthy();
+                    expect(Object.keys(name.attributes).length).toEqual(0);
+                    expect(name.children.length).toEqual(0);
+                    expect(name.value).toEqual('name-text');
+                }
+                {
+                    const avatar = user.children
+                        .find(n => n.tagName === 'avatar');
+
+                    expect(avatar).toBeTruthy();
+                    expect(Object.keys(avatar.attributes).length).toEqual(0);
+                    expect(avatar.children.length).toEqual(0);
+                    expect(avatar.value).toEqual('avatar-text');
+                }
+                expect(user.value).toBeFalsy();
+            }
+            {
+                const group = identity.children
+                    .find(n => n.tagName === 'group');
+
+                expect(group).toBeTruthy();
+                expect(Object.keys(group.attributes).length).toEqual(0);
+                expect(group.children.length).toEqual(0);
+                expect(group.value).toEqual('group-text');
+            }
+            expect(identity.value).toBeFalsy();
+        });
+    });
+});
