@@ -4,8 +4,6 @@ const TRACK_ERROR_TO_MESSAGE_MAP = {};
 
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.UNSUPPORTED_RESOLUTION]
     = 'Video resolution is not supported: ';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.FIREFOX_EXTENSION_NEEDED]
-    = 'Firefox extension is not installed';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR]
     = 'Failed to install Chrome extension';
 TRACK_ERROR_TO_MESSAGE_MAP[
