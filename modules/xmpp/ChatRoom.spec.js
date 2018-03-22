@@ -6,8 +6,7 @@ import XMPPEvents from '../../service/xmpp/XMPPEvents';
 // space than necessary.
 /* eslint-disable newline-per-chained-call */
 // These rules makes the xml strings harder to read
-/* eslint-disable operator-linebreak */
-/* eslint-disable max-len */
+/* eslint-disable operator-linebreak, max-len */
 
 describe('ChatRoom', () => {
     describe('packet2JSON', () => {
