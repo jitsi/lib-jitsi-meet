@@ -27,7 +27,6 @@ import { ParticipantConnectionStatus }
 import RTC from './modules/RTC/RTC';
 import browser from './modules/browser';
 import RTCUIHelper from './modules/RTC/RTCUIHelper';
-import ScriptUtil from './modules/util/ScriptUtil';
 import Statistics from './modules/statistics/statistics';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 
@@ -481,7 +480,6 @@ export default {
     util: {
         AuthUtil,
         RTCUIHelper,
-        ScriptUtil,
         browser
     }
 };

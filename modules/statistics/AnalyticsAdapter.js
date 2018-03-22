@@ -5,10 +5,9 @@ import {
     TYPE_UI
 } from '../../service/statistics/AnalyticsEvents';
 import { getLogger } from 'jitsi-meet-logger';
+import { AnalyticsCacheAdapater } from 'js-utils';
 import browser from '../browser';
 import Settings from '../settings/Settings';
-
-const MAX_CACHE_SIZE = 100;
 
 // eslist-disable-line no-undef
 const logger = getLogger(__filename);
@@ -55,31 +54,12 @@ const logger = getLogger(__filename);
  * action, actionSubject, source, containerType, containerId, objectType,
  * objectId
  */
-class AnalyticsAdapter {
+class AnalyticsAdapter extends AnalyticsCacheAdapater {
     /**
      * Creates new AnalyticsAdapter instance.
      */
     constructor() {
-        /**
-         * Whether this AnalyticsAdapter has been disposed of or not. Once this
-         * is set to true, the AnalyticsAdapter is disabled and does not accept
-         * any more events, and it can not be re-enabled.
-         * @type {boolean}
-         */
-        this.disposed = false;
-
-        /**
-         * The set of handlers to which events will be sent.
-         * @type {Set<any>}
-         */
-        this.analyticsHandlers = new Set();
-
-        /**
-         * The cache of events which are not sent yet. The cache is enabled
-         * while this field is truthy, and disabled otherwise.
-         * @type {Array}
-         */
-        this.cache = [];
+        super();
 
         /**
          * Map of properties that will be added to every event. Note that the
@@ -99,36 +79,6 @@ class AnalyticsAdapter {
             'user_agent': navigator.userAgent,
             'browser_name': browser.getName()
         });
-    }
-
-    /**
-     * Dispose analytics. Clears all handlers.
-     */
-    dispose() {
-        logger.warn('Disposing of analytics adapter.');
-        this.setAnalyticsHandlers([]);
-        this.disposed = true;
-    }
-
-    /**
-     * Sets the handlers that are going to be used to send analytics. Sends any
-     * cached events.
-     * @param {Array} handlers the handlers
-     */
-    setAnalyticsHandlers(handlers) {
-        if (this.disposed) {
-            return;
-        }
-
-        this.analyticsHandlers = new Set(handlers);
-
-        // Note that we disable the cache even if the set of handlers is empty.
-        const cache = this.cache;
-
-        this.cache = null;
-        if (cache) {
-            cache.forEach(event => this._sendEvent(event));
-        }
     }
 
     /**
@@ -174,12 +124,6 @@ class AnalyticsAdapter {
      * event, if eventName is a string.
      */
     sendEvent(eventName, properties = {}) {
-        if (this.disposed) {
-            logger.warn('Not sending an event, disposed.');
-
-            return;
-        }
-
         let event = null;
 
         if (typeof eventName === 'string') {
@@ -201,7 +145,7 @@ class AnalyticsAdapter {
             return;
         }
 
-        this._sendEvent(event);
+        super.sendEvent(event);
     }
 
     /**
@@ -275,50 +219,17 @@ class AnalyticsAdapter {
     }
 
     /**
-     * Saves an event to the cache, if the cache is enabled.
-     * @param event the event to save.
-     * @returns {boolean} true if the event was saved, and false otherwise (i.e.
-     * if the cache was disabled).
-     * @private
-     */
-    _maybeCacheEvent(event) {
-        if (this.cache) {
-            this.cache.push(event);
-
-            // We limit the size of the cache, in case the user fails to ever
-            // set the analytics handlers.
-            if (this.cache.length > MAX_CACHE_SIZE) {
-                this.cache.splice(0, 1);
-            }
-
-            return true;
-        }
-
-        return false;
-
-    }
-
-    /**
+     * Adds the permanent props.
      *
-     * @param event
-     * @private
+     * @param {Object} event - The event to be formatted.
+     * @returns {Object} - The formatted event.
+     *
+     * @override
      */
-    _sendEvent(event) {
-        if (this._maybeCacheEvent(event)) {
-            // The event was consumed by the cache.
-        } else {
-            // We append the permanent properties at the time we send the event,
-            // not at the time we receive it.
-            this._appendPermanentProperties(event);
+    _formatEvent(event) {
+        this._appendPermanentProperties(event);
 
-            for (const handler of this.analyticsHandlers) {
-                try {
-                    handler.sendEvent(event);
-                } catch (e) {
-                    logger.warn(`Error sending analytics event: ${e}`);
-                }
-            }
-        }
+        return event;
     }
 
     /**

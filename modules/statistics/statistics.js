@@ -1,4 +1,5 @@
 import EventEmitter from 'events';
+import { loadScript } from 'js-utils';
 
 import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
 import analytics from './AnalyticsAdapter';
@@ -8,7 +9,6 @@ import RTPStats from './RTPStatsCollector';
 
 import browser from '../browser';
 import Settings from '../settings/Settings';
-import ScriptUtil from '../util/ScriptUtil';
 import JitsiTrackError from '../../JitsiTrackError';
 import * as StatisticsEvents from '../../service/statistics/Events';
 
@@ -39,7 +39,7 @@ let isCallstatsLoaded = false;
  */
 function loadCallStatsAPI(options) {
     if (!isCallstatsLoaded) {
-        ScriptUtil.loadScript(
+        loadScript(
             options.customScriptUrl
                 || 'https://api.callstats.io/static/callstats-ws.min.js',
             /* async */ true,
