@@ -103,7 +103,7 @@ export const JVB121_STATUS = 'conference.jvb121Status';
 /**
  * You are kicked from the conference.
  */
-export const KICKED = 'conferenece.kicked';
+export const KICKED = 'conference.kicked';
 
 /**
  * The Last N set is changed.
