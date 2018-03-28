@@ -906,12 +906,9 @@ export default class ChatRoom extends Listenable {
 
         if (txt) {
             if (type === 'chat') {
-                logger.log('privatechat', nick, txt);
                 this.eventEmitter.emit(XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
                         from, nick, txt, this.myroomjid, stamp);
-            }
-            if (type === 'groupchat') {
-                logger.log('chat', nick, txt);
+            } else if (type === 'groupchat') {
                 this.eventEmitter.emit(XMPPEvents.MESSAGE_RECEIVED,
                         from, nick, txt, this.myroomjid, stamp);
             }
