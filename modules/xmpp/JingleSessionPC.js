@@ -1654,29 +1654,27 @@ export default class JingleSessionPC extends JingleSession {
                 this.peerconnection.clearRecvonlySsrc();
                 this.peerconnection.generateRecvonlySsrc();
             }
-            if (oldTrack) {
-                this.peerconnection.removeTrack(oldTrack);
-            }
-            if (newTrack) {
-                this.peerconnection.addTrack(newTrack);
-            }
 
-            if ((oldTrack || newTrack)
-                && this.state === JingleSessionState.ACTIVE) {
-                this._renegotiate()
-                    .then(() => {
-                        const newLocalSDP
-                            = new SDP(
-                                this.peerconnection.localDescription.sdp);
+            this.peerconnection.replaceTrack(oldTrack, newTrack)
+            .then(shouldRenegotiate => {
+                if (shouldRenegotiate
+                    && (oldTrack || newTrack)
+                    && this.state === JingleSessionState.ACTIVE) {
+                    this._renegotiate()
+                        .then(() => {
+                            const newLocalSDP
+                                = new SDP(
+                                    this.peerconnection.localDescription.sdp);
 
-                        this.notifyMySSRCUpdate(
-                            new SDP(oldLocalSdp), newLocalSDP);
-                        finishedCallback();
-                    },
-                    finishedCallback /* will be called with en error */);
-            } else {
-                finishedCallback();
-            }
+                            this.notifyMySSRCUpdate(
+                                new SDP(oldLocalSdp), newLocalSDP);
+                            finishedCallback();
+                        },
+                        finishedCallback /* will be called with en error */);
+                } else {
+                    finishedCallback();
+                }
+            });
         };
 
         this.modificationQueue.push(
