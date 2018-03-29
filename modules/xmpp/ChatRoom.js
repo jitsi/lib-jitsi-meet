@@ -418,7 +418,7 @@ export default class ChatRoom extends Listenable {
                 && this.options.hiddenDomain
                     === jid.substring(jid.indexOf('@') + 1, jid.indexOf('/'));
 
-        const xEl = pres.querySelectorAll('x')[0];
+        const xEl = pres.querySelector('x');
 
         if (xEl) {
             xEl.remove();
