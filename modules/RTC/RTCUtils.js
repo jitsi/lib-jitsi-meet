@@ -243,9 +243,7 @@ function getConstraints(um, options = {}) {
             }
 
             // Old style.
-            constraints.video.optional.push({
-                sourceId: options.cameraDeviceId
-            });
+            constraints.video.mandatory.sourceId = options.cameraDeviceId;
         } else {
             // Prefer the front i.e. user-facing camera (to the back i.e.
             // environment-facing camera, for example).
