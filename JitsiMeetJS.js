@@ -38,10 +38,12 @@ const logger = Logger.getLogger(__filename);
 const USER_MEDIA_PERMISSION_PROMPT_TIMEOUT = 1000;
 
 /**
- * Gets a lower resolution and if there is none left other than the requested
- * returns null.
+ * Gets the next lowest desirable resolution to try for a camera.  If the given
+ * resolution is already the lowest acceptable resolution, returns null.
  *
- * @param resolution the resolution to get.
+ * @param resolution the current resolution
+ * @return the next lowest resolution from the given one, or null if it is
+ * already the lowest acceptable resolution.
  */
 function getLowerResolution(resolution) {
     if (!Resolutions[resolution]) {
@@ -356,11 +358,9 @@ export default {
                     // use
                     if (originalOptions
                         && error.gum.constraints
-                        && error.gum.constraints
                         && error.gum.constraints.video
                         && error.gum.constraints.video.mandatory
-                        && error.gum.constraints.video.mandatory.sourceId
-                            === options.cameraDeviceId) {
+                        && error.gum.constraints.video.mandatory.sourceId) {
                         originalOptions.cameraDeviceId = undefined;
 
                         return this.createLocalTracks(originalOptions);
