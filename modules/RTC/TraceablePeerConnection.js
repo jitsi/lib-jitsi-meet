@@ -1464,6 +1464,93 @@ TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
 };
 
 /**
+ * Returns the sender corresponding to the given MediaStream.
+ *
+ * @param {MediaStream} stream - The media stream used for the search.
+ * @returns {RTPSender|undefined} - The found sender or undefined if no sender
+ * was found.
+ */
+TraceablePeerConnection.prototype.findSenderByStream = function(stream) {
+    const track = stream.getTracks()[0];
+
+    if (!track) {
+        logger.error('Cannot find sender: no tracks.');
+
+        return;
+    }
+
+    // Find the right sender (for audio or video)
+    return this.peerconnection.getSenders().find(s => s.track === track);
+};
+
+/**
+ * Replaces <tt>oldTrack</tt> with <tt>newTrack</tt> from the peer connection.
+ * Either <tt>oldTrack</tt> or <tt>newTrack</tt> can be null; replacing a valid
+ * <tt>oldTrack</tt> with a null <tt>newTrack</tt> effectively just removes
+ * <tt>oldTrack</tt>
+ *
+ * @param {JitsiLocalTrack|null} oldTrack - The current track in use to be
+ * replaced
+ * @param {JitsiLocalTrack|null} newTrack - The new track to use
+ * @returns {Promise<boolean>} - If the promise resolves with true,
+ * renegotiation will be needed. Otherwise no renegotiation is needed.
+ */
+TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
+    if (browser.isFirefox() && oldTrack && newTrack) {
+        // Add and than remove stream in FF leads to wrong local SDP. In order
+        // to workaround the issue we need to use sender.replaceTrack().
+        const sender = this.findSenderByStream(oldTrack.getOriginalStream());
+        const stream = newTrack.getOriginalStream();
+
+        if (sender && stream) {
+            const track = stream.getTracks()[0];
+
+            if (track) {
+                return sender.replaceTrack(track, stream).then(() => {
+                    // Since there is no need to do renegotiations we need to
+                    // fix all ssrc-msid mappings here.
+                    // NOTE: after sender.replaceTrack the sdp will remain the
+                    // same but the stream attach to the new JitsiLocalTrack
+                    // will have different msid. Luckily on FF we are not doing
+                    // all the transformations related to video mute.
+
+                    const ssrc = this.localSSRCs.get(oldTrack.rtcId);
+
+                    this.localTracks.delete(oldTrack.rtcId);
+                    this.localSSRCs.delete(oldTrack.rtcId);
+                    this._addedStreams
+                        = this._addedStreams.filter(s => s !== stream);
+
+                    this.localTracks.set(newTrack.rtcId, newTrack);
+
+                    // Override the msid of JitsiLocalTrack in order to be
+                    // consistent with the SDP values.
+                    newTrack.storedMSID = oldTrack.storedMSID;
+                    this._addedStreams.push(stream);
+
+                    this.localSSRCs.set(newTrack.rtcId, ssrc);
+                    this.eventEmitter.emit(
+                        RTCEvents.LOCAL_TRACK_SSRC_UPDATED,
+                        newTrack,
+                        extractPrimarySSRC(ssrc));
+
+                    return false;
+                });
+            }
+        }
+    }
+
+    if (oldTrack) {
+        this.removeTrack(oldTrack);
+    }
+    if (newTrack) {
+        this.addTrack(newTrack);
+    }
+
+    return Promise.resolve(true);
+};
+
+/**
  * Removes local track as part of the mute operation.
  * @param {JitsiLocalTrack} localTrack the local track to be remove as part of
  * the mute operation.
@@ -1505,36 +1592,8 @@ TraceablePeerConnection.prototype._handleFirefoxRemoveStream = function(
         // There is nothing to be changed
         return;
     }
-    let sender = null;
 
-    // On Firefox we don't replace MediaStreams as this messes up the
-    // m-lines (which can't be removed in Plan Unified) and brings a lot
-    // of complications. Instead, we use the RTPSender and remove just
-    // the track.
-    let track = null;
-
-    if (stream.getAudioTracks() && stream.getAudioTracks().length) {
-        track = stream.getAudioTracks()[0];
-    } else if (stream.getVideoTracks() && stream.getVideoTracks().length) {
-        track = stream.getVideoTracks()[0];
-    }
-
-    if (!track) {
-        logger.error('Cannot remove tracks: no tracks.');
-
-        return;
-    }
-
-    // Find the right sender (for audio or video)
-    this.peerconnection.getSenders().some(s => {
-        if (s.track === track) {
-            sender = s;
-
-            return true;
-        }
-
-        return false;
-    });
+    const sender = this.findSenderByStream(stream);
 
     if (sender) {
         this.peerconnection.removeTrack(sender);
@@ -2262,7 +2321,7 @@ function extractPrimarySSRC(ssrcObj) {
  */
 TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
     for (const track of this.localTracks.values()) {
-        const trackMSID = track.getMSID();
+        const trackMSID = track.storedMSID;
 
         if (ssrcMap.has(trackMSID)) {
             const newSSRC = ssrcMap.get(trackMSID);
