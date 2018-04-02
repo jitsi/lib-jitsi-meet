@@ -1439,7 +1439,7 @@ class RTCUtils extends Listenable {
                     this.stopMediaStream(avStream);
 
                     return this.getUserMediaWithConstraints(
-                        missingTracks, options)
+                        missingTracks, null, null, options)
 
                         // GUM has already failed earlier and this success
                         // handling should not be reached.
