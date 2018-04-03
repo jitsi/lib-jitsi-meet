@@ -138,7 +138,8 @@ function initRawEnumerateDevicesWithCallback() {
             // "ReferenceError: Can't find variable: MediaStreamTrack" when
             // Temasys plugin is not installed yet, have to delay this call
             // until WebRTC is ready.
-            : MediaStreamTrack && MediaStreamTrack.getSources
+            : typeof MediaStreamTrack !== 'undefined'
+                && MediaStreamTrack.getSources
                 ? function(callback) {
                     MediaStreamTrack.getSources(
                         sources =>
