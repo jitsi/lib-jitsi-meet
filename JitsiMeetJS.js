@@ -38,8 +38,12 @@ const logger = Logger.getLogger(__filename);
 const USER_MEDIA_PERMISSION_PROMPT_TIMEOUT = 1000;
 
 /**
+ * Gets the next lowest desirable resolution to try for a camera.  If the given
+ * resolution is already the lowest acceptable resolution, returns null.
  *
- * @param resolution
+ * @param resolution the current resolution
+ * @return the next lowest resolution from the given one, or null if it is
+ * already the lowest acceptable resolution.
  */
 function getLowerResolution(resolution) {
     if (!Resolutions[resolution]) {
@@ -57,6 +61,10 @@ function getLowerResolution(resolution) {
             res = value;
         }
     });
+
+    if (resName === resolution) {
+        resName = null;
+    }
 
     return resName;
 }
@@ -246,11 +254,14 @@ export default {
      *
      * @param {boolean} (firePermissionPromptIsShownEvent) - if event
      *      JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN should be fired
+     * @param originalOptions - internal use only, to be able to store the
+     * originally requested options.
      * @returns {Promise.<{Array.<JitsiTrack>}, JitsiConferenceError>}
      *     A promise that returns an array of created JitsiTracks if resolved,
      *     or a JitsiConferenceError if rejected.
      */
-    createLocalTracks(options = {}, firePermissionPromptIsShownEvent) {
+    createLocalTracks(
+            options = {}, firePermissionPromptIsShownEvent, originalOptions) {
         let promiseFulfilled = false;
 
         if (firePermissionPromptIsShownEvent === true) {
@@ -336,7 +347,23 @@ export default {
                                 reason: 'unsupported resolution'
                             }));
 
-                        return this.createLocalTracks(options);
+                        return this.createLocalTracks(
+                            options,
+                            undefined,
+                            originalOptions || Object.assign({}, options));
+                    }
+
+                    // we tried everything, if there is a mandatory
+                    // device id, remove it and let gum find a device to
+                    // use
+                    if (originalOptions
+                        && error.gum.constraints
+                        && error.gum.constraints.video
+                        && error.gum.constraints.video.mandatory
+                        && error.gum.constraints.video.mandatory.sourceId) {
+                        originalOptions.cameraDeviceId = undefined;
+
+                        return this.createLocalTracks(originalOptions);
                     }
                 }
 

@@ -91,6 +91,9 @@ function JitsiTrackError(error, options, devices) {
         case 'OverconstrainedError': {
             const constraintName = error.constraintName || error.constraint;
 
+            // we treat deviceId as unsupported resolution, as we want to
+            // retry and finally if everything fails to remove deviceId from
+            // mandatory constraints
             if (options
                     && options.video
                     && (!devices || devices.indexOf('video') > -1)
@@ -99,7 +102,8 @@ function JitsiTrackError(error, options, devices) {
                         || constraintName === 'minHeight'
                         || constraintName === 'maxHeight'
                         || constraintName === 'width'
-                        || constraintName === 'height')) {
+                        || constraintName === 'height'
+                        || constraintName === 'deviceId')) {
                 this.name = JitsiTrackErrors.UNSUPPORTED_RESOLUTION;
                 this.message
                     = TRACK_ERROR_TO_MESSAGE_MAP[this.name]
