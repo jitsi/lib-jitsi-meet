@@ -1265,6 +1265,19 @@ JitsiConference.prototype.onDisplayNameChanged = function(jid, displayName) {
 };
 
 /**
+ * Callback invoked when a known live stream URL has been updated.
+ *
+ * @params {*} ...args - Information regarding which participant has an updated
+ * live stream URL and what that live stream URL is.
+ * @returns {void}
+ */
+JitsiConference.prototype.onLiveStreamURLChange = function(...args) {
+    this.eventEmitter.emit(
+        JitsiConferenceEvents.LIVE_STREAM_URL_CHANGED,
+        ...args);
+};
+
+/**
  * Notifies this JitsiConference that a JitsiRemoteTrack was added into
  * the conference.
  *
