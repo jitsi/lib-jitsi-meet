@@ -281,7 +281,7 @@ JitsiConference.prototype._init = function(options = {}) {
                 config.callStatsConfIDNamespace
                     || (windowLocation && windowLocation.hostname)
                     || (config.hosts && config.hosts.domain),
-            callStatsCustomScriptUrl: config.callStatsCustomScriptUrl,
+            customScriptUrl: config.callStatsCustomScriptUrl,
             callStatsID: config.callStatsID,
             callStatsSecret: config.callStatsSecret,
             roomName: this.options.name,
