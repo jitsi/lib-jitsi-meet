@@ -192,7 +192,7 @@ Recording.prototype.setRecordingJibri = function(
                     this.type === Recording.types.JIBRI
                         ? options.streamId
                         : undefined,
-                you_tube_broadcast_id: options.broadcastId
+                'you_tube_broadcast_id': options.broadcastId
             })
             .up();
 

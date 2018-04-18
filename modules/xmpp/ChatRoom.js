@@ -425,8 +425,9 @@ export default class ChatRoom extends Listenable {
             const liveStreamViewURLItem
                 = pres.getElementsByTagName('live-stream-view-url')[0];
 
-            member.liveStreamViewURL
-                = liveStreamViewURLItem && liveStreamViewURLItem.textContent;
+            if (liveStreamViewURLItem) {
+                member.liveStreamViewURL = liveStreamViewURLItem.textContent;
+            }
         }
 
         const xEl = pres.querySelector('x');
