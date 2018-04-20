@@ -90,6 +90,10 @@ const XMPPEvents = {
     // Designates an event indicating that we were kicked from the XMPP MUC.
     KICKED: 'xmpp.kicked',
 
+    // Designates an event indicating that a participant's live stream URL has
+    // been updated.
+    LIVE_STREAM_URL_CHANGE: 'xmpp.live_stream_url_changed',
+
     // Designates an event indicating that our role in the XMPP MUC has changed.
     LOCAL_ROLE_CHANGED: 'xmpp.localrole_changed',
 

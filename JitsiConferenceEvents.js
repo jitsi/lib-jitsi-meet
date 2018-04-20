@@ -123,6 +123,11 @@ export const KICKED = 'conference.kicked';
 export const LAST_N_ENDPOINTS_CHANGED = 'conference.lastNEndpointsChanged';
 
 /**
+ * A known participant's live stream URL has changed.
+ */
+export const LIVE_STREAM_URL_CHANGED = 'conference.liveStreamURLChanged';
+
+/**
  * Indicates that the room has been locked or unlocked.
  */
 export const LOCK_STATE_CHANGED = 'conference.lock_state_changed';

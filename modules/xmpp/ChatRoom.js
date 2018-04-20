@@ -418,6 +418,18 @@ export default class ChatRoom extends Listenable {
                 && this.options.hiddenDomain
                     === jid.substring(jid.indexOf('@') + 1, jid.indexOf('/'));
 
+        // Check isHiddenDomain as a way to verify a live stream URL is from a
+        // trusted source. This prevents users from trying to display arbitrary
+        // live stream URLs.
+        if (member.isHiddenDomain) {
+            const liveStreamViewURLItem
+                = pres.getElementsByTagName('live-stream-view-url')[0];
+
+            if (liveStreamViewURLItem) {
+                member.liveStreamViewURL = liveStreamViewURLItem.textContent;
+            }
+        }
+
         const xEl = pres.querySelector('x');
 
         if (xEl) {
@@ -517,6 +529,13 @@ export default class ChatRoom extends Listenable {
                     member.status,
                     member.identity);
 
+                if (member.liveStreamViewURL) {
+                    this.eventEmitter.emit(
+                        XMPPEvents.LIVE_STREAM_URL_CHANGE,
+                        from,
+                        member.liveStreamViewURL);
+                }
+
                 // we are reporting the status with the join
                 // so we do not want a second event about status update
                 hasStatusUpdate = false;
@@ -556,6 +575,15 @@ export default class ChatRoom extends Listenable {
                 hasStatusUpdate = true;
                 memberOfThis.status = member.status;
             }
+
+            if (memberOfThis.liveStreamViewURL !== member.liveStreamViewURL) {
+                memberOfThis.liveStreamViewURL = member.liveStreamViewURL;
+                this.eventEmitter.emit(
+                    XMPPEvents.LIVE_STREAM_URL_CHANGE,
+                    from,
+                    member.liveStreamViewURL);
+            }
+
         }
 
         // after we had fired member or room joined events, lets fire events
@@ -754,7 +782,6 @@ export default class ChatRoom extends Listenable {
      * whether this is the focus that left
      */
     onParticipantLeft(jid, skipEvents) {
-
         delete this.lastPresences[jid];
 
         if (skipEvents) {
@@ -812,6 +839,13 @@ export default class ChatRoom extends Listenable {
         const membersKeys = Object.keys(this.members);
 
         if (!isSelfPresence) {
+            if (this.members[from].liveStreamViewURL) {
+                this.eventEmitter.emit(
+                    XMPPEvents.LIVE_STREAM_URL_CHANGE,
+                    from,
+                    undefined);
+            }
+
             delete this.members[from];
             this.onParticipantLeft(from, false);
         } else if (membersKeys.length > 0) {
