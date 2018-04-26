@@ -191,7 +191,8 @@ Recording.prototype.setRecordingJibri = function(
                 'streamid':
                     this.type === Recording.types.JIBRI
                         ? options.streamId
-                        : undefined
+                        : undefined,
+                'you_tube_broadcast_id': options.broadcastId
             })
             .up();
 

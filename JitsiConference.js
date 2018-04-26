@@ -281,7 +281,7 @@ JitsiConference.prototype._init = function(options = {}) {
                 config.callStatsConfIDNamespace
                     || (windowLocation && windowLocation.hostname)
                     || (config.hosts && config.hosts.domain),
-            callStatsCustomScriptUrl: config.callStatsCustomScriptUrl,
+            customScriptUrl: config.callStatsCustomScriptUrl,
             callStatsID: config.callStatsID,
             callStatsSecret: config.callStatsSecret,
             roomName: this.options.name,
@@ -1262,6 +1262,19 @@ JitsiConference.prototype.onDisplayNameChanged = function(jid, displayName) {
         JitsiConferenceEvents.DISPLAY_NAME_CHANGED,
         id,
         displayName);
+};
+
+/**
+ * Callback invoked when a known live stream URL has been updated.
+ *
+ * @params {*} ...args - Information regarding which participant has an updated
+ * live stream URL and what that live stream URL is.
+ * @returns {void}
+ */
+JitsiConference.prototype.onLiveStreamURLChange = function(...args) {
+    this.eventEmitter.emit(
+        JitsiConferenceEvents.LIVE_STREAM_URL_CHANGED,
+        ...args);
 };
 
 /**
