@@ -266,24 +266,19 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     chatRoom.addListener(XMPPEvents.DISPLAY_NAME_CHANGED,
         conference.onDisplayNameChanged.bind(conference));
 
-    chatRoom.addListener(XMPPEvents.LIVE_STREAM_URL_CHANGE,
-        conference.onLiveStreamURLChange.bind(conference));
-
     chatRoom.addListener(XMPPEvents.LOCAL_ROLE_CHANGED, role => {
         conference.onLocalRoleChanged(role);
 
         // log all events for the recorder operated by the moderator
         if (conference.statistics && conference.isModerator()) {
             conference.on(JitsiConferenceEvents.RECORDER_STATE_CHANGED,
-                (status, error) => {
+                recorderSession => {
                     const logObject = {
+                        error: recorderSession.getError(),
                         id: 'recorder_status',
-                        status
+                        status: recorderSession.getStatus()
                     };
 
-                    if (error) {
-                        logObject.error = error;
-                    }
                     Statistics.sendLog(JSON.stringify(logObject));
                 });
         }

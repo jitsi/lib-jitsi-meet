@@ -1268,19 +1268,6 @@ JitsiConference.prototype.onDisplayNameChanged = function(jid, displayName) {
 };
 
 /**
- * Callback invoked when a known live stream URL has been updated.
- *
- * @params {*} ...args - Information regarding which participant has an updated
- * live stream URL and what that live stream URL is.
- * @returns {void}
- */
-JitsiConference.prototype.onLiveStreamURLChange = function(...args) {
-    this.eventEmitter.emit(
-        JitsiConferenceEvents.LIVE_STREAM_URL_CHANGED,
-        ...args);
-};
-
-/**
  * Notifies this JitsiConference that a JitsiRemoteTrack was added into
  * the conference.
  *
@@ -1748,44 +1735,33 @@ JitsiConference.prototype.sendTones = function(tones, duration, pause) {
 };
 
 /**
- * Returns true if recording is supported and false if not.
+ * Starts recording the current conference.
+ *
+ * @param {Object} options - Configuration for the recording. See
+ * {@link Chatroom#startRecording} for more info.
+ * @returns Promise
  */
-JitsiConference.prototype.isRecordingSupported = function() {
+JitsiConference.prototype.startRecording = function(options) {
     if (this.room) {
-        return this.room.isRecordingSupported();
+        return this.room.startRecording(options);
     }
 
-    return false;
+    return Promise.reject(new Error('The conference is not created yet!'));
 };
 
 /**
- * Returns null if the recording is not supported, "on" if the recording started
- * and "off" if the recording is not started.
+ * Stop a recording session.
+ *
+ * @param {string} sessionID - The ID of the recording session that
+ * should be stopped.
+ * @returns Promise
  */
-JitsiConference.prototype.getRecordingState = function() {
-    return this.room ? this.room.getRecordingState() : undefined;
-};
-
-/**
- * Returns the url of the recorded video.
- */
-JitsiConference.prototype.getRecordingURL = function() {
-    return this.room ? this.room.getRecordingURL() : null;
-};
-
-/**
- * Starts/stops the recording
- */
-JitsiConference.prototype.toggleRecording = function(options) {
+JitsiConference.prototype.stopRecording = function(sessionID) {
     if (this.room) {
-        return this.room.toggleRecording(options, (status, error) => {
-            this.eventEmitter.emit(
-                JitsiConferenceEvents.RECORDER_STATE_CHANGED, status, error);
-        });
+        return this.room.stopRecording(sessionID);
     }
-    this.eventEmitter.emit(
-        JitsiConferenceEvents.RECORDER_STATE_CHANGED, 'error',
-        new Error('The conference is not created yet!'));
+
+    return Promise.reject(new Error('The conference is not created yet!'));
 };
 
 /**
