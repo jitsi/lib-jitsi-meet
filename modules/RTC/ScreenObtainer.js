@@ -70,6 +70,13 @@ const CHROME_USER_GESTURE_REQ_ERROR
     = 'Chrome Web Store installations can only be initated by a user gesture.';
 
 /**
+ * The error message returned by chrome when the extension install has been
+ * cancelled by the user.
+ * @type {string}
+ */
+const CHROME_USER_CANCEL_EXTENSION_INSTALL = 'User cancelled install';
+
+/**
  * Handles obtaining a stream from a screen capture on different browsers.
  */
 const ScreenObtainer = {
@@ -400,10 +407,15 @@ const ScreenObtainer = {
 
         logger.log(msg, e);
 
-        const error
-            = e === CHROME_USER_GESTURE_REQ_ERROR
-                ? JitsiTrackErrors.CHROME_EXTENSION_USER_GESTURE_REQUIRED
-                : JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR;
+        let error;
+
+        if (e === CHROME_USER_CANCEL_EXTENSION_INSTALL) {
+            error = JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED;
+        } else if (e === CHROME_USER_GESTURE_REQ_ERROR) {
+            error = JitsiTrackErrors.CHROME_EXTENSION_USER_GESTURE_REQUIRED;
+        } else {
+            error = JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR;
+        }
 
         failCallback(new JitsiTrackError(error, msg));
     },
