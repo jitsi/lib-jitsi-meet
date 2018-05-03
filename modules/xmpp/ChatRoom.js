@@ -75,10 +75,13 @@ function filterNodeFromPresenceJSON(pres, nodeName) {
 }
 
 /**
- * Constants used to verify if a given JSON message via the MUC should be
- * considered as a ENDPOINT_MESSAGE
+ * The name of the field used to recognize a chat message as carrying a JSON
+ * payload from another endpoint.
+ * If the body of a chat message contains a valid JSON object, and the JSON has
+ * this key, then the transported payload is contained in the 'payload'
+ * property of the JSON object.
  */
-const VALID_FIELD_NAMES = [ 'jitsi-meet-muc-msg-topic', 'payload' ];
+export const JITSI_MEET_MUC_TOPIC = 'jitsi-meet-muc-msg-topic';
 
 /**
  * Check if the given argument is a valid JSON ENDPOINT_MESSAGE string by
@@ -102,13 +105,11 @@ function tryParseJSONAndVerify(jsonString) {
         // so we must check for that, too.
         // Thankfully, null is falsey, so this suffices:
         if (json && typeof json === 'object') {
-            const topic = json[VALID_FIELD_NAMES[0]];
-            const payload = json[VALID_FIELD_NAMES[1]];
+            const topic = json[JITSI_MEET_MUC_TOPIC];
+            const payload = json.payload;
 
-            if ((typeof topic === 'string' || topic instanceof String)
-                && payload) {
-
-                return json;
+            if ((typeof topic !== 'undefined') && payload) {
+                return payload;
             }
 
             logger.debug('parsing valid json but does not have correct '
@@ -929,11 +930,11 @@ export default class ChatRoom extends Listenable {
             this.discoRoomInfo();
         }
 
-        const json = tryParseJSONAndVerify(txt);
+        const jsonPayload = tryParseJSONAndVerify(txt);
 
-        if (json) {
+        if (jsonPayload) {
             this.eventEmitter.emit(XMPPEvents.JSON_MESSAGE_RECEIVED,
-                from, json);
+                from, jsonPayload);
 
             return;
         }
