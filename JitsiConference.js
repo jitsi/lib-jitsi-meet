@@ -2105,27 +2105,24 @@ JitsiConference.prototype.sendMessage = function(
         message,
         to = '',
         sendThroughVideobridge = false) {
+    const messageType = typeof message;
+
+    // Through videobridge we support only objects. Through XMPP we support
+    // objects (encapsulated in a specific JSON format) and strings (i.e.
+    // regular chat messages).
+    if (messageType !== 'object'
+            && (sendThroughVideobridge || messageType !== 'string')) {
+        logger.error(`Can not send a message of type ${messageType}`);
+
+        return;
+    }
 
     if (sendThroughVideobridge) {
-        if (!(typeof message === 'object')) {
-            logger.error(`Can not send message of type ${
-                typeof message} through jitsi-videobridge.`);
-
-            return;
-        }
         this.sendEndpointMessage(to, message);
     } else {
-        // We only support strings (i.e. regular text messages) and objects (
-        // encapsulated in a specific JSON format)
-        if (typeof message !== 'string' && typeof message !== 'object') {
-            logger.error(`Can not send a message of type  ${typeof message}`);
-
-            return;
-        }
-
         let messageToSend = message;
 
-        if (typeof message === 'object') {
+        if (messageType === 'object') {
             // Encapsulate the object in the jitsi-meet format, and convert it
             // to JSON.
             messageToSend = { payload: message };
@@ -2140,11 +2137,11 @@ JitsiConference.prototype.sendMessage = function(
             }
         }
 
-        if (to === '') {
+        if (to) {
+            this.sendPrivateTextMessage(to, messageToSend);
+        } else {
             // Broadcast
             this.sendTextMessage(messageToSend);
-        } else {
-            this.sendPrivateTextMessage(to, messageToSend);
         }
     }
 
