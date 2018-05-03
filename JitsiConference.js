@@ -2097,7 +2097,7 @@ JitsiConference.prototype.broadcastEndpointMessage = function(payload) {
  * 'string' it will be sent as a chat message. If it is of type 'object', it
  * will be encapsulated in a format recognized by jitsi-meet and converted to
  * JSON before being sent.
- * @param sendThroughVideobridge Whether to send the message through
+ * @param {boolean} sendThroughVideobridge Whether to send the message through
  * jitsi-videobridge (via the COLIBRI data channel or web socket), or through
  * the XMPP MUC. Currently only objects can be sent through jitsi-videobridge.
  */
@@ -2125,8 +2125,10 @@ JitsiConference.prototype.sendMessage = function(
         if (messageType === 'object') {
             // Encapsulate the object in the jitsi-meet format, and convert it
             // to JSON.
-            messageToSend = { payload: message };
-            messageToSend[JITSI_MEET_MUC_TOPIC] = '';
+            messageToSend = {
+                payload: message,
+                [JITSI_MEET_MUC_TOPIC]: ''
+            };
 
             try {
                 messageToSend = JSON.stringify(messageToSend);
