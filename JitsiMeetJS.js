@@ -33,17 +33,19 @@ import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 
 const logger = Logger.getLogger(__filename);
 
-// The amount of time to wait until firing
-// JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN event
+/**
+ * The amount of time to wait until firing
+ * {@link JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN} event.
+ */
 const USER_MEDIA_PERMISSION_PROMPT_TIMEOUT = 1000;
 
 /**
- * Gets the next lowest desirable resolution to try for a camera.  If the given
- * resolution is already the lowest acceptable resolution, returns null.
+ * Gets the next lowest desirable resolution to try for a camera. If the given
+ * resolution is already the lowest acceptable resolution, returns {@code null}.
  *
  * @param resolution the current resolution
- * @return the next lowest resolution from the given one, or null if it is
- * already the lowest acceptable resolution.
+ * @return the next lowest resolution from the given one, or {@code null} if it
+ * is already the lowest acceptable resolution.
  */
 function getLowerResolution(resolution) {
     if (!Resolutions[resolution]) {
@@ -70,9 +72,8 @@ function getLowerResolution(resolution) {
 }
 
 /**
- * Extracts from an 'options' objects with a specific format
- * (TODO what IS the format?) the attributes which are to be logged in analytics
- * events.
+ * Extracts from an 'options' objects with a specific format (TODO what IS the
+ * format?) the attributes which are to be logged in analytics events.
  *
  * @param options gum options (???)
  * @returns {*} the attributes to attach to analytics events.
@@ -95,9 +96,36 @@ function getAnalyticsAttributesFromOptions(options) {
 }
 
 /**
- * The public API of the Jitsi Meet library (a.k.a. JitsiMeetJS).
+ * Tries to deal with the following problem: {@code JitsiMeetJS} is not only
+ * this module, it's also a global (i.e. attached to {@code window}) namespace
+ * for all globals of the projects in the Jitsi Meet family. If lib-jitsi-meet
+ * is loaded through an HTML {@code script} tag, {@code JitsiMeetJS} will
+ * automatically be attached to {@code window} by webpack. Unfortunately,
+ * webpack's source code does not check whether the global variable has already
+ * been assigned and overwrites it. Which is OK for the module
+ * {@code JitsiMeetJS} but is not OK for the namespace {@code JitsiMeetJS}
+ * because it may already contain the values of other projects in the Jitsi Meet
+ * family. The solution offered here works around webpack by merging all
+ * existing values of the namespace {@code JitsiMeetJS} into the module
+ * {@code JitsiMeetJS}.
+ *
+ * @param {Object} module - The module {@code JitsiMeetJS} (which will be
+ * exported and may be attached to {@code window} by webpack later on).
+ * @private
+ * @returns {Object} - A {@code JitsiMeetJS} module which contains all existing
+ * value of the namespace {@code JitsiMeetJS} (if any).
  */
-export default {
+function _mergeNamespaceAndModule(module) {
+    return (
+        typeof window.JitsiMeetJS === 'object'
+            ? Object.assign({}, window.JitsiMeetJS, module)
+            : module);
+}
+
+/**
+ * The public API of the Jitsi Meet library (a.k.a. {@code JitsiMeetJS}).
+ */
+export default _mergeNamespaceAndModule({
 
     version: '{#COMMIT_HASH#}',
 
@@ -147,8 +175,8 @@ export default {
                 this.getGlobalOnErrorHandler.bind(this));
         }
 
-        // Log deployment-specific information, if available.
-        // Defined outside the application by individual deployments
+        // Log deployment-specific information, if available. Defined outside
+        // the application by individual deployments
         const aprops = options.deploymentInfo;
 
         if (aprops && Object.keys(aprops).length > 0) {
@@ -179,6 +207,7 @@ export default {
 
     /**
      * Returns whether the desktop sharing is enabled or not.
+     *
      * @returns {boolean}
      */
     isDesktopSharingEnabled() {
@@ -190,6 +219,7 @@ export default {
 
     /**
      * Sets the log level to the <tt>Logger</tt> instance with given id.
+     *
      * @param {Logger.levels} level the logging level to be set
      * @param {string} id the logger id to which new logging level will be set.
      * Usually it's the name of the JavaScript source file including the path
@@ -201,6 +231,7 @@ export default {
 
     /**
      * Registers new global logger transport to the library logging framework.
+     *
      * @param globalTransport
      * @see Logger.addGlobalTransport
      */
@@ -210,6 +241,7 @@ export default {
 
     /**
      * Removes global logging transport from the library logging framework.
+     *
      * @param globalTransport
      * @see Logger.removeGlobalTransport
      */
@@ -219,6 +251,7 @@ export default {
 
     /**
      * Creates the media tracks and returns them trough the callback.
+     *
      * @param options Object with properties / settings specifying the tracks
      * which should be created. should be created or some additional
      * configurations about resolution for example.
@@ -253,12 +286,12 @@ export default {
      * will finish the execution with rejected Promise.
      *
      * @param {boolean} (firePermissionPromptIsShownEvent) - if event
-     *      JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN should be fired
+     * JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN should be fired
      * @param originalOptions - internal use only, to be able to store the
      * originally requested options.
-     * @returns {Promise.<{Array.<JitsiTrack>}, JitsiConferenceError>}
-     *     A promise that returns an array of created JitsiTracks if resolved,
-     *     or a JitsiConferenceError if rejected.
+     * @returns {Promise.<{Array.<JitsiTrack>}, JitsiConferenceError>} A promise
+     * that returns an array of created JitsiTracks if resolved, or a
+     * JitsiConferenceError if rejected.
      */
     createLocalTracks(
             options = {}, firePermissionPromptIsShownEvent, originalOptions) {
@@ -353,9 +386,8 @@ export default {
                             originalOptions || Object.assign({}, options));
                     }
 
-                    // we tried everything, if there is a mandatory
-                    // device id, remove it and let gum find a device to
-                    // use
+                    // We tried everything. If there is a mandatory device id,
+                    // remove it and let gum find a device to use.
                     if (originalOptions
                         && error.gum.constraints
                         && error.gum.constraints.video
@@ -422,6 +454,7 @@ export default {
 
     /**
      * Checks if its possible to enumerate available cameras/microphones.
+     *
      * @returns {Promise<boolean>} a Promise which will be resolved only once
      * the WebRTC stack is ready, either with true if the device listing is
      * available available or with false otherwise.
@@ -437,9 +470,10 @@ export default {
     /**
      * Returns true if changing the input (camera / microphone) or output
      * (audio) device is supported and false if not.
-     * @params {string} [deviceType] - type of device to change. Default is
-     *      undefined or 'input', 'output' - for audio output device change.
-     * @returns {boolean} true if available, false otherwise.
+     *
+     * @param {string} [deviceType] - type of device to change. Default is
+     * {@code undefined} or 'input', 'output' - for audio output device change.
+     * @returns {boolean} {@code true} if available; {@code false}, otherwise.
      * @deprecated use JitsiMeetJS.mediaDevices.isDeviceChangeAvailable instead
      */
     isDeviceChangeAvailable(deviceType) {
@@ -472,6 +506,7 @@ export default {
 
     /**
      * Executes callback with list of media devices connected.
+     *
      * @param {function} callback
      * @deprecated use JitsiMeetJS.mediaDevices.enumerateDevices instead
      */
@@ -511,4 +546,4 @@ export default {
         ScriptUtil,
         browser
     }
-};
+});
