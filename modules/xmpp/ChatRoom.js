@@ -1260,7 +1260,8 @@ export default class ChatRoom extends Listenable {
      *
      * @param {Object} options - Configuration for the recording. See
      * {@link recordingManager#startRecording} for more info.
-     * @returns Promise
+     * @returns {Promise} See {@link recordingManager#startRecording} for more
+     * info.
      */
     startRecording(options) {
         return recordingManager.startRecording(options);
@@ -1271,7 +1272,8 @@ export default class ChatRoom extends Listenable {
      *
      * @param {string} sessionID - The ID of the recording session that should
      * be stopped.
-     * @returns Promise
+     * @returns {Promise} See {@link recordingManager#stopRecording} for more
+     * info.
      */
     stopRecording(sessionID) {
         return recordingManager.stopRecording(sessionID);

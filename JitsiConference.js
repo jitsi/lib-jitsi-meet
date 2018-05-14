@@ -1739,7 +1739,7 @@ JitsiConference.prototype.sendTones = function(tones, duration, pause) {
  *
  * @param {Object} options - Configuration for the recording. See
  * {@link Chatroom#startRecording} for more info.
- * @returns Promise
+ * @returns {Promise} See {@link Chatroom#startRecording} for more info.
  */
 JitsiConference.prototype.startRecording = function(options) {
     if (this.room) {
@@ -1754,7 +1754,7 @@ JitsiConference.prototype.startRecording = function(options) {
  *
  * @param {string} sessionID - The ID of the recording session that
  * should be stopped.
- * @returns Promise
+ * @returns {Promise} See {@link Chatroom#stopRecording} for more info.
  */
 JitsiConference.prototype.stopRecording = function(sessionID) {
     if (this.room) {

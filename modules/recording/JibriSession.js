@@ -16,8 +16,8 @@ export default class JibriSession {
         this._focusMucJid = options.focusMucJid;
         this._mode = options.mode;
 
-        this._setSessionID(options.sessionID || null);
-        this.setStatus(options.status || null);
+        this._setSessionID(options.sessionID);
+        this.setStatus(options.status);
     }
 
     /**
@@ -32,7 +32,7 @@ export default class JibriSession {
     /**
      * Returns the session ID of the session instance.
      *
-     * @returns {string|null}
+     * @returns {string|undefined}
      */
     getID() {
         return this._sessionID;
@@ -69,7 +69,7 @@ export default class JibriSession {
      * Sets the last known error message related to the session.
      *
      * @param {string} error
-     * @returns {void}
+     * @returns {string|undefined}
      */
     setError(error) {
         this._error = error;
@@ -80,7 +80,7 @@ export default class JibriSession {
      * a YouTube URL and usually this is only set for "stream" sessions.
      *
      * @param {string} error
-     * @returns {void}
+     * @returns {string|undefined}
      */
     setLiveStreamViewURL(url) {
         this._liveStreamViewURL = url;
@@ -90,7 +90,7 @@ export default class JibriSession {
      * Sets the last known status for this recording session.
      *
      * @param {string} status - The new status to set.
-     * @returns {void}
+     * @returns {string|undefined}
      */
     setStatus(status = null) {
         this._status = status;
@@ -121,8 +121,10 @@ export default class JibriSession {
                     streamId
                 }),
                 result => {
-                    // Immediately fake the status to pending so any interested
-                    // logic can begin showing a pending state.
+                    // All users will eventually receive the 'pending' status
+                    // from the backend, but for the user initiating the session
+                    // it's better to give some instant feedback that recording
+                    // is starting so fire 'pending' here manually.
                     this.setStatus('pending');
                     this._setSessionID(
                         recordingXMLUtils.getSessionIdFromIq(result));
@@ -205,8 +207,9 @@ export default class JibriSession {
      *
      * @param {string} sessionID
      * @private
+     * @returns {void}
      */
-    _setSessionID(sessionID = null) {
+    _setSessionID(sessionID) {
         this._sessionID = sessionID;
     }
 }

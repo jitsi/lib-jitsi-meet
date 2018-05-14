@@ -15,7 +15,7 @@ const recordingManager = {
     /**
      * All known recording sessions from the current conference.
      */
-    _sessions: [],
+    _sessions: {},
 
     /**
      * Initialize recordingManager with other objects that are necessary for
@@ -42,7 +42,7 @@ const recordingManager = {
      * @returns {JibriSession|undefined}
      */
     getSession(sessionID) {
-        return this._sessions.find(session => session.getID() === sessionID);
+        return this._sessions[sessionID];
     },
 
     /**
@@ -86,8 +86,9 @@ const recordingManager = {
      * started. Recognized values are "file" and "stream".
      * @param {string} [optional] options.streamId - The stream key to be used
      * for live stream broadcasting. Required for live streaming.
-     * returns {Promise} A promise for starting a recording, which will pass
-     * back the session on success.
+     * @returns {Promise} A promise for starting a recording, which will pass
+     * back the session on success. The promise resolves after receiving an
+     * acknowledgment of the start request success or fail.
      */
     startRecording(options) {
         const session = new JibriSession({
@@ -107,7 +108,7 @@ const recordingManager = {
                 // created due to a presence update to announce a "pending"
                 // recording being received before JibriSession#start finishes.
                 if (!this.getSession(session.getID())) {
-                    this._sessions.push(session);
+                    this._addSession(session);
                     this._emitSessionUpdate(session);
                 }
 
@@ -125,7 +126,8 @@ const recordingManager = {
      *
      * @param {string} sessionID - The ID associated with the recording session
      * to be stopped.
-     * @returns {void}
+     * @returns {Promise} The promise resolves after receiving an
+     * acknowledgment of the stop request success or fail.
      */
     stopRecording(sessionID) {
         const session = this.getSession(sessionID);
@@ -134,7 +136,17 @@ const recordingManager = {
             return session.stop({ focusMucJid: this._focusMucJid });
         }
 
-        return Promise.reject('Could not find session');
+        return Promise.reject(new Error('Could not find session'));
+    },
+
+    /**
+     * Stores a reference to the passed in JibriSession.
+     *
+     * @param {string} session - The JibriSession instance to store.
+     * @returns {void}
+     */
+    _addSession(session) {
+        this._sessions[session.getID()] = session;
     },
 
     /**
@@ -155,7 +167,7 @@ const recordingManager = {
             status
         });
 
-        this._sessions.push(session);
+        this._addSession(session);
 
         return session;
     },
@@ -186,14 +198,11 @@ const recordingManager = {
         const { sessionID, status, error, recordingMode } = jibriStatus;
 
         // We'll look for an existing session or create one (in case we're a
-        // participant joining a call with an existing recording going on)
-        // TODO: we should behave differently here for different values of
-        // 'status', for example, we may not want to create a session here
-        // for error status values
+        // participant joining a call with an existing recording going on).
         let session = this.getSession(sessionID);
 
         // Handle the case where a status update is received in presence but
-        // the local participant has joined while the JIbriSession has already
+        // the local participant has joined while the JibriSession has already
         // ended.
         if (!session && status === 'off') {
             logger.warn(
