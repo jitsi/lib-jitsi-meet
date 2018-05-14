@@ -93,8 +93,7 @@ const recordingManager = {
     startRecording(options) {
         const session = new JibriSession({
             ...options,
-            connection: this._connection,
-            focusMucJid: this._focusMucJid
+            connection: this._connection
         });
 
         return session.start({

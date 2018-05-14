@@ -13,7 +13,6 @@ export default class JibriSession {
      */
     constructor(options = {}) {
         this._connection = options.connection;
-        this._focusMucJid = options.focusMucJid;
         this._mode = options.mode;
 
         this._setSessionID(options.sessionID);
@@ -104,8 +103,8 @@ export default class JibriSession {
      * @param {string} [optional] options.broadcastId - The broadcast ID of an
      * associated YouTube stream, used for knowing the URL from which the stream
      * can be viewed.
-     * @param {string} [optional] options.focusMucJid - The JID of the focus
-     * participant that controls recording.
+     * @param {string} options.focusMucJid - The JID of the focus participant
+     * that controls recording.
      * @param {streamId} options.streamId - Necessary for live streaming, this
      * is the the stream key needed to start a live streaming session with the
      * streaming service provider.
@@ -168,8 +167,8 @@ export default class JibriSession {
      * @param {string} [optional] options.broadcastId - The broadcast ID of an
      * associated YouTube stream, used for knowing the URL from which the stream
      * can be viewed.
-     * @param {string} [optional] options.focusMucJid - The JID of the focus
-     * participant that controls recording.
+     * @param {string} options.focusMucJid - The JID of the focus participant
+     * that controls recording.
      * @param {streamId} options.streamId - Necessary for live streaming, this
      * is the the stream key needed to start a live streaming session with the
      * streaming service provider.
@@ -177,7 +176,7 @@ export default class JibriSession {
      */
     _createIQ({ action, broadcastId, focusMucJid, streamId }) {
         return $iq({
-            to: focusMucJid || this._focusMucJid,
+            to: focusMucJid,
             type: 'set'
         })
         .c('jibri', {
