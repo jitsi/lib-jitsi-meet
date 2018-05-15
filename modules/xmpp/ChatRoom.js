@@ -6,12 +6,12 @@ import { $iq, $msg, $pres, Strophe } from 'strophe.js';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
 import Listenable from '../util/Listenable';
+import recordingManager from '../recording/recordingManager';
 import Settings from '../settings/Settings';
 import * as MediaType from '../../service/RTC/MediaType';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
 import Moderator from './moderator';
-import Recorder from './recording';
 
 const logger = getLogger(__filename);
 
@@ -172,6 +172,11 @@ export default class ChatRoom extends Listenable {
 
         this.locked = false;
         this.transcriptionStatus = JitsiTranscriptionStatus.OFF;
+
+        recordingManager.init(
+            this.eventEmitter,
+            this.connection,
+            this.focusMucJid);
     }
 
     /* eslint-enable max-params */
@@ -419,17 +424,7 @@ export default class ChatRoom extends Listenable {
                 && this.options.hiddenDomain
                     === jid.substring(jid.indexOf('@') + 1, jid.indexOf('/'));
 
-        // Check isHiddenDomain as a way to verify a live stream URL is from a
-        // trusted source. This prevents users from trying to display arbitrary
-        // live stream URLs.
-        if (member.isHiddenDomain) {
-            const liveStreamViewURLItem
-                = pres.getElementsByTagName('live-stream-view-url')[0];
-
-            if (liveStreamViewURLItem) {
-                member.liveStreamViewURL = liveStreamViewURLItem.textContent;
-            }
-        }
+        recordingManager.onPresence(pres, member.isHiddenDomain);
 
         const xEl = pres.querySelector('x');
 
@@ -441,7 +436,6 @@ export default class ChatRoom extends Listenable {
 
         parser.packet2JSON(pres, nodes);
         this.lastPresences[from] = nodes;
-        let jibri = null;
 
         // process nodes to extract data needed for MUC_JOINED and
         // MUC_MEMBER_JOINED events
@@ -530,13 +524,6 @@ export default class ChatRoom extends Listenable {
                     member.status,
                     member.identity);
 
-                if (member.liveStreamViewURL) {
-                    this.eventEmitter.emit(
-                        XMPPEvents.LIVE_STREAM_URL_CHANGE,
-                        from,
-                        member.liveStreamViewURL);
-                }
-
                 // we are reporting the status with the join
                 // so we do not want a second event about status update
                 hasStatusUpdate = false;
@@ -576,15 +563,6 @@ export default class ChatRoom extends Listenable {
                 hasStatusUpdate = true;
                 memberOfThis.status = member.status;
             }
-
-            if (memberOfThis.liveStreamViewURL !== member.liveStreamViewURL) {
-                memberOfThis.liveStreamViewURL = member.liveStreamViewURL;
-                this.eventEmitter.emit(
-                    XMPPEvents.LIVE_STREAM_URL_CHANGE,
-                    from,
-                    member.liveStreamViewURL);
-            }
-
         }
 
         // after we had fired member or room joined events, lets fire events
@@ -613,9 +591,6 @@ export default class ChatRoom extends Listenable {
                     this.noBridgeAvailable = true;
                     this.eventEmitter.emit(XMPPEvents.BRIDGE_DOWN);
                 }
-                break;
-            case 'jibri-recording-status':
-                jibri = node;
                 break;
             case 'transcription-status': {
                 const { attributes } = node;
@@ -660,13 +635,6 @@ export default class ChatRoom extends Listenable {
                 from,
                 member.status);
         }
-
-        if (jibri) {
-            this.lastJibri = jibri;
-            if (this.recording) {
-                this.recording.handleJibriPresence(jibri);
-            }
-        }
     }
 
     /**
@@ -676,14 +644,9 @@ export default class ChatRoom extends Listenable {
      */
     _initFocus(from, mucJid) {
         this.focusMucJid = from;
-        if (!this.recording) {
-            this.recording = new Recorder(this.options.recordingType,
-                this.eventEmitter, this.connection, this.focusMucJid,
-                this.options.jirecon, this.roomjid);
-            if (this.lastJibri) {
-                this.recording.handleJibriPresence(this.lastJibri);
-            }
-        }
+
+        recordingManager.setFocusMucJid(this.focusMucJid);
+
         logger.info(`Ignore focus: ${from}, real JID: ${mucJid}`);
     }
 
@@ -840,13 +803,6 @@ export default class ChatRoom extends Listenable {
         const membersKeys = Object.keys(this.members);
 
         if (!isSelfPresence) {
-            if (this.members[from].liveStreamViewURL) {
-                this.eventEmitter.emit(
-                    XMPPEvents.LIVE_STREAM_URL_CHANGE,
-                    from,
-                    undefined);
-            }
-
             delete this.members[from];
             this.onParticipantLeft(from, false);
         } else if (membersKeys.length > 0) {
@@ -1300,44 +1256,27 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     * Returns true if the recording is supproted and false if not.
+     * Starts a recording session.
+     *
+     * @param {Object} options - Configuration for the recording. See
+     * {@link recordingManager#startRecording} for more info.
+     * @returns {Promise} See {@link recordingManager#startRecording} for more
+     * info.
      */
-    isRecordingSupported() {
-        if (this.recording) {
-            return this.recording.isSupported();
-        }
-
-        return false;
+    startRecording(options) {
+        return recordingManager.startRecording(options);
     }
 
     /**
-     * Returns null if the recording is not supported, "on" if the recording
-     * started and "off" if the recording is not started.
+     * Stops a recording session.
+     *
+     * @param {string} sessionID - The ID of the recording session that should
+     * be stopped.
+     * @returns {Promise} See {@link recordingManager#stopRecording} for more
+     * info.
      */
-    getRecordingState() {
-        return this.recording ? this.recording.getState() : undefined;
-    }
-
-    /**
-     * Returns the url of the recorded video.
-     */
-    getRecordingURL() {
-        return this.recording ? this.recording.getURL() : null;
-    }
-
-    /**
-     * Starts/stops the recording
-     * @param token token for authentication
-     * @param statusChangeHandler {function} receives the new status as
-     * argument.
-     */
-    toggleRecording(options, statusChangeHandler) {
-        if (this.recording) {
-            return this.recording.toggleRecording(options, statusChangeHandler);
-        }
-
-        return statusChangeHandler('error',
-            new Error('The conference is not created yet!'));
+    stopRecording(sessionID) {
+        return recordingManager.stopRecording(sessionID);
     }
 
     /**

@@ -26,37 +26,8 @@ export default class VideoSIPGW {
         // VideoSIPGW, JitsiConference and ChatRoom are not reusable and no
         // more than one VideoSIPGW can be created per JitsiConference,
         // so we don't bother to cleanup
-        chatRoom.addPresenceListener('jibri-sip-status',
-            this.handleJibriSIPStatus.bind(this));
         chatRoom.addPresenceListener('jibri-sip-call-state',
             this.handleJibriSIPState.bind(this));
-    }
-
-    /**
-     * Handles presence nodes with name: jibri-sip-status.
-     *
-     * @param {Object} node the presence node Object to handle.
-     * Object representing part of the presence received over xmpp.
-     */
-    handleJibriSIPStatus(node) {
-        const attributes = node.attributes;
-
-        if (!attributes) {
-            return;
-        }
-
-        logger.debug('Handle video sip gw status : ', attributes);
-        const newStatus = attributes.status;
-
-        // check for global availability of the service
-        if (newStatus !== this.status
-            && (newStatus === Constants.STATUS_UNDEFINED
-                || newStatus === Constants.STATUS_AVAILABLE
-                || newStatus === Constants.STATUS_BUSY)) {
-            this.status = newStatus;
-            this.eventEmitter.emit(
-                XMPPEvents.VIDEO_SIP_GW_AVAILABILITY_CHANGED, this.status);
-        }
     }
 
     /**
@@ -96,7 +67,7 @@ export default class VideoSIPGW {
             const session = this.sessions[address];
 
             if (session) {
-                session.setState(newState);
+                session.setState(newState, attributes.failure_reason);
             } else {
                 logger.warn('Video SIP GW session not found:', address);
             }

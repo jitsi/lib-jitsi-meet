@@ -12,13 +12,11 @@ import * as JitsiConnectionErrors from './JitsiConnectionErrors';
 import * as JitsiConnectionEvents from './JitsiConnectionEvents';
 import JitsiMediaDevices from './JitsiMediaDevices';
 import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
-import JitsiRecorderErrors from './JitsiRecorderErrors';
 import JitsiTrackError from './JitsiTrackError';
 import * as JitsiTrackErrors from './JitsiTrackErrors';
 import * as JitsiTrackEvents from './JitsiTrackEvents';
 import * as JitsiTranscriptionStatus from './JitsiTranscriptionStatus';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
-import Recording from './modules/xmpp/recording';
 import Logger from 'jitsi-meet-logger';
 import * as MediaType from './service/RTC/MediaType';
 import Resolutions from './service/RTC/Resolutions';
@@ -28,6 +26,7 @@ import RTC from './modules/RTC/RTC';
 import browser from './modules/browser';
 import RTCUIHelper from './modules/RTC/RTCUIHelper';
 import ScriptUtil from './modules/util/ScriptUtil';
+import recordingConstants from './modules/recording/recordingConstants';
 import Statistics from './modules/statistics/statistics';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 
@@ -132,8 +131,7 @@ export default _mergeNamespaceAndModule({
     JitsiConnection,
     constants: {
         participantConnectionStatus: ParticipantConnectionStatus,
-        recordingStatus: Recording.status,
-        recordingTypes: Recording.types,
+        recording: recordingConstants,
         sipVideoGW: VideoSIPGWConstants,
         transcriptionStatus: JitsiTranscriptionStatus
     },
@@ -147,7 +145,6 @@ export default _mergeNamespaceAndModule({
     errors: {
         conference: JitsiConferenceErrors,
         connection: JitsiConnectionErrors,
-        recorder: JitsiRecorderErrors,
         track: JitsiTrackErrors
     },
     errorTypes: {

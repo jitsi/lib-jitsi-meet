@@ -81,8 +81,11 @@ export default class JitsiVideoSIPGWSession extends Listenable {
      * Changes the state of this session.
      *
      * @param {string} newState - The new {VideoSIPGWConstants} state to set.
+     * @param {string} [optional] failureReason - The reason why a failure state
+     * was entered.
+     * @returns {void}
      */
-    setState(newState) {
+    setState(newState, failureReason) {
         if (newState === this.state) {
             return;
         }
@@ -93,6 +96,7 @@ export default class JitsiVideoSIPGWSession extends Listenable {
         this.eventEmitter.emit(STATE_CHANGED,
             {
                 address: this.sipAddress,
+                failureReason,
                 oldState,
                 newState: this.state,
                 displayName: this.displayName
