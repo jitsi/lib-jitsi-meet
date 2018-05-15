@@ -67,8 +67,9 @@ export default class JibriSession {
     /**
      * Sets the last known error message related to the session.
      *
-     * @param {string} error
-     * @returns {string|undefined}
+     * @param {string} error - The error string explaining why the session
+     * entered an error state.
+     * @returns {void}
      */
     setError(error) {
         this._error = error;
@@ -78,8 +79,8 @@ export default class JibriSession {
      * Sets the last live stream URL for the session instance. Usually this is
      * a YouTube URL and usually this is only set for "stream" sessions.
      *
-     * @param {string} error
-     * @returns {string|undefined}
+     * @param {string} url - The live stream URL associated with the session.
+     * @returns {void}
      */
     setLiveStreamViewURL(url) {
         this._liveStreamViewURL = url;
@@ -89,9 +90,9 @@ export default class JibriSession {
      * Sets the last known status for this recording session.
      *
      * @param {string} status - The new status to set.
-     * @returns {string|undefined}
+     * @returns {void}
      */
-    setStatus(status = null) {
+    setStatus(status) {
         this._status = status;
     }
 
@@ -192,6 +193,7 @@ export default class JibriSession {
     /**
      * Handles the error from an iq and stores the error.
      *
+     * @param {Node} errorIq - The error response from an Iq.
      * @private
      * @returns {void}
      */
