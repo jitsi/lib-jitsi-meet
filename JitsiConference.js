@@ -418,12 +418,14 @@ JitsiConference.prototype.leave = function() {
 
         this.room = null;
 
-        return room.leave().catch(() => {
+        return room.leave().catch(error => {
             // remove all participants because currently the conference won't
             // be usable anyway. This is done on success automatically by the
             // ChatRoom instance.
             this.getParticipants().forEach(
                 participant => this.onMemberLeft(participant.getJid()));
+
+            throw error;
         });
     }
 
