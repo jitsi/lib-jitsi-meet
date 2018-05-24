@@ -95,14 +95,12 @@ const ScreenObtainer = {
      * (this.obtainStream).
      *
      * @param {object} options
-     * @param {boolean} [options.disableDesktopSharing]
      * @param {boolean} [options.desktopSharingChromeDisabled]
      * @param {boolean} [options.desktopSharingChromeExtId]
      * @param {boolean} [options.desktopSharingFirefoxDisabled]
      * @param {Function} gum GUM method
      */
     init(options = {
-        disableDesktopSharing: false,
         desktopSharingChromeDisabled: false,
         desktopSharingChromeExtId: null,
         desktopSharingFirefoxDisabled: false
@@ -110,9 +108,7 @@ const ScreenObtainer = {
         this.options = options;
         gumFunction = gum;
 
-        this.obtainStream
-            = this.options.disableDesktopSharing
-                ? null : this._createObtainStreamMethod(options);
+        this.obtainStream = this._createObtainStreamMethod(options);
 
         if (!this.obtainStream) {
             logger.info('Desktop sharing disabled');
