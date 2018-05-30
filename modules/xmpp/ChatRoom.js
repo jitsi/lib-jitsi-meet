@@ -1018,9 +1018,9 @@ export default class ChatRoom extends Listenable {
                         .up();
                     formsubmit
                         .c('field',
-                             {'var':'muc#roomconfig_passwordprotectedroom'})
+                             { 'var': 'muc#roomconfig_passwordprotectedroom' })
                         .c('value')
-                        .t(key === null || key.length === 0?'0':'1')
+                        .t(key === null || key.length === 0 ? '0' : '1')
                         .up()
                         .up();
 
