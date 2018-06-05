@@ -369,7 +369,8 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                 const options = this.xmpp.options;
 
                 if (options.useStunTurn) {
-                    this.jvbIceConfig.iceServers = iceservers;
+                    this.jvbIceConfig.iceServers
+                        = iceservers.filter(s => s.url.startsWith('turns'));
                 }
 
                 if (options.p2p && options.p2p.useStunTurn) {
