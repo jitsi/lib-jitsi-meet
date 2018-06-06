@@ -442,6 +442,13 @@ JitsiConference.prototype.getName = function() {
 };
 
 /**
+ * Returns the {@link JitsiConnection} used by this this conference.
+ */
+JitsiConference.prototype.getConnection = function() {
+    return this.connection;
+};
+
+/**
  * Check if authentication is enabled for this conference.
  */
 JitsiConference.prototype.isAuthEnabled = function() {
