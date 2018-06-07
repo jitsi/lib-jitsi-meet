@@ -189,10 +189,10 @@ export default function TraceablePeerConnection(
      * 300 values, i.e. 5 minutes; set to 0 to disable
      */
     this.maxstats = options.maxstats;
-    const Interop = require('sdp-interop').Interop;
+    const Interop = require('@jitsi/sdp-interop').Interop;
 
     this.interop = new Interop();
-    const Simulcast = require('sdp-simulcast');
+    const Simulcast = require('@jitsi/sdp-simulcast');
 
     this.simulcast = new Simulcast({ numOfLayers: SIMULCAST_LAYERS,
         explodeRemoteSimulcast: false });
