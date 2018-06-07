@@ -282,6 +282,8 @@ export default class JingleSessionPC extends JingleSession {
             pcOptions.enableFirefoxSimulcast
                 = this.room.options.testing
                     && this.room.options.testing.enableFirefoxSimulcast;
+            pcOptions.enableLayerSuspension
+                = this.room.options.enableLayerSuspension;
         }
 
         this.peerconnection

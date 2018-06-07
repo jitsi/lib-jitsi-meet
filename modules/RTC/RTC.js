@@ -278,6 +278,24 @@ export default class RTC extends Listenable {
         // Add Last N change listener.
         this.addListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
             this._lastNChangeListener);
+
+        this.addListener(
+            RTCEvents.IS_SELECTED_CHANGED,
+            isSelected => {
+                const jvbSession = this.conference.jvbJingleSession;
+
+                if (jvbSession) {
+                    jvbSession.peerconnection.setIsSelected(isSelected);
+                    logger.info('Doing local O/A due to '
+                        + 'IS_SELECTED_CHANGED event');
+                    jvbSession.modificationQueue.push(finishedCallback => {
+                        jvbSession._renegotiate()
+                            .then(finishedCallback)
+                            .catch(finishedCallback);
+                    });
+                }
+            }
+        );
     }
 
     /**

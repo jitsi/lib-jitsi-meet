@@ -14,6 +14,8 @@ const RTCEvents = {
     DOMINANT_SPEAKER_CHANGED: 'rtc.dominant_speaker_changed',
     LASTN_ENDPOINT_CHANGED: 'rtc.lastn_endpoint_changed',
 
+    IS_SELECTED_CHANGED: 'rtc.is_selected_change',
+
     /**
      * Event emitted when {@link RTC.setLastN} method is called to update with
      * the new value set.
