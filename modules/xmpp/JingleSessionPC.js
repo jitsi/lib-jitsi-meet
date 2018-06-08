@@ -481,9 +481,9 @@ export default class JingleSessionPC extends JingleSession {
         // The signaling layer will bind it's listeners at this point
         this.signalingLayer.setChatRoom(this.room);
 
-        if (!this.isP2P) {
+        if (!this.isP2P && this.room.options.enableLayerSuspension) {
             // If this is the bridge session, we'll listen for
-            // IS_SELECTED_CHANGED events
+            // IS_SELECTED_CHANGED events and notify the peer connection
             this.rtc.addListener(RTCEvents.IS_SELECTED_CHANGED,
                 isSelected => {
                     this.peerconnection.setIsSelected(isSelected);
