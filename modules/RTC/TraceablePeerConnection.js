@@ -50,6 +50,9 @@ const SIM_LAYER_RIDS = [ SIM_LAYER_1_RID, SIM_LAYER_2_RID, SIM_LAYER_3_RID ];
  *      disabled by removing it from the SDP.
  * @param {boolean} options.preferH264 if set to 'true' H264 will be preferred
  * over other video codecs.
+ * @param {boolean} options.enableLayerSuspension if set to 'true', we will
+ * cap the video send bitrate when we are told we have not been selected by
+ * any endpoints (and therefore the non-thumbnail streams are not in use).
  *
  * FIXME: initially the purpose of TraceablePeerConnection was to be able to
  * debug the peer connection. Since many other responsibilities have been added
