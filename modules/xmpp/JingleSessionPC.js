@@ -17,6 +17,7 @@ import SDPUtil from './SDPUtil';
 import SignalingLayerImpl from './SignalingLayerImpl';
 
 import browser from '../browser';
+import RTCEvents from '../../service/RTC/RTCEvents';
 import Statistics from '../statistics/statistics';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
@@ -479,6 +480,23 @@ export default class JingleSessionPC extends JingleSession {
 
         // The signaling layer will bind it's listeners at this point
         this.signalingLayer.setChatRoom(this.room);
+
+        if (!this.isP2P) {
+            // If this is the bridge session, we'll listen for
+            // IS_SELECTED_CHANGED events
+            this.rtc.addListener(RTCEvents.IS_SELECTED_CHANGED,
+                isSelected => {
+                    this.peerconnection.setIsSelected(isSelected);
+                    logger.info('Doing local O/A due to '
+                        + 'IS_SELECTED_CHANGED event');
+                    this.modificationQueue.push(finishedCallback => {
+                        this._renegotiate()
+                            .then(finishedCallback)
+                            .catch(finishedCallback);
+                    });
+                }
+            );
+        }
     }
 
     /**
