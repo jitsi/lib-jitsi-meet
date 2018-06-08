@@ -33,6 +33,7 @@ export default class BrowserCapabilities extends BrowserDetection {
         return !(
             this.isFirefox()
             || this.isEdge()
+            || this.isReactNative()
             || this.isSafariWithWebrtc()
         );
     }
