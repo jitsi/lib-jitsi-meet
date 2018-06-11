@@ -636,7 +636,8 @@ SDP.prototype.jingle2media = function(content) {
         tmp.proto = 'RTP/AVPF';
     }
     if (sctp.length) {
-        media += `m=application 1 DTLS/SCTP ${sctp.attr('number')}\r\n`;
+        media += `m=application ${tmp.port} DTLS/SCTP ${
+            sctp.attr('number')}\r\n`;
         media += `a=sctpmap:${sctp.attr('number')} ${sctp.attr('protocol')}`;
 
         const streamCount = sctp.attr('streams');

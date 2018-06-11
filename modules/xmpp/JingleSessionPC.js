@@ -16,7 +16,6 @@ import SDPDiffer from './SDPDiffer';
 import SDPUtil from './SDPUtil';
 import SignalingLayerImpl from './SignalingLayerImpl';
 
-import browser from '../browser';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import Statistics from '../statistics/statistics';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
@@ -979,28 +978,14 @@ export default class JingleSessionPC extends JingleSession {
     replaceTransport(jingleOfferElem, success, failure) {
         this.room.eventEmitter.emit(XMPPEvents.ICE_RESTARTING, this);
 
-        // Starting on Chrome version 63, having to do a double offer-answer
-        // cycle is not needed to establish a connection with the new bridge.
-        if (browser.isChrome() && browser.isVersionGreaterThan('62')) {
-            this.setOfferAnswerCycle(
-                jingleOfferElem,
-                () => {
-                    const localSDP
-                        = new SDP(this.peerconnection.localDescription.sdp);
-
-                    this.sendTransportAccept(localSDP, success, failure);
-                },
-                failure);
-
-            return;
-        }
-
         // We need to first set an offer without the 'data' section to have the
         // SCTP stack cleaned up. After that the original offer is set to have
         // the SCTP connection established with the new bridge.
         const originalOffer = jingleOfferElem.clone();
 
-        jingleOfferElem.find('>content[name=\'data\']').remove();
+        jingleOfferElem
+            .find('>content[name=\'data\']')
+            .attr('senders', 'rejected');
 
         // First set an offer without the 'data' section
         this.setOfferAnswerCycle(
