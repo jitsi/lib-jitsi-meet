@@ -978,16 +978,17 @@ export default class JingleSessionPC extends JingleSession {
     replaceTransport(jingleOfferElem, success, failure) {
         this.room.eventEmitter.emit(XMPPEvents.ICE_RESTARTING, this);
 
-        // We need to first set an offer without the 'data' section to have the
-        // SCTP stack cleaned up. After that the original offer is set to have
-        // the SCTP connection established with the new bridge.
+        // We need to first reject the 'data' section to have the SCTP stack
+        // cleaned up to signal the known data channel is now invalid. After
+        // that the original offer is set to have the SCTP connection
+        // established with the new bridge.
         const originalOffer = jingleOfferElem.clone();
 
         jingleOfferElem
             .find('>content[name=\'data\']')
             .attr('senders', 'rejected');
 
-        // First set an offer without the 'data' section
+        // First set an offer with a rejected 'data' section
         this.setOfferAnswerCycle(
             jingleOfferElem,
             () => {
