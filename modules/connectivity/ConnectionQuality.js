@@ -362,20 +362,20 @@ export default class ConnectionQuality {
             const isSimulcastOn
                 = Boolean(activeTPC && activeTPC.isSimulcastOn());
 
-            const videoCap
+            const newVideoBitrateCap
                 = activeTPC && activeTPC.bandwidthLimiter
                 && activeTPC.bandwidthLimiter.getBandwidthLimit('video');
 
             // If we had a cap set but there isn't one now, then it has
             // just been 'lifted', so we should treat this like a new
             // ramp up.
-            if (!videoCap && videoBitrateCap) {
+            if (!newVideoBitrateCap && videoBitrateCap) {
                 this._timeLastBwCapRemoved = window.performance.now();
 
                 // Set the start bitrate to whatever we were just capped to
                 startBitrate = videoBitrateCap;
             }
-            videoBitrateCap = videoCap;
+            videoBitrateCap = newVideoBitrateCap;
 
             // time since sending of video was enabled.
             const millisSinceStart = window.performance.now()
@@ -389,8 +389,8 @@ export default class ConnectionQuality {
 
             target = Math.min(0.9 * target, MAX_TARGET_BITRATE);
 
-            if (videoCap) {
-                target = Math.min(target, videoCap);
+            if (videoBitrateCap) {
+                target = Math.min(target, videoBitrateCap);
             }
 
             quality = 100 * this._localStats.bitrate.upload / target;
