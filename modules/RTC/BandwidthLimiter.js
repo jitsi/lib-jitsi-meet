@@ -41,6 +41,17 @@ export default class BandwidthLimiter {
     }
 
     /**
+     * Get the current bandwidth limit
+     * @param {String} mediaType the mline media type for which to get the
+     * bandwidth limit
+     * @return {Number} the bandwidth limit in kbps if it exists, undefined
+     * otherwise
+     */
+    getBandwidthLimit(mediaType) {
+        return this._bandwidthLimits.get(mediaType);
+    }
+
+    /**
      * Enforce any configured bandwidth limits (or lack thereof) in the given
      * sdp
      * @param {String} sdp the session description

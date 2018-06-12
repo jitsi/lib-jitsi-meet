@@ -69,6 +69,14 @@ const MAX_TARGET_BITRATE = 2500;
  */
 let startBitrate = 800;
 
+
+/**
+ * The current cap (in kbps) put on the video stream (or null if there isn't
+ * a cap).  If there is a cap, we'll take it into account when calculating
+ * the current quality.
+ */
+let videoBitrateCap = null;
+
 /**
  * Gets the expected bitrate (in kbps) in perfect network conditions.
  * @param simulcast {boolean} whether simulcast is enabled or not.
@@ -196,6 +204,12 @@ export default class ConnectionQuality {
          */
         this._timeVideoUnmuted = -1;
 
+        /**
+         * The time at which a video bitrate cap was last removed.  We use
+         * this to calculate how much time we, as a sender, have had to
+         * ramp-up
+         */
+        this._timeLastBwCapRemoved = -1;
 
         // We assume a global startBitrate value for the sake of simplicity.
         if (options.startBitrate && options.startBitrate > 0) {
@@ -343,20 +357,41 @@ export default class ConnectionQuality {
         } else {
             // Calculate a value based on the sending bitrate.
 
-            // time since sending of video was enabled.
-            const millisSinceStart = window.performance.now()
-                    - Math.max(this._timeVideoUnmuted, this._timeIceConnected);
-
             // Figure out if simulcast is in use
             const activeTPC = this._conference.getActivePeerConnection();
             const isSimulcastOn
                 = Boolean(activeTPC && activeTPC.isSimulcastOn());
+
+            const videoCap
+                = activeTPC && activeTPC.bandwidthLimiter
+                && activeTPC.bandwidthLimiter.getBandwidthLimit('video');
+
+            // If we had a cap set but there isn't one now, then it has
+            // just been 'lifted', so we should treat this like a new
+            // ramp up.
+            if (!videoCap && videoBitrateCap) {
+                this._timeLastBwCapRemoved = window.performance.now();
+
+                // Set the start bitrate to whatever we were just capped to
+                startBitrate = videoBitrateCap;
+            }
+            videoBitrateCap = videoCap;
+
+            // time since sending of video was enabled.
+            const millisSinceStart = window.performance.now()
+                - Math.max(this._timeVideoUnmuted,
+                    this._timeIceConnected,
+                    this._timeLastBwCapRemoved);
 
             // expected sending bitrate in perfect conditions
             let target
                 = getTarget(isSimulcastOn, resolution, millisSinceStart);
 
             target = Math.min(0.9 * target, MAX_TARGET_BITRATE);
+
+            if (videoCap) {
+                target = Math.min(target, videoCap);
+            }
 
             quality = 100 * this._localStats.bitrate.upload / target;
 
