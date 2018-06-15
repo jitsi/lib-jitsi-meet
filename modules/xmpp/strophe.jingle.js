@@ -369,7 +369,10 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                 const options = this.xmpp.options;
 
                 if (options.useStunTurn) {
-                    this.jvbIceConfig.iceServers = iceservers;
+                    // we want to filter and leave only tcp/turns candidates
+                    // which make sense for the jvb connections
+                    this.jvbIceConfig.iceServers
+                        = iceservers.filter(s => s.url.startsWith('turns'));
                 }
 
                 if (options.p2p && options.p2p.useStunTurn) {
