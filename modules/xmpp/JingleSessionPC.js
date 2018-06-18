@@ -1700,15 +1700,19 @@ export default class JingleSessionPC extends JingleSession {
             });
         };
 
-        this.modificationQueue.push(
-            workFunction,
-            error => {
-                if (error) {
-                    logger.error('Replace track error:', error);
-                } else {
-                    logger.info('Replace track done!');
-                }
-            });
+        return new Promise((resolve, reject) => {
+            this.modificationQueue.push(
+                workFunction,
+                error => {
+                    if (error) {
+                        logger.error('Replace track error:', error);
+                        reject(error);
+                    } else {
+                        logger.info('Replace track done!');
+                        resolve();
+                    }
+                });
+        });
     }
 
     /**
