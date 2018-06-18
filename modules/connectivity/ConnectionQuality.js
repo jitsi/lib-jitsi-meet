@@ -88,7 +88,7 @@ function getTarget(simulcast, resolution, millisSinceStart) {
     // Completely ignore the bitrate in the first 5 seconds, as the first
     // event seems to fire very early and the value is suspicious and causes
     // false positives.
-    if (millisSinceStart < 5000) {
+    if (millisSinceStart < 15000) {
         return 1;
     }
 
