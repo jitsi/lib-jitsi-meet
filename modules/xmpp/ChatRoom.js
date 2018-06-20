@@ -6,7 +6,6 @@ import { $iq, $msg, $pres, Strophe } from 'strophe.js';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
 import Listenable from '../util/Listenable';
-import recordingManager from '../recording/recordingManager';
 import Settings from '../settings/Settings';
 import * as MediaType from '../../service/RTC/MediaType';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
@@ -172,11 +171,6 @@ export default class ChatRoom extends Listenable {
 
         this.locked = false;
         this.transcriptionStatus = JitsiTranscriptionStatus.OFF;
-
-        recordingManager.init(
-            this.eventEmitter,
-            this.connection,
-            this.focusMucJid);
     }
 
     /* eslint-enable max-params */
@@ -424,7 +418,10 @@ export default class ChatRoom extends Listenable {
                 && this.options.hiddenDomain
                     === jid.substring(jid.indexOf('@') + 1, jid.indexOf('/'));
 
-        recordingManager.onPresence(pres, member.isHiddenDomain);
+        this.eventEmitter.emit(XMPPEvents.PRESENCE_RECEIVED, {
+            fromHiddenDomain: member.isHiddenDomain,
+            presence: pres
+        });
 
         const xEl = pres.querySelector('x');
 
@@ -644,8 +641,6 @@ export default class ChatRoom extends Listenable {
      */
     _initFocus(from, mucJid) {
         this.focusMucJid = from;
-
-        recordingManager.setFocusMucJid(this.focusMucJid);
 
         logger.info(`Ignore focus: ${from}, real JID: ${mucJid}`);
     }
@@ -1253,30 +1248,6 @@ export default class ChatRoom extends Listenable {
         data.muted = mutedNode.length > 0 && mutedNode[0].value === 'true';
 
         return data;
-    }
-
-    /**
-     * Starts a recording session.
-     *
-     * @param {Object} options - Configuration for the recording. See
-     * {@link recordingManager#startRecording} for more info.
-     * @returns {Promise} See {@link recordingManager#startRecording} for more
-     * info.
-     */
-    startRecording(options) {
-        return recordingManager.startRecording(options);
-    }
-
-    /**
-     * Stops a recording session.
-     *
-     * @param {string} sessionID - The ID of the recording session that should
-     * be stopped.
-     * @returns {Promise} See {@link recordingManager#stopRecording} for more
-     * info.
-     */
-    stopRecording(sessionID) {
-        return recordingManager.stopRecording(sessionID);
     }
 
     /**

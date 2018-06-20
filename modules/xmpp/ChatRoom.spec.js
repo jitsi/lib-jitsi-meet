@@ -155,7 +155,11 @@ describe('ChatRoom', () => {
             const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
 
             room.onPresence(pres);
-            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy.calls.count()).toEqual(2);
+            expect(emitterSpy.calls.argsFor(0)).toEqual([
+                XMPPEvents.PRESENCE_RECEIVED,
+                jasmine.any(Object)
+            ]);
             expect(emitterSpy).toHaveBeenCalledWith(
                 XMPPEvents.MUC_MEMBER_JOINED,
                 'fromjid',
@@ -177,7 +181,11 @@ describe('ChatRoom', () => {
             const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
 
             room.onPresence(pres);
-            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy.calls.count()).toEqual(2);
+            expect(emitterSpy.calls.argsFor(0)).toEqual([
+                XMPPEvents.PRESENCE_RECEIVED,
+                jasmine.any(Object)
+            ]);
             expect(emitterSpy).toHaveBeenCalledWith(
                 XMPPEvents.MUC_MEMBER_JOINED,
                 'fromjid',
@@ -214,7 +222,11 @@ describe('ChatRoom', () => {
             };
 
             room.onPresence(pres);
-            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy.calls.count()).toEqual(2);
+            expect(emitterSpy.calls.argsFor(0)).toEqual([
+                XMPPEvents.PRESENCE_RECEIVED,
+                jasmine.any(Object)
+            ]);
             expect(emitterSpy).toHaveBeenCalledWith(
                 XMPPEvents.MUC_MEMBER_JOINED,
                 'fromjid',
