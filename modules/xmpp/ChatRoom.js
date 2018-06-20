@@ -30,7 +30,10 @@ export const parser = {
             const text = Strophe.getText(child);
 
             if (text) {
-                node.value = text;
+                // Using Strophe.getText will do work for traversing all direct
+                // child text nodes but returns an escaped value, which is not
+                // desirable at this point.
+                node.value = Strophe.xmlunescape(text);
             }
             nodes.push(node);
             this.packet2JSON(child, node.children);
