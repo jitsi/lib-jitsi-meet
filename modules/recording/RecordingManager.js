@@ -13,8 +13,8 @@ const logger = getLogger(__filename);
  */
 class RecordingManager {
     /**
-     * Initialize RecordingManager with other objects that are necessary for
-     * starting a recording.
+     * Initialize {@code RecordingManager} with other objects that are necessary
+     * for starting a recording.
      *
      * @param {ChatRoom} chatRoom - The chat room to handle.
      * @returns {void}
