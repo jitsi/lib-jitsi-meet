@@ -39,6 +39,7 @@ import Statistics from './modules/statistics/statistics';
 import TalkMutedDetection from './modules/TalkMutedDetection';
 import Transcriber from './modules/transcription/transcriber';
 import VideoType from './service/RTC/VideoType';
+import RecordingManager from './modules/recording/RecordingManager';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import * as XMPPEvents from './service/xmpp/XMPPEvents';
@@ -200,6 +201,7 @@ export default function JitsiConference(options) {
     this.p2pJingleSession = null;
 
     this.videoSIPGWHandler = new VideoSIPGW(this.room);
+    this.recordingManager = new RecordingManager(this.room);
 }
 
 // FIXME convert JitsiConference to ES6 - ASAP !
@@ -1752,7 +1754,7 @@ JitsiConference.prototype.sendTones = function(tones, duration, pause) {
  */
 JitsiConference.prototype.startRecording = function(options) {
     if (this.room) {
-        return this.room.startRecording(options);
+        return this.recordingManager.startRecording(options);
     }
 
     return Promise.reject(new Error('The conference is not created yet!'));
@@ -1767,7 +1769,7 @@ JitsiConference.prototype.startRecording = function(options) {
  */
 JitsiConference.prototype.stopRecording = function(sessionID) {
     if (this.room) {
-        return this.room.stopRecording(sessionID);
+        return this.recordingManager.stopRecording(sessionID);
     }
 
     return Promise.reject(new Error('The conference is not created yet!'));

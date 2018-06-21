@@ -148,6 +148,7 @@ const XMPPEvents = {
      * Indicates that phone number changed.
      */
     PHONE_NUMBER_CHANGED: 'conference.phoneNumberChanged',
+    PRESENCE_RECEIVED: 'xmpp.presence_received',
     PRESENCE_STATUS: 'xmpp.presence_status',
     PROMPT_FOR_LOGIN: 'xmpp.prompt_for_login',
 

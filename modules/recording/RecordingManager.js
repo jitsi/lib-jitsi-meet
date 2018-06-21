@@ -8,32 +8,30 @@ import recordingXMLUtils from './recordingXMLUtils';
 const logger = getLogger(__filename);
 
 /**
- * A singleton responsible for starting and stopping recording sessions and
- * emitting state updates for them.
+ * A class responsible for starting and stopping recording sessions and emitting
+ * state updates for them.
  */
-const recordingManager = {
+class RecordingManager {
     /**
-     * All known recording sessions from the current conference.
-     */
-    _sessions: {},
-
-    /**
-     * Initialize recordingManager with other objects that are necessary for
-     * starting a recording.
+     * Initialize {@code RecordingManager} with other objects that are necessary
+     * for starting a recording.
      *
-     * @param {Object} eventEmitter - The eventEmitter to be used for
-     * broadcasting recording state changes.
-     * @param {Object} connection - The MUC connection used for sending out
-     * messages regarding recording.
-     * @param {string} focusMucJid - The ID of the conference (MUC) the focus
-     * is in.
+     * @param {ChatRoom} chatRoom - The chat room to handle.
      * @returns {void}
      */
-    init(eventEmitter, connection, focusMucJid) {
-        this._eventEmitter = eventEmitter;
-        this._connection = connection;
-        this._focusMucJid = focusMucJid;
-    },
+    constructor(chatRoom) {
+        /**
+         * All known recording sessions from the current conference.
+         */
+        this._sessions = {};
+
+        this._chatRoom = chatRoom;
+
+        this.onPresence = this.onPresence.bind(this);
+
+        this._chatRoom.eventEmitter.addListener(
+            XMPPEvents.PRESENCE_RECEIVED, this.onPresence);
+    }
 
     /**
      * Finds an existing recording session by session ID.
@@ -43,38 +41,27 @@ const recordingManager = {
      */
     getSession(sessionID) {
         return this._sessions[sessionID];
-    },
+    }
 
     /**
      * Callback to invoke to parse through a presence update to find recording
      * related updates (from Jibri participant doing the recording and the
      * focus which controls recording).
      *
-     * @param {Node} presence - An XMPP presence update.
-     * @param {boolean} isHiddenDomain - Whether or not the presence update
-     * comes from a participant that is trusted but not visible, as would be the
-     * case with the Jibri recorder participant.
+     * @param {Object} event - The presence data from the pubsub event.
+     * @param {Node} event.presence - An XMPP presence update.
+     * @param {boolean} event.fromHiddenDomain - Whether or not the update comes
+     * from a participant that is trusted but not visible, as would be the case
+     * with the Jibri recorder participant.
      * @returns {void}
      */
-    onPresence(presence, isHiddenDomain) {
+    onPresence({ fromHiddenDomain, presence }) {
         if (recordingXMLUtils.isFromFocus(presence)) {
             this._handleFocusPresence(presence);
-        } else if (isHiddenDomain) {
+        } else if (fromHiddenDomain) {
             this._handleJibriPresence(presence);
         }
-    },
-
-    /**
-     * Sets the currently known ID of the conference (MUC). This method exists
-     * in case the ID is not known at init time.
-     *
-     * @param {string} focusMucJid - The ID of the conference (MUC) the focus
-     * is in.
-     * @returns {void}
-     */
-    setFocusMucJid(focusMucJid) {
-        this._focusMucJid = focusMucJid;
-    },
+    }
 
     /**
      * Start a recording session.
@@ -93,12 +80,12 @@ const recordingManager = {
     startRecording(options) {
         const session = new JibriSession({
             ...options,
-            connection: this._connection
+            connection: this._chatRoom.connection
         });
 
         return session.start({
             broadcastId: options.broadcastId,
-            focusMucJid: this._focusMucJid,
+            focusMucJid: this._chatRoom.focusMucJid,
             streamId: options.streamId
         })
             .then(() => {
@@ -118,7 +105,7 @@ const recordingManager = {
 
                 return Promise.reject(error);
             });
-    },
+    }
 
     /**
      * Stop a recording session.
@@ -132,11 +119,11 @@ const recordingManager = {
         const session = this.getSession(sessionID);
 
         if (session) {
-            return session.stop({ focusMucJid: this._focusMucJid });
+            return session.stop({ focusMucJid: this._chatRoom.focusMucJid });
         }
 
         return Promise.reject(new Error('Could not find session'));
-    },
+    }
 
     /**
      * Stores a reference to the passed in JibriSession.
@@ -146,7 +133,7 @@ const recordingManager = {
      */
     _addSession(session) {
         this._sessions[session.getID()] = session;
-    },
+    }
 
     /**
      * Create a new instance of a recording session and stores a reference to
@@ -159,8 +146,8 @@ const recordingManager = {
      */
     _createSession(sessionID, status, mode) {
         const session = new JibriSession({
-            connection: this._connection,
-            focusMucJid: this._focusMucJid,
+            connection: this._chatRoom.connection,
+            focusMucJid: this._chatRoom.focusMucJid,
             mode,
             sessionID,
             status
@@ -169,7 +156,7 @@ const recordingManager = {
         this._addSession(session);
 
         return session;
-    },
+    }
 
     /**
      * Notifies listeners of an update to a recording session.
@@ -177,8 +164,9 @@ const recordingManager = {
      * @param {JibriSession} session - The session that has been updated.
      */
     _emitSessionUpdate(session) {
-        this._eventEmitter.emit(XMPPEvents.RECORDER_STATE_CHANGED, session);
-    },
+        this._chatRoom.eventEmitter.emit(
+            XMPPEvents.RECORDER_STATE_CHANGED, session);
+    }
 
     /**
      * Parses presence to update an existing JibriSession or to create a new
@@ -222,7 +210,7 @@ const recordingManager = {
         }
 
         this._emitSessionUpdate(session);
-    },
+    }
 
     /**
      * Handles updates from the Jibri which can broadcast a YouTube URL that
@@ -252,6 +240,6 @@ const recordingManager = {
 
         this._emitSessionUpdate(session);
     }
-};
+}
 
-export default recordingManager;
+export default RecordingManager;
