@@ -42,7 +42,7 @@ import VideoType from './service/RTC/VideoType';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import * as XMPPEvents from './service/xmpp/XMPPEvents';
-import { JITSI_MEET_MUC_TOPIC } from './modules/xmpp/ChatRoom';
+import { JITSI_MEET_MUC_TYPE } from './modules/xmpp/ChatRoom';
 
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 
@@ -2105,7 +2105,7 @@ JitsiConference.prototype.sendMessage = function(
             // to JSON.
             messageToSend = {
                 payload: message,
-                [JITSI_MEET_MUC_TOPIC]: ''
+                [JITSI_MEET_MUC_TYPE]: ''
             };
 
             try {

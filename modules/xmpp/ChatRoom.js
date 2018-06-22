@@ -77,21 +77,19 @@ function filterNodeFromPresenceJSON(pres, nodeName) {
 /**
  * The name of the field used to recognize a chat message as carrying a JSON
  * payload from another endpoint.
- * If the body of a chat message contains a valid JSON object, and the JSON has
- * this key, then the transported payload is contained in the 'payload'
- * property of the JSON object.
+ * If the json-message of a chat message contains a valid JSON object, and the
+ * JSON has this key, then it is a valid json-message to be sent.
  */
-export const JITSI_MEET_MUC_TOPIC = 'jitsi-meet-muc-msg-topic';
+export const JITSI_MEET_MUC_TYPE = 'type';
 
 /**
  * Check if the given argument is a valid JSON ENDPOINT_MESSAGE string by
- * parsing it and checking if it has a field called 'jitsi-meet-muc-msg-topic'
- * and a field called 'payload'
+ * parsing it and checking if it has a field called 'type'.
  *
  * @param {string} jsonString check if this string is a valid json string
- * and contains the special structure
+ * and contains the special structure.
  * @returns {boolean, object} if given object is a valid JSON string, return
- * the json object. Otherwise, return false;
+ * the json object. Otherwise, returns false.
  */
 function tryParseJSONAndVerify(jsonString) {
     try {
@@ -105,15 +103,14 @@ function tryParseJSONAndVerify(jsonString) {
         // so we must check for that, too.
         // Thankfully, null is falsey, so this suffices:
         if (json && typeof json === 'object') {
-            const topic = json[JITSI_MEET_MUC_TOPIC];
-            const payload = json.payload;
+            const type = json[JITSI_MEET_MUC_TYPE];
 
-            if ((typeof topic !== 'undefined') && payload) {
-                return payload;
+            if (typeof type !== 'undefined') {
+                return json;
             }
 
             logger.debug('parsing valid json but does not have correct '
-                + 'structure', 'topic: ', topic, 'payload: ', payload);
+                + 'structure', 'topic: ', type);
         }
     } catch (e) {
 
@@ -885,8 +882,8 @@ export default class ChatRoom extends Listenable {
                     .length) {
             this.discoRoomInfo();
         }
-
-        const jsonPayload = tryParseJSONAndVerify(txt);
+        const jsonMessage = $(msg).find('>json-message').text();
+        const jsonPayload = tryParseJSONAndVerify(jsonMessage);
 
         if (jsonPayload) {
             this.eventEmitter.emit(XMPPEvents.JSON_MESSAGE_RECEIVED,
