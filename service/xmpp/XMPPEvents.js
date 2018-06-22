@@ -101,6 +101,9 @@ const XMPPEvents = {
     // received.
     PRIVATE_MESSAGE_RECEIVED: 'xmpp.private_message_received',
 
+    // Designates an event indicating that a bot participant type had changed
+    MUC_MEMBER_BOT_TYPE_CHANGED: 'xmpp.muc_member_bot_type_changed',
+
     // Designates an event indicating that the XMPP MUC was destroyed.
     MUC_DESTROYED: 'xmpp.muc_destroyed',
 

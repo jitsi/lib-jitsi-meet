@@ -467,6 +467,17 @@ export default class ChatRoom extends Listenable {
             const node = nodes[i];
 
             switch (node.tagName) {
+            case 'bot': {
+                const { attributes } = node;
+
+                if (!attributes) {
+                    break;
+                }
+                const { type } = attributes;
+
+                member.botType = type;
+                break;
+            }
             case 'nick':
                 member.nick = node.value;
                 break;
@@ -514,6 +525,9 @@ export default class ChatRoom extends Listenable {
             if (member.isFocus) {
                 this._initFocus(from, jid);
             } else {
+                // identity is being added to member joined, so external
+                // services can be notified for that (currently identity is
+                // not used inside library)
                 this.eventEmitter.emit(
                     XMPPEvents.MUC_MEMBER_JOINED,
                     from,
@@ -522,7 +536,8 @@ export default class ChatRoom extends Listenable {
                     member.isHiddenDomain,
                     member.statsID,
                     member.status,
-                    member.identity);
+                    member.identity,
+                    member.botType);
 
                 // we are reporting the status with the join
                 // so we do not want a second event about status update
@@ -537,6 +552,15 @@ export default class ChatRoom extends Listenable {
                 memberOfThis.role = member.role;
                 this.eventEmitter.emit(
                     XMPPEvents.MUC_ROLE_CHANGED, from, member.role);
+            }
+
+            // fire event that botType had changed
+            if (memberOfThis.botType !== member.botType) {
+                memberOfThis.botType = member.botType;
+                this.eventEmitter.emit(
+                    XMPPEvents.MUC_MEMBER_BOT_TYPE_CHANGED,
+                    from,
+                    member.botType);
             }
 
             if (member.isFocus) {
