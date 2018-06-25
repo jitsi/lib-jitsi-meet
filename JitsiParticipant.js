@@ -244,4 +244,13 @@ export default class JitsiParticipant {
     getFeatures(timeout = 5000) {
         return this._conference.xmpp.caps.getFeatures(this._jid, timeout);
     }
+
+    /**
+     * Returns the bot type for the participant.
+     *
+     * @returns {string|undefined} - The bot type of the participant.
+     */
+    getBotType() {
+        return this._botType;
+    }
 }
