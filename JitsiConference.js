@@ -1228,6 +1228,12 @@ JitsiConference.prototype._onMemberBotTypeChanged = function(jid, botType) {
 
     if (botParticipant) {
         botParticipant._botType = botType;
+        const id = Strophe.getResourceFromJid(jid);
+
+        this.eventEmitter.emit(
+            JitsiConferenceEvents.BOT_TYPE_CHANGED,
+            id,
+            botType);
     }
 
     // if botType changed to undefined, botType was removed, in case of

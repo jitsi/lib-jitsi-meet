@@ -284,3 +284,8 @@ export const USER_ROLE_CHANGED = 'conference.roleChanged';
  * User status changed.
  */
 export const USER_STATUS_CHANGED = 'conference.statusChanged';
+
+/**
+ * Event indicates that the bot participant type cahnged.
+ */
+export const BOT_TYPE_CHANGED = 'conference.bot_type_changed';
