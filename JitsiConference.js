@@ -579,22 +579,27 @@ JitsiConference.prototype.removeCommandListener = function(command) {
 /**
  * Sends text message to the other participants in the conference
  * @param message the text message.
+ * @param elementName the element name to encapsulate the message.
  * @deprecated Use 'sendMessage' instead. TODO: this should be private.
  */
-JitsiConference.prototype.sendTextMessage = function(message) {
+JitsiConference.prototype.sendTextMessage = function(
+        message, elementName = 'body') {
     if (this.room) {
-        this.room.sendMessage(message);
+        this.room.sendMessage(message, elementName);
     }
 };
 
 /**
  * Send private text message to another participant of the conference
+ * @param id the id of the participant to send a private message.
  * @param message the text message.
+ * @param elementName the element name to encapsulate the message.
  * @deprecated Use 'sendMessage' instead. TODO: this should be private.
  */
-JitsiConference.prototype.sendPrivateTextMessage = function(id, message) {
+JitsiConference.prototype.sendPrivateTextMessage = function(
+        id, elementName = 'body', message) {
     if (this.room) {
-        this.room.sendPrivateMessage(id, message);
+        this.room.sendPrivateMessage(id, elementName, message);
     }
 };
 
@@ -2099,17 +2104,12 @@ JitsiConference.prototype.sendMessage = function(
         this.sendEndpointMessage(to, message);
     } else {
         let messageToSend = message;
+        let elementName = 'body';
 
         if (messageType === 'object') {
-            // Encapsulate the object in the jitsi-meet format, and convert it
-            // to JSON.
-            messageToSend = {
-                payload: message,
-                [JITSI_MEET_MUC_TYPE]: ''
-            };
-
             try {
                 messageToSend = JSON.stringify(messageToSend);
+                elementName = 'json-message';
             } catch (e) {
                 logger.error('Can not send a message, stringify failed: ', e);
 
@@ -2118,10 +2118,10 @@ JitsiConference.prototype.sendMessage = function(
         }
 
         if (to) {
-            this.sendPrivateTextMessage(to, messageToSend);
+            this.sendPrivateTextMessage(to, messageToSend, elementName);
         } else {
             // Broadcast
-            this.sendTextMessage(messageToSend);
+            this.sendTextMessage(messageToSend, elementName);
         }
     }
 
