@@ -1,6 +1,5 @@
-/* global $,
+/* global
           __filename,
-          attachMediaStream,
           MediaStreamTrack,
           RTCIceCandidate: true,
           RTCPeerConnection,
@@ -27,13 +26,6 @@ import Statistics from '../statistics/statistics';
 import VideoType from '../../service/RTC/VideoType';
 
 const logger = getLogger(__filename);
-
-// XXX Don't require Temasys unless it's to be used because it doesn't run on
-// React Native, for example.
-const AdapterJS
-    = browser.isTemasysPluginUsed()
-        ? require('./adapter.screenshare')
-        : undefined;
 
 // Require adapter only for certain browsers. This is being done for
 // react-native, which has its own shims, and while browsers are being migrated
@@ -113,7 +105,7 @@ const featureDetectionAudioEl = document.createElement('audio');
 const isAudioOutputDeviceChangeAvailable
     = typeof featureDetectionAudioEl.setSinkId !== 'undefined';
 
-let currentlyAvailableMediaDevices;
+let availableDevices;
 
 /**
  * "rawEnumerateDevicesWithCallback" will be initialized only after WebRTC is
@@ -123,7 +115,7 @@ let currentlyAvailableMediaDevices;
 let rawEnumerateDevicesWithCallback;
 
 /**
- *
+ * Initialize {@link rawEnumerateDevicesWithCallback}.
  */
 function initRawEnumerateDevicesWithCallback() {
     rawEnumerateDevicesWithCallback
@@ -134,19 +126,13 @@ function initRawEnumerateDevicesWithCallback() {
                     () => callback([]));
             }
 
-            // Safari:
-            // "ReferenceError: Can't find variable: MediaStreamTrack" when
-            // Temasys plugin is not installed yet, have to delay this call
-            // until WebRTC is ready.
-            : typeof MediaStreamTrack !== 'undefined'
-                && MediaStreamTrack.getSources
-                ? function(callback) {
-                    MediaStreamTrack.getSources(
-                        sources =>
-                            callback(
-                                sources.map(convertMediaStreamTrackSource)));
-                }
-                : undefined;
+            // react-native-webrtc
+            : function(callback) {
+                MediaStreamTrack.getSources(
+                    sources =>
+                        callback(
+                            sources.map(convertMediaStreamTrackSource)));
+            };
 }
 
 // TODO: currently no browser supports 'devicechange' event even in nightly
@@ -228,9 +214,8 @@ function getConstraints(um, options = {}) {
     // @see https://github.com/jitsi/lib-jitsi-meet/pull/136
     const isNewStyleConstraintsSupported
         = browser.isFirefox()
-        || browser.isEdge()
-        || browser.isReactNative()
-        || browser.isTemasysPluginUsed();
+            || browser.isEdge()
+            || browser.isReactNative();
 
     if (um.indexOf('video') >= 0) {
         // same behaviour as true
@@ -332,14 +317,6 @@ function getConstraints(um, options = {}) {
                 optional: []
             };
 
-        } else if (browser.isTemasysPluginUsed()) {
-            constraints.video = {
-                optional: [
-                    {
-                        sourceId: AdapterJS.WebRTCPlugin.plugin.screensharingKey
-                    }
-                ]
-            };
         } else if (browser.isFirefox()) {
             constraints.video = {
                 mozMediaSource: 'window',
@@ -353,7 +330,7 @@ function getConstraints(um, options = {}) {
         } else {
             const errmsg
                 = '\'screen\' WebRTC media source is supported only in Chrome'
-                    + ' and with Temasys plugin';
+                    + ' and Firefox';
 
             GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
             logger.error(errmsg);
@@ -549,7 +526,7 @@ function setAvailableDevices(um, stream) {
  * @returns {boolean} - true if list is different, false otherwise.
  */
 function compareAvailableMediaDevices(newDevices) {
-    if (newDevices.length !== currentlyAvailableMediaDevices.length) {
+    if (newDevices.length !== availableDevices.length) {
         return true;
     }
 
@@ -557,7 +534,7 @@ function compareAvailableMediaDevices(newDevices) {
 
     return (
         newDevices.map(mediaDeviceInfoToJSON).sort().join('')
-            !== currentlyAvailableMediaDevices
+            !== availableDevices
                 .map(mediaDeviceInfoToJSON).sort().join(''));
 
     /* eslint-enable newline-per-chained-call */
@@ -591,8 +568,8 @@ function pollForAvailableMediaDevices() {
         rawEnumerateDevicesWithCallback(ds => {
             // We don't fire RTCEvents.DEVICE_LIST_CHANGED for the first time
             // we call enumerateDevices(). This is the initial step.
-            if (typeof currentlyAvailableMediaDevices === 'undefined') {
-                currentlyAvailableMediaDevices = ds.slice(0);
+            if (typeof availableDevices === 'undefined') {
+                availableDevices = ds.slice(0);
             } else if (compareAvailableMediaDevices(ds)) {
                 onMediaDevicesListChanged(ds);
             }
@@ -643,17 +620,17 @@ function sendDeviceListToAnalytics(deviceList) {
  * @emits RTCEvents.DEVICE_LIST_CHANGED
  */
 function onMediaDevicesListChanged(devicesReceived) {
-    currentlyAvailableMediaDevices = devicesReceived.slice(0);
+    availableDevices = devicesReceived.slice(0);
     logger.info(
         'list of media devices has changed:',
-        currentlyAvailableMediaDevices);
+        availableDevices);
 
-    sendDeviceListToAnalytics(currentlyAvailableMediaDevices);
+    sendDeviceListToAnalytics(availableDevices);
 
     const videoInputDevices
-        = currentlyAvailableMediaDevices.filter(d => d.kind === 'videoinput');
+        = availableDevices.filter(d => d.kind === 'videoinput');
     const audioInputDevices
-        = currentlyAvailableMediaDevices.filter(d => d.kind === 'audioinput');
+        = availableDevices.filter(d => d.kind === 'audioinput');
     const videoInputDevicesWithEmptyLabels
         = videoInputDevices.filter(d => d.label === '');
     const audioInputDevicesWithEmptyLabels
@@ -718,16 +695,6 @@ function wrapGetUserMedia(getUserMedia, usePromises = false) {
     }
 
     return gUM;
-}
-
-/**
- * Use old MediaStreamTrack to get devices list and
- * convert it to enumerateDevices format.
- * @param {Function} callback function to call when received devices list.
- */
-function enumerateDevicesThroughMediaStreamTrack(callback) {
-    MediaStreamTrack.getSources(
-        sources => callback(sources.map(convertMediaStreamTrackSource)));
 }
 
 /**
@@ -976,8 +943,6 @@ class RTCUtils extends Listenable {
                         if (element) {
                             element.srcObject = stream;
                         }
-
-                        return element;
                     });
 
                 this.getStreamID = stream => stream.id;
@@ -1043,8 +1008,6 @@ class RTCUtils extends Listenable {
                 this.attachMediaStream
                     = wrapAttachMediaStream((element, stream) => {
                         defaultSetVideoSrc(element, stream);
-
-                        return element;
                     });
 
                 // ORTC does not generate remote MediaStreams so those are
@@ -1065,75 +1028,6 @@ class RTCUtils extends Listenable {
                 this.getTrackID = function(track) {
                     return track.jitsiRemoteId || track.id;
                 };
-            } else if (browser.isTemasysPluginUsed()) {
-                // Detect IE/Safari
-                const webRTCReadyCb = () => {
-                    this.RTCPeerConnectionType = RTCPeerConnection;
-                    this.getUserMedia = window.getUserMedia;
-                    this.enumerateDevices
-                        = enumerateDevicesThroughMediaStreamTrack;
-                    this.attachMediaStream
-                        = wrapAttachMediaStream((element, stream) => {
-                            if (stream) {
-                                if (stream.id === 'dummyAudio'
-                                        || stream.id === 'dummyVideo') {
-                                    return;
-                                }
-
-                                // The container must be visible in order to
-                                // play or attach the stream when Temasys plugin
-                                // is in use
-                                const containerSel = $(element);
-
-                                if (browser.isTemasysPluginUsed()
-                                        && !containerSel.is(':visible')) {
-                                    containerSel.show();
-                                }
-                                const video
-                                    = stream.getVideoTracks().length > 0;
-
-                                if (video && !$(element).is(':visible')) {
-                                    throw new Error(
-                                        'video element must be visible to'
-                                            + ' attach video stream');
-                                }
-                            }
-
-                            return attachMediaStream(element, stream);
-                        });
-                    this.getStreamID
-                        = stream => SDPUtil.filterSpecialChars(stream.label);
-                    this.getTrackID
-                        = track => track.id;
-
-                    onReady(
-                        options,
-                        this.getUserMediaWithConstraints.bind(this));
-                };
-                const webRTCReadyPromise
-                    = new Promise(r => AdapterJS.webRTCReady(r));
-
-                // Resolve or reject depending on whether the Temasys plugin is
-                // installed.
-                AdapterJS.WebRTCPlugin.isPluginInstalled(
-                    AdapterJS.WebRTCPlugin.pluginInfo.prefix,
-                    AdapterJS.WebRTCPlugin.pluginInfo.plugName,
-                    AdapterJS.WebRTCPlugin.pluginInfo.type,
-                    /* installed */ () => {
-                        webRTCReadyPromise.then(() => {
-                            webRTCReadyCb();
-                            resolve();
-                        });
-                    },
-                    /* not installed */ () => {
-                        const error
-                            = new Error('Temasys plugin is not installed');
-
-                        error.name = 'WEBRTC_NOT_READY';
-                        error.webRTCReadyPromise = webRTCReadyPromise;
-
-                        reject(error);
-                    });
             } else {
                 rejectWithWebRTCNotSupported(
                     'Browser does not appear to be WebRTC-capable',
@@ -1144,11 +1038,34 @@ class RTCUtils extends Listenable {
 
             this._initPCConstraints(options);
 
-            // Call onReady() if Temasys plugin is not used
-            if (!browser.isTemasysPluginUsed()) {
-                onReady(options, this.getUserMediaWithConstraints.bind(this));
-                resolve();
+            rtcReady = true;
+            eventEmitter.emit(RTCEvents.RTC_READY, true);
+            screenObtainer.init(
+                options, this.getUserMediaWithConstraints.bind(this));
+
+            if (this.isDeviceListAvailable()
+                    && rawEnumerateDevicesWithCallback) {
+                rawEnumerateDevicesWithCallback(ds => {
+                    availableDevices = ds.splice(0);
+
+                    logger.debug('Available devices: ', availableDevices);
+                    sendDeviceListToAnalytics(availableDevices);
+
+                    eventEmitter.emit(RTCEvents.DEVICE_LIST_AVAILABLE,
+                        availableDevices);
+
+                    if (isDeviceChangeEventSupported) {
+                        navigator.mediaDevices.addEventListener(
+                            'devicechange',
+                            () => this.enumerateDevices(
+                                    onMediaDevicesListChanged));
+                    } else {
+                        pollForAvailableMediaDevices();
+                    }
+                });
             }
+
+            resolve();
         });
     }
 
@@ -1782,7 +1699,6 @@ class RTCUtils extends Listenable {
             : browser.isChrome()
                 || browser.isFirefox()
                 || browser.isOpera()
-                || browser.isTemasysPluginUsed()
                 || browser.isNWJS()
                 || browser.isElectron()
                 || browser.isEdge();
@@ -1795,8 +1711,7 @@ class RTCUtils extends Listenable {
      */
     stopMediaStream(mediaStream) {
         mediaStream.getTracks().forEach(track => {
-            // stop() not supported with IE
-            if (!browser.isTemasysPluginUsed() && track.stop) {
+            if (track.stop) {
                 track.stop();
             }
         });
@@ -1871,7 +1786,7 @@ class RTCUtils extends Listenable {
      * @returns {Array} list of available media devices.
      */
     getCurrentlyAvailableMediaDevices() {
-        return currentlyAvailableMediaDevices;
+        return availableDevices;
     }
 
     /**
@@ -1928,8 +1843,8 @@ class RTCUtils extends Listenable {
 function rejectWithWebRTCNotSupported(errorMessage, reject) {
     const error = new Error(errorMessage);
 
-    // WebRTC is not supported either natively or via a known plugin such as
-    // Temasys.
+    // WebRTC is not supported.
+    //
     // XXX The Error class already has a property name which is commonly used to
     // detail the represented error in a non-human-readable way (in contrast to
     // the human-readable property message). I explicitly did not want to
@@ -1970,39 +1885,6 @@ function obtainDevices(options) {
 
             options.errorCallback(error);
         });
-}
-
-/**
- * In case of IE we continue from 'onReady' callback passed to RTCUtils
- * constructor. It will be invoked by Temasys plugin once it is initialized.
- *
- * @param options
- * @param GUM
- */
-function onReady(options, GUM) {
-    rtcReady = true;
-    eventEmitter.emit(RTCEvents.RTC_READY, true);
-    screenObtainer.init(options, GUM);
-
-    if (rtcUtils.isDeviceListAvailable() && rawEnumerateDevicesWithCallback) {
-        rawEnumerateDevicesWithCallback(ds => {
-            currentlyAvailableMediaDevices = ds.splice(0);
-
-            logger.info('Available devices: ', currentlyAvailableMediaDevices);
-            sendDeviceListToAnalytics(currentlyAvailableMediaDevices);
-
-            eventEmitter.emit(RTCEvents.DEVICE_LIST_AVAILABLE,
-                currentlyAvailableMediaDevices);
-
-            if (isDeviceChangeEventSupported) {
-                navigator.mediaDevices.addEventListener(
-                    'devicechange',
-                    () => rtcUtils.enumerateDevices(onMediaDevicesListChanged));
-            } else {
-                pollForAvailableMediaDevices();
-            }
-        });
-    }
 }
 
 /**

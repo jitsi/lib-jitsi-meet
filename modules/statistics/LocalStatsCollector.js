@@ -2,8 +2,6 @@
  * Provides statistics for the local stream.
  */
 
-import browser from '../browser';
-
 /**
  * Size of the webaudio analyzer buffer.
  * @type {number}
@@ -145,5 +143,5 @@ LocalStatsCollector.prototype.stop = function() {
  * @returns {boolean}
  */
 LocalStatsCollector.isLocalStatsSupported = function() {
-    return Boolean(context && !browser.isTemasysPluginUsed());
+    return Boolean(context);
 };

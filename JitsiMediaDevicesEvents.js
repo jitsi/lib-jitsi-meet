@@ -17,7 +17,7 @@ export const DEVICE_LIST_CHANGED = 'mediaDevices.devicechange';
  * access camera and/or microphone. The event provides the following
  * parameters to its listeners:
  *
- * @param {'chrome'|'opera'|'firefox'|'iexplorer'|'safari'|'nwjs'
+ * @param {'chrome'|'opera'|'firefox'|'safari'|'nwjs'
  *  |'react-native'|'android'} environmentType - type of browser or
  *  other execution environment.
  */

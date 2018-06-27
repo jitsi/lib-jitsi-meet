@@ -138,7 +138,7 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
 
     4. mediaDevices
         - DEVICE_LIST_CHANGED - indicates that list of currently connected devices has changed (parameters - devices(MediaDeviceInfo[])).
-        - PERMISSION_PROMPT_IS_SHOWN - Indicates that the environment is currently showing permission prompt to access camera and/or microphone (parameters - environmentType ('chrome'|'opera'|'firefox'|'iexplorer'|'safari'|'nwjs'|'react-native'|'android').
+        - PERMISSION_PROMPT_IS_SHOWN - Indicates that the environment is currently showing permission prompt to access camera and/or microphone (parameters - environmentType ('chrome'|'opera'|'firefox'|'safari'|'nwjs'|'react-native'|'android').
 
 
 * ```JitsiMeetJS.errors``` - JS object that contains all errors used by the API. You can use that object to check the reported errors from the API

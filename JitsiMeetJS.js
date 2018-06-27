@@ -24,7 +24,6 @@ import { ParticipantConnectionStatus }
     from './modules/connectivity/ParticipantConnectionStatus';
 import RTC from './modules/RTC/RTC';
 import browser from './modules/browser';
-import RTCUIHelper from './modules/RTC/RTCUIHelper';
 import ScriptUtil from './modules/util/ScriptUtil';
 import recordingConstants from './modules/recording/recordingConstants';
 import Statistics from './modules/statistics/statistics';
@@ -539,7 +538,6 @@ export default _mergeNamespaceAndModule({
      */
     util: {
         AuthUtil,
-        RTCUIHelper,
         ScriptUtil,
         browser
     }

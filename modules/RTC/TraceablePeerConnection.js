@@ -127,8 +127,7 @@ export default function TraceablePeerConnection(
 
     /**
      * Keeps tracks of the WebRTC <tt>MediaStream</tt>s that have been added to
-     * the underlying WebRTC PeerConnection. An Array is used to avoid errors in
-     * IE11 with adding temasys MediaStream objects into other data structures.
+     * the underlying WebRTC PeerConnection.
      * @type {Array}
      * @private
      */
@@ -228,15 +227,6 @@ export default function TraceablePeerConnection(
     this.trace = (what, info) => {
         logger.debug(what, info);
 
-        /*
-        if (info && browser.isIExplorer()) {
-            if (info.length > 1024) {
-                logger.warn('WTRACE', what, info.substr(1024));
-            }
-            if (info.length > 2048) {
-                logger.warn('WTRACE', what, info.substr(2048));
-            }
-        }*/
         this.updateLog.push({
             time: new Date(),
             type: what,
@@ -245,12 +235,9 @@ export default function TraceablePeerConnection(
     };
     this.onicecandidate = null;
     this.peerconnection.onicecandidate = event => {
-        // FIXME: this causes stack overflow with Temasys Plugin
-        if (!browser.isTemasysPluginUsed()) {
-            this.trace(
-                'onicecandidate',
-                JSON.stringify(event.candidate, null, ' '));
-        }
+        this.trace(
+            'onicecandidate',
+            JSON.stringify(event.candidate, null, ' '));
 
         if (this.onicecandidate !== null) {
             this.onicecandidate(event);
@@ -670,14 +657,8 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
 
     let ssrcLines = SDPUtil.findLines(mediaLines[0], 'a=ssrc:');
 
-    ssrcLines = ssrcLines.filter(
-        line => {
-            const msid
-                = browser.isTemasysPluginUsed() ? 'mslabel' : 'msid';
-
-
-            return line.indexOf(`${msid}:${streamId}`) !== -1;
-        });
+    ssrcLines
+        = ssrcLines.filter(line => line.indexOf(`msid:${streamId}`) !== -1);
     if (!ssrcLines.length) {
         GlobalOnErrorHandler.callErrorHandler(
             new Error(
@@ -2326,7 +2307,6 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
         failureCallback(err);
     };
 
-    // NOTE Temasys plugin does not support "bind" on peerconnection methods
     if (isOffer) {
         this.peerconnection.createOffer(
             _successCallback, _errorCallback, constraints);
@@ -2406,10 +2386,6 @@ TraceablePeerConnection.prototype.addIceCandidate = function(
         candidate,
         successCallback,
         failureCallback) {
-    // var self = this;
-
-    // Calling JSON.stringify with temasys objects causes a stack overflow, so
-    // instead pick out values to log.
     this.trace('addIceCandidate', JSON.stringify({
         candidate: candidate.candidate,
         sdpMid: candidate.sdpMid,
@@ -2418,19 +2394,6 @@ TraceablePeerConnection.prototype.addIceCandidate = function(
     }, null, ' '));
     this.peerconnection.addIceCandidate(
         candidate, successCallback, failureCallback);
-
-    /* maybe later
-     this.peerconnection.addIceCandidate(candidate,
-     function () {
-     self.trace('addIceCandidateOnSuccess');
-     successCallback();
-     },
-     function (err) {
-     self.trace('addIceCandidateOnFailure', err);
-     failureCallback(err);
-     }
-     );
-     */
 };
 
 /**
@@ -2443,12 +2406,10 @@ TraceablePeerConnection.prototype.addIceCandidate = function(
  * @returns {void}
  */
 TraceablePeerConnection.prototype.getStats = function(callback, errback) {
-    // TODO: Is this the correct way to handle Opera, Temasys?
     // TODO (brian): After moving all browsers to adapter, check if adapter is
     // accounting for different getStats apis, making the browser-checking-if
     // unnecessary.
-    if (browser.isTemasysPluginUsed()
-        || browser.isReactNative()) {
+    if (browser.isReactNative()) {
         this.peerconnection.getStats(
             null,
             callback,
