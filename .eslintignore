@@ -8,7 +8,6 @@ lib-jitsi-meet.min.map
 # modify as little as possible.
 doc/example/libs/*
 flow-typed/*
-modules/RTC/adapter.screenshare.js
 
 # ESLint will by default ignore its own configuration file. However, there does
 # not seem to be a reason why we will want to risk being inconsistent with our

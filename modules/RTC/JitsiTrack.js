@@ -22,12 +22,7 @@ const trackHandler2Prop = {
  * @param handler the handler
  */
 function addMediaStreamInactiveHandler(mediaStream, handler) {
-    // Temasys will use onended
-    if (typeof mediaStream.active === 'undefined') {
-        mediaStream.onended = handler;
-    } else {
-        mediaStream.oninactive = handler;
-    }
+    mediaStream.oninactive = handler;
 }
 
 /**
@@ -272,31 +267,20 @@ export default class JitsiTrack extends EventEmitter {
     /**
      * Attaches the MediaStream of this track to an HTML container.
      * Adds the container to the list of containers that are displaying the
-     * track. Note that Temasys plugin will replace original audio/video element
-     * with 'object' when stream is being attached to the container for the
-     * first time.
-     * * NOTE * if given container element is not visible when the stream is
-     * being attached it will be shown back given that Temasys plugin is
-     * currently in use.
+     * track.
      *
      * @param container the HTML container which can be 'video' or 'audio'
-     * element. It can also be 'object' element if Temasys plugin is in use and
-     * this method has been called previously on video or audio HTML element.
+     * element.
      *
-     * @returns potentially new instance of container if it was replaced by the
-     *          library. That's the case when Temasys plugin is in use.
+     * @returns {void}
      */
     attach(container) {
-        let c = container;
-
         if (this.stream) {
-            c = RTCUtils.attachMediaStream(container, this.stream);
+            RTCUtils.attachMediaStream(container, this.stream);
         }
-        this.containers.push(c);
-        this._maybeFireTrackAttached(c);
-        this._attachTTFMTracker(c);
-
-        return c;
+        this.containers.push(container);
+        this._maybeFireTrackAttached(container);
+        this._attachTTFMTracker(container);
     }
 
     /**
@@ -329,9 +313,7 @@ export default class JitsiTrack extends EventEmitter {
      * for the first element.
      *
      * @param {HTMLElement} container the HTML container which can be 'video' or
-     * 'audio' element. It can also be 'object' element if Temasys plugin is in
-     * use and this method has been called previously on video or audio HTML
-     * element.
+     * 'audio' element.
      * @private
      */
     _attachTTFMTracker(container) { // eslint-disable-line no-unused-vars
