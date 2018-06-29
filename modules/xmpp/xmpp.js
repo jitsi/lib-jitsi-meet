@@ -429,9 +429,7 @@ export default class XMPP extends Listenable {
      * disconnect from the XMPP server (e.g. beforeunload, unload).
      */
     disconnect(ev) {
-        if (this.disconnectInProgress
-                || !this.connection
-                || !this.connection.connected) {
+        if (this.disconnectInProgress || !this.connection) {
             this.eventEmitter.emit(JitsiConnectionEvents.WRONG_STATE);
 
             return;
