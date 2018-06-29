@@ -12,6 +12,7 @@ import RTC from './RTC';
 import RTCUtils from './RTCUtils';
 import browser from '../browser';
 import RTCEvents from '../../service/RTC/RTCEvents';
+import VideoType from '../../service/RTC/VideoType';
 import RtxModifier from '../xmpp/RtxModifier';
 
 // FIXME SDP tools should end up in some kind of util module
@@ -709,7 +710,11 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
     }
 
     const muted = peerMediaInfo.muted;
-    const videoType = peerMediaInfo.videoType; // can be undefined
+
+    // peerMediaInfo.videoType can be undefined so set a default type in case
+    // there is logic depending on type existing and rely on a presence update
+    // to come in to update to the correct type.
+    const videoType = peerMediaInfo.videoType || VideoType.CAMERA;
 
     this._createRemoteTrack(
         ownerEndpointId, stream, track, mediaType, videoType, trackSsrc, muted);
