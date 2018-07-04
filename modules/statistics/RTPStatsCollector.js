@@ -7,13 +7,6 @@ import * as MediaType from '../../service/RTC/MediaType';
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 const logger = require('jitsi-meet-logger').getLogger(__filename);
 
-/* Whether we support the browser we are running into for logging statistics */
-const browserSupported = browser.isChrome()
-        || browser.isOpera() || browser.isFirefox()
-        || browser.isNWJS() || browser.isElectron()
-        || browser.isEdge()
-        || browser.isSafariWithWebrtc() || browser.isReactNative();
-
 /**
  * The lib-jitsi-meet browser-agnostic names of the browser-specific keys
  * reported by RTCPeerConnection#getStats mapped by browser.
@@ -345,7 +338,7 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
         );
     }
 
-    if (browserSupported) {
+    if (browser.isSupported()) {
         this.statsIntervalId = setInterval(
             () => {
                 // Interval updates
