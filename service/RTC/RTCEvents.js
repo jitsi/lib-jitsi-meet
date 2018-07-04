@@ -8,7 +8,6 @@ const RTCEvents = {
      * Indicates error while create offer call.
      */
     CREATE_OFFER_FAILED: 'rtc.create_offer_failed',
-    RTC_READY: 'rtc.ready',
     DATA_CHANNEL_OPEN: 'rtc.data_channel_open',
     ENDPOINT_CONN_STATUS_CHANGED: 'rtc.endpoint_conn_status_changed',
     DOMINANT_SPEAKER_CHANGED: 'rtc.dominant_speaker_changed',

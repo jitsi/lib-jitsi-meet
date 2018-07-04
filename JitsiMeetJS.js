@@ -152,7 +152,7 @@ export default _mergeNamespaceAndModule({
     logLevels: Logger.levels,
     mediaDevices: JitsiMediaDevices,
     analytics: Statistics.analytics,
-    init(options) {
+    init(options = {}) {
         Statistics.init(options);
 
         // Initialize global window.connectionTimes
@@ -198,7 +198,7 @@ export default _mergeNamespaceAndModule({
             Statistics.sendLog(JSON.stringify(logObject));
         }
 
-        return RTC.init(options || {});
+        RTC.init(options);
     },
 
     /**
@@ -209,6 +209,17 @@ export default _mergeNamespaceAndModule({
     isDesktopSharingEnabled() {
         return RTC.isDesktopSharingEnabled();
     },
+
+    /**
+     * Returns wether the current environment supported WebRTC (for use with
+     * this library) or not.
+     *
+     * @returns {boolean} true if supported, false otherwise.
+     */
+    isWebRtcSupported() {
+        return RTC.isWebRtcSupported();
+    },
+
     setLogLevel(level) {
         Logger.setLogLevel(level);
     },

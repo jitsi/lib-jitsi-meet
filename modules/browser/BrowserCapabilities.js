@@ -59,6 +59,22 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the current browser is supported.
+     *
+     * @returns {boolean} true if the browser is supported, false otherwise.
+     */
+    isSupported() {
+        return this.isChrome()
+            || this.isEdge()
+            || this.isElectron()
+            || this.isFirefox()
+            || this.isNWJS()
+            || this.isOpera()
+            || this.isReactNative()
+            || this.isSafariWithWebrtc();
+    }
+
+    /**
      * Checks if the current browser triggers 'onmute'/'onunmute' events when
      * user's connection is interrupted and the video stops playback.
      * @returns {*|boolean} 'true' if the event is supported or 'false'
@@ -99,6 +115,23 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     supportsMediaStreamConstructor() {
         return !this.isReactNative();
+    }
+
+    /**
+     * Checks if the current browser supports RTP statictics collecting.
+     * Required by {@link RTPStatsCollector}.
+     *
+     * @returns {boolean} true if they are supported, false otherwise.
+     */
+    supportsRtpStatistics() {
+        return this.isChrome()
+            || this.isEdge()
+            || this.isElectron()
+            || this.isFirefox()
+            || this.isNWJS()
+            || this.isOpera()
+            || this.isReactNative()
+            || this.isSafariWithWebrtc();
     }
 
     /**
