@@ -2196,6 +2196,15 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
             this.trace(
                 `create${logName}OnSuccess::preTransform`, dumpSDP(resultSdp));
 
+            if (isOffer) {
+                if (!this.options.enableRemb) {
+                    removeRemb(resultSdp);
+                }
+                if (!this.options.enableTcc) {
+                    removeTcc(resultSdp);
+                }
+            }
+
             // if we're using unified plan, transform to Plan B.
             if (browser.usesUnifiedPlan()) {
                 // eslint-disable-next-line no-param-reassign
@@ -2504,3 +2513,31 @@ TraceablePeerConnection.prototype.setIsSelected = function(isSelected) {
 TraceablePeerConnection.prototype.toString = function() {
     return `TPC[${this.id},p2p:${this.isP2P}]`;
 };
+
+/**
+ * Removes the REMB rtcp-fb and the abs-send-time RTP header extention from the
+ * {RTCSessionDescription} that is specified as a parameter.
+ *
+ * @param {RTCSessionDescription} desc - The RTCSessionDescription
+ * to remove the REMB rtcp-fb and the abs-send-time RTP header extension.
+ */
+function removeRemb(desc) {
+    desc.sdp = desc.sdp
+        .replace(/a=rtcp-fb:\d+ goog-remb\r\n/g, '')
+        // eslint-disable-next-line
+        .replace(/a=extmap:\d+ http:\/\/www.webrtc.org\/experiments\/rtp-hdrext\/abs-send-time\r\n/g, '');
+}
+
+/**
+ * Removes the transport-cc rtcp-fb and TCC RTP header extention from the
+ * {RTCSessionDescription} that is specified as a parameter.
+ *
+ * @param {RTCSessionDescription} desc - The RTCSessionDescription
+ * to remove the transport-cc rtcp-fb and the TCC RTP header extension.
+ */
+function removeTcc(desc) {
+    desc.sdp = desc.sdp
+        .replace(/a=rtcp-fb:\d+ transport-cc\r\n/g, '')
+        // eslint-disable-next-line
+        .replace(/a=extmap:5 http:\/\/www.ietf.org\/id\/draft-holmer-rmcat-transport-wide-cc-extensions-01\r\n/g, '');
+}

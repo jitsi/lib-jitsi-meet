@@ -259,6 +259,14 @@ export default class JingleSessionPC extends JingleSession {
             pcOptions.maxstats = DEFAULT_MAX_STATS;
         }
 
+        if (this.room.options.enableRemb) {
+            pcOptions.enableRemb = this.room.options.enableRemb;
+        }
+
+        if (this.room.options.enableTcc) {
+            pcOptions.enableTcc = this.room.options.enableTcc;
+        }
+
         if (this.isP2P) {
             // simulcast needs to be disabled for P2P (121) calls
             pcOptions.disableSimulcast = true;
