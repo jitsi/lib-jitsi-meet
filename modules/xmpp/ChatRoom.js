@@ -691,6 +691,9 @@ export default class ChatRoom extends Listenable {
         const msg = $msg({ to: this.roomjid,
             type: 'groupchat' });
 
+        // We are adding the message in a packet extension. If this element
+        // is different from 'body', we add a custom namespace.
+        // e.g. for 'json-message' extension of message stanza.
         if (elementName === 'body') {
             msg.c(elementName, message).up();
         } else {
@@ -719,6 +722,9 @@ export default class ChatRoom extends Listenable {
         const msg = $msg({ to: `${this.roomjid}/${id}`,
             type: 'chat' });
 
+        // We are adding the message in packet. If this element is different
+        // from 'body', we add our custom namespace for the same.
+        // e.g. for 'json-message' message extension.
         if (elementName === 'body') {
             msg.c(elementName, message).up();
         } else {
@@ -899,6 +905,9 @@ export default class ChatRoom extends Listenable {
         const jsonMessage = $(msg).find('>json-message').text();
         const parsedJson = tryParseJSONAndVerify(jsonMessage);
 
+        // We emit this event if the message is a valid json, and is not
+        // delivered after a delay, i.e. stamp is undefined.
+        // e.g. - subtitles should not be displayed if delayed.
         if (parsedJson && stamp === undefined) {
             this.eventEmitter.emit(XMPPEvents.JSON_MESSAGE_RECEIVED,
                 from, parsedJson);

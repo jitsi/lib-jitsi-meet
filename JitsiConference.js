@@ -597,9 +597,9 @@ JitsiConference.prototype.sendTextMessage = function(
  * @deprecated Use 'sendMessage' instead. TODO: this should be private.
  */
 JitsiConference.prototype.sendPrivateTextMessage = function(
-        id, elementName = 'body', message) {
+        id, message, elementName = 'body') {
     if (this.room) {
-        this.room.sendPrivateMessage(id, elementName, message);
+        this.room.sendPrivateMessage(id, message, elementName);
     }
 };
 
@@ -2104,10 +2104,14 @@ JitsiConference.prototype.sendMessage = function(
         this.sendEndpointMessage(to, message);
     } else {
         let messageToSend = message;
+
+        // Name of packet extension of message stanza to send the required
+        // message in.
         let elementName = 'body';
 
         if (messageType === 'object') {
             try {
+                messageToSend[JITSI_MEET_MUC_TYPE] = '';
                 messageToSend = JSON.stringify(messageToSend);
                 elementName = 'json-message';
             } catch (e) {
