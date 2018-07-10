@@ -198,7 +198,7 @@ export default _mergeNamespaceAndModule({
             Statistics.sendLog(JSON.stringify(logObject));
         }
 
-        RTC.init(options);
+        return RTC.init(options);
     },
 
     /**
@@ -211,10 +211,12 @@ export default _mergeNamespaceAndModule({
     },
 
     /**
-     * Returns wether the current environment supported WebRTC (for use with
-     * this library) or not.
+     * Returns whether the current execution environment supports WebRTC (for
+     * use within this library).
      *
-     * @returns {boolean} true if supported, false otherwise.
+     * @returns {boolean} {@code true} if WebRTC is supported in the current
+     * execution environment (for use within this library); {@code false},
+     * otherwise.
      */
     isWebRtcSupported() {
         return RTC.isWebRtcSupported();

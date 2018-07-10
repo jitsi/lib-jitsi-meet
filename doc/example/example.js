@@ -257,32 +257,31 @@ const initOptions = {
     desktopSharingFirefoxDisabled: true
 };
 
-JitsiMeetJS.init(initOptions)
-    .then(() => {
-        connection = new JitsiMeetJS.JitsiConnection(null, null, options);
+JitsiMeetJS.init(initOptions);
 
-        connection.addEventListener(
-            JitsiMeetJS.events.connection.CONNECTION_ESTABLISHED,
-            onConnectionSuccess);
-        connection.addEventListener(
-            JitsiMeetJS.events.connection.CONNECTION_FAILED,
-            onConnectionFailed);
-        connection.addEventListener(
-            JitsiMeetJS.events.connection.CONNECTION_DISCONNECTED,
-            disconnect);
+connection = new JitsiMeetJS.JitsiConnection(null, null, options);
 
-        JitsiMeetJS.mediaDevices.addEventListener(
-            JitsiMeetJS.events.mediaDevices.DEVICE_LIST_CHANGED,
-            onDeviceListChanged);
+connection.addEventListener(
+    JitsiMeetJS.events.connection.CONNECTION_ESTABLISHED,
+    onConnectionSuccess);
+connection.addEventListener(
+    JitsiMeetJS.events.connection.CONNECTION_FAILED,
+    onConnectionFailed);
+connection.addEventListener(
+    JitsiMeetJS.events.connection.CONNECTION_DISCONNECTED,
+    disconnect);
 
-        connection.connect();
-        JitsiMeetJS.createLocalTracks({ devices: [ 'audio', 'video' ] })
-            .then(onLocalTracks)
-            .catch(error => {
-                throw error;
-            });
-    })
-    .catch(error => console.log(error));
+JitsiMeetJS.mediaDevices.addEventListener(
+    JitsiMeetJS.events.mediaDevices.DEVICE_LIST_CHANGED,
+    onDeviceListChanged);
+
+connection.connect();
+
+JitsiMeetJS.createLocalTracks({ devices: [ 'audio', 'video' ] })
+    .then(onLocalTracks)
+    .catch(error => {
+        throw error;
+    });
 
 if (JitsiMeetJS.mediaDevices.isDeviceChangeAvailable('output')) {
     JitsiMeetJS.mediaDevices.enumerateDevices(devices => {

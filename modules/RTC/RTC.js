@@ -398,7 +398,7 @@ export default class RTC extends Listenable {
     static init(options = {}) {
         this.options = options;
 
-        RTCUtils.init(this.options);
+        return RTCUtils.init(this.options);
     }
 
     /**
@@ -673,10 +673,12 @@ export default class RTC extends Listenable {
     }
 
     /**
-     * Returns wether the current environment supported WebRTC (for use with
-     * this library) or not.
+     * Returns whether the current execution environment supports WebRTC (for
+     * use within this library).
      *
-     * @returns {boolean} true if supported, false otherwise.
+     * @returns {boolean} {@code true} if WebRTC is supported in the current
+     * execution environment (for use within this library); {@code false},
+     * otherwise.
      */
     static isWebRtcSupported() {
         return browser.isSupported();
