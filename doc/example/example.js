@@ -191,7 +191,7 @@ function disconnect() {
  */
 function unload() {
     for (let i = 0; i < localTracks.length; i++) {
-        localTracks[i].stop();
+        localTracks[i].dispose();
     }
     room.leave();
     connection.disconnect();

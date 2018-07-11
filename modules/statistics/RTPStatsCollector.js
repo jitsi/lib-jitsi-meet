@@ -11,7 +11,7 @@ const logger = require('jitsi-meet-logger').getLogger(__filename);
 const browserSupported = browser.isChrome()
         || browser.isOpera() || browser.isFirefox()
         || browser.isNWJS() || browser.isElectron()
-        || browser.isTemasysPluginUsed() || browser.isEdge()
+        || browser.isEdge()
         || browser.isSafariWithWebrtc() || browser.isReactNative();
 
 /**
@@ -87,8 +87,6 @@ KEYS_BY_BROWSER_TYPE[browsers.OPERA]
 KEYS_BY_BROWSER_TYPE[browsers.NWJS]
     = KEYS_BY_BROWSER_TYPE[browsers.CHROME];
 KEYS_BY_BROWSER_TYPE[browsers.ELECTRON]
-    = KEYS_BY_BROWSER_TYPE[browsers.CHROME];
-KEYS_BY_BROWSER_TYPE[browsers.IEXPLORER]
     = KEYS_BY_BROWSER_TYPE[browsers.CHROME];
 KEYS_BY_BROWSER_TYPE[browsers.SAFARI]
     = KEYS_BY_BROWSER_TYPE[browsers.CHROME];

@@ -95,14 +95,12 @@ const ScreenObtainer = {
      * (this.obtainStream).
      *
      * @param {object} options
-     * @param {boolean} [options.disableDesktopSharing]
      * @param {boolean} [options.desktopSharingChromeDisabled]
      * @param {boolean} [options.desktopSharingChromeExtId]
      * @param {boolean} [options.desktopSharingFirefoxDisabled]
      * @param {Function} gum GUM method
      */
     init(options = {
-        disableDesktopSharing: false,
         desktopSharingChromeDisabled: false,
         desktopSharingChromeExtId: null,
         desktopSharingFirefoxDisabled: false
@@ -110,9 +108,7 @@ const ScreenObtainer = {
         this.options = options;
         gumFunction = gum;
 
-        this.obtainStream
-            = this.options.disableDesktopSharing
-                ? null : this._createObtainStreamMethod(options);
+        this.obtainStream = this._createObtainStreamMethod(options);
 
         if (!this.obtainStream) {
             logger.info('Desktop sharing disabled');
@@ -166,28 +162,6 @@ const ScreenObtainer = {
             };
         } else if (browser.isElectron()) {
             return this.obtainScreenOnElectron;
-        } else if (browser.isTemasysPluginUsed()) {
-            // XXX Don't require Temasys unless it's to be used because it
-            // doesn't run on React Native, for example.
-            const plugin
-                = require('./adapter.screenshare').WebRTCPlugin.plugin;
-
-            if (!plugin.HasScreensharingFeature) {
-                logger.warn(
-                    'Screensharing not supported by this plugin version');
-
-                return null;
-            } else if (!plugin.isScreensharingAvailable) {
-                logger.warn(
-                    'Screensharing not available with Temasys plugin on'
-                        + ' this site');
-
-                return null;
-            }
-
-            logger.info('Using Temasys plugin for desktop sharing');
-
-            return obtainWebRTCScreen;
         } else if (browser.isChrome() || browser.isOpera()) {
             if (browser.isVersionLessThan('34')) {
                 logger.info('Chrome extension not supported until ver 34');

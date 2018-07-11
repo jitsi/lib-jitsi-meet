@@ -155,7 +155,11 @@ describe('ChatRoom', () => {
             const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
 
             room.onPresence(pres);
-            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy.calls.count()).toEqual(2);
+            expect(emitterSpy.calls.argsFor(0)).toEqual([
+                XMPPEvents.PRESENCE_RECEIVED,
+                jasmine.any(Object)
+            ]);
             expect(emitterSpy).toHaveBeenCalledWith(
                 XMPPEvents.MUC_MEMBER_JOINED,
                 'fromjid',
@@ -164,6 +168,7 @@ describe('ChatRoom', () => {
                 undefined, // isHiddenDomain
                 undefined, // statsID
                 'status-text',
+                undefined,
                 undefined);
         });
 
@@ -177,7 +182,11 @@ describe('ChatRoom', () => {
             const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
 
             room.onPresence(pres);
-            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy.calls.count()).toEqual(2);
+            expect(emitterSpy.calls.argsFor(0)).toEqual([
+                XMPPEvents.PRESENCE_RECEIVED,
+                jasmine.any(Object)
+            ]);
             expect(emitterSpy).toHaveBeenCalledWith(
                 XMPPEvents.MUC_MEMBER_JOINED,
                 'fromjid',
@@ -185,6 +194,7 @@ describe('ChatRoom', () => {
                 'role-attr', // role
                 jasmine.any(Boolean), // isHiddenDomain
                 undefined, // statsID
+                undefined,
                 undefined,
                 undefined);
         });
@@ -214,7 +224,11 @@ describe('ChatRoom', () => {
             };
 
             room.onPresence(pres);
-            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy.calls.count()).toEqual(2);
+            expect(emitterSpy.calls.argsFor(0)).toEqual([
+                XMPPEvents.PRESENCE_RECEIVED,
+                jasmine.any(Object)
+            ]);
             expect(emitterSpy).toHaveBeenCalledWith(
                 XMPPEvents.MUC_MEMBER_JOINED,
                 'fromjid',
@@ -223,7 +237,35 @@ describe('ChatRoom', () => {
                 undefined, // isHiddenDomain
                 undefined, // statsID
                 'status-text',
-                expectedIdentity);
+                expectedIdentity,
+                undefined);
+        });
+
+        it('parses bot correctly', () => {
+            const expectedBotType = 'some_bot_type';
+            const presStr = '' +
+                '<presence to="tojid" from="fromjid">' +
+                    '<status>status-text</status>' +
+                    `<bot type="${expectedBotType}"/>` +
+                '</presence>';
+            const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+
+            room.onPresence(pres);
+            expect(emitterSpy.calls.count()).toEqual(2);
+            expect(emitterSpy.calls.argsFor(0)).toEqual([
+                XMPPEvents.PRESENCE_RECEIVED,
+                jasmine.any(Object)
+            ]);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MUC_MEMBER_JOINED,
+                'fromjid',
+                undefined, // nick
+                undefined, // role
+                undefined, // isHiddenDomain
+                undefined, // statsID
+                'status-text',
+                undefined,
+                expectedBotType);
         });
 
     });

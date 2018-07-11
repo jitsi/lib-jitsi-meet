@@ -6,6 +6,7 @@ import transform from 'sdp-transform';
 import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import JitsiRemoteTrack from './JitsiRemoteTrack';
 import * as MediaType from '../../service/RTC/MediaType';
+import BandwidthLimiter from './BandwidthLimiter';
 import LocalSdpMunger from './LocalSdpMunger';
 import RTC from './RTC';
 import RTCUtils from './RTCUtils';
@@ -49,6 +50,9 @@ const SIM_LAYER_RIDS = [ SIM_LAYER_1_RID, SIM_LAYER_2_RID, SIM_LAYER_3_RID ];
  *      disabled by removing it from the SDP.
  * @param {boolean} options.preferH264 if set to 'true' H264 will be preferred
  * over other video codecs.
+ * @param {boolean} options.enableLayerSuspension if set to 'true', we will
+ * cap the video send bitrate when we are told we have not been selected by
+ * any endpoints (and therefore the non-thumbnail streams are not in use).
  *
  * FIXME: initially the purpose of TraceablePeerConnection was to be able to
  * debug the peer connection. Since many other responsibilities have been added
@@ -123,8 +127,7 @@ export default function TraceablePeerConnection(
 
     /**
      * Keeps tracks of the WebRTC <tt>MediaStream</tt>s that have been added to
-     * the underlying WebRTC PeerConnection. An Array is used to avoid errors in
-     * IE11 with adding temasys MediaStream objects into other data structures.
+     * the underlying WebRTC PeerConnection.
      * @type {Array}
      * @private
      */
@@ -189,10 +192,10 @@ export default function TraceablePeerConnection(
      * 300 values, i.e. 5 minutes; set to 0 to disable
      */
     this.maxstats = options.maxstats;
-    const Interop = require('sdp-interop').Interop;
+    const Interop = require('@jitsi/sdp-interop').Interop;
 
     this.interop = new Interop();
-    const Simulcast = require('sdp-simulcast');
+    const Simulcast = require('@jitsi/sdp-simulcast');
 
     this.simulcast = new Simulcast({ numOfLayers: SIMULCAST_LAYERS,
         explodeRemoteSimulcast: false });
@@ -205,6 +208,8 @@ export default function TraceablePeerConnection(
      */
     this.localSdpMunger = new LocalSdpMunger(this);
 
+    this.bandwidthLimiter = new BandwidthLimiter();
+
     /**
      * TracablePeerConnection uses RTC's eventEmitter
      * @type {EventEmitter}
@@ -212,19 +217,16 @@ export default function TraceablePeerConnection(
     this.eventEmitter = rtc.eventEmitter;
     this.rtxModifier = new RtxModifier();
 
+    /**
+     * Whether or not this endpoint has been selected
+     * by a remote participant (via the bridge)
+     */
+    this.isSelected = true;
+
     // override as desired
     this.trace = (what, info) => {
         logger.debug(what, info);
 
-        /*
-        if (info && browser.isIExplorer()) {
-            if (info.length > 1024) {
-                logger.warn('WTRACE', what, info.substr(1024));
-            }
-            if (info.length > 2048) {
-                logger.warn('WTRACE', what, info.substr(2048));
-            }
-        }*/
         this.updateLog.push({
             time: new Date(),
             type: what,
@@ -233,12 +235,9 @@ export default function TraceablePeerConnection(
     };
     this.onicecandidate = null;
     this.peerconnection.onicecandidate = event => {
-        // FIXME: this causes stack overflow with Temasys Plugin
-        if (!browser.isTemasysPluginUsed()) {
-            this.trace(
-                'onicecandidate',
-                JSON.stringify(event.candidate, null, ' '));
-        }
+        this.trace(
+            'onicecandidate',
+            JSON.stringify(event.candidate, null, ' '));
 
         if (this.onicecandidate !== null) {
             this.onicecandidate(event);
@@ -658,14 +657,8 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track) {
 
     let ssrcLines = SDPUtil.findLines(mediaLines[0], 'a=ssrc:');
 
-    ssrcLines = ssrcLines.filter(
-        line => {
-            const msid
-                = browser.isTemasysPluginUsed() ? 'mslabel' : 'msid';
-
-
-            return line.indexOf(`${msid}:${streamId}`) !== -1;
-        });
+    ssrcLines
+        = ssrcLines.filter(line => line.indexOf(`msid:${streamId}`) !== -1);
     if (!ssrcLines.length) {
         GlobalOnErrorHandler.callErrorHandler(
             new Error(
@@ -1041,6 +1034,20 @@ function extractSSRCMap(desc) {
     }
 
     return ssrcMap;
+}
+
+/**
+ * Get the bitrate cap we should enforce for video given whether or not
+ * we are selected
+ * @param {boolean} isSelected whether or not we (the local endpoint) is
+ * selected by any other endpoints (meaning its HD stream is in use)
+ * @return {Number} the bitrate cap in kbps, or null if there should be
+ * no cap
+ */
+function getSuspensionBitrateKbps(isSelected) {
+    // eslint-disable-next-line max-len
+    // https://codesearch.chromium.org/chromium/src/third_party/webrtc/media/engine/simulcast.cc?l=55&rcl=28deb90728c06a35d8847d2aeda2fc1aee105c5e
+    return isSelected ? null : 200;
 }
 
 /**
@@ -1852,6 +1859,21 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(
         });
     }
 
+    if (this.options.enableLayerSuspension) {
+        logger.debug('Layer suspension enabled,'
+            + `currently selected? ${this.isSelected}`);
+        const bitrateCapKbps = getSuspensionBitrateKbps(this.isSelected);
+
+        this.bandwidthLimiter.setBandwidthLimit('video', bitrateCapKbps);
+        logger.debug(`Layer suspension got bitrate cap of ${bitrateCapKbps}`);
+        description.sdp
+            = this.bandwidthLimiter.enforceBandwithLimit(description.sdp);
+        this.trace(
+            'setRemoteDescription::postTransform '
+            + '(layer suspension bitrate cap)',
+            dumpSDP(description));
+    }
+
     // If the browser uses unified plan, transform to it first
     if (browser.usesUnifiedPlan()) {
         // eslint-disable-next-line no-param-reassign
@@ -2285,7 +2307,6 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
         failureCallback(err);
     };
 
-    // NOTE Temasys plugin does not support "bind" on peerconnection methods
     if (isOffer) {
         this.peerconnection.createOffer(
             _successCallback, _errorCallback, constraints);
@@ -2365,10 +2386,6 @@ TraceablePeerConnection.prototype.addIceCandidate = function(
         candidate,
         successCallback,
         failureCallback) {
-    // var self = this;
-
-    // Calling JSON.stringify with temasys objects causes a stack overflow, so
-    // instead pick out values to log.
     this.trace('addIceCandidate', JSON.stringify({
         candidate: candidate.candidate,
         sdpMid: candidate.sdpMid,
@@ -2377,19 +2394,6 @@ TraceablePeerConnection.prototype.addIceCandidate = function(
     }, null, ' '));
     this.peerconnection.addIceCandidate(
         candidate, successCallback, failureCallback);
-
-    /* maybe later
-     this.peerconnection.addIceCandidate(candidate,
-     function () {
-     self.trace('addIceCandidateOnSuccess');
-     successCallback();
-     },
-     function (err) {
-     self.trace('addIceCandidateOnFailure', err);
-     failureCallback(err);
-     }
-     );
-     */
 };
 
 /**
@@ -2402,12 +2406,10 @@ TraceablePeerConnection.prototype.addIceCandidate = function(
  * @returns {void}
  */
 TraceablePeerConnection.prototype.getStats = function(callback, errback) {
-    // TODO: Is this the correct way to handle Opera, Temasys?
     // TODO (brian): After moving all browsers to adapter, check if adapter is
     // accounting for different getStats apis, making the browser-checking-if
     // unnecessary.
-    if (browser.isTemasysPluginUsed()
-        || browser.isReactNative()) {
+    if (browser.isReactNative()) {
         this.peerconnection.getStats(
             null,
             callback,
@@ -2484,6 +2486,14 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {
     this.localSSRCs.set(rtcId, ssrcInfo);
 
     return ssrcInfo;
+};
+
+/**
+ * Set whether or not the endpoint is 'selected' by other endpoints, meaning
+ * it appears on their main stage
+ */
+TraceablePeerConnection.prototype.setIsSelected = function(isSelected) {
+    this.isSelected = isSelected;
 };
 
 /**

@@ -175,8 +175,6 @@ class AnalyticsAdapter {
      */
     sendEvent(eventName, properties = {}) {
         if (this.disposed) {
-            logger.warn('Not sending an event, disposed.');
-
             return;
         }
 

@@ -39,6 +39,7 @@ import Statistics from './modules/statistics/statistics';
 import TalkMutedDetection from './modules/TalkMutedDetection';
 import Transcriber from './modules/transcription/transcriber';
 import VideoType from './service/RTC/VideoType';
+import RecordingManager from './modules/recording/RecordingManager';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import * as XMPPEvents from './service/xmpp/XMPPEvents';
@@ -200,6 +201,7 @@ export default function JitsiConference(options) {
     this.p2pJingleSession = null;
 
     this.videoSIPGWHandler = new VideoSIPGW(this.room);
+    this.recordingManager = new RecordingManager(this.room);
 }
 
 // FIXME convert JitsiConference to ES6 - ASAP !
@@ -439,6 +441,13 @@ JitsiConference.prototype.leave = function() {
  */
 JitsiConference.prototype.getName = function() {
     return this.options.name;
+};
+
+/**
+ * Returns the {@link JitsiConnection} used by this this conference.
+ */
+JitsiConference.prototype.getConnection = function() {
+    return this.connection;
 };
 
 /**
@@ -1177,9 +1186,11 @@ JitsiConference.prototype.muteParticipant = function(id) {
  * participant for example a recorder).
  * @param statsID the participant statsID (optional)
  * @param status the initial status if any
+ * @param identity the member identity, if any
+ * @param botType the member botType, if any
  */
 JitsiConference.prototype.onMemberJoined = function(
-        jid, nick, role, isHidden, statsID, status) {
+        jid, nick, role, isHidden, statsID, status, identity, botType) {
     const id = Strophe.getResourceFromJid(jid);
 
     if (id === 'focus' || this.myUserId() === id) {
@@ -1189,6 +1200,7 @@ JitsiConference.prototype.onMemberJoined = function(
         = new JitsiParticipant(jid, this, nick, isHidden, statsID, status);
 
     participant._role = role;
+    participant._botType = botType;
     this.participants[id] = participant;
     this.eventEmitter.emit(
         JitsiConferenceEvents.USER_JOINED,
@@ -1205,6 +1217,38 @@ JitsiConference.prototype.onMemberJoined = function(
 };
 
 /* eslint-enable max-params */
+
+/**
+ * Get notified when member bot type had changed.
+ * @param jid the member jid
+ * @param botType the new botType value
+ * @private
+ */
+JitsiConference.prototype._onMemberBotTypeChanged = function(jid, botType) {
+
+    // find the participant and mark it as non bot, as the real one will join
+    // in a moment
+    const peers = this.getParticipants();
+    const botParticipant = peers.find(p => p.getJid() === jid);
+
+    if (botParticipant) {
+        botParticipant._botType = botType;
+        const id = Strophe.getResourceFromJid(jid);
+
+        this.eventEmitter.emit(
+            JitsiConferenceEvents.BOT_TYPE_CHANGED,
+            id,
+            botType);
+    }
+
+    // if botType changed to undefined, botType was removed, in case of
+    // poltergeist mode this is the moment when the poltergeist had exited and
+    // the real participant had already replaced it.
+    // In this case we can check and try p2p
+    if (!botParticipant._botType) {
+        this._maybeStartOrStopP2P();
+    }
+};
 
 JitsiConference.prototype.onMemberLeft = function(jid) {
     const id = Strophe.getResourceFromJid(jid);
@@ -1750,7 +1794,7 @@ JitsiConference.prototype.sendTones = function(tones, duration, pause) {
  */
 JitsiConference.prototype.startRecording = function(options) {
     if (this.room) {
-        return this.room.startRecording(options);
+        return this.recordingManager.startRecording(options);
     }
 
     return Promise.reject(new Error('The conference is not created yet!'));
@@ -1765,7 +1809,7 @@ JitsiConference.prototype.startRecording = function(options) {
  */
 JitsiConference.prototype.stopRecording = function(sessionID) {
     if (this.room) {
-        return this.room.stopRecording(sessionID);
+        return this.recordingManager.stopRecording(sessionID);
     }
 
     return Promise.reject(new Error('The conference is not created yet!'));
@@ -2572,12 +2616,15 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
     const peers = this.getParticipants();
     const peerCount = peers.length;
     const isModerator = this.isModerator();
+    const hasBotPeer
+        = peers.find(p => p._botType === 'poltergeist') !== undefined;
 
     // FIXME 1 peer and it must *support* P2P switching
-    const shouldBeInP2P = peerCount === 1;
+    const shouldBeInP2P = peerCount === 1 && !hasBotPeer;
 
     logger.debug(
-        `P2P? isModerator: ${isModerator}, peerCount: ${peerCount} => ${
+        `P2P? isModerator: ${isModerator}, peerCount: ${
+            peerCount}, hasBotPeer: ${hasBotPeer} => ${
             shouldBeInP2P}`);
 
     // Clear deferred "start P2P" task

@@ -33,6 +33,7 @@ export default class BrowserCapabilities extends BrowserDetection {
         return !(
             this.isFirefox()
             || this.isEdge()
+            || this.isReactNative()
             || this.isSafariWithWebrtc()
         );
     }
@@ -43,7 +44,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * otherwise.
      */
     supportsP2P() {
-        return !this.isEdge();
+        return !this.isEdge() && !this.isFirefox();
     }
 
     /**
@@ -58,29 +59,13 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Checks if Temasys RTC plugin is used.
-     * @returns {boolean}
-     */
-    isTemasysPluginUsed() {
-        // Temasys do not support Microsoft Edge:
-        // http://support.temasys.com.sg/support/solutions/articles/
-        // 5000654345-can-the-temasys-webrtc-plugin-be-used-with-microsoft-edge-
-        return (
-            (this.isSafari()
-                && !this.isSafariWithWebrtc())
-            || (this.isIExplorer()
-                && this.isVersionLessThan('12'))
-        );
-    }
-
-    /**
      * Checks if the current browser triggers 'onmute'/'onunmute' events when
      * user's connection is interrupted and the video stops playback.
      * @returns {*|boolean} 'true' if the event is supported or 'false'
      * otherwise.
      */
     supportsVideoMuteOnConnInterrupted() {
-        return this.isChrome() || this.isElectron();
+        return this.isChrome() || this.isElectron() || this.isReactNative();
     }
 
     /**
@@ -113,8 +98,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @return {boolean}
      */
     supportsMediaStreamConstructor() {
-        return !this.isReactNative()
-            && !this.isTemasysPluginUsed();
+        return !this.isReactNative();
     }
 
     /**

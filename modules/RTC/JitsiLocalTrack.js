@@ -265,9 +265,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
      */
     _setRealDeviceIdFromDeviceList(devices) {
         const track = this.getTrack();
-
-        // FIXME for temasys video track, label refers to id not the actual
-        // device
         const device = devices.find(
             d => d.kind === `${track.kind}input` && d.label === track.label);
 

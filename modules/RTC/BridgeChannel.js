@@ -265,6 +265,13 @@ export default class BridgeChannel {
 
                 break;
             }
+            case 'SelectedUpdateEvent': {
+                const isSelected = obj.isSelected;
+
+                logger.info(`SelectedUpdateEvent isSelected? ${isSelected}`);
+                emitter.emit(RTCEvents.IS_SELECTED_CHANGED, isSelected);
+                break;
+            }
             default: {
                 logger.debug('Channel JSON-formatted message: ', obj);
 

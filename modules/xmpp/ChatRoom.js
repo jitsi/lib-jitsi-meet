@@ -6,7 +6,6 @@ import { $iq, $msg, $pres, Strophe } from 'strophe.js';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
 import Listenable from '../util/Listenable';
-import recordingManager from '../recording/recordingManager';
 import Settings from '../settings/Settings';
 import * as MediaType from '../../service/RTC/MediaType';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
@@ -30,7 +29,10 @@ export const parser = {
             const text = Strophe.getText(child);
 
             if (text) {
-                node.value = text;
+                // Using Strophe.getText will do work for traversing all direct
+                // child text nodes but returns an escaped value, which is not
+                // desirable at this point.
+                node.value = Strophe.xmlunescape(text);
             }
             nodes.push(node);
             this.packet2JSON(child, node.children);
@@ -169,11 +171,6 @@ export default class ChatRoom extends Listenable {
 
         this.locked = false;
         this.transcriptionStatus = JitsiTranscriptionStatus.OFF;
-
-        recordingManager.init(
-            this.eventEmitter,
-            this.connection,
-            this.focusMucJid);
     }
 
     /* eslint-enable max-params */
@@ -421,7 +418,10 @@ export default class ChatRoom extends Listenable {
                 && this.options.hiddenDomain
                     === jid.substring(jid.indexOf('@') + 1, jid.indexOf('/'));
 
-        recordingManager.onPresence(pres, member.isHiddenDomain);
+        this.eventEmitter.emit(XMPPEvents.PRESENCE_RECEIVED, {
+            fromHiddenDomain: member.isHiddenDomain,
+            presence: pres
+        });
 
         const xEl = pres.querySelector('x');
 
@@ -464,6 +464,17 @@ export default class ChatRoom extends Listenable {
             const node = nodes[i];
 
             switch (node.tagName) {
+            case 'bot': {
+                const { attributes } = node;
+
+                if (!attributes) {
+                    break;
+                }
+                const { type } = attributes;
+
+                member.botType = type;
+                break;
+            }
             case 'nick':
                 member.nick = node.value;
                 break;
@@ -511,6 +522,9 @@ export default class ChatRoom extends Listenable {
             if (member.isFocus) {
                 this._initFocus(from, jid);
             } else {
+                // identity is being added to member joined, so external
+                // services can be notified for that (currently identity is
+                // not used inside library)
                 this.eventEmitter.emit(
                     XMPPEvents.MUC_MEMBER_JOINED,
                     from,
@@ -519,7 +533,8 @@ export default class ChatRoom extends Listenable {
                     member.isHiddenDomain,
                     member.statsID,
                     member.status,
-                    member.identity);
+                    member.identity,
+                    member.botType);
 
                 // we are reporting the status with the join
                 // so we do not want a second event about status update
@@ -534,6 +549,15 @@ export default class ChatRoom extends Listenable {
                 memberOfThis.role = member.role;
                 this.eventEmitter.emit(
                     XMPPEvents.MUC_ROLE_CHANGED, from, member.role);
+            }
+
+            // fire event that botType had changed
+            if (memberOfThis.botType !== member.botType) {
+                memberOfThis.botType = member.botType;
+                this.eventEmitter.emit(
+                    XMPPEvents.MUC_MEMBER_BOT_TYPE_CHANGED,
+                    from,
+                    member.botType);
             }
 
             if (member.isFocus) {
@@ -641,8 +665,6 @@ export default class ChatRoom extends Listenable {
      */
     _initFocus(from, mucJid) {
         this.focusMucJid = from;
-
-        recordingManager.setFocusMucJid(this.focusMucJid);
 
         logger.info(`Ignore focus: ${from}, real JID: ${mucJid}`);
     }
@@ -1038,7 +1060,7 @@ export default class ChatRoom extends Listenable {
                         .up();
 
                     // Fixes a bug in prosody 0.9.+
-                    // https://code.google.com/p/lxmppd/issues/detail?id=373
+                    // https://prosody.im/issues/issue/373
                     formsubmit
                         .c('field', { 'var': 'muc#roomconfig_whois' })
                         .c('value')
@@ -1273,30 +1295,6 @@ export default class ChatRoom extends Listenable {
         data.muted = mutedNode.length > 0 && mutedNode[0].value === 'true';
 
         return data;
-    }
-
-    /**
-     * Starts a recording session.
-     *
-     * @param {Object} options - Configuration for the recording. See
-     * {@link recordingManager#startRecording} for more info.
-     * @returns {Promise} See {@link recordingManager#startRecording} for more
-     * info.
-     */
-    startRecording(options) {
-        return recordingManager.startRecording(options);
-    }
-
-    /**
-     * Stops a recording session.
-     *
-     * @param {string} sessionID - The ID of the recording session that should
-     * be stopped.
-     * @returns {Promise} See {@link recordingManager#stopRecording} for more
-     * info.
-     */
-    stopRecording(sessionID) {
-        return recordingManager.stopRecording(sessionID);
     }
 
     /**
