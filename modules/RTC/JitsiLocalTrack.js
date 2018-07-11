@@ -421,7 +421,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     throw new JitsiTrackError(TRACK_NO_STREAM_FOUND);
                 }
 
-                this.containers = this.containers.map(
+                this.containers.map(
                     cont => RTCUtils.attachMediaStream(cont, this.stream));
 
                 return this._addStreamToConferenceAsUnmute();
