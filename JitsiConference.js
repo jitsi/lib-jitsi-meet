@@ -43,7 +43,7 @@ import RecordingManager from './modules/recording/RecordingManager';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import * as XMPPEvents from './service/xmpp/XMPPEvents';
-import { JITSI_MEET_MUC_TOPIC } from './modules/xmpp/ChatRoom';
+import { JITSI_MEET_MUC_TYPE } from './modules/xmpp/ChatRoom';
 
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 
@@ -588,22 +588,27 @@ JitsiConference.prototype.removeCommandListener = function(command) {
 /**
  * Sends text message to the other participants in the conference
  * @param message the text message.
+ * @param elementName the element name to encapsulate the message.
  * @deprecated Use 'sendMessage' instead. TODO: this should be private.
  */
-JitsiConference.prototype.sendTextMessage = function(message) {
+JitsiConference.prototype.sendTextMessage = function(
+        message, elementName = 'body') {
     if (this.room) {
-        this.room.sendMessage(message);
+        this.room.sendMessage(message, elementName);
     }
 };
 
 /**
  * Send private text message to another participant of the conference
+ * @param id the id of the participant to send a private message.
  * @param message the text message.
+ * @param elementName the element name to encapsulate the message.
  * @deprecated Use 'sendMessage' instead. TODO: this should be private.
  */
-JitsiConference.prototype.sendPrivateTextMessage = function(id, message) {
+JitsiConference.prototype.sendPrivateTextMessage = function(
+        id, message, elementName = 'body') {
     if (this.room) {
-        this.room.sendPrivateMessage(id, message);
+        this.room.sendPrivateMessage(id, message, elementName);
     }
 };
 
@@ -2144,16 +2149,15 @@ JitsiConference.prototype.sendMessage = function(
     } else {
         let messageToSend = message;
 
-        if (messageType === 'object') {
-            // Encapsulate the object in the jitsi-meet format, and convert it
-            // to JSON.
-            messageToSend = {
-                payload: message,
-                [JITSI_MEET_MUC_TOPIC]: ''
-            };
+        // Name of packet extension of message stanza to send the required
+        // message in.
+        let elementName = 'body';
 
+        if (messageType === 'object') {
             try {
+                messageToSend[JITSI_MEET_MUC_TYPE] = '';
                 messageToSend = JSON.stringify(messageToSend);
+                elementName = 'json-message';
             } catch (e) {
                 logger.error('Can not send a message, stringify failed: ', e);
 
@@ -2162,10 +2166,10 @@ JitsiConference.prototype.sendMessage = function(
         }
 
         if (to) {
-            this.sendPrivateTextMessage(to, messageToSend);
+            this.sendPrivateTextMessage(to, messageToSend, elementName);
         } else {
             // Broadcast
-            this.sendTextMessage(messageToSend);
+            this.sendTextMessage(messageToSend, elementName);
         }
     }
 

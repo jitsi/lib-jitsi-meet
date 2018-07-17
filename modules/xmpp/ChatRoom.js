@@ -79,21 +79,19 @@ function filterNodeFromPresenceJSON(pres, nodeName) {
 /**
  * The name of the field used to recognize a chat message as carrying a JSON
  * payload from another endpoint.
- * If the body of a chat message contains a valid JSON object, and the JSON has
- * this key, then the transported payload is contained in the 'payload'
- * property of the JSON object.
+ * If the json-message of a chat message contains a valid JSON object, and the
+ * JSON has this key, then it is a valid json-message to be sent.
  */
-export const JITSI_MEET_MUC_TOPIC = 'jitsi-meet-muc-msg-topic';
+export const JITSI_MEET_MUC_TYPE = 'type';
 
 /**
  * Check if the given argument is a valid JSON ENDPOINT_MESSAGE string by
- * parsing it and checking if it has a field called 'jitsi-meet-muc-msg-topic'
- * and a field called 'payload'
+ * parsing it and checking if it has a field called 'type'.
  *
  * @param {string} jsonString check if this string is a valid json string
- * and contains the special structure
+ * and contains the special structure.
  * @returns {boolean, object} if given object is a valid JSON string, return
- * the json object. Otherwise, return false;
+ * the json object. Otherwise, returns false.
  */
 function tryParseJSONAndVerify(jsonString) {
     try {
@@ -107,15 +105,14 @@ function tryParseJSONAndVerify(jsonString) {
         // so we must check for that, too.
         // Thankfully, null is falsey, so this suffices:
         if (json && typeof json === 'object') {
-            const topic = json[JITSI_MEET_MUC_TOPIC];
-            const payload = json.payload;
+            const type = json[JITSI_MEET_MUC_TYPE];
 
-            if ((typeof topic !== 'undefined') && payload) {
-                return payload;
+            if (typeof type !== 'undefined') {
+                return json;
             }
 
             logger.debug('parsing valid json but does not have correct '
-                + 'structure', 'topic: ', topic, 'payload: ', payload);
+                + 'structure', 'topic: ', type);
         }
     } catch (e) {
 
@@ -708,14 +705,23 @@ export default class ChatRoom extends Listenable {
 
     /**
      * Send text message to the other participants in the conference
-     * @param body
+     * @param message
+     * @param elementName
      * @param nickname
      */
-    sendMessage(body, nickname) {
+    sendMessage(message, elementName, nickname) {
         const msg = $msg({ to: this.roomjid,
             type: 'groupchat' });
 
-        msg.c('body', body).up();
+        // We are adding the message in a packet extension. If this element
+        // is different from 'body', we add a custom namespace.
+        // e.g. for 'json-message' extension of message stanza.
+        if (elementName === 'body') {
+            msg.c(elementName, message).up();
+        } else {
+            msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, message)
+                .up();
+        }
         if (nickname) {
             msg.c('nick', { xmlns: 'http://jabber.org/protocol/nick' })
                 .t(nickname)
@@ -723,20 +729,30 @@ export default class ChatRoom extends Listenable {
                 .up();
         }
         this.connection.send(msg);
-        this.eventEmitter.emit(XMPPEvents.SENDING_CHAT_MESSAGE, body);
+        this.eventEmitter.emit(XMPPEvents.SENDING_CHAT_MESSAGE, message);
     }
 
+    /* eslint-disable max-params */
     /**
      * Send private text message to another participant of the conference
      * @param id id/muc resource of the receiver
-     * @param body
+     * @param message
+     * @param elementName
      * @param nickname
      */
-    sendPrivateMessage(id, body, nickname) {
+    sendPrivateMessage(id, message, elementName, nickname) {
         const msg = $msg({ to: `${this.roomjid}/${id}`,
             type: 'chat' });
 
-        msg.c('body', body).up();
+        // We are adding the message in packet. If this element is different
+        // from 'body', we add our custom namespace for the same.
+        // e.g. for 'json-message' message extension.
+        if (elementName === 'body') {
+            msg.c(elementName, message).up();
+        } else {
+            msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, message)
+                .up();
+        }
         if (nickname) {
             msg.c('nick', { xmlns: 'http://jabber.org/protocol/nick' })
                 .t(nickname)
@@ -745,9 +761,10 @@ export default class ChatRoom extends Listenable {
         }
 
         this.connection.send(msg);
-        this.eventEmitter.emit(XMPPEvents.SENDING_PRIVATE_CHAT_MESSAGE, body);
+        this.eventEmitter.emit(
+            XMPPEvents.SENDING_PRIVATE_CHAT_MESSAGE, message);
     }
-
+    /* eslint-enable max-params */
 
     /**
      *
@@ -907,12 +924,15 @@ export default class ChatRoom extends Listenable {
                     .length) {
             this.discoRoomInfo();
         }
+        const jsonMessage = $(msg).find('>json-message').text();
+        const parsedJson = tryParseJSONAndVerify(jsonMessage);
 
-        const jsonPayload = tryParseJSONAndVerify(txt);
-
-        if (jsonPayload) {
+        // We emit this event if the message is a valid json, and is not
+        // delivered after a delay, i.e. stamp is undefined.
+        // e.g. - subtitles should not be displayed if delayed.
+        if (parsedJson && stamp === undefined) {
             this.eventEmitter.emit(XMPPEvents.JSON_MESSAGE_RECEIVED,
-                from, jsonPayload);
+                from, parsedJson);
 
             return;
         }
