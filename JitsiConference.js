@@ -2000,6 +2000,28 @@ JitsiConference.prototype.setLocalParticipantProperty = function(name, value) {
 };
 
 /**
+ *  Removes a property for the local participant and sends the updated presence.
+ */
+JitsiConference.prototype.removeLocalParticipantProperty = function(name) {
+    this.removeCommand(`jitsi_participant_${name}`);
+    this.room.sendPresence();
+};
+
+/**
+ * Gets a local participant property.
+ *
+ * @return value of the local participant property if the tagName exists in the
+ * list of properties, otherwise returns undefined.
+ */
+JitsiConference.prototype.getLocalParticipantProperty = function(name) {
+    const property = this.room.presMap.nodes.find(prop =>
+        prop.tagName === `jitsi_participant_${name}`
+    );
+
+    return property ? property.value : undefined;
+};
+
+/**
  * Sends the given feedback through CallStats if enabled.
  *
  * @param overallFeedback an integer between 1 and 5 indicating the
