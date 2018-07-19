@@ -170,6 +170,25 @@ export default class BridgeChannel {
     }
 
     /**
+     * Sends a "selected endpoints changed" message via the channel.
+     *
+     * @param {Array<string>} endpointIds - The ids of the selected endpoints.
+     * @throws NetworkError or InvalidStateError from RTCDataChannel#send (@see
+     * {@link https://developer.mozilla.org/docs/Web/API/RTCDataChannel/send})
+     * or from WebSocket#send or Error with "No opened channel" message.
+     */
+    sendSelectedEndpointsMessage(endpointsIds = []) {
+        logger.log(
+            'sending selected changed notification to the bridge for endpoints',
+            endpointsIds);
+
+        this._send({
+            colibriClass: 'SelectedEndpointsChangedEvent',
+            selectedEndpoint: endpointsIds
+        });
+    }
+
+    /**
      * Sends a "receiver video constraint" message via the channel.
      * @param {Number} maxFrameHeightPixels the maximum frame height,
      * in pixels, this receiver is willing to receive

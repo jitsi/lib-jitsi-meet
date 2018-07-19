@@ -376,6 +376,21 @@ export default class RTC extends Listenable {
     }
 
     /**
+     * Elects the participants with the given ids to be the selected
+     * participants in order to always receive video for this participant (even
+     * when last n is enabled).
+     *
+     * @param {Array<string>} ids - The user ids.
+     * @throws NetworkError or InvalidStateError or Error if the operation
+     * fails.
+     */
+    selectEndpoints(ids) {
+        if (this._channel && this._channelOpen) {
+            this._channel.sendSelectedEndpointsMessage(ids);
+        }
+    }
+
+    /**
      * Elects the participant with the given id to be the pinned participant in
      * order to always receive video for this participant (even when last n is
      * enabled).

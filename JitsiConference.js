@@ -1041,6 +1041,17 @@ JitsiConference.prototype.selectParticipant = function(participantId) {
     this.rtc.selectEndpoint(participantId);
 };
 
+/*
+ * Elects participants with given ids to be the selected participant in  order
+ * to receive higher video quality (if simulcast is enabled).
+ *
+ * @param participantIds - An array of iidentifiers for participant
+ * @throws NetworkError or InvalidStateError or Error if the operation fails.
+ */
+JitsiConference.prototype.selectParticipants = function(participantIds) {
+    this.rtc.selectEndpoints(participantIds);
+};
+
 /**
  * Elects the participant with the given id to be the pinned participant in
  * order to always receive video for this participant (even when last n is
