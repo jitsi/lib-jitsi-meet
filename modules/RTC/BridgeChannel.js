@@ -184,7 +184,7 @@ export default class BridgeChannel {
 
         this._send({
             colibriClass: 'SelectedEndpointsChangedEvent',
-            selectedEndpoint: endpointsIds
+            selectedEndpoints: endpointsIds
         });
     }
 
