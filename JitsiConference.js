@@ -1038,7 +1038,7 @@ JitsiConference.prototype.unlock = function() {
  * @throws NetworkError or InvalidStateError or Error if the operation fails.
  */
 JitsiConference.prototype.selectParticipant = function(participantId) {
-    this.rtc.selectEndpoint(participantId);
+    this.selectParticipants([ participantId ]);
 };
 
 /*
