@@ -1028,20 +1028,6 @@ function extractSSRCMap(desc) {
 }
 
 /**
- * Get the bitrate cap we should enforce for video given whether or not
- * we are selected
- * @param {boolean} isSelected whether or not we (the local endpoint) is
- * selected by any other endpoints (meaning its HD stream is in use)
- * @return {Number} the bitrate cap in kbps, or null if there should be
- * no cap
- */
-function getSuspensionBitrateKbps(isSelected) {
-    // eslint-disable-next-line max-len
-    // https://codesearch.chromium.org/chromium/src/third_party/webrtc/media/engine/simulcast.cc?l=55&rcl=28deb90728c06a35d8847d2aeda2fc1aee105c5e
-    return isSelected ? null : 200;
-}
-
-/**
  * Takes a SessionDescription object and returns a "normalized" version.
  * Currently it only takes care of ordering the a=ssrc lines.
  */
@@ -2467,30 +2453,38 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {
 const handleLayerSuspension = function(peerConnection, isSelected) {
     const videoSender = peerConnection.getSenders()
         .find(sender => sender.track.kind === 'video');
+
     if (!videoSender) {
-        logger.warn("handleLayerSuspension unable to find video sender");
+        logger.warn('handleLayerSuspension unable to find video sender');
+
         return;
     }
     if (!videoSender.getParameters) {
-        logger.debug("Browser doesn't support RTPSender parameters");
+        logger.debug('Browser doesn\'t support RTPSender parameters');
+
         return;
     }
     const parameters = videoSender.getParameters();
+
     if (isSelected) {
         logger.debug('Currently selected, enabling all sim layers');
+
         // Make sure all encodings are enabled
-        parameters.encodings.forEach(e => e.active = true);
+        parameters.encodings.forEach(e => {
+            e.active = true;
+        });
     } else {
         logger.debug('Not currently selected, disabling upper layers');
+
         // Turn off the upper simulcast layers
-        [1,2].forEach(simIndex => {
+        [ 1, 2 ].forEach(simIndex => {
             if (parameters.encodings[simIndex]) {
                 parameters.encodings[simIndex].active = false;
             }
         });
     }
     videoSender.setParameters(parameters);
-}
+};
 
 /**
  * Set whether or not the endpoint is 'selected' by other endpoints, meaning
