@@ -165,10 +165,10 @@ export default class RTC extends Listenable {
          * The number representing the maximum video height the local client
          * should receive from the bridge.
          *
-         * @type {number|null}
+         * @type {number|undefined}
          * @private
          */
-        this._maxFrameHeight = null;
+        this._maxFrameHeight = undefined;
 
         /**
          * The endpoint ID of currently pinned participant or <tt>null</tt> if
@@ -260,11 +260,17 @@ export default class RTC extends Listenable {
                     this._pinnedEndpoint);
                 this._channel.sendSelectedEndpointMessage(
                     this._selectedEndpoint);
+
+                if (typeof this._maxFrameHeight !== 'undefined') {
+                    this._channel.sendReceiverVideoConstraintMessage(
+                        this._maxFrameHeight);
+                }
             } catch (error) {
                 GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error(
                     `Cannot send selected(${this._selectedEndpoint})`
-                    + `pinned(${this._pinnedEndpoint}) endpoint message.`,
+                    + `pinned(${this._pinnedEndpoint})`
+                    + `frameHeight(${this._maxFrameHeight}) endpoint message`,
                     error);
             }
 
