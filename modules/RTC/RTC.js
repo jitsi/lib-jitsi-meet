@@ -179,12 +179,12 @@ export default class RTC extends Listenable {
         this._pinnedEndpoint = null;
 
         /**
-         * The endpoint ID of currently selected participant or <tt>null</tt> if
-         * no user is selected.
-         * @type {Array|null}
+         * The endpoint IDs of currently selected participants.
+         *
+         * @type {Array}
          * @private
          */
-        this._selectedEndpoints = null;
+        this._selectedEndpoints = [];
 
         // The last N change listener.
         this._lastNChangeListener = this._onLastNChanged.bind(this);
