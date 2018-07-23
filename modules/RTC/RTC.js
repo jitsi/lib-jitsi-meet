@@ -366,8 +366,9 @@ export default class RTC extends Listenable {
      * @param {Array<string>} ids - The user ids.
      * @throws NetworkError or InvalidStateError or Error if the operation
      * fails.
+     * @returns {void}
      */
-    selectEndpoints(ids) {
+    selectEndpoints(ids = []) {
         this._selectedEndpoints = ids;
 
         if (this._channel && this._channelOpen) {

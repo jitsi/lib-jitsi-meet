@@ -1036,17 +1036,19 @@ JitsiConference.prototype.unlock = function() {
  * Or cache it if channel is not created and send it once channel is available.
  * @param participantId the identifier of the participant
  * @throws NetworkError or InvalidStateError or Error if the operation fails.
+ * @returns {void}
  */
 JitsiConference.prototype.selectParticipant = function(participantId) {
     this.selectParticipants([ participantId ]);
 };
 
 /*
- * Elects participants with given ids to be the selected participant in  order
+ * Elects participants with given ids to be the selected participants in order
  * to receive higher video quality (if simulcast is enabled).
  *
- * @param participantIds - An array of iidentifiers for participant
- * @throws NetworkError or InvalidStateError or Error if the operation fails.
+ * @param {Array<strings>} participantIds - An array of identifiers for
+ * participants.
+ * @returns {void}
  */
 JitsiConference.prototype.selectParticipants = function(participantIds) {
     this.rtc.selectEndpoints(participantIds);
