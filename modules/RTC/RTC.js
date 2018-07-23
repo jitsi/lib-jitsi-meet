@@ -162,6 +162,15 @@ export default class RTC extends Listenable {
         this._lastNEndpoints = null;
 
         /**
+         * The number representing the maximum video height the local client
+         * should receive from the bridge.
+         *
+         * @type {number|undefined}
+         * @private
+         */
+        this._maxFrameHeight = undefined;
+
+        /**
          * The endpoint ID of currently pinned participant or <tt>null</tt> if
          * no user is pinned.
          * @type {string|null}
@@ -251,11 +260,17 @@ export default class RTC extends Listenable {
                     this._pinnedEndpoint);
                 this._channel.sendSelectedEndpointMessage(
                     this._selectedEndpoint);
+
+                if (typeof this._maxFrameHeight !== 'undefined') {
+                    this._channel.sendReceiverVideoConstraintMessage(
+                        this._maxFrameHeight);
+                }
             } catch (error) {
                 GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error(
                     `Cannot send selected(${this._selectedEndpoint})`
-                    + `pinned(${this._pinnedEndpoint}) endpoint message.`,
+                    + `pinned(${this._pinnedEndpoint})`
+                    + `frameHeight(${this._maxFrameHeight}) endpoint message`,
                     error);
             }
 
@@ -327,14 +342,17 @@ export default class RTC extends Listenable {
 
     /**
      * Sets the maximum video size the local participant should receive from
-     * remote participants. Will no-op if no data channel has been established.
+     * remote participants. Will cache the value and send it through the channel
+     * once it is created.
      *
      * @param {number} maxFrameHeightPixels the maximum frame height, in pixels,
      * this receiver is willing to receive.
      * @returns {void}
      */
     setReceiverVideoConstraint(maxFrameHeight) {
-        if (this._channel) {
+        this._maxFrameHeight = maxFrameHeight;
+
+        if (this._channel && this._channelOpen) {
             this._channel.sendReceiverVideoConstraintMessage(maxFrameHeight);
         }
     }
