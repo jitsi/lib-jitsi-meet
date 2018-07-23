@@ -179,12 +179,12 @@ export default class RTC extends Listenable {
         this._pinnedEndpoint = null;
 
         /**
-         * The endpoint ID of currently selected participant or <tt>null</tt> if
-         * no user is selected.
-         * @type {string|null}
+         * The endpoint IDs of currently selected participants.
+         *
+         * @type {Array}
          * @private
          */
-        this._selectedEndpoint = null;
+        this._selectedEndpoints = [];
 
         // The last N change listener.
         this._lastNChangeListener = this._onLastNChanged.bind(this);
@@ -258,8 +258,8 @@ export default class RTC extends Listenable {
             try {
                 this._channel.sendPinnedEndpointMessage(
                     this._pinnedEndpoint);
-                this._channel.sendSelectedEndpointMessage(
-                    this._selectedEndpoint);
+                this._channel.sendSelectedEndpointsMessage(
+                    this._selectedEndpoints);
 
                 if (typeof this._maxFrameHeight !== 'undefined') {
                     this._channel.sendReceiverVideoConstraintMessage(
@@ -358,20 +358,21 @@ export default class RTC extends Listenable {
     }
 
     /**
-     * Elects the participant with the given id to be the selected participant
-     * in order to always receive video for this participant (even when last n
-     * is enabled).
-     * If there is no channel we store it and send it through the channel once
-     * it is created.
-     * @param {string} id The user id.
+     * Elects the participants with the given ids to be the selected
+     * participants in order to always receive video for this participant (even
+     * when last n is enabled). If there is no channel we store it and send it
+     * through the channel once it is created.
+     *
+     * @param {Array<string>} ids - The user ids.
      * @throws NetworkError or InvalidStateError or Error if the operation
      * fails.
+     * @returns {void}
      */
-    selectEndpoint(id) {
-        // Cache the value if channel is missing, till we open it.
-        this._selectedEndpoint = id;
+    selectEndpoints(ids) {
+        this._selectedEndpoints = ids;
+
         if (this._channel && this._channelOpen) {
-            this._channel.sendSelectedEndpointMessage(id);
+            this._channel.sendSelectedEndpointsMessage(ids);
         }
     }
 
