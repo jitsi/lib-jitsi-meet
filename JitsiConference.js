@@ -1044,13 +1044,21 @@ JitsiConference.prototype.selectParticipant = function(participantId) {
 
 /*
  * Elects participants with given ids to be the selected participants in order
- * to receive higher video quality (if simulcast is enabled).
+ * to receive higher video quality (if simulcast is enabled). The argument
+ * should be an array of participant id strings (or null); an error will be
+ * thrown if a non-array is passed in. The error is thrown as a layer of
+ * protection against passing an invalid argument, as the error will happen in
+ * the bridge and may not be visible in the client.
  *
  * @param {Array<strings>} participantIds - An array of identifiers for
  * participants.
  * @returns {void}
  */
 JitsiConference.prototype.selectParticipants = function(participantIds) {
+    if (!Array.isArray(participantIds)) {
+        throw new Error('Invalid argument; participantIds must be an array.');
+    }
+
     this.rtc.selectEndpoints(participantIds);
 };
 

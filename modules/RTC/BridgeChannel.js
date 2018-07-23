@@ -159,7 +159,7 @@ export default class BridgeChannel {
      * {@link https://developer.mozilla.org/docs/Web/API/RTCDataChannel/send})
      * or from WebSocket#send or Error with "No opened channel" message.
      */
-    sendSelectedEndpointsMessage(endpointIds = []) {
+    sendSelectedEndpointsMessage(endpointIds) {
         logger.log(
             'sending selected changed notification to the bridge for endpoints',
             endpointIds);
