@@ -1971,41 +1971,13 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
     }
 
     /**
-     * Pares STUN and TURN servers to only one. This works around an issue on
-     * edge where an error occurs if multiple are declared.
-     * See https://developer.microsoft.com/en-us/microsoft-edge/platform
-     * /issues/10163458
-     *
-     * @param {array} servers - All STUN AND TURN servers to connect to.
-     * @private
-     * @returns {array} An array with only one STUN server and one TURN server
-     * at the most.
-     */
-    _filterServers(servers = []) {
-        const filteredServers = [];
-        const firstStun = servers.find(server => server.url.startsWith('stun'));
-
-        if (firstStun) {
-            filteredServers.push(firstStun);
-        }
-
-        const firstTurn = servers.find(server => server.url.startsWith('turn'));
-
-        if (firstTurn) {
-            filteredServers.push(firstTurn);
-        }
-
-        return filteredServers;
-    }
-
-    /**
      * Creates the RTCIceGatherer.
      * @private
      */
     _setIceGatherer(pcConfig) {
         const iceGatherOptions = {
             gatherPolicy: pcConfig.iceTransportPolicy || 'all',
-            iceServers: this._filterServers(pcConfig.iceServers)
+            iceServers: pcConfig.iceServers
         };
         const iceGatherer = new RTCIceGatherer(iceGatherOptions);
 
