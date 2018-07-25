@@ -229,4 +229,14 @@ export default class BrowserCapabilities extends BrowserDetection {
             || this.isSafariWithWebrtc();
 
     }
+
+    /**
+     * Checks if the browser uses webrtc-adapter. All browsers using the new
+     * getUserMedia flow and Edge.
+     *
+     * @returns {boolean}
+     */
+    usesAdapter() {
+        return this.usesNewGumFlow() || this.isEdge();
+    }
 }
