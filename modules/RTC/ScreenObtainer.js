@@ -193,6 +193,15 @@ const ScreenObtainer = {
             }
 
             return this.obtainScreenOnFirefox;
+        } else if (browser.isEdge() && navigator.getDisplayMedia) {
+            return (_, onSuccess, onFailure) => {
+                navigator.getDisplayMedia({ video: true })
+                    .then(stream => onSuccess({
+                        stream,
+                        sourceId: stream.id
+                    }))
+                    .catch(onFailure);
+            };
         }
 
         logger.log(

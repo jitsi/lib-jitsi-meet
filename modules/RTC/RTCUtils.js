@@ -31,7 +31,7 @@ const logger = getLogger(__filename);
 // Require adapter only for certain browsers. This is being done for
 // react-native, which has its own shims, and while browsers are being migrated
 // over to use adapter's shims.
-if (browser.usesNewGumFlow()) {
+if (browser.usesAdapter()) {
     require('webrtc-adapter');
 }
 
