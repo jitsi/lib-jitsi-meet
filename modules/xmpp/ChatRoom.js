@@ -7,6 +7,7 @@ import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
 import Listenable from '../util/Listenable';
 import Settings from '../settings/Settings';
+import Statistics from '../statistics/statistics';
 import * as MediaType from '../../service/RTC/MediaType';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
@@ -146,6 +147,12 @@ export default class ChatRoom extends Listenable {
         this.xmpp = XMPP;
         this.connection = connection;
         this.roomjid = Strophe.getBareJidFromJid(jid);
+
+        // The room creation time along with the JID can be used to uniquely
+        // identify a conference/user.
+        Statistics.analytics.addPermanentProperties({
+            'jid': jid
+        });
         this.myroomjid = jid;
         this.password = password;
         logger.info(`Joined MUC as ${this.myroomjid}`);
@@ -238,6 +245,7 @@ export default class ChatRoom extends Listenable {
     join(password) {
         this.password = password;
         this.moderator.allocateConferenceFocus(() => this.sendPresence(true));
+        this.discoRoomInfo();
     }
 
     /**
@@ -330,6 +338,23 @@ export default class ChatRoom extends Listenable {
                 this.eventEmitter.emit(XMPPEvents.MUC_LOCK_CHANGED, locked);
                 this.locked = locked;
             }
+
+            // The room creation time along with the JID can be used to uniquely
+            // identify a conference/user.
+            const created = $(result).find(
+                '>query>x[xmlns="jabber:x:data"]'
+                + '>field[var="muc#roominfo_created"]>value');
+
+            if (created.length) {
+                const createdMs = Date.parse(created.text());
+
+                if (createdMs) {
+                    Statistics.analytics.addPermanentProperties({
+                        'created_ms': createdMs
+                    });
+                }
+            }
+
         }, error => {
             GlobalOnErrorHandler.callErrorHandler(error);
             logger.error('Error getting room info: ', error);
