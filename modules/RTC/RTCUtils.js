@@ -1692,7 +1692,7 @@ class RTCUtils extends Listenable {
      */
     setAudioOutputDevice(deviceId) {
         if (!this.isDeviceChangeAvailable('output')) {
-            Promise.reject(
+            return Promise.reject(
                 new Error('Audio output device change is not supported'));
         }
 
