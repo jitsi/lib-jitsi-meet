@@ -245,7 +245,32 @@ JitsiConference.prototype._init = function(options = {}) {
 
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
 
-    this.e2eping = new E2ePing(this, config);
+    this.e2eping = new E2ePing(
+        this.eventEmitter,
+        config,
+        (message, to) => {
+            try {
+                this.sendMessage(
+                    message, to, true /* sendThroughVideobridge */);
+            } catch (error) {
+                logger.warn('Failed to send a ping request or response.');
+            }
+        });
+    this.on(
+        JitsiConferenceEvents.USER_JOINED,
+        (id, participant) => this.e2eping.participantJoined(participant));
+    this.on(
+        JitsiConferenceEvents.USER_LEFT,
+        (id, participant) => this.e2eping.participantLeft(participant));
+    this.on(
+        JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
+        (participant, payload) => {
+            this.e2eping.messageReceived(participant, payload);
+        });
+    this.on(
+        JitsiConferenceEvents.DATA_CHANNEL_OPENED,
+        this.e2eping.dataChannelOpened);
+
 
     if (!this.rtc) {
         this.rtc = new RTC(this, options);

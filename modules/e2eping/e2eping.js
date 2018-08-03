@@ -1,6 +1,5 @@
 /* global __filename */
 import { getLogger } from 'jitsi-meet-logger';
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import { createE2eRttEvent } from '../../service/statistics/AnalyticsEvents';
 import * as E2ePingEvents
     from '../../service/e2eping/E2ePingEvents';
@@ -49,7 +48,7 @@ class ParticipantWrapper {
 
         // If the data channel was already open (this is likely a participant
         // joining an existing conference) send a request immediately.
-        if (e2eping.dataChannelOpened) {
+        if (e2eping.isDataChannelOpen) {
             this.sendRequest();
         }
 
@@ -100,7 +99,7 @@ class ParticipantWrapper {
 
         if (request) {
             request.rtt = window.performance.now() - request.timeSent;
-            this.e2eping.conference.eventEmitter.emit(
+            this.e2eping.eventEmitter.emit(
                 E2ePingEvents.E2E_RTT_CHANGED,
                 this.participant,
                 request.rtt);
@@ -171,11 +170,13 @@ class ParticipantWrapper {
  */
 export default class E2ePing {
     /**
-     * @param {JitsiConference} conference
+     * @param {EventEmitter} eventEmitter - The object to use to emit events.
+     * @param {Function} sendMessage - The function to use to send a message.
      * @param {Object} options
      */
-    constructor(conference, options) {
-        this.conference = conference;
+    constructor(eventEmitter, options, sendMessage) {
+        this.eventEmitter = eventEmitter;
+        this.sendMessage = sendMessage;
 
         // The interval at which pings will be sent (<= 0 disables sending).
         this.pingIntervalMs = 10000;
@@ -187,7 +188,7 @@ export default class E2ePing {
         this.participants = {};
 
         // Whether the WebRTC channel has been opened or not.
-        this.dataChannelOpened = false;
+        this.isDataChannelOpen = false;
 
         if (options && options.e2eping) {
             if (typeof options.e2eping.pingInterval === 'number') {
@@ -207,28 +208,14 @@ export default class E2ePing {
             `Initializing e2e ping; pingInterval=${
                 this.pingIntervalMs}, analyticsInterval=${
                 this.analyticsIntervalMs}.`);
+    }
 
-        // Only subscribe to user join/leave events if sending pings is enabled.
-        if (this.pingIntervalMs > 0) {
-            conference.on(
-                JitsiConferenceEvents.USER_JOINED,
-                (id, participant) => this.participantJoined(participant));
-            conference.on(
-                JitsiConferenceEvents.USER_LEFT,
-                (id, participant) => this.participantLeft(participant));
-        }
-
-        // Listen to E2E PING requests and responses from other participants
-        // in the conference.
-        conference.on(
-            JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
-            (participant, payload) => {
-                if (payload.type === E2E_PING_REQUEST) {
-                    this.handleRequest(participant, payload);
-                } else if (payload.type === E2E_PING_RESPONSE) {
-                    this.handleResponse(participant, payload);
-                }
-            });
+    /**
+     * Notifies this instance that the communications channel has been opened
+     * and it can now send messages via sendMessage.
+     */
+    dataChannelOpened() {
+        this.isDataChannelOpen = true;
 
         // We don't want to wait the whole interval before sending the first
         // request, but we can't send it immediately after the participant joins
@@ -237,18 +224,28 @@ export default class E2ePing {
         // Wait an additional 200ms to give a chance to the remote side (if it
         // also just connected as is the case for the first 2 participants in a
         // conference) to open its data channel.
-        conference.on(
-            JitsiConferenceEvents.DATA_CHANNEL_OPENED,
-            () => {
-                this.dataChannelOpened = true;
-                for (const id in this.participants) {
-                    if (this.participants.hasOwnProperty(id)) {
-                        const participantWrapper = this.participants[id];
+        for (const id in this.participants) {
+            if (this.participants.hasOwnProperty(id)) {
+                const participantWrapper = this.participants[id];
 
-                        window.setTimeout(participantWrapper.sendRequest, 200);
-                    }
-                }
-            });
+                window.setTimeout(participantWrapper.sendRequest, 200);
+            }
+        }
+    }
+
+    /**
+     * Handles a message that was received.
+     * @param participant - The message sender.
+     * @param payload - The payload of the message.
+     */
+    messageReceived(participant, payload) {
+        // Listen to E2E PING requests and responses from other participants
+        // in the conference.
+        if (payload.type === E2E_PING_REQUEST) {
+            this.handleRequest(participant, payload);
+        } else if (payload.type === E2E_PING_RESPONSE) {
+            this.handleResponse(participant, payload);
+        }
     }
 
     /**
@@ -258,6 +255,10 @@ export default class E2ePing {
      */
     participantJoined(participant) {
         const id = participant.getId();
+
+        if (this.pingIntervalMs <= 0) {
+            return;
+        }
 
         if (this.participants[id]) {
             logger.info(
@@ -275,6 +276,10 @@ export default class E2ePing {
      */
     participantLeft(participant) {
         const id = participant.getId();
+
+        if (this.pingIntervalMs <= 0) {
+            return;
+        }
 
         if (this.participants[id]) {
             this.participants[id].clearIntervals();
@@ -315,21 +320,6 @@ export default class E2ePing {
 
         if (participantWrapper) {
             participantWrapper.handleResponse(response);
-        }
-    }
-
-    /**
-     * Sends a message to another participant over the bridge
-     * @param {Object} message the message to send.
-     * @param {string} to the ID of the destination participant.
-     */
-    sendMessage(message, to) {
-        // It's a best-effort.
-        try {
-            this.conference.sendMessage(
-                message, to, true /* sendThroughVideobridge */);
-        } catch (error) {
-            logger.warn('Failed to send a ping request or response.');
         }
     }
 }
