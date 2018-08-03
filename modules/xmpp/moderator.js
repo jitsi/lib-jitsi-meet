@@ -147,6 +147,7 @@ Moderator.prototype.createConferenceIq = function() {
     // Session Id used for authentication
     const { sessionId } = Settings;
     const machineUID = Settings.machineId;
+    const config = this.options.conference;
 
     logger.info(`Session ID: ${sessionId} machine UID: ${machineUID}`);
 
@@ -176,38 +177,38 @@ Moderator.prototype.createConferenceIq = function() {
                 value: this.options.connection.hosts.call_control
             }).up();
     }
-    if (this.options.conference.channelLastN !== undefined) {
+    if (config.channelLastN !== undefined) {
         elem.c(
             'property', {
                 name: 'channelLastN',
-                value: this.options.conference.channelLastN
+                value: config.channelLastN
             }).up();
     }
     elem.c(
         'property', {
             name: 'disableRtx',
-            value: Boolean(this.options.conference.disableRtx)
+            value: Boolean(config.disableRtx)
         }).up();
 
-    if (this.options.conference.enableTcc !== undefined) {
+    if (config.enableTcc !== undefined) {
         elem.c(
                 'property', {
                     name: 'enableTcc',
-                    value: Boolean(this.options.conference.enableTcc)
+                    value: Boolean(config.enableTcc)
                 }).up();
     }
-    if (this.options.conference.enableRemb !== undefined) {
+    if (config.enableRemb !== undefined) {
         elem.c(
                 'property', {
                     name: 'enableRemb',
-                    value: Boolean(this.options.conference.enableRemb)
+                    value: Boolean(config.enableRemb)
                 }).up();
     }
-    if (this.options.conference.minParticipants !== undefined) {
+    if (config.minParticipants !== undefined) {
         elem.c(
                 'property', {
                     name: 'minParticipants',
-                    value: this.options.conference.minParticipants
+                    value: config.minParticipants
                 }).up();
     }
 
@@ -216,25 +217,25 @@ Moderator.prototype.createConferenceIq = function() {
             name: 'enableLipSync',
             value: this.options.connection.enableLipSync !== false
         }).up();
-    if (this.options.conference.audioPacketDelay !== undefined) {
+    if (config.audioPacketDelay !== undefined) {
         elem.c(
             'property', {
                 name: 'audioPacketDelay',
-                value: this.options.conference.audioPacketDelay
+                value: config.audioPacketDelay
             }).up();
     }
-    if (this.options.conference.startBitrate) {
+    if (config.startBitrate) {
         elem.c(
             'property', {
                 name: 'startBitrate',
-                value: this.options.conference.startBitrate
+                value: config.startBitrate
             }).up();
     }
-    if (this.options.conference.minBitrate) {
+    if (config.minBitrate) {
         elem.c(
             'property', {
                 name: 'minBitrate',
-                value: this.options.conference.minBitrate
+                value: config.minBitrate
             }).up();
     }
 
