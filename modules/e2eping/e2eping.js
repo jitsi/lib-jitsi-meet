@@ -23,10 +23,11 @@ const E2E_PING_RESPONSE = 'e2e-ping-response';
 /**
  * Saves e2e ping related state for a single JitsiParticipant.
  */
-class ParticipantState {
+class ParticipantWrapper {
     /**
-     * Creates a ParticipantState
-     * @param {JitsiParticipant} participant
+     * Creates a ParticipantWrapper
+     * @param {JitsiParticipant} participant - The remote participant that this
+     * object wraps.
      * @param {E2ePing} e2eping
      */
     constructor(participant, e2eping) {
@@ -157,6 +158,9 @@ class ParticipantState {
  * Implements end-to-end ping (from one conference participant to another) via
  * the jitsi-videobridge channel (either WebRTC data channel or web socket).
  *
+ * TODO: use a broadcast message instead of individual pings to each remote
+ * participant.
+ *
  * This class:
  * 1. Sends periodic ping requests to all other participants in the
  * conference.
@@ -179,7 +183,7 @@ export default class E2ePing {
         // The interval at which analytics events will be sent.
         this.analyticsIntervalMs = 60000;
 
-        // Maps a participant ID to its ParticipantState
+        // Maps a participant ID to its ParticipantWrapper
         this.participants = {};
 
         // Whether the WebRTC channel has been opened or not.
@@ -239,9 +243,9 @@ export default class E2ePing {
                 this.dataChannelOpened = true;
                 for (const id in this.participants) {
                     if (this.participants.hasOwnProperty(id)) {
-                        const participantState = this.participants[id];
+                        const participantWrapper = this.participants[id];
 
-                        window.setTimeout(participantState.sendRequest, 200);
+                        window.setTimeout(participantWrapper.sendRequest, 200);
                     }
                 }
             });
@@ -256,14 +260,13 @@ export default class E2ePing {
         const id = participant.getId();
 
         if (this.participants[id]) {
-            // State state left?
             logger.info(
-                `Participant state already exists for ${id}. Clearing.`);
+                `Participant wrapper already exists for ${id}. Clearing.`);
             this.participants[id].clearIntervals();
             delete this.participants[id];
         }
 
-        this.participants[id] = new ParticipantState(participant, this);
+        this.participants[id] = new ParticipantWrapper(participant, this);
     }
 
     /**
@@ -308,10 +311,10 @@ export default class E2ePing {
      * @param {Object} response the response.
      */
     handleResponse(participant, response) {
-        const participantState = this.participants[participant.getId()];
+        const participantWrapper = this.participants[participant.getId()];
 
-        if (participantState) {
-            participantState.handleResponse(response);
+        if (participantWrapper) {
+            participantWrapper.handleResponse(response);
         }
     }
 
