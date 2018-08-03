@@ -107,44 +107,29 @@ const isAudioOutputDeviceChangeAvailable
     = typeof featureDetectionAudioEl.setSinkId !== 'undefined';
 
 let availableDevices;
+let availableDevicesPollTimer;
 
 /**
- * "rawEnumerateDevicesWithCallback" will be initialized only after WebRTC is
- * ready. Otherwise it is too early to assume that the devices listing is not
- * supported.
+ * Initialize wrapper function for enumerating devices.
+ *
+ * @returns {?Function}
  */
-let rawEnumerateDevicesWithCallback;
+function initEnumerateDevicesWithCallback() {
+    if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+        return callback => {
+            navigator.mediaDevices.enumerateDevices()
+                .then(callback, () => callback([]));
+        };
+    }
 
-/**
- * Initialize {@link rawEnumerateDevicesWithCallback}.
- */
-function initRawEnumerateDevicesWithCallback() {
-    rawEnumerateDevicesWithCallback
-        = navigator.mediaDevices && navigator.mediaDevices.enumerateDevices
-            ? function(callback) {
-                navigator.mediaDevices.enumerateDevices().then(
-                    callback,
-                    () => callback([]));
-            }
-
-            // react-native-webrtc
-            : function(callback) {
-                MediaStreamTrack.getSources(
-                    sources =>
-                        callback(sources.map(convertMediaStreamTrackSource)));
-            };
+    if (MediaStreamTrack.getSources) { // react-native-webrtc
+        return callback => {
+            MediaStreamTrack.getSources(
+                sources =>
+                    callback(sources.map(convertMediaStreamTrackSource)));
+        };
+    }
 }
-
-// TODO: currently no browser supports 'devicechange' event even in nightly
-// builds so no feature/browser detection is used at all. However in future this
-// should be changed to some expression. Progress on 'devicechange' event
-// implementation for Chrome/Opera/NWJS can be tracked at
-// https://bugs.chromium.org/p/chromium/issues/detail?id=388648, for Firefox -
-// at https://bugzilla.mozilla.org/show_bug.cgi?id=1152383. More information on
-// 'devicechange' event can be found in spec -
-// http://w3c.github.io/mediacapture-main/#event-mediadevices-devicechange
-// TODO: check MS Edge
-const isDeviceChangeEventSupported = false;
 
 /**
  *
@@ -553,32 +538,6 @@ function compareAvailableMediaDevices(newDevices) {
 }
 
 /**
- * Periodically polls enumerateDevices() method to check if list of media
- * devices has changed. This is temporary workaround until 'devicechange' event
- * will be supported by browsers.
- */
-function pollForAvailableMediaDevices() {
-    // Here we use plain navigator.mediaDevices.enumerateDevices instead of
-    // wrapped because we just need to know the fact the devices changed, labels
-    // do not matter. This fixes situation when we have no devices initially,
-    // and then plug in a new one.
-    if (rawEnumerateDevicesWithCallback) {
-        rawEnumerateDevicesWithCallback(ds => {
-            // We don't fire RTCEvents.DEVICE_LIST_CHANGED for the first time
-            // we call enumerateDevices(). This is the initial step.
-            if (typeof availableDevices === 'undefined') {
-                availableDevices = ds.slice(0);
-            } else if (compareAvailableMediaDevices(ds)) {
-                onMediaDevicesListChanged(ds);
-            }
-
-            window.setTimeout(pollForAvailableMediaDevices,
-                AVAILABLE_DEVICES_POLL_INTERVAL_TIME);
-        });
-    }
-}
-
-/**
  * Sends analytics event with the passed device list.
  *
  * @param {Array<MediaDeviceInfo>} deviceList - List with info about the
@@ -899,8 +858,11 @@ class RTCUtils extends Listenable {
             logger.info(`Disable HPF: ${disableHPF}`);
         }
 
-        // Initialize rawEnumerateDevicesWithCallback
-        initRawEnumerateDevicesWithCallback();
+        availableDevices = undefined;
+        window.clearInterval(availableDevicesPollTimer);
+        availableDevicesPollTimer = undefined;
+
+        this.enumerateDevices = initEnumerateDevicesWithCallback();
 
         if (browser.usesNewGumFlow()) {
             this.RTCPeerConnectionType = window.RTCPeerConnection;
@@ -918,21 +880,6 @@ class RTCUtils extends Listenable {
 
                             return Promise.reject(err);
                         });
-
-            this.enumerateDevices = callback =>
-                window.navigator.mediaDevices.enumerateDevices()
-                    .then(foundDevices => {
-                        callback(foundDevices);
-
-                        return foundDevices;
-                    })
-                    .catch(err => {
-                        logger.error(`Error enumerating devices: ${err}`);
-
-                        callback([]);
-
-                        return [];
-                    });
 
             this.attachMediaStream
                 = wrapAttachMediaStream((element, stream) => {
@@ -954,8 +901,6 @@ class RTCUtils extends Listenable {
             const getUserMedia = navigator.webkitGetUserMedia.bind(navigator);
 
             this.getUserMedia = wrapGetUserMedia(getUserMedia);
-
-            this.enumerateDevices = rawEnumerateDevicesWithCallback;
 
             this.attachMediaStream
                 = wrapAttachMediaStream((element, stream) => {
@@ -995,7 +940,6 @@ class RTCUtils extends Listenable {
                     navigator.mediaDevices.getUserMedia.bind(
                         navigator.mediaDevices),
                     true);
-            this.enumerateDevices = rawEnumerateDevicesWithCallback;
             this.attachMediaStream
                 = wrapAttachMediaStream((element, stream) => {
                     defaultSetVideoSrc(element, stream);
@@ -1030,8 +974,8 @@ class RTCUtils extends Listenable {
             options,
             this.getUserMediaWithConstraints.bind(this));
 
-        if (this.isDeviceListAvailable() && rawEnumerateDevicesWithCallback) {
-            rawEnumerateDevicesWithCallback(ds => {
+        if (this.isDeviceListAvailable()) {
+            this.enumerateDevices(ds => {
                 availableDevices = ds.splice(0);
 
                 logger.debug('Available devices: ', availableDevices);
@@ -1041,12 +985,25 @@ class RTCUtils extends Listenable {
                     RTCEvents.DEVICE_LIST_AVAILABLE,
                     availableDevices);
 
-                if (isDeviceChangeEventSupported) {
+                if (browser.supportsDeviceChangeEvent()) {
                     navigator.mediaDevices.addEventListener(
                         'devicechange',
                         () => this.enumerateDevices(onMediaDevicesListChanged));
                 } else {
-                    pollForAvailableMediaDevices();
+                    // Periodically poll enumerateDevices() method to check if
+                    // list of media devices has changed.
+                    availableDevicesPollTimer = window.setInterval(() => {
+                        this.enumerateDevices(pds => {
+                            // We don't fire RTCEvents.DEVICE_LIST_CHANGED for
+                            // the first time we call enumerateDevices().
+                            // This is the initial step.
+                            if (typeof availableDevices === 'undefined') {
+                                availableDevices = pds.slice(0);
+                            } else if (compareAvailableMediaDevices(pds)) {
+                                onMediaDevicesListChanged(pds);
+                            }
+                        });
+                    }, AVAILABLE_DEVICES_POLL_INTERVAL_TIME);
                 }
             });
         }

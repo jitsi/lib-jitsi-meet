@@ -105,6 +105,14 @@ export default class BrowserCapabilities extends BrowserDetection {
         return !this.isEdge();
     }
 
+    /**
+     * Checks if the current browser support the device change event.
+     * @return {boolean}
+     */
+    supportsDeviceChangeEvent() {
+        return navigator.mediaDevices
+            && typeof navigator.mediaDevices.ondevicechange !== 'undefined';
+    }
 
     /**
      * Checks if the current browser supports the MediaStream constructor as
