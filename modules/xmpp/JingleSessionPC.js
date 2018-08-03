@@ -961,8 +961,7 @@ export default class JingleSessionPC extends JingleSession {
                             this.isInitiator ? 'answer: ' : 'offer: '}${error}`,
                         newRemoteSdp);
 
-                    // FIXME remove static method - there's no need
-                    JingleSessionPC.onJingleFatalError(this, error);
+                    this._onJingleFatalError(error);
                     finishedCallback(error);
                 });
         };
@@ -2198,15 +2197,15 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      *
-     * @param session
      * @param error
+     * @private
      */
-    static onJingleFatalError(session, error) {
+    _onJingleFatalError(error) {
         if (this.room) {
             this.room.eventEmitter.emit(
-                XMPPEvents.CONFERENCE_SETUP_FAILED, session, error);
+                XMPPEvents.CONFERENCE_SETUP_FAILED, this, error);
             this.room.eventEmitter.emit(
-                XMPPEvents.JINGLE_FATAL_ERROR, session, error);
+                XMPPEvents.JINGLE_FATAL_ERROR, this, error);
         }
     }
 
