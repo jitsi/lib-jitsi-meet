@@ -1079,7 +1079,7 @@ class RTCUtils extends Listenable {
                 { googHighStartBitrate: 0 },
                 { googPayloadPadding: true },
                 { googScreencastMinBitrate: 400 },
-                { googCpuOveruseDetection: false },
+                { googCpuOveruseDetection: true },
                 { googCpuOveruseEncodeUsage: true },
                 { googCpuUnderuseThreshold: 55 },
                 { googCpuOveruseThreshold: 85 }
