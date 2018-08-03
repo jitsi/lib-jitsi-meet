@@ -4,6 +4,7 @@ import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
 import AuthUtil from './modules/util/AuthUtil';
 import * as ConnectionQualityEvents
     from './service/connectivity/ConnectionQualityEvents';
+import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
@@ -139,7 +140,8 @@ export default _mergeNamespaceAndModule({
         connection: JitsiConnectionEvents,
         track: JitsiTrackEvents,
         mediaDevices: JitsiMediaDevicesEvents,
-        connectionQuality: ConnectionQualityEvents
+        connectionQuality: ConnectionQualityEvents,
+        e2eping: E2ePingEvents
     },
     errors: {
         conference: JitsiConferenceErrors,

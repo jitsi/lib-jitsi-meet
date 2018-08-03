@@ -15,6 +15,7 @@ import {
 import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import ConnectionQuality from './modules/connectivity/ConnectionQuality';
+import E2ePing from './modules/e2eping/e2eping';
 import { getLogger } from 'jitsi-meet-logger';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import EventEmitter from 'events';
@@ -244,6 +245,8 @@ JitsiConference.prototype._init = function(options = {}) {
 
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
 
+    this.e2eping = new E2ePing(this, config);
+
     if (!this.rtc) {
         this.rtc = new RTC(this, options);
         this.eventManager.setupRTCListeners();
@@ -322,7 +325,8 @@ JitsiConference.prototype._init = function(options = {}) {
     this.p2pDominantSpeakerDetection = new P2PDominantSpeakerDetection(this);
 
     if (config && config.deploymentInfo && config.deploymentInfo.userRegion) {
-        this.setLocalParticipantProperty('region', config.deploymentInfo.userRegion);
+        this.setLocalParticipantProperty(
+            'region', config.deploymentInfo.userRegion);
     }
 };
 

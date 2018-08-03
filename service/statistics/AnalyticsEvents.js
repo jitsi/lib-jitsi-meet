@@ -17,7 +17,7 @@
  * constant. Otherwise use a factory function.
  *
  * Note that the AnalyticsAdapter uses the events passed to its functions for
- * its own purposes, and might modify them. Because of this factory functions
+ * its own purposes, and might modify them. Because of this, factory functions
  * should create new objects.
  *
  */
@@ -260,6 +260,27 @@ export const createConnectionStageReachedEvent = function(stage, attributes) {
         actionSubject: stage,
         attributes,
         source: action,
+        type: TYPE_OPERATIONAL
+    };
+};
+
+/**
+ * Creates an operational event for the end-to-end round trip time to a
+ * specific remote participant.
+ * @param participantId the ID of the remote participant.
+ * @param region the region of the remote participant
+ * @param rtt the rtt
+ */
+export const createE2eRttEvent = function(participantId, region, rtt) {
+    const attributes = {
+        'participant_id': participantId,
+        region,
+        rtt
+    };
+
+    return {
+        attributes,
+        name: 'e2e_rtt',
         type: TYPE_OPERATIONAL
     };
 };
