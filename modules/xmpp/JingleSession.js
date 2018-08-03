@@ -23,6 +23,8 @@ export default class JingleSession {
      * the PeerConnection onCreateAnswer/Offer as defined by the WebRTC.
      * @param {Object} iceConfig the ICE servers config object as defined by
      * the WebRTC. Passed to the PeerConnection's constructor.
+     * @param {boolean} isInitiator indicates if it will be the side which
+     * initiates the session.
      */
     constructor(
             sid,
@@ -30,13 +32,25 @@ export default class JingleSession {
             remoteJid,
             connection,
             mediaConstraints,
-            iceConfig) {
+            iceConfig,
+            isInitiator) {
         this.sid = sid;
         this.localJid = localJid;
         this.remoteJid = remoteJid;
         this.connection = connection;
         this.mediaConstraints = mediaConstraints;
         this.iceConfig = iceConfig;
+
+        /**
+         * Indicates whether this instance is an initiator or an answerer of
+         * the Jingle session.
+         * @type {boolean}
+         */
+        this.isInitiator = isInitiator;
+
+        this.initiator = this.isInitiator ? this.localJid : this.remoteJid;
+
+        this.responder = this.isInitiator ? this.remoteJid : this.localJid;
 
         /**
          * Whether to use dripping or not. Dripping is sending trickle
@@ -72,12 +86,13 @@ export default class JingleSession {
 
     /**
      * Prepares this object to initiate a session.
-     * @param {boolean} isInitiator whether we will be the Jingle initiator.
      * @param {ChatRoom} room the chat room for the conference associated with
      * this session
      * @param {RTC} rtc the RTC service instance
+     * @param {object} options - the options, see implementing class's
+     * {@link #doInitialize} description for more details.
      */
-    initialize(isInitiator, room, rtc) {
+    initialize(room, rtc, options) {
         if (this.state !== null) {
             const errmsg
                 = `attempt to initiate on session ${this.sid}
@@ -89,17 +104,16 @@ export default class JingleSession {
         this.room = room;
         this.rtc = rtc;
         this.state = JingleSessionState.PENDING;
-        this.initiator = isInitiator ? this.localJid : this.remoteJid;
-        this.responder = isInitiator ? this.remoteJid : this.localJid;
-        this.doInitialize();
+        this.doInitialize(options);
     }
 
     /**
      * The implementing class finishes initialization here. Called at the end of
      * {@link initialize}.
+     * @param {Object} options - The options specific to the implementing class.
      * @protected
      */
-    doInitialize() {} // eslint-disable-line no-empty-function
+    doInitialize(options) { } // eslint-disable-line no-unused-vars, no-empty-function, max-len
 
     /* eslint-disable no-unused-vars, no-empty-function */
 
