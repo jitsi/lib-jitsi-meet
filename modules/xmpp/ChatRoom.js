@@ -569,7 +569,7 @@ export default class ChatRoom extends Listenable {
                 // seems there is some period of time in prosody that the
                 // configuration form is received but not applied. And if any
                 // participant joins during that period of time the first
-                // presence from the focus won't conain <item jid="focus..." />.
+                // presence from the focus won't contain <item jid="focus..." />.
                 memberOfThis.isFocus = true;
                 this._initFocus(from, jid);
             }

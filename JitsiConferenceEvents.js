@@ -266,7 +266,7 @@ export const TRANSCRIPTION_STATUS_CHANGED
 
 
 /**
- * A new user joinned the conference.
+ * A new user joined the conference.
  */
 export const USER_JOINED = 'conference.userJoined';
 
@@ -286,6 +286,6 @@ export const USER_ROLE_CHANGED = 'conference.roleChanged';
 export const USER_STATUS_CHANGED = 'conference.statusChanged';
 
 /**
- * Event indicates that the bot participant type cahnged.
+ * Event indicates that the bot participant type changed.
  */
 export const BOT_TYPE_CHANGED = 'conference.bot_type_changed';

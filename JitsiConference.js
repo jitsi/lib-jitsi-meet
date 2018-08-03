@@ -320,6 +320,10 @@ JitsiConference.prototype._init = function(options = {}) {
 
     // creates dominant speaker detection that works only in p2p mode
     this.p2pDominantSpeakerDetection = new P2PDominantSpeakerDetection(this);
+
+    if (config && config.deploymentInfo && config.deploymentInfo.userRegion) {
+        this.setLocalParticipantProperty('region', config.deploymentInfo.userRegion);
+    }
 };
 
 /**
@@ -621,7 +625,10 @@ JitsiConference.prototype.sendCommand = function(name, values) {
     if (this.room) {
         this.room.addToPresence(name, values);
         this.room.sendPresence();
+    } else {
+        logger.warn('Not sending a command, room not initialized.');
     }
+
 };
 
 /**
