@@ -11,6 +11,7 @@ import * as MediaType from '../../service/RTC/MediaType';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
 import Moderator from './moderator';
+import Statistics from '../statistics/statistics';
 
 const logger = getLogger(__filename);
 
@@ -611,6 +612,38 @@ export default class ChatRoom extends Listenable {
                 if (member.isFocus && !this.noBridgeAvailable) {
                     this.noBridgeAvailable = true;
                     this.eventEmitter.emit(XMPPEvents.BRIDGE_DOWN);
+                }
+                break;
+            case 'conference-properties':
+                if (member.isFocus) {
+                    for (let j = 0; j < node.children.length; j++) {
+                        const { attributes } = node.children[j];
+
+                        if (!attributes) {
+                            break;
+                        }
+
+                        const { key, value } = attributes;
+
+                        switch (key) {
+                        case 'octo-enabled':
+                            // This flag can be used to distinguish between
+                            // conferences and/or participants with octo
+                            // enabled or disabled.
+                            Statistics.analytics.addPermanentProperties({
+                                'octo_enabled': value
+                            });
+                            break;
+                        case 'created-ms':
+                            // The room creation time along with the JID can
+                            // be used to uniquely identify a
+                            // conference/user.
+                            Statistics.analytics.addPermanentProperties({
+                                'created_ms': value
+                            });
+                            break;
+                        }
+                    }
                 }
                 break;
             case 'transcription-status': {
