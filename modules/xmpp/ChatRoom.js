@@ -615,32 +615,34 @@ export default class ChatRoom extends Listenable {
                 }
                 break;
             case 'conference-properties':
-                for (let j = 0; j < node.children.length; j++) {
-                    const { attributes } = node.children[j];
+                if (member.isFocus) {
+                    for (let j = 0; j < node.children.length; j++) {
+                        const { attributes } = node.children[j];
 
-                    if (!attributes) {
-                        break;
-                    }
+                        if (!attributes) {
+                            break;
+                        }
 
-                    const { key, value } = attributes;
+                        const { key, value } = attributes;
 
-                    switch (key) {
-                    case 'octo-enabled':
-                        // This flag can be used to distinguish between
-                        // conferences and/or participants with octo
-                        // enabled or disabled.
-                        Statistics.analytics.addPermanentProperties({
-                            'octo_enabled': value
-                        });
-                        break;
-                    case 'created-ms':
-                        // The room creation time along with the JID can
-                        // be used to uniquely identify a
-                        // conference/user.
-                        Statistics.analytics.addPermanentProperties({
-                            'created_ms': value
-                        });
-                        break;
+                        switch (key) {
+                        case 'octo-enabled':
+                            // This flag can be used to distinguish between
+                            // conferences and/or participants with octo
+                            // enabled or disabled.
+                            Statistics.analytics.addPermanentProperties({
+                                'octo_enabled': value
+                            });
+                            break;
+                        case 'created-ms':
+                            // The room creation time along with the JID can
+                            // be used to uniquely identify a
+                            // conference/user.
+                            Statistics.analytics.addPermanentProperties({
+                                'created_ms': value
+                            });
+                            break;
+                        }
                     }
                 }
                 break;
