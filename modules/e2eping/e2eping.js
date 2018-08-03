@@ -235,6 +235,7 @@ export default class E2ePing {
 
     /**
      * Handles a message that was received.
+     *
      * @param participant - The message sender.
      * @param payload - The payload of the message.
      */
@@ -242,16 +243,17 @@ export default class E2ePing {
         // Listen to E2E PING requests and responses from other participants
         // in the conference.
         if (payload.type === E2E_PING_REQUEST) {
-            this.handleRequest(participant, payload);
+            this.handleRequest(participant.getId(), payload);
         } else if (payload.type === E2E_PING_RESPONSE) {
-            this.handleResponse(participant, payload);
+            this.handleResponse(participant.getId(), payload);
         }
     }
 
     /**
      * Handles a participant joining the conference. Starts to send ping
      * requests to the participant.
-     * @param {JitsiParticipant} participant the participant that joined.
+     *
+     * @param {JitsiParticipant} participant - The participant that joined.
      */
     participantJoined(participant) {
         const id = participant.getId();
@@ -272,7 +274,8 @@ export default class E2ePing {
 
     /**
      * Handles a participant leaving the conference. Stops sending requests.
-     * @param {JitsiParticipant} participant the participant that left.
+     *
+     * @param {JitsiParticipant} participant - The participant that left.
      */
     participantLeft(participant) {
         const id = participant.getId();
@@ -289,11 +292,12 @@ export default class E2ePing {
 
     /**
      * Handles a ping request coming from another participant.
-     * @param {JitsiParticipant} participant the participant who sent the
+     *
+     * @param {string} participantId - The ID of the participant who sent the
      * request.
-     * @param {Object} request the request.
+     * @param {Object} request - The request.
      */
-    handleRequest(participant, request) {
+    handleRequest(participantId, request) {
         // If it's a valid request, just send a response.
         if (request && request.id) {
             const response = {
@@ -301,22 +305,21 @@ export default class E2ePing {
                 id: request.id
             };
 
-            this.sendMessage(response, participant.getId());
+            this.sendMessage(response, participantId);
         } else {
             logger.info(
-                `Received an invalid e2e ping request from ${
-                    participant.getId()}.`);
+                `Received an invalid e2e ping request from ${participantId}.`);
         }
     }
 
     /**
      * Handles a ping response coming from another participant
-     * @param {JitsiParticipant} participant the participant who sent the
+     * @param {string} participantId - The ID of the participant who sent the
      * response.
-     * @param {Object} response the response.
+     * @param {Object} response - The response.
      */
-    handleResponse(participant, response) {
-        const participantWrapper = this.participants[participant.getId()];
+    handleResponse(participantId, response) {
+        const participantWrapper = this.participants[participantId];
 
         if (participantWrapper) {
             participantWrapper.handleResponse(response);
