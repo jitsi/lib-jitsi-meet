@@ -859,10 +859,9 @@ export default class JingleSessionPC extends JingleSession {
             sid: this.sid
         });
 
-        // FIXME this.me unresolved variable
         new SDP(offerSdp).toJingle(
             init,
-            this.initiatorJid === this.me ? 'initiator' : 'responder');
+            this.isInitiator ? 'initiator' : 'responder');
         init = init.tree();
         logger.info('Session-initiate: ', init);
         this.connection.sendIQ(init,
