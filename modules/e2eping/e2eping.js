@@ -46,6 +46,12 @@ class ParticipantWrapper {
         // request. Start at 1 so we can consider only thruthy values valid.
         this.lastRequestId = 1;
 
+        this.clearIntervals = this.clearIntervals.bind(this);
+        this.sendRequest = this.sendRequest.bind(this);
+        this.handleResponse = this.handleResponse.bind(this);
+        this.maybeSendAnalytics = this.maybeSendAnalytics.bind(this);
+        this.sendAnalytics = this.sendAnalytics.bind(this);
+
         // If the data channel was already open (this is likely a participant
         // joining an existing conference) send a request immediately.
         if (e2eping.isDataChannelOpen) {
@@ -62,20 +68,20 @@ class ParticipantWrapper {
      * Clears the interval which sends pings.
      * @type {*}
      */
-    clearIntervals = function() {
+    clearIntervals() {
         if (this.pingInterval) {
             window.clearInterval(this.pingInterval);
         }
         if (this.analyticsInterval) {
             window.clearInterval(this.analyticsInterval);
         }
-    }.bind(this); // eslint-disable-line no-invalid-this
+    }
 
     /**
      * Sends the next ping request.
      * @type {*}
      */
-    sendRequest = function() {
+    sendRequest() {
         const requestId = this.lastRequestId++;
         const requestMessage = {
             type: E2E_PING_REQUEST,
@@ -87,14 +93,13 @@ class ParticipantWrapper {
             id: requestId,
             timeSent: window.performance.now()
         };
-
-    }.bind(this); // eslint-disable-line no-invalid-this
+    }
 
     /**
      * Handles a response from this participant.
      * @type {*}
      */
-    handleResponse = function(response) {
+    handleResponse(response) {
         const request = this.requests[response.id];
 
         if (request) {
@@ -106,7 +111,7 @@ class ParticipantWrapper {
         }
 
         this.maybeSendAnalytics();
-    }.bind(this); // eslint-disable-line no-invalid-this
+    }
 
     /**
      * Goes over the requests, clearing ones which we don't need anymore, and
@@ -114,7 +119,7 @@ class ParticipantWrapper {
      * 'analyticsIntervalMs' then sends an analytics event.
      * @type {*}
      */
-    maybeSendAnalytics = function() {
+    maybeSendAnalytics() {
         const now = window.performance.now();
 
         // The RTT we'll report is the minimum RTT measured in the last
@@ -139,18 +144,18 @@ class ParticipantWrapper {
         if (rtt < Infinity) {
             this.sendAnalytics(rtt);
         }
-    }.bind(this); // eslint-disable-line no-invalid-this
+    }
 
     /**
      * Sends an analytics event for this participant with the given RTT.
      * @type {*}
      */
-    sendAnalytics = function(rtt) {
+    sendAnalytics(rtt) {
         Statistics.sendAnalytics(createE2eRttEvent(
             this.id,
             this.participant.getProperty('region'),
             rtt));
-    }.bind(this); // eslint-disable-line no-invalid-this
+    }
 }
 
 /**
