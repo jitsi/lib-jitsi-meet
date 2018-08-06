@@ -1033,7 +1033,7 @@ export default class JingleSessionPC extends JingleSession {
             .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
                 action: 'session-accept',
                 initiator: this.initiatorJid,
-                responder: this.responder,
+                responder: this.responderJid,
                 sid: this.sid });
 
         if (this.webrtcIceTcpDisable) {

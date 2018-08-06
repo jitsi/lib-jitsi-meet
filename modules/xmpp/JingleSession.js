@@ -50,7 +50,7 @@ export default class JingleSession {
 
         this.initiatorJid = this.isInitiator ? this.localJid : this.remoteJid;
 
-        this.responder = this.isInitiator ? this.remoteJid : this.localJid;
+        this.responderJid = this.isInitiator ? this.remoteJid : this.localJid;
 
         /**
          * Whether to use dripping or not. Dripping is sending trickle
