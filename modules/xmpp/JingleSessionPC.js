@@ -569,7 +569,7 @@ export default class JingleSessionPC extends JingleSession {
             type: 'set' })
             .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
                 action: 'transport-info',
-                initiator: this.initiator,
+                initiator: this.initiatorJid,
                 sid: this.sid });
 
         const localSDP = new SDP(this.peerconnection.localDescription.sdp);
@@ -585,7 +585,7 @@ export default class JingleSessionPC extends JingleSession {
 
                 ice.xmlns = 'urn:xmpp:jingle:transports:ice-udp:1';
                 cand.c('content', {
-                    creator: this.initiator === this.localJid
+                    creator: this.initiatorJid === this.localJid
                         ? 'initiator' : 'responder',
                     name: cands[0].sdpMid ? cands[0].sdpMid : mline.media
                 }).c('transport', ice);
@@ -855,13 +855,14 @@ export default class JingleSessionPC extends JingleSession {
         }).c('jingle', {
             xmlns: 'urn:xmpp:jingle:1',
             action: 'session-initiate',
-            initiator: this.initiator,
+            initiator: this.initiatorJid,
             sid: this.sid
         });
 
+        // FIXME this.me unresolved variable
         new SDP(offerSdp).toJingle(
             init,
-            this.initiator === this.me ? 'initiator' : 'responder');
+            this.initiatorJid === this.me ? 'initiator' : 'responder');
         init = init.tree();
         logger.info('Session-initiate: ', init);
         this.connection.sendIQ(init,
@@ -1031,7 +1032,7 @@ export default class JingleSessionPC extends JingleSession {
             type: 'set' })
             .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
                 action: 'session-accept',
-                initiator: this.initiator,
+                initiator: this.initiatorJid,
                 responder: this.responder,
                 sid: this.sid });
 
@@ -1046,7 +1047,7 @@ export default class JingleSessionPC extends JingleSession {
         }
         localSDP.toJingle(
             accept,
-            this.initiator === this.localJid ? 'initiator' : 'responder',
+            this.initiatorJid === this.localJid ? 'initiator' : 'responder',
             null);
 
         // Calling tree() to print something useful
@@ -1105,7 +1106,7 @@ export default class JingleSessionPC extends JingleSession {
                 .c('jingle', {
                     xmlns: 'urn:xmpp:jingle:1',
                     action: 'content-modify',
-                    initiator: this.initiator,
+                    initiator: this.initiatorJid,
                     sid: this.sid
                 })
                 .c('content', {
@@ -1139,7 +1140,7 @@ export default class JingleSessionPC extends JingleSession {
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'transport-accept',
-                initiator: this.initiator,
+                initiator: this.initiatorJid,
                 sid: this.sid
             });
 
@@ -1149,7 +1150,7 @@ export default class JingleSessionPC extends JingleSession {
             transportAccept.c('content',
                 {
                     creator:
-                        this.initiator === this.localJid
+                        this.initiatorJid === this.localJid
                             ? 'initiator'
                             : 'responder',
                     name: mline.media
@@ -1188,7 +1189,7 @@ export default class JingleSessionPC extends JingleSession {
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'transport-reject',
-                initiator: this.initiator,
+                initiator: this.initiatorJid,
                 sid: this.sid
             });
 
@@ -1218,7 +1219,7 @@ export default class JingleSessionPC extends JingleSession {
                     .c('jingle', {
                         xmlns: 'urn:xmpp:jingle:1',
                         action: 'session-terminate',
-                        initiator: this.initiator,
+                        initiator: this.initiatorJid,
                         sid: this.sid
                     })
                     .c('reason')
@@ -2092,7 +2093,7 @@ export default class JingleSessionPC extends JingleSession {
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'source-remove',
-                initiator: this.initiator,
+                initiator: this.initiatorJid,
                 sid: this.sid
             }
             );
@@ -2114,7 +2115,7 @@ export default class JingleSessionPC extends JingleSession {
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'source-add',
-                initiator: this.initiator,
+                initiator: this.initiatorJid,
                 sid: this.sid
             }
             );

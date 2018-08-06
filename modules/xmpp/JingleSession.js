@@ -48,7 +48,7 @@ export default class JingleSession {
          */
         this.isInitiator = isInitiator;
 
-        this.initiator = this.isInitiator ? this.localJid : this.remoteJid;
+        this.initiatorJid = this.isInitiator ? this.localJid : this.remoteJid;
 
         this.responder = this.isInitiator ? this.remoteJid : this.localJid;
 
