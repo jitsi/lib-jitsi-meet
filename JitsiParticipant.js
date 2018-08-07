@@ -186,10 +186,6 @@ export default class JitsiParticipant {
         return this._hidden;
     }
 
-    // Gets a link to an etherpad instance advertised by the participant?
-    // getEtherpad() {
-    // }
-
     /**
      * @returns {Boolean} Whether this participant has muted their audio.
      */
