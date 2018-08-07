@@ -1587,7 +1587,14 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
             value: now
         }));
     try {
-        jingleSession.initialize(this.room, this.rtc, this.options.config);
+        jingleSession.initialize(
+            this.room,
+            this.rtc,
+            {
+                ...this.options.config,
+                delaySources:
+                    browser.isReactNative() && this.getParticipantCount() >= 5
+            });
     } catch (error) {
         GlobalOnErrorHandler.callErrorHandler(error);
     }

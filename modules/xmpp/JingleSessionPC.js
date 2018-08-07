@@ -20,6 +20,7 @@ import RTCEvents from '../../service/RTC/RTCEvents';
 import Statistics from '../statistics/statistics';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import DelaySources from './DelaySources';
 
 const logger = getLogger(__filename);
 
@@ -41,6 +42,9 @@ const DEFAULT_MAX_STATS = 300;
  * @property {Object} abTesting - A/B testing related options (ask George).
  * @property {boolean} abTesting.enableSuspendVideoTest - enables the suspend
  * video test ?(ask George).
+ * @property {boolean} delaySources when set to {@code true} audio and
+ * video sources will be added either after the last ICE candidate is sent or
+ * when the connection is established (whichever occurs first).
  * @property {boolean} disableH264 - Described in the config.js[1].
  * @property {boolean} disableRtx - Described in the config.js[1].
  * @property {boolean} disableSimulcast - Described in the config.js[1].
@@ -264,6 +268,11 @@ export default class JingleSessionPC extends JingleSession {
         this.wasstable = false;
         this.webrtcIceUdpDisable = Boolean(options.webrtcIceUdpDisable);
         this.webrtcIceTcpDisable = Boolean(options.webrtcIceTcpDisable);
+        this._delaySourceAdd = options.delaySources ? new DelaySources() : null;
+
+        if (this._delaySourceAdd) {
+            logger.info(`Remote streams will be delayed for ${this}`);
+        }
 
         const pcOptions = { disableRtx: options.disableRtx };
 
@@ -345,6 +354,7 @@ export default class JingleSessionPC extends JingleSession {
                         initiator: this.isInitiator
                     });
                 this._gatheringReported = true;
+                this._maybeAddPendingSources();
             }
             this.sendIceCandidate(candidate);
         };
@@ -454,6 +464,7 @@ export default class JingleSessionPC extends JingleSession {
                     this.wasConnected = true;
                     this.room.eventEmitter.emit(
                         XMPPEvents.CONNECTION_ESTABLISHED, this);
+                    this._maybeAddPendingSources();
                 }
                 this.isReconnect = false;
                 break;
@@ -771,6 +782,9 @@ export default class JingleSessionPC extends JingleSession {
      * offer/answer cycle has been executed already.
      */
     acceptOffer(jingleOffer, success, failure, localTracks) {
+        this._delaySourceAdd
+            && this._delaySourceAdd.processInitialOffer(jingleOffer);
+
         this.setOfferAnswerCycle(
             jingleOffer,
             () => {
@@ -781,6 +795,20 @@ export default class JingleSessionPC extends JingleSession {
             },
             failure,
             localTracks);
+    }
+
+    /**
+     * If there are any pending audio/video sources a 'source-add' action will
+     * be performed.
+     * @private
+     */
+    _maybeAddPendingSources() {
+        if (this._delaySourceAdd) {
+            const pendingSourceAdd = this._delaySourceAdd.getPendingSourceAdd();
+
+            this._delaySourceAdd = null;
+            this._addOrRemoveRemoteStream(true /* add */, pendingSourceAdd);
+        }
     }
 
     /* eslint-enable max-params */
@@ -1368,6 +1396,12 @@ export default class JingleSessionPC extends JingleSession {
      */
     _addOrRemoveRemoteStream(isAdd, elem) {
         const logPrefix = isAdd ? 'addRemoteStream' : 'removeRemoteStream';
+
+        if (this._delaySourceAdd) {
+            this._delaySourceAdd.processAddOrRemoveStream(isAdd, elem);
+
+            return;
+        }
 
         if (isAdd) {
             this.readSsrcInfo(elem);
