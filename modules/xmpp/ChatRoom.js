@@ -626,24 +626,22 @@ export default class ChatRoom extends Listenable {
 
                         const { key, value } = attributes;
 
+                        /* eslint-disable no-fallthrough */
                         switch (key) {
-                        case 'octo-enabled':
-                            // This flag can be used to distinguish between
-                            // conferences and/or participants with octo
-                            // enabled or disabled.
-                            Statistics.analytics.addPermanentProperties({
-                                'octo_enabled': value
-                            });
-                            break;
+
+                        // The number of jitsi-videobridge instances currently
+                        // used for the conference.
+                        case 'bridge-count':
+
+                        // The conference creation time (set by jicofo).
                         case 'created-ms':
-                            // The room creation time along with the JID can
-                            // be used to uniquely identify a
-                            // conference/user.
+                        case 'octo-enabled':
                             Statistics.analytics.addPermanentProperties({
-                                'created_ms': value
+                                [key.replace('-', '_')]: value
                             });
                             break;
                         }
+                        /* eslint-enable no-fallthrough */
                     }
                 }
                 break;
