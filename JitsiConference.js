@@ -15,6 +15,7 @@ import {
 import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import ConnectionQuality from './modules/connectivity/ConnectionQuality';
+import E2ePing from './modules/e2eping/e2eping';
 import { getLogger } from 'jitsi-meet-logger';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import EventEmitter from 'events';
@@ -244,6 +245,33 @@ JitsiConference.prototype._init = function(options = {}) {
 
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
 
+    this.e2eping = new E2ePing(
+        this.eventEmitter,
+        config,
+        (message, to) => {
+            try {
+                this.sendMessage(
+                    message, to, true /* sendThroughVideobridge */);
+            } catch (error) {
+                logger.warn('Failed to send a ping request or response.');
+            }
+        });
+    this.on(
+        JitsiConferenceEvents.USER_JOINED,
+        (id, participant) => this.e2eping.participantJoined(participant));
+    this.on(
+        JitsiConferenceEvents.USER_LEFT,
+        (id, participant) => this.e2eping.participantLeft(participant));
+    this.on(
+        JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
+        (participant, payload) => {
+            this.e2eping.messageReceived(participant, payload);
+        });
+    this.on(
+        JitsiConferenceEvents.DATA_CHANNEL_OPENED,
+        this.e2eping.dataChannelOpened);
+
+
     if (!this.rtc) {
         this.rtc = new RTC(this, options);
         this.eventManager.setupRTCListeners();
@@ -320,6 +348,11 @@ JitsiConference.prototype._init = function(options = {}) {
 
     // creates dominant speaker detection that works only in p2p mode
     this.p2pDominantSpeakerDetection = new P2PDominantSpeakerDetection(this);
+
+    if (config && config.deploymentInfo && config.deploymentInfo.userRegion) {
+        this.setLocalParticipantProperty(
+            'region', config.deploymentInfo.userRegion);
+    }
 };
 
 /**
@@ -621,7 +654,10 @@ JitsiConference.prototype.sendCommand = function(name, values) {
     if (this.room) {
         this.room.addToPresence(name, values);
         this.room.sendPresence();
+    } else {
+        logger.warn('Not sending a command, room not initialized.');
     }
+
 };
 
 /**
