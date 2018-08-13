@@ -48,10 +48,6 @@ export default class JingleSession {
          */
         this.isInitiator = isInitiator;
 
-        this.initiatorJid = this.isInitiator ? this.localJid : this.remoteJid;
-
-        this.responderJid = this.isInitiator ? this.remoteJid : this.localJid;
-
         /**
          * Whether to use dripping or not. Dripping is sending trickle
          * candidates not one-by-one.
@@ -80,6 +76,22 @@ export default class JingleSession {
          * @type {RTC}
          */
         this.rtc = null;
+    }
+
+    /**
+     * Returns XMPP address of this session's initiator.
+     * @return {string}
+     */
+    get initiatorJid() {
+        return this.isInitiator ? this.localJid : this.remoteJid;
+    }
+
+    /**
+     * Returns XMPP address of this session's responder.
+     * @return {string}
+     */
+    get responderJid() {
+        return this.isInitiator ? this.remoteJid : this.localJid;
     }
 
     /* eslint-enable max-params */
