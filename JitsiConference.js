@@ -4,6 +4,7 @@ import { Strophe } from 'strophe.js';
 import {
     ACTION_JINGLE_RESTART,
     ACTION_JINGLE_SI_RECEIVED,
+    ACTION_JINGLE_SI_TIMEOUT,
     ACTION_JINGLE_TERMINATE,
     ACTION_P2P_ESTABLISHED,
     ACTION_P2P_FAILED,
@@ -49,6 +50,13 @@ import { JITSI_MEET_MUC_TYPE } from './modules/xmpp/ChatRoom';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 
 const logger = getLogger(__filename);
+
+/**
+ * How long since Jicofo is supposed to send a session-initiate, before
+ * {@link ACTION_JINGLE_SI_TIMEOUT} analytics event is sent (in ms).
+ * @type {number}
+ */
+const JINGLE_SI_TIMEOUT = 5000;
 
 /**
  * Creates a JitsiConference object with the given name and properties.
@@ -361,7 +369,7 @@ JitsiConference.prototype._init = function(options = {}) {
  */
 JitsiConference.prototype.join = function(password) {
     if (this.room) {
-        this.room.join(password);
+        this.room.join(password).then(() => this._maybeSetSITimeout());
     }
 };
 
@@ -1217,6 +1225,41 @@ JitsiConference.prototype.kickParticipant = function(id) {
 };
 
 /**
+ * Maybe clears the timeout which emits {@link ACTION_JINGLE_SI_TIMEOUT}
+ * analytics event.
+ * @private
+ */
+JitsiConference.prototype._maybeClearSITimeout = function() {
+    if (this._sessionInitiateTimeout
+            && (this.jvbJingleSession || this.getParticipantCount() < 2)) {
+        window.clearTimeout(this._sessionInitiateTimeout);
+        this._sessionInitiateTimeout = null;
+    }
+};
+
+/**
+ * Sets a timeout which will emit {@link ACTION_JINGLE_SI_TIMEOUT} analytics
+ * event.
+ * @private
+ */
+JitsiConference.prototype._maybeSetSITimeout = function() {
+    // Jicofo is supposed to invite if there are at least 2 participants
+    if (!this.jvbJingleSession
+            && this.getParticipantCount() >= 2
+            && !this._sessionInitiateTimeout) {
+        this._sessionInitiateTimeout = window.setTimeout(() => {
+            this._sessionInitiateTimeout = null;
+            Statistics.sendAnalytics(createJingleEvent(
+                ACTION_JINGLE_SI_TIMEOUT,
+                {
+                    p2p: false,
+                    value: JINGLE_SI_TIMEOUT
+                }));
+        }, JINGLE_SI_TIMEOUT);
+    }
+};
+
+/**
  * Mutes a participant.
  * @param {string} id The id of the participant to mute.
  */
@@ -1271,6 +1314,7 @@ JitsiConference.prototype.onMemberJoined = function(
         error => logger.warn(`Failed to discover features of ${jid}`, error));
 
     this._maybeStartOrStopP2P();
+    this._maybeSetSITimeout();
 };
 
 /* eslint-enable max-params */
@@ -1330,6 +1374,7 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
     }
 
     this._maybeStartOrStopP2P(true /* triggered by user left event */);
+    this._maybeClearSITimeout();
 };
 
 /**
@@ -1580,6 +1625,7 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
             createJingleEvent(ACTION_JINGLE_RESTART, { p2p: false }));
     }
 
+    this._maybeClearSITimeout();
     Statistics.sendAnalytics(createJingleEvent(
         ACTION_JINGLE_SI_RECEIVED,
         {
