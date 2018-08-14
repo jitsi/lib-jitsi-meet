@@ -233,12 +233,20 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     *
+     * Joins the chat room.
      * @param password
+     * @returns {Promise} - resolved when join completes. At the time of this
+     * writing it's never rejected.
      */
     join(password) {
         this.password = password;
-        this.moderator.allocateConferenceFocus(() => this.sendPresence(true));
+
+        return new Promise(resolve => {
+            this.moderator.allocateConferenceFocus(() => {
+                this.sendPresence(true);
+                resolve();
+            });
+        });
     }
 
     /**
