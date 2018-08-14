@@ -162,8 +162,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                     this.mediaConstraints,
                     isP2P ? this.p2pIceConfig : this.jvbIceConfig,
                     isP2P,
-                    /* initiator */ false,
-                    this.xmpp.options);
+                    /* initiator */ false);
 
             this.sessions[sess.sid] = sess;
 
@@ -264,8 +263,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
                 this.mediaConstraints,
                 this.p2pIceConfig,
                 /* P2P */ true,
-                /* initiator */ true,
-                this.xmpp.options);
+                /* initiator */ true);
 
         this.sessions[sess.sid] = sess;
 

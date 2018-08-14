@@ -37,6 +37,31 @@ const IQ_TIMEOUT = 10000;
 const DEFAULT_MAX_STATS = 300;
 
 /**
+ * @typedef {Object} JingleSessionPCOptions
+ * @property {Object} abTesting - A/B testing related options (ask George).
+ * @property {boolean} abTesting.enableSuspendVideoTest - enables the suspend
+ * video test ?(ask George).
+ * @property {boolean} disableH264 - Described in the config.js[1].
+ * @property {boolean} disableRtx - Described in the config.js[1].
+ * @property {boolean} disableSimulcast - Described in the config.js[1].
+ * @property {boolean} enableLayerSuspension - Described in the config.js[1].
+ * @property {boolean} failICE - it's an option used in the tests. Set to
+ * <tt>true</tt> to block any real candidates and make the ICE fail.
+ * @property {boolean} gatherStats - Described in the config.js[1].
+ * @property {object} p2p - Peer to peer related options (FIXME those could be
+ * fetched from config.p2p on the upper level).
+ * @property {boolean} p2p.disableH264 - Described in the config.js[1].
+ * @property {boolean} p2p.preferH264 - Described in the config.js[1].
+ * @property {boolean} preferH264 - Described in the config.js[1].
+ * @property {Object} testing - Testing and/or experimental options.
+ * @property {boolean} testing.enableFirefoxSimulcast - Described in the
+ * config.js[1].
+ * @property {boolean} webrtcIceUdpDisable - Described in the config.js[1].
+ * @property {boolean} webrtcIceTcpDisable - Described in the config.js[1].
+ *
+ * [1]: https://github.com/jitsi/jitsi-meet/blob/master/config.js
+ */
+/**
  *
  */
 export default class JingleSessionPC extends JingleSession {
@@ -82,16 +107,8 @@ export default class JingleSessionPC extends JingleSession {
      * @param {boolean} isP2P indicates whether this instance is
      * meant to be used in a direct, peer to peer connection or <tt>false</tt>
      * if it's a JVB connection.
-     * @param {boolean} isInitiator indicates whether or not we are the side
-     * which sends the 'session-initiate'.
-     * @param {object} options a set of config options
-     * @param {boolean} options.webrtcIceUdpDisable <tt>true</tt> to block UDP
-     * candidates.
-     * @param {boolean} options.webrtcIceTcpDisable <tt>true</tt> to block TCP
-     * candidates.
-     * @param {boolean} options.failICE it's an option used in the tests. Set to
-     * <tt>true</tt> to block any real candidates and make the ICE fail.
-     *
+     * @param {boolean} isInitiator indicates if it will be the side which
+     * initiates the session.
      * @constructor
      *
      * @implements {SignalingLayer}
@@ -104,10 +121,11 @@ export default class JingleSessionPC extends JingleSession {
             mediaConstraints,
             iceConfig,
             isP2P,
-            isInitiator,
-            options) {
+            isInitiator) {
         super(
-            sid, localJid, remoteJid, connection, mediaConstraints, iceConfig);
+            sid,
+            localJid,
+            remoteJid, connection, mediaConstraints, iceConfig, isInitiator);
 
         /**
          * Stores result of {@link window.performance.now()} at the time when
@@ -170,13 +188,6 @@ export default class JingleSessionPC extends JingleSession {
         this.closed = false;
 
         /**
-         * Indicates whether this instance is an initiator or an answerer of
-         * the Jingle session.
-         * @type {boolean}
-         */
-        this.isInitiator = isInitiator;
-
-        /**
          * Indicates whether or not this <tt>JingleSessionPC</tt> is used in
          * a peer to peer type of session.
          * @type {boolean} <tt>true</tt> if it's a peer to peer
@@ -189,16 +200,6 @@ export default class JingleSessionPC extends JingleSession {
          * @type {SignalingLayerImpl}
          */
         this.signalingLayer = new SignalingLayerImpl();
-
-        this.webrtcIceUdpDisable = Boolean(options.webrtcIceUdpDisable);
-        this.webrtcIceTcpDisable = Boolean(options.webrtcIceTcpDisable);
-
-        /**
-         * Flag used to enforce ICE failure through the URL parameter for
-         * the automatic testing purpose.
-         * @type {boolean}
-         */
-        this.failICE = Boolean(options.failICE);
 
         this.modificationQueue
             = async.queue(this._processQueueTasks.bind(this), 1);
@@ -242,32 +243,41 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     *
+     * @inheritDoc
+     * @param {JingleSessionPCOptions} options  - a set of config options.
      */
-    doInitialize() {
+    doInitialize(options) {
+        this.failICE = Boolean(options.failICE);
         this.lasticecandidate = false;
+        this.options = options;
 
-        // True if reconnect is in progress
+        /**
+         * {@code true} if reconnect is in progress.
+         * @type {boolean}
+         */
         this.isReconnect = false;
 
-        // Set to true if the connection was ever stable
+        /**
+         * Set to {@code true} if the connection was ever stable
+         * @type {boolean}
+         */
         this.wasstable = false;
+        this.webrtcIceUdpDisable = Boolean(options.webrtcIceUdpDisable);
+        this.webrtcIceTcpDisable = Boolean(options.webrtcIceTcpDisable);
 
-        const pcOptions = { disableRtx: this.room.options.disableRtx };
+        const pcOptions = { disableRtx: options.disableRtx };
 
-        if (this.room.options.gatherStats) {
+        if (options.gatherStats) {
             pcOptions.maxstats = DEFAULT_MAX_STATS;
         }
 
         if (this.isP2P) {
             // simulcast needs to be disabled for P2P (121) calls
             pcOptions.disableSimulcast = true;
-            pcOptions.disableH264
-                = this.room.options.p2p && this.room.options.p2p.disableH264;
-            pcOptions.preferH264
-                = this.room.options.p2p && this.room.options.p2p.preferH264;
+            pcOptions.disableH264 = options.p2p && options.p2p.disableH264;
+            pcOptions.preferH264 = options.p2p && options.p2p.preferH264;
 
-            const abtestSuspendVideo = this._abtestSuspendVideoEnabled();
+            const abtestSuspendVideo = this._abtestSuspendVideoEnabled(options);
 
             if (typeof abtestSuspendVideo !== 'undefined') {
                 pcOptions.abtestSuspendVideo = abtestSuspendVideo;
@@ -275,15 +285,12 @@ export default class JingleSessionPC extends JingleSession {
         } else {
             // H264 does not support simulcast, so it needs to be disabled.
             pcOptions.disableSimulcast
-                = this.room.options.disableSimulcast
-                    || (this.room.options.preferH264
-                            && !this.room.options.disableH264);
-            pcOptions.preferH264 = this.room.options.preferH264;
+                = options.disableSimulcast
+                    || (options.preferH264 && !options.disableH264);
+            pcOptions.preferH264 = options.preferH264;
             pcOptions.enableFirefoxSimulcast
-                = this.room.options.testing
-                    && this.room.options.testing.enableFirefoxSimulcast;
-            pcOptions.enableLayerSuspension
-                = this.room.options.enableLayerSuspension;
+                = options.testing && options.testing.enableFirefoxSimulcast;
+            pcOptions.enableLayerSuspension = options.enableLayerSuspension;
         }
 
         this.peerconnection
@@ -480,7 +487,7 @@ export default class JingleSessionPC extends JingleSession {
         // The signaling layer will bind it's listeners at this point
         this.signalingLayer.setChatRoom(this.room);
 
-        if (!this.isP2P && this.room.options.enableLayerSuspension) {
+        if (!this.isP2P && options.enableLayerSuspension) {
             // If this is the bridge session, we'll listen for
             // IS_SELECTED_CHANGED events and notify the peer connection
             this.rtc.addListener(RTCEvents.IS_SELECTED_CHANGED,
@@ -562,7 +569,7 @@ export default class JingleSessionPC extends JingleSession {
             type: 'set' })
             .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
                 action: 'transport-info',
-                initiator: this.initiator,
+                initiator: this.initiatorJid,
                 sid: this.sid });
 
         const localSDP = new SDP(this.peerconnection.localDescription.sdp);
@@ -578,7 +585,7 @@ export default class JingleSessionPC extends JingleSession {
 
                 ice.xmlns = 'urn:xmpp:jingle:transports:ice-udp:1';
                 cand.c('content', {
-                    creator: this.initiator === this.localJid
+                    creator: this.initiatorJid === this.localJid
                         ? 'initiator' : 'responder',
                     name: cands[0].sdpMid ? cands[0].sdpMid : mline.media
                 }).c('transport', ice);
@@ -848,13 +855,13 @@ export default class JingleSessionPC extends JingleSession {
         }).c('jingle', {
             xmlns: 'urn:xmpp:jingle:1',
             action: 'session-initiate',
-            initiator: this.initiator,
+            initiator: this.initiatorJid,
             sid: this.sid
         });
 
         new SDP(offerSdp).toJingle(
             init,
-            this.initiator === this.me ? 'initiator' : 'responder');
+            this.isInitiator ? 'initiator' : 'responder');
         init = init.tree();
         logger.info('Session-initiate: ', init);
         this.connection.sendIQ(init,
@@ -953,7 +960,8 @@ export default class JingleSessionPC extends JingleSession {
                         `Error renegotiating after setting new remote ${
                             this.isInitiator ? 'answer: ' : 'offer: '}${error}`,
                         newRemoteSdp);
-                    JingleSessionPC.onJingleFatalError(this, error);
+
+                    this._onJingleFatalError(error);
                     finishedCallback(error);
                 });
         };
@@ -1023,8 +1031,8 @@ export default class JingleSessionPC extends JingleSession {
             type: 'set' })
             .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
                 action: 'session-accept',
-                initiator: this.initiator,
-                responder: this.responder,
+                initiator: this.initiatorJid,
+                responder: this.responderJid,
                 sid: this.sid });
 
         if (this.webrtcIceTcpDisable) {
@@ -1038,7 +1046,7 @@ export default class JingleSessionPC extends JingleSession {
         }
         localSDP.toJingle(
             accept,
-            this.initiator === this.localJid ? 'initiator' : 'responder',
+            this.initiatorJid === this.localJid ? 'initiator' : 'responder',
             null);
 
         // Calling tree() to print something useful
@@ -1097,7 +1105,7 @@ export default class JingleSessionPC extends JingleSession {
                 .c('jingle', {
                     xmlns: 'urn:xmpp:jingle:1',
                     action: 'content-modify',
-                    initiator: this.initiator,
+                    initiator: this.initiatorJid,
                     sid: this.sid
                 })
                 .c('content', {
@@ -1131,7 +1139,7 @@ export default class JingleSessionPC extends JingleSession {
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'transport-accept',
-                initiator: this.initiator,
+                initiator: this.initiatorJid,
                 sid: this.sid
             });
 
@@ -1141,7 +1149,7 @@ export default class JingleSessionPC extends JingleSession {
             transportAccept.c('content',
                 {
                     creator:
-                        this.initiator === this.localJid
+                        this.initiatorJid === this.localJid
                             ? 'initiator'
                             : 'responder',
                     name: mline.media
@@ -1180,7 +1188,7 @@ export default class JingleSessionPC extends JingleSession {
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'transport-reject',
-                initiator: this.initiator,
+                initiator: this.initiatorJid,
                 sid: this.sid
             });
 
@@ -1210,7 +1218,7 @@ export default class JingleSessionPC extends JingleSession {
                     .c('jingle', {
                         xmlns: 'urn:xmpp:jingle:1',
                         action: 'session-terminate',
-                        initiator: this.initiator,
+                        initiator: this.initiatorJid,
                         sid: this.sid
                     })
                     .c('reason')
@@ -2084,7 +2092,7 @@ export default class JingleSessionPC extends JingleSession {
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'source-remove',
-                initiator: this.initiator,
+                initiator: this.initiatorJid,
                 sid: this.sid
             }
             );
@@ -2106,7 +2114,7 @@ export default class JingleSessionPC extends JingleSession {
             .c('jingle', {
                 xmlns: 'urn:xmpp:jingle:1',
                 action: 'source-add',
-                initiator: this.initiator,
+                initiator: this.initiatorJid,
                 sid: this.sid
             }
             );
@@ -2189,15 +2197,15 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      *
-     * @param session
      * @param error
+     * @private
      */
-    static onJingleFatalError(session, error) {
+    _onJingleFatalError(error) {
         if (this.room) {
             this.room.eventEmitter.emit(
-                XMPPEvents.CONFERENCE_SETUP_FAILED, session, error);
+                XMPPEvents.CONFERENCE_SETUP_FAILED, this, error);
             this.room.eventEmitter.emit(
-                XMPPEvents.JINGLE_FATAL_ERROR, session, error);
+                XMPPEvents.JINGLE_FATAL_ERROR, this, error);
         }
     }
 
@@ -2240,10 +2248,10 @@ export default class JingleSessionPC extends JingleSession {
      * If the A/B test for suspend video is disabled according to the room's
      * configuration, returns undefined. Otherwise returns a boolean which
      * indicates whether the suspend video option should be enabled or disabled.
+     * @param {JingleSessionPCOptions} options - The config options.
      */
-    _abtestSuspendVideoEnabled() {
-        if (!this.room.options.abTesting
-            || !this.room.options.abTesting.enableSuspendVideoTest) {
+    _abtestSuspendVideoEnabled({ abTesting }) {
+        if (!abTesting || !abTesting.enableSuspendVideoTest) {
             return;
         }
 
