@@ -1,4 +1,4 @@
-/* global MediaRecorder, MediaStream, webkitMediaStream */
+/* global MediaRecorder, MediaStream */
 
 const RecordingResult = require('./recordingResult');
 
@@ -306,11 +306,8 @@ AudioRecorder.prototype.getFileType = function() {
  * @returns MediaStream
  */
 function createEmptyStream() {
-    // Firefox supports the MediaStream object, Chrome webkitMediaStream
     if (typeof MediaStream !== 'undefined') {
         return new MediaStream();
-    } else if (typeof webkitMediaStream !== 'undefined') {
-        return new webkitMediaStream(); // eslint-disable-line new-cap
     }
     throw new Error('cannot create a clean mediaStream');
 }
