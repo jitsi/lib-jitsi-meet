@@ -268,10 +268,6 @@ export default _mergeNamespaceAndModule({
      * configurations about resolution for example.
      * @param {Array} options.devices the devices that will be requested
      * @param {string} options.resolution resolution constraints
-     * @param {bool} options.dontCreateJitsiTrack if <tt>true</tt> objects with
-     * the following structure {stream: the Media Stream, type: "audio" or
-     * "video", videoType: "camera" or "desktop"} will be returned trough the
-     * Promise, otherwise JitsiTrack objects will be returned.
      * @param {string} options.cameraDeviceId
      * @param {string} options.micDeviceId
      * @param {object} options.desktopSharingExtensionExternalInstallation -

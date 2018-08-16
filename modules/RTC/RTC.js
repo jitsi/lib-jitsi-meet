@@ -207,10 +207,6 @@ export default class RTC extends Listenable {
      * @param {object} [options] Optional parameters.
      * @param {array} options.devices The devices that will be requested.
      * @param {string} options.resolution Resolution constraints.
-     * @param {bool} options.dontCreateJitsiTrack If <tt>true</tt> objects with
-     *     the following structure {stream: the Media Stream, type: "audio" or
-     *     "video", videoType: "camera" or "desktop"} will be returned trough
-     *     the Promise, otherwise JitsiTrack objects will be returned.
      * @param {string} options.cameraDeviceId
      * @param {string} options.micDeviceId
      * @returns {*} Promise object that will receive the new JitsiTracks
