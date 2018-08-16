@@ -203,43 +203,23 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
      *
      * Arguments in callbacks mode:
      * @param {RTCIceCandidate} candidate
-     * @param {function()} callback
-     * @param {function(error)} errback
      */
-    addIceCandidate(candidate, ...args) {
-        let usePromise;
-        let callback;
-        let errback;
-
+    addIceCandidate(candidate) { // eslint-disable-line no-unused-vars
         if (!candidate) {
             throw new TypeError('candidate missing');
         }
 
-        if (args.length === 0) {
-            usePromise = true;
-        } else {
-            usePromise = false;
-            callback = args[0];
-            errback = args[1];
-
-            if (typeof callback !== 'function') {
-                throw new TypeError('callback missing');
-            }
-
-            if (typeof errback !== 'function') {
-                throw new TypeError('errback missing');
-            }
-        }
-
         logger.debug('addIceCandidate() candidate:', candidate);
 
-        if (usePromise) {
-            return this._addIceCandidate(candidate);
+        if (this._closed) {
+            return Promise.reject(
+                new InvalidStateError('RTCPeerConnection closed'));
         }
 
-        this._addIceCandidate(candidate)
-            .then(() => callback())
-            .catch(error => errback(error));
+        // NOTE: Edge does not support Trickle-ICE so just candidates in the
+        // remote SDP are applied. Candidates given later would be just
+        // ignored, so notify the called about that.
+        return Promise.reject(new Error('addIceCandidate() not supported'));
     }
 
     /**
@@ -250,7 +230,76 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
     addStream(stream) {
         logger.debug('addStream()');
 
-        this._addStream(stream);
+        if (this._closed) {
+            throw new InvalidStateError('RTCPeerConnection closed');
+        }
+
+        // Create a RTCRtpSender for each track.
+        for (const track of stream.getTracks()) {
+            // Ignore if ended.
+            if (track.readyState === 'ended') {
+                logger.warn('ignoring ended MediaStreamTrack');
+
+                continue; // eslint-disable-line no-continue
+            }
+
+            // Ignore if track is already present.
+            if (this._localTrackInfos.has(track.id)) {
+                logger.warn('ignoring already handled MediaStreamTrack');
+
+                continue; // eslint-disable-line no-continue
+            }
+
+            const rtpSender = new RTCRtpSender(track, this._dtlsTransport);
+
+            // Store it in the map.
+            this._localTrackInfos.set(track.id, {
+                rtpSender,
+                stream
+            });
+        }
+
+        // Check for local tracks removal.
+        for (const [ trackId, info ] of this._localTrackInfos) {
+            const track = info.rtpSender.track;
+
+            // Check if any of the local tracks has been stopped.
+            if (track.readyState === 'ended') {
+                logger.warn(
+                    'addStream() an already handled track was stopped, '
+                    + `track.id:${track.id}`);
+
+                try {
+                    info.rtpSender.stop();
+                } catch (error) {
+                    logger.warn(`rtpSender.stop() failed:${error}`);
+                }
+
+                // Remove from the map.
+                this._localTrackInfos.delete(track.id);
+
+            // Also, if the stream was already handled, check whether tracks
+            // have been removed via stream.removeTrack() and, if so, stop
+            // their RtpSenders.
+            } else if (info.stream === stream
+                && !stream.getTrackById(trackId)) {
+                logger.warn(
+                    'addStream() a track in this stream was removed, '
+                    + `track.id:${trackId}`);
+
+                try {
+                    info.rtpSender.stop();
+                } catch (error) {
+                    logger.warn(`rtpSender.stop() failed:${error}`);
+                }
+
+                // Remove from the map.
+                this._localTrackInfos.delete(track.id);
+            }
+        }
+
+        // It may need to renegotiate.
+        this._emitNegotiationNeeded();
     }
 
     /**
@@ -320,50 +369,28 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
     }
 
     /**
-     * Creates a local answer. Implements both the old callbacks based signature
-     * and the new Promise based style.
+     * Creates a local answer.
      *
-     * Arguments in Promise mode:
      * @param {RTCOfferOptions} [options]
-     *
-     * Arguments in callbacks mode:
-     * @param {function(desc)} callback
-     * @param {function(error)} errback
-     * @param {MediaConstraints} [constraints]
      */
-    createAnswer(...args) {
-        let usePromise;
-        let options;
-        let callback;
-        let errback;
-
-        if (args.length <= 1) {
-            usePromise = true;
-            options = args[0];
-        } else {
-            usePromise = false;
-            callback = args[0];
-            errback = args[1];
-            options = args[2];
-
-            if (typeof callback !== 'function') {
-                throw new TypeError('callback missing');
-            }
-
-            if (typeof errback !== 'function') {
-                throw new TypeError('errback missing');
-            }
-        }
-
+    createAnswer(options) {
         logger.debug('createAnswer() options:', options);
 
-        if (usePromise) {
-            return this._createAnswer(options);
+        if (this._closed) {
+            return Promise.reject(
+                new InvalidStateError('RTCPeerConnection closed'));
         }
 
-        this._createAnswer(options)
-            .then(desc => callback(desc))
-            .catch(error => errback(error));
+        if (this.signalingState !== RTCSignalingState.haveRemoteOffer) {
+            return Promise.reject(new InvalidStateError(
+                `invalid signalingState "${this.signalingState}"`));
+        }
+
+        // Create an answer.
+        const localDescription = this._createLocalDescription('answer');
+
+        // Resolve with it.
+        return Promise.resolve(localDescription);
     }
 
     /**
@@ -377,50 +404,49 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
     }
 
     /**
-     * Creates a local offer. Implements both the old callbacks based signature
-     * and the new Promise based style.
+     * Creates a local offer.
      *
-     * Arguments in Promise mode:
      * @param {RTCOfferOptions} [options]
-     *
-     * Arguments in callbacks mode:
-     * @param {function(desc)} callback
-     * @param {function(error)} errback
-     * @param {MediaConstraints} [constraints]
      */
-    createOffer(...args) {
-        let usePromise;
-        let options;
-        let callback;
-        let errback;
-
-        if (args.length <= 1) {
-            usePromise = true;
-            options = args[0];
-        } else {
-            usePromise = false;
-            callback = args[0];
-            errback = args[1];
-            options = args[2];
-
-            if (typeof callback !== 'function') {
-                throw new TypeError('callback missing');
-            }
-
-            if (typeof errback !== 'function') {
-                throw new TypeError('errback missing');
-            }
-        }
-
+    createOffer(options) {
         logger.debug('createOffer() options:', options);
 
-        if (usePromise) {
-            return this._createOffer(options);
+        if (this._closed) {
+            return Promise.reject(
+                new InvalidStateError('RTCPeerConnection closed'));
         }
 
-        this._createOffer(options)
-            .then(desc => callback(desc))
-            .catch(error => errback(error));
+        if (this.signalingState !== RTCSignalingState.stable) {
+            return Promise.reject(new InvalidStateError(
+                `invalid signalingState "${this.signalingState}"`));
+        }
+
+        // Use ice gathering complete promise an invalid state error occurs if
+        // creating a local description before it is complete.
+        return this._iceGatheringCompletePromise
+            .then(() => {
+                // Stub out _mids and _localCapabilities if creating an offer
+                // as they are normally set on answer and will cause errors in
+                // create a local description if falsy.
+                if (!this.hasAttemptedOffer) {
+                    if (!this._mids.size) {
+                        this._mids = new Map([
+                            [ 'audio', 'audio' ],
+                            [ 'video', 'video' ]
+                        ]);
+                    }
+
+                    if (!this._localCapabilities) {
+                        this._localCapabilities
+                            = utils.getLocalCapabilities(
+                                RTCRtpSender.getCapabilities());
+                    }
+
+                    this.hasAttemptedOffer = true;
+                }
+
+                return this._createLocalDescription('offer');
+            });
     }
 
     /**
@@ -497,193 +523,27 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
     removeStream(stream) {
         logger.debug('removeStream()');
 
-        this._removeStream(stream);
-    }
-
-    /**
-     * Applies a local description. Implements both the old callbacks based
-     * signature and the new Promise based style.
-     *
-     * Arguments in Promise mode:
-     * @param {RTCSessionDescriptionInit} desc
-     *
-     * Arguments in callbacks mode:
-     * @param {RTCSessionDescription} desc
-     * @param {function()} callback
-     * @param {function(error)} errback
-     */
-    setLocalDescription(desc, ...args) {
-        let usePromise;
-        let callback;
-        let errback;
-
-        if (!desc) {
-            throw new TypeError('description missing');
-        }
-
-        if (args.length === 0) {
-            usePromise = true;
-        } else {
-            usePromise = false;
-            callback = args[0];
-            errback = args[1];
-
-            if (typeof callback !== 'function') {
-                throw new TypeError('callback missing');
-            }
-
-            if (typeof errback !== 'function') {
-                throw new TypeError('errback missing');
-            }
-        }
-
-        logger.debug('setLocalDescription() desc:', desc);
-
-        if (usePromise) {
-            return this._setLocalDescription(desc);
-        }
-
-        this._setLocalDescription(desc)
-            .then(() => callback())
-            .catch(error => errback(error));
-    }
-
-    /**
-     * Applies a remote description. Implements both the old callbacks based
-     * signature and the new Promise based style.
-     *
-     * Arguments in Promise mode:
-     * @param {RTCSessionDescriptionInit} desc
-     *
-     * Arguments in callbacks mode:
-     * @param {RTCSessionDescription} desc
-     * @param {function()} callback
-     * @param {function(error)} errback
-     */
-    setRemoteDescription(desc, ...args) {
-        let usePromise;
-        let callback;
-        let errback;
-
-        if (!desc) {
-            throw new TypeError('description missing');
-        }
-
-        if (args.length === 0) {
-            usePromise = true;
-        } else {
-            usePromise = false;
-            callback = args[0];
-            errback = args[1];
-
-            if (typeof callback !== 'function') {
-                throw new TypeError('callback missing');
-            }
-
-            if (typeof errback !== 'function') {
-                throw new TypeError('errback missing');
-            }
-        }
-
-        logger.debug('setRemoteDescription() desc:', desc);
-
-        if (usePromise) {
-            return this._setRemoteDescription(desc);
-        }
-
-        this._setRemoteDescription(desc)
-            .then(() => callback())
-            .catch(error => errback(error));
-    }
-
-    /**
-     * Promise based implementation for addIceCandidate().
-     * @return {Promise}
-     * @private
-     */
-    _addIceCandidate(candidate) { // eslint-disable-line no-unused-vars
-        if (this._closed) {
-            return Promise.reject(
-                new InvalidStateError('RTCPeerConnection closed'));
-        }
-
-        // NOTE: Edge does not support Trickle-ICE so just candidates in the
-        // remote SDP are applied. Candidates given later would be just
-        // ignored, so notify the called about that.
-        return Promise.reject(new Error('addIceCandidate() not supported'));
-    }
-
-    /**
-     * Implementation for addStream().
-     * @private
-     */
-    _addStream(stream) {
         if (this._closed) {
             throw new InvalidStateError('RTCPeerConnection closed');
         }
 
-        // Create a RTCRtpSender for each track.
+        // Stop and remove the RTCRtpSender associated to each track.
         for (const track of stream.getTracks()) {
-            // Ignore if ended.
-            if (track.readyState === 'ended') {
-                logger.warn('ignoring ended MediaStreamTrack');
-
+            // Ignore if track not present.
+            if (!this._localTrackInfos.has(track.id)) {
                 continue; // eslint-disable-line no-continue
             }
 
-            // Ignore if track is already present.
-            if (this._localTrackInfos.has(track.id)) {
-                logger.warn('ignoring already handled MediaStreamTrack');
+            const rtpSender = this._localTrackInfos.get(track.id).rtpSender;
 
-                continue; // eslint-disable-line no-continue
+            try {
+                rtpSender.stop();
+            } catch (error) {
+                logger.warn(`rtpSender.stop() failed:${error}`);
             }
 
-            const rtpSender = new RTCRtpSender(track, this._dtlsTransport);
-
-            // Store it in the map.
-            this._localTrackInfos.set(track.id, {
-                rtpSender,
-                stream
-            });
-        }
-
-        // Check for local tracks removal.
-        for (const [ trackId, info ] of this._localTrackInfos) {
-            const track = info.rtpSender.track;
-
-            // Check if any of the local tracks has been stopped.
-            if (track.readyState === 'ended') {
-                logger.warn(
-                    '_addStream() an already handled track was stopped, '
-                    + `track.id:${track.id}`);
-
-                try {
-                    info.rtpSender.stop();
-                } catch (error) {
-                    logger.warn(`rtpSender.stop() failed:${error}`);
-                }
-
-                // Remove from the map.
-                this._localTrackInfos.delete(track.id);
-
-            // Also, if the stream was already handled, check whether tracks
-            // have been removed via stream.removeTrack() and, if so, stop
-            // their RtpSenders.
-            } else if (info.stream === stream
-                && !stream.getTrackById(trackId)) {
-                logger.warn(
-                    '_addStream() a track in this stream was removed, '
-                    + `track.id:${trackId}`);
-
-                try {
-                    info.rtpSender.stop();
-                } catch (error) {
-                    logger.warn(`rtpSender.stop() failed:${error}`);
-                }
-
-                // Remove from the map.
-                this._localTrackInfos.delete(track.id);
-            }
+            // Remove from the map.
+            this._localTrackInfos.delete(track.id);
         }
 
         // It may need to renegotiate.
@@ -691,26 +551,35 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
     }
 
     /**
-     * Promise based implementation for createAnswer().
-     * @returns {Promise}
-     * @private
+     * Applies a local description.
+     *
+     * Arguments in Promise mode:
+     * @param {RTCSessionDescriptionInit} desc
      */
-    _createAnswer(options) { // eslint-disable-line no-unused-vars
-        if (this._closed) {
-            return Promise.reject(
-                new InvalidStateError('RTCPeerConnection closed'));
+    setLocalDescription(desc) {
+        if (!desc) {
+            throw new TypeError('description missing');
         }
 
-        if (this.signalingState !== RTCSignalingState.haveRemoteOffer) {
-            return Promise.reject(new InvalidStateError(
-                `invalid signalingState "${this.signalingState}"`));
+        logger.debug('setLocalDescription() desc:', desc);
+
+        return this._setLocalDescription(desc);
+    }
+
+    /**
+     * Applies a remote description.
+     *
+     * Arguments in Promise mode:
+     * @param {RTCSessionDescriptionInit} desc
+     */
+    setRemoteDescription(desc) {
+        if (!desc) {
+            throw new TypeError('description missing');
         }
 
-        // Create an answer.
-        const localDescription = this._createLocalDescription('answer');
+        logger.debug('setRemoteDescription() desc:', desc);
 
-        // Resolve with it.
-        return Promise.resolve(localDescription);
+        return this._setRemoteDescription(desc);
     }
 
     /**
@@ -1043,50 +912,6 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
             // Add the media section.
             sdpObject.media.push(mediaObject);
         }
-    }
-
-    /**
-     * Promise based implementation for createOffer().
-     * @returns {Promise}
-     * @private
-     */
-    _createOffer(options) { // eslint-disable-line no-unused-vars
-        if (this._closed) {
-            return Promise.reject(
-                new InvalidStateError('RTCPeerConnection closed'));
-        }
-
-        if (this.signalingState !== RTCSignalingState.stable) {
-            return Promise.reject(new InvalidStateError(
-                `invalid signalingState "${this.signalingState}"`));
-        }
-
-        // Use ice gathering complete promise an invalid state error occurs if
-        // creating a local description before it is complete.
-        return this._iceGatheringCompletePromise
-            .then(() => {
-                // Stub out _mids and _localCapabilities if creating an offer
-                // as they are normally set on answer and will cause errors in
-                // create a local description if falsy.
-                if (!this.hasAttemptedOffer) {
-                    if (!this._mids.size) {
-                        this._mids = new Map([
-                            [ 'audio', 'audio' ],
-                            [ 'video', 'video' ]
-                        ]);
-                    }
-
-                    if (!this._localCapabilities) {
-                        this._localCapabilities
-                            = utils.getLocalCapabilities(
-                                RTCRtpSender.getCapabilities());
-                    }
-
-                    this.hasAttemptedOffer = true;
-                }
-
-                return this._createLocalDescription('offer');
-            });
     }
 
     /**
@@ -1852,38 +1677,6 @@ export default class ortcRTCPeerConnection extends yaeti.EventTarget {
             this._remoteStreams.delete(streamRemoteId);
             this._emitRemoveStream(stream);
         }
-    }
-
-    /**
-     * Implementation for removeStream().
-     * @private
-     */
-    _removeStream(stream) {
-        if (this._closed) {
-            throw new InvalidStateError('RTCPeerConnection closed');
-        }
-
-        // Stop and remove the RTCRtpSender associated to each track.
-        for (const track of stream.getTracks()) {
-            // Ignore if track not present.
-            if (!this._localTrackInfos.has(track.id)) {
-                continue; // eslint-disable-line no-continue
-            }
-
-            const rtpSender = this._localTrackInfos.get(track.id).rtpSender;
-
-            try {
-                rtpSender.stop();
-            } catch (error) {
-                logger.warn(`rtpSender.stop() failed:${error}`);
-            }
-
-            // Remove from the map.
-            this._localTrackInfos.delete(track.id);
-        }
-
-        // It may need to renegotiate.
-        this._emitNegotiationNeeded();
     }
 
     /**
