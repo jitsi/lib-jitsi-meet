@@ -679,12 +679,9 @@ export default class JingleSessionPC extends JingleSession {
         // and XMPP preserves order).
         const workFunction = finishedCallback => {
             for (const iceCandidate of iceCandidates) {
-                this.peerconnection.addIceCandidate(
-                    iceCandidate,
-                    () => {
-                        logger.debug('addIceCandidate ok!');
-                    },
-                    error => {
+                this.peerconnection.addIceCandidate(iceCandidate)
+                    .then(() => logger.debug('addIceCandidate ok!'))
+                    .catch(error => {
                         logger.error('addIceCandidate failed!', error);
                     });
             }
@@ -799,32 +796,30 @@ export default class JingleSessionPC extends JingleSession {
             for (const localTrack of localTracks) {
                 this.peerconnection.addTrack(localTrack);
             }
-            this.peerconnection.createOffer(
-                offerSdp => {
-                    this.peerconnection.setLocalDescription(
-                        offerSdp,
-                        () => {
+            this.peerconnection.createOffer(this.mediaConstraints)
+                .then(offerSdp => {
+                    this.peerconnection.setLocalDescription(offerSdp)
+                        .then(() => {
                             // NOTE that the offer is obtained from
                             // the localDescription getter as it needs to go
                             // though the transformation chain.
                             this.sendSessionInitiate(
                                 this.peerconnection.localDescription.sdp);
                             finishedCallback();
-                        },
-                        error => {
+                        })
+                        .catch(error => {
                             logger.error(
                                 'Failed to set local SDP', error, offerSdp);
                             finishedCallback(error);
                         });
-                },
-                error => {
+                })
+                .catch(error => {
                     logger.error(
                         'Failed to create an offer',
                         error,
                         this.mediaConstraints);
                     finishedCallback(error);
-                },
-                this.mediaConstraints);
+                });
         };
 
         this.modificationQueue.push(
@@ -1514,6 +1509,10 @@ export default class JingleSessionPC extends JingleSession {
      *  rejects with an error {string}
      */
     _renegotiate(optionalRemoteSdp) {
+        if (this.peerconnection.signalingState === 'closed') {
+            return Promise.reject('Attempted to renegotiate in state closed');
+        }
+
         const remoteSdp
             = optionalRemoteSdp || this.peerconnection.remoteDescription.sdp;
 
@@ -1528,75 +1527,51 @@ export default class JingleSessionPC extends JingleSession {
             sdp: remoteSdp
         });
 
-        return new Promise((resolve, reject) => {
-            if (this.peerconnection.signalingState === 'closed') {
-                reject('Attempted to renegotiate in state closed');
+        if (this.isInitiator) {
+            return this._initiatorRenegotiate(remoteDescription);
+        }
 
-                return;
-            }
-            if (this.isInitiator) {
-                this._initiatorRenegotiate(remoteDescription, resolve, reject);
-            } else {
-                this._responderRenegotiate(remoteDescription, resolve, reject);
-            }
-        });
+        return this._responderRenegotiate(remoteDescription);
     }
 
     /**
      * Renegotiate cycle implementation for the responder case.
      * @param {object} remoteDescription the SDP object as defined by the WebRTC
      * which will be used as remote description in the cycle.
-     * @param {function} resolve the success callback
-     * @param {function} reject the failure callback
      * @private
      */
-    _responderRenegotiate(remoteDescription, resolve, reject) {
-        // FIXME use WebRTC promise API to simplify things
+    _responderRenegotiate(remoteDescription) {
         logger.debug('Renegotiate: setting remote description');
-        this.peerconnection.setRemoteDescription(
-            remoteDescription,
-            () => {
+
+        return this.peerconnection.setRemoteDescription(remoteDescription)
+            .then(() => {
                 logger.debug('Renegotiate: creating answer');
-                this.peerconnection.createAnswer(
-                    answer => {
+
+                return this.peerconnection.createAnswer(this.mediaConstraints)
+                    .then(answer => {
                         logger.debug('Renegotiate: setting local description');
-                        this.peerconnection.setLocalDescription(
-                            answer,
-                            () => {
-                                resolve();
-                            },
-                            error => {
-                                reject(
-                                    `setLocalDescription failed: ${error}`);
-                            }
-                        );
-                    },
-                    error => reject(`createAnswer failed: ${error}`),
-                    this.mediaConstraints
-                );
-            },
-            error => reject(`setRemoteDescription failed: ${error}`)
-        );
+
+                        return this.peerconnection.setLocalDescription(answer);
+                    });
+            });
     }
 
     /**
      * Renegotiate cycle implementation for the initiator's case.
      * @param {object} remoteDescription the SDP object as defined by the WebRTC
      * which will be used as remote description in the cycle.
-     * @param {function} resolve the success callback
-     * @param {function} reject the failure callback
      * @private
      */
-    _initiatorRenegotiate(remoteDescription, resolve, reject) {
-        // FIXME use WebRTC promise API to simplify things
+    _initiatorRenegotiate(remoteDescription) {
         if (this.peerconnection.signalingState === 'have-local-offer') {
-
             // Skip createOffer and setLocalDescription or FF will fail
             logger.debug(
                 'Renegotiate: setting remote description');
-            this.peerconnection.setRemoteDescription(
-                remoteDescription,
-                () => {
+
+            /* eslint-disable arrow-body-style */
+
+            return this.peerconnection.setRemoteDescription(remoteDescription)
+                .then(() => {
                     // In case when the answer is being set for the first time,
                     // full sRD/sLD cycle is required to have the local
                     // description updated and SSRCs synchronized correctly.
@@ -1605,36 +1580,26 @@ export default class JingleSessionPC extends JingleSession {
                     // The reason for that is that renegotiate can not be called
                     // when adding tracks and they will not be reflected in
                     // the local SDP.
-                    this._initiatorRenegotiate(
-                        remoteDescription, resolve, reject);
-                },
-                error => reject(`setRemoteDescription failed: ${error}`)
-            );
-        } else {
-            logger.debug('Renegotiate: creating offer');
-            this.peerconnection.createOffer(
-                offer => {
-                    logger.debug('Renegotiate: setting local description');
-                    this.peerconnection.setLocalDescription(offer,
-                        () => {
-                            logger.debug(
-                                'Renegotiate: setting remote description');
-                            this.peerconnection.setRemoteDescription(
-                                remoteDescription,
-                                () => {
-                                    resolve();
-                                },
-                                error => reject(
-                                    `setRemoteDescription failed: ${error}`)
-                            );
-                        },
-                        error => {
-                            reject('setLocalDescription failed: ', error);
-                        });
-                },
-                error => reject(`createOffer failed: ${error}`),
-                this.mediaConstraints);
+                    return this._initiatorRenegotiate(remoteDescription);
+                });
+            /* eslint-enable arrow-body-style */
         }
+
+        logger.debug('Renegotiate: creating offer');
+
+        return this.peerconnection.createOffer(this.mediaConstraints)
+            .then(offer => {
+                logger.debug('Renegotiate: setting local description');
+
+                return this.peerconnection.setLocalDescription(offer)
+                    .then(() => {
+                        logger.debug(
+                            'Renegotiate: setting remote description');
+
+                        // eslint-disable-next-line max-len
+                        return this.peerconnection.setRemoteDescription(remoteDescription);
+                    });
+            });
     }
 
     /**
