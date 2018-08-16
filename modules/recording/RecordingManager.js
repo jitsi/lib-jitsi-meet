@@ -67,6 +67,8 @@ class RecordingManager {
      * Start a recording session.
      *
      * @param {Object} options - Configuration for the recording.
+     * @param {string} [options.appData] - Data specific to the app/service that
+     * the result file will be uploaded.
      * @param {string} [optional] options.broadcastId - The channel on which a
      * live stream will occur.
      * @param {string} options.mode - The mode in which recording should be
@@ -84,6 +86,7 @@ class RecordingManager {
         });
 
         return session.start({
+            appData: options.appData,
             broadcastId: options.broadcastId,
             focusMucJid: this._chatRoom.focusMucJid,
             streamId: options.streamId

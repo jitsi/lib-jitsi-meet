@@ -101,7 +101,9 @@ export default class JibriSession {
      *
      * @param {Object} options - Additional arguments for starting the
      * recording.
-     * @param {string} [optional] options.broadcastId - The broadcast ID of an
+     * @param {string} [options.appData] - Data specific to the app/service that
+     * the result file will be uploaded.
+     * @param {string} [options.broadcastId] - The broadcast ID of an
      * associated YouTube stream, used for knowing the URL from which the stream
      * can be viewed.
      * @param {string} options.focusMucJid - The JID of the focus participant
@@ -111,11 +113,12 @@ export default class JibriSession {
      * streaming service provider.
      * @returns Promise
      */
-    start({ broadcastId, focusMucJid, streamId }) {
+    start({ appData, broadcastId, focusMucJid, streamId }) {
         return new Promise((resolve, reject) => {
             this._connection.sendIQ(
                 this._createIQ({
                     action: 'start',
+                    appData,
                     focusMucJid,
                     broadcastId,
                     streamId
@@ -165,7 +168,9 @@ export default class JibriSession {
      *
      * @param {string} status - The new status to which the recording session
      * should transition.
-     * @param {string} [optional] options.broadcastId - The broadcast ID of an
+     * @param {string} [options.appData] - Data specific to the app/service that
+     * the result file will be uploaded.
+     * @param {string} [options.broadcastId] - The broadcast ID of an
      * associated YouTube stream, used for knowing the URL from which the stream
      * can be viewed.
      * @param {string} options.focusMucJid - The JID of the focus participant
@@ -175,7 +180,7 @@ export default class JibriSession {
      * streaming service provider.
      * @returns Object - The XMPP IQ message.
      */
-    _createIQ({ action, broadcastId, focusMucJid, streamId }) {
+    _createIQ({ action, appData, broadcastId, focusMucJid, streamId }) {
         return $iq({
             to: focusMucJid,
             type: 'set'
@@ -183,6 +188,7 @@ export default class JibriSession {
         .c('jibri', {
             'xmlns': 'http://jitsi.org/protocol/jibri',
             'action': action,
+            'app_data': appData,
             'recording_mode': this._mode,
             'streamid': streamId,
             'you_tube_broadcast_id': broadcastId
