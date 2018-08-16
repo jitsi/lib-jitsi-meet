@@ -68,7 +68,7 @@ MediaStreamMock.prototype.getVideoTracks = function() {
  * @private
  * @returns {Promise} A resolved promise with a MediaStreamMock.
  */
-function successfulGum(devices, onSuccess, onError, options) {
+function successfulGum(devices, options) {
     /* eslint-enable max-params */
 
     const mediaStreamMock = new MediaStreamMock();
@@ -83,10 +83,6 @@ function successfulGum(devices, onSuccess, onError, options) {
 
     if (devices.includes('desktop')) {
         mediaStreamMock.addTrack(new MediaStreamTrackMock('video', options));
-    }
-
-    if (onSuccess) {
-        onSuccess(mediaStreamMock);
     }
 
     return Promise.resolve(mediaStreamMock);
