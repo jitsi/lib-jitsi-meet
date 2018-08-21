@@ -108,6 +108,7 @@ let availableDevicesPollTimer;
 
 /**
  * Initialize wrapper function for enumerating devices.
+ * TODO: remove this, it should no longer be needed.
  *
  * @returns {?Function}
  */
@@ -116,14 +117,6 @@ function initEnumerateDevicesWithCallback() {
         return callback => {
             navigator.mediaDevices.enumerateDevices()
                 .then(callback, () => callback([]));
-        };
-    }
-
-    if (MediaStreamTrack.getSources) { // react-native-webrtc
-        return callback => {
-            MediaStreamTrack.getSources(
-                sources =>
-                    callback(sources.map(convertMediaStreamTrackSource)));
         };
     }
 }
@@ -603,28 +596,6 @@ function onMediaDevicesListChanged(devicesReceived) {
     }
 
     eventEmitter.emit(RTCEvents.DEVICE_LIST_CHANGED, devicesReceived);
-}
-
-/**
- * Converts MediaStreamTrack Source to enumerateDevices format.
- * @param {Object} source
- */
-function convertMediaStreamTrackSource(source) {
-    const kind = (source.kind || '').toLowerCase();
-
-    return {
-        facing: source.facing || null,
-        label: source.label,
-
-        // theoretically deprecated MediaStreamTrack.getSources should
-        // not return 'audiooutput' devices but let's handle it in any
-        // case
-        kind: kind
-            ? kind === 'audiooutput' ? kind : `${kind}input`
-            : null,
-        deviceId: source.id,
-        groupId: source.groupId || null
-    };
 }
 
 /**
@@ -1445,10 +1416,8 @@ class RTCUtils extends Listenable {
      */
     isDeviceListAvailable() {
         return Boolean(
-            (navigator.mediaDevices
-                && navigator.mediaDevices.enumerateDevices)
-            || (typeof MediaStreamTrack !== 'undefined'
-                && MediaStreamTrack.getSources));
+            navigator.mediaDevices
+                && navigator.mediaDevices.enumerateDevices);
     }
 
     /**
