@@ -2358,16 +2358,8 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
     // TODO (brian): After moving all browsers to adapter, check if adapter is
     // accounting for different getStats apis, making the browser-checking-if
     // unnecessary.
-    if (browser.isReactNative()) {
-        this.peerconnection.getStats(
-            null,
-            callback,
-            errback || (() => {
-
-                // Making sure that getStats won't fail if error callback is
-                // not passed.
-            }));
-    } else if (browser.isSafariWithWebrtc() || browser.isFirefox()) {
+    if (browser.isSafariWithWebrtc() || browser.isFirefox()
+            || browser.isReactNative()) {
         // uses the new Promise based getStats
         this.peerconnection.getStats()
             .then(callback)
