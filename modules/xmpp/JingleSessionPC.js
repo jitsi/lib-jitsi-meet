@@ -680,10 +680,9 @@ export default class JingleSessionPC extends JingleSession {
         const workFunction = finishedCallback => {
             for (const iceCandidate of iceCandidates) {
                 this.peerconnection.addIceCandidate(iceCandidate)
-                    .then(() => logger.debug('addIceCandidate ok!'))
-                    .catch(error => {
-                        logger.error('addIceCandidate failed!', error);
-                    });
+                    .then(
+                        () => logger.debug('addIceCandidate ok!'),
+                        err => logger.error('addIceCandidate failed!', err));
             }
 
             finishedCallback();
@@ -806,14 +805,12 @@ export default class JingleSessionPC extends JingleSession {
                             this.sendSessionInitiate(
                                 this.peerconnection.localDescription.sdp);
                             finishedCallback();
-                        })
-                        .catch(error => {
+                        }, error => {
                             logger.error(
                                 'Failed to set local SDP', error, offerSdp);
                             finishedCallback(error);
                         });
-                })
-                .catch(error => {
+                }, error => {
                     logger.error(
                         'Failed to create an offer',
                         error,

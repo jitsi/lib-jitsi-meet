@@ -1734,8 +1734,7 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
                         RTCEvents.LOCAL_UFRAG_CHANGED, this, localUfrag);
                 }
                 resolve();
-            })
-            .catch(err => {
+            }, err => {
                 this.trace('setLocalDescriptionOnFailure', err);
                 this.eventEmitter.emit(
                     RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
@@ -1883,8 +1882,7 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
                         RTCEvents.REMOTE_UFRAG_CHANGED, this, remoteUfrag);
                 }
                 resolve();
-            })
-            .catch(err => {
+            }, err => {
                 this.trace('setRemoteDescriptionOnFailure', err);
                 this.eventEmitter.emit(
                     RTCEvents.SET_REMOTE_DESCRIPTION_FAILED,
@@ -2265,8 +2263,9 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
         }
 
         oaPromise
-            .then(sdp => handleSuccess(sdp, resolve, reject))
-            .catch(error => handleFailure(error, reject));
+            .then(
+                sdp => handleSuccess(sdp, resolve, reject),
+                error => handleFailure(error, reject));
     });
 };
 

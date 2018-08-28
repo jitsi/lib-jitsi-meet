@@ -1584,8 +1584,7 @@ function obtainDevices(options) {
             options.streams = options.streams || {};
             options.streams[device] = stream;
             obtainDevices(options);
-        })
-        .catch(error => {
+        }, error => {
             Object.keys(options.streams).forEach(
                 d => rtcUtils.stopMediaStream(options.streams[d]));
             logger.error(
