@@ -41,12 +41,8 @@ class JingleConnectionPlugin extends ConnectionPlugin {
         this.jvbIceConfig = iceConfig.jvb;
         this.p2pIceConfig = iceConfig.p2p;
         this.mediaConstraints = {
-            mandatory: {
-                'OfferToReceiveAudio': true,
-                'OfferToReceiveVideo': true
-            }
-
-            // MozDontOfferDataChannel: true when this is firefox
+            offerToReceiveAudio: true,
+            offerToReceiveVideo: true
         };
     }
 
