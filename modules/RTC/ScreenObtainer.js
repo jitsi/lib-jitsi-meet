@@ -437,8 +437,7 @@ const ScreenObtainer = {
  */
 function obtainWebRTCScreen(options, streamCallback, failCallback) {
     gumFunction([ 'screen' ], options)
-        .then(stream => streamCallback({ stream }))
-        .catch(failCallback);
+        .then(stream => streamCallback({ stream }), failCallback);
 }
 
 /**
@@ -686,8 +685,7 @@ function onGetStreamResponse(
                 stream,
                 sourceId: streamId,
                 sourceType: streamType
-            }))
-            .catch(onFailure);
+            }), onFailure);
     } else {
         // As noted in Chrome Desktop Capture API:
         // If user didn't select any source (i.e. canceled the prompt)
