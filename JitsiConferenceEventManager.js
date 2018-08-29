@@ -247,7 +247,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         JitsiConferenceEvents.KICKED);
     chatRoom.addListener(XMPPEvents.KICKED,
         () => {
-            conference.room = null;
             conference.leave();
         });
     chatRoom.addListener(XMPPEvents.SUSPEND_DETECTED,
