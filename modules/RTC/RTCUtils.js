@@ -879,25 +879,28 @@ class RTCUtils extends Listenable {
                     RTCEvents.DEVICE_LIST_AVAILABLE,
                     availableDevices);
 
+
+                // Use a shared callback to handle both the devicechange event
+                // and the polling implementations. This prevents duplication
+                // and works around a chrome bug (verified to occur on 68) where
+                // devicechange fires twice in a row, which can cause async post
+                // devicechange processing to collide.
+                const updateKnownDevices = () => this.enumerateDevices(pds => {
+                    if (compareAvailableMediaDevices(pds)) {
+                        onMediaDevicesListChanged(pds);
+                    }
+                });
+
                 if (browser.supportsDeviceChangeEvent()) {
                     navigator.mediaDevices.addEventListener(
                         'devicechange',
-                        () => this.enumerateDevices(onMediaDevicesListChanged));
+                        updateKnownDevices);
                 } else {
                     // Periodically poll enumerateDevices() method to check if
                     // list of media devices has changed.
-                    availableDevicesPollTimer = window.setInterval(() => {
-                        this.enumerateDevices(pds => {
-                            // We don't fire RTCEvents.DEVICE_LIST_CHANGED for
-                            // the first time we call enumerateDevices().
-                            // This is the initial step.
-                            if (typeof availableDevices === 'undefined') {
-                                availableDevices = pds.slice(0);
-                            } else if (compareAvailableMediaDevices(pds)) {
-                                onMediaDevicesListChanged(pds);
-                            }
-                        });
-                    }, AVAILABLE_DEVICES_POLL_INTERVAL_TIME);
+                    availableDevicesPollTimer = window.setInterval(
+                        updateKnownDevices,
+                        AVAILABLE_DEVICES_POLL_INTERVAL_TIME);
                 }
             });
         }
