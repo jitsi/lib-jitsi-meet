@@ -10,6 +10,9 @@
 
 .*/\.git/.*
 
+; Ignore test node_modules
+.*/node_modules/.*/test/.*
+
 [include]
 
 [libs]
