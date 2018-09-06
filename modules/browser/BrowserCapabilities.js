@@ -247,4 +247,12 @@ export default class BrowserCapabilities extends BrowserDetection {
     usesAdapter() {
         return this.usesNewGumFlow() || this.isEdge();
     }
+
+    /**
+     * Checks if the browser supposrts getDisplayMedia.
+     * @returns {boolean} {@code true} if the browser supposrts getDisplayMedia.
+     */
+    supportsGetDisplayMedia() {
+        return navigator.getDisplayMedia !== undefined;
+    }
 }
