@@ -46,6 +46,7 @@ import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import * as XMPPEvents from './service/xmpp/XMPPEvents';
 import { JITSI_MEET_MUC_TYPE } from './modules/xmpp/ChatRoom';
+import RttMonitor from './modules/rttmonitor/rttmonitor';
 
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 
@@ -253,6 +254,8 @@ JitsiConference.prototype._init = function(options = {}) {
 
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
 
+    this.rttMonitor = new RttMonitor(config.rttMonitor || {});
+
     this.e2eping = new E2ePing(
         this.eventEmitter,
         config,
@@ -425,6 +428,11 @@ JitsiConference.prototype.leave = function() {
     if (this.avgRtpStatsReporter) {
         this.avgRtpStatsReporter.dispose();
         this.avgRtpStatsReporter = null;
+    }
+
+    if (this.rttMonitor) {
+        this.rttMonitor.stop();
+        this.rttMonitor = null;
     }
 
     if (this.e2eping) {

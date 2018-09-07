@@ -143,6 +143,16 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the current browser supports RTT statistics for srflx local
+     * candidates through the legacy getStats() API.
+     */
+    supportsLocalCandidateRttStatistics() {
+        return this.isChrome()
+            || this.isElectron()
+            || this.isReactNative();
+    }
+
+    /**
      * Checks if the current browser reports round trip time statistics for
      * the ICE candidate pair.
      * @return {boolean}
