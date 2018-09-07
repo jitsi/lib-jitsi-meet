@@ -3,6 +3,7 @@ import { getLogger } from 'jitsi-meet-logger';
 import { createE2eRttEvent } from '../../service/statistics/AnalyticsEvents';
 import * as E2ePingEvents
     from '../../service/e2eping/E2ePingEvents';
+import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import Statistics from '../statistics/statistics';
 
 const logger = getLogger(__filename);
@@ -175,12 +176,13 @@ class ParticipantWrapper {
  */
 export default class E2ePing {
     /**
-     * @param {EventEmitter} eventEmitter - The object to use to emit events.
+     * @param {JitsiConference} conference - The conference.
      * @param {Function} sendMessage - The function to use to send a message.
      * @param {Object} options
      */
-    constructor(eventEmitter, options, sendMessage) {
-        this.eventEmitter = eventEmitter;
+    constructor(conference, options, sendMessage) {
+        this.conference = conference;
+        this.eventEmitter = conference.eventEmitter;
         this.sendMessage = sendMessage;
 
         // The interval at which pings will be sent (<= 0 disables sending).
@@ -213,6 +215,26 @@ export default class E2ePing {
             `Initializing e2e ping; pingInterval=${
                 this.pingIntervalMs}, analyticsInterval=${
                 this.analyticsIntervalMs}.`);
+
+        this.participantJoined = this.participantJoined.bind(this);
+        conference.on(
+            JitsiConferenceEvents.USER_JOINED,
+            this.participantJoined);
+
+        this.participantLeft = this.participantLeft.bind(this);
+        conference.on(
+            JitsiConferenceEvents.USER_LEFT,
+            this.participantLeft);
+
+        this.messageReceived = this.messageReceived.bind(this);
+        conference.on(
+            JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
+            this.messageReceived);
+
+        this.dataChannelOpened = this.dataChannelOpened.bind(this);
+        conference.on(
+            JitsiConferenceEvents.DATA_CHANNEL_OPENED,
+            this.dataChannelOpened);
     }
 
     /**
@@ -258,11 +280,10 @@ export default class E2ePing {
      * Handles a participant joining the conference. Starts to send ping
      * requests to the participant.
      *
+     * @param {String} id - The ID of the participant.
      * @param {JitsiParticipant} participant - The participant that joined.
      */
-    participantJoined(participant) {
-        const id = participant.getId();
-
+    participantJoined(id, participant) {
         if (this.pingIntervalMs <= 0) {
             return;
         }
@@ -280,11 +301,9 @@ export default class E2ePing {
     /**
      * Handles a participant leaving the conference. Stops sending requests.
      *
-     * @param {JitsiParticipant} participant - The participant that left.
+     * @param {String} id - The ID of the participant.
      */
-    participantLeft(participant) {
-        const id = participant.getId();
-
+    participantLeft(id) {
         if (this.pingIntervalMs <= 0) {
             return;
         }
@@ -336,6 +355,19 @@ export default class E2ePing {
      */
     stop() {
         logger.info('Stopping e2eping');
+
+        this.conference.off(
+            JitsiConferenceEvents.USER_JOINED,
+            this.participantJoined);
+        this.conference.off(
+            JitsiConferenceEvents.USER_LEFT,
+            this.participantLeft);
+        this.conference.off(
+            JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
+            this.messageReceived);
+        this.conference.off(
+            JitsiConferenceEvents.DATA_CHANNEL_OPENED,
+            this.dataChannelOpened);
 
         for (const id in this.participants) {
             if (this.participants.hasOwnProperty(id)) {
