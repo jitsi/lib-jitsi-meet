@@ -330,5 +330,20 @@ export default class E2ePing {
             participantWrapper.handleResponse(response);
         }
     }
+
+    /**
+     * Stops this E2ePing (i.e. stop sending requests).
+     */
+    stop() {
+        logger.info('Stopping e2eping');
+
+        for (const id in this.participants) {
+            if (this.participants.hasOwnProperty(id)) {
+                this.participants[id].clearIntervals();
+            }
+        }
+
+        this.participants = {};
+    }
 }
 

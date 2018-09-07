@@ -427,6 +427,11 @@ JitsiConference.prototype.leave = function() {
         this.avgRtpStatsReporter = null;
     }
 
+    if (this.e2eping) {
+        this.e2eping.stop();
+        this.e2eping = null;
+    }
+
     this.getLocalTracks().forEach(track => this.onLocalTrackRemoved(track));
 
     this.rtc.closeBridgeChannel();
