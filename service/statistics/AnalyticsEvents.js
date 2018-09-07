@@ -428,6 +428,21 @@ export const createRtpStatsEvent = function(attributes) {
 };
 
 /**
+ * Creates an event which contains the round trip time (RTT) to a set of
+ * regions.
+ *
+ * @param attributes
+ * @returns {{type: string, action: string, attributes: *}}
+ */
+export const createRttByRegionEvent = function(attributes) {
+    return {
+        type: TYPE_OPERATIONAL,
+        action: 'rtt.by.region',
+        attributes
+    };
+};
+
+/**
  * Creates an event which indicates the Time To First Media (TTFM).
  * It is measured in milliseconds relative to the beginning of the document's
  * lifetime (i.e. the origin used by window.performance.now()), and it excludes
