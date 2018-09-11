@@ -128,6 +128,13 @@ export const LAST_N_ENDPOINTS_CHANGED = 'conference.lastNEndpointsChanged';
 export const LOCK_STATE_CHANGED = 'conference.lock_state_changed';
 
 /**
+ * Indicates that the region of the media server (jitsi-videobridge) that we
+ * are connected to changed (or was initially set).
+ * @type {string} the region.
+ */
+export const SERVER_REGION_CHANGED = 'conference.server_region_changed';
+
+/**
  * New text message was received.
  */
 export const MESSAGE_RECEIVED = 'conference.messageReceived';

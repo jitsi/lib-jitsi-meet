@@ -1623,6 +1623,17 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
             createJingleEvent(ACTION_JINGLE_RESTART, { p2p: false }));
     }
 
+    const serverRegion
+        = $(jingleOffer)
+            .find('>server-region[xmlns="http://jitsi.org/protocol/focus"]')
+            .attr('region');
+
+    if (serverRegion) {
+        this.eventEmitter.emit(
+            JitsiConferenceEvents.SERVER_REGION_CHANGED,
+            serverRegion);
+    }
+
     this._maybeClearSITimeout();
     Statistics.sendAnalytics(createJingleEvent(
         ACTION_JINGLE_SI_RECEIVED,

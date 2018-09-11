@@ -211,6 +211,11 @@ export default class ConnectionQuality {
          */
         this._timeLastBwCapRemoved = -1;
 
+        /*
+         * The region of the jitsi-videobridge we are connected to.
+         */
+        this._serverRegion = null;
+
         // We assume a global startBitrate value for the sake of simplicity.
         if (options.startBitrate && options.startBitrate > 0) {
             startBitrate = options.startBitrate;
@@ -277,6 +282,12 @@ export default class ConnectionQuality {
                 if (track.isVideoTrack() && !track.isMuted()) {
                     this._maybeUpdateUnmuteTime();
                 }
+            });
+
+        conference.on(
+            ConferenceEvents.SERVER_REGION_CHANGED,
+            serverRegion => {
+                this._serverRegion = serverRegion;
             });
     }
 
@@ -441,6 +452,10 @@ export default class ConnectionQuality {
             jvbRTT: this._localStats.jvbRTT
         };
 
+        if (this._serverRegion) {
+            data.serverRegion = this._serverRegion;
+        }
+
         try {
             this._conference.broadcastEndpointMessage({
                 type: STATS_MESSAGE_TYPE,
@@ -501,6 +516,8 @@ export default class ConnectionQuality {
             }
         }
 
+        this._localStats.serverRegion = this._serverRegion;
+
         // And re-calculate the connectionQuality field.
         if (updateLocalConnectionQuality) {
             this._updateLocalConnectionQuality(
@@ -527,7 +544,8 @@ export default class ConnectionQuality {
             bitrate: data.bitrate,
             packetLoss: data.packetLoss,
             connectionQuality: data.connectionQuality,
-            jvbRTT: data.jvbRTT
+            jvbRTT: data.jvbRTT,
+            serverRegion: data.serverRegion
         };
 
         this.eventEmitter.emit(
