@@ -187,6 +187,12 @@ export const P2P_STATUS = 'conference.p2pStatus';
 export const PHONE_NUMBER_CHANGED = 'conference.phoneNumberChanged';
 
 /**
+ * The conference properties changed.
+ * @type {string}
+ */
+export const PROPERTIES_CHANGED = 'conference.propertiesChanged';
+
+/**
  * Indicates that recording state changed.
  */
 export const RECORDER_STATE_CHANGED = 'conference.recorderStateChanged';

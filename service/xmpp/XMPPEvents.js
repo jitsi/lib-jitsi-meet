@@ -183,6 +183,9 @@ const XMPPEvents = {
     // a specific user of the muc.
     SENDING_PRIVATE_CHAT_MESSAGE: 'xmpp.sending_private_chat_message',
 
+    // The conference properties (as advertised by jicofo) have changed
+    CONFERENCE_PROPERTIES_CHANGED: 'xmpp.conference_properties_changed',
+
     /**
      * Event fired when we do not get our 'session-accept' acknowledged by
      * Jicofo. It most likely means that there is serious problem with our

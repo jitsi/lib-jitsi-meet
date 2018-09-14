@@ -14,13 +14,14 @@ import {
     createP2PEvent
 } from './service/statistics/AnalyticsEvents';
 import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
-import ComponentsVersions from './modules/version/ComponentsVersions';
+import authenticateAndUpgradeRole from './authenticateAndUpgradeRole';
 import ConnectionQuality from './modules/connectivity/ConnectionQuality';
+import ComponentsVersions from './modules/version/ComponentsVersions';
 import E2ePing from './modules/e2eping/e2eping';
+import EventEmitter from 'events';
 import { getLogger } from 'jitsi-meet-logger';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
-import EventEmitter from 'events';
-import authenticateAndUpgradeRole from './authenticateAndUpgradeRole';
+import isEqual from 'lodash.isequal';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
@@ -142,6 +143,9 @@ export default function JitsiConference(options) {
     // the restart.
     this.wasStopped = false;
 
+    // Conference properties, maintained by jicofo.
+    this.properties = {};
+
     /**
      * The object which monitors local and remote connection statistics (e.g.
      * sending bitrate) and calculates a number which represents the connection
@@ -253,6 +257,10 @@ JitsiConference.prototype._init = function(options = {}) {
         XMPPEvents.CONNECTION_ESTABLISHED, this._onIceConnectionEstablished);
 
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
+
+    this._propertiesChanged = this._propertiesChanged.bind(this);
+    this.room.addListener(XMPPEvents.CONFERENCE_PROPERTIES_CHANGED,
+        this._propertiesChanged);
 
     this.rttMonitor = new RttMonitor(config.rttMonitor || {});
 
@@ -456,6 +464,10 @@ JitsiConference.prototype.leave = function() {
         room.removeListener(
             XMPPEvents.CONNECTION_ESTABLISHED,
             this._onIceConnectionEstablished);
+
+        room.removeListener(
+            XMPPEvents.CONFERENCE_PROPERTIES_CHANGED,
+            this._propertiesChanged);
 
         this.room = null;
 
@@ -2539,6 +2551,57 @@ JitsiConference.prototype._onIceConnectionEstablished = function(
                 initiator: this.p2pJingleSession.isInitiator
             }));
 
+};
+
+/**
+ * Called when the chat room reads a new list of properties from jicofo's
+ * presence. The properties may have changed, but they don't have to.
+ *
+ * @param {Object} properties - The properties keyed by the property name
+ * ('key').
+ * @private
+ */
+JitsiConference.prototype._propertiesChanged = function(properties) {
+    const changed = isEqual(properties, this.properties);
+
+    this.properties = properties;
+    if (changed) {
+        this.eventEmitter.emit(JitsiConferenceEvents.PROPERTIES_CHANGED);
+
+        // Some of the properties need to be added to analytics events.
+        const analyticsKeys = [
+
+            // The number of jitsi-videobridge instances currently used for the
+            // conference.
+            'bridge-count',
+
+            // The conference creation time (set by jicofo).
+            'created-ms',
+            'octo-enabled'
+        ];
+
+        analyticsKeys.forEach(key => {
+            if (properties[key] && properties[key].value !== undefined) {
+                Statistics.analytics.addPermanentProperties({
+                    [key.replace('-', '_')]: properties[key].value
+                });
+            }
+        });
+    }
+};
+
+/**
+ * Gets a conference property with a given key.
+ *
+ * @param {string} key - The key.
+ * @returns {*} The value
+ */
+JitsiConference.prototype.getProperty = function(key) {
+    if (!this.properties) {
+        return;
+    }
+
+    return this.properties[key];
 };
 
 /**
