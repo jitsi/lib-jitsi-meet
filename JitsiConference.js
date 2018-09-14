@@ -258,9 +258,9 @@ JitsiConference.prototype._init = function(options = {}) {
 
     this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
 
-    this._propertiesChanged = this._propertiesChanged.bind(this);
+    this._updateProperties = this._updateProperties.bind(this);
     this.room.addListener(XMPPEvents.CONFERENCE_PROPERTIES_CHANGED,
-        this._propertiesChanged);
+        this._updateProperties);
 
     this.rttMonitor = new RttMonitor(config.rttMonitor || {});
 
@@ -467,7 +467,7 @@ JitsiConference.prototype.leave = function() {
 
         room.removeListener(
             XMPPEvents.CONFERENCE_PROPERTIES_CHANGED,
-            this._propertiesChanged);
+            this._updateProperties);
 
         this.room = null;
 
@@ -1640,11 +1640,9 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
             .find('>server-region[xmlns="http://jitsi.org/protocol/focus"]')
             .attr('region');
 
-    if (serverRegion) {
-        this.eventEmitter.emit(
-            JitsiConferenceEvents.SERVER_REGION_CHANGED,
-            serverRegion);
-    }
+    this.eventEmitter.emit(
+        JitsiConferenceEvents.SERVER_REGION_CHANGED,
+        serverRegion);
 
     this._maybeClearSITimeout();
     Statistics.sendAnalytics(createJingleEvent(
@@ -2561,12 +2559,14 @@ JitsiConference.prototype._onIceConnectionEstablished = function(
  * ('key').
  * @private
  */
-JitsiConference.prototype._propertiesChanged = function(properties) {
+JitsiConference.prototype._updateProperties = function(properties) {
     const changed = isEqual(properties, this.properties);
 
     this.properties = properties;
     if (changed) {
-        this.eventEmitter.emit(JitsiConferenceEvents.PROPERTIES_CHANGED);
+        this.eventEmitter.emit(
+            JitsiConferenceEvents.PROPERTIES_CHANGED,
+            properties);
 
         // Some of the properties need to be added to analytics events.
         const analyticsKeys = [
