@@ -28,17 +28,19 @@ const stunKeepAliveIntervalMs = 10000;
  * to the STUN server.
  */
 class PCMonitor {
+    /* eslint-disable max-params */
     /**
      *
-     * @param {Object} stunServer the STUN server configuration (address and
-     * region).
+     * @param {String} region - The region of the STUN server.
+     * @param {String} address - The address of the STUN server.
      * @param {number} getStatsIntervalMs how often to call getStats.
      * @param {number} delay the delay after which the PeerConnection will be
      * started (that is, createOffer and setLocalDescription will be invoked).
      *
      */
-    constructor(stunServer, getStatsIntervalMs, delay) {
-        this.region = stunServer.region;
+    constructor(region, address, getStatsIntervalMs, delay) {
+        /* eslint-disable max-params */
+        this.region = region;
         this.getStatsIntervalMs = getStatsIntervalMs;
         this.getStatsInterval = null;
 
@@ -48,7 +50,7 @@ class PCMonitor {
         // The RTT measurements we've made from the latest getStats() calls.
         this.rtts = [];
 
-        const iceServers = [ { 'url': `stun:${stunServer.address}` } ];
+        const iceServers = [ { 'url': `stun:${address}` } ];
 
         this.pc = new RTCUtils.RTCPeerConnectionType(
             {
@@ -265,7 +267,7 @@ export default class RttMonitor {
      * Starts the PCMonitors according to the configuration.
      */
     startPCMonitors(config) {
-        if (!Array.isArray(config.stunServers)) {
+        if (!config.stunServers) {
             logger.warn('No stun servers configured.');
 
             return;
@@ -279,16 +281,25 @@ export default class RttMonitor {
             = config.getStatsInterval || stunKeepAliveIntervalMs;
         const analyticsIntervalMs
             = config.analyticsInterval || getStatsIntervalMs;
-        const count = config.stunServers.length;
+        const count = Object.keys(config.stunServers).length;
         const offset = getStatsIntervalMs / count;
 
         // We delay the initialization of each PC so that they are uniformly
         // distributed across the getStatsIntervalMs.
-        for (let i = 0; i < count; i++) {
-            const stunServer = config.stunServers[i];
+        let i = 0;
 
-            this.pcMonitors[stunServer.region]
-                = new PCMonitor(stunServer, getStatsIntervalMs, offset * i);
+        for (const region in config.stunServers) {
+            if (config.stunServers.hasOwnProperty(region)) {
+                const address = config.stunServers[region];
+
+                this.pcMonitors[region]
+                    = new PCMonitor(
+                        region,
+                        address,
+                        getStatsIntervalMs,
+                        offset * i);
+                i++;
+            }
         }
 
         window.setTimeout(
