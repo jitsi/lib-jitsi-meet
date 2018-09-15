@@ -1,6 +1,42 @@
 /* global __filename, $, Promise */
 import { Strophe } from 'strophe.js';
 
+import EventEmitter from 'events';
+import { getLogger } from 'jitsi-meet-logger';
+import isEqual from 'lodash.isequal';
+
+import * as JitsiConferenceErrors from './JitsiConferenceErrors';
+import JitsiConferenceEventManager from './JitsiConferenceEventManager';
+import * as JitsiConferenceEvents from './JitsiConferenceEvents';
+import JitsiParticipant from './JitsiParticipant';
+import JitsiTrackError from './JitsiTrackError';
+import * as JitsiTrackErrors from './JitsiTrackErrors';
+import * as JitsiTrackEvents from './JitsiTrackEvents';
+import authenticateAndUpgradeRole from './authenticateAndUpgradeRole';
+import JitsiDTMFManager from './modules/DTMF/JitsiDTMFManager';
+import P2PDominantSpeakerDetection from './modules/P2PDominantSpeakerDetection';
+import RTC from './modules/RTC/RTC';
+import TalkMutedDetection from './modules/TalkMutedDetection';
+import browser from './modules/browser';
+import ConnectionQuality from './modules/connectivity/ConnectionQuality';
+import ParticipantConnectionStatusHandler
+    from './modules/connectivity/ParticipantConnectionStatus';
+import E2ePing from './modules/e2eping/e2eping';
+import Jvb121EventGenerator from './modules/event/Jvb121EventGenerator';
+import RecordingManager from './modules/recording/RecordingManager';
+import RttMonitor from './modules/rttmonitor/rttmonitor';
+import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
+import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
+import Statistics from './modules/statistics/statistics';
+import Transcriber from './modules/transcription/transcriber';
+import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
+import ComponentsVersions from './modules/version/ComponentsVersions';
+import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
+import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
+import { JITSI_MEET_MUC_TYPE } from './modules/xmpp/ChatRoom';
+import * as MediaType from './service/RTC/MediaType';
+import * as RTCEvents from './service/RTC/RTCEvents';
+import VideoType from './service/RTC/VideoType';
 import {
     ACTION_JINGLE_RESTART,
     ACTION_JINGLE_SI_RECEIVED,
@@ -13,43 +49,7 @@ import {
     createJingleEvent,
     createP2PEvent
 } from './service/statistics/AnalyticsEvents';
-import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
-import authenticateAndUpgradeRole from './authenticateAndUpgradeRole';
-import ConnectionQuality from './modules/connectivity/ConnectionQuality';
-import ComponentsVersions from './modules/version/ComponentsVersions';
-import E2ePing from './modules/e2eping/e2eping';
-import EventEmitter from 'events';
-import { getLogger } from 'jitsi-meet-logger';
-import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
-import isEqual from 'lodash.isequal';
-import * as JitsiConferenceErrors from './JitsiConferenceErrors';
-import JitsiConferenceEventManager from './JitsiConferenceEventManager';
-import * as JitsiConferenceEvents from './JitsiConferenceEvents';
-import JitsiDTMFManager from './modules/DTMF/JitsiDTMFManager';
-import JitsiParticipant from './JitsiParticipant';
-import JitsiTrackError from './JitsiTrackError';
-import * as JitsiTrackErrors from './JitsiTrackErrors';
-import * as JitsiTrackEvents from './JitsiTrackEvents';
-import Jvb121EventGenerator from './modules/event/Jvb121EventGenerator';
-import * as MediaType from './service/RTC/MediaType';
-import ParticipantConnectionStatusHandler
-    from './modules/connectivity/ParticipantConnectionStatus';
-import P2PDominantSpeakerDetection from './modules/P2PDominantSpeakerDetection';
-import RTC from './modules/RTC/RTC';
-import browser from './modules/browser';
-import * as RTCEvents from './service/RTC/RTCEvents';
-import Statistics from './modules/statistics/statistics';
-import TalkMutedDetection from './modules/TalkMutedDetection';
-import Transcriber from './modules/transcription/transcriber';
-import VideoType from './service/RTC/VideoType';
-import RecordingManager from './modules/recording/RecordingManager';
-import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
-import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import * as XMPPEvents from './service/xmpp/XMPPEvents';
-import { JITSI_MEET_MUC_TYPE } from './modules/xmpp/ChatRoom';
-import RttMonitor from './modules/rttmonitor/rttmonitor';
-
-import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 
 const logger = getLogger(__filename);
 
