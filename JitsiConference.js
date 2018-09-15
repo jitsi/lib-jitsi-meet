@@ -2562,11 +2562,11 @@ JitsiConference.prototype._onIceConnectionEstablished = function(
 JitsiConference.prototype._updateProperties = function(properties) {
     const changed = isEqual(properties, this.properties);
 
-    this.properties = properties;
+    this.properties = properties || {};
     if (changed) {
         this.eventEmitter.emit(
             JitsiConferenceEvents.PROPERTIES_CHANGED,
-            properties);
+            this.properties);
 
         // Some of the properties need to be added to analytics events.
         const analyticsKeys = [
@@ -2581,7 +2581,8 @@ JitsiConference.prototype._updateProperties = function(properties) {
         ];
 
         analyticsKeys.forEach(key => {
-            if (properties[key] && properties[key].value !== undefined) {
+            if (this.properties[key]
+                && this.properties[key].value !== undefined) {
                 Statistics.analytics.addPermanentProperties({
                     [key.replace('-', '_')]: properties[key].value
                 });
@@ -2597,10 +2598,6 @@ JitsiConference.prototype._updateProperties = function(properties) {
  * @returns {*} The value
  */
 JitsiConference.prototype.getProperty = function(key) {
-    if (!this.properties) {
-        return;
-    }
-
     return this.properties[key];
 };
 
