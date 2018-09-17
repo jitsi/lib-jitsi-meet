@@ -2559,10 +2559,10 @@ JitsiConference.prototype._onIceConnectionEstablished = function(
  * ('key').
  * @private
  */
-JitsiConference.prototype._updateProperties = function(properties) {
+JitsiConference.prototype._updateProperties = function(properties = {}) {
     const changed = isEqual(properties, this.properties);
 
-    this.properties = properties || {};
+    this.properties = properties;
     if (changed) {
         this.eventEmitter.emit(
             JitsiConferenceEvents.PROPERTIES_CHANGED,
