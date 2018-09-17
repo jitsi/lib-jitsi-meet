@@ -25,6 +25,10 @@ const XMPPEvents = {
     // person in the conference room.
     CALL_ENDED: 'xmpp.callended.jingle',
     CHAT_ERROR_RECEIVED: 'xmpp.chat_error_received',
+
+    // The conference properties (as advertised by jicofo) have changed
+    CONFERENCE_PROPERTIES_CHANGED: 'xmpp.conference_properties_changed',
+
     CONFERENCE_SETUP_FAILED: 'xmpp.conference_setup_failed',
 
     /**

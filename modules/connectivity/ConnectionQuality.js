@@ -278,6 +278,20 @@ export default class ConnectionQuality {
                     this._maybeUpdateUnmuteTime();
                 }
             });
+
+        conference.on(
+            ConferenceEvents.SERVER_REGION_CHANGED,
+            serverRegion => {
+                this._localStats.serverRegion = serverRegion;
+            });
+
+        conference.on(
+            ConferenceEvents.PROPERTIES_CHANGED,
+            properties => {
+                this._localStats.bridgeCount
+                    = Number((properties || {})['bridge-count']);
+            }
+        );
     }
 
     /**
@@ -438,7 +452,8 @@ export default class ConnectionQuality {
             bitrate: this._localStats.bitrate,
             packetLoss: this._localStats.packetLoss,
             connectionQuality: this._localStats.connectionQuality,
-            jvbRTT: this._localStats.jvbRTT
+            jvbRTT: this._localStats.jvbRTT,
+            serverRegion: this._localStats.serverRegion
         };
 
         try {
@@ -527,7 +542,8 @@ export default class ConnectionQuality {
             bitrate: data.bitrate,
             packetLoss: data.packetLoss,
             connectionQuality: data.connectionQuality,
-            jvbRTT: data.jvbRTT
+            jvbRTT: data.jvbRTT,
+            serverRegion: data.serverRegion
         };
 
         this.eventEmitter.emit(

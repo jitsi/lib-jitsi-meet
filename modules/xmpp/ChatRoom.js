@@ -11,7 +11,6 @@ import * as MediaType from '../../service/RTC/MediaType';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
 import Moderator from './moderator';
-import Statistics from '../statistics/statistics';
 
 const logger = getLogger(__filename);
 
@@ -625,32 +624,18 @@ export default class ChatRoom extends Listenable {
                 break;
             case 'conference-properties':
                 if (member.isFocus) {
+                    const properties = {};
+
                     for (let j = 0; j < node.children.length; j++) {
                         const { attributes } = node.children[j];
 
-                        if (!attributes) {
-                            break;
+                        if (attributes && attributes.key) {
+                            properties[attributes.key] = attributes.value;
                         }
-
-                        const { key, value } = attributes;
-
-                        /* eslint-disable no-fallthrough */
-                        switch (key) {
-
-                        // The number of jitsi-videobridge instances currently
-                        // used for the conference.
-                        case 'bridge-count':
-
-                        // The conference creation time (set by jicofo).
-                        case 'created-ms':
-                        case 'octo-enabled':
-                            Statistics.analytics.addPermanentProperties({
-                                [key.replace('-', '_')]: value
-                            });
-                            break;
-                        }
-                        /* eslint-enable no-fallthrough */
                     }
+
+                    this.eventEmitter.emit(
+                        XMPPEvents.CONFERENCE_PROPERTIES_CHANGED, properties);
                 }
                 break;
             case 'transcription-status': {
