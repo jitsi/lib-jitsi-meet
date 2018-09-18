@@ -2581,10 +2581,9 @@ JitsiConference.prototype._updateProperties = function(properties = {}) {
         ];
 
         analyticsKeys.forEach(key => {
-            if (this.properties[key]
-                && this.properties[key].value !== undefined) {
+            if (properties[key] !== undefined) {
                 Statistics.analytics.addPermanentProperties({
-                    [key.replace('-', '_')]: properties[key].value
+                    [key.replace('-', '_')]: properties[key]
                 });
             }
         });
