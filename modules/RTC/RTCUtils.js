@@ -814,10 +814,7 @@ class RTCUtils extends Listenable {
 
             this.getStreamID = ({ id }) => id;
             this.getTrackID = ({ id }) => id;
-        } else if (browser.isChrome() // this is chrome < 61
-                || browser.isOpera()
-                || browser.isNWJS()
-                || browser.isElectron()
+        } else if (browser.isChromiumBased() // this is chrome < 61
                 || browser.isReactNative()) {
 
             this.RTCPeerConnectionType = RTCPeerConnection;
@@ -946,11 +943,7 @@ class RTCUtils extends Listenable {
     _initPCConstraints(options) {
         if (browser.isFirefox()) {
             this.pcConstraints = {};
-        } else if (browser.isChrome()
-            || browser.isOpera()
-            || browser.isNWJS()
-            || browser.isElectron()
-            || browser.isReactNative()) {
+        } else if (browser.isChromiumBased() || browser.isReactNative()) {
             this.pcConstraints = { optional: [
                 { googHighStartBitrate: 0 },
                 { googPayloadPadding: true },
@@ -1457,12 +1450,8 @@ class RTCUtils extends Listenable {
     isDeviceChangeAvailable(deviceType) {
         return deviceType === 'output' || deviceType === 'audiooutput'
             ? isAudioOutputDeviceChangeAvailable
-            : browser.isChrome()
-                || browser.isFirefox()
-                || browser.isOpera()
-                || browser.isNWJS()
-                || browser.isElectron()
-                || browser.isEdge();
+            : browser.isChromiumBased()
+                || browser.isFirefox() || browser.isEdge();
     }
 
     /**
