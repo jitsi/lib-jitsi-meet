@@ -249,11 +249,41 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     usesNewGumFlow() {
-        return (this.isChrome()
-                && !this.isVersionLessThan('61'))
-            || this.isFirefox()
-            || this.isSafariWithWebrtc();
+        const REQUIRED_CHROME_VERSION = 61;
 
+        if (this.isChrome()) {
+            return !this.isVersionLessThan(REQUIRED_CHROME_VERSION);
+        }
+
+        if (this.isFirefox() || this.isSafariWithWebrtc()) {
+            return true;
+        }
+
+        if (this.isChromiumBased()) {
+            // NW.JS doesn't expose the Chrome version in the UA string.
+            if (this.isNWJS()) {
+                // eslint-disable-next-line no-undef
+                const version = Number.parseInt(process.versions.chromium, 10);
+
+                return version >= REQUIRED_CHROME_VERSION;
+            }
+
+            // Here we process all browsers which use the Chrome engine but
+            // don't necessarily identify as Chrome. We cannot use the version
+            // comparing functions because the Electron, Opera and NW.JS
+            // versions are inconsequential here, as we need to know the actual
+            // Chrome engine version.
+            const ua = navigator.userAgent;
+
+            if (ua.match(/Chrome/)) {
+                const version
+                    = Number.parseInt(ua.match(/Chrome\/([\d.]+)/)[1], 10);
+
+                return version >= REQUIRED_CHROME_VERSION;
+            }
+        }
+
+        return false;
     }
 
     /**
