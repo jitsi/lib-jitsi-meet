@@ -511,8 +511,6 @@ function setAvailableDevices(um, stream) {
     if (um.indexOf('audio') !== -1) {
         devices.audio = audioTracksReceived;
     }
-
-    eventEmitter.emit(RTCEvents.AVAILABLE_DEVICES_CHANGED, devices);
 }
 
 /**

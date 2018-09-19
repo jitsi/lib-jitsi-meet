@@ -34,10 +34,6 @@ export default class JitsiParticipant {
         this._tracks = [];
         this._role = 'none';
         this._status = status;
-        this._availableDevices = {
-            audio: undefined,
-            video: undefined
-        };
         this._hidden = hidden;
         this._statsID = statsID;
         this._connectionStatus = ParticipantConnectionStatus.ACTIVE;

@@ -212,26 +212,6 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     *
-     * @param devices
-     */
-    updateDeviceAvailability(devices) {
-        this.presMap.nodes.push({
-            'tagName': 'devices',
-            'children': [
-                {
-                    'tagName': 'audio',
-                    'value': devices.audio
-                },
-                {
-                    'tagName': 'video',
-                    'value': devices.video
-                }
-            ]
-        });
-    }
-
-    /**
      * Joins the chat room.
      * @param password
      * @returns {Promise} - resolved when join completes. At the time of this

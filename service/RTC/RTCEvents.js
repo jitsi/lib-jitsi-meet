@@ -30,7 +30,6 @@ const RTCEvents = {
      */
     LOCAL_TRACK_SSRC_UPDATED: 'rtc.local_track_ssrc_updated',
 
-    AVAILABLE_DEVICES_CHANGED: 'rtc.available_devices_changed',
     TRACK_ATTACHED: 'rtc.track_attached',
 
     /**
