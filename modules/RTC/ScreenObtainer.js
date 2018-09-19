@@ -163,12 +163,8 @@ const ScreenObtainer = {
         } else if (browser.isElectron()) {
             return this.obtainScreenOnElectron;
         } else if (browser.isChrome() || browser.isOpera()) {
-            if (browser.isVersionLessThan('34')) {
-                logger.info('Chrome extension not supported until ver 34');
-
-                return null;
-            } else if (browser.supportsGetDisplayMedia()
-                        && !options.desktopSharingChromeDisabled) {
+            if (browser.supportsGetDisplayMedia()
+                    && !options.desktopSharingChromeDisabled) {
 
                 return this.obtainScreenFromGetDisplayMedia;
             } else if (options.desktopSharingChromeDisabled

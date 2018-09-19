@@ -16,7 +16,7 @@
     ],
     "chrome":
     [
-        {"version": "34" },
+        {"version": "51" },
         {
             "capabilities": {
                 "audioIn": true,
