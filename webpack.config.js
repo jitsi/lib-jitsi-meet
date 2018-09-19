@@ -54,6 +54,7 @@ const config = {
                         // so that webpack may do tree shaking.
                         { modules: false }
                     ],
+                    'flow',
                     'stage-1'
                 ]
             },
