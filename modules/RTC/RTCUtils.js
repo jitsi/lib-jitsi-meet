@@ -65,14 +65,6 @@ const DEFAULT_CONSTRAINTS = {
     }
 };
 
-
-// TODO (brian): Move this devices hash, maybe to a model, so RTCUtils remains
-// stateless.
-const devices = {
-    audio: false,
-    video: false
-};
-
 /**
  * The default frame rate for Screen Sharing.
  */
@@ -496,21 +488,24 @@ function getTrackSSConstraints(options = {}) {
 }
 
 /**
- * Sets the availbale devices based on the options we requested and the
+ * Updates the granted permissions based on the options we requested and the
  * streams we received.
  * @param um the options we requested to getUserMedia.
  * @param stream the stream we received from calling getUserMedia.
  */
-function setAvailableDevices(um, stream) {
+function updateGrantedPermissions(um, stream) {
     const audioTracksReceived = stream && stream.getAudioTracks().length > 0;
     const videoTracksReceived = stream && stream.getVideoTracks().length > 0;
+    const grantedPermissions = {};
 
     if (um.indexOf('video') !== -1) {
-        devices.video = videoTracksReceived;
+        grantedPermissions.video = videoTracksReceived;
     }
     if (um.indexOf('audio') !== -1) {
-        devices.audio = audioTracksReceived;
+        grantedPermissions.audio = audioTracksReceived;
     }
+
+    eventEmitter.emit(RTCEvents.GRANTED_PERMISSIONS, grantedPermissions);
 }
 
 /**
@@ -593,27 +588,6 @@ function onMediaDevicesListChanged(devicesReceived) {
         availableDevices);
 
     sendDeviceListToAnalytics(availableDevices);
-
-    const videoInputDevices
-        = availableDevices.filter(d => d.kind === 'videoinput');
-    const audioInputDevices
-        = availableDevices.filter(d => d.kind === 'audioinput');
-    const videoInputDevicesWithEmptyLabels
-        = videoInputDevices.filter(d => d.label === '');
-    const audioInputDevicesWithEmptyLabels
-        = audioInputDevices.filter(d => d.label === '');
-
-    if (videoInputDevices.length
-            && videoInputDevices.length
-                === videoInputDevicesWithEmptyLabels.length) {
-        devices.video = false;
-    }
-
-    if (audioInputDevices.length
-            && audioInputDevices.length
-                === audioInputDevicesWithEmptyLabels.length) {
-        devices.audio = false;
-    }
 
     eventEmitter.emit(RTCEvents.DEVICE_LIST_CHANGED, devicesReceived);
 }
@@ -1009,13 +983,13 @@ class RTCUtils extends Listenable {
             navigator.mediaDevices.getUserMedia(constraints)
                 .then(stream => {
                     logger.log('onUserMediaSuccess');
-                    setAvailableDevices(um, stream);
+                    updateGrantedPermissions(um, stream);
                     resolve(stream);
                 })
                 .catch(error => {
                     logger.warn('Failed to get access to local media. '
                         + ` ${error} ${constraints} `);
-                    setAvailableDevices(um, undefined);
+                    updateGrantedPermissions(um, undefined);
                     reject(new JitsiTrackError(error, constraints, um));
                 });
         });
@@ -1034,13 +1008,13 @@ class RTCUtils extends Listenable {
             navigator.mediaDevices.getUserMedia(constraints)
                 .then(stream => {
                     logger.log('onUserMediaSuccess');
-                    setAvailableDevices(umDevices, stream);
+                    updateGrantedPermissions(umDevices, stream);
                     resolve(stream);
                 })
                 .catch(error => {
                     logger.warn('Failed to get access to local media. '
                         + ` ${error} ${constraints} `);
-                    setAvailableDevices(umDevices, undefined);
+                    updateGrantedPermissions(umDevices, undefined);
                     reject(new JitsiTrackError(error, constraints, umDevices));
                 });
         });
@@ -1424,13 +1398,6 @@ class RTCUtils extends Listenable {
             .then(maybeRequestCaptureDevices)
             .then(maybeCreateAndAddAVTracks)
             .then(() => mediaStreamsMetaData);
-    }
-
-    /**
-     *
-     */
-    getDeviceAvailability() {
-        return devices;
     }
 
     /**

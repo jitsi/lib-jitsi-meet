@@ -8,32 +8,88 @@ import Statistics from './modules/statistics/statistics';
 
 import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
 
-const eventEmitter = new EventEmitter();
-
 /**
- * Gathers data and sends it to statistics.
- * @param deviceID the device id to log
- * @param devices list of devices
+ * Media devices utilities for Jitsi.
  */
-function logOutputDevice(deviceID, devices) {
-    const device
-        = devices.find(
-            d => d.kind === 'audiooutput' && d.deviceId === deviceID);
+class JitsiMediaDevices {
+    /**
+     * Initializes a {@code JitsiMediaDevices} object. There will be a single
+     * instance of this class.
+     */
+    constructor() {
+        this._eventEmitter = new EventEmitter();
+        this._grantedPermissions = {};
 
-    if (device) {
-        Statistics.sendActiveDeviceListEvent(
-            RTC.getEventDataForActiveDevice(device));
+        RTC.addListener(
+            RTCEvents.DEVICE_LIST_CHANGED,
+            devices =>
+                this._eventEmitter.emit(
+                    JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED,
+                    devices));
+        RTC.addListener(
+            RTCEvents.DEVICE_LIST_AVAILABLE,
+            devices =>
+                this._logOutputDevice(
+                    this.getAudioOutputDevice(),
+                    devices));
+        RTC.addListener(
+            RTCEvents.GRANTED_PERMISSIONS,
+            grantedPermissions =>
+                this._handleGrantedPermissions(grantedPermissions));
+
+        // Test if the W3C Permissions API is implemented and the 'camera' and
+        // 'microphone' permissions are implemented. (Testing for at least one
+        // of them seems sufficient).
+        this._permissionsApiSupported = new Promise(resolve => {
+            if (!navigator.permissions) {
+                resolve(false);
+
+                return;
+            }
+
+            navigator.permissions.query({ name: 'camera ' })
+                .then(() => resolve(true), () => resolve(false));
+        });
     }
-}
 
-const JitsiMediaDevices = {
+    /**
+     * Updated the local granted permissions cache. A permissions might be
+     * granted, denied, or undefined. This is represented by having its media
+     * type key set to {@code true} or {@code false} respectively.
+     *
+     * @param {Object} grantedPermissions - Array with the permissions
+     * which were granted.
+     */
+    _handleGrantedPermissions(grantedPermissions) {
+        this._grantedPermissions = {
+            ...this._grantedPermissions,
+            ...grantedPermissions
+        };
+    }
+
+    /**
+     * Gathers data and sends it to statistics.
+     * @param deviceID the device id to log
+     * @param devices list of devices
+     */
+    _logOutputDevice(deviceID, devices) {
+        const device
+            = devices.find(
+                d => d.kind === 'audiooutput' && d.deviceId === deviceID);
+
+        if (device) {
+            Statistics.sendActiveDeviceListEvent(
+                RTC.getEventDataForActiveDevice(device));
+        }
+    }
+
     /**
      * Executes callback with list of media devices connected.
      * @param {function} callback
      */
     enumerateDevices(callback) {
         RTC.enumerateDevices(callback);
-    },
+    }
 
     /**
      * Checks if its possible to enumerate available cameras/micropones.
@@ -43,7 +99,7 @@ const JitsiMediaDevices = {
      */
     isDeviceListAvailable() {
         return RTC.isDeviceListAvailable();
-    },
+    }
 
     /**
      * Returns true if changing the input (camera / microphone) or output
@@ -54,26 +110,58 @@ const JitsiMediaDevices = {
      */
     isDeviceChangeAvailable(deviceType) {
         return RTC.isDeviceChangeAvailable(deviceType);
-    },
+    }
 
     /**
-     * Returns true if user granted permission to media devices.
+     * Checks if the permission for the given device was granted.
+     *
      * @param {'audio'|'video'} [type] - type of devices to check,
      *      undefined stands for both 'audio' and 'video' together
-     * @returns {boolean}
+     * @returns {Promise<boolean>}
      */
     isDevicePermissionGranted(type) {
-        const permissions = RTC.getDeviceAvailability();
+        return new Promise(resolve => {
+            // Shortcut: first check if we already know the permission was
+            // granted.
+            if (type in this._grantedPermissions) {
+                resolve(this._grantedPermissions[type]);
 
-        switch (type) {
-        case MediaType.VIDEO:
-            return permissions.video === true;
-        case MediaType.AUDIO:
-            return permissions.audio === true;
-        default:
-            return permissions.video === true && permissions.audio === true;
-        }
-    },
+                return;
+            }
+
+            // Check using the Permissions API.
+            this._permissionsApiSupported.then(supported => {
+                if (!supported) {
+                    resolve(false);
+
+                    return;
+                }
+
+                const promises = [];
+
+                switch (type) {
+                case MediaType.VIDEO:
+                    promises.push(
+                        navigator.permissions.query({ name: 'camera' }));
+                    break;
+                case MediaType.AUDIO:
+                    promises.push(
+                        navigator.permissions.query({ name: 'microphone' }));
+                    break;
+                default:
+                    promises.push(
+                        navigator.permissions.query({ name: 'camera' }));
+                    promises.push(
+                        navigator.permissions.query({ name: 'microphone' }));
+                }
+
+                Promise.all(promises).then(
+                    r => resolve(r.every(Boolean)),
+                    () => resolve(false)
+                );
+            });
+        });
+    }
 
     /**
      * Returns true if it is possible to be simultaneously capturing audio
@@ -83,7 +171,7 @@ const JitsiMediaDevices = {
      */
     isMultipleAudioInputSupported() {
         return !browser.isFirefox();
-    },
+    }
 
     /**
      * Returns currently used audio output device id, 'default' stands
@@ -92,7 +180,7 @@ const JitsiMediaDevices = {
      */
     getAudioOutputDevice() {
         return RTC.getAudioOutputDevice();
-    },
+    }
 
     /**
      * Sets current audio output device.
@@ -103,18 +191,18 @@ const JitsiMediaDevices = {
      *      otherwise
      */
     setAudioOutputDevice(deviceId) {
-
         const availableDevices = RTC.getCurrentlyAvailableMediaDevices();
 
         if (availableDevices && availableDevices.length > 0) {
             // if we have devices info report device to stats
             // normally this will not happen on startup as this method is called
             // too early. This will happen only on user selection of new device
-            logOutputDevice(deviceId, RTC.getCurrentlyAvailableMediaDevices());
+            this._logOutputDevice(
+                deviceId, RTC.getCurrentlyAvailableMediaDevices());
         }
 
         return RTC.setAudioOutputDevice(deviceId);
-    },
+    }
 
     /**
      * Adds an event handler.
@@ -122,8 +210,8 @@ const JitsiMediaDevices = {
      * @param {function} handler - event handler
      */
     addEventListener(event, handler) {
-        eventEmitter.addListener(event, handler);
-    },
+        this._eventEmitter.addListener(event, handler);
+    }
 
     /**
      * Removes event handler.
@@ -131,16 +219,16 @@ const JitsiMediaDevices = {
      * @param {function} handler - event handler
      */
     removeEventListener(event, handler) {
-        eventEmitter.removeListener(event, handler);
-    },
+        this._eventEmitter.removeListener(event, handler);
+    }
 
     /**
      * Emits an event.
      * @param {string} event - event name
      */
     emitEvent(event, ...args) {
-        eventEmitter.emit(event, ...args);
-    },
+        this._eventEmitter.emit(event, ...args);
+    }
 
     /**
      * Returns whether or not the current browser can support capturing video,
@@ -154,20 +242,6 @@ const JitsiMediaDevices = {
         // JitsiMediaDevices.
         return browser.supportsVideo();
     }
-};
+}
 
-
-RTC.addListener(
-    RTCEvents.DEVICE_LIST_CHANGED,
-    devices =>
-        eventEmitter.emit(
-            JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED,
-            devices));
-RTC.addListener(
-    RTCEvents.DEVICE_LIST_AVAILABLE,
-    devices =>
-        logOutputDevice(
-            JitsiMediaDevices.getAudioOutputDevice(),
-            devices));
-
-export default JitsiMediaDevices;
+export default new JitsiMediaDevices();
