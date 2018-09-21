@@ -48,6 +48,25 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the current browser is Chromium based, that is, it's either
+     * Chrome / Chromium or uses it as its engine, but doesn't identify as
+     * Chrome.
+     *
+     * This includes the following browsers:
+     * - Chrome and Chromium
+     * - Other browsers which use the Chrome engine, but are detected as Chrome,
+     *   such as Brave and Vivaldi
+     * - Browsers which are NOT Chrome but use it as their engine, and have
+     *   custom detection code: Opera, Electron and NW.JS
+     */
+    isChromiumBased() {
+        return this.isChrome()
+            || this.isElectron()
+            || this.isNWJS()
+            || this.isOpera();
+    }
+
+    /**
      * Checks if current browser is a Safari and a version of Safari that
      * supports native webrtc.
      *
@@ -64,12 +83,9 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean} true if the browser is supported, false otherwise.
      */
     isSupported() {
-        return this.isChrome()
+        return this.isChromiumBased()
             || this.isEdge()
-            || this.isElectron()
             || this.isFirefox()
-            || this.isNWJS()
-            || this.isOpera()
             || this.isReactNative()
             || this.isSafariWithWebrtc();
     }
@@ -81,7 +97,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * otherwise.
      */
     supportsVideoMuteOnConnInterrupted() {
-        return this.isChrome() || this.isElectron() || this.isReactNative();
+        return this.isChromiumBased() || this.isReactNative();
     }
 
     /**
@@ -132,12 +148,9 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean} true if they are supported, false otherwise.
      */
     supportsRtpStatistics() {
-        return this.isChrome()
+        return this.isChromiumBased()
             || this.isEdge()
-            || this.isElectron()
             || this.isFirefox()
-            || this.isNWJS()
-            || this.isOpera()
             || this.isReactNative()
             || this.isSafariWithWebrtc();
     }
@@ -147,9 +160,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * candidates through the legacy getStats() API.
      */
     supportsLocalCandidateRttStatistics() {
-        return this.isChrome()
-            || this.isElectron()
-            || this.isReactNative();
+        return this.isChromiumBased() || this.isReactNative();
     }
 
     /**
@@ -192,11 +203,8 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsSimulcast() {
-        return this.isChrome()
-            || this.isFirefox()
-            || this.isElectron()
-            || this.isNWJS()
-            || this.isReactNative();
+        return this.isChromiumBased()
+            || this.isFirefox() || this.isReactNative();
     }
 
     /**
@@ -241,11 +249,41 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     usesNewGumFlow() {
-        return (this.isChrome()
-                && !this.isVersionLessThan('61'))
-            || this.isFirefox()
-            || this.isSafariWithWebrtc();
+        const REQUIRED_CHROME_VERSION = 61;
 
+        if (this.isChrome()) {
+            return !this.isVersionLessThan(REQUIRED_CHROME_VERSION);
+        }
+
+        if (this.isFirefox() || this.isSafariWithWebrtc()) {
+            return true;
+        }
+
+        if (this.isChromiumBased()) {
+            // NW.JS doesn't expose the Chrome version in the UA string.
+            if (this.isNWJS()) {
+                // eslint-disable-next-line no-undef
+                const version = Number.parseInt(process.versions.chromium, 10);
+
+                return version >= REQUIRED_CHROME_VERSION;
+            }
+
+            // Here we process all browsers which use the Chrome engine but
+            // don't necessarily identify as Chrome. We cannot use the version
+            // comparing functions because the Electron, Opera and NW.JS
+            // versions are inconsequential here, as we need to know the actual
+            // Chrome engine version.
+            const ua = navigator.userAgent;
+
+            if (ua.match(/Chrome/)) {
+                const version
+                    = Number.parseInt(ua.match(/Chrome\/([\d.]+)/)[1], 10);
+
+                return version >= REQUIRED_CHROME_VERSION;
+            }
+        }
+
+        return false;
     }
 
     /**
