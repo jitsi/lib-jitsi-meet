@@ -131,10 +131,6 @@ export default function JitsiConference(options) {
         audio: false,
         video: false
     };
-    this.availableDevices = {
-        audio: undefined,
-        video: undefined
-    };
     this.isMutedByFocus = false;
 
     // Flag indicates if the 'onCallEnded' method was ever called on this
@@ -255,8 +251,6 @@ JitsiConference.prototype._init = function(options = {}) {
         = this._onIceConnectionEstablished.bind(this);
     this.room.addListener(
         XMPPEvents.CONNECTION_ESTABLISHED, this._onIceConnectionEstablished);
-
-    this.room.updateDeviceAvailability(RTC.getDeviceAvailability());
 
     this._updateProperties = this._updateProperties.bind(this);
     this.room.addListener(XMPPEvents.CONFERENCE_PROPERTIES_CHANGED,

@@ -13,6 +13,13 @@ const RTCEvents = {
     DOMINANT_SPEAKER_CHANGED: 'rtc.dominant_speaker_changed',
     LASTN_ENDPOINT_CHANGED: 'rtc.lastn_endpoint_changed',
 
+    /**
+     * Event emitted when the user granted a permission for the camera / mic.
+     * Used to keep track of the granted permissions on browsers which don't
+     * support the Permissions API.
+     */
+    GRANTED_PERMISSIONS: 'rtc.granted_permissions',
+
     IS_SELECTED_CHANGED: 'rtc.is_selected_change',
 
     /**
@@ -30,7 +37,6 @@ const RTCEvents = {
      */
     LOCAL_TRACK_SSRC_UPDATED: 'rtc.local_track_ssrc_updated',
 
-    AVAILABLE_DEVICES_CHANGED: 'rtc.available_devices_changed',
     TRACK_ATTACHED: 'rtc.track_attached',
 
     /**

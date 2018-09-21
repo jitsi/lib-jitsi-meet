@@ -416,13 +416,6 @@ export default class RTC extends Listenable {
         return RTCUtils.init(this.options);
     }
 
-    /**
-     *
-     */
-    static getDeviceAvailability() {
-        return RTCUtils.getDeviceAvailability();
-    }
-
     /* eslint-disable max-params */
 
     /**

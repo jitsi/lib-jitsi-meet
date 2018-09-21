@@ -391,52 +391,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         }
     });
 
-    chatRoom.addPresenceListener('devices', (data, from) => {
-        let isAudioAvailable = false;
-        let isVideoAvailable = false;
-
-        data.children.forEach(config => {
-            if (config.tagName === 'audio') {
-                isAudioAvailable = config.value === 'true';
-            }
-            if (config.tagName === 'video') {
-                isVideoAvailable = config.value === 'true';
-            }
-        });
-
-        let availableDevices;
-
-        if (conference.myUserId() === from) {
-            availableDevices = conference.availableDevices;
-        } else {
-            const participant = conference.getParticipantById(from);
-
-            if (!participant) {
-                return;
-            }
-
-            availableDevices = participant._availableDevices;
-        }
-
-        let updated = false;
-
-        if (availableDevices.audio !== isAudioAvailable) {
-            updated = true;
-            availableDevices.audio = isAudioAvailable;
-        }
-
-        if (availableDevices.video !== isVideoAvailable) {
-            updated = true;
-            availableDevices.video = isVideoAvailable;
-        }
-
-        if (updated) {
-            conference.eventEmitter.emit(
-                JitsiConferenceEvents.AVAILABLE_DEVICES_CHANGED,
-                from, availableDevices);
-        }
-    });
-
     if (conference.statistics) {
         // FIXME ICE related events should end up in RTCEvents eventually
         chatRoom.addListener(XMPPEvents.CONNECTION_ICE_FAILED,
@@ -493,10 +447,6 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
 
         conference.eventEmitter.emit(JitsiConferenceEvents.DATA_CHANNEL_OPENED);
     });
-
-    rtc.addListener(
-        RTCEvents.AVAILABLE_DEVICES_CHANGED,
-        devices => conference.room.updateDeviceAvailability(devices));
 
     rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
         (from, payload) => {

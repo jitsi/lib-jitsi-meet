@@ -8,11 +8,6 @@
 export const AUTH_STATUS_CHANGED = 'conference.auth_status_changed';
 
 /**
- * Indicates that available devices changed.
- */
-export const AVAILABLE_DEVICES_CHANGED = 'conference.availableDevicesChanged';
-
-/**
  * A participant avatar has changed.
  */
 export const AVATAR_CHANGED = 'conference.avatarChanged';
