@@ -117,7 +117,7 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - KICKED - notifies that user has been kicked from the conference.
         - START_MUTED_POLICY_CHANGED - notifies that all new participants will join with muted audio/video stream (parameters - JS object with 2 properties - audio(boolean), video(boolean))
         - STARTED_MUTED - notifies that the local user has started muted
-        - CONNECTION_STATS - New local connection statistics are received. (parameters - stats(object))
+        - CONNECTION_STATS - __DEPRECATED__. Use ```JitsiMeetJS.connectionQuality.LOCAL_STATS_UPDATED``` instead.
         - BEFORE_STATISTICS_DISPOSED - fired just before the statistics module is disposed and it's the last chance to submit some logs to the statistics service, before it gets disconnected
         - AUTH_STATUS_CHANGED - notifies that authentication is enabled or disabled, or local user authenticated (logged in). (parameters - isAuthEnabled(boolean), authIdentity(string))
         - ENDPOINT_MESSAGE_RECEIVED - notifies that a new message
@@ -137,7 +137,10 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
     4. mediaDevices
         - DEVICE_LIST_CHANGED - indicates that list of currently connected devices has changed (parameters - devices(MediaDeviceInfo[])).
         - PERMISSION_PROMPT_IS_SHOWN - Indicates that the environment is currently showing permission prompt to access camera and/or microphone (parameters - environmentType ('chrome'|'opera'|'firefox'|'safari'|'nwjs'|'react-native'|'android').
-
+        
+    5. connectionQuality
+        - LOCAL_STATS_UPDATED - New local connection statistics are received. (parameters - stats(object))
+        - REMOTE_STATS_UPDATED - New remote connection statistics are received. (parameters - id(string), stats(object))
 
 * ```JitsiMeetJS.errors``` - JS object that contains all errors used by the API. You can use that object to check the reported errors from the API
     We have three error types - connection, conference and track. You can access the events with the following code ```JitsiMeetJS.errors.<error_type>.<error_name>```.
