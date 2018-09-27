@@ -2428,6 +2428,12 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {
 };
 
 const handleLayerSuspension = function(peerConnection, isSelected) {
+    if (!peerConnection.getSenders) {
+        logger.debug('Browser doesn\'t support RTPSender');
+
+        return;
+    }
+
     const videoSender = peerConnection.getSenders()
         .find(sender => sender.track.kind === 'video');
 
