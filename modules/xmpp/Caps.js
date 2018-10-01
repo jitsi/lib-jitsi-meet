@@ -119,25 +119,61 @@ export default class Caps extends Listenable {
         if (!user || !(user.version in this.versionToCapabilities)) {
             const node = user ? `${user.node}#${user.version}` : null;
 
-
-            return new Promise((resolve, reject) =>
-                this.disco.info(jid, node, response => {
-                    const features = new Set();
-
-                    $(response)
-                        .find('>query>feature')
-                        .each(
-                            (idx, el) => features.add(el.getAttribute('var')));
+            return this._getDiscoInfo(jid, node, timeout)
+                .then(({ features }) => {
                     if (user) {
                         // TODO: Maybe use the version + node + hash as keys?
                         this.versionToCapabilities[user.version] = features;
                     }
-                    resolve(features);
-                }, reject, timeout)
-            );
+
+                    return features;
+                });
         }
 
         return Promise.resolve(this.versionToCapabilities[user.version]);
+    }
+
+    /**
+     * Returns a set with the features for a host.
+     * @param {String} jid the jid of the host
+     * @param {int} timeout the timeout in ms for reply from the host.
+     * @returns {Promise<Set<String>, Error>}
+     */
+    getFeaturesAndIdentities(jid, timeout = 5000) {
+        return this._getDiscoInfo(jid, null, timeout);
+    }
+
+    /**
+     * Returns a set with the features and identities for a host.
+     * @param {String} jid the jid of the host
+     * @param {String|null} node the node to query
+     * @param {int} timeout the timeout in ms for reply from the host.
+     * @returns {Promise<Object>}
+     * @private
+     */
+    _getDiscoInfo(jid, node, timeout) {
+        return new Promise((resolve, reject) =>
+            this.disco.info(jid, node, response => {
+                const features = new Set();
+                const identities = new Set();
+
+                $(response)
+                    .find('>query>feature')
+                    .each(
+                        (_, el) => features.add(el.getAttribute('var')));
+                $(response)
+                    .find('>query>identity')
+                    .each(
+                        (_, el) => identities.add({
+                            type: el.getAttribute('type'),
+                            name: el.getAttribute('name'),
+                            category: el.getAttribute('category')
+                        }));
+                resolve({
+                    features,
+                    identities });
+            }, reject, timeout)
+        );
     }
 
     /**

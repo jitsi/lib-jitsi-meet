@@ -1,7 +1,7 @@
 /* global $ */
 
 import { getLogger } from 'jitsi-meet-logger';
-import { Strophe } from 'strophe.js';
+import { $msg, Strophe } from 'strophe.js';
 import 'strophejs-plugin-disco';
 
 import RandomUtil from '../util/RandomUtil';
@@ -16,6 +16,7 @@ import initRayo from './strophe.rayo';
 import initStropheLogger from './strophe.logger';
 import Listenable from '../util/Listenable';
 import Caps from './Caps';
+import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
 const logger = getLogger(__filename);
 
@@ -154,21 +155,34 @@ export default class XMPP extends Listenable {
             // Schedule ping ?
             const pingJid = this.connection.domain;
 
-            this.connection.ping.hasPingSupport(
-                pingJid,
-                hasPing => {
-                    if (hasPing) {
+            this.caps.getFeaturesAndIdentities(pingJid)
+                .then(({ features, identities }) => {
+                    if (features.has(Strophe.NS.PING)) {
                         this.connection.ping.startInterval(pingJid);
                     } else {
                         logger.warn(`Ping NOT supported by ${pingJid}`);
                     }
+
+                    // check for speakerstats
+                    identities.forEach(identity => {
+                        if (identity.type === 'speakerstats') {
+                            this.speakerStatsComponentAddress = identity.name;
+                        }
+                    });
+                })
+                .catch(error => {
+                    const errmsg = 'Feature discovery error';
+
+                    GlobalOnErrorHandler.callErrorHandler(
+                        new Error(`${errmsg}: ${error}`));
+                    logger.error(errmsg, error);
                 });
 
             if (credentials.password) {
                 this.authenticatedUser = true;
             }
             if (this.connection && this.connection.connected
-                    && Strophe.getResourceFromJid(this.connection.jid)) {
+                && Strophe.getResourceFromJid(this.connection.jid)) {
                 // .connected is true while connecting?
                 // this.connection.send($pres());
                 this.eventEmitter.emit(
@@ -552,5 +566,26 @@ export default class XMPP extends Listenable {
         /* eslint-enable camelcase */
 
         return details;
+    }
+
+    /**
+     * Notifies speaker stats component if available that we are the new
+     * dominant speaker in the conference.
+     * @param {String} roomJid - The room jid where the speaker event occurred.
+     */
+    sendDominantSpeakerEvent(roomJid) {
+        // no speaker stats component advertised
+        if (!this.speakerStatsComponentAddress || !roomJid) {
+            return;
+        }
+
+        const msg = $msg({ to: this.speakerStatsComponentAddress });
+
+        msg.c('speakerstats', {
+            xmlns: 'http://jitsi.org/jitmeet',
+            room: `${roomJid}` })
+            .up();
+
+        this.connection.send(msg);
     }
 }
