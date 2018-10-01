@@ -82,24 +82,6 @@ class PingConnectionPlugin extends ConnectionPlugin {
     /* eslint-enable max-params */
 
     /**
-     * Checks if given <tt>jid</tt> has XEP-0199 ping support.
-     * @param jid the JID to be checked for ping support.
-     * @param callback function with boolean argument which will be
-     * <tt>true</tt> if XEP-0199 ping is supported by given <tt>jid</tt>
-     */
-    hasPingSupport(jid, callback) {
-        this.xmpp.caps.getFeatures(jid).then(features =>
-            callback(features.has('urn:xmpp:ping')), error => {
-            const errmsg = 'Ping feature discovery error';
-
-            GlobalOnErrorHandler.callErrorHandler(
-                new Error(`${errmsg}: ${error}`));
-            logger.error(errmsg, error);
-            callback(false);
-        });
-    }
-
-    /**
      * Starts to send ping in given interval to specified remote JID.
      * This plugin supports only one such task and <tt>stopInterval</tt>
      * must be called before starting a new one.
