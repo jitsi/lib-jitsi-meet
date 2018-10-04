@@ -127,7 +127,8 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     supportsDeviceChangeEvent() {
         return navigator.mediaDevices
-            && typeof navigator.mediaDevices.ondevicechange !== 'undefined';
+            && typeof navigator.mediaDevices.ondevicechange !== 'undefined'
+            && typeof navigator.mediaDevices.addEventListener !== 'undefined';
     }
 
     /**
