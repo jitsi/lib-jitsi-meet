@@ -48,14 +48,18 @@ const config = {
             options: {
                 presets: [
                     [
-                        'env',
+                        '@babel/preset-env',
 
                         // Tell babel to avoid compiling imports into CommonJS
                         // so that webpack may do tree shaking.
                         { modules: false }
                     ],
-                    'flow',
-                    'stage-1'
+                    '@babel/preset-flow'
+                ],
+                plugins: [
+                    '@babel/plugin-transform-flow-strip-types',
+                    '@babel/plugin-proposal-class-properties',
+                    '@babel/plugin-proposal-export-namespace-from'
                 ]
             },
             test: /\.js$/
