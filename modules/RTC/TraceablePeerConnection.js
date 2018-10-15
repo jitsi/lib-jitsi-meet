@@ -728,11 +728,6 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
         videoType,
         ssrc,
         muted) {
-    const remoteTrack
-        = new JitsiRemoteTrack(
-            this.rtc, this.rtc.conference,
-            ownerEndpointId,
-            stream, track, mediaType, videoType, ssrc, muted, this.isP2P);
     let remoteTracksMap = this.remoteTracks.get(ownerEndpointId);
 
     if (!remoteTracksMap) {
@@ -740,11 +735,35 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
         this.remoteTracks.set(ownerEndpointId, remoteTracksMap);
     }
 
-    if (remoteTracksMap.has(mediaType)) {
+    const existingTrack = remoteTracksMap.get(mediaType);
+
+    if (existingTrack && existingTrack.getTrack() === track) {
+        // Ignore duplicated event which can originate either from
+        // 'onStreamAdded' or 'onTrackAdded'.
+        logger.info(
+            `${this} ignored duplicated remote track added event for: `
+                + `${ownerEndpointId}, ${mediaType}`);
+
+        return;
+    } else if (existingTrack) {
         logger.error(
-            `${this} overwriting remote track! ${remoteTrack}`,
-            ownerEndpointId, mediaType);
+            `${this} overwriting remote track for`
+                + `${ownerEndpointId} ${mediaType}`);
     }
+
+    const remoteTrack
+        = new JitsiRemoteTrack(
+                this.rtc,
+                this.rtc.conference,
+                ownerEndpointId,
+                stream,
+                track,
+                mediaType,
+                videoType,
+                ssrc,
+                muted,
+                this.isP2P);
+
     remoteTracksMap.set(mediaType, remoteTrack);
 
     this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack);
