@@ -331,7 +331,7 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                         self.baselineAudioLevelsReport
                             = self.currentAudioLevelsReport;
                     },
-                    self.errorCallback
+                    error => self.errorCallback(error)
                 );
             },
             self.audioLevelsIntervalMilis
@@ -369,7 +369,7 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
 
                         self.previousStatsReport = self.currentStatsReport;
                     },
-                    self.errorCallback
+                    error => self.errorCallback(error)
                 );
             },
             self.statsIntervalMilis
