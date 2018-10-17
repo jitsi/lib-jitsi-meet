@@ -182,11 +182,6 @@ export default class ChatRoom extends Listenable {
         this.presMap.to = this.myroomjid;
         this.presMap.xns = 'http://jabber.org/protocol/muc';
         this.presMap.nodes = [];
-        this.presMap.nodes.push({
-            'tagName': 'user-agent',
-            'value': navigator.userAgent,
-            'attributes': { xmlns: 'http://jitsi.org/jitmeet/user-agent' }
-        });
 
         if (options.enableStatsID) {
             this.presMap.nodes.push({
