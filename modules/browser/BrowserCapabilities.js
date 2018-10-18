@@ -261,27 +261,7 @@ export default class BrowserCapabilities extends BrowserDetection {
         }
 
         if (this.isChromiumBased()) {
-            // NW.JS doesn't expose the Chrome version in the UA string.
-            if (this.isNWJS()) {
-                // eslint-disable-next-line no-undef
-                const version = Number.parseInt(process.versions.chromium, 10);
-
-                return version >= REQUIRED_CHROME_VERSION;
-            }
-
-            // Here we process all browsers which use the Chrome engine but
-            // don't necessarily identify as Chrome. We cannot use the version
-            // comparing functions because the Electron, Opera and NW.JS
-            // versions are inconsequential here, as we need to know the actual
-            // Chrome engine version.
-            const ua = navigator.userAgent;
-
-            if (ua.match(/Chrome/)) {
-                const version
-                    = Number.parseInt(ua.match(/Chrome\/([\d.]+)/)[1], 10);
-
-                return version >= REQUIRED_CHROME_VERSION;
-            }
+            return this._getChromiumBasedVersion() >= REQUIRED_CHROME_VERSION;
         }
 
         return false;
@@ -303,5 +283,46 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     supportsGetDisplayMedia() {
         return navigator.getDisplayMedia !== undefined;
+    }
+
+    /**
+     * Checks if the browser supports the "sdpSemantics" configuration option.
+     * https://webrtc.org/web-apis/chrome/unified-plan/
+     *
+     * @returns {boolean}
+     */
+    supportsSdpSemantics() {
+        return this.isChromiumBased() && this._getChromiumBasedVersion() >= 65;
+    }
+
+    /**
+     * Returns the version of a Chromium based browser.
+     *
+     * @returns {Number}
+     */
+    _getChromiumBasedVersion() {
+        if (this.isChromiumBased()) {
+            // NW.JS doesn't expose the Chrome version in the UA string.
+            if (this.isNWJS()) {
+                // eslint-disable-next-line no-undef
+                return Number.parseInt(process.versions.chromium, 10);
+            }
+
+            // Here we process all browsers which use the Chrome engine but
+            // don't necessarily identify as Chrome. We cannot use the version
+            // comparing functions because the Electron, Opera and NW.JS
+            // versions are inconsequential here, as we need to know the actual
+            // Chrome engine version.
+            const ua = navigator.userAgent;
+
+            if (ua.match(/Chrome/)) {
+                const version
+                    = Number.parseInt(ua.match(/Chrome\/([\d.]+)/)[1], 10);
+
+                return version;
+            }
+        }
+
+        return -1;
     }
 }
