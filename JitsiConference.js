@@ -33,7 +33,7 @@ import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
-import { JITSI_MEET_MUC_TYPE } from './modules/xmpp/ChatRoom';
+import { JITSI_MEET_MUC_TYPE } from './modules/xmpp/xmpp';
 import * as MediaType from './service/RTC/MediaType';
 import * as RTCEvents from './service/RTC/RTCEvents';
 import VideoType from './service/RTC/VideoType';
