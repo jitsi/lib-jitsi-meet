@@ -1,5 +1,6 @@
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import SpeakerStats from './SpeakerStats';
+import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
 /**
  * A collection for tracking speaker stats. Attaches listeners
@@ -38,6 +39,9 @@ export default class SpeakerStatsCollector {
         conference.addEventListener(
             JitsiConferenceEvents.DISPLAY_NAME_CHANGED,
             this._onDisplayNameChange.bind(this));
+        conference.xmpp.addListener(
+            XMPPEvents.SPEAKER_STATS_RECEIVED,
+            this._updateStats.bind(this));
     }
 
     /**
@@ -117,5 +121,34 @@ export default class SpeakerStatsCollector {
      */
     getStats() {
         return this.stats.users;
+    }
+
+    /**
+     * Updates of the current stats is requested, passing the new values.
+     *
+     * @param {Object} newStats - The new values used to update current one.
+     * @private
+     */
+    _updateStats(newStats) {
+        for (const userId in newStats) { // eslint-disable-line guard-for-in
+            let speakerStatsToUpdate;
+
+            if (this.stats.users[userId]) {
+                speakerStatsToUpdate = this.stats.users[userId];
+
+                if (!speakerStatsToUpdate.getDisplayName()) {
+                    speakerStatsToUpdate
+                        .setDisplayName(newStats[userId].displayName);
+                }
+            } else {
+                speakerStatsToUpdate = new SpeakerStats(
+                    userId, newStats[userId].displayName);
+                this.stats.users[userId] = speakerStatsToUpdate;
+                speakerStatsToUpdate.markAsHasLeft();
+            }
+
+            speakerStatsToUpdate.totalDominantSpeakerTime
+                = newStats[userId].totalDominantSpeakerTime;
+        }
     }
 }

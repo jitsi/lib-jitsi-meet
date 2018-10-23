@@ -17,6 +17,7 @@ import initStropheLogger from './strophe.logger';
 import Listenable from '../util/Listenable';
 import Caps from './Caps';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
 const logger = getLogger(__filename);
 
@@ -39,6 +40,14 @@ function createConnection(token, bosh = '/http-bind') {
 
     return conn;
 }
+
+/**
+ * The name of the field used to recognize a chat message as carrying a JSON
+ * payload from another endpoint.
+ * If the json-message of a chat message contains a valid JSON object, and
+ * the JSON has this key, then it is a valid json-message to be sent.
+ */
+export const JITSI_MEET_MUC_TYPE = 'type';
 
 /**
  *
@@ -167,6 +176,10 @@ export default class XMPP extends Listenable {
                     identities.forEach(identity => {
                         if (identity.type === 'speakerstats') {
                             this.speakerStatsComponentAddress = identity.name;
+
+                            this.connection.addHandler(
+                                this._onPrivateMessage.bind(this), null,
+                                'message', null, null);
                         }
                     });
                 })
@@ -587,5 +600,71 @@ export default class XMPP extends Listenable {
             .up();
 
         this.connection.send(msg);
+    }
+
+    /**
+     * Check if the given argument is a valid JSON ENDPOINT_MESSAGE string by
+     * parsing it and checking if it has a field called 'type'.
+     *
+     * @param {string} jsonString check if this string is a valid json string
+     * and contains the special structure.
+     * @returns {boolean, object} if given object is a valid JSON string, return
+     * the json object. Otherwise, returns false.
+     */
+    tryParseJSONAndVerify(jsonString) {
+        try {
+            const json = JSON.parse(jsonString);
+
+            // Handle non-exception-throwing cases:
+            // Neither JSON.parse(false) or JSON.parse(1234) throw errors,
+            // hence the type-checking,
+            // but... JSON.parse(null) returns null, and
+            // typeof null === "object",
+            // so we must check for that, too.
+            // Thankfully, null is falsey, so this suffices:
+            if (json && typeof json === 'object') {
+                const type = json[JITSI_MEET_MUC_TYPE];
+
+                if (typeof type !== 'undefined') {
+                    return json;
+                }
+
+                logger.debug('parsing valid json but does not have correct '
+                    + 'structure', 'topic: ', type);
+            }
+        } catch (e) {
+            return false;
+        }
+
+        return false;
+    }
+
+    /**
+     * A private message is received, message that is not addressed to the muc.
+     * We expect private message coming from speaker stats component if it is
+     * enabled and running.
+     *
+     * @param {string} msg - The message.
+     */
+    _onPrivateMessage(msg) {
+        const from = msg.getAttribute('from');
+
+        if (!this.speakerStatsComponentAddress
+            || from !== this.speakerStatsComponentAddress) {
+            return;
+        }
+
+        const jsonMessage = $(msg).find('>json-message')
+            .text();
+        const parsedJson = this.tryParseJSONAndVerify(jsonMessage);
+
+        if (parsedJson
+            && parsedJson[JITSI_MEET_MUC_TYPE] === 'speakerstats'
+            && parsedJson.users) {
+            this.eventEmitter.emit(
+                XMPPEvents.SPEAKER_STATS_RECEIVED, parsedJson.users);
+        }
+
+        return true;
     }
 }
