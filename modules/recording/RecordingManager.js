@@ -198,6 +198,8 @@ class RecordingManager {
             logger.warn(
                 'Ignoring recording presence update',
                 'Received a new session with status off.');
+
+            return;
         }
 
         // Jicofo sends updates via presence, and any extension in presence
