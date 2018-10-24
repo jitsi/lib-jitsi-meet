@@ -202,6 +202,20 @@ class RecordingManager {
             return;
         }
 
+        // Jicofo sends updates via presence, and any extension in presence
+        // is sent until it is explicitly removed.  It's difficult for
+        // Jicofo to know when a presence has been sent once, so it won't
+        // remove jibri status extension.  This means we may receive the same
+        // status update more than once, so check for that here
+        if (session
+            && session.getStatus() === status
+            && session.getError() === error) {
+            logger.warn('Ignoring duplicate presence update: ',
+                JSON.stringify(jibriStatus));
+
+            return;
+        }
+
         if (!session) {
             session = this._createSession(sessionID, status, recordingMode);
         }
