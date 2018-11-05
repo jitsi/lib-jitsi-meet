@@ -91,7 +91,7 @@ JitsiMeetJS.init(initOptions).then(function(){
 
 In order to start jitsi-meet conference with token you need to specify the token as URL param:
 ```
-https://example.com/angrywhalesgrowhigh?jwt="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"
+https://example.com/angrywhalesgrowhigh?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ
 ```
 At current level of integration every user that joins the conference has to provide the token and not just the one who
 creates the room. It should be possible to change that by using second anonymous domain, but that hasn't been tested
