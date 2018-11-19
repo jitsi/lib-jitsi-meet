@@ -1435,8 +1435,8 @@ TraceablePeerConnection.prototype._addStream = function(mediaStream) {
  * @param {MediaStream} mediaStream
  */
 TraceablePeerConnection.prototype._removeStream = function(mediaStream) {
-    if (browser.isFirefox()) {
-        this._handleFirefoxRemoveStream(mediaStream);
+    if (browser.supportsRtpSender()) {
+        this._handleSenderRemoveStream(mediaStream);
     } else {
         this.peerconnection.removeStream(mediaStream);
     }
@@ -1500,8 +1500,8 @@ TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
     this.localSSRCs.delete(localTrack.rtcId);
 
     if (webRtcStream) {
-        if (browser.isFirefox()) {
-            this._handleFirefoxRemoveStream(webRtcStream);
+        if (browser.supportsRtpSender()) {
+            this._handleSenderRemoveStream(webRtcStream);
         } else {
             this.peerconnection.removeStream(webRtcStream);
         }
@@ -1541,7 +1541,7 @@ TraceablePeerConnection.prototype.findSenderByStream = function(stream) {
  * renegotiation will be needed. Otherwise no renegotiation is needed.
  */
 TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
-    if (browser.isFirefox() && oldTrack && newTrack) {
+    if (browser.supportsRtpSender() && oldTrack && newTrack) {
         // Add and than remove stream in FF leads to wrong local SDP. In order
         // to workaround the issue we need to use sender.replaceTrack().
         const sender = this.findSenderByStream(oldTrack.getOriginalStream());
@@ -1628,10 +1628,10 @@ TraceablePeerConnection.prototype.removeTrackMute = function(localTrack) {
 };
 
 /**
- * Remove stream handling for firefox
+ * Remove stream handling for browsers supporting RTPSender
  * @param stream: webrtc media stream
  */
-TraceablePeerConnection.prototype._handleFirefoxRemoveStream = function(
+TraceablePeerConnection.prototype._handleSenderRemoveStream = function(
         stream) {
     if (!stream) {
         // There is nothing to be changed
@@ -1924,7 +1924,7 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
 
     // Safari WebRTC errors when no supported video codec is found in the offer.
     // To prevent the error, inject H264 into the video mLine.
-    if (browser.isSafariWithWebrtc()) {
+    if (browser.isSafariWithWebrtc() && !browser.isSafariWithVP8()) {
         logger.debug('Maybe injecting H264 into the remote description');
 
         // eslint-disable-next-line no-param-reassign
@@ -2160,10 +2160,10 @@ const _fixAnswerRFC4145Setup = function(offer, answer) {
 };
 
 TraceablePeerConnection.prototype.createAnswer = function(constraints) {
-    if (browser.supportsRtpSender() && this.isSimulcastOn()) {
+    if (browser.isFirefox() && this.isSimulcastOn()) {
         const videoSender
             = this.peerconnection.getSenders().find(sender =>
-                sender.track.kind === 'video');
+                sender.track !== null && sender.track.kind === 'video');
         const simParams = {
             encodings: [
                 {
@@ -2227,7 +2227,7 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
              *  after that, when we try and go back to unified plan it will
              *  complain about unmapped ssrcs)
              */
-            if (!browser.isFirefox()) {
+            if (!browser.usesUnifiedPlan()) {
                 // If there are no local video tracks, then a "recvonly"
                 // SSRC needs to be generated
                 if (!this.hasAnyTracksOfType(MediaType.VIDEO)
