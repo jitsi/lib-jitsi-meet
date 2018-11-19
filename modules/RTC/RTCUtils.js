@@ -179,6 +179,7 @@ function getConstraints(um, options = {}) {
     // @see https://github.com/jitsi/lib-jitsi-meet/pull/136
     const isNewStyleConstraintsSupported
         = browser.isFirefox()
+            || browser.isSafariWithVP8()
             || browser.isEdge()
             || browser.isReactNative();
 
