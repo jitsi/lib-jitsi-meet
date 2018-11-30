@@ -1217,6 +1217,7 @@ class RTCUtils extends Listenable {
             };
 
             obtainDevices({
+                options,
                 devices: options.devices,
                 streams: {},
                 successCallback: resolve,
@@ -1560,7 +1561,7 @@ function obtainDevices(options) {
 
     const device = options.devices.splice(0, 1);
 
-    options.deviceGUM[device]()
+    options.deviceGUM[device](options.options)
         .then(stream => {
             options.streams = options.streams || {};
             options.streams[device] = stream;
