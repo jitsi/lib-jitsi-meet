@@ -1552,27 +1552,27 @@ const rtcUtils = new RTCUtils();
 
 /**
  *
- * @param options
+ * @param context Execution context, containing options and callbacks
  */
-function obtainDevices(options) {
-    if (!options.devices || options.devices.length === 0) {
-        return options.successCallback(options.streams || {});
+function obtainDevices(context) {
+    if (!context.devices || context.devices.length === 0) {
+        return context.successCallback(context.streams || {});
     }
 
-    const device = options.devices.splice(0, 1);
+    const device = context.devices.splice(0, 1);
 
-    options.deviceGUM[device](options.options)
+    context.deviceGUM[device](context.options)
         .then(stream => {
-            options.streams = options.streams || {};
-            options.streams[device] = stream;
-            obtainDevices(options);
+            context.streams = context.streams || {};
+            context.streams[device] = stream;
+            obtainDevices(context);
         }, error => {
-            Object.keys(options.streams).forEach(
-                d => rtcUtils.stopMediaStream(options.streams[d]));
+            Object.keys(context.streams).forEach(
+                d => rtcUtils.stopMediaStream(context.streams[d]));
             logger.error(
                 `failed to obtain ${device} stream - stop`, error);
 
-            options.errorCallback(error);
+            context.errorCallback(error);
         });
 }
 
