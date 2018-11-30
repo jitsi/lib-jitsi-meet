@@ -1218,7 +1218,6 @@ class RTCUtils extends Listenable {
 
             obtainDevices({
                 options,
-                devices: options.devices,
                 streams: {},
                 successCallback: resolve,
                 errorCallback: reject,
@@ -1555,11 +1554,11 @@ const rtcUtils = new RTCUtils();
  * @param context Execution context, containing options and callbacks
  */
 function obtainDevices(context) {
-    if (!context.devices || context.devices.length === 0) {
+    if (!context.options.devices || context.options.devices.length === 0) {
         return context.successCallback(context.streams || {});
     }
 
-    const device = context.devices.splice(0, 1);
+    const device = context.options.devices.splice(0, 1);
 
     context.deviceGUM[device](context.options)
         .then(stream => {
