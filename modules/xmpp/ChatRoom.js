@@ -844,7 +844,7 @@ export default class ChatRoom extends Listenable {
         if (!isSelfPresence) {
             delete this.members[from];
             this.onParticipantLeft(from, false);
-        } else if (membersKeys.length > 0) {
+        } else {
             // If the status code is 110 this means we're leaving and we would
             // like to remove everyone else from our view, so we trigger the
             // event.
