@@ -33,7 +33,7 @@ import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
-import { JITSI_MEET_MUC_TYPE } from './modules/xmpp/ChatRoom';
+import { JITSI_MEET_MUC_TYPE } from './modules/xmpp/xmpp';
 import * as MediaType from './service/RTC/MediaType';
 import * as RTCEvents from './service/RTC/RTCEvents';
 import VideoType from './service/RTC/VideoType';
@@ -50,6 +50,7 @@ import {
     createP2PEvent
 } from './service/statistics/AnalyticsEvents';
 import * as XMPPEvents from './service/xmpp/XMPPEvents';
+import Polls from './modules/polls/polls';
 
 const logger = getLogger(__filename);
 
@@ -115,6 +116,8 @@ export default function JitsiConference(options) {
     this.participants = {};
     this._init(options);
     this.componentsVersions = new ComponentsVersions(this);
+
+    logger.info('HELLLLLOOOOOOO WORLD');
 
     /**
      * Jingle session instance for the JVB connection.
@@ -319,6 +322,8 @@ JitsiConference.prototype._init = function(options = {}) {
             getWiFiStatsMethod: config.getWiFiStatsMethod
         });
     }
+
+    this.polls = new Polls(this, this.xmpp);
 
     this.eventManager.setupChatRoomListeners();
 
@@ -2292,10 +2297,14 @@ JitsiConference.prototype.sendMessage = function(
         let elementName = 'body';
 
         if (messageType === 'object') {
-            try {
+            elementName = 'json-message';
+
+            if (messageToSend[JITSI_MEET_MUC_TYPE] === 'undefined') {
                 messageToSend[JITSI_MEET_MUC_TYPE] = '';
+            }
+
+            try {
                 messageToSend = JSON.stringify(messageToSend);
-                elementName = 'json-message';
             } catch (e) {
                 logger.error('Can not send a message, stringify failed: ', e);
 
@@ -3043,3 +3052,28 @@ JitsiConference.prototype.createVideoSIPGWSession
         return this.videoSIPGWHandler
             .createVideoSIPGWSession(sipAddress, displayName);
     };
+
+/**
+ * Start a poll in the chat room.
+ * @param event
+ */
+JitsiConference.prototype.startPoll = function(event) {
+    this.polls.startPoll(this.room.myroomjid, event);
+};
+
+/**
+ * Send message indicating a user vote in
+ * the current poll.
+ * @param event - Poll voting event.
+ */
+JitsiConference.prototype.voteInPoll = function(event) {
+    this.polls.voteInPoll(this.room.myroomjid, event);
+};
+
+/**
+ * Send message indicating end of current poll.
+ * @param event - Poll end event
+ */
+JitsiConference.prototype.endPoll = function(event) {
+    this.polls.endPoll(this.room.myroomjid, event);
+};

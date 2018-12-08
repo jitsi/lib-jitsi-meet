@@ -159,6 +159,23 @@ const XMPPEvents = {
     PRESENCE_STATUS: 'xmpp.presence_status',
     PROMPT_FOR_LOGIN: 'xmpp.prompt_for_login',
 
+    /**
+     * Indicates that a participant have initiated a poll session.
+     */
+    POLL_SESSION_INITIATED: 'xmpp.poll_initiated',
+
+    /**
+     * Indicates that a participant have voted in the current
+     * active poll session.
+     */
+    POLL_SESSION_VOTE_RECIEVED: 'xmpp.poll_vote_recieved',
+
+    /**
+     * Indicates that the participant who created the current
+     * poll session have ended it.
+     */
+    POLL_SESSION_FINISHED: 'xmpp.poll_finished',
+
     // xmpp is connected and obtained user media
     READY_TO_JOIN: 'xmpp.ready_to_join',
 
