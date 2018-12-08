@@ -2292,10 +2292,15 @@ JitsiConference.prototype.sendMessage = function(
         let elementName = 'body';
 
         if (messageType === 'object') {
-            try {
+            elementName = 'json-message';
+
+            // Mark as valid JSON message if not already
+            if (!messageToSend.hasOwnProperty(JITSI_MEET_MUC_TYPE)) {
                 messageToSend[JITSI_MEET_MUC_TYPE] = '';
+            }
+
+            try {
                 messageToSend = JSON.stringify(messageToSend);
-                elementName = 'json-message';
             } catch (e) {
                 logger.error('Can not send a message, stringify failed: ', e);
 
