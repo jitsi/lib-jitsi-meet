@@ -282,7 +282,8 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean} {@code true} if the browser supposrts getDisplayMedia.
      */
     supportsGetDisplayMedia() {
-        return navigator.getDisplayMedia !== undefined;
+        return navigator.mediaDevices
+            && navigator.mediaDevices.getDisplayMedia !== undefined;
     }
 
     /**
