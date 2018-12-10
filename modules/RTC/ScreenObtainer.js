@@ -423,7 +423,7 @@ const ScreenObtainer = {
      * @param errorCallback - The error callback.
      */
     obtainScreenFromGetDisplayMedia(options, callback, errorCallback) {
-        navigator.getDisplayMedia({ video: true })
+        navigator.mediaDevices.getDisplayMedia({ video: true })
             .then(stream => {
                 let applyConstraintsPromise;
 
