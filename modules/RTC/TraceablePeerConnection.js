@@ -1106,7 +1106,7 @@ const normalizePlanB = function(desc) {
                     }
                 }
 
-                mLine.ssrcs = newSsrcLines;
+                mLine.ssrcs = replaceDefaultUnifiedPlanMsid(newSsrcLines);
             }
         });
     }
@@ -1119,6 +1119,27 @@ const normalizePlanB = function(desc) {
         sdp: resStr
     });
 };
+
+/**
+ * Unified plan differentiates a remote track not associated with a stream using
+ * the msid "-". The msid "-" can incorrectly trigger an onaddstream event on
+ * the peer connection, passing in a default local track. To prevent onaddstream
+ * from firing, revert back to old behavior of using " " for msid.
+ *
+ * @param {Array<Object>} ssrcLines - The ssrc lines from a remote description.
+ * @private
+ * @returns {Array<Object>} The ssrcsLines with any "-" msids replaced with " ".
+ */
+function replaceDefaultUnifiedPlanMsid(ssrcLines = []) {
+    return ssrcLines.map(ssrc => {
+        if (ssrc.value && ssrc.value.startsWith('-')) {
+            ssrc.value
+                = ssrc.value.substring(1, ssrc.value.length);
+        }
+
+        return ssrc;
+    });
+}
 
 /**
  * Makes sure that both audio and video directions are configured as 'sendrecv'.
