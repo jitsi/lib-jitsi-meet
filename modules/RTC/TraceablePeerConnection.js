@@ -1124,11 +1124,13 @@ const normalizePlanB = function(desc) {
  * Unified plan differentiates a remote track not associated with a stream using
  * the msid "-". The msid "-" can incorrectly trigger an onaddstream event on
  * the peer connection, passing in a default local track. To prevent onaddstream
- * from firing, revert back to old behavior of using " " for msid.
+ * from firing in this case, revert back to old behavior of leaving msid as an
+ * empty string.
  *
  * @param {Array<Object>} ssrcLines - The ssrc lines from a remote description.
  * @private
- * @returns {Array<Object>} The ssrcsLines with any "-" msids replaced with " ".
+ * @returns {Array<Object>} The ssrcsLines with any "-" msids replaced with
+ * empty strings.
  */
 function replaceDefaultUnifiedPlanMsid(ssrcLines = []) {
     return ssrcLines.map(ssrc => {
