@@ -1047,7 +1047,8 @@ function extractSSRCMap(desc) {
 
 /**
  * Takes a SessionDescription object and returns a "normalized" version.
- * Currently it only takes care of ordering the a=ssrc lines.
+ * Currently it takes care of ordering the a=ssrc lines and denoting receive
+ * only SSRCs.
  */
 const normalizePlanB = function(desc) {
     if (typeof desc !== 'object' || desc === null
@@ -1122,25 +1123,44 @@ const normalizePlanB = function(desc) {
 
 /**
  * Unified plan differentiates a remote track not associated with a stream using
- * the msid "-". The msid "-" can incorrectly trigger an onaddstream event on
- * the peer connection, passing in a default local track. To prevent onaddstream
- * from firing in this case, revert back to old behavior of leaving msid as an
- * empty string.
+ * the msid "-", which can incorrectly trigger an onaddstream event in plan-b.
+ * For jitsi, these tracks are actually receive-only ssrcs. To prevent
+ * onaddstream from firing, remove the ssrcs with msid "-" except the cname
+ * line. Normally the ssrcs are not used by the client, as the bridge controls
+ * media flow, but keep one reference to the ssrc for the p2p case.
  *
  * @param {Array<Object>} ssrcLines - The ssrc lines from a remote description.
  * @private
- * @returns {Array<Object>} The ssrcsLines with any "-" msids replaced with
- * empty strings.
+ * @returns {Array<Object>} ssrcLines with removed lines referencing msid "-".
  */
 function replaceDefaultUnifiedPlanMsid(ssrcLines = []) {
-    return ssrcLines.map(ssrc => {
-        if (ssrc.value && ssrc.value.startsWith('-')) {
-            ssrc.value
-                = ssrc.value.substring(1, ssrc.value.length);
-        }
+    if (!browser.isChrome() || !browser.isVersionGreaterThan(70)) {
+        return ssrcLines;
+    }
 
-        return ssrc;
+    let filteredLines = [ ...ssrcLines ];
+
+    const problematicSsrcIds = ssrcLines.filter(ssrcLine =>
+        ssrcLine.attribute === 'mslabel' && ssrcLine.value === '-')
+        .map(ssrcLine => ssrcLine.id);
+
+    problematicSsrcIds.forEach(ssrcId => {
+        // Find the cname which is to be modified and left in.
+        const cnameLine = filteredLines.find(line =>
+            line.id === ssrcId && line.attribute === 'cname');
+
+        cnameLine.value = `recvonly-${ssrcId}`;
+
+        // Remove all of lines for the ssrc.
+        filteredLines
+            = filteredLines.filter(line => line.id !== ssrcId);
+
+        // But re-add the cname line so there is a reference kept to the ssrc
+        // in the SDP.
+        filteredLines.push(cnameLine);
     });
+
+    return filteredLines;
 }
 
 /**
