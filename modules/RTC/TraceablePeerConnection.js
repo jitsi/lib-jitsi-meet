@@ -1047,7 +1047,8 @@ function extractSSRCMap(desc) {
 
 /**
  * Takes a SessionDescription object and returns a "normalized" version.
- * Currently it only takes care of ordering the a=ssrc lines.
+ * Currently it takes care of ordering the a=ssrc lines and denoting receive
+ * only SSRCs.
  */
 const normalizePlanB = function(desc) {
     if (typeof desc !== 'object' || desc === null
@@ -1106,7 +1107,7 @@ const normalizePlanB = function(desc) {
                     }
                 }
 
-                mLine.ssrcs = newSsrcLines;
+                mLine.ssrcs = replaceDefaultUnifiedPlanMsid(newSsrcLines);
             }
         });
     }
@@ -1119,6 +1120,48 @@ const normalizePlanB = function(desc) {
         sdp: resStr
     });
 };
+
+/**
+ * Unified plan differentiates a remote track not associated with a stream using
+ * the msid "-", which can incorrectly trigger an onaddstream event in plan-b.
+ * For jitsi, these tracks are actually receive-only ssrcs. To prevent
+ * onaddstream from firing, remove the ssrcs with msid "-" except the cname
+ * line. Normally the ssrcs are not used by the client, as the bridge controls
+ * media flow, but keep one reference to the ssrc for the p2p case.
+ *
+ * @param {Array<Object>} ssrcLines - The ssrc lines from a remote description.
+ * @private
+ * @returns {Array<Object>} ssrcLines with removed lines referencing msid "-".
+ */
+function replaceDefaultUnifiedPlanMsid(ssrcLines = []) {
+    if (!browser.isChrome() || !browser.isVersionGreaterThan(70)) {
+        return ssrcLines;
+    }
+
+    let filteredLines = [ ...ssrcLines ];
+
+    const problematicSsrcIds = ssrcLines.filter(ssrcLine =>
+        ssrcLine.attribute === 'mslabel' && ssrcLine.value === '-')
+        .map(ssrcLine => ssrcLine.id);
+
+    problematicSsrcIds.forEach(ssrcId => {
+        // Find the cname which is to be modified and left in.
+        const cnameLine = filteredLines.find(line =>
+            line.id === ssrcId && line.attribute === 'cname');
+
+        cnameLine.value = `recvonly-${ssrcId}`;
+
+        // Remove all of lines for the ssrc.
+        filteredLines
+            = filteredLines.filter(line => line.id !== ssrcId);
+
+        // But re-add the cname line so there is a reference kept to the ssrc
+        // in the SDP.
+        filteredLines.push(cnameLine);
+    });
+
+    return filteredLines;
+}
 
 /**
  * Makes sure that both audio and video directions are configured as 'sendrecv'.
