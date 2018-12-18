@@ -121,6 +121,10 @@ class AnalyticsAdapter {
         }
 
         this.analyticsHandlers = new Set(handlers);
+        this.analyticsHandlers.forEach(
+            handler => {
+                handler.setUserProperties(this.permanentProperties);
+            });
 
         // Note that we disable the cache even if the set of handlers is empty.
         const cache = this.cache;
@@ -142,12 +146,14 @@ class AnalyticsAdapter {
      * @param {Object} properties the properties to add
      */
     addPermanentProperties(properties) {
-        for (const property in properties) {
-            if (properties.hasOwnProperty(property)) {
-                this.permanentProperties[`permanent_${property}`]
-                    = properties[property];
-            }
-        }
+        this.permanentProperties = {
+            ...this.permanentProperties,
+            ...properties
+        };
+
+        this.analyticsHandlers.forEach(handler => {
+            handler.setUserProperties(this.permanentProperties);
+        });
     }
 
     /**
@@ -305,34 +311,15 @@ class AnalyticsAdapter {
         if (this._maybeCacheEvent(event)) {
             // The event was consumed by the cache.
         } else {
-            // We append the permanent properties at the time we send the event,
-            // not at the time we receive it.
-            this._appendPermanentProperties(event);
-
-            for (const handler of this.analyticsHandlers) {
+            this.analyticsHandlers.forEach(handler => {
                 try {
                     handler.sendEvent(event);
                 } catch (e) {
                     logger.warn(`Error sending analytics event: ${e}`);
                 }
-            }
+            });
         }
     }
-
-    /**
-     * Extends an event object with the configured permanent properties.
-     * @param event the event to extend with permanent properties.
-     * @private
-     */
-    _appendPermanentProperties(event) {
-        if (!event.attributes) {
-            event.attributes = {};
-        }
-
-        event.attributes
-            = Object.assign(event.attributes, this.permanentProperties);
-    }
-
 }
 
 export default new AnalyticsAdapter();
