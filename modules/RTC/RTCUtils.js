@@ -180,8 +180,7 @@ function getConstraints(um, options = {}) {
     const isNewStyleConstraintsSupported
         = browser.isFirefox()
             || browser.isEdge()
-            || browser.isReactNative()
-            || browser.isSafari();
+            || browser.isReactNative();
 
     if (um.indexOf('video') >= 0) {
         // same behaviour as true
