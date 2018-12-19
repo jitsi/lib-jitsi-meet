@@ -180,7 +180,8 @@ function getConstraints(um, options = {}) {
     const isNewStyleConstraintsSupported
         = browser.isFirefox()
             || browser.isEdge()
-            || browser.isReactNative();
+            || browser.isReactNative()
+            || browser.isSafari();
 
     if (um.indexOf('video') >= 0) {
         // same behaviour as true
@@ -368,7 +369,9 @@ function newGetConstraints(um = [], options = {}) {
         }
 
         if (options.cameraDeviceId) {
-            constraints.video.deviceId = options.cameraDeviceId;
+            // constraints.video.deviceId = options.cameraDeviceId;
+            // modified by RONALD 12/19/18
+            constraints.video.deviceId = { exact: options.cameraDeviceId };
         } else {
             const facingMode = options.facingMode || CameraFacingMode.USER;
 
@@ -882,9 +885,10 @@ class RTCUtils extends Listenable {
                     }
                 });
 
-                // if (browser.supportsDeviceChangeEvent()) {
-                // modified by RONALD 12/19/18
-                if (navigator.mediaDevices && navigator.mediaDevices.addEventListener && typeof navigator.mediaDevices.addEventListener === 'function') {
+                if (navigator.mediaDevices
+                    && navigator.mediaDevices.addEventListener
+                    && typeof navigator.mediaDevices.addEventListener
+                    === 'function') {
                     navigator.mediaDevices.addEventListener(
                         'devicechange',
                         updateKnownDevices);
