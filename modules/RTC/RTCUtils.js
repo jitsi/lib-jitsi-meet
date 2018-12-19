@@ -371,7 +371,9 @@ function newGetConstraints(um = [], options = {}) {
         if (options.cameraDeviceId) {
             // constraints.video.deviceId = options.cameraDeviceId;
             // modified by RONALD 12/19/18
-            constraints.video.deviceId = { exact: options.cameraDeviceId };
+            constraints.video = {
+                deviceId: { exact: options.cameraDeviceId }
+            };
         } else {
             const facingMode = options.facingMode || CameraFacingMode.USER;
 
