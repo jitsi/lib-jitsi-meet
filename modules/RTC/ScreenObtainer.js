@@ -23,58 +23,10 @@ let chromeExtUpdateRequired = false;
 let gumFunction = null;
 
 /**
- * The error returned by chrome when trying to start inline installation from
- * popup.
- */
-const CHROME_EXTENSION_POPUP_ERROR
-    = 'Inline installs can not be initiated from pop-up windows.';
-
-/**
- * The error returned by chrome when trying to start inline installation from
- * iframe.
- */
-const CHROME_EXTENSION_IFRAME_ERROR
-    = 'Chrome Web Store installations can only be started by the top frame.';
-
-/**
- * The error returned by chrome when trying to start inline installation
- * not from the "main" whitelisted site.
- * @type {string}
- */
-const CHROME_EXTENSION_INLINE_ERROR
-    = 'Installs can only be initiated by one of'
-        + ' the Chrome Web Store item\'s verified sites.';
-
-/**
- * The error returned by chrome when trying to start inline installation
- * with extension that doesn't support inline installation.
- *
- * @type {string}
- */
-const CHROME_EXTENSION_INLINE_NOT_SUPPORTED_ERROR
-    = 'Inline installation is not supported for this item. '
-        + 'The user will be redirected to the Chrome Web Store.';
-
-/**
  * The error message returned by chrome when the extension is installed.
  */
 const CHROME_NO_EXTENSION_ERROR_MSG // eslint-disable-line no-unused-vars
     = 'Could not establish connection. Receiving end does not exist.';
-
-/**
- * The error message returned by chrome when the extension install action needs
- * to be initiated by a user gesture.
- * @type {string}
- */
-const CHROME_USER_GESTURE_REQ_ERROR
-    = 'Chrome Web Store installations can only be initated by a user gesture.';
-
-/**
- * The error message returned by chrome when the extension install has been
- * cancelled by the user.
- * @type {string}
- */
-const CHROME_USER_CANCEL_EXTENSION_INSTALL = 'User cancelled install';
 
 /**
  * Handles obtaining a stream from a screen capture on different browsers.
@@ -308,45 +260,8 @@ const ScreenObtainer = {
                 /* eslint-enable no-alert */
             }
 
-            // for opera there is no inline install
-            // extension "Download Chrome Extension" allows us to open
-            // the chrome webstore and install from there and then activate our
-            // extension
-            if (browser.isOpera()) {
-                this.handleExternalInstall(options, streamCallback,
-                    failCallback);
-
-                return;
-            }
-
-            try {
-                chrome.webstore.install(
-                    getWebStoreInstallUrl(this.options),
-                    arg => {
-                        logger.log('Extension installed successfully', arg);
-                        chromeExtInstalled = true;
-
-                        // We need to give a moment to the endpoint to become
-                        // available.
-                        waitForExtensionAfterInstall(this.options, 200, 10)
-                            .then(() => {
-                                doGetStreamFromExtension(
-                                    doGetStreamFromExtensionOptions,
-                                    streamCallback,
-                                    failCallback);
-                            })
-                            .catch(() => {
-                                this.handleExtensionInstallationError(options,
-                                    streamCallback, failCallback);
-                            });
-                    },
-                    this.handleExtensionInstallationError.bind(this,
-                        options, streamCallback, failCallback)
-                );
-            } catch (e) {
-                this.handleExtensionInstallationError(options, streamCallback,
-                    failCallback, e);
-            }
+            this.handleExternalInstall(options, streamCallback,
+                failCallback);
         }
     },
 
@@ -358,40 +273,6 @@ const ScreenObtainer = {
         options.listener('waitingForExtension', webStoreInstallUrl);
         this.checkForChromeExtensionOnInterval(options, streamCallback,
             failCallback, e);
-    },
-
-    handleExtensionInstallationError(options, streamCallback, failCallback, e) {
-        const webStoreInstallUrl = getWebStoreInstallUrl(this.options);
-
-        if ((CHROME_EXTENSION_POPUP_ERROR === e
-             || CHROME_EXTENSION_IFRAME_ERROR === e
-             || CHROME_EXTENSION_INLINE_ERROR === e
-             || CHROME_EXTENSION_INLINE_NOT_SUPPORTED_ERROR === e)
-                && options.interval > 0
-                && typeof options.checkAgain === 'function'
-                && typeof options.listener === 'function') {
-            this.handleExternalInstall(options, streamCallback,
-                failCallback, e);
-
-            return;
-        }
-
-        const msg
-            = `Failed to install the extension from ${webStoreInstallUrl}`;
-
-        logger.log(msg, e);
-
-        let error;
-
-        if (e === CHROME_USER_CANCEL_EXTENSION_INSTALL) {
-            error = JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED;
-        } else if (e === CHROME_USER_GESTURE_REQ_ERROR) {
-            error = JitsiTrackErrors.CHROME_EXTENSION_USER_GESTURE_REQUIRED;
-        } else {
-            error = JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR;
-        }
-
-        failCallback(new JitsiTrackError(error, msg));
     },
 
     /* eslint-enable max-params */
