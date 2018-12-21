@@ -8,7 +8,7 @@ const minimize
 
 const config = {
     devtool: 'source-map',
-    mode: minimize ? 'development' : 'production',
+    mode: minimize ? 'production' : 'development',
     module: {
         rules: [ {
             // Version this build of the lib-jitsi-meet library.
