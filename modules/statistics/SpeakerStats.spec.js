@@ -16,7 +16,7 @@ describe('SpeakerStats', () => {
         });
 
         it('removes the user as a dominant speaker', () => {
-            speakerStats.setIsDominantSpeaker(true);
+            speakerStats.setDominantSpeaker(true);
             speakerStats.markAsHasLeft();
             expect(speakerStats.isDominantSpeaker()).toBe(false);
         });
@@ -48,9 +48,9 @@ describe('SpeakerStats', () => {
             const domaintSpeakerTime = 100;
 
             for (let i = 0; i < domaintSpeakerEvents; i++) {
-                speakerStats.setIsDominantSpeaker(true);
+                speakerStats.setDominantSpeaker(true);
                 jasmine.clock().tick(domaintSpeakerTime);
-                speakerStats.setIsDominantSpeaker(false);
+                speakerStats.setDominantSpeaker(false);
             }
 
             expect(speakerStats.getTotalDominantSpeakerTime())
