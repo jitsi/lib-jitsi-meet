@@ -596,7 +596,7 @@ export default class XMPP extends Listenable {
 
         msg.c('speakerstats', {
             xmlns: 'http://jitsi.org/jitmeet',
-            room: `${roomJid}` })
+            room: roomJid })
             .up();
 
         this.connection.send(msg);

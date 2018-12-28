@@ -39,9 +39,11 @@ export default class SpeakerStatsCollector {
         conference.addEventListener(
             JitsiConferenceEvents.DISPLAY_NAME_CHANGED,
             this._onDisplayNameChange.bind(this));
-        conference.xmpp.addListener(
-            XMPPEvents.SPEAKER_STATS_RECEIVED,
-            this._updateStats.bind(this));
+        if (conference.xmpp) {
+            conference.xmpp.addListener(
+                XMPPEvents.SPEAKER_STATS_RECEIVED,
+                this._updateStats.bind(this));
+        }
     }
 
     /**
@@ -58,8 +60,8 @@ export default class SpeakerStatsCollector {
             = this.stats.users[this.stats.dominantSpeakerId];
         const newDominantSpeaker = this.stats.users[dominantSpeakerId];
 
-        oldDominantSpeaker && oldDominantSpeaker.setIsDominantSpeaker(false);
-        newDominantSpeaker && newDominantSpeaker.setIsDominantSpeaker(true);
+        oldDominantSpeaker && oldDominantSpeaker.setDominantSpeaker(false);
+        newDominantSpeaker && newDominantSpeaker.setDominantSpeaker(true);
         this.stats.dominantSpeakerId = dominantSpeakerId;
     }
 
