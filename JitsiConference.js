@@ -1633,7 +1633,7 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
 
     const serverRegion
         = $(jingleOffer)
-            .find('>server-region[xmlns="http://jitsi.org/protocol/focus"]')
+            .find('>bridge-session[xmlns="http://jitsi.org/protocol/focus"]')
             .attr('region');
 
     this.eventEmitter.emit(
@@ -2364,6 +2364,9 @@ JitsiConference.prototype._onIceConnectionFailed = function(session) {
 
         }
         this._stopP2PSession('connectivity-error', 'ICE FAILED');
+    } else if (session && this.jvbJingleSession === session) {
+        // Let Jicofo know that the JVB's ICE connection has failed
+        session.sendIceFailedNotification();
     }
 };
 

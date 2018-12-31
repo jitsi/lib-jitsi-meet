@@ -128,6 +128,17 @@ export default class JingleSessionPC extends JingleSession {
             remoteJid, connection, mediaConstraints, iceConfig, isInitiator);
 
         /**
+         * The bridge session's identifier. One Jingle session can during
+         * it's lifetime participate in multiple bridge sessions managed by
+         * Jicofo. A new bridge session is started whenever Jicofo sends
+         * 'session-initiate' or 'transport-replace'.
+         *
+         * @type {?string}
+         * @private
+         */
+        this._bridgeSessionId = null;
+
+        /**
          * Stores result of {@link window.performance.now()} at the time when
          * ICE enters 'checking' state.
          * @type {number|null} null if no value has been stored yet
@@ -473,10 +484,6 @@ export default class JingleSessionPC extends JingleSession {
             case 'failed':
                 this.room.eventEmitter.emit(
                     XMPPEvents.CONNECTION_ICE_FAILED, this);
-                this.room.eventEmitter.emit(
-                    XMPPEvents.CONFERENCE_SETUP_FAILED,
-                    this,
-                    new Error('ICE fail'));
                 break;
             }
         };
@@ -629,6 +636,44 @@ export default class JingleSessionPC extends JingleSession {
         // logger.log('was this the last candidate', this.lasticecandidate);
         this.connection.sendIQ(
             cand, null, this.newJingleErrorHandler(cand), IQ_TIMEOUT);
+    }
+
+    /**
+     * Sends Jingle 'session-info' message which includes custom Jitsi Meet
+     * 'ice-state' element with the text value 'failed' to let Jicofo know
+     * that the ICE connection has entered the failed state. It can then
+     * choose to re-create JVB channels and send 'transport-replace' to
+     * retry the connection.
+     */
+    sendIceFailedNotification() {
+        const sessionInfo
+            = $iq({
+                to: this.remoteJid,
+                type: 'set' })
+            .c('jingle', { xmlns: 'urn:xmpp:jingle:1',
+                action: 'session-info',
+                initiator: this.initiatorJid,
+                sid: this.sid })
+            .c('ice-state', { xmlns: 'http://jitsi.org/protocol/focus' })
+            .t('failed')
+            .up();
+
+        this._bridgeSessionId
+            && sessionInfo.c(
+                'bridge-session', {
+                    xmlns: 'http://jitsi.org/protocol/focus',
+                    id: this._bridgeSessionId
+                });
+
+        this.connection.sendIQ(
+            sessionInfo,
+            null,
+            this.newJingleErrorHandler(sessionInfo),
+            /*
+             * This message will be often sent when there are connectivity
+             * issues, so make it slightly longer than Prosody's default BOSH
+             * inactivity timeout of 60 seconds.
+             */ 65);
     }
 
     /**
@@ -912,6 +957,16 @@ export default class JingleSessionPC extends JingleSession {
                 = this._processNewJingleOfferIq(jingleOfferAnswerIq);
             const oldLocalSdp
                 = this.peerconnection.localDescription.sdp;
+
+            const bridgeSession
+                = $(jingleOfferAnswerIq)
+                    .find('>bridge-session['
+                        + 'xmlns="http://jitsi.org/protocol/focus"]');
+            const bridgeSessionId = bridgeSession.attr('id');
+
+            if (bridgeSessionId !== this._bridgeSessionId) {
+                this._bridgeSessionId = bridgeSessionId;
+            }
 
             this._renegotiate(newRemoteSdp.raw)
                 .then(() => {
