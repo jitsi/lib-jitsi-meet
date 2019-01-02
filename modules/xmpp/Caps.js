@@ -140,8 +140,6 @@ export default class Caps extends Listenable {
      * @returns {Promise<Set<String>, Error>}
      */
     getFeaturesAndIdentities(jid, timeout = 5000) {
-        console.log('HELLP');
-
         return this._getDiscoInfo(jid, null, timeout);
     }
 

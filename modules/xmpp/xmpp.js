@@ -172,17 +172,24 @@ export default class XMPP extends Listenable {
                         logger.warn(`Ping NOT supported by ${pingJid}`);
                     }
 
-                    // check for speakerstats
+                    const componentFound = false;
+
+                    // check for speakerstats and polls
                     identities.forEach(identity => {
+                        if (identity.type === 'speakerstats') {
+                            this.speakerStatsComponentAddress = identity.name;
+                        }
+
                         if (identity.type === 'polls') {
                             this.pollsComponentAddress = identity.name;
-                            logger.info('Found Polls Component');
-
-                            this.connection.addHandler(
-                                this._onPrivateMessage.bind(this), null,
-                                'message', null, null);
                         }
                     });
+
+                    if (componentFound) {
+                        this.connection.addHandler(
+                            this._onPrivateMessage.bind(this), null,
+                            'message', null, null);
+                    }
                 })
                 .catch(error => {
                     const errmsg = 'Feature discovery error';
@@ -583,6 +590,30 @@ export default class XMPP extends Listenable {
     }
 
     /**
+<<<<<<< HEAD
+=======
+     * Notifies speaker stats component if available that we are the new
+     * dominant speaker in the conference.
+     * @param {String} roomJid - The room jid where the speaker event occurred.
+     */
+    sendDominantSpeakerEvent(roomJid) {
+        // no speaker stats component advertised
+        if (!this.speakerStatsComponentAddress || !roomJid) {
+            return;
+        }
+
+        const msg = $msg({ to: this.speakerStatsComponentAddress });
+
+        msg.c('speakerstats', {
+            xmlns: 'http://jitsi.org/jitmeet',
+            room: roomJid })
+            .up();
+
+        this.connection.send(msg);
+    }
+
+    /**
+>>>>>>> 8ad708b78b88cb0f9c2e9fa46f24080ee703e2c5
      * Check if the given argument is a valid JSON ENDPOINT_MESSAGE string by
      * parsing it and checking if it has a field called 'type'.
      *
@@ -669,8 +700,10 @@ export default class XMPP extends Listenable {
     _onPrivateMessage(msg) {
         const from = msg.getAttribute('from');
 
-        if (!this.pollsComponentAddress
-            || from !== this.pollsComponentAddress) {
+        if ((!this.pollsComponentAddress
+            || from !== this.pollsComponentAddress)
+            || (!this.speakerStatsComponentAddress
+            || from !== this.speakerStatsComponentAddress)) {
             return;
         }
 
@@ -678,13 +711,20 @@ export default class XMPP extends Listenable {
             .text();
         const parsedJson = this.tryParseJSONAndVerify(jsonMessage);
 
-        if (parsedJson
-            && parsedJson[JITSI_MEET_MUC_TYPE] === 'polls'
-            && parsedJson.poll) {
-            const payload = JSON.parse(parsedJson.poll);
+        if (parsedJson) {
+            if (parsedJson[JITSI_MEET_MUC_TYPE] === 'polls'
+                && parsedJson.poll) {
+                const payload = JSON.parse(parsedJson.poll);
 
-            this.eventEmitter.emit(
-                XMPPEvents.POLL_MESSAGE_RECEIVED, payload);
+                this.eventEmitter.emit(
+                    XMPPEvents.POLL_MESSAGE_RECEIVED, payload);
+            }
+
+            if (parsedJson[JITSI_MEET_MUC_TYPE] === 'speakerstats'
+                && parsedJson.users) {
+                this.eventEmitter.emit(
+                    XMPPEvents.SPEAKER_STATS_RECEIVED, parsedJson.users);
+            }
         }
 
         return true;

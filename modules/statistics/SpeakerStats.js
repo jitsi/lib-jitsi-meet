@@ -20,9 +20,9 @@ class SpeakerStats {
         this._userId = userId;
         this.setDisplayName(displayName);
         this._isLocalStats = isLocalStats || false;
-        this.setIsDominantSpeaker(false);
+        this.setDominantSpeaker(false);
         this.totalDominantSpeakerTime = 0;
-        this._dominantSpeakerStart = null;
+        this._dominantSpeakerStart = 0;
         this._hasLeft = false;
     }
 
@@ -69,7 +69,7 @@ class SpeakerStats {
      * @returns {boolean}
      */
     isDominantSpeaker() {
-        return this._isDominantSpeaker;
+        return this._dominantSpeakerStart > 0;
     }
 
     /**
@@ -80,18 +80,16 @@ class SpeakerStats {
      * and will record any time accumulated since starting as dominant speaker.
      * @returns {void}
      */
-    setIsDominantSpeaker(isNowDominantSpeaker) {
-        if (!this._isDominantSpeaker && isNowDominantSpeaker) {
+    setDominantSpeaker(isNowDominantSpeaker) {
+        if (!this.isDominantSpeaker() && isNowDominantSpeaker) {
             this._dominantSpeakerStart = Date.now();
-        } else if (this._isDominantSpeaker && !isNowDominantSpeaker) {
+        } else if (this.isDominantSpeaker() && !isNowDominantSpeaker) {
             const now = Date.now();
-            const timeElapsed = now - (this._dominantSpeakerStart || 0);
+            const timeElapsed = now - this._dominantSpeakerStart;
 
             this.totalDominantSpeakerTime += timeElapsed;
-            this._dominantSpeakerStart = null;
+            this._dominantSpeakerStart = 0;
         }
-
-        this._isDominantSpeaker = isNowDominantSpeaker;
     }
 
     /**
@@ -102,7 +100,7 @@ class SpeakerStats {
     getTotalDominantSpeakerTime() {
         let total = this.totalDominantSpeakerTime;
 
-        if (this._isDominantSpeaker) {
+        if (this.isDominantSpeaker()) {
             total += Date.now() - this._dominantSpeakerStart;
         }
 
@@ -125,7 +123,7 @@ class SpeakerStats {
      */
     markAsHasLeft() {
         this._hasLeft = true;
-        this.setIsDominantSpeaker(false);
+        this.setDominantSpeaker(false);
     }
 }
 

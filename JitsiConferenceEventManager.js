@@ -431,7 +431,8 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
             }
             if (conference.statistics && conference.myUserId() === id) {
                 // We are the new dominant speaker.
-                conference.statistics.sendDominantSpeakerEvent();
+                conference.statistics.sendDominantSpeakerEvent(
+                    conference.room.roomjid);
             }
         });
 

@@ -204,6 +204,11 @@ const XMPPEvents = {
      */
     SESSION_ACCEPT_TIMEOUT: 'xmpp.session_accept_timeout',
 
+    /**
+     * Event fired when speaker stats update message is received.
+     */
+    SPEAKER_STATS_RECEIVED: 'xmpp.speaker_stats_received',
+
     // Designates an event indicating that we should join the conference with
     // audio and/or video muted.
     START_MUTED_FROM_FOCUS: 'xmpp.start_muted_from_focus',
