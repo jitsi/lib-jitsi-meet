@@ -304,7 +304,16 @@ const ScreenObtainer = {
      * @param errorCallback - The error callback.
      */
     obtainScreenFromGetDisplayMedia(options, callback, errorCallback) {
-        navigator.mediaDevices.getDisplayMedia({ video: true })
+        let getDisplayMedia;
+
+        if (navigator.getDisplayMedia) {
+            getDisplayMedia = navigator.getDisplayMedia.bind(navigator);
+        } else {
+            // eslint-disable-next-line max-len
+            getDisplayMedia = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
+        }
+
+        getDisplayMedia({ video: true })
             .then(stream => {
                 let applyConstraintsPromise;
 
