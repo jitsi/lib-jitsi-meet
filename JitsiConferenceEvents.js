@@ -177,6 +177,21 @@ export const PARTICIPANT_PROPERTY_CHANGED
 export const P2P_STATUS = 'conference.p2pStatus';
 
 /**
+ * Indicate that the poll is finished.
+ */
+export const POLL_FINISHED = 'conference.poll_message_finished';
+
+/**
+ * Indicates that a poll has started.
+ */
+export const POLL_STARTED = 'conference.poll_message_received';
+
+/**
+ * Indicate update in the voting for the current poll.
+ */
+export const POLL_VOTE_UPDATED = 'conference.poll_vote_updated';
+
+/**
  * Indicates that phone number changed.
  */
 export const PHONE_NUMBER_CHANGED = 'conference.phoneNumberChanged';

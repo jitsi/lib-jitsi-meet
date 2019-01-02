@@ -117,8 +117,6 @@ export default function JitsiConference(options) {
     this._init(options);
     this.componentsVersions = new ComponentsVersions(this);
 
-    logger.info('HELLLLLOOOOOOO WORLD');
-
     /**
      * Jingle session instance for the JVB connection.
      * @type {JingleSessionPC}
@@ -3054,26 +3052,27 @@ JitsiConference.prototype.createVideoSIPGWSession
     };
 
 /**
- * Start a poll in the chat room.
- * @param event
+ * Save the poll information in the backend prosody module.
+ * @param payload - Poll to be saved.
  */
-JitsiConference.prototype.startPoll = function(event) {
-    this.polls.startPoll(this.room.myroomjid, event);
+JitsiConference.prototype.startPoll = function(poll, choices, question) {
+    this.polls.startPoll(this.room.roomjid, poll, choices, question);
 };
 
-/**
- * Send message indicating a user vote in
- * the current poll.
- * @param event - Poll voting event.
- */
-JitsiConference.prototype.voteInPoll = function(event) {
-    this.polls.voteInPoll(this.room.myroomjid, event);
-};
 
 /**
- * Send message indicating end of current poll.
- * @param event - Poll end event
+ * Save the poll information in the backend prosody module.
+ * @param payload - Poll to be saved.
  */
-JitsiConference.prototype.endPoll = function(event) {
-    this.polls.endPoll(this.room.myroomjid, event);
+JitsiConference.prototype.voteInPoll = function(choiceID) {
+    this.polls.voteInPoll(this.room.roomjid, choiceID);
+};
+
+
+/**
+ * Save the poll information in the backend prosody module.
+ * @param payload - Poll to be saved.
+ */
+JitsiConference.prototype.endPoll = function() {
+    this.polls.endPoll(this.room.roomjid);
 };

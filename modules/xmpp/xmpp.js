@@ -17,6 +17,7 @@ import initStropheLogger from './strophe.logger';
 import Listenable from '../util/Listenable';
 import Caps from './Caps';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
 const logger = getLogger(__filename);
 
@@ -175,6 +176,7 @@ export default class XMPP extends Listenable {
                     identities.forEach(identity => {
                         if (identity.type === 'polls') {
                             this.pollsComponentAddress = identity.name;
+                            logger.info('Found Polls Component');
 
                             this.connection.addHandler(
                                 this._onPrivateMessage.bind(this), null,
@@ -621,29 +623,38 @@ export default class XMPP extends Listenable {
      * Notifies polls component with a new poll event triggered by
      * participant.
      * @param {String} roomJid - The room jid.
-     * @param {Object} event - The event that happened.
+     * @param {Object} message - The event that happened.
      */
-    sendPollComponentMessage(roomJid, event) {
+    sendPollComponentMessage(roomJid, message) {
         if (!this.pollsComponentAddress || !roomJid) {
             return;
         }
 
         const msg = $msg({ to: this.pollsComponentAddress });
-        let messageToSend = event;
 
-        try {
-            messageToSend = JSON.stringify(event);
-        } catch (e) {
-            logger.error('Can not send Poll message, stringify failed: ', e);
+        if (message) {
+            let messageToSend = message;
 
-            return;
+            try {
+                messageToSend = JSON.stringify(message);
+            } catch (e) {
+                logger.error('Can not send Poll message, stringify failed: '
+                    , e);
+
+                return;
+            }
+
+            msg.c('polls', {
+                xmlns: 'http://jitsi.org/jitmeet',
+                room: `${roomJid}`,
+                poll: messageToSend })
+                .up();
+        } else {
+            msg.c('polls', {
+                xmlns: 'http://jitsi.org/jitmeet',
+                room: `${roomJid}` })
+                .up();
         }
-
-        msg.c('polls', {
-            xmlns: 'http://jitsi.org/jitmeet',
-            room: `${roomJid}`,
-            messageToSend })
-            .up();
 
         this.connection.send(msg);
     }
@@ -663,16 +674,18 @@ export default class XMPP extends Listenable {
             return;
         }
 
-        // const jsonMessage = $(msg).find('>json-message')
-        //    .text();
-        // const parsedJson = this.tryParseJSONAndVerify(jsonMessage);
+        const jsonMessage = $(msg).find('>json-message')
+            .text();
+        const parsedJson = this.tryParseJSONAndVerify(jsonMessage);
 
-        // if (parsedJson
-        //    && parsedJson[JITSI_MEET_MUC_TYPE] === 'speakerstats'
-        //    && parsedJson.users) {
-        //    this.eventEmitter.emit(
-        //        XMPPEvents.SPEAKER_STATS_RECEIVED, parsedJson.users);
-        // }
+        if (parsedJson
+            && parsedJson[JITSI_MEET_MUC_TYPE] === 'polls'
+            && parsedJson.poll) {
+            const payload = JSON.parse(parsedJson.poll);
+
+            this.eventEmitter.emit(
+                XMPPEvents.POLL_MESSAGE_RECEIVED, payload);
+        }
 
         return true;
     }
