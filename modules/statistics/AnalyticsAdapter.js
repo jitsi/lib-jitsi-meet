@@ -121,10 +121,8 @@ class AnalyticsAdapter {
         }
 
         this.analyticsHandlers = new Set(handlers);
-        this.analyticsHandlers.forEach(
-            handler => {
-                handler.setUserProperties(this.permanentProperties);
-            });
+
+        this._setUserProperties();
 
         // Note that we disable the cache even if the set of handlers is empty.
         const cache = this.cache;
@@ -133,6 +131,22 @@ class AnalyticsAdapter {
         if (cache) {
             cache.forEach(event => this._sendEvent(event));
         }
+    }
+
+    /**
+     * Set the user properties to the analytics handlers.
+     *
+     * @returns {void}
+     */
+    _setUserProperties() {
+        this.analyticsHandlers.forEach(handler => {
+            try {
+                handler.setUserProperties(this.permanentProperties);
+            } catch (error) {
+                logger.warn('Error in setUserProperties method of one of the '
+                    + `analytics handlers: ${error}`);
+            }
+        });
     }
 
     /**
@@ -151,9 +165,7 @@ class AnalyticsAdapter {
             ...properties
         };
 
-        this.analyticsHandlers.forEach(handler => {
-            handler.setUserProperties(this.permanentProperties);
-        });
+        this._setUserProperties();
     }
 
     /**
