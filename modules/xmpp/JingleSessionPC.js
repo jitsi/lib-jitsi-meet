@@ -1000,6 +1000,11 @@ export default class JingleSessionPC extends JingleSession {
                             = new SDP(this.peerconnection.localDescription.sdp);
 
                         this.sendTransportAccept(localSDP, success, failure);
+
+                        this.room.eventEmitter.emit(
+                            XMPPEvents.ICE_RESTART_SUCCESS,
+                            this,
+                            originalOffer);
                     },
                     failure);
             },
