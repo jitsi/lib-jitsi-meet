@@ -1145,6 +1145,13 @@ class RTCUtils extends Listenable {
                     return { audioVideo };
                 }
 
+                if (options.desktopSharingSourceDevice) {
+                    this.stopMediaStream(audioVideo);
+
+                    throw new Error('Using a camera as screenshare source is'
+                        + 'not supported on this browser.');
+                }
+
                 return new Promise((resolve, reject) => {
                     screenObtainer.obtainStream(
                         this._parseDesktopSharingOptions(options),
@@ -1255,6 +1262,8 @@ class RTCUtils extends Listenable {
      * @param {Object} options.desktopSharingFrameRate
      * @param {Object} options.desktopSharingFrameRate.min - Minimum fps
      * @param {Object} options.desktopSharingFrameRate.max - Maximum fps
+     * @param {String} options.desktopSharingSourceDevice - The device id or
+     * label for a video input source that should be used for screensharing.
      * @returns {Promise} The promise, when successful, will return an array of
      * meta data for the requested device type, which includes the stream and
      * track. If an error occurs, it will be deferred to the caller for
@@ -1277,24 +1286,55 @@ class RTCUtils extends Listenable {
          */
         const maybeRequestDesktopDevice = function() {
             const umDevices = options.devices || [];
-            const isDesktopDeviceRequsted = umDevices.indexOf('desktop') !== -1;
+            const isDesktopDeviceRequested
+                = umDevices.indexOf('desktop') !== -1;
+
+            if (!isDesktopDeviceRequested) {
+                return Promise.resolve();
+            }
 
             const {
                 desktopSharingExtensionExternalInstallation,
+                desktopSharingSourceDevice,
                 desktopSharingSources,
                 desktopSharingFrameRate
             } = options;
 
-            return isDesktopDeviceRequsted
-                ? this._newGetDesktopMedia(
-                    {
-                        desktopSharingExtensionExternalInstallation,
-                        desktopSharingSources,
-                        gumOptions: {
-                            frameRate: desktopSharingFrameRate
-                        }
-                    })
-                : Promise.resolve();
+            // Attempt to use a video input device as a screenshare source if
+            // the option is defined.
+            if (desktopSharingSourceDevice) {
+                const matchingDevice
+                    = availableDevices && availableDevices.find(device =>
+                        device.kind === 'videoinput'
+                            && (device.deviceId === desktopSharingSourceDevice
+                            || device.label === desktopSharingSourceDevice));
+
+                const requestedDevices = [ 'video' ];
+                const constraints = newGetConstraints(
+                    requestedDevices, { options });
+
+                // Use exact to make sure there is no fallthrough to another
+                // camera device. If a matching device could not be found,
+                // try anyways and let the caller handle errors.
+                constraints.video.deviceId = {
+                    exact: (matchingDevice && matchingDevice.deviceId)
+                        || desktopSharingSourceDevice
+                };
+
+                return this._newGetUserMediaWithConstraints(
+                    requestedDevices, constraints)
+                    .then(stream => {
+                        return { stream };
+                    });
+            }
+
+            return this._newGetDesktopMedia({
+                desktopSharingExtensionExternalInstallation,
+                desktopSharingSources,
+                gumOptions: {
+                    frameRate: desktopSharingFrameRate
+                }
+            });
         }.bind(this);
 
         /**
@@ -1390,7 +1430,14 @@ class RTCUtils extends Listenable {
             .then(maybeCreateAndAddDesktopTrack)
             .then(maybeRequestCaptureDevices)
             .then(maybeCreateAndAddAVTracks)
-            .then(() => mediaStreamsMetaData);
+            .then(() => mediaStreamsMetaData)
+            .catch(error => {
+                mediaStreamsMetaData.forEach(({ stream }) => {
+                    this.stopMediaStream(stream);
+                });
+
+                return Promise.reject(error);
+            });
     }
 
     /**
