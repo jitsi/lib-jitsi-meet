@@ -203,6 +203,17 @@ export default class RTC extends Listenable {
     }
 
     /**
+     * Exposes the private helper for converting a WebRTC MediaStream to a
+     * JitsiLocalTrack.
+     *
+     * @param {Array<Object>} tracksInfo
+     * @returns {Array<JitsiLocalTrack>}
+     */
+    static newCreateLocalTracks(tracksInfo) {
+        return _newCreateLocalTracks(tracksInfo);
+    }
+
+    /**
      * Creates the local MediaStreams.
      * @param {object} [options] Optional parameters.
      * @param {array} options.devices The devices that will be requested.

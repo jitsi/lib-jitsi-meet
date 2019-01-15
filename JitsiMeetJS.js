@@ -27,6 +27,8 @@ import RTC from './modules/RTC/RTC';
 import browser from './modules/browser';
 import ScriptUtil from './modules/util/ScriptUtil';
 import recordingConstants from './modules/recording/recordingConstants';
+import ProxyConnectionService
+    from './modules/proxyconnection/ProxyConnectionService';
 import Statistics from './modules/statistics/statistics';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 
@@ -129,6 +131,16 @@ export default _mergeNamespaceAndModule({
     version: '{#COMMIT_HASH#}',
 
     JitsiConnection,
+
+    /**
+     * {@code ProxyConnectionService} is used to connect a remote peer to a
+     * local Jitsi participant without going through a Jitsi conference. It is
+     * currently used for room integration development, specifically wireless
+     * screensharing. Its API is experimental and will likely change; usage of
+     * it is advised against.
+     */
+    ProxyConnectionService,
+
     constants: {
         participantConnectionStatus: ParticipantConnectionStatus,
         recording: recordingConstants,
