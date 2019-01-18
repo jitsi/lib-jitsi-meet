@@ -110,7 +110,6 @@ export default function JitsiConference(options) {
         throw new Error(errmsg);
     }
     this.eventEmitter = new EventEmitter();
-    this.incomingListener = this.onIncomingCall.bind(this);
     this.options = options;
     this.eventManager = new JitsiConferenceEventManager(this);
     this.participants = {};
