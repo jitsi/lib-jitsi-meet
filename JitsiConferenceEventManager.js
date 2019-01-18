@@ -530,6 +530,17 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
 };
 
 /**
+ * Removes event listeners related to conference.xmpp
+ */
+JitsiConferenceEventManager.prototype.removeXMPPListeners = function() {
+    const conference = this.conference;
+
+    conference.xmpp.removeListener(
+        XMPPEvents.CALL_INCOMING,
+        conference.incomingListener);
+};
+
+/**
  * Setups event listeners related to conference.xmpp
  */
 JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
@@ -549,7 +560,7 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
         });
     conference.xmpp.addListener(
         XMPPEvents.CALL_INCOMING,
-        conference.onIncomingCall.bind(conference));
+        conference.incomingListener);
     conference.xmpp.addListener(
         XMPPEvents.CALL_ACCEPTED,
         conference.onCallAccepted.bind(conference));
