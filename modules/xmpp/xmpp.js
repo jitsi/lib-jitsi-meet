@@ -172,16 +172,18 @@ export default class XMPP extends Listenable {
                         logger.warn(`Ping NOT supported by ${pingJid}`);
                     }
 
-                    const componentFound = false;
+                    let componentFound = false;
 
                     // check for speakerstats and polls
                     identities.forEach(identity => {
                         if (identity.type === 'speakerstats') {
                             this.speakerStatsComponentAddress = identity.name;
+                            componentFound = true;
                         }
 
                         if (identity.type === 'polls') {
                             this.pollsComponentAddress = identity.name;
+                            componentFound = true;
                         }
                     });
 
@@ -590,8 +592,6 @@ export default class XMPP extends Listenable {
     }
 
     /**
-<<<<<<< HEAD
-=======
      * Notifies speaker stats component if available that we are the new
      * dominant speaker in the conference.
      * @param {String} roomJid - The room jid where the speaker event occurred.
@@ -613,7 +613,6 @@ export default class XMPP extends Listenable {
     }
 
     /**
->>>>>>> 8ad708b78b88cb0f9c2e9fa46f24080ee703e2c5
      * Check if the given argument is a valid JSON ENDPOINT_MESSAGE string by
      * parsing it and checking if it has a field called 'type'.
      *
@@ -658,6 +657,8 @@ export default class XMPP extends Listenable {
      */
     sendPollComponentMessage(roomJid, message) {
         if (!this.pollsComponentAddress || !roomJid) {
+            logger.warn(`abort send ${this.pollsComponentAddress}`);
+
             return;
         }
 
@@ -702,7 +703,7 @@ export default class XMPP extends Listenable {
 
         if ((!this.pollsComponentAddress
             || from !== this.pollsComponentAddress)
-            || (!this.speakerStatsComponentAddress
+            && (!this.speakerStatsComponentAddress
             || from !== this.speakerStatsComponentAddress)) {
             return;
         }

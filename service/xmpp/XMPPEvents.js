@@ -76,6 +76,12 @@ const XMPPEvents = {
      */
     ICE_RESTARTING: 'rtc.ice_restarting',
 
+    /**
+     * Event fired after the 'transport-replace' message has been processed
+     * and the new offer has been set successfully.
+     */
+    ICE_RESTART_SUCCESS: 'rtc.ice_restart_success',
+
     /* Event fired when XMPP error is returned to any request, it is meant to be
      * used to report 'signaling' errors to CallStats
      *

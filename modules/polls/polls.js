@@ -1,6 +1,7 @@
 import { getLogger } from 'jitsi-meet-logger';
 import * as XMPPEvents from '../../service/xmpp/XMPPEvents';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import { Strophe } from 'strophe.js';
 
 const logger = getLogger(__filename);
 
@@ -33,10 +34,10 @@ export default class Polls {
 
         xmpp.addListener(
             XMPPEvents.POLL_MESSAGE_RECEIVED,
-            this._onModuleMessageRecieved.bind(this));
+            this._onModuleMessageReceived.bind(this));
         room.addListener(
             XMPPEvents.JSON_MESSAGE_RECEIVED,
-            this._onEndPointMessageRecieved.bind(this));
+            this._onEndPointMessageReceived.bind(this));
     }
 
     /* eslint-disable max-params */
@@ -49,6 +50,8 @@ export default class Polls {
      */
     startPoll(roomjid, poll, choices, question) {
         logger.log(`Poll Start: ${poll} ${choices} ${question}`);
+
+        this._doStartPoll(choices, poll, question);
 
         // inform participants about the new poll.
         this.conference.sendMessage({
@@ -74,6 +77,8 @@ export default class Polls {
 
         const myid = this.conference.myUserId();
 
+        this._doVote(choiceID, myid);
+
         // inform others about my vote.
         this.conference.sendMessage({
             type: MESSAGE_POLL_VOTE,
@@ -90,6 +95,8 @@ export default class Polls {
      * End the current poll.
      */
     endPoll(roomjid) {
+        this._doEndPoll();
+
         // inform others, that I ended the poll
         this.conference.sendMessage({
             type: MESSAGE_POLL_END
@@ -120,7 +127,6 @@ export default class Polls {
      * @param {Object} question - Quesiotn object.
      */
     _doStartPoll(choices, poll, question) {
-        logger.log('Poll has started');
 
         this.choices = choices;
         this.poll = poll;
@@ -146,18 +152,15 @@ export default class Polls {
             return;
         }
 
-        const voteExist = this.choices[choiceID].votes
-            .findIndex(x => x === userID) > -1;
+        const voteIndex = this.choices[choiceID].votes
+            .findIndex(x => x === userID);
 
-        if (voteExist) {
-            logger.warn(`User already voted for ${choiceID}`);
-
-            return;
+        // if vote exist then it is unvote
+        if (voteIndex > -1) {
+            this.choices[choiceID].votes.splice(voteIndex, 1);
+        } else {
+            this.choices[choiceID].votes.push(userID);
         }
-
-        this.choices[choiceID].votes.push(userID);
-
-        logger.log('Poll vote updated');
 
         this.conference.eventEmitter.emit(
             JitsiConferenceEvents.POLL_VOTE_UPDATED,
@@ -166,15 +169,16 @@ export default class Polls {
     }
 
     /**
-     * Recieved message from another user.
-     * @param {Object} message - Message recieved.
+     * Received message from another user.
+     * @param {Object} message - Message received.
      */
-    _onEndPointMessageRecieved(from, message) {
-        logger.log(message);
-
+    _onEndPointMessageReceived(from, message) {
+        const myid = this.conference.myUserId();
         const { type } = message;
 
-        if (!type) {
+        logger.info(`Received ${message} from ${from}`);
+
+        if (myid === Strophe.getResourceFromJid(from) || !type) {
             return;
         }
 
@@ -194,18 +198,15 @@ export default class Polls {
     }
 
     /**
-     * Recieved message from prosody module.
+     * Received message from prosody module.
      * @param payload - Poll to notify
      */
-    _onModuleMessageRecieved(message) {
-        logger.log('Recieved message from prosody module');
-        logger.log(message);
+    _onModuleMessageReceived(message) {
+        console.log(message);
 
         const { choices, poll, question } = message;
 
-        this.conference.eventEmitter.emit(
-            JitsiConferenceEvents.POLL_STARTED, choices, poll, question
-        );
+        this._doStartPoll(choices, poll, question);
     }
 
     /**
@@ -213,7 +214,7 @@ export default class Polls {
      * @param {string} roomjid - Room JID.
      */
     _savePollInProsodyModule(roomjid) {
-        logger.log(`Saved poll in room ${roomjid}`);
+        logger.log(`Saved ${this.poll} in room ${roomjid}`);
 
         // When poll ends, we send empty message to module.
         const message = this.poll === null ? null : {

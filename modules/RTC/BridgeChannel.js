@@ -49,16 +49,15 @@ export default class BridgeChannel {
         // If a RTCPeerConnection is given, listen for new RTCDataChannel
         // event.
         if (peerconnection) {
-            peerconnection.ondatachannel = event => {
-                // NOTE: We assume that the "onDataChannel" event just fires
-                // once.
+            const datachannel
+                = peerconnection.createDataChannel(
+                    'JVB data channel', {
+                        protocol: 'http://jitsi.org/protocols/colibri'
+                    });
 
-                const datachannel = event.channel;
-
-                // Handle the RTCDataChannel.
-                this._handleChannel(datachannel);
-                this._mode = 'datachannel';
-            };
+            // Handle the RTCDataChannel.
+            this._handleChannel(datachannel);
+            this._mode = 'datachannel';
 
         // Otherwise create a WebSocket connection.
         } else if (wsUrl) {

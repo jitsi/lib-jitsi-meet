@@ -988,6 +988,19 @@ export default class JingleSessionPC extends JingleSession {
             .find('>content[name=\'data\']')
             .attr('senders', 'rejected');
 
+        // Remove all remote sources in order to reset the client's state
+        // for the remote MediaStreams. When a conference is moved to
+        // another bridge it will start streaming with a sequence number
+        // that is not in sync with the most recently seen by the client.
+        // The symptoms include frozen or black video and lots of "failed to
+        // unprotect SRTP packets" in Chrome logs.
+        jingleOfferElem
+            .find('>content>description>source')
+            .remove();
+        jingleOfferElem
+            .find('>content>description>ssrc-group')
+            .remove();
+
         // First set an offer with a rejected 'data' section
         this.setOfferAnswerCycle(
             jingleOfferElem,
@@ -1000,6 +1013,11 @@ export default class JingleSessionPC extends JingleSession {
                             = new SDP(this.peerconnection.localDescription.sdp);
 
                         this.sendTransportAccept(localSDP, success, failure);
+
+                        this.room.eventEmitter.emit(
+                            XMPPEvents.ICE_RESTART_SUCCESS,
+                            this,
+                            originalOffer);
                     },
                     failure);
             },

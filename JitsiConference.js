@@ -2297,7 +2297,8 @@ JitsiConference.prototype.sendMessage = function(
         if (messageType === 'object') {
             elementName = 'json-message';
 
-            if (messageToSend[JITSI_MEET_MUC_TYPE] === 'undefined') {
+            // Mark as valid JSON message if not already
+            if (!messageToSend.hasOwnProperty(JITSI_MEET_MUC_TYPE)) {
                 messageToSend[JITSI_MEET_MUC_TYPE] = '';
             }
 

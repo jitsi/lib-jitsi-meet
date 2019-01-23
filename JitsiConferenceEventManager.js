@@ -74,6 +74,17 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         // else: there are no DataChannels in P2P session (at least for now)
     });
 
+    chatRoom.addListener(
+        XMPPEvents.ICE_RESTART_SUCCESS,
+        (jingleSession, offerIq) => {
+            // The JVB data chanel needs to be reopened in case the conference
+            // has been moved to a new bridge.
+            !jingleSession.isP2P
+                && conference._setBridgeChannel(
+                    offerIq, jingleSession.peerconnection);
+        });
+
+
     chatRoom.addListener(XMPPEvents.AUDIO_MUTED_BY_FOCUS,
         () => {
             // TODO: Add a way to differentiate between commands which caused
