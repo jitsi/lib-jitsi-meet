@@ -20,6 +20,7 @@ export default class Polls {
 
     /**
      * Constructor.
+     * @param conference
      * @param xmpp - XMPP connection.
      */
     constructor(conference, xmpp) {
@@ -43,12 +44,25 @@ export default class Polls {
     /* eslint-disable max-params */
     /**
      * Starts a poll in the conference room.
-     * @param roomJid - Ro.
-     * @param {Object} poll - Poll object.
-     * @param {Object} choices - Array of voting choices.
-     * @param {Object} question - Question asked in the poll.
+     * @param {string} roomJid - Room JID
+     * @param {Object} poll - Object containing the information about the poll.
+     * @param {Object} choices - Object containing poll choices by their ID.
+     * @param {Object} question - Object with information about
+     * the question asked.
+     * @returns {void}
      */
     startPoll(roomjid, poll, choices, question) {
+        if (!poll || !choices || !question) {
+            return;
+        }
+
+        if (this.poll && this.choices && this.question) {
+            logger.warn('Attempt to create a poll '
+                + 'while one is currently active. Please call endPoll first');
+
+            return;
+        }
+
         logger.log(`Poll Start: ${poll} ${choices} ${question}`);
 
         this._doStartPoll(choices, poll, question);
@@ -73,6 +87,10 @@ export default class Polls {
      * @param {string} userID - ID of user who voted.
      */
     voteInPoll(roomjid, choiceID) {
+        if (!choiceID) {
+            return;
+        }
+
         logger.log(`Voted for ${choiceID}`);
 
         const myid = this.conference.myUserId();
@@ -95,6 +113,12 @@ export default class Polls {
      * End the current poll.
      */
     endPoll(roomjid) {
+        if (!this.poll && !this.choices && !this.question) {
+            logger.warn('Attempt to end a non existing poll.');
+
+            return;
+        }
+
         this._doEndPoll();
 
         // inform others, that I ended the poll

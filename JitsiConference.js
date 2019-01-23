@@ -3053,26 +3053,27 @@ JitsiConference.prototype.createVideoSIPGWSession
     };
 
 /**
- * Save the poll information in the backend prosody module.
- * @param payload - Poll to be saved.
+ * Creates a new poll in the chat room.
+ * @param {Object} poll - Object containing the information about the poll.
+ * @param {Object} choices - Object containing poll choices by their ID.
+ * @param {Object} question - Object with information about the question asked.
+ * @returns {void}
  */
 JitsiConference.prototype.startPoll = function(poll, choices, question) {
     this.polls.startPoll(this.room.roomjid, poll, choices, question);
 };
 
-
 /**
- * Save the poll information in the backend prosody module.
- * @param payload - Poll to be saved.
+ * Update the user vote in the currently active poll.
+ * @param {string} choiceID - ID of the choice voted for.
  */
 JitsiConference.prototype.voteInPoll = function(choiceID) {
     this.polls.voteInPoll(this.room.roomjid, choiceID);
 };
 
-
 /**
- * Save the poll information in the backend prosody module.
- * @param payload - Poll to be saved.
+ * End the currently active poll.
+ * @returns {void}
  */
 JitsiConference.prototype.endPoll = function() {
     this.polls.endPoll(this.room.roomjid);

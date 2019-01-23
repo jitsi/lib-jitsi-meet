@@ -693,8 +693,8 @@ export default class XMPP extends Listenable {
 
     /**
      * A private message is received, message that is not addressed to the muc.
-     * We expect private message coming from speaker stats component if it is
-     * enabled and running.
+     * We expect private message coming from speaker stats component or the
+     * polls component if any of them is enabled and running.
      *
      * @param {string} msg - The message.
      */
