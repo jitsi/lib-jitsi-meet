@@ -226,8 +226,6 @@ export default class Polls {
      * @param payload - Poll to notify
      */
     _onModuleMessageReceived(message) {
-        console.log(message);
-
         const { choices, poll, question } = message;
 
         this._doStartPoll(choices, poll, question);
