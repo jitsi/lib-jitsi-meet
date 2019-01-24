@@ -463,6 +463,8 @@ JitsiConference.prototype.leave = function() {
             XMPPEvents.CONFERENCE_PROPERTIES_CHANGED,
             this._updateProperties);
 
+        this.eventManager.removeXMPPListeners();
+
         this.room = null;
 
         return room.leave().catch(error => {
