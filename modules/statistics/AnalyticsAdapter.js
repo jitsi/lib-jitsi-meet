@@ -60,6 +60,15 @@ class AnalyticsAdapter {
      * Creates new AnalyticsAdapter instance.
      */
     constructor() {
+        this.reset();
+    }
+
+    /**
+     * Reset the state to the initial one.
+     *
+     * @returns {void}
+     */
+    reset() {
         /**
          * Whether this AnalyticsAdapter has been disposed of or not. Once this
          * is set to true, the AnalyticsAdapter is disabled and does not accept
