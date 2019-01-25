@@ -5,6 +5,7 @@ import RTCEvents from '../../service/RTC/RTCEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
 import JingleSessionPC from '../xmpp/JingleSessionPC';
+import { DEFAULT_STUN_SERVERS } from '../xmpp/xmpp';
 
 import { ACTIONS } from './constants';
 
@@ -22,7 +23,9 @@ export default class ProxyConnectionPC {
      * Initializes a new {@code ProxyConnectionPC} instance.
      *
      * @param {Object} options - Values to initialize the instance with.
-     * @param {boolean} options.isInitiator - If true, the local client should
+     * @param {Object} [options.iceConfig] - The {@code RTCConfiguration} to use
+     * for the peer connection.
+     * @param {boolean} [options.isInitiator] - If true, the local client should
      * send offers. If false, the local client should send answers. Defaults to
      * false.
      * @param {Function} options.onRemoteStream - Callback to invoke when a
@@ -30,14 +33,16 @@ export default class ProxyConnectionPC {
      * @param {string} options.peerJid - The jid of the remote client with which
      * the peer connection is being establish and which should receive direct
      * messages regarding peer connection updates.
-     * @param {boolean} options.receiveVideo - Whether or not the peer
+     * @param {boolean} [options.receiveVideo] - Whether or not the peer
      * connection should accept incoming video streams. Defaults to false.
      * @param {Function} options.onSendMessage - Callback to invoke when a
      * message has to be sent (signaled) out.
      */
     constructor(options = {}) {
         this._options = {
+            iceConfig: {},
             isInitiator: false,
+            receiveAudio: false,
             receiveVideo: false,
             ...options
         };
@@ -175,20 +180,11 @@ export default class ProxyConnectionPC {
          * @type {Object}
          */
         const iceConfigStub = {
+            jvb: { iceServers: [] },
             p2p: {
-                iceServers: [
-                    {
-                        urls: 'stun:stun.l.google.com:19302'
-                    },
-                    {
-                        urls: 'stun:stun1.l.google.com:19302'
-                    },
-                    {
-                        urls: 'stun:stun2.l.google.com:19302'
-                    }
-                ]
-            },
-            jvb: { iceServers: [] }
+                iceServers: DEFAULT_STUN_SERVERS,
+                ...this._options.iceConfig
+            }
         };
 
         /**
@@ -256,7 +252,7 @@ export default class ProxyConnectionPC {
             this._options.peerJid, // remoteJid
             connectionStub, // connection
             {
-                offerToReceiveAudio: false,
+                offerToReceiveAudio: this._options.receiveAudio,
                 offerToReceiveVideo: this._options.receiveVideo
             }, // mediaConstraints
             iceConfigStub, // iceConfig

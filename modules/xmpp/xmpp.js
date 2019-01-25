@@ -41,6 +41,16 @@ function createConnection(token, bosh = '/http-bind') {
     return conn;
 }
 
+// FIXME: remove once we have a default config template. -saghul
+/**
+ * A list of ice servers to use by default for P2P.
+ */
+export const DEFAULT_STUN_SERVERS = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' }
+];
+
 /**
  * The name of the field used to recognize a chat message as carrying a JSON
  * payload from another endpoint.
@@ -507,15 +517,8 @@ export default class XMPP extends Listenable {
             p2p: { iceServers: [ ] }
         };
 
-        // FIXME: remove once we have a default config template. -saghul
-        const defaultStunServers = [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' }
-        ];
-
         const p2pStunServers = (this.options.p2p
-            && this.options.p2p.stunServers) || defaultStunServers;
+            && this.options.p2p.stunServers) || DEFAULT_STUN_SERVERS;
 
         if (Array.isArray(p2pStunServers)) {
             logger.info('P2P STUN servers: ', p2pStunServers);

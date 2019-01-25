@@ -3,6 +3,8 @@
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq } from 'strophe.js';
 
+import * as MediaType from '../../service/RTC/MediaType';
+import VideoType from '../../service/RTC/VideoType';
 import RTC from '../RTC/RTC';
 
 import ProxyConnectionPC from './ProxyConnectionPC';
@@ -20,6 +22,10 @@ export default class ProxyConnectionService {
      * Initializes a new {@code ProxyConnectionService} instance.
      *
      * @param {Object} options - Values to initialize the instance with.
+     * @param {boolean} [options.convertVideoToDesktop] - Whether or not proxied
+     * video should be returned as a desktop stream. Defaults to false.
+     * @param {Object} [options.iceConfig] - The {@code RTCConfiguration} to use
+     * for the peer connection.
      * @param {Function} options.onRemoteStream - Callback to invoke when a
      * remote video stream has been received and converted to a
      * {@code JitsiLocakTrack}. The {@code JitsiLocakTrack} will be passed in.
@@ -179,6 +185,7 @@ export default class ProxyConnectionService {
         }
 
         const pcOptions = {
+            iceConfig: this._options.iceConfig,
             onError: this._onFatalError,
             onRemoteStream: this._onRemoteStream,
             onSendMessage: this._onSendMessage,
@@ -240,9 +247,18 @@ export default class ProxyConnectionService {
      */
     _onRemoteStream(jitsiRemoteTrack) {
         if (!this._options.onRemoteStream) {
-            logger.error('Remote track received withou callback to handle it.');
+            logger.error('Remote track received without callback.');
+            jitsiRemoteTrack.dispose();
 
             return;
+        }
+
+        const isVideo = jitsiRemoteTrack.isVideoTrack();
+        let videoType;
+
+        if (isVideo) {
+            videoType = this._options.convertVideoToDesktop
+                ? VideoType.DESKTOP : VideoType.CAMERA;
         }
 
         // Grab the webrtc media stream and pipe it through the same processing
@@ -253,10 +269,10 @@ export default class ProxyConnectionService {
                 {
                     deviceId:
                         `proxy:${this._peerConnection.getPeerJid()}`,
-                    mediaType: 'video',
-                    videoType: 'desktop',
+                    mediaType: isVideo ? MediaType.VIDEO : MediaType.AUDIO,
                     stream: mediaStream,
-                    track: mediaStream.getVideoTracks()[0]
+                    track: mediaStream.getVideoTracks()[0],
+                    videoType
                 }
             ]);
 
