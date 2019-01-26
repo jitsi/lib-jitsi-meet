@@ -53,6 +53,8 @@ export default class Polls {
      */
     startPoll(roomjid, poll, choices, question) {
         if (!poll || !choices || !question) {
+            logger.error('startPoll called with invalid arguments.');
+
             return;
         }
 
@@ -62,8 +64,6 @@ export default class Polls {
 
             return;
         }
-
-        logger.log(`Poll Start: ${poll} ${choices} ${question}`);
 
         this._doStartPoll(choices, poll, question);
 
@@ -88,14 +88,14 @@ export default class Polls {
      */
     voteInPoll(roomjid, choiceID) {
         if (!choiceID) {
+            logger.error('voteInPoll called with invalid choiceID');
+
             return;
         }
 
-        logger.log(`Voted for ${choiceID}`);
-
         const myid = this.conference.myUserId();
 
-        this._doVote(choiceID, myid);
+        this._toggleVote(choiceID, myid);
 
         // inform others about my vote.
         this.conference.sendMessage({
@@ -133,8 +133,6 @@ export default class Polls {
      * Emit end poll event.
      */
     _doEndPoll() {
-        logger.log('Poll has ended');
-
         this.choices = null;
         this.poll = null;
         this.question = null;
@@ -165,11 +163,11 @@ export default class Polls {
     }
 
     /**
-     * Emit user voted event.
+     * Toggle vote of a user to a given choice. Emits user voted event.
      * @param {string} choiceID - Choice ID.
      * @param {string} userID - ID of user who voted.
      */
-    _doVote(choiceID, userID) {
+    _toggleVote(choiceID, userID) {
         if (!this.choices.hasOwnProperty(choiceID)) {
             logger.warn(`Ignoring an invalid choice ID ${choiceID}`);
 
@@ -200,8 +198,8 @@ export default class Polls {
         const myid = this.conference.myUserId();
         const { type } = message;
 
-        logger.info(`Received ${message} from ${from}`);
-
+        // Message sent as broadcast to MUC is re-sent to the
+        // participant again.
         if (myid === Strophe.getResourceFromJid(from) || !type) {
             return;
         }
@@ -217,7 +215,7 @@ export default class Polls {
             const { event } = message;
             const { choiceID, userID } = event;
 
-            this._doVote(choiceID, userID);
+            this._toggleVote(choiceID, userID);
         }
     }
 
@@ -236,8 +234,6 @@ export default class Polls {
      * @param {string} roomjid - Room JID.
      */
     _savePollInProsodyModule(roomjid) {
-        logger.log(`Saved ${this.poll} in room ${roomjid}`);
-
         // When poll ends, we send empty message to module.
         const message = this.poll === null ? null : {
             choices: this.choices,
@@ -247,5 +243,4 @@ export default class Polls {
 
         this.xmpp.sendPollComponentMessage(roomjid, message);
     }
-
 }
