@@ -3054,6 +3054,7 @@ JitsiConference.prototype.createVideoSIPGWSession
 
 /**
  * Creates a new poll in the chat room.
+ *
  * @param {Object} poll - Object containing the information about the poll.
  * @param {Object} choices - Object containing poll choices by their ID.
  * @param {Object} question - Object with information about the question asked.
@@ -3065,6 +3066,7 @@ JitsiConference.prototype.startPoll = function(poll, choices, question) {
 
 /**
  * Update the user vote in the currently active poll.
+ *
  * @param {string} choiceID - ID of the choice voted for.
  */
 JitsiConference.prototype.voteInPoll = function(choiceID) {
@@ -3073,6 +3075,7 @@ JitsiConference.prototype.voteInPoll = function(choiceID) {
 
 /**
  * End the currently active poll.
+ *
  * @returns {void}
  */
 JitsiConference.prototype.endPoll = function() {
