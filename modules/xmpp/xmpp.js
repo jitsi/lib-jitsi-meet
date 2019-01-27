@@ -652,13 +652,12 @@ export default class XMPP extends Listenable {
     /**
      * Notifies polls component with a new poll event triggered by
      * participant.
+     *
      * @param {String} roomJid - The room jid.
      * @param {Object} message - The event that happened.
      */
     sendPollComponentMessage(roomJid, message) {
         if (!this.pollsComponentAddress || !roomJid) {
-            logger.warn(`abort send ${this.pollsComponentAddress}`);
-
             return;
         }
 

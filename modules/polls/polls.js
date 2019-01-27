@@ -44,6 +44,7 @@ export default class Polls {
     /* eslint-disable max-params */
     /**
      * Starts a poll in the conference room.
+     *
      * @param {string} roomJid - Room JID
      * @param {Object} poll - Object containing the information about the poll.
      * @param {Object} choices - Object containing poll choices by their ID.
@@ -83,6 +84,7 @@ export default class Polls {
 
     /**
      * Vote for a choice in the poll.
+     *
      * @param {string} choiceID - ID of the voted choice
      * @param {string} userID - ID of user who voted.
      */
@@ -111,6 +113,8 @@ export default class Polls {
 
     /**
      * End the current poll.
+     *
+     * @param {string} roomjid - Room JID.
      */
     endPoll(roomjid) {
         if (!this.poll && !this.choices && !this.question) {
@@ -144,6 +148,7 @@ export default class Polls {
 
     /**
      * Emit poll start event.
+     *
      * @param {Object} choices - Choices object.
      * @param {Object} poll - Poll object.
      * @param {Object} question - Quesiotn object.
@@ -164,6 +169,7 @@ export default class Polls {
 
     /**
      * Toggle vote of a user to a given choice. Emits user voted event.
+     *
      * @param {string} choiceID - Choice ID.
      * @param {string} userID - ID of user who voted.
      */
@@ -192,6 +198,7 @@ export default class Polls {
 
     /**
      * Received message from another user.
+     *
      * @param {Object} message - Message received.
      */
     _onEndPointMessageReceived(from, message) {
@@ -221,6 +228,7 @@ export default class Polls {
 
     /**
      * Received message from prosody module.
+     *
      * @param payload - Poll to notify
      */
     _onModuleMessageReceived(message) {
@@ -231,6 +239,7 @@ export default class Polls {
 
     /**
      * Save poll state in backend prosody module.
+     *
      * @param {string} roomjid - Room JID.
      */
     _savePollInProsodyModule(roomjid) {
