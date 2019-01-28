@@ -19,6 +19,8 @@ import RTC from './modules/RTC/RTC';
 import TalkMutedDetection from './modules/TalkMutedDetection';
 import browser from './modules/browser';
 import ConnectionQuality from './modules/connectivity/ConnectionQuality';
+import IceFailedNotification
+    from './modules/connectivity/IceFailedNotification';
 import ParticipantConnectionStatusHandler
     from './modules/connectivity/ParticipantConnectionStatus';
 import E2ePing from './modules/e2eping/e2eping';
@@ -433,6 +435,8 @@ JitsiConference.prototype.leave = function() {
     if (this.statistics) {
         this.statistics.dispose();
     }
+
+    this._delayedIceFailed && this._delayedIceFailed.cancel();
 
     // Close both JVb and P2P JingleSessions
     if (this.jvbJingleSession) {
@@ -2365,8 +2369,14 @@ JitsiConference.prototype._onIceConnectionFailed = function(session) {
         }
         this._stopP2PSession('connectivity-error', 'ICE FAILED');
     } else if (session && this.jvbJingleSession === session) {
-        // Let Jicofo know that the JVB's ICE connection has failed
-        session.sendIceFailedNotification();
+        if (this.xmpp.isPingSupported()) {
+            this._delayedIceFailed = new IceFailedNotification(this);
+            this._delayedIceFailed.start(session);
+        } else {
+            // Let Jicofo know that the JVB's ICE connection has failed
+            logger.info('PING not supported - sending ICE failed immediately');
+            session.sendIceFailedNotification();
+        }
     }
 };
 
@@ -2380,6 +2390,7 @@ JitsiConference.prototype._onIceConnectionRestored = function(session) {
         this.isP2PConnectionInterrupted = false;
     } else {
         this.isJvbConnectionInterrupted = false;
+        this._delayedIceFailed && this._delayedIceFailed.cancel();
     }
 
     if (session.isP2P === this.isP2PActive()) {
