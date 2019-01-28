@@ -127,6 +127,15 @@ export default class XMPP extends Listenable {
     }
 
     /**
+     * Returns {@code true} if the PING functionality is supported by the server
+     * or {@code false} otherwise.
+     * @returns {boolean}
+     */
+    isPingSupported() {
+        return this._pingSupported !== false;
+    }
+
+    /**
      *
      */
     getConnection() {
@@ -167,6 +176,7 @@ export default class XMPP extends Listenable {
             this.caps.getFeaturesAndIdentities(pingJid)
                 .then(({ features, identities }) => {
                     if (features.has(Strophe.NS.PING)) {
+                        this._pingSupported = true;
                         this.connection.ping.startInterval(pingJid);
                     } else {
                         logger.warn(`Ping NOT supported by ${pingJid}`);
@@ -423,6 +433,24 @@ export default class XMPP extends Listenable {
      */
     dial(...args) {
         this.connection.rayo.dial(...args);
+    }
+
+    /**
+     * Pings the server. Remember to check {@link isPingSupported} before using
+     * this method.
+     * @param timeout how many ms before a timeout should occur.
+     * @returns {Promise} resolved on ping success and reject on an error or
+     * a timeout.
+     */
+    ping(timeout) {
+        return new Promise((resolve, reject) => {
+            if (this.isPingSupported()) {
+                this.connection.ping
+                    .ping(this.connection.domain, resolve, reject, timeout);
+            } else {
+                reject('PING operation is not supported by the server');
+            }
+        });
     }
 
     /**
