@@ -537,12 +537,10 @@ export default class ChatRoom extends Listenable {
                             ? Strophe.getResourceFromJid(from)
                             : member.nick;
 
-                    if (displayName && displayName.length > 0) {
-                        this.eventEmitter.emit(
-                            XMPPEvents.DISPLAY_NAME_CHANGED,
-                            from,
-                            displayName);
-                    }
+                    this.eventEmitter.emit(
+                        XMPPEvents.DISPLAY_NAME_CHANGED,
+                        from,
+                        displayName);
                 }
                 break;
             case 'bridgeNotAvailable':
