@@ -19,6 +19,7 @@ class JitsiMediaDevices {
     constructor() {
         this._eventEmitter = new EventEmitter();
         this._grantedPermissions = {};
+        this._permissionsApiSupported = null;
 
         RTC.addListener(
             RTCEvents.DEVICE_LIST_CHANGED,
@@ -36,20 +37,6 @@ class JitsiMediaDevices {
             RTCEvents.GRANTED_PERMISSIONS,
             grantedPermissions =>
                 this._handleGrantedPermissions(grantedPermissions));
-
-        // Test if the W3C Permissions API is implemented and the 'camera' and
-        // 'microphone' permissions are implemented. (Testing for at least one
-        // of them seems sufficient).
-        this._permissionsApiSupported = new Promise(resolve => {
-            if (!navigator.permissions) {
-                resolve(false);
-
-                return;
-            }
-
-            navigator.permissions.query({ name: 'camera ' })
-                .then(() => resolve(true), () => resolve(false));
-        });
     }
 
     /**
@@ -128,6 +115,23 @@ class JitsiMediaDevices {
 
                 return;
             }
+
+            // Test if the W3C Permissions API is implemented and the 'camera'
+            // and 'microphone' permissions are implemented. (Testing for at
+            // least one of them seems sufficient).
+            this._permissionsApiSupported = this._permissionsApiSupported
+                || new Promise(resolveApiCheck => {
+                    if (!navigator.permissions) {
+                        resolveApiCheck(false);
+
+                        return;
+                    }
+
+                    navigator.permissions.query({ name: 'camera ' })
+                        .then(() => resolveApiCheck(true))
+                        .catch(() => resolveApiCheck(false));
+                });
+
 
             // Check using the Permissions API.
             this._permissionsApiSupported.then(supported => {
