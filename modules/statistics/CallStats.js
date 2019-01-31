@@ -350,18 +350,10 @@ export default class CallStats {
             throw new Error('CallStats backend has been initialized already!');
         }
         try {
-            // In react-native we need to import the callstats module, but
-            // imports are only allowed at top-level, so we must use require
-            // here. Sigh.
-            const CallStatsBackend
-                = browser.isReactNative()
-                    ? require('react-native-callstats/callstats')
-                    : callstats;
+            const CallStatsBackend = callstats;
 
             CallStats.backend = new CallStatsBackend();
-
             CallStats._traceAndCatchBackendCalls(CallStats.backend);
-
             CallStats.userID = {
                 aliasName: options.aliasName,
                 userName: options.userName
