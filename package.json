@@ -25,7 +25,7 @@
     "lodash.isequal": "4.5.0",
     "react-native-callstats": "3.53.4",
     "sdp-transform": "2.3.0",
-    "strophe.js": "1.2.15",
+    "strophe.js": "1.2.16",
     "strophejs-plugin-disco": "0.0.2",
     "webrtc-adapter": "github:webrtc/adapter#1eec19782b4058d186341263e7d049cea3e3290a",
     "yaeti": "1.0.1"
