@@ -1034,22 +1034,9 @@ class RTCUtils extends Listenable {
                 new Error('Desktop sharing is not supported!'));
         }
 
-        const {
-            desktopSharingExtensionExternalInstallation,
-            desktopSharingFrameRate,
-            desktopSharingSources
-        } = options;
-
         return new Promise((resolve, reject) => {
             screenObtainer.obtainStream(
-                {
-                    ...desktopSharingExtensionExternalInstallation,
-                    desktopSharingSources,
-                    gumOptions: {
-                        frameRate: desktopSharingFrameRate
-                    },
-                    trackOptions: getTrackSSConstraints(options)
-                },
+                this._parseDesktopSharingOptions(options),
                 stream => {
                     resolve(stream);
                 },
@@ -1310,23 +1297,40 @@ class RTCUtils extends Listenable {
                         device.kind === 'videoinput'
                             && (device.deviceId === desktopSharingSourceDevice
                             || device.label === desktopSharingSourceDevice));
-
                 const requestedDevices = [ 'video' ];
-                const constraints = newGetConstraints(
-                    requestedDevices, { options });
 
-                // Use exact to make sure there is no fallthrough to another
-                // camera device. If a matching device could not be found,
-                // try anyways and let the caller handle errors.
-                constraints.video.deviceId = {
-                    exact: (matchingDevice && matchingDevice.deviceId)
-                        || desktopSharingSourceDevice
+                // Leverage the helper used by {@link _newGetDesktopMedia} to
+                // get constraints for the desktop stream.
+                const { gumOptions, trackOptions }
+                    = this._parseDesktopSharingOptions(options);
+
+                // Create a custom constraints object to use exact device
+                // matching to make sure there is no fallthrough to another
+                // camera device. If a matching device could not be found, try
+                // anyways and let the caller handle errors.
+                const constraints = {
+                    video: {
+                        ...gumOptions,
+                        deviceId: {
+                            exact: (matchingDevice && matchingDevice.deviceId)
+                                || desktopSharingSourceDevice
+                        }
+                    }
                 };
 
                 return this._newGetUserMediaWithConstraints(
                     requestedDevices, constraints)
                     .then(stream => {
-                        return { stream };
+                        const track = stream && stream.getTracks()[0];
+                        const applyConstrainsPromise
+                            = track && track.applyConstraints
+                                ? track.applyConstraints(trackOptions)
+                                : Promise.resolve();
+
+                        return applyConstrainsPromise
+                            .then(() => {
+                                return { stream };
+                            });
                     });
             }
 
