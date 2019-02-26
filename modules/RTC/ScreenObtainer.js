@@ -135,13 +135,12 @@ const ScreenObtainer = {
         } else if (browser.isFirefox()) {
             if (options.desktopSharingFirefoxDisabled) {
                 return null;
-            } else if (window.location.protocol === 'http:') {
-                logger.log('Screen sharing is not supported over HTTP. '
-                    + 'Use of HTTPS is required.');
-
-                return null;
+            } else if (browser.supportsGetDisplayMedia()) {
+                // Firefox 66 support getDisplayMedia
+                return this.obtainScreenFromGetDisplayMedia;
             }
 
+            // Legacy Firefox
             return this.obtainScreenOnFirefox;
         } else if (browser.isEdge() && browser.supportsGetDisplayMedia()) {
             return this.obtainScreenFromGetDisplayMedia;
@@ -304,6 +303,8 @@ const ScreenObtainer = {
      * @param errorCallback - The error callback.
      */
     obtainScreenFromGetDisplayMedia(options, callback, errorCallback) {
+        logger.info('Using getDisplayMedia for screen sharing');
+
         let getDisplayMedia;
 
         if (navigator.getDisplayMedia) {

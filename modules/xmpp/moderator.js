@@ -363,22 +363,26 @@ Moderator.prototype.parseConfigOptions = function(resultIq) {
  *
  * @param {Function} callback - the function to be called back upon the
  * successful allocation of the conference focus
+ * @returns {Promise} - Resolved when Jicofo allows to join the room. It's never
+ * rejected and it'll keep on pinging Jicofo forever.
  */
-Moderator.prototype.allocateConferenceFocus = function(callback) {
-    // Try to use focus user JID from the config
-    this.setFocusUserJid(this.options.connection.focusUserJid);
+Moderator.prototype.allocateConferenceFocus = function() {
+    return new Promise(resolve => {
+        // Try to use focus user JID from the config
+        this.setFocusUserJid(this.options.connection.focusUserJid);
 
-    // Send create conference IQ
-    this.connection.sendIQ(
-        this.createConferenceIq(),
-        result => this._allocateConferenceFocusSuccess(result, callback),
-        error => this._allocateConferenceFocusError(error, callback));
+        // Send create conference IQ
+        this.connection.sendIQ(
+            this.createConferenceIq(),
+            result => this._allocateConferenceFocusSuccess(result, resolve),
+            error => this._allocateConferenceFocusError(error, resolve));
 
-    // XXX We're pressed for time here because we're beginning a complex and/or
-    // lengthy conference-establishment process which supposedly involves
-    // multiple RTTs. We don't have the time to wait for Strophe to decide to
-    // send our IQ.
-    this.connection.flush();
+        // XXX We're pressed for time here because we're beginning a complex
+        // and/or lengthy conference-establishment process which supposedly
+        // involves multiple RTTs. We don't have the time to wait for Strophe to
+        // decide to send our IQ.
+        this.connection.flush();
+    });
 };
 
 /**
@@ -463,7 +467,9 @@ Moderator.prototype._allocateConferenceFocusError = function(error, callback) {
 
     // Reset response timeout
     this.getNextTimeout(true);
-    window.setTimeout(() => this.allocateConferenceFocus(callback), waitMs);
+    window.setTimeout(
+        () => this.allocateConferenceFocus().then(callback),
+        waitMs);
 };
 
 /**
@@ -495,7 +501,8 @@ Moderator.prototype._allocateConferenceFocusSuccess = function(
         const waitMs = this.getNextTimeout();
 
         logger.info(`Waiting for the focus... ${waitMs}`);
-        window.setTimeout(() => this.allocateConferenceFocus(callback),
+        window.setTimeout(
+            () => this.allocateConferenceFocus().then(callback),
             waitMs);
     }
 };

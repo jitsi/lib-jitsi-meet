@@ -94,6 +94,9 @@ export default class ChatRoom extends Listenable {
      * @param password
      * @param XMPP
      * @param options
+     * @param {boolean} options.disableFocus - when set to {@code false} will
+     * not invite Jicofo into the room. This is intended to be used only by
+     * jitsi-meet-spot.
      */
     constructor(connection, jid, password, XMPP, options) {
         super();
@@ -170,7 +173,15 @@ export default class ChatRoom extends Listenable {
         this.password = password;
 
         return new Promise(resolve => {
-            this.moderator.allocateConferenceFocus(() => {
+            this.options.disableFocus
+                && logger.info('Conference focus disabled');
+
+            const preJoin
+                = this.options.disableFocus
+                    ? Promise.resolve()
+                    : this.moderator.allocateConferenceFocus();
+
+            preJoin.then(() => {
                 this.sendPresence(true);
                 resolve();
             });
@@ -537,12 +548,10 @@ export default class ChatRoom extends Listenable {
                             ? Strophe.getResourceFromJid(from)
                             : member.nick;
 
-                    if (displayName && displayName.length > 0) {
-                        this.eventEmitter.emit(
-                            XMPPEvents.DISPLAY_NAME_CHANGED,
-                            from,
-                            displayName);
-                    }
+                    this.eventEmitter.emit(
+                        XMPPEvents.DISPLAY_NAME_CHANGED,
+                        from,
+                        displayName);
                 }
                 break;
             case 'bridgeNotAvailable':

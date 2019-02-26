@@ -29,6 +29,7 @@ const logger = getLogger(__filename);
  */
 export default function JitsiConferenceEventManager(conference) {
     this.conference = conference;
+    this.xmppListeners = {};
 
     // Listeners related to the conference only
     conference.on(JitsiConferenceEvents.TRACK_MUTE_CHANGED,
@@ -530,37 +531,63 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
 };
 
 /**
+ * Removes event listeners related to conference.xmpp
+ */
+JitsiConferenceEventManager.prototype.removeXMPPListeners = function() {
+    const conference = this.conference;
+
+    conference.xmpp.caps.removeListener(
+        XMPPEvents.PARTCIPANT_FEATURES_CHANGED,
+        this.xmppListeners[XMPPEvents.PARTCIPANT_FEATURES_CHANGED]);
+    delete this.xmppListeners[XMPPEvents.PARTCIPANT_FEATURES_CHANGED];
+
+    Object.keys(this.xmppListeners).forEach(eventName => {
+        conference.xmpp.removeListener(
+            eventName,
+            this.xmppListeners[eventName]);
+    });
+    this.xmppListeners = {};
+};
+
+
+/**
  * Setups event listeners related to conference.xmpp
  */
 JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
     const conference = this.conference;
 
-    conference.xmpp.caps.addListener(XMPPEvents.PARTCIPANT_FEATURES_CHANGED,
-        from => {
-            const participant
-                = conference.getParticipantById(
-                    Strophe.getResourceFromJid(from));
+    const featuresChangedListener = from => {
+        const participant
+            = conference.getParticipantById(
+            Strophe.getResourceFromJid(from));
 
-            if (participant) {
-                conference.eventEmitter.emit(
-                    JitsiConferenceEvents.PARTCIPANT_FEATURES_CHANGED,
-                    participant);
-            }
-        });
-    conference.xmpp.addListener(
+        if (participant) {
+            conference.eventEmitter.emit(
+                JitsiConferenceEvents.PARTCIPANT_FEATURES_CHANGED,
+                participant);
+        }
+    };
+
+    conference.xmpp.caps.addListener(
+        XMPPEvents.PARTCIPANT_FEATURES_CHANGED,
+        featuresChangedListener);
+    this.xmppListeners[XMPPEvents.PARTCIPANT_FEATURES_CHANGED]
+        = featuresChangedListener;
+
+    this._addConferenceXMPPListener(
         XMPPEvents.CALL_INCOMING,
         conference.onIncomingCall.bind(conference));
-    conference.xmpp.addListener(
+    this._addConferenceXMPPListener(
         XMPPEvents.CALL_ACCEPTED,
         conference.onCallAccepted.bind(conference));
-    conference.xmpp.addListener(
+    this._addConferenceXMPPListener(
         XMPPEvents.TRANSPORT_INFO,
         conference.onTransportInfo.bind(conference));
-    conference.xmpp.addListener(
+    this._addConferenceXMPPListener(
         XMPPEvents.CALL_ENDED,
         conference.onCallEnded.bind(conference));
 
-    conference.xmpp.addListener(XMPPEvents.START_MUTED_FROM_FOCUS,
+    this._addConferenceXMPPListener(XMPPEvents.START_MUTED_FROM_FOCUS,
         (audioMuted, videoMuted) => {
             if (conference.options.config.ignoreStartMuted) {
                 return;
@@ -584,6 +611,15 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
 
             conference.eventEmitter.emit(JitsiConferenceEvents.STARTED_MUTED);
         });
+};
+
+/**
+ * Add XMPP listener and save its reference for remove on leave conference.
+ */
+JitsiConferenceEventManager.prototype._addConferenceXMPPListener = function(
+        eventName, listener) {
+    this.xmppListeners[eventName] = listener;
+    this.conference.xmpp.addListener(eventName, listener);
 };
 
 /**
