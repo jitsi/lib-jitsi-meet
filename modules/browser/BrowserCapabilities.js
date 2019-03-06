@@ -278,12 +278,14 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Checks if the browser supposrts getDisplayMedia.
-     * @returns {boolean} {@code true} if the browser supposrts getDisplayMedia.
+     * Checks if the browser supports getDisplayMedia.
+     * @returns {boolean} {@code true} if the browser supports getDisplayMedia.
      */
     supportsGetDisplayMedia() {
         return typeof navigator.getDisplayMedia !== 'undefined'
-            || typeof navigator.mediaDevices.getDisplayMedia !== 'undefined';
+            || (typeof navigator.mediaDevices !== 'undefined'
+                && typeof navigator.mediaDevices.getDisplayMedia
+                    !== 'undefined');
     }
 
     /**
