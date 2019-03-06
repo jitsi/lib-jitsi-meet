@@ -1329,7 +1329,10 @@ class RTCUtils extends Listenable {
 
                         return applyConstrainsPromise
                             .then(() => {
-                                return { stream };
+                                return {
+                                    sourceType: 'device',
+                                    stream
+                                };
                             });
                     });
             }

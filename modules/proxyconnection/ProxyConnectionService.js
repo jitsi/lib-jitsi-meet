@@ -270,6 +270,7 @@ export default class ProxyConnectionService {
                     deviceId:
                         `proxy:${this._peerConnection.getPeerJid()}`,
                     mediaType: isVideo ? MediaType.VIDEO : MediaType.AUDIO,
+                    sourceType: 'proxy',
                     stream: mediaStream,
                     track: mediaStream.getVideoTracks()[0],
                     videoType
