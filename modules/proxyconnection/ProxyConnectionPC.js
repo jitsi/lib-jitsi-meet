@@ -180,11 +180,8 @@ export default class ProxyConnectionPC {
          * @type {Object}
          */
         const iceConfigStub = {
-            jvb: { iceServers: [] },
-            p2p: {
-                iceServers: DEFAULT_STUN_SERVERS,
-                ...this._options.iceConfig
-            }
+            iceServers: DEFAULT_STUN_SERVERS,
+            ...this._options.iceConfig
         };
 
         /**
