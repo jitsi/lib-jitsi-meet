@@ -178,36 +178,50 @@ const ScreenObtainer = {
      * @param {Array<string>} [options.desktopSharingSources] - Array with the
      * sources that have to be displayed in the desktop picker window ('screen',
      * 'window', etc.).
+     * @param {Object} [options.screenshareSource] - Information about a desktop
+     * sharing source as provided by electron. Can be passed in directly to use
+     * instead of requesting through a picker.
      * @param onSuccess - Success callback.
      * @param onFailure - Failure callback.
      */
     obtainScreenOnElectron(options = {}, onSuccess, onFailure) {
-        if (window.JitsiMeetScreenObtainer
-            && window.JitsiMeetScreenObtainer.openDesktopPicker) {
+        if ((window.JitsiMeetScreenObtainer
+            && window.JitsiMeetScreenObtainer.openDesktopPicker)
+            || options.screenshareSource) {
             const { desktopSharingSources, gumOptions } = options;
 
-            window.JitsiMeetScreenObtainer.openDesktopPicker(
-                {
-                    desktopSharingSources: desktopSharingSources
-                        || this.options.desktopSharingChromeSources
-                },
-                (streamId, streamType) =>
-                    onGetStreamResponse(
+            const pickerSelectPromise = options.screenshareSource
+                ? Promise.resolve(
+                    options.screenshareSource.id,
+                    options.screenshareSource.type)
+                : new Promise((resolve, reject) => {
+                    window.JitsiMeetScreenObtainer.openDesktopPicker(
                         {
-                            response: {
-                                streamId,
-                                streamType
-                            },
-                            gumOptions
+                            desktopSharingSources: desktopSharingSources
+                                || this.options.desktopSharingChromeSources
                         },
-                        onSuccess,
-                        onFailure
-                    ),
-                err => onFailure(new JitsiTrackError(
+                        (streamId, streamType) => resolve(streamId, streamType),
+                        err => reject(err)
+                    );
+                });
+
+            pickerSelectPromise
+                .then((streamId, streamType) => onGetStreamResponse(
+                    {
+                        response: {
+                            streamId,
+                            streamType
+                        },
+                        gumOptions
+                    },
+                    onSuccess,
+                    onFailure
+                ))
+                .catch(err => onFailure(new JitsiTrackError(
                     JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR,
                     err
-                ))
-            );
+                )));
+
         } else {
             onFailure(new JitsiTrackError(
                 JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND));

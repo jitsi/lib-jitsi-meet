@@ -1236,6 +1236,7 @@ class RTCUtils extends Listenable {
             gumOptions: {
                 frameRate: options.desktopSharingFrameRate
             },
+            screenshareSource: options.screenshareSource,
             trackOptions: getTrackSSConstraints(options)
         };
     }
@@ -1340,7 +1341,8 @@ class RTCUtils extends Listenable {
             return this._newGetDesktopMedia({
                 desktopSharingExtensionExternalInstallation,
                 desktopSharingSources,
-                desktopSharingFrameRate
+                desktopSharingFrameRate,
+                screenshareSource: options.screenshareSource
             });
         }.bind(this);
 
