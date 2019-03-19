@@ -479,8 +479,7 @@ export default class ChatRoom extends Listenable {
         }
 
         if (from === this.myroomjid) {
-            const newRole
-                = member.affiliation === 'owner' ? member.role : 'none';
+            const newRole = (member.affiliation === 'owner' || member.affiliation === 'admin') ? member.role : 'none';
 
             if (this.role !== newRole) {
                 this.role = newRole;
