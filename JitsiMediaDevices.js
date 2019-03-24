@@ -156,7 +156,15 @@ class JitsiMediaDevices {
                 }
 
                 Promise.all(promises).then(
-                    r => resolve(r.every(Boolean)),
+                    results => resolve(results.every(permissionStatus => {
+                        // The status attribute is deprecated, and state
+                        // should be used instead, but check both for now
+                        // for backwards compatibility.
+                        const grantStatus = permissionStatus.state
+                            || permissionStatus.status;
+
+                        return grantStatus === 'granted';
+                    })),
                     () => resolve(false)
                 );
             });
