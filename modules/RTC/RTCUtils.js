@@ -494,8 +494,10 @@ function getTrackSSConstraints(options = {}) {
  * @param stream the stream we received from calling getUserMedia.
  */
 function updateGrantedPermissions(um, stream) {
-    const audioTracksReceived = stream && stream.getAudioTracks().length > 0;
-    const videoTracksReceived = stream && stream.getVideoTracks().length > 0;
+    const audioTracksReceived
+        = Boolean(stream) && stream.getAudioTracks().length > 0;
+    const videoTracksReceived
+        = Boolean(stream) && stream.getVideoTracks().length > 0;
     const grantedPermissions = {};
 
     if (um.indexOf('video') !== -1) {
