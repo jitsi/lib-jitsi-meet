@@ -47,7 +47,7 @@ class JitsiMediaDevices {
                 return;
             }
 
-            navigator.permissions.query({ name: 'camera ' })
+            navigator.permissions.query({ name: 'camera' })
                 .then(() => resolve(true), () => resolve(false));
         });
     }
