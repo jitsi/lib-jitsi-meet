@@ -8,6 +8,10 @@ import Statistics from './modules/statistics/statistics';
 
 import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
 
+const AUDIO_PERMISSION_NAME = 'microphone';
+const PERMISSION_GRANTED_STATUS = 'granted';
+const VIDEO_PERMISSION_NAME = 'camera';
+
 /**
  * Media devices utilities for Jitsi.
  */
@@ -47,7 +51,7 @@ class JitsiMediaDevices {
                 return;
             }
 
-            navigator.permissions.query({ name: 'camera ' })
+            navigator.permissions.query({ name: VIDEO_PERMISSION_NAME })
                 .then(() => resolve(true), () => resolve(false));
         });
     }
@@ -142,21 +146,37 @@ class JitsiMediaDevices {
                 switch (type) {
                 case MediaType.VIDEO:
                     promises.push(
-                        navigator.permissions.query({ name: 'camera' }));
+                        navigator.permissions.query({
+                            name: VIDEO_PERMISSION_NAME
+                        }));
                     break;
                 case MediaType.AUDIO:
                     promises.push(
-                        navigator.permissions.query({ name: 'microphone' }));
+                        navigator.permissions.query({
+                            name: AUDIO_PERMISSION_NAME
+                        }));
                     break;
                 default:
                     promises.push(
-                        navigator.permissions.query({ name: 'camera' }));
+                        navigator.permissions.query({
+                            name: VIDEO_PERMISSION_NAME
+                        }));
                     promises.push(
-                        navigator.permissions.query({ name: 'microphone' }));
+                        navigator.permissions.query({
+                            name: AUDIO_PERMISSION_NAME
+                        }));
                 }
 
                 Promise.all(promises).then(
-                    r => resolve(r.every(Boolean)),
+                    results => resolve(results.every(permissionStatus => {
+                        // The status attribute is deprecated, and state
+                        // should be used instead, but check both for now
+                        // for backwards compatibility.
+                        const grantStatus = permissionStatus.state
+                            || permissionStatus.status;
+
+                        return grantStatus === PERMISSION_GRANTED_STATUS;
+                    })),
                     () => resolve(false)
                 );
             });
