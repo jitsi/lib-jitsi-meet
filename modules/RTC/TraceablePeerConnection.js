@@ -2104,7 +2104,7 @@ TraceablePeerConnection.prototype.close = function() {
  * Modifies the values of the setup attributes (defined by
  * {@link http://tools.ietf.org/html/rfc4145#section-4}) of a specific SDP
  * answer in order to overcome a delay of 1 second in the connection
- * establishment between Chrome and Videobridge.
+ * establishment between some devices and Videobridge.
  *
  * @param {SDP} offer - the SDP offer to which the specified SDP answer is
  * being prepared to respond
@@ -2112,13 +2112,13 @@ TraceablePeerConnection.prototype.close = function() {
  * @private
  */
 const _fixAnswerRFC4145Setup = function(offer, answer) {
-    if (!browser.isChrome()) {
+    if (!(browser.isChromiumBased() || browser.isReactNative())) {
         // It looks like Firefox doesn't agree with the fix (at least in its
         // current implementation) because it effectively remains active even
         // after we tell it to become passive. Apart from Firefox which I tested
         // after the fix was deployed, I tested Chrome only. In order to prevent
-        // issues with other browsers, limit the fix to Chrome for the time
-        // being.
+        // issues with other browsers, limit the fix to known devices for the
+        // time being.
         return;
     }
 
