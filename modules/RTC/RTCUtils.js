@@ -1147,20 +1147,19 @@ class RTCUtils extends Listenable {
                         + 'not supported on this browser.');
                 }
 
-                return new Promise((resolve, reject) => {
-                    screenObtainer.obtainStream(
-                        this._parseDesktopSharingOptions(options),
-                        desktop => resolve({
-                            audioVideo,
-                            desktop
-                        }),
-                        error => {
-                            if (audioVideo) {
-                                this.stopMediaStream(audioVideo);
-                            }
-                            reject(error);
-                        });
-                });
+                return this._newGetDesktopMedia(this._parseDesktopSharingOptions(options))
+                            .then(desktop => {
+                                return {
+                                    audioVideo,
+                                    desktop };
+                            })
+                            .catch(err => {
+                                if (audioVideo) {
+                                    this.stopMediaStream(audioVideo);
+                                }
+
+                                return Promise.reject(err);
+                            });
             });
     }
 
