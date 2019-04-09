@@ -685,10 +685,11 @@ JitsiConference.prototype.addCommandListener = function(command, handler) {
 /**
   * Removes command  listener
   * @param command {String} the name of the command
+  * @param handler {Function} handler to remove for the command
   */
-JitsiConference.prototype.removeCommandListener = function(command) {
+JitsiConference.prototype.removeCommandListener = function(command, handler) {
     if (this.room) {
-        this.room.removePresenceListener(command);
+        this.room.removePresenceListener(command, handler);
     }
 };
 
