@@ -231,14 +231,14 @@ export default class ProxyConnectionPC {
          * of {@code RTC} from elsewhere should not be re-used because it is
          * a stateful grouping of utilities.
          */
-        const rtc = new RTC(this, {});
+        this._rtc = new RTC(this, {});
 
         /**
          * Add the remote track listener here as {@code JingleSessionPC} has
          * {@code TraceablePeerConnection} which uses {@code RTC}'s event
          * emitter.
          */
-        rtc.addListener(
+        this._rtc.addListener(
             RTCEvents.REMOTE_TRACK_ADDED,
             this._onRemoteStream
         );
@@ -261,7 +261,7 @@ export default class ProxyConnectionPC {
          * An additional initialize call is necessary to properly set instance
          * variable for calling.
          */
-        peerConnection.initialize(roomStub, rtc, configStub);
+        peerConnection.initialize(roomStub, this._rtc, configStub);
 
         return peerConnection;
     }
@@ -364,11 +364,18 @@ export default class ProxyConnectionPC {
         this._tracks.forEach(track => track.dispose());
         this._tracks = [];
 
-        if (!this._peerConnection) {
-            return;
+        if (this._peerConnection) {
+            this._peerConnection.onTerminated();
         }
 
-        this._peerConnection.onTerminated();
+        if (this._rtc) {
+            this._rtc.removeListener(
+                RTCEvents.REMOTE_TRACK_ADDED,
+                this._onRemoteStream
+            );
+
+            this._rtc.destroy();
+        }
     }
 
     /**
