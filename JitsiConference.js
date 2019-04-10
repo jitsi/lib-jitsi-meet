@@ -471,15 +471,21 @@ JitsiConference.prototype.leave = function() {
 
         this.room = null;
 
-        return room.leave().catch(error => {
-            // remove all participants because currently the conference won't
-            // be usable anyway. This is done on success automatically by the
-            // ChatRoom instance.
-            this.getParticipants().forEach(
-                participant => this.onMemberLeft(participant.getJid()));
+        return room.leave()
+            .then(() => {
+                if (this.rtc) {
+                    this.rtc.dispose();
+                }
+            })
+            .catch(error => {
+                // remove all participants because currently the conference
+                // won't be usable anyway. This is done on success automatically
+                // by the ChatRoom instance.
+                this.getParticipants().forEach(
+                    participant => this.onMemberLeft(participant.getJid()));
 
-            throw error;
-        });
+                throw error;
+            });
     }
 
     // If this.room == null we are calling second time leave().
