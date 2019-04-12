@@ -136,6 +136,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // created (until getConstraints() support), however we can associate
         // tracks with real devices obtained from enumerateDevices() call as
         // soon as it's called.
+        // NOTE: this.deviceId corresponds to the device id specified in GUM constraints and this._realDeviceId seems to
+        // correspond to the id of a matching device from the available device list.
         this._realDeviceId = this.deviceId === '' ? undefined : this.deviceId;
 
         /**
@@ -169,9 +171,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 this._onAudioOutputDeviceChanged);
         }
 
-        RTCUtils.addListener(
-            RTCEvents.DEVICE_LIST_CHANGED,
-            this._onDeviceListChanged);
+        RTCUtils.addListener(RTCEvents.DEVICE_LIST_WILL_CHANGE, this._onDeviceListChanged);
 
         this._initNoDataFromSourceHandlers();
     }
@@ -265,8 +265,14 @@ export default class JitsiLocalTrack extends JitsiTrack {
      */
     _setRealDeviceIdFromDeviceList(devices) {
         const track = this.getTrack();
-        const device = devices.find(
-            d => d.kind === `${track.kind}input` && d.label === track.label);
+        const kind = `${track.kind}input`;
+        let device = devices.find(d => d.kind === kind && d.label === track.label);
+
+        if (!device && this._realDeviceId === 'default') { // the default device has been changed.
+            const label = (track.label || '').replace('Default - ', '');
+
+            device = devices.find(d => d.kind === kind && d.label === label);
+        }
 
         if (device) {
             this._realDeviceId = device.deviceId;
@@ -519,8 +525,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             this.detach();
         }
 
-        RTCUtils.removeListener(RTCEvents.DEVICE_LIST_CHANGED,
-            this._onDeviceListChanged);
+        RTCUtils.removeListener(RTCEvents.DEVICE_LIST_WILL_CHANGE, this._onDeviceListChanged);
 
         if (this._onAudioOutputDeviceChanged) {
             RTCUtils.removeListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
