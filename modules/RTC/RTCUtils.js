@@ -592,6 +592,9 @@ function onMediaDevicesListChanged(devicesReceived) {
 
     sendDeviceListToAnalytics(availableDevices);
 
+    // Used by tracks to update the real device id before the consumer of lib-jitsi-meet receives the new device list.
+    eventEmitter.emit(RTCEvents.DEVICE_LIST_WILL_CHANGE, devicesReceived);
+
     eventEmitter.emit(RTCEvents.DEVICE_LIST_CHANGED, devicesReceived);
 }
 
