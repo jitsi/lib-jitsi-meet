@@ -365,7 +365,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                         // containers to something
                         // We don't want any events to be fired on this stream
                         this._unregisterHandlers();
-                        this._stopStream();
+                        this.stopStream();
                         this._setStream(null);
                         resolve();
                     },
@@ -515,7 +515,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         }
 
         if (this.stream) {
-            this._stopStream();
+            this.stopStream();
             this.detach();
         }
 
@@ -666,10 +666,10 @@ export default class JitsiLocalTrack extends JitsiTrack {
     /**
      * Stops the associated MediaStream.
      */
-    _stopStream() {
+    stopStream() {
 
         /**
-         * Indicates that we are executing {@link #_stopStream} i.e.
+         * Indicates that we are executing {@link #stopStream} i.e.
          * {@link RTCUtils#stopMediaStream} for the <tt>MediaStream</tt>
          * associated with this <tt>JitsiTrack</tt> instance.
          *
