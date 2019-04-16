@@ -2388,8 +2388,11 @@ TraceablePeerConnection.prototype._processLocalSSRCsMap = function(ssrcMap) {
                     `The local SSRC(${newSSRCNum}) for ${track} ${trackMSID}`
                      + `is still up to date in ${this}`);
             }
-        } else {
-            logger.warn(`No local track matched with: ${trackMSID} in ${this}`);
+        } else if (!track.isVideoTrack() && !track.isMuted()) {
+            // It is normal to find no SSRCs for a muted video track in
+            // the local SDP as the recv-only SSRC is no longer munged in.
+            // So log the warning only if it's not a muted video track.
+            logger.warn(`No SSRCs found in the local SDP for ${track} MSID: ${trackMSID} in ${this}`);
         }
     }
 };

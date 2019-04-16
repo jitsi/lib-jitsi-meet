@@ -815,18 +815,6 @@ StatsCollector.prototype._processAndEmitReport = function() {
             } else {
                 logger.error(`No participant ID returned by ${track}`);
             }
-        } else if (this.peerconnection.isP2P) {
-            // NOTE For JVB connection there are JVB tracks reported in
-            // the stats, but they do not have corresponding JitsiRemoteTrack
-            // instances stored in TPC. It is not trivial to figure out that
-            // a SSRC belongs to JVB, so we print this error ony for the P2P
-            // connection for the time being.
-            //
-            // Also there will be reports for tracks removed from the session,
-            // for the users who have left the conference.
-            logger.error(
-                `JitsiTrack not found for SSRC ${ssrc}`
-                    + ` in ${this.peerconnection}`);
         }
 
         ssrcStats.resetBitrate();
