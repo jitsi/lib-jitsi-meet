@@ -474,7 +474,7 @@ JitsiConference.prototype.leave = function() {
         return room.leave()
             .then(() => {
                 if (this.rtc) {
-                    this.rtc.dispose();
+                    this.rtc.destroy();
                 }
             })
             .catch(error => {
