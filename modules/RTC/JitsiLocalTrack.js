@@ -199,7 +199,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     const now = window.performance.now();
 
                     this._noDataFromSourceTimeout
-                        = setTimeout(_onNoDataFromSourceError, 3000);
+                        = setTimeout(_onNoDataFromSourceError, 5000);
                     this._setHandler('track_unmute', () => {
                         this._clearNoDataFromSourceMuteResources();
                         Statistics.sendAnalyticsAndLog(
