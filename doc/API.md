@@ -66,11 +66,12 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
     - options - JS object with configuration options for the local media tracks. You can change the following properties there:
         1. devices - array with the devices - "desktop", "video" and "audio" that will be passed to GUM. If that property is not set GUM will try to get all available devices.
         2. resolution - the prefered resolution for the local video.
-        3. cameraDeviceId - the deviceID for the video device that is going to be used
-        4. micDeviceId - the deviceID for the audio device that is going to be used
-        5. minFps - the minimum frame rate for the video stream (passed to GUM)
-        6. maxFps - the maximum frame rate for the video stream (passed to GUM)
-        7. facingMode - facing mode for a camera (possible values - 'user', 'environment')
+        3. constraints - the prefered encoding properties for the created track (replaces 'resolution' in newer releases of browsers)
+        4. cameraDeviceId - the deviceID for the video device that is going to be used
+        5. micDeviceId - the deviceID for the audio device that is going to be used
+        6. minFps - the minimum frame rate for the video stream (passed to GUM)
+        7. maxFps - the maximum frame rate for the video stream (passed to GUM)
+        8. facingMode - facing mode for a camera (possible values - 'user', 'environment')
     - firePermissionPromptIsShownEvent - optional boolean parameter. If set to ```true```, ```JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN``` will be fired when browser shows gUM permission prompt.
 
 * ```JitsiMeetJS.enumerateDevices(callback)``` - __DEPRECATED__. Use ```JitsiMeetJS.mediaDevices.enumerateDevices(callback)``` instead.
@@ -275,7 +276,10 @@ The object represents a conference. We have the following methods to control the
 10. setDisplayName(name) - changes the display name of the local participant.
     - name - the new display name
 
-11. selectParticipant(participantID) - Elects the participant with the given id to be the selected participant or the speaker. You should use that method if you are using simulcast.
+11. selectParticipant(participantId) - Elects the participant with the given id to be the selected participant in order to receive higher video quality (if simulcast is enabled).
+    - participantId - the identifier of the participant
+
+Throws NetworkError or InvalidStateError or Error if the operation fails.
 
 
 12. sendCommand(name, values) - sends user defined system command to the other participants
@@ -374,15 +378,13 @@ Throws NetworkError or InvalidStateError or Error if the operation fails.
 
 Throws NetworkError or InvalidStateError or Error if the operation fails.
 
-33. selectParticipant(participantId) - Elects the participant with the given id to be the selected participant in order to receive higher video quality (if simulcast is enabled).
+33. pinParticipant(participantId) - Elects the participant with the given id to be the pinned participant in order to always receive video for this participant (even when last n is enabled).
     - participantId - the identifier of the participant
 
 Throws NetworkError or InvalidStateError or Error if the operation fails.
 
-34. pinParticipant(participantId) - Elects the participant with the given id to be the pinned participant in order to always receive video for this participant (even when last n is enabled).
-    - participantId - the identifier of the participant
-
-Throws NetworkError or InvalidStateError or Error if the operation fails.
+34. setReceiverVideoConstraint(resolution) - set the desired resolution to get from JVB (180, 360, 720, 1080, etc).
+    You should use that method if you are using simulcast.
 
 JitsiTrack
 ======
