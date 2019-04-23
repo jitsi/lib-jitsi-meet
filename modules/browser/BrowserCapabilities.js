@@ -95,7 +95,6 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     isSupported() {
         return this.isChromiumBased()
-            || this.isEdge()
             || this.isFirefox()
             || this.isReactNative()
             || this.isSafariWithWebrtc();
