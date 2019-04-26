@@ -8,3 +8,6 @@ deploy-local.sh
 lib-jitsi-meet.*
 npm-*.log
 .sync-config.cson
+.jshintignore
+.jshintrc
+.DS_Store
