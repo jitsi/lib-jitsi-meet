@@ -1460,6 +1460,10 @@ class RTCUtils extends Listenable {
      * @param mediaStream MediaStream object to stop.
      */
     stopMediaStream(mediaStream) {
+        if (!mediaStream) {
+            return;
+        }
+
         mediaStream.getTracks().forEach(track => {
             if (track.stop) {
                 track.stop();

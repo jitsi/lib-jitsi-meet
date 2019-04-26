@@ -148,14 +148,25 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this._noDataFromSourceTimeout = null;
 
         this._onDeviceListWillChange = devices => {
+            const oldRealDeviceId = this._realDeviceId;
+
             this._setRealDeviceIdFromDeviceList(devices);
 
-            // Mark track as ended for those browsers that do not support
-            // "readyState" property. We do not touch tracks created with
-            // default device ID "".
-            if (typeof this.getTrack().readyState === 'undefined'
+            if (
+                // Mark track as ended for those browsers that do not support
+                // "readyState" property. We do not touch tracks created with
+                // default device ID "".
+                (typeof this.getTrack().readyState === 'undefined'
                     && typeof this._realDeviceId !== 'undefined'
-                    && !devices.find(d => d.deviceId === this._realDeviceId)) {
+                    && !devices.find(d => d.deviceId === this._realDeviceId))
+
+                // If there was an associated realDeviceID and after the device change the realDeviceId is undefined
+                // then the associated device has been disconnected and the _trackEnded flag needs to be set. In
+                // addition on some Chrome versions the readyState property is set after the device change event is
+                // triggered which causes issues in jitsi-meet with the selection of a new device because we don't
+                // detect that the old one was removed.
+                || (typeof oldRealDeviceId !== 'undefined' && typeof this._realDeviceId === 'undefined')
+            ) {
                 this._trackEnded = true;
             }
         };
@@ -182,6 +193,12 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {boolean}
      */
     isEnded() {
+        if (this.isVideoTrack() && this.isMuted()) {
+            // If a video track is muted the readyState will be ended, that's why we need to rely only on the
+            // _trackEnded flag.
+            return this._trackEnded;
+        }
+
         return this.getTrack().readyState === 'ended' || this._trackEnded;
     }
 
@@ -279,6 +296,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         if (device) {
             this._realDeviceId = device.deviceId;
+        } else {
+            this._realDeviceId = undefined;
         }
     }
 
