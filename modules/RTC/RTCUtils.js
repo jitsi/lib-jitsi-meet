@@ -1397,7 +1397,8 @@ class RTCUtils extends Listenable {
 
                 mediaStreamsMetaData.push({
                     stream: audioStream,
-                    track: audioStream.getAudioTracks()[0]
+                    track: audioStream.getAudioTracks()[0],
+                    effects: options.effects
                 });
             }
 
@@ -1409,7 +1410,8 @@ class RTCUtils extends Listenable {
                 mediaStreamsMetaData.push({
                     stream: videoStream,
                     track: videoStream.getVideoTracks()[0],
-                    videoType: VideoType.CAMERA
+                    videoType: VideoType.CAMERA,
+                    effects: options.effects
                 });
             }
         };

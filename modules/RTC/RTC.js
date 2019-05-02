@@ -51,7 +51,8 @@ function createLocalTracks(tracksInfo, options) {
             ...trackInfo,
             deviceId,
             facingMode: options.facingMode,
-            rtcId: rtcTrackIdCounter
+            rtcId: rtcTrackIdCounter,
+            effects: options.effects
         });
 
         newTracks.push(localTrack);
@@ -71,7 +72,8 @@ function createLocalTracks(tracksInfo, options) {
  *     track: MediaTrack within the MediaStream,
  *     videoType: "camera" or "desktop" or falsy,
  *     sourceId: ID of the desktopsharing source,
- *     sourceType: The desktopsharing source type
+ *     sourceType: The desktopsharing source type,
+ *     effects: Array of effect types
  * }}
  */
 function _newCreateLocalTracks(mediaStreamMetaData = []) {
@@ -81,7 +83,8 @@ function _newCreateLocalTracks(mediaStreamMetaData = []) {
             sourceType,
             stream,
             track,
-            videoType
+            videoType,
+            effects
         } = metaData;
 
         const { deviceId, facingMode } = track.getSettings();
@@ -100,7 +103,8 @@ function _newCreateLocalTracks(mediaStreamMetaData = []) {
             sourceType,
             stream,
             track,
-            videoType: videoType || null
+            videoType: videoType || null,
+            effects
         });
     });
 }

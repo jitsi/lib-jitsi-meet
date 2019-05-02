@@ -278,6 +278,7 @@ export default _mergeNamespaceAndModule({
      * @param options Object with properties / settings specifying the tracks
      * which should be created. should be created or some additional
      * configurations about resolution for example.
+     * @param {Array} options.effects optional effects array for the track
      * @param {Array} options.devices the devices that will be requested
      * @param {string} options.resolution resolution constraints
      * @param {string} options.cameraDeviceId
