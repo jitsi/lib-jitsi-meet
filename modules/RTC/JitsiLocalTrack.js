@@ -32,6 +32,7 @@ const logger = getLogger(__filename);
  * One <tt>JitsiLocalTrack</tt> corresponds to one WebRTC MediaStreamTrack.
  */
 export default class JitsiLocalTrack extends JitsiTrack {
+
     /**
      * Constructs new JitsiLocalTrack instance.
      *
@@ -43,6 +44,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * JitsiRemoteTrack
      * @param trackInfo.mediaType the MediaType of the JitsiRemoteTrack
      * @param trackInfo.videoType the VideoType of the JitsiRemoteTrack
+     * @param trackInfo.effects the effects array contains the effect instance to use
      * @param trackInfo.resolution the video resolution if it's a video track
      * @param trackInfo.deviceId the ID of the local device for this track
      * @param trackInfo.facingMode the camera facing mode used in getUserMedia
@@ -60,7 +62,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
         sourceType,
         stream,
         track,
-        videoType
+        videoType,
+        effects = []
     }) {
         super(
             /* conference */ null,
@@ -69,6 +72,16 @@ export default class JitsiLocalTrack extends JitsiTrack {
             /* streamInactiveHandler */ () => this.emit(LOCAL_TRACK_STOPPED),
             mediaType,
             videoType);
+
+        const effect = effects.find(e => e.isEnabled(this));
+
+        this._effectEnabled = false;
+        this._streamChangeInProgress = false;
+
+        if (effect) {
+            this._setStream(this._startStreamEffect(effect));
+            this._effectEnabled = true;
+        }
 
         /**
          * The ID assigned by the RTC module on instance creation.
@@ -307,6 +320,104 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
+     * Starts the effect process and returns the modified stream.
+     *
+     * @private
+     * @param {*} effect - Represents effect instance
+     * @returns {MediaStream}
+     */
+    _startStreamEffect(effect) {
+        this._streamEffect = effect;
+        this._originalStream = this.stream;
+        this._streamEffect.startEffect(this._originalStream);
+
+        return this._streamEffect.getStreamWithEffect();
+    }
+
+    /**
+     * Stops the effect process and returns the original stream.
+     *
+     * @private
+     * @returns {MediaStream}
+     */
+    _stopStreamEffect() {
+        this._streamEffect.stopEffect();
+        this._streamEffect = null;
+
+        return this._originalStream;
+    }
+
+    /**
+     * Switches the video stream associated with this track and updates the containers.
+     *
+     * @private
+     * @param {MediaStream} newStream - The MediaStream to replace
+     * @returns {Promise}
+     */
+    _switchStream(newStream: MediaStream) {
+        if (this._streamChangeInProgress === true) {
+            return Promise.reject(new Error('Stream change already in progress!'));
+        }
+
+        this._streamChangeInProgress = true;
+
+        const conference = this.conference;
+
+        if (!conference) {
+            return Promise.resolve();
+        }
+
+        return conference.removeTrack(this)
+            .then(() => {
+                this._setStream(newStream);
+
+                if (!this.isAudioTrack()) {
+                    this.containers.forEach(
+                        cont => RTCUtils.attachMediaStream(cont, this.stream));
+                }
+
+                return conference.addTrack(this);
+            })
+            .then(() => {
+                this._streamChangeInProgress = false;
+            })
+            .catch(error => {
+                this._streamChangeInProgress = false;
+                logger.error('Failed to switch to new stream!', error);
+                throw error;
+            });
+    }
+
+    /**
+     * Sets the effect and switches between the modified stream and original one.
+     *
+     * @param {Boolean} enableFlag - Flag to start or stop the effect processing
+     * @param {*} effect - Represents the effect instance to use
+     * @returns {Promise}
+     */
+    enableEffect(enableFlag: Boolean, effect) {
+        if (this._effectEnabled === enableFlag) {
+            return Promise.resolve();
+        }
+
+        if (this.isMuted()) {
+            return Promise.resolve();
+        }
+
+        this._effectEnabled = enableFlag;
+
+        return this._switchStream(enableFlag ? this._startStreamEffect(effect) : this._stopStreamEffect())
+                    .catch(error => {
+                        if (enableFlag) {
+                            this._stopStreamEffect();
+                        }
+                        this._effectEnabled = false;
+                        logger.error('Failed to switch to new stream!', error);
+                        throw error;
+                    });
+    }
+
+    /**
      * Asynchronously mutes this track.
      *
      * @returns {Promise}
@@ -371,6 +482,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 this.track.enabled = !muted;
             }
         } else if (muted) {
+
             promise = new Promise((resolve, reject) => {
                 logMuteInfo();
                 this._removeStreamFromConferenceAsMute(
@@ -385,6 +497,12 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     },
                     reject);
             });
+
+            promise.then(() => {
+                if (this._effectEnabled) {
+                    this._stopStreamEffect();
+                }
+            });
         } else {
             logMuteInfo();
 
@@ -392,6 +510,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             const streamOptions = {
                 cameraDeviceId: this.getDeviceId(),
                 devices: [ MediaType.VIDEO ],
+                effects: this._streamEffect ? [ this._streamEffect ] : [],
                 facingMode: this.getCameraFacingMode()
             };
 
@@ -433,6 +552,10 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     }
                 } else {
                     throw new JitsiTrackError(TRACK_NO_STREAM_FOUND);
+                }
+
+                if (this._effectEnabled) {
+                    this._setStream(this._startStreamEffect(this._streamEffect));
                 }
 
                 this.containers.map(
@@ -522,6 +645,10 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {Promise}
      */
     dispose() {
+        if (this._effectEnabled) {
+            this._setStream(this._stopStreamEffect());
+        }
+
         let promise = Promise.resolve();
 
         if (this.conference) {
@@ -679,7 +806,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * Stops the associated MediaStream.
      */
     stopStream() {
-
         /**
          * Indicates that we are executing {@link #stopStream} i.e.
          * {@link RTCUtils#stopMediaStream} for the <tt>MediaStream</tt>
@@ -751,7 +877,11 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // we aren't receiving any data from the source. We want to notify
         // the users for error if the stream is muted or ended on it's
         // creation.
-        return this.stream.getTracks().some(track =>
+
+        // For video blur enabled use the original video stream
+        const stream = this._effectEnabled ? this._originalStream : this.stream;
+
+        return stream.getTracks().some(track =>
             (!('readyState' in track) || track.readyState === 'live')
                 && (!('muted' in track) || track.muted !== true));
     }
