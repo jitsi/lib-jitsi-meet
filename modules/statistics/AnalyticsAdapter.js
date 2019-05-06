@@ -107,14 +107,14 @@ class AnalyticsAdapter {
     dispose() {
         logger.warn('Disposing of analytics adapter.');
         
-        if (this.analyticsHandlers && this.analyticsHandlers.length > 0) {
+        if (this.analyticsHandlers && this.analyticsHandlers.size > 0) {
             this.analyticsHandlers.forEach(handler => {
                 if ( typeof handler.dispose === 'function' ) {
                     handler.dispose();
                 }
             });
         }
-        
+
         this.setAnalyticsHandlers([]);
         this.disposed = true;
     }
