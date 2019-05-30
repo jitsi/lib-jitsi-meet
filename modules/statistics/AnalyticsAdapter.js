@@ -115,10 +115,10 @@ class AnalyticsAdapter {
      */
     dispose() {
         logger.warn('Disposing of analytics adapter.');
-        
+
         if (this.analyticsHandlers && this.analyticsHandlers.size > 0) {
             this.analyticsHandlers.forEach(handler => {
-                if ( typeof handler.dispose === 'function' ) {
+                if (typeof handler.dispose === 'function') {
                     handler.dispose();
                 }
             });

@@ -52,6 +52,11 @@ const XMPPEvents = {
     // This should go to the RTC module.
     CONNECTION_ICE_FAILED: 'xmpp.connection.ice.failed',
 
+    /**
+     * Designates an event indicating connection status changes.
+     */
+    CONNECTION_STATUS_CHANGED: 'xmpp.connection.status.changed',
+
     // Designates an event indicating that the display name of a participant
     // has changed.
     DISPLAY_NAME_CHANGED: 'xmpp.display_name_changed',
