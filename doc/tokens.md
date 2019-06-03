@@ -113,12 +113,12 @@ Proceed to "Patching Prosody" section to finish configuration.
 
 ### Patching Prosody
 
-JWT token authentication requires prosody-trunk version at least 607.
+JWT token authentication requires prosody-trunk version at least 747.
 
 You can download latest prosody-trunk packages from [here]. Then install it with the following command:
 
 ```
-sudo dpkg -i prosody-trunk_1nightly607-1~trusty_amd64.deb
+sudo dpkg -i prosody-trunk_1nightly747-1~trusty_amd64.deb
 ```
 
 Make sure that */etc/prosody/prosody.cfg.lua* contains the line below at the end to include meet host config. That's because Prosody nightly may come with slightly different default config:
