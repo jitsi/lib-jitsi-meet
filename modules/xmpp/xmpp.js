@@ -427,6 +427,15 @@ export default class XMPP extends Listenable {
     }
 
     /**
+     * Returns the jid of the participant associated with the Strophe connection.
+     *
+     * @returns {string} The jid of the participant.
+     */
+    getJid() {
+        return this.connection.jid;
+    }
+
+    /**
      * Returns the logs from strophe.jingle.
      * @returns {Object}
      */

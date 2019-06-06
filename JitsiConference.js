@@ -1055,6 +1055,22 @@ JitsiConference.prototype.getRole = function() {
 };
 
 /**
+ * Returns whether or not the current conference has been joined as a hidden
+ * user.
+ *
+ * @returns {boolean|null} True if hidden, false otherwise. Will return null if
+ * no connection is active.
+ */
+JitsiConference.prototype.isHidden = function() {
+    if (!this.connection) {
+        return null;
+    }
+
+    return Strophe.getDomainFromJid(this.connection.getJid())
+        === this.options.config.hiddenDomain;
+};
+
+/**
  * Check if local user is moderator.
  * @returns {boolean|null} true if local user is moderator, false otherwise. If
  * we're no longer in the conference room then <tt>null</tt> is returned.
@@ -1312,6 +1328,7 @@ JitsiConference.prototype.onMemberJoined = function(
     if (id === 'focus' || this.myUserId() === id) {
         return;
     }
+
     const participant
         = new JitsiParticipant(jid, this, nick, isHidden, statsID, status);
 
@@ -1373,6 +1390,7 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
     if (id === 'focus' || this.myUserId() === id) {
         return;
     }
+
     const participant = this.participants[id];
 
     delete this.participants[id];

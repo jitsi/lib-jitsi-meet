@@ -85,6 +85,15 @@ JitsiConnection.prototype.disconnect = function(...args) {
 };
 
 /**
+ * Returns the jid of the participant associated with the XMPP connection.
+ *
+ * @returns {string} The jid of the participant.
+ */
+JitsiConnection.prototype.getJid = function() {
+    return this.xmpp.getJid();
+};
+
+/**
  * This method allows renewal of the tokens if they are expiring.
  * @param token the new token.
  */

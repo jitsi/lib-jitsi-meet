@@ -386,6 +386,8 @@ Throws NetworkError or InvalidStateError or Error if the operation fails.
 34. setReceiverVideoConstraint(resolution) - set the desired resolution to get from JVB (180, 360, 720, 1080, etc).
     You should use that method if you are using simulcast.
 
+35. isHidden - checks if local user has joined as a "hidden" user. This is a specialized role used for integrations.
+
 JitsiTrack
 ======
 The object represents single track - video or audio. They can be remote tracks ( from the other participants in the call) or local tracks (from the devices of the local participant).
