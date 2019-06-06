@@ -443,6 +443,24 @@ export const createRttByRegionEvent = function(attributes) {
 };
 
 /**
+ * Creates an event which contains an information related to the bridge channel close event.
+ *
+ * @param {string} code - A code from {@link https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent}
+ * @param {string} reason - A string which describes the reason for closing the bridge channel.
+ * @returns {{type: string, action: string, attributes: { code: string, reason: string }}}
+ */
+export const createBridgeChannelClosedEvent = function(code, reason) {
+    return {
+        type: TYPE_OPERATIONAL,
+        action: 'bridge-channel.error',
+        attributes: {
+            code,
+            reason
+        }
+    };
+};
+
+/**
  * Creates an event which indicates the Time To First Media (TTFM).
  * It is measured in milliseconds relative to the beginning of the document's
  * lifetime (i.e. the origin used by window.performance.now()), and it excludes
