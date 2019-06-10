@@ -1086,7 +1086,7 @@ JitsiConference.prototype.isModerator = function() {
  */
 JitsiConference.prototype.lock = function(password) {
     if (!this.isModerator()) {
-        throw new Error('You are not moderator.');
+        return Promise.reject('You are not moderator.');
     }
 
     return new Promise((resolve, reject) => {
