@@ -304,6 +304,10 @@ export default class JingleSessionPC extends JingleSession {
             pcOptions.enableLayerSuspension = options.enableLayerSuspension;
         }
 
+        if (options.startSilent) {
+            pcOptions.startSilent = true;
+        }
+
         this.peerconnection
             = this.rtc.createPeerConnection(
                     this.signalingLayer,
