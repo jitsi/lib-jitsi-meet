@@ -644,15 +644,19 @@ JitsiConferenceEventManager.prototype.setupStatisticsListeners = function() {
         conference.eventEmitter.emit(
             JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED);
     });
-    conference.statistics.addByteSentStatsListener((tpc, stats) => {
-        conference.getLocalTracks(MediaType.AUDIO).forEach(track => {
-            const ssrc = tpc.getLocalSSRC(track);
 
-            if (!ssrc || !stats.hasOwnProperty(ssrc)) {
-                return;
-            }
+    // if we are in startSilent mode we will not be sending/receiving so nothing to detect
+    if (!conference.options.config.startSilent) {
+        conference.statistics.addByteSentStatsListener((tpc, stats) => {
+            conference.getLocalTracks(MediaType.AUDIO).forEach(track => {
+                const ssrc = tpc.getLocalSSRC(track);
 
-            track._onByteSentStatsReceived(tpc, stats[ssrc]);
+                if (!ssrc || !stats.hasOwnProperty(ssrc)) {
+                    return;
+                }
+
+                track._onByteSentStatsReceived(tpc, stats[ssrc]);
+            });
         });
-    });
+    }
 };

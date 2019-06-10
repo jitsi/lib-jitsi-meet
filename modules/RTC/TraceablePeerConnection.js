@@ -52,6 +52,7 @@ const SIM_LAYER_RIDS = [ SIM_LAYER_1_RID, SIM_LAYER_2_RID, SIM_LAYER_3_RID ];
  * @param {boolean} options.enableLayerSuspension if set to 'true', we will
  * cap the video send bitrate when we are told we have not been selected by
  * any endpoints (and therefore the non-thumbnail streams are not in use).
+ * @param {boolean} options.startSilent If set to 'true' no audio will be sent or received.
  *
  * FIXME: initially the purpose of TraceablePeerConnection was to be able to
  * debug the peer connection. Since many other responsibilities have been added
@@ -77,7 +78,7 @@ export default function TraceablePeerConnection(
      * @type {boolean}
      * @private
      */
-    this.audioTransferActive = true;
+    this.audioTransferActive = !(options.startSilent === true);
 
     /**
      * Indicates whether or not this peer connection instance is actively
@@ -1166,8 +1167,9 @@ function replaceDefaultUnifiedPlanMsid(ssrcLines = []) {
 /**
  * Makes sure that both audio and video directions are configured as 'sendrecv'.
  * @param {Object} localDescription the SDP object as defined by WebRTC.
+ * @param {object} options <tt>TracablePeerConnection</tt> config options.
  */
-const enforceSendRecv = function(localDescription) {
+const enforceSendRecv = function(localDescription, options) {
     if (!localDescription) {
         throw new Error('No local description passed in.');
     }
@@ -1177,7 +1179,12 @@ const enforceSendRecv = function(localDescription) {
     let changed = false;
 
     if (audioMedia && audioMedia.direction !== 'sendrecv') {
-        audioMedia.direction = 'sendrecv';
+        if (options.startSilent) {
+            audioMedia.direction = 'inactive';
+        } else {
+            audioMedia.direction = 'sendrecv';
+        }
+
         changed = true;
     }
 
@@ -1298,7 +1305,7 @@ const getters = {
         // Note that the description we set in chrome does have the accurate
         // direction (e.g. 'recvonly'), since that is technically what is
         // happening (check setLocalDescription impl).
-        desc = enforceSendRecv(desc);
+        desc = enforceSendRecv(desc, this.options);
 
         // See the method's doc for more info about this transformation.
         desc = this.localSdpMunger.transformStreamIdentifiers(desc);
@@ -1810,7 +1817,7 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
  * disabled the SDP audio media direction in the local SDP will be adjusted to
  * 'inactive' which means that no data will be sent nor accepted, but
  * the connection should be kept alive.
- * @param {boolean} active <tt>true</tt> to enable video media transmission or
+ * @param {boolean} active <tt>true</tt> to enable audio media transmission or
  * <tt>false</tt> to disable. If the value is not a boolean the call will have
  * no effect.
  * @return {boolean} <tt>true</tt> if the value has changed and sRD/sLD cycle

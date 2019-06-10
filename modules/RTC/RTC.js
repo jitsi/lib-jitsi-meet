@@ -494,6 +494,7 @@ export default class RTC extends Listenable {
      *      disabled by removing it from the SDP.
      * @param {boolean} options.preferH264 If set to 'true' H264 will be
      *      preferred over other video codecs.
+     * @param {boolean} options.startSilent If set to 'true' no audio will be sent or received.
      * @return {TraceablePeerConnection}
      */
     createPeerConnection(signaling, iceConfig, isP2P, options) {
