@@ -90,9 +90,3 @@ export const TRACK_NO_STREAM_FOUND = 'track.no_stream_found';
  * by a webcam.
  */
 export const UNSUPPORTED_RESOLUTION = 'gum.unsupported_resolution';
-
-/**
- * Indicates that the track is no receiving any data without reason(the
- * stream was stopped, etc)
- */
-export const NO_DATA_FROM_SOURCE = 'track.no_data_from_source';

@@ -30,9 +30,6 @@ TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_IS_DISPOSED]
     = 'Track has been already disposed';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_NO_STREAM_FOUND]
     = 'Track does not have an associated Media Stream';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.NO_DATA_FROM_SOURCE]
-    = 'The track has stopped receiving data from it\'s source';
-
 
 // FIXME: Using prototype inheritance because otherwise instanceof is not
 // working properly (see https://github.com/babel/babel/issues/3083)
