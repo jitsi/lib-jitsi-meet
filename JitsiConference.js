@@ -1412,6 +1412,33 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
 };
 
 /**
+ * Designates an event indicating that we were kicked from the XMPP MUC.
+ * @param {boolean} isSelfPresence - whether it is for local participant
+ * or another participant.
+ * @param {string} actorJid - the jid of the participant who was initiator
+ * of the kick.
+ * @param {string?} participantJid - when it is not a kick for local participant,
+ * this is the jid of the participant which was kicked.
+ */
+JitsiConference.prototype.onMemberKicked = function(isSelfPresence, actorJid, participantJid) {
+    const actorId = Strophe.getResourceFromJid(actorJid);
+    const actorParticipant = this.participants[actorId];
+
+    if (isSelfPresence) {
+        this.eventEmitter.emit(
+            JitsiConferenceEvents.KICKED, actorParticipant);
+
+        this.leave();
+    }
+
+    const kickedParticipantId = Strophe.getResourceFromJid(participantJid);
+    const kickedParticipant = this.participants[kickedParticipantId];
+
+    this.eventEmitter.emit(
+        JitsiConferenceEvents.PARTICIPANT_KICKED, actorParticipant, kickedParticipant);
+};
+
+/**
  * Method called on local MUC role change.
  * @param {string} role the name of new user's role as defined by XMPP MUC.
  */

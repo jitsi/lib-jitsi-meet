@@ -804,6 +804,40 @@ export default class ChatRoom extends Listenable {
                 .length;
         const membersKeys = Object.keys(this.members);
 
+        // the actor of the kick (who initiated it)
+        let actorJid;
+
+        if (isKick) {
+            const actorSelect
+                = $(pres)
+                .find('>x[xmlns="http://jabber.org/protocol/muc#user"]>item>actor');
+
+            let actorNick;
+
+            if (actorSelect.length) {
+                actorNick = actorSelect.attr('nick');
+            }
+
+            membersKeys.forEach(jid => {
+                if (Strophe.getResourceFromJid(jid) === actorNick) {
+                    actorJid = jid;
+                }
+            });
+
+            // if no actorJid is found this is the case we had kicked someone
+            // and we are not in the list of members
+            if (actorJid) {
+                // we first fire the kicked so we can show the participant
+                // who kicked, before notifying that participant left
+                // we fire kicked for us and for any participant kicked
+                this.eventEmitter.emit(
+                    XMPPEvents.KICKED,
+                    isSelfPresence,
+                    actorJid,
+                    from);
+            }
+        }
+
         if (!isSelfPresence) {
             delete this.members[from];
             this.onParticipantLeft(from, false);
@@ -824,10 +858,6 @@ export default class ChatRoom extends Listenable {
             if (!isKick) {
                 this.eventEmitter.emit(XMPPEvents.MUC_LEFT);
             }
-        }
-
-        if (isKick && this.myroomjid === from) {
-            this.eventEmitter.emit(XMPPEvents.KICKED);
         }
     }
 

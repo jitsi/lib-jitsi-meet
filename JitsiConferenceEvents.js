@@ -104,8 +104,16 @@ export const JVB121_STATUS = 'conference.jvb121Status';
 
 /**
  * You are kicked from the conference.
+ * @param {JitsiParticipant} the participant that initiated the kick.
  */
 export const KICKED = 'conference.kicked';
+
+/**
+ * Participant was kicked from the conference.
+ * @param {JitsiParticipant} the participant that initiated the kick.
+ * @param {JitsiParticipant} the participant that was kicked.
+ */
+export const PARTICIPANT_KICKED = 'conference.participant_kicked';
 
 /**
  * The Last N set is changed.
