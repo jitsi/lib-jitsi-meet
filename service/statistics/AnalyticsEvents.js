@@ -207,6 +207,14 @@ export const ICE_ESTABLISHMENT_DURATION_DIFF
 export const ICE_STATE_CHANGED = 'ice.state.changed';
 
 /**
+ * Indicates that no bytes have been sent for the track.
+ *
+ * Properties:
+ *      mediaType: the media type of the local track ('audio' or 'video').
+ */
+export const NO_BYTES_SENT = 'track.no-bytes-sent';
+
+/**
  * Indicates that a track was unmuted (?).
  *
  * Properties:

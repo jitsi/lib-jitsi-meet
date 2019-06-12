@@ -19,6 +19,7 @@ import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import VideoType from '../../service/RTC/VideoType';
 import {
+    NO_BYTES_SENT,
     TRACK_UNMUTED,
     createNoDataFromSourceEvent
 } from '../../service/statistics/AnalyticsEvents';
@@ -139,15 +140,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // NOTE: this.deviceId corresponds to the device id specified in GUM constraints and this._realDeviceId seems to
         // correspond to the id of a matching device from the available device list.
         this._realDeviceId = this.deviceId === '' ? undefined : this.deviceId;
-
-        /**
-         * On mute event we are waiting for 3s to check if the stream is going
-         * to be still muted before firing the event for camera issue detected
-         * (NO_DATA_FROM_SOURCE).
-         */
-        this._noDataFromSourceTimeout = null;
-
-        this._onTrackMuted = this._onTrackMuted.bind(this);
 
         this._trackMutedTS = 0;
 
@@ -633,10 +625,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
             setTimeout(() => {
                 if (!this._hasSentData) {
                     logger.warn(`${this} 'bytes sent' <= 0: \
-                        ${this._bytesSent}`);
+                        ${bytesSent}`);
 
-                    // we are not receiving anything from the microphone
-                    this._fireNoDataFromSourceEvent();
+                    Statistics.analytics.sendEvent(NO_BYTES_SENT, { 'media_type': this.getType() });
                 }
             }, 3000);
             this._testDataSent = false;
