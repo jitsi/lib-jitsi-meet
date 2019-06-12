@@ -109,8 +109,7 @@ export default class JitsiTrack extends EventEmitter {
         }
 
         if (this.stream) {
-            // FIXME Why only video tracks?
-            for (const track of this.stream.getVideoTracks()) {
+            for (const track of this.stream.getTracks()) {
                 track[trackHandler2Prop[type]] = handler;
             }
         }
