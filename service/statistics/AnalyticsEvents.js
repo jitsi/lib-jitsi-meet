@@ -344,9 +344,12 @@ export const createJingleEvent = function(action, attributes = {}) {
  * @param mediaType {String} the media type of the local track ('audio' or
  * 'video').
  */
-export const createNoDataFromSourceEvent = function(mediaType) {
+export const createNoDataFromSourceEvent = function(mediaType, value) {
     return {
-        attributes: { 'media_type': mediaType },
+        attributes: {
+            'media_type': mediaType,
+            value
+        },
         action: 'track.no.data.from.source',
         type: TYPE_OPERATIONAL
     };
