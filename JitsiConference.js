@@ -135,6 +135,9 @@ export default function JitsiConference(options) {
     };
     this.isMutedByFocus = false;
 
+    // when muted by focus we receive and the jid of the initator of the mute
+    this.mutedByFocusActor = null;
+
     // Flag indicates if the 'onCallEnded' method was ever called on this
     // instance. Used to log extra analytics event for debugging purpose.
     // We need to know if the potential issue happened before or after
@@ -828,7 +831,16 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
         // unmute local user on server
         this.room.muteParticipant(this.room.myroomjid, false);
     }
-    this.eventEmitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track);
+
+    let actorParticipant;
+
+    if (this.mutedByFocusActor) {
+        const actorId = Strophe.getResourceFromJid(this.mutedByFocusActor);
+
+        actorParticipant = this.participants[actorId];
+    }
+
+    this.eventEmitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track, actorParticipant);
 };
 
 /**
