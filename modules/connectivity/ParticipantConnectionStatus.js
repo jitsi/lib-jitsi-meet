@@ -23,7 +23,7 @@ const DEFAULT_NOT_IN_LAST_N_TIMEOUT = 500;
  *
  * @type {number}
  */
-const DEFAULT_RTC_MUTE_TIMEOUT = 2000;
+const DEFAULT_RTC_MUTE_TIMEOUT = 10000;
 
 /**
  * The time to wait a track to be restored. Track which was out of lastN
@@ -33,7 +33,7 @@ const DEFAULT_RTC_MUTE_TIMEOUT = 2000;
  * interrupted.
  * @type {number}
  */
-const DEFAULT_RESTORING_TIMEOUT = 5000;
+const DEFAULT_RESTORING_TIMEOUT = 10000;
 
 /**
  * Participant connection statuses.
