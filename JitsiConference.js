@@ -135,7 +135,7 @@ export default function JitsiConference(options) {
     };
     this.isMutedByFocus = false;
 
-    // when muted by focus we receive and the jid of the initator of the mute
+    // when muted by focus we receive the jid of the initiator of the mute
     this.mutedByFocusActor = null;
 
     // Flag indicates if the 'onCallEnded' method was ever called on this
@@ -1427,13 +1427,12 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
  * Designates an event indicating that we were kicked from the XMPP MUC.
  * @param {boolean} isSelfPresence - whether it is for local participant
  * or another participant.
- * @param {string} actorJid - the jid of the participant who was initiator
+ * @param {string} actorId - the id of the participant who was initiator
  * of the kick.
- * @param {string?} participantJid - when it is not a kick for local participant,
- * this is the jid of the participant which was kicked.
+ * @param {string?} kickedParticipantId - when it is not a kick for local participant,
+ * this is the id of the participant which was kicked.
  */
-JitsiConference.prototype.onMemberKicked = function(isSelfPresence, actorJid, participantJid) {
-    const actorId = Strophe.getResourceFromJid(actorJid);
+JitsiConference.prototype.onMemberKicked = function(isSelfPresence, actorId, kickedParticipantId) {
     const actorParticipant = this.participants[actorId];
 
     if (isSelfPresence) {
@@ -1445,7 +1444,6 @@ JitsiConference.prototype.onMemberKicked = function(isSelfPresence, actorJid, pa
         return;
     }
 
-    const kickedParticipantId = Strophe.getResourceFromJid(participantJid);
     const kickedParticipant = this.participants[kickedParticipantId];
 
     this.eventEmitter.emit(

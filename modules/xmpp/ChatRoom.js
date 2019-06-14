@@ -804,9 +804,6 @@ export default class ChatRoom extends Listenable {
                 .length;
         const membersKeys = Object.keys(this.members);
 
-        // the actor of the kick (who initiated it)
-        let actorJid;
-
         if (isKick) {
             const actorSelect
                 = $(pres)
@@ -818,23 +815,17 @@ export default class ChatRoom extends Listenable {
                 actorNick = actorSelect.attr('nick');
             }
 
-            membersKeys.forEach(jid => {
-                if (Strophe.getResourceFromJid(jid) === actorNick) {
-                    actorJid = jid;
-                }
-            });
-
-            // if no actorJid is found this is the case we had kicked someone
+            // if no member is found this is the case we had kicked someone
             // and we are not in the list of members
-            if (actorJid) {
+            if (membersKeys.find(jid => Strophe.getResourceFromJid(jid) === actorNick)) {
                 // we first fire the kicked so we can show the participant
                 // who kicked, before notifying that participant left
                 // we fire kicked for us and for any participant kicked
                 this.eventEmitter.emit(
                     XMPPEvents.KICKED,
                     isSelfPresence,
-                    actorJid,
-                    from);
+                    actorNick,
+                    Strophe.getResourceFromJid(from));
             }
         }
 
