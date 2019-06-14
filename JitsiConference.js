@@ -1441,6 +1441,8 @@ JitsiConference.prototype.onMemberKicked = function(isSelfPresence, actorJid, pa
             JitsiConferenceEvents.KICKED, actorParticipant);
 
         this.leave();
+
+        return;
     }
 
     const kickedParticipantId = Strophe.getResourceFromJid(participantJid);
