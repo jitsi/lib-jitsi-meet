@@ -12,3 +12,4 @@ To build the library, just type:
 ```
 npm install
 ```
+
