@@ -142,6 +142,13 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
             });
         });
 
+    chatRoom.addListener(XMPPEvents.RENEGOTIATION_FAILED, (e, session) => {
+        if (!session.isP2P) {
+            conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+                JitsiConferenceErrors.OFFER_ANSWER_FAILED, e);
+        }
+    });
+
     this.chatRoomForwarder.forward(XMPPEvents.ROOM_JOIN_ERROR,
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.CONNECTION_ERROR);
@@ -179,15 +186,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     this.chatRoomForwarder.forward(XMPPEvents.GRACEFUL_SHUTDOWN,
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.GRACEFUL_SHUTDOWN);
-
-    chatRoom.addListener(XMPPEvents.JINGLE_FATAL_ERROR,
-        (session, error) => {
-            if (!session.isP2P) {
-                conference.eventEmitter.emit(
-                    JitsiConferenceEvents.CONFERENCE_FAILED,
-                    JitsiConferenceErrors.JINGLE_FATAL_ERROR, error);
-            }
-        });
 
     chatRoom.addListener(XMPPEvents.CONNECTION_ICE_FAILED,
         jingleSession => {
@@ -237,17 +235,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
     this.chatRoomForwarder.forward(XMPPEvents.PHONE_NUMBER_CHANGED,
         JitsiConferenceEvents.PHONE_NUMBER_CHANGED);
-
-    chatRoom.addListener(
-        XMPPEvents.CONFERENCE_SETUP_FAILED,
-        (jingleSession, error) => {
-            if (!jingleSession.isP2P) {
-                conference.eventEmitter.emit(
-                    JitsiConferenceEvents.CONFERENCE_FAILED,
-                    JitsiConferenceErrors.SETUP_FAILED,
-                    error);
-            }
-        });
 
     chatRoom.setParticipantPropertyListener((node, from) => {
         const participant = conference.getParticipantById(from);
@@ -503,21 +490,37 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
     rtc.addListener(RTCEvents.CREATE_ANSWER_FAILED,
         (e, tpc) => {
             conference.statistics.sendCreateAnswerFailed(e, tpc);
+            if (!tpc.isP2P) {
+                conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+                    JitsiConferenceErrors.OFFER_ANSWER_FAILED, e);
+            }
         });
 
     rtc.addListener(RTCEvents.CREATE_OFFER_FAILED,
         (e, tpc) => {
             conference.statistics.sendCreateOfferFailed(e, tpc);
+            if (!tpc.isP2P) {
+                conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+                    JitsiConferenceErrors.OFFER_ANSWER_FAILED, e);
+            }
         });
 
     rtc.addListener(RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
         (e, tpc) => {
             conference.statistics.sendSetLocalDescFailed(e, tpc);
+            if (!tpc.isP2P) {
+                conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+                    JitsiConferenceErrors.OFFER_ANSWER_FAILED, e);
+            }
         });
 
     rtc.addListener(RTCEvents.SET_REMOTE_DESCRIPTION_FAILED,
         (e, tpc) => {
             conference.statistics.sendSetRemoteDescFailed(e, tpc);
+            if (!tpc.isP2P) {
+                conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED,
+                    JitsiConferenceErrors.OFFER_ANSWER_FAILED, e);
+            }
         });
 
     rtc.addListener(RTCEvents.LOCAL_TRACK_SSRC_UPDATED,

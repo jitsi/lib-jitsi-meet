@@ -1012,7 +1012,6 @@ export default class JingleSessionPC extends JingleSession {
                             this.isInitiator ? 'answer: ' : 'offer: '}${error}`,
                         newRemoteSdp);
 
-                    this._onJingleFatalError(error);
                     finishedCallback(error);
                 });
         };
@@ -1584,16 +1583,22 @@ export default class JingleSessionPC extends JingleSession {
      */
     _renegotiate(optionalRemoteSdp) {
         if (this.peerconnection.signalingState === 'closed') {
-            return Promise.reject('Attempted to renegotiate in state closed');
+            const error = new Error('Attempted to renegotiate in state closed');
+
+            this.room.eventEmitter.emit(XMPPEvents.RENEGOTIATION_FAILED, error, this);
+
+            return Promise.reject(error);
         }
 
         const remoteSdp
             = optionalRemoteSdp || this.peerconnection.remoteDescription.sdp;
 
         if (!remoteSdp) {
-            return Promise.reject(
-                'Can not renegotiate without remote description,'
-                    + `- current state: ${this.state}`);
+            const error = new Error(`Can not renegotiate without remote description, current state: ${this.state}`);
+
+            this.room.eventEmitter.emit(XMPPEvents.RENEGOTIATION_FAILED, error, this);
+
+            return Promise.reject(error);
         }
 
         const remoteDescription = new RTCSessionDescription({
@@ -2232,20 +2237,6 @@ export default class JingleSessionPC extends JingleSession {
                         `Jingle error: ${JSON.stringify(error)}`));
             }
         };
-    }
-
-    /**
-     *
-     * @param error
-     * @private
-     */
-    _onJingleFatalError(error) {
-        if (this.room) {
-            this.room.eventEmitter.emit(
-                XMPPEvents.CONFERENCE_SETUP_FAILED, this, error);
-            this.room.eventEmitter.emit(
-                XMPPEvents.JINGLE_FATAL_ERROR, this, error);
-        }
     }
 
     /**
