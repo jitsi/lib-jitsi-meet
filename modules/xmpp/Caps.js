@@ -154,7 +154,7 @@ export default class Caps extends Listenable {
                         const receivedNode = `${user.node}#${sha}`;
 
                         if (receivedNode !== node) {
-                            logger.error(`Expected node ${node} but received ${
+                            logger.warn(`Expected node ${node} but received ${
                                 receivedNode}`);
                         }
 
