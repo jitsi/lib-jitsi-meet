@@ -804,6 +804,31 @@ export default class ChatRoom extends Listenable {
                 .length;
         const membersKeys = Object.keys(this.members);
 
+        if (isKick) {
+            const actorSelect
+                = $(pres)
+                .find('>x[xmlns="http://jabber.org/protocol/muc#user"]>item>actor');
+
+            let actorNick;
+
+            if (actorSelect.length) {
+                actorNick = actorSelect.attr('nick');
+            }
+
+            // if no member is found this is the case we had kicked someone
+            // and we are not in the list of members
+            if (membersKeys.find(jid => Strophe.getResourceFromJid(jid) === actorNick)) {
+                // we first fire the kicked so we can show the participant
+                // who kicked, before notifying that participant left
+                // we fire kicked for us and for any participant kicked
+                this.eventEmitter.emit(
+                    XMPPEvents.KICKED,
+                    isSelfPresence,
+                    actorNick,
+                    Strophe.getResourceFromJid(from));
+            }
+        }
+
         if (!isSelfPresence) {
             delete this.members[from];
             this.onParticipantLeft(from, false);
@@ -824,10 +849,6 @@ export default class ChatRoom extends Listenable {
             if (!isKick) {
                 this.eventEmitter.emit(XMPPEvents.MUC_LEFT);
             }
-        }
-
-        if (isKick && this.myroomjid === from) {
-            this.eventEmitter.emit(XMPPEvents.KICKED);
         }
     }
 
@@ -1340,7 +1361,7 @@ export default class ChatRoom extends Listenable {
         const mute = $(iq).find('mute');
 
         if (mute.length && mute.text() === 'true') {
-            this.eventEmitter.emit(XMPPEvents.AUDIO_MUTED_BY_FOCUS);
+            this.eventEmitter.emit(XMPPEvents.AUDIO_MUTED_BY_FOCUS, mute.attr('actor'));
         } else {
             // XXX Why do we support anything but muting? Why do we encode the
             // value in the text of the element? Why do we use a separate XML

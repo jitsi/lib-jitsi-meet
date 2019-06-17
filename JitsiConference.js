@@ -135,6 +135,9 @@ export default function JitsiConference(options) {
     };
     this.isMutedByFocus = false;
 
+    // when muted by focus we receive the jid of the initiator of the mute
+    this.mutedByFocusActor = null;
+
     // Flag indicates if the 'onCallEnded' method was ever called on this
     // instance. Used to log extra analytics event for debugging purpose.
     // We need to know if the potential issue happened before or after
@@ -828,7 +831,16 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
         // unmute local user on server
         this.room.muteParticipant(this.room.myroomjid, false);
     }
-    this.eventEmitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track);
+
+    let actorParticipant;
+
+    if (this.mutedByFocusActor) {
+        const actorId = Strophe.getResourceFromJid(this.mutedByFocusActor);
+
+        actorParticipant = this.participants[actorId];
+    }
+
+    this.eventEmitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track, actorParticipant);
 };
 
 /**
@@ -1409,6 +1421,33 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
 
     this._maybeStartOrStopP2P(true /* triggered by user left event */);
     this._maybeClearSITimeout();
+};
+
+/**
+ * Designates an event indicating that we were kicked from the XMPP MUC.
+ * @param {boolean} isSelfPresence - whether it is for local participant
+ * or another participant.
+ * @param {string} actorId - the id of the participant who was initiator
+ * of the kick.
+ * @param {string?} kickedParticipantId - when it is not a kick for local participant,
+ * this is the id of the participant which was kicked.
+ */
+JitsiConference.prototype.onMemberKicked = function(isSelfPresence, actorId, kickedParticipantId) {
+    const actorParticipant = this.participants[actorId];
+
+    if (isSelfPresence) {
+        this.eventEmitter.emit(
+            JitsiConferenceEvents.KICKED, actorParticipant);
+
+        this.leave();
+
+        return;
+    }
+
+    const kickedParticipant = this.participants[kickedParticipantId];
+
+    this.eventEmitter.emit(
+        JitsiConferenceEvents.PARTICIPANT_KICKED, actorParticipant, kickedParticipant);
 };
 
 /**

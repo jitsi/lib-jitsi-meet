@@ -102,7 +102,15 @@ const XMPPEvents = {
     // Event fired when we have failed to set initial offer
     JINGLE_FATAL_ERROR: 'xmpp.jingle_fatal_error',
 
-    // Designates an event indicating that we were kicked from the XMPP MUC.
+    /**
+     * Designates an event indicating that we were kicked from the XMPP MUC.
+     * @param {boolean} isSelfPresence - whether it is for local participant
+     * or another participant.
+     * @param {string} actorJid - the jid of the participant who was initator
+     * of the kick.
+     * @param {?string} participantJid - when it is not a kick for local participant,
+     * this is the jid of the participant which was kicked.
+     */
     KICKED: 'xmpp.kicked',
 
     // Designates an event indicating that our role in the XMPP MUC has changed.
