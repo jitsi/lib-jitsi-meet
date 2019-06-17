@@ -56,9 +56,9 @@ export const INCOMPATIBLE_SERVER_VERSIONS
     = 'conference.incompatible_server_versions';
 
 /**
- * Indicates that jingle fatal error happened.
+ * Indicates that offer/answer had failed.
  */
-export const JINGLE_FATAL_ERROR = 'conference.jingleFatalError';
+export const OFFER_ANSWER_FAILED = 'conference.offerAnswerFailed';
 
 /**
  * Indicates that password cannot be set for this conference.
