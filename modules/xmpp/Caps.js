@@ -153,15 +153,22 @@ export default class Caps extends Listenable {
                         );
                         const receivedNode = `${user.node}#${sha}`;
 
-                        if (receivedNode !== node) {
-                            logger.warn(`Expected node ${node} but received ${
-                                receivedNode}`);
+                        if (receivedNode === node) {
+                            this.versionToCapabilities[receivedNode] = features;
+
+                            return features;
                         }
 
-                        this.versionToCapabilities[receivedNode] = features;
-                    }
+                        // Check once if it has been cached asynchronously.
+                        if (this.versionToCapabilities[receivedNode]) {
+                            return this.versionToCapabilities[receivedNode];
+                        }
 
-                    return features;
+                        logger.error(`Expected node ${node} but received ${
+                            receivedNode}`);
+
+                        return Promise.reject('Feature version mismatch');
+                    }
                 });
         }
 
