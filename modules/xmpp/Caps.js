@@ -5,6 +5,8 @@ import { b64_sha1, Strophe } from 'strophe.js'; // eslint-disable-line camelcase
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import Listenable from '../util/Listenable';
 
+const logger = require('jitsi-meet-logger').getLogger(__filename);
+
 /**
  * The property
  */
@@ -51,6 +53,7 @@ export default class Caps extends Listenable {
         this.jidToVersion = Object.create(null);
         this.version = '';
         this.rooms = new Set();
+        this._roomJidToMucJoinHandlers = {};
 
         const emuc = connection.emuc;
 
@@ -183,6 +186,19 @@ export default class Caps extends Listenable {
      */
     _addChatRoom(room) {
         this.rooms.add(room);
+
+        const { myroomjid } = room;
+        const fixVersionIfOutdated = () => {
+            if (this.jidToVersion[myroomjid]
+                && this.jidToVersion[myroomjid].version !== this.version) {
+                logger.warn('Mismatched caps version detected on muc join.');
+                room.sendPresence();
+            }
+        };
+
+        this._roomJidToMucJoinHandlers[myroomjid] = fixVersionIfOutdated;
+
+        room.addListener(XMPPEvents.MUC_JOINED, fixVersionIfOutdated);
         room.addListener(XMPPEvents.MUC_MEMBER_LEFT, this._onMucMemberLeft);
         this._fixChatRoomPresenceMap(room);
     }
@@ -194,6 +210,12 @@ export default class Caps extends Listenable {
      */
     _removeChatRoom(room) {
         this.rooms.delete(room);
+
+        const joinHandler = this._roomJidToMucJoinHandlers[room.myroomjid];
+
+        delete this._roomJidToMucJoinHandlers[room.myroomjid];
+        room.removeListener(XMPPEvents.MUC_JOINED, joinHandler);
+
         room.removeListener(XMPPEvents.MUC_MEMBER_LEFT, this._onMucMemberLeft);
     }
 
