@@ -460,6 +460,10 @@ export default class ChatRoom extends Listenable {
                     this.locked = true;
                 }
 
+                // Re-send presence in case any presence updates were added,
+                // but blocked from sending, during the join process.
+                this.sendPresence();
+
                 this.eventEmitter.emit(XMPPEvents.MUC_JOINED);
             }
         } else if (this.members[from] === undefined) {
