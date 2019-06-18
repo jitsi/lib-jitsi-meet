@@ -5,6 +5,8 @@ import { b64_sha1, Strophe } from 'strophe.js'; // eslint-disable-line camelcase
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import Listenable from '../util/Listenable';
 
+const logger = require('jitsi-meet-logger').getLogger(__filename);
+
 /**
  * The property
  */
@@ -25,6 +27,29 @@ function compareIdentities(a, b) {
     );
 
     return res;
+}
+
+/**
+ * Produces a sha-1 from provided identity and features values.
+ *
+ * @param {Array<Object>} identities - The identity objects.
+ * @param {Array<string>} features - The features.
+ * @returns {string}
+ */
+function generateSha(identities, features) {
+    const sortedIdentities = identities.sort(compareIdentities).reduce(
+        (accumulatedValue, identity) => `${
+            IDENTITY_PROPERTIES.reduce(
+                (tmp, key, idx) =>
+                    tmp
+                        + (idx === 0 ? '' : '/')
+                        + identity[key],
+                '')
+        }<`, '');
+    const sortedFeatures = features.sort().reduce(
+        (tmp, feature) => `${tmp + feature}<`, '');
+
+    return b64_sha1(sortedIdentities + sortedFeatures);
 }
 
 /**
@@ -120,13 +145,30 @@ export default class Caps extends Listenable {
             const node = user ? `${user.node}#${user.version}` : null;
 
             return this._getDiscoInfo(jid, node, timeout)
-                .then(({ features }) => {
+                .then(({ features, identities }) => {
                     if (user) {
-                        // TODO: Maybe use the version + node + hash as keys?
-                        this.versionToCapabilities[user.version] = features;
-                    }
+                        const sha = generateSha(
+                            Array.from(identities),
+                            Array.from(features)
+                        );
+                        const receivedNode = `${user.node}#${sha}`;
 
-                    return features;
+                        if (receivedNode === node) {
+                            this.versionToCapabilities[receivedNode] = features;
+
+                            return features;
+                        }
+
+                        // Check once if it has been cached asynchronously.
+                        if (this.versionToCapabilities[receivedNode]) {
+                            return this.versionToCapabilities[receivedNode];
+                        }
+
+                        logger.error(`Expected node ${node} but received ${
+                            receivedNode}`);
+
+                        return Promise.reject('Feature version mismatch');
+                    }
                 });
         }
 
@@ -225,23 +267,9 @@ export default class Caps extends Listenable {
      * Generates the value for the "ver" attribute.
      */
     _generateVersion() {
-        const identities
-          = this.disco._identities.sort(compareIdentities).reduce(
-              (accumulatedValue, identity) =>
-                  `${
-                      IDENTITY_PROPERTIES.reduce(
-                          (tmp, key, idx) =>
-                              tmp
-                                  + (idx === 0 ? '' : '/')
-                                  + identity[key],
-                          '')
-                  }<`,
-              '');
-        const features
-            = this.disco._features.sort().reduce(
-                (tmp, feature) => `${tmp + feature}<`, '');
+        this.version
+            = generateSha(this.disco._identities, this.disco._features);
 
-        this.version = b64_sha1(identities + features);
         this._notifyVersionChanged();
     }
 
