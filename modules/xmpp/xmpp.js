@@ -401,26 +401,30 @@ export default class XMPP extends Listenable {
      * @param options
      */
     createRoom(roomName, options) {
-        // By default MUC nickname is the resource part of the JID
-        let mucNickname = Strophe.getNodeFromJid(this.connection.jid);
         let roomjid = `${roomName}@${this.options.hosts.muc}/`;
-        const cfgNickname
-            = options.useNicks && options.nick ? options.nick : null;
 
-        if (cfgNickname) {
-            // Use nick if it's defined
-            mucNickname = options.nick;
-        } else if (!this.authenticatedUser) {
-            // node of the anonymous JID is very long - here we trim it a bit
-            mucNickname = mucNickname.substr(0, 8);
+        let mucNickname;
+
+        // We use the room nickname (the resourcepart of the occupant JID, see XEP-0045)
+        // as the endpoint ID in colibri. We require endpoint IDs to be 8 hex digits because
+        // in some cases they get serialized into a 32bit field.
+        if (this.authenticatedUser) {
+            // Authenticated users h
+            mucNickname = RandomUtil.randomHexString(8).toLowerCase();
+        }
+        else (!this.authenticatedUser) {
+            // We try to use the first part of the node (which for anonymous users on prosody is a UUID) to match
+            // the previous behavior (and maybe make debugging easier).
+            mucNickname = Strophe.getNodeFromJid(this.connection.jid).substr(0, 8).toLowerCase();
+
+            // But if this doesn't have the required format we just generate a new random nickname.
+            let re = /[0-9a-f]{8}/g;
+            if (!re.test(mucNuckname)) {
+                mucNickname = RandomUtil.randomHexString(8).toLowerCase();
+            }
         }
 
-        // Constant JIDs need some random part to be appended in order to be
-        // able to join the MUC more than once.
-        if (this.authenticatedUser || cfgNickname !== null) {
-            mucNickname += `-${RandomUtil.randomHexString(6)}`;
-        }
-
+        logger.info(`Using MUC nickname $mucNickname`);
         roomjid += mucNickname;
 
         return this.connection.emuc.createRoom(roomjid, null, options);
