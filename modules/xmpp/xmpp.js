@@ -409,7 +409,7 @@ export default class XMPP extends Listenable {
         // as the endpoint ID in colibri. We require endpoint IDs to be 8 hex digits because
         // in some cases they get serialized into a 32bit field.
         if (this.authenticatedUser) {
-            // Authenticated users h
+            // For authenticated users generate a random ID.
             mucNickname = RandomUtil.randomHexString(8).toLowerCase();
         }
         else (!this.authenticatedUser) {
@@ -424,7 +424,7 @@ export default class XMPP extends Listenable {
             }
         }
 
-        logger.info(`Using MUC nickname $mucNickname`);
+        logger.info(`JID ${this.connection.jid} using MUC nickname $mucNickname`);
         roomjid += mucNickname;
 
         return this.connection.emuc.createRoom(roomjid, null, options);
