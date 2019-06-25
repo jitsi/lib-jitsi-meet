@@ -234,23 +234,12 @@ export default class JingleSessionPC extends JingleSession {
     /* eslint-enable max-params */
 
     /**
-     * Checks whether or not this session instance has been ended and eventually
-     * logs a message which mentions that given <tt>actionName</tt> was
-     * cancelled.
-     * @param {string} actionName
-     * @return {boolean} <tt>true</tt> if this {@link JingleSessionPC} has
-     * either entered {@link JingleSessionState.ENDED} or if the {@link close}
-     * method has been called.
+     * Checks if this session instance has not been ended and if it's still safe to use it.
+     * @return {boolean} <tt>true</tt> if this {@link JingleSessionPC} can still be used.
      * @private
      */
-    _assertNotEnded(actionName) {
-        if (this.state === JingleSessionState.ENDED || this._closed) {
-            logger.log(`The session has ended - cancelling action: ${actionName}`);
-
-            return false;
-        }
-
-        return true;
+    _assertNotEnded() {
+        return this.state !== JingleSessionState.ENDED && !this._closed;
     }
 
     /**
@@ -324,7 +313,7 @@ export default class JingleSessionPC extends JingleSession {
                 // the check complete.
                 return;
             }
-            if (!this._assertNotEnded('onicecandidate')) {
+            if (!this._assertNotEnded()) {
 
                 return;
             }
@@ -376,8 +365,7 @@ export default class JingleSessionPC extends JingleSession {
         // "closed" instead.
         // I suppose at some point this will be moved to onconnectionstatechange
         this.peerconnection.onsignalingstatechange = () => {
-            if (!this.peerconnection
-                || !this._assertNotEnded('onsignalingstatechange')) {
+            if (!this.peerconnection || !this._assertNotEnded()) {
                 return;
             }
             if (this.peerconnection.signalingState === 'stable') {
@@ -395,8 +383,7 @@ export default class JingleSessionPC extends JingleSession {
          * the value of RTCPeerConnection.iceConnectionState changes.
          */
         this.peerconnection.oniceconnectionstatechange = () => {
-            if (!this.peerconnection
-                    || !this._assertNotEnded('oniceconnectionstatechange')) {
+            if (!this.peerconnection || !this._assertNotEnded()) {
                 return;
             }
             const now = window.performance.now();
@@ -503,23 +490,36 @@ export default class JingleSessionPC extends JingleSession {
             // IS_SELECTED_CHANGED events and notify the peer connection
             this.rtc.addListener(RTCEvents.IS_SELECTED_CHANGED,
                 isSelected => {
-                    this.peerconnection.setIsSelected(isSelected);
-                    logger.info('Doing local O/A due to '
-                        + 'IS_SELECTED_CHANGED event');
-                    this.modificationQueue.push(finishedCallback => {
-                        if (!this._assertNotEnded('setIsSelected O/A')) {
-                            finishedCallback();
-
-                            return;
-                        }
+                    this._executeOnTheQueue(finishedCallback => {
+                        logger.info('Doing local O/A due to IS_SELECTED_CHANGED event');
+                        this.peerconnection.setIsSelected(isSelected);
 
                         this._renegotiate()
-                            .then(finishedCallback)
-                            .catch(finishedCallback);
+                            .then(finishedCallback, finishedCallback);
                     });
                 }
             );
         }
+    }
+
+    /**
+     * Executes a task on the modification queue. See {@link _processQueueTasks} for more info.
+     *
+     * @param {function} workFunction - The worker function, see {@link _processQueueTasks} for more info.
+     * @return {Promise<void>}
+     * @private
+     */
+    _executeOnTheQueue(workFunction) {
+        return new Promise((resolve, reject) => {
+            this.modificationQueue.push(workFunction,
+                error => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve();
+                    }
+                });
+        });
     }
 
     /**
@@ -576,7 +576,7 @@ export default class JingleSessionPC extends JingleSession {
      * @private
      */
     sendIceCandidates(candidates) {
-        if (!this._assertNotEnded('sendIceCandidates')) {
+        if (!this._assertNotEnded()) {
 
             return;
         }
@@ -733,25 +733,21 @@ export default class JingleSessionPC extends JingleSession {
         // the assumption that candidates are spawned after the offer/answer
         // and XMPP preserves order).
         const workFunction = finishedCallback => {
-            if (!this._assertNotEnded('addIceCandidate')) {
-                finishedCallback();
-
-                return;
-            }
+            const allPromises = [];
 
             for (const iceCandidate of iceCandidates) {
-                this.peerconnection.addIceCandidate(iceCandidate)
-                    .then(
-                        () => logger.debug('addIceCandidate ok!'),
-                        err => logger.error('addIceCandidate failed!', err));
+                allPromises.push(
+                    this.peerconnection.addIceCandidate(iceCandidate)
+                        .then(
+                            () => logger.debug('addIceCandidate ok!'),
+                            err => logger.error('addIceCandidate failed!', err)));
             }
 
-            finishedCallback();
+            Promise.all(allPromises).then(finishedCallback);
         };
 
-        logger.debug(
-            `Queued add (${iceCandidates.length}) ICE candidates task...`);
-        this.modificationQueue.push(workFunction);
+        logger.debug(`Queued add (${iceCandidates.length}) ICE candidates task...`);
+        this._executeOnTheQueue(workFunction);
     }
 
     /**
@@ -853,12 +849,6 @@ export default class JingleSessionPC extends JingleSession {
             throw new Error('Trying to invite from the responder session');
         }
         const workFunction = finishedCallback => {
-            if (!this._assertNotEnded('invite')) {
-                finishedCallback();
-
-                return;
-            }
-
             for (const localTrack of localTracks) {
                 this.peerconnection.addTrack(localTrack);
             }
@@ -886,15 +876,14 @@ export default class JingleSessionPC extends JingleSession {
                 });
         };
 
-        this.modificationQueue.push(
-            workFunction,
-            error => {
-                if (error) {
-                    logger.error('invite error', error);
-                } else {
+        this._executeOnTheQueue(workFunction)
+            .then(
+                () => {
                     logger.debug('invite executed - OK');
-                }
-            });
+                },
+                error => {
+                    logger.error('invite error', error);
+                });
     }
 
     /**
@@ -968,12 +957,6 @@ export default class JingleSessionPC extends JingleSession {
      */
     setOfferAnswerCycle(jingleOfferAnswerIq, success, failure, localTracks) {
         const workFunction = finishedCallback => {
-            if (!this._assertNotEnded('setOfferAnswer')) {
-                finishedCallback();
-
-                return;
-            }
-
             if (localTracks) {
                 for (const track of localTracks) {
                     this.peerconnection.addTrack(track);
@@ -1039,11 +1022,8 @@ export default class JingleSessionPC extends JingleSession {
                 });
         };
 
-        this.modificationQueue.push(
-            workFunction,
-            error => {
-                error ? failure(error) : success();
-            });
+        this._executeOnTheQueue(workFunction)
+            .then(success, failure);
     }
 
     /* eslint-enable max-params */
@@ -1465,12 +1445,6 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         const workFunction = finishedCallback => {
-            if (!this._assertNotEnded('addOrRemoveRemoteStream')) {
-                finishedCallback();
-
-                return;
-            }
-
             if (!this.peerconnection.localDescription
                 || !this.peerconnection.localDescription.sdp) {
                 const errMsg = `${logPrefix} - localDescription not ready yet`;
@@ -1513,8 +1487,7 @@ export default class JingleSessionPC extends JingleSession {
                 });
         };
 
-        // Queue and execute
-        this.modificationQueue.push(workFunction);
+        this._executeOnTheQueue(workFunction);
     }
 
     /**
@@ -1532,7 +1505,11 @@ export default class JingleSessionPC extends JingleSession {
      * });
      */
     _processQueueTasks(task, finishedCallback) {
-        task(finishedCallback);
+        if (this._assertNotEnded()) {
+            task(finishedCallback);
+        } else {
+            finishedCallback();
+        }
     }
 
     /**
@@ -1724,16 +1701,6 @@ export default class JingleSessionPC extends JingleSession {
      */
     replaceTrack(oldTrack, newTrack) {
         const workFunction = finishedCallback => {
-            // Check if the connection was closed and pretend everything is OK.
-            // This can happen if a track removal is scheduled but takes place
-            // after the connection is closed.
-            if (this._assertNotEnded('replaceTrack')) {
-
-                finishedCallback();
-
-                return;
-            }
-
             const oldLocalSdp = this.peerconnection.localDescription.sdp;
 
             // NOTE the code below assumes that no more than 1 video track
@@ -1779,19 +1746,13 @@ export default class JingleSessionPC extends JingleSession {
             });
         };
 
-        return new Promise((resolve, reject) => {
-            this.modificationQueue.push(
-                workFunction,
-                error => {
-                    if (error) {
-                        logger.error('Replace track error:', error);
-                        reject(error);
-                    } else {
-                        logger.info('Replace track done!');
-                        resolve();
-                    }
-                });
-        });
+        return this._executeOnTheQueue(workFunction)
+            .then(() => {
+                logger.info('Replace track done!');
+            }, error => {
+                logger.error('Replace track error:', error);
+                throw error;
+            });
     }
 
     /**
@@ -1946,12 +1907,6 @@ export default class JingleSessionPC extends JingleSession {
         }
         const operationName = isMute ? 'removeTrackMute' : 'addTrackUnmute';
         const workFunction = finishedCallback => {
-            if (!this._assertNotEnded('add/remove track as mute/unmute')) {
-                finishedCallback();
-
-                return;
-            }
-
             const tpc = this.peerconnection;
 
             if (!tpc) {
@@ -1985,17 +1940,7 @@ export default class JingleSessionPC extends JingleSession {
             }
         };
 
-        return new Promise((resolve, reject) => {
-            this.modificationQueue.push(
-                workFunction,
-                error => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve();
-                    }
-                });
-        });
+        return this._executeOnTheQueue(workFunction);
     }
 
     /**
@@ -2021,12 +1966,6 @@ export default class JingleSessionPC extends JingleSession {
         logger.info(`Queued make ${logVideoStr}, ${logAudioStr} task...`);
 
         const workFunction = finishedCallback => {
-            if (!this._assertNotEnded('setMediaTransferActive')) {
-                finishedCallback();
-
-                return;
-            }
-
             const isSessionActive = this.state === JingleSessionState.ACTIVE;
 
             // Because the value is modified on the queue it's impossible to
@@ -2069,17 +2008,7 @@ export default class JingleSessionPC extends JingleSession {
             }
         };
 
-        return new Promise((resolve, reject) => {
-            this.modificationQueue.push(
-                workFunction,
-                error => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve();
-                    }
-                });
-        });
+        return this._executeOnTheQueue(workFunction);
     }
 
     /**
@@ -2105,8 +2034,7 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         const workFunction = finishedCallback => {
-            if (this._assertNotEnded('content-modify')
-                    && this._modifyRemoteVideoActive(newVideoSenders)) {
+            if (this._modifyRemoteVideoActive(newVideoSenders)) {
                 // Will do the sRD/sLD cycle to update SDPs and adjust
                 // the media direction
                 this._renegotiate()
@@ -2116,16 +2044,11 @@ export default class JingleSessionPC extends JingleSession {
             }
         };
 
-        logger.debug(
-            `${this} queued "content-modify" task`
-                + `(video senders="${newVideoSenders}")`);
+        logger.debug(`${this} queued "content-modify" task (video senders="${newVideoSenders}")`);
 
-        this.modificationQueue.push(
-            workFunction,
-            error => {
-                if (error) {
-                    logger.error('"content-modify" failed', error);
-                }
+        this._executeOnTheQueue(workFunction)
+            .catch(error => {
+                logger.error('"content-modify" failed', error);
             });
     }
 
@@ -2305,12 +2228,9 @@ export default class JingleSessionPC extends JingleSession {
             finishedCallback();
         };
 
-        this.modificationQueue.push(
-            workFunction,
-            error => {
-                if (error) {
-                    logger.error('"close" failed', error);
-                }
+        this._executeOnTheQueue(workFunction)
+            .catch(error => {
+                logger.error('"close" failed', error);
             });
     }
 
