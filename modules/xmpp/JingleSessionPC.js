@@ -4,7 +4,6 @@ import {
     ICE_DURATION,
     ICE_STATE_CHANGED
 } from '../../service/statistics/AnalyticsEvents';
-import async from 'async';
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, Strophe } from 'strophe.js';
 import { integerHash } from '../util/StringUtils';
@@ -19,6 +18,7 @@ import SignalingLayerImpl from './SignalingLayerImpl';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import Statistics from '../statistics/statistics';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import AsyncQueue from '../util/AsyncQueue';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
 const logger = getLogger(__filename);
@@ -212,8 +212,12 @@ export default class JingleSessionPC extends JingleSession {
          */
         this.signalingLayer = new SignalingLayerImpl();
 
-        this.modificationQueue
-            = async.queue(this._processQueueTasks.bind(this), 1);
+        /**
+         * The queue used to serialize operations done on the peerconnection.
+         *
+         * @type {AsyncQueue}
+         */
+        this.modificationQueue = new AsyncQueue();
 
         /**
          * Flag used to guarantee that the connection established event is
@@ -234,23 +238,12 @@ export default class JingleSessionPC extends JingleSession {
     /* eslint-enable max-params */
 
     /**
-     * Checks whether or not this session instance has been ended and eventually
-     * logs a message which mentions that given <tt>actionName</tt> was
-     * cancelled.
-     * @param {string} actionName
-     * @return {boolean} <tt>true</tt> if this {@link JingleSessionPC} has
-     * entered {@link JingleSessionState.ENDED} or <tt>false</tt> otherwise.
+     * Checks whether or not this session instance is still operational.
      * @private
+     * @returns {boolean} {@code true} if operation or {@code false} otherwise.
      */
-    _assertNotEnded(actionName) {
-        if (this.state === JingleSessionState.ENDED) {
-            logger.log(
-                `The session has ended - cancelling action: ${actionName}`);
-
-            return false;
-        }
-
-        return true;
+    _assertNotEnded() {
+        return this.state !== JingleSessionState.ENDED;
     }
 
     /**
@@ -316,7 +309,7 @@ export default class JingleSessionPC extends JingleSession {
                     pcOptions);
 
         this.peerconnection.onicecandidate = ev => {
-            if (!ev) {
+            if (!ev || !this._assertNotEnded()) {
                 // There was an incomplete check for ev before which left
                 // the last line of the function unprotected from a potential
                 // throw of an exception. Consequently, it may be argued that
@@ -372,15 +365,13 @@ export default class JingleSessionPC extends JingleSession {
         // "closed" instead.
         // I suppose at some point this will be moved to onconnectionstatechange
         this.peerconnection.onsignalingstatechange = () => {
-            if (!this.peerconnection) {
+            if (!this.peerconnection || !this._assertNotEnded()) {
                 return;
             }
             if (this.peerconnection.signalingState === 'stable') {
                 this.wasstable = true;
-            } else if (
-                (this.peerconnection.signalingState === 'closed'
-                || this.peerconnection.connectionState === 'closed')
-                && !this.closed) {
+            } else if (this.peerconnection.signalingState === 'closed'
+                || this.peerconnection.connectionState === 'closed') {
                 this.room.eventEmitter.emit(XMPPEvents.SUSPEND_DETECTED, this);
             }
         };
@@ -392,8 +383,7 @@ export default class JingleSessionPC extends JingleSession {
          * the value of RTCPeerConnection.iceConnectionState changes.
          */
         this.peerconnection.oniceconnectionstatechange = () => {
-            if (!this.peerconnection
-                    || !this._assertNotEnded('oniceconnectionstatechange')) {
+            if (!this.peerconnection || !this._assertNotEnded()) {
                 return;
             }
             const now = window.performance.now();
@@ -473,9 +463,6 @@ export default class JingleSessionPC extends JingleSession {
                 this.isReconnect = false;
                 break;
             case 'disconnected':
-                if (this.closed) {
-                    break;
-                }
                 this.isReconnect = true;
 
                 // Informs interested parties that the connection has been
@@ -1320,9 +1307,6 @@ export default class JingleSessionPC extends JingleSession {
      * @param reasonText
      */
     onTerminated(reasonCondition, reasonText) {
-        this.state = JingleSessionState.ENDED;
-        this.establishmentDuration = undefined;
-
         // Do something with reason and reasonCondition when we start to care
         // this.reasonCondition = reasonCondition;
         // this.reasonText = reasonText;
@@ -1486,24 +1470,6 @@ export default class JingleSessionPC extends JingleSession {
 
         // Queue and execute
         this.modificationQueue.push(workFunction);
-    }
-
-    /**
-     * The 'task' function will be given a callback it MUST call with either:
-     *  1) No arguments if it was successful or
-     *  2) An error argument if there was an error
-     * If the task wants to process the success or failure of the task, it
-     * should pass a handler to the .push function, e.g.:
-     * queue.push(task, (err) => {
-     *     if (err) {
-     *         // error handling
-     *     } else {
-     *         // success handling
-     *     }
-     * });
-     */
-    _processQueueTasks(task, finishedCallback) {
-        task(finishedCallback);
     }
 
     /**
@@ -1695,18 +1661,6 @@ export default class JingleSessionPC extends JingleSession {
      */
     replaceTrack(oldTrack, newTrack) {
         const workFunction = finishedCallback => {
-            // Check if the connection was closed and pretend everything is OK.
-            // This can happen if a track removal is scheduled but takes place
-            // after the connection is closed.
-            if (this.peerconnection.signalingState === 'closed'
-                || this.peerconnection.connectionState === 'closed'
-                || this.closed) {
-
-                finishedCallback();
-
-                return;
-            }
-
             const oldLocalSdp = this.peerconnection.localDescription.sdp;
 
             // NOTE the code below assumes that no more than 1 video track
@@ -2251,18 +2205,18 @@ export default class JingleSessionPC extends JingleSession {
      * Closes the peerconnection.
      */
     close() {
-        this.closed = true;
+        this.state = JingleSessionState.ENDED;
+        this.establishmentDuration = undefined;
 
-        // The signaling layer will remove it's listeners
-        this.signalingLayer.setChatRoom(null);
+        this.modificationQueue.push(finishCallback => {
+            // The signaling layer will remove it's listeners
+            this.signalingLayer.setChatRoom(null);
 
-        // do not try to close if already closed.
-        this.peerconnection
-            && ((this.peerconnection.signalingState
-                    && this.peerconnection.signalingState !== 'closed')
-                || (this.peerconnection.connectionState
-                    && this.peerconnection.connectionState !== 'closed'))
-            && this.peerconnection.close();
+            // do not try to close if already closed.
+            this.peerconnection && this.peerconnection.close();
+            finishCallback();
+        });
+        this.modificationQueue.shutdown();
     }
 
     /**
