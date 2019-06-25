@@ -196,7 +196,6 @@ export default class JingleSessionPC extends JingleSession {
         this._gatheringReported = false;
 
         this.lasticecandidate = false;
-        this._closed = false;
 
         /**
          * Indicates whether or not this <tt>JingleSessionPC</tt> is used in
@@ -239,7 +238,7 @@ export default class JingleSessionPC extends JingleSession {
      * @private
      */
     _assertNotEnded() {
-        return this.state !== JingleSessionState.ENDED && !this._closed;
+        return this.state !== JingleSessionState.ENDED;
     }
 
     /**
@@ -505,20 +504,26 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * Executes a task on the modification queue. See {@link _processQueueTasks} for more info.
      *
-     * @param {function} workFunction - The worker function, see {@link _processQueueTasks} for more info.
+     * @param {function} task - The worker function, see {@link _processQueueTasks} for more info.
+     * @param {Object} options - The options.
+     * @param {boolean} options.executeInEndedState - Whether or not the task should execute even after
+     * the JingleSessionPC has entered the ended state.
      * @return {Promise<void>}
      * @private
      */
-    _executeOnTheQueue(workFunction) {
+    _executeOnTheQueue(task, { executeInEndedState = false }) {
         return new Promise((resolve, reject) => {
-            this.modificationQueue.push(workFunction,
-                error => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve();
-                    }
-                });
+            this.modificationQueue.push({
+                task,
+                executeInEndedState
+            },
+            error => {
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve();
+                }
+            });
         });
     }
 
@@ -1323,9 +1328,6 @@ export default class JingleSessionPC extends JingleSession {
      * @param reasonText
      */
     onTerminated(reasonCondition, reasonText) {
-        this.state = JingleSessionState.ENDED;
-        this.establishmentDuration = undefined;
-
         // Do something with reason and reasonCondition when we start to care
         // this.reasonCondition = reasonCondition;
         // this.reasonText = reasonText;
@@ -1504,8 +1506,8 @@ export default class JingleSessionPC extends JingleSession {
      *     }
      * });
      */
-    _processQueueTasks(task, finishedCallback) {
-        if (this._assertNotEnded()) {
+    _processQueueTasks({ task, executeInEndedState }, finishedCallback) {
+        if (this._assertNotEnded() || executeInEndedState) {
             task(finishedCallback);
         } else {
             finishedCallback();
@@ -2213,13 +2215,13 @@ export default class JingleSessionPC extends JingleSession {
      * Closes the peerconnection.
      */
     close() {
-        if (this._closed) {
+        if (this.state === JingleSessionState.ENDED) {
 
             // do not try to close if already closed.
             return;
         }
-
-        this._closed = true;
+        this.state = JingleSessionState.ENDED;
+        this.establishmentDuration = undefined;
 
         const workFunction = finishedCallback => {
             // The signaling layer will remove it's listeners
@@ -2228,7 +2230,7 @@ export default class JingleSessionPC extends JingleSession {
             finishedCallback();
         };
 
-        this._executeOnTheQueue(workFunction)
+        this._executeOnTheQueue(workFunction, { executeOnEnded: true })
             .catch(error => {
                 logger.error('"close" failed', error);
             });
