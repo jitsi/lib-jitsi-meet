@@ -196,7 +196,7 @@ export default class JingleSessionPC extends JingleSession {
         this._gatheringReported = false;
 
         this.lasticecandidate = false;
-        this.closed = false;
+        this._closed = false;
 
         /**
          * Indicates whether or not this <tt>JingleSessionPC</tt> is used in
@@ -239,13 +239,13 @@ export default class JingleSessionPC extends JingleSession {
      * cancelled.
      * @param {string} actionName
      * @return {boolean} <tt>true</tt> if this {@link JingleSessionPC} has
-     * entered {@link JingleSessionState.ENDED} or <tt>false</tt> otherwise.
+     * either entered {@link JingleSessionState.ENDED} or if the {@link close}
+     * method has been called.
      * @private
      */
     _assertNotEnded(actionName) {
-        if (this.state === JingleSessionState.ENDED) {
-            logger.log(
-                `The session has ended - cancelling action: ${actionName}`);
+        if (this.state === JingleSessionState.ENDED || this._closed) {
+            logger.log(`The session has ended - cancelling action: ${actionName}`);
 
             return false;
         }
@@ -324,6 +324,10 @@ export default class JingleSessionPC extends JingleSession {
                 // the check complete.
                 return;
             }
+            if (!this._assertNotEnded('onicecandidate')) {
+
+                return;
+            }
 
             // XXX this is broken, candidate is not parsed.
             const candidate = ev.candidate;
@@ -372,15 +376,14 @@ export default class JingleSessionPC extends JingleSession {
         // "closed" instead.
         // I suppose at some point this will be moved to onconnectionstatechange
         this.peerconnection.onsignalingstatechange = () => {
-            if (!this.peerconnection) {
+            if (!this.peerconnection
+                || !this._assertNotEnded('onsignalingstatechange')) {
                 return;
             }
             if (this.peerconnection.signalingState === 'stable') {
                 this.wasstable = true;
-            } else if (
-                (this.peerconnection.signalingState === 'closed'
-                || this.peerconnection.connectionState === 'closed')
-                && !this.closed) {
+            } else if (this.peerconnection.signalingState === 'closed'
+                || this.peerconnection.connectionState === 'closed') {
                 this.room.eventEmitter.emit(XMPPEvents.SUSPEND_DETECTED, this);
             }
         };
@@ -473,9 +476,6 @@ export default class JingleSessionPC extends JingleSession {
                 this.isReconnect = false;
                 break;
             case 'disconnected':
-                if (this.closed) {
-                    break;
-                }
                 this.isReconnect = true;
 
                 // Informs interested parties that the connection has been
@@ -507,6 +507,12 @@ export default class JingleSessionPC extends JingleSession {
                     logger.info('Doing local O/A due to '
                         + 'IS_SELECTED_CHANGED event');
                     this.modificationQueue.push(finishedCallback => {
+                        if (!this._assertNotEnded('setIsSelected O/A')) {
+                            finishedCallback();
+
+                            return;
+                        }
+
                         this._renegotiate()
                             .then(finishedCallback)
                             .catch(finishedCallback);
@@ -727,6 +733,12 @@ export default class JingleSessionPC extends JingleSession {
         // the assumption that candidates are spawned after the offer/answer
         // and XMPP preserves order).
         const workFunction = finishedCallback => {
+            if (!this._assertNotEnded('addIceCandidate')) {
+                finishedCallback();
+
+                return;
+            }
+
             for (const iceCandidate of iceCandidates) {
                 this.peerconnection.addIceCandidate(iceCandidate)
                     .then(
@@ -841,6 +853,12 @@ export default class JingleSessionPC extends JingleSession {
             throw new Error('Trying to invite from the responder session');
         }
         const workFunction = finishedCallback => {
+            if (!this._assertNotEnded('invite')) {
+                finishedCallback();
+
+                return;
+            }
+
             for (const localTrack of localTracks) {
                 this.peerconnection.addTrack(localTrack);
             }
@@ -950,6 +968,11 @@ export default class JingleSessionPC extends JingleSession {
      */
     setOfferAnswerCycle(jingleOfferAnswerIq, success, failure, localTracks) {
         const workFunction = finishedCallback => {
+            if (!this._assertNotEnded('setOfferAnswer')) {
+                finishedCallback();
+
+                return;
+            }
 
             if (localTracks) {
                 for (const track of localTracks) {
@@ -1442,6 +1465,12 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         const workFunction = finishedCallback => {
+            if (!this._assertNotEnded('addOrRemoveRemoteStream')) {
+                finishedCallback();
+
+                return;
+            }
+
             if (!this.peerconnection.localDescription
                 || !this.peerconnection.localDescription.sdp) {
                 const errMsg = `${logPrefix} - localDescription not ready yet`;
@@ -1698,9 +1727,7 @@ export default class JingleSessionPC extends JingleSession {
             // Check if the connection was closed and pretend everything is OK.
             // This can happen if a track removal is scheduled but takes place
             // after the connection is closed.
-            if (this.peerconnection.signalingState === 'closed'
-                || this.peerconnection.connectionState === 'closed'
-                || this.closed) {
+            if (this._assertNotEnded('replaceTrack')) {
 
                 finishedCallback();
 
@@ -1919,6 +1946,12 @@ export default class JingleSessionPC extends JingleSession {
         }
         const operationName = isMute ? 'removeTrackMute' : 'addTrackUnmute';
         const workFunction = finishedCallback => {
+            if (!this._assertNotEnded('add/remove track as mute/unmute')) {
+                finishedCallback();
+
+                return;
+            }
+
             const tpc = this.peerconnection;
 
             if (!tpc) {
@@ -1988,6 +2021,12 @@ export default class JingleSessionPC extends JingleSession {
         logger.info(`Queued make ${logVideoStr}, ${logAudioStr} task...`);
 
         const workFunction = finishedCallback => {
+            if (!this._assertNotEnded('setMediaTransferActive')) {
+                finishedCallback();
+
+                return;
+            }
+
             const isSessionActive = this.state === JingleSessionState.ACTIVE;
 
             // Because the value is modified on the queue it's impossible to
@@ -2251,18 +2290,28 @@ export default class JingleSessionPC extends JingleSession {
      * Closes the peerconnection.
      */
     close() {
-        this.closed = true;
+        if (this._closed) {
 
-        // The signaling layer will remove it's listeners
-        this.signalingLayer.setChatRoom(null);
+            // do not try to close if already closed.
+            return;
+        }
 
-        // do not try to close if already closed.
-        this.peerconnection
-            && ((this.peerconnection.signalingState
-                    && this.peerconnection.signalingState !== 'closed')
-                || (this.peerconnection.connectionState
-                    && this.peerconnection.connectionState !== 'closed'))
-            && this.peerconnection.close();
+        this._closed = true;
+
+        const workFunction = finishedCallback => {
+            // The signaling layer will remove it's listeners
+            this.signalingLayer.setChatRoom(null);
+            this.peerconnection.close();
+            finishedCallback();
+        };
+
+        this.modificationQueue.push(
+            workFunction,
+            error => {
+                if (error) {
+                    logger.error('"close" failed', error);
+                }
+            });
     }
 
     /**
