@@ -38,7 +38,7 @@ export default class AsyncQueue {
      */
     push(workFunction, callback) {
         if (this._stopped) {
-            callback && callback('The queue has been stopped');
+            callback && callback(new Error('The queue has been stopped'));
 
             return;
         }
