@@ -309,7 +309,7 @@ export default class JingleSessionPC extends JingleSession {
                     pcOptions);
 
         this.peerconnection.onicecandidate = ev => {
-            if (!ev || !this._assertNotEnded()) {
+            if (!ev) {
                 // There was an incomplete check for ev before which left
                 // the last line of the function unprotected from a potential
                 // throw of an exception. Consequently, it may be argued that
@@ -365,9 +365,6 @@ export default class JingleSessionPC extends JingleSession {
         // "closed" instead.
         // I suppose at some point this will be moved to onconnectionstatechange
         this.peerconnection.onsignalingstatechange = () => {
-            if (!this.peerconnection || !this._assertNotEnded()) {
-                return;
-            }
             if (this.peerconnection.signalingState === 'stable') {
                 this.wasstable = true;
             } else if (this.peerconnection.signalingState === 'closed'
@@ -383,9 +380,6 @@ export default class JingleSessionPC extends JingleSession {
          * the value of RTCPeerConnection.iceConnectionState changes.
          */
         this.peerconnection.oniceconnectionstatechange = () => {
-            if (!this.peerconnection || !this._assertNotEnded()) {
-                return;
-            }
             const now = window.performance.now();
 
             if (!this.isP2P) {
@@ -2207,6 +2201,11 @@ export default class JingleSessionPC extends JingleSession {
     close() {
         this.state = JingleSessionState.ENDED;
         this.establishmentDuration = undefined;
+
+        this.peerconnection.onicecandidate = null;
+        this.peerconnection.oniceconnectionstatechange = null;
+        this.peerconnection.onnegotiationneeded = null;
+        this.peerconnection.onsignalingstatechange = null;
 
         this.modificationQueue.push(finishCallback => {
             // The signaling layer will remove it's listeners
