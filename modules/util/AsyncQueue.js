@@ -8,8 +8,8 @@ export default class AsyncQueue {
      * Creates new instance.
      */
     constructor() {
-        this.modificationQueue = async.queue(this._processQueueTasks.bind(this), 1);
-        this.stopped = false;
+        this._queue = async.queue(this._processQueueTasks.bind(this), 1);
+        this._stopped = false;
     }
 
     /**
@@ -37,12 +37,12 @@ export default class AsyncQueue {
      * @param {function} [callback] - Optional callback to be called after the task has been executed.
      */
     push(workFunction, callback) {
-        if (this.stopped) {
+        if (this._stopped) {
             callback && callback('The queue has been stopped');
 
             return;
         }
-        this.modificationQueue.push(workFunction, callback);
+        this._queue.push(workFunction, callback);
     }
 
     /**
@@ -50,6 +50,6 @@ export default class AsyncQueue {
      * after the queue has been shutdown then the callback will be called with an error.
      */
     shutdown() {
-        this.stopped = true;
+        this._stopped = true;
     }
 }
