@@ -13,6 +13,13 @@ export default class AsyncQueue {
     }
 
     /**
+     * Removes any pending tasks from the queue.
+     */
+    clear() {
+        this._queue.kill();
+    }
+
+    /**
      * Internal task processing implementation which makes things work.
      */
     _processQueueTasks(task, finishedCallback) {
