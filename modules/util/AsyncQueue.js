@@ -20,7 +20,7 @@ export default class AsyncQueue {
     }
 
     /**
-     * The 'workFunction' function will be given a callback it MUST call with either:
+     * The 'task' function will be given a callback it MUST call with either:
      *  1) No arguments if it was successful or
      *  2) An error argument if there was an error
      * If the task wants to process the success or failure of the task, it
@@ -33,16 +33,16 @@ export default class AsyncQueue {
      *     }
      * });
      *
-     * @param {function} workFunction - The task to be execute. See the description above.
+     * @param {function} task - The task to be executed. See the description above.
      * @param {function} [callback] - Optional callback to be called after the task has been executed.
      */
-    push(workFunction, callback) {
+    push(task, callback) {
         if (this._stopped) {
             callback && callback(new Error('The queue has been stopped'));
 
             return;
         }
-        this._queue.push(workFunction, callback);
+        this._queue.push(task, callback);
     }
 
     /**
