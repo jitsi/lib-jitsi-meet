@@ -2207,6 +2207,9 @@ export default class JingleSessionPC extends JingleSession {
         this.peerconnection.onnegotiationneeded = null;
         this.peerconnection.onsignalingstatechange = null;
 
+        // Remove any pending tasks from the queue
+        this.modificationQueue.clear();
+
         this.modificationQueue.push(finishCallback => {
             // The signaling layer will remove it's listeners
             this.signalingLayer.setChatRoom(null);
@@ -2215,6 +2218,8 @@ export default class JingleSessionPC extends JingleSession {
             this.peerconnection && this.peerconnection.close();
             finishCallback();
         });
+
+        // No more tasks can go in after the close task
         this.modificationQueue.shutdown();
     }
 
