@@ -43,7 +43,7 @@ function generateSha(identities, features) {
                 (tmp, key, idx) =>
                     tmp
                         + (idx === 0 ? '' : '/')
-                        + identity[key],
+                        + (identity[key] ? identity[key] : ''),
                 '')
         }<`, '');
     const sortedFeatures = features.sort().reduce(
