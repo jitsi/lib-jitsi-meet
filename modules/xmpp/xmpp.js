@@ -14,6 +14,7 @@ import initStropheUtil from './strophe.util';
 import initPing from './strophe.ping';
 import initRayo from './strophe.rayo';
 import initStropheLogger from './strophe.logger';
+import LastSuccessTracker from './StropheBoshLastSuccess';
 import Listenable from '../util/Listenable';
 import Caps from './Caps';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
@@ -81,6 +82,9 @@ export default class XMPP extends Listenable {
         this._initStrophePlugins(this);
 
         this.connection = createConnection(token, options.bosh);
+
+        this._lastSuccessTracker = new LastSuccessTracker();
+        this._lastSuccessTracker.startTracking(this.connection);
 
         this.caps = new Caps(this.connection, this.options.clientNode);
 
@@ -278,12 +282,20 @@ export default class XMPP extends Listenable {
                     this.eventEmitter.emit(
                         JitsiConnectionEvents.CONNECTION_FAILED,
                         JitsiConnectionErrors.SERVER_ERROR,
-                        errMsg || 'server-error');
+                        errMsg || 'server-error',
+                        /* credentials */ undefined,
+                        /* details */ {
+                            timeSinceLastSuccess: this._lastSuccessTracker.getTimeSinceLastSuccess()
+                        });
                 } else {
                     this.eventEmitter.emit(
                         JitsiConnectionEvents.CONNECTION_FAILED,
                         JitsiConnectionErrors.CONNECTION_DROPPED_ERROR,
-                        errMsg || 'connection-dropped-error');
+                        errMsg || 'connection-dropped-error',
+                        /* credentials */ undefined,
+                        /* details */ {
+                            timeSinceLastSuccess: this._lastSuccessTracker.getTimeSinceLastSuccess()
+                        });
                 }
             }
         } else if (status === Strophe.Status.AUTHFAIL) {
