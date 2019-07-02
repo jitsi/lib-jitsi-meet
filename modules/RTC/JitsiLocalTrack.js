@@ -399,11 +399,11 @@ export default class JitsiLocalTrack extends JitsiTrack {
             return Promise.resolve();
         }
 
+        this._effectEnabled = enableFlag;
+
         if (this.isMuted()) {
             return Promise.resolve();
         }
-
-        this._effectEnabled = enableFlag;
 
         return this._switchStream(enableFlag ? this._startStreamEffect(effect) : this._stopStreamEffect())
                     .catch(error => {
