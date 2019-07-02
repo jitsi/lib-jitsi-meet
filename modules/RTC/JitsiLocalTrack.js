@@ -342,7 +342,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
      */
     _stopStreamEffect() {
         this._streamEffect.stopEffect();
-        this._streamEffect = null;
 
         return this._originalStream;
     }
