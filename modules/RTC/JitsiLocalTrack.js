@@ -32,7 +32,6 @@ const logger = getLogger(__filename);
  * One <tt>JitsiLocalTrack</tt> corresponds to one WebRTC MediaStreamTrack.
  */
 export default class JitsiLocalTrack extends JitsiTrack {
-
     /**
      * Constructs new JitsiLocalTrack instance.
      *
@@ -73,14 +72,11 @@ export default class JitsiLocalTrack extends JitsiTrack {
             mediaType,
             videoType);
 
+        this._setEffectInProgress = false;
         const effect = effects.find(e => e.isEnabled(this));
 
-        this._effectEnabled = false;
-        this._streamChangeInProgress = false;
-
         if (effect) {
-            this._setStream(this._startStreamEffect(effect));
-            this._effectEnabled = true;
+            this._startStreamEffect(effect);
         }
 
         /**
@@ -324,96 +320,99 @@ export default class JitsiLocalTrack extends JitsiTrack {
      *
      * @private
      * @param {*} effect - Represents effect instance
-     * @returns {MediaStream}
+     * @returns {void}
      */
     _startStreamEffect(effect) {
         this._streamEffect = effect;
         this._originalStream = this.stream;
-        this._streamEffect.startEffect(this._originalStream);
-
-        return this._streamEffect.getStreamWithEffect();
+        this._setStream(this._streamEffect.startEffect(this._originalStream));
     }
 
     /**
      * Stops the effect process and returns the original stream.
      *
      * @private
-     * @returns {MediaStream}
+     * @returns {void}
      */
     _stopStreamEffect() {
-        this._streamEffect.stopEffect();
-
-        return this._originalStream;
+        if (this._streamEffect) {
+            this._streamEffect.stopEffect();
+            this._setStream(this._originalStream);
+            this._originalStream = undefined;
+        }
     }
 
     /**
-     * Switches the video stream associated with this track and updates the containers.
+     * Stops the currently used effect (if there is one) and starts the passed effect (if there is one).
      *
-     * @private
-     * @param {MediaStream} newStream - The MediaStream to replace
-     * @returns {Promise}
+     * @param {Object|undefined} effect - The new effect to be set.
      */
-    _switchStream(newStream: MediaStream) {
-        if (this._streamChangeInProgress === true) {
-            return Promise.reject(new Error('Stream change already in progress!'));
+    _switchStreamEffect(effect) {
+        if (this._streamEffect) {
+            this._stopStreamEffect();
+            this._streamEffect = undefined;
         }
-
-        this._streamChangeInProgress = true;
-
-        const conference = this.conference;
-
-        if (!conference) {
-            return Promise.resolve();
+        if (effect) {
+            this._startStreamEffect(effect);
         }
-
-        return conference.removeTrack(this)
-            .then(() => {
-                this._setStream(newStream);
-
-                if (!this.isAudioTrack()) {
-                    this.containers.forEach(
-                        cont => RTCUtils.attachMediaStream(cont, this.stream));
-                }
-
-                return conference.addTrack(this);
-            })
-            .then(() => {
-                this._streamChangeInProgress = false;
-            })
-            .catch(error => {
-                this._streamChangeInProgress = false;
-                logger.error('Failed to switch to new stream!', error);
-                throw error;
-            });
     }
 
     /**
      * Sets the effect and switches between the modified stream and original one.
      *
-     * @param {Boolean} enableFlag - Flag to start or stop the effect processing
-     * @param {*} effect - Represents the effect instance to use
+     * @param {Object} effect - Represents the effect instance to be used.
      * @returns {Promise}
      */
-    enableEffect(enableFlag: Boolean, effect) {
-        if (this._effectEnabled === enableFlag) {
+    setEffect(effect) {
+        if (typeof this._streamEffect === 'undefined' && typeof effect === 'undefined') {
             return Promise.resolve();
         }
 
-        this._effectEnabled = enableFlag;
+        if (typeof effect !== 'undefined' && !effect.isEnabled(this)) {
+            return Promise.reject(new Error('Incompatible effect instance!'));
+        }
+
+        if (this._setEffectInProgress === true) {
+            return Promise.reject(new Error('setEffect already in progress!'));
+        }
 
         if (this.isMuted()) {
+            this._streamEffect = effect;
+
             return Promise.resolve();
         }
 
-        return this._switchStream(enableFlag ? this._startStreamEffect(effect) : this._stopStreamEffect())
-                    .catch(error => {
-                        if (enableFlag) {
-                            this._stopStreamEffect();
-                        }
-                        this._effectEnabled = false;
-                        logger.error('Failed to switch to new stream!', error);
-                        throw error;
-                    });
+        const conference = this.conference;
+
+        if (!conference) {
+            this._switchStreamEffect(effect);
+
+            return Promise.resolve();
+        }
+
+        this._setEffectInProgress = true;
+
+        // TODO: Create new JingleSessionPC method for replacing a stream in JitsiLocalTrack without offer answer.
+        return conference.removeTrack(this)
+            .then(() => {
+                this._switchStreamEffect(effect);
+                if (this.isVideoTrack()) {
+                    this.containers.forEach(cont => RTCUtils.attachMediaStream(cont, this.stream));
+                }
+
+                return conference.addTrack(this);
+            })
+            .then(() => {
+                this._setEffectInProgress = false;
+            })
+            .catch(error => {
+                // Any error will be not recovarable and will trigger CONFERENCE_FAILED event. But let's try to cleanup
+                // everyhting related to the effect functionality.
+                this._setEffectInProgress = false;
+                this._switchStreamEffect();
+                logger.error('Failed to switch to the new stream!', error);
+                throw error;
+            });
     }
 
     /**
@@ -481,11 +480,14 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 this.track.enabled = !muted;
             }
         } else if (muted) {
-
             promise = new Promise((resolve, reject) => {
                 logMuteInfo();
                 this._removeStreamFromConferenceAsMute(
                     () => {
+                        if (this._streamEffect) {
+                            this._stopStreamEffect();
+                        }
+
                         // FIXME: Maybe here we should set the SRC for the
                         // containers to something
                         // We don't want any events to be fired on this stream
@@ -495,12 +497,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
                         resolve();
                     },
                     reject);
-            });
-
-            promise.then(() => {
-                if (this._effectEnabled) {
-                    this._stopStreamEffect();
-                }
             });
         } else {
             logMuteInfo();
@@ -553,8 +549,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     throw new JitsiTrackError(TRACK_NO_STREAM_FOUND);
                 }
 
-                if (this._effectEnabled) {
-                    this._setStream(this._startStreamEffect(this._streamEffect));
+                if (this._streamEffect) {
+                    this._startStreamEffect(this._streamEffect);
                 }
 
                 this.containers.map(
@@ -644,9 +640,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {Promise}
      */
     dispose() {
-        if (this._effectEnabled) {
-            this._setStream(this._stopStreamEffect());
-        }
+        this._switchStreamEffect();
 
         let promise = Promise.resolve();
 
