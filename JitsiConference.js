@@ -1351,18 +1351,39 @@ JitsiConference.prototype.onMemberJoined = function(
         JitsiConferenceEvents.USER_JOINED,
         id,
         participant);
-    this.xmpp.caps.getFeatures(jid)
-        .then(features => {
-            participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
-            this.updateDTMFSupport();
-        },
-        error => logger.warn(`Failed to discover features of ${jid}`, error));
+
+    this._updateFeatures(participant)
+        .catch(() =>
+
+            // there was probably a mismatch, lets try one more time and give up
+            this._updateFeatures(participant)
+                .catch(error => {
+                    logger.warn(`Failed to discover features of ${jid}`, error);
+                }));
 
     this._maybeStartOrStopP2P();
     this._maybeSetSITimeout();
 };
 
 /* eslint-enable max-params */
+
+/**
+ * Updates features for a participant.
+ * @param {JitsiParticipant} participant - The participant to query for features.
+ * @returns {Promise<Set<String> | never>}
+ * @private
+ */
+JitsiConference.prototype._updateFeatures = function(participant) {
+    return this.xmpp.caps.getFeatures(participant.getJid())
+        .then(features => {
+            participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
+            this.updateDTMFSupport();
+
+            if (features.has('http://jitsi.org/protocol/jigasi')) {
+                participant.setProperty('features_jigasi', true);
+            }
+        });
+};
 
 /**
  * Get notified when member bot type had changed.
