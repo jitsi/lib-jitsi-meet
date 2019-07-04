@@ -1351,12 +1351,26 @@ JitsiConference.prototype.onMemberJoined = function(
         JitsiConferenceEvents.USER_JOINED,
         id,
         participant);
+
+    const updateFeatures = features => {
+        participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
+        this.updateDTMFSupport();
+
+        if (features.has('http://jitsi.org/protocol/jigasi')) {
+            participant.setProperty('features_jigasi', true);
+        }
+    };
+
     this.xmpp.caps.getFeatures(jid)
-        .then(features => {
-            participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
-            this.updateDTMFSupport();
-        },
-        error => logger.warn(`Failed to discover features of ${jid}`, error));
+        .then(updateFeatures)
+        .catch(_ => { // eslint-disable-line no-unused-vars
+            // there was probably a mismatch, lets try one more time and givup
+            this.xmpp.caps.getFeatures(jid)
+                .then(updateFeatures)
+                .catch(error => {
+                    logger.warn(`Failed to discover features of ${jid}`, error);
+                });
+        });
 
     this._maybeStartOrStopP2P();
     this._maybeSetSITimeout();
