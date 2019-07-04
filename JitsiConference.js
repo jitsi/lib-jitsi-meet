@@ -1352,31 +1352,38 @@ JitsiConference.prototype.onMemberJoined = function(
         id,
         participant);
 
-    const updateFeatures = features => {
-        participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
-        this.updateDTMFSupport();
+    this._updateFeatures(participant)
+        .catch(() =>
 
-        if (features.has('http://jitsi.org/protocol/jigasi')) {
-            participant.setProperty('features_jigasi', true);
-        }
-    };
-
-    this.xmpp.caps.getFeatures(jid)
-        .then(updateFeatures)
-        .catch(() => {
             // there was probably a mismatch, lets try one more time and give up
-            this.xmpp.caps.getFeatures(jid)
-                .then(updateFeatures)
+            this._updateFeatures(participant)
                 .catch(error => {
                     logger.warn(`Failed to discover features of ${jid}`, error);
-                });
-        });
+                }));
 
     this._maybeStartOrStopP2P();
     this._maybeSetSITimeout();
 };
 
 /* eslint-enable max-params */
+
+/**
+ * Updates features for a participant.
+ * @param {JitsiParticipant} participant - The participant to query for features.
+ * @returns {Promise<Set<String> | never>}
+ * @private
+ */
+JitsiConference.prototype._updateFeatures = function(participant) {
+    return this.xmpp.caps.getFeatures(participant.getJid())
+        .then(features => {
+            participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
+            this.updateDTMFSupport();
+
+            if (features.has('http://jitsi.org/protocol/jigasi')) {
+                participant.setProperty('features_jigasi', true);
+            }
+        });
+};
 
 /**
  * Get notified when member bot type had changed.
