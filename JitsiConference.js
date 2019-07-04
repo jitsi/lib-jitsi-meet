@@ -1363,8 +1363,8 @@ JitsiConference.prototype.onMemberJoined = function(
 
     this.xmpp.caps.getFeatures(jid)
         .then(updateFeatures)
-        .catch(_ => { // eslint-disable-line no-unused-vars
-            // there was probably a mismatch, lets try one more time and givup
+        .catch(() => {
+            // there was probably a mismatch, lets try one more time and give up
             this.xmpp.caps.getFeatures(jid)
                 .then(updateFeatures)
                 .catch(error => {
