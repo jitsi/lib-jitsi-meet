@@ -101,6 +101,7 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - TRACK_ADDED - stream received. (parameters - JitsiTrack)
         - TRACK_REMOVED - stream removed. (parameters - JitsiTrack)
         - TRACK_MUTE_CHANGED - JitsiTrack was muted or unmuted. (parameters - JitsiTrack)
+        - TRACK_AUDIO_LEVEL_CHANGED - audio level of JitsiTrack has changed. (parameters - participantId(string), audioLevel(number))
         - DOMINANT_SPEAKER_CHANGED - the dominant speaker is changed. (parameters - id(string))
         - USER_JOINED - new user joined a conference. (parameters - id(string), user(JitsiParticipant))
         - USER_LEFT - a participant left conference. (parameters - id(string), user(JitsiParticipant))
