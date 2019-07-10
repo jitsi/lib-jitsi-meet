@@ -276,8 +276,12 @@ export default class BridgeChannel {
             emitter.emit(RTCEvents.DATA_CHANNEL_OPEN);
         };
 
-        channel.onerror = error => {
-            logger.error('Channel error:', error);
+        channel.onerror = event => {
+            // WS error events contain no information about the failure (this is available in the onclose event) and
+            // the event references the WS object itself, which causes hangs on mobile.
+            if (this._mode !== 'websocket') {
+                logger.error(`Channel error: ${event.message}`);
+            }
         };
 
         channel.onmessage = ({ data }) => {
@@ -364,6 +368,7 @@ export default class BridgeChannel {
 
             if (this._mode === 'websocket') {
                 if (!this._closedFromClient) {
+                    logger.error(`Channel closed: ${event.code} ${event.reason}`);
                     this._retryWebSocketConnection(event);
                 }
             }
