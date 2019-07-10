@@ -411,15 +411,16 @@ export default class XMPP extends Listenable {
         if (this.authenticatedUser) {
             // For authenticated users generate a random ID.
             mucNickname = RandomUtil.randomHexString(8).toLowerCase();
-        }
-        else (!this.authenticatedUser) {
+        } else if (!this.authenticatedUser) {
             // We try to use the first part of the node (which for anonymous users on prosody is a UUID) to match
             // the previous behavior (and maybe make debugging easier).
-            mucNickname = Strophe.getNodeFromJid(this.connection.jid).substr(0, 8).toLowerCase();
+            mucNickname = Strophe.getNodeFromJid(this.connection.jid).substr(0, 8)
+                .toLowerCase();
 
             // But if this doesn't have the required format we just generate a new random nickname.
-            let re = /[0-9a-f]{8}/g;
-            if (!re.test(mucNuckname)) {
+            const re = /[0-9a-f]{8}/g;
+
+            if (!re.test(mucNickname)) {
                 mucNickname = RandomUtil.randomHexString(8).toLowerCase();
             }
         }
