@@ -28,8 +28,9 @@ export default class JitsiParticipant {
      * represent a hidden participant; otherwise, false.
      * @param {string} statsID - optional participant statsID
      * @param {string} status - the initial status if any.
+     * @param {object} identity - the xmpp identity
      */
-    constructor(jid, conference, displayName, hidden, statsID, status) {
+    constructor(jid, conference, displayName, hidden, statsID, status, identity) {
         this._jid = jid;
         this._id = Strophe.getResourceFromJid(jid);
         this._conference = conference;
@@ -42,6 +43,7 @@ export default class JitsiParticipant {
         this._statsID = statsID;
         this._connectionStatus = ParticipantConnectionStatus.ACTIVE;
         this._properties = {};
+        this._identity = identity;
     }
 
     /* eslint-enable max-params */
