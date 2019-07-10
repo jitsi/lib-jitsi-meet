@@ -1342,7 +1342,7 @@ JitsiConference.prototype.onMemberJoined = function(
     }
 
     const participant
-        = new JitsiParticipant(jid, this, nick, isHidden, statsID, status);
+        = new JitsiParticipant(jid, this, nick, isHidden, statsID, status, identity);
 
     participant._role = role;
     participant._botType = botType;

@@ -38,6 +38,18 @@ In addition to the basic claims used in authentication, the token can also provi
   - 'name' is the display name of the 'callee' user
   - 'avatar' is the URL of the avatar of the 'callee'
 
+#### Access token identifiers / context
+To access the data in lib-jitsi-meet you have to enable the prosody module `mod_presence_identity` in your config.
+
+```lua
+VirtualHost "jitmeet.example.com"
+    modules_enabled = { "presence_identity" }
+```
+
+The data is now available as the identity in the JitsiParticipant class. You can access them by e.g. listening to the `USER_JOINED` event.
+
+NOTE: The values in the token shall always be valid values. If you define e.g. the avatar as `null` it will throw an error.
+
 ### Example Token
 #### Headers (using RS256 public key validation)
 ```
