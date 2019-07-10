@@ -260,7 +260,6 @@ export default class Caps extends Listenable {
     _notifyVersionChanged() {
         // update the version for all rooms
         this.rooms.forEach(room => this._fixChatRoomPresenceMap(room));
-        this.submit();
     }
 
     /**
