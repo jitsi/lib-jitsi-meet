@@ -1352,14 +1352,7 @@ JitsiConference.prototype.onMemberJoined = function(
         id,
         participant);
 
-    this._updateFeatures(participant)
-        .catch(() =>
-
-            // there was probably a mismatch, lets try one more time and give up
-            this._updateFeatures(participant)
-                .catch(error => {
-                    logger.warn(`Failed to discover features of ${jid}`, error);
-                }));
+    this._updateFeatures(participant);
 
     this._maybeStartOrStopP2P();
     this._maybeSetSITimeout();
@@ -1370,11 +1363,11 @@ JitsiConference.prototype.onMemberJoined = function(
 /**
  * Updates features for a participant.
  * @param {JitsiParticipant} participant - The participant to query for features.
- * @returns {Promise<Set<String> | never>}
+ * @returns {void}
  * @private
  */
 JitsiConference.prototype._updateFeatures = function(participant) {
-    return this.xmpp.caps.getFeatures(participant.getJid())
+    participant.getFeatures()
         .then(features => {
             participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
             this.updateDTMFSupport();
@@ -1382,7 +1375,8 @@ JitsiConference.prototype._updateFeatures = function(participant) {
             if (features.has('http://jitsi.org/protocol/jigasi')) {
                 participant.setProperty('features_jigasi', true);
             }
-        });
+        })
+        .catch(() => false);
 };
 
 /**

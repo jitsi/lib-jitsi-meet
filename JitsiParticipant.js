@@ -1,10 +1,14 @@
 
 import { Strophe } from 'strophe.js';
 
+import { getLogger } from 'jitsi-meet-logger';
+
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import { ParticipantConnectionStatus }
     from './modules/connectivity/ParticipantConnectionStatus';
 import * as MediaType from './service/RTC/MediaType';
+
+const logger = getLogger(__filename);
 
 /**
  * Represents a participant in (i.e. a member of) a conference.
@@ -234,7 +238,18 @@ export default class JitsiParticipant {
      * @returns {Promise<Set<String>, Error>}
      */
     getFeatures(timeout = 5000) {
-        return this._conference.xmpp.caps.getFeatures(this._jid, timeout);
+        return this._conference.xmpp.caps.getFeatures(this._jid, timeout)
+            .catch(error => {
+                // when we detect version mismatch we return a string as error
+                // we want to retry in such case
+                if (error && error.constructor === String) {
+                    return this._conference.xmpp.caps.getFeatures(this._jid, timeout);
+                }
+
+                logger.warn(`Failed to discover features of ${this._jid}`, error);
+
+                return Promise.reject(error);
+            });
     }
 
     /**
