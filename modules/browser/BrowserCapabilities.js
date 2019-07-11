@@ -101,6 +101,19 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Returns whether or not the current environment needs a user interaction
+     * with the page before any unmute can occur.
+     *
+     * @returns {boolean}
+     */
+    isUserInteractionRequiredForUnmute() {
+        return !this.isReactNative()
+            && !this.isChrome()
+            && !this.isChromiumBased()
+            && !this.isElectron();
+    }
+
+    /**
      * Checks if the current browser triggers 'onmute'/'onunmute' events when
      * user's connection is interrupted and the video stops playback.
      * @returns {*|boolean} 'true' if the event is supported or 'false'
