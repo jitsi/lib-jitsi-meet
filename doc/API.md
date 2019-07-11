@@ -50,7 +50,6 @@ The ```options``` parameter is JS object with the following properties:
     - `disableThirdPartyRequests` - if true - callstats will be disabled and the callstats API won't be included.
     - `enableAnalyticsLogging` - boolean property (default false). Enables/disables analytics logging.
     - `callStatsCustomScriptUrl` - (optional) custom url to access callstats client script
-    - `callStatsConfIDNamespace` - (optional) a namespace to prepend the callstats conference ID with. Defaults to the window.location.hostname
     - `disableRtx` - (optional) boolean property (default to false).  Enables/disable the use of RTX.
     - `disableH264` - (optional) boolean property (default to false).  If enabled, strips the H.264 codec from the local SDP.
     - `preferH264` - (optional) boolean property (default to false).  Enables/disable preferring the first instance of an h264 codec in an offer by moving it to the front of the codec list.
@@ -228,6 +227,7 @@ This objects represents the server connection. You can create new ```JitsiConnec
         8. enableStatsID - enables sending callStatsUsername as stats-id in presence, jicofo and videobridge will use it as endpointID to report stats
         9. enableDisplayNameInStats - enables sending the users display name, if set, to callstats as alias of the endpointID stats
         10. startSilent - enables silent mode, will mark audio as inactive will not send/receive audio
+        11. confID - Used for statistics to identify conference, if tenants are supported will contain tenant and the non lower case variant for the room name.
 
         **NOTE: if 4 and 5 are set the library is going to send events to callstats. Otherwise the callstats integration will be disabled.**
 
