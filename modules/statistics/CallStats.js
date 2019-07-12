@@ -373,22 +373,10 @@ export default class CallStats {
 
             if (options.confID) {
                 // we first check is there a tenant in the confID
-                let match = options.confID.match(/(.*)\/(.*)\/.*/);
+                const match = options.confID.match(/.*\/(.*)\/.*/);
 
-                let siteID = match && match[2];
-
-                if (!siteID) {
-                    match = options.confID.match(/(.*)\/.*/);
-
-                    // no tenant let's just set main host
-                    siteID = match && match[1];
-                }
-
-                if (siteID) {
-                    configParams.siteID = siteID;
-                } else {
-                    logger.warn('No siteID set for:', options.confID);
-                }
+                // if there is no tenant, we will just set '/'
+                configParams.siteID = (match && match[1]) || '/';
             }
 
             // userID is generated or given by the origin server
