@@ -73,7 +73,8 @@ function _initCallStatsBackend(options) {
         aliasName: options.swapUserNameAndAlias
             ? userName : options.callStatsAliasName,
         applicationName: options.applicationName,
-        getWiFiStatsMethod: options.getWiFiStatsMethod
+        getWiFiStatsMethod: options.getWiFiStatsMethod,
+        confID: options.confID
     })) {
         logger.error('CallStats Backend initialization failed bad');
     }
@@ -129,13 +130,11 @@ Statistics.init = function(options) {
  * callstats.
  * @property {string} callStatsAliasName - The alias name to use when
  * initializing callstats.
- * @property {string} callStatsConfIDNamespace - A namespace to prepend the
- * callstats conference ID with.
+ * @property {string} confID - The callstats conference ID to use.
  * @property {string} callStatsID - Callstats credentials - the id.
  * @property {string} callStatsSecret - Callstats credentials - the secret.
  * @property {string} customScriptUrl - A custom lib url to use when downloading
  * callstats library.
- * @property {string} roomName - The room name we are currently in.
  * @property {boolean} swapUserNameAndAlias - Whether to swap the places of
  * username and alias when initiating callstats.
  */
@@ -170,8 +169,8 @@ export default function Statistics(xmpp, options) {
             loadCallStatsAPI(this.options);
         }
 
-        if (!this.options.callStatsConfIDNamespace) {
-            logger.warn('"callStatsConfIDNamespace" is not defined');
+        if (!this.options.confID) {
+            logger.warn('"confID" is not defined');
         }
     }
 
@@ -368,7 +367,7 @@ Statistics.prototype.startCallStats = function(tpc, remoteUserID) {
         = new CallStats(
             tpc,
             {
-                confID: this._getCallStatsConfID(),
+                confID: this.options.confID,
                 remoteUserID
             });
 
@@ -391,19 +390,6 @@ Statistics._getAllCallStatsInstances = function() {
     }
 
     return csInstances;
-};
-
-/**
- * Constructs the CallStats conference ID based on the options currently
- * configured in this instance.
- * @return {string}
- * @private
- */
-Statistics.prototype._getCallStatsConfID = function() {
-    // The conference ID is case sensitive!!!
-    return this.options.callStatsConfIDNamespace
-        ? `${this.options.callStatsConfIDNamespace}/${this.options.roomName}`
-        : this.options.roomName;
 };
 
 /**
@@ -686,7 +672,7 @@ Statistics.sendLog = function(m) {
  * @param comment the comment from the user.
  */
 Statistics.prototype.sendFeedback = function(overall, comment) {
-    CallStats.sendFeedback(this._getCallStatsConfID(), overall, comment);
+    CallStats.sendFeedback(this.options.confID, overall, comment);
     Statistics.analytics.sendEvent(
         FEEDBACK,
         {

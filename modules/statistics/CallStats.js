@@ -371,6 +371,14 @@ export default class CallStats {
                 };
             }
 
+            if (options.confID) {
+                // we first check is there a tenant in the confID
+                const match = options.confID.match(/.*\/(.*)\/.*/);
+
+                // if there is no tenant, we will just set '/'
+                configParams.siteID = (match && match[1]) || '/';
+            }
+
             // userID is generated or given by the origin server
             CallStats.backend.initialize(
                 CallStats.callStatsID,
