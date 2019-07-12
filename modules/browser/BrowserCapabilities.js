@@ -107,10 +107,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     isUserInteractionRequiredForUnmute() {
-        return !this.isReactNative()
-            && !this.isChrome()
-            && !this.isChromiumBased()
-            && !this.isElectron();
+        return this.isFirefox() || this.isSafari();
     }
 
     /**
