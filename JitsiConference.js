@@ -303,7 +303,7 @@ JitsiConference.prototype._init = function(options = {}) {
 
         this.statistics = new Statistics(this.xmpp, {
             callStatsAliasName,
-            confID: config.confID || `${config.hosts.domain}/${this.options.name}`,
+            confID: config.confID || `${this.connection.options.hosts.domain}/${this.options.name}`,
             customScriptUrl: config.callStatsCustomScriptUrl,
             callStatsID: config.callStatsID,
             callStatsSecret: config.callStatsSecret,
