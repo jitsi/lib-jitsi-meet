@@ -408,9 +408,15 @@ export default class XMPP extends Listenable {
     }
 
     /**
+     * Joins or creates a muc with the provided jid, created from the passed
+     * in room name and muc host.
      *
-     * @param roomName
-     * @param options
+     * @param {string} roomName - The name of the muc to join.
+     * @param {Object} options - Configuration for how to join the muc.
+     * @param {string} [options.forcedResourceName] - A resource to set on the
+     * jid. This options should not be used if the video bridge is used, as
+     * the video bridge re-uses this value as an id.
+     * @returns {Promise} Resolves with an instance of a strophe muc.
      */
     createRoom(roomName, options) {
         let roomjid = `${roomName}@${this.options.hosts.muc}/`;
@@ -420,7 +426,9 @@ export default class XMPP extends Listenable {
         // We use the room nickname (the resourcepart of the occupant JID, see XEP-0045)
         // as the endpoint ID in colibri. We require endpoint IDs to be 8 hex digits because
         // in some cases they get serialized into a 32bit field.
-        if (this.authenticatedUser) {
+        if (options.forcedResourceName) {
+            mucNickname = options.forcedResourceName;
+        } else if (this.authenticatedUser) {
             // For authenticated users generate a random ID.
             mucNickname = RandomUtil.randomHexString(8).toLowerCase();
         } else if (!this.authenticatedUser) {
@@ -437,7 +445,7 @@ export default class XMPP extends Listenable {
             }
         }
 
-        logger.info(`JID ${this.connection.jid} using MUC nickname $mucNickname`);
+        logger.info(`JID ${this.connection.jid} using MUC nickname ${mucNickname}`);
         roomjid += mucNickname;
 
         return this.connection.emuc.createRoom(roomjid, null, options);
