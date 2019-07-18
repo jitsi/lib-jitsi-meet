@@ -407,7 +407,7 @@ JitsiConference.prototype.join = function(password) {
  * process.
  */
 JitsiConference.prototype.authenticateAndUpgradeRole = function(options) {
-    return authenticateAndUpgradeRole.apply(this, {
+    return authenticateAndUpgradeRole.call(this, {
         ...options,
         onCreateResource: JitsiConference.resourceCreator
     });
