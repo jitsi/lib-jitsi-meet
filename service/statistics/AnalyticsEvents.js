@@ -332,6 +332,23 @@ export const createGetUserMediaEvent = function(action, attributes = {}) {
 };
 
 /**
+ * Creates an event related to remote participant connection status changes.
+ *
+ * @param attributes the attributes to attach to the event.
+ * @returns {{type: string, source: string, name: string}}
+ */
+export const createParticipantConnectionStatusEvent = function(attributes = {}) {
+    const action = 'duration';
+
+    return {
+        type: TYPE_OPERATIONAL,
+        source: 'peer.conn.status',
+        action,
+        attributes
+    };
+};
+
+/**
  * Creates an event for a Jingle-related event.
  * @param action the action of the event
  * @param attributes attributes to add to the event.

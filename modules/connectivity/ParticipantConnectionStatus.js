@@ -6,6 +6,7 @@ import * as MediaType from '../../service/RTC/MediaType';
 import browser from '../browser';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import Statistics from '../statistics/statistics';
+import { createParticipantConnectionStatusEvent } from '../../service/statistics/AnalyticsEvents';
 
 const logger = getLogger(__filename);
 
@@ -264,6 +265,14 @@ export default class ParticipantConnectionStatusHandler {
          * @type {Map<string, number>}
          */
         this.restoringTimers = new Map();
+
+        /**
+         * A map that holds the current connection status (along with all the internal events that happen
+         * while in that state).
+         *
+         * The goal is to send this information to the analytics backend for post-mortem analysis.
+         */
+        this.peerConnStatusMap = new Map();
     }
 
     /**
@@ -428,6 +437,7 @@ export default class ParticipantConnectionStatusHandler {
                     participant: endpointId,
                     status: newStatus
                 }));
+
 
             this.conference.eventEmitter.emit(
                 JitsiConferenceEvents.PARTICIPANT_CONN_STATUS_CHANGED,
@@ -613,6 +623,37 @@ export default class ParticipantConnectionStatusHandler {
                 inP2PMode} is in last N: ${
                 isInLastN} currentStatus => newStatus: ${
                 participant.getConnectionStatus()} => ${newState}`);
+
+        const nowMs = new Date().getTime();
+        const internalState = {
+            'instantMs': nowMs,
+            'isVideoMuted': isVideoMuted,
+            'isConnActiveByJvb': isConnActiveByJvb,
+            'isVideoTrackFrozen': isVideoTrackFrozen,
+            'inP2PMode': inP2PMode,
+            'inInLastN': isInLastN
+        };
+
+        if (!this.peerConnStatusMap[id] || this.peerConnStatusMap[id].state !== newState) {
+            // The peer connection status has changed. Compute the duration of the current
+            // connection status and send it as an analytics event.
+            if (this.peerConnStatusMap[id]) {
+                this.peerConnStatusMap[id].value = nowMs - this.peerConnStatusMap[id].startedMs;
+                Statistics.sendAnalytics(
+                    createParticipantConnectionStatusEvent(this.peerConnStatusMap[id]));
+            }
+
+            // And start a new status for the participant.
+            this.peerConnStatusMap[id] = {
+                'internalStates': [ internalState ],
+                'state': newState,
+                'startedMs': nowMs
+            };
+        } else {
+            // The connection status hasn't changed, but there was an internal state change.
+            // Register the internal state.
+            this.peerConnStatusMap[id].internalStates.push(internalState);
+        }
 
         this._changeConnectionStatus(participant, newState);
     }
