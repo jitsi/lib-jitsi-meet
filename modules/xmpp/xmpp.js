@@ -409,41 +409,20 @@ export default class XMPP extends Listenable {
 
     /**
      * Joins or creates a muc with the provided jid, created from the passed
-     * in room name and muc host.
+     * in room name and muc host and onCreateResource result.
      *
      * @param {string} roomName - The name of the muc to join.
      * @param {Object} options - Configuration for how to join the muc.
-     * @param {string} [options.forcedResourceName] - A resource to set on the
-     * jid. This options should not be used if the video bridge is used, as
-     * the video bridge re-uses this value as an id.
+     * @param {Function} [onCreateResource] - Callback to invoke when a resource
+     * is to be added to the jid.
      * @returns {Promise} Resolves with an instance of a strophe muc.
      */
-    createRoom(roomName, options) {
+    createRoom(roomName, options, onCreateResource) {
         let roomjid = `${roomName}@${this.options.hosts.muc}/`;
 
-        let mucNickname;
-
-        // We use the room nickname (the resourcepart of the occupant JID, see XEP-0045)
-        // as the endpoint ID in colibri. We require endpoint IDs to be 8 hex digits because
-        // in some cases they get serialized into a 32bit field.
-        if (options.forcedResourceName) {
-            mucNickname = options.forcedResourceName;
-        } else if (this.authenticatedUser) {
-            // For authenticated users generate a random ID.
-            mucNickname = RandomUtil.randomHexString(8).toLowerCase();
-        } else {
-            // We try to use the first part of the node (which for anonymous users on prosody is a UUID) to match
-            // the previous behavior (and maybe make debugging easier).
-            mucNickname = Strophe.getNodeFromJid(this.connection.jid).substr(0, 8)
-                .toLowerCase();
-
-            // But if this doesn't have the required format we just generate a new random nickname.
-            const re = /[0-9a-f]{8}/g;
-
-            if (!re.test(mucNickname)) {
-                mucNickname = RandomUtil.randomHexString(8).toLowerCase();
-            }
-        }
+        const mucNickname = onCreateResource
+            ? onCreateResource(this.connection.jid, this.authenticatedUser)
+            : RandomUtil.randomHexString(8).toLowerCase();
 
         logger.info(`JID ${this.connection.jid} using MUC nickname ${mucNickname}`);
         roomjid += mucNickname;
