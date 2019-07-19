@@ -61,6 +61,7 @@ export default function authenticateAndUpgradeRole({
     // 1. Log the specified XMPP user in.
     id,
     password,
+    onCreateResource,
 
     // 2. Let the API client/consumer know as soon as the XMPP user has been
     //    successfully logged in.
@@ -96,8 +97,11 @@ export default function authenticateAndUpgradeRole({
                 onLoginSuccessful && onLoginSuccessful();
 
                 // Now authenticate with Jicofo and get a new session ID.
-                const room
-                    = xmpp.createRoom(this.options.name, this.options.config);
+                const room = xmpp.createRoom(
+                    this.options.name,
+                    this.options.config,
+                    onCreateResource
+                );
 
                 room.moderator.authenticate()
                     .then(() => {

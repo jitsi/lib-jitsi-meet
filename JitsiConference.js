@@ -32,6 +32,7 @@ import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
 import Transcriber from './modules/transcription/transcriber';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
+import RandomUtil from './modules/util/RandomUtil';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
@@ -223,6 +224,43 @@ export default function JitsiConference(options) {
 JitsiConference.prototype.constructor = JitsiConference;
 
 /**
+ * Create a resource for the a jid. We use the room nickname (the resource part
+ * of the occupant JID, see XEP-0045) as the endpoint ID in colibri. We require
+ * endpoint IDs to be 8 hex digits because in some cases they get serialized
+ * into a 32bit field.
+ *
+ * @param {string} jid - The id set onto the XMPP connection.
+ * @param {boolean} isAuthenticatedUser - Whether or not the user has connected
+ * to the XMPP service with a password.
+ * @returns {string}
+ * @static
+ */
+JitsiConference.resourceCreator = function(jid, isAuthenticatedUser) {
+    let mucNickname;
+
+    if (isAuthenticatedUser) {
+        // For authenticated users generate a random ID.
+        mucNickname = RandomUtil.randomHexString(8).toLowerCase();
+    } else {
+        // We try to use the first part of the node (which for anonymous users
+        // on prosody is a UUID) to match the previous behavior (and maybe make
+        // debugging easier).
+        mucNickname = Strophe.getNodeFromJid(jid).substr(0, 8)
+            .toLowerCase();
+
+        // But if this doesn't have the required format we just generate a new
+        // random nickname.
+        const re = /[0-9a-f]{8}/g;
+
+        if (!re.test(mucNickname)) {
+            mucNickname = RandomUtil.randomHexString(8).toLowerCase();
+        }
+    }
+
+    return mucNickname;
+};
+
+/**
  * Initializes the conference object properties
  * @param options {object}
  * @param options.connection {JitsiConnection} overrides this.connection
@@ -240,7 +278,11 @@ JitsiConference.prototype._init = function(options = {}) {
 
     const { config } = this.options;
 
-    this.room = this.xmpp.createRoom(this.options.name, config);
+    this.room = this.xmpp.createRoom(
+        this.options.name,
+        config,
+        JitsiConference.resourceCreator
+    );
 
     // Connection interrupted/restored listeners
     this._onIceConnectionInterrupted
@@ -364,8 +406,11 @@ JitsiConference.prototype.join = function(password) {
  * and (2) has a <tt>cancel</tt> method that allows the caller to interrupt the
  * process.
  */
-JitsiConference.prototype.authenticateAndUpgradeRole = function(...args) {
-    return authenticateAndUpgradeRole.apply(this, args);
+JitsiConference.prototype.authenticateAndUpgradeRole = function(options) {
+    return authenticateAndUpgradeRole.call(this, {
+        ...options,
+        onCreateResource: JitsiConference.resourceCreator
+    });
 };
 
 /**
