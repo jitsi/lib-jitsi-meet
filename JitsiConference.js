@@ -1506,9 +1506,6 @@ JitsiConference.prototype.onLocalRoleChanged = function(role) {
     // Emit role changed for local  JID
     this.eventEmitter.emit(
         JitsiConferenceEvents.USER_ROLE_CHANGED, this.myUserId(), role);
-
-    // Maybe start P2P
-    this._maybeStartOrStopP2P();
 };
 
 JitsiConference.prototype.onUserRoleChanged = function(jid, role) {
@@ -1665,16 +1662,8 @@ JitsiConference.prototype._onIncomingCallP2P = function(
         jingleOffer) {
 
     let rejectReason;
-    const role = this.room.getMemberRole(jingleSession.remoteJid);
 
-    if (role !== 'moderator') {
-        rejectReason = {
-            reason: 'security-error',
-            reasonDescription: 'Only focus can start new sessions',
-            errorMsg: 'Rejecting session-initiate from non-focus and'
-                        + `non-moderator user: ${jingleSession.remoteJid}`
-        };
-    } else if (!browser.supportsP2P()) {
+    if (!browser.supportsP2P()) {
         rejectReason = {
             reason: 'unsupported-applications',
             reasonDescription: 'P2P not supported',
@@ -2951,26 +2940,25 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
     }
 
     // Start peer to peer session
-    if (isModerator && !this.p2pJingleSession && shouldBeInP2P) {
+    if (!this.p2pJingleSession && shouldBeInP2P) {
         const peer = peerCount && peers[0];
 
-        // Everyone is a moderator ?
-        if (isModerator && peer.getRole() === 'moderator') {
-            const myId = this.myUserId();
-            const peersId = peer.getId();
 
-            if (myId > peersId) {
-                logger.debug(
-                    'Everyone\'s a moderator - '
-                    + 'the other peer should start P2P', myId, peersId);
+        const myId = this.myUserId();
+        const peersId = peer.getId();
 
-                return;
-            } else if (myId === peersId) {
-                logger.error('The same IDs ? ', myId, peersId);
+        if (myId > peersId) {
+            logger.debug(
+                'I\'m the bigger peersId - '
+                + 'the other peer should start P2P', myId, peersId);
 
-                return;
-            }
+            return;
+        } else if (myId === peersId) {
+            logger.error('The same IDs ? ', myId, peersId);
+
+            return;
         }
+
         const jid = peer.getJid();
 
         if (userLeftEvent) {
