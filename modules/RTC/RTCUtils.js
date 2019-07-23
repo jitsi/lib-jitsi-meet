@@ -900,7 +900,7 @@ class RTCUtils extends Listenable {
             this.pcConstraints = { optional: [
                 { googHighStartBitrate: 0 },
                 { googPayloadPadding: true },
-                { googScreencastMinBitrate: 400 },
+                { googScreencastMinBitrate: 100 },
                 { googCpuOveruseDetection: true },
                 { googCpuOveruseEncodeUsage: true },
                 { googCpuUnderuseThreshold: 55 },
