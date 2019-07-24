@@ -153,17 +153,6 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Checks if the current browser supports the MediaStream constructor as
-     * defined by https://www.w3.org/TR/mediacapture-streams/#constructors. In
-     * cases where there is no support, it maybe be necessary to get audio
-     * and video in two distinct GUM calls.
-     * @return {boolean}
-     */
-    supportsMediaStreamConstructor() {
-        return !this.isReactNative();
-    }
-
-    /**
      * Checks if the current browser supports RTP statictics collecting.
      * Required by {@link RTPStatsCollector}.
      *
