@@ -497,6 +497,20 @@ export default class JingleSessionPC extends JingleSession {
         }
     }
 
+    /* eslint-disable max-len */
+    /**
+     * Calls 'createDataChannel' on the underlying peer connection.
+     *
+     * @param {string} label - A human-readable name for the channel. This string may not be longer than 65,535 bytes.
+     * @param {Object} options - The options as defined by WebRTC:
+     * https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createDataChannel#RTCDataChannelInit_dictionary
+     * @returns {RTCDataChannel}
+     */
+    createDataChannel(label, options) {
+        return this.peerconnection.createDataChannel(label, options);
+    }
+    /* eslint-enable max-len */
+
     /**
      * Sends given candidate in Jingle 'transport-info' message.
      * @param {RTCIceCandidate} candidate the WebRTC ICE candidate instance
