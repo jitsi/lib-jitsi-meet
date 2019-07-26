@@ -3,11 +3,12 @@ import { getLogger } from 'jitsi-meet-logger';
 import RTC from '../RTC/RTC';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
-
+import Listenable from '../util/Listenable';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
 import { DEFAULT_STUN_SERVERS } from '../xmpp/xmpp';
 
 import { ACTIONS } from './constants';
+import * as ProxyConnectionEvents from './ProxyConnectionEvents';
 
 const logger = getLogger(__filename);
 
@@ -18,7 +19,7 @@ const logger = getLogger(__filename);
  * this class provides a facade to hide most of the API for
  * {@code JingleSessionPC}.
  */
-export default class ProxyConnectionPC {
+export default class ProxyConnectionPC extends Listenable {
     /**
      * Initializes a new {@code ProxyConnectionPC} instance.
      *
@@ -39,6 +40,7 @@ export default class ProxyConnectionPC {
      * message has to be sent (signaled) out.
      */
     constructor(options = {}) {
+        super();
         this._options = {
             iceConfig: {},
             isInitiator: false,
@@ -69,6 +71,29 @@ export default class ProxyConnectionPC {
     }
 
     /**
+     * Used to internally initialize new data channel and bind required listeners.
+     *
+     * @param {RTCDataChannel} dataChannel - The data channel instance to be initialized.
+     * @private
+     * @returns {void}
+     */
+    _initDataChannel(dataChannel) {
+        this._dataChannel = dataChannel;
+        dataChannel.onmessage = event => {
+            this.eventEmitter.emit(
+                ProxyConnectionEvents.DATA_CHANNEL_MSG_RECEIVED, event.data);
+        };
+        const handleDataChannelStatusChange = () => {
+            this._dataChannel
+                && this.eventEmitter.emit(
+                    ProxyConnectionEvents.DATA_CHANNEL_STATUS_CHANGED, this.isDataChannelActive());
+        };
+
+        dataChannel.onopen = handleDataChannelStatusChange;
+        dataChannel.onclose = handleDataChannelStatusChange;
+    }
+
+    /**
      * Returns the jid of the remote peer with which this peer connection should
      * be established with.
      *
@@ -76,6 +101,15 @@ export default class ProxyConnectionPC {
      */
     getPeerJid() {
         return this._options.peerJid;
+    }
+
+    /**
+     * Checks if the data channel is currently active.
+     *
+     * @returns {boolean}
+     */
+    isDataChannelActive() {
+        return this._dataChannel && this._dataChannel.readyState === 'open';
     }
 
     /**
@@ -106,14 +140,30 @@ export default class ProxyConnectionPC {
     }
 
     /**
+     * Sends a message over the data channel. Can be used only if the data channel is currently active.
+     *
+     * @param {string} message - A string to send.
+     * @returns {void}
+     */
+    sendDataChannelMessage(message) {
+        if (!this.isDataChannelActive()) {
+            throw new Error('Data channel is not ready');
+        }
+
+        this._dataChannel.send(message);
+    }
+
+    /**
      * Instantiates a peer connection and starts the offer/answer cycle to
      * establish a connection with a remote peer.
      *
      * @param {Array<JitsiLocalTrack>} localTracks - Initial local tracks to add
      * to add to the peer connection.
+     * @param {Object} options - Additional options.
+     * @param {boolean} options.openDataChannel - If set to {@code true} then a data channel will be opened.
      * @returns {void}
      */
-    start(localTracks = []) {
+    start(localTracks = [], { openDataChannel }) {
         if (this._peerConnection) {
             return;
         }
@@ -121,6 +171,11 @@ export default class ProxyConnectionPC {
         this._tracks = this._tracks.concat(localTracks);
 
         this._peerConnection = this._createPeerConnection();
+
+        if (openDataChannel) {
+            this._dataChannel = this._peerConnection.createDataChannel('proxyConnectionDC', { reliable: true });
+            this._initDataChannel(this._dataChannel);
+        }
 
         this._peerConnection.invite(localTracks);
     }
@@ -132,6 +187,10 @@ export default class ProxyConnectionPC {
      * @returns {void}
      */
     stop() {
+        if (this._dataChannel) {
+            this._dataChannel.close();
+            this._dataChannel = null;
+        }
         if (this._peerConnection) {
             this._peerConnection.terminate();
         }
@@ -341,6 +400,9 @@ export default class ProxyConnectionPC {
         }
 
         this._peerConnection = this._createPeerConnection();
+        this._peerConnection.peerconnection.ondatachannel = event => {
+            this._initDataChannel(event.channel);
+        };
 
         this._peerConnection.acceptOffer(
             $jingle,

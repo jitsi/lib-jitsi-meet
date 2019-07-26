@@ -6,18 +6,20 @@ import { $iq } from 'strophe.js';
 import * as MediaType from '../../service/RTC/MediaType';
 import VideoType from '../../service/RTC/VideoType';
 import RTC from '../RTC/RTC';
+import Listenable from '../util/Listenable';
 
 import ProxyConnectionPC from './ProxyConnectionPC';
+import * as ProxyConnectionServiceEvents from './ProxyConnectionServiceEvents';
 import { ACTIONS } from './constants';
 
 const logger = getLogger(__filename);
 
 /**
- * Instantiates a new ProxyConnectionPC and ensures only one exists at a given
- * time. Currently it assumes ProxyConnectionPC is used only for screensharing
- * and assumes IQs to be used for communication.
+ * Instantiates a new ProxyConnectionPC and ensures only one exists at a given time. Currently it assumes
+ * ProxyConnectionPC is used for screensharing, peer to peer data channel messaging and assumes IQs to be used for
+ * communication.
  */
-export default class ProxyConnectionService {
+export default class ProxyConnectionService extends Listenable {
     /**
      * Initializes a new {@code ProxyConnectionService} instance.
      *
@@ -29,6 +31,7 @@ export default class ProxyConnectionService {
      * @param {JitsiConnection} [options.jitsiConnection] - The
      * {@code JitsiConnection} which will be used to fetch TURN credentials for
      * the P2P connection.
+     * @param {Function} options.onConnectionClosed - Callback invoked when the underlying proxy connection is closed.
      * @param {Function} options.onRemoteStream - Callback to invoke when a
      * remote video stream has been received and converted to a
      * {@code JitsiLocakTrack}. The {@code JitsiLocakTrack} will be passed in.
@@ -37,6 +40,7 @@ export default class ProxyConnectionService {
      * jid to send the message to and the message
      */
     constructor(options = {}) {
+        super();
         const {
             jitsiConnection,
             ...otherOptions
@@ -110,6 +114,9 @@ export default class ProxyConnectionService {
                 isInitiator: false,
                 receiveVideo: true
             });
+
+            this.eventEmitter.emit(
+                ProxyConnectionServiceEvents.PROXY_CONNECTION_CREATED, this._peerConnection);
         }
 
         // Truthy check for peer connection added to protect against possibly
@@ -125,30 +132,42 @@ export default class ProxyConnectionService {
             || action === ACTIONS.TERMINATE) {
             this._selfCloseConnection();
         }
-
-        return;
     }
 
     /**
-     * Instantiates and initiates a proxy peer connection.
+     * Instantiates a new proxy peer connection.
      *
-     * @param {string} peerJid - The jid of the remote client that should
-     * receive messages.
-     * @param {Array<JitsiLocalTrack>} localTracks - Initial media tracks to
-     * send through to the peer.
-     * @returns {void}
+     * @param {string} peerJid - The jid of the remote client that should receive messages.
+     * @returns {ProxyConnectionPC}
      */
-    start(peerJid, localTracks = []) {
+    createNewConnection(peerJid) {
         this._peerConnection = this._createPeerConnection(peerJid, {
             isInitiator: true,
             receiveVideo: false
         });
 
-        this._peerConnection.start(localTracks);
+        return this._peerConnection;
     }
 
     /**
-     * Terminates any active proxy peer connection.
+     * Instantiates and initiates a default proxy peer connection.
+     *
+     * @param {string} peerJid - The jid of the remote client that should
+     * receive messages.
+     * @param {Array<JitsiLocalTrack>} localTracks - Initial media tracks to
+     * send through to the peer.
+     * @param {Object} options - Additional options.
+     * @param {boolean} options.openDataChannel - If set to {@code true} then a data channel will be opened.
+     * @returns {void}
+     */
+    start(peerJid, localTracks = [], { openDataChannel }) {
+        const connection = this.createNewConnection(peerJid);
+
+        connection.start(localTracks, { openDataChannel });
+    }
+
+    /**
+     * Terminates the default proxy peer connection.
      *
      * @returns {void}
      */
@@ -192,6 +211,10 @@ export default class ProxyConnectionService {
      * @returns {ProxyConnectionPC}
      */
     _createPeerConnection(peerJid, options = {}) {
+        if (this._peerConnection) {
+            throw new Error('Only on proxy connection is allowed at a time');
+        }
+
         if (!peerJid) {
             throw new Error('Cannot create ProxyConnectionPC without a peer.');
         }

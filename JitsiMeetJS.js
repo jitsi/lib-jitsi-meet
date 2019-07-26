@@ -29,6 +29,8 @@ import ScriptUtil from './modules/util/ScriptUtil';
 import recordingConstants from './modules/recording/recordingConstants';
 import ProxyConnectionService
     from './modules/proxyconnection/ProxyConnectionService';
+import * as ProxyConnectionEvents from './modules/proxyconnection/ProxyConnectionEvents';
+import * as ProxyConnectionServiceEvents from './modules/proxyconnection/ProxyConnectionServiceEvents';
 import Statistics from './modules/statistics/statistics';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 
@@ -131,6 +133,9 @@ export default _mergeNamespaceAndModule({
     version: '{#COMMIT_HASH#}',
 
     JitsiConnection,
+
+    ProxyConnectionEvents,
+    ProxyConnectionServiceEvents,
 
     /**
      * {@code ProxyConnectionService} is used to connect a remote peer to a
