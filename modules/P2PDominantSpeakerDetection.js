@@ -1,4 +1,5 @@
 import * as JitsiConferenceEvents from '../JitsiConferenceEvents';
+import RTCEvents from '../service/RTC/RTCEvents';
 
 /**
  * The value which we use to say, every sound over this threshold
@@ -49,8 +50,8 @@ export default class P2PDominantSpeakerDetection {
             return;
         }
 
-        this.conference.eventEmitter.emit(
-            JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED,
+        this.conference.rtc.eventEmitter.emit(
+            RTCEvents.DOMINANT_SPEAKER_CHANGED,
             id);
     }
 }
