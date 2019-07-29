@@ -58,11 +58,19 @@ export default class ProxyConnectionService extends Listenable {
         };
 
         /**
-         * The active instance of {@code ProxyConnectionService}.
+         * The default instance of {@code ProxyConnectionService}.
          *
          * @type {ProxyConnectionPC|null}
          */
         this._peerConnection = null;
+
+        /**
+         * Stores {@code ProxyConnectionPC}s mapped by remote peer address.
+         *
+         * @type {Map<string, ProxyConnectionPC>}
+         * @private
+         */
+        this._proxyConnections = new Map();
 
         // Bind event handlers so they are only bound once for every instance.
         this._onFatalError = this._onFatalError.bind(this);
@@ -91,46 +99,57 @@ export default class ProxyConnectionService extends Listenable {
             return;
         }
 
-        // If a proxy connection has already been established and messages come
-        // from another peer jid then those messages should be replied to with
-        // a rejection.
-        if (this._peerConnection
-            && this._peerConnection.getPeerJid() !== peerJid) {
+        const iq = this._convertStringToXML(message.data.iq);
+        const $jingle = iq && iq.find('jingle');
+        const action = $jingle && $jingle.attr('action');
+
+        let connection = this._proxyConnections.get(peerJid);
+
+        if (action === ACTIONS.INITIATE) {
+            if (connection) {
+                this._onFatalError(
+                    peerJid,
+                    ACTIONS.CONNECTION_ERROR,
+                    'duplicated-connection'
+                );
+
+                return;
+            }
+
+            const newConnection = this._createPeerConnection(peerJid, {
+                isInitiator: false,
+                receiveVideo: true
+            });
+
+            // Initialize the default
+            if (!this._peerConnection) {
+                this._peerConnection = newConnection;
+            }
+
+            this.eventEmitter.emit(
+                ProxyConnectionServiceEvents.PROXY_CONNECTION_CREATED, newConnection);
+
+            connection = newConnection;
+        }
+
+        if (!connection) {
             this._onFatalError(
                 peerJid,
                 ACTIONS.CONNECTION_ERROR,
-                'rejected'
+                'item-not-found'
             );
 
             return;
         }
 
-        const iq = this._convertStringToXML(message.data.iq);
-        const $jingle = iq && iq.find('jingle');
-        const action = $jingle && $jingle.attr('action');
-
-        if (action === ACTIONS.INITIATE) {
-            this._peerConnection = this._createPeerConnection(peerJid, {
-                isInitiator: false,
-                receiveVideo: true
-            });
-
-            this.eventEmitter.emit(
-                ProxyConnectionServiceEvents.PROXY_CONNECTION_CREATED, this._peerConnection);
-        }
-
-        // Truthy check for peer connection added to protect against possibly
-        // receiving actions before an ACTIONS.INITIATE.
-        if (this._peerConnection) {
-            this._peerConnection.processMessage($jingle);
-        }
+        connection.processMessage($jingle);
 
         // Take additional steps to ensure the peer connection is cleaned up
         // if it is to be closed.
         if (action === ACTIONS.CONNECTION_ERROR
             || action === ACTIONS.UNAVAILABLE
             || action === ACTIONS.TERMINATE) {
-            this._selfCloseConnection();
+            this._selfCloseConnection(connection);
         }
     }
 
@@ -141,12 +160,20 @@ export default class ProxyConnectionService extends Listenable {
      * @returns {ProxyConnectionPC}
      */
     createNewConnection(peerJid) {
-        this._peerConnection = this._createPeerConnection(peerJid, {
+        return this._createPeerConnection(peerJid, {
             isInitiator: true,
             receiveVideo: false
         });
+    }
 
-        return this._peerConnection;
+    /**
+     * FIXME.
+     *
+     * @param {string} remoteAddress - FIXME.
+     * @returns {ProxyConnectionPC}
+     */
+    getConnectionForAddress(remoteAddress) {
+        return this._proxyConnections.get(remoteAddress);
     }
 
     /**
@@ -161,9 +188,13 @@ export default class ProxyConnectionService extends Listenable {
      * @returns {void}
      */
     start(peerJid, localTracks = [], { openDataChannel }) {
-        const connection = this.createNewConnection(peerJid);
+        if (this._peerConnection) {
+            throw new Error('Proxy connection already exists');
+        }
 
-        connection.start(localTracks, { openDataChannel });
+        this._peerConnection = this.createNewConnection(peerJid);
+
+        this._peerConnection.start(localTracks, { openDataChannel });
     }
 
     /**
@@ -174,6 +205,8 @@ export default class ProxyConnectionService extends Listenable {
     stop() {
         if (this._peerConnection) {
             this._peerConnection.stop();
+
+            this._proxyConnections.delete(this._peerConnection.getPeerJid());
         }
 
         this._peerConnection = null;
@@ -211,8 +244,8 @@ export default class ProxyConnectionService extends Listenable {
      * @returns {ProxyConnectionPC}
      */
     _createPeerConnection(peerJid, options = {}) {
-        if (this._peerConnection) {
-            throw new Error('Only on proxy connection is allowed at a time');
+        if (this._proxyConnections.has(peerJid)) {
+            throw new Error(`Proxy connection for ${peerJid} exists already`);
         }
 
         if (!peerJid) {
@@ -228,7 +261,11 @@ export default class ProxyConnectionService extends Listenable {
             ...options
         };
 
-        return new ProxyConnectionPC(pcOptions);
+        const connection = new ProxyConnectionPC(pcOptions);
+
+        this._proxyConnections.set(peerJid, connection);
+
+        return connection;
     }
 
     /**
@@ -263,10 +300,9 @@ export default class ProxyConnectionService extends Listenable {
 
         this._onSendMessage(peerJid, iq);
 
-        if (this._peerConnection
-            && this._peerConnection.getPeerJid() === peerJid) {
-            this._selfCloseConnection();
-        }
+        const connection = this._proxyConnections.get(peerJid);
+
+        connection && this._selfCloseConnection(connection);
     }
 
     /**
@@ -344,10 +380,10 @@ export default class ProxyConnectionService extends Listenable {
      * @private
      * @returns {void}
      */
-    _selfCloseConnection() {
-        this.stop();
+    _selfCloseConnection(connection) {
+        this._peerConnection === connection && this.stop();
 
         this._options.onConnectionClosed
-            && this._options.onConnectionClosed();
+            && this._options.onConnectionClosed(connection.getPeerJid());
     }
 }
