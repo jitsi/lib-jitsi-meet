@@ -1079,6 +1079,16 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
+     * Retreives a value from the presence map.
+     *
+     * @param {string} key - The key to find the value for.
+     * @returns {Object?}
+     */
+    getFromPresence(key) {
+        return this.presMap.nodes.find(node => key === node.tagName);
+    }
+
+    /**
      *
      * @param key
      */
