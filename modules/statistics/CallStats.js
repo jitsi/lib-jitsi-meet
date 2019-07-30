@@ -470,16 +470,29 @@ export default class CallStats {
      * @param comment detailed feedback from the user.
      */
     static sendFeedback(conferenceID, overall, comment) {
-        if (CallStats.backend) {
-            CallStats.backend.sendUserFeedback(
-                conferenceID, {
-                    userID: CallStats.userID,
-                    overall,
-                    comment
-                });
-        } else {
-            logger.error('Failed to submit feedback to CallStats - no backend');
-        }
+        return new Promise((resolve, reject) => {
+            if (CallStats.backend) {
+                CallStats.backend.sendUserFeedback(
+                    conferenceID,
+                    {
+                        userID: CallStats.userID,
+                        overall,
+                        comment
+                    },
+                    (status, message) => {
+                        if (status === 'success') {
+                            resolve(message);
+                        } else {
+                            reject(message);
+                        }
+                    });
+            } else {
+                const reason = 'Failed to submit feedback to CallStats - no backend';
+
+                logger.error(reason);
+                reject(reason);
+            }
+        });
     }
 
     /**
