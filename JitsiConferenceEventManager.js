@@ -307,7 +307,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
             conference.eventEmitter.emit(
                 JitsiConferenceEvents.MESSAGE_RECEIVED,
-                id, txt, ts);
+                id, txt, ts, displayName);
         });
 
     chatRoom.addListener(
