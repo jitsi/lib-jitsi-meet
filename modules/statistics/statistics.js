@@ -670,15 +670,20 @@ Statistics.sendLog = function(m) {
  *
  * @param overall an integer between 1 and 5 indicating the user's rating.
  * @param comment the comment from the user.
+ * @returns {Promise} Resolves when callstats feedback has been submitted
+ * successfully.
  */
 Statistics.prototype.sendFeedback = function(overall, comment) {
-    CallStats.sendFeedback(this.options.confID, overall, comment);
+    // Statistics.analytics.sendEvent is currently fire and forget, without
+    // confirmation of successful send.
     Statistics.analytics.sendEvent(
         FEEDBACK,
         {
             rating: overall,
             comment
         });
+
+    return CallStats.sendFeedback(this.options.confID, overall, comment);
 };
 
 Statistics.LOCAL_JID = require('../../service/statistics/constants').LOCAL_JID;

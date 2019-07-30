@@ -2251,11 +2251,12 @@ JitsiConference.prototype.getLocalParticipantProperty = function(name) {
  * @param overallFeedback an integer between 1 and 5 indicating the
  * user feedback
  * @param detailedFeedback detailed feedback from the user. Not yet used
+ * @returns {Promise} Resolves if feedback is submitted successfully.
  */
 JitsiConference.prototype.sendFeedback = function(
         overallFeedback,
         detailedFeedback) {
-    this.statistics.sendFeedback(overallFeedback, detailedFeedback);
+    return this.statistics.sendFeedback(overallFeedback, detailedFeedback);
 };
 
 /**
