@@ -284,18 +284,14 @@ export default class XMPP extends Listenable {
                         JitsiConnectionErrors.SERVER_ERROR,
                         errMsg || 'server-error',
                         /* credentials */ undefined,
-                        /* details */ {
-                            timeSinceLastSuccess: this._lastSuccessTracker.getTimeSinceLastSuccess()
-                        });
+                        this._getConnectionFailedReasonDetails());
                 } else {
                     this.eventEmitter.emit(
                         JitsiConnectionEvents.CONNECTION_FAILED,
                         JitsiConnectionErrors.CONNECTION_DROPPED_ERROR,
                         errMsg || 'connection-dropped-error',
                         /* credentials */ undefined,
-                        /* details */ {
-                            timeSinceLastSuccess: this._lastSuccessTracker.getTimeSinceLastSuccess()
-                        });
+                        this._getConnectionFailedReasonDetails());
                 }
             }
         } else if (status === Strophe.Status.AUTHFAIL) {
@@ -638,6 +634,7 @@ export default class XMPP extends Listenable {
         /* eslint-disable camelcase */
         // check for possible suspend
         details.suspend_time = this.connection.ping.getPingSuspendTime();
+        details.time_since_last_success = this._lastSuccessTracker.getTimeSinceLastSuccess();
         /* eslint-enable camelcase */
 
         return details;
