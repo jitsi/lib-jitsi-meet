@@ -453,7 +453,8 @@ export default class ConnectionQuality {
             packetLoss: this._localStats.packetLoss,
             connectionQuality: this._localStats.connectionQuality,
             jvbRTT: this._localStats.jvbRTT,
-            serverRegion: this._localStats.serverRegion
+            serverRegion: this._localStats.serverRegion,
+            avgAudioLevels: this._localStats.localAvgAudioLevels
         };
 
         try {
@@ -543,7 +544,8 @@ export default class ConnectionQuality {
             packetLoss: data.packetLoss,
             connectionQuality: data.connectionQuality,
             jvbRTT: data.jvbRTT,
-            serverRegion: data.serverRegion
+            serverRegion: data.serverRegion,
+            avgAudioLevels: data.avgAudioLevels
         };
 
         this.eventEmitter.emit(

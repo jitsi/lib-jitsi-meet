@@ -471,6 +471,26 @@ export const createRttByRegionEvent = function(attributes) {
 };
 
 /**
+ * Creates an event which contains information about the audio output problem (the user id of the affected participant,
+ * the local audio levels and the remote audio levels that triggered the event).
+ *
+ * @param {string} userID - The user id of the affected participant.
+ * @param {*} localAudioLevel - The local audio levels.
+ * @param {*} remoteAudioLevels - The audio levels received from the participant.
+ */
+export function createAudioOutputProblemEvent(userID, localAudioLevel, remoteAudioLevels) {
+    return {
+        type: TYPE_OPERATIONAL,
+        action: 'audio.output.problem',
+        attributes: {
+            userID,
+            localAudioLevel,
+            remoteAudioLevels
+        }
+    };
+}
+
+/**
  * Creates an event which contains an information related to the bridge channel close event.
  *
  * @param {string} code - A code from {@link https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent}
