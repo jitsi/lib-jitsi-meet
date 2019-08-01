@@ -28,6 +28,7 @@ import Jvb121EventGenerator from './modules/event/Jvb121EventGenerator';
 import RecordingManager from './modules/recording/RecordingManager';
 import RttMonitor from './modules/rttmonitor/rttmonitor';
 import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
+import AudioOutputProblemDetector from './modules/statistics/AudioOutputProblemDetector';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
 import Transcriber from './modules/transcription/transcriber';
@@ -162,6 +163,12 @@ export default function JitsiConference(options) {
      */
     this.avgRtpStatsReporter
         = new AvgRTPStatsReporter(this, options.config.avgRtpStatsN || 15);
+
+    /**
+     * Detects issues with the audio of remote participants.
+     * @type {AudioOutputProblemDetector}
+     */
+    this._audioOutputProblemDetector = new AudioOutputProblemDetector(this);
 
     /**
      * Indicates whether the connection is interrupted or not.
@@ -453,6 +460,11 @@ JitsiConference.prototype.leave = function() {
     if (this.avgRtpStatsReporter) {
         this.avgRtpStatsReporter.dispose();
         this.avgRtpStatsReporter = null;
+    }
+
+    if (this._audioOutputProblemDetector) {
+        this._audioOutputProblemDetector.dispose();
+        this._audioOutputProblemDetector = null;
     }
 
     if (this.rttMonitor) {
