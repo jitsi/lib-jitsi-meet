@@ -151,18 +151,18 @@ export default class JingleSession {
     /* eslint-disable no-unused-vars, no-empty-function */
 
     /**
-     * Handles an 'add-source' event.
+     * Handles an 'source-add' event.
      *
      * @param contents an array of Jingle 'content' elements.
      */
-    addSources(contents) {}
+    addRemoteStream(contents){}
 
     /**
      * Handles a 'remove-source' event.
      *
      * @param contents an array of Jingle 'content' elements.
      */
-    removeSources(contents) {}
+    removeRemoteStream(contents) {}
 
     /**
      * Terminates this Jingle session by sending session-terminate
@@ -189,6 +189,28 @@ export default class JingleSession {
      * than analysed in the code, as the error is unrecoverable anyway)
      */
     acceptOffer(jingle, success, failure) {}
+
+    /**
+     * Although it states "replace transport" it does accept full Jingle offer
+     * which should contain new ICE transport details.
+     * @param jingleOfferElem an element Jingle IQ that contains new offer and
+     *        transport info.
+     * @param success callback called when we succeed to accept new offer.
+     * @param failure function(error) called when we fail to accept new offer.
+     */
+     replaceTransport(jingleOfferElem, success, failure){}
+     
+     /**
+     * Will put and execute on the queue a session modify task. Currently it
+     * only checks the senders attribute of the video content in order to figure
+     * out if the remote peer has video in the inactive state (stored locally
+     * in {@link _remoteVideoActive} - see field description for more info).
+     * @param {jQuery} jingleContents jQuery selector pointing to the jingle
+     * element of the session modify IQ.
+     * @see {@link _remoteVideoActive}
+     * @see {@link _localVideoActive}
+     */
+    modifyContents(jingleContents){}
 
     /**
      * Returns the JID of the initiator of the jingle session.
