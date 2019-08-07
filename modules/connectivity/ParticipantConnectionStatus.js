@@ -3,6 +3,7 @@ import { getLogger } from 'jitsi-meet-logger';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import * as MediaType from '../../service/RTC/MediaType';
+import * as VideoType from '../../service/RTC/VideoType';
 import browser from '../browser';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import Statistics from '../statistics/statistics';
@@ -272,7 +273,7 @@ export default class ParticipantConnectionStatusHandler {
          *
          * The goal is to send this information to the analytics backend for post-mortem analysis.
          */
-        this.peerConnStatusMap = new Map();
+        this.connectionStatusMap = new Map();
     }
 
     /**
@@ -304,6 +305,14 @@ export default class ParticipantConnectionStatusHandler {
         this._onP2PStatus = this.refreshConnectionStatusForAll.bind(this);
         this.conference.on(JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
 
+        // Used to send analytics events for the participants that are still in the call.
+        this._onConferenceLeft = this.onConferenceLeft.bind(this);
+        this.conference.on(JitsiConferenceEvents.CONFERENCE_LEFT, this._onConferenceLeft);
+
+        // Used to send analytics events for the participant that left the call.
+        this._onUserLeft = this.onUserLeft.bind(this);
+        this.conference.on(JitsiConferenceEvents.USER_LEFT, this._onUserLeft);
+
         // On some browsers MediaStreamTrack trigger "onmute"/"onunmute"
         // events for video type tracks when they stop receiving data which is
         // often a sign that remote user is having connectivity issues
@@ -333,6 +342,10 @@ export default class ParticipantConnectionStatusHandler {
             // signalling mute/unmute events.
             this._onSignallingMuteChanged
                 = this.onSignallingMuteChanged.bind(this);
+
+            // Used to send an analytics event when the video type changes.
+            this._onTrackVideoTypeChanged
+                = this.onTrackVideoTypeChanged.bind(this);
         }
 
         this._onLastNChanged = this._onLastNChanged.bind(this);
@@ -381,6 +394,12 @@ export default class ParticipantConnectionStatusHandler {
 
         this.conference.off(
             JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
+
+        this.conference.off(
+            JitsiConferenceEvents.CONFERENCE_LEFT, this._onConferenceLeft);
+
+        this.conference.off(
+            JitsiConferenceEvents.USER_LEFT, this._onUserLeft);
 
         const participantIds = Object.keys(this.trackTimers);
 
@@ -487,6 +506,9 @@ export default class ParticipantConnectionStatusHandler {
             remoteTrack.on(
                 JitsiTrackEvents.TRACK_MUTE_CHANGED,
                 this._onSignallingMuteChanged);
+            remoteTrack.on(
+                JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED,
+                this._onTrackVideoTypeChanged);
         }
     }
 
@@ -508,6 +530,9 @@ export default class ParticipantConnectionStatusHandler {
             remoteTrack.off(
                 JitsiTrackEvents.TRACK_MUTE_CHANGED,
                 this._onSignallingMuteChanged);
+            remoteTrack.off(
+                JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED,
+                this._onTrackVideoTypeChanged);
 
             this.clearTimeout(endpointId);
             this.clearRtcMutedTimestamp(endpointId);
@@ -624,38 +649,55 @@ export default class ParticipantConnectionStatusHandler {
                 isInLastN} currentStatus => newStatus: ${
                 participant.getConnectionStatus()} => ${newState}`);
 
-        const nowMs = new Date().getTime();
-        const internalState = {
-            'instantMs': nowMs,
-            'isVideoMuted': isVideoMuted,
-            'isConnActiveByJvb': isConnActiveByJvb,
-            'isVideoTrackFrozen': isVideoTrackFrozen,
-            'inP2PMode': inP2PMode,
-            'inInLastN': isInLastN
-        };
+        const oldConnectionStatus = this.connectionStatusMap[id];
 
-        if (!this.peerConnStatusMap[id] || this.peerConnStatusMap[id].state !== newState) {
-            // The peer connection status has changed. Compute the duration of the current
-            // connection status and send it as an analytics event.
-            if (this.peerConnStatusMap[id]) {
-                this.peerConnStatusMap[id].value = nowMs - this.peerConnStatusMap[id].startedMs;
-                Statistics.sendAnalytics(
-                    createParticipantConnectionStatusEvent(this.peerConnStatusMap[id]));
+        // Send an analytics event (guard on either the p2p flag or the connection status has changed
+        // since the last time this code block run).
+        if (!oldConnectionStatus
+            || !('p2p' in oldConnectionStatus)
+            || !('connectionStatus' in oldConnectionStatus)
+            || oldConnectionStatus.p2p !== inP2PMode
+            || oldConnectionStatus.connectionStatus !== newState) {
+
+            const nowMs = Date.now();
+
+            this.maybeSendParticipantConnectionStatusEvent(id, nowMs);
+
+            this.connectionStatusMap[id] = Object.create(oldConnectionStatus, {
+                connectionStatus: newState,
+                p2p: inP2PMode,
+                startedMs: nowMs
+            });
+
+            // sometimes (always?) we're late to hook the TRACK_VIDEOTYPE_CHANGED event and the
+            // video type is not in oldConnectionStatus.
+            if (!('videoType' in this.connectionStatusMap[id])) {
+                this.connectionStatusMap[id].videoType = participant.getTracks().some(
+                    track => track.isVideoTrack()
+                        && track.getVideoType() === VideoType.DESKTOP) ? VideoType.DESKTOP : VideoType.CAMERA;
             }
-
-            // And start a new status for the participant.
-            this.peerConnStatusMap[id] = {
-                'internalStates': [ internalState ],
-                'state': newState,
-                'startedMs': nowMs
-            };
-        } else {
-            // The connection status hasn't changed, but there was an internal state change.
-            // Register the internal state.
-            this.peerConnStatusMap[id].internalStates.push(internalState);
         }
-
         this._changeConnectionStatus(participant, newState);
+    }
+
+    /**
+     * Computes the duration of the current connection status for the participant with the specified id (i.e. 15 seconds
+     * in the INTERRUPTED state) and sends a participant connection status event.
+     * @param id the jid of the participant
+     * @param nowMs the current time (in millis)
+     */
+    maybeSendParticipantConnectionStatusEvent(id, nowMs) {
+        const participantConnectionStatus = this.connectionStatusMap[id];
+
+        if (participantConnectionStatus
+            && 'startedMs' in participantConnectionStatus
+            && 'videoType' in participantConnectionStatus
+            && 'connectionStatus' in participantConnectionStatus
+            && 'p2p' in participantConnectionStatus) {
+            participantConnectionStatus.value = nowMs - participantConnectionStatus.startedMs;
+            Statistics.sendAnalytics(
+                createParticipantConnectionStatusEvent(participantConnectionStatus));
+        }
     }
 
     /**
@@ -740,6 +782,29 @@ export default class ParticipantConnectionStatusHandler {
     }
 
     /**
+     * Flushes out any remaining participant connection status events as a result of the user
+     * leaving the conference.
+     */
+    onConferenceLeft() {
+        const nowMs = Date.now();
+
+        // eslint-disable-next-line guard-for-in
+        for (const id in this.connectionStatusMap) {
+            this.maybeSendParticipantConnectionStatusEvent(id, nowMs);
+            delete this.connectionStatusMap[id];
+        }
+    }
+
+    /**
+     * Sends a last/final participant connection status event for the participant that left the conference.
+     * @param id the id of the participant that left the conference.
+     */
+    onUserLeft(id) {
+        this.maybeSendParticipantConnectionStatusEvent(id, Date.now());
+        delete this.connectionStatusMap[id];
+    }
+
+    /**
      * Handles RTC 'onmute' event for the video track.
      *
      * @param {JitsiRemoteTrack} track the video track for which 'onmute' event
@@ -807,5 +872,23 @@ export default class ParticipantConnectionStatusHandler {
             track.isMuted());
 
         this.figureOutConnectionStatus(participantId);
+    }
+
+    /**
+     * Sends a participant connection status event as a result of the video type
+     * changing.
+     * @param track the track
+     * @param type the video type
+     */
+    onTrackVideoTypeChanged(track, type) {
+        const id = track.getParticipantId();
+        const nowMs = Date.now();
+
+        this.maybeSendParticipantConnectionStatusEvent(id, nowMs);
+
+        this.connectionStatusMap[id] = Object.create(this.connectionStatusMap[id], {
+            videoType: type,
+            startedMs: nowMs
+        });
     }
 }
