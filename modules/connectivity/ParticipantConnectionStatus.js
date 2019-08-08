@@ -662,7 +662,7 @@ export default class ParticipantConnectionStatusHandler {
 
             this.maybeSendParticipantConnectionStatusEvent(id, nowMs);
 
-            this.connectionStatusMap[id] = Object.create(oldConnectionStatus, {
+            this.connectionStatusMap[id] = Object.create(oldConnectionStatus || {}, {
                 connectionStatus: newState,
                 p2p: inP2PMode,
                 startedMs: nowMs
@@ -885,7 +885,7 @@ export default class ParticipantConnectionStatusHandler {
 
         this.maybeSendParticipantConnectionStatusEvent(id, nowMs);
 
-        this.connectionStatusMap[id] = Object.create(this.connectionStatusMap[id], {
+        this.connectionStatusMap[id] = Object.create(this.connectionStatusMap[id] || {}, {
             videoType: type,
             startedMs: nowMs
         });
