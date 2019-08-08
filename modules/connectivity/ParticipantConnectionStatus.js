@@ -597,9 +597,8 @@ export default class ParticipantConnectionStatusHandler {
             // (at the time of writing this code, participant is
             // detached from the conference and TRACK_REMOVED events are
             // fired),
-            // so we don't care, but let's print the warning for
-            // debugging purpose
-            logger.warn(`figure out conn status - no participant for: ${id}`);
+            // so we don't care, but let's print a log message for debugging purposes.
+            logger.debug(`figure out conn status - no participant for: ${id}`);
 
             return;
         }
