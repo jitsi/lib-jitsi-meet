@@ -303,7 +303,6 @@ export default class ParticipantConnectionStatusHandler {
         // Handles P2P status changes
         this._onP2PStatus = this.refreshConnectionStatusForAll.bind(this);
         this.conference.on(JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
-        this.conference.on(JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
 
         // Used to send analytics events for the participant that left the call.
         this._onUserLeft = this.onUserLeft.bind(this);
