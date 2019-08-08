@@ -303,10 +303,7 @@ export default class ParticipantConnectionStatusHandler {
         // Handles P2P status changes
         this._onP2PStatus = this.refreshConnectionStatusForAll.bind(this);
         this.conference.on(JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
-
-        // Used to send analytics events for the participants that are still in the call.
-        this._onConferenceLeft = this.onConferenceLeft.bind(this);
-        this.conference.on(JitsiConferenceEvents.CONFERENCE_LEFT, this._onConferenceLeft);
+        this.conference.on(JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
 
         // Used to send analytics events for the participant that left the call.
         this._onUserLeft = this.onUserLeft.bind(this);
@@ -395,9 +392,6 @@ export default class ParticipantConnectionStatusHandler {
             JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
 
         this.conference.off(
-            JitsiConferenceEvents.CONFERENCE_LEFT, this._onConferenceLeft);
-
-        this.conference.off(
             JitsiConferenceEvents.USER_LEFT, this._onUserLeft);
 
         const participantIds = Object.keys(this.trackTimers);
@@ -405,6 +399,12 @@ export default class ParticipantConnectionStatusHandler {
         for (const participantId of participantIds) {
             this.clearTimeout(participantId);
             this.clearRtcMutedTimestamp(participantId);
+        }
+
+        for (const id in this.connectionStatusMap) {
+            if (this.connectionStatusMap.hasOwnProperty(id)) {
+                this.onUserLeft(id);
+            }
         }
 
         // Clear RTC connection status cache
@@ -779,20 +779,6 @@ export default class ParticipantConnectionStatusHandler {
         }
 
         return false;
-    }
-
-    /**
-     * Flushes out any remaining participant connection status events as a result of the user
-     * leaving the conference.
-     * @returns {void}
-     */
-    onConferenceLeft() {
-
-        for (const id in this.connectionStatusMap) {
-            if (this.connectionStatusMap.hasOwnProperty(id)) {
-                this.onUserLeft(id);
-            }
-        }
     }
 
     /**
