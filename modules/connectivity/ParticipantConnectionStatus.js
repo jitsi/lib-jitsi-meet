@@ -3,7 +3,6 @@ import { getLogger } from 'jitsi-meet-logger';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import * as MediaType from '../../service/RTC/MediaType';
-import * as VideoType from '../../service/RTC/VideoType';
 import browser from '../browser';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import Statistics from '../statistics/statistics';
@@ -670,9 +669,11 @@ export default class ParticipantConnectionStatusHandler {
             // sometimes (always?) we're late to hook the TRACK_VIDEOTYPE_CHANGED event and the
             // video type is not in oldConnectionStatus.
             if (!('videoType' in this.connectionStatusMap[id])) {
-                this.connectionStatusMap[id].videoType = participant.getTracks().some(
-                    track => track.isVideoTrack()
-                        && track.getVideoType() === VideoType.DESKTOP) ? VideoType.DESKTOP : VideoType.CAMERA;
+                const videoTracks = participant.getTracksByMediaType(MediaType.VIDEO);
+
+                if (videoTracks) {
+                    this.connectionStatusMap[id].videoType = videoTracks.getVideoType();
+                }
             }
         }
         this._changeConnectionStatus(participant, newState);
@@ -681,8 +682,9 @@ export default class ParticipantConnectionStatusHandler {
     /**
      * Computes the duration of the current connection status for the participant with the specified id (i.e. 15 seconds
      * in the INTERRUPTED state) and sends a participant connection status event.
-     * @param id the jid of the participant
-     * @param nowMs the current time (in millis)
+     * @param {string} id the jid of the participant
+     * @param {Number} nowMs the current time (in millis)
+     * @returns {void}
      */
     maybeSendParticipantConnectionStatusEvent(id, nowMs) {
         const participantConnectionStatus = this.connectionStatusMap[id];
@@ -782,20 +784,21 @@ export default class ParticipantConnectionStatusHandler {
     /**
      * Flushes out any remaining participant connection status events as a result of the user
      * leaving the conference.
+     * @returns {void}
      */
     onConferenceLeft() {
-        const nowMs = Date.now();
 
-        // eslint-disable-next-line guard-for-in
         for (const id in this.connectionStatusMap) {
-            this.maybeSendParticipantConnectionStatusEvent(id, nowMs);
-            delete this.connectionStatusMap[id];
+            if (this.connectionStatusMap.hasOwnProperty(id)) {
+                this.onUserLeft(id);
+            }
         }
     }
 
     /**
      * Sends a last/final participant connection status event for the participant that left the conference.
-     * @param id the id of the participant that left the conference.
+     * @param {string} id the id of the participant that left the conference.
+     * @returns {void}
      */
     onUserLeft(id) {
         this.maybeSendParticipantConnectionStatusEvent(id, Date.now());
@@ -875,8 +878,8 @@ export default class ParticipantConnectionStatusHandler {
     /**
      * Sends a participant connection status event as a result of the video type
      * changing.
-     * @param track the track
-     * @param type the video type
+     * @param {JitsiRemoteTrack} track the track
+     * @param {VideoType} type the video type
      */
     onTrackVideoTypeChanged(track, type) {
         const id = track.getParticipantId();
