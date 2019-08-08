@@ -866,6 +866,7 @@ export default class ParticipantConnectionStatusHandler {
      * changing.
      * @param {JitsiRemoteTrack} track the track
      * @param {VideoType} type the video type
+     * @returns {void}
      */
     onTrackVideoTypeChanged(track, type) {
         const id = track.getParticipantId();
