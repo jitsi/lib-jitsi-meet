@@ -202,13 +202,6 @@ export default class JitsiRemoteTrack extends JitsiTrack {
     }
 
     /**
-     * @returns {VideoType} the video type of this video track.
-     */
-    getVideoType() {
-        return this.videoType;
-    }
-
-    /**
      * Handles track play events.
      */
     _playCallback() {

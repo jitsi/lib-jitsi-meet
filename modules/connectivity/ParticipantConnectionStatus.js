@@ -414,8 +414,8 @@ export default class ParticipantConnectionStatusHandler {
      * Handles RTCEvents.ENDPOINT_CONN_STATUS_CHANGED triggered when we receive
      * notification over the data channel from the bridge about endpoint's
      * connection status update.
-     * @param {string} endpointId the endpoint ID(MUC nickname/resource JID)
-     * @param {boolean} isActive true if the connection is OK or false otherwise
+     * @param {string} endpointId - The endpoint ID(MUC nickname/resource JID).
+     * @param {boolean} isActive - true if the connection is OK or false otherwise.
      */
     onEndpointConnStatusChanged(endpointId, isActive) {
 
@@ -466,8 +466,8 @@ export default class ParticipantConnectionStatusHandler {
      * Reset the postponed "connection interrupted" event which was previously
      * scheduled as a timeout on RTC 'onmute' event.
      *
-     * @param {string} participantId the participant for which the "connection
-     * interrupted" timeout was scheduled
+     * @param {string} participantId - The participant for which the "connection
+     * interrupted" timeout was scheduled.
      */
     clearTimeout(participantId) {
         if (this.trackTimers[participantId]) {
@@ -490,7 +490,7 @@ export default class ParticipantConnectionStatusHandler {
      * Bind signalling mute event listeners for video {JitsiRemoteTrack} when
      * a new one is added to the conference.
      *
-     * @param {JitsiTrack} remoteTrack the {JitsiTrack} which is being added to
+     * @param {JitsiTrack} remoteTrack - The {JitsiTrack} which is being added to
      * the conference.
      */
     onRemoteTrackAdded(remoteTrack) {
@@ -514,7 +514,7 @@ export default class ParticipantConnectionStatusHandler {
      * Removes all event listeners bound to the remote video track and clears
      * any related timeouts.
      *
-     * @param {JitsiRemoteTrack} remoteTrack the remote track which is being
+     * @param {JitsiRemoteTrack} remoteTrack - The remote track which is being
      * removed from the conference.
      */
     onRemoteTrackRemoved(remoteTrack) {
@@ -541,7 +541,7 @@ export default class ParticipantConnectionStatusHandler {
 
     /**
      * Checks if given participant's video is considered frozen.
-     * @param {JitsiParticipant} participant
+     * @param {JitsiParticipant} participant - The participant.
      * @return {boolean} <tt>true</tt> if the video has frozen for given
      * participant or <tt>false</tt> when it's either not considered frozen
      * (yet) or if freeze detection is not supported by the current browser.
@@ -584,8 +584,7 @@ export default class ParticipantConnectionStatusHandler {
      * Figures out (and updates) the current connectivity status for
      * the participant identified by the given id.
      *
-     * @param {string} id the participant's id (MUC nickname or Colibri endpoint
-     * ID).
+     * @param {string} id - The participant's id (MUC nickname or Colibri endpoint ID).
      */
     figureOutConnectionStatus(id) {
         const participant = this.conference.getParticipantById(id);
@@ -659,11 +658,12 @@ export default class ParticipantConnectionStatusHandler {
 
             this.maybeSendParticipantConnectionStatusEvent(id, nowMs);
 
-            this.connectionStatusMap[id] = Object.assign(oldConnectionStatus, {
+            this.connectionStatusMap[id] = {
+                ...oldConnectionStatus,
                 connectionStatus: newState,
                 p2p: inP2PMode,
                 startedMs: nowMs
-            });
+            };
 
             // sometimes (always?) we're late to hook the TRACK_VIDEOTYPE_CHANGED event and the
             // video type is not in oldConnectionStatus.
@@ -671,7 +671,7 @@ export default class ParticipantConnectionStatusHandler {
                 const videoTracks = participant.getTracksByMediaType(MediaType.VIDEO);
 
                 if (Array.isArray(videoTracks) && videoTracks.length !== 0) {
-                    this.connectionStatusMap[id].videoType = videoTracks[0].getVideoType();
+                    this.connectionStatusMap[id].videoType = videoTracks[0].videoType;
                 }
             }
         }
@@ -681,8 +681,8 @@ export default class ParticipantConnectionStatusHandler {
     /**
      * Computes the duration of the current connection status for the participant with the specified id (i.e. 15 seconds
      * in the INTERRUPTED state) and sends a participant connection status event.
-     * @param {string} id the jid of the participant
-     * @param {Number} nowMs the current time (in millis)
+     * @param {string} id - The jid of the participant.
+     * @param {Number} nowMs - The current time (in millis).
      * @returns {void}
      */
     maybeSendParticipantConnectionStatusEvent(id, nowMs) {
@@ -703,8 +703,8 @@ export default class ParticipantConnectionStatusHandler {
      * On change in Last N set check all leaving and entering participants to
      * change their corresponding statuses.
      *
-     * @param {Array<string>} leavingLastN array of ids leaving lastN.
-     * @param {Array<string>} enteringLastN array of ids entering lastN.
+     * @param {Array<string>} leavingLastN - The array of ids leaving lastN.
+     * @param {Array<string>} enteringLastN - The array of ids entering lastN.
      * @private
      */
     _onLastNChanged(leavingLastN = [], enteringLastN = []) {
@@ -729,7 +729,7 @@ export default class ParticipantConnectionStatusHandler {
      * Clears the restoring timer for participant's video track and the
      * timestamp for entering lastN.
      *
-     * @param {string} participantId the id of the conference participant which
+     * @param {string} participantId - The id of the conference participant which
      * is the same as the Colibri endpoint ID of the video channel allocated for
      * the user on the videobridge.
      */
@@ -748,7 +748,7 @@ export default class ParticipantConnectionStatusHandler {
      * timedout and there is no timer added, add new timer in order to give it
      * more time to become active or mark it as interrupted on next check.
      *
-     * @param {string} participantId the id of the conference participant which
+     * @param {string} participantId - The id of the conference participant which
      * is the same as the Colibri endpoint ID of the video channel allocated for
      * the user on the videobridge.
      * @returns {boolean} <tt>true</tt> if the track was in restoring state
@@ -782,7 +782,7 @@ export default class ParticipantConnectionStatusHandler {
 
     /**
      * Sends a last/final participant connection status event for the participant that left the conference.
-     * @param {string} id the id of the participant that left the conference.
+     * @param {string} id - The id of the participant that left the conference.
      * @returns {void}
      */
     onUserLeft(id) {
@@ -793,7 +793,7 @@ export default class ParticipantConnectionStatusHandler {
     /**
      * Handles RTC 'onmute' event for the video track.
      *
-     * @param {JitsiRemoteTrack} track the video track for which 'onmute' event
+     * @param {JitsiRemoteTrack} track - The video track for which 'onmute' event
      * will be processed.
      */
     onTrackRtcMuted(track) {
@@ -829,7 +829,7 @@ export default class ParticipantConnectionStatusHandler {
     /**
      * Handles RTC 'onunmute' event for the video track.
      *
-     * @param {JitsiRemoteTrack} track the video track for which 'onunmute'
+     * @param {JitsiRemoteTrack} track - The video track for which 'onunmute'
      * event will be processed.
      */
     onTrackRtcUnmuted(track) {
@@ -847,7 +847,7 @@ export default class ParticipantConnectionStatusHandler {
     /**
      * Here the signalling "mute"/"unmute" events are processed.
      *
-     * @param {JitsiRemoteTrack} track the remote video track for which
+     * @param {JitsiRemoteTrack} track - The remote video track for which
      * the signalling mute/unmute event will be processed.
      */
     onSignallingMuteChanged(track) {
@@ -863,8 +863,8 @@ export default class ParticipantConnectionStatusHandler {
     /**
      * Sends a participant connection status event as a result of the video type
      * changing.
-     * @param {JitsiRemoteTrack} track the track
-     * @param {VideoType} type the video type
+     * @param {JitsiRemoteTrack} track - The track.
+     * @param {VideoType} type - The video type.
      * @returns {void}
      */
     onTrackVideoTypeChanged(track, type) {
@@ -873,9 +873,10 @@ export default class ParticipantConnectionStatusHandler {
 
         this.maybeSendParticipantConnectionStatusEvent(id, nowMs);
 
-        this.connectionStatusMap[id] = Object.assign(this.connectionStatusMap[id] || {}, {
+        this.connectionStatusMap[id] = {
+            ...this.connectionStatusMap[id] || {},
             videoType: type,
             startedMs: nowMs
-        });
+        };
     }
 }
