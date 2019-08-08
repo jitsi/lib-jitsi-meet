@@ -648,12 +648,11 @@ export default class ParticipantConnectionStatusHandler {
                 isInLastN} currentStatus => newStatus: ${
                 participant.getConnectionStatus()} => ${newState}`);
 
-        const oldConnectionStatus = this.connectionStatusMap[id];
+        const oldConnectionStatus = this.connectionStatusMap[id] || {};
 
         // Send an analytics event (guard on either the p2p flag or the connection status has changed
         // since the last time this code block run).
-        if (!oldConnectionStatus
-            || !('p2p' in oldConnectionStatus)
+        if (!('p2p' in oldConnectionStatus)
             || !('connectionStatus' in oldConnectionStatus)
             || oldConnectionStatus.p2p !== inP2PMode
             || oldConnectionStatus.connectionStatus !== newState) {
@@ -662,7 +661,7 @@ export default class ParticipantConnectionStatusHandler {
 
             this.maybeSendParticipantConnectionStatusEvent(id, nowMs);
 
-            this.connectionStatusMap[id] = Object.create(oldConnectionStatus || {}, {
+            this.connectionStatusMap[id] = Object.assign(oldConnectionStatus, {
                 connectionStatus: newState,
                 p2p: inP2PMode,
                 startedMs: nowMs
@@ -885,7 +884,7 @@ export default class ParticipantConnectionStatusHandler {
 
         this.maybeSendParticipantConnectionStatusEvent(id, nowMs);
 
-        this.connectionStatusMap[id] = Object.create(this.connectionStatusMap[id] || {}, {
+        this.connectionStatusMap[id] = Object.assign(this.connectionStatusMap[id] || {}, {
             videoType: type,
             startedMs: nowMs
         });
