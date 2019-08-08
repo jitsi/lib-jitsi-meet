@@ -671,8 +671,8 @@ export default class ParticipantConnectionStatusHandler {
             if (!('videoType' in this.connectionStatusMap[id])) {
                 const videoTracks = participant.getTracksByMediaType(MediaType.VIDEO);
 
-                if (videoTracks) {
-                    this.connectionStatusMap[id].videoType = videoTracks.getVideoType();
+                if (Array.isArray(videoTracks) && videoTracks.length !== 0) {
+                    this.connectionStatusMap[id].videoType = videoTracks[0].getVideoType();
                 }
             }
         }
