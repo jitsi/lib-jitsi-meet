@@ -352,10 +352,12 @@ JitsiConference.prototype._init = function(options = {}) {
 
         this.statistics = new Statistics(this.xmpp, {
             callStatsAliasName,
+            callStatsConfIDNamespace: this.connection.options.hosts.domain,
             confID: config.confID || `${this.connection.options.hosts.domain}/${this.options.name}`,
             customScriptUrl: config.callStatsCustomScriptUrl,
             callStatsID: config.callStatsID,
             callStatsSecret: config.callStatsSecret,
+            roomName: this.options.name,
             swapUserNameAndAlias: config.enableStatsID,
             applicationName: config.applicationName,
             getWiFiStatsMethod: config.getWiFiStatsMethod
