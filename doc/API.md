@@ -50,6 +50,7 @@ The ```options``` parameter is JS object with the following properties:
     - `disableThirdPartyRequests` - if true - callstats will be disabled and the callstats API won't be included.
     - `enableAnalyticsLogging` - boolean property (default false). Enables/disables analytics logging.
     - `callStatsCustomScriptUrl` - (optional) custom url to access callstats client script
+    - `callStatsConfIDNamespace` - (optional) a namespace to prepend the callstats conference ID with. Defaults to the window.location.hostname
     - `disableRtx` - (optional) boolean property (default to false).  Enables/disable the use of RTX.
     - `disableH264` - (optional) boolean property (default to false).  If enabled, strips the H.264 codec from the local SDP.
     - `preferH264` - (optional) boolean property (default to false).  Enables/disable preferring the first instance of an h264 codec in an offer by moving it to the front of the codec list.
