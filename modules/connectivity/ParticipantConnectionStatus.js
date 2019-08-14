@@ -506,7 +506,7 @@ export default class ParticipantConnectionStatusHandler {
                 this._onSignallingMuteChanged);
             remoteTrack.on(
                 JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED,
-                this._onTrackVideoTypeChanged);
+                videoType => this._onTrackVideoTypeChanged(remoteTrack, videoType));
         }
     }
 
@@ -528,9 +528,6 @@ export default class ParticipantConnectionStatusHandler {
             remoteTrack.off(
                 JitsiTrackEvents.TRACK_MUTE_CHANGED,
                 this._onSignallingMuteChanged);
-            remoteTrack.off(
-                JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED,
-                this._onTrackVideoTypeChanged);
 
             this.clearTimeout(endpointId);
             this.clearRtcMutedTimestamp(endpointId);
