@@ -29,7 +29,7 @@
     "webrtc-adapter": "github:webrtc/adapter#1eec19782b4058d186341263e7d049cea3e3290a"
   },
   "devDependencies": {
-    "@babel/core": "7.1.2",
+    "@babel/core": "7.5.5",
     "@babel/plugin-proposal-class-properties": "7.1.0",
     "@babel/plugin-proposal-export-namespace-from": "7.0.0",
     "@babel/plugin-transform-flow-strip-types": "7.0.0",
@@ -42,7 +42,7 @@
     "eslint-config-jitsi": "github:jitsi/eslint-config-jitsi#1.0.0",
     "eslint-plugin-flowtype": "2.39.1",
     "eslint-plugin-import": "2.8.0",
-    "flow-bin": "0.92.0",
+    "flow-bin": "0.98.0",
     "jasmine-core": "2.5.2",
     "karma": "3.0.0",
     "karma-chrome-launcher": "2.2.0",
