@@ -480,23 +480,6 @@ export default class XMPP extends Listenable {
 
     /**
      *
-     * @param jid
-     * @param mute
-     */
-    setMute(jid, mute) {
-        this.connection.moderate.setMute(jid, mute);
-    }
-
-    /**
-     *
-     * @param jid
-     */
-    eject(jid) {
-        this.connection.moderate.eject(jid);
-    }
-
-    /**
-     *
      */
     getSessions() {
         return this.connection.jingle.sessions;
@@ -564,7 +547,7 @@ export default class XMPP extends Listenable {
     }
 
     /**
-     *
+     * Test change.
      */
     _initStrophePlugins() {
         const iceConfig = {
