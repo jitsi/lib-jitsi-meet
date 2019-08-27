@@ -3,24 +3,6 @@ import Statistics from '../statistics/statistics';
 const logger = require('jitsi-meet-logger').getLogger(__filename);
 
 /**
- * The constant for the name of the focus component.
- * @type {string}
- */
-ComponentsVersions.FOCUS_COMPONENT = 'focus';
-
-/**
- * The constant for the name of the videobridge component.
- * @type {string}
- */
-ComponentsVersions.VIDEOBRIDGE_COMPONENT = 'videobridge';
-
-/**
- * The constant for the name of the XMPP server component.
- * @type {string}
- */
-ComponentsVersions.XMPP_SERVER_COMPONENT = 'xmpp';
-
-/**
  * Creates new instance of <tt>ComponentsVersions</tt> which will be discovering
  * the versions of conferencing system components in given
  * <tt>JitsiConference</tt>.
@@ -34,20 +16,14 @@ export default function ComponentsVersions(conference) {
 
     this.conference = conference;
     this.conference.addCommandListener(
-        'versions', this.processPresence.bind(this));
+        'versions', this.processVersions.bind(this));
 }
 
-ComponentsVersions.prototype.processPresence
-    = function(node, mucResource, mucJid) {
-        if (node.attributes.xmlns !== 'http://jitsi.org/jitmeet') {
-            logger.warn('Ignored presence versions node - invalid xmlns', node);
-
-            return;
-        }
-
+ComponentsVersions.prototype.processVersions
+    = function(versions, mucResource, mucJid) {
         if (!this.conference._isFocus(mucJid)) {
             logger.warn(
-                `Received versions not from the focus user: ${node}`,
+                `Received versions not from the focus user: ${versions}`,
                 mucJid);
 
             return;
@@ -55,29 +31,18 @@ ComponentsVersions.prototype.processPresence
 
         const log = [];
 
-        node.children.forEach(item => {
+        versions.children.forEach(component => {
 
-            const componentName = item.attributes.name;
+            const name = component.attributes.name;
+            const version = component.value;
 
-            if (componentName !== ComponentsVersions.FOCUS_COMPONENT
-            && componentName !== ComponentsVersions.XMPP_SERVER_COMPONENT
-            && componentName !== ComponentsVersions.VIDEOBRIDGE_COMPONENT) {
-                logger.warn(
-                    `Received version for not supported component name: ${
-                        componentName}`);
-
-                return;
-            }
-
-            const version = item.value;
-
-            if (this.versions[componentName] !== version) {
-                this.versions[componentName] = version;
-                logger.info(`Got ${componentName} version: ${version}`);
+            if (this.versions[name] !== version) {
+                this.versions[name] = version;
+                logger.info(`Got ${name} version: ${version}`);
 
                 log.push({
                     id: 'component_version',
-                    component: componentName,
+                    component: name,
                     version
                 });
             }
