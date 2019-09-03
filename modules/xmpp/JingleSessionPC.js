@@ -1040,6 +1040,15 @@ export default class JingleSessionPC extends JingleSession {
             .find('>content>description>ssrc-group')
             .remove();
 
+        // On the JVB it's not a real ICE restart and all layers are re-initialized from scratch as Jicofo does
+        // the restart by re-allocating new channels. Chrome (or WebRTC stack) needs to have the DTLS transport layer
+        // reset to start a new handshake with fresh DTLS transport on the bridge. Make it think that the DTLS
+        // fingerprint has changed by setting an all zeros key.
+        const newFingerprint = jingleOfferElem.find('>content>transport>fingerprint');
+
+        newFingerprint.attr('hash', 'sha-1');
+        newFingerprint.text('00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00');
+
         // First set an offer with a rejected 'data' section
         this.setOfferAnswerCycle(
             jingleOfferElem,
