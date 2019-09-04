@@ -475,16 +475,16 @@ export const createRttByRegionEvent = function(attributes) {
  * the local audio levels and the remote audio levels that triggered the event).
  *
  * @param {string} userID - The user id of the affected participant.
- * @param {*} localAudioLevel - The local audio levels.
+ * @param {*} localAudioLevels - The local audio levels.
  * @param {*} remoteAudioLevels - The audio levels received from the participant.
  */
-export function createAudioOutputProblemEvent(userID, localAudioLevel, remoteAudioLevels) {
+export function createAudioOutputProblemEvent(userID, localAudioLevels, remoteAudioLevels) {
     return {
         type: TYPE_OPERATIONAL,
         action: 'audio.output.problem',
         attributes: {
             userID,
-            localAudioLevel,
+            localAudioLevels,
             remoteAudioLevels
         }
     };
