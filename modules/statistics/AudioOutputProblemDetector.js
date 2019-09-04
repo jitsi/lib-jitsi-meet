@@ -10,9 +10,9 @@ import Statistics from './statistics';
 const logger = getLogger(__filename);
 
 /**
- * Number of remote samples that will be used for comparison with local ones.
+ * Number of local samples that will be used for comparison before and after the remote sample is received.
  */
-const NUMBER_OF_REMOTE_SAMPLES = 3;
+const NUMBER_OF_LOCAL_SAMPLES = 2;
 
 /**
  * Collects the average audio levels per participant from the local stats and the stats received by every remote
@@ -27,8 +27,10 @@ export default class AudioOutputProblemDetector {
      */
     constructor(conference) {
         this._conference = conference;
-        this._lastReceivedAudioLevel = {};
+        this._localAudioLevelCache = {};
         this._reportedParticipants = [];
+        this._audioProblemCandidates = {};
+        this._numberOfRemoteAudioLevelsReceived = {};
         this._onLocalAudioLevelsReport = this._onLocalAudioLevelsReport.bind(this);
         this._onRemoteAudioLevelReceived = this._onRemoteAudioLevelReceived.bind(this);
         this._clearUserData = this._clearUserData.bind(this);
@@ -45,18 +47,36 @@ export default class AudioOutputProblemDetector {
      * @returns {void}
      */
     _onRemoteAudioLevelReceived(userID, { avgAudioLevels }) {
-        if (this._reportedParticipants.indexOf(userID) !== -1) {
+        const numberOfReports = (this._numberOfRemoteAudioLevelsReceived[userID] + 1) || 0;
+
+        this._numberOfRemoteAudioLevelsReceived[userID] = numberOfReports;
+
+        if (this._reportedParticipants.indexOf(userID) !== -1 || (userID in this._audioProblemCandidates)
+                || avgAudioLevels <= 0 || numberOfReports < 3) {
             return;
         }
 
-        if (!Array.isArray(this._lastReceivedAudioLevel[userID])) {
-            this._lastReceivedAudioLevel[userID] = [ ];
-        } else if (this._lastReceivedAudioLevel[userID].length >= NUMBER_OF_REMOTE_SAMPLES) {
-            this._lastReceivedAudioLevel[userID].shift();
+        const participant = this._conference.getParticipantById(userID);
+
+        if (participant) {
+            const tracks = participant.getTracksByMediaType(MediaType.AUDIO);
+
+            if (tracks.length > 0 && participant.isAudioMuted()) {
+                // We don't need to report an error if everything seems fine with the participant and its tracks but
+                // the participant is audio muted. Since those are average audio levels we potentially can receive non
+                // zero values for muted track.
+                return;
+            }
         }
 
-        this._lastReceivedAudioLevel[userID].push(avgAudioLevels);
+        const localAudioLevels = this._localAudioLevelCache[userID];
 
+        if (!Array.isArray(localAudioLevels) || localAudioLevels.every(audioLevel => audioLevel === 0)) {
+            this._audioProblemCandidates[userID] = {
+                remoteAudioLevels: avgAudioLevels,
+                localAudioLevels: []
+            };
+        }
     }
 
     /**
@@ -71,38 +91,42 @@ export default class AudioOutputProblemDetector {
             return;
         }
 
-        Object.keys(this._lastReceivedAudioLevel).forEach(userID => {
+        Object.keys(avgAudioLevels).forEach(userID => {
             if (this._reportedParticipants.indexOf(userID) !== -1) {
-                // Do not report the participant again.
                 return;
             }
 
-            const remoteAudioLevels = this._lastReceivedAudioLevel[userID];
-            const participant = this._conference.getParticipantById(userID);
+            const localAudioLevels = this._localAudioLevelCache[userID];
 
-            if (participant) {
-                const tracks = participant.getTracksByMediaType(MediaType.AUDIO);
-
-                if (tracks.length > 0 && participant.isAudioMuted()) {
-                    // We don't need to report an error if everything seems fine with the participant and its tracks but
-                    // the participant is audio muted.
-                    return;
-                }
+            if (!Array.isArray(localAudioLevels)) {
+                this._localAudioLevelCache[userID] = [ ];
+            } else if (localAudioLevels.length >= NUMBER_OF_LOCAL_SAMPLES) {
+                localAudioLevels.shift();
             }
 
-            if ((!(userID in avgAudioLevels) || avgAudioLevels[userID] === 0)
-                    && Array.isArray(remoteAudioLevels)
-                    && remoteAudioLevels.length === NUMBER_OF_REMOTE_SAMPLES
-                    && remoteAudioLevels.every(audioLevel => audioLevel > 0)) {
-                const remoteAudioLevelsString = JSON.stringify(remoteAudioLevels);
+            this._localAudioLevelCache[userID].push(avgAudioLevels[userID]);
+        });
 
-                Statistics.sendAnalytics(
-                    createAudioOutputProblemEvent(userID, avgAudioLevels[userID], remoteAudioLevelsString));
-                logger.warn(`A potential problem is detected with the audio output for participant ${
-                    userID}, local audio levels: ${avgAudioLevels[userID]}, remote audio levels: ${
-                    remoteAudioLevelsString}`);
-                this._reportedParticipants.push(userID);
-                this._clearUserData();
+
+        Object.keys(this._audioProblemCandidates).forEach(userID => {
+            const { localAudioLevels, remoteAudioLevels } = this._audioProblemCandidates[userID];
+
+            localAudioLevels.push(avgAudioLevels[userID]);
+
+            if (localAudioLevels.length === NUMBER_OF_LOCAL_SAMPLES) {
+                if (localAudioLevels.every(audioLevel => typeof audioLevel === 'undefined' || audioLevel === 0)) {
+                    const localAudioLevelsString = JSON.stringify(localAudioLevels);
+
+                    Statistics.sendAnalytics(
+                        createAudioOutputProblemEvent(userID, localAudioLevelsString, remoteAudioLevels));
+                    logger.warn(`A potential problem is detected with the audio output for participant ${
+                        userID}, local audio levels: ${localAudioLevelsString}, remote audio levels: ${
+                        remoteAudioLevels}`);
+                    this._reportedParticipants.push(userID);
+                    this._clearUserData(userID);
+                }
+
+                delete this._audioProblemCandidates[userID];
             }
         });
     }
@@ -114,7 +138,7 @@ export default class AudioOutputProblemDetector {
      * @returns {void}
      */
     _clearUserData(userID) {
-        delete this._lastReceivedAudioLevel[userID];
+        delete this._localAudioLevelCache[userID];
     }
 
     /**
@@ -126,8 +150,10 @@ export default class AudioOutputProblemDetector {
         this._conference.off(ConnectionQualityEvents.REMOTE_STATS_UPDATED, this._onRemoteAudioLevelReceived);
         this._conference.off(ConferenceEvents.USER_LEFT, this._clearUserData);
         this._conference.statistics.removeConnectionStatsListener(this._onLocalAudioLevelsReport);
-        this._lastReceivedAudioLevel = undefined;
+        this._localAudioLevelCache = undefined;
+        this._audioProblemCandidates = undefined;
         this._reportedParticipants = undefined;
+        this._numberOfRemoteAudioLevelsReceived = undefined;
         this._conference = undefined;
     }
 }
