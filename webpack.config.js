@@ -1,6 +1,9 @@
 /* global __dirname */
 
 const process = require('process');
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+
+const analyzeBundle = process.argv.indexOf('--analyze-bundle') !== -1;
 
 const minimize
     = process.argv.indexOf('-p') !== -1
@@ -65,7 +68,14 @@ const config = {
     performance: {
         maxAssetSize: 750000,
         maxEntrypointSize: 750000
-    }
+    },
+    plugins: [
+        analyzeBundle
+            && new BundleAnalyzerPlugin({
+                analyzerMode: 'disabled',
+                generateStatsFile: true
+            })
+    ].filter(Boolean)
 };
 
 module.exports = [
