@@ -66,8 +66,9 @@ const config = {
         sourceMapFilename: `[name].${minimize ? 'min' : 'js'}.map`
     },
     performance: {
-        maxAssetSize: 750000,
-        maxEntrypointSize: 750000
+        hints: minimize ? 'error' : false,
+        maxAssetSize: 750 * 1024,
+        maxEntrypointSize: 750 * 1024
     },
     plugins: [
         analyzeBundle
