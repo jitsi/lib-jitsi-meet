@@ -11,3 +11,4 @@ npm-*.log
 .jshintignore
 .jshintrc
 .DS_Store
+stats.json
