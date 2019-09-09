@@ -885,8 +885,6 @@ class RTCUtils extends Listenable {
      * @params {Object} options - Configuration for setting RTCUtil's instance
      * objects for peer connection constraints.
      * @params {boolean} options.useIPv6 - Set to true if IPv6 should be used.
-     * @params {boolean} options.disableSuspendVideo - Whether or not video
-     * should become suspended if bandwidth estimation becomes low.
      * @params {Object} options.testing - Additional configuration for work in
      * development.
      * @params {Object} options.testing.forceP2PSuspendVideoRatio - True if
@@ -914,18 +912,6 @@ class RTCUtils extends Listenable {
 
             this.p2pPcConstraints
                 = JSON.parse(JSON.stringify(this.pcConstraints));
-
-            // Allows sending of video to be suspended if the bandwidth
-            // estimation is too low.
-            if (!options.disableSuspendVideo) {
-                this.pcConstraints.optional.push(
-                    { googSuspendBelowMinBitrate: true });
-            }
-
-            // There's no reason not to use this for p2p
-            this.p2pPcConstraints.optional.push({
-                googSuspendBelowMinBitrate: true
-            });
         }
 
         this.p2pPcConstraints = this.p2pPcConstraints || this.pcConstraints;
