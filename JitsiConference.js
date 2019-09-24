@@ -2940,17 +2940,13 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
     }
     const peers = this.getParticipants();
     const peerCount = peers.length;
-    const isModerator = this.isModerator();
     const hasBotPeer
         = peers.find(p => p._botType === 'poltergeist') !== undefined;
 
     // FIXME 1 peer and it must *support* P2P switching
     const shouldBeInP2P = peerCount === 1 && !hasBotPeer;
 
-    logger.debug(
-        `P2P? isModerator: ${isModerator}, peerCount: ${
-            peerCount}, hasBotPeer: ${hasBotPeer} => ${
-            shouldBeInP2P}`);
+    logger.debug(`P2P? peerCount: ${peerCount}, hasBotPeer: ${hasBotPeer} => ${shouldBeInP2P}`);
 
     // Clear deferred "start P2P" task
     if (!shouldBeInP2P && this.deferredStartP2PTask) {
