@@ -480,6 +480,8 @@ export default class ChatRoom extends Listenable {
 
                 this.eventEmitter.emit(XMPPEvents.MUC_JOINED);
             }
+        } else if (jid === undefined) {
+            logger.info('Ignoring member with undefined JID');
         } else if (this.members[from] === undefined) {
             // new participant
             this.members[from] = member;
