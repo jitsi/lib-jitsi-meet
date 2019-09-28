@@ -551,7 +551,7 @@ export default class XMPP extends Listenable {
                         body.cnode(pres.tree());
 
                         const res = navigator.sendBeacon(
-                            `https${this.connection.service}`,
+                            `https:${this.connection.service}`,
                             Strophe.serialize(body.tree()));
 
                         logger.info(`Successfully send unavailable beacon ${res}`);
