@@ -538,7 +538,11 @@ export default class XMPP extends Listenable {
 
                     // This is needed in some browsers where sync xhr sending
                     // is disabled by default on unload
-                    if (navigator.sendBeacon) {
+                    if (navigator.sendBeacon && !this.connection.disconnecting
+                            && this.connection.connected) {
+                        this.connection._changeConnectStatus(Strophe.Status.DISCONNECTING);
+                        this.connection.disconnecting = true;
+
                         const body = this.connection._proto._buildBody()
                             .attrs({
                                 type: 'terminate'
@@ -555,6 +559,11 @@ export default class XMPP extends Listenable {
                             Strophe.serialize(body.tree()));
 
                         logger.info(`Successfully send unavailable beacon ${res}`);
+
+                        this.connection._proto._abortAllRequests();
+                        this.connection._doDisconnect();
+
+                        return;
                     }
                 }
             }
