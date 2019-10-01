@@ -246,6 +246,11 @@ export const SUSPEND_DETECTED = 'conference.suspendDetected';
 export const TALK_WHILE_MUTED = 'conference.talk_while_muted';
 
 /**
+ * Event indicates that the current selected input device has no signal
+ */
+export const NO_AUDIO_INPUT = 'conference.no_audio_input';
+
+/**
  * A new media track was added to the conference. The event provides the
  * following parameters to its listeners:
  *
