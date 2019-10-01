@@ -16,6 +16,7 @@ import authenticateAndUpgradeRole from './authenticateAndUpgradeRole';
 import P2PDominantSpeakerDetection from './modules/P2PDominantSpeakerDetection';
 import RTC from './modules/RTC/RTC';
 import TalkMutedDetection from './modules/TalkMutedDetection';
+import NoAudioSignalDetection from './modules/NoAudioSignalDetection';
 import browser from './modules/browser';
 import ConnectionQuality from './modules/connectivity/ConnectionQuality';
 import IceFailedNotification
@@ -378,6 +379,14 @@ JitsiConference.prototype._init = function(options = {}) {
             () =>
                 this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED));
     }
+
+    // Generates events based on no audio input detector.
+    if (config.enableNoAudioDetection) {
+        // eslint-disable-next-line no-new
+        new NoAudioSignalDetection(this, () =>
+            this.eventEmitter.emit(JitsiConferenceEvents.NO_AUDIO_INPUT));
+    }
+
 
     if ('channelLastN' in config) {
         this.setLastN(config.channelLastN);
