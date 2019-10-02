@@ -81,6 +81,14 @@ export default function TraceablePeerConnection(
     this.audioTransferActive = !(options.startSilent === true);
 
     /**
+     * The DTMF sender instance used to send DTMF tones.
+     *
+     * @type {RTCDTMFSender|undefined}
+     * @private
+     */
+    this._dtmfSender = undefined;
+
+    /**
      * Indicates whether or not this peer connection instance is actively
      * sending/receiving video media. When set to <tt>false</tt> the SDP video
      * media direction will be adjusted to 'inactive' in order to suspend
@@ -2051,6 +2059,40 @@ TraceablePeerConnection.prototype.setVideoTransferActive = function(active) {
     this.videoTransferActive = active;
 
     return changed;
+};
+
+/**
+ * Sends DTMF tones if possible.
+ *
+ * @param {string} tones - The DTMF tones string as defined by {@code RTCDTMFSender.insertDTMF}, 'tones' argument.
+ * @param {number} duration - The amount of time in milliseconds that each DTMF should last. It's 200ms by default.
+ * @param {number} interToneGap - The length of time in miliseconds to wait between tones. It's 200ms by default.
+ *
+ * @returns {void}
+ */
+TraceablePeerConnection.prototype.sendTones = function(tones, duration = 200, interToneGap = 200) {
+    if (!this._dtmfSender) {
+        if (this.peerconnection.getSenders) {
+            this._dtmfSender = this.peerconnection.getSenders().map(s => s.dtmf)[0];
+            this._dtmfSender && logger.info(`${this} initialized DTMFSender using getSenders`);
+        }
+
+        if (!this._dtmfSender) {
+            const localAudioTrack = Array.from(this.localTracks.values()).find(t => t.isAudioTrack());
+
+            this._dtmfSender
+                = this.peerconnection.createDTMFSender
+                && localAudioTrack
+                && this.peerconnection.createDTMFSender(localAudioTrack.getTrack());
+            this._dtmfSender && logger.info(`${this} initialized DTMFSender using deprecated createDTMFSender`);
+        }
+    }
+
+    if (this._dtmfSender) {
+        this._dtmfSender.insertDTMF(tones, duration, interToneGap);
+    } else {
+        logger.warn(`${this} sendTones - failed to select DTMFSender`);
+    }
 };
 
 /**
