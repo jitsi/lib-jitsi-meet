@@ -165,10 +165,11 @@ class RecordingManager {
      * Notifies listeners of an update to a recording session.
      *
      * @param {JibriSession} session - The session that has been updated.
+     * @param {string|undefined} initiator - The jid of the initiator of the update.
      */
-    _emitSessionUpdate(session) {
+    _emitSessionUpdate(session, initiator) {
         this._chatRoom.eventEmitter.emit(
-            XMPPEvents.RECORDER_STATE_CHANGED, session);
+            XMPPEvents.RECORDER_STATE_CHANGED, session, initiator);
     }
 
     /**
@@ -185,7 +186,7 @@ class RecordingManager {
             return;
         }
 
-        const { sessionID, status, error, recordingMode } = jibriStatus;
+        const { error, initiator, recordingMode, sessionID, status } = jibriStatus;
 
         // We'll look for an existing session or create one (in case we're a
         // participant joining a call with an existing recording going on).
@@ -226,7 +227,7 @@ class RecordingManager {
             session.setError(error);
         }
 
-        this._emitSessionUpdate(session);
+        this._emitSessionUpdate(session, initiator);
     }
 
     /**
