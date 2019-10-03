@@ -2073,7 +2073,9 @@ TraceablePeerConnection.prototype.setVideoTransferActive = function(active) {
 TraceablePeerConnection.prototype.sendTones = function(tones, duration = 200, interToneGap = 200) {
     if (!this._dtmfSender) {
         if (this.peerconnection.getSenders) {
-            this._dtmfSender = this.peerconnection.getSenders().map(s => s.dtmf)[0];
+            const rtpSender = this.peerconnection.getSenders().find(s => s.dtmf);
+
+            this._dtmfSender = rtpSender && rtpSender.dtmf;
             this._dtmfSender && logger.info(`${this} initialized DTMFSender using getSenders`);
         }
 
