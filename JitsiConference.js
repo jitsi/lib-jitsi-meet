@@ -13,7 +13,6 @@ import JitsiTrackError from './JitsiTrackError';
 import * as JitsiTrackErrors from './JitsiTrackErrors';
 import * as JitsiTrackEvents from './JitsiTrackEvents';
 import authenticateAndUpgradeRole from './authenticateAndUpgradeRole';
-import JitsiDTMFManager from './modules/DTMF/JitsiDTMFManager';
 import P2PDominantSpeakerDetection from './modules/P2PDominantSpeakerDetection';
 import RTC from './modules/RTC/RTC';
 import TalkMutedDetection from './modules/TalkMutedDetection';
@@ -2010,26 +2009,13 @@ JitsiConference.prototype.myUserId = function() {
 };
 
 JitsiConference.prototype.sendTones = function(tones, duration, pause) {
-    if (!this.dtmfManager) {
-        const peerConnection = this.getActivePeerConnection();
+    const peerConnection = this.getActivePeerConnection();
 
-        if (!peerConnection) {
-            logger.warn('cannot sendTones: no peer connection');
-
-            return;
-        }
-
-        const localAudio = this.getLocalAudioTrack();
-
-        if (!localAudio) {
-            logger.warn('cannot sendTones: no local audio stream');
-
-            return;
-        }
-        this.dtmfManager = new JitsiDTMFManager(localAudio, peerConnection);
+    if (peerConnection) {
+        peerConnection.sendTones(tones, duration, pause);
+    } else {
+        logger.warn('cannot sendTones: no peer connection');
     }
-
-    this.dtmfManager.sendTones(tones, duration, pause);
 };
 
 /**
