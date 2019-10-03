@@ -2080,10 +2080,9 @@ TraceablePeerConnection.prototype.sendTones = function(tones, duration = 200, in
         if (!this._dtmfSender) {
             const localAudioTrack = Array.from(this.localTracks.values()).find(t => t.isAudioTrack());
 
-            this._dtmfSender
-                = this.peerconnection.createDTMFSender
-                && localAudioTrack
-                && this.peerconnection.createDTMFSender(localAudioTrack.getTrack());
+            if (this.peerconnection.createDTMFSender && localAudioTrack) {
+                this._dtmfSender = this.peerconnection.createDTMFSender(localAudioTrack.getTrack());
+            }
             this._dtmfSender && logger.info(`${this} initialized DTMFSender using deprecated createDTMFSender`);
         }
     }
