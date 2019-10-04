@@ -718,7 +718,9 @@ JitsiConference.prototype.sendTextMessage = function(
 JitsiConference.prototype.sendPrivateTextMessage = function(
         id, message, elementName = 'body') {
     if (this.room) {
-        this.room.sendPrivateMessage(id, message, elementName);
+        const displayName = (this.room.getFromPresence('nick') || {}).value;
+
+        this.room.sendPrivateMessage(id, message, elementName, displayName);
     }
 };
 
