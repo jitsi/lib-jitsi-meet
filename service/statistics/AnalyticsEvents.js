@@ -99,6 +99,13 @@ export const ACTION_JINGLE_TR_SUCCESS
     = 'transport-replace.success';
 
 /**
+ * The "action" value for P2P events which indicates that P2P session initiate message has been rejected by the client
+ * because the mandatory requirements were not met.
+ * @type {string}
+ */
+export const ACTION_P2P_DECLINED = 'decline';
+
+/**
  * The "action" value for P2P events which indicates that a connection was
  * established (TODO: verify/fix the documentation)
  * @type {string}

@@ -38,6 +38,15 @@ export default class JibriSession {
     }
 
     /**
+     * Returns the initiator of the session instance.
+     *
+     * @returns {JitsiParticipant|undefined} The participant that started the session.
+     */
+    getInitiator() {
+        return this._initiator;
+    }
+
+    /**
      * Returns the streaming URL of the session.
      *
      * @returns {string|undefined}
@@ -53,6 +62,15 @@ export default class JibriSession {
      */
     getStatus() {
         return this._status;
+    }
+
+    /**
+     * Returns the jid of the participant that stopped the session.
+     *
+     * @returns {JitsiParticipant|undefined} The participant that stopped the session.
+     */
+    getTerminator() {
+        return this._terminator;
     }
 
     /**
@@ -94,6 +112,23 @@ export default class JibriSession {
      */
     setStatus(status) {
         this._status = status;
+    }
+
+    /**
+     * Sets the creator's jid of the session.
+     * @param {JitsiParticipant} participant - The creator of the session.
+     */
+    setInitiator(participant) {
+        this._initiator = participant;
+    }
+
+    /**
+     * Sets the jid of the participant that stopped the session.
+     * @param {JitsiParticipant} participant  - The participant's jid,
+     * that stopped the session.
+     */
+    setTerminator(participant) {
+        this._terminator = participant;
     }
 
     /**

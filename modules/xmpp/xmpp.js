@@ -1,7 +1,7 @@
 /* global $ */
 
 import { getLogger } from 'jitsi-meet-logger';
-import { $msg, Strophe } from 'strophe.js';
+import { $msg, $pres, Strophe } from 'strophe.js';
 import 'strophejs-plugin-disco';
 
 import RandomUtil from '../util/RandomUtil';
@@ -535,6 +535,36 @@ export default class XMPP extends Listenable {
                     // comment it in or out depending on whether we want to run with
                     // it for some time.
                     this.connection.options.sync = true;
+
+                    // This is needed in some browsers where sync xhr sending
+                    // is disabled by default on unload
+                    if (navigator.sendBeacon && !this.connection.disconnecting
+                            && this.connection.connected) {
+                        this.connection._changeConnectStatus(Strophe.Status.DISCONNECTING);
+                        this.connection.disconnecting = true;
+
+                        const body = this.connection._proto._buildBody()
+                            .attrs({
+                                type: 'terminate'
+                            });
+                        const pres = $pres({
+                            xmlns: Strophe.NS.CLIENT,
+                            type: 'unavailable'
+                        });
+
+                        body.cnode(pres.tree());
+
+                        const res = navigator.sendBeacon(
+                            `https:${this.connection.service}`,
+                            Strophe.serialize(body.tree()));
+
+                        logger.info(`Successfully send unavailable beacon ${res}`);
+
+                        this.connection._proto._abortAllRequests();
+                        this.connection._doDisconnect();
+
+                        return;
+                    }
                 }
             }
 

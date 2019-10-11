@@ -13,7 +13,6 @@ import JitsiTrackError from './JitsiTrackError';
 import * as JitsiTrackErrors from './JitsiTrackErrors';
 import * as JitsiTrackEvents from './JitsiTrackEvents';
 import authenticateAndUpgradeRole from './authenticateAndUpgradeRole';
-import JitsiDTMFManager from './modules/DTMF/JitsiDTMFManager';
 import P2PDominantSpeakerDetection from './modules/P2PDominantSpeakerDetection';
 import RTC from './modules/RTC/RTC';
 import TalkMutedDetection from './modules/TalkMutedDetection';
@@ -46,6 +45,7 @@ import {
     ACTION_JINGLE_SI_RECEIVED,
     ACTION_JINGLE_SI_TIMEOUT,
     ACTION_JINGLE_TERMINATE,
+    ACTION_P2P_DECLINED,
     ACTION_P2P_ESTABLISHED,
     ACTION_P2P_FAILED,
     ACTION_P2P_SWITCH_TO_JVB,
@@ -1699,6 +1699,13 @@ JitsiConference.prototype._onIncomingCallP2P = function(
             reasonDescription: 'P2P already in progress',
             errorMsg: 'Duplicated P2P "session-initiate"'
         };
+    } else if (!this._shouldBeInP2PMode()) {
+        rejectReason = {
+            reason: 'decline',
+            reasonDescription: 'P2P requirements not met',
+            errorMsg: 'Received P2P "session-initiate" when should not be in P2P mode'
+        };
+        Statistics.sendAnalytics(createJingleEvent(ACTION_P2P_DECLINED));
     }
 
     if (rejectReason) {
@@ -2002,26 +2009,13 @@ JitsiConference.prototype.myUserId = function() {
 };
 
 JitsiConference.prototype.sendTones = function(tones, duration, pause) {
-    if (!this.dtmfManager) {
-        const peerConnection = this.getActivePeerConnection();
+    const peerConnection = this.getActivePeerConnection();
 
-        if (!peerConnection) {
-            logger.warn('cannot sendTones: no peer connection');
-
-            return;
-        }
-
-        const localAudio = this.getLocalAudioTrack();
-
-        if (!localAudio) {
-            logger.warn('cannot sendTones: no local audio stream');
-
-            return;
-        }
-        this.dtmfManager = new JitsiDTMFManager(localAudio, peerConnection);
+    if (peerConnection) {
+        peerConnection.sendTones(tones, duration, pause);
+    } else {
+        logger.warn('cannot sendTones: no peer connection');
     }
-
-    this.dtmfManager.sendTones(tones, duration, pause);
 };
 
 /**
@@ -2940,17 +2934,9 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
     }
     const peers = this.getParticipants();
     const peerCount = peers.length;
-    const isModerator = this.isModerator();
-    const hasBotPeer
-        = peers.find(p => p._botType === 'poltergeist') !== undefined;
 
     // FIXME 1 peer and it must *support* P2P switching
-    const shouldBeInP2P = peerCount === 1 && !hasBotPeer;
-
-    logger.debug(
-        `P2P? isModerator: ${isModerator}, peerCount: ${
-            peerCount}, hasBotPeer: ${hasBotPeer} => ${
-            shouldBeInP2P}`);
+    const shouldBeInP2P = this._shouldBeInP2PMode();
 
     // Clear deferred "start P2P" task
     if (!shouldBeInP2P && this.deferredStartP2PTask) {
@@ -3005,6 +2991,23 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
         }
         this._stopP2PSession();
     }
+};
+
+/**
+ * Tells whether or not this conference should be currently in the P2P mode.
+ *
+ * @private
+ * @returns {boolean}
+ */
+JitsiConference.prototype._shouldBeInP2PMode = function() {
+    const peers = this.getParticipants();
+    const peerCount = peers.length;
+    const hasBotPeer = peers.find(p => p._botType === 'poltergeist') !== undefined;
+    const shouldBeInP2P = peerCount === 1 && !hasBotPeer;
+
+    logger.debug(`P2P? peerCount: ${peerCount}, hasBotPeer: ${hasBotPeer} => ${shouldBeInP2P}`);
+
+    return shouldBeInP2P;
 };
 
 /**

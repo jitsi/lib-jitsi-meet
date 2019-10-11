@@ -2211,10 +2211,12 @@ export default class JingleSessionPC extends JingleSession {
         this.state = JingleSessionState.ENDED;
         this.establishmentDuration = undefined;
 
-        this.peerconnection.onicecandidate = null;
-        this.peerconnection.oniceconnectionstatechange = null;
-        this.peerconnection.onnegotiationneeded = null;
-        this.peerconnection.onsignalingstatechange = null;
+        if (this.peerconnection) {
+            this.peerconnection.onicecandidate = null;
+            this.peerconnection.oniceconnectionstatechange = null;
+            this.peerconnection.onnegotiationneeded = null;
+            this.peerconnection.onsignalingstatechange = null;
+        }
 
         // Remove any pending tasks from the queue
         this.modificationQueue.clear();

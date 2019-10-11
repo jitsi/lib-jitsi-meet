@@ -220,8 +220,24 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
                     { p2p: jingleSession.isP2P }));
         });
 
-    this.chatRoomForwarder.forward(XMPPEvents.RECORDER_STATE_CHANGED,
-        JitsiConferenceEvents.RECORDER_STATE_CHANGED);
+    chatRoom.addListener(XMPPEvents.RECORDER_STATE_CHANGED,
+        (session, jid) => {
+
+            if (jid) {
+                const participant = conference.getParticipantById(
+                    Strophe.getResourceFromJid(jid));
+
+                if (session.getStatus() === 'off') {
+                    session.setTerminator(participant);
+                } else if (session.getStatus() === 'on') {
+                    session.setInitiator(participant);
+                }
+            }
+
+            conference.eventEmitter.emit(
+                JitsiConferenceEvents.RECORDER_STATE_CHANGED,
+                session);
+        });
 
     this.chatRoomForwarder.forward(XMPPEvents.TRANSCRIPTION_STATUS_CHANGED,
         JitsiConferenceEvents.TRANSCRIPTION_STATUS_CHANGED);

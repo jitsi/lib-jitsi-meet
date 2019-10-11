@@ -480,6 +480,8 @@ export default class ChatRoom extends Listenable {
 
                 this.eventEmitter.emit(XMPPEvents.MUC_JOINED);
             }
+        } else if (jid === undefined) {
+            logger.info('Ignoring member with undefined JID');
         } else if (this.members[from] === undefined) {
             // new participant
             this.members[from] = member;
@@ -891,16 +893,17 @@ export default class ChatRoom extends Listenable {
                 .text()
             || Strophe.getResourceFromJid(from);
 
-        const txt = $(msg).find('>body').text();
         const type = msg.getAttribute('type');
 
         if (type === 'error') {
-            this.eventEmitter.emit(XMPPEvents.CHAT_ERROR_RECEIVED,
-                $(msg).find('>text').text(), txt);
+            const errorMsg = $(msg).find('>error>text').text();
+
+            this.eventEmitter.emit(XMPPEvents.CHAT_ERROR_RECEIVED, errorMsg);
 
             return true;
         }
 
+        const txt = $(msg).find('>body').text();
         const subject = $(msg).find('>subject');
 
         if (subject.length) {
