@@ -150,6 +150,9 @@ describe('ChatRoom', () => {
         it('parses status correctly', () => {
             const presStr = '' +
                 '<presence to="tojid" from="fromjid">' +
+                    '<x xmlns=\'http://jabber.org/protocol/muc#user\'>' +
+                        '<item jid=\'fulljid\'/>' +
+                    '</x>' +
                     '<status>status-text</status>' +
                 '</presence>';
             const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
@@ -160,16 +163,17 @@ describe('ChatRoom', () => {
                 XMPPEvents.PRESENCE_RECEIVED,
                 jasmine.any(Object)
             ]);
-            expect(emitterSpy).toHaveBeenCalledWith(
+            expect(emitterSpy.calls.argsFor(1)).toEqual([
                 XMPPEvents.MUC_MEMBER_JOINED,
                 'fromjid',
                 undefined, // nick
-                undefined, // role
-                undefined, // isHiddenDomain
+                null, // role
+                false, // isHiddenDomain
                 undefined, // statsID
                 'status-text',
                 undefined,
-                undefined);
+                undefined
+            ]);
         });
 
         it('parses muc user item correctly', () => {
@@ -202,6 +206,9 @@ describe('ChatRoom', () => {
         it('parses identity correctly', () => {
             const presStr = '' +
                 '<presence to="tojid" from="fromjid">' +
+                    '<x xmlns=\'http://jabber.org/protocol/muc#user\'>' +
+                        '<item jid=\'fulljid\'/>' +
+                    '</x>' +
                     '<status>status-text</status>' +
                     '<identity>' +
                         '<user>' +
@@ -229,22 +236,26 @@ describe('ChatRoom', () => {
                 XMPPEvents.PRESENCE_RECEIVED,
                 jasmine.any(Object)
             ]);
-            expect(emitterSpy).toHaveBeenCalledWith(
+            expect(emitterSpy.calls.argsFor(1)).toEqual([
                 XMPPEvents.MUC_MEMBER_JOINED,
                 'fromjid',
                 undefined, // nick
-                undefined, // role
-                undefined, // isHiddenDomain
+                null, // role
+                false, // isHiddenDomain
                 undefined, // statsID
                 'status-text',
                 expectedIdentity,
-                undefined);
+                undefined
+            ]);
         });
 
         it('parses bot correctly', () => {
             const expectedBotType = 'some_bot_type';
             const presStr = '' +
                 '<presence to="tojid" from="fromjid">' +
+                    '<x xmlns=\'http://jabber.org/protocol/muc#user\'>' +
+                        '<item jid=\'fulljid\'/>' +
+                    '</x>' +
                     '<status>status-text</status>' +
                     `<bot type="${expectedBotType}"/>` +
                 '</presence>';
@@ -256,16 +267,17 @@ describe('ChatRoom', () => {
                 XMPPEvents.PRESENCE_RECEIVED,
                 jasmine.any(Object)
             ]);
-            expect(emitterSpy).toHaveBeenCalledWith(
+            expect(emitterSpy.calls.argsFor(1)).toEqual([
                 XMPPEvents.MUC_MEMBER_JOINED,
                 'fromjid',
                 undefined, // nick
-                undefined, // role
-                undefined, // isHiddenDomain
+                null, // role
+                false, // isHiddenDomain
                 undefined, // statsID
                 'status-text',
                 undefined,
-                expectedBotType);
+                expectedBotType
+            ]);
         });
 
     });
