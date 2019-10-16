@@ -386,6 +386,15 @@ export default _mergeNamespaceAndModule({
                     }
                 }
 
+                // set the contentHint to "detail" for desktop tracks
+                // eslint-disable-next-line prefer-const
+                for (const track of tracks) {
+                    if (track.type === MediaType.VIDEO
+                        && track.videoType === 'desktop') {
+                        this.setVideoTrackContentHints(track.track, 'detail');
+                    }
+                }
+
                 return tracks;
             })
             .catch(error => {
@@ -563,6 +572,24 @@ export default _mergeNamespaceAndModule({
             `Column: ${colno}`,
             'StackTrace: ', error);
         Statistics.reportGlobalError(error);
+    },
+
+    /**
+     * Set the contentHint on the transmitted stream track to indicate
+     * charaterstics in the video stream, which informs PeerConnection
+     * on how to encode the track (to prefer motion or individual frame detail)
+     * @param {MediaStreamTrack} track - the track that is transmitted
+     * @param {String} hint - contentHint value that needs to be set on the track
+     */
+    setVideoTrackContentHints(track, hint) {
+        if ('contentHint' in track) {
+            track.contentHint = hint;
+            if (track.contentHint !== hint) {
+                logger.debug('Invalid video track contentHint');
+            }
+        } else {
+            logger.debug('MediaStreamTrack contentHint attribute not supported');
+        }
     },
 
     /* eslint-enable max-params */

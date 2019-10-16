@@ -26,6 +26,8 @@ const SIM_LAYER_1_RID = '1';
 const SIM_LAYER_2_RID = '2';
 const SIM_LAYER_3_RID = '3';
 const SIM_LAYER_RIDS = [ SIM_LAYER_1_RID, SIM_LAYER_2_RID, SIM_LAYER_3_RID ];
+const SIM_LAYER_BITRATES_BPS = [ 200000, 700000, 2500000 ];
+const DESKSTOP_SHARE_RATE = 500000;
 
 /* eslint-disable max-params */
 
@@ -45,6 +47,9 @@ const SIM_LAYER_RIDS = [ SIM_LAYER_1_RID, SIM_LAYER_2_RID, SIM_LAYER_3_RID ];
  * @param {boolean} options.disableRtx if set to 'true' will disable the RTX
  * @param {boolean} options.enableFirefoxSimulcast if set to 'true' will enable
  * experimental simulcast support on Firefox.
+ * @param {boolean} options.capScreenshareBitrate if set to 'true' simulcast will
+ * be disabled for screenshare and a max bitrate of 500Kbps will applied on the
+ * stream.
  * @param {boolean} options.disableH264 If set to 'true' H264 will be
  *      disabled by removing it from the SDP.
  * @param {boolean} options.preferH264 if set to 'true' H264 will be preferred
@@ -1883,6 +1888,55 @@ TraceablePeerConnection.prototype._insertUnifiedPlanSimulcastReceive
         });
     };
 
+/**
+ * Sets the max bitrate on the RTCRtpSender so that the
+ * bitrate of the enocder doesn't exceed the configured value.
+ * This is needed for the desktop share until spec-complaint
+ * simulcast is implemented.
+ * @param {JitsiLocalTrack} localTrack - the local track whose
+ * max bitrate is to be configured.
+ */
+TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack) {
+    const mediaType = localTrack.type;
+
+    if (!this.options.capScreenshareBitrate
+        || mediaType === MediaType.AUDIO) {
+
+        return;
+    }
+    if (!this.peerconnection.getSenders) {
+        logger.debug('Browser doesn\'t support RTCRtpSender');
+
+        return;
+    }
+    const videoType = localTrack.videoType;
+    const trackId = localTrack.track.id;
+
+    this.peerconnection.getSenders()
+        .filter(s => s.track && s.track.id === trackId)
+        .forEach(sender => {
+            try {
+                const parameters = sender.getParameters();
+
+                if (parameters.encodings && parameters.encodings.length) {
+                    logger.info('Setting max bitrate on video stream');
+                    for (const encoding in parameters.encodings) {
+                        if (parameters.encodings.hasOwnProperty(encoding)) {
+                            parameters.encodings[encoding].maxBitrate
+                                = videoType === 'desktop'
+                                    ? DESKSTOP_SHARE_RATE
+                                    : SIM_LAYER_BITRATES_BPS[encoding];
+                        }
+                    }
+                    sender.setParameters(parameters);
+                }
+            } catch (err) {
+                logger.error('Browser does not support getParameters/setParamters '
+                    + 'or setting max bitrate on the encodings: ', err);
+            }
+        });
+};
+
 TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
     this.trace('setRemoteDescription::preTransform', dumpSDP(description));
 
@@ -2240,6 +2294,17 @@ TraceablePeerConnection.prototype.createOffer = function(constraints) {
     return this._createOfferOrAnswer(true /* offer */, constraints);
 };
 
+/**
+ * Checks if a camera track has been added to the peerconnection
+ * @param {TraceablePeerConnection} peerConnection
+ * @return {boolean} <tt>true</tt> if the peerconnection has
+ * a camera track for its video source <tt>false</tt> otherwise.
+ */
+function hasCameraTrack(peerConnection) {
+    return peerConnection.getLocalTracks()
+        .some(t => t.videoType === 'camera');
+}
+
 TraceablePeerConnection.prototype._createOfferOrAnswer = function(
         isOffer,
         constraints) {
@@ -2298,8 +2363,12 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
                     dumpSDP(resultSdp));
             }
 
-            // Add simulcast streams if simulcast is enabled
-            if (this.isSimulcastOn()) {
+            // configure simulcast for camera tracks always and for
+            // desktop tracks only when the testing flag for maxbitrates
+            // in config.js is disabled.
+            if (this.isSimulcastOn()
+                && (!this.options.capScreenshareBitrate
+                || (this.options.capScreenshareBitrate && hasCameraTrack(this)))) {
                 // eslint-disable-next-line no-param-reassign
                 resultSdp = this.simulcast.mungeLocalDescription(resultSdp);
                 this.trace(
@@ -2500,7 +2569,13 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {
     if (ssrcInfo) {
         logger.error(`Will overwrite local SSRCs for track ID: ${rtcId}`);
     }
-    if (this.isSimulcastOn()) {
+
+    // configure simulcast for camera tracks always and for
+    // desktop tracks only when the testing flag for maxbitrates
+    // in config.js is disabled.
+    if (this.isSimulcastOn()
+        && (!this.options.capScreenshareBitrate
+        || (this.options.capScreenshareBitrate && hasCameraTrack(this)))) {
         ssrcInfo = {
             ssrcs: [],
             groups: []
