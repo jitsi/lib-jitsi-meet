@@ -2140,7 +2140,7 @@ TraceablePeerConnection.prototype.sendTones = function(tones, duration = 200, in
 TraceablePeerConnection.prototype._onToneChange = function(event) {
     // An empty event.tone indicates the current tones have finished playing.
     // Automatically start playing any queued tones on finish.
-    if (event.tone === '' && this._dtmfTonesQueue.length) {
+    if (this._dtmfSender && event.tone === '' && this._dtmfTonesQueue.length) {
         const { tones, duration, interToneGap } = this._dtmfTonesQueue.shift();
 
         this._dtmfSender.insertDTMF(tones, duration, interToneGap);
@@ -2189,6 +2189,9 @@ TraceablePeerConnection.prototype.close = function() {
     this.remoteTracks.clear();
 
     this._addedStreams = [];
+
+    this._dtmfSender = null;
+    this._dtmfTonesQueue = [];
 
     if (!this.rtc._removePeerConnection(this)) {
         logger.error('RTC._removePeerConnection returned false');
