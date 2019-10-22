@@ -94,6 +94,24 @@ export default function TraceablePeerConnection(
     this._dtmfSender = undefined;
 
     /**
+     * @typedef {Object} TouchToneRequest
+     * @property {string} tones - The DTMF tones string as defined by
+     * {@code RTCDTMFSender.insertDTMF}, 'tones' argument.
+     * @property {number} duration - The amount of time in milliseconds that
+     * each DTMF should last.
+     * @property {string} interToneGap - The length of time in miliseconds to
+     * wait between tones.
+     */
+    /**
+     * TouchToneRequests which are waiting to be played. This queue is filled
+     * if there are touch tones currently being played.
+     *
+     * @type {Array<TouchToneRequest>}
+     * @private
+     */
+    this._dtmfTonesQueue = [];
+
+    /**
      * Indicates whether or not this peer connection instance is actively
      * sending/receiving video media. When set to <tt>false</tt> the SDP video
      * media direction will be adjusted to 'inactive' in order to suspend
@@ -2141,12 +2159,45 @@ TraceablePeerConnection.prototype.sendTones = function(tones, duration = 200, in
             }
             this._dtmfSender && logger.info(`${this} initialized DTMFSender using deprecated createDTMFSender`);
         }
+
+        if (this._dtmfSender) {
+            this._dtmfSender.ontonechange = this._onToneChange.bind(this);
+        }
     }
 
     if (this._dtmfSender) {
+        if (this._dtmfSender.toneBuffer) {
+            this._dtmfTonesQueue.push({
+                tones,
+                duration,
+                interToneGap
+            });
+
+            return;
+        }
+
         this._dtmfSender.insertDTMF(tones, duration, interToneGap);
     } else {
         logger.warn(`${this} sendTones - failed to select DTMFSender`);
+    }
+};
+
+/**
+ * Callback ivoked by {@code this._dtmfSender} when it has finished playing
+ * a single tone.
+ *
+ * @param {Object} event - The tonechange event which indicates what characters
+ * are left to be played for the current tone.
+ * @private
+ * @returns {void}
+ */
+TraceablePeerConnection.prototype._onToneChange = function(event) {
+    // An empty event.tone indicates the current tones have finished playing.
+    // Automatically start playing any queued tones on finish.
+    if (this._dtmfSender && event.tone === '' && this._dtmfTonesQueue.length) {
+        const { tones, duration, interToneGap } = this._dtmfTonesQueue.shift();
+
+        this._dtmfSender.insertDTMF(tones, duration, interToneGap);
     }
 };
 
@@ -2192,6 +2243,9 @@ TraceablePeerConnection.prototype.close = function() {
     this.remoteTracks.clear();
 
     this._addedStreams = [];
+
+    this._dtmfSender = null;
+    this._dtmfTonesQueue = [];
 
     if (!this.rtc._removePeerConnection(this)) {
         logger.error('RTC._removePeerConnection returned false');
