@@ -304,15 +304,12 @@ export default class JingleSessionPC extends JingleSession {
                 pcOptions.capScreenshareBitrate
                     = Math.random()
                     < options.testing.capScreenshareBitrate;
-            }
-        }
 
-        // send the corresponding amplitude events for simulcast screenshare
-        // and non-simulcast screenshare.
-        if (pcOptions.capScreenshareBitrate) {
-            Statistics.sendAnalyticsAndLog('nonSimulcastScreenSharing');
-        } else {
-            Statistics.sendAnalyticsAndLog('simulcastScreenSharing');
+                // add the capScreenshareBitrate to the permanent properties so
+                // that it's included with every event that we send to the
+                // analytics backend.
+                Statistics.analytics.addPermanentProperties({ capScreenshareBitrate: pcOptions.capScreenshareBitrate });
+            }
         }
 
         if (options.startSilent) {
