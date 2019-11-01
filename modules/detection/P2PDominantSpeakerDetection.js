@@ -1,5 +1,5 @@
-import * as JitsiConferenceEvents from '../JitsiConferenceEvents';
-import RTCEvents from '../service/RTC/RTCEvents';
+import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import RTCEvents from '../../service/RTC/RTCEvents';
 
 /**
  * The value which we use to say, every sound over this threshold
