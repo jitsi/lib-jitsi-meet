@@ -13,10 +13,11 @@ import JitsiTrackError from './JitsiTrackError';
 import * as JitsiTrackErrors from './JitsiTrackErrors';
 import * as JitsiTrackEvents from './JitsiTrackEvents';
 import authenticateAndUpgradeRole from './authenticateAndUpgradeRole';
-import P2PDominantSpeakerDetection from './modules/P2PDominantSpeakerDetection';
+import P2PDominantSpeakerDetection from './modules/detection/P2PDominantSpeakerDetection';
 import RTC from './modules/RTC/RTC';
-import TalkMutedDetection from './modules/TalkMutedDetection';
-import NoAudioSignalDetection from './modules/NoAudioSignalDetection';
+import VADTalkMutedDetection from './modules/detection/VADTalkMutedDetection';
+import * as DetectionEvents from './modules/detection/DetectionEvents';
+import NoAudioSignalDetection from './modules/detection/NoAudioSignalDetection';
 import browser from './modules/browser';
 import ConnectionQuality from './modules/connectivity/ConnectionQuality';
 import IceFailedNotification
@@ -275,6 +276,9 @@ JitsiConference.resourceCreator = function(jid, isAuthenticatedUser) {
  * @param options.connection {JitsiConnection} overrides this.connection
  */
 JitsiConference.prototype._init = function(options = {}) {
+
+    logger.info('[ADBG] Init concerence v.0.1!');
+
     // Override connection and xmpp properties (Useful if the connection
     // reloaded)
     if (options.connection) {
@@ -373,15 +377,22 @@ JitsiConference.prototype._init = function(options = {}) {
     this.eventManager.setupStatisticsListeners();
 
     if (config.enableTalkWhileMuted) {
-        // eslint-disable-next-line no-new
-        new TalkMutedDetection(
-            this,
-            () =>
+
+        if (config.vadProcessor) {
+            // eslint-disable-next-line no-new
+            this._talkWhileMutedDetection = new VADTalkMutedDetection(this, config.vadProcessor);
+            this._talkWhileMutedDetection.on(DetectionEvents.VAD_TALK_WHILE_MUTED, () =>
                 this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED));
+
+        } else {
+            logger.info('[ADBG] No vadProcessor set!');
+        }
+
     }
 
     // Generates events based on no audio input detector.
-    if (config.enableNoAudioDetection) {
+    // eslint-disable-next-line
+    if (true) {
         // eslint-disable-next-line no-new
         new NoAudioSignalDetection(this, () =>
             this.eventEmitter.emit(JitsiConferenceEvents.NO_AUDIO_INPUT));

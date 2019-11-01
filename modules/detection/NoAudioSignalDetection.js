@@ -1,4 +1,4 @@
-import * as JitsiConferenceEvents from '../JitsiConferenceEvents';
+import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 
 // We wait a certain time interval for constant silence input from the current device to account for
 // potential abnormalities and for a better use experience i.e. don't generate event the instant
@@ -23,7 +23,6 @@ export default class NoAudioSignalDetection {
 
         conference.statistics.addAudioLevelListener(this._audioLevel.bind(this));
         conference.on(JitsiConferenceEvents.TRACK_ADDED, this._trackAdded.bind(this));
-
     }
 
     /**
@@ -32,7 +31,6 @@ export default class NoAudioSignalDetection {
      * @returns {boolean}
      */
     _hasSilencePeriodElapsed() {
-
         const currentDate = new Date();
         const elapsedSec = (currentDate.getTime() - this._firstSilentSignalDate.getTime()) / 1000;
 
@@ -52,7 +50,7 @@ export default class NoAudioSignalDetection {
         if (!this._firstSilentSignalDate) {
             this._firstSilentSignalDate = new Date();
 
-        // If the configured interval has elapsed trigger the callback
+            // If the configured interval has elapsed trigger the callback
         } else if (this._hasSilencePeriodElapsed()) {
             this._eventFired = true;
             this._callback();
@@ -69,7 +67,6 @@ export default class NoAudioSignalDetection {
      * @param {boolean} isLocal - true for local/send streams or false for remote/receive streams.
      */
     _audioLevel(tpc, ssrc, audioLevel, isLocal) {
-
         // We are interested in the local audio stream if the event was not triggered on this device.
         if (!isLocal || !this._audioTrack || this._eventFired) {
             return;
