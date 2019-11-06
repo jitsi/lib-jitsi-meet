@@ -116,7 +116,6 @@ export default class VADTalkMutedDetection extends EventEmitter {
      * @returns {void}
      */
     _startVADEmitter() {
-        logger.info('Starting VAD Emitter for track', this._vadEmitter.getDeviceId());
         this._vadEmitter.on(VAD_SCORE_PUBLISHED, this._processVADScore.bind(this));
         this._vadEmitter.start();
     }
@@ -126,7 +125,6 @@ export default class VADTalkMutedDetection extends EventEmitter {
      * @returns {void}
      */
     _stopVADEmitter() {
-        logger.info('Stopping VAD Emitter for track', this._vadEmitter.getDeviceId());
         this._vadEmitter.removeAllListeners(VAD_SCORE_PUBLISHED);
         this._vadEmitter.stop();
     }
@@ -165,8 +163,6 @@ export default class VADTalkMutedDetection extends EventEmitter {
              * @type {Object}
              */
             this.emit(VAD_TALK_WHILE_MUTED, {});
-
-            logger.info('Triggered event for track: ', this._vadEmitter.getDeviceId());
 
             // Event was fired. Stop event emitter and remove listeners so no residue events kick off after this point
             // and a single VAD_TALK_WHILE_MUTED is generated per mic muted state.
@@ -240,7 +236,7 @@ export default class VADTalkMutedDetection extends EventEmitter {
                     TrackVADEmitter.create(track.getDeviceId(), VAD_EMITTER_SAMPLE_RATE, vadProcessor)
                 )
                 .then(vadEmitter => {
-                    logger.info('Created VAD emitter for track: ', track.getDeviceId());
+                    logger.debug('Created VAD emitter for track: ', track.getTrackLabel());
 
                     this._vadEmitter = vadEmitter;
 
@@ -263,7 +259,6 @@ export default class VADTalkMutedDetection extends EventEmitter {
         if (this._isLocalAudioTrack(track)) {
             // On a mute toggle reset the state.
             this._vadInitTracker.then(() => {
-                logger.info('Changing track: ', track.getDeviceId(), ' muted status to:', track.isMuted());
 
                 // Reset the processing context in between muted states so that each individual mute phase can generate
                 // it's own event.
@@ -289,7 +284,7 @@ export default class VADTalkMutedDetection extends EventEmitter {
         if (this._isLocalAudioTrack(track)) {
             // Use the promise to make sure operations are in sequence.
             this._vadInitTracker.then(() => {
-                logger.info('Removing track from VAD detection - ', track.getDeviceId());
+                logger.debug('Removing track from VAD detection - ', track.getTrackLabel());
 
                 if (this._vadEmitter) {
                     this._stopVADEmitter();

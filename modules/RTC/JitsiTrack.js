@@ -231,6 +231,14 @@ export default class JitsiTrack extends EventEmitter {
     }
 
     /**
+     * Return the underlying WebRTC MediaStreamTrack label
+     * @returns {string}
+     */
+    getTrackLabel() {
+        return this.track.label;
+    }
+
+    /**
      * Returns the ID of the underlying WebRTC MediaStreamTrack(if any)
      * @returns {String|null}
      */
