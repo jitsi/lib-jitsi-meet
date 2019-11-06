@@ -31,6 +31,8 @@ import ProxyConnectionService
     from './modules/proxyconnection/ProxyConnectionService';
 import Statistics from './modules/statistics/statistics';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
+import TrackVADEmitter from './modules/detection/TrackVADEmitter';
+import * as DetectionEvents from './modules/detection/DetectionEvents';
 
 const logger = Logger.getLogger(__filename);
 
@@ -150,6 +152,7 @@ export default _mergeNamespaceAndModule({
     events: {
         conference: JitsiConferenceEvents,
         connection: JitsiConnectionEvents,
+        detection: DetectionEvents,
         track: JitsiTrackEvents,
         mediaDevices: JitsiMediaDevicesEvents,
         connectionQuality: ConnectionQualityEvents,
@@ -490,6 +493,26 @@ export default _mergeNamespaceAndModule({
 
                 return Promise.reject(error);
             });
+    },
+
+    /**
+     * Create a TrackVADEmitter service that connects an audio track to an VAD (voice activity detection) processor in
+     * order to obtain VAD scores for individual PCM audio samples.
+     * @param {string} localAudioDeviceId - The target local audio device.
+     * @param {number} sampleRate - Sample rate at which the emitter will operate. Possible values  256, 512, 1024,
+     * 4096, 8192, 16384. Passing other values will default to closes neighbor.
+     * I.e. Providing a value of 4096 means that the emitter will process 4096 PCM samples at a time, higher values mean
+     * longer calls, lowers values mean more calls but shorter.
+     * @param {Object} vadProcessor - VAD Processors that does the actual compute on a PCM sample.The processor needs
+     * to implement the following functions:
+     * - <tt>getSampleLength()</tt> - Returns the sample size accepted by calculateAudioFrameVAD.
+     * - <tt>getRequiredPCMFrequency()</tt> - Returns the PCM frequency at which the processor operates.
+     * i.e. (16KHz, 44.1 KHz etc.)
+     * - <tt>calculateAudioFrameVAD(pcmSample)</tt> - Process a 32 float pcm sample of getSampleLength size.
+     * @returns {Promise<TrackVADEmitter>}
+     */
+    createTrackVADEmitter(localAudioDeviceId, sampleRate, vadProcessor) {
+        return TrackVADEmitter.create(localAudioDeviceId, sampleRate, vadProcessor);
     },
 
     /**

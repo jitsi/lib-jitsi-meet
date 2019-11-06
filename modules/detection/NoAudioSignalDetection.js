@@ -50,7 +50,7 @@ export default class NoAudioSignalDetection {
         if (!this._firstSilentSignalDate) {
             this._firstSilentSignalDate = new Date();
 
-            // If the configured interval has elapsed trigger the callback
+        // If the configured interval has elapsed trigger the callback
         } else if (this._hasSilencePeriodElapsed()) {
             this._eventFired = true;
             this._callback();

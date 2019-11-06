@@ -62,10 +62,10 @@ const config = {
     },
     output: {
         // eslint-disable-next-line
-        filename: `[name]${true ? '.min' : ''}.js`,
+        filename: `[name]${minimize ? '.min' : ''}.js`,
         path: process.cwd(),
         // eslint-disable-next-line
-        sourceMapFilename: `[name].${true ? 'min' : 'js'}.map`
+        sourceMapFilename: `[name].${minimize ? 'min' : 'js'}.map`
     },
     performance: {
         hints: minimize ? 'error' : false,

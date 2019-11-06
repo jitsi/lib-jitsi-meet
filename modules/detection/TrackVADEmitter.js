@@ -8,6 +8,8 @@ import { VAD_SCORE_PUBLISHED } from './DetectionEvents';
  * The PCM is processed by the injected vad module and a voice activity detection score is obtained, the
  * score is published to consumers via an EventEmitter.
  * After work is done with this service the destroy method needs to be called for a proper cleanup.
+ *
+ * @fires VAD_SCORE_PUBLISHED
  */
 export default class TrackVADEmitter extends EventEmitter {
     /**
@@ -15,24 +17,50 @@ export default class TrackVADEmitter extends EventEmitter {
      *
      * @param {number} procNodeSampleRate - Sample rate of the ScriptProcessorNode. Possible values  256, 512, 1024,
      *  2048, 4096, 8192, 16384. Passing other values will default to closes neighbor.
-     * @param {Object} vadProcessor - adapter that allows us to calculate VAD score
-     * for PCM samples.
-     * @param {Object} jitsiLocalTrack - JitsiLocalTrack corresponding to micDeviceId.
+     * @param {Object} vadProcessor - VAD processor that allows us to calculate VAD score for PCM samples.
+     * @param {JitsiLocalTrack} jitsiLocalTrack - JitsiLocalTrack corresponding to micDeviceId.
      */
     constructor(procNodeSampleRate, vadProcessor, jitsiLocalTrack) {
         super();
-        this._procNodeSampleRate = procNodeSampleRate;
-        this._vadProcessor = vadProcessor;
-        this._localTrack = jitsiLocalTrack;
-        this._micDeviceId = jitsiLocalTrack.getDeviceId();
-        this._bufferResidue = new Float32Array([]);
-        this._audioContext = new AudioContext({ sampleRate: 44100 });
 
+        /**
+         * Sample rate of the ScriptProcessorNode.
+         */
+        this._procNodeSampleRate = procNodeSampleRate;
+
+        /**
+         * VAD Processor that allows us to calculate VAD score for PCM samples
+         */
+        this._vadProcessor = vadProcessor;
+
+        /**
+         * The JitsiLocalTrack instance.
+         */
+        this._localTrack = jitsiLocalTrack;
+
+        /**
+         * Buffer to hold residue PCM resulting after a ScriptProcessorNode callback
+         */
+        this._bufferResidue = new Float32Array([]);
+
+        /**
+         * The AudioContext instance with the preferred sample frequency.
+         */
+        this._audioContext = new AudioContext({ sampleRate: vadProcessor.getRequiredPCMFrequency() });
+
+        /**
+         * PCM Sample size expected by the VAD Processor instance. We cache it here as this value is used extensively,
+         * saves a couple of function calls.
+         */
         this._vadSampleSize = vadProcessor.getSampleLength();
+
+        /**
+         * Event listener function that will be called by the ScriptProcessNode with raw PCM data, depending on the set
+         * sample rate.
+         */
         this._onAudioProcess = this._onAudioProcess.bind(this);
 
         this._initializeAudioContext();
-        this._connectAudioGraph();
     }
 
     /**
@@ -70,18 +98,18 @@ export default class TrackVADEmitter extends EventEmitter {
         // TODO AudioProcessingNode is deprecated check and replace with alternative.
         // We don't need stereo for determining the VAD score so we create a single channel processing node.
         this._audioProcessingNode = this._audioContext.createScriptProcessor(this._procNodeSampleRate, 1, 1);
-        this._audioProcessingNode.onaudioprocess = this._onAudioProcess;
     }
 
     /**
-     * TODO maybe move this logic to the VAD Processor.
      * ScriptProcessorNode callback, the input parameters contains the PCM audio that is then sent to rnnoise.
      * Rnnoise only accepts PCM samples of 480 bytes whereas the webaudio processor node can't sample at a multiple
      * of 480 thus after each _onAudioProcess callback there will remain and PCM buffer residue equal
-     * to _procNodeSampleRate / 480 which will be added to the next sample buffer and so on.
+     * to _procNodeSampleRate / 480 which will be added to the next sample buffer and so on.\
+     *
      *
      * @param {AudioProcessingEvent} audioEvent - Audio event.
      * @returns {void}
+     * @fires VAD_SCORE_PUBLISHED
      */
     _onAudioProcess(audioEvent) {
         // Prepend the residue PCM buffer from the previous process callback.
@@ -95,10 +123,19 @@ export default class TrackVADEmitter extends EventEmitter {
             const pcmSample = completeInData.slice(i, i + this._vadSampleSize);
             const vadScore = this._vadProcessor.calculateAudioFrameVAD(pcmSample);
 
+            /**
+             * VAD score publish event
+             *
+             * @event VAD_SCORE_PUBLISHED
+             * @type {Object}
+             * @property {Date}   timestamp - Exact time at which processed PCM sample was generated.
+             * @property {number} score - VAD score on a scale from 0 to 1 (i.e. 0.7)
+             * @property {string} deviceId - Device id of the associated track.
+             */
             this.emit(VAD_SCORE_PUBLISHED, {
                 timestamp: sampleTimestamp,
                 score: vadScore,
-                deviceId: this._micDeviceId
+                deviceId: this._localTrack.getDeviceId()
             });
         }
 
@@ -111,6 +148,7 @@ export default class TrackVADEmitter extends EventEmitter {
      * @returns {void}
      */
     _connectAudioGraph() {
+        this._audioProcessingNode.onaudioprocess = this._onAudioProcess;
         this._audioSource.connect(this._audioProcessingNode);
         this._audioProcessingNode.connect(this._audioContext.destination);
     }
@@ -137,6 +175,34 @@ export default class TrackVADEmitter extends EventEmitter {
     _cleanupResources() {
         this._disconnectAudioGraph();
         this._localTrack.stopStream();
+    }
+
+    /**
+     * Cleanup potentially acquired resources.
+     *
+     * @returns {void}
+     */
+    getDeviceId() {
+        return this._localTrack.getDeviceId();
+    }
+
+    /**
+     * Start the emitter by connecting the audio graph.
+     *
+     * @returns {void}
+     */
+    start() {
+        this._connectAudioGraph();
+    }
+
+    /**
+     * Stops the emitter by disconnecting the audio graph.
+     *
+     * @returns {void}
+     */
+    stop() {
+        this._disconnectAudioGraph();
+        this._bufferResidue = [];
     }
 
     /**
