@@ -178,12 +178,22 @@ export default class TrackVADEmitter extends EventEmitter {
     }
 
     /**
-     * Cleanup potentially acquired resources.
+     * Get the associated track device ID.
      *
-     * @returns {void}
+     * @returns {string}
      */
     getDeviceId() {
         return this._localTrack.getDeviceId();
+    }
+
+
+    /**
+     * Get the associated track label.
+     *
+     * @returns {string}
+     */
+    getTrackLabel() {
+        return this._localTrack.getDeviceLabel();
     }
 
     /**
