@@ -1,13 +1,12 @@
 import EventEmitter from 'events';
 
 import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
-import analytics from './AnalyticsAdapter';
+import Analytics from './AnalyticsAdapter';
 import CallStats from './CallStats';
 import LocalStats from './LocalStatsCollector';
 import RTPStats from './RTPStatsCollector';
 
 import browser from '../browser';
-import Settings from '../settings/Settings';
 import ScriptUtil from '../util/ScriptUtil';
 import JitsiTrackError from '../../JitsiTrackError';
 import * as StatisticsEvents from '../../service/statistics/Events';
@@ -63,15 +62,11 @@ function _initCallStatsBackend(options) {
         return;
     }
 
-    const userName = Settings.callStatsUserName;
-
     if (!CallStats.initBackend({
         callStatsID: options.callStatsID,
         callStatsSecret: options.callStatsSecret,
-        userName: options.swapUserNameAndAlias
-            ? options.callStatsAliasName : userName,
-        aliasName: options.swapUserNameAndAlias
-            ? userName : options.callStatsAliasName,
+        userName: options.userName,
+        aliasName: options.aliasName,
         applicationName: options.applicationName,
         getWiFiStatsMethod: options.getWiFiStatsMethod,
         confID: options.confID
@@ -128,8 +123,8 @@ Statistics.init = function(options) {
  * @typedef {Object} StatisticsOptions
  * @property {string} applicationName - The application name to pass to
  * callstats.
- * @property {string} callStatsAliasName - The alias name to use when
- * initializing callstats.
+ * @property {string} aliasName - The alias name to use when initializing callstats.
+ * @property {string} userName - The user name to use when initializing callstats.
  * @property {string} callStatsConfIDNamespace - A namespace to prepend the
  * callstats conference ID with.
  * @property {string} confID - The callstats conference ID to use.
@@ -138,8 +133,6 @@ Statistics.init = function(options) {
  * @property {string} customScriptUrl - A custom lib url to use when downloading
  * callstats library.
  * @property {string} roomName - The room name we are currently in.
- * @property {boolean} swapUserNameAndAlias - Whether to swap the places of
- * username and alias when initiating callstats.
  */
 /**
  *
@@ -157,6 +150,10 @@ export default function Statistics(xmpp, options) {
     this.eventEmitter = new EventEmitter();
     this.xmpp = xmpp;
     this.options = options || {};
+
+    Statistics.analytics = new Analytics({
+        statsId: this.options.aliasName
+    });
 
     this.callStatsIntegrationEnabled
         = this.options.callStatsID && this.options.callStatsSecret
@@ -194,7 +191,6 @@ export default function Statistics(xmpp, options) {
 Statistics.audioLevelsEnabled = false;
 Statistics.audioLevelsInterval = 200;
 Statistics.disableThirdPartyRequests = false;
-Statistics.analytics = analytics;
 
 Object.defineProperty(Statistics, 'instances', {
     /**
