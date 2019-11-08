@@ -379,7 +379,6 @@ JitsiConference.prototype._init = function(options = {}) {
         // based detection.
         if (config.createVADProcessor) {
             logger.info('Using VAD detection for generating talk while muted events');
-            // eslint-disable-next-line no-new
             this._talkWhileMutedDetection = new VADTalkMutedDetection(this, config.createVADProcessor);
             this._talkWhileMutedDetection.on(DetectionEvents.VAD_TALK_WHILE_MUTED, () =>
                 this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED));
@@ -392,10 +391,8 @@ JitsiConference.prototype._init = function(options = {}) {
     }
 
     // Generates events based on no audio input detector.
-    // eslint-disable-next-line
     if (config.enableNoAudioDetection) {
-        // eslint-disable-next-line no-new
-        new NoAudioSignalDetection(this, () =>
+        this._noAudioSignalDetection = new NoAudioSignalDetection(this, () =>
             this.eventEmitter.emit(JitsiConferenceEvents.NO_AUDIO_INPUT));
     }
 
