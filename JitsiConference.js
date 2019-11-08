@@ -26,6 +26,7 @@ import E2ePing from './modules/e2eping/e2eping';
 import Jvb121EventGenerator from './modules/event/Jvb121EventGenerator';
 import RecordingManager from './modules/recording/RecordingManager';
 import RttMonitor from './modules/rttmonitor/rttmonitor';
+import Settings from './modules/settings/Settings';
 import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import AudioOutputProblemDetector from './modules/statistics/AudioOutputProblemDetector';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
@@ -284,6 +285,11 @@ JitsiConference.prototype._init = function(options = {}) {
     }
 
     const { config } = this.options;
+    const statsCurrentId = Settings.callStatsUserName;
+
+    if (config.enableStatsID) {
+        config.statsId = statsCurrentId;
+    }
 
     this.room = this.xmpp.createRoom(
         this.options.name,
@@ -344,21 +350,31 @@ JitsiConference.prototype._init = function(options = {}) {
     this.participantConnectionStatus.init();
 
     if (!this.statistics) {
-        let callStatsAliasName = this.myUserId();
+        let aliasName = this.myUserId();
+        let userName = statsCurrentId;
 
         if (config.enableDisplayNameInStats && config.displayName) {
-            callStatsAliasName = config.displayName;
+            aliasName = config.displayName;
+        }
+
+        if (config.enableStatsID) {
+            // let's swap the values, as instead of components to report
+            // the xmpp resource as id will use the supplied statsId
+            const newAlias = userName;
+
+            userName = aliasName;
+            aliasName = newAlias;
         }
 
         this.statistics = new Statistics(this.xmpp, {
-            callStatsAliasName,
+            aliasName,
+            userName,
             callStatsConfIDNamespace: this.connection.options.hosts.domain,
             confID: config.confID || `${this.connection.options.hosts.domain}/${this.options.name}`,
             customScriptUrl: config.callStatsCustomScriptUrl,
             callStatsID: config.callStatsID,
             callStatsSecret: config.callStatsSecret,
             roomName: this.options.name,
-            swapUserNameAndAlias: config.enableStatsID,
             applicationName: config.applicationName,
             getWiFiStatsMethod: config.getWiFiStatsMethod
         });

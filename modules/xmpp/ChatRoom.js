@@ -6,7 +6,6 @@ import { $iq, $msg, $pres, Strophe } from 'strophe.js';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
 import Listenable from '../util/Listenable';
-import Settings from '../settings/Settings';
 import * as MediaType from '../../service/RTC/MediaType';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
@@ -140,10 +139,10 @@ export default class ChatRoom extends Listenable {
         this.presMap.xns = 'http://jabber.org/protocol/muc';
         this.presMap.nodes = [];
 
-        if (options.enableStatsID) {
+        if (options.statsId) {
             this.presMap.nodes.push({
                 'tagName': 'stats-id',
-                'value': Settings.callStatsUserName
+                'value': options.statsId
             });
         }
 
