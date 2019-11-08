@@ -61,10 +61,8 @@ const config = {
         concatenateModules: minimize
     },
     output: {
-        // eslint-disable-next-line
         filename: `[name]${minimize ? '.min' : ''}.js`,
         path: process.cwd(),
-        // eslint-disable-next-line
         sourceMapFilename: `[name].${minimize ? 'min' : 'js'}.map`
     },
     performance: {
