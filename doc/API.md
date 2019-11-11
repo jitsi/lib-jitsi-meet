@@ -229,6 +229,7 @@ This objects represents the server connection. You can create new ```JitsiConnec
         9. enableDisplayNameInStats - enables sending the users display name, if set, to callstats as alias of the endpointID stats
         10. startSilent - enables silent mode, will mark audio as inactive will not send/receive audio
         11. confID - Used for statistics to identify conference, if tenants are supported will contain tenant and the non lower case variant for the room name.
+        12. enableEmailInStats - enables sending the users emails to callstats as id of the endpointID stats, set as presence so it can reach jicofo and jvb to use it when reporting, set as id to the anlytics
 
         **NOTE: if 4 and 5 are set the library is going to send events to callstats. Otherwise the callstats integration will be disabled.**
 
