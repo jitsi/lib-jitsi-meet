@@ -285,19 +285,13 @@ JitsiConference.prototype._init = function(options = {}) {
     }
 
     const { config } = this.options;
-    const statsCurrentId = config.enableEmailInStats && config.email
-        ? config.email : Settings.callStatsUserName;
-    const createRoomOptions = {
-        ...config
-    };
-
-    if (config.enableStatsID) {
-        createRoomOptions.statsId = statsCurrentId;
-    }
+    const statsCurrentId = config.statisticsId ? config.statisticsId : Settings.callStatsUserName;
 
     this.room = this.xmpp.createRoom(
-        this.options.name,
-        createRoomOptions,
+        this.options.name, {
+            ...config,
+            statsId: statsCurrentId
+        },
         JitsiConference.resourceCreator
     );
 
@@ -354,25 +348,9 @@ JitsiConference.prototype._init = function(options = {}) {
     this.participantConnectionStatus.init();
 
     if (!this.statistics) {
-        let aliasName = this.myUserId();
-        let userName = statsCurrentId;
-
-        if (config.enableDisplayNameInStats && config.displayName) {
-            aliasName = config.displayName;
-        }
-
-        if (config.enableStatsID) {
-            // let's swap the values, as instead of components to report
-            // the xmpp resource as id will use the supplied statsId
-            const newAlias = userName;
-
-            userName = aliasName;
-            aliasName = newAlias;
-        }
-
         this.statistics = new Statistics(this.xmpp, {
-            aliasName,
-            userName,
+            aliasName: statsCurrentId,
+            userName: config.statisticsDisplayName ? config.statisticsDisplayName : this.myUserId(),
             callStatsConfIDNamespace: this.connection.options.hosts.domain,
             confID: config.confID || `${this.connection.options.hosts.domain}/${this.options.name}`,
             customScriptUrl: config.callStatsCustomScriptUrl,
@@ -383,7 +361,7 @@ JitsiConference.prototype._init = function(options = {}) {
             getWiFiStatsMethod: config.getWiFiStatsMethod
         });
         Statistics.analytics.addPermanentProperties({
-            'callstats_name': aliasName
+            'callstats_name': statsCurrentId
         });
     }
 
@@ -2553,12 +2531,10 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
 
     let remoteID = Strophe.getResourceFromJid(this.p2pJingleSession.remoteJid);
 
-    if (this.options.config.enableStatsID) {
-        const participant = this.participants[remoteID];
+    const participant = this.participants[remoteID];
 
-        if (participant) {
-            remoteID = participant.getStatsID() || remoteID;
-        }
+    if (participant) {
+        remoteID = participant.getStatsID() || remoteID;
     }
 
     this.statistics.startCallStats(
@@ -2903,12 +2879,10 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
 
     let remoteID = Strophe.getResourceFromJid(this.p2pJingleSession.remoteJid);
 
-    if (this.options.config.enableStatsID) {
-        const participant = this.participants[remoteID];
+    const participant = this.participants[remoteID];
 
-        if (participant) {
-            remoteID = participant.getStatsID() || remoteID;
-        }
+    if (participant) {
+        remoteID = participant.getStatsID() || remoteID;
     }
 
     this.statistics.startCallStats(

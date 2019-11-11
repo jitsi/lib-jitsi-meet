@@ -218,18 +218,16 @@ This objects represents the server connection. You can create new ```JitsiConnec
 4. initJitsiConference(name, options) - creates new ```JitsiConference``` object.
     - name - the name of the conference
     - options - JS object with configuration options for the conference. You can change the following properties there:
-        1. openBridgeChannel - Enables/disables bridge channel. Values can be "datachannel", "websocket", true (treat it as "datachannel"), undefined (treat it as "datachannel") and false (don't open any channel). **NOTE: we recommend to set that option to true**
-        2. recordingType - the type of recording to be used
-        3. jirecon
-        4. callStatsID - callstats credentials
-        5. callStatsSecret - callstats credentials
-        6. enableTalkWhileMuted - boolean property. Enables/disables talk while muted detection, by default the value is false/disabled.
-        7. ignoreStartMuted - ignores start muted events coming from jicofo.
-        8. enableStatsID - enables sending callStatsUsername as stats-id in presence, jicofo and videobridge will use it as endpointID to report stats
-        9. enableDisplayNameInStats - enables sending the users display name, if set, to callstats as alias of the endpointID stats
-        10. startSilent - enables silent mode, will mark audio as inactive will not send/receive audio
-        11. confID - Used for statistics to identify conference, if tenants are supported will contain tenant and the non lower case variant for the room name.
-        12. enableEmailInStats - enables sending the users emails to callstats as id of the endpointID stats, set as presence so it can reach jicofo and jvb to use it when reporting, set as id to the anlytics
+        - openBridgeChannel - Enables/disables bridge channel. Values can be "datachannel", "websocket", true (treat it as "datachannel"), undefined (treat it as "datachannel") and false (don't open any channel). **NOTE: we recommend to set that option to true**
+        - recordingType - the type of recording to be used
+        - callStatsID - callstats credentials
+        - callStatsSecret - callstats credentials
+        - enableTalkWhileMuted - boolean property. Enables/disables talk while muted detection, by default the value is false/disabled.
+        - ignoreStartMuted - ignores start muted events coming from jicofo.
+        - startSilent - enables silent mode, will mark audio as inactive will not send/receive audio
+        - confID - Used for statistics to identify conference, if tenants are supported will contain tenant and the non lower case variant for the room name.
+        - statisticsId - The id to be used as stats instead of default callStatsUsername.
+        - statisticsDisplayName - The display name to be used for stats, used for callstats.
 
         **NOTE: if 4 and 5 are set the library is going to send events to callstats. Otherwise the callstats integration will be disabled.**
 
