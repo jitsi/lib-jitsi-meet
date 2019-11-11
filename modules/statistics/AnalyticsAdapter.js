@@ -5,6 +5,7 @@ import {
     TYPE_UI
 } from '../../service/statistics/AnalyticsEvents';
 import { getLogger } from 'jitsi-meet-logger';
+import browser from '../browser';
 
 const MAX_CACHE_SIZE = 100;
 
@@ -57,8 +58,7 @@ class AnalyticsAdapter {
     /**
      * Creates new AnalyticsAdapter instance.
      */
-    constructor(options) {
-        this.options = options;
+    constructor() {
         this.reset();
     }
 
@@ -101,6 +101,11 @@ class AnalyticsAdapter {
          * @type {null}
          */
         this.conferenceName = '';
+
+        this.addPermanentProperties({
+            'user_agent': navigator.userAgent,
+            'browser_name': browser.getName()
+        });
     }
 
     /**
