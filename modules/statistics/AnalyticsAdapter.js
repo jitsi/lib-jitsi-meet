@@ -5,7 +5,6 @@ import {
     TYPE_UI
 } from '../../service/statistics/AnalyticsEvents';
 import { getLogger } from 'jitsi-meet-logger';
-import browser from '../browser';
 
 const MAX_CACHE_SIZE = 100;
 
@@ -54,15 +53,9 @@ const logger = getLogger(__filename);
  * action, actionSubject, source, containerType, containerId, objectType,
  * objectId
  */
-export default class AnalyticsAdapter {
-    /**
-     * The options to configure Statistics.
-     * @typedef {Object} AnalyticsOptions
-     * @property {string} statsId - The id that will be used to be passed with all analytics for current session.
-     */
+class AnalyticsAdapter {
     /**
      * Creates new AnalyticsAdapter instance.
-     * @param {AnalyticsOptions} options - The options to use creating the AnalyticsAdapter.
      */
     constructor(options) {
         this.options = options;
@@ -108,12 +101,6 @@ export default class AnalyticsAdapter {
          * @type {null}
          */
         this.conferenceName = '';
-
-        this.addPermanentProperties({
-            'callstats_name': this.options.statsId,
-            'user_agent': navigator.userAgent,
-            'browser_name': browser.getName()
-        });
     }
 
     /**
@@ -357,3 +344,5 @@ export default class AnalyticsAdapter {
         }
     }
 }
+
+export default new AnalyticsAdapter();

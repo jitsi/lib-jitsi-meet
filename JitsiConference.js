@@ -285,7 +285,8 @@ JitsiConference.prototype._init = function(options = {}) {
     }
 
     const { config } = this.options;
-    const statsCurrentId = Settings.callStatsUserName;
+    const statsCurrentId = config.enableEmailInStats && config.email
+        ? config.email : Settings.callStatsUserName;
 
     if (config.enableStatsID) {
         config.statsId = statsCurrentId;
@@ -377,6 +378,11 @@ JitsiConference.prototype._init = function(options = {}) {
             roomName: this.options.name,
             applicationName: config.applicationName,
             getWiFiStatsMethod: config.getWiFiStatsMethod
+        });
+        Statistics.analytics.addPermanentProperties({
+            'callstats_name': aliasName,
+            'user_agent': navigator.userAgent,
+            'browser_name': browser.getName()
         });
     }
 

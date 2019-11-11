@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 
 import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
-import Analytics from './AnalyticsAdapter';
+import analytics from './AnalyticsAdapter';
 import CallStats from './CallStats';
 import LocalStats from './LocalStatsCollector';
 import RTPStats from './RTPStatsCollector';
@@ -151,10 +151,6 @@ export default function Statistics(xmpp, options) {
     this.xmpp = xmpp;
     this.options = options || {};
 
-    Statistics.analytics = new Analytics({
-        statsId: this.options.aliasName
-    });
-
     this.callStatsIntegrationEnabled
         = this.options.callStatsID && this.options.callStatsSecret
 
@@ -191,6 +187,7 @@ export default function Statistics(xmpp, options) {
 Statistics.audioLevelsEnabled = false;
 Statistics.audioLevelsInterval = 200;
 Statistics.disableThirdPartyRequests = false;
+Statistics.analytics = analytics;
 
 Object.defineProperty(Statistics, 'instances', {
     /**
