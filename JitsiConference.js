@@ -287,14 +287,17 @@ JitsiConference.prototype._init = function(options = {}) {
     const { config } = this.options;
     const statsCurrentId = config.enableEmailInStats && config.email
         ? config.email : Settings.callStatsUserName;
+    const createRoomOptions = {
+        ...config
+    };
 
     if (config.enableStatsID) {
-        config.statsId = statsCurrentId;
+        createRoomOptions.statsId = statsCurrentId;
     }
 
     this.room = this.xmpp.createRoom(
         this.options.name,
-        config,
+        createRoomOptions,
         JitsiConference.resourceCreator
     );
 
@@ -380,9 +383,7 @@ JitsiConference.prototype._init = function(options = {}) {
             getWiFiStatsMethod: config.getWiFiStatsMethod
         });
         Statistics.analytics.addPermanentProperties({
-            'callstats_name': aliasName,
-            'user_agent': navigator.userAgent,
-            'browser_name': browser.getName()
+            'callstats_name': aliasName
         });
     }
 
