@@ -4,7 +4,7 @@ import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 // potential abnormalities and for a better use experience i.e. don't generate event the instant
 // an audio track is added to the tcr.
 // Potential improvement - add this as a configurable parameter.
-const SILENCE_PERIOD_SEC = 4;
+const SILENCE_PERIOD_MS = 4000;
 
 /**
  * Detect if there is no audio input on the current TraceAblePeerConnection selected track. The no audio
@@ -19,43 +19,20 @@ export default class NoAudioSignalDetection {
     constructor(conference, callback) {
         this._conference = conference;
         this._callback = callback;
-        this._firstSilentSignalDate = null;
+        this._timeoutTrigger = null;
 
         conference.statistics.addAudioLevelListener(this._audioLevel.bind(this));
         conference.on(JitsiConferenceEvents.TRACK_ADDED, this._trackAdded.bind(this));
     }
 
     /**
-     * Checks if the configured period in which no audio was received has elapsed.
-     *
-     * @returns {boolean}
+     * Clear the timeout state.
      */
-    _hasSilencePeriodElapsed() {
-        const currentDate = new Date();
-        const elapsedSec = (currentDate.getTime() - this._firstSilentSignalDate.getTime()) / 1000;
-
-        if (elapsedSec > SILENCE_PERIOD_SEC) {
-            return true;
-        }
-
-        return false;
+    _clearTriggerTimeout() {
+        clearTimeout(this._timeoutTrigger);
+        this._timeoutTrigger = null;
     }
 
-    /**
-     * Trigger the set callback for no audio input if expected conditions are met.
-     */
-    _triggerNoAudioCallback() {
-        // In case this is the first time 0 audio level was detected initialize the interval check start
-        // date
-        if (!this._firstSilentSignalDate) {
-            this._firstSilentSignalDate = new Date();
-
-        // If the configured interval has elapsed trigger the callback
-        } else if (this._hasSilencePeriodElapsed()) {
-            this._eventFired = true;
-            this._callback();
-        }
-    }
 
     /**
      * Receives audio level events for all send and receive streams on the current TraceablePeerConnection.
@@ -88,23 +65,14 @@ export default class NoAudioSignalDetection {
             return;
         }
 
-        if (audioLevel === 0) {
-            this._triggerNoAudioCallback();
-        } else {
-            // Reset the period start date in order to check for consistent silence over the configured
-            // time interval.
-            this._firstSilentSignalDate = null;
+        if (audioLevel === 0 && !this._timeoutTrigger) {
+            this._timeoutTrigger = setTimeout(() => {
+                this._eventFired = true;
+                this._callback();
+            }, SILENCE_PERIOD_MS);
+        } else if (audioLevel !== 0 && this._timeoutTrigger) {
+            this._clearTriggerTimeout();
         }
-    }
-
-    /**
-     * Determines if a specific JitsiTrack is a local audio track.
-     *
-     * @param {JitsiTrack} track - The JitsiTrack to be checked whether it represents a local audio track.
-     * @return {boolean} -  true if track represents a local audio track, false otherwise.
-     */
-    _isLocalAudioTrack(track) {
-        return track.isAudioTrack() && track.isLocal();
     }
 
     /**
@@ -114,11 +82,11 @@ export default class NoAudioSignalDetection {
      * @param {JitsiTrack} track - The added JitsiTrack.
      */
     _trackAdded(track) {
-        if (this._isLocalAudioTrack(track)) {
+        if (track.isLocalAudioTrack()) {
             // Reset state for the new track.
-            this._firstSilentSignalDate = null;
             this._audioTrack = track;
             this._eventFired = false;
+            this._clearTriggerTimeout();
         }
     }
 }
