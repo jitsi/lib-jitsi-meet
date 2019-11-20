@@ -68,6 +68,11 @@ export default class TrackVADEmitter extends EventEmitter {
      *
      * @param {string} micDeviceId - Target microphone device id.
      * @param {number} procNodeSampleRate - Sample rate of the proc node.
+     * @param {Object} vadProcessor -Module that calculates the voice activity score for a certain audio PCM sample.
+     * The processor needs to implement the following functions:
+     * - <tt>getSampleLength()</tt> - Returns the sample size accepted by getSampleLength.
+     * - <tt>getRequiredPCMFrequency()</tt> - Returns the PCM frequency at which the processor operates.
+     * - <tt>calculateAudioFrameVAD(pcmSample)</tt> - Process a 32 float pcm sample of getSampleLength size.
      * @returns {Promise<TrackVADEmitter>} - Promise resolving in a new instance of TrackVADEmitter.
      */
     static create(micDeviceId, procNodeSampleRate, vadProcessor) {

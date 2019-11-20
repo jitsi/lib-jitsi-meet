@@ -208,6 +208,15 @@ export default class JitsiTrack extends EventEmitter {
     }
 
     /**
+     * Check whether this is a local audio track.
+     *
+     * @return {boolean} -  true if track represents a local audio track, false otherwise.
+     */
+    isLocalAudioTrack() {
+        return this.isAudioTrack() && this.isLocal();
+    }
+
+    /**
      * Returns the WebRTC MediaStream instance.
      */
     getOriginalStream() {
