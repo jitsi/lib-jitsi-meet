@@ -1,6 +1,7 @@
 import EventEmitter from 'events';
-import RTC from '../RTC/RTC';
 import { VAD_SCORE_PUBLISHED } from './DetectionEvents';
+import RTC from '../RTC/RTC';
+
 
 /**
  * Connects an audio JitsiLocalTrack to a vadProcessor using WebAudio ScriptProcessorNode.
