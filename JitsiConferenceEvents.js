@@ -251,6 +251,12 @@ export const TALK_WHILE_MUTED = 'conference.talk_while_muted';
 export const NO_AUDIO_INPUT = 'conference.no_audio_input';
 
 /**
+ * Event indicates that the current conference audio input switched between audio
+ * input states,i.e. with or without audio input.
+ */
+export const AUDIO_INPUT_STATE_CHANGE = 'conference.audio_input_state_changed';
+
+/**
  * A new media track was added to the conference. The event provides the
  * following parameters to its listeners:
  *

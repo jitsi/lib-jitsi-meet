@@ -1,5 +1,8 @@
 /* global __filename */
 
+import getActiveAudioDevice from './modules/detection/ActiveDeviceDetector';
+import * as DetectionEvents from './modules/detection/DetectionEvents';
+import TrackVADEmitter from './modules/detection/TrackVADEmitter';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
 import AuthUtil from './modules/util/AuthUtil';
 import * as ConnectionQualityEvents
@@ -31,8 +34,6 @@ import ProxyConnectionService
     from './modules/proxyconnection/ProxyConnectionService';
 import Statistics from './modules/statistics/statistics';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
-import TrackVADEmitter from './modules/detection/TrackVADEmitter';
-import * as DetectionEvents from './modules/detection/DetectionEvents';
 
 const logger = Logger.getLogger(__filename);
 
@@ -513,6 +514,15 @@ export default _mergeNamespaceAndModule({
      */
     createTrackVADEmitter(localAudioDeviceId, sampleRate, vadProcessor) {
         return TrackVADEmitter.create(localAudioDeviceId, sampleRate, vadProcessor);
+    },
+
+    /**
+     * Go through all audio devices on the system and return one that is active, i.e. has audio signal.
+     *
+     * @returns Promise<Object> - Object containing information about the found device.
+     */
+    getActiveAudioDevice() {
+        return getActiveAudioDevice();
     },
 
     /**

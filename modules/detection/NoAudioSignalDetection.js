@@ -1,4 +1,6 @@
+import EventEmitter from 'events';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import * as DetectionEvents from './DetectionEvents';
 
 // We wait a certain time interval for constant silence input from the current device to account for
 // potential abnormalities and for a better use experience i.e. don't generate event the instant
@@ -10,16 +12,17 @@ const SILENCE_PERIOD_MS = 4000;
  * Detect if there is no audio input on the current TraceAblePeerConnection selected track. The no audio
  * state must be constant for a configured amount of time in order for the event to be triggered.
  */
-export default class NoAudioSignalDetection {
+export default class NoAudioSignalDetection extends EventEmitter {
     /**
      * @param conference the JitsiConference instance that created us.
-     * @param callback callback that notifies the conference when no audio event is triggered
      * @constructor
      */
-    constructor(conference, callback) {
+    constructor(conference) {
+        super();
+
         this._conference = conference;
-        this._callback = callback;
         this._timeoutTrigger = null;
+        this._hasAudioInput = null;
 
         conference.statistics.addAudioLevelListener(this._audioLevel.bind(this));
         conference.on(JitsiConferenceEvents.TRACK_ADDED, this._trackAdded.bind(this));
@@ -35,6 +38,51 @@ export default class NoAudioSignalDetection {
 
 
     /**
+     * Generated event triggered by a change in the current conference audio input state.
+     *
+     * @param {*} audioLevel
+     */
+    _handleAudioInputStateChange(audioLevel) {
+        // Current audio input state of the active local track in the conference, true for audio input false for no
+        // audio input.
+        const status = audioLevel !== 0;
+        let shouldTrigger;
+
+        // If we this is the first audio event picked up or the current status is different from the previous trigger
+        // the event.
+        if (this._hasAudioInput === null) {
+            shouldTrigger = true;
+        } else if (this._hasAudioInput !== status) {
+            shouldTrigger = true;
+        }
+
+        if (shouldTrigger) {
+            this._hasAudioInput = status;
+            this.emit(DetectionEvents.AUDIO_INPUT_STATE_CHANGE, this._hasAudioInput);
+        }
+    }
+
+    /**
+     * Generate event triggered by a prolonged period of no audio input.
+     *
+     * @param {number} audioLevel - The audio level of the ssrc.
+     */
+    _handleNoAudioInputDetection(audioLevel) {
+        if (this._eventFired) {
+            return;
+        }
+
+        if (audioLevel === 0 && !this._timeoutTrigger) {
+            this._timeoutTrigger = setTimeout(() => {
+                this._eventFired = true;
+                this.emit(DetectionEvents.NO_AUDIO_INPUT);
+            }, SILENCE_PERIOD_MS);
+        } else if (audioLevel !== 0 && this._timeoutTrigger) {
+            this._clearTriggerTimeout();
+        }
+    }
+
+    /**
      * Receives audio level events for all send and receive streams on the current TraceablePeerConnection.
      *
      * @param {TraceablePeerConnection} tpc - TraceablePeerConnection of the owning conference.
@@ -45,7 +93,7 @@ export default class NoAudioSignalDetection {
      */
     _audioLevel(tpc, ssrc, audioLevel, isLocal) {
         // We are interested in the local audio stream if the event was not triggered on this device.
-        if (!isLocal || !this._audioTrack || this._eventFired) {
+        if (!isLocal || !this._audioTrack) {
             return;
         }
 
@@ -65,14 +113,11 @@ export default class NoAudioSignalDetection {
             return;
         }
 
-        if (audioLevel === 0 && !this._timeoutTrigger) {
-            this._timeoutTrigger = setTimeout(() => {
-                this._eventFired = true;
-                this._callback();
-            }, SILENCE_PERIOD_MS);
-        } else if (audioLevel !== 0 && this._timeoutTrigger) {
-            this._clearTriggerTimeout();
-        }
+        // First handle audio input state change. In case the state changed to no input the no audio input event
+        // can try to fire again.
+        this._handleAudioInputStateChange(audioLevel);
+        this._handleNoAudioInputDetection(audioLevel);
+
     }
 
     /**
