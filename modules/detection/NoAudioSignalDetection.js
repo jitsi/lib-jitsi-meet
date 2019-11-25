@@ -11,6 +11,8 @@ const SILENCE_PERIOD_MS = 4000;
 /**
  * Detect if there is no audio input on the current TraceAblePeerConnection selected track. The no audio
  * state must be constant for a configured amount of time in order for the event to be triggered.
+ * @fires DetectionEvents.AUDIO_INPUT_STATE_CHANGE
+ * @fires DetectionEvents.NO_AUDIO_INPUT
  */
 export default class NoAudioSignalDetection extends EventEmitter {
     /**
@@ -41,6 +43,7 @@ export default class NoAudioSignalDetection extends EventEmitter {
      * Generated event triggered by a change in the current conference audio input state.
      *
      * @param {*} audioLevel
+     * @fires DetectionEvents.AUDIO_INPUT_STATE_CHANGE
      */
     _handleAudioInputStateChange(audioLevel) {
         // Current audio input state of the active local track in the conference, true for audio input false for no
@@ -58,6 +61,13 @@ export default class NoAudioSignalDetection extends EventEmitter {
 
         if (shouldTrigger) {
             this._hasAudioInput = status;
+
+            /**
+             * Event fired when the audio input state of the conference changes, true for audio input false otherwise.
+             *
+             * @event DetectionEvents.AUDIO_INPUT_STATE_CHANGE
+             * @type {boolean}
+             */
             this.emit(DetectionEvents.AUDIO_INPUT_STATE_CHANGE, this._hasAudioInput);
         }
     }
@@ -66,6 +76,7 @@ export default class NoAudioSignalDetection extends EventEmitter {
      * Generate event triggered by a prolonged period of no audio input.
      *
      * @param {number} audioLevel - The audio level of the ssrc.
+     * @fires DetectionEvents.NO_AUDIO_INPUT
      */
     _handleNoAudioInputDetection(audioLevel) {
         if (this._eventFired) {
@@ -75,6 +86,13 @@ export default class NoAudioSignalDetection extends EventEmitter {
         if (audioLevel === 0 && !this._timeoutTrigger) {
             this._timeoutTrigger = setTimeout(() => {
                 this._eventFired = true;
+
+                /**
+                 * Event fired when there is no audio input for a predefined period of time.
+                 *
+                 * @event DetectionEvents.AUDIO_INPUT_STATE_CHANGE
+                 * @type {void}
+                 */
                 this.emit(DetectionEvents.NO_AUDIO_INPUT);
             }, SILENCE_PERIOD_MS);
         } else if (audioLevel !== 0 && this._timeoutTrigger) {
@@ -92,7 +110,7 @@ export default class NoAudioSignalDetection extends EventEmitter {
      * @param {boolean} isLocal - true for local/send streams or false for remote/receive streams.
      */
     _audioLevel(tpc, ssrc, audioLevel, isLocal) {
-        // We are interested in the local audio stream if the event was not triggered on this device.
+        // We are interested in the local audio streams
         if (!isLocal || !this._audioTrack) {
             return;
         }

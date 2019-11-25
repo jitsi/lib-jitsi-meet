@@ -66,8 +66,7 @@ export default function getActiveAudioDevice() {
                         if (audioLevel > 0.008) {
                             stopActiveDevices(availableDevices);
                             resolve({ deviceId: device.deviceId,
-                                deviceLabel: device.track.label,
-                                audioLevel });
+                                deviceLabel: device.track.label });
                         }
                     });
                 }
@@ -76,8 +75,7 @@ export default function getActiveAudioDevice() {
                 setTimeout(() => {
                     stopActiveDevices(availableDevices);
                     resolve({ deviceId: '',
-                        deviceLabel: '',
-                        audioLevel: 0 });
+                        deviceLabel: '' });
                 }, DETECTION_TIMEOUT);
 
             });
