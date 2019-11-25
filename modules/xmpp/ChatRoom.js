@@ -127,6 +127,7 @@ export default class ChatRoom extends Listenable {
 
         this.locked = false;
         this.transcriptionStatus = JitsiTranscriptionStatus.OFF;
+        this.meetingId = null;
     }
 
     /* eslint-enable max-params */
@@ -276,6 +277,22 @@ export default class ChatRoom extends Listenable {
             if (locked !== this.locked) {
                 this.eventEmitter.emit(XMPPEvents.MUC_LOCK_CHANGED, locked);
                 this.locked = locked;
+            }
+
+            const meetingIdValEl
+                = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_meetingId"]>value');
+
+            if (meetingIdValEl.length) {
+                const meetingId = meetingIdValEl.text();
+
+                if (this.meetingId !== meetingId) {
+                    if (this.meetingId) {
+                        logger.warn(`Meeting Id changed from:${this.meetingId} to:${meetingId}`);
+                    }
+                    this.meetingId = meetingId;
+                }
+            } else {
+                logger.trace('No meeting id from backend');
             }
         }, error => {
             GlobalOnErrorHandler.callErrorHandler(error);
@@ -478,6 +495,10 @@ export default class ChatRoom extends Listenable {
                 this.sendPresence();
 
                 this.eventEmitter.emit(XMPPEvents.MUC_JOINED);
+
+                // Now let's check the disco-info to retrieve the
+                // meeting Id if any
+                this.discoRoomInfo();
             }
         } else if (jid === undefined) {
             logger.info('Ignoring member with undefined JID');
@@ -1361,6 +1382,13 @@ export default class ChatRoom extends Listenable {
      */
     getPhonePin() {
         return this.phonePin;
+    }
+
+    /**
+     * Returns the meeting unique Id if any came from backend.
+     */
+    getMeetingId() {
+        return this.meetingId;
     }
 
     /**

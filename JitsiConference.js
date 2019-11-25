@@ -2123,6 +2123,17 @@ JitsiConference.prototype.getPhonePin = function() {
 };
 
 /**
+ * Returns the meeting unique Id if any.
+ */
+JitsiConference.prototype.getMeetingUniqueId = function() {
+    if (this.room) {
+        return this.room.getMeetingId();
+    }
+
+    return null;
+};
+
+/**
  * Will return P2P or JVB <tt>TraceablePeerConnection</tt> depending on
  * which connection is currently active.
  *
