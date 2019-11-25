@@ -84,6 +84,9 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
 * ```JitsiMeetJS.enumerateDevices(callback)``` - __DEPRECATED__. Use ```JitsiMeetJS.mediaDevices.enumerateDevices(callback)``` instead.
 * ```JitsiMeetJS.isDeviceChangeAvailable(deviceType)``` - __DEPRECATED__. Use ```JitsiMeetJS.mediaDevices.isDeviceChangeAvailable(deviceType)``` instead.
 * ```JitsiMeetJS.isDesktopSharingEnabled()``` - returns true if desktop sharing is supported and false otherwise. NOTE: that method can be used after ```JitsiMeetJS.init(options)``` is completed otherwise the result will be always null.
+* ```JitsiMeetJS.getActiveAudioDevice()``` - goes through all audio devices on the system and returns information about one that is active, i.e. has audio signal. Returns a Promise resolving to an Object with the following structure:
+    - deviceId - string containing the device ID of the audio track found as active.
+    - deviceLabel - string containing the label of the audio device.
 * ```JitsiMeetJS.getGlobalOnErrorHandler()``` - returns function that can be used to be attached to window.onerror and if options.enableWindowOnErrorHandler is enabled returns the function used by the lib. (function(message, source, lineno, colno, error)).
 
 * ```JitsiMeetJS.mediaDevices``` - JS object that contains methods for interaction with media devices. Following methods are available:
@@ -132,6 +135,8 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - ENDPOINT_MESSAGE_RECEIVED - notifies that a new message
         from another participant is received on a data channel.
         - TALK_WHILE_MUTED - notifies that a local user is talking while having the microphone muted.
+        - NO_AUDIO_INPUT - notifies that the current selected input device has no signal.
+        - AUDIO_INPUT_STATE_CHANGE - notifies that the current conference audio input switched between audio input states i.e. with or without audio input.
 
     2. connection
         - CONNECTION_FAILED - indicates that the server connection failed.

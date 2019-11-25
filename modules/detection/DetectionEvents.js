@@ -1,7 +1,7 @@
 /** Event triggered by NoAudioSignalDetector when the local audio device associated with a JitsiConference goes silent
  * for a period of time, meaning that the device is either broken or hardware/software muted.
  * @event
- * @type {Object} - empty
+ * @type {void}
  */
 export const NO_AUDIO_INPUT = 'no_audio_input_detected';
 
