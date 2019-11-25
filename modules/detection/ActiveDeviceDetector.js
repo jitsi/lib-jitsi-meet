@@ -18,7 +18,7 @@ const DETECTION_TIMEOUT = 3000;
  */
 export default function getActiveAudioDevice() {
 
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
         RTC.enumerateDevices(devices => {
             const audioDevices = devices.filter(device => device.kind === 'audioinput');
             const devicePromiseArray = [];

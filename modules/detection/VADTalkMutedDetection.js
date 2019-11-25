@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { VAD_SCORE_PUBLISHED, VAD_TALK_WHILE_MUTED } from './DetectionEvents';
 import { getLogger } from 'jitsi-meet-logger';
-import TrackVADEmitter from '../detection/TrackVADEmitter';
+import TrackVADEmitter from './TrackVADEmitter';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 
 const logger = getLogger(__filename);
