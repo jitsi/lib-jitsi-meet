@@ -2123,14 +2123,14 @@ JitsiConference.prototype.getPhonePin = function() {
 };
 
 /**
- * Returns the meeting unique Id if any.
+ * Returns the meeting unique ID if any.
+ *
+ * @returns {string|undefined}
  */
 JitsiConference.prototype.getMeetingUniqueId = function() {
     if (this.room) {
         return this.room.getMeetingId();
     }
-
-    return null;
 };
 
 /**
