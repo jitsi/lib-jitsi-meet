@@ -265,6 +265,22 @@ export const createConnectionFailedEvent
     };
 
 /**
+ * Creates a conference event.
+ *
+ * @param {string} action - The action of the event.
+ * @param {Object} attributes - The attributes to be added to the event.
+ * @returns {{type: string, source: string, action: string, attributes: object}}
+ */
+export function createConferenceEvent(action, attributes) {
+    return {
+        action,
+        attributes,
+        source: 'conference',
+        type: TYPE_OPERATIONAL
+    };
+}
+
+/**
  * Creates an operational event which indicates that a particular connection
  * stage was reached (i.e. the XMPP connection transitioned to the "connected"
  * state).
