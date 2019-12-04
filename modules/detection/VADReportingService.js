@@ -1,5 +1,6 @@
 import EventEmitter from 'events';
 import { getLogger } from 'jitsi-meet-logger';
+
 import * as DetectionEvents from './DetectionEvents';
 import TrackVADEmitter from './TrackVADEmitter';
 

@@ -1,4 +1,5 @@
 import { getLogger } from 'jitsi-meet-logger';
+
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import RTC from '../RTC/RTC';
 import Statistics from '../statistics/statistics';
@@ -74,8 +75,10 @@ export default function getActiveAudioDevice() {
                 // Cancel the detection in case no devices was found with audioLevel > 0 in the set timeout.
                 setTimeout(() => {
                     stopActiveDevices(availableDevices);
-                    resolve({ deviceId: '',
-                        deviceLabel: '' });
+                    resolve({
+                        deviceId: '',
+                        deviceLabel: '' }
+                    );
                 }, DETECTION_TIMEOUT);
 
             });

@@ -1,6 +1,8 @@
 import { EventEmitter } from 'events';
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import { getLogger } from 'jitsi-meet-logger';
+
+import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+
 import { VAD_SCORE_PUBLISHED, VAD_TALK_WHILE_MUTED } from './DetectionEvents';
 import TrackVADEmitter from './TrackVADEmitter';
 
@@ -79,7 +81,9 @@ export default class VADTalkMutedDetection extends EventEmitter {
          */
         this._vadInitTracker = null;
 
-
+        /**
+         * Listens for {@link TrackVADEmitter} events and processes them.
+         */
         this._processVADScore = this._processVADScore.bind(this);
 
         /**
@@ -88,30 +92,6 @@ export default class VADTalkMutedDetection extends EventEmitter {
         conference.on(JitsiConferenceEvents.TRACK_ADDED, this._trackAdded.bind(this));
         conference.on(JitsiConferenceEvents.TRACK_REMOVED, this._trackRemoved.bind(this));
         conference.on(JitsiConferenceEvents.TRACK_MUTE_CHANGED, this._trackMuteChanged.bind(this));
-
-        // TODO do we need to handle the case where tracks are removed, make sure this cleans up properly so
-        // we don't have any leeks i.e. stale JitsiLocalTracks
-    }
-
-    /**
-     * Determine if the current score is high enough that we should start the final score processing, and make sure
-     * there isn't already a process operation ongoing.
-     *
-     * @param {number} score - PCM sample VAD score.
-     * @return {boolean}
-     */
-    _shouldStartVADCompute(vadScore) {
-        return vadScore > VAD_VOICE_LEVEL && !this._processing;
-    }
-
-    /**
-     * Determine if the computed score over the configured timestamp should trigger an event.
-     *
-     * @param {number} computedScore - Computed VAD score.
-     * @returns {boolean} - Should or shouldn't trigger.
-     */
-    _shouldTriggerNotification(computedScore) {
-        return computedScore > VAD_AVG_THRESHOLD;
     }
 
     /**
@@ -139,15 +119,7 @@ export default class VADTalkMutedDetection extends EventEmitter {
      * @returns {number} - Score average.
      */
     _calculateAverage(scoreArray) {
-        let avg = 0;
-
-        if (scoreArray.length) {
-            const sum = scoreArray.reduce((a, b) => a + b);
-
-            avg = sum / scoreArray.length;
-        }
-
-        return avg;
+        return scoreArray.length > 0 ? scoreArray.reduce((a, b) => a + b) / scoreArray.length : 0;
     }
 
     /**
@@ -158,13 +130,7 @@ export default class VADTalkMutedDetection extends EventEmitter {
     _calculateVADScore() {
         const score = this._calculateAverage(this._scoreArray);
 
-        if (this._shouldTriggerNotification(score)) {
-            /**
-             * User is talking while the mic is muted, generate event.
-             *
-             * @event VAD_TALK_WHILE_MUTED.
-             * @type {Object}
-             */
+        if (score > VAD_AVG_THRESHOLD) {
             this.emit(VAD_TALK_WHILE_MUTED, {});
 
             // Event was fired. Stop event emitter and remove listeners so no residue events kick off after this point
@@ -188,7 +154,7 @@ export default class VADTalkMutedDetection extends EventEmitter {
     _processVADScore(vadScore) {
         // Because we remove all listeners on the vadEmitter once the main event is triggered,
         // there is no need to check for rogue events.
-        if (this._shouldStartVADCompute(vadScore.score)) {
+        if (vadScore.score > VAD_VOICE_LEVEL && !this._processing) {
             this._processing = true;
 
             // Start gathering VAD scores for the configured period of time.
