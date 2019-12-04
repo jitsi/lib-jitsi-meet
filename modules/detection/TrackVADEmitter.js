@@ -1,7 +1,8 @@
 import EventEmitter from 'events';
-import { VAD_SCORE_PUBLISHED } from './DetectionEvents';
+
 import RTC from '../RTC/RTC';
 
+import { VAD_SCORE_PUBLISHED } from './DetectionEvents';
 
 /**
  * Connects an audio JitsiLocalTrack to a vadProcessor using WebAudio ScriptProcessorNode.
@@ -101,7 +102,11 @@ export default class TrackVADEmitter extends EventEmitter {
     _initializeAudioContext() {
         this._audioSource = this._audioContext.createMediaStreamSource(this._localTrack.stream);
 
-        // TODO AudioProcessingNode is deprecated check and replace with alternative.
+        // TODO AudioProcessingNode is deprecated in the web audio specifications and the recommended replacement
+        // is audio worklet, however at the point of implementation AudioProcessingNode was still de de facto way
+        // of achieving this functionality and supported in all major browsers as opposed to audio worklet which
+        // was only available in Chrome. This todo is just a reminder that we should replace AudioProcessingNode
+        // with audio worklet when it's mature enough and has more browser support.
         // We don't need stereo for determining the VAD score so we create a single channel processing node.
         this._audioProcessingNode = this._audioContext.createScriptProcessor(this._procNodeSampleRate, 1, 1);
     }
@@ -129,15 +134,6 @@ export default class TrackVADEmitter extends EventEmitter {
             const pcmSample = completeInData.slice(i, i + this._vadSampleSize);
             const vadScore = this._vadProcessor.calculateAudioFrameVAD(pcmSample);
 
-            /**
-             * VAD score publish event
-             *
-             * @event VAD_SCORE_PUBLISHED
-             * @type {Object}
-             * @property {Date}   timestamp - Exact time at which processed PCM sample was generated.
-             * @property {number} score - VAD score on a scale from 0 to 1 (i.e. 0.7)
-             * @property {string} deviceId - Device id of the associated track.
-             */
             this.emit(VAD_SCORE_PUBLISHED, {
                 timestamp: sampleTimestamp,
                 score: vadScore,

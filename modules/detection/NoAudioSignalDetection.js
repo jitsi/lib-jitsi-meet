@@ -1,5 +1,7 @@
 import EventEmitter from 'events';
+
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+
 import * as DetectionEvents from './DetectionEvents';
 
 // We wait a certain time interval for constant silence input from the current device to account for
@@ -16,6 +18,8 @@ const SILENCE_PERIOD_MS = 4000;
  */
 export default class NoAudioSignalDetection extends EventEmitter {
     /**
+     * Creates new NoAudioSignalDetection.
+     *
      * @param conference the JitsiConference instance that created us.
      * @constructor
      */
@@ -42,32 +46,19 @@ export default class NoAudioSignalDetection extends EventEmitter {
     /**
      * Generated event triggered by a change in the current conference audio input state.
      *
-     * @param {*} audioLevel
+     * @param {*} audioLevel - The audio level of the ssrc.
      * @fires DetectionEvents.AUDIO_INPUT_STATE_CHANGE
      */
     _handleAudioInputStateChange(audioLevel) {
         // Current audio input state of the active local track in the conference, true for audio input false for no
         // audio input.
         const status = audioLevel !== 0;
-        let shouldTrigger;
 
-        // If we this is the first audio event picked up or the current status is different from the previous trigger
+        // If this is the first audio event picked up or the current status is different from the previous trigger
         // the event.
-        if (this._hasAudioInput === null) {
-            shouldTrigger = true;
-        } else if (this._hasAudioInput !== status) {
-            shouldTrigger = true;
-        }
-
-        if (shouldTrigger) {
+        if (this._hasAudioInput === null || this._hasAudioInput !== status) {
             this._hasAudioInput = status;
 
-            /**
-             * Event fired when the audio input state of the conference changes, true for audio input false otherwise.
-             *
-             * @event DetectionEvents.AUDIO_INPUT_STATE_CHANGE
-             * @type {boolean}
-             */
             this.emit(DetectionEvents.AUDIO_INPUT_STATE_CHANGE, this._hasAudioInput);
         }
     }
@@ -87,12 +78,6 @@ export default class NoAudioSignalDetection extends EventEmitter {
             this._timeoutTrigger = setTimeout(() => {
                 this._eventFired = true;
 
-                /**
-                 * Event fired when there is no audio input for a predefined period of time.
-                 *
-                 * @event DetectionEvents.AUDIO_INPUT_STATE_CHANGE
-                 * @type {void}
-                 */
                 this.emit(DetectionEvents.NO_AUDIO_INPUT);
             }, SILENCE_PERIOD_MS);
         } else if (audioLevel !== 0 && this._timeoutTrigger) {
@@ -118,16 +103,10 @@ export default class NoAudioSignalDetection extends EventEmitter {
         // Get currently active local tracks from the TraceablePeerConnection
         const localSSRCs = tpc.localSSRCs.get(this._audioTrack.rtcId);
 
-        // Check that currently selected audio stream has ssrc in the TraceablePeerConnection
-        if (!localSSRCs) {
-            return;
-        }
 
         // Only target the current active track in the tpc. For some reason audio levels for previous
         // devices are also picked up from the PeerConnection so we filter them out.
-        const isCurrentTrack = localSSRCs.ssrcs.includes(ssrc);
-
-        if (!isCurrentTrack) {
+        if (!localSSRCs || !localSSRCs.ssrcs.includes(ssrc)) {
             return;
         }
 
