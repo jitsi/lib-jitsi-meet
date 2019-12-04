@@ -525,7 +525,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
             }
 
             promise.then(streamsInfo => {
-                const mediaType = this.getType();
+                // The track kind for presenter track is video as well.
+                const mediaType = this.getType() === MediaType.PRESENTER ? MediaType.VIDEO : this.getType();
                 const streamInfo
                     = browser.usesNewGumFlow()
                         ? streamsInfo.find(
