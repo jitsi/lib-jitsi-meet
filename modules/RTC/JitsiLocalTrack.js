@@ -525,11 +525,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
             }
 
             promise.then(streamsInfo => {
-                // Do not add the presenter track to the conference
-                if (this.getType() === 'presenter') {
-                    return Promise.resolve();
-                }
-                const mediaType = this.getType();
+                // The track kind for presenter track is video as well.
+                const mediaType = this.getType() === MediaType.PRESENTER ? MediaType.VIDEO : this.getType();
                 const streamInfo
                     = browser.usesNewGumFlow()
                         ? streamsInfo.find(
