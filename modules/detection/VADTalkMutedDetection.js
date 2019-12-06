@@ -79,7 +79,7 @@ export default class VADTalkMutedDetection extends EventEmitter {
          * we destroy it ( when changing the device for instance), or when we use it from an external point of entry
          * i.e. (TRACK_MUTE_CHANGED event callback).
          */
-        this._vadInitTracker = null;
+        this._vadInitTracker = Promise.resolve();
 
         /**
          * Listens for {@link TrackVADEmitter} events and processes them.
@@ -189,7 +189,7 @@ export default class VADTalkMutedDetection extends EventEmitter {
         if (track.isLocalAudioTrack()) {
             // Keep a track promise so we take into account successive TRACK_ADD events being generated so that we
             // destroy/create the processing context in the proper order.
-            this._vadInitTracker = this._createVADProcessor()
+            this._vadInitTracker = this._vadInitTracker.then(() => this._createVADProcessor())
                 .then(vadProcessor =>
                     TrackVADEmitter.create(track.getDeviceId(), VAD_EMITTER_SAMPLE_RATE, vadProcessor)
                 )
@@ -214,9 +214,9 @@ export default class VADTalkMutedDetection extends EventEmitter {
      * @listens TRACK_MUTE_CHANGED
      */
     _trackMuteChanged(track) {
-        if (track.isLocalAudioTrack() && this._vadInitTracker) {
+        if (track.isLocalAudioTrack()) {
             // On a mute toggle reset the state.
-            this._vadInitTracker.then(() => {
+            this._vadInitTracker = this._vadInitTracker.then(() => {
 
                 // Reset the processing context in between muted states so that each individual mute phase can generate
                 // it's own event.
@@ -239,9 +239,9 @@ export default class VADTalkMutedDetection extends EventEmitter {
      * @listens TRACK_REMOVED
      */
     _trackRemoved(track) {
-        if (track.isLocalAudioTrack() && this._vadInitTracker) {
+        if (track.isLocalAudioTrack()) {
             // Use the promise to make sure operations are in sequence.
-            this._vadInitTracker.then(() => {
+            this._vadInitTracker = this._vadInitTracker.then(() => {
                 logger.debug('Removing track from VAD detection - ', track.getTrackLabel());
 
                 if (this._vadEmitter) {
@@ -250,8 +250,6 @@ export default class VADTalkMutedDetection extends EventEmitter {
                     this._vadEmitter.destroy();
                     this._vadEmitter = null;
                 }
-
-                this._vadInitTracker = null;
             });
         }
     }
