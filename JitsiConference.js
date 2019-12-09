@@ -990,6 +990,32 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
 };
 
 /**
+ * Replaces the track at the lower level by going through the Jingle session
+ * and WebRTC peer connection. The track is replaced without the need for an
+ * offer/answer cycle.
+ * @param {JitsiLocalTrack} localTrack - the local track whose media stream has
+ * been updated.
+ */
+JitsiConference.prototype.replaceTrackWithoutOfferAnswer = function(localTrack) {
+    const replaceTrackPromises = [];
+
+    if (this.jvbJingleSession) {
+        replaceTrackPromises.push(
+            this.jvbJingleSession.replaceTrackWithoutOfferAnswer(localTrack));
+    } else {
+        logger.info('replaceTrackWithoutOfferAnswer - no JVB JingleSession');
+    }
+    if (this.p2pJingleSession) {
+        replaceTrackPromises.push(
+            this.p2pJingleSession.replaceTrackWithoutOfferAnswer(localTrack));
+    } else {
+        logger.info('_doReplaceTrack - no P2P JingleSession');
+    }
+
+    return Promise.all(replaceTrackPromises);
+};
+
+/**
  * Replaces the tracks at the lower level by going through the Jingle session
  * and WebRTC peer connection. The method will resolve immediately if there is
  * currently no JingleSession started.

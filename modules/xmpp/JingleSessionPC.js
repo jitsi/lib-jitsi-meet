@@ -1666,6 +1666,19 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Replaces the existing mediaStream on the underlying peerconnection with the newly
+     * added stream on the same JitsiLocalTrack wihtout the need to perform a offer/answer
+     * cycle.
+     * @param {JitsiLocalTrack} track - the current track in use whose media stream has been
+     * updated.
+     * @returns {Promise} which resolves once the replacement is complete or reject with an
+     * error {string}.
+     */
+    replaceTrackWithoutOfferAnswer(track) {
+        return this.peerconnection.replaceTrackWithoutOfferAnswer(track);
+    }
+
+    /**
      * Replaces <tt>oldTrack</tt> with <tt>newTrack</tt> and performs a single
      * offer/answer cycle after both operations are done. Either
      * <tt>oldTrack</tt> or <tt>newTrack</tt> can be null; replacing a valid

@@ -338,7 +338,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
         if (this._streamEffect) {
             this._streamEffect.stopEffect();
             this._setStream(this._originalStream);
-            this._originalStream = undefined;
         }
     }
 
@@ -391,6 +390,22 @@ export default class JitsiLocalTrack extends JitsiTrack {
         }
 
         this._setEffectInProgress = true;
+
+        // For firefox/safari, replace the stream without doing a offer answer with the remote peer.
+        if (browser.supportsRtpSender()) {
+            this._switchStreamEffect(effect);
+
+            return conference.replaceTrackWithoutOfferAnswer(this)
+                .then(() => {
+                    this._setEffectInProgress = false;
+                })
+                .catch(error => {
+                    this._setEffectInProgress = false;
+                    this._switchStreamEffect();
+                    logger.error('Failed to switch to the new stream!', error);
+                    throw error;
+                });
+        }
 
         // TODO: Create new JingleSessionPC method for replacing a stream in JitsiLocalTrack without offer answer.
         return conference.removeTrack(this)
