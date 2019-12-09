@@ -5,6 +5,7 @@ import transform from 'sdp-transform';
 
 import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import JitsiRemoteTrack from './JitsiRemoteTrack';
+import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import * as MediaType from '../../service/RTC/MediaType';
 import LocalSdpMunger from './LocalSdpMunger';
 import RTC from './RTC';
@@ -1547,6 +1548,16 @@ TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
 };
 
 /**
+ * Returns the sender corresponding to the given media type.
+ * @param {MEDIA_TYPE} mediaType - The media type 'audio' or 'video' to be used for the search.
+ * @returns {RTPSender|undefined} - The found sender or undefined if no sender
+ * was found.
+ */
+TraceablePeerConnection.prototype.findSenderByKind = function(mediaType) {
+    return this.peerconnection.getSenders().find(s => s.track && s.track.kind === mediaType);
+};
+
+/**
  * Returns the sender corresponding to the given MediaStream.
  *
  * @param {MediaStream} stream - The media stream used for the search.
@@ -1631,6 +1642,33 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
     }
 
     return Promise.resolve(true);
+};
+
+/**
+ * Replaces the existing media stream from the underlying peerconnection with the new
+ * mediastream that has been added to the JitsiLocalTrack. Renegotiation with the remote
+ * peer is not needed in this case.
+ * @param {JitsiLocalTrack} localTrack - the localtrack whose mediastream has been updated.
+ * @return {Promise} - Promise resolved with undefined if the track is replaced,
+ * or rejected with <tt>InvalidModificationError<tt> if the track cannot be replaced.
+ */
+TraceablePeerConnection.prototype.replaceTrackWithoutOfferAnswer = function(localTrack) {
+    const newTrack = localTrack.stream.getTracks()[0];
+    const sender = this.findSenderByKind(newTrack.kind);
+
+    if (!sender) {
+        return Promise.reject(new Error(`Could not find RTCRtpSender for ${newTrack.kind}`));
+    }
+
+    return sender.replaceTrack(newTrack)
+        .then(() => {
+            this._addedStreams = this._addedStreams.filter(s => s !== localTrack._originalStream);
+            this._addedStreams.push(localTrack.stream);
+            localTrack.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, localTrack);
+        })
+        .catch(err => {
+            logger.error(`replaceTrackWithoutOfferAnswer - replaceTrack failed for ${newTrack.kind}`, err);
+        });
 };
 
 /**
