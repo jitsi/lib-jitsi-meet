@@ -309,7 +309,7 @@ export default class ChatRoom extends Listenable {
 
             // The name of the action is a little bit confusing but it seems this is the preferred name by the consumers
             // of the analytics events.
-            Statistics.sendAnalytics(createConferenceEvent('joined', meetingId));
+            Statistics.sendAnalytics(createConferenceEvent('joined', { meetingId }));
         }
     }
 
