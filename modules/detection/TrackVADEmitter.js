@@ -2,6 +2,7 @@ import EventEmitter from 'events';
 
 import RTC from '../RTC/RTC';
 
+import { createAudioContext } from './webaudio/WebAudioUtils';
 import { VAD_SCORE_PUBLISHED } from './DetectionEvents';
 
 /**
@@ -48,7 +49,7 @@ export default class TrackVADEmitter extends EventEmitter {
         /**
          * The AudioContext instance with the preferred sample frequency.
          */
-        this._audioContext = new AudioContext({ sampleRate: vadProcessor.getRequiredPCMFrequency() });
+        this._audioContext = createAudioContext({ sampleRate: vadProcessor.getRequiredPCMFrequency() });
 
         /**
          * PCM Sample size expected by the VAD Processor instance. We cache it here as this value is used extensively,
@@ -97,7 +98,7 @@ export default class TrackVADEmitter extends EventEmitter {
     /**
      * Sets up the audio graph in the AudioContext.
      *
-     * @returns {Promise<void>}
+     * @returns {void}
      */
     _initializeAudioContext() {
         this._audioSource = this._audioContext.createMediaStreamSource(this._localTrack.stream);
@@ -132,11 +133,14 @@ export default class TrackVADEmitter extends EventEmitter {
 
         for (; i + this._vadSampleSize < completeInData.length; i += this._vadSampleSize) {
             const pcmSample = completeInData.slice(i, i + this._vadSampleSize);
-            const vadScore = this._vadProcessor.calculateAudioFrameVAD(pcmSample);
+
+            // The VAD processor might change the values inside the array so we make a copy.
+            const vadScore = this._vadProcessor.calculateAudioFrameVAD(pcmSample.slice());
 
             this.emit(VAD_SCORE_PUBLISHED, {
                 timestamp: sampleTimestamp,
                 score: vadScore,
+                pcmData: pcmSample,
                 deviceId: this._localTrack.getDeviceId()
             });
         }

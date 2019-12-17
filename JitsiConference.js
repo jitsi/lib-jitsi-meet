@@ -17,6 +17,8 @@ import P2PDominantSpeakerDetection from './modules/detection/P2PDominantSpeakerD
 import RTC from './modules/RTC/RTC';
 import TalkMutedDetection from './modules/detection/TalkMutedDetection';
 import VADTalkMutedDetection from './modules/detection/VADTalkMutedDetection';
+import VADNoiseDetection from './modules/detection/VADNoiseDetection';
+import VADAudioAnalyser from './modules/detection/VADAudioAnalyser';
 import * as DetectionEvents from './modules/detection/DetectionEvents';
 import NoAudioSignalDetection from './modules/detection/NoAudioSignalDetection';
 import browser from './modules/browser';
@@ -375,19 +377,42 @@ JitsiConference.prototype._init = function(options = {}) {
     this.eventManager.setupStatisticsListeners();
 
     if (config.enableTalkWhileMuted) {
+
         // If VAD processor factory method is provided uses VAD based detection, otherwise fallback to audio level
         // based detection.
         if (config.createVADProcessor) {
             logger.info('Using VAD detection for generating talk while muted events');
-            this._talkWhileMutedDetection = new VADTalkMutedDetection(this, config.createVADProcessor);
-            this._talkWhileMutedDetection.on(DetectionEvents.VAD_TALK_WHILE_MUTED, () =>
+
+            if (!this._audioAnalyser) {
+                this._audioAnalyser = new VADAudioAnalyser(this, config.createVADProcessor);
+            }
+
+            const vadTalkMutedDetection = new VADTalkMutedDetection();
+
+            vadTalkMutedDetection.on(DetectionEvents.VAD_TALK_WHILE_MUTED, () =>
                 this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED));
+
+            this._audioAnalyser.setVADTalkMutedDetection(vadTalkMutedDetection);
+
 
         } else {
             logger.info('Using audio level based detection for generating talk while muted events');
             this._talkWhileMutedDetection = new TalkMutedDetection(
                 this, () => this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED));
         }
+    }
+
+    if (config.enableNoisyMicDetection) {
+        if (!this._audioAnalyser) {
+            this._audioAnalyser = new VADAudioAnalyser(this, config.createVADProcessor);
+        }
+
+        const vadNoiseDetection = new VADNoiseDetection();
+
+        vadNoiseDetection.on(DetectionEvents.VAD_NOISY_DEVICE, () =>
+            this.eventEmitter.emit(JitsiConferenceEvents.NOISY_MIC));
+
+        this._audioAnalyser.setVADNoiseDetection(vadNoiseDetection);
     }
 
     // Generates events based on no audio input detector.
