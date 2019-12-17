@@ -75,7 +75,7 @@ export default class VADAudioAnalyser extends EventEmitter {
     /**
      * Set the VADTalkMutedDetection object that uses data from TrackVADEmitter.
      *
-     * @param {*} vadTMDetector
+     * @param {VADTalkMutedDetection} vadTMDetector
      */
     setVADTalkMutedDetection(vadTMDetection) {
         this._vadTMDetection = vadTMDetection;
@@ -84,7 +84,7 @@ export default class VADAudioAnalyser extends EventEmitter {
     /**
      * Set the VADNoiseDetection instance that uses data from TrackVADEmitter.
      *
-     * @param {@} vadNoisyDetector
+     * @param {VADNoiseDetection} vadNoiseDetector
      */
     setVADNoiseDetection(vadNoiseDetection) {
         this._vadNoiseDetection = vadNoiseDetection;
@@ -149,6 +149,14 @@ export default class VADAudioAnalyser extends EventEmitter {
                     this._vadEmitter = vadEmitter;
 
                     this._startVADEmitter();
+
+                    if (this._vadTMDetection) {
+                        this._vadTMDetection.changeMuteState(track.isMuted());
+                    }
+
+                    if (this._vadNoiseDetection) {
+                        this._vadNoiseDetection.changeMuteState(track.isMuted());
+                    }
                 });
         }
     }

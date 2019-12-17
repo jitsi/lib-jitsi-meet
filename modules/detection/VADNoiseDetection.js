@@ -16,11 +16,13 @@ const NOISY_AUDIO_LEVEL_THRESHOLD = 0.010;
 
 /**
  * The value that a VAD score needs to be under in order for processing to begin.
+ * @type {number}
  */
 const VAD_SCORE_TRIGGER = 0.2;
 
 /**
  * The value that a VAD score needs to be under in order for processing to begin.
+ * @type {number}
  */
 const AUDIO_LEVEL_SCORE_TRIGGER = 0.020;
 
@@ -61,7 +63,7 @@ export default class VADNoiseDetection extends EventEmitter {
         /**
          * Current state of the service, if it's not active no processing will occur.
          */
-        this._active = true;
+        this._active = false;
 
         this._calculateVADScore = this._calculateVADScore.bind(this);
     }
