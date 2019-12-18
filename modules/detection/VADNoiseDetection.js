@@ -1,18 +1,18 @@
 import { EventEmitter } from 'events';
 
-import { VAD_NOISY_DEVICE } from './DetectionEvents';
+import { VAD_NOISY_DEVICE, DETECTOR_STATE_CHANGE } from './DetectionEvents';
 
 /**
  * The average value VAD needs to be under over a period of time to be considered noise.
  * @type {number}
  */
-const VAD_NOISE_AVG_THRESHOLD = 0.3;
+const VAD_NOISE_AVG_THRESHOLD = 0.2;
 
 /**
  * The average values that audio input need to be over to be considered loud.
  * @type {number}
  */
-const NOISY_AUDIO_LEVEL_THRESHOLD = 0.010;
+const NOISY_AUDIO_LEVEL_THRESHOLD = 0.040;
 
 /**
  * The value that a VAD score needs to be under in order for processing to begin.
@@ -65,7 +65,7 @@ export default class VADNoiseDetection extends EventEmitter {
          */
         this._active = false;
 
-        this._calculateVADScore = this._calculateVADScore.bind(this);
+        this._calculateNoisyScore = this._calculateNoisyScore.bind(this);
     }
 
     /**
@@ -95,14 +95,14 @@ export default class VADNoiseDetection extends EventEmitter {
      * @returns {void}
      * @fires VAD_NOISY_DEVICE
      */
-    _calculateVADScore() {
+    _calculateNoisyScore() {
         const scoreAvg = this._calculateAverage(this._scoreArray);
         const audioLevelAvg = this._calculateAverage(this._audioLvlArray);
 
         if (scoreAvg < VAD_NOISE_AVG_THRESHOLD && audioLevelAvg > NOISY_AUDIO_LEVEL_THRESHOLD) {
             this.emit(VAD_NOISY_DEVICE, {});
 
-            this._active = false;
+            this._setActiveState(false);
         }
 
         // We reset the context in case a new process phase needs to be triggered.
@@ -121,6 +121,37 @@ export default class VADNoiseDetection extends EventEmitter {
     }
 
     /**
+     * Set the active state of the detection service and notify any listeners.
+     *
+     * @param {boolean} active
+     * @fires DETECTOR_STATE_CHANGE
+     */
+    _setActiveState(active) {
+        this._active = active;
+        this.emit(DETECTOR_STATE_CHANGE, this._active);
+    }
+
+    /**
+     * Change the state according to the muted status of the tracked device.
+     *
+     * @param {boolean} isMuted - Is the device muted or not.
+     */
+    changeMuteState(isMuted) {
+        // This service only needs to run when the microphone is not muted.
+        this._setActiveState(!isMuted);
+        this.reset();
+    }
+
+    /**
+     * Check whether or not the service is active or not.
+     *
+     * @returns {boolean}
+     */
+    isActive() {
+        return this._active;
+    }
+
+    /**
      * Reset the processing context, clear buffers, cancel the timeout trigger.
      *
      * @returns {void}
@@ -130,16 +161,6 @@ export default class VADNoiseDetection extends EventEmitter {
         this._scoreArray = [];
         this._audioLvlArray = [];
         clearTimeout(this._processTimeout);
-    }
-
-    /**
-     *  Detection only needs to work when the microphone is not muted.
-     *
-     * @param {*} isMuted
-     */
-    changeMuteState(isMuted) {
-        this._active = !isMuted;
-        this.reset();
     }
 
     /**
@@ -179,9 +200,8 @@ export default class VADNoiseDetection extends EventEmitter {
                 this._processing = true;
                 this._recordValues(vadScore.score, avgAudioLvl);
 
-                // Once the preset timeout executes the final score will be caculated.
-                this._processTimeout = setTimeout(this._calculateVADScore, PROCESS_TIME_FRAME_SPAN_MS);
-
+                // Once the preset timeout executes the final score will be calculated.
+                this._processTimeout = setTimeout(this._calculateNoisyScore, PROCESS_TIME_FRAME_SPAN_MS);
             }
         }
     }

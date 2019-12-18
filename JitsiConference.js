@@ -392,7 +392,7 @@ JitsiConference.prototype._init = function(options = {}) {
             vadTalkMutedDetection.on(DetectionEvents.VAD_TALK_WHILE_MUTED, () =>
                 this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED));
 
-            this._audioAnalyser.setVADTalkMutedDetection(vadTalkMutedDetection);
+            this._audioAnalyser.addVADDetectionService(vadTalkMutedDetection);
 
 
         } else {
@@ -412,7 +412,7 @@ JitsiConference.prototype._init = function(options = {}) {
         vadNoiseDetection.on(DetectionEvents.VAD_NOISY_DEVICE, () =>
             this.eventEmitter.emit(JitsiConferenceEvents.NOISY_MIC));
 
-        this._audioAnalyser.setVADNoiseDetection(vadNoiseDetection);
+        this._audioAnalyser.addVADDetectionService(vadNoiseDetection);
     }
 
     // Generates events based on no audio input detector.

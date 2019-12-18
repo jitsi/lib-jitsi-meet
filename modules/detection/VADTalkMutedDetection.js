@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 
-import { VAD_TALK_WHILE_MUTED } from './DetectionEvents';
+import { VAD_TALK_WHILE_MUTED, DETECTOR_STATE_CHANGE } from './DetectionEvents';
 
 
 /**
@@ -80,7 +80,7 @@ export default class VADTalkMutedDetection extends EventEmitter {
 
             // Event was fired. Stop event emitter and remove listeners so no residue events kick off after this point
             // and a single VAD_TALK_WHILE_MUTED is generated per mic muted state.
-            this._active = false;
+            this._setActiveState(false);
         }
 
         // We reset the context in case a new process phase needs to be triggered.
@@ -88,23 +88,34 @@ export default class VADTalkMutedDetection extends EventEmitter {
     }
 
     /**
-     * Reset the processing context, clear buffer, cancel the timeout trigger.
+     * Set the active state of the detection service and notify any listeners.
      *
-     * @returns {void}
+     * @param {boolean} active
+     * @fires DETECTOR_STATE_CHANGE
      */
-    reset() {
-        this._processing = false;
-        this._scoreArray = [];
-        clearTimeout(this._processTimeout);
+    _setActiveState(active) {
+        this._active = active;
+        this.emit(DETECTOR_STATE_CHANGE, this._active);
     }
 
     /**
+     * Change the state according to the muted status of the tracked device.
      *
-     * @param {*} isMuted
+     * @param {boolean} isMuted - Is the device muted or not.
      */
     changeMuteState(isMuted) {
-        this._active = isMuted;
+        // This service only needs to run when the microphone is muted.
+        this._setActiveState(isMuted);
         this.reset();
+    }
+
+    /**
+     * Check whether or not the service is active or not.
+     *
+     * @returns {boolean}
+     */
+    isActive() {
+        return this._active;
     }
 
     /**
@@ -138,5 +149,16 @@ export default class VADTalkMutedDetection extends EventEmitter {
             // Start gathering VAD scores for the configured period of time.
             this._processTimeout = setTimeout(this._calculateVADScore, PROCESS_TIME_FRAME_SPAN_MS);
         }
+    }
+
+    /**
+     * Reset the processing context, clear buffer, cancel the timeout trigger.
+     *
+     * @returns {void}
+     */
+    reset() {
+        this._processing = false;
+        this._scoreArray = [];
+        clearTimeout(this._processTimeout);
     }
 }
