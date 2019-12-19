@@ -444,6 +444,22 @@ We have the following methods for controling the tracks:
 
 12. isEnded() - returns true if track is ended
 
+13. setEffect(effect) - Applies the effect by swapping out the existing MediaStream on the JitsiTrack with the new 
+
+    MediaStream which has the desired effect. "undefined" is passed to this function for removing the effect and for
+    
+    restoring the original MediaStream on the JitsiTrack.
+
+    The following methods have to be defined for the effect instance.
+
+    startEffect() - Starts the effect and returns a new MediaStream that is to be swapped with the existing one.
+
+    stopEffect() - Stops the effect.
+
+    isEnabled() - Checks if the local track supports the effect.
+
+    Note: This method is implemented only for the local tracks.
+
 JitsiTrackError
 ======
 The object represents error that happened to a JitsiTrack. Is inherited from JavaScript base ```Error``` object,
