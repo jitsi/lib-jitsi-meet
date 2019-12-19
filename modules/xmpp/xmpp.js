@@ -206,12 +206,19 @@ export default class XMPP extends Listenable {
                     identities.forEach(identity => {
                         if (identity.type === 'speakerstats') {
                             this.speakerStatsComponentAddress = identity.name;
+                        }
 
-                            this.connection.addHandler(
-                                this._onPrivateMessage.bind(this), null,
-                                'message', null, null);
+                        if (identity.type === 'conference_duration') {
+                            this.conferenceDurationComponentAddress = identity.name;
                         }
                     });
+
+                    if (this.speakerStatsComponentAddress
+                        || this.conferenceDurationComponentAddress) {
+                        this.connection.addHandler(
+                            this._onPrivateMessage.bind(this), null,
+                            'message', null, null);
+                    }
                 })
                 .catch(error => {
                     const errmsg = 'Feature discovery error';
@@ -713,7 +720,7 @@ export default class XMPP extends Listenable {
 
     /**
      * A private message is received, message that is not addressed to the muc.
-     * We expect private message coming from speaker stats component if it is
+     * We expect private message coming from plugins component if it is
      * enabled and running.
      *
      * @param {string} msg - The message.
@@ -721,8 +728,8 @@ export default class XMPP extends Listenable {
     _onPrivateMessage(msg) {
         const from = msg.getAttribute('from');
 
-        if (!this.speakerStatsComponentAddress
-            || from !== this.speakerStatsComponentAddress) {
+        if (!(from === this.speakerStatsComponentAddress
+            || from === this.conferenceDurationComponentAddress)) {
             return;
         }
 
@@ -735,6 +742,13 @@ export default class XMPP extends Listenable {
             && parsedJson.users) {
             this.eventEmitter.emit(
                 XMPPEvents.SPEAKER_STATS_RECEIVED, parsedJson.users);
+        }
+
+        if (parsedJson
+            && parsedJson[JITSI_MEET_MUC_TYPE] === 'conference_duration'
+            && parsedJson.created_timestamp) {
+            this.eventEmitter.emit(
+                XMPPEvents.CONFERENCE_TIMESTAMP_RECEIVED, parsedJson.created_timestamp);
         }
 
         return true;
