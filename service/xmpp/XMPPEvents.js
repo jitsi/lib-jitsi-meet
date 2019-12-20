@@ -211,6 +211,11 @@ const XMPPEvents = {
      */
     SPEAKER_STATS_RECEIVED: 'xmpp.speaker_stats_received',
 
+    /**
+     * Event fired when conference creation timestamp is received.
+     */
+    CONFERENCE_TIMESTAMP_RECEIVED: 'xmpp.conference_timestamp_received',
+
     // Designates an event indicating that we should join the conference with
     // audio and/or video muted.
     START_MUTED_FROM_FOCUS: 'xmpp.start_muted_from_focus',

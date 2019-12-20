@@ -633,6 +633,11 @@ JitsiConferenceEventManager.prototype.setupXMPPListeners = function() {
 
             conference.eventEmitter.emit(JitsiConferenceEvents.STARTED_MUTED);
         });
+
+    this._addConferenceXMPPListener(XMPPEvents.CONFERENCE_TIMESTAMP_RECEIVED,
+        createdTimestamp => {
+            conference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_CREATED_TIMESTAMP, createdTimestamp);
+        });
 };
 
 /**
