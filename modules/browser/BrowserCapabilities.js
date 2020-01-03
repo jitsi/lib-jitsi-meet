@@ -197,39 +197,13 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Returns whether or not the current browser should be using the new
-     * getUserMedia flow, which utilizes the adapter shim. This method should
-     * be temporary and used while migrating all browsers to use adapter and
-     * the new getUserMedia.
-     *
-     * @returns {boolean}
-     */
-    usesNewGumFlow() {
-        const REQUIRED_CHROME_VERSION = 61;
-
-        if (this.isChrome()) {
-            return !this.isVersionLessThan(REQUIRED_CHROME_VERSION);
-        }
-
-        if (this.isFirefox() || this.isSafari()) {
-            return true;
-        }
-
-        if (this.isChromiumBased()) {
-            return this._getChromiumBasedVersion() >= REQUIRED_CHROME_VERSION;
-        }
-
-        return false;
-    }
-
-    /**
      * Checks if the browser uses webrtc-adapter. All browsers using the new
      * getUserMedia flow and Edge.
      *
      * @returns {boolean}
      */
     usesAdapter() {
-        return this.usesNewGumFlow();
+        return !this.isReactNative();
     }
 
     /**

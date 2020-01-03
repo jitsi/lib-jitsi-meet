@@ -5,7 +5,6 @@ import { getLogger } from 'jitsi-meet-logger';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
-import VideoType from '../../service/RTC/VideoType';
 import browser from '../browser';
 import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
@@ -16,7 +15,6 @@ import BridgeChannel from './BridgeChannel';
 import JitsiLocalTrack from './JitsiLocalTrack';
 import RTCUtils from './RTCUtils';
 import TraceablePeerConnection from './TraceablePeerConnection';
-
 
 const logger = getLogger(__filename);
 
@@ -34,36 +32,6 @@ let peerConnectionIdCounter = 0;
 let rtcTrackIdCounter = 0;
 
 /**
- *
- * @param tracksInfo
- * @param options
- */
-function createLocalTracks(tracksInfo, options) {
-    const newTracks = [];
-    let deviceId = null;
-
-    tracksInfo.forEach(trackInfo => {
-        if (trackInfo.mediaType === MediaType.AUDIO) {
-            deviceId = options.micDeviceId;
-        } else if (trackInfo.videoType === VideoType.CAMERA) {
-            deviceId = options.cameraDeviceId;
-        }
-        rtcTrackIdCounter = safeCounterIncrement(rtcTrackIdCounter);
-        const localTrack = new JitsiLocalTrack({
-            ...trackInfo,
-            deviceId,
-            facingMode: options.facingMode,
-            rtcId: rtcTrackIdCounter,
-            effects: options.effects
-        });
-
-        newTracks.push(localTrack);
-    });
-
-    return newTracks;
-}
-
-/**
  * Creates {@code JitsiLocalTrack} instances from the passed in meta information
  * about MedieaTracks.
  *
@@ -78,7 +46,7 @@ function createLocalTracks(tracksInfo, options) {
  *     effects: Array of effect types
  * }}
  */
-function _newCreateLocalTracks(mediaStreamMetaData = []) {
+function _createLocalTracks(mediaStreamMetaData = [], options = null) {
     return mediaStreamMetaData.map(metaData => {
         const {
             sourceId,
@@ -89,7 +57,19 @@ function _newCreateLocalTracks(mediaStreamMetaData = []) {
             effects
         } = metaData;
 
-        const { deviceId, facingMode } = track.getSettings();
+        // Grab the deviceId from the metaData if available (ProxyConnectionService),
+        // get this info from the track otherwise.
+        let deviceId, facingMode, height = null;
+        const id = metaData.deviceId;
+
+        try {
+            ({ deviceId, facingMode, height } = track.getSettings());
+        } catch (err) {
+            // getSettings is not implemented in react-native, ignore the
+            // error and use the resolution from the config instead.
+            facingMode = options.facingMode;
+            height = options.resolution;
+        }
 
         // FIXME Move rtcTrackIdCounter to a static method in JitsiLocalTrack
         // so RTC does not need to handle ID management. This move would be
@@ -97,9 +77,10 @@ function _newCreateLocalTracks(mediaStreamMetaData = []) {
         rtcTrackIdCounter = safeCounterIncrement(rtcTrackIdCounter);
 
         return new JitsiLocalTrack({
-            deviceId,
+            deviceId: id ? id : deviceId,
             facingMode,
             mediaType: track.kind,
+            resolution: height,
             rtcId: rtcTrackIdCounter,
             sourceId,
             sourceType,
@@ -245,8 +226,8 @@ export default class RTC extends Listenable {
      * @param {Array<Object>} tracksInfo
      * @returns {Array<JitsiLocalTrack>}
      */
-    static newCreateLocalTracks(tracksInfo) {
-        return _newCreateLocalTracks(tracksInfo);
+    static createLocalTracks(tracksInfo) {
+        return _createLocalTracks(tracksInfo);
     }
 
     /**
@@ -259,18 +240,8 @@ export default class RTC extends Listenable {
      * @returns {*} Promise object that will receive the new JitsiTracks
      */
     static obtainAudioAndVideoPermissions(options) {
-        const usesNewGumFlow = browser.usesNewGumFlow();
-        const obtainMediaPromise = usesNewGumFlow
-            ? RTCUtils.newObtainAudioAndVideoPermissions(options)
-            : RTCUtils.obtainAudioAndVideoPermissions(options);
-
-        return obtainMediaPromise.then(tracksInfo => {
-            if (usesNewGumFlow) {
-                return _newCreateLocalTracks(tracksInfo);
-            }
-
-            return createLocalTracks(tracksInfo, options);
-        });
+        return RTCUtils.obtainAudioAndVideoPermissions(options)
+            .then(tracksInfo => _createLocalTracks(tracksInfo, options));
     }
 
     /**

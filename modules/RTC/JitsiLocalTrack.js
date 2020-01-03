@@ -46,7 +46,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @param trackInfo.mediaType the MediaType of the JitsiRemoteTrack
      * @param trackInfo.videoType the VideoType of the JitsiRemoteTrack
      * @param trackInfo.effects the effects array contains the effect instance to use
-     * @param trackInfo.resolution the video resolution if it's a video track
      * @param trackInfo.deviceId the ID of the local device for this track
      * @param trackInfo.facingMode the camera facing mode used in getUserMedia
      * call
@@ -89,33 +88,20 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this.rtcId = rtcId;
         this.sourceId = sourceId;
         this.sourceType = sourceType;
-
-        if (browser.usesNewGumFlow()) {
-            // Get the resolution from the track itself because it cannot be
-            // certain which resolution webrtc has fallen back to using.
-            this.resolution = track.getSettings().height;
-            this.maxEnabledResolution = resolution;
-
-            // Cache the constraints of the track in case of any this track
-            // model needs to call getUserMedia again, such as when unmuting.
-            this._constraints = track.getConstraints();
-
-            // Safari returns an empty constraints object, construct the constraints using getSettings.
-            if (!Object.keys(this._constraints).length && videoType === VideoType.CAMERA) {
-                this._constraints = {
-                    height: track.getSettings().height,
-                    width: track.getSettings().width
-                };
-            }
-        } else {
-            // FIXME Currently, Firefox is ignoring our constraints about
-            // resolutions so we do not store it, to avoid wrong reporting of
-            // local track resolution.
-            this.resolution = browser.isFirefox() ? null : resolution;
-            this.maxEnabledResolution = this.resolution;
-        }
-
         this.deviceId = deviceId;
+        this.maxEnabledResolution = resolution;
+
+        // Cache the constraints of the track in case of any this track
+        // model needs to call getUserMedia again, such as when unmuting.
+        this._constraints = track.getConstraints();
+
+        // Safari returns an empty constraints object, construct the constraints using getSettings.
+        if (!Object.keys(this._constraints).length && videoType === VideoType.CAMERA) {
+            this._constraints = {
+                height: track.getSettings().height,
+                width: track.getSettings().width
+            };
+        }
 
         /**
          * The <tt>Promise</tt> which represents the progress of a previously
@@ -538,35 +524,17 @@ export default class JitsiLocalTrack extends JitsiTrack {
             // This path is only for camera.
             const streamOptions = {
                 cameraDeviceId: this.getDeviceId(),
+                constraints: { video: this._constraints },
                 devices: [ MediaType.VIDEO ],
                 effects: this._streamEffect ? [ this._streamEffect ] : [],
                 facingMode: this.getCameraFacingMode()
             };
 
-            if (browser.usesNewGumFlow()) {
-                promise
-                    = RTCUtils.newObtainAudioAndVideoPermissions(Object.assign(
-                        {},
-                        streamOptions,
-                        { constraints: { video: this._constraints } }));
-            } else {
-                if (this.resolution) {
-                    streamOptions.resolution = this.resolution;
-                }
-
-                promise
-                    = RTCUtils.obtainAudioAndVideoPermissions(streamOptions);
-            }
-
+            promise = RTCUtils.obtainAudioAndVideoPermissions(streamOptions);
             promise = promise.then(streamsInfo => {
                 // The track kind for presenter track is video as well.
                 const mediaType = this.getType() === MediaType.PRESENTER ? MediaType.VIDEO : this.getType();
-                const streamInfo
-                    = browser.usesNewGumFlow()
-                        ? streamsInfo.find(
-                            info => info.track.kind === mediaType)
-                        : streamsInfo.find(
-                            info => info.mediaType === mediaType);
+                const streamInfo = streamsInfo.find(info => info.track.kind === mediaType);
 
                 if (streamInfo) {
                     this._setStream(streamInfo.stream);

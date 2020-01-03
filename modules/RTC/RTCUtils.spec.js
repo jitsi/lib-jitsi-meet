@@ -7,12 +7,12 @@ import screenObtainer from './ScreenObtainer';
 /**
  * A constructor to create a mock for the native MediaStreamTrack.
  */
-function MediaStreamTrackMock(kind, options = {}) {
+function MediaStreamTrackMock(kind, constraints = {}) {
     this.kind = kind;
     this._settings = {};
 
-    if (options.resolution) {
-        this._settings.height = options.resolution;
+    if (kind === 'video' && constraints && constraints.video && constraints.video.height.ideal) {
+        this._settings.height = constraints.video.height.ideal;
     }
 }
 
@@ -69,21 +69,21 @@ MediaStreamMock.prototype.getVideoTracks = function() {
  * @private
  * @returns {Promise} A resolved promise with a MediaStreamMock.
  */
-function successfulGum(devices, options) {
+function successfulGum(devices, constraints) {
     /* eslint-enable max-params */
 
     const mediaStreamMock = new MediaStreamMock();
 
     if (devices.includes('audio')) {
-        mediaStreamMock.addTrack(new MediaStreamTrackMock('audio', options));
+        mediaStreamMock.addTrack(new MediaStreamTrackMock('audio', constraints));
     }
 
     if (devices.includes('video')) {
-        mediaStreamMock.addTrack(new MediaStreamTrackMock('video', options));
+        mediaStreamMock.addTrack(new MediaStreamTrackMock('video', constraints));
     }
 
     if (devices.includes('desktop')) {
-        mediaStreamMock.addTrack(new MediaStreamTrackMock('video', options));
+        mediaStreamMock.addTrack(new MediaStreamTrackMock('video', constraints));
     }
 
     return Promise.resolve(mediaStreamMock);
@@ -104,7 +104,7 @@ function unexpectedErrorHandler(error = {}, done) {
 describe('RTCUtils', () => {
     describe('obtainAudioAndVideoPermissions', () => {
         let getUserMediaSpy, isScreenSupportedSpy, oldMediaStream,
-            oldMediaStreamTrack, oldWebkitMediaStream;
+            oldMediaStreamTrack;
 
         beforeEach(() => {
             // FIXME: To get some kind of initial testing working assume a
@@ -121,17 +121,14 @@ describe('RTCUtils', () => {
             oldMediaStream = window.MediaStream;
             window.MediaStream = MediaStreamMock;
 
-            oldWebkitMediaStream = window.webkitMediaStream;
-            window.webkitMediaStream = MediaStreamMock;
             RTCUtils.init();
 
-            getUserMediaSpy = spyOn(RTCUtils, 'getUserMediaWithConstraints');
+            getUserMediaSpy = spyOn(RTCUtils, '_getUserMediaWithConstraints');
         });
 
         afterEach(() => {
             window.MediaStreamTrack = oldMediaStreamTrack;
             window.MediaStream = oldMediaStream;
-            window.webkitMediaStream = oldWebkitMediaStream;
         });
 
         it('gets audio and video by default', done => {
@@ -142,7 +139,7 @@ describe('RTCUtils', () => {
                     expect(streams.length).toBe(2);
 
                     const audioStream = streams.find(stream =>
-                        stream.mediaType === 'audio');
+                        stream.track.kind === 'audio');
 
                     expect(audioStream).toBeTruthy();
                     expect(audioStream.stream instanceof MediaStreamMock)
@@ -150,7 +147,7 @@ describe('RTCUtils', () => {
                     expect(audioStream.stream.getAudioTracks().length).toBe(1);
 
                     const videoStream = streams.find(stream =>
-                        stream.mediaType === 'video');
+                        stream.track.kind === 'video');
 
                     expect(videoStream).toBeTruthy();
                     expect(videoStream.stream instanceof MediaStreamMock)
@@ -208,6 +205,24 @@ describe('RTCUtils', () => {
                     done();
                 })
                 .catch(error => unexpectedErrorHandler(error, done));
+        });
+
+        it('gets 1080 video when resoultion is passed through options', done => {
+            getUserMediaSpy.and.callFake(successfulGum);
+
+            RTCUtils.obtainAudioAndVideoPermissions({
+                devices: [ 'video' ],
+                resolution: 1080
+            })
+            .then(streams => {
+                const videoTrack = streams[0].stream.getVideoTracks()[0];
+                const { height } = videoTrack.getSettings();
+
+                expect(height).toBe(1080);
+
+                done();
+            })
+            .catch(error => unexpectedErrorHandler(error, done));
         });
 
         describe('requesting desktop', () => {
