@@ -67,6 +67,15 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the current browser is Edge that is Chromium based.
+     */
+    isChromiumBasedEdge() {
+        const REQUIRED_EDGE_VERSION = 72;
+
+        return this.isEdge() && this.isVersionGreaterThan(REQUIRED_EDGE_VERSION);
+    }
+
+    /**
      * Checks if current browser is a Safari and a version of Safari that
      * supports native webrtc.
      *
@@ -95,6 +104,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     isSupported() {
         return this.isChromiumBased()
+            || this.isChromiumBasedEdge()
             || this.isFirefox()
             || this.isReactNative()
             || this.isSafariWithWebrtc();
@@ -289,6 +299,10 @@ export default class BrowserCapabilities extends BrowserDetection {
             return this._getChromiumBasedVersion() >= REQUIRED_CHROME_VERSION;
         }
 
+        if (this.isChromiumBasedEdge()) {
+            return true;
+        }
+
         return false;
     }
 
@@ -320,7 +334,8 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsSdpSemantics() {
-        return this.isChromiumBased() && this._getChromiumBasedVersion() >= 65;
+        return (this.isChromiumBased() && this._getChromiumBasedVersion() >= 65)
+            || this.isChromiumBasedEdge();
     }
 
     /**
