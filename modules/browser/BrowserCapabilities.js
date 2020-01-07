@@ -61,6 +61,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     isChromiumBased() {
         return this.isChrome()
+            || this.isChromiumBasedEdge()
             || this.isElectron()
             || this.isNWJS()
             || this.isOpera();
@@ -104,7 +105,6 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     isSupported() {
         return this.isChromiumBased()
-            || this.isChromiumBasedEdge()
             || this.isFirefox()
             || this.isReactNative()
             || this.isSafariWithWebrtc();
@@ -299,10 +299,6 @@ export default class BrowserCapabilities extends BrowserDetection {
             return this._getChromiumBasedVersion() >= REQUIRED_CHROME_VERSION;
         }
 
-        if (this.isChromiumBasedEdge()) {
-            return true;
-        }
-
         return false;
     }
 
@@ -334,8 +330,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsSdpSemantics() {
-        return (this.isChromiumBased() && this._getChromiumBasedVersion() >= 65)
-            || this.isChromiumBasedEdge();
+        return this.isChromiumBased() && this._getChromiumBasedVersion() >= 65;
     }
 
     /**
