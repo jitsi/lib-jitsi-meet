@@ -49,16 +49,6 @@ export default class VADAudioAnalyser extends EventEmitter {
         this._isVADEmitterRunning = false;
 
         /**
-         * Instance of {@link VADTalkMutedDetection} that can be hooked up to the service.
-         */
-        this._vadTMDetection = null;
-
-        /**
-         * Instance of {@link VADNoiseDetection} that can be hooked up to the service.
-         */
-        this._vadNoiseDetection = null;
-
-        /**
          * Array of currently attached VAD processing services.
          */
         this._detectionServices = [];
@@ -217,12 +207,9 @@ export default class VADAudioAnalyser extends EventEmitter {
                     this._vadEmitter = null;
                 }
 
-                if (this._vadTMDetection) {
-                    this._vadTMDetection.reset();
-                }
-
-                if (this._vadNoiseDetection) {
-                    this._vadNoiseDetection.reset();
+                // Reset state of detectors when active track is removed.
+                for (const detector of this._detectionServices) {
+                    detector.reset();
                 }
             });
         }
