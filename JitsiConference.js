@@ -403,16 +403,20 @@ JitsiConference.prototype._init = function(options = {}) {
     }
 
     if (config.enableNoisyMicDetection) {
-        if (!this._audioAnalyser) {
-            this._audioAnalyser = new VADAudioAnalyser(this, config.createVADProcessor);
+        if (config.createVADProcessor) {
+            if (!this._audioAnalyser) {
+                this._audioAnalyser = new VADAudioAnalyser(this, config.createVADProcessor);
+            }
+
+            const vadNoiseDetection = new VADNoiseDetection();
+
+            vadNoiseDetection.on(DetectionEvents.VAD_NOISY_DEVICE, () =>
+                this.eventEmitter.emit(JitsiConferenceEvents.NOISY_MIC));
+
+            this._audioAnalyser.addVADDetectionService(vadNoiseDetection);
+        } else {
+            logger.warn('No VAD Processor was provided. Noisy microphone detection service was not initialized!');
         }
-
-        const vadNoiseDetection = new VADNoiseDetection();
-
-        vadNoiseDetection.on(DetectionEvents.VAD_NOISY_DEVICE, () =>
-            this.eventEmitter.emit(JitsiConferenceEvents.NOISY_MIC));
-
-        this._audioAnalyser.addVADDetectionService(vadNoiseDetection);
     }
 
     // Generates events based on no audio input detector.

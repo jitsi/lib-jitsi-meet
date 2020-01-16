@@ -5,14 +5,11 @@
  */
 export function createAudioContext(options) {
 
-    if (!window.AudioContext) {
-        if (!window.webkitAudioContext) {
-            return null;
-        }
+    const AudioContextImpl = window.AudioContext || window.webkitAudioContext;
 
-        window.AudioContext = window.webkitAudioContext;
+    if (!AudioContextImpl) {
+        return undefined;
     }
 
-
-    return new AudioContext(options);
+    return new AudioContextImpl(options);
 }

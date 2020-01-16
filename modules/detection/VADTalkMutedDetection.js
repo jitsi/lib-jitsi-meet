@@ -1,5 +1,7 @@
 import { EventEmitter } from 'events';
 
+import { calculateAverage } from '../util/MathUtil';
+
 import { VAD_TALK_WHILE_MUTED, DETECTOR_STATE_CHANGE } from './DetectionEvents';
 
 
@@ -58,25 +60,15 @@ export default class VADTalkMutedDetection extends EventEmitter {
     }
 
     /**
-     * Calculates the average value of a Float32Array.
-     *
-     * @param {Float32Array} scoreArray - Array of vad scores.
-     * @returns {number} - Score average.
-     */
-    _calculateAverage(scoreArray) {
-        return scoreArray.length > 0 ? scoreArray.reduce((a, b) => a + b) / scoreArray.length : 0;
-    }
-
-    /**
      * Compute cumulative VAD score function called once the PROCESS_TIME_FRAME_SPAN_MS timeout has elapsed.
      * @returns {void}
      * @fires VAD_TALK_WHILE_MUTED
      */
     _calculateVADScore() {
-        const score = this._calculateAverage(this._scoreArray);
+        const score = calculateAverage(this._scoreArray);
 
         if (score > VAD_AVG_THRESHOLD) {
-            this.emit(VAD_TALK_WHILE_MUTED, {});
+            this.emit(VAD_TALK_WHILE_MUTED);
 
             // Event was fired. Stop event emitter and remove listeners so no residue events kick off after this point
             // and a single VAD_TALK_WHILE_MUTED is generated per mic muted state.
@@ -128,7 +120,6 @@ export default class VADTalkMutedDetection extends EventEmitter {
      * @listens VAD_SCORE_PUBLISHED
      */
     processVADScore(vadScore) {
-
         if (!this._active) {
             return;
         }

@@ -1,5 +1,7 @@
 import { EventEmitter } from 'events';
 
+import { calculateAverage, filterPositiveValues } from '../util/MathUtil';
+
 import { VAD_NOISY_DEVICE, DETECTOR_STATE_CHANGE } from './DetectionEvents';
 
 /**
@@ -69,38 +71,17 @@ export default class VADNoiseDetection extends EventEmitter {
     }
 
     /**
-     * Calculates the average value of a Float32Array.
-     *
-     * @param {Float32Array} scoreArray - Array of vad scores.
-     * @returns {number} - Score average.
-     */
-    _calculateAverage(scoreArray) {
-        return scoreArray.length > 0 ? scoreArray.reduce((a, b) => a + b) / scoreArray.length : 0;
-    }
-
-    /**
-     * Returns only the positive values from a pcm data array.
-     *
-     * @param {Float32Array} scoreArray - Array of vad scores.
-     * @returns {number} - Score average.
-     */
-    _filterPositiveAudioLevels(pcmData) {
-        return pcmData.filter(sample => sample >= 0);
-
-    }
-
-    /**
      * Compute cumulative VAD score and PCM audio levels once the PROCESS_TIME_FRAME_SPAN_MS timeout has elapsed.
      * If the score is above the set threshold fire the event.
      * @returns {void}
      * @fires VAD_NOISY_DEVICE
      */
     _calculateNoisyScore() {
-        const scoreAvg = this._calculateAverage(this._scoreArray);
-        const audioLevelAvg = this._calculateAverage(this._audioLvlArray);
+        const scoreAvg = calculateAverage(this._scoreArray);
+        const audioLevelAvg = calculateAverage(this._audioLvlArray);
 
         if (scoreAvg < VAD_NOISE_AVG_THRESHOLD && audioLevelAvg > NOISY_AUDIO_LEVEL_THRESHOLD) {
-            this.emit(VAD_NOISY_DEVICE, {});
+            this.emit(VAD_NOISY_DEVICE);
 
             this._setActiveState(false);
         }
@@ -182,9 +163,9 @@ export default class VADNoiseDetection extends EventEmitter {
         // There is a processing phase on going, add score to buffer array.
         if (this._processing) {
             // Filter and calculate sample average so we don't have to process one large array at a time.
-            const posAudioLevels = this._filterPositiveAudioLevels(vadScore.pcmData);
+            const posAudioLevels = filterPositiveValues(vadScore.pcmData);
 
-            this._recordValues(vadScore.score, this._calculateAverage(posAudioLevels));
+            this._recordValues(vadScore.score, calculateAverage(posAudioLevels));
 
             return;
         }
@@ -192,9 +173,8 @@ export default class VADNoiseDetection extends EventEmitter {
         // If the VAD score for the sample is low and audio level has a high enough level we can start listening for
         // noise
         if (vadScore.score < VAD_SCORE_TRIGGER) {
-
-            const posAudioLevels = this._filterPositiveAudioLevels(vadScore.pcmData);
-            const avgAudioLvl = this._calculateAverage(posAudioLevels);
+            const posAudioLevels = filterPositiveValues(vadScore.pcmData);
+            const avgAudioLvl = calculateAverage(posAudioLevels);
 
             if (avgAudioLvl > AUDIO_LEVEL_SCORE_TRIGGER) {
                 this._processing = true;
