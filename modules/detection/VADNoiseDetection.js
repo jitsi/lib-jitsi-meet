@@ -155,7 +155,6 @@ export default class VADNoiseDetection extends EventEmitter {
      * @listens VAD_SCORE_PUBLISHED
      */
     processVADScore(vadScore) {
-
         if (!this._active) {
             return;
         }
