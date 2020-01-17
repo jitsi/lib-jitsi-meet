@@ -307,7 +307,7 @@ export default class RTC extends Listenable {
             } catch (error) {
                 GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error(
-                    `Cannot send selected(${this._selectedEndpoint})`
+                    `Cannot send selected(${this._selectedEndpoints})`
                     + `pinned(${this._pinnedEndpoint})`
                     + `frameHeight(${this._maxFrameHeight}) endpoint message`,
                     error);
