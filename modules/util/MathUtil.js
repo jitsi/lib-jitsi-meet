@@ -17,3 +17,24 @@ export function safeCounterIncrement(number) {
 
     return nextValue + 1;
 }
+
+/**
+ * Calculates the average value of am Array of numbers.
+ *
+ * @param {Float32Array} valueArray - Array of numbers.
+ * @returns {number} - Number array average.
+ */
+export function calculateAverage(valueArray) {
+    return valueArray.length > 0 ? valueArray.reduce((a, b) => a + b) / valueArray.length : 0;
+}
+
+
+/**
+ * Returns only the positive values from an array of numbers.
+ *
+ * @param {Float32Array} valueArray - Array of vad scores.
+ * @returns {Array} - Array of positive numbers.
+ */
+export function filterPositiveValues(valueArray) {
+    return valueArray.filter(value => value >= 0);
+}

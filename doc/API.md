@@ -137,6 +137,7 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - TALK_WHILE_MUTED - notifies that a local user is talking while having the microphone muted.
         - NO_AUDIO_INPUT - notifies that the current selected input device has no signal.
         - AUDIO_INPUT_STATE_CHANGE - notifies that the current conference audio input switched between audio input states i.e. with or without audio input.
+        - NOISY_MIC - notifies that the current microphone used by the conference is noisy.
 
     2. connection
         - CONNECTION_FAILED - indicates that the server connection failed.

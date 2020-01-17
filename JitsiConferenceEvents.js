@@ -3,6 +3,12 @@
  */
 
 /**
+ * Event indicates that the current conference audio input switched between audio
+ * input states,i.e. with or without audio input.
+ */
+export const AUDIO_INPUT_STATE_CHANGE = 'conference.audio_input_state_changed';
+
+/**
  * Indicates that authentication status changed.
  */
 export const AUTH_STATUS_CHANGED = 'conference.auth_status_changed';
@@ -148,6 +154,16 @@ export const SERVER_REGION_CHANGED = 'conference.server_region_changed';
 export const MESSAGE_RECEIVED = 'conference.messageReceived';
 
 /**
+ * Event indicates that the current selected input device has no signal
+ */
+export const NO_AUDIO_INPUT = 'conference.no_audio_input';
+
+/**
+ * Event indicates that the current microphone used by the conference is noisy.
+ */
+export const NOISY_MIC = 'conference.noisy_mic';
+
+/**
  * New private text message was received.
  */
 export const PRIVATE_MESSAGE_RECEIVED = 'conference.privateMessageReceived';
@@ -249,17 +265,6 @@ export const SUSPEND_DETECTED = 'conference.suspendDetected';
  * Event indicates that local user is talking while he muted himself
  */
 export const TALK_WHILE_MUTED = 'conference.talk_while_muted';
-
-/**
- * Event indicates that the current selected input device has no signal
- */
-export const NO_AUDIO_INPUT = 'conference.no_audio_input';
-
-/**
- * Event indicates that the current conference audio input switched between audio
- * input states,i.e. with or without audio input.
- */
-export const AUDIO_INPUT_STATE_CHANGE = 'conference.audio_input_state_changed';
 
 /**
  * A new media track was added to the conference. The event provides the
