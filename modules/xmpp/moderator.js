@@ -9,7 +9,6 @@ const AuthenticationEvents
     = require('../../service/authentication/AuthenticationEvents');
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
-import browser from '../browser';
 import Settings from '../settings/Settings';
 
 /**
@@ -260,10 +259,6 @@ Moderator.prototype.createConferenceIq = function() {
     case 'websocket':
         openSctp = false;
         break;
-    }
-
-    if (openSctp && !browser.supportsDataChannels()) {
-        openSctp = false;
     }
 
     elem.c(
