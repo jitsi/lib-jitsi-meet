@@ -1931,11 +1931,6 @@ JitsiConference.prototype._setBridgeChannel = function(offerIq, pc) {
         break;
     }
 
-    if (bridgeChannelType === 'datachannel'
-        && !browser.supportsDataChannels()) {
-        bridgeChannelType = 'websocket';
-    }
-
     if (bridgeChannelType === 'datachannel') {
         this.rtc.initializeBridgeChannel(pc, null);
     } else if (bridgeChannelType === 'websocket' && wsUrl) {

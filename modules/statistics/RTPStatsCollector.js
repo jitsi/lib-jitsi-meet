@@ -53,28 +53,6 @@ KEYS_BY_BROWSER_TYPE[browsers.CHROME] = {
     'port': 'port',
     'protocol': 'protocol'
 };
-KEYS_BY_BROWSER_TYPE[browsers.EDGE] = {
-    'sendBandwidth': 'googAvailableSendBandwidth',
-    'remoteAddress': 'remoteAddress',
-    'transportType': 'protocol',
-    'localAddress': 'localAddress',
-    'activeConnection': 'activeConnection',
-    'ssrc': 'ssrc',
-    'packetsReceived': 'packetsReceived',
-    'packetsSent': 'packetsSent',
-    'packetsLost': 'packetsLost',
-    'bytesReceived': 'bytesReceived',
-    'bytesSent': 'bytesSent',
-    'googFrameHeightReceived': 'frameHeight',
-    'googFrameWidthReceived': 'frameWidth',
-    'googFrameHeightSent': 'frameHeight',
-    'googFrameWidthSent': 'frameWidth',
-    'googFrameRateReceived': 'framesPerSecond',
-    'googFrameRateSent': 'framesPerSecond',
-    'audioInputLevel': 'audioLevel',
-    'audioOutputLevel': 'audioLevel',
-    'currentRoundTripTime': 'roundTripTime'
-};
 KEYS_BY_BROWSER_TYPE[browsers.OPERA]
     = KEYS_BY_BROWSER_TYPE[browsers.CHROME];
 KEYS_BY_BROWSER_TYPE[browsers.NWJS]
@@ -339,43 +317,41 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
         );
     }
 
-    if (browser.supportsRtpStatistics()) {
-        this.statsIntervalId = setInterval(
-            () => {
-                // Interval updates
-                self.peerconnection.getStats(
-                    report => {
-                        let results = null;
+    this.statsIntervalId = setInterval(
+        () => {
+            // Interval updates
+            self.peerconnection.getStats(
+                report => {
+                    let results = null;
 
-                        if (!report || !report.result
-                            || typeof report.result !== 'function') {
-                            // firefox
-                            results = report;
+                    if (!report || !report.result
+                        || typeof report.result !== 'function') {
+                        // firefox
+                        results = report;
+                    } else {
+                        // chrome
+                        results = report.result();
+                    }
+
+                    self.currentStatsReport = results;
+                    try {
+                        if (this._usesPromiseGetStats) {
+                            self.processNewStatsReport();
                         } else {
-                            // chrome
-                            results = report.result();
+                            self.processStatsReport();
                         }
+                    } catch (e) {
+                        GlobalOnErrorHandler.callErrorHandler(e);
+                        logger.error(`Unsupported key:${e}`, e);
+                    }
 
-                        self.currentStatsReport = results;
-                        try {
-                            if (this._usesPromiseGetStats) {
-                                self.processNewStatsReport();
-                            } else {
-                                self.processStatsReport();
-                            }
-                        } catch (e) {
-                            GlobalOnErrorHandler.callErrorHandler(e);
-                            logger.error(`Unsupported key:${e}`, e);
-                        }
-
-                        self.previousStatsReport = self.currentStatsReport;
-                    },
-                    error => self.errorCallback(error)
-                );
-            },
-            self.statsIntervalMilis
-        );
-    }
+                    self.previousStatsReport = self.currentStatsReport;
+                },
+                error => self.errorCallback(error)
+            );
+        },
+        self.statsIntervalMilis
+    );
 };
 
 /**
@@ -440,9 +416,6 @@ StatsCollector.prototype._defineGetStatValueMethod = function(keys) {
 
             return value;
         };
-        break;
-    case browsers.EDGE:
-        itemStatByKey = (item, key) => item[key];
         break;
     default:
         itemStatByKey = (item, key) => item[key];
@@ -573,25 +546,8 @@ StatsCollector.prototype.processStatsReport = function() {
             });
         }
 
-        // NOTE: Edge's proprietary stats via RTCIceTransport.msGetStats().
-        if (now.msType === 'transportdiagnostics') {
-            this.conferenceStats.transport.push({
-                ip: now.remoteAddress,
-                type: now.protocol,
-                localip: now.localAddress,
-                p2p: this.peerconnection.isP2P
-            });
-        }
-
         if (now.type !== 'ssrc' && now.type !== 'outboundrtp'
             && now.type !== 'inboundrtp' && now.type !== 'track') {
-            continue;
-        }
-
-        // NOTE: In Edge, stats with type "inboundrtp" and "outboundrtp" are
-        // completely useless, so ignore them.
-        if (browser.isEdge()
-            && (now.type === 'inboundrtp' || now.type === 'outboundrtp')) {
             continue;
         }
 
@@ -616,9 +572,7 @@ StatsCollector.prototype.processStatsReport = function() {
         // the sent bytes to the local download bitrate.
         // In new W3 stats spec, type="track" has a remoteSource boolean
         // property.
-        // Edge uses the new format, so skip this check.
-        if (!browser.isEdge()
-                && (now.isRemote === true || now.remoteSource === true)) {
+        if (now.isRemote === true || now.remoteSource === true) {
             continue;
         }
 
@@ -955,18 +909,9 @@ StatsCollector.prototype.processAudioLevelReport = function() {
             // According to the W3C WebRTC Stats spec, audioLevel should be in
             // 0..1 range (0 == silence). However browsers don't behave that
             // way so we must convert it to 0..1.
-            //
-            // In Edge the range is -100..0 (-100 == silence) measured in dB,
-            // so convert to linear. The levels are set to 0 for remote tracks,
-            // so don't convert those, since 0 means "the maximum" in Edge.
-            if (browser.isEdge()) {
-                audioLevel = audioLevel < 0 ? Math.pow(10, audioLevel / 20) : 0;
-
             // TODO: Can't find specs about what this value really is, but it
             // seems to vary between 0 and around 32k.
-            } else {
-                audioLevel = audioLevel / 32767;
-            }
+            audioLevel = audioLevel / 32767;
 
             if (!(ssrc in this.audioLevelReportHistory)) {
                 this.audioLevelReportHistory[ssrc] = {

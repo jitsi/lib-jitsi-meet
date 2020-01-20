@@ -30,12 +30,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * strategy or <tt>false</tt> otherwise.
      */
     doesVideoMuteByStreamRemove() {
-        return !(
-            this.isFirefox()
-            || this.isEdge()
-            || this.isReactNative()
-            || this.isSafariWithWebrtc()
-        );
+        return this.isChromiumBased();
     }
 
     /**
@@ -44,7 +39,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * otherwise.
      */
     supportsP2P() {
-        return !this.isEdge() && !this.isFirefox();
+        return !this.isFirefox();
     }
 
     /**
@@ -61,19 +56,9 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     isChromiumBased() {
         return this.isChrome()
-            || this.isChromiumBasedEdge()
             || this.isElectron()
             || this.isNWJS()
             || this.isOpera();
-    }
-
-    /**
-     * Checks if the current browser is Edge that is Chromium based.
-     */
-    isChromiumBasedEdge() {
-        const REQUIRED_EDGE_VERSION = 72;
-
-        return this.isEdge() && this.isVersionGreaterThan(REQUIRED_EDGE_VERSION);
     }
 
     /**
@@ -139,17 +124,7 @@ export default class BrowserCapabilities extends BrowserDetection {
     supportsBandwidthStatistics() {
         // FIXME bandwidth stats are currently not implemented for FF on our
         // side, but not sure if not possible ?
-        return !this.isFirefox() && !this.isEdge()
-            && !this.isSafariWithWebrtc();
-    }
-
-    /**
-     * Checks if the current browser supports WebRTC datachannels.
-     * @return {boolean}
-     */
-    supportsDataChannels() {
-        // NOTE: Edge does not yet implement DataChannel.
-        return !this.isEdge();
+        return !this.isFirefox() && !this.isSafariWithWebrtc();
     }
 
     /**
@@ -160,20 +135,6 @@ export default class BrowserCapabilities extends BrowserDetection {
         return navigator.mediaDevices
             && typeof navigator.mediaDevices.ondevicechange !== 'undefined'
             && typeof navigator.mediaDevices.addEventListener !== 'undefined';
-    }
-
-    /**
-     * Checks if the current browser supports RTP statictics collecting.
-     * Required by {@link RTPStatsCollector}.
-     *
-     * @returns {boolean} true if they are supported, false otherwise.
-     */
-    supportsRtpStatistics() {
-        return this.isChromiumBased()
-            || this.isEdge()
-            || this.isFirefox()
-            || this.isReactNative()
-            || this.isSafariWithWebrtc();
     }
 
     /**
@@ -199,7 +160,7 @@ export default class BrowserCapabilities extends BrowserDetection {
         // (is reported as 1):
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1241066
         // For Chrome and others we rely on 'googRtt'.
-        return !this.isFirefox() && !this.isEdge();
+        return !this.isFirefox();
     }
 
     /**
@@ -309,7 +270,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     usesAdapter() {
-        return this.usesNewGumFlow() || this.isEdge();
+        return this.usesNewGumFlow();
     }
 
     /**

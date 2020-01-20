@@ -142,8 +142,6 @@ const ScreenObtainer = {
 
             // Legacy Firefox
             return this.obtainScreenOnFirefox;
-        } else if (browser.isEdge() && browser.supportsGetDisplayMedia()) {
-            return this.obtainScreenFromGetDisplayMedia;
         }
 
         logger.log(
