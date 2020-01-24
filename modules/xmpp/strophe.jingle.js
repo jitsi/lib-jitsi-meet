@@ -196,7 +196,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             break;
         }
         case 'transport-replace':
-            logger.info('(TIME) Start transport replace', now);
+            logger.info('(TIME) Start transport replace:\t', now);
             Statistics.sendAnalytics(createJingleEvent(
                 ACTION_JINGLE_TR_RECEIVED,
                 {
@@ -207,7 +207,7 @@ class JingleConnectionPlugin extends ConnectionPlugin {
             sess.replaceTransport($(iq).find('>jingle'), () => {
                 const successTime = window.performance.now();
 
-                logger.info('(TIME) Transport replace success!', successTime);
+                logger.info('(TIME) Transport replace success:\t', successTime);
                 Statistics.sendAnalytics(createJingleEvent(
                     ACTION_JINGLE_TR_SUCCESS,
                     {

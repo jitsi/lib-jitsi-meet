@@ -366,7 +366,7 @@ export default class XMPP extends Listenable {
     attach(options) {
         const now = this.connectionTimes.attaching = window.performance.now();
 
-        logger.log(`(TIME) Strophe Attaching\t:${now}`);
+        logger.log('(TIME) Strophe Attaching:\t', now);
         this.connection.attach(options.jid, options.sid,
             parseInt(options.rid, 10) + 1,
             this.connectionHandler.bind(this, {
