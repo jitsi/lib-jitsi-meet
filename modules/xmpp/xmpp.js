@@ -23,18 +23,18 @@ import XMPPEvents from '../../service/xmpp/XMPPEvents';
 const logger = getLogger(__filename);
 
 /**
- *
- * @param token
- * @param bosh
+ * Creates XMPP connection.
+ * @param {string} [token] - JWT token used for authentication(JWT authentication module must be enabled in Prosody).
+ * @param {string} serviceUrl - The service URL for XMPP connection.
  */
-function createConnection(token, bosh = '/http-bind') {
+function createConnection(token, serviceUrl = '/http-bind') {
     // Append token as URL param
     if (token) {
         // eslint-disable-next-line no-param-reassign
-        bosh += `${bosh.indexOf('?') === -1 ? '?' : '&'}token=${token}`;
+        serviceUrl += `${serviceUrl.indexOf('?') === -1 ? '?' : '&'}token=${token}`;
     }
 
-    const conn = new Strophe.Connection(bosh);
+    const conn = new Strophe.Connection(serviceUrl);
 
     // The default maxRetries is 5, which is too long.
     conn.maxRetries = 3;
@@ -67,6 +67,9 @@ export default class XMPP extends Listenable {
     /**
      * FIXME describe all options
      * @param {Object} options
+     * @param {String} options.serviceUrl - URL passed to the XMPP client which will be used to establish XMPP
+     * connection with the server.
+     * @param {String} options.bosh - Deprecated, use {@code serviceUrl}.
      * @param {Array<Object>} options.p2pStunServers see
      * {@link JingleConnectionPlugin} for more details.
      * @param token
@@ -81,7 +84,8 @@ export default class XMPP extends Listenable {
         this.authenticatedUser = false;
         this._initStrophePlugins(this);
 
-        this.connection = createConnection(token, options.bosh);
+        // FIXME remove deprecated bosh option at some point
+        this.connection = createConnection(token, options.serviceUrl || options.bosh);
 
         this._lastSuccessTracker = new LastSuccessTracker();
         this._lastSuccessTracker.startTracking(this.connection);
