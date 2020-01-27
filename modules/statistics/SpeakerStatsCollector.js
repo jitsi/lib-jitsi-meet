@@ -26,6 +26,7 @@ export default class SpeakerStatsCollector {
         const userId = conference.myUserId();
 
         this.stats.users[userId] = new SpeakerStats(userId, null, true);
+        this.conference = conference;
 
         conference.addEventListener(
             JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED,
@@ -74,11 +75,12 @@ export default class SpeakerStatsCollector {
      * @private
      */
     _onUserJoin(userId, participant) {
-        let savedUser = this.stats.users[userId];
+        if (participant.isHidden()) {
+            return;
+        }
 
-        if (!savedUser) {
-            savedUser = this.stats.users[userId]
-                = new SpeakerStats(userId, participant.getDisplayName());
+        if (!this.stats.users[userId]) {
+            this.stats.users[userId] = new SpeakerStats(userId, participant.getDisplayName());
         }
     }
 
@@ -134,19 +136,23 @@ export default class SpeakerStatsCollector {
     _updateStats(newStats) {
         for (const userId in newStats) { // eslint-disable-line guard-for-in
             let speakerStatsToUpdate;
+            const newParticipant = this.conference.getParticipantById(userId);
 
-            if (this.stats.users[userId]) {
-                speakerStatsToUpdate = this.stats.users[userId];
+            // we want to ignore hidden participants
+            if (!newParticipant || !newParticipant.isHidden()) {
+                if (this.stats.users[userId]) {
+                    speakerStatsToUpdate = this.stats.users[userId];
 
-                if (!speakerStatsToUpdate.getDisplayName()) {
-                    speakerStatsToUpdate
-                        .setDisplayName(newStats[userId].displayName);
+                    if (!speakerStatsToUpdate.getDisplayName()) {
+                        speakerStatsToUpdate
+                            .setDisplayName(newStats[userId].displayName);
+                    }
+                } else {
+                    speakerStatsToUpdate = new SpeakerStats(
+                        userId, newStats[userId].displayName);
+                    this.stats.users[userId] = speakerStatsToUpdate;
+                    speakerStatsToUpdate.markAsHasLeft();
                 }
-            } else {
-                speakerStatsToUpdate = new SpeakerStats(
-                    userId, newStats[userId].displayName);
-                this.stats.users[userId] = speakerStatsToUpdate;
-                speakerStatsToUpdate.markAsHasLeft();
             }
 
             speakerStatsToUpdate.totalDominantSpeakerTime
