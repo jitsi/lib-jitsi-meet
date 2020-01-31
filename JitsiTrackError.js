@@ -44,9 +44,9 @@ TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.TRACK_NO_STREAM_FOUND]
  *
  * @constructor
  * @param {Object|string} error - error object or error name
- * @param {Object|string} (options) - getUserMedia constraints object or
+ * @param {Object|string} [options] - getUserMedia constraints object or
  * error message
- * @param {('audio'|'video'|'desktop'|'screen'|'audiooutput')[]} (devices) -
+ * @param {Array.<('audio'|'video'|'desktop'|'screen'|'audiooutput')>} [devices] -
  * list of getUserMedia requested devices
  */
 function JitsiTrackError(error, options, devices) {

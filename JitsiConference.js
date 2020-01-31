@@ -74,6 +74,7 @@ const JINGLE_SI_TIMEOUT = 5000;
  * Creates a JitsiConference object with the given name and properties.
  * Note: this constructor is not a part of the public API (objects should be
  * created using JitsiConnection.createConference).
+ * @constructor
  * @param options.config properties / settings related to the conference that
  * will be created.
  * @param options.name the name of the conference
@@ -101,7 +102,6 @@ const JINGLE_SI_TIMEOUT = 5000;
  * open with the videobridge. Values can be "datachannel", "websocket", true
  * (treat it as "datachannel"), undefined (treat it as "datachannel") and false
  * (don't open any channel).
- * @constructor
  *
  * FIXME Make all methods which are called from lib-internal classes
  *       to non-public (use _). To name a few:
@@ -2212,7 +2212,7 @@ JitsiConference.prototype.getMeetingUniqueId = function() {
  *
  * @return {TraceablePeerConnection|null} null if there isn't any active
  * <tt>TraceablePeerConnection</tt> currently available.
- * @public (FIXME how to make package local ?)
+ * FIXME how to make package local?
  */
 JitsiConference.prototype.getActivePeerConnection = function() {
     if (this.isP2PActive()) {

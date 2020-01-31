@@ -5,6 +5,8 @@
 /**
  * Indicates that the list of available media devices has been changed. The
  * event provides the following parameters to its listeners:
+ * @type {string}
+ * @const
  *
  * @param {MediaDeviceInfo[]} devices - array of MediaDeviceInfo or
  *  MediaDeviceInfo-like objects that are currently connected.
@@ -16,6 +18,8 @@ export const DEVICE_LIST_CHANGED = 'mediaDevices.devicechange';
  * Indicates that the environment is currently showing permission prompt to
  * access camera and/or microphone. The event provides the following
  * parameters to its listeners:
+ * @type {string}
+ * @const
  *
  * @param {'chrome'|'opera'|'firefox'|'safari'|'nwjs'
  *  |'react-native'|'android'} environmentType - type of browser or

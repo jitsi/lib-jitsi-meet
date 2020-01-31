@@ -1,5 +1,7 @@
 /**
  * The media track was removed to the conference.
+ * @type {string}
+ * @const
  */
 export const LOCAL_TRACK_STOPPED = 'track.stopped';
 
@@ -14,26 +16,36 @@ export const LOCAL_TRACK_STOPPED = 'track.stopped';
  *
  * NOTE The second argument should be treated as library internal and can be
  * removed at any time.
+ * @type {string}
+ * @const
  */
 export const TRACK_AUDIO_LEVEL_CHANGED = 'track.audioLevelsChanged';
 
 /**
  * The audio output of the track was changed.
+ * @type {string}
+ * @const
  */
 export const TRACK_AUDIO_OUTPUT_CHANGED = 'track.audioOutputChanged';
 
 /**
  * A media track mute status was changed.
+ * @type {string}
+ * @const
  */
 export const TRACK_MUTE_CHANGED = 'track.trackMuteChanged';
 
 /**
  * The video type("camera" or "desktop") of the track was changed.
+ * @type {string}
+ * @const
  */
 export const TRACK_VIDEOTYPE_CHANGED = 'track.videoTypeChanged';
 
 /**
  * Indicates that the track is not receiving any data even though we expect it
  * to receive data (i.e. the stream is not stopped).
+ * @type {string}
+ * @const
  */
 export const NO_DATA_FROM_SOURCE = 'track.no_data_from_source';

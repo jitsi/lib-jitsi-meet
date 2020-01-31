@@ -1,0 +1,154 @@
+WARNING: The @type tag does not permit a description; the description will be ignored. File: JitsiConferenceEvents.js, line: 186
+WARNING: The @type tag does not permit a description; the description will be ignored. File: JitsiConferenceEvents.js, line: 192
+[TSD-JSDoc] JitsiConference.js:113:0 Failed to find parent of doclet 'module.exports' using memberof 'module', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:251:0 Failed to find parent of doclet 'JitsiConference.resourceCreator' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:281:0 Failed to find parent of doclet 'JitsiConference#_init' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:457:0 Failed to find parent of doclet 'JitsiConference#join' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:471:0 Failed to find parent of doclet 'JitsiConference#authenticateAndUpgradeRole' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:481:0 Failed to find parent of doclet 'JitsiConference#isJoined' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:489:0 Failed to find parent of doclet 'JitsiConference#isP2PEnabled' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:501:0 Failed to find parent of doclet 'JitsiConference#isP2PTestModeEnabled' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:510:0 Failed to find parent of doclet 'JitsiConference#leave' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:602:0 Failed to find parent of doclet 'JitsiConference#getName' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:609:0 Failed to find parent of doclet 'JitsiConference#getConnection' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:616:0 Failed to find parent of doclet 'JitsiConference#isAuthEnabled' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:623:0 Failed to find parent of doclet 'JitsiConference#isLoggedIn' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:630:0 Failed to find parent of doclet 'JitsiConference#getAuthLogin' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:637:0 Failed to find parent of doclet 'JitsiConference#isExternalAuthEnabled' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:647:0 Failed to find parent of doclet 'JitsiConference#getExternalAuthUrl' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:667:0 Failed to find parent of doclet 'JitsiConference#getLocalTracks' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:681:0 Failed to find parent of doclet 'JitsiConference#getLocalAudioTrack' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:689:0 Failed to find parent of doclet 'JitsiConference#getLocalVideoTrack' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:702:0 Failed to find parent of doclet 'JitsiConference#on' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:716:0 Failed to find parent of doclet 'JitsiConference#off' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:732:0 Failed to find parent of doclet 'JitsiConference#addCommandListener' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:743:0 Failed to find parent of doclet 'JitsiConference#removeCommandListener' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:755:0 Failed to find parent of doclet 'JitsiConference#sendTextMessage' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:771:0 Failed to find parent of doclet 'JitsiConference#sendPrivateTextMessage' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:783:0 Failed to find parent of doclet 'JitsiConference#sendCommand' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:798:0 Failed to find parent of doclet 'JitsiConference#sendCommandOnce' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:807:0 Failed to find parent of doclet 'JitsiConference#removeCommand' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:817:0 Failed to find parent of doclet 'JitsiConference#setDisplayName' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:834:0 Failed to find parent of doclet 'JitsiConference#setSubject' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:844:0 Failed to find parent of doclet 'JitsiConference#getTranscriber' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:871:0 Failed to find parent of doclet 'JitsiConference#getTranscriptionStatus' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:882:0 Failed to find parent of doclet 'JitsiConference#addTrack' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:908:0 Failed to find parent of doclet 'JitsiConference#_fireAudioLevelChangeEvent' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:929:0 Failed to find parent of doclet 'JitsiConference#_fireMuteChangeEvent' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:953:0 Failed to find parent of doclet 'JitsiConference#onLocalTrackRemoved' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:977:0 Failed to find parent of doclet 'JitsiConference#removeTrack' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:990:0 Failed to find parent of doclet 'JitsiConference#replaceTrack' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1028:0 Failed to find parent of doclet 'JitsiConference#replaceTrackWithoutOfferAnswer' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1083:0 Failed to find parent of doclet 'JitsiConference#_setupNewTrack' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1140:0 Failed to find parent of doclet 'JitsiConference#_addLocalTrackAsUnmute' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1169:0 Failed to find parent of doclet 'JitsiConference#_removeLocalTrackAsMute' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1194:0 Failed to find parent of doclet 'JitsiConference#getRole' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1205:0 Failed to find parent of doclet 'JitsiConference#isHidden' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1219:0 Failed to find parent of doclet 'JitsiConference#isModerator' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1228:0 Failed to find parent of doclet 'JitsiConference#lock' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1246:0 Failed to find parent of doclet 'JitsiConference#unlock' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1258:0 Failed to find parent of doclet 'JitsiConference#selectParticipant' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1289:0 Failed to find parent of doclet 'JitsiConference#pinParticipant' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1297:0 Failed to find parent of doclet 'JitsiConference#getLastN' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1309:0 Failed to find parent of doclet 'JitsiConference#setLastN' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1345:0 Failed to find parent of doclet 'JitsiConference#isInLastN' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1353:0 Failed to find parent of doclet 'JitsiConference#getParticipants' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1365:0 Failed to find parent of doclet 'JitsiConference#getParticipantCount' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1383:0 Failed to find parent of doclet 'JitsiConference#getParticipantById' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1391:0 Failed to find parent of doclet 'JitsiConference#kickParticipant' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1439:0 Failed to find parent of doclet 'JitsiConference#muteParticipant' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1465:0 Failed to find parent of doclet 'JitsiConference#onMemberJoined' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1579:0 Failed to find parent of doclet 'JitsiConference#onMemberKicked' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1601:0 Failed to find parent of doclet 'JitsiConference#onLocalRoleChanged' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1644:0 Failed to find parent of doclet 'JitsiConference#onRemoteTrackAdded' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1702:0 Failed to find parent of doclet 'JitsiConference#onCallAccepted' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1717:0 Failed to find parent of doclet 'JitsiConference#onTransportInfo' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1730:0 Failed to find parent of doclet 'JitsiConference#onRemoteTrackRemoved' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1756:0 Failed to find parent of doclet 'JitsiConference#_onIncomingCallP2P' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1800:0 Failed to find parent of doclet 'JitsiConference#onIncomingCall' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1827:0 Failed to find parent of doclet 'JitsiConference#_acceptJvbIncomingCall' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1910:0 Failed to find parent of doclet 'JitsiConference#_setBridgeChannel' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:1984:0 Failed to find parent of doclet 'JitsiConference#onCallEnded' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2039:0 Failed to find parent of doclet 'JitsiConference#onSuspendDetected' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2070:0 Failed to find parent of doclet 'JitsiConference#isDTMFSupported' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2078:0 Failed to find parent of doclet 'JitsiConference#myUserId' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2102:0 Failed to find parent of doclet 'JitsiConference#startRecording' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2117:0 Failed to find parent of doclet 'JitsiConference#stopRecording' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2128:0 Failed to find parent of doclet 'JitsiConference#isSIPCallingSupported' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2140:0 Failed to find parent of doclet 'JitsiConference#dial' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2153:0 Failed to find parent of doclet 'JitsiConference#hangup' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2166:0 Failed to find parent of doclet 'JitsiConference#startTranscriber' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2174:0 Failed to find parent of doclet 'JitsiConference#stopTranscriber' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2179:0 Failed to find parent of doclet 'JitsiConference#getPhoneNumber' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2190:0 Failed to find parent of doclet 'JitsiConference#getPhonePin' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2203:0 Failed to find parent of doclet 'JitsiConference#getMeetingUniqueId' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2217:0 Failed to find parent of doclet 'JitsiConference#getActivePeerConnection' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2233:0 Failed to find parent of doclet 'JitsiConference#getConnectionState' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2245:0 Failed to find parent of doclet 'JitsiConference#setStartMutedPolicy' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2265:0 Failed to find parent of doclet 'JitsiConference#getStartMutedPolicy' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2272:0 Failed to find parent of doclet 'JitsiConference#isStartAudioMuted' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2279:0 Failed to find parent of doclet 'JitsiConference#isStartVideoMuted' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2286:0 Failed to find parent of doclet 'JitsiConference#getLogs' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2309:0 Failed to find parent of doclet 'JitsiConference#getConnectionTimes' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2316:0 Failed to find parent of doclet 'JitsiConference#setLocalParticipantProperty' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2323:0 Failed to find parent of doclet 'JitsiConference#removeLocalParticipantProperty' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2334:0 Failed to find parent of doclet 'JitsiConference#getLocalParticipantProperty' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2350:0 Failed to find parent of doclet 'JitsiConference#sendFeedback' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2363:0 Failed to find parent of doclet 'JitsiConference#isCallstatsEnabled' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2374:0 Failed to find parent of doclet 'JitsiConference#_onTrackAttach' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2412:0 Failed to find parent of doclet 'JitsiConference#sendApplicationLog' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2424:0 Failed to find parent of doclet 'JitsiConference#_isFocus' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2431:0 Failed to find parent of doclet 'JitsiConference#_fireIncompatibleVersionsEvent' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2444:0 Failed to find parent of doclet 'JitsiConference#sendEndpointMessage' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2454:0 Failed to find parent of doclet 'JitsiConference#broadcastEndpointMessage' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2472:0 Failed to find parent of doclet 'JitsiConference#sendMessage' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:2809:0 Failed to find parent of doclet 'JitsiConference#getProperty' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:3182:0 Failed to find parent of doclet 'JitsiConference#isP2PActive' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:3192:0 Failed to find parent of doclet 'JitsiConference#getP2PConnectionState' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:3204:0 Failed to find parent of doclet 'JitsiConference#startP2PSession' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:3221:0 Failed to find parent of doclet 'JitsiConference#stopP2PSession' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:3229:0 Failed to find parent of doclet 'JitsiConference#getSpeakerStats' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:3241:0 Failed to find parent of doclet 'JitsiConference#setReceiverVideoConstraint' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:3259:0 Failed to find parent of doclet 'JitsiConference#createVideoSIPGWSession' using memberof 'JitsiConference', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConferenceEventManager.js:30:0 Failed to find parent of doclet 'module.exports' using memberof 'module', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConferenceEventManager.js:58:0 Failed to find parent of doclet 'JitsiConferenceEventManager#setupChatRoomListeners' using memberof 'JitsiConferenceEventManager', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConferenceEventManager.js:430:0 Failed to find parent of doclet 'JitsiConferenceEventManager#setupRTCListeners' using memberof 'JitsiConferenceEventManager', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConferenceEventManager.js:558:0 Failed to find parent of doclet 'JitsiConferenceEventManager#removeXMPPListeners' using memberof 'JitsiConferenceEventManager', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConferenceEventManager.js:578:0 Failed to find parent of doclet 'JitsiConferenceEventManager#setupXMPPListeners' using memberof 'JitsiConferenceEventManager', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConferenceEventManager.js:646:0 Failed to find parent of doclet 'JitsiConferenceEventManager#_addConferenceXMPPListener' using memberof 'JitsiConferenceEventManager', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConferenceEventManager.js:655:0 Failed to find parent of doclet 'JitsiConferenceEventManager#setupStatisticsListeners' using memberof 'JitsiConferenceEventManager', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConnection.js:20:0 Failed to find parent of doclet 'module.exports' using memberof 'module', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConnection.js:60:0 Failed to find parent of doclet 'JitsiConnection#connect' using memberof 'JitsiConnection', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConnection.js:71:0 Failed to find parent of doclet 'JitsiConnection#attach' using memberof 'JitsiConnection', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConnection.js:79:0 Failed to find parent of doclet 'JitsiConnection#disconnect' using memberof 'JitsiConnection', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConnection.js:92:0 Failed to find parent of doclet 'JitsiConnection#getJid' using memberof 'JitsiConnection', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConnection.js:100:0 Failed to find parent of doclet 'JitsiConnection#setToken' using memberof 'JitsiConnection', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConnection.js:112:0 Failed to find parent of doclet 'JitsiConnection#initJitsiConference' using memberof 'JitsiConnection', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConnection.js:125:0 Failed to find parent of doclet 'JitsiConnection#addEventListener' using memberof 'JitsiConnection', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConnection.js:134:0 Failed to find parent of doclet 'JitsiConnection#removeEventListener' using memberof 'JitsiConnection', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConnection.js:141:0 Failed to find parent of doclet 'JitsiConnection#getConnectionTimes' using memberof 'JitsiConnection', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConnection.js:152:0 Failed to find parent of doclet 'JitsiConnection#addFeature' using memberof 'JitsiConnection', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConnection.js:163:0 Failed to find parent of doclet 'JitsiConnection#removeFeature' using memberof 'JitsiConnection', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiMeetJS.js:132:0 Failed to find parent of doclet 'module.exports' using memberof 'module', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiParticipant.js:33:4 Failed to find parent of doclet 'module.exports' using memberof 'module', this is likely due to invalid JSDoc.
+[TSD-JSDoc] authenticateAndUpgradeRole.js:60:0 Failed to find parent of doclet 'module.exports' using memberof 'module', this is likely due to invalid JSDoc.
+[TSD-JSDoc] authenticateAndUpgradeRole.js:151:4 Failed to find parent of doclet 'authenticateAndUpgradeRole~process.cancel' using memberof 'authenticateAndUpgradeRole~process', this is likely due to invalid JSDoc.
+[TSD-JSDoc] lib-jitsi-meet.min.js:6:4 Failed to find parent of doclet '<anonymous>~r~t' using memberof '<anonymous>~r', this is likely due to invalid JSDoc.
+[TSD-JSDoc] JitsiConference.js:163:4 Unable to resolve type for connectionQuality, none specified in JSDoc. Defaulting to `any`.
+[TSD-JSDoc] JitsiConference.js:182:4 Unable to resolve type for isJvbConnectionInterrupted, none specified in JSDoc. Defaulting to `any`.
+[TSD-JSDoc] JitsiConference.js:187:4 Unable to resolve type for speakerStatsCollector, none specified in JSDoc. Defaulting to `any`.
+[TSD-JSDoc] Unable to resolve type for an unnamed item, this is likely due to invalid JSDoc. Often this is caused by invalid JSDoc on a parameter. Defaulting to `any`.
+[TSD-JSDoc] Unable to resolve type for an unnamed item, this is likely due to invalid JSDoc. Often this is caused by invalid JSDoc on a parameter. Defaulting to `any`.
+[TSD-JSDoc] Unable to resolve type for an unnamed item, this is likely due to invalid JSDoc. Often this is caused by invalid JSDoc on a parameter. Defaulting to `any`.
+[TSD-JSDoc] JitsiMeetJS.js:54:0 Unable to resolve type for getLowerResolution, none specified in JSDoc. Defaulting to `any`.
+[TSD-JSDoc] Unable to resolve type for an unnamed item, this is likely due to invalid JSDoc. Often this is caused by invalid JSDoc on a parameter. Defaulting to `any`.
+[TSD-JSDoc] JitsiMeetJS.js:145:4 Unable to resolve type for ProxyConnectionService, none specified in JSDoc. Defaulting to `any`.
+[TSD-JSDoc] Unable to resolve type for an unnamed item, this is likely due to invalid JSDoc. Often this is caused by invalid JSDoc on a parameter. Defaulting to `any`.
+[TSD-JSDoc] Unable to resolve type for an unnamed item, this is likely due to invalid JSDoc. Often this is caused by invalid JSDoc on a parameter. Defaulting to `any`.
+[TSD-JSDoc] Unable to resolve type for an unnamed item, this is likely due to invalid JSDoc. Often this is caused by invalid JSDoc on a parameter. Defaulting to `any`.
+[TSD-JSDoc] Unable to resolve type for an unnamed item, this is likely due to invalid JSDoc. Often this is caused by invalid JSDoc on a parameter. Defaulting to `any`.
+[TSD-JSDoc] Unable to resolve object value type, this is likely due to invalid JSDoc. Defaulting to `any`.
+[TSD-JSDoc] JitsiMeetJS.js:524:4 Unable to resolve type for getActiveAudioDevice, none specified in JSDoc. Defaulting to `any`.
+[TSD-JSDoc] JitsiMeetJS.js:600:4 Unable to resolve type for getGlobalOnErrorHandler, none specified in JSDoc. Defaulting to `any`.
+[TSD-JSDoc] JitsiMeetJS.js:634:4 Unable to resolve type for util, none specified in JSDoc. Defaulting to `any`.
+[TSD-JSDoc] JitsiParticipant.js:103:4 Unable to resolve type for the name of the property., none specified in JSDoc. Defaulting to `any`.

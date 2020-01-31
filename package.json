@@ -44,12 +44,15 @@
     "eslint-plugin-import": "2.8.0",
     "flow-bin": "0.104.0",
     "jasmine-core": "2.5.2",
+    "jsdoc": "3.6.3",
+    "jsdoc-export-default-interop": "0.3.1",
     "karma": "3.0.0",
     "karma-chrome-launcher": "2.2.0",
     "karma-jasmine": "1.1.2",
     "karma-webpack": "3.0.0",
     "precommit-hook": "3.0.0",
     "string-replace-loader": "2.1.1",
+    "tsd-jsdoc": "github:englercj/tsd-jsdoc",
     "webpack": "4.26.1",
     "webpack-bundle-analyzer": "3.4.1",
     "webpack-cli": "3.1.2"
@@ -59,7 +62,8 @@
     "postinstall": "webpack -p",
     "test": "karma start karma.conf.js",
     "test-watch": "karma start karma.conf.js --no-single-run",
-    "validate": "npm ls"
+    "validate": "npm ls",
+    "generate": "jsdoc -c ./jsdoc.conf.json"
   },
   "pre-commit": [
     "lint",

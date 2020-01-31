@@ -1,0 +1,11 @@
+{
+  "source": {
+    "include": ["."],
+    "includePattern": ".+\\.js(doc|x)?$",
+    "excludePattern": "node_modules",
+    "plugins": ["./node_modules/jsdoc-export-default-interop/dist/index"]
+  },
+  "opts": {
+    "template": "./node_modules/tsd-jsdoc/dist"
+  }
+}

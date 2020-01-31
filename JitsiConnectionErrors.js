@@ -12,21 +12,29 @@
  * could also happen when BOSH request is sent to the server with the session-id
  * that is not know to the server. But this should not happen in lib-jitsi-meet
  * case as long as the service is configured correctly (there is no bug).
+ * @type {string}
+ * @const
  */
 export const CONNECTION_DROPPED_ERROR = 'connection.droppedError';
 
 /**
  * Not specified errors.
+ * @type {string}
+ * @const
  */
 export const OTHER_ERROR = 'connection.otherError';
 
 /**
  * Indicates that a password is required in order to join the conference.
+ * @type {string}
+ * @const
  */
 export const PASSWORD_REQUIRED = 'connection.passwordRequired';
 
 /**
  * Indicates that the connection was dropped, because of too many 5xx HTTP
  * errors on BOSH requests.
+ * @type {string}
+ * @const
  */
 export const SERVER_ERROR = 'connection.serverError';
