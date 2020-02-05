@@ -85,7 +85,11 @@ export default class XMPP extends Listenable {
         this._initStrophePlugins(this);
 
         // FIXME remove deprecated bosh option at some point
-        this.connection = createConnection(token, options.serviceUrl || options.bosh);
+        const serviceUrl = options.serviceUrl || options.bosh;
+
+        this.connection = createConnection(token, serviceUrl);
+
+        this._usesWebsocket = serviceUrl.startsWith('ws:') || serviceUrl.startsWith('wss:');
 
         this._lastSuccessTracker = new LastSuccessTracker();
         this._lastSuccessTracker.startTracking(this.connection);
@@ -544,9 +548,9 @@ export default class XMPP extends Listenable {
         // before disconnect() in order to attempt to have its unavailable presence at the top of the send queue. We
         // flush() once more after disconnect() in order to attempt to have its unavailable presence sent as soon as
         // possible.
-        this.connection.flush();
+        !this._usesWebsocket && this.connection.flush();
 
-        if (ev !== null && typeof ev !== 'undefined') {
+        if (!this._usesWebsocket && ev !== null && typeof ev !== 'undefined') {
             const evType = ev.type;
 
             if (evType === 'beforeunload' || evType === 'unload') {
