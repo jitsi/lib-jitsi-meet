@@ -522,69 +522,75 @@ export default class XMPP extends Listenable {
 
             this.eventEmitter.on(XMPPEvents.CONNECTION_STATUS_CHANGED, disconnectListener);
 
-            // XXX Strophe is asynchronously sending by default. Unfortunately, that
-            // means that there may not be enough time to send an unavailable
-            // presence or disconnect at all. Switching Strophe to synchronous
-            // sending is not much of an option because it may lead to a noticeable
-            // delay in navigating away from the current location. As a compromise,
-            // we will try to increase the chances of sending an unavailable
-            // presence and/or disconecting within the short time span that we have
-            // upon unloading by invoking flush() on the connection. We flush() once
-            // before disconnect() in order to attemtp to have its unavailable
-            // presence at the top of the send queue. We flush() once more after
-            // disconnect() in order to attempt to have its unavailable presence
-            // sent as soon as possible.
-            this.connection.flush();
+            this._cleanupXmppConnection(ev);
+        });
+    }
 
-            if (ev !== null && typeof ev !== 'undefined') {
-                const evType = ev.type;
+    /**
+     * The method is supposed to gracefully close the XMPP connection and the main goal is to make sure that the current
+     * participant will be removed from the conference XMPP MUC, so that it doesn't leave a "ghost" participant behind.
+     *
+     * @param {Object} ev - Optionally, the event which triggered the necessity to disconnect from the XMPP server
+     * (e.g. beforeunload, unload).
+     * @private
+     * @returns {void}
+     */
+    _cleanupXmppConnection(ev) {
+        // XXX Strophe is asynchronously sending by default. Unfortunately, that means that there may not be enough time
+        // to send an unavailable presence or disconnect at all. Switching Strophe to synchronous sending is not much of
+        // an option because it may lead to a noticeable delay in navigating away from the current location. As
+        // a compromise, we will try to increase the chances of sending an unavailable presence and/or disconnecting
+        // within the short time span that we have upon unloading by invoking flush() on the connection. We flush() once
+        // before disconnect() in order to attempt to have its unavailable presence at the top of the send queue. We
+        // flush() once more after disconnect() in order to attempt to have its unavailable presence sent as soon as
+        // possible.
+        this.connection.flush();
 
-                if (evType === 'beforeunload' || evType === 'unload') {
-                    // XXX Whatever we said above, synchronous sending is the best
-                    // (known) way to properly disconnect from the XMPP server.
-                    // Consequently, it may be fine to have the source code and
-                    // comment it in or out depending on whether we want to run with
-                    // it for some time.
-                    this.connection.options.sync = true;
+        if (ev !== null && typeof ev !== 'undefined') {
+            const evType = ev.type;
 
-                    // This is needed in some browsers where sync xhr sending
-                    // is disabled by default on unload
-                    if (navigator.sendBeacon && !this.connection.disconnecting
-                            && this.connection.connected) {
-                        this.connection._changeConnectStatus(Strophe.Status.DISCONNECTING);
-                        this.connection.disconnecting = true;
+            if (evType === 'beforeunload' || evType === 'unload') {
+                // XXX Whatever we said above, synchronous sending is the best (known) way to properly disconnect from
+                // the XMPP server. Consequently, it may be fine to have the source code and comment it in or out
+                // depending on whether we want to run with it for some time.
+                this.connection.options.sync = true;
 
-                        const body = this.connection._proto._buildBody()
-                            .attrs({
-                                type: 'terminate'
-                            });
-                        const pres = $pres({
-                            xmlns: Strophe.NS.CLIENT,
-                            type: 'unavailable'
+                // This is needed in some browsers where sync xhr sending is disabled by default on unload.
+                if (navigator.sendBeacon && !this.connection.disconnecting && this.connection.connected) {
+
+                    this.connection._changeConnectStatus(Strophe.Status.DISCONNECTING);
+                    this.connection.disconnecting = true;
+
+                    const body = this.connection._proto._buildBody()
+                        .attrs({
+                            type: 'terminate'
                         });
+                    const pres = $pres({
+                        xmlns: Strophe.NS.CLIENT,
+                        type: 'unavailable'
+                    });
 
-                        body.cnode(pres.tree());
+                    body.cnode(pres.tree());
 
-                        const res = navigator.sendBeacon(
-                            `https:${this.connection.service}`,
-                            Strophe.serialize(body.tree()));
+                    const res = navigator.sendBeacon(
+                        `https:${this.connection.service}`,
+                        Strophe.serialize(body.tree()));
 
-                        logger.info(`Successfully send unavailable beacon ${res}`);
+                    logger.info(`Successfully send unavailable beacon ${res}`);
 
-                        this.connection._proto._abortAllRequests();
-                        this.connection._doDisconnect();
+                    this.connection._proto._abortAllRequests();
+                    this.connection._doDisconnect();
 
-                        return;
-                    }
+                    return;
                 }
             }
+        }
 
-            this.connection.disconnect();
+        this.connection.disconnect();
 
-            if (this.connection.options.sync !== true) {
-                this.connection.flush();
-            }
-        });
+        if (this.connection.options.sync !== true) {
+            this.connection.flush();
+        }
     }
 
     /**
