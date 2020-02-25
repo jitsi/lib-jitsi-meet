@@ -1241,8 +1241,7 @@ class RTCUtils extends Listenable {
                 const constraints = {
                     video: {
                         ...gumOptions,
-                        deviceId: (matchingDevice && matchingDevice.deviceId)
-                            || desktopSharingSourceDevice
+                        deviceId: matchingDevice.deviceId
                     }
                 };
 
