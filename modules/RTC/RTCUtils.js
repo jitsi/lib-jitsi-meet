@@ -1222,6 +1222,15 @@ class RTCUtils extends Listenable {
                         device.kind === 'videoinput'
                             && (device.deviceId === desktopSharingSourceDevice
                             || device.label === desktopSharingSourceDevice));
+
+                if (!matchingDevice) {
+                    return Promise.reject(new JitsiTrackError(
+                        { name: 'ConstraintNotSatisfiedError' },
+                        {},
+                        [ desktopSharingSourceDevice ]
+                    ));
+                }
+
                 const requestedDevices = [ 'video' ];
 
                 // Leverage the helper used by {@link _newGetDesktopMedia} to
@@ -1229,17 +1238,10 @@ class RTCUtils extends Listenable {
                 const { gumOptions, trackOptions }
                     = this._parseDesktopSharingOptions(options);
 
-                // Create a custom constraints object to use exact device
-                // matching to make sure there is no fallthrough to another
-                // camera device. If a matching device could not be found, try
-                // anyways and let the caller handle errors.
                 const constraints = {
                     video: {
                         ...gumOptions,
-                        deviceId: {
-                            exact: (matchingDevice && matchingDevice.deviceId)
-                                || desktopSharingSourceDevice
-                        }
+                        deviceId: matchingDevice.deviceId
                     }
                 };
 
