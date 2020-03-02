@@ -251,7 +251,7 @@ export default class ChatRoom extends Listenable {
         // top of the send queue. We flush() once more after sending/queuing the
         // unavailable presence in order to attempt to have it sent as soon as
         // possible.
-        this.connection.flush();
+        !this.xmpp.isUsingWebsocket() && this.connection.flush();
         this.connection.send(pres);
         this.connection.flush();
     }
