@@ -162,6 +162,15 @@ export default class XMPP extends Listenable {
     }
 
     /**
+     * Checks if Websocket is used as the transport for the current XMPP connection. Returns true for Websocket or false
+     * for BOSH.
+     * @returns {boolean}
+     */
+    isUsingWebsocket() {
+        return this._usesWebsocket;
+    }
+
+    /**
      *
      */
     getConnection() {
