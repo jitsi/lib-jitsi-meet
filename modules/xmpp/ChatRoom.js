@@ -196,7 +196,7 @@ export default class ChatRoom extends Listenable {
     sendPresence(fromJoin) {
         const to = this.presMap.to;
 
-        if (!to || (!this.joined && !fromJoin)) {
+        if (!this.connection || !this.connection.connected || !to || (!this.joined && !fromJoin)) {
             // Too early to send presence - not initialized
             return;
         }
@@ -1273,9 +1273,9 @@ export default class ChatRoom extends Listenable {
      */
     sendAudioInfoPresence(mute, callback) {
         this.addAudioInfoToPresence(mute);
-        if (this.connection) {
-            this.sendPresence();
-        }
+
+        // FIXME resend presence on CONNECTED
+        this.sendPresence();
         if (callback) {
             callback();
         }
@@ -1301,9 +1301,6 @@ export default class ChatRoom extends Listenable {
      */
     sendVideoInfoPresence(mute) {
         this.addVideoInfoToPresence(mute);
-        if (!this.connection) {
-            return;
-        }
         this.sendPresence();
     }
 
