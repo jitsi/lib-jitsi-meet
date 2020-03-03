@@ -35,7 +35,7 @@ export default class XmppConnection {
      * @returns {boolean}
      */
     get connected() {
-        return this._stropheConn.connected === true;
+        return this._status === Strophe.Status.CONNECTED;
     }
 
     /**
@@ -120,6 +120,15 @@ export default class XmppConnection {
     }
 
     /**
+     * Returns the current connection status.
+     *
+     * @returns {Strophe.Status}
+     */
+    get status() {
+        return this._status;
+    }
+
+    /**
      * FIXME.
      *
      * @param {number} _nextValidRid - FIXME.
@@ -171,12 +180,18 @@ export default class XmppConnection {
     }
 
     /**
-     * FIXME.
+     * Wraps Strophe.Connection.connect method in order to intercept the connection status updates.
+     * See {@link Strophe.Connection.connect} for the params description.
      *
      * @returns {void}
      */
-    connect(...args) {
-        this._stropheConn.connect(...args);
+    connect(jid, pass, callback, ...args) {
+        const connectCb = (status, condition) => {
+            this._status = status;
+            callback(status, condition);
+        };
+
+        this._stropheConn.connect(jid, pass, connectCb, ...args);
     }
 
     /**
