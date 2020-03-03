@@ -251,7 +251,8 @@ export default class ChatRoom extends Listenable {
         // top of the send queue. We flush() once more after sending/queuing the
         // unavailable presence in order to attempt to have it sent as soon as
         // possible.
-        !this.xmpp.isUsingWebsocket() && this.connection.flush();
+        // FIXME do not use Strophe.Connection in the ChatRoom directly
+        !this.xmpp.connection.isUsingWebSocket && this.connection.flush();
         this.connection.send(pres);
         this.connection.flush();
     }
