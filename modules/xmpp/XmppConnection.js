@@ -1,6 +1,8 @@
 import { getLogger } from 'jitsi-meet-logger';
 import { $pres, Strophe } from 'strophe.js';
 
+import Listenable from '../util/Listenable';
+
 import LastSuccessTracker from './StropheBoshLastSuccess';
 
 const logger = getLogger(__filename);
@@ -8,7 +10,27 @@ const logger = getLogger(__filename);
 /**
  * FIXME.
  */
-export default class XmppConnection {
+export default class XmppConnection extends Listenable {
+    /**
+     * The list of {@link XmppConnection} events.
+     *
+     * @returns {Object}
+     */
+    static get Events() {
+        return {
+            CONN_STATUS_CHANGED: 'CONN_STATUS_CHANGED'
+        };
+    }
+
+    /**
+     * The list of Xmpp connection statuses.
+     *
+     * @returns {Strophe.Status}
+     */
+    static get Status() {
+        return Strophe.Status;
+    }
+
     /**
      * FIXME.
      *
@@ -16,6 +38,7 @@ export default class XmppConnection {
      * @param {String} serviceUrl - FIXME.
      */
     constructor(xmpp, serviceUrl) {
+        super();
         this.xmpp = xmpp;
         this._stropheConn = new Strophe.Connection(serviceUrl);
         this._usesWebsocket = serviceUrl.startsWith('ws:') || serviceUrl.startsWith('wss:');
@@ -189,6 +212,7 @@ export default class XmppConnection {
         const connectCb = (status, condition) => {
             this._status = status;
             callback(status, condition);
+            this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, status);
         };
 
         this._stropheConn.connect(jid, pass, connectCb, ...args);
