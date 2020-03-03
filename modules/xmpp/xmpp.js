@@ -1,7 +1,7 @@
 /* global $ */
 
 import { getLogger } from 'jitsi-meet-logger';
-import { $msg, $pres, Strophe } from 'strophe.js';
+import { $msg, Strophe } from 'strophe.js';
 import 'strophejs-plugin-disco';
 
 import RandomUtil from '../util/RandomUtil';
@@ -19,27 +19,26 @@ import Listenable from '../util/Listenable';
 import Caps from './Caps';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import XmppConnection from './XmppConnection';
 
 const logger = getLogger(__filename);
 
 /**
  * Creates XMPP connection.
+ *
+ * @param {XMPP} xmpp - The XMPP module instance.
  * @param {string} [token] - JWT token used for authentication(JWT authentication module must be enabled in Prosody).
  * @param {string} serviceUrl - The service URL for XMPP connection.
+ * @returns {XmppConnection}
  */
-function createConnection(token, serviceUrl = '/http-bind') {
+function createConnection(xmpp, token, serviceUrl = '/http-bind') {
     // Append token as URL param
     if (token) {
         // eslint-disable-next-line no-param-reassign
         serviceUrl += `${serviceUrl.indexOf('?') === -1 ? '?' : '&'}token=${token}`;
     }
 
-    const conn = new Strophe.Connection(serviceUrl);
-
-    // The default maxRetries is 5, which is too long.
-    conn.maxRetries = 3;
-
-    return conn;
+    return new XmppConnection(xmpp, serviceUrl);
 }
 
 // FIXME: remove once we have a default config template. -saghul
@@ -87,9 +86,7 @@ export default class XMPP extends Listenable {
         // FIXME remove deprecated bosh option at some point
         const serviceUrl = options.serviceUrl || options.bosh;
 
-        this.connection = createConnection(token, serviceUrl);
-
-        this._usesWebsocket = serviceUrl.startsWith('ws:') || serviceUrl.startsWith('wss:');
+        this.connection = createConnection(this, token, serviceUrl);
 
         this._lastSuccessTracker = new LastSuccessTracker();
         this._lastSuccessTracker.startTracking(this.connection);
@@ -159,15 +156,6 @@ export default class XMPP extends Listenable {
      */
     isPingSupported() {
         return this._pingSupported !== false;
-    }
-
-    /**
-     * Checks if Websocket is used as the transport for the current XMPP connection. Returns true for Websocket or false
-     * for BOSH.
-     * @returns {boolean}
-     */
-    isUsingWebsocket() {
-        return this._usesWebsocket;
     }
 
     /**
@@ -557,9 +545,9 @@ export default class XMPP extends Listenable {
         // before disconnect() in order to attempt to have its unavailable presence at the top of the send queue. We
         // flush() once more after disconnect() in order to attempt to have its unavailable presence sent as soon as
         // possible.
-        !this._usesWebsocket && this.connection.flush();
+        !this.connection.isUsingWebSocket && this.connection.flush();
 
-        if (!this._usesWebsocket && ev !== null && typeof ev !== 'undefined') {
+        if (!this.connection.isUsingWebSocket && ev !== null && typeof ev !== 'undefined') {
             const evType = ev.type;
 
             if (evType === 'beforeunload' || evType === 'unload') {
@@ -570,29 +558,7 @@ export default class XMPP extends Listenable {
 
                 // This is needed in some browsers where sync xhr sending is disabled by default on unload.
                 if (navigator.sendBeacon && !this.connection.disconnecting && this.connection.connected) {
-
-                    this.connection._changeConnectStatus(Strophe.Status.DISCONNECTING);
-                    this.connection.disconnecting = true;
-
-                    const body = this.connection._proto._buildBody()
-                        .attrs({
-                            type: 'terminate'
-                        });
-                    const pres = $pres({
-                        xmlns: Strophe.NS.CLIENT,
-                        type: 'unavailable'
-                    });
-
-                    body.cnode(pres.tree());
-
-                    const res = navigator.sendBeacon(
-                        `https:${this.connection.service}`,
-                        Strophe.serialize(body.tree()));
-
-                    logger.info(`Successfully send unavailable beacon ${res}`);
-
-                    this.connection._proto._abortAllRequests();
-                    this.connection._doDisconnect();
+                    this.connection.sendUnavailableBeacon();
 
                     return;
                 }
@@ -651,11 +617,10 @@ export default class XMPP extends Listenable {
         // check for moving between shard if information is available
         if (this.options.deploymentInfo
             && this.options.deploymentInfo.shard
-            && this.connection._proto
-            && this.connection._proto.lastResponseHeaders) {
+            && this.connection.lastResponseHeaders) {
 
             // split headers by line
-            const headersArr = this.connection._proto.lastResponseHeaders
+            const headersArr = this.connection.lastResponseHeaders
                 .trim().split(/[\r\n]+/);
             const headers = {};
 
