@@ -12,6 +12,7 @@ import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import Statistics from '../statistics/statistics';
 
 import Moderator from './moderator';
+import XmppConnection from './XmppConnection';
 
 const logger = getLogger(__filename);
 
@@ -110,6 +111,7 @@ export default class ChatRoom extends Listenable {
         this.members = {};
         this.presMap = {};
         this.presHandlers = {};
+        this._removeConnListeners = [];
         this.joined = false;
         this.role = null;
         this.focusMucJid = null;
@@ -184,6 +186,11 @@ export default class ChatRoom extends Listenable {
 
             preJoin.then(() => {
                 this.sendPresence(true);
+                this._removeConnListeners.push(
+                    this.connection.addEventListener(
+                        XmppConnection.Events.CONN_STATUS_CHANGED,
+                        this.onConnStatusChanged.bind(this))
+                );
                 resolve();
             });
         });
@@ -360,6 +367,18 @@ export default class ChatRoom extends Listenable {
             GlobalOnErrorHandler.callErrorHandler(error);
             logger.error('Error getting room configuration form: ', error);
         });
+    }
+
+    /**
+     * Handles Xmpp Connection status updates.
+     *
+     * @param {Strophe.Status} status - The Strophe connection status.
+     */
+    onConnStatusChanged(status) {
+        // Send cached presence when the XMPP connection is re-established.
+        if (status === XmppConnection.Status.CONNECTED) {
+            this.sendPresence();
+        }
     }
 
     /**
@@ -1458,6 +1477,9 @@ export default class ChatRoom extends Listenable {
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => onMucLeft(true), 5000);
             const eventEmitter = this.eventEmitter;
+
+            this._removeConnListeners.forEach(remove => remove());
+            this._removeConnListeners = [];
 
             /**
              *
