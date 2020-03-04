@@ -20,6 +20,7 @@ import Statistics from '../statistics/statistics';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import AsyncQueue from '../util/AsyncQueue';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import XmppConnection from './XmppConnection';
 
 const logger = getLogger(__filename);
 
@@ -138,6 +139,22 @@ export default class JingleSessionPC extends JingleSession {
         this._bridgeSessionId = null;
 
         /**
+         * The oldest SDP passed to {@link notifyMySSRCUpdate} while the XMPP connection was offline that will be
+         * used to update Jicofo once the XMPP connection goes back online.
+         * @type {SDP|undefined}
+         * @private
+         */
+        this._cachedOldLocalSdp = undefined;
+
+        /**
+         * The latest SDP passed to {@link notifyMySSRCUpdate} while the XMPP connection was offline that will be
+         * used to update Jicofo once the XMPP connection goes back online.
+         * @type {SDP|undefined}
+         * @private
+         */
+        this._cachedNewLocalSdp = undefined;
+
+        /**
          * Stores result of {@link window.performance.now()} at the time when
          * ICE enters 'checking' state.
          * @type {number|null} null if no value has been stored yet
@@ -232,6 +249,13 @@ export default class JingleSessionPC extends JingleSession {
          * @type {number}
          */
         this.establishmentDuration = undefined;
+
+        this._xmppListeners = [];
+        this._xmppListeners.push(
+            connection.addEventListener(
+                XmppConnection.Events.CONN_STATUS_CHANGED,
+                this.onXmppStatusChanged.bind(this))
+        );
     }
 
     /* eslint-enable max-params */
@@ -1329,7 +1353,24 @@ export default class JingleSessionPC extends JingleSession {
         // this.reasonText = reasonText;
         logger.info(`Session terminated ${this}`, reasonCondition, reasonText);
 
+        this._xmppListeners.forEach(removeListener => removeListener());
+        this._xmppListeners = [];
+
         this.close();
+    }
+
+    /**
+     * Handles XMPP connection state changes.
+     *
+     * @param {XmppConnection.Status} status - The new status.
+     */
+    onXmppStatusChanged(status) {
+        if (status === XmppConnection.Status.CONNECTED && this._cachedOldLocalSdp) {
+            logger.info('Sending SSRC update on reconnect');
+            this.notifyMySSRCUpdate(
+                this._cachedOldLocalSdp,
+                this._cachedNewLocalSdp);
+        }
     }
 
     /**
@@ -2132,6 +2173,20 @@ export default class JingleSessionPC extends JingleSession {
 
             return;
         }
+
+        if (!this.connection.connected) {
+            // The goal is to compare the oldest SDP with the latest one upon reconnect
+            if (!this._cachedOldLocalSdp) {
+                this._cachedOldLocalSdp = oldSDP;
+            }
+            this._cachedNewLocalSdp = newSDP;
+            logger.warn('Not sending SSRC update while the signaling is disconnected');
+
+            return;
+        }
+
+        this._cachedOldLocalSdp = undefined;
+        this._cachedNewLocalSdp = undefined;
 
         // send source-remove IQ.
         let sdpDiffer = new SDPDiffer(newSDP, oldSDP);
