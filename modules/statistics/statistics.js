@@ -110,6 +110,9 @@ function formatJitsiTrackErrorForCallStats(error) {
  */
 Statistics.init = function(options) {
     Statistics.audioLevelsEnabled = !options.disableAudioLevels;
+    if (typeof options.pcStatsInterval === 'number') {
+        Statistics.pcStatsInterval = options.pcStatsInterval;
+    }
 
     if (typeof options.audioLevelsInterval === 'number') {
         Statistics.audioLevelsInterval = options.audioLevelsInterval;
@@ -186,6 +189,7 @@ export default function Statistics(xmpp, options) {
 }
 Statistics.audioLevelsEnabled = false;
 Statistics.audioLevelsInterval = 200;
+Statistics.pcStatsInterval = 10000;
 Statistics.disableThirdPartyRequests = false;
 Statistics.analytics = analytics;
 
@@ -216,7 +220,7 @@ Statistics.prototype.startRemoteStats = function(peerconnection) {
             = new RTPStats(
                 peerconnection,
                 Statistics.audioLevelsInterval,
-                2000,
+                Statistics.pcStatsInterval,
                 this.eventEmitter);
 
         rtpStats.start(Statistics.audioLevelsEnabled);
