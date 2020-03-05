@@ -66,15 +66,6 @@ export default class XmppConnection {
     }
 
     /**
-     * FIXME.
-     *
-     * @returns {*}
-     */
-    get emuc() {
-        return this._stropheConn.emuc;
-    }
-
-    /**
      * Tells if Websocket is used as the transport for the current XMPP connection. Returns true for Websocket or false
      * for BOSH.
      * @returns {boolean}
@@ -90,15 +81,6 @@ export default class XmppConnection {
      */
     get jid() {
         return this._stropheConn.jid;
-    }
-
-    /**
-     * FIXME.
-     *
-     * @returns {*}
-     */
-    get jingle() {
-        return this._stropheConn.jingle;
     }
 
     /**
@@ -131,24 +113,6 @@ export default class XmppConnection {
     /**
      * FIXME.
      *
-     * @returns {PingConnectionPlugin}
-     */
-    get ping() {
-        return this._stropheConn.ping;
-    }
-
-    /**
-     * FIXME.
-     *
-     * @returns {*}
-     */
-    get rayo() {
-        return this._stropheConn.rayo;
-    }
-
-    /**
-     * FIXME.
-     *
      * @returns {string}
      */
     get service() {
@@ -174,6 +138,18 @@ export default class XmppConnection {
      */
     set service(_service) {
         this._stropheConn.service = _service;
+    }
+
+    /**
+     * Adds a connection plugin to this instance.
+     *
+     * @param {string} name - The name of the plugin or rather a key under which it will be stored on this connection
+     * instance.
+     * @param {ConnectionPluginListenable} plugin - The plugin to add.
+     */
+    addConnectionPlugin(name, plugin) {
+        this[name] = plugin;
+        plugin.init(this);
     }
 
     /**
