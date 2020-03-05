@@ -8,11 +8,11 @@ import RandomUtil from '../util/RandomUtil';
 import * as JitsiConnectionErrors from '../../JitsiConnectionErrors';
 import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
 import browser from '../browser';
-import initEmuc from './strophe.emuc';
-import initJingle from './strophe.jingle';
+import MucConnectionPlugin from './strophe.emuc';
+import JingleConnectionPlugin from './strophe.jingle';
 import initStropheUtil from './strophe.util';
-import initPing from './strophe.ping';
-import initRayo from './strophe.rayo';
+import PingConnectionPlugin from './strophe.ping';
+import RayoConnectionPlugin from './strophe.rayo';
 import initStropheLogger from './strophe.logger';
 import Listenable from '../util/Listenable';
 import Caps from './Caps';
@@ -38,6 +38,17 @@ function createConnection(xmpp, token, serviceUrl = '/http-bind') {
     }
 
     return new XmppConnection(xmpp, serviceUrl);
+}
+
+/**
+ * Initializes Strophe plugins that need to work with Strophe.Connection directly rather than the lib-jitsi-meet's
+ * {@link XmppConnection} wrapper.
+ *
+ * @returns {void}
+ */
+function initStropheNativePlugins() {
+    initStropheUtil();
+    initStropheLogger();
 }
 
 // FIXME: remove once we have a default config template. -saghul
@@ -80,12 +91,15 @@ export default class XMPP extends Listenable {
         this.options = options;
         this.token = token;
         this.authenticatedUser = false;
-        this._initStrophePlugins(this);
 
         // FIXME remove deprecated bosh option at some point
         const serviceUrl = options.serviceUrl || options.bosh;
 
+        initStropheNativePlugins();
+
         this.connection = createConnection(this, token, serviceUrl);
+
+        this._initStrophePlugins();
 
         this.caps = new Caps(this.connection, this.options.clientNode);
 
@@ -593,12 +607,10 @@ export default class XMPP extends Listenable {
                 = this.options.p2p.iceTransportPolicy;
         }
 
-        initEmuc(this);
-        initJingle(this, this.eventEmitter, iceConfig);
-        initStropheUtil();
-        initPing(this);
-        initRayo();
-        initStropheLogger();
+        this.connection.addConnectionPlugin('emuc', new MucConnectionPlugin(this));
+        this.connection.addConnectionPlugin('jingle', new JingleConnectionPlugin(this, this.eventEmitter, iceConfig));
+        this.connection.addConnectionPlugin('ping', new PingConnectionPlugin(this));
+        this.connection.addConnectionPlugin('rayo', new RayoConnectionPlugin());
     }
 
     /**

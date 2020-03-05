@@ -25,7 +25,7 @@ const logger = getLogger(__filename);
 /**
  *
  */
-class JingleConnectionPlugin extends ConnectionPlugin {
+export default class JingleConnectionPlugin extends ConnectionPlugin {
     /**
      * Creates new <tt>JingleConnectionPlugin</tt>
      * @param {XMPP} xmpp
@@ -404,15 +404,3 @@ class JingleConnectionPlugin extends ConnectionPlugin {
 }
 
 /* eslint-enable newline-per-chained-call */
-
-/**
- *
- * @param XMPP
- * @param eventEmitter
- * @param iceConfig
- */
-export default function initJingle(XMPP, eventEmitter, iceConfig) {
-    Strophe.addConnectionPlugin(
-        'jingle',
-        new JingleConnectionPlugin(XMPP, eventEmitter, iceConfig));
-}

@@ -90,7 +90,7 @@ export default class ChatRoom extends Listenable {
 
     /**
      *
-     * @param connection
+     * @param {XmppConnection} connection - The XMPP connection instance.
      * @param jid
      * @param password
      * @param XMPP
@@ -252,7 +252,7 @@ export default class ChatRoom extends Listenable {
         // unavailable presence in order to attempt to have it sent as soon as
         // possible.
         // FIXME do not use Strophe.Connection in the ChatRoom directly
-        !this.xmpp.connection.isUsingWebSocket && this.connection.flush();
+        !this.connection.isUsingWebSocket && this.connection.flush();
         this.connection.send(pres);
         this.connection.flush();
     }

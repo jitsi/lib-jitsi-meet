@@ -98,8 +98,7 @@ export default class JingleSessionPC extends JingleSession {
      * identifies the session
      * @param {string} localJid our JID
      * @param {string} remoteJid remote peer JID
-     * @param {Strophe.Connection} connection Strophe XMPP connection instance
-     * used to send packets.
+     * @param {XmppConnection} connection - The XMPP connection instance.
      * @param mediaConstraints the media constraints object passed to
      * createOffer/Answer, as defined by the WebRTC standard
      * @param iceConfig the ICE servers config object as defined by the WebRTC

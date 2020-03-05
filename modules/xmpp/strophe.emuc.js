@@ -12,7 +12,7 @@ const logger = getLogger(__filename);
 /**
  * MUC connection plugin.
  */
-class MucConnectionPlugin extends ConnectionPluginListenable {
+export default class MucConnectionPlugin extends ConnectionPluginListenable {
     /**
      *
      * @param xmpp
@@ -174,12 +174,4 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
 
         return true;
     }
-}
-
-/**
- *
- * @param XMPP
- */
-export default function(XMPP) {
-    Strophe.addConnectionPlugin('emuc', new MucConnectionPlugin(XMPP));
 }
