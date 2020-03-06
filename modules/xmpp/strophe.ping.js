@@ -89,14 +89,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
      * @param interval task interval in ms.
      */
     startInterval(remoteJid, interval = PING_INTERVAL) {
-        if (this.intervalId) {
-            const errmsg = 'Ping task scheduled already';
-
-            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
-            logger.error(errmsg);
-
-            return;
-        }
+        clearInterval(this.intervalId);
         this.intervalId = window.setInterval(() => {
             this.ping(remoteJid, () => {
                 this.failedPings = 0;

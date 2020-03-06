@@ -26,6 +26,7 @@
     "sdp-transform": "2.3.0",
     "strophe.js": "1.3.4",
     "strophejs-plugin-disco": "0.0.2",
+    "strophejs-plugin-stream-management": "github:jitsi/strophejs-plugin-stream-management#259542c7a4c5a564c14c14b6fcb6eaba025e5dfc",
     "webrtc-adapter": "github:webrtc/adapter#1eec19782b4058d186341263e7d049cea3e3290a"
   },
   "devDependencies": {
