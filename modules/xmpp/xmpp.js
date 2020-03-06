@@ -25,19 +25,24 @@ const logger = getLogger(__filename);
 /**
  * Creates XMPP connection.
  *
- * @param {XMPP} xmpp - The XMPP module instance.
- * @param {string} [token] - JWT token used for authentication(JWT authentication module must be enabled in Prosody).
- * @param {string} serviceUrl - The service URL for XMPP connection.
+ * @param {Object} options
+ * @param {string} [options.token] - JWT token used for authentication(JWT authentication module must be enabled in
+ * Prosody).
+ * @param {string} options.serviceUrl - The service URL for XMPP connection.
+ * @param {string} options.enableWebsocketResume - True to enable stream resumption.
  * @returns {XmppConnection}
  */
-function createConnection(xmpp, token, serviceUrl = '/http-bind') {
+function createConnection({ enableWebsocketResume, serviceUrl = '/http-bind', token }) {
     // Append token as URL param
     if (token) {
         // eslint-disable-next-line no-param-reassign
         serviceUrl += `${serviceUrl.indexOf('?') === -1 ? '?' : '&'}token=${token}`;
     }
 
-    return new XmppConnection(xmpp, serviceUrl);
+    return new XmppConnection({
+        enableWebsocketResume,
+        serviceUrl
+    });
 }
 
 /**
@@ -79,6 +84,8 @@ export default class XMPP extends Listenable {
      * @param {String} options.serviceUrl - URL passed to the XMPP client which will be used to establish XMPP
      * connection with the server.
      * @param {String} options.bosh - Deprecated, use {@code serviceUrl}.
+     * @param {boolean} options.enableWebsocketResume - Enables XEP-0198 stream management which will make the XMPP
+     * module try to resume the session in case the Websocket connection breaks.
      * @param {Array<Object>} options.p2pStunServers see
      * {@link JingleConnectionPlugin} for more details.
      * @param token
@@ -92,12 +99,15 @@ export default class XMPP extends Listenable {
         this.token = token;
         this.authenticatedUser = false;
 
-        // FIXME remove deprecated bosh option at some point
-        const serviceUrl = options.serviceUrl || options.bosh;
-
         initStropheNativePlugins();
 
-        this.connection = createConnection(this, token, serviceUrl);
+        this.connection = createConnection({
+            enableWebsocketResume: options.enableWebsocketResume,
+
+            // FIXME remove deprecated bosh option at some point
+            serviceUrl: options.serviceUrl || options.bosh,
+            token
+        });
 
         this._initStrophePlugins();
 
@@ -208,6 +218,7 @@ export default class XMPP extends Listenable {
             // Schedule ping ?
             const pingJid = this.connection.domain;
 
+            // FIXME no need to do it again on stream resume
             this.caps.getFeaturesAndIdentities(pingJid)
                 .then(({ features, identities }) => {
                     if (features.has(Strophe.NS.PING)) {

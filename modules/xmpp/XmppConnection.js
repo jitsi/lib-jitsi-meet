@@ -1,5 +1,6 @@
 import { getLogger } from 'jitsi-meet-logger';
 import { $pres, Strophe } from 'strophe.js';
+import 'strophejs-plugin-stream-management';
 
 import Listenable from '../util/Listenable';
 
@@ -34,12 +35,13 @@ export default class XmppConnection extends Listenable {
     /**
      * FIXME.
      *
-     * @param {XMPP} xmpp - FIXME.
-     * @param {String} serviceUrl - FIXME.
+     * @param {Object} options
+     * @param {String} options.serviceUrl - The BOSH or WebSocket service URL.
+     * @param {String} options.enableWebsocketResume - True to enable stream resumption.
      */
-    constructor(xmpp, serviceUrl) {
+    constructor({ enableWebsocketResume, serviceUrl }) {
         super();
-        this.xmpp = xmpp;
+        this._options = { enableWebsocketResume };
         this._stropheConn = new Strophe.Connection(serviceUrl);
         this._usesWebsocket = serviceUrl.startsWith('ws:') || serviceUrl.startsWith('wss:');
 
@@ -211,8 +213,20 @@ export default class XmppConnection extends Listenable {
     connect(jid, pass, callback, ...args) {
         const connectCb = (status, condition) => {
             this._status = status;
-            callback(status, condition);
-            this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, status);
+
+            let blockCallback = false;
+
+            if (status === Strophe.Status.CONNECTED) {
+                this._maybeEnableStreamResume();
+            } else if (status === Strophe.Status.DISCONNECTED) {
+                // FIXME add RECONNECTING state instead of blocking the DISCONNECTED update
+                blockCallback = this._tryResumingConnection();
+            }
+
+            if (!blockCallback) {
+                callback(status, condition);
+                this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, status);
+            }
         };
 
         this._stropheConn.connect(jid, pass, connectCb, ...args);
@@ -233,6 +247,7 @@ export default class XmppConnection extends Listenable {
      * @returns {void}
      */
     disconnect(...args) {
+        clearTimeout(this._resumeTimeout);
         this._stropheConn.disconnect(...args);
     }
 
@@ -254,6 +269,31 @@ export default class XmppConnection extends Listenable {
         return this._lastSuccessTracker
             ? this._lastSuccessTracker.getTimeSinceLastSuccess()
             : null;
+    }
+
+    /**
+     * Requests a resume token from the server if enabled and all requirements are met.
+     *
+     * @private
+     */
+    _maybeEnableStreamResume() {
+        if (!this._options.enableWebsocketResume) {
+
+            return;
+        }
+
+        const { streamManagement } = this._stropheConn;
+
+        if (!this.isUsingWebSocket) {
+            logger.warn('Stream resume enabled, but WebSockets are not enabled');
+        } else if (!streamManagement) {
+            logger.warn('Stream resume enabled, but Strophe streamManagement plugin is not installed');
+        } else if (!streamManagement.isSupported()) {
+            logger.warn('Stream resume enabled, but XEP-0198 is not supported by the server');
+        } else if (!streamManagement.getResumeToken()) {
+            logger.info('Enabling XEP-0198 stream management');
+            streamManagement.enable(/* resume */ true);
+        }
     }
 
     /**
@@ -337,5 +377,38 @@ export default class XmppConnection extends Listenable {
 
         this._stropheConn._proto._abortAllRequests();
         this._stropheConn._doDisconnect();
+    }
+
+    /**
+     * Tries to use stream management plugin to resume dropped XMPP connection. The streamManagement plugin clears
+     * the resume token if any connection error occurs which would put it in unrecoverable state, so as long as
+     * the token is present it means the connection can be resumed.
+     *
+     * @private
+     * @returns {boolean}
+     */
+    _tryResumingConnection() {
+        const { streamManagement } = this._stropheConn;
+        const resumeToken = streamManagement && streamManagement.getResumeToken();
+
+        if (resumeToken) {
+            clearTimeout(this._resumeTimeout);
+            this._resumeTimeout = setTimeout(() => {
+                logger.info('Trying to resume the XMPP connection');
+
+                const url = new URL(this._stropheConn.service);
+
+                url.searchParams.set('previd', resumeToken);
+
+                // FIXME remove XmppConnection 'service' setter
+                this._stropheConn.service = url.toString();
+
+                streamManagement.resume();
+            }, 3000 /* FIXME calculate delay with jitter */);
+
+            return true;
+        }
+
+        return false;
     }
 }
