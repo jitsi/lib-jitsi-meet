@@ -14,7 +14,6 @@ import initStropheUtil from './strophe.util';
 import initPing from './strophe.ping';
 import initRayo from './strophe.rayo';
 import initStropheLogger from './strophe.logger';
-import LastSuccessTracker from './StropheBoshLastSuccess';
 import Listenable from '../util/Listenable';
 import Caps from './Caps';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
@@ -87,9 +86,6 @@ export default class XMPP extends Listenable {
         const serviceUrl = options.serviceUrl || options.bosh;
 
         this.connection = createConnection(this, token, serviceUrl);
-
-        this._lastSuccessTracker = new LastSuccessTracker();
-        this._lastSuccessTracker.startTracking(this.connection);
 
         this.caps = new Caps(this.connection, this.options.clientNode);
 
@@ -642,7 +638,7 @@ export default class XMPP extends Listenable {
         /* eslint-disable camelcase */
         // check for possible suspend
         details.suspend_time = this.connection.ping.getPingSuspendTime();
-        details.time_since_last_success = this._lastSuccessTracker.getTimeSinceLastSuccess();
+        details.time_since_last_success = this.connection.getTimeSinceLastBOSHSuccess();
         /* eslint-enable camelcase */
 
         return details;

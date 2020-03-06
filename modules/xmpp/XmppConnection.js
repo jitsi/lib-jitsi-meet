@@ -1,6 +1,8 @@
 import { getLogger } from 'jitsi-meet-logger';
 import { $pres, Strophe } from 'strophe.js';
 
+import LastSuccessTracker from './StropheBoshLastSuccess';
+
 const logger = getLogger(__filename);
 
 /**
@@ -20,6 +22,11 @@ export default class XmppConnection {
 
         // The default maxRetries is 5, which is too long.
         this._stropheConn.maxRetries = 3;
+
+        if (!this._usesWebsocket) {
+            this._lastSuccessTracker = new LastSuccessTracker();
+            this._lastSuccessTracker.startTracking(this._stropheConn);
+        }
     }
 
     /**
@@ -221,6 +228,17 @@ export default class XmppConnection {
      */
     flush(...args) {
         this._stropheConn.flush(...args);
+    }
+
+    /**
+     * See {@link LastRequestTracker.getTimeSinceLastSuccess}.
+     *
+     * @returns {number|null}
+     */
+    getTimeSinceLastBOSHSuccess() {
+        return this._lastSuccessTracker
+            ? this._lastSuccessTracker.getTimeSinceLastSuccess()
+            : null;
     }
 
     /**
