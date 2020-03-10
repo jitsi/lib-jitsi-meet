@@ -215,6 +215,8 @@ export default class XMPP extends Listenable {
 
             logger.info(`My Jabber ID: ${this.connection.jid}`);
 
+            this.lastErrorMsg = undefined;
+
             // Schedule ping ?
             const pingJid = this.connection.domain;
 
@@ -277,6 +279,8 @@ export default class XMPP extends Listenable {
                     JitsiConnectionEvents.CONNECTION_FAILED,
                     JitsiConnectionErrors.OTHER_ERROR, msg);
             }
+        } else if (status === Strophe.Status.ERROR) {
+            this.lastErrorMsg = msg;
         } else if (status === Strophe.Status.DISCONNECTED) {
             // Stop ping interval
             this.connection.ping.stopInterval();
