@@ -37,7 +37,8 @@ export default class XmppConnection extends Listenable {
      *
      * @param {Object} options
      * @param {String} options.serviceUrl - The BOSH or WebSocket service URL.
-     * @param {String} options.enableWebsocketResume - True to enable stream resumption.
+     * @param {String} [options.enableWebsocketResume=true] - True/false to control the stream resumption functionality.
+     * It will enable automatically by default if supported by the XMPP server.
      * @param {Number} [options.websocketKeepAlive=240000] - The websocket keep alive interval. It's 4 minutes by
      * default with jitter. Pass -1 to disable. The actual interval equation is:
      * jitterDelay = (interval * 0.2) + (0.8 * interval * Math.random())
@@ -46,7 +47,7 @@ export default class XmppConnection extends Listenable {
     constructor({ enableWebsocketResume, websocketKeepAlive, serviceUrl }) {
         super();
         this._options = {
-            enableWebsocketResume,
+            enableWebsocketResume: typeof enableWebsocketResume === 'undefined' ? true : enableWebsocketResume,
             websocketKeepAlive: typeof websocketKeepAlive === 'undefined' ? 4 * 60 * 1000 : Number(websocketKeepAlive)
         };
         this._stropheConn = new Strophe.Connection(serviceUrl);
