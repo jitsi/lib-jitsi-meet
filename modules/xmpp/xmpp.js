@@ -30,9 +30,10 @@ const logger = getLogger(__filename);
  * Prosody).
  * @param {string} options.serviceUrl - The service URL for XMPP connection.
  * @param {string} options.enableWebsocketResume - True to enable stream resumption.
+ * @param {number} [options.websocketKeepAlive] - See {@link XmppConnection} constructor.
  * @returns {XmppConnection}
  */
-function createConnection({ enableWebsocketResume, serviceUrl = '/http-bind', token }) {
+function createConnection({ enableWebsocketResume, serviceUrl = '/http-bind', token, websocketKeepAlive }) {
     // Append token as URL param
     if (token) {
         // eslint-disable-next-line no-param-reassign
@@ -41,7 +42,8 @@ function createConnection({ enableWebsocketResume, serviceUrl = '/http-bind', to
 
     return new XmppConnection({
         enableWebsocketResume,
-        serviceUrl
+        serviceUrl,
+        websocketKeepAlive
     });
 }
 
@@ -86,8 +88,9 @@ export default class XMPP extends Listenable {
      * @param {String} options.bosh - Deprecated, use {@code serviceUrl}.
      * @param {boolean} options.enableWebsocketResume - Enables XEP-0198 stream management which will make the XMPP
      * module try to resume the session in case the Websocket connection breaks.
-     * @param {Array<Object>} options.p2pStunServers see
-     * {@link JingleConnectionPlugin} for more details.
+     * @param {number} [options.websocketKeepAlive] - The websocket keep alive interval. See {@link XmppConnection}
+     * constructor for more details.
+     * @param {Array<Object>} options.p2pStunServers see {@link JingleConnectionPlugin} for more details.
      * @param token
      */
     constructor(options, token) {
@@ -106,7 +109,8 @@ export default class XMPP extends Listenable {
 
             // FIXME remove deprecated bosh option at some point
             serviceUrl: options.serviceUrl || options.bosh,
-            token
+            token,
+            websocketKeepAlive: options.websocketKeepAlive
         });
 
         this._initStrophePlugins();
