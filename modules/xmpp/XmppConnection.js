@@ -38,10 +38,17 @@ export default class XmppConnection extends Listenable {
      * @param {Object} options
      * @param {String} options.serviceUrl - The BOSH or WebSocket service URL.
      * @param {String} options.enableWebsocketResume - True to enable stream resumption.
+     * @param {Number} [options.websocketKeepAlive=240000] - The websocket keep alive interval. It's 4 minutes by
+     * default with jitter. Pass -1 to disable. The actual interval equation is:
+     * jitterDelay = (interval * 0.2) + (0.8 * interval * Math.random())
+     * The keep alive is HTTP GET request to the {@link options.serviceUrl}.
      */
-    constructor({ enableWebsocketResume, serviceUrl }) {
+    constructor({ enableWebsocketResume, websocketKeepAlive, serviceUrl }) {
         super();
-        this._options = { enableWebsocketResume };
+        this._options = {
+            enableWebsocketResume,
+            websocketKeepAlive: typeof websocketKeepAlive === 'undefined' ? 4 * 60 * 1000 : Number(websocketKeepAlive)
+        };
         this._stropheConn = new Strophe.Connection(serviceUrl);
         this._usesWebsocket = serviceUrl.startsWith('ws:') || serviceUrl.startsWith('wss:');
 
@@ -218,9 +225,13 @@ export default class XmppConnection extends Listenable {
 
             if (status === Strophe.Status.CONNECTED) {
                 this._maybeEnableStreamResume();
+                this._maybeStartWSKeepAlive();
             } else if (status === Strophe.Status.DISCONNECTED) {
                 // FIXME add RECONNECTING state instead of blocking the DISCONNECTED update
                 blockCallback = this._tryResumingConnection();
+                if (!blockCallback) {
+                    clearTimeout(this._wsKeepAlive);
+                }
             }
 
             if (!blockCallback) {
@@ -248,6 +259,7 @@ export default class XmppConnection extends Listenable {
      */
     disconnect(...args) {
         clearTimeout(this._resumeTimeout);
+        clearTimeout(this._wsKeepAlive);
         this._stropheConn.disconnect(...args);
     }
 
@@ -293,6 +305,36 @@ export default class XmppConnection extends Listenable {
         } else if (!streamManagement.getResumeToken()) {
             logger.info('Enabling XEP-0198 stream management');
             streamManagement.enable(/* resume */ true);
+        }
+    }
+
+    /**
+     * Starts the Websocket keep alive if enabled.
+     *
+     * @private
+     * @returns {void}
+     */
+    _maybeStartWSKeepAlive() {
+        const { websocketKeepAlive } = this._options;
+
+        if (this._usesWebsocket && websocketKeepAlive > 0) {
+            this._wsKeepAlive || logger.info(`WebSocket keep alive interval: ${websocketKeepAlive}ms`);
+            clearTimeout(this._wsKeepAlive);
+
+            const intervalWithJitter
+                = /* base */ (websocketKeepAlive * 0.2) + /* jitter */ (Math.random() * 0.8 * websocketKeepAlive);
+
+            logger.debug(`Scheduling next WebSocket keep-alive in ${intervalWithJitter}ms`);
+
+            this._wsKeepAlive = setTimeout(() => {
+                const url = this.service.replace('wss', 'https').replace('ws', 'http');
+
+                fetch(url).catch(
+                    error => {
+                        logger.error(`Websocket Keep alive failed for url: ${url}`, { error });
+                    })
+                    .then(() => this._maybeStartWSKeepAlive());
+            }, intervalWithJitter);
         }
     }
 
