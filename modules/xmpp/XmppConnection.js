@@ -162,16 +162,6 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * FIXME.
-     *
-     * @param {string} _service - FIXME.
-     * @returns {void}
-     */
-    set service(_service) {
-        this._stropheConn.service = _service;
-    }
-
-    /**
      * Adds a connection plugin to this instance.
      *
      * @param {string} name - The name of the plugin or rather a key under which it will be stored on this connection
