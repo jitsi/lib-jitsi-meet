@@ -3,6 +3,7 @@ import { $pres, Strophe } from 'strophe.js';
 import 'strophejs-plugin-stream-management';
 
 import Listenable from '../util/Listenable';
+import { getJitterDelay } from '../util/Retry';
 
 import LastSuccessTracker from './StropheBoshLastSuccess';
 
@@ -50,6 +51,13 @@ export default class XmppConnection extends Listenable {
             enableWebsocketResume: typeof enableWebsocketResume === 'undefined' ? true : enableWebsocketResume,
             websocketKeepAlive: typeof websocketKeepAlive === 'undefined' ? 4 * 60 * 1000 : Number(websocketKeepAlive)
         };
+
+        /**
+         * The counter increased before each resume retry attempt, used to calculate exponential backoff.
+         * @type {number}
+         * @private
+         */
+        this._resumeRetryN = 0;
         this._stropheConn = new Strophe.Connection(serviceUrl);
         this._usesWebsocket = serviceUrl.startsWith('ws:') || serviceUrl.startsWith('wss:');
 
@@ -206,6 +214,7 @@ export default class XmppConnection extends Listenable {
             if (status === Strophe.Status.CONNECTED) {
                 this._maybeEnableStreamResume();
                 this._maybeStartWSKeepAlive();
+                this._resumeRetryN = 0;
             } else if (status === Strophe.Status.DISCONNECTED) {
                 // FIXME add RECONNECTING state instead of blocking the DISCONNECTED update
                 blockCallback = this._tryResumingConnection();
@@ -421,6 +430,17 @@ export default class XmppConnection extends Listenable {
 
         if (resumeToken) {
             clearTimeout(this._resumeTimeout);
+
+            // FIXME detect internet offline
+            // The retry delay will be:
+            //   1st retry: 1.5s - 3s
+            //   2nd retry: 3s - 9s
+            //   3rd retry: 3s - 27s
+            this._resumeRetryN = Math.min(3, this._resumeRetryN + 1);
+            const retryTimeout = getJitterDelay(this._resumeRetryN, 1500, 3);
+
+            logger.info(`Will try to resume the XMPP connection in ${retryTimeout}ms`);
+
             this._resumeTimeout = setTimeout(() => {
                 logger.info('Trying to resume the XMPP connection');
 
@@ -428,11 +448,10 @@ export default class XmppConnection extends Listenable {
 
                 url.searchParams.set('previd', resumeToken);
 
-                // FIXME remove XmppConnection 'service' setter
                 this._stropheConn.service = url.toString();
 
                 streamManagement.resume();
-            }, 3000 /* FIXME calculate delay with jitter */);
+            }, retryTimeout);
 
             return true;
         }
