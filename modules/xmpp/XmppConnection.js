@@ -9,7 +9,7 @@ import LastSuccessTracker from './StropheBoshLastSuccess';
 const logger = getLogger(__filename);
 
 /**
- * FIXME.
+ * The lib-jitsi-meet layer for {@link Strophe.Connection}.
  */
 export default class XmppConnection extends Listenable {
     /**
@@ -33,7 +33,7 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * FIXME.
+     * Initializes new connection instance.
      *
      * @param {Object} options
      * @param {String} options.serviceUrl - The BOSH or WebSocket service URL.
@@ -63,7 +63,7 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * FIXME.
+     * A getter for the connected state.
      *
      * @returns {boolean}
      */
@@ -72,7 +72,7 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * FIXME.
+     * Retrieves the feature discovery plugin instance.
      *
      * @returns {Strophe.Connection.disco}
      */
@@ -81,7 +81,7 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * FIXME.
+     * A getter for the disconnecting state.
      *
      * @returns {boolean}
      */
@@ -90,7 +90,7 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * FIXME.
+     * A getter for the domain.
      *
      * @returns {string|null}
      */
@@ -108,7 +108,7 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * FIXME.
+     * A getter for the JID.
      *
      * @returns {string|null}
      */
@@ -117,7 +117,7 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * FIXME.
+     * Returns headers for the last BOSH response received.
      *
      * @returns {string}
      */
@@ -126,7 +126,7 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * FIXME.
+     * A getter for the logger plugin instance.
      *
      * @returns {*}
      */
@@ -135,7 +135,7 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * FIXME.
+     * A getter for the connection options.
      *
      * @returns {*}
      */
@@ -144,7 +144,7 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * FIXME.
+     * A getter for the service URL.
      *
      * @returns {string}
      */
@@ -174,7 +174,7 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * FIXME.
+     * See {@link Strophe.Connection.addHandler}
      *
      * @returns {void}
      */
@@ -183,7 +183,7 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * FIXME.
+     * See {@link Strophe.Connection.attach}.
      *
      * @returns {void}
      */
@@ -224,7 +224,7 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * FIXME.
+     * The method is meant to be used for testing. It's a shortcut for closing the WebSocket.
      *
      * @returns {void}
      */
@@ -233,7 +233,7 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * FIXME.
+     * See {@link Strophe.Connection.disconnect}.
      *
      * @returns {void}
      */
@@ -244,7 +244,7 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * FIXME.
+     * See {@link Strophe.Connection.flush}.
      *
      * @returns {void}
      */
