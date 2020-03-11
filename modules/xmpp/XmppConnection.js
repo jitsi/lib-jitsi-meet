@@ -190,13 +190,15 @@ export default class XmppConnection extends Listenable {
         this._stropheConn.addHandler(...args);
     }
 
+    /* eslint-disable max-params */
     /**
-     * See {@link Strophe.Connection.attach}.
+     * Wraps {@link Strophe.Connection.attach} method in order to intercept the connection status updates.
+     * See {@link Strophe.Connection.attach} for the params description.
      *
      * @returns {void}
      */
-    attach(...args) {
-        this._stropheConn.attach(...args);
+    attach(jid, sid, rid, callback, ...args) {
+        this._stropheConn.attach(jid, sid, rid, this._stropheConnectionCb.bind(this, callback), ...args);
     }
 
     /**
@@ -206,30 +208,41 @@ export default class XmppConnection extends Listenable {
      * @returns {void}
      */
     connect(jid, pass, callback, ...args) {
-        const connectCb = (status, ...cbArgs) => {
-            this._status = status;
+        this._stropheConn.connect(jid, pass, this._stropheConnectionCb.bind(this, callback), ...args);
+    }
 
-            let blockCallback = false;
+    /* eslint-enable max-params */
 
-            if (status === Strophe.Status.CONNECTED) {
-                this._maybeEnableStreamResume();
-                this._maybeStartWSKeepAlive();
-                this._resumeRetryN = 0;
-            } else if (status === Strophe.Status.DISCONNECTED) {
-                // FIXME add RECONNECTING state instead of blocking the DISCONNECTED update
-                blockCallback = this._tryResumingConnection();
-                if (!blockCallback) {
-                    clearTimeout(this._wsKeepAlive);
-                }
-            }
+    /**
+     * Handles {@link Strophe.Status} updates for the current connection.
+     *
+     * @param {function} targetCallback - The callback passed by the {@link XmppConnection} consumer to one of
+     * the connect methods.
+     * @param {Strophe.Status} status - The new connection status.
+     * @param {*} args - The rest of the arguments passed by Strophe.
+     * @private
+     */
+    _stropheConnectionCb(targetCallback, status, ...args) {
+        this._status = status;
 
+        let blockCallback = false;
+
+        if (status === Strophe.Status.CONNECTED) {
+            this._maybeEnableStreamResume();
+            this._maybeStartWSKeepAlive();
+            this._resumeRetryN = 0;
+        } else if (status === Strophe.Status.DISCONNECTED) {
+            // FIXME add RECONNECTING state instead of blocking the DISCONNECTED update
+            blockCallback = this._tryResumingConnection();
             if (!blockCallback) {
-                callback(status, ...cbArgs);
-                this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, status);
+                clearTimeout(this._wsKeepAlive);
             }
-        };
+        }
 
-        this._stropheConn.connect(jid, pass, connectCb, ...args);
+        if (!blockCallback) {
+            targetCallback(status, ...args);
+            this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, status);
+        }
     }
 
     /**
