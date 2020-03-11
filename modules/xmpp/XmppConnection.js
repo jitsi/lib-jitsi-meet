@@ -372,11 +372,15 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
-     * FIXME.
+     * The method gracefully closes the BOSH connection by using 'navigator.sendBeacon'.
      *
-     * @returns {void}
+     * @returns {boolean} - true if the beacon was sent.
      */
     sendUnavailableBeacon() {
+        if (!navigator.sendBeacon || this.connection.disconnecting || !this.connection.connected) {
+            return false;
+        }
+
         this._stropheConn._changeConnectStatus(Strophe.Status.DISCONNECTING);
         this._stropheConn.disconnecting = true;
 
@@ -399,6 +403,8 @@ export default class XmppConnection extends Listenable {
 
         this._stropheConn._proto._abortAllRequests();
         this._stropheConn._doDisconnect();
+
+        return true;
     }
 
     /**
