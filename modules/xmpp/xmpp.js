@@ -586,8 +586,7 @@ export default class XMPP extends Listenable {
                 this.connection.options.sync = true;
 
                 // This is needed in some browsers where sync xhr sending is disabled by default on unload.
-                if (navigator.sendBeacon && !this.connection.disconnecting && this.connection.connected) {
-                    this.connection.sendUnavailableBeacon();
+                if (this.connection.sendUnavailableBeacon()) {
 
                     return;
                 }
