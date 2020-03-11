@@ -206,7 +206,7 @@ export default class XmppConnection extends Listenable {
      * @returns {void}
      */
     connect(jid, pass, callback, ...args) {
-        const connectCb = (status, condition) => {
+        const connectCb = (status, ...cbArgs) => {
             this._status = status;
 
             let blockCallback = false;
@@ -224,7 +224,7 @@ export default class XmppConnection extends Listenable {
             }
 
             if (!blockCallback) {
-                callback(status, condition);
+                callback(status, ...cbArgs);
                 this.eventEmitter.emit(XmppConnection.Events.CONN_STATUS_CHANGED, status);
             }
         };
