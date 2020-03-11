@@ -164,17 +164,6 @@ export default class XmppConnection extends Listenable {
     /**
      * FIXME.
      *
-     * @param {number} _nextValidRid - FIXME.
-     * @returns {void}
-     */
-    set nextValidRid(_nextValidRid) {
-        // FIXME test
-        this._stropheConn.nextValidRid = _nextValidRid;
-    }
-
-    /**
-     * FIXME.
-     *
      * @param {string} _service - FIXME.
      * @returns {void}
      */
