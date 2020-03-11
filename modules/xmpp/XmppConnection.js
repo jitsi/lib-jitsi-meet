@@ -76,7 +76,7 @@ export default class XmppConnection extends Listenable {
      * @returns {boolean}
      */
     get connected() {
-        return this._status === Strophe.Status.CONNECTED;
+        return this._status === Strophe.Status.CONNECTED || this._status === Strophe.Status.ATTACHED;
     }
 
     /**
