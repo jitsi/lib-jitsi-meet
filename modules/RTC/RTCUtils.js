@@ -1303,7 +1303,6 @@ class RTCUtils extends Listenable {
             const desktopVideoTracks = stream.getVideoTracks();
 
             if (desktopVideoTracks.length) {
-
                 const desktopVideoStream = new MediaStream(desktopVideoTracks);
 
                 mediaStreamsMetaData.push({

@@ -8,10 +8,10 @@ import { createAudioContext } from './WebAudioUtils';
 const logger = getLogger(__filename);
 
 /**
- * The AudioMixer, as the name implies, mixes a number MediaStreams containing audio tracks into a single MediaStream.
+ * The AudioMixer, as the name implies, mixes a number of MediaStreams containing audio tracks into a single
+ * MediaStream.
  */
 export default class AudioMixer {
-
     /**
      * Create AudioMixer instance.
      */
@@ -50,7 +50,6 @@ export default class AudioMixer {
      * is added.
      */
     start() {
-
         // If the mixer was already started just return the existing mixed stream.
         if (this._started) {
             return this._mixedMSD.stream;
@@ -77,7 +76,6 @@ export default class AudioMixer {
         }
 
         this._mixedMSD = this._audioContext.createMediaStreamDestination();
-
         this._channelMerger.connect(this._mixedMSD);
 
         return this._mixedMSD.stream;
