@@ -399,7 +399,7 @@ export default class XmppConnection extends Listenable {
      * @returns {boolean} - true if the beacon was sent.
      */
     sendUnavailableBeacon() {
-        if (!navigator.sendBeacon || this.connection.disconnecting || !this.connection.connected) {
+        if (!navigator.sendBeacon || this._stropheConn.disconnecting || !this._stropheConn.connected) {
             return false;
         }
 
