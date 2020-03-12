@@ -14,6 +14,8 @@ const IDENTITY_PROPERTIES = [ 'category', 'type', 'lang', 'name' ];
 const IDENTITY_PROPERTIES_FOR_COMPARE = [ 'category', 'type', 'lang' ];
 const HASH = 'sha-1';
 
+export const ERROR_FEATURE_VERSION_MISMATCH = 'Feature version mismatch';
+
 /**
  *
  * @param a
@@ -167,7 +169,7 @@ export default class Caps extends Listenable {
                         logger.error(`Expected node ${node} but received ${
                             receivedNode}`);
 
-                        return Promise.reject('Feature version mismatch');
+                        return Promise.reject(ERROR_FEATURE_VERSION_MISMATCH);
                     }
                 });
         }

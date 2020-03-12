@@ -6,6 +6,7 @@ import { getLogger } from 'jitsi-meet-logger';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import { ParticipantConnectionStatus }
     from './modules/connectivity/ParticipantConnectionStatus';
+import { ERROR_FEATURE_VERSION_MISMATCH } from './modules/xmpp/Caps';
 import * as MediaType from './service/RTC/MediaType';
 
 const logger = getLogger(__filename);
@@ -246,11 +247,8 @@ export default class JitsiParticipant {
 
         this._getFeaturesPromise = this._conference.xmpp.caps.getFeatures(this._jid, timeout)
             .catch(error => {
-                // FIXME there's a risk of getting into an endless loop should anything along the way decide to reject
-                //  with a string. Compare against a specific string instead.
-                // when we detect version mismatch we return a string as error
-                // we want to retry in such case
-                if (error && error.constructor === String) {
+                // Retry on feature version mismatch
+                if (error === ERROR_FEATURE_VERSION_MISMATCH) {
                     return this._conference.xmpp.caps.getFeatures(this._jid, timeout);
                 }
 
