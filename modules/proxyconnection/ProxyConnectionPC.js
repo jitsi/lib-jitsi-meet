@@ -165,10 +165,17 @@ export default class ProxyConnectionPC {
          * @type {Object}
          */
         const connectionStub = {
+            // At the time this is used for Spot and it's okay to say the connection is always connected, because if
+            // spot has no signalling it will not be in a meeting where this is used.
+            connected: true,
             jingle: {
                 terminate: () => { /** no-op */ }
             },
-            sendIQ: this._onSendMessage
+            sendIQ: this._onSendMessage,
+
+            // Returns empty function, because it does not add any listeners for real
+            // eslint-disable-next-line no-empty-function
+            addEventListener: () => () => { }
         };
 
         /**
