@@ -1,6 +1,10 @@
 /* global __filename */
+import isEqual from 'lodash.isequal';
 
-import { createRtpStatsEvent } from '../../service/statistics/AnalyticsEvents';
+import {
+    createRtpStatsEvent,
+    createTransportStatsEvent
+} from '../../service/statistics/AnalyticsEvents';
 import { getLogger } from 'jitsi-meet-logger';
 import * as ConnectionQualityEvents
     from '../../service/connectivity/ConnectionQualityEvents';
@@ -523,7 +527,12 @@ export default class AvgRTPStatsReporter {
          */
         this._avgCQ = new AverageStatReport('connection_quality');
 
-        this._onLocalStatsUpdated = data => this._calculateAvgStats(data);
+        this._cachedTransportStats = undefined;
+
+        this._onLocalStatsUpdated = data => {
+            this._calculateAvgStats(data);
+            this._maybeSendTransportAnalyticsEvent(data);
+        };
         conference.on(
             ConnectionQualityEvents.LOCAL_STATS_UPDATED,
             this._onLocalStatsUpdated);
@@ -918,6 +927,29 @@ export default class AvgRTPStatsReporter {
         }
 
         return peerFpsSum / peerSsrcCount;
+    }
+
+    /**
+     * Sends the 'transport.stats' analytics event whenever we detect that
+     * there is a change in the local or remote candidate type on the transport
+     * that is currently selected.
+     * @param {*} data
+     * @private
+     */
+    _maybeSendTransportAnalyticsEvent(data) {
+        if (!data || !data.transport || !data.transport.length) {
+            return;
+        }
+        const transportStats = {
+            'local_candidate_type': data.transport[0].localCandidateType,
+            'remote_candidate_type': data.transport[0].remoteCandidateType,
+            'transport_type': data.transport[0].type
+        };
+
+        if (!this._cachedTransportStats || !isEqual(transportStats, this._cachedTransportStats)) {
+            this._cachedTransportStats = transportStats;
+            Statistics.sendAnalytics(createTransportStatsEvent(transportStats));
+        }
     }
 
     /**

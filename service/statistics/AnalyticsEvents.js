@@ -494,6 +494,21 @@ export const createRttByRegionEvent = function(attributes) {
 };
 
 /**
+ * Creates an event which contains the local and remote ICE candidate types
+ * for the transport that is currently selected.
+ *
+ * @param attributes
+ * @returns {{type: string, action: string, attributes: *}}
+ */
+export const createTransportStatsEvent = function(attributes) {
+    return {
+        type: TYPE_OPERATIONAL,
+        action: 'transport.stats',
+        attributes
+    };
+};
+
+/**
  * Creates an event which contains information about the audio output problem (the user id of the affected participant,
  * the local audio levels and the remote audio levels that triggered the event).
  *
