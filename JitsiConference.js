@@ -361,6 +361,7 @@ JitsiConference.prototype._init = function(options = {}) {
             customScriptUrl: config.callStatsCustomScriptUrl,
             callStatsID: config.callStatsID,
             callStatsSecret: config.callStatsSecret,
+            callStatsApplicationLogsDisabled: config.callStatsApplicationLogsDisabled,
             roomName: this.options.name,
             applicationName: config.applicationName,
             getWiFiStatsMethod: config.getWiFiStatsMethod
