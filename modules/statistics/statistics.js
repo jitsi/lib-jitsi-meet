@@ -162,6 +162,8 @@ export default function Statistics(xmpp, options) {
             // requests to any third parties.
             && (Statistics.disableThirdPartyRequests !== true);
     if (this.callStatsIntegrationEnabled) {
+        this.callStatsApplicationLogsDisabled
+            = this.options.callStatsApplicationLogsDisabled;
         if (browser.isReactNative()) {
             _initCallStatsBackend(this.options);
         } else {
@@ -668,6 +670,10 @@ Statistics.sendLog = function(m) {
     // unique conference ID rather than selecting the first one.
     // We don't have such use case though, so leaving as is for now.
     for (const stats of Statistics.instances) {
+        if (stats.callStatsApplicationLogsDisabled) {
+            return;
+        }
+
         if (stats.callsStatsInstances.size) {
             globalSubSet.add(stats.callsStatsInstances.values().next().value);
         }
