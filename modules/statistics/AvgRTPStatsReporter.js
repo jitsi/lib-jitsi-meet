@@ -941,6 +941,7 @@ export default class AvgRTPStatsReporter {
             return;
         }
         const transportStats = {
+            p2p: data.transport[0].p2p,
             'local_candidate_type': data.transport[0].localCandidateType,
             'remote_candidate_type': data.transport[0].remoteCandidateType,
             'transport_type': data.transport[0].type
