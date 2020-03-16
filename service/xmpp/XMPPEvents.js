@@ -99,6 +99,11 @@ const XMPPEvents = {
     // Designates an event indicating that our role in the XMPP MUC has changed.
     LOCAL_ROLE_CHANGED: 'xmpp.localrole_changed',
 
+    /**
+     * Event fired when the unique meeting id is set.
+     */
+    MEETING_ID_SET: 'xmpp.meeting_id_set',
+
     // Designates an event indicating that an XMPP message in the MUC was
     // received.
     MESSAGE_RECEIVED: 'xmpp.message_received',
