@@ -56,6 +56,7 @@ import {
     ACTION_P2P_FAILED,
     ACTION_P2P_SWITCH_TO_JVB,
     ICE_ESTABLISHMENT_DURATION_DIFF,
+    createConferenceEvent,
     createJingleEvent,
     createP2PEvent
 } from './service/statistics/AnalyticsEvents';
@@ -231,6 +232,7 @@ export default function JitsiConference(options) {
 
     this.videoSIPGWHandler = new VideoSIPGW(this.room);
     this.recordingManager = new RecordingManager(this.room);
+    this._conferenceJoinAnalyticsEventSent = false;
 }
 
 // FIXME convert JitsiConference to ES6 - ASAP !
@@ -290,12 +292,12 @@ JitsiConference.prototype._init = function(options = {}) {
     }
 
     const { config } = this.options;
-    const statsCurrentId = config.statisticsId ? config.statisticsId : Settings.callStatsUserName;
 
+    this._statsCurrentId = config.statisticsId ? config.statisticsId : Settings.callStatsUserName;
     this.room = this.xmpp.createRoom(
         this.options.name, {
             ...config,
-            statsId: statsCurrentId
+            statsId: this._statsCurrentId
         },
         JitsiConference.resourceCreator
     );
@@ -318,6 +320,9 @@ JitsiConference.prototype._init = function(options = {}) {
     this._updateProperties = this._updateProperties.bind(this);
     this.room.addListener(XMPPEvents.CONFERENCE_PROPERTIES_CHANGED,
         this._updateProperties);
+
+    this._sendConferenceJoinAnalyticsEvent = this._sendConferenceJoinAnalyticsEvent.bind(this);
+    this.room.addListener(XMPPEvents.MEETING_ID_SET, this._sendConferenceJoinAnalyticsEvent);
 
     this.rttMonitor = new RttMonitor(config.rttMonitor || {});
 
@@ -354,7 +359,7 @@ JitsiConference.prototype._init = function(options = {}) {
 
     if (!this.statistics) {
         this.statistics = new Statistics(this.xmpp, {
-            aliasName: statsCurrentId,
+            aliasName: this._statsCurrentId,
             userName: config.statisticsDisplayName ? config.statisticsDisplayName : this.myUserId(),
             callStatsConfIDNamespace: this.connection.options.hosts.domain,
             confID: config.confID || `${this.connection.options.hosts.domain}/${this.options.name}`,
@@ -367,7 +372,7 @@ JitsiConference.prototype._init = function(options = {}) {
             getWiFiStatsMethod: config.getWiFiStatsMethod
         });
         Statistics.analytics.addPermanentProperties({
-            'callstats_name': statsCurrentId
+            'callstats_name': this._statsCurrentId
         });
     }
 
@@ -570,6 +575,8 @@ JitsiConference.prototype.leave = function() {
         room.removeListener(
             XMPPEvents.CONFERENCE_PROPERTIES_CHANGED,
             this._updateProperties);
+
+        room.removeListener(XMPPEvents.MEETING_ID_SET, this._sendConferenceJoinAnalyticsEvent);
 
         this.eventManager.removeXMPPListeners();
 
@@ -1833,6 +1840,7 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
     // Accept incoming call
     this.jvbJingleSession = jingleSession;
     this.room.connectionTimes['session.initiate'] = now;
+    this._sendConferenceJoinAnalyticsEvent();
 
     if (this.wasStopped) {
         Statistics.sendAnalyticsAndLog(
@@ -2609,6 +2617,7 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
 
     // Accept the offer
     this.p2pJingleSession = jingleSession;
+    this._sendConferenceJoinAnalyticsEvent();
 
     this.p2pJingleSession.initialize(this.room, this.rtc, this.options.config);
 
@@ -2957,6 +2966,7 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
             remoteJid);
     logger.info(
         'Created new P2P JingleSession', this.room.myroomjid, remoteJid);
+    this._sendConferenceJoinAnalyticsEvent();
 
     this.p2pJingleSession.initialize(this.room, this.rtc, this.options.config);
 
@@ -3266,3 +3276,22 @@ JitsiConference.prototype.createVideoSIPGWSession
         return this.videoSIPGWHandler
             .createVideoSIPGWSession(sipAddress, displayName);
     };
+
+/**
+ * Sends a conference.join analytics event.
+ *
+ * @returns {void}
+ */
+JitsiConference.prototype._sendConferenceJoinAnalyticsEvent = function() {
+    const meetingId = this.getMeetingUniqueId();
+
+    if (this._conferenceJoinAnalyticsEventSent || !meetingId || this.getActivePeerConnection() === null) {
+        return;
+    }
+
+    Statistics.sendAnalytics(createConferenceEvent('joined', {
+        meetingId,
+        participantId: `${meetingId}.${this._statsCurrentId}`
+    }));
+    this._conferenceJoinAnalyticsEventSent = true;
+};

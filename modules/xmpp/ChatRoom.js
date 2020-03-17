@@ -7,9 +7,7 @@ import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
 import Listenable from '../util/Listenable';
 import * as MediaType from '../../service/RTC/MediaType';
-import { createConferenceEvent } from '../../service/statistics/AnalyticsEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
-import Statistics from '../statistics/statistics';
 
 import Moderator from './moderator';
 import XmppConnection from './XmppConnection';
@@ -314,10 +312,7 @@ export default class ChatRoom extends Listenable {
                 logger.warn(`Meeting Id changed from:${this.meetingId} to:${meetingId}`);
             }
             this.meetingId = meetingId;
-
-            // The name of the action is a little bit confusing but it seems this is the preferred name by the consumers
-            // of the analytics events.
-            Statistics.sendAnalytics(createConferenceEvent('joined', { meetingId }));
+            this.eventEmitter.emit(XMPPEvents.MEETING_ID_SET, meetingId);
         }
     }
 
