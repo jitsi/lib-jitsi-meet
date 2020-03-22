@@ -72,7 +72,6 @@ export default class AudioMixer {
             const streamMSS = this._audioContext.createMediaStreamSource(stream);
 
             streamMSS.connect(this._channelMerger);
-
         }
 
         this._mixedMSD = this._audioContext.createMediaStreamDestination();
@@ -89,6 +88,13 @@ export default class AudioMixer {
     reset() {
         this._started = false;
         this._streamsToMix = [];
-        this._channelMerger.disconnect();
+
+        if (this._channelMerger) {
+            this._channelMerger.disconnect();
+        }
+
+        if (this._audioContext) {
+            this._audioContext = undefined;
+        }
     }
 }
