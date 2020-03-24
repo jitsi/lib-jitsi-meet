@@ -21,15 +21,6 @@ export default class AudioMixer {
     }
 
     /**
-     * Adds the MediaStream from a JitsiLocalTrack to the list of streams to be mixed.
-     *
-     * @param {JitsiLocalTrack} jitsiLocalTrack - JitsiLocalTrack containing audio stream.
-     */
-    addJitsiLocalTrack(jitsiLocalTrack) {
-        this.addMediaStream(jitsiLocalTrack.stream);
-    }
-
-    /**
      * Add audio MediaStream to be mixed, if the stream doesn't contain any audio tracks it will be ignored.
      *
      * @param {MediaStream} stream - MediaStream to be mixed.
