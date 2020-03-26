@@ -375,7 +375,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
             return Promise.reject(new Error('setEffect already in progress!'));
         }
 
-        if (this.isMuted()) {
+        // In case we have an audio track that is being enhanced with an effect, we still want it to be applied,
+        // even if the track is muted. Where as for video the actual track doesn't exists if it's muted.
+        if (this.isMuted() && !this.isAudioTrack()) {
             this._streamEffect = effect;
 
             return Promise.resolve();

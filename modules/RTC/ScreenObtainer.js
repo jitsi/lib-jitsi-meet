@@ -312,15 +312,20 @@ const ScreenObtainer = {
             getDisplayMedia = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
         }
 
-        getDisplayMedia({ video: true })
+        getDisplayMedia({ video: true,
+            audio: true })
             .then(stream => {
                 let applyConstraintsPromise;
 
                 if (stream
                     && stream.getTracks()
                     && stream.getTracks().length > 0) {
-                    applyConstraintsPromise = stream.getTracks()[0]
-                        .applyConstraints(options.trackOptions);
+                    const videoTrack = stream.getVideoTracks()[0];
+
+                    // Apply video track constraint.
+                    if (videoTrack) {
+                        applyConstraintsPromise = videoTrack.applyConstraints(options.trackOptions);
+                    }
                 } else {
                     applyConstraintsPromise = Promise.resolve();
                 }

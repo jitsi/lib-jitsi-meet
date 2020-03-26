@@ -1,6 +1,7 @@
 /* global __filename */
 
 import getActiveAudioDevice from './modules/detection/ActiveDeviceDetector';
+import AudioMixer from './modules/webaudio/AudioMixer';
 import * as DetectionEvents from './modules/detection/DetectionEvents';
 import TrackVADEmitter from './modules/detection/TrackVADEmitter';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
@@ -514,6 +515,16 @@ export default _mergeNamespaceAndModule({
      */
     createTrackVADEmitter(localAudioDeviceId, sampleRate, vadProcessor) {
         return TrackVADEmitter.create(localAudioDeviceId, sampleRate, vadProcessor);
+    },
+
+    /**
+     * Create AudioMixer, which is essentially a wrapper over web audio ChannelMergerNode. It essentially allows the
+     * user to mix multiple MediaStreams into a single one.
+     *
+     * @returns {AudioMixer}
+     */
+    createAudioMixer() {
+        return new AudioMixer();
     },
 
     /**

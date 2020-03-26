@@ -1287,13 +1287,32 @@ class RTCUtils extends Listenable {
 
             const { stream, sourceId, sourceType } = desktopStream;
 
-            mediaStreamsMetaData.push({
-                stream,
-                sourceId,
-                sourceType,
-                track: stream.getVideoTracks()[0],
-                videoType: VideoType.DESKTOP
-            });
+            const desktopAudioTracks = stream.getAudioTracks();
+
+            if (desktopAudioTracks.length) {
+                const desktopAudioStream = new MediaStream(desktopAudioTracks);
+
+                mediaStreamsMetaData.push({
+                    stream: desktopAudioStream,
+                    sourceId,
+                    sourceType,
+                    track: desktopAudioStream.getAudioTracks()[0]
+                });
+            }
+
+            const desktopVideoTracks = stream.getVideoTracks();
+
+            if (desktopVideoTracks.length) {
+                const desktopVideoStream = new MediaStream(desktopVideoTracks);
+
+                mediaStreamsMetaData.push({
+                    stream: desktopVideoStream,
+                    sourceId,
+                    sourceType,
+                    track: desktopVideoStream.getVideoTracks()[0],
+                    videoType: VideoType.DESKTOP
+                });
+            }
         };
 
         /**
