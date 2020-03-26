@@ -18,8 +18,8 @@ export default class LastRequestTracker {
         const originalRawInput = stropheConnection.rawInput;
 
         stropheConnection.rawInput = function(...args) {
-            this._lastSuccess = new Date().getTime();
-            originalRawInput.apply(stropheConnection, ...args);
+            this._lastSuccess = Date.now();
+            originalRawInput.apply(stropheConnection, args);
         };
     }
 
@@ -30,7 +30,7 @@ export default class LastRequestTracker {
      */
     getTimeSinceLastSuccess() {
         return this._lastSuccess
-            ? new Date().getTime() - this._lastSuccess
+            ? Date.now() - this._lastSuccess
             : null;
     }
 }
