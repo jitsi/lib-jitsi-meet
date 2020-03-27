@@ -512,6 +512,7 @@ room.on(JitsiMeetJS.events.conference.CONFERENCE_JOINED, onConferenceJoined);
 5. You also may want to get your local tracks from the camera and microphone:
 ```javascript
 JitsiMeetJS.createLocalTracks().then(localTracks => {
+  // You can share the local track with other participants by adding it to the room:
   room.addTrack(localTracks[0]);
 });
 ```
