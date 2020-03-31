@@ -279,7 +279,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     usesAdapter() {
-        return !this.isFirefox() && !this.isReactNative();
+        return this.usesNewGumFlow();
     }
 
     /**

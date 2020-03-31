@@ -521,7 +521,7 @@ export default class JingleSessionPC extends JingleSession {
             const remoteDescription = this.peerconnection.remoteDescription;
 
             this.room.eventEmitter.emit(XMPPEvents.PEERCONNECTION_READY, this);
-            if (browser.usesUnifiedPlan() && state.toString() === 'stable'
+            if (browser.usesUnifiedPlan() && state === 'stable'
                 && remoteDescription && typeof remoteDescription.sdp === 'string') {
                 logger.debug(`onnegotiationneeded fired on ${this.peerconnection} in state: ${state}`);
                 const workFunction = finishedCallback => {
@@ -533,10 +533,8 @@ export default class JingleSessionPC extends JingleSession {
 
                             this.notifyMySSRCUpdate(oldSdp, newSdp);
                             finishedCallback();
-                        })
-                        .catch(() => {
-                            finishedCallback();
-                        });
+                        },
+                        finishedCallback /* will be called with en error */);
                 };
 
                 this.modificationQueue.push(
