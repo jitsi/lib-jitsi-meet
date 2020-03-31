@@ -1,5 +1,6 @@
 /* global $ */
 
+import browser from '../browser';
 import SDPUtil from './SDPUtil';
 
 /**
@@ -318,7 +319,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 
             const ridLines = SDPUtil.findLines(this.media[i], 'a=rid');
 
-            if (ridLines.length) {
+            if (ridLines.length && browser.usesRidsForSimulcast()) {
                 // Map a line which looks like "a=rid:2 send" to just
                 // the rid ("2")
                 const rids = ridLines
@@ -406,7 +407,10 @@ SDP.prototype.toJingle = function(elem, thecreator) {
         } else if (SDPUtil.findLine(m, 'a=inactive', this.session)) {
             elem.attrs({ senders: 'none' });
         }
-        if (mline.port === '0') {
+
+        // Reject an m-line only when port is 0 and a=bundle-only is not present in the section.
+        // The port is automatically set to 0 when bundle-only is used.
+        if (mline.port === '0' && !SDPUtil.findLine(m, 'a=bundle-only', this.session)) {
             // estos hack to reject an m-line
             elem.attrs({ senders: 'rejected' });
         }
@@ -566,9 +570,11 @@ SDP.prototype.rtcpFbFromJingle = function(elem, payloadtype) { // XEP-0293
 // construct an SDP from a jingle stanza
 SDP.prototype.fromJingle = function(jingle) {
     const self = this;
+    const sessionId = (new Date()).getTime();
 
+    // Use a unique session id for every TPC.
     this.raw = 'v=0\r\n'
-        + 'o=- 1923518516 2 IN IP4 0.0.0.0\r\n'// FIXME
+        + `o=- ${sessionId} 2 IN IP4 0.0.0.0\r\n`
         + 's=-\r\n'
         + 't=0 0\r\n';
 

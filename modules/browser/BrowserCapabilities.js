@@ -217,6 +217,15 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the browser uses SDP munging for turning on simulcast.
+     *
+     * @returns {boolean}
+     */
+    usesSdpMungingForSimulcast() {
+        return this.isChromiumBased() || this.isSafariWithVP8();
+    }
+
+    /**
      * Checks if the browser uses unified plan.
      *
      * @returns {boolean}
@@ -270,7 +279,15 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     usesAdapter() {
-        return this.usesNewGumFlow();
+        return !this.isFirefox() && !this.isReactNative();
+    }
+
+    /**
+     * Checks if the browser uses RIDs/MIDs for siganling the simulcast streams
+     * to the bridge instead of the ssrcs.
+     */
+    usesRidsForSimulcast() {
+        return false;
     }
 
     /**
