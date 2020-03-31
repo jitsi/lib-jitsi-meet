@@ -570,7 +570,7 @@ SDP.prototype.rtcpFbFromJingle = function(elem, payloadtype) { // XEP-0293
 // construct an SDP from a jingle stanza
 SDP.prototype.fromJingle = function(jingle) {
     const self = this;
-    const sessionId = (new Date()).getTime();
+    const sessionId = Date.now();
 
     // Use a unique session id for every TPC.
     this.raw = 'v=0\r\n'
