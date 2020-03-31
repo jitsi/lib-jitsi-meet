@@ -393,11 +393,13 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         this._setEffectInProgress = true;
 
-        // For firefox/safari, replace the stream without doing a offer answer with the remote peer.
-        if (browser.supportsRtpSender()) {
+        if (browser.usesUnifiedPlan()) {
             this._switchStreamEffect(effect);
+            if (this.isVideoTrack()) {
+                this.containers.forEach(cont => RTCUtils.attachMediaStream(cont, this.stream));
+            }
 
-            return conference.replaceTrackWithoutOfferAnswer(this)
+            return conference.replaceTrack(this, this)
                 .then(() => {
                     this._setEffectInProgress = false;
                 })
