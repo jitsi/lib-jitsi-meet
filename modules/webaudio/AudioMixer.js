@@ -72,7 +72,7 @@ export default class AudioMixer {
     }
 
     /**
-     * Disconnect the ChannelMergerNode stopping the audio mix process.References to MediaStreams are also cleared.
+     * Disconnect MediaStreamAudioSourceNode and clear references.
      *
      * @returns {void}
      */
