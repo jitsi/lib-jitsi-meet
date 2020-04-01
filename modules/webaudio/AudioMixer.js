@@ -18,6 +18,7 @@ export default class AudioMixer {
     constructor() {
         this._started = false;
         this._streamsToMix = [];
+        this._streamMSSArray = [];
     }
 
     /**
@@ -56,17 +57,16 @@ export default class AudioMixer {
 
         this._started = true;
 
-        // Create ChannelMergerNode and connect all MediaStreams to it.
-        this._channelMerger = this._audioContext.createChannelMerger(this._streamsToMix.length);
+        this._mixedMSD = this._audioContext.createMediaStreamDestination();
 
         for (const stream of this._streamsToMix) {
             const streamMSS = this._audioContext.createMediaStreamSource(stream);
 
-            streamMSS.connect(this._channelMerger);
-        }
+            streamMSS.connect(this._mixedMSD);
 
-        this._mixedMSD = this._audioContext.createMediaStreamDestination();
-        this._channelMerger.connect(this._mixedMSD);
+            // Maintain a list of MediaStreamAudioSourceNode so we can disconnect them on reset.
+            this._streamMSSArray.push(streamMSS);
+        }
 
         return this._mixedMSD.stream;
     }
@@ -80,9 +80,12 @@ export default class AudioMixer {
         this._started = false;
         this._streamsToMix = [];
 
-        if (this._channelMerger) {
-            this._channelMerger.disconnect();
+        // Clean up created MediaStreamAudioSourceNode.
+        for (const streamMSS of this._streamMSSArray) {
+            streamMSS.disconnect();
         }
+
+        this._streamMSSArray = [];
 
         if (this._audioContext) {
             this._audioContext = undefined;
