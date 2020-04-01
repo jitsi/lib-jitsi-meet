@@ -27,7 +27,7 @@
     "strophe.js": "1.3.4",
     "strophejs-plugin-disco": "0.0.2",
     "strophejs-plugin-stream-management": "github:jitsi/strophejs-plugin-stream-management#cec7608601c1bc098543823fc658e3ddf758c009",
-    "webrtc-adapter": "github:webrtc/adapter#1eec19782b4058d186341263e7d049cea3e3290a"
+    "webrtc-adapter": "7.5.0"
   },
   "devDependencies": {
     "@babel/core": "7.5.5",

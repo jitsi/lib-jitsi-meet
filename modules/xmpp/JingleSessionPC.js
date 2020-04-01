@@ -543,7 +543,7 @@ export default class JingleSessionPC extends JingleSession {
     sendIceCandidate(candidate) {
         const localSDP = new SDP(this.peerconnection.localDescription.sdp);
 
-        if (candidate && !this.lasticecandidate) {
+        if (candidate && candidate.candidate.length && !this.lasticecandidate) {
             const ice
                 = SDPUtil.iceparams(
                     localSDP.media[candidate.sdpMLineIndex], localSDP.session);
