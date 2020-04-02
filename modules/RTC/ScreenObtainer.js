@@ -189,12 +189,13 @@ const ScreenObtainer = {
                     desktopSharingSources: desktopSharingSources
                         || this.options.desktopSharingChromeSources
                 },
-                (streamId, streamType) =>
+                (streamId, streamType, screenShareAudio = false) =>
                     onGetStreamResponse(
                         {
                             response: {
                                 streamId,
-                                streamType
+                                streamType,
+                                screenShareAudio
                             },
                             gumOptions
                         },
@@ -575,6 +576,8 @@ function waitForExtensionAfterInstall(options, waitInterval, retries) {
  * @param {object} options.response
  * @param {string} options.response.streamId - the streamId for the desktop
  * stream.
+ * @param {bool}   options.response.screenShareAudio - Used by electron clients to
+ * enable system audio screen sharing.
  * @param {string} options.response.error - error to be reported.
  * @param {object} options.gumOptions - options passed to GUM.
  * @param {Function} onSuccess - callback for success.
@@ -588,11 +591,12 @@ function onGetStreamResponse(
         },
         onSuccess,
         onFailure) {
-    const { streamId, streamType, error } = options.response || {};
+    const { streamId, streamType, screenShareAudio, error } = options.response || {};
 
     if (streamId) {
         const gumOptions = {
             desktopStream: streamId,
+            screenShareAudio,
             ...options.gumOptions
         };
 
