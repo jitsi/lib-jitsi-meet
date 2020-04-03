@@ -5,7 +5,7 @@ import 'strophejs-plugin-stream-management';
 import Listenable from '../util/Listenable';
 import { getJitterDelay } from '../util/Retry';
 
-import LastSuccessTracker from './StropheBoshLastSuccess';
+import LastSuccessTracker from './StropheLastSuccess';
 
 const logger = getLogger(__filename);
 
@@ -64,10 +64,8 @@ export default class XmppConnection extends Listenable {
         // The default maxRetries is 5, which is too long.
         this._stropheConn.maxRetries = 3;
 
-        if (!this._usesWebsocket) {
-            this._lastSuccessTracker = new LastSuccessTracker();
-            this._lastSuccessTracker.startTracking(this._stropheConn);
-        }
+        this._lastSuccessTracker = new LastSuccessTracker();
+        this._lastSuccessTracker.startTracking(this._stropheConn);
     }
 
     /**
@@ -279,10 +277,8 @@ export default class XmppConnection extends Listenable {
      *
      * @returns {number|null}
      */
-    getTimeSinceLastBOSHSuccess() {
-        return this._lastSuccessTracker
-            ? this._lastSuccessTracker.getTimeSinceLastSuccess()
-            : null;
+    getTimeSinceLastSuccess() {
+        return this._lastSuccessTracker.getTimeSinceLastSuccess();
     }
 
     /**
