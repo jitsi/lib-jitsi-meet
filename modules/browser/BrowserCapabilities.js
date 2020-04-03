@@ -39,7 +39,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * otherwise.
      */
     supportsP2P() {
-        return !this.isFirefox();
+        return !this.usesUnifiedPlan();
     }
 
     /**
@@ -179,15 +179,6 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     supportsRtx() {
         return !this.isFirefox() && !this.usesUnifiedPlan();
-    }
-
-    /**
-     * Whether jitsi-meet supports simulcast on the current browser.
-     * @returns {boolean}
-     */
-    supportsSimulcast() {
-        return this.isChromiumBased() || this.isFirefox()
-            || this.isSafariWithVP8() || this.isReactNative();
     }
 
     /**
