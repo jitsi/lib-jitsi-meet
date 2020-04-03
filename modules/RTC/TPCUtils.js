@@ -50,6 +50,40 @@ export class TPCUtils {
     }
 
     /**
+     * Ensures that the ssrcs associated with a FID ssrc-group appear in the correct order, i.e.,
+     * the primary ssrc first and the secondary rtx ssrc later. This is important for unified
+     * plan since we have only one FID group per media description.
+     * @param {Object} description the webRTC session description instance for the remote
+     * description.
+     * @private
+     */
+    _ensureCorrectOrderOfSsrcs(description) {
+        const parsedSdp = transform.parse(description.sdp);
+
+        parsedSdp.media.forEach(mLine => {
+            if (mLine.type === 'audio') {
+                return;
+            }
+            if (!mLine.ssrcGroups || !mLine.ssrcGroups.length) {
+                return;
+            }
+            let reorderedSsrcs = [];
+
+            mLine.ssrcGroups[0].ssrcs.split(' ').forEach(ssrc => {
+                const sources = mLine.ssrcs.filter(source => source.id.toString() === ssrc);
+
+                reorderedSsrcs = reorderedSsrcs.concat(sources);
+            });
+            mLine.ssrcs = reorderedSsrcs;
+        });
+
+        return new RTCSessionDescription({
+            type: description.type,
+            sdp: transform.write(parsedSdp)
+        });
+    }
+
+    /**
      * Obtains stream encodings that need to be configured on the given track.
      * @param {JitsiLocalTrack} localTrack
      */
@@ -176,7 +210,7 @@ export class TPCUtils {
 
             return false;
         }
-        logger.info(`Adding ${localTrack} on ${this.pc}`);
+        logger.debug(`Adding ${localTrack} on ${this.pc}`);
 
         // If the client starts with audio/video muted setting, the transceiver direction
         // will be set to 'recvonly'. Use addStream here so that a MSID is generated for the stream.
@@ -218,7 +252,7 @@ export class TPCUtils {
             return false;
         }
 
-        logger.info(`Removing ${localTrack} on ${this.pc}`);
+        logger.debug(`Removing ${localTrack} on ${this.pc}`);
         transceiver.sender.replaceTrack(null)
             .then(() => {
                 this.pc.localTracks.delete(localTrack.rtcId);
@@ -252,6 +286,7 @@ export class TPCUtils {
             if (!transceiver) {
                 return Promise.reject(new Error('replace track failed'));
             }
+            logger.debug(`Replacing ${oldTrack} with ${newTrack} on ${this.pc}`);
 
             return transceiver.sender.replaceTrack(track)
                 .then(() => {

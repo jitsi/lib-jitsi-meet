@@ -1597,16 +1597,31 @@ export default class JingleSessionPC extends JingleSession {
      *  in removeSsrcInfo
      */
     _processRemoteRemoveSource(removeSsrcInfo) {
-        const remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp);
+        const remoteSdp = browser.usesPlanB()
+            ? new SDP(this.peerconnection.remoteDescription.sdp)
+            : new SDP(this.peerconnection.peerconnection.remoteDescription.sdp);
 
         removeSsrcInfo.forEach((lines, idx) => {
             // eslint-disable-next-line no-param-reassign
             lines = lines.split('\r\n');
             lines.pop(); // remove empty last element;
-            lines.forEach(line => {
-                remoteSdp.media[idx]
-                    = remoteSdp.media[idx].replace(`${line}\r\n`, '');
-            });
+            if (browser.usesPlanB()) {
+                lines.forEach(line => {
+                    remoteSdp.media[idx]
+                        = remoteSdp.media[idx].replace(`${line}\r\n`, '');
+                });
+            } else {
+                lines.forEach(line => {
+                    const mid = remoteSdp.media.findIndex(mLine => mLine.includes(line));
+
+                    if (mid > -1) {
+                        remoteSdp.media[mid] = remoteSdp.media[mid].replace(`${line}\r\n`, '');
+
+                        // Change the direction to "inactive".
+                        remoteSdp.media[mid] = remoteSdp.media[mid].replace('a=sendonly', 'a=inactive');
+                    }
+                });
+            }
         });
         remoteSdp.raw = remoteSdp.session + remoteSdp.media.join('');
 
@@ -1701,28 +1716,6 @@ export default class JingleSessionPC extends JingleSession {
      * @private
      */
     _initiatorRenegotiate(remoteDescription) {
-        if (this.peerconnection.signalingState === 'have-local-offer') {
-            // Skip createOffer and setLocalDescription or FF will fail
-            logger.debug(
-                'Renegotiate: setting remote description');
-
-            /* eslint-disable arrow-body-style */
-
-            return this.peerconnection.setRemoteDescription(remoteDescription)
-                .then(() => {
-                    // In case when the answer is being set for the first time,
-                    // full sRD/sLD cycle is required to have the local
-                    // description updated and SSRCs synchronized correctly.
-                    // Otherwise SSRCs for streams added after invite, but
-                    // before the answer was accepted will not be detected.
-                    // The reason for that is that renegotiate can not be called
-                    // when adding tracks and they will not be reflected in
-                    // the local SDP.
-                    return this._initiatorRenegotiate(remoteDescription);
-                });
-            /* eslint-enable arrow-body-style */
-        }
-
         logger.debug('Renegotiate: creating offer');
 
         return this.peerconnection.createOffer(this.mediaConstraints)
