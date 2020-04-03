@@ -288,10 +288,9 @@ export default class XMPP extends Listenable {
         } else if (status === Strophe.Status.DISCONNECTED) {
             // Stop ping interval
             this.connection.ping.stopInterval();
-            const wasIntentionalDisconnect = this.disconnectInProgress;
+            const wasIntentionalDisconnect = Boolean(this.disconnectInProgress);
             const errMsg = msg || this.lastErrorMsg;
 
-            this.disconnectInProgress = false;
             if (this.anonymousConnectionFailed) {
                 // prompt user for username and password
                 this.eventEmitter.emit(
@@ -378,9 +377,7 @@ export default class XMPP extends Listenable {
         //  Status.DISCONNECTING - The connection is currently being terminated
         //  Status.ATTACHED - The connection has been attached
 
-        this.anonymousConnectionFailed = false;
-        this.connectionFailed = false;
-        this.lastErrorMsg = undefined;
+        this._resetState();
         this.connection.connect(
             jid,
             password,
@@ -398,6 +395,7 @@ export default class XMPP extends Listenable {
      * @param options {object} connecting options - rid, sid, jid and password.
      */
     attach(options) {
+        this._resetState();
         const now = this.connectionTimes.attaching = window.performance.now();
 
         logger.log('(TIME) Strophe Attaching:\t', now);
@@ -407,6 +405,17 @@ export default class XMPP extends Listenable {
                 jid: options.jid,
                 password: options.password
             }));
+    }
+
+    /**
+     * Resets any state/flag before starting a new connection.
+     * @private
+     */
+    _resetState() {
+        this.anonymousConnectionFailed = false;
+        this.connectionFailed = false;
+        this.lastErrorMsg = undefined;
+        this.disconnectInProgress = undefined;
     }
 
     /**
@@ -534,15 +543,13 @@ export default class XMPP extends Listenable {
      * @returns {Promise} - Resolves when the disconnect process is finished or rejects with an error.
      */
     disconnect(ev) {
-        if (this.disconnectInProgress || !this.connection) {
-            this.eventEmitter.emit(JitsiConnectionEvents.WRONG_STATE);
-
-            return Promise.reject(new Error('Wrong connection state!'));
+        if (this.disconnectInProgress) {
+            return this.disconnectInProgress;
+        } else if (!this.connection) {
+            return Promise.resolve();
         }
 
-        this.disconnectInProgress = true;
-
-        return new Promise(resolve => {
+        this.disconnectInProgress = new Promise(resolve => {
             const disconnectListener = (credentials, status) => {
                 if (status === Strophe.Status.DISCONNECTED) {
                     resolve();
@@ -551,9 +558,11 @@ export default class XMPP extends Listenable {
             };
 
             this.eventEmitter.on(XMPPEvents.CONNECTION_STATUS_CHANGED, disconnectListener);
-
-            this._cleanupXmppConnection(ev);
         });
+
+        this._cleanupXmppConnection(ev);
+
+        return this.disconnectInProgress;
     }
 
     /**
