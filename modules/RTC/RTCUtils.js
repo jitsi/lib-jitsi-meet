@@ -55,7 +55,6 @@ const OLD_GUM_DEFAULT_DEVICES = [ 'audio', 'video' ];
  */
 const DEFAULT_CONSTRAINTS = {
     video: {
-        aspectRatio: 16 / 9,
         height: {
             ideal: 720,
             max: 720,
