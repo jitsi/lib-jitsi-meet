@@ -39,7 +39,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * otherwise.
      */
     supportsP2P() {
-        return !this.isFirefox();
+        return true;
     }
 
     /**
@@ -197,14 +197,15 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsVideo() {
+        return true;
         // FIXME: Check if we can use supportsVideoOut and supportsVideoIn. I
         // leave the old implementation here in order not to brake something.
 
         // Older versions of Safari using webrtc/adapter do not support video
         // due in part to Safari only supporting H264 and the bridge sending VP8
         // Newer Safari support VP8 and other WebRTC features.
-        return !this.isSafariWithWebrtc()
-            || (this.isSafariWithVP8() && this.usesPlanB());
+        // return !this.isSafariWithWebrtc()
+        //     || (this.isSafariWithVP8() && this.usesPlanB());
     }
 
     /**
@@ -231,7 +232,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     usesUnifiedPlan() {
-        if (this.isFirefox()) {
+        if (this.isFirefox() || this.isSafari()) {
             return true;
         }
 
