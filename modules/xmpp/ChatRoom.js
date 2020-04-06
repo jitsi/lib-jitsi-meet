@@ -1117,6 +1117,13 @@ export default class ChatRoom extends Listenable {
                         .t(key)
                         .up()
                         .up();
+                    formsubmit
+                        .c('field',
+                             { 'var': 'muc#roomconfig_passwordprotectedroom' })
+                        .c('value')
+                        .t(key === null || key.length === 0 ? '0' : '1')
+                        .up()
+                        .up();
 
                     // Fixes a bug in prosody 0.9.+
                     // https://prosody.im/issues/issue/373
@@ -1127,7 +1134,6 @@ export default class ChatRoom extends Listenable {
                         .up()
                         .up();
 
-                    // FIXME: is muc#roomconfig_passwordprotectedroom required?
                     this.connection.sendIQ(formsubmit, onSuccess, onError);
                 } else {
                     onNotSupported();
