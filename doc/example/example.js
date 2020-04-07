@@ -1,14 +1,15 @@
 /* global $, JitsiMeetJS */
+room_name = 'massmind';
 
 const options = {
     hosts: {
-        domain: 'jitsi-meet.example.com',
-        muc: 'conference.jitsi-meet.example.com' // FIXME: use XEP-0030
+        domain: 'meet.jit.si',
+        muc: 'conference.meet.jit.si' // Must be "conference". FIXME: use XEP-0030
     },
-    bosh: '//jitsi-meet.example.com/http-bind', // FIXME: use xep-0156 for that
+    bosh: '//meet.jit.si/http-bind', // FIXME: use xep-0156 for that
 
     // The name of client node advertised in XEP-0115 'c' stanza
-    clientNode: 'http://jitsi.org/jitsimeet'
+    clientNode: 'https://jitsi.org/jitsimeet'
 };
 
 const confOptions = {
@@ -128,7 +129,7 @@ function onUserLeft(id) {
  * That function is called when connection is established successfully
  */
 function onConnectionSuccess() {
-    room = connection.initJitsiConference('conference', confOptions);
+    room = connection.initJitsiConference(room_name, confOptions);
     room.on(JitsiMeetJS.events.conference.TRACK_ADDED, onRemoteTrack);
     room.on(JitsiMeetJS.events.conference.TRACK_REMOVED, track => {
         console.log(`track removed!!!${track}`);
