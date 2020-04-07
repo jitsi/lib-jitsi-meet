@@ -12,3 +12,12 @@ To build the library, just type:
 ```
 npm install
 ```
+To lint:
+```
+npm run lint
+```
+and to run unit tests:
+```
+npm test
+```
+Both linting and units will also be done by a pre-commit hook.
