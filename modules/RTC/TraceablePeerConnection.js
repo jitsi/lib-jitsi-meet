@@ -1481,15 +1481,15 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
  * the renegotiation is required or <tt>false</tt> otherwise.
  */
 TraceablePeerConnection.prototype.addTrackUnmute = function(track) {
+    if (browser.usesUnifiedPlan()) {
+        return this.tpcUtils.addTrackUnmute(track);
+    }
     if (!this._assertTrackBelongs('addTrackUnmute', track)) {
         // Abort
         return false;
     }
 
     logger.info(`Adding ${track} as unmute to ${this}`);
-    if (browser.usesUnifiedPlan()) {
-        return this.tpcUtils.addTrackUnmute(track);
-    }
     const webRtcStream = track.getOriginalStream();
 
     if (!webRtcStream) {
@@ -1680,6 +1680,9 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
  * changed and the renegotiation is required or <tt>false</tt> otherwise.
  */
 TraceablePeerConnection.prototype.removeTrackMute = function(localTrack) {
+    if (browser.usesUnifiedPlan()) {
+        return this.tpcUtils.removeTrackMute(localTrack);
+    }
     const webRtcStream = localTrack.getOriginalStream();
 
     this.trace(
@@ -1689,9 +1692,6 @@ TraceablePeerConnection.prototype.removeTrackMute = function(localTrack) {
     if (!this._assertTrackBelongs('removeStreamMute', localTrack)) {
         // Abort - nothing to be done here
         return false;
-    }
-    if (browser.usesUnifiedPlan()) {
-        return this.tpcUtils.removeTrackMute(localTrack);
     }
     if (webRtcStream) {
         logger.info(
@@ -2480,8 +2480,7 @@ TraceablePeerConnection.prototype.getStats = function(callback, errback) {
     // TODO (brian): After moving all browsers to adapter, check if adapter is
     // accounting for different getStats apis, making the browser-checking-if
     // unnecessary.
-    if (browser.isSafariWithWebrtc() || browser.isFirefox()
-            || browser.isReactNative()) {
+    if (browser.isSafari() || browser.isFirefox() || browser.isReactNative()) {
         // uses the new Promise based getStats
         this.peerconnection.getStats()
             .then(callback)
