@@ -215,7 +215,7 @@ export default function StatsCollector(
      * @type {boolean}
      */
     this._usesPromiseGetStats
-        = browser.isSafariWithWebrtc() || browser.isFirefox();
+        = browser.isSafari() || browser.isFirefox();
 
     /**
      * The function which is to be used to retrieve the value associated in a

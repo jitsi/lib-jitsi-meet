@@ -193,8 +193,7 @@ export class TPCUtils {
     /**
      * Adds a track on the RTCRtpSender as part of the unmute operation.
      * @param {JitsiLocalTrack} localTrack - track to be unmuted.
-     * @returns {boolean} Returns true if the operation is successful,
-     * false otherwise.
+     * @returns {Promise<void>}
      */
     addTrackUnmute(localTrack) {
         const mediaType = localTrack.getType();
@@ -222,24 +221,17 @@ export class TPCUtils {
 
             return true;
         }
-        transceiver.sender.replaceTrack(track)
+
+        return transceiver.sender.replaceTrack(track)
             .then(() => {
                 this.pc.localTracks.set(localTrack.rtcId, localTrack);
-
-                return true;
-            })
-            .catch(err => {
-                logger.error(`Unmute track failed for ${mediaType} track on ${this.pc}, ${err}`);
-
-                return false;
             });
     }
 
     /**
      * Removes the track from the RTCRtpSender as part of the mute operation.
      * @param {JitsiLocalTrack} localTrack - track to be removed.
-     * @returns {boolean} Returns true if the operation is successful,
-     * false otherwise.
+     * @returns {Promise<void>}
      */
     removeTrackMute(localTrack) {
         const mediaType = localTrack.getType();
@@ -253,17 +245,10 @@ export class TPCUtils {
         }
 
         logger.debug(`Removing ${localTrack} on ${this.pc}`);
-        transceiver.sender.replaceTrack(null)
+
+        return transceiver.sender.replaceTrack(null)
             .then(() => {
                 this.pc.localTracks.delete(localTrack.rtcId);
-                this.pc.localSSRCs.delete(localTrack.rtcId);
-
-                return true;
-            })
-            .catch(err => {
-                logger.error(`Mute track failed for ${mediaType} track on ${this.pc}, ${err}`);
-
-                return false;
             });
     }
 
