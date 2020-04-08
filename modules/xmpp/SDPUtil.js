@@ -509,7 +509,7 @@ const SDPUtil = {
      * Get an attribute for the given ssrc with the given attributeName
      *  from the given mline
      * @param {object} mLine an mLine object as parsed from transform.parse
-     * @param {number} ssrc the ssrc for which an attribtue is desired
+     * @param {number} ssrc the ssrc for which an attribute is desired
      * @param {string} attributeName the name of the desired attribute
      * @returns {string} the value corresponding to the given ssrc
      *  and attributeName
