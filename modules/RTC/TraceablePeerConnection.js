@@ -1477,8 +1477,9 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
  * Adds local track as part of the unmute operation.
  * @param {JitsiLocalTrack} track the track to be added as part of the unmute
  * operation
- * @return {boolean} <tt>true</tt> if the state of underlying PC has changed and
- * the renegotiation is required or <tt>false</tt> otherwise.
+ * @return {Promise<boolean>} Promise that resolves to true if the underlying PeerConnection's
+ * state has changed and renegotiation is required, false if no renegotiation is needed or
+ * Promise is rejected when something goes wrong.
  */
 TraceablePeerConnection.prototype.addTrackUnmute = function(track) {
     if (browser.usesUnifiedPlan()) {
@@ -1486,7 +1487,7 @@ TraceablePeerConnection.prototype.addTrackUnmute = function(track) {
     }
     if (!this._assertTrackBelongs('addTrackUnmute', track)) {
         // Abort
-        return false;
+        return Promise.reject('Track not found on the peerconnection');
     }
 
     logger.info(`Adding ${track} as unmute to ${this}`);
@@ -1496,11 +1497,11 @@ TraceablePeerConnection.prototype.addTrackUnmute = function(track) {
         logger.error(
             `Unable to add ${track} as unmute to ${this} - no WebRTC stream`);
 
-        return false;
+        return Promise.reject('Stream not found');
     }
     this._addStream(webRtcStream);
 
-    return true;
+    return Promise.resolve(true);
 };
 
 /**
@@ -1676,8 +1677,9 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
  * Removes local track as part of the mute operation.
  * @param {JitsiLocalTrack} localTrack the local track to be remove as part of
  * the mute operation.
- * @return {boolean} <tt>true</tt> if the underlying PeerConnection's state has
- * changed and the renegotiation is required or <tt>false</tt> otherwise.
+ * @return {Promise<boolean>} Promise that resolves to true if the underlying PeerConnection's
+ * state has changed and renegotiation is required, false if no renegotiation is needed or
+ * Promise is rejected when something goes wrong.
  */
 TraceablePeerConnection.prototype.removeTrackMute = function(localTrack) {
     if (browser.usesUnifiedPlan()) {
@@ -1691,19 +1693,19 @@ TraceablePeerConnection.prototype.removeTrackMute = function(localTrack) {
 
     if (!this._assertTrackBelongs('removeStreamMute', localTrack)) {
         // Abort - nothing to be done here
-        return false;
+        return Promise.reject('Track not found in the peerconnection');
     }
     if (webRtcStream) {
         logger.info(
             `Removing ${localTrack} as mute from ${this}`);
         this._removeStream(webRtcStream);
 
-        return true;
+        return Promise.resolve(true);
     }
 
     logger.error(`removeStreamMute - no WebRTC stream for ${localTrack}`);
 
-    return false;
+    return Promise.reject('Stream not found');
 };
 
 /**

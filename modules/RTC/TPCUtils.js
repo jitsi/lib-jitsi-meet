@@ -193,7 +193,8 @@ export class TPCUtils {
     /**
      * Adds a track on the RTCRtpSender as part of the unmute operation.
      * @param {JitsiLocalTrack} localTrack - track to be unmuted.
-     * @returns {Promise<void>}
+     * @returns {Promise<boolean>} - Promise that resolves to false if unmute
+     * operation is successful, a reject otherwise.
      */
     addTrackUnmute(localTrack) {
         const mediaType = localTrack.getType();
@@ -205,9 +206,7 @@ export class TPCUtils {
             .find(t => t.receiver && t.receiver.track && t.receiver.track.kind === mediaType);
 
         if (!transceiver) {
-            logger.error(`RTCRtpTransceiver for ${mediaType} on ${this.pc} not found`);
-
-            return false;
+            return Promise.reject(new Error(`RTCRtpTransceiver for ${mediaType} not found`));
         }
         logger.debug(`Adding ${localTrack} on ${this.pc}`);
 
@@ -219,19 +218,22 @@ export class TPCUtils {
             this.pc.localTracks.set(localTrack.rtcId, localTrack);
             transceiver.direction = 'sendrecv';
 
-            return true;
+            return Promise.resolve(false);
         }
 
         return transceiver.sender.replaceTrack(track)
             .then(() => {
                 this.pc.localTracks.set(localTrack.rtcId, localTrack);
+
+                return Promise.resolve(false);
             });
     }
 
     /**
      * Removes the track from the RTCRtpSender as part of the mute operation.
      * @param {JitsiLocalTrack} localTrack - track to be removed.
-     * @returns {Promise<void>}
+     * @returns {Promise<boolean>} - Promise that resolves to false if unmute
+     * operation is successful, a reject otherwise.
      */
     removeTrackMute(localTrack) {
         const mediaType = localTrack.getType();
@@ -239,9 +241,7 @@ export class TPCUtils {
             .find(t => t.sender && t.sender.track && t.sender.track.id === localTrack.getTrackId());
 
         if (!transceiver) {
-            logger.error(`RTCRtpTransceiver for ${mediaType} on ${this.pc} not found`);
-
-            return false;
+            return Promise.reject(new Error(`RTCRtpTransceiver for ${mediaType} not found`));
         }
 
         logger.debug(`Removing ${localTrack} on ${this.pc}`);
@@ -249,6 +249,8 @@ export class TPCUtils {
         return transceiver.sender.replaceTrack(null)
             .then(() => {
                 this.pc.localTracks.delete(localTrack.rtcId);
+
+                return Promise.resolve(false);
             });
     }
 
