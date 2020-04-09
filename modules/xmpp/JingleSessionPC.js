@@ -1994,29 +1994,28 @@ export default class JingleSessionPC extends JingleSession {
                 return;
             }
             const oldLocalSDP = tpc.localDescription.sdp;
-            const tpcOperation
+            const operationPromise
                 = isMute
-                    ? tpc.removeTrackMute.bind(tpc, track)
-                    : tpc.addTrackUnmute.bind(tpc, track);
+                    ? tpc.removeTrackMute(track)
+                    : tpc.addTrackUnmute(track);
 
-            if (!tpcOperation()) {
-                finishedCallback(`${operationName} failed!`);
-
-            // Do not renegotiate when browser is running in Unified-plan mode.
-            } else if (!oldLocalSDP || !tpc.remoteDescription.sdp || browser.usesUnifiedPlan()) {
-                finishedCallback();
-            } else {
-                this._renegotiate()
-                    .then(() => {
-                        // The results are ignored, as this check failure is not
-                        // enough to fail the whole operation. It will log
-                        // an error inside.
-                        this._verifyNoSSRCChanged(
-                            operationName, new SDP(oldLocalSDP));
+            operationPromise
+                .then(shouldRenegotiate => {
+                    if (shouldRenegotiate && oldLocalSDP && tpc.remoteDescription.sdp) {
+                        this._renegotiate()
+                            .then(() => {
+                                // The results are ignored, as this check failure is not
+                                // enough to fail the whole operation. It will log
+                                // an error inside.
+                                this._verifyNoSSRCChanged(
+                                    operationName, new SDP(oldLocalSDP));
+                                finishedCallback();
+                            });
+                    } else {
                         finishedCallback();
-                    },
-                    finishedCallback /* will be called with an error */);
-            }
+                    }
+                },
+                finishedCallback /* will be called with an error */);
         };
 
         return new Promise((resolve, reject) => {
