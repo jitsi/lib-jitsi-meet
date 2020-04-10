@@ -434,7 +434,7 @@ TraceablePeerConnection.prototype._getDesiredMediaDirection = function(
  * <tt>false</tt> if it's turned off.
  */
 TraceablePeerConnection.prototype.isSimulcastOn = function() {
-    return !this.options.disableSimulcast;
+    return !browser.isFirefox() && !this.options.disableSimulcast;
 };
 
 /**
