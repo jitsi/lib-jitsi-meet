@@ -1625,6 +1625,28 @@ TraceablePeerConnection.prototype.findSenderByStream = function(stream) {
 };
 
 /**
+ * Returns the receiver corresponding to the given MediaStreamTrack.
+ *
+ * @param {MediaSreamTrack} track - The media stream track used for the search.
+ * @returns {RTCRtpReceiver|undefined} - The found receiver or undefined if no receiver
+ * was found.
+ */
+TraceablePeerConnection.prototype.findReceiverForTrack = function(track) {
+    return this.peerconnection.getReceivers().find(r => r.track === track);
+};
+
+/**
+ * Returns the sender corresponding to the given MediaStreamTrack.
+ *
+ * @param {MediaSreamTrack} track - The media stream track used for the search.
+ * @returns {RTCRtpSender|undefined} - The found sender or undefined if no sender
+ * was found.
+ */
+TraceablePeerConnection.prototype.findSenderForTrack = function(track) {
+    return this.peerconnection.getSenders().find(s => s.track === track);
+};
+
+/**
  * Replaces <tt>oldTrack</tt> with <tt>newTrack</tt> from the peer connection.
  * Either <tt>oldTrack</tt> or <tt>newTrack</tt> can be null; replacing a valid
  * <tt>oldTrack</tt> with a null <tt>newTrack</tt> effectively just removes

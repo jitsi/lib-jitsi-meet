@@ -293,6 +293,15 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the browser supports insertable streams, needed for E2EE.
+     * @returns {boolean} {@code true} if the browser supports insertable streams.
+     */
+    supportsInsertableStreams() {
+        return Boolean(typeof window.RTCRtpSender !== 'undefined'
+            && window.RTCRtpSender.prototype.createEncodedVideoStreams);
+    }
+
+    /**
      * Checks if the browser supports the "sdpSemantics" configuration option.
      * https://webrtc.org/web-apis/chrome/unified-plan/
      *
