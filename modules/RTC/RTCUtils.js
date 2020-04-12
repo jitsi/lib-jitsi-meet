@@ -55,7 +55,7 @@ const OLD_GUM_DEFAULT_DEVICES = [ 'audio', 'video' ];
  */
 const DEFAULT_CONSTRAINTS = {
     video: {
-        height: {
+        height: browser.isSafari() ? OLD_GUM_DEFAULT_RESOLUTION : {
             ideal: 720,
             max: 720,
             min: 240
