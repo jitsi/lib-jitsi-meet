@@ -794,7 +794,6 @@ StatsCollector.prototype._processAndEmitReport = function() {
                         'video': videoCodec
                     };
 
-                    // Is there a reason this can't be done more directly?
                     const userCodecs = codecs[participantId] || {};
 
                     userCodecs[ssrc] = codecDesc;
