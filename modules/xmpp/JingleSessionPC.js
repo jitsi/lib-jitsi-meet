@@ -304,6 +304,8 @@ export default class JingleSessionPC extends JingleSession {
             pcOptions.disableSimulcast = true;
             pcOptions.disableH264 = options.p2p && options.p2p.disableH264;
             pcOptions.preferH264 = options.p2p && options.p2p.preferH264;
+            pcOptions.disableVP9 = options.p2p && options.p2p.disableVP9;
+            pcOptions.preferVP9 = options.p2p && options.p2p.preferVP9;
 
             const abtestSuspendVideo = this._abtestSuspendVideoEnabled(options);
 
