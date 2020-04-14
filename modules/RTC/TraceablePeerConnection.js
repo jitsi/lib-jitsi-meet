@@ -42,8 +42,6 @@ const DESKSTOP_SHARE_RATE = 500000;
  * @param {boolean} options.disableSimulcast if set to 'true' will disable
  * the simulcast.
  * @param {boolean} options.disableRtx if set to 'true' will disable the RTX
- * @param {boolean} options.enableFirefoxSimulcast if set to 'true' will enable
- * experimental simulcast support on Firefox.
  * @param {boolean} options.capScreenshareBitrate if set to 'true' simulcast will
  * be disabled for screenshare and a max bitrate of 500Kbps will applied on the
  * stream.
@@ -434,7 +432,7 @@ TraceablePeerConnection.prototype._getDesiredMediaDirection = function(
  * <tt>false</tt> if it's turned off.
  */
 TraceablePeerConnection.prototype.isSimulcastOn = function() {
-    return !browser.isFirefox() && !this.options.disableSimulcast;
+    return !this.options.disableSimulcast;
 };
 
 /**
