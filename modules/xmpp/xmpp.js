@@ -219,7 +219,8 @@ export default class XMPP extends Listenable {
 
             logger.info(`My Jabber ID: ${this.connection.jid}`);
 
-            this.lastErrorMsg = undefined;
+            // XmppConnection emits CONNECTED again on reconnect - a good opportunity to clear any "last error" flags
+            this._resetState();
 
             // Schedule ping ?
             const pingJid = this.connection.domain;
