@@ -1115,7 +1115,7 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
 
     // Setup E2EE handling, if supported.
-    if (this._e2eeCtx) {
+    if (!this.isP2PActive() && this._e2eeCtx) {
         const activeTPC = this.getActivePeerConnection();
         const sender = activeTPC ? activeTPC.findSenderForTrack(newTrack.track) : null;
 
@@ -1654,7 +1654,7 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
     }
 
     // Setup E2EE handling, if supported.
-    if (this._e2eeCtx) {
+    if (!this.isP2PActive() && this._e2eeCtx) {
         const activeTPC = this.getActivePeerConnection();
         const receiver = activeTPC ? activeTPC.findReceiverForTrack(track.track) : null;
 
