@@ -1831,9 +1831,6 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
 
     this.trace('setLocalDescription::preTransform', dumpSDP(localSdp));
 
-    console.log('Options:');
-    console.log(this.options);
-
     /*
      * Reorder/rewrite the SDP if needed to disable codecs or reorder them.
      * If both VP9 and H264 are preferred, set VP9, H264, VP8.

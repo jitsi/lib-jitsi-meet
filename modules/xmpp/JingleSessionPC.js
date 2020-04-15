@@ -316,6 +316,9 @@ export default class JingleSessionPC extends JingleSession {
                 = options.disableSimulcast
                     || (options.preferH264 && !options.disableH264);
             pcOptions.preferH264 = options.preferH264;
+            pcOptions.disableH264 = options.disableH264;
+            pcOptions.preferVP9 = options.preferVP9;
+            pcOptions.disableVP9 = options.disableVP9;
             pcOptions.enableLayerSuspension = options.enableLayerSuspension;
 
             // disable simulcast for screenshare and set the max bitrate to
