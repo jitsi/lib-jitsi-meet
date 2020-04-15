@@ -31,6 +31,9 @@ const unencryptedBytes = {
     undefined: 1 // frame.type is not set on audio
 };
 
+// Flag to set on senders / receivers to avoid setting up the encryption transform
+// more than once.
+const kJitsiE2EE = Symbol('kJitsiE2EE');
 
 /**
  * Context encapsulating the cryptography bits required for E2EE.
@@ -83,6 +86,10 @@ export default class E2EEcontext {
      * @param {string} kind - The kind of track this receiver belongs to.
      */
     handleReceiver(receiver, kind) {
+        if (receiver[kJitsiE2EE]) {
+            return;
+        }
+
         const receiverStreams
             = kind === 'video' ? receiver.createEncodedVideoStreams() : receiver.createEncodedAudioStreams();
         const transform = new TransformStream({
@@ -92,6 +99,8 @@ export default class E2EEcontext {
         receiverStreams.readableStream
             .pipeThrough(transform)
             .pipeTo(receiverStreams.writableStream);
+
+        receiver[kJitsiE2EE] = true;
     }
 
     /**
@@ -102,6 +111,10 @@ export default class E2EEcontext {
      * @param {string} kind - The kind of track this sender belongs to.
      */
     handleSender(sender, kind) {
+        if (sender[kJitsiE2EE]) {
+            return;
+        }
+
         const senderStreams
             = kind === 'video' ? sender.createEncodedVideoStreams() : sender.createEncodedAudioStreams();
         const transform = new TransformStream({
@@ -111,6 +124,8 @@ export default class E2EEcontext {
         senderStreams.readableStream
             .pipeThrough(transform)
             .pipeTo(senderStreams.writableStream);
+
+        sender[kJitsiE2EE] = true;
     }
 
     /**
