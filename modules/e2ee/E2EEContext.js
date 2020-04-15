@@ -329,6 +329,13 @@ export default class E2EEcontext {
                 return controller.enqueue(encodedFrame);
             }, e => {
                 logger.error(e);
+                if (encodedFrameType === undefined) { // audio, replace with silence.
+                    const newData = new ArrayBuffer(3);
+                    const newUint8 = new Uint8Array(newData);
+
+                    newUint8.set([ 0xd8, 0xff, 0xfe ]); // opus silence frame.
+                    encodedFrame.data = newData;
+                }
 
                 // Just feed the (potentially encrypted) frame in case of error.
                 // Worst case it is garbage.
