@@ -214,7 +214,7 @@ Moderator.prototype.createConferenceIq = function() {
     elem.c(
         'property', {
             name: 'enableLipSync',
-            value: this.options.connection.enableLipSync !== false
+            value: this.options.connection.enableLipSync === true
         }).up();
     if (config.audioPacketDelay !== undefined) {
         elem.c(
