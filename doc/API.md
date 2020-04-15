@@ -225,6 +225,7 @@ This objects represents the server connection. You can create new ```JitsiConnec
             - domain
             - muc
             - anonymousdomain
+            - tokendomain
         4. useStunTurn -
         5. enableLipSync - (optional) boolean property which enables the lipsync feature. Currently works only in Chrome and is disabled by default.
 
