@@ -179,7 +179,7 @@ function getConstraints(um, options = {}) {
     // @see https://github.com/jitsi/lib-jitsi-meet/pull/136
     const isNewStyleConstraintsSupported
         = browser.isFirefox()
-            || browser.isSafariWithVP8()
+            || browser.isSafari()
             || browser.isReactNative();
 
     if (um.indexOf('video') >= 0) {
@@ -1435,7 +1435,7 @@ class RTCUtils extends Listenable {
     isDeviceChangeAvailable(deviceType) {
         return deviceType === 'output' || deviceType === 'audiooutput'
             ? isAudioOutputDeviceChangeAvailable
-            : !browser.isSafariWithVP8();
+            : !browser.isSafari();
     }
 
     /**
