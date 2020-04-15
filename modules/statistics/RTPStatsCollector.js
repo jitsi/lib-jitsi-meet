@@ -21,9 +21,9 @@ KEYS_BY_BROWSER_TYPE[browsers.FIREFOX] = {
     'bytesReceived': 'bytesReceived',
     'bytesSent': 'bytesSent',
     'framerateMean': 'framerateMean',
-    'ip': 'ipAddress',
-    'port': 'portNumber',
-    'protocol': 'transport'
+    'ip': 'address',
+    'port': 'port',
+    'protocol': 'protocol'
 };
 KEYS_BY_BROWSER_TYPE[browsers.CHROME] = {
     'receiveBandwidth': 'googAvailableReceiveBandwidth',
@@ -221,7 +221,7 @@ export default function StatsCollector(
      * @type {boolean}
      */
     this._usesPromiseGetStats
-        = browser.isSafariWithWebrtc() || browser.isFirefox();
+        = browser.isSafari() || browser.isFirefox();
 
     /**
      * The function which is to be used to retrieve the value associated in a
@@ -1089,8 +1089,6 @@ StatsCollector.prototype.processNewStatsReport = function() {
             // https://w3c.github.io/webrtc-stats/#icecandidate-dict*
             // safari currently does not provide ice candidates in stats
             if (remoteUsedCandidate && localUsedCandidate) {
-                // FF uses non-standard ipAddress, portNumber, transport
-                // instead of ip, port, protocol
                 const remoteIpAddress = getStatValue(remoteUsedCandidate, 'ip');
                 const remotePort = getStatValue(remoteUsedCandidate, 'port');
                 const ip = `${remoteIpAddress}:${remotePort}`;
@@ -1241,6 +1239,10 @@ StatsCollector.prototype.processNewStatsReport = function() {
 
             const trackIdentifier = now.trackIdentifier;
             const ssrc = this.peerconnection.getSsrcByTrackId(trackIdentifier);
+
+            if (!ssrc) {
+                return;
+            }
             let ssrcStats = this.ssrc2stats.get(ssrc);
 
             if (!ssrcStats) {
