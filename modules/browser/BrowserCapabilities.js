@@ -39,7 +39,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * otherwise.
      */
     supportsP2P() {
-        return !this.usesUnifiedPlan();
+        return true;
     }
 
     /**
