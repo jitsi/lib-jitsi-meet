@@ -18,7 +18,7 @@ export default class JingleSession {
      * @param {string} sid the Jingle session identifier
      * @param {string} localJid our JID
      * @param {string} remoteJid the JID of the remote peer
-     * @param {Strophe.Connection} connection the XMPP connection
+     * @param {XmppConnection} connection the XMPP connection
      * @param {Object} mediaConstraints the media constraints object passed to
      * the PeerConnection onCreateAnswer/Offer as defined by the WebRTC.
      * @param {Object} iceConfig the ICE servers config object as defined by
