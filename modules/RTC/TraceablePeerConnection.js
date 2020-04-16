@@ -1296,7 +1296,7 @@ TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast
         const sdp = transform.parse(desc.sdp);
         const video = sdp.media.find(mline => mline.type === 'video');
 
-        if (video.simulcast) {
+        if (video.simulcast || video.simulcast_03) {
             const ssrcs = [];
 
             video.ssrcs.forEach(ssrc => {
