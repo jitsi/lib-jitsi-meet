@@ -122,7 +122,15 @@ export class TPCUtils {
                 if (mline.type === 'video' && i !== idx) {
                     sdp.media[i].rids = undefined;
                     sdp.media[i].simulcast = undefined;
+
+                    // eslint-disable-next-line camelcase
+                    sdp.media[i].simulcast_03 = undefined;
                 }
+            });
+
+            return new RTCSessionDescription({
+                type: desc.type,
+                sdp: transform.write(sdp)
             });
         }
 
