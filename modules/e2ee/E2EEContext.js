@@ -304,32 +304,29 @@ export default class E2EEcontext {
         const keyIndex = data[encodedFrame.data.byteLength - 1];
 
         if (this._cryptoKeyRing[keyIndex]) {
-            // TODO: use encodedFrame.type again, see https://bugs.chromium.org/p/chromium/issues/detail?id=1068468
-            const encodedFrameType = encodedFrame.type
-                ? (data[0] & 0x1) === 0 ? 'key' : 'delta' // eslint-disable-line no-bitwise
-                : undefined;
             const iv = new Uint8Array(encodedFrame.data, encodedFrame.data.byteLength - ivLength - 1, ivLength);
-            const cipherTextStart = unencryptedBytes[encodedFrameType];
-            const cipherTextLength = encodedFrame.data.byteLength - (unencryptedBytes[encodedFrameType] + ivLength + 1);
+            const cipherTextStart = unencryptedBytes[encodedFrame.type];
+            const cipherTextLength = encodedFrame.data.byteLength - (unencryptedBytes[encodedFrame.type]
+                + ivLength + 1);
 
             return crypto.subtle.decrypt({
                 name: 'AES-GCM',
                 iv,
-                additionalData: new Uint8Array(encodedFrame.data, 0, unencryptedBytes[encodedFrameType])
+                additionalData: new Uint8Array(encodedFrame.data, 0, unencryptedBytes[encodedFrame.type])
             }, this._cryptoKeyRing[keyIndex], new Uint8Array(encodedFrame.data, cipherTextStart, cipherTextLength))
             .then(plainText => {
-                const newData = new ArrayBuffer(unencryptedBytes[encodedFrameType] + plainText.byteLength);
+                const newData = new ArrayBuffer(unencryptedBytes[encodedFrame.type] + plainText.byteLength);
                 const newUint8 = new Uint8Array(newData);
 
-                newUint8.set(new Uint8Array(encodedFrame.data, 0, unencryptedBytes[encodedFrameType]));
-                newUint8.set(new Uint8Array(plainText), unencryptedBytes[encodedFrameType]);
+                newUint8.set(new Uint8Array(encodedFrame.data, 0, unencryptedBytes[encodedFrame.type]));
+                newUint8.set(new Uint8Array(plainText), unencryptedBytes[encodedFrame.type]);
 
                 encodedFrame.data = newData;
 
                 return controller.enqueue(encodedFrame);
             }, e => {
                 logger.error(e);
-                if (encodedFrameType === undefined) { // audio, replace with silence.
+                if (encodedFrame.type === undefined) { // audio, replace with silence.
                     const newData = new ArrayBuffer(3);
                     const newUint8 = new Uint8Array(newData);
 
