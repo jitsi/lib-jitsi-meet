@@ -2009,6 +2009,12 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
             'setRemoteDescription::postTransform (Unified)',
             dumpSDP(description));
         console.log(description.sdp, 'setRemoteDescription::postTransform (Unified)');
+        if (Boolean(currentDescription) && Boolean(currentDescription.sdp)) {
+            console.log(currentDescription.sdp, 'setRemoteDescription::postTransform (Unified)(Current)');
+            console.log(currentDescription.type, 'setRemoteDescription::postTransform (Unified)(Current)');
+        } else {
+            console.log(currentDescription, 'setRemoteDescription::postTransform (Unified)(Current)');
+        }
 
         if (this.isSimulcastOn()) {
             // eslint-disable-next-line no-param-reassign
