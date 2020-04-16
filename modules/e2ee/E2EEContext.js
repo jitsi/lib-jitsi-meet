@@ -31,6 +31,9 @@ const unencryptedBytes = {
     undefined: 1 // frame.type is not set on audio
 };
 
+// Flag to set on senders / receivers to avoid setting up the encryption transform
+// more than once.
+const kJitsiE2EE = Symbol('kJitsiE2EE');
 
 /**
  * Context encapsulating the cryptography bits required for E2EE.
@@ -83,6 +86,10 @@ export default class E2EEcontext {
      * @param {string} kind - The kind of track this receiver belongs to.
      */
     handleReceiver(receiver, kind) {
+        if (receiver[kJitsiE2EE]) {
+            return;
+        }
+
         const receiverStreams
             = kind === 'video' ? receiver.createEncodedVideoStreams() : receiver.createEncodedAudioStreams();
         const transform = new TransformStream({
@@ -92,6 +99,8 @@ export default class E2EEcontext {
         receiverStreams.readableStream
             .pipeThrough(transform)
             .pipeTo(receiverStreams.writableStream);
+
+        receiver[kJitsiE2EE] = true;
     }
 
     /**
@@ -102,6 +111,10 @@ export default class E2EEcontext {
      * @param {string} kind - The kind of track this sender belongs to.
      */
     handleSender(sender, kind) {
+        if (sender[kJitsiE2EE]) {
+            return;
+        }
+
         const senderStreams
             = kind === 'video' ? sender.createEncodedVideoStreams() : sender.createEncodedAudioStreams();
         const transform = new TransformStream({
@@ -111,6 +124,8 @@ export default class E2EEcontext {
         senderStreams.readableStream
             .pipeThrough(transform)
             .pipeTo(senderStreams.writableStream);
+
+        sender[kJitsiE2EE] = true;
     }
 
     /**
@@ -289,34 +304,48 @@ export default class E2EEcontext {
         const keyIndex = data[encodedFrame.data.byteLength - 1];
 
         if (this._cryptoKeyRing[keyIndex]) {
-            // TODO: use encodedFrame.type again, see https://bugs.chromium.org/p/chromium/issues/detail?id=1068468
-            const encodedFrameType = encodedFrame.type
-                ? (data[0] & 0x1) === 0 ? 'key' : 'delta' // eslint-disable-line no-bitwise
-                : undefined;
             const iv = new Uint8Array(encodedFrame.data, encodedFrame.data.byteLength - ivLength - 1, ivLength);
-            const cipherTextStart = unencryptedBytes[encodedFrameType];
-            const cipherTextLength = encodedFrame.data.byteLength - (unencryptedBytes[encodedFrameType] + ivLength + 1);
+            const cipherTextStart = unencryptedBytes[encodedFrame.type];
+            const cipherTextLength = encodedFrame.data.byteLength - (unencryptedBytes[encodedFrame.type]
+                + ivLength + 1);
 
             return crypto.subtle.decrypt({
                 name: 'AES-GCM',
                 iv,
-                additionalData: new Uint8Array(encodedFrame.data, 0, unencryptedBytes[encodedFrameType])
+                additionalData: new Uint8Array(encodedFrame.data, 0, unencryptedBytes[encodedFrame.type])
             }, this._cryptoKeyRing[keyIndex], new Uint8Array(encodedFrame.data, cipherTextStart, cipherTextLength))
             .then(plainText => {
-                const newData = new ArrayBuffer(unencryptedBytes[encodedFrameType] + plainText.byteLength);
+                const newData = new ArrayBuffer(unencryptedBytes[encodedFrame.type] + plainText.byteLength);
                 const newUint8 = new Uint8Array(newData);
 
-                newUint8.set(new Uint8Array(encodedFrame.data, 0, unencryptedBytes[encodedFrameType]));
-                newUint8.set(new Uint8Array(plainText), unencryptedBytes[encodedFrameType]);
+                newUint8.set(new Uint8Array(encodedFrame.data, 0, unencryptedBytes[encodedFrame.type]));
+                newUint8.set(new Uint8Array(plainText), unencryptedBytes[encodedFrame.type]);
 
                 encodedFrame.data = newData;
 
                 return controller.enqueue(encodedFrame);
             }, e => {
                 logger.error(e);
+                if (encodedFrame.type === undefined) { // audio, replace with silence.
+                    const newData = new ArrayBuffer(3);
+                    const newUint8 = new Uint8Array(newData);
 
-                // Just feed the (potentially encrypted) frame in case of error.
-                // Worst case it is garbage.
+                    newUint8.set([ 0xd8, 0xff, 0xfe ]); // opus silence frame.
+                    encodedFrame.data = newData;
+                } else { // video, replace with a 320x180px black frame
+                    const newData = new ArrayBuffer(60);
+                    const newUint8 = new Uint8Array(newData);
+
+                    newUint8.set([
+                        0xb0, 0x05, 0x00, 0x9d, 0x01, 0x2a, 0xa0, 0x00, 0x5a, 0x00, 0x39, 0x03, 0x00, 0x00, 0x1c, 0x22,
+                        0x16, 0x16, 0x22, 0x66, 0x12, 0x20, 0x04, 0x90, 0x40, 0x00, 0xc5, 0x01, 0xe0, 0x7c, 0x4d, 0x2f,
+                        0xfa, 0xdd, 0x4d, 0xa5, 0x7f, 0x89, 0xa5, 0xff, 0x5b, 0xa9, 0xb4, 0xaf, 0xf1, 0x34, 0xbf, 0xeb,
+                        0x75, 0x36, 0x95, 0xfe, 0x26, 0x96, 0x60, 0xfe, 0xff, 0xba, 0xff, 0x40
+                    ]);
+                    encodedFrame.data = newData;
+                }
+
+                // TODO: notify the application about error status.
                 controller.enqueue(encodedFrame);
             });
         }

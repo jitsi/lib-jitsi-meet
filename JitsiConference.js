@@ -1114,17 +1114,7 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
 
-    // Setup E2EE handling, if supported.
-    if (this._e2eeCtx) {
-        const activeTPC = this.getActivePeerConnection();
-        const sender = activeTPC ? activeTPC.findSenderForTrack(newTrack.track) : null;
-
-        if (sender) {
-            this._e2eeCtx.handleSender(sender, newTrack.getType());
-        } else {
-            logger.warn(`Could not handle E2EE for local ${newTrack.getType()} track: sender not found`);
-        }
-    }
+    this._setupSenderE2EEForTrack(newTrack);
 };
 
 /**
@@ -1654,16 +1644,7 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
     }
 
     // Setup E2EE handling, if supported.
-    if (this._e2eeCtx) {
-        const activeTPC = this.getActivePeerConnection();
-        const receiver = activeTPC ? activeTPC.findReceiverForTrack(track.track) : null;
-
-        if (receiver) {
-            this._e2eeCtx.handleReceiver(receiver, track.getType());
-        } else {
-            logger.warn(`Could not handle E2EE for remote ${track.getType()} track: receiver not found`);
-        }
-    }
+    this._setupReceiverE2EEForTrack(track);
 
     const id = track.getParticipantId();
     const participant = this.getParticipantById(id);
@@ -1739,8 +1720,6 @@ JitsiConference.prototype.onTransportInfo = function(session, transportInfo) {
  * @param {JitsiRemoteTrack} removedTrack
  */
 JitsiConference.prototype.onRemoteTrackRemoved = function(removedTrack) {
-    // TODO: handle E2EE.
-
     this.getParticipants().forEach(participant => {
         const tracks = participant.getTracks();
 
@@ -1879,6 +1858,8 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
     this._setBridgeChannel(jingleOffer, jingleSession.peerconnection);
 
     // Add local tracks to the session
+    const localTracks = this.getLocalTracks();
+
     try {
         jingleSession.acceptOffer(
             jingleOffer,
@@ -1889,13 +1870,18 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
                 if (this.isP2PActive() && this.jvbJingleSession) {
                     this._suspendMediaTransferForJvbConnection();
                 }
+
+                // Setup E2EE.
+                for (const track of localTracks) {
+                    this._setupSenderE2EEForTrack(track);
+                }
             },
             error => {
                 GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error(
                     'Failed to accept incoming Jingle session', error);
             },
-            this.getLocalTracks()
+            localTracks
         );
 
         // Start callstats as soon as peerconnection is initialized,
@@ -3326,4 +3312,44 @@ JitsiConference.prototype.setE2EEKey = function(key) {
     }
 
     this._e2eeCtx.setKey(key);
+};
+
+/**
+ * Setup E2EE for the sending side, if supported.
+ * Note that this is only done for the JVB Peer Connecction.
+ *
+ * @returns {void}
+ */
+JitsiConference.prototype._setupSenderE2EEForTrack = function(track) {
+    const jvbPc = this.jvbJingleSession ? this.jvbJingleSession.peerconnection : null;
+
+    if (jvbPc && this._e2eeCtx) {
+        const sender = jvbPc.findSenderForTrack(track.track);
+
+        if (sender) {
+            this._e2eeCtx.handleSender(sender, track.getType());
+        } else {
+            logger.warn(`Could not handle E2EE for local ${track.getType()} track: sender not found`);
+        }
+    }
+};
+
+/**
+ * Setup E2EE for the receiving side, if supported.
+ * Note that this is only done for the JVB Peer Connecction.
+ *
+ * @returns {void}
+ */
+JitsiConference.prototype._setupReceiverE2EEForTrack = function(track) {
+    const jvbPc = this.jvbJingleSession ? this.jvbJingleSession.peerconnection : null;
+
+    if (jvbPc && this._e2eeCtx) {
+        const receiver = jvbPc.findReceiverForTrack(track.track);
+
+        if (receiver) {
+            this._e2eeCtx.handleReceiver(receiver, track.getType());
+        } else {
+            logger.warn(`Could not handle E2EE for remote ${track.getType()} track: receiver not found`);
+        }
+    }
 };
