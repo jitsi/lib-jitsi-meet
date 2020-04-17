@@ -36,7 +36,12 @@ tag length is the default 128 bits or 16 bytes. For video this overhead is ok bu
 for audio (where the opus frames are much, much smaller) we are considering shorter
 authentication tags.
 
-We do not encrypt the first few bytes of the packet that form the VP8 header or the Opus
-This allows the encoder to understand the frame a bit more and makes it generate the fun looking garbage we see in the video. This also means the SFU does not know (ideally) that the content is end-to-end encrypted and there are no changes in the SFU required at all.
+We do not encrypt the first few bytes of the packet that form the VP8 payload
+  https://tools.ietf.org/html/rfc6386#section-9.1
+nor the Opus TOC byte
+  https://tools.ietf.org/html/rfc6716#section-3.1
 
-Decryption errors are handled by just forwarding the frame to the decoder. In particular that means that when receiving unencrypted video we will display it as is.
+This allows the decoder to understand the frame a bit more and makes it generate the fun looking garbage we see in the video.
+This also means the SFU does not know (ideally) that the content is end-to-end encrypted and there are no changes in the SFU required at all.
+
+Decryption errors are currently handled by inserting silence or a black frame.
