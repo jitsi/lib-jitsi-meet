@@ -325,7 +325,7 @@ export default class E2EEcontext {
 
                 return controller.enqueue(encodedFrame);
             }, e => {
-                logger.error(e);
+                logger.error(e, encodedFrame.type);
                 if (encodedFrame.type === undefined) { // audio, replace with silence.
                     const newData = new ArrayBuffer(3);
                     const newUint8 = new Uint8Array(newData);
