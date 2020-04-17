@@ -1345,10 +1345,13 @@ const getters = {
             desc = this.interop.toPlanB(desc);
             this.trace('getLocalDescription::postTransform (Plan B)',
                 dumpSDP(desc));
+            console.log(desc.sdp, 'getLocalDescription::postTransform (Plan B)');
+
 
             desc = this._injectSsrcGroupForUnifiedSimulcast(desc);
             this.trace('getLocalDescription::postTransform (inject ssrc group)',
                 dumpSDP(desc));
+            console.log(desc.sdp, 'getLocalDescription::postTransform (inject ssrc group)');
         } else {
             if (browser.doesVideoMuteByStreamRemove()) {
                 desc = this.localSdpMunger.maybeAddMutedLocalVideoTracksToSDP(desc);
