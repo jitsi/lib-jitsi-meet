@@ -325,7 +325,7 @@ export default class XmppConnection extends Listenable {
             logger.debug(`Scheduling next WebSocket keep-alive in ${intervalWithJitter}ms`);
 
             this._wsKeepAlive = setTimeout(() => {
-                const url = this.service.replace('wss', 'https').replace('ws', 'http');
+                const url = this.service.replace('wss://', 'https://').replace('ws://', 'http://');
 
                 fetch(url).catch(
                     error => {
