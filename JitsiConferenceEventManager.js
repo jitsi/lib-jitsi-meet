@@ -172,9 +172,11 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.AUTHENTICATION_REQUIRED);
 
-    this.chatRoomForwarder.forward(XMPPEvents.BRIDGE_DOWN,
-        JitsiConferenceEvents.CONFERENCE_FAILED,
-        JitsiConferenceErrors.VIDEOBRIDGE_NOT_AVAILABLE);
+    // FIX ME: Force deactivate JVB
+    // this.chatRoomForwarder.forward(XMPPEvents.BRIDGE_DOWN,
+    //     JitsiConferenceEvents.CONFERENCE_FAILED,
+    //     JitsiConferenceErrors.VIDEOBRIDGE_NOT_AVAILABLE);
+
     chatRoom.addListener(
         XMPPEvents.BRIDGE_DOWN,
         () => Statistics.sendAnalytics(createBridgeDownEvent()));

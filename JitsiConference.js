@@ -3035,6 +3035,7 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
         const myId = this.myUserId();
         const peersId = peer.getId();
 
+        // @FIXME safari can not start p2p session if other peer is chrome!
         if (myId > peersId) {
             logger.debug(
                 'I\'m the bigger peersId - '
