@@ -1113,8 +1113,6 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
     newTrack._setConference(this);
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
-
-    this._setupSenderE2EEForTrack(newTrack);
 };
 
 /**
@@ -1694,6 +1692,14 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
 JitsiConference.prototype.onCallAccepted = function(session, answer) {
     if (this.p2pJingleSession === session) {
         logger.info('P2P setAnswer');
+
+        // Setup E2EE.
+        const localTracks = this.getLocalTracks();
+
+        for (const track of localTracks) {
+            this._setupSenderE2EEForTrack(session, track);
+        }
+
         this.p2pJingleSession.setAnswer(answer);
     }
 };
@@ -1873,7 +1879,7 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
 
                 // Setup E2EE.
                 for (const track of localTracks) {
-                    this._setupSenderE2EEForTrack(track);
+                    this._setupSenderE2EEForTrack(jingleSession, track);
                 }
             },
             error => {
@@ -2633,6 +2639,11 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
         jingleOffer,
         () => {
             logger.debug('Got RESULT for P2P "session-accept"');
+
+            // Setup E2EE.
+            for (const track of localTracks) {
+                this._setupSenderE2EEForTrack(jingleSession, track);
+            }
         },
         error => {
             logger.error(
@@ -3320,17 +3331,17 @@ JitsiConference.prototype.setE2EEKey = function(key) {
  *
  * @returns {void}
  */
-JitsiConference.prototype._setupSenderE2EEForTrack = function(track) {
-    const jvbPc = this.jvbJingleSession ? this.jvbJingleSession.peerconnection : null;
+JitsiConference.prototype._setupSenderE2EEForTrack = function(session, track) {
+    if (!this._e2eeCtx) {
+        return;
+    }
+    const pc = session.peerconnection;
+    const sender = pc.findSenderForTrack(track.track);
 
-    if (jvbPc && this._e2eeCtx) {
-        const sender = jvbPc.findSenderForTrack(track.track);
-
-        if (sender) {
-            this._e2eeCtx.handleSender(sender, track.getType());
-        } else {
-            logger.warn(`Could not handle E2EE for local ${track.getType()} track: sender not found`);
-        }
+    if (sender) {
+        this._e2eeCtx.handleSender(sender, track.getType());
+    } else {
+        logger.warn(`Could not handle E2EE for local ${track.getType()} track: sender not found`);
     }
 };
 
@@ -3341,10 +3352,14 @@ JitsiConference.prototype._setupSenderE2EEForTrack = function(track) {
  * @returns {void}
  */
 JitsiConference.prototype._setupReceiverE2EEForTrack = function(track) {
-    const jvbPc = this.jvbJingleSession ? this.jvbJingleSession.peerconnection : null;
+    if (!this._e2eeCtx) {
+        return;
+    }
+    const session = track.isP2P ? this.p2pJingleSession : this.jvbJingleSession;
+    const pc = session && session.peerconnection;
 
-    if (jvbPc && this._e2eeCtx) {
-        const receiver = jvbPc.findReceiverForTrack(track.track);
+    if (pc) {
+        const receiver = pc.findReceiverForTrack(track.track);
 
         if (receiver) {
             this._e2eeCtx.handleReceiver(receiver, track.getType());
