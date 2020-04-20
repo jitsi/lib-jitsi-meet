@@ -16,7 +16,7 @@
   "author": "",
   "readmeFilename": "README.md",
   "dependencies": {
-    "@jitsi/sdp-interop": "1.0.1",
+    "@jitsi/sdp-interop": "1.0.2",
     "@jitsi/sdp-simulcast": "0.3.0",
     "async": "0.9.0",
     "current-executing-script": "0.1.3",
