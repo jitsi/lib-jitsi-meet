@@ -1493,6 +1493,10 @@ JitsiConference.prototype._updateFeatures = function(participant) {
             if (features.has('http://jitsi.org/protocol/jigasi')) {
                 participant.setProperty('features_jigasi', true);
             }
+
+            if (features.has('https://jitsi.org/meet/e2ee')) {
+                participant.setProperty('features_e2ee', true);
+            }
         })
         .catch(() => false);
 };
