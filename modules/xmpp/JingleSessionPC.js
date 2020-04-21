@@ -719,15 +719,16 @@ export default class JingleSessionPC extends JingleSession {
                     id: this._bridgeSessionId
                 });
 
-        this.connection.sendIQ(
-            sessionInfo,
-            null,
-            this.newJingleErrorHandler(sessionInfo),
-            /*
-             * This message will be often sent when there are connectivity
-             * issues, so make it slightly longer than Prosody's default BOSH
-             * inactivity timeout of 60 seconds.
-             */ 65);
+        this.connection.sendIQ2(
+            sessionInfo, {
+                /*
+                 * This message will be often sent when there are connectivity
+                 * issues, so make it slightly longer than Prosody's default BOSH
+                 * inactivity timeout of 60 seconds.
+                 */
+                timeout: 65
+            })
+            .catch(this.newJingleErrorHandler(sessionInfo));
     }
 
     /**
