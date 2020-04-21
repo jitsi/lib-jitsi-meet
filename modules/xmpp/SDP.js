@@ -147,34 +147,6 @@ SDP.prototype.mangle = function() {
     this.raw = this.session + this.media.join('');
 };
 
-// remove lines matching prefix from session section
-SDP.prototype.removeSessionLines = function(prefix) {
-    const self = this;
-    const lines = SDPUtil.findLines(this.session, prefix);
-
-    lines.forEach(line => {
-        self.session = self.session.replace(`${line}\r\n`, '');
-    });
-    this.raw = this.session + this.media.join('');
-
-    return lines;
-};
-
-// remove lines matching prefix from a media section specified by mediaindex
-// TODO: non-numeric mediaindex could match mid
-SDP.prototype.removeMediaLines = function(mediaindex, prefix) {
-    const self = this;
-    const lines = SDPUtil.findLines(this.media[mediaindex], prefix);
-
-    lines.forEach(line => {
-        self.media[mediaindex]
-            = self.media[mediaindex].replace(`${line}\r\n`, '');
-    });
-    this.raw = this.session + this.media.join('');
-
-    return lines;
-};
-
 // add content's to a jingle element
 SDP.prototype.toJingle = function(elem, thecreator) {
     let i, j, k, lines, mline, rtpmap, ssrc, tmp;
