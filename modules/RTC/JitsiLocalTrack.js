@@ -96,6 +96,14 @@ export default class JitsiLocalTrack extends JitsiTrack {
             // Cache the constraints of the track in case of any this track
             // model needs to call getUserMedia again, such as when unmuting.
             this._constraints = track.getConstraints();
+
+            // Safari returns an empty constraints object, construct the constraints using getSettings.
+            if (!Object.keys(this._constraints).length && videoType === VideoType.CAMERA) {
+                this._constraints = {
+                    height: track.getSettings().height,
+                    width: track.getSettings().width
+                };
+            }
         } else {
             // FIXME Currently, Firefox is ignoring our constraints about
             // resolutions so we do not store it, to avoid wrong reporting of
