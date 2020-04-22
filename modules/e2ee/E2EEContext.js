@@ -326,27 +326,20 @@ export default class E2EEcontext {
                 return controller.enqueue(encodedFrame);
             }, e => {
                 logger.error(e, encodedFrame.type);
+
+                // TODO: notify the application about error status.
+
+                // TODO: For video we need a better strategy since we do not want to based any
+                // non-error frames on a garbage keyframe.
                 if (encodedFrame.type === undefined) { // audio, replace with silence.
+                    // audio, replace with silence.
                     const newData = new ArrayBuffer(3);
                     const newUint8 = new Uint8Array(newData);
 
                     newUint8.set([ 0xd8, 0xff, 0xfe ]); // opus silence frame.
                     encodedFrame.data = newData;
-                } else { // video, replace with a 320x180px black frame
-                    const newData = new ArrayBuffer(60);
-                    const newUint8 = new Uint8Array(newData);
-
-                    newUint8.set([
-                        0xb0, 0x05, 0x00, 0x9d, 0x01, 0x2a, 0xa0, 0x00, 0x5a, 0x00, 0x39, 0x03, 0x00, 0x00, 0x1c, 0x22,
-                        0x16, 0x16, 0x22, 0x66, 0x12, 0x20, 0x04, 0x90, 0x40, 0x00, 0xc5, 0x01, 0xe0, 0x7c, 0x4d, 0x2f,
-                        0xfa, 0xdd, 0x4d, 0xa5, 0x7f, 0x89, 0xa5, 0xff, 0x5b, 0xa9, 0xb4, 0xaf, 0xf1, 0x34, 0xbf, 0xeb,
-                        0x75, 0x36, 0x95, 0xfe, 0x26, 0x96, 0x60, 0xfe, 0xff, 0xba, 0xff, 0x40
-                    ]);
-                    encodedFrame.data = newData;
+                    controller.enqueue(encodedFrame);
                 }
-
-                // TODO: notify the application about error status.
-                controller.enqueue(encodedFrame);
             });
         }
 
