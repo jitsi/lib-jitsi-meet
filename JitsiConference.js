@@ -27,6 +27,7 @@ import IceFailedNotification
     from './modules/connectivity/IceFailedNotification';
 import ParticipantConnectionStatusHandler
     from './modules/connectivity/ParticipantConnectionStatus';
+import E2EEContext from './modules/e2ee/E2EEContext';
 import E2ePing from './modules/e2eping/e2eping';
 import Jvb121EventGenerator from './modules/event/Jvb121EventGenerator';
 import RecordingManager from './modules/recording/RecordingManager';
@@ -233,6 +234,10 @@ export default function JitsiConference(options) {
     this.videoSIPGWHandler = new VideoSIPGW(this.room);
     this.recordingManager = new RecordingManager(this.room);
     this._conferenceJoinAnalyticsEventSent = false;
+
+    if (browser.supportsInsertableStreams()) {
+        this._e2eeCtx = new E2EEContext({ salt: this.options.name });
+    }
 }
 
 // FIXME convert JitsiConference to ES6 - ASAP !
@@ -1486,6 +1491,10 @@ JitsiConference.prototype._updateFeatures = function(participant) {
             if (features.has('http://jitsi.org/protocol/jigasi')) {
                 participant.setProperty('features_jigasi', true);
             }
+
+            if (features.has('https://jitsi.org/meet/e2ee')) {
+                participant.setProperty('features_e2ee', true);
+            }
         })
         .catch(() => false);
 };
@@ -1636,6 +1645,9 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
         return;
     }
 
+    // Setup E2EE handling, if supported.
+    this._setupReceiverE2EEForTrack(track);
+
     const id = track.getParticipantId();
     const participant = this.getParticipantById(id);
 
@@ -1684,6 +1696,14 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
 JitsiConference.prototype.onCallAccepted = function(session, answer) {
     if (this.p2pJingleSession === session) {
         logger.info('P2P setAnswer');
+
+        // Setup E2EE.
+        const localTracks = this.getLocalTracks();
+
+        for (const track of localTracks) {
+            this._setupSenderE2EEForTrack(session, track);
+        }
+
         this.p2pJingleSession.setAnswer(answer);
     }
 };
@@ -1837,6 +1857,7 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
             p2p: false,
             value: now
         }));
+
     try {
         jingleSession.initialize(this.room, this.rtc, this.options.config);
     } catch (error) {
@@ -1847,6 +1868,8 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
     this._setBridgeChannel(jingleOffer, jingleSession.peerconnection);
 
     // Add local tracks to the session
+    const localTracks = this.getLocalTracks();
+
     try {
         jingleSession.acceptOffer(
             jingleOffer,
@@ -1857,13 +1880,18 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
                 if (this.isP2PActive() && this.jvbJingleSession) {
                     this._suspendMediaTransferForJvbConnection();
                 }
+
+                // Setup E2EE.
+                for (const track of localTracks) {
+                    this._setupSenderE2EEForTrack(jingleSession, track);
+                }
             },
             error => {
                 GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error(
                     'Failed to accept incoming Jingle session', error);
             },
-            this.getLocalTracks()
+            localTracks
         );
 
         // Start callstats as soon as peerconnection is initialized,
@@ -2615,6 +2643,11 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
         jingleOffer,
         () => {
             logger.debug('Got RESULT for P2P "session-accept"');
+
+            // Setup E2EE.
+            for (const track of localTracks) {
+                this._setupSenderE2EEForTrack(jingleSession, track);
+            }
         },
         error => {
             logger.error(
@@ -3268,4 +3301,74 @@ JitsiConference.prototype._sendConferenceJoinAnalyticsEvent = function() {
         participantId: `${meetingId}.${this._statsCurrentId}`
     }));
     this._conferenceJoinAnalyticsEventSent = true;
+};
+
+/**
+ * Returns whether End-To-End encryption is supported. Note that not all participants
+ * in the conference may support it.
+ *
+ * @returns {boolean}
+ */
+JitsiConference.prototype.isE2EESupported = function() {
+    return Boolean(this._e2eeCtx);
+};
+
+/**
+ * Sets the key to be used for End-To-End encryption.
+ *
+ * @param {string} key the key to be used.
+ * @returns {void}
+ */
+JitsiConference.prototype.setE2EEKey = function(key) {
+    if (!this._e2eeCtx) {
+        logger.warn('Cannot set E2EE key: there is no defined context, platform is likely unsupported.');
+
+        return;
+    }
+
+    this._e2eeCtx.setKey(key);
+};
+
+/**
+ * Setup E2EE for the sending side, if supported.
+ * Note that this is only done for the JVB Peer Connecction.
+ *
+ * @returns {void}
+ */
+JitsiConference.prototype._setupSenderE2EEForTrack = function(session, track) {
+    if (!this._e2eeCtx) {
+        return;
+    }
+    const pc = session.peerconnection;
+    const sender = pc.findSenderForTrack(track.track);
+
+    if (sender) {
+        this._e2eeCtx.handleSender(sender, track.getType());
+    } else {
+        logger.warn(`Could not handle E2EE for local ${track.getType()} track: sender not found`);
+    }
+};
+
+/**
+ * Setup E2EE for the receiving side, if supported.
+ * Note that this is only done for the JVB Peer Connecction.
+ *
+ * @returns {void}
+ */
+JitsiConference.prototype._setupReceiverE2EEForTrack = function(track) {
+    if (!this._e2eeCtx) {
+        return;
+    }
+    const session = track.isP2P ? this.p2pJingleSession : this.jvbJingleSession;
+    const pc = session && session.peerconnection;
+
+    if (pc) {
+        const receiver = pc.findReceiverForTrack(track.track);
+
+        if (receiver) {
+            this._e2eeCtx.handleReceiver(receiver, track.getType());
+        } else {
+            logger.warn(`Could not handle E2EE for remote ${track.getType()} track: receiver not found`);
+        }
+    }
 };

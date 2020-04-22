@@ -163,13 +163,17 @@ export default class XMPP extends Listenable {
         // this.caps.addFeature('urn:ietf:rfc:5576'); // a=ssrc
 
         // Enable Lipsync ?
-        if (browser.isChrome() && this.options.enableLipSync !== false) {
+        if (browser.isChrome() && this.options.enableLipSync === true) {
             logger.info('Lip-sync enabled !');
             this.caps.addFeature('http://jitsi.org/meet/lipsync');
         }
 
         if (this.connection.rayo) {
             this.caps.addFeature('urn:xmpp:rayo:client:1');
+        }
+
+        if (browser.supportsInsertableStreams()) {
+            this.caps.addFeature('https://jitsi.org/meet/e2ee');
         }
     }
 
@@ -219,7 +223,8 @@ export default class XMPP extends Listenable {
 
             logger.info(`My Jabber ID: ${this.connection.jid}`);
 
-            this.lastErrorMsg = undefined;
+            // XmppConnection emits CONNECTED again on reconnect - a good opportunity to clear any "last error" flags
+            this._resetState();
 
             // Schedule ping ?
             const pingJid = this.connection.domain;

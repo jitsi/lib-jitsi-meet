@@ -325,7 +325,7 @@ export default class XmppConnection extends Listenable {
             logger.debug(`Scheduling next WebSocket keep-alive in ${intervalWithJitter}ms`);
 
             this._wsKeepAlive = setTimeout(() => {
-                const url = this.service.replace('wss', 'https').replace('ws', 'http');
+                const url = this.service.replace('wss://', 'https://').replace('ws://', 'http://');
 
                 fetch(url).catch(
                     error => {
@@ -454,8 +454,11 @@ export default class XmppConnection extends Listenable {
                 logger.info('Trying to resume the XMPP connection');
 
                 const url = new URL(this._stropheConn.service);
+                let { search } = url;
 
-                url.searchParams.set('previd', resumeToken);
+                search += search.indexOf('?') === -1 ? `?previd=${resumeToken}` : `&previd=${resumeToken}`;
+
+                url.search = search;
 
                 this._stropheConn.service = url.toString();
 
