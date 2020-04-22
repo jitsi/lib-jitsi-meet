@@ -1435,7 +1435,7 @@ class RTCUtils extends Listenable {
     isDeviceChangeAvailable(deviceType) {
         return deviceType === 'output' || deviceType === 'audiooutput'
             ? isAudioOutputDeviceChangeAvailable
-            : !browser.isSafari();
+            : true;
     }
 
     /**
