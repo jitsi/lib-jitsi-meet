@@ -1346,9 +1346,16 @@ const getters = {
             this.trace('getLocalDescription::postTransform (Plan B)',
                 dumpSDP(desc));
 
+            // @TODO: Debugging SDP, please let it here until safari working
+            // console.log(desc.sdp, 'getLocalDescription::postTransform (Plan B)');
+
+
             desc = this._injectSsrcGroupForUnifiedSimulcast(desc);
             this.trace('getLocalDescription::postTransform (inject ssrc group)',
                 dumpSDP(desc));
+
+            // @TODO: Debugging SDP, please let it here until safari working
+            // console.log(desc.sdp, 'getLocalDescription::postTransform (inject ssrc group)');
         } else {
             if (browser.doesVideoMuteByStreamRemove()) {
                 desc = this.localSdpMunger.maybeAddMutedLocalVideoTracksToSDP(desc);
@@ -1831,6 +1838,9 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
 
     this.trace('setLocalDescription::preTransform', dumpSDP(localSdp));
 
+    // @TODO: Debugging SDP, please let it here until safari working
+    // console.log(localSdp.sdp, 'setLocalDescription::preTransform');
+
     if (this.options.disableH264 || this.options.preferH264) {
         const parsedSdp = transform.parse(localSdp.sdp);
         const videoMLine = parsedSdp.media.find(m => m.type === 'video');
@@ -1848,6 +1858,9 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
 
         this.trace('setLocalDescription::postTransform (H264)',
             dumpSDP(localSdp));
+
+        // @TODO: Debugging SDP, please let it here until safari working
+        // console.log(localSdp.sdp, 'setLocalDescription::postTransform (H264)');
     }
 
     if (browser.usesPlanB()) {
@@ -1860,12 +1873,18 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
         this.trace(
             'setLocalDescription::postTransform (Unified Plan)',
             dumpSDP(localSdp));
+
+        // @TODO: Debugging SDP, please let it here until safari working
+        // console.log(localSdp.sdp, 'setLocalDescription::postTransform (Unified Plan)');
     }
 
     return new Promise((resolve, reject) => {
         this.peerconnection.setLocalDescription(localSdp)
             .then(() => {
-                this.trace('setLocalDescriptionOnSuccess');
+                this.trace('setLocalDescription::OnSuccess');
+
+                // @TODO: Debugging SDP, please let it here until safari working
+                // console.log(localSdp.sdp, 'setLocalDescription::OnSuccess');
                 const localUfrag = SDPUtil.getUfrag(localSdp.sdp);
 
                 if (localUfrag !== this.localUfrag) {
@@ -1875,7 +1894,7 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
                 }
                 resolve();
             }, err => {
-                this.trace('setLocalDescriptionOnFailure', err);
+                this.trace('setLocalDescription::OnFailure', err);
                 this.eventEmitter.emit(
                     RTCEvents.SET_LOCAL_DESCRIPTION_FAILED,
                     err, this);
@@ -1972,6 +1991,9 @@ TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack) {
 TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
     this.trace('setRemoteDescription::preTransform', dumpSDP(description));
 
+    // @TODO: Debugging SDP, please let it here until safari working
+    // console.log(description.sdp, 'setRemoteDescription::preTransform');
+
     if (browser.usesPlanB()) {
         // TODO the focus should squeze or explode the remote simulcast
         // eslint-disable-next-line no-param-reassign
@@ -2004,6 +2026,15 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
             'setRemoteDescription::postTransform (Unified)',
             dumpSDP(description));
 
+        // @TODO: Debugging SDP, please let it here until safari working
+        // console.log(description.sdp, 'setRemoteDescription::postTransform (Unified)');
+        // if (Boolean(currentDescription) && Boolean(currentDescription.sdp)) {
+        //     console.log(currentDescription.sdp, 'setRemoteDescription::postTransform (Unified)(Current)');
+        //     console.log(currentDescription.type, 'setRemoteDescription::postTransform (Unified)(Current)');
+        // } else {
+        //     console.log(currentDescription, 'setRemoteDescription::postTransform (Unified)(Current)');
+        // }
+
         if (this.isSimulcastOn()) {
             // eslint-disable-next-line no-param-reassign
             description = this.simulcast.mungeRemoteDescription(description);
@@ -2014,6 +2045,8 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
                 'setRemoteDescription::postTransform (sim receive)',
                 dumpSDP(description));
 
+            // @TODO: Debugging SDP, please let it here until safari working
+            // console.log(description.sdp, 'setRemoteDescription::postTransform (sim receive)');
             // eslint-disable-next-line no-param-reassign
             description = this.tpcUtils._ensureCorrectOrderOfSsrcs(description);
         }
@@ -2022,7 +2055,10 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
     return new Promise((resolve, reject) => {
         this.peerconnection.setRemoteDescription(description)
             .then(() => {
-                this.trace('setRemoteDescriptionOnSuccess');
+                this.trace('setRemoteDescription::OnSuccess');
+
+                // @TODO: Debugging SDP, please let it here until safari working
+                // console.log(description.sdp, 'setRemoteDescription::OnSuccess');
                 const remoteUfrag = SDPUtil.getUfrag(description.sdp);
 
                 if (remoteUfrag !== this.remoteUfrag) {
