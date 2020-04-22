@@ -200,7 +200,7 @@ export default class BrowserCapabilities extends BrowserDetection {
             // https://trac.webkit.org/changeset/236144/webkit/trunk/LayoutTests/webrtc/video-addLegacyTransceiver.html
             // eslint-disable-next-line no-undef
             return Object.keys(RTCRtpTransceiver.prototype)
-                   .indexOf('currentDirection') > -1;
+                .indexOf('currentDirection') > -1;
         }
 
         return false;
@@ -258,7 +258,7 @@ export default class BrowserCapabilities extends BrowserDetection {
         return typeof navigator.getDisplayMedia !== 'undefined'
             || (typeof navigator.mediaDevices !== 'undefined'
                 && typeof navigator.mediaDevices.getDisplayMedia
-                    !== 'undefined');
+                !== 'undefined');
     }
 
     /**
@@ -278,6 +278,40 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     supportsSdpSemantics() {
         return this.isChromiumBased() && this._getChromiumBasedVersion() >= 65;
+    }
+
+    /**
+     * Returns true if peer use chrome
+     * @returns {boolean}
+     */
+    peerIsChrome() {
+        const browser = this._getPeerBrowserName();
+
+        return browser === 'Chrome' || browser === 'Chrome WebView'
+            || browser === 'Chrome Headless' || browser === 'Chromium';
+    }
+
+    /**
+     * Returns true if peer use safari
+     * @returns {boolean}
+     */
+    peerIsSafari() {
+        const browser = this._getPeerBrowserName();
+
+        return browser === 'Safari';
+    }
+
+    /**
+     *
+     * @returns {string|*}
+     * @private
+     */
+    _getPeerBrowserName() {
+        if (Boolean(window.jameda) && Boolean(window.jameda.peerBrowserName)) {
+            return window.jameda.peerBrowserName;
+        }
+
+        return '';
     }
 
     /**
