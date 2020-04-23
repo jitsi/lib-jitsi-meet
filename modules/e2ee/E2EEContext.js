@@ -32,7 +32,6 @@ export default class E2EEcontext {
      *        https://developer.mozilla.org/en-US/docs/Web/API/Pbkdf2Params
      *      this is easily available and the same for all participants.
      *      We currently do not enforce a minimum length of 16 bytes either.
-     * @param {string} options.myUserId- local client id. This is the local MUC resourcepart.
      */
     constructor(options) {
         this._options = options;
@@ -59,7 +58,7 @@ export default class E2EEcontext {
      *
      * @param {RTCRtpReceiver} receiver - The receiver which will get the decoding function injected.
      * @param {string} kind - The kind of track this receiver belongs to.
-     * @param {string} participantId - The (muc participant) id that this receiver belongs to.
+     * @param {string} participantId - The participant id that this receiver belongs to.
      */
     handleReceiver(receiver, kind, participantId) {
         if (receiver[kJitsiE2EE]) {
@@ -84,8 +83,9 @@ export default class E2EEcontext {
      *
      * @param {RTCRtpSender} sender - The sender which will get the encoding function injected.
      * @param {string} kind - The kind of track this sender belongs to.
+     * @param {string} participantId - The participant id that this sender belongs to.
      */
-    handleSender(sender, kind) {
+    handleSender(sender, kind, participantId) {
         if (sender[kJitsiE2EE]) {
             return;
         }
@@ -98,7 +98,7 @@ export default class E2EEcontext {
             operation: 'encode',
             readableStream: senderStreams.readableStream,
             writableStream: senderStreams.writableStream,
-            participantId: this._options.myUserId
+            participantId
         }, [ senderStreams.readableStream, senderStreams.writableStream ]);
     }
 
