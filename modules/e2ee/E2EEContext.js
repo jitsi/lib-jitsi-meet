@@ -341,6 +341,13 @@ export default class E2EEcontext {
                     controller.enqueue(encodedFrame);
                 }
             });
+        } else if (keyIndex >= this._cryptoKeyRing.length
+                && this._cryptoKeyRing[this._currentKeyIndex % this._cryptoKeyRing.length]) {
+            // If we are encrypting but don't have a key for the remote drop the frame.
+            // This is a heuristic since we don't know whether a packet is encrypted,
+            // do not have a checksum and do not have signaling for whether a remote participant does
+            // encrypt or not.
+            return;
         }
 
         // TODO: this just passes through to the decoder. Is that ok? If we don't know the key yet
