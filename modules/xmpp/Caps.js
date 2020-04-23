@@ -142,10 +142,9 @@ export default class Caps extends Listenable {
     getFeatures(jid, timeout = 5000) {
         const user
             = jid in this.jidToVersion ? this.jidToVersion[jid] : null;
+        const node = user ? `${user.node}#${user.version}` : null;
 
-        if (!user || !(user.version in this.versionToCapabilities)) {
-            const node = user ? `${user.node}#${user.version}` : null;
-
+        if (!user || !(node in this.versionToCapabilities)) {
             return this._getDiscoInfo(jid, node, timeout)
                 .then(({ features, identities }) => {
                     if (user) {
@@ -174,7 +173,7 @@ export default class Caps extends Listenable {
                 });
         }
 
-        return Promise.resolve(this.versionToCapabilities[user.version]);
+        return Promise.resolve(this.versionToCapabilities[node]);
     }
 
     /**
