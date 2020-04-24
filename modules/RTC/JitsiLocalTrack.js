@@ -506,6 +506,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             if (this.track) {
                 this.track.enabled = !muted;
             }
+            this.emit(TRACK_MUTE_CHANGED, this);
         } else if (muted) {
             promise = new Promise((resolve, reject) => {
                 logMuteInfo();
@@ -521,6 +522,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                         this._unregisterHandlers();
                         this.stopStream();
                         this._setStream(null);
+                        this.emit(TRACK_MUTE_CHANGED, this);
                         resolve();
                     },
                     reject);
@@ -584,13 +586,13 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 this.containers.map(
                     cont => RTCUtils.attachMediaStream(cont, this.stream));
 
-                return this._addStreamToConferenceAsUnmute();
+                return this._addStreamToConferenceAsUnmute()
+                    .then(() => this.emit(TRACK_MUTE_CHANGED, this));
             });
         }
 
         return promise
-            .then(() => this._sendMuteStatus(muted))
-            .then(() => this.emit(TRACK_MUTE_CHANGED, this));
+            .then(() => this._sendMuteStatus(muted));
     }
 
     /**

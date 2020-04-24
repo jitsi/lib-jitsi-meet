@@ -3262,6 +3262,26 @@ JitsiConference.prototype.setReceiverVideoConstraint = function(
 };
 
 /**
+ * Sets the maximum video size the local participant should send to remote
+ * participants.
+ * @param {number} maxFrameHeight - The user preferred max frame height.
+ * @returns {Promise} promise that will be resolved when the operation is
+ * successful and rejected otherwise.
+ */
+JitsiConference.prototype.setSenderVideoConstraint = function(maxFrameHeight) {
+    const promises = [];
+
+    if (this.jvbJingleSession) {
+        promises.push(this.jvbJingleSession.setSenderVideoConstraint(maxFrameHeight));
+    }
+    if (this.p2pJingleSession) {
+        promises.push(this.p2pJingleSession.setSenderVideoConstraint(maxFrameHeight));
+    }
+
+    return Promise.all(promises);
+};
+
+/**
  * Creates a video SIP GW session and returns it if service is enabled. Before
  * creating a session one need to check whether video SIP GW service is
  * available in the system {@link JitsiConference.isVideoSIPGWAvailable}. Even
