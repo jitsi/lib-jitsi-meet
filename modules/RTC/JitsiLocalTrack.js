@@ -506,7 +506,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
             if (this.track) {
                 this.track.enabled = !muted;
             }
-            this.emit(TRACK_MUTE_CHANGED, this);
         } else if (muted) {
             promise = new Promise((resolve, reject) => {
                 logMuteInfo();
@@ -522,7 +521,6 @@ export default class JitsiLocalTrack extends JitsiTrack {
                         this._unregisterHandlers();
                         this.stopStream();
                         this._setStream(null);
-                        this.emit(TRACK_MUTE_CHANGED, this);
                         resolve();
                     },
                     reject);
@@ -553,7 +551,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     = RTCUtils.obtainAudioAndVideoPermissions(streamOptions);
             }
 
-            promise.then(streamsInfo => {
+            promise = promise.then(streamsInfo => {
                 // The track kind for presenter track is video as well.
                 const mediaType = this.getType() === MediaType.PRESENTER ? MediaType.VIDEO : this.getType();
                 const streamInfo
@@ -586,13 +584,13 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 this.containers.map(
                     cont => RTCUtils.attachMediaStream(cont, this.stream));
 
-                return this._addStreamToConferenceAsUnmute()
-                    .then(() => this.emit(TRACK_MUTE_CHANGED, this));
+                return this._addStreamToConferenceAsUnmute();
             });
         }
 
         return promise
-            .then(() => this._sendMuteStatus(muted));
+            .then(() => this._sendMuteStatus(muted))
+            .then(() => this.emit(TRACK_MUTE_CHANGED, this));
     }
 
     /**

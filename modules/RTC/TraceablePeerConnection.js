@@ -349,7 +349,10 @@ export default function TraceablePeerConnection(
             && track.isVideoTrack()
             && track.videoType === VideoType.CAMERA
             && this.senderVideoMaxHeight) {
-            this.setSenderVideoConstraint(this.senderVideoMaxHeight);
+            this.setSenderVideoConstraint(this.senderVideoMaxHeight)
+                .catch(err => {
+                    logger.error(`Settings sender video constraints failed: ${err}`);
+                });
         }
     };
 
@@ -2089,41 +2092,59 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
     if (!localVideoTrack || localVideoTrack.isMuted() || localVideoTrack.videoType !== VideoType.CAMERA) {
         return Promise.resolve();
     }
+    const track = localVideoTrack.getTrack();
+
     if (this.isSimulcastOn()) {
-        // Determine the encodings that need to stay enabled based on the
-        // new frameHeight provided.
-        const encodingsEnabledState = this.tpcUtils.simulcastStreamConstraints
-            .map(constraint => constraint.height <= frameHeight);
-        const videoSender = this.findSenderByKind(MediaType.VIDEO);
-        const parameters = videoSender.getParameters();
+        let promise = Promise.resolve();
 
-        if (!parameters || !parameters.encodings || !parameters.encodings.length) {
-            return Promise.reject(new Error('RTCRtpSendParameters not found for local video track'));
-        }
-        logger.debug(`Setting max height of ${frameHeight} on local video`);
-        for (const encoding in parameters.encodings) {
-            if (parameters.encodings.hasOwnProperty(encoding)) {
-                parameters.encodings[encoding].active = encodingsEnabledState[encoding];
-            }
+        // Check if the track constraints have been modified in p2p mode, apply
+        // the constraints that were used for creating the track if that is the case.
+        const height = localVideoTrack._constraints.height.ideal
+            ? localVideoTrack._constraints.height.ideal
+            : localVideoTrack._constraints.height;
+
+        if (track.getSettings().height !== height) {
+            promise = track.applyConstraints(localVideoTrack._constraints);
         }
 
-        return videoSender.setParameters(parameters);
+        return promise
+            .then(() => {
+                // Determine the encodings that need to stay enabled based on the
+                // new frameHeight provided.
+                const encodingsEnabledState = this.tpcUtils.simulcastStreamConstraints
+                    .map(constraint => constraint.height <= frameHeight);
+                const videoSender = this.findSenderByKind(MediaType.VIDEO);
+
+                if (!videoSender) {
+                    return Promise.reject(new Error('RTCRtpSender not found for local video'));
+                }
+                const parameters = videoSender.getParameters();
+
+                if (!parameters || !parameters.encodings || !parameters.encodings.length) {
+                    return Promise.reject(new Error('RTCRtpSendParameters not found for local video track'));
+                }
+                logger.debug(`Setting max height of ${frameHeight} on local video`);
+                for (const encoding in parameters.encodings) {
+                    if (parameters.encodings.hasOwnProperty(encoding)) {
+                        parameters.encodings[encoding].active = encodingsEnabledState[encoding];
+                    }
+                }
+
+                return videoSender.setParameters(parameters);
+            });
     }
 
     // Apply the height constraint on the local camera track
-    const track = localVideoTrack.getTrack();
     const aspectRatio = (track.getSettings().width / track.getSettings().height).toPrecision(4);
-    const advanced = [
-        { aspectRatio },
-        { height: frameHeight }
-    ];
 
     logger.debug(`Setting max height of ${frameHeight} on local video`);
 
     return track.applyConstraints(
         {
-            advanced,
-            height: frameHeight
+            aspectRatio,
+            height: {
+                ideal: frameHeight
+            }
         });
 };
 
