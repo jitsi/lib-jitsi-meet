@@ -414,7 +414,7 @@ export default class XmppConnection extends Listenable {
         body.cnode(pres.tree());
 
         const res = navigator.sendBeacon(
-            `https:${this.service}`,
+            this.service.indexOf('https://') === -1 ? `https:${this.service}` : this.service,
             Strophe.serialize(body.tree()));
 
         logger.info(`Successfully send unavailable beacon ${res}`);
