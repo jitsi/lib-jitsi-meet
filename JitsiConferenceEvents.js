@@ -328,3 +328,18 @@ export const USER_STATUS_CHANGED = 'conference.statusChanged';
  * Event indicates that the bot participant type changed.
  */
 export const BOT_TYPE_CHANGED = 'conference.bot_type_changed';
+
+/**
+ * A new user joined the lobby room.
+ */
+export const LOBBY_USER_JOINED = 'conference.lobby.userJoined';
+
+/**
+ * A user from the lobby room has been update.
+ */
+export const LOBBY_USER_UPDATED = 'conference.lobby.userUpdated';
+
+/**
+ * A user left the lobby room.
+ */
+export const LOBBY_USER_LEFT = 'conference.lobby.userLeft';

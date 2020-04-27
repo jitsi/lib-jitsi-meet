@@ -34,6 +34,18 @@ export const CONNECTION_ERROR = 'conference.connectionError';
 export const NOT_ALLOWED_ERROR = 'conference.connectionError.notAllowed';
 
 /**
+ * Indicates that a connection error is due to not allowed,
+ * occurred when trying to join a conference, only approved members are allowed to join.
+ */
+export const MEMBERS_ONLY_ERROR = 'conference.connectionError.membersOnly';
+
+/**
+ * Indicates that a connection error is due to denied access to the room,
+ * occurred after joining a lobby room and access is denied by the room moderators.
+ */
+export const CONFERENCE_ACCESS_DENIED = 'conference.connectionError.accessDenied';
+
+/**
  * Indicates that focus error happened.
  */
 export const FOCUS_DISCONNECTED = 'conference.focusDisconnected';

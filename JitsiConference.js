@@ -3412,6 +3412,78 @@ JitsiConference.prototype.setE2EEKey = function(key) {
 };
 
 /**
+ * Returns <tt>true</tt> if lobby support is enabled in the backend.
+ *
+ * @returns {boolean} whether lobby is supported in the backend.
+ */
+JitsiConference.prototype.isLobbySupported = function() {
+    return Boolean(this.room && this.room.getLobby().isLobbySupported());
+};
+
+/**
+ * Enables lobby by moderators
+ *
+ * @param {string} password shared password that can be used to skip lobby waiting.
+ * @returns {Promise} resolves when lobby room is joined or rejects with the error.
+ */
+JitsiConference.prototype.enableLobby = function(password) {
+    if (this.room && this.isModerator()) {
+        return this.room.getLobby().enableLobby(password);
+    }
+
+    return Promise.reject(
+        new Error('The conference not started or user is not moderator'));
+};
+
+/**
+ * Disabled lobby by moderators
+ *
+ * @returns {void}
+ */
+JitsiConference.prototype.disableLobby = function() {
+    if (this.room && this.isModerator()) {
+        this.room.getLobby().disableLobby();
+    }
+};
+
+/**
+ * Joins the lobby room with display name and optional email or with a shared password to skip waiting.
+ *
+ * @param {string} displayName Display name should be set to show it to moderators.
+ * @param {string} email Optional email is used to present avatar to the moderator.
+ * @param {string} password Shared password can be used to skip waiting in the lobby room.
+ * @returns {Promise<never>}
+ */
+JitsiConference.prototype.joinLobby = function(displayName, email, password) {
+    if (this.room) {
+        return this.room.getLobby().joinLobbyRoom(displayName, email, password);
+    }
+
+    return Promise.reject(new Error('The conference not started'));
+};
+
+/**
+ * Denies access to the conference in a participant waiting in the lobby.
+ * @param {string} id The participant id.
+ */
+JitsiConference.prototype.lobbyDenyAccess = function(id) {
+    if (this.room) {
+        this.room.getLobby().denyAccess(id);
+    }
+};
+
+/**
+ * Approves the request to join the conference to a participant waiting in the lobby.
+ *
+ * @param {string} id The participant id.
+ */
+JitsiConference.prototype.lobbyApproveAccess = function(id) {
+    if (this.room) {
+        this.room.getLobby().approveAccess(id);
+    }
+};
+
+/**
  * Setup E2EE for the sending side, if supported.
  * Note that this is only done for the JVB Peer Connecction.
  *

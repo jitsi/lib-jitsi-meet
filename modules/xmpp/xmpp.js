@@ -248,6 +248,10 @@ export default class XMPP extends Listenable {
                         if (identity.type === 'conference_duration') {
                             this.conferenceDurationComponentAddress = identity.name;
                         }
+
+                        if (identity.type === 'lobbyrooms') {
+                            this.lobbySupported = true;
+                        }
                     });
 
                     if (this.speakerStatsComponentAddress
@@ -469,7 +473,8 @@ export default class XMPP extends Listenable {
      * @returns {Promise} Resolves with an instance of a strophe muc.
      */
     createRoom(roomName, options, onCreateResource) {
-        let roomjid = `${roomName}@${this.options.hosts.muc}/`;
+        let roomjid = `${roomName}@${options.customDomain
+            ? options.customDomain : this.options.hosts.muc}/`;
 
         const mucNickname = onCreateResource
             ? onCreateResource(this.connection.jid, this.authenticatedUser)
