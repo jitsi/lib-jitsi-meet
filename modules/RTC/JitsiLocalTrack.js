@@ -551,7 +551,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     = RTCUtils.obtainAudioAndVideoPermissions(streamOptions);
             }
 
-            promise.then(streamsInfo => {
+            promise = promise.then(streamsInfo => {
                 // The track kind for presenter track is video as well.
                 const mediaType = this.getType() === MediaType.PRESENTER ? MediaType.VIDEO : this.getType();
                 const streamInfo

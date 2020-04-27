@@ -1329,6 +1329,16 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Sets the resolution constraint on the local camera track.
+     * @param {number} maxFrameHeight - The user preferred max frame height.
+     * @returns {Promise} promise that will be resolved when the operation is
+     * successful and rejected otherwise.
+     */
+    setSenderVideoConstraint(maxFrameHeight) {
+        return this.peerconnection.setSenderVideoConstraint(maxFrameHeight);
+    }
+
+    /**
      * @inheritDoc
      */
     terminate(success, failure, options) {
