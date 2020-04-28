@@ -44,4 +44,9 @@ nor the Opus TOC byte
 This allows the decoder to understand the frame a bit more and makes it generate the fun looking garbage we see in the video.
 This also means the SFU does not know (ideally) that the content is end-to-end encrypted and there are no changes in the SFU required at all.
 
-Decryption errors are currently handled by inserting silence or a black frame.
+## Using workers
+
+Insertable Streams are transferable and can be sent from the main javascript context to a Worker
+  https://developer.mozilla.org/en-US/docs/Web/API/Worker
+We are using a named worker (E2EEworker) which allows very easy inspection in Chrome Devtools.
+It also makes the keys very self-contained.
