@@ -49,7 +49,6 @@
     "karma-chrome-launcher": "2.2.0",
     "karma-jasmine": "1.1.2",
     "karma-webpack": "3.0.0",
-    "precommit-hook": "3.0.0",
     "string-replace-loader": "2.1.1",
     "webpack": "4.26.1",
     "webpack-bundle-analyzer": "3.4.1",
@@ -62,10 +61,6 @@
     "test-watch": "karma start karma.conf.js --no-single-run",
     "validate": "npm ls"
   },
-  "pre-commit": [
-    "lint",
-    "test"
-  ],
   "main": "./index.js",
   "license": "Apache-2.0"
 }
