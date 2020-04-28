@@ -3073,8 +3073,8 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
         const peersId = peer.getId();
 
         // @FIXME safari can not start p2p session if other peer is chrome!
-        const doNotStart = browser.isSafari() && browser.peerIsChrome();
-        const doStart = !browser.isSafari() && browser.peerIsSafari();
+        const doNotStart = browser.isSafari(); // && browser.peerIsChrome();
+        const doStart = !browser.isSafari(); // && browser.peerIsSafari();
 
         if (doNotStart) {
             logger.debug(
