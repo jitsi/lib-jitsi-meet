@@ -1,6 +1,6 @@
 /* global __filename */
 
-import { e2eeWorkerScript } from './Worker';
+import { createWorkerScript } from './Worker';
 import { getLogger } from 'jitsi-meet-logger';
 
 const logger = getLogger(__filename);
@@ -37,7 +37,7 @@ export default class E2EEcontext {
         this._options = options;
 
         // Initialize the E2EE worker.
-        this._worker = new Worker(e2eeWorkerScript, {
+        this._worker = new Worker(createWorkerScript(), {
             name: 'E2EE Worker'
         });
         this._worker.onerror = e => logger.onerror(e);

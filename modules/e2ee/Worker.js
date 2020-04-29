@@ -287,4 +287,4 @@ const code = `
 
 `;
 
-export const e2eeWorkerScript = URL.createObjectURL(new Blob([ code ], { type: 'application/javascript' }));
+export const createWorkerScript = () => URL.createObjectURL(new Blob([ code ], { type: 'application/javascript' }));
