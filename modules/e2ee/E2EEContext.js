@@ -16,7 +16,7 @@ const kJitsiE2EE = Symbol('kJitsiE2EE');
  * that provides access to the encoded frames and allows them to be transformed.
  *
  * The encoded frame format is explained below in the _encodeFunction method.
- * High level design goals were:.
+ * High level design goals were:
  * - do not require changes to existing SFUs and retain (VP8) metadata.
  * - allow the SFU to rewrite SSRCs, timestamp, pictureId.
  * - allow for the key to be rotated frequently.
@@ -53,7 +53,7 @@ export default class E2EEcontext {
     }
 
     /**
-     * Handles the given {@code RTCRtpReceiver} by creating a {@code TransformStream} which will injecct
+     * Handles the given {@code RTCRtpReceiver} by creating a {@code TransformStream} which will inject
      * a frame decoder.
      *
      * @param {RTCRtpReceiver} receiver - The receiver which will get the decoding function injected.
@@ -76,10 +76,10 @@ export default class E2EEcontext {
     }
 
     /**
-     * Handles the given {@code RTCRtpSender} by creating a {@code TransformStream} which will injecct
+     * Handles the given {@code RTCRtpSender} by creating a {@code TransformStream} which will inject
      * a frame encoder.
      *
-     * @param {RTCRtpSender} sender - The sender which will get the encoding funcction injected.
+     * @param {RTCRtpSender} sender - The sender which will get the encoding function injected.
      * @param {string} kind - The kind of track this sender belongs to.
      */
     handleSender(sender, kind) {
