@@ -307,8 +307,6 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @private
      */
     _getPeerBrowserName() {
-        console.log(window.jameda, 'PeerBrowserName');
-
         if (Boolean(window.jameda) && Boolean(window.jameda.peerBrowserName)) {
             return window.jameda.peerBrowserName;
         }
