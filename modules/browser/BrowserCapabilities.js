@@ -80,7 +80,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     isUserInteractionRequiredForUnmute() {
-        return (this.isFirefox() && this.isVersionLessThan('68'));
+        return this.isFirefox() && this.isVersionLessThan('68');
     }
 
     /**
