@@ -419,7 +419,9 @@ JitsiConference.prototype._init = function(options = {}) {
         }
     }
 
-    if (config.enableNoisyMicDetection) {
+    // Disable noisy mic detection on safari since it causes the audio input to
+    // fail on Safari on iPadOS.
+    if (config.enableNoisyMicDetection && !browser.isSafari()) {
         if (config.createVADProcessor) {
             if (!this._audioAnalyser) {
                 this._audioAnalyser = new VADAudioAnalyser(this, config.createVADProcessor);
