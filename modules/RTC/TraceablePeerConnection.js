@@ -1494,6 +1494,7 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
             this.rtxModifier.setSsrcCache(rtxSsrcMapping);
         }
     }
+
     if (browser.usesUnifiedPlan() && !browser.usesSdpMungingForSimulcast()) {
         this.tpcUtils.setEncodings(track);
     }
