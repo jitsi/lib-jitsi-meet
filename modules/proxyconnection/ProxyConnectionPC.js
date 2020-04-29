@@ -213,8 +213,8 @@ export default class ProxyConnectionPC {
         };
 
         /**
-         * {@code JingleSessionPC} expects an instance of
-         * {@code JitsiConference} to be passed in. {@code ProxyConnectionPC}
+         * {@link JingleSessionPC} expects an instance of
+         * {@link ChatRoom} to be passed in. {@link ProxyConnectionPC}
          * is instantiated outside of the {@code JitsiConference}, so it must be
          * stubbed to prevent errors.
          *
@@ -233,12 +233,30 @@ export default class ProxyConnectionPC {
         };
 
         /**
+         * A {@code JitsiConference} stub passed to the {@link RTC} module.
+         * @type {Object}
+         */
+        const conferenceStub = {
+            // FIXME: remove once the temporary code below is gone from
+            //  TraceablePeerConnection.
+            // TraceablePeerConnection:359
+            //  this.rtc.conference.on(
+            //         TRACK_ADDED,
+            //         maybeSetSenderVideoConstraints);
+            //     this.rtc.conference.on(
+            //         TRACK_MUTE_CHANGED,
+            //         maybeSetSenderVideoConstraints);
+            // eslint-disable-next-line no-empty-function
+            on: () => {}
+        };
+
+        /**
          * Create an instance of {@code RTC} as it is required for peer
          * connection creation by {@code JingleSessionPC}. An existing instance
          * of {@code RTC} from elsewhere should not be re-used because it is
          * a stateful grouping of utilities.
          */
-        this._rtc = new RTC(this, {});
+        this._rtc = new RTC(conferenceStub, {});
 
         /**
          * Add the remote track listener here as {@code JingleSessionPC} has
