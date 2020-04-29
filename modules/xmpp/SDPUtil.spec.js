@@ -1,5 +1,5 @@
 import SDPUtil from './SDPUtil';
-import * as SampleSdpStrings from './SampleSdpStrings.js';
+import { default as SampleSdpStrings } from './SampleSdpStrings.js';
 
 describe('SDPUtil', () => {
     it('should parse an ice ufrag correctly', () => {
