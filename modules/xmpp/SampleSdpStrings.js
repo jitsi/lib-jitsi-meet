@@ -262,11 +262,30 @@ const multiCodecVideoSdpStr = baseSessionSdp + baseAudioMLineSdp + multiCodecVid
 // A full sdp string representing a client doing a single video stream with flexfec
 const flexFecSdpStr = baseSessionSdp + baseAudioMLineSdp + flexFecVideoMLineSdp + baseDataMLineSdp;
 
-export const simulcastSdp = transform.parse(simulcastSdpStr);
-export const simulcastRtxSdp = transform.parse(simulcastRtxSdpStr);
-export const plainVideoSdp = transform.parse(plainVideoSdpStr);
-export const rtxVideoSdp = transform.parse(rtxVideoSdpStr);
-export const multiCodecVideoSdp = transform.parse(multiCodecVideoSdpStr);
-export const flexFecSdp = transform.parse(flexFecSdpStr);
+export default {
+    get simulcastSdp() {
+        return transform.parse(simulcastSdpStr);
+    },
+
+    get simulcastRtxSdp() {
+        return transform.parse(simulcastRtxSdpStr);
+    },
+
+    get plainVideoSdp() {
+        return transform.parse(plainVideoSdpStr);
+    },
+
+    get rtxVideoSdp() {
+        return transform.parse(rtxVideoSdpStr);
+    },
+
+    get multiCodecVideoSdp() {
+        return transform.parse(multiCodecVideoSdpStr);
+    },
+
+    get flexFecSdp() {
+        return transform.parse(flexFecSdpStr);
+    }
+};
 
 /* eslint-enable max-len*/
