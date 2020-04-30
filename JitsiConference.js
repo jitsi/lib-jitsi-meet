@@ -3082,6 +3082,11 @@ JitsiConference.prototype._maybeStartOrStopP2P = function (userLeftEvent) {
             return;
         }
 
+        // @FIXME safari has to join the room before firefox
+        if (browser.isFirefox() && browser.peerIsSafari()) {
+            sleep(8000);
+        }
+
         // @FIXME safari can not start p2p session if other peer is chrome!
         if (browser.isSafari() && browser.peerIsChrome()) {
             myId = 99;
@@ -3447,3 +3452,11 @@ JitsiConference.prototype._setupReceiverE2EEForTrack = function (track) {
         }
     }
 };
+
+function sleep(milliseconds) {
+    const date = Date.now();
+    let currentDate = null;
+    do {
+        currentDate = Date.now();
+    } while (currentDate - date < milliseconds);
+}
