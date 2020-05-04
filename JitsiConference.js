@@ -3451,9 +3451,15 @@ JitsiConference.prototype._setupReceiverE2EEForTrack = function(track) {
     }
 };
 
+/**
+ * @FIXME only temp solution until FF getUserMedia bug is fixed
+ * @param milliseconds
+ */
 function sleep(milliseconds) {
     const date = Date.now();
+
     let currentDate = null;
+
     do {
         currentDate = Date.now();
     } while (currentDate - date < milliseconds);
