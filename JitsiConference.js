@@ -56,10 +56,10 @@ import {
     ACTION_P2P_ESTABLISHED,
     ACTION_P2P_FAILED,
     ACTION_P2P_SWITCH_TO_JVB,
-    ICE_ESTABLISHMENT_DURATION_DIFF,
     createConferenceEvent,
     createJingleEvent,
-    createP2PEvent
+    createP2PEvent,
+    ICE_ESTABLISHMENT_DURATION_DIFF
 } from './service/statistics/AnalyticsEvents';
 import * as XMPPEvents from './service/xmpp/XMPPEvents';
 
@@ -3069,20 +3069,33 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
         const peer = peerCount && peers[0];
 
 
-        const myId = this.myUserId();
-        const peersId = peer.getId();
+        let myId = this.myUserId();
+        let peersId = peer.getId();
+
+        if (myId === peersId) {
+            logger.error('The same IDs ? ', myId, peersId);
+
+            return;
+        }
 
         // @FIXME safari can not start p2p session if other peer is chrome!
-        const doNotStart = browser.isSafari() && browser.peerIsChrome();
-        const doStart = !browser.isSafari() && browser.peerIsSafari();
-
-        if (doNotStart) {
+        if (browser.isSafari() && browser.peerIsChrome()) {
+            myId = 99;
+            peersId = 1;
             logger.debug(
                 'I\'m safari user and peer is chrome - '
                 + 'the other peer should start P2P', myId, peersId);
+        }
 
-            return;
-        } else if ((myId > peersId) && !doStart) {
+        if (browser.isChrome() && browser.peerIsSafari()) {
+            myId = 1;
+            peersId = 99;
+            logger.debug(
+                'I\'m chrome user and peer is safari - '
+                + 'i should start P2P', myId, peersId);
+        }
+
+        if (myId > peersId) {
             logger.debug(
                 'I\'m the bigger peersId - '
                 + 'the other peer should start P2P', myId, peersId);
