@@ -292,6 +292,16 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Returns true if peer use chrome
+     * @returns {boolean}
+     */
+    peerIsFirefox() {
+        const browser = this._getPeerBrowserName();
+
+        return browser === 'Firefox';
+    }
+
+    /**
      * Returns true if peer use safari
      * @returns {boolean}
      */

@@ -182,6 +182,10 @@ export class TPCUtils {
      * @returns {void}
      */
     _setSimulcastStreamConstraints(track) {
+        if (browser.isReactNative()) {
+            return;
+        }
+
         const height = track.getSettings().height;
 
         for (const encoding in this.simulcastEncodings) {

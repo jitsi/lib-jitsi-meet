@@ -419,7 +419,9 @@ JitsiConference.prototype._init = function(options = {}) {
         }
     }
 
-    if (config.enableNoisyMicDetection) {
+    // Disable noisy mic detection on safari since it causes the audio input to
+    // fail on Safari on iPadOS.
+    if (config.enableNoisyMicDetection && !browser.isSafari()) {
         if (config.createVADProcessor) {
             if (!this._audioAnalyser) {
                 this._audioAnalyser = new VADAudioAnalyser(this, config.createVADProcessor);
@@ -3078,6 +3080,11 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
             return;
         }
 
+        // @FIXME safari has to join the room before firefox
+        if (browser.isFirefox() && browser.peerIsSafari()) {
+            sleep(8000);
+        }
+
         // @FIXME safari can not start p2p session if other peer is chrome!
         if (browser.isSafari() && browser.peerIsChrome()) {
             myId = 99;
@@ -3443,3 +3450,17 @@ JitsiConference.prototype._setupReceiverE2EEForTrack = function(track) {
         }
     }
 };
+
+/**
+ * @FIXME only temp solution until FF getUserMedia bug is fixed
+ * @param milliseconds
+ */
+function sleep(milliseconds) {
+    const date = Date.now();
+
+    let currentDate = null;
+
+    do {
+        currentDate = Date.now();
+    } while (currentDate - date < milliseconds);
+}
