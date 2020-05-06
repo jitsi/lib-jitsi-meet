@@ -964,6 +964,16 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
         actorParticipant = this.participants[actorId];
     }
 
+    // Setup E2EE on the sender that is created for the unmuted track.
+    if (this._e2eeCtx && !track.isMuted() && browser.doesVideoMuteByStreamRemove()) {
+        if (this.p2pJingleSession) {
+            this._setupSenderE2EEForTrack(this.p2pJingleSession, track);
+        }
+        if (this.jvbJingleSession) {
+            this._setupSenderE2EEForTrack(this.jvbJingleSession, track);
+        }
+    }
+
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track, actorParticipant);
 };
 
@@ -1107,6 +1117,17 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
         this.room.setAudioMute(newTrack.isMuted());
     } else {
         this.room.setVideoMute(newTrack.isMuted());
+    }
+
+    // Setup E2EE on the new track that has been added
+    // to the conference, apply it on all the open peerconnections.
+    if (this._e2eeCtx) {
+        if (this.p2pJingleSession) {
+            this._setupSenderE2EEForTrack(this.p2pJingleSession, newTrack);
+        }
+        if (this.jvbJingleSession) {
+            this._setupSenderE2EEForTrack(this.jvbJingleSession, newTrack);
+        }
     }
 
     newTrack.muteHandler = this._fireMuteChangeEvent.bind(this, newTrack);
