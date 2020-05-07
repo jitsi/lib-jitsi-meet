@@ -96,10 +96,10 @@ export default class ChatRoom extends Listenable {
      * @param XMPP
      * @param options
      * @param {boolean} options.disableFocus - when set to {@code false} will
-     * not invite Jicofo into the room. This is intended to be used only by
+     * not invite Jicofo into the room.
      * @param {boolean} options.disableDiscoInfo - when set to {@code false} will skip disco info.
      * This is intended to be used only for lobby rooms.
-     * @param {boolean} options.disableLobby - when set to {@code true} will skip creating lobby room.
+     * @param {boolean} options.disable - when set to {@code true} will skip creating lobby room.
      */
     constructor(connection, jid, password, XMPP, options) {
         super();

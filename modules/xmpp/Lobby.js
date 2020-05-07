@@ -34,15 +34,15 @@ export default class Lobby {
         this.xmpp = room.xmpp;
         this.mainRoom = room;
 
-        const maybeEnableDisableLobby = this._maybeEnableDisableLobby.bind(this);
+        const maybeEnableDisable = this._maybeEnableDisable.bind(this);
 
         this.mainRoom.addEventListener(
             XMPPEvents.LOCAL_ROLE_CHANGED,
-            maybeEnableDisableLobby);
+            maybeEnableDisable);
 
         this.mainRoom.addEventListener(
             XMPPEvents.MUC_MEMBERS_ONLY_CHANGED,
-            maybeEnableDisableLobby);
+            maybeEnableDisable);
 
         this.mainRoom.addEventListener(
             XMPPEvents.ROOM_CONNECT_MEMBERS_ONLY_ERROR,
@@ -56,7 +56,7 @@ export default class Lobby {
      *
      * @returns {boolean} whether lobby is supported on backend.
      */
-    isLobbySupported() {
+    isSupported() {
         return this.xmpp.lobbySupported;
     }
 
@@ -66,8 +66,8 @@ export default class Lobby {
      * @param {string} password shared password that can be used to skip lobby room.
      * @returns {Promise}
      */
-    enableLobby(password) {
-        if (!this.isLobbySupported()) {
+    enable(password) {
+        if (!this.isSupported()) {
             return Promise.reject(new Error('Lobby not supported!'));
         }
 
@@ -98,8 +98,8 @@ export default class Lobby {
      *
      * @returns {void}
      */
-    disableLobby() {
-        if (!this.isLobbySupported() || !this.mainRoom.isModerator()
+    disable() {
+        if (!this.isSupported() || !this.mainRoom.isModerator()
                 || !this.lobbyRoom || !this.mainRoom.membersOnlyEnabled) {
             return;
         }
@@ -114,12 +114,14 @@ export default class Lobby {
      * @private
      */
     _leaveLobbyRoom() {
-        this.lobbyRoom.leave()
-            .then(() => {
-                this.lobbyRoom = undefined;
-                logger.info('Lobby room left!');
-            })
-            .catch(() => {}); // eslint-disable-line no-empty-function
+        if (this.lobbyRoom) {
+            this.lobbyRoom.leave()
+                .then(() => {
+                    this.lobbyRoom = undefined;
+                    logger.info('Lobby room left!');
+                })
+                .catch(() => {}); // eslint-disable-line no-empty-function
+        }
     }
 
     /**
@@ -164,7 +166,6 @@ export default class Lobby {
                         .up();
 
                     if (password) {
-                        // TODO make sure this is filtered and removed from form in the prosody module
                         formToSubmit
                             .c('field', { 'var': 'muc#roomconfig_lobbypassword' })
                             .c('value')
@@ -191,14 +192,14 @@ export default class Lobby {
      * @param jid the lobby room jid to join.
      */
     setLobbyRoomJid(jid) {
-        if (!this.isLobbySupported() || !this.mainRoom.isModerator()
+        if (!this.isSupported() || !this.mainRoom.isModerator()
             || this.lobbyRoom || !this.mainRoom.membersOnlyEnabled) {
             return;
         }
 
         this.lobbyRoomJid = jid;
 
-        this.joinLobbyRoom()
+        this.join()
             .then(() => {}) // eslint-disable-line no-empty-function
             .catch(e => logger.error('Failed joining lobby room', e));
     }
@@ -207,8 +208,8 @@ export default class Lobby {
      * Checks the state of mainRoom, lobbyRoom and current user role to decide whether to join/leave lobby room.
      * @private
      */
-    _maybeEnableDisableLobby() {
-        if (!this.isLobbySupported()) {
+    _maybeEnableDisable() {
+        if (!this.isSupported()) {
             return;
         }
 
@@ -216,7 +217,7 @@ export default class Lobby {
 
         if (isModerator && this.mainRoom.membersOnlyEnabled && !this.lobbyRoom) {
             // join the lobby
-            this.enableLobby()
+            this.enable()
                 .then(() => logger.info('Joined lobby room'))
                 .catch(e => logger.error('Failed joining lobby', e));
         } else if (isModerator && !this.mainRoom.membersOnlyEnabled && this.lobbyRoom) {
@@ -233,10 +234,10 @@ export default class Lobby {
      * @param {string} password is optional for non moderators and should not be passed when moderator.
      * @returns {Promise} resolves once we join the room.
      */
-    joinLobbyRoom(displayName, email, password) {
+    join(displayName, email, password) {
         const isModerator = this.mainRoom.joined && this.mainRoom.isModerator();
 
-        // shared password let's try it
+        // lobby password let's try it
         if (password && !isModerator) {
             return this.mainRoom.join(undefined, { 'lobbySharedPassword': password });
         }
@@ -351,7 +352,7 @@ export default class Lobby {
      * @param id
      */
     denyAccess(id) {
-        if (!this.isLobbySupported() || !this.mainRoom.isModerator()) {
+        if (!this.isSupported() || !this.mainRoom.isModerator()) {
             return;
         }
 
@@ -361,7 +362,7 @@ export default class Lobby {
         if (jid) {
             this.lobbyRoom.kick(jid);
         } else {
-            logger.error(`Not found member for ${jid} in lobby room.`);
+            logger.error(`Not found member for ${id} in lobby room.`);
         }
     }
 
@@ -370,7 +371,7 @@ export default class Lobby {
      * @param id
      */
     approveAccess(id) {
-        if (!this.isLobbySupported() || !this.mainRoom.isModerator()) {
+        if (!this.isSupported() || !this.mainRoom.isModerator()) {
             return;
         }
 
