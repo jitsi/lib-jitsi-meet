@@ -1,6 +1,4 @@
-/* global $ */
-
-import { $iq, $msg, Strophe } from 'strophe.js';
+import { $msg, Strophe } from 'strophe.js';
 import { getLogger } from 'jitsi-meet-logger';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
@@ -12,12 +10,6 @@ const logger = getLogger(__filename);
  * @type {string}
  */
 const EMAIL_COMMAND = 'email';
-
-/**
- * Array of affiliations that are allowed in members only room.
- * @type {string[]}
- */
-const MEMBERS_AFFILIATIONS = [ 'owner', 'admin', 'member' ];
 
 /**
  * The Lobby room implementation. Setting a room to members only, joining the lobby room
@@ -72,24 +64,7 @@ export default class Lobby {
         }
 
         return new Promise((resolve, reject) => {
-
-            // first grant membership to all that are in the room
-            if (Object.keys(this.mainRoom.members).length > 0) {
-                const grantMembership = $iq({ to: this.mainRoom.roomjid,
-                    type: 'set' })
-                    .c('query', { xmlns: 'http://jabber.org/protocol/muc#admin' });
-
-                Object.values(this.mainRoom.members).forEach(m => {
-                    if (m.jid && !MEMBERS_AFFILIATIONS.includes(m.affiliation)) {
-                        grantMembership.c('item', {
-                            'affiliation': 'member',
-                            'jid': m.jid }).up();
-                    }
-                });
-                this.xmpp.connection.sendIQ(grantMembership.up());
-            }
-
-            this._setMembersOnly(true, password, resolve, reject);
+            this.mainRoom.setMembersOnly(true, password, resolve, reject);
         });
     }
 
@@ -104,7 +79,7 @@ export default class Lobby {
             return;
         }
 
-        this._setMembersOnly(false, undefined, () => {
+        this.mainRoom.setMembersOnly(false, undefined, () => {
             this._leaveLobbyRoom();
         }, () => {}); // eslint-disable-line no-empty-function
     }
@@ -122,68 +97,6 @@ export default class Lobby {
                 })
                 .catch(() => {}); // eslint-disable-line no-empty-function
         }
-    }
-
-    /**
-     * Turns of or on the members only config for the main room.
-     *
-     * @param {boolean} enabled - Whether to turn it on or off.
-     * @param {string} password - Shared password if any.
-     * @param resolve
-     * @param reject
-     * @private
-     */
-    _setMembersOnly(enabled, password, resolve, reject) {
-        this.xmpp.connection.sendIQ(
-            $iq({
-                to: this.mainRoom.roomjid,
-                type: 'get'
-            }).c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' }),
-            res => {
-                if ($(res)
-                    .find('>query>x[xmlns="jabber:x:data"]>field[var="muc#roomconfig_membersonly"]').length) {
-                    const formToSubmit
-                        = $iq({
-                            to: this.mainRoom.roomjid,
-                            type: 'set'
-                        }).c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' });
-
-                    formToSubmit.c('x', {
-                        xmlns: 'jabber:x:data',
-                        type: 'submit'
-                    });
-                    formToSubmit
-                        .c('field', { 'var': 'FORM_TYPE' })
-                        .c('value')
-                        .t('http://jabber.org/protocol/muc#roomconfig')
-                        .up()
-                        .up();
-                    formToSubmit
-                        .c('field', { 'var': 'muc#roomconfig_membersonly' })
-                        .c('value')
-                        .t(enabled ? 'true' : false)
-                        .up()
-                        .up();
-
-                    if (password) {
-                        formToSubmit
-                            .c('field', { 'var': 'muc#roomconfig_lobbypassword' })
-                            .c('value')
-                            .t(password)
-                            .up()
-                            .up();
-                    }
-
-                    this.xmpp.connection.sendIQ(formToSubmit, resolve, e => {
-                        reject(e);
-                    });
-                } else {
-                    reject(new Error('Setting members only room not supported!'));
-                }
-            },
-            e => {
-                reject(e);
-            });
     }
 
     /**

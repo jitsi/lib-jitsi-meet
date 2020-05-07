@@ -82,6 +82,12 @@ function filterNodeFromPresenceJSON(pres, nodeName) {
 /* eslint-disable newline-per-chained-call */
 
 /**
+ * Array of affiliations that are allowed in members only room.
+ * @type {string[]}
+ */
+const MEMBERS_AFFILIATIONS = [ 'owner', 'admin', 'member' ];
+
+/**
  *
  */
 export default class ChatRoom extends Listenable {
@@ -1200,6 +1206,84 @@ export default class ChatRoom extends Listenable {
     }
 
     /* eslint-enable max-params */
+
+    /**
+     * Turns of or on the members only config for the main room.
+     *
+     * @param {boolean} enabled - Whether to turn it on or off.
+     * @param {string} password - Shared password if any.
+     * @param onSuccess
+     * @param onError
+     */
+    setMembersOnly(enabled, password, onSuccess, onError) {
+        if (enabled) {
+            // first grant membership to all that are in the room
+            if (Object.keys(this.members).length > 0) {
+                const grantMembership = $iq({ to: this.roomjid,
+                    type: 'set' })
+                    .c('query', { xmlns: 'http://jabber.org/protocol/muc#admin' });
+
+                Object.values(this.members).forEach(m => {
+                    if (m.jid && !MEMBERS_AFFILIATIONS.includes(m.affiliation)) {
+                        grantMembership.c('item', {
+                            'affiliation': 'member',
+                            'jid': m.jid }).up();
+                    }
+                });
+                this.xmpp.connection.sendIQ(grantMembership.up());
+            }
+        }
+
+        this.xmpp.connection.sendIQ(
+            $iq({
+                to: this.roomjid,
+                type: 'get'
+            }).c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' }),
+            res => {
+                if ($(res).find('>query>x[xmlns="jabber:x:data"]>field[var="muc#roomconfig_membersonly"]').length) {
+                    const formToSubmit
+                        = $iq({
+                            to: this.roomjid,
+                            type: 'set'
+                        }).c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' });
+
+                    formToSubmit.c('x', {
+                        xmlns: 'jabber:x:data',
+                        type: 'submit'
+                    });
+                    formToSubmit
+                        .c('field', { 'var': 'FORM_TYPE' })
+                        .c('value')
+                        .t('http://jabber.org/protocol/muc#roomconfig')
+                        .up()
+                        .up();
+                    formToSubmit
+                        .c('field', { 'var': 'muc#roomconfig_membersonly' })
+                        .c('value')
+                        .t(enabled ? 'true' : 'false')
+                        .up()
+                        .up();
+
+                    if (password) {
+                        formToSubmit
+                            .c('field', { 'var': 'muc#roomconfig_lobbypassword' })
+                            .c('value')
+                            .t(password)
+                            .up()
+                            .up();
+                    }
+
+                    this.xmpp.connection.sendIQ(formToSubmit, onSuccess, e => {
+                        onError(e);
+                    });
+                } else {
+                    onError(new Error('Setting members only room not supported!'));
+                }
+            },
+            e => {
+                onError(e);
+            });
+    }
 
     /**
      *
