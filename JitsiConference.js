@@ -3463,7 +3463,7 @@ JitsiConference.prototype.joinLobby = function(displayName, email, password) {
 };
 
 /**
- * Denies access to the conference in a participant waiting in the lobby.
+ * Denies an occupant in the lobby room access to the conference.
  * @param {string} id The participant id.
  */
 JitsiConference.prototype.lobbyDenyAccess = function(id) {
