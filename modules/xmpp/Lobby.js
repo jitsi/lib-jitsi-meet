@@ -254,7 +254,7 @@ export default class Lobby {
                 customDomain,
                 disableDiscoInfo: true,
                 disableFocus: true,
-                disableLobby: true
+                enableLobby: false
             }
         );
 

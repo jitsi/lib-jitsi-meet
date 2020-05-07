@@ -99,7 +99,7 @@ export default class ChatRoom extends Listenable {
      * not invite Jicofo into the room.
      * @param {boolean} options.disableDiscoInfo - when set to {@code false} will skip disco info.
      * This is intended to be used only for lobby rooms.
-     * @param {boolean} options.disable - when set to {@code true} will skip creating lobby room.
+     * @param {boolean} options.enableLobby - when set to {@code false} will skip creating lobby room.
      */
     constructor(connection, jid, password, XMPP, options) {
         super();
@@ -123,7 +123,7 @@ export default class ChatRoom extends Listenable {
                 connection: this.xmpp.options,
                 conference: this.options
             });
-        if (!this.options.disableLobby) {
+        if (typeof this.options.enableLobby === 'undefined' || this.options.enableLobby) {
             this.lobby = new Lobby(this);
         }
         this.initPresenceMap(options);
