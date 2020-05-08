@@ -26,15 +26,15 @@ export default class Lobby {
         this.xmpp = room.xmpp;
         this.mainRoom = room;
 
-        const maybeEnableDisable = this._maybeEnableDisable.bind(this);
+        const maybeJoinLeaveLobbyRoom = this._maybeJoinLeaveLobbyRoom.bind(this);
 
         this.mainRoom.addEventListener(
             XMPPEvents.LOCAL_ROLE_CHANGED,
-            maybeEnableDisable);
+            maybeJoinLeaveLobbyRoom);
 
         this.mainRoom.addEventListener(
             XMPPEvents.MUC_MEMBERS_ONLY_CHANGED,
-            maybeEnableDisable);
+            maybeJoinLeaveLobbyRoom);
 
         this.mainRoom.addEventListener(
             XMPPEvents.ROOM_CONNECT_MEMBERS_ONLY_ERROR,
@@ -105,23 +105,14 @@ export default class Lobby {
      * @param jid the lobby room jid to join.
      */
     setLobbyRoomJid(jid) {
-        if (!this.isSupported() || !this.mainRoom.isModerator()
-            || this.lobbyRoom || !this.mainRoom.membersOnlyEnabled) {
-            return;
-        }
-
         this.lobbyRoomJid = jid;
-
-        this.join()
-            .then(() => {}) // eslint-disable-line no-empty-function
-            .catch(e => logger.error('Failed joining lobby room', e));
     }
 
     /**
      * Checks the state of mainRoom, lobbyRoom and current user role to decide whether to join/leave lobby room.
      * @private
      */
-    _maybeEnableDisable() {
+    _maybeJoinLeaveLobbyRoom() {
         if (!this.isSupported()) {
             return;
         }
@@ -130,7 +121,7 @@ export default class Lobby {
 
         if (isModerator && this.mainRoom.membersOnlyEnabled && !this.lobbyRoom) {
             // join the lobby
-            this.enable()
+            this.join()
                 .then(() => logger.info('Joined lobby room'))
                 .catch(e => logger.error('Failed joining lobby', e));
         } else if (isModerator && !this.mainRoom.membersOnlyEnabled && this.lobbyRoom) {

@@ -318,17 +318,18 @@ export default class ChatRoom extends Listenable {
 
             const membersOnly = $(result).find('>query>feature[var="muc_membersonly"]').length === 1;
 
-            if (membersOnly !== this.membersOnlyEnabled) {
-                this.membersOnlyEnabled = membersOnly;
-                this.eventEmitter.emit(XMPPEvents.MUC_MEMBERS_ONLY_CHANGED, membersOnly);
-            }
-
             const lobbyRoomField
                 = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_lobbyroom"]>value');
 
             if (lobbyRoomField.length && this.lobby) {
                 this.lobby.setLobbyRoomJid(lobbyRoomField.text());
             }
+
+            if (membersOnly !== this.membersOnlyEnabled) {
+                this.membersOnlyEnabled = membersOnly;
+                this.eventEmitter.emit(XMPPEvents.MUC_MEMBERS_ONLY_CHANGED, membersOnly);
+            }
+
         }, error => {
             GlobalOnErrorHandler.callErrorHandler(error);
             logger.error('Error getting room info: ', error);
