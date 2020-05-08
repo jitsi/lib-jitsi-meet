@@ -229,6 +229,11 @@ export default class Lobby {
                         this._leaveLobbyRoom();
                     }
                 });
+            this.lobbyRoom.addEventListener(
+                XMPPEvents.MUC_DESTROYED,
+                reason => {
+                    this.mainRoom.eventEmitter.emit(XMPPEvents.MUC_DESTROYED, reason);
+                });
         }
 
         return new Promise((resolve, reject) => {
