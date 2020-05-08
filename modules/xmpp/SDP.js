@@ -603,7 +603,7 @@ SDP.prototype.jingle2media = function(content) {
         // estos hack to reject an m-line.
         tmp.port = '0';
     }
-    if (content.find('>transport>fingerprint').length
+    if (content.find('>transport>fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]').length
             || desc.find('encryption').length) {
         tmp.proto = sctp.length ? 'DTLS/SCTP' : 'RTP/SAVPF';
     } else {
@@ -644,8 +644,7 @@ SDP.prototype.jingle2media = function(content) {
         if (tmp.attr('pwd')) {
             media += `${SDPUtil.buildICEPwd(tmp.attr('pwd'))}\r\n`;
         }
-        tmp.find('>fingerprint').each((_, fingerprint) => {
-            // FIXME: check namespace at some point
+        tmp.find('>fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]').each((_, fingerprint) => {
             media += `a=fingerprint:${fingerprint.getAttribute('hash')}`;
             media += ` ${$(fingerprint).text()}`;
             media += '\r\n';
