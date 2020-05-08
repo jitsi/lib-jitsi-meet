@@ -1028,8 +1028,15 @@ export default class ChatRoom extends Listenable {
                 this.discoRoomInfo();
             } else if ((invite = $(msg).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>invite'))
                         && invite.length) {
+                const passwordSelect = $(msg).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>password');
+                let password;
+
+                if (passwordSelect && passwordSelect.length) {
+                    password = passwordSelect.text();
+                }
+
                 this.eventEmitter.emit(XMPPEvents.INVITE_MESSAGE_RECEIVED,
-                    from, invite.attr('from'), txt);
+                    from, invite.attr('from'), txt, password);
             }
         }
         const jsonMessage = $(msg).find('>json-message').text();
@@ -1264,15 +1271,19 @@ export default class ChatRoom extends Listenable {
                         .t(enabled ? 'true' : 'false')
                         .up()
                         .up();
-
-                    if (password) {
-                        formToSubmit
-                            .c('field', { 'var': 'muc#roomconfig_lobbypassword' })
-                            .c('value')
-                            .t(password)
-                            .up()
-                            .up();
-                    }
+                    formToSubmit
+                        .c('field', { 'var': 'muc#roomconfig_roomsecret' })
+                        .c('value')
+                        .t(password || '')
+                        .up()
+                        .up();
+                    formToSubmit
+                        .c('field',
+                            { 'var': 'muc#roomconfig_passwordprotectedroom' })
+                        .c('value')
+                        .t(!password || password.length === 0 ? '0' : '1')
+                        .up()
+                        .up();
 
                     this.xmpp.connection.sendIQ(formToSubmit, onSuccess, e => {
                         onError(e);

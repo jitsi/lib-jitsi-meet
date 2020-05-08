@@ -143,7 +143,7 @@ export default class Lobby {
 
         // lobby password let's try it
         if (password && !isModerator) {
-            return this.mainRoom.join(undefined, { 'lobbySharedPassword': password });
+            return this.mainRoom.join(password);
         }
 
         if (!this.lobbyRoomJid) {
@@ -220,11 +220,11 @@ export default class Lobby {
             // the invite message should be received directly to the xmpp conn in general
             this.mainRoom.addEventListener(
                 XMPPEvents.INVITE_MESSAGE_RECEIVED,
-                (roomJid, from, txt) => {
+                (roomJid, from, invitePassword, txt) => {
                     logger.debug(`Received approval to join ${roomJid} ${from} ${txt}`);
                     if (roomJid === this.mainRoom.roomjid) {
                         // we are now allowed let's join and leave lobby
-                        this.mainRoom.join();
+                        this.mainRoom.join(invitePassword);
 
                         this._leaveLobbyRoom();
                     }
