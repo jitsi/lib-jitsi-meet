@@ -1216,7 +1216,7 @@ export default class ChatRoom extends Listenable {
      * @param onError
      */
     setMembersOnly(enabled, password, onSuccess, onError) {
-        if (enabled) {
+        if (enabled && Object.values(this.members).filter(m => !m.isFocus).length) {
             // first grant membership to all that are in the room
             if (Object.keys(this.members).length > 0) {
                 const grantMembership = $iq({ to: this.roomjid,
