@@ -14,6 +14,7 @@ module.exports = function(config) {
 
         // list of files / patterns to load in the browser
         files: [
+            './doc/example/libs/jquery-2.1.1.js',
             'node_modules/core-js/index.js',
             './index.js',
             './modules/**/*.spec.js'
