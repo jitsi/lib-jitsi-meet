@@ -374,7 +374,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                     iceservers[i] = iceservers[j];
                     iceservers[j] = temp;
                 }
-                
+
                 if (options.useStunTurn) {
                     // we want to filter and leave only tcp/turns candidates
                     // which make sense for the jvb connections
