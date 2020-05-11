@@ -2008,11 +2008,13 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
 
     if (browser.usesPlanB()) {
         // TODO the focus should squeze or explode the remote simulcast
-        // eslint-disable-next-line no-param-reassign
-        description = this.simulcast.mungeRemoteDescription(description);
-        this.trace(
-            'setRemoteDescription::postTransform (simulcast)',
-            dumpSDP(description));
+        if (this.isSimulcastOn()) {
+            // eslint-disable-next-line no-param-reassign
+            description = this.simulcast.mungeRemoteDescription(description);
+            this.trace(
+                'setRemoteDescription::postTransform (simulcast)',
+                dumpSDP(description));
+        }
 
         if (this.options.preferH264) {
             const parsedSdp = transform.parse(description.sdp);
