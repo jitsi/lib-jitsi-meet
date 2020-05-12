@@ -11,6 +11,12 @@ const code = `
     // packet. See https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams
     const ivLength = 12;
 
+    // We use a 128 bit key for AES GCM.
+    const keyGenParameters = {
+        name: 'AES-GCM',
+        length: 128
+    };
+
     // We copy the first bytes of the VP8 payload unencrypted.
     // For keyframes this is 10 bytes, for non-keyframes (delta) 3. See
     //   https://tools.ietf.org/html/rfc6386#section-9.1
@@ -39,7 +45,8 @@ const code = `
     let keyBytes;
 
     /**
-     * Derives a AES-GCM key with 128 bits from the input using PBKDF2
+     * Derives a AES-GCM key from the input using PBKDF2
+     * The key length can be configured above and should be either 128 or 256 bits.
      * @param {Uint8Array} keyBytes - Value to derive key from
      * @param {Uint8Array} salt - Salt used in key derivation
      */
@@ -54,10 +61,7 @@ const code = `
             salt,
             iterations: 100000,
             hash: 'SHA-256'
-        }, material, {
-            name: 'AES-GCM',
-            length: 128
-        }, false, [ 'encrypt', 'decrypt' ]);
+        }, material, keyGenParameters, false, [ 'encrypt', 'decrypt' ]);
     }
 
 
