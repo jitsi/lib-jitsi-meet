@@ -149,6 +149,14 @@ export const LOCK_STATE_CHANGED = 'conference.lock_state_changed';
 export const SERVER_REGION_CHANGED = 'conference.server_region_changed';
 
 /**
+ * Indicates that the conference had changed to members only enabled/disabled.
+ * The first argument of this event is a <tt>boolean</tt> which when set to
+ * <tt>true</tt> means that the conference is running in members only mode.
+ * You may need to use Lobby if supported to ask for permissions to enter the conference.
+ */
+export const MEMBERS_ONLY_CHANGED = 'conference.membersOnly';
+
+/**
  * New text message was received.
  */
 export const MESSAGE_RECEIVED = 'conference.messageReceived';

@@ -3421,6 +3421,15 @@ JitsiConference.prototype.isLobbySupported = function() {
 };
 
 /**
+ * Returns <tt>true</tt> if the room has members only enabled.
+ *
+ * @returns {boolean} whether conference room is members only.
+ */
+JitsiConference.prototype.isMembersOnly = function() {
+    return Boolean(this.room && this.room.membersOnlyEnabled);
+};
+
+/**
  * Enables lobby by moderators
  *
  * @param {string} password shared password that can be used to skip lobby waiting.
