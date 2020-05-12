@@ -1309,12 +1309,6 @@ TraceablePeerConnection.prototype.getLocalSSRC = function(localTrack) {
  * group via the a=simulcast line.  Unfortunately, Jicofo will complain
  * if it sees ssrcs with matching msids but no ssrc-group, so we'll inject
  * an ssrc-group line to make Jicofo happy.
- * NOTE: unlike plan B simulcast, the ssrcs in this inject ssrc-group will
- * NOT necessarily be in order of quality (low to high) because:
- * a) when translating between unified plan and plan b the order of the ssrcs
- * is not preserved and
- * b) it isn't guaranteed that firefox will give them to us in order to begin
- * with
  * @param desc A session description object (with 'type' and 'sdp' fields)
  * @return A session description object with its sdp field modified to
  * contain an inject ssrc-group for simulcast
@@ -1324,15 +1318,25 @@ TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast
         const sdp = transform.parse(desc.sdp);
         const video = sdp.media.find(mline => mline.type === 'video');
 
+        // Check if the browser supports RTX, add only the primary ssrcs to the
+        // SIM group if that is the case.
+        video.ssrcGroups = video.ssrcGroups || [];
+        const fidGroups = video.ssrcGroups.filter(group => group.semantics === 'FID');
+
         if (video.simulcast || video.simulcast_03) {
             const ssrcs = [];
 
-            video.ssrcs.forEach(ssrc => {
-                if (ssrc.attribute === 'msid') {
-                    ssrcs.push(ssrc.id);
-                }
-            });
-            video.ssrcGroups = video.ssrcGroups || [];
+            if (fidGroups && fidGroups.length) {
+                fidGroups.forEach(group => {
+                    ssrcs.push(group.ssrcs.split(' ')[0]);
+                });
+            } else {
+                video.ssrcs.forEach(ssrc => {
+                    if (ssrc.attribute === 'msid') {
+                        ssrcs.push(ssrc.id);
+                    }
+                });
+            }
             if (video.ssrcGroups.find(group => group.semantics === 'SIM')) {
                 // Group already exists, no need to do anything
                 return desc;
