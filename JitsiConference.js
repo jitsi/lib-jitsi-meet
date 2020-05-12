@@ -84,6 +84,8 @@ const JINGLE_SI_TIMEOUT = 5000;
  * @param {number} [options.config.avgRtpStatsN=15] how many samples are to be
  * collected by {@link AvgRTPStatsReporter}, before arithmetic mean is
  * calculated and submitted to the analytics module.
+ * @param {boolean} [options.config.enableIceRestart=false] - enables the ICE
+ * restart logic.
  * @param {boolean} [options.config.p2p.enabled] when set to <tt>true</tt>
  * the peer to peer mode will be enabled. It means that when there are only 2
  * participants in the conference an attempt to make direct connection will be
@@ -964,6 +966,16 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
         actorParticipant = this.participants[actorId];
     }
 
+    // Setup E2EE on the sender that is created for the unmuted track.
+    if (this._e2eeCtx && !track.isMuted() && browser.doesVideoMuteByStreamRemove()) {
+        if (this.p2pJingleSession) {
+            this._setupSenderE2EEForTrack(this.p2pJingleSession, track);
+        }
+        if (this.jvbJingleSession) {
+            this._setupSenderE2EEForTrack(this.jvbJingleSession, track);
+        }
+    }
+
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track, actorParticipant);
 };
 
@@ -1107,6 +1119,17 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
         this.room.setAudioMute(newTrack.isMuted());
     } else {
         this.room.setVideoMute(newTrack.isMuted());
+    }
+
+    // Setup E2EE on the new track that has been added
+    // to the conference, apply it on all the open peerconnections.
+    if (this._e2eeCtx) {
+        if (this.p2pJingleSession) {
+            this._setupSenderE2EEForTrack(this.p2pJingleSession, newTrack);
+        }
+        if (this.jvbJingleSession) {
+            this._setupSenderE2EEForTrack(this.jvbJingleSession, newTrack);
+        }
     }
 
     newTrack.muteHandler = this._fireMuteChangeEvent.bind(this, newTrack);
@@ -2592,6 +2615,15 @@ JitsiConference.prototype._onIceConnectionFailed = function(session) {
         }
         this._stopP2PSession('connectivity-error', 'ICE FAILED');
     } else if (session && this.jvbJingleSession === session) {
+        if (!this.options.config.enableIceRestart) {
+            logger.info('ICE Failed and ICE restarts are disabled');
+            this.eventEmitter.emit(
+                JitsiConferenceEvents.CONFERENCE_FAILED,
+                JitsiConferenceErrors.ICE_FAILED);
+
+            return;
+        }
+
         if (this.xmpp.isPingSupported()) {
             this._delayedIceFailed = new IceFailedNotification(this);
             this._delayedIceFailed.start(session);

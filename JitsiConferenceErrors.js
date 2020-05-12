@@ -49,6 +49,11 @@ export const FOCUS_LEFT = 'conference.focusLeft';
 export const GRACEFUL_SHUTDOWN = 'conference.gracefulShutdown';
 
 /**
+ * Indicates that the media connection has failed.
+ */
+export const ICE_FAILED = 'conference.iceFailed';
+
+/**
  * Indicates that the versions of the server side components are incompatible
  * with the client side.
  */
@@ -74,11 +79,6 @@ export const PASSWORD_REQUIRED = 'conference.passwordRequired';
  * Indicates that reservation system returned error.
  */
 export const RESERVATION_ERROR = 'conference.reservationError';
-
-/**
- * Indicates that the conference setup failed.
- */
-export const SETUP_FAILED = 'conference.setup_failed';
 
 /**
  * Indicates that there is no available videobridge.

@@ -136,6 +136,14 @@ class JitsiMediaDevices {
             // Check using the Permissions API.
             this._permissionsApiSupported.then(supported => {
                 if (!supported) {
+                    // Workaround on Safari for audio input device
+                    // selection to work. Safari doesn't support the
+                    // permissions query.
+                    if (browser.isSafari()) {
+                        resolve(true);
+
+                        return;
+                    }
                     resolve(false);
 
                     return;

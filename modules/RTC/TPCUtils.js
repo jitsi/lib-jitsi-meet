@@ -4,6 +4,7 @@ import transform from 'sdp-transform';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import browser from '../browser';
 import RTCEvents from '../../service/RTC/RTCEvents';
+import * as MediaType from '../../service/RTC/MediaType';
 import * as VideoType from '../../service/RTC/VideoType';
 
 const logger = getLogger(__filename);
@@ -309,7 +310,9 @@ export class TPCUtils {
         if (oldTrack && newTrack) {
             const mediaType = newTrack.getType();
             const stream = newTrack.getOriginalStream();
-            const track = stream.getVideoTracks()[0];
+            const track = mediaType === MediaType.AUDIO
+                ? stream.getAudioTracks()[0]
+                : stream.getVideoTracks()[0];
             const transceiver = this.pc.peerconnection.getTransceivers()
                 .find(t => t.receiver.track.kind === mediaType && !t.stopped);
 

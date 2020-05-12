@@ -2336,7 +2336,7 @@ export default class JingleSessionPC extends JingleSession {
      * @returns the ice connection state for the peer connection.
      */
     getIceConnectionState() {
-        return this.peerconnection.iceConnectionState;
+        return this.peerconnection.getConnectionState();
     }
 
     /**
