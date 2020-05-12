@@ -26,15 +26,15 @@ export default class Lobby {
         this.xmpp = room.xmpp;
         this.mainRoom = room;
 
-        const maybeJoinLeaveLobbyRoom = this._maybeJoinLeaveLobbyRoom.bind(this);
+        const maybeJoinLobbyRoom = this._maybeJoinLobbyRoom.bind(this);
 
         this.mainRoom.addEventListener(
             XMPPEvents.LOCAL_ROLE_CHANGED,
-            maybeJoinLeaveLobbyRoom);
+            maybeJoinLobbyRoom);
 
         this.mainRoom.addEventListener(
             XMPPEvents.MUC_MEMBERS_ONLY_CHANGED,
-            maybeJoinLeaveLobbyRoom);
+            maybeJoinLobbyRoom);
 
         this.mainRoom.addEventListener(
             XMPPEvents.ROOM_CONNECT_MEMBERS_ONLY_ERROR,
@@ -79,9 +79,7 @@ export default class Lobby {
             return;
         }
 
-        this.mainRoom.setMembersOnly(false, undefined, () => {
-            this._leaveLobbyRoom();
-        }, () => {}); // eslint-disable-line no-empty-function
+        this.mainRoom.setMembersOnly(false);
     }
 
     /**
@@ -109,10 +107,10 @@ export default class Lobby {
     }
 
     /**
-     * Checks the state of mainRoom, lobbyRoom and current user role to decide whether to join/leave lobby room.
+     * Checks the state of mainRoom, lobbyRoom and current user role to decide whether to join lobby room.
      * @private
      */
-    _maybeJoinLeaveLobbyRoom() {
+    _maybeJoinLobbyRoom() {
         if (!this.isSupported()) {
             return;
         }
@@ -124,9 +122,6 @@ export default class Lobby {
             this.join()
                 .then(() => logger.info('Joined lobby room'))
                 .catch(e => logger.error('Failed joining lobby', e));
-        } else if (isModerator && !this.mainRoom.membersOnlyEnabled && this.lobbyRoom) {
-            // leave lobby room
-            this._leaveLobbyRoom();
         }
     }
 
@@ -202,7 +197,12 @@ export default class Lobby {
                         Strophe.getResourceFromJid(from)
                     );
                 });
-
+            this.lobbyRoom.addEventListener(
+                XMPPEvents.MUC_DESTROYED,
+                () => {
+                    this.lobbyRoom = undefined;
+                    logger.info('Lobby room left(destroyed)!');
+                });
         } else {
             // this should only be handled by those waiting in lobby
             this.lobbyRoom.addEventListener(XMPPEvents.KICKED, isSelfPresence => {

@@ -321,8 +321,8 @@ export default class ChatRoom extends Listenable {
             const lobbyRoomField
                 = $(result).find('>query>x[type="result"]>field[var="muc#roominfo_lobbyroom"]>value');
 
-            if (lobbyRoomField.length && this.lobby) {
-                this.lobby.setLobbyRoomJid(lobbyRoomField.text());
+            if (this.lobby) {
+                this.lobby.setLobbyRoomJid(lobbyRoomField && lobbyRoomField.length ? lobbyRoomField.text() : undefined);
             }
 
             if (membersOnly !== this.membersOnlyEnabled) {
@@ -1220,8 +1220,8 @@ export default class ChatRoom extends Listenable {
      *
      * @param {boolean} enabled - Whether to turn it on or off.
      * @param {string} password - Shared password if any.
-     * @param onSuccess
-     * @param onError
+     * @param onSuccess - optional callback.
+     * @param onError - optional callback.
      */
     setMembersOnly(enabled, password, onSuccess, onError) {
         if (enabled && Object.values(this.members).filter(m => !m.isFocus).length) {
@@ -1241,6 +1241,8 @@ export default class ChatRoom extends Listenable {
                 this.xmpp.connection.sendIQ(grantMembership.up());
             }
         }
+
+        const errorCB = onError ? onError : () => {}; // eslint-disable-line no-empty-function
 
         this.xmpp.connection.sendIQ(
             $iq({
@@ -1285,16 +1287,12 @@ export default class ChatRoom extends Listenable {
                         .up()
                         .up();
 
-                    this.xmpp.connection.sendIQ(formToSubmit, onSuccess, e => {
-                        onError(e);
-                    });
+                    this.xmpp.connection.sendIQ(formToSubmit, onSuccess, errorCB);
                 } else {
-                    onError(new Error('Setting members only room not supported!'));
+                    errorCB(new Error('Setting members only room not supported!'));
                 }
             },
-            e => {
-                onError(e);
-            });
+            errorCB);
     }
 
     /**
