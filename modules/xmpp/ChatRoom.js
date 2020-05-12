@@ -895,8 +895,9 @@ export default class ChatRoom extends Listenable {
         }
 
         // room destroyed ?
-        if ($(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]'
-            + '>destroy').length) {
+        const destroySelect = $(pres).find('>x[xmlns="http://jabber.org/protocol/muc#user"]>destroy');
+
+        if (destroySelect.length) {
             let reason;
             const reasonSelect
                 = $(pres).find(
@@ -907,7 +908,7 @@ export default class ChatRoom extends Listenable {
                 reason = reasonSelect.text();
             }
 
-            this.eventEmitter.emit(XMPPEvents.MUC_DESTROYED, reason);
+            this.eventEmitter.emit(XMPPEvents.MUC_DESTROYED, reason, destroySelect.attr('jid'));
             this.connection.emuc.doLeave(this.roomjid);
 
             return true;

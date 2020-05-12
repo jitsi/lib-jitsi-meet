@@ -200,6 +200,11 @@ export default class Lobby {
             this.lobbyRoom.addEventListener(
                 XMPPEvents.MUC_DESTROYED,
                 () => {
+                    // let's make sure we emit that all lobby users had left
+                    Object.keys(this.lobbyRoom.members)
+                        .forEach(j => this.mainRoom.eventEmitter.emit(
+                            XMPPEvents.MUC_LOBBY_MEMBER_LEFT, Strophe.getResourceFromJid(j)));
+
                     this.lobbyRoom = undefined;
                     logger.info('Lobby room left(destroyed)!');
                 });
@@ -231,7 +236,15 @@ export default class Lobby {
                 });
             this.lobbyRoom.addEventListener(
                 XMPPEvents.MUC_DESTROYED,
-                reason => {
+                (reason, jid) => {
+                    // we are receiving the jid of the main room
+                    // means we are invited to join, maybe lobby was disabled
+                    if (jid && jid === this.mainRoom.roomjid) {
+                        this.mainRoom.join();
+
+                        return;
+                    }
+
                     this.mainRoom.eventEmitter.emit(XMPPEvents.MUC_DESTROYED, reason);
                 });
         }
