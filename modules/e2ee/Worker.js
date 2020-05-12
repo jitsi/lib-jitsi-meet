@@ -87,6 +87,21 @@ const code = `
         }
 
         /**
+         * Derives a per-participant key.
+         * @param {Uint8Array} keyBytes - Value to derive key from
+         * @param {Uint8Array} salt - Salt used in key derivation
+         */
+        async deriveKey(keyBytes, salt) {
+            const encoder = new TextEncoder();
+            const idBytes = encoder.encode(this._id);
+            // Separate both parts by a null byte to avoid ambiguity attacks.
+            const participantSalt = new Uint8Array(salt.byteLength + idBytes.byteLength + 1);
+            participantSalt.set(salt);
+            participantSalt.set(idBytes, salt.byteLength + 1);
+
+            return deriveKey(keyBytes, participantSalt);
+        }
+        /**
          * Sets a key and starts using it for encrypting.
          * @param {CryptoKey} key
          */
@@ -304,7 +319,7 @@ const code = `
                 .pipeThrough(transformStream)
                 .pipeTo(writableStream);
             if (keyBytes) {
-                context.setKey(await deriveKey(keyBytes, keySalt));
+                context.setKey(await context.deriveKey(keyBytes, keySalt));
             }
         } else if (operation === 'decode') {
             const { readableStream, writableStream, participantId } = event.data;
@@ -321,13 +336,13 @@ const code = `
                 .pipeThrough(transformStream)
                 .pipeTo(writableStream);
             if (keyBytes) {
-                context.setKey(await deriveKey(keyBytes, keySalt));
+                context.setKey(await context.deriveKey(keyBytes, keySalt));
             }
         } else if (operation === 'setKey') {
             keyBytes = event.data.key;
             contexts.forEach(async context => {
                 if (keyBytes) {
-                    context.setKey(await deriveKey(keyBytes, keySalt));
+                    context.setKey(await context.deriveKey(keyBytes, keySalt));
                 } else {
                     context.setKey(false);
                 }
