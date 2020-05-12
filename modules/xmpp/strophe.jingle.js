@@ -366,6 +366,15 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
 
                 const options = this.xmpp.options;
 
+                // Shuffle ICEServers for loadbalancing
+                for (let i = iceservers.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * i);
+                    const temp = iceservers[i];
+
+                    iceservers[i] = iceservers[j];
+                    iceservers[j] = temp;
+                }
+
                 if (options.useStunTurn) {
                     // we want to filter and leave only tcp/turns candidates
                     // which make sense for the jvb connections
