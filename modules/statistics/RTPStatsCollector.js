@@ -290,13 +290,11 @@ StatsCollector.prototype.errorCallback = function(error) {
  * Starts stats updates.
  */
 StatsCollector.prototype.start = function(startAudioLevelStats) {
-    const self = this;
-
     if (startAudioLevelStats) {
         this.audioLevelsIntervalId = setInterval(
             () => {
                 // Interval updates
-                self.peerconnection.getStats(
+                this.peerconnection.getStats(
                     report => {
                         let results = null;
 
@@ -306,27 +304,27 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                         } else {
                             results = report.result();
                         }
-                        self.currentAudioLevelsReport = results;
+                        this.currentAudioLevelsReport = results;
                         if (this._usesPromiseGetStats) {
-                            self.processNewAudioLevelReport();
+                            this.processNewAudioLevelReport();
                         } else {
-                            self.processAudioLevelReport();
+                            this.processAudioLevelReport();
                         }
 
-                        self.baselineAudioLevelsReport
-                            = self.currentAudioLevelsReport;
+                        this.baselineAudioLevelsReport
+                            = this.currentAudioLevelsReport;
                     },
-                    error => self.errorCallback(error)
+                    error => this.errorCallback(error)
                 );
             },
-            self.audioLevelsIntervalMilis
+            this.audioLevelsIntervalMilis
         );
     }
 
     this.statsIntervalId = setInterval(
         () => {
             // Interval updates
-            self.peerconnection.getStats(
+            this.peerconnection.getStats(
                 report => {
                     let results = null;
 
@@ -339,24 +337,24 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                         results = report.result();
                     }
 
-                    self.currentStatsReport = results;
+                    this.currentStatsReport = results;
                     try {
                         if (this._usesPromiseGetStats) {
-                            self.processNewStatsReport();
+                            this.processNewStatsReport();
                         } else {
-                            self.processStatsReport();
+                            this.processStatsReport();
                         }
                     } catch (e) {
                         GlobalOnErrorHandler.callErrorHandler(e);
                         logger.error(`Unsupported key:${e}`, e);
                     }
 
-                    self.previousStatsReport = self.currentStatsReport;
+                    this.previousStatsReport = this.currentStatsReport;
                 },
-                error => self.errorCallback(error)
+                error => this.errorCallback(error)
             );
         },
-        self.statsIntervalMilis
+        this.statsIntervalMilis
     );
 };
 
