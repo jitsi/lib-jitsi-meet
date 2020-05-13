@@ -228,15 +228,6 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 
                 elem.up();
             }
-            const crypto
-                = SDPUtil.findLines(this.media[i], 'a=crypto:', this.session);
-
-            if (crypto.length) {
-                elem.c('encryption', { required: 1 });
-                crypto.forEach(
-                    line => elem.c('crypto', SDPUtil.parseCrypto(line)).up());
-                elem.up(); // end of encryption
-            }
 
             if (ssrc) {
                 const ssrcMap = SDPUtil.parseSSRC(this.media[i]);
@@ -603,8 +594,7 @@ SDP.prototype.jingle2media = function(content) {
         // estos hack to reject an m-line.
         tmp.port = '0';
     }
-    if (content.find('>transport>fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]').length
-            || desc.find('encryption').length) {
+    if (content.find('>transport>fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]').length) {
         tmp.proto = sctp.length ? 'DTLS/SCTP' : 'RTP/SAVPF';
     } else {
         tmp.proto = 'RTP/AVPF';
@@ -675,18 +665,6 @@ SDP.prototype.jingle2media = function(content) {
     // and http://mail.jabber.org/pipermail/jingle/2011-December/001761.html
     if (desc.find('rtcp-mux').length) {
         media += 'a=rtcp-mux\r\n';
-    }
-
-    if (desc.find('encryption').length) {
-        desc.find('encryption>crypto').each((_, crypto) => {
-            media += `a=crypto:${crypto.getAttribute('tag')}`;
-            media += ` ${crypto.getAttribute('crypto-suite')}`;
-            media += ` ${crypto.getAttribute('key-params')}`;
-            if (crypto.hasAttribute('session-params')) {
-                media += ` ${crypto.getAttribute('session-params')}`;
-            }
-            media += '\r\n';
-        });
     }
 
     desc.find('payload-type').each((_, payloadType) => {
