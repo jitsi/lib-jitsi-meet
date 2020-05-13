@@ -578,10 +578,11 @@ SDP.prototype.fromJingle = function(jingle) {
 
 // translate a jingle content element into an an SDP media part
 SDP.prototype.jingle2media = function(content) {
-    const desc = content.find('description');
+    const desc = content.find('>description');
+    const transport = content.find('>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]');
     let media = '';
-    const sctp = content.find(
-        '>transport>sctpmap[xmlns="urn:xmpp:jingle:transports:dtls-sctp:1"]');
+    const sctp = transport.find(
+        '>sctpmap[xmlns="urn:xmpp:jingle:transports:dtls-sctp:1"]');
 
     let tmp = { media: desc.attr('media') };
 
@@ -590,7 +591,7 @@ SDP.prototype.jingle2media = function(content) {
         // estos hack to reject an m-line.
         tmp.port = '0';
     }
-    if (content.find('>transport>fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]').length) {
+    if (transport.find('>fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]').length) {
         tmp.proto = sctp.length ? 'DTLS/SCTP' : 'RTP/SAVPF';
     } else {
         tmp.proto = 'RTP/AVPF';
@@ -610,7 +611,7 @@ SDP.prototype.jingle2media = function(content) {
     } else {
         tmp.fmt
             = desc
-                .find('payload-type')
+                .find('>payload-type')
                 .map((_, payloadType) => payloadType.getAttribute('id'))
                 .get();
         media += `${SDPUtil.buildMLine(tmp)}\r\n`;
@@ -620,17 +621,16 @@ SDP.prototype.jingle2media = function(content) {
     if (!sctp.length) {
         media += 'a=rtcp:1 IN IP4 0.0.0.0\r\n';
     }
-    tmp
-        = content.find(
-            '>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]');
-    if (tmp.length) {
-        if (tmp.attr('ufrag')) {
-            media += `${SDPUtil.buildICEUfrag(tmp.attr('ufrag'))}\r\n`;
+
+    // XEP-0176 ICE parameters
+    if (transport.length) {
+        if (transport.attr('ufrag')) {
+            media += `${SDPUtil.buildICEUfrag(transport.attr('ufrag'))}\r\n`;
         }
-        if (tmp.attr('pwd')) {
-            media += `${SDPUtil.buildICEPwd(tmp.attr('pwd'))}\r\n`;
+        if (transport.attr('pwd')) {
+            media += `${SDPUtil.buildICEPwd(transport.attr('pwd'))}\r\n`;
         }
-        tmp.find('>fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]').each((_, fingerprint) => {
+        transport.find('>fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]').each((_, fingerprint) => {
             media += `a=fingerprint:${fingerprint.getAttribute('hash')}`;
             media += ` ${$(fingerprint).text()}`;
             media += '\r\n';
@@ -639,6 +639,26 @@ SDP.prototype.jingle2media = function(content) {
             }
         });
     }
+
+    // XEP-0176 ICE candidates
+    transport.find('>candidate')
+        .each((_, candidate) => {
+            let protocol = candidate.getAttribute('protocol');
+
+            protocol
+                = typeof protocol === 'string' ? protocol.toLowerCase() : '';
+
+            if ((this.removeTcpCandidates
+                    && (protocol === 'tcp' || protocol === 'ssltcp'))
+                || (this.removeUdpCandidates && protocol === 'udp')) {
+                return;
+            } else if (this.failICE) {
+                candidate.setAttribute('ip', '1.1.1.1');
+            }
+
+            media += SDPUtil.candidateFromJingle(candidate);
+        });
+
     switch (content.attr('senders')) {
     case 'initiator':
         media += 'a=sendonly\r\n';
@@ -659,17 +679,17 @@ SDP.prototype.jingle2media = function(content) {
     // see http://code.google.com/p/libjingle/issues/detail?id=309 -- no spec
     // though
     // and http://mail.jabber.org/pipermail/jingle/2011-December/001761.html
-    if (desc.find('rtcp-mux').length) {
+    if (desc.find('>rtcp-mux').length) {
         media += 'a=rtcp-mux\r\n';
     }
 
-    desc.find('payload-type').each((_, payloadType) => {
+    desc.find('>payload-type').each((_, payloadType) => {
         media += `${SDPUtil.buildRTPMap(payloadType)}\r\n`;
         if ($(payloadType).find('>parameter').length) {
             media += `a=fmtp:${payloadType.getAttribute('id')} `;
             media
                 += $(payloadType)
-                    .find('parameter')
+                    .find('>parameter')
                     .map((__, parameter) => {
                         const name = parameter.getAttribute('name');
 
@@ -699,30 +719,9 @@ SDP.prototype.jingle2media = function(content) {
                 hdrExt.getAttribute('uri')}\r\n`;
     });
 
-    content
-        .find(
-            '>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]'
-                + '>candidate')
-        .each((_, transport) => {
-            let protocol = transport.getAttribute('protocol');
-
-            protocol
-                = typeof protocol === 'string' ? protocol.toLowerCase() : '';
-
-            if ((this.removeTcpCandidates
-                    && (protocol === 'tcp' || protocol === 'ssltcp'))
-                || (this.removeUdpCandidates && protocol === 'udp')) {
-                return;
-            } else if (this.failICE) {
-                transport.setAttribute('ip', '1.1.1.1');
-            }
-
-            media += SDPUtil.candidateFromJingle(transport);
-        });
-
     // XEP-0339 handle ssrc-group attributes
-    content
-        .find('description>ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
+    desc
+        .find('>ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
         .each((_, ssrcGroup) => {
             const semantics = ssrcGroup.getAttribute('semantics');
             const ssrcs
@@ -737,8 +736,8 @@ SDP.prototype.jingle2media = function(content) {
         });
 
     tmp
-        = content.find(
-            'description>source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
+        = desc.find(
+            '>source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
     tmp.each((_, source) => {
         const ssrc = source.getAttribute('ssrc');
 
