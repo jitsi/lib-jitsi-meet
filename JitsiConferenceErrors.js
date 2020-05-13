@@ -79,8 +79,3 @@ export const PASSWORD_REQUIRED = 'conference.passwordRequired';
  * Indicates that reservation system returned error.
  */
 export const RESERVATION_ERROR = 'conference.reservationError';
-
-/**
- * Indicates that there is no available videobridge.
- */
-export const VIDEOBRIDGE_NOT_AVAILABLE = 'conference.videobridgeNotAvailable';

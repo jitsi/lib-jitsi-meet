@@ -232,20 +232,6 @@ export const NO_BYTES_SENT = 'track.no-bytes-sent';
 export const TRACK_UNMUTED = 'track.unmuted';
 
 /**
- * Creates an operational event which indicates that we have received a
- * "bridge down" event from jicofo.
- */
-export const createBridgeDownEvent = function() {
-    const bridgeDown = 'bridge.down';
-
-    return {
-        action: bridgeDown,
-        actionSubject: bridgeDown,
-        type: TYPE_OPERATIONAL
-    };
-};
-
-/**
  * Creates an event which indicates that the XMPP connection failed
  * @param errorType TODO
  * @param errorMessage TODO

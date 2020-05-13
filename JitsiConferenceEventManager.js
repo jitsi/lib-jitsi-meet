@@ -3,7 +3,6 @@ import { Strophe } from 'strophe.js';
 
 import {
     ACTION_JINGLE_SA_TIMEOUT,
-    createBridgeDownEvent,
     createConnectionStageReachedEvent,
     createFocusLeftEvent,
     createJingleEvent,
@@ -171,13 +170,6 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     this.chatRoomForwarder.forward(XMPPEvents.AUTHENTICATION_REQUIRED,
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.AUTHENTICATION_REQUIRED);
-
-    this.chatRoomForwarder.forward(XMPPEvents.BRIDGE_DOWN,
-        JitsiConferenceEvents.CONFERENCE_FAILED,
-        JitsiConferenceErrors.VIDEOBRIDGE_NOT_AVAILABLE);
-    chatRoom.addListener(
-        XMPPEvents.BRIDGE_DOWN,
-        () => Statistics.sendAnalytics(createBridgeDownEvent()));
 
     this.chatRoomForwarder.forward(XMPPEvents.RESERVATION_ERROR,
         JitsiConferenceEvents.CONFERENCE_FAILED,

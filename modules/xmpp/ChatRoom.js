@@ -113,7 +113,6 @@ export default class ChatRoom extends Listenable {
         this.joined = false;
         this.role = null;
         this.focusMucJid = null;
-        this.noBridgeAvailable = false;
         this.options = options || {};
         this.moderator
             = new Moderator(this.roomjid, this.xmpp, this.eventEmitter, {
@@ -626,12 +625,6 @@ export default class ChatRoom extends Listenable {
                         XMPPEvents.DISPLAY_NAME_CHANGED,
                         from,
                         displayName);
-                }
-                break;
-            case 'bridgeNotAvailable':
-                if (member.isFocus && !this.noBridgeAvailable) {
-                    this.noBridgeAvailable = true;
-                    this.eventEmitter.emit(XMPPEvents.BRIDGE_DOWN);
                 }
                 break;
             case 'conference-properties':

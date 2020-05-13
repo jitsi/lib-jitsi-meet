@@ -8,7 +8,6 @@ const XMPPEvents = {
     // audio.
     AUDIO_MUTED_BY_FOCUS: 'xmpp.audio_muted_by_focus',
     AUTHENTICATION_REQUIRED: 'xmpp.authentication_required',
-    BRIDGE_DOWN: 'xmpp.bridge_down',
 
     /**
      * Triggered when 'session-accept' is received from the responder.
