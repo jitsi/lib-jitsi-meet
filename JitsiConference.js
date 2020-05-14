@@ -1728,6 +1728,14 @@ JitsiConference.prototype.onCallAccepted = function(session, answer) {
     if (this.p2pJingleSession === session) {
         logger.info('P2P setAnswer');
 
+        // Apply pending video constraints.
+        if (this.pendingVideoConstraintsOnP2P) {
+            this.p2pJingleSession.setSenderVideoConstraint(this.maxFrameHeight)
+                .catch(err => {
+                    logger.error(`Sender video constraints failed on p2p session - ${err}`);
+                });
+        }
+
         // Setup E2EE.
         const localTracks = this.getLocalTracks();
 
