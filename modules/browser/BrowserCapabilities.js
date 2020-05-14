@@ -267,7 +267,8 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     supportsInsertableStreams() {
         return Boolean(typeof window.RTCRtpSender !== 'undefined'
-            && window.RTCRtpSender.prototype.createEncodedVideoStreams);
+            && (window.RTCRtpSender.prototype.createEncodedStreams
+                || window.RTCRtpSender.prototype.createEncodedVideoStreams));
     }
 
     /**

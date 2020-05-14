@@ -66,8 +66,14 @@ export default class E2EEcontext {
         }
         receiver[kJitsiE2EE] = true;
 
-        const receiverStreams
-            = kind === 'video' ? receiver.createEncodedVideoStreams() : receiver.createEncodedAudioStreams();
+        let receiverStreams;
+
+        if (receiver.createEncodedStreams) {
+            receiverStreams = receiver.createEncodedStreams();
+        } else {
+            receiverStreams = kind === 'video' ? receiver.createEncodedVideoStreams()
+                : receiver.createEncodedAudioStreams();
+        }
 
         this._worker.postMessage({
             operation: 'decode',
@@ -91,8 +97,14 @@ export default class E2EEcontext {
         }
         sender[kJitsiE2EE] = true;
 
-        const senderStreams
-            = kind === 'video' ? sender.createEncodedVideoStreams() : sender.createEncodedAudioStreams();
+        let senderStreams;
+
+        if (sender.createEncodedStreams) {
+            senderStreams = sender.createEncodedStreams();
+        } else {
+            senderStreams = kind === 'video' ? sender.createEncodedVideoStreams()
+                : sender.createEncodedAudioStreams();
+        }
 
         this._worker.postMessage({
             operation: 'encode',

@@ -1,5 +1,21 @@
 // Worker for E2EE/Insertable streams. Currently served as an inline blob.
 const code = `
+    // Polyfill RTCEncoded(Audio|Video)Frame.getMetadata() (not available in M83, available M84+).
+    // The polyfill can not be done on the prototype since its not exposed in workers. Instead,
+    // it is done as another transformation to keep it separate.
+    function polyFillEncodedFrameMetadata(encodedFrame, controller) {
+      if (!encodedFrame.getMetadata) {
+        encodedFrame.getMetadata = function() {
+          return {
+            // TODO: provide a more complete polyfill based on additionalData for video.
+            synchronizationSource: this.synchronizationSource,
+            contributingSources: this.contributingSources
+          };
+        };
+      }
+      controller.enqueue(encodedFrame);
+    }
+
     // We use a ringbuffer of keys so we can change them and still decode packets that were
     // encrypted with an old key.
     // In the future when we dont rely on a globally shared key we will actually use it. For
@@ -183,7 +199,7 @@ const code = `
             const keyIndex = this._currentKeyIndex % this._cryptoKeyRing.length;
 
             if (this._cryptoKeyRing[keyIndex]) {
-                const iv = this.makeIV(encodedFrame.synchronizationSource, encodedFrame.timestamp);
+                const iv = this.makeIV(encodedFrame.getMetadata().synchronizationSource, encodedFrame.timestamp);
 
                 return crypto.subtle.encrypt({
                     name: 'AES-GCM',
@@ -316,6 +332,9 @@ const code = `
             });
 
             readableStream
+                .pipeThrough(new TransformStream({
+                  transform: polyFillEncodedFrameMetadata, // M83 polyfill.
+                }))
                 .pipeThrough(transformStream)
                 .pipeTo(writableStream);
             if (keyBytes) {
@@ -333,6 +352,9 @@ const code = `
             });
 
             readableStream
+                .pipeThrough(new TransformStream({
+                  transform: polyFillEncodedFrameMetadata, // M83 polyfill.
+                }))
                 .pipeThrough(transformStream)
                 .pipeTo(writableStream);
             if (keyBytes) {
