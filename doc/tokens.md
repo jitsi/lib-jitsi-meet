@@ -32,6 +32,7 @@ In addition to the basic claims used in authentication, the token can also provi
 - 'user' is an object which contains display information for the current user
   - 'id' is a user identifier string.  Intended for use in reporting/analytics
   - 'name' is the display name of the user
+  - 'email' is the email of the user
   - 'avatar' is the URL of the avatar for the user
 - 'callee' is an optional object containing display information when launching a 1-1 video call with a single other participant.  It used to display an overlay to the first user, before the second user joins.
   - 'id' is a user identifier string.  Intended for use in reporting/analytics
