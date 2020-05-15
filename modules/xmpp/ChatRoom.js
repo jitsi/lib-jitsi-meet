@@ -328,8 +328,6 @@ export default class ChatRoom extends Listenable {
             .c('x', { xmlns: 'jabber:x:data',
                 type: 'submit' });
 
-        const self = this;
-
         this.connection.sendIQ(getForm, form => {
             if (!$(form).find(
                     '>query>x[xmlns="jabber:x:data"]'
@@ -342,7 +340,7 @@ export default class ChatRoom extends Listenable {
                 return;
             }
 
-            const formSubmit = $iq({ to: self.roomjid,
+            const formSubmit = $iq({ to: this.roomjid,
                 type: 'set' })
                 .c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' });
 
@@ -356,7 +354,7 @@ export default class ChatRoom extends Listenable {
             formSubmit.c('field', { 'var': 'muc#roomconfig_whois' })
                 .c('value').t('anyone').up().up();
 
-            self.connection.sendIQ(formSubmit);
+            this.connection.sendIQ(formSubmit);
 
         }, error => {
             GlobalOnErrorHandler.callErrorHandler(error);

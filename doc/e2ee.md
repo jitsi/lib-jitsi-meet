@@ -14,8 +14,7 @@ It is important to note that this key should not get exchanged via the server.
 There needs to be some other means of exchanging it.
 
 From this key we derive a 128bit key using PBKDF2. We use the room name as a salt in this key generation. This is a bit weak but we need to start with information that is the same for all participants so we can not yet use a proper random salt.
-
-We derive the same key and use it for encrypting and decrypting from all participants. We are working on including the MUC resource of the sender in this in order to switch to per-participant keys which is the model want to migrate to in the end.
+We add the participant id to the salt when deriving the key which allows us to use per-sender keys. This is done to prepare the ground for the actual architecture and does not change the cryptographic properties.
 
 We plan to rotate the key whenever a participant joins or leaves. However, we need end-to-end encrypted signaling to exchange those keys so we are not doing this yet.
 

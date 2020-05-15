@@ -3453,7 +3453,7 @@ JitsiConference.prototype._setupSenderE2EEForTrack = function(session, track) {
     const sender = pc.findSenderForTrack(track.track);
 
     if (sender) {
-        this._e2eeCtx.handleSender(sender, track.getType());
+        this._e2eeCtx.handleSender(sender, track.getType(), track.getParticipantId());
     } else {
         logger.warn(`Could not handle E2EE for local ${track.getType()} track: sender not found`);
     }
@@ -3476,7 +3476,7 @@ JitsiConference.prototype._setupReceiverE2EEForTrack = function(track) {
         const receiver = pc.findReceiverForTrack(track.track);
 
         if (receiver) {
-            this._e2eeCtx.handleReceiver(receiver, track.getType());
+            this._e2eeCtx.handleReceiver(receiver, track.getType(), track.getParticipantId());
         } else {
             logger.warn(`Could not handle E2EE for remote ${track.getType()} track: receiver not found`);
         }
