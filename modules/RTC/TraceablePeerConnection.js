@@ -2430,7 +2430,7 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
                     dumpSDP(resultSdp));
             }
 
-            if (!this.options.disableRtx && browser.supportsRtx()) {
+            if (!this.options.disableRtx && browser.usesSdpMungingForSimulcast()) {
                 // eslint-disable-next-line no-param-reassign
                 resultSdp = new RTCSessionDescription({
                     type: resultSdp.type,
@@ -2645,7 +2645,7 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {
             groups: []
         };
     }
-    if (!this.options.disableRtx && browser.supportsRtx()) {
+    if (!this.options.disableRtx) {
         // Specifically use a for loop here because we'll
         //  be adding to the list we're iterating over, so we
         //  only want to iterate through the items originally
