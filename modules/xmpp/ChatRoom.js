@@ -163,7 +163,7 @@ export default class ChatRoom extends Listenable {
             });
         }
 
-        this.presMapLastModificationTS = Date.now();
+        this.presenceUpdateTime = Date.now();
     }
 
     /**
@@ -227,7 +227,7 @@ export default class ChatRoom extends Listenable {
         parser.json2packet(this.presMap.nodes, pres);
 
         // we store time we last synced presence state
-        this.presMapLastSyncTS = Date.now();
+        this.presenceSyncTime = Date.now();
 
         this.connection.send(pres);
         if (fromJoin) {
@@ -525,7 +525,7 @@ export default class ChatRoom extends Listenable {
                 // Re-send presence in case any presence updates were added,
                 // but blocked from sending, during the join process.
                 // send the presence only if there was a modification after we had synced it
-                if (this.presMapLastModificationTS - this.presMapLastSyncTS > 0) {
+                if (this.presenceUpdateTime >= this.presenceSyncTime) {
                     this.sendPresence();
                 }
 
@@ -1160,7 +1160,7 @@ export default class ChatRoom extends Listenable {
         values.tagName = key;
         this.removeFromPresence(key);
         this.presMap.nodes.push(values);
-        this.presMapLastModificationTS = Date.now();
+        this.presenceUpdateTime = Date.now();
     }
 
     /**
@@ -1181,7 +1181,7 @@ export default class ChatRoom extends Listenable {
         const nodes = this.presMap.nodes.filter(node => key !== node.tagName);
 
         this.presMap.nodes = nodes;
-        this.presMapLastModificationTS = Date.now();
+        this.presenceUpdateTime = Date.now();
     }
 
     /**
