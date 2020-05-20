@@ -147,7 +147,7 @@ export default class XMPP extends Listenable {
         this.caps.addFeature('urn:xmpp:jingle:apps:rtp:audio');
         this.caps.addFeature('urn:xmpp:jingle:apps:rtp:video');
 
-        if (!this.options.disableRtx && browser.supportsRtx()) {
+        if (!this.options.disableRtx) {
             this.caps.addFeature('urn:ietf:rfc:4588');
         }
 
@@ -170,6 +170,10 @@ export default class XMPP extends Listenable {
 
         if (this.connection.rayo) {
             this.caps.addFeature('urn:xmpp:rayo:client:1');
+        }
+
+        if (browser.supportsInsertableStreams()) {
+            this.caps.addFeature('https://jitsi.org/meet/e2ee');
         }
     }
 

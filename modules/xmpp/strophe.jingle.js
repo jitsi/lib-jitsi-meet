@@ -149,6 +149,9 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             logger.info(
                 `Marking session from ${fromJid
                 } as ${isP2P ? '' : '*not*'} P2P`);
+
+            const iceConfig = isP2P ? this.p2pIceConfig : this.jvbIceConfig;
+
             sess
                 = new JingleSessionPC(
                     $(iq).find('jingle').attr('sid'),
@@ -156,7 +159,10 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                     fromJid,
                     this.connection,
                     this.mediaConstraints,
-                    isP2P ? this.p2pIceConfig : this.jvbIceConfig,
+
+                    // Makes a copy in order to prevent exception thrown on RN when either this.p2pIceConfig or
+                    // this.jvbIceConfig is modified and there's a PeerConnection instance holding a reference
+                    JSON.parse(JSON.stringify(iceConfig)),
                     isP2P,
                     /* initiator */ false);
 
@@ -359,6 +365,15 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                 });
 
                 const options = this.xmpp.options;
+
+                // Shuffle ICEServers for loadbalancing
+                for (let i = iceservers.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * i);
+                    const temp = iceservers[i];
+
+                    iceservers[i] = iceservers[j];
+                    iceservers[j] = temp;
+                }
 
                 if (options.useStunTurn) {
                     // we want to filter and leave only tcp/turns candidates

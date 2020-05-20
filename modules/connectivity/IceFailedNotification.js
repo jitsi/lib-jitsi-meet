@@ -35,17 +35,19 @@ export default class IceFailedNotification {
                     return;
                 }
 
-                if (this._conference.isJvbConnectionInterrupted) {
+                const jvbConnection = this._conference.jvbJingleSession;
+                const jvbConnIceState = jvbConnection && jvbConnection.getIceConnectionState();
+
+                if (!jvbConnection) {
+                    logger.warn('Not sending ICE failed - no JVB connection');
+                } else if (jvbConnIceState === 'connected') {
+                    logger.info('ICE connection restored - not sending ICE failed');
+                } else {
                     this._iceFailedTimeout = window.setTimeout(() => {
-                        logger.info(
-                            'Sending ICE failed'
-                            + ' - the connection has not recovered');
+                        logger.info(`Sending ICE failed - the connection has not recovered: ${jvbConnIceState}`);
                         this._iceFailedTimeout = undefined;
                         session.sendIceFailedNotification();
                     }, 2000);
-                } else {
-                    logger.info(
-                        'ICE connection restored - not sending ICE failed');
                 }
             },
             error => {

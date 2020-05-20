@@ -162,6 +162,8 @@ export default class ChatRoom extends Listenable {
                 }
             });
         }
+
+        this.presenceUpdateTime = Date.now();
     }
 
     /**
@@ -223,6 +225,10 @@ export default class ChatRoom extends Listenable {
         }
 
         parser.json2packet(this.presMap.nodes, pres);
+
+        // we store time we last synced presence state
+        this.presenceSyncTime = Date.now();
+
         this.connection.send(pres);
         if (fromJoin) {
             // XXX We're pressed for time here because we're beginning a complex
@@ -328,8 +334,6 @@ export default class ChatRoom extends Listenable {
             .c('x', { xmlns: 'jabber:x:data',
                 type: 'submit' });
 
-        const self = this;
-
         this.connection.sendIQ(getForm, form => {
             if (!$(form).find(
                     '>query>x[xmlns="jabber:x:data"]'
@@ -342,7 +346,7 @@ export default class ChatRoom extends Listenable {
                 return;
             }
 
-            const formSubmit = $iq({ to: self.roomjid,
+            const formSubmit = $iq({ to: this.roomjid,
                 type: 'set' })
                 .c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' });
 
@@ -356,7 +360,7 @@ export default class ChatRoom extends Listenable {
             formSubmit.c('field', { 'var': 'muc#roomconfig_whois' })
                 .c('value').t('anyone').up().up();
 
-            self.connection.sendIQ(formSubmit);
+            this.connection.sendIQ(formSubmit);
 
         }, error => {
             GlobalOnErrorHandler.callErrorHandler(error);
@@ -520,7 +524,10 @@ export default class ChatRoom extends Listenable {
 
                 // Re-send presence in case any presence updates were added,
                 // but blocked from sending, during the join process.
-                this.sendPresence();
+                // send the presence only if there was a modification after we had synced it
+                if (this.presenceUpdateTime >= this.presenceSyncTime) {
+                    this.sendPresence();
+                }
 
                 this.eventEmitter.emit(XMPPEvents.MUC_JOINED);
 
@@ -1145,7 +1152,7 @@ export default class ChatRoom extends Listenable {
     /* eslint-enable max-params */
 
     /**
-     *
+     * Adds the key to the presence map, overriding any previous value.
      * @param key
      * @param values
      */
@@ -1153,10 +1160,11 @@ export default class ChatRoom extends Listenable {
         values.tagName = key;
         this.removeFromPresence(key);
         this.presMap.nodes.push(values);
+        this.presenceUpdateTime = Date.now();
     }
 
     /**
-     * Retreives a value from the presence map.
+     * Retrieves a value from the presence map.
      *
      * @param {string} key - The key to find the value for.
      * @returns {Object?}
@@ -1166,13 +1174,14 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     *
+     * Removes a key from the presence map.
      * @param key
      */
     removeFromPresence(key) {
         const nodes = this.presMap.nodes.filter(node => key !== node.tagName);
 
         this.presMap.nodes = nodes;
+        this.presenceUpdateTime = Date.now();
     }
 
     /**
@@ -1277,7 +1286,6 @@ export default class ChatRoom extends Listenable {
      * @param mute
      */
     addAudioInfoToPresence(mute) {
-        this.removeFromPresence('audiomuted');
         this.addToPresence(
             'audiomuted',
             {
@@ -1306,7 +1314,6 @@ export default class ChatRoom extends Listenable {
      * @param mute
      */
     addVideoInfoToPresence(mute) {
-        this.removeFromPresence('videomuted');
         this.addToPresence(
             'videomuted',
             {

@@ -1,4 +1,6 @@
 import { getLogger } from 'jitsi-meet-logger';
+import { jitsiLocalStorage } from 'js-utils';
+
 const logger = getLogger(__filename);
 
 import UsernameGenerator from '../util/UsernameGenerator';
@@ -17,18 +19,10 @@ export default {
      */
     get callStatsUserName() {
         if (!_callStatsUserName) {
-            const localStorage = getLocalStorage();
-
-            if (localStorage) {
-                _callStatsUserName = localStorage.getItem('callStatsUserName');
-            }
+            _callStatsUserName = jitsiLocalStorage.getItem('callStatsUserName');
             if (!_callStatsUserName) {
                 _callStatsUserName = generateCallStatsUserName();
-                if (localStorage) {
-                    localStorage.setItem(
-                        'callStatsUserName',
-                        _callStatsUserName);
-                }
+                jitsiLocalStorage.setItem('callStatsUserName', _callStatsUserName);
             }
         }
 
@@ -41,16 +35,10 @@ export default {
      */
     get machineId() {
         if (!_machineId) {
-            const localStorage = getLocalStorage();
-
-            if (localStorage) {
-                _machineId = localStorage.getItem('jitsiMeetId');
-            }
+            _machineId = jitsiLocalStorage.getItem('jitsiMeetId');
             if (!_machineId) {
                 _machineId = generateJitsiMeetId();
-                if (localStorage) {
-                    localStorage.setItem('jitsiMeetId', _machineId);
-                }
+                jitsiLocalStorage.setItem('jitsiMeetId', _machineId);
             }
         }
 
@@ -64,9 +52,7 @@ export default {
     get sessionId() {
         // We may update sessionId in localStorage from another JitsiConference
         // instance and that's why we should always re-read it.
-        const localStorage = getLocalStorage();
-
-        return localStorage ? localStorage.getItem('sessionId') : undefined;
+        return jitsiLocalStorage.getItem('sessionId');
     },
 
     /**
@@ -74,14 +60,10 @@ export default {
      * @param {string} sessionId session id
      */
     set sessionId(sessionId) {
-        const localStorage = getLocalStorage();
-
-        if (localStorage) {
-            if (sessionId) {
-                localStorage.setItem('sessionId', sessionId);
-            } else {
-                localStorage.removeItem('sessionId');
-            }
+        if (sessionId) {
+            jitsiLocalStorage.setItem('sessionId', sessionId);
+        } else {
+            jitsiLocalStorage.removeItem('sessionId');
         }
     }
 };
@@ -108,25 +90,6 @@ function generateJitsiMeetId() {
     logger.log('generated id', jitsiMeetId);
 
     return jitsiMeetId;
-}
-
-/**
- * Gets the localStorage of the browser. (Technically, gets the localStorage of
- * the global object because there may be no browser but React Native for
- * example).
- * @returns {Storage} the local Storage object (if any)
- */
-function getLocalStorage() {
-    let storage;
-
-    try {
-        // eslint-disable-next-line no-invalid-this
-        storage = (window || this).localStorage;
-    } catch (error) {
-        logger.error(error);
-    }
-
-    return storage;
 }
 
 /**
