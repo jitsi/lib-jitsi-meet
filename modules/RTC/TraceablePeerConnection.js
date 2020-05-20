@@ -52,7 +52,11 @@ const DESKSTOP_SHARE_RATE = 500000;
  * stream.
  * @param {boolean} options.disableH264 If set to 'true' H264 will be
  *      disabled by removing it from the SDP.
+ * @param {boolean} options.disableVP9 If set to 'true' VP9 will be
+ *      disabled by removing it from the SDP.
  * @param {boolean} options.preferH264 if set to 'true' H264 will be preferred
+ * over other video codecs.
+ * @param {boolean} options.preferVP9 if set to 'true' VP9 will be preferred
  * over other video codecs.
  * @param {boolean} options.enableLayerSuspension if set to 'true', we will
  * cap the video send bitrate when we are told we have not been selected by
@@ -1891,11 +1895,9 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
         }
 
         if (this.options.preferH264) {
-            console.log('Prefering H264');
             SDPUtil.preferVideoCodec(videoMLine, 'h264');
         }
         if (this.options.preferVP9) {
-            console.log('Prefering VP9');
             SDPUtil.preferVideoCodec(videoMLine, 'vp9');
         }
 
