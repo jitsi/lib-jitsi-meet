@@ -724,15 +724,16 @@ export default class JingleSessionPC extends JingleSession {
                     id: this._bridgeSessionId
                 });
 
-        this.connection.sendIQ(
-            sessionInfo,
-            null,
-            this.newJingleErrorHandler(sessionInfo),
-            /*
-             * This message will be often sent when there are connectivity
-             * issues, so make it slightly longer than Prosody's default BOSH
-             * inactivity timeout of 60 seconds.
-             */ 65);
+        this.connection.sendIQ2(
+            sessionInfo, {
+                /*
+                 * This message will be often sent when there are connectivity
+                 * issues, so make it slightly longer than Prosody's default BOSH
+                 * inactivity timeout of 60 seconds.
+                 */
+                timeout: 65
+            })
+            .catch(this.newJingleErrorHandler(sessionInfo));
     }
 
     /**
@@ -1334,6 +1335,16 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Sets the resolution constraint on the local camera track.
+     * @param {number} maxFrameHeight - The user preferred max frame height.
+     * @returns {Promise} promise that will be resolved when the operation is
+     * successful and rejected otherwise.
+     */
+    setSenderVideoConstraint(maxFrameHeight) {
+        return this.peerconnection.setSenderVideoConstraint(maxFrameHeight);
+    }
+
+    /**
      * @inheritDoc
      */
     terminate(success, failure, options) {
@@ -1618,8 +1629,13 @@ export default class JingleSessionPC extends JingleSession {
                     if (mid > -1) {
                         remoteSdp.media[mid] = remoteSdp.media[mid].replace(`${line}\r\n`, '');
 
-                        // Change the direction to "inactive".
-                        remoteSdp.media[mid] = remoteSdp.media[mid].replace('a=sendonly', 'a=inactive');
+                        // Change the direction to "inactive" only on Firefox. Audio fails on
+                        // Safari (possibly Chrome in unified plan mode) when we try to re-use inactive
+                        // m-lines due to a webkit bug.
+                        // https://bugs.webkit.org/show_bug.cgi?id=211181
+                        if (browser.isFirefox()) {
+                            remoteSdp.media[mid] = remoteSdp.media[mid].replace('a=sendonly', 'a=inactive');
+                        }
                     }
                 });
             }
@@ -2325,7 +2341,7 @@ export default class JingleSessionPC extends JingleSession {
      * @returns the ice connection state for the peer connection.
      */
     getIceConnectionState() {
-        return this.peerconnection.iceConnectionState;
+        return this.peerconnection.getConnectionState();
     }
 
     /**
