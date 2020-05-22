@@ -851,9 +851,6 @@ export default class ChatRoom extends Listenable {
         } else {
             msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, message);
         }
-        if (typeof message !== 'string' && typeof message !== 'number') {
-            msg.up();
-        }
 
         this.connection.send(msg);
         this.eventEmitter.emit(XMPPEvents.SENDING_CHAT_MESSAGE, message);
