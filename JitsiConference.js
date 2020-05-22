@@ -839,9 +839,6 @@ JitsiConference.prototype.removeCommand = function(name) {
  */
 JitsiConference.prototype.setDisplayName = function(name) {
     if (this.room) {
-        // remove previously set nickname
-        this.room.removeFromPresence('nick');
-
         this.room.addToPresence('nick', {
             attributes: { xmlns: 'http://jabber.org/protocol/nick' },
             value: name
@@ -1728,6 +1725,14 @@ JitsiConference.prototype.onCallAccepted = function(session, answer) {
     if (this.p2pJingleSession === session) {
         logger.info('P2P setAnswer');
 
+        // Apply pending video constraints.
+        if (this.pendingVideoConstraintsOnP2P) {
+            this.p2pJingleSession.setSenderVideoConstraint(this.maxFrameHeight)
+                .catch(err => {
+                    logger.error(`Sender video constraints failed on p2p session - ${err}`);
+                });
+        }
+
         // Setup E2EE.
         const localTracks = this.getLocalTracks();
 
@@ -2296,7 +2301,6 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
         return;
     }
     this.startMutedPolicy = policy;
-    this.room.removeFromPresence('startmuted');
     this.room.addToPresence('startmuted', {
         attributes: {
             audio: policy.audio,
@@ -3506,7 +3510,7 @@ JitsiConference.prototype._setupSenderE2EEForTrack = function(session, track) {
     const sender = pc.findSenderForTrack(track.track);
 
     if (sender) {
-        this._e2eeCtx.handleSender(sender, track.getType());
+        this._e2eeCtx.handleSender(sender, track.getType(), track.getParticipantId());
     } else {
         logger.warn(`Could not handle E2EE for local ${track.getType()} track: sender not found`);
     }
@@ -3529,7 +3533,7 @@ JitsiConference.prototype._setupReceiverE2EEForTrack = function(track) {
         const receiver = pc.findReceiverForTrack(track.track);
 
         if (receiver) {
-            this._e2eeCtx.handleReceiver(receiver, track.getType());
+            this._e2eeCtx.handleReceiver(receiver, track.getType(), track.getParticipantId());
         } else {
             logger.warn(`Could not handle E2EE for remote ${track.getType()} track: receiver not found`);
         }

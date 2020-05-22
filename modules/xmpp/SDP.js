@@ -49,15 +49,14 @@ SDP.prototype.removeUdpCandidates = false;
  * Returns map of MediaChannel mapped per channel idx.
  */
 SDP.prototype.getMediaSsrcMap = function() {
-    const self = this;
     const mediaSSRCs = {};
     let tmp;
 
-    for (let mediaindex = 0; mediaindex < self.media.length; mediaindex++) {
-        tmp = SDPUtil.findLines(self.media[mediaindex], 'a=ssrc:');
+    for (let mediaindex = 0; mediaindex < this.media.length; mediaindex++) {
+        tmp = SDPUtil.findLines(this.media[mediaindex], 'a=ssrc:');
         const mid
             = SDPUtil.parseMID(
-                SDPUtil.findLine(self.media[mediaindex], 'a=mid:'));
+                SDPUtil.findLine(this.media[mediaindex], 'a=mid:'));
         const media = {
             mediaindex,
             mid,
@@ -79,7 +78,7 @@ SDP.prototype.getMediaSsrcMap = function() {
             }
             media.ssrcs[linessrc].lines.push(line);
         });
-        tmp = SDPUtil.findLines(self.media[mediaindex], 'a=ssrc-group:');
+        tmp = SDPUtil.findLines(this.media[mediaindex], 'a=ssrc-group:');
         tmp.forEach(line => {
             const idx = line.indexOf(' ');
             const semantics = line.substr(0, idx).substr(13);
@@ -227,15 +226,6 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                 this.rtcpFbToJingle(i, elem, mline.fmt[j]);
 
                 elem.up();
-            }
-            const crypto
-                = SDPUtil.findLines(this.media[i], 'a=crypto:', this.session);
-
-            if (crypto.length) {
-                elem.c('encryption', { required: 1 });
-                crypto.forEach(
-                    line => elem.c('crypto', SDPUtil.parseCrypto(line)).up());
-                elem.up(); // end of encryption
             }
 
             if (ssrc) {
@@ -395,13 +385,12 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 
 SDP.prototype.transportToJingle = function(mediaindex, elem) {
     let tmp;
-    const self = this;
 
     elem.c('transport');
 
     // XEP-0343 DTLS/SCTP
     const sctpmap
-        = SDPUtil.findLine(this.media[mediaindex], 'a=sctpmap:', self.session);
+        = SDPUtil.findLine(this.media[mediaindex], 'a=sctpmap:', this.session);
 
     if (sctpmap) {
         const sctpAttrs = SDPUtil.parseSCTPMap(sctpmap);
@@ -435,9 +424,9 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
         // eslint-disable-next-line no-param-reassign
         line
             = SDPUtil.findLine(
-                self.media[mediaindex],
+                this.media[mediaindex],
                 'a=setup:',
-                self.session);
+                this.session);
         if (line) {
             tmp.setup = line.substr(8);
         }
@@ -460,7 +449,7 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
             lines.forEach(line => {
                 const candidate = SDPUtil.candidateToJingle(line);
 
-                if (self.failICE) {
+                if (this.failICE) {
                     candidate.ip = '1.1.1.1';
                 }
                 const protocol
@@ -468,9 +457,9 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
                         ? candidate.protocol.toLowerCase()
                         : '';
 
-                if ((self.removeTcpCandidates
+                if ((this.removeTcpCandidates
                         && (protocol === 'tcp' || protocol === 'ssltcp'))
-                    || (self.removeUdpCandidates && protocol === 'udp')) {
+                    || (this.removeUdpCandidates && protocol === 'udp')) {
                     return;
                 }
                 elem.c('candidate', candidate).up();
@@ -538,7 +527,6 @@ SDP.prototype.rtcpFbFromJingle = function(elem, payloadtype) { // XEP-0293
 
 // construct an SDP from a jingle stanza
 SDP.prototype.fromJingle = function(jingle) {
-    const self = this;
     const sessionId = Date.now();
 
     // Use a unique session id for every TPC.
@@ -561,7 +549,7 @@ SDP.prototype.fromJingle = function(jingle) {
                     .get();
 
             if (contents.length > 0) {
-                self.raw
+                this.raw
                     += `a=group:${
                         group.getAttribute('semantics')
                             || group.getAttribute('type')} ${
@@ -572,9 +560,9 @@ SDP.prototype.fromJingle = function(jingle) {
 
     this.session = this.raw;
     jingle.find('>content').each((_, content) => {
-        const m = self.jingle2media($(content));
+        const m = this.jingle2media($(content));
 
-        self.media.push(m);
+        this.media.push(m);
     });
 
     // reconstruct msid-semantic -- apparently not necessary
@@ -592,7 +580,6 @@ SDP.prototype.fromJingle = function(jingle) {
 SDP.prototype.jingle2media = function(content) {
     const desc = content.find('description');
     let media = '';
-    const self = this;
     const sctp = content.find(
         '>transport>sctpmap[xmlns="urn:xmpp:jingle:transports:dtls-sctp:1"]');
 
@@ -603,8 +590,7 @@ SDP.prototype.jingle2media = function(content) {
         // estos hack to reject an m-line.
         tmp.port = '0';
     }
-    if (content.find('>transport>fingerprint').length
-            || desc.find('encryption').length) {
+    if (content.find('>transport>fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]').length) {
         tmp.proto = sctp.length ? 'DTLS/SCTP' : 'RTP/SAVPF';
     } else {
         tmp.proto = 'RTP/AVPF';
@@ -644,8 +630,7 @@ SDP.prototype.jingle2media = function(content) {
         if (tmp.attr('pwd')) {
             media += `${SDPUtil.buildICEPwd(tmp.attr('pwd'))}\r\n`;
         }
-        tmp.find('>fingerprint').each((_, fingerprint) => {
-            // FIXME: check namespace at some point
+        tmp.find('>fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]').each((_, fingerprint) => {
             media += `a=fingerprint:${fingerprint.getAttribute('hash')}`;
             media += ` ${$(fingerprint).text()}`;
             media += '\r\n';
@@ -678,18 +663,6 @@ SDP.prototype.jingle2media = function(content) {
         media += 'a=rtcp-mux\r\n';
     }
 
-    if (desc.find('encryption').length) {
-        desc.find('encryption>crypto').each((_, crypto) => {
-            media += `a=crypto:${crypto.getAttribute('tag')}`;
-            media += ` ${crypto.getAttribute('crypto-suite')}`;
-            media += ` ${crypto.getAttribute('key-params')}`;
-            if (crypto.hasAttribute('session-params')) {
-                media += ` ${crypto.getAttribute('session-params')}`;
-            }
-            media += '\r\n';
-        });
-    }
-
     desc.find('payload-type').each((_, payloadType) => {
         media += `${SDPUtil.buildRTPMap(payloadType)}\r\n`;
         if ($(payloadType).find('>parameter').length) {
@@ -710,11 +683,11 @@ SDP.prototype.jingle2media = function(content) {
         }
 
         // xep-0293
-        media += self.rtcpFbFromJingle($(payloadType), payloadType.getAttribute('id'));
+        media += this.rtcpFbFromJingle($(payloadType), payloadType.getAttribute('id'));
     });
 
     // xep-0293
-    media += self.rtcpFbFromJingle(desc, '*');
+    media += this.rtcpFbFromJingle(desc, '*');
 
     // xep-0294
     tmp
@@ -736,11 +709,11 @@ SDP.prototype.jingle2media = function(content) {
             protocol
                 = typeof protocol === 'string' ? protocol.toLowerCase() : '';
 
-            if ((self.removeTcpCandidates
+            if ((this.removeTcpCandidates
                     && (protocol === 'tcp' || protocol === 'ssltcp'))
-                || (self.removeUdpCandidates && protocol === 'udp')) {
+                || (this.removeUdpCandidates && protocol === 'udp')) {
                 return;
-            } else if (self.failICE) {
+            } else if (this.failICE) {
                 transport.setAttribute('ip', '1.1.1.1');
             }
 

@@ -147,7 +147,7 @@ export default class XMPP extends Listenable {
         this.caps.addFeature('urn:xmpp:jingle:apps:rtp:audio');
         this.caps.addFeature('urn:xmpp:jingle:apps:rtp:video');
 
-        if (!this.options.disableRtx && browser.supportsRtx()) {
+        if (!this.options.disableRtx) {
             this.caps.addFeature('urn:ietf:rfc:4588');
         }
 
