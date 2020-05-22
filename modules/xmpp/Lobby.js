@@ -247,6 +247,14 @@ export default class Lobby {
 
                     this.mainRoom.eventEmitter.emit(XMPPEvents.MUC_DESTROYED, reason);
                 });
+
+            // If participant retries joining shared password while waiting in the lobby
+            // and succeeds make sure we leave lobby
+            this.mainRoom.addEventListener(
+                XMPPEvents.MUC_JOINED,
+                () => {
+                    this._leaveLobbyRoom();
+                });
         }
 
         return new Promise((resolve, reject) => {
