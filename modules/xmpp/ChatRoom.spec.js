@@ -292,5 +292,57 @@ describe('ChatRoom', () => {
         });
 
     });
+
+    describe('sendMessage', () => {
+        let room;
+        let connectionSpy;
+
+        beforeEach(() => {
+            const xmpp = {
+                options: {}
+            };
+
+            room = new ChatRoom(
+                // eslint-disable-next-line no-empty-function
+                { send: () => {} } /* connection */,
+                'jid',
+                'password',
+                xmpp,
+                {} /* options */);
+            connectionSpy = spyOn(room.connection, 'send');
+        });
+        it('sends a string msg with elementName body correctly', () => {
+            room.sendMessage('string message', 'body', 'receiver');
+            expect(connectionSpy.calls.argsFor(0).toString()).toBe(
+                '<message to="jid" type="groupchat" xmlns="jabber:client">' +
+                '<body>string message</body>' +
+                '<nick xmlns="http://jabber.org/protocol/nick">receiver</nick>' +
+                '</message>');
+        });
+        it('sends a object msg with elementName body correctly', () => {
+            room.sendMessage({ object: 'message' }, 'body', 'receiver');
+            expect(connectionSpy.calls.argsFor(0).toString()).toBe(
+                '<message to="jid" type="groupchat" xmlns="jabber:client">' +
+                '<body object="message"/>' +
+                '<nick xmlns="http://jabber.org/protocol/nick">receiver</nick>' +
+                '</message>');
+        });
+        it('sends a string msg with elementName json-message correctly', () => {
+            room.sendMessage('string message', 'json-message', 'receiver');
+            expect(connectionSpy.calls.argsFor(0).toString()).toBe(
+                '<message to="jid" type="groupchat" xmlns="jabber:client">' +
+                '<json-message xmlns="http://jitsi.org/jitmeet">string message</json-message>' +
+                '<nick xmlns="http://jabber.org/protocol/nick">receiver</nick>' +
+                '</message>');
+        });
+        it('sends a object msg with elementName json-message correctly', () => {
+            room.sendMessage({ object: 'message' }, 'json-message', 'receiver');
+            expect(connectionSpy.calls.argsFor(0).toString()).toBe(
+                '<message to="jid" type="groupchat" xmlns="jabber:client">' +
+                '<json-message object="message" xmlns="http://jitsi.org/jitmeet"/>' +
+                '<nick xmlns="http://jabber.org/protocol/nick">receiver</nick>' +
+                '</message>');
+        });
+    });
 });
 

@@ -847,10 +847,12 @@ export default class ChatRoom extends Listenable {
         // is different from 'body', we add a custom namespace.
         // e.g. for 'json-message' extension of message stanza.
         if (elementName === 'body') {
-            msg.c(elementName, message).up();
+            msg.c(elementName, {}, message);
         } else {
-            msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, message)
-                .up();
+            msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, message);
+        }
+        if (typeof message !== 'string' && typeof message !== 'number') {
+            msg.up();
         }
 
         this.connection.send(msg);
