@@ -37,6 +37,7 @@ In addition to the basic claims used in authentication, the token can also provi
   - 'id' is a user identifier string.  Intended for use in reporting/analytics
   - 'name' is the display name of the 'callee' user
   - 'avatar' is the URL of the avatar of the 'callee'
+- 'server' is a string which specifies the server that generates the JWT.  Intended for use in reporting/analytics
 
 #### Access token identifiers / context
 To access the data in lib-jitsi-meet you have to enable the prosody module `mod_presence_identity` in your config.
@@ -69,7 +70,8 @@ NOTE: The values in the token shall always be valid values. If you define e.g. t
       "email": "jdoe@example.com",
       "id": "abcd:a1b2c3-d4e5f6-0abc1-23de-abcdef01fedcba"
     },
-    "group": "a123-123-456-789"
+    "group": "a123-123-456-789",
+    "server": "integration.example.com"
   },
   "aud": "jitsi",
   "iss": "my_client",
