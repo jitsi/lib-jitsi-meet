@@ -1957,6 +1957,8 @@ TraceablePeerConnection.prototype.setAudioTransferActive = function(active) {
  */
 TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack) {
     const mediaType = localTrack.type;
+    const trackId = localTrack.track.id;
+    const videoType = localTrack.videoType;
 
     // No need to set max bitrates on the streams in the following cases.
     // 1. When an audio track has been replaced.
@@ -1964,7 +1966,7 @@ TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack) {
     // 3. When the config.js option for capping the SS bitrate is not enabled.
     if ((mediaType === MediaType.AUDIO)
         || (browser.usesPlanB() && !this.options.capScreenshareBitrate)
-        || (browser.usesPlanB() && localTrack.videoType === 'camera')) {
+        || (browser.usesPlanB() && videoType === VideoType.CAMERA)) {
         return;
     }
     if (!this.peerconnection.getSenders) {
@@ -1972,8 +1974,8 @@ TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack) {
 
         return;
     }
-    const videoType = localTrack.videoType;
-    const trackId = localTrack.track.id;
+    const presenterEnabled = localTrack._originalStream
+        && localTrack._originalStream.id !== localTrack.getStreamId();
 
     this.peerconnection.getSenders()
         .filter(s => s.track && s.track.id === trackId)
@@ -1987,9 +1989,12 @@ TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack) {
                 logger.debug('Setting max bitrate on video stream');
                 for (const encoding in parameters.encodings) {
                     if (parameters.encodings.hasOwnProperty(encoding)) {
+                        // On chromium, set a max bitrate of 500 Kbps for screenshare when
+                        // capScreenshareBitrate is enabled through config.js and presenter
+                        // is not turned on.
                         parameters.encodings[encoding].maxBitrate
-                            = videoType === 'desktop' && browser.usesPlanB()
-                                ? DESKSTOP_SHARE_RATE
+                            = browser.usesPlanB()
+                                ? presenterEnabled ? MAX_BITRATE : DESKSTOP_SHARE_RATE
 
                                 // In unified plan, simulcast for SS is on by default.
                                 // When simulcast is disabled through a config.js option,
