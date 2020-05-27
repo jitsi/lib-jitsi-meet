@@ -1292,10 +1292,8 @@ export default class ChatRoom extends Listenable {
                         .up()
                         .up();
 
-                    let isRoomLocked = this.locked;
-
                     // if room is locked from other participant or we are locking it
-                    if (isRoomLocked || (password && password.length > 0)) {
+                    if (this.locked || (password && password.length > 0)) {
                         formToSubmit
                             .c('field',
                                 { 'var': 'muc#roomconfig_passwordprotectedroom' })
