@@ -1281,19 +1281,27 @@ export default class ChatRoom extends Listenable {
                         .t(enabled ? 'true' : 'false')
                         .up()
                         .up();
-                    formToSubmit
-                        .c('field', { 'var': 'muc#roomconfig_roomsecret' })
-                        .c('value')
-                        .t(password || '')
-                        .up()
-                        .up();
-                    formToSubmit
-                        .c('field',
-                            { 'var': 'muc#roomconfig_passwordprotectedroom' })
-                        .c('value')
-                        .t(!password || password.length === 0 ? '0' : '1')
-                        .up()
-                        .up();
+
+                    let isRoomLocked = this.locked;
+
+                    // if room is locked from other participant or we are locking it
+                    if (isRoomLocked || (password && password.length > 0)) {
+                        formToSubmit
+                            .c('field',
+                                { 'var': 'muc#roomconfig_passwordprotectedroom' })
+                            .c('value')
+                            .t('1')
+                            .up()
+                            .up();
+                        if (password) {
+                            formToSubmit
+                                .c('field', { 'var': 'muc#roomconfig_roomsecret' })
+                                .c('value')
+                                .t(password)
+                                .up()
+                                .up();
+                        }
+                    }
 
                     this.xmpp.connection.sendIQ(formToSubmit, onSuccess, errorCB);
                 } else {
