@@ -159,6 +159,9 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     this.chatRoomForwarder.forward(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR,
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.NOT_ALLOWED_ERROR);
+    this.chatRoomForwarder.forward(XMPPEvents.ROOM_CONNECT_MEMBERS_ONLY_ERROR,
+        JitsiConferenceEvents.CONFERENCE_FAILED,
+        JitsiConferenceErrors.MEMBERS_ONLY_ERROR);
 
     this.chatRoomForwarder.forward(XMPPEvents.ROOM_MAX_USERS_ERROR,
         JitsiConferenceEvents.CONFERENCE_FAILED,
@@ -272,14 +275,26 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     this.chatRoomForwarder.forward(XMPPEvents.MUC_LOCK_CHANGED,
         JitsiConferenceEvents.LOCK_STATE_CHANGED);
 
+    this.chatRoomForwarder.forward(XMPPEvents.MUC_MEMBERS_ONLY_CHANGED,
+        JitsiConferenceEvents.MEMBERS_ONLY_CHANGED);
+
     chatRoom.addListener(XMPPEvents.MUC_MEMBER_JOINED,
         conference.onMemberJoined.bind(conference));
+    this.chatRoomForwarder.forward(XMPPEvents.MUC_LOBBY_MEMBER_JOINED,
+        JitsiConferenceEvents.LOBBY_USER_JOINED);
+    this.chatRoomForwarder.forward(XMPPEvents.MUC_LOBBY_MEMBER_UPDATED,
+        JitsiConferenceEvents.LOBBY_USER_UPDATED);
+    this.chatRoomForwarder.forward(XMPPEvents.MUC_LOBBY_MEMBER_LEFT,
+        JitsiConferenceEvents.LOBBY_USER_LEFT);
     chatRoom.addListener(XMPPEvents.MUC_MEMBER_BOT_TYPE_CHANGED,
         conference._onMemberBotTypeChanged.bind(conference));
     chatRoom.addListener(XMPPEvents.MUC_MEMBER_LEFT,
         conference.onMemberLeft.bind(conference));
     this.chatRoomForwarder.forward(XMPPEvents.MUC_LEFT,
         JitsiConferenceEvents.CONFERENCE_LEFT);
+    this.chatRoomForwarder.forward(XMPPEvents.MUC_DENIED_ACCESS,
+        JitsiConferenceEvents.CONFERENCE_FAILED,
+        JitsiConferenceErrors.CONFERENCE_ACCESS_DENIED);
 
     chatRoom.addListener(XMPPEvents.DISPLAY_NAME_CHANGED,
         conference.onDisplayNameChanged.bind(conference));
