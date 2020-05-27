@@ -376,6 +376,7 @@ JitsiConference.prototype._init = function(options = {}) {
             userName: config.statisticsDisplayName ? config.statisticsDisplayName : this.myUserId(),
             callStatsConfIDNamespace: this.connection.options.hosts.domain,
             confID: config.confID || `${this.connection.options.hosts.domain}/${this.options.name}`,
+            siteID: config.siteID,
             customScriptUrl: config.callStatsCustomScriptUrl,
             callStatsID: config.callStatsID,
             callStatsSecret: config.callStatsSecret,

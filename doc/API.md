@@ -244,6 +244,7 @@ This objects represents the server connection. You can create new ```JitsiConnec
         - ignoreStartMuted - ignores start muted events coming from jicofo.
         - startSilent - enables silent mode, will mark audio as inactive will not send/receive audio
         - confID - Used for statistics to identify conference, if tenants are supported will contain tenant and the non lower case variant for the room name.
+        - siteID - (optional) Used for statistics to identify the site where the user is coming from, if tenants are supported it will contain a unique identifier for that tenant. If not provided, the value will be infered from confID
         - statisticsId - The id to be used as stats instead of default callStatsUsername.
         - statisticsDisplayName - The display name to be used for stats, used for callstats.
 
@@ -448,10 +449,10 @@ We have the following methods for controling the tracks:
 
 12. isEnded() - returns true if track is ended
 
-13. setEffect(effect) - Applies the effect by swapping out the existing MediaStream on the JitsiTrack with the new 
+13. setEffect(effect) - Applies the effect by swapping out the existing MediaStream on the JitsiTrack with the new
 
     MediaStream which has the desired effect. "undefined" is passed to this function for removing the effect and for
-    
+
     restoring the original MediaStream on the JitsiTrack.
 
     The following methods have to be defined for the effect instance.
