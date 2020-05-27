@@ -1204,6 +1204,16 @@ export default class ChatRoom extends Listenable {
                         .up()
                         .up();
 
+                    // if members only enabled
+                    if (this.membersOnlyEnabled) {
+                        formsubmit
+                            .c('field', { 'var': 'muc#roomconfig_membersonly' })
+                            .c('value')
+                            .t('true')
+                            .up()
+                            .up();
+                    }
+
                     // Fixes a bug in prosody 0.9.+
                     // https://prosody.im/issues/issue/373
                     formsubmit
