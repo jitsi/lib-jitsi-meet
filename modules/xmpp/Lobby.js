@@ -225,7 +225,7 @@ export default class Lobby {
             // the invite message should be received directly to the xmpp conn in general
             this.mainRoom.addEventListener(
                 XMPPEvents.INVITE_MESSAGE_RECEIVED,
-                (roomJid, from, invitePassword, txt) => {
+                (roomJid, from, txt, invitePassword) => {
                     logger.debug(`Received approval to join ${roomJid} ${from} ${txt}`);
                     if (roomJid === this.mainRoom.roomjid) {
                         // we are now allowed let's join and leave lobby
