@@ -154,7 +154,7 @@ export const SERVER_REGION_CHANGED = 'conference.server_region_changed';
  * <tt>true</tt> means that the conference is running in members only mode.
  * You may need to use Lobby if supported to ask for permissions to enter the conference.
  */
-export const MEMBERS_ONLY_CHANGED = 'conference.membersOnly';
+export const MEMBERS_ONLY_CHANGED = 'conference.membersOnlyChanged';
 
 /**
  * New text message was received.

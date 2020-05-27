@@ -298,11 +298,11 @@ export default class Lobby {
             return;
         }
 
-        const roomJid = Object.keys(this.lobbyRoom.members)
+        const memberRoomJid = Object.keys(this.lobbyRoom.members)
             .find(j => Strophe.getResourceFromJid(j) === id);
 
-        if (roomJid) {
-            const jid = this.lobbyRoom.members[roomJid].jid;
+        if (memberRoomJid) {
+            const jid = this.lobbyRoom.members[memberRoomJid].jid;
             const msgToSend
                 = $msg({ to: this.mainRoom.roomjid })
                     .c('x', { xmlns: 'http://jabber.org/protocol/muc#user' })
@@ -314,7 +314,7 @@ export default class Lobby {
                     logger.error(`Error sending invite for ${jid}`, e);
                 });
         } else {
-            logger.error(`Not found member for ${roomJid} in lobby room.`);
+            logger.error(`Not found member for ${memberRoomJid} in lobby room.`);
         }
     }
 }

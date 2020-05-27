@@ -1234,7 +1234,7 @@ export default class ChatRoom extends Listenable {
     /* eslint-enable max-params */
 
     /**
-     * Turns of or on the members only config for the main room.
+     * Turns off or on the members only config for the main room.
      *
      * @param {boolean} enabled - Whether to turn it on or off.
      * @param onSuccess - optional callback.
@@ -1242,24 +1242,28 @@ export default class ChatRoom extends Listenable {
      */
     setMembersOnly(enabled, onSuccess, onError) {
         if (enabled && Object.values(this.members).filter(m => !m.isFocus).length) {
-            // first grant membership to all that are in the room
-            if (Object.keys(this.members).length > 0) {
-                const grantMembership = $iq({ to: this.roomjid,
-                    type: 'set' })
-                    .c('query', { xmlns: 'http://jabber.org/protocol/muc#admin' });
+            let sendGrantMembershipIq = false;
 
-                Object.values(this.members).forEach(m => {
-                    if (m.jid && !MEMBERS_AFFILIATIONS.includes(m.affiliation)) {
-                        grantMembership.c('item', {
-                            'affiliation': 'member',
-                            'jid': m.jid }).up();
-                    }
-                });
+            // first grant membership to all that are in the room
+            const grantMembership = $iq({ to: this.roomjid,
+                type: 'set' })
+                .c('query', { xmlns: 'http://jabber.org/protocol/muc#admin' });
+
+            Object.values(this.members).forEach(m => {
+                if (m.jid && !MEMBERS_AFFILIATIONS.includes(m.affiliation)) {
+                    grantMembership.c('item', {
+                        'affiliation': 'member',
+                        'jid': m.jid }).up();
+                    sendGrantMembershipIq = true;
+                }
+            });
+
+            if (sendGrantMembershipIq) {
                 this.xmpp.connection.sendIQ(grantMembership.up());
             }
         }
 
-        const errorCB = onError ? onError : () => {}; // eslint-disable-line no-empty-function
+        const errorCallback = onError ? onError : () => {}; // eslint-disable-line no-empty-function
 
         this.xmpp.connection.sendIQ(
             $iq({
@@ -1302,12 +1306,12 @@ export default class ChatRoom extends Listenable {
                             .up();
                     }
 
-                    this.xmpp.connection.sendIQ(formToSubmit, onSuccess, errorCB);
+                    this.xmpp.connection.sendIQ(formToSubmit, onSuccess, errorCallback);
                 } else {
-                    errorCB(new Error('Setting members only room not supported!'));
+                    errorCallback(new Error('Setting members only room not supported!'));
                 }
             },
-            errorCB);
+            errorCallback);
     }
 
     /**
