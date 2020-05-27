@@ -55,16 +55,15 @@ export default class Lobby {
     /**
      * Enables lobby by setting the main room to be members only and joins the lobby chat room.
      *
-     * @param {string} password shared password that can be used to skip lobby room.
      * @returns {Promise}
      */
-    enable(password) {
+    enable() {
         if (!this.isSupported()) {
             return Promise.reject(new Error('Lobby not supported!'));
         }
 
         return new Promise((resolve, reject) => {
-            this.mainRoom.setMembersOnly(true, password, resolve, reject);
+            this.mainRoom.setMembersOnly(true, resolve, reject);
         });
     }
 
@@ -130,16 +129,10 @@ export default class Lobby {
      *
      * @param {string} username is required.
      * @param {string} email is optional.
-     * @param {string} password is optional for non moderators and should not be passed when moderator.
      * @returns {Promise} resolves once we join the room.
      */
-    join(displayName, email, password) {
+    join(displayName, email) {
         const isModerator = this.mainRoom.joined && this.mainRoom.isModerator();
-
-        // lobby password let's try it
-        if (password && !isModerator) {
-            return this.mainRoom.join(password);
-        }
 
         if (!this.lobbyRoomJid) {
             return Promise.reject(new Error('Missing lobbyRoomJid, cannot join lobby room.'));

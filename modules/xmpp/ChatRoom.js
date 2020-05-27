@@ -1237,11 +1237,10 @@ export default class ChatRoom extends Listenable {
      * Turns of or on the members only config for the main room.
      *
      * @param {boolean} enabled - Whether to turn it on or off.
-     * @param {string} password - Shared password if any.
      * @param onSuccess - optional callback.
      * @param onError - optional callback.
      */
-    setMembersOnly(enabled, password, onSuccess, onError) {
+    setMembersOnly(enabled, onSuccess, onError) {
         if (enabled && Object.values(this.members).filter(m => !m.isFocus).length) {
             // first grant membership to all that are in the room
             if (Object.keys(this.members).length > 0) {
@@ -1293,7 +1292,7 @@ export default class ChatRoom extends Listenable {
                         .up();
 
                     // if room is locked from other participant or we are locking it
-                    if (this.locked || (password && password.length > 0)) {
+                    if (this.locked) {
                         formToSubmit
                             .c('field',
                                 { 'var': 'muc#roomconfig_passwordprotectedroom' })
@@ -1301,14 +1300,6 @@ export default class ChatRoom extends Listenable {
                             .t('1')
                             .up()
                             .up();
-                        if (password) {
-                            formToSubmit
-                                .c('field', { 'var': 'muc#roomconfig_roomsecret' })
-                                .c('value')
-                                .t(password)
-                                .up()
-                                .up();
-                        }
                     }
 
                     this.xmpp.connection.sendIQ(formToSubmit, onSuccess, errorCB);

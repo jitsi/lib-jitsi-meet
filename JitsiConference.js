@@ -3436,12 +3436,11 @@ JitsiConference.prototype.isMembersOnly = function() {
 /**
  * Enables lobby by moderators
  *
- * @param {string} password shared password that can be used to skip lobby waiting.
  * @returns {Promise} resolves when lobby room is joined or rejects with the error.
  */
-JitsiConference.prototype.enableLobby = function(password) {
+JitsiConference.prototype.enableLobby = function() {
     if (this.room && this.isModerator()) {
-        return this.room.getLobby().enable(password);
+        return this.room.getLobby().enable();
     }
 
     return Promise.reject(
@@ -3464,12 +3463,11 @@ JitsiConference.prototype.disableLobby = function() {
  *
  * @param {string} displayName Display name should be set to show it to moderators.
  * @param {string} email Optional email is used to present avatar to the moderator.
- * @param {string} password Shared password can be used to skip waiting in the lobby room.
  * @returns {Promise<never>}
  */
-JitsiConference.prototype.joinLobby = function(displayName, email, password) {
+JitsiConference.prototype.joinLobby = function(displayName, email) {
     if (this.room) {
-        return this.room.getLobby().join(displayName, email, password);
+        return this.room.getLobby().join(displayName, email);
     }
 
     return Promise.reject(new Error('The conference not started'));
