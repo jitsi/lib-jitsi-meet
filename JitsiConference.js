@@ -395,7 +395,9 @@ JitsiConference.prototype._init = function(options = {}) {
     // listeners are removed from statistics module.
     this.eventManager.setupStatisticsListeners();
 
-    if (config.enableTalkWhileMuted) {
+    // Disable VAD processing on Safari since it causes audio input to
+    // fail on some of the mobile devices.
+    if (config.enableTalkWhileMuted && !browser.isSafari()) {
 
         // If VAD processor factory method is provided uses VAD based detection, otherwise fallback to audio level
         // based detection.
