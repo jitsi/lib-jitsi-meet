@@ -147,7 +147,7 @@ export default class XMPP extends Listenable {
         this.caps.addFeature('urn:xmpp:jingle:apps:rtp:audio');
         this.caps.addFeature('urn:xmpp:jingle:apps:rtp:video');
 
-        if (!this.options.disableRtx && browser.supportsRtx()) {
+        if (!this.options.disableRtx) {
             this.caps.addFeature('urn:ietf:rfc:4588');
         }
 
@@ -247,6 +247,10 @@ export default class XMPP extends Listenable {
 
                         if (identity.type === 'conference_duration') {
                             this.conferenceDurationComponentAddress = identity.name;
+                        }
+
+                        if (identity.type === 'lobbyrooms') {
+                            this.lobbySupported = true;
                         }
                     });
 
@@ -469,7 +473,9 @@ export default class XMPP extends Listenable {
      * @returns {Promise} Resolves with an instance of a strophe muc.
      */
     createRoom(roomName, options, onCreateResource) {
-        let roomjid = `${roomName}@${this.options.hosts.muc}/`;
+        // There are cases (when using subdomain) where muc can hold an uppercase part
+        let roomjid = `${roomName}@${options.customDomain
+            ? options.customDomain : this.options.hosts.muc.toLowerCase()}/`;
 
         const mucNickname = onCreateResource
             ? onCreateResource(this.connection.jid, this.authenticatedUser)

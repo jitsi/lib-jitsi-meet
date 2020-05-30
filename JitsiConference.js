@@ -374,8 +374,8 @@ JitsiConference.prototype._init = function(options = {}) {
         this.statistics = new Statistics(this.xmpp, {
             aliasName: this._statsCurrentId,
             userName: config.statisticsDisplayName ? config.statisticsDisplayName : this.myUserId(),
-            callStatsConfIDNamespace: this.connection.options.hosts.domain,
             confID: config.confID || `${this.connection.options.hosts.domain}/${this.options.name}`,
+            siteID: config.siteID,
             customScriptUrl: config.callStatsCustomScriptUrl,
             callStatsID: config.callStatsID,
             callStatsSecret: config.callStatsSecret,
@@ -395,7 +395,9 @@ JitsiConference.prototype._init = function(options = {}) {
     // listeners are removed from statistics module.
     this.eventManager.setupStatisticsListeners();
 
-    if (config.enableTalkWhileMuted) {
+    // Disable VAD processing on Safari since it causes audio input to
+    // fail on some of the mobile devices.
+    if (config.enableTalkWhileMuted && !browser.isSafari()) {
 
         // If VAD processor factory method is provided uses VAD based detection, otherwise fallback to audio level
         // based detection.
@@ -839,9 +841,6 @@ JitsiConference.prototype.removeCommand = function(name) {
  */
 JitsiConference.prototype.setDisplayName = function(name) {
     if (this.room) {
-        // remove previously set nickname
-        this.room.removeFromPresence('nick');
-
         this.room.addToPresence('nick', {
             attributes: { xmlns: 'http://jabber.org/protocol/nick' },
             value: name
@@ -1728,6 +1727,14 @@ JitsiConference.prototype.onCallAccepted = function(session, answer) {
     if (this.p2pJingleSession === session) {
         logger.info('P2P setAnswer');
 
+        // Apply pending video constraints.
+        if (this.pendingVideoConstraintsOnP2P) {
+            this.p2pJingleSession.setSenderVideoConstraint(this.maxFrameHeight)
+                .catch(err => {
+                    logger.error(`Sender video constraints failed on p2p session - ${err}`);
+                });
+        }
+
         // Setup E2EE.
         const localTracks = this.getLocalTracks();
 
@@ -2296,7 +2303,6 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
         return;
     }
     this.startMutedPolicy = policy;
-    this.room.removeFromPresence('startmuted');
     this.room.addToPresence('startmuted', {
         attributes: {
             audio: policy.audio,
@@ -3437,6 +3443,85 @@ JitsiConference.prototype.setE2EEKey = function(key) {
     }
 
     this._e2eeCtx.setKey(key);
+};
+
+/**
+ * Returns <tt>true</tt> if lobby support is enabled in the backend.
+ *
+ * @returns {boolean} whether lobby is supported in the backend.
+ */
+JitsiConference.prototype.isLobbySupported = function() {
+    return Boolean(this.room && this.room.getLobby().isSupported());
+};
+
+/**
+ * Returns <tt>true</tt> if the room has members only enabled.
+ *
+ * @returns {boolean} whether conference room is members only.
+ */
+JitsiConference.prototype.isMembersOnly = function() {
+    return Boolean(this.room && this.room.membersOnlyEnabled);
+};
+
+/**
+ * Enables lobby by moderators
+ *
+ * @returns {Promise} resolves when lobby room is joined or rejects with the error.
+ */
+JitsiConference.prototype.enableLobby = function() {
+    if (this.room && this.isModerator()) {
+        return this.room.getLobby().enable();
+    }
+
+    return Promise.reject(
+        new Error('The conference not started or user is not moderator'));
+};
+
+/**
+ * Disabled lobby by moderators
+ *
+ * @returns {void}
+ */
+JitsiConference.prototype.disableLobby = function() {
+    if (this.room && this.isModerator()) {
+        this.room.getLobby().disable();
+    }
+};
+
+/**
+ * Joins the lobby room with display name and optional email or with a shared password to skip waiting.
+ *
+ * @param {string} displayName Display name should be set to show it to moderators.
+ * @param {string} email Optional email is used to present avatar to the moderator.
+ * @returns {Promise<never>}
+ */
+JitsiConference.prototype.joinLobby = function(displayName, email) {
+    if (this.room) {
+        return this.room.getLobby().join(displayName, email);
+    }
+
+    return Promise.reject(new Error('The conference not started'));
+};
+
+/**
+ * Denies an occupant in the lobby room access to the conference.
+ * @param {string} id The participant id.
+ */
+JitsiConference.prototype.lobbyDenyAccess = function(id) {
+    if (this.room) {
+        this.room.getLobby().denyAccess(id);
+    }
+};
+
+/**
+ * Approves the request to join the conference to a participant waiting in the lobby.
+ *
+ * @param {string} id The participant id.
+ */
+JitsiConference.prototype.lobbyApproveAccess = function(id) {
+    if (this.room) {
+        this.room.getLobby().approveAccess(id);
+    }
 };
 
 /**

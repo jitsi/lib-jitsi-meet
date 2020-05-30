@@ -50,9 +50,9 @@
     "karma-jasmine": "3.1.1",
     "karma-webpack": "4.0.2",
     "string-replace-loader": "2.1.1",
-    "webpack": "4.26.1",
+    "webpack": "4.43.0",
     "webpack-bundle-analyzer": "3.4.1",
-    "webpack-cli": "3.1.2"
+    "webpack-cli": "3.3.11"
   },
   "scripts": {
     "lint": "eslint . && flow",
