@@ -1,6 +1,6 @@
 # Security
 
-## Reporting security issuess
+## Reporting security issues
 
 We take security very seriously and develop all Jitsi projects to be secure and safe.
 
