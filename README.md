@@ -21,3 +21,5 @@ and to run unit tests:
 npm test
 ```
 Both linting and units will also be done by a pre-commit hook.
+
+DUMMY one
