@@ -1606,6 +1606,9 @@ TraceablePeerConnection.prototype.isMediaStreamInPc = function(mediaStream) {
  *       The same applies to addTrack.
  */
 TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
+    if (browser.usesUnifiedPlan()) {
+        return this.tpcUtils.removeTrack(localTrack);
+    }
     const webRtcStream = localTrack.getOriginalStream();
 
     this.trace(

@@ -628,6 +628,8 @@ export default class XMPP extends Listenable {
             jvb: { iceServers: [ ] },
             p2p: { iceServers: [ ] }
         };
+        console.log("hasevr _initStrophePlugins")
+        console.dir(this.options)
 
         const p2pStunServers = (this.options.p2p
             && this.options.p2p.stunServers) || DEFAULT_STUN_SERVERS;

@@ -257,14 +257,10 @@ export class TPCUtils {
         // If the client starts with audio/video muted setting, the transceiver direction
         // will be set to 'recvonly'. Use addStream here so that a MSID is generated for the stream.
         if (transceiver.direction === 'recvonly') {
-            const stream = localTrack.getOriginalStream();
-
-            if (stream) {
-                this.pc.peerconnection.addStream(localTrack.getOriginalStream());
-                this.setEncodings(localTrack);
-                this.pc.localTracks.set(localTrack.rtcId, localTrack);
-                transceiver.direction = 'sendrecv';
-            }
+            this.pc.peerconnection.addStream(localTrack.getOriginalStream());
+            this.setEncodings(localTrack);
+            this.pc.localTracks.set(localTrack.rtcId, localTrack);
+            transceiver.direction = 'sendrecv';
 
             return Promise.resolve(false);
         }
