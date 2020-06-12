@@ -109,6 +109,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             // resolutions so we do not store it, to avoid wrong reporting of
             // local track resolution.
             this.resolution = browser.isFirefox() ? null : resolution;
+            this._constraints = null;
         }
 
         this.deviceId = deviceId;
@@ -198,6 +199,15 @@ export default class JitsiLocalTrack extends JitsiTrack {
         RTCUtils.addListener(RTCEvents.DEVICE_LIST_WILL_CHANGE, this._onDeviceListWillChange);
 
         this._initNoDataFromSourceHandlers();
+    }
+
+    /**
+     * Returns the original constraints used for creating the track.
+     *
+     * @returns {Object}
+     */
+    getOriginalConstraints() {
+        return this._constraints;
     }
 
     /**
