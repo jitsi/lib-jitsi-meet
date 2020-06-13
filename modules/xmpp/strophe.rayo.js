@@ -1,7 +1,7 @@
 /* global $ */
 
 import { getLogger } from 'jitsi-meet-logger';
-import { $iq, Strophe } from 'strophe.js';
+import { $iq } from 'strophe.js';
 
 import ConnectionPlugin from './ConnectionPlugin';
 
@@ -12,7 +12,7 @@ const RAYO_XMLNS = 'urn:xmpp:rayo:1';
 /**
  *
  */
-class RayoConnectionPlugin extends ConnectionPlugin {
+export default class RayoConnectionPlugin extends ConnectionPlugin {
     /**
      *
      * @param connection
@@ -124,11 +124,4 @@ class RayoConnectionPlugin extends ConnectionPlugin {
             });
         });
     }
-}
-
-/**
- *
- */
-export default function() {
-    Strophe.addConnectionPlugin('rayo', new RayoConnectionPlugin());
 }

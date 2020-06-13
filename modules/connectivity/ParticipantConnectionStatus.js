@@ -6,6 +6,7 @@ import * as MediaType from '../../service/RTC/MediaType';
 import browser from '../browser';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import Statistics from '../statistics/statistics';
+import { createParticipantConnectionStatusEvent } from '../../service/statistics/AnalyticsEvents';
 
 const logger = getLogger(__filename);
 
@@ -23,7 +24,7 @@ const DEFAULT_NOT_IN_LAST_N_TIMEOUT = 500;
  *
  * @type {number}
  */
-const DEFAULT_RTC_MUTE_TIMEOUT = 2000;
+const DEFAULT_RTC_MUTE_TIMEOUT = 10000;
 
 /**
  * The time to wait a track to be restored. Track which was out of lastN
@@ -33,7 +34,7 @@ const DEFAULT_RTC_MUTE_TIMEOUT = 2000;
  * interrupted.
  * @type {number}
  */
-const DEFAULT_RESTORING_TIMEOUT = 5000;
+const DEFAULT_RESTORING_TIMEOUT = 10000;
 
 /**
  * Participant connection statuses.
@@ -264,6 +265,14 @@ export default class ParticipantConnectionStatusHandler {
          * @type {Map<string, number>}
          */
         this.restoringTimers = new Map();
+
+        /**
+         * A map that holds the current connection status (along with all the internal events that happen
+         * while in that state).
+         *
+         * The goal is to send this information to the analytics backend for post-mortem analysis.
+         */
+        this.connectionStatusMap = new Map();
     }
 
     /**
@@ -295,6 +304,10 @@ export default class ParticipantConnectionStatusHandler {
         this._onP2PStatus = this.refreshConnectionStatusForAll.bind(this);
         this.conference.on(JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
 
+        // Used to send analytics events for the participant that left the call.
+        this._onUserLeft = this.onUserLeft.bind(this);
+        this.conference.on(JitsiConferenceEvents.USER_LEFT, this._onUserLeft);
+
         // On some browsers MediaStreamTrack trigger "onmute"/"onunmute"
         // events for video type tracks when they stop receiving data which is
         // often a sign that remote user is having connectivity issues
@@ -324,6 +337,10 @@ export default class ParticipantConnectionStatusHandler {
             // signalling mute/unmute events.
             this._onSignallingMuteChanged
                 = this.onSignallingMuteChanged.bind(this);
+
+            // Used to send an analytics event when the video type changes.
+            this._onTrackVideoTypeChanged
+                = this.onTrackVideoTypeChanged.bind(this);
         }
 
         this._onLastNChanged = this._onLastNChanged.bind(this);
@@ -373,11 +390,20 @@ export default class ParticipantConnectionStatusHandler {
         this.conference.off(
             JitsiConferenceEvents.P2P_STATUS, this._onP2PStatus);
 
+        this.conference.off(
+            JitsiConferenceEvents.USER_LEFT, this._onUserLeft);
+
         const participantIds = Object.keys(this.trackTimers);
 
         for (const participantId of participantIds) {
             this.clearTimeout(participantId);
             this.clearRtcMutedTimestamp(participantId);
+        }
+
+        for (const id in this.connectionStatusMap) {
+            if (this.connectionStatusMap.hasOwnProperty(id)) {
+                this.onUserLeft(id);
+            }
         }
 
         // Clear RTC connection status cache
@@ -388,8 +414,8 @@ export default class ParticipantConnectionStatusHandler {
      * Handles RTCEvents.ENDPOINT_CONN_STATUS_CHANGED triggered when we receive
      * notification over the data channel from the bridge about endpoint's
      * connection status update.
-     * @param {string} endpointId the endpoint ID(MUC nickname/resource JID)
-     * @param {boolean} isActive true if the connection is OK or false otherwise
+     * @param {string} endpointId - The endpoint ID(MUC nickname/resource JID).
+     * @param {boolean} isActive - true if the connection is OK or false otherwise.
      */
     onEndpointConnStatusChanged(endpointId, isActive) {
 
@@ -429,6 +455,7 @@ export default class ParticipantConnectionStatusHandler {
                     status: newStatus
                 }));
 
+
             this.conference.eventEmitter.emit(
                 JitsiConferenceEvents.PARTICIPANT_CONN_STATUS_CHANGED,
                 endpointId, newStatus);
@@ -439,8 +466,8 @@ export default class ParticipantConnectionStatusHandler {
      * Reset the postponed "connection interrupted" event which was previously
      * scheduled as a timeout on RTC 'onmute' event.
      *
-     * @param {string} participantId the participant for which the "connection
-     * interrupted" timeout was scheduled
+     * @param {string} participantId - The participant for which the "connection
+     * interrupted" timeout was scheduled.
      */
     clearTimeout(participantId) {
         if (this.trackTimers[participantId]) {
@@ -463,7 +490,7 @@ export default class ParticipantConnectionStatusHandler {
      * Bind signalling mute event listeners for video {JitsiRemoteTrack} when
      * a new one is added to the conference.
      *
-     * @param {JitsiTrack} remoteTrack the {JitsiTrack} which is being added to
+     * @param {JitsiTrack} remoteTrack - The {JitsiTrack} which is being added to
      * the conference.
      */
     onRemoteTrackAdded(remoteTrack) {
@@ -477,6 +504,9 @@ export default class ParticipantConnectionStatusHandler {
             remoteTrack.on(
                 JitsiTrackEvents.TRACK_MUTE_CHANGED,
                 this._onSignallingMuteChanged);
+            remoteTrack.on(
+                JitsiTrackEvents.TRACK_VIDEOTYPE_CHANGED,
+                videoType => this._onTrackVideoTypeChanged(remoteTrack, videoType));
         }
     }
 
@@ -484,7 +514,7 @@ export default class ParticipantConnectionStatusHandler {
      * Removes all event listeners bound to the remote video track and clears
      * any related timeouts.
      *
-     * @param {JitsiRemoteTrack} remoteTrack the remote track which is being
+     * @param {JitsiRemoteTrack} remoteTrack - The remote track which is being
      * removed from the conference.
      */
     onRemoteTrackRemoved(remoteTrack) {
@@ -508,7 +538,7 @@ export default class ParticipantConnectionStatusHandler {
 
     /**
      * Checks if given participant's video is considered frozen.
-     * @param {JitsiParticipant} participant
+     * @param {JitsiParticipant} participant - The participant.
      * @return {boolean} <tt>true</tt> if the video has frozen for given
      * participant or <tt>false</tt> when it's either not considered frozen
      * (yet) or if freeze detection is not supported by the current browser.
@@ -551,8 +581,7 @@ export default class ParticipantConnectionStatusHandler {
      * Figures out (and updates) the current connectivity status for
      * the participant identified by the given id.
      *
-     * @param {string} id the participant's id (MUC nickname or Colibri endpoint
-     * ID).
+     * @param {string} id - The participant's id (MUC nickname or Colibri endpoint ID).
      */
     figureOutConnectionStatus(id) {
         const participant = this.conference.getParticipantById(id);
@@ -562,9 +591,8 @@ export default class ParticipantConnectionStatusHandler {
             // (at the time of writing this code, participant is
             // detached from the conference and TRACK_REMOVED events are
             // fired),
-            // so we don't care, but let's print the warning for
-            // debugging purpose
-            logger.warn(`figure out conn status - no participant for: ${id}`);
+            // so we don't care, but let's print a log message for debugging purposes.
+            logger.debug(`figure out conn status - no participant for: ${id}`);
 
             return;
         }
@@ -614,15 +642,66 @@ export default class ParticipantConnectionStatusHandler {
                 isInLastN} currentStatus => newStatus: ${
                 participant.getConnectionStatus()} => ${newState}`);
 
+        const oldConnectionStatus = this.connectionStatusMap[id] || {};
+
+        // Send an analytics event (guard on either the p2p flag or the connection status has changed
+        // since the last time this code block run).
+        if (!('p2p' in oldConnectionStatus)
+            || !('connectionStatus' in oldConnectionStatus)
+            || oldConnectionStatus.p2p !== inP2PMode
+            || oldConnectionStatus.connectionStatus !== newState) {
+
+            const nowMs = Date.now();
+
+            this.maybeSendParticipantConnectionStatusEvent(id, nowMs);
+
+            this.connectionStatusMap[id] = {
+                ...oldConnectionStatus,
+                connectionStatus: newState,
+                p2p: inP2PMode,
+                startedMs: nowMs
+            };
+
+            // sometimes (always?) we're late to hook the TRACK_VIDEOTYPE_CHANGED event and the
+            // video type is not in oldConnectionStatus.
+            if (!('videoType' in this.connectionStatusMap[id])) {
+                const videoTracks = participant.getTracksByMediaType(MediaType.VIDEO);
+
+                if (Array.isArray(videoTracks) && videoTracks.length !== 0) {
+                    this.connectionStatusMap[id].videoType = videoTracks[0].videoType;
+                }
+            }
+        }
         this._changeConnectionStatus(participant, newState);
+    }
+
+    /**
+     * Computes the duration of the current connection status for the participant with the specified id (i.e. 15 seconds
+     * in the INTERRUPTED state) and sends a participant connection status event.
+     * @param {string} id - The jid of the participant.
+     * @param {Number} nowMs - The current time (in millis).
+     * @returns {void}
+     */
+    maybeSendParticipantConnectionStatusEvent(id, nowMs) {
+        const participantConnectionStatus = this.connectionStatusMap[id];
+
+        if (participantConnectionStatus
+            && 'startedMs' in participantConnectionStatus
+            && 'videoType' in participantConnectionStatus
+            && 'connectionStatus' in participantConnectionStatus
+            && 'p2p' in participantConnectionStatus) {
+            participantConnectionStatus.value = nowMs - participantConnectionStatus.startedMs;
+            Statistics.sendAnalytics(
+                createParticipantConnectionStatusEvent(participantConnectionStatus));
+        }
     }
 
     /**
      * On change in Last N set check all leaving and entering participants to
      * change their corresponding statuses.
      *
-     * @param {Array<string>} leavingLastN array of ids leaving lastN.
-     * @param {Array<string>} enteringLastN array of ids entering lastN.
+     * @param {Array<string>} leavingLastN - The array of ids leaving lastN.
+     * @param {Array<string>} enteringLastN - The array of ids entering lastN.
      * @private
      */
     _onLastNChanged(leavingLastN = [], enteringLastN = []) {
@@ -647,7 +726,7 @@ export default class ParticipantConnectionStatusHandler {
      * Clears the restoring timer for participant's video track and the
      * timestamp for entering lastN.
      *
-     * @param {string} participantId the id of the conference participant which
+     * @param {string} participantId - The id of the conference participant which
      * is the same as the Colibri endpoint ID of the video channel allocated for
      * the user on the videobridge.
      */
@@ -666,7 +745,7 @@ export default class ParticipantConnectionStatusHandler {
      * timedout and there is no timer added, add new timer in order to give it
      * more time to become active or mark it as interrupted on next check.
      *
-     * @param {string} participantId the id of the conference participant which
+     * @param {string} participantId - The id of the conference participant which
      * is the same as the Colibri endpoint ID of the video channel allocated for
      * the user on the videobridge.
      * @returns {boolean} <tt>true</tt> if the track was in restoring state
@@ -699,9 +778,19 @@ export default class ParticipantConnectionStatusHandler {
     }
 
     /**
+     * Sends a last/final participant connection status event for the participant that left the conference.
+     * @param {string} id - The id of the participant that left the conference.
+     * @returns {void}
+     */
+    onUserLeft(id) {
+        this.maybeSendParticipantConnectionStatusEvent(id, Date.now());
+        delete this.connectionStatusMap[id];
+    }
+
+    /**
      * Handles RTC 'onmute' event for the video track.
      *
-     * @param {JitsiRemoteTrack} track the video track for which 'onmute' event
+     * @param {JitsiRemoteTrack} track - The video track for which 'onmute' event
      * will be processed.
      */
     onTrackRtcMuted(track) {
@@ -737,7 +826,7 @@ export default class ParticipantConnectionStatusHandler {
     /**
      * Handles RTC 'onunmute' event for the video track.
      *
-     * @param {JitsiRemoteTrack} track the video track for which 'onunmute'
+     * @param {JitsiRemoteTrack} track - The video track for which 'onunmute'
      * event will be processed.
      */
     onTrackRtcUnmuted(track) {
@@ -755,7 +844,7 @@ export default class ParticipantConnectionStatusHandler {
     /**
      * Here the signalling "mute"/"unmute" events are processed.
      *
-     * @param {JitsiRemoteTrack} track the remote video track for which
+     * @param {JitsiRemoteTrack} track - The remote video track for which
      * the signalling mute/unmute event will be processed.
      */
     onSignallingMuteChanged(track) {
@@ -766,5 +855,25 @@ export default class ParticipantConnectionStatusHandler {
             track.isMuted());
 
         this.figureOutConnectionStatus(participantId);
+    }
+
+    /**
+     * Sends a participant connection status event as a result of the video type
+     * changing.
+     * @param {JitsiRemoteTrack} track - The track.
+     * @param {VideoType} type - The video type.
+     * @returns {void}
+     */
+    onTrackVideoTypeChanged(track, type) {
+        const id = track.getParticipantId();
+        const nowMs = Date.now();
+
+        this.maybeSendParticipantConnectionStatusEvent(id, nowMs);
+
+        this.connectionStatusMap[id] = {
+            ...this.connectionStatusMap[id] || {},
+            videoType: type,
+            startedMs: nowMs
+        };
     }
 }

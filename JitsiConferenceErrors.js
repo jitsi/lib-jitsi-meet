@@ -34,6 +34,18 @@ export const CONNECTION_ERROR = 'conference.connectionError';
 export const NOT_ALLOWED_ERROR = 'conference.connectionError.notAllowed';
 
 /**
+ * Indicates that a connection error is due to not allowed,
+ * occurred when trying to join a conference, only approved members are allowed to join.
+ */
+export const MEMBERS_ONLY_ERROR = 'conference.connectionError.membersOnly';
+
+/**
+ * Indicates that a connection error is due to denied access to the room,
+ * occurred after joining a lobby room and access is denied by the room moderators.
+ */
+export const CONFERENCE_ACCESS_DENIED = 'conference.connectionError.accessDenied';
+
+/**
  * Indicates that focus error happened.
  */
 export const FOCUS_DISCONNECTED = 'conference.focusDisconnected';
@@ -49,6 +61,11 @@ export const FOCUS_LEFT = 'conference.focusLeft';
 export const GRACEFUL_SHUTDOWN = 'conference.gracefulShutdown';
 
 /**
+ * Indicates that the media connection has failed.
+ */
+export const ICE_FAILED = 'conference.iceFailed';
+
+/**
  * Indicates that the versions of the server side components are incompatible
  * with the client side.
  */
@@ -56,9 +73,9 @@ export const INCOMPATIBLE_SERVER_VERSIONS
     = 'conference.incompatible_server_versions';
 
 /**
- * Indicates that jingle fatal error happened.
+ * Indicates that offer/answer had failed.
  */
-export const JINGLE_FATAL_ERROR = 'conference.jingleFatalError';
+export const OFFER_ANSWER_FAILED = 'conference.offerAnswerFailed';
 
 /**
  * Indicates that password cannot be set for this conference.
@@ -74,11 +91,6 @@ export const PASSWORD_REQUIRED = 'conference.passwordRequired';
  * Indicates that reservation system returned error.
  */
 export const RESERVATION_ERROR = 'conference.reservationError';
-
-/**
- * Indicates that the conference setup failed.
- */
-export const SETUP_FAILED = 'conference.setup_failed';
 
 /**
  * Indicates that there is no available videobridge.

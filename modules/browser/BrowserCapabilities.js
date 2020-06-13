@@ -30,12 +30,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * strategy or <tt>false</tt> otherwise.
      */
     doesVideoMuteByStreamRemove() {
-        return !(
-            this.isFirefox()
-            || this.isEdge()
-            || this.isReactNative()
-            || this.isSafariWithWebrtc()
-        );
+        return this.isChromiumBased() || this.isSafari();
     }
 
     /**
@@ -44,7 +39,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * otherwise.
      */
     supportsP2P() {
-        return !this.isEdge() && !this.isFirefox();
+        return !this.usesUnifiedPlan();
     }
 
     /**
@@ -67,27 +62,25 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Checks if current browser is a Safari and a version of Safari that
-     * supports native webrtc.
-     *
-     * @returns {boolean}
-     */
-    isSafariWithWebrtc() {
-        return this.isSafari()
-            && !this.isVersionLessThan('11');
-    }
-
-    /**
      * Checks if the current browser is supported.
      *
      * @returns {boolean} true if the browser is supported, false otherwise.
      */
     isSupported() {
         return this.isChromiumBased()
-            || this.isEdge()
             || this.isFirefox()
             || this.isReactNative()
-            || this.isSafariWithWebrtc();
+            || (this.isSafari() && !this.isVersionLessThan('12.1'));
+    }
+
+    /**
+     * Returns whether or not the current environment needs a user interaction
+     * with the page before any unmute can occur.
+     *
+     * @returns {boolean}
+     */
+    isUserInteractionRequiredForUnmute() {
+        return (this.isFirefox() && this.isVersionLessThan('68')) || this.isSafari();
     }
 
     /**
@@ -97,7 +90,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * otherwise.
      */
     supportsVideoMuteOnConnInterrupted() {
-        return this.isChromiumBased() || this.isReactNative();
+        return this.isChromiumBased() || this.isReactNative() || this.isSafari();
     }
 
     /**
@@ -108,17 +101,7 @@ export default class BrowserCapabilities extends BrowserDetection {
     supportsBandwidthStatistics() {
         // FIXME bandwidth stats are currently not implemented for FF on our
         // side, but not sure if not possible ?
-        return !this.isFirefox() && !this.isEdge()
-            && !this.isSafariWithWebrtc();
-    }
-
-    /**
-     * Checks if the current browser supports WebRTC datachannels.
-     * @return {boolean}
-     */
-    supportsDataChannels() {
-        // NOTE: Edge does not yet implement DataChannel.
-        return !this.isEdge();
+        return !this.isFirefox() && !this.isSafari();
     }
 
     /**
@@ -132,36 +115,11 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Checks if the current browser supports the MediaStream constructor as
-     * defined by https://www.w3.org/TR/mediacapture-streams/#constructors. In
-     * cases where there is no support, it maybe be necessary to get audio
-     * and video in two distinct GUM calls.
-     * @return {boolean}
-     */
-    supportsMediaStreamConstructor() {
-        return !this.isReactNative();
-    }
-
-    /**
-     * Checks if the current browser supports RTP statictics collecting.
-     * Required by {@link RTPStatsCollector}.
-     *
-     * @returns {boolean} true if they are supported, false otherwise.
-     */
-    supportsRtpStatistics() {
-        return this.isChromiumBased()
-            || this.isEdge()
-            || this.isFirefox()
-            || this.isReactNative()
-            || this.isSafariWithWebrtc();
-    }
-
-    /**
      * Checks if the current browser supports RTT statistics for srflx local
      * candidates through the legacy getStats() API.
      */
     supportsLocalCandidateRttStatistics() {
-        return this.isChromiumBased() || this.isReactNative();
+        return this.isChromiumBased() || this.isReactNative() || this.isSafari();
     }
 
     /**
@@ -178,7 +136,7 @@ export default class BrowserCapabilities extends BrowserDetection {
         // (is reported as 1):
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1241066
         // For Chrome and others we rely on 'googRtt'.
-        return !this.isFirefox() && !this.isEdge();
+        return !this.isFirefox();
     }
 
     /**
@@ -187,25 +145,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsRtpSender() {
-        return this.isFirefox();
-    }
-
-    /**
-     * Checks whether the browser supports RTX.
-     *
-     * @returns {boolean}
-     */
-    supportsRtx() {
-        return !this.isFirefox();
-    }
-
-    /**
-     * Whether jitsi-meet supports simulcast on the current browser.
-     * @returns {boolean}
-     */
-    supportsSimulcast() {
-        return this.isChromiumBased()
-            || this.isFirefox() || this.isReactNative();
+        return this.isFirefox() || this.isSafari();
     }
 
     /**
@@ -215,12 +155,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsVideo() {
-        // FIXME: Check if we can use supportsVideoOut and supportsVideoIn. I
-        // leave the old implementation here in order not to brake something.
-
-        // Currently Safari using webrtc/adapter does not support video due in
-        // part to Safari only supporting H264 and the bridge sending VP8.
-        return !this.isSafariWithWebrtc();
+        return true;
     }
 
     /**
@@ -233,12 +168,33 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the browser uses SDP munging for turning on simulcast.
+     *
+     * @returns {boolean}
+     */
+    usesSdpMungingForSimulcast() {
+        return this.isChromiumBased() || this.isReactNative() || this.isSafari();
+    }
+
+    /**
      * Checks if the browser uses unified plan.
      *
      * @returns {boolean}
      */
     usesUnifiedPlan() {
-        return this.isFirefox();
+        if (this.isFirefox()) {
+            return true;
+        }
+
+        if (this.isSafari() && typeof window.RTCRtpTransceiver !== 'undefined') {
+            // eslint-disable-next-line max-len
+            // https://trac.webkit.org/changeset/236144/webkit/trunk/LayoutTests/webrtc/video-addLegacyTransceiver.html
+            // eslint-disable-next-line no-undef
+            return Object.keys(RTCRtpTransceiver.prototype)
+                   .indexOf('currentDirection') > -1;
+        }
+
+        return false;
     }
 
     /**
@@ -256,7 +212,7 @@ export default class BrowserCapabilities extends BrowserDetection {
             return !this.isVersionLessThan(REQUIRED_CHROME_VERSION);
         }
 
-        if (this.isFirefox() || this.isSafariWithWebrtc()) {
+        if (this.isFirefox() || this.isSafari()) {
             return true;
         }
 
@@ -274,16 +230,36 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     usesAdapter() {
-        return this.usesNewGumFlow() || this.isEdge();
+        return this.usesNewGumFlow();
     }
 
     /**
-     * Checks if the browser supposrts getDisplayMedia.
-     * @returns {boolean} {@code true} if the browser supposrts getDisplayMedia.
+     * Checks if the browser uses RIDs/MIDs for siganling the simulcast streams
+     * to the bridge instead of the ssrcs.
+     */
+    usesRidsForSimulcast() {
+        return false;
+    }
+
+    /**
+     * Checks if the browser supports getDisplayMedia.
+     * @returns {boolean} {@code true} if the browser supports getDisplayMedia.
      */
     supportsGetDisplayMedia() {
         return typeof navigator.getDisplayMedia !== 'undefined'
-            || typeof navigator.mediaDevices.getDisplayMedia !== 'undefined';
+            || (typeof navigator.mediaDevices !== 'undefined'
+                && typeof navigator.mediaDevices.getDisplayMedia
+                    !== 'undefined');
+    }
+
+    /**
+     * Checks if the browser supports insertable streams, needed for E2EE.
+     * @returns {boolean} {@code true} if the browser supports insertable streams.
+     */
+    supportsInsertableStreams() {
+        return Boolean(typeof window.RTCRtpSender !== 'undefined'
+            && (window.RTCRtpSender.prototype.createEncodedStreams
+                || window.RTCRtpSender.prototype.createEncodedVideoStreams));
     }
 
     /**

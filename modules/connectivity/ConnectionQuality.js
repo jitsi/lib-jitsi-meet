@@ -212,8 +212,8 @@ export default class ConnectionQuality {
         this._timeLastBwCapRemoved = -1;
 
         // We assume a global startBitrate value for the sake of simplicity.
-        if (options.startBitrate && options.startBitrate > 0) {
-            startBitrate = options.startBitrate;
+        if (options.config.startBitrate && options.config.startBitrate > 0) {
+            startBitrate = options.config.startBitrate;
         }
 
         // TODO: consider ignoring these events and letting the user of
@@ -453,7 +453,8 @@ export default class ConnectionQuality {
             packetLoss: this._localStats.packetLoss,
             connectionQuality: this._localStats.connectionQuality,
             jvbRTT: this._localStats.jvbRTT,
-            serverRegion: this._localStats.serverRegion
+            serverRegion: this._localStats.serverRegion,
+            avgAudioLevels: this._localStats.localAvgAudioLevels
         };
 
         try {
@@ -543,7 +544,8 @@ export default class ConnectionQuality {
             packetLoss: data.packetLoss,
             connectionQuality: data.connectionQuality,
             jvbRTT: data.jvbRTT,
-            serverRegion: data.serverRegion
+            serverRegion: data.serverRegion,
+            avgAudioLevels: data.avgAudioLevels
         };
 
         this.eventEmitter.emit(

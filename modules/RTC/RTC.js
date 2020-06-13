@@ -6,8 +6,6 @@ import BridgeChannel from './BridgeChannel';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import JitsiLocalTrack from './JitsiLocalTrack';
-import JitsiTrackError from '../../JitsiTrackError';
-import * as JitsiTrackErrors from '../../JitsiTrackErrors';
 import Listenable from '../util/Listenable';
 import { safeCounterIncrement } from '../util/MathUtil';
 import * as MediaType from '../../service/RTC/MediaType';
@@ -53,7 +51,8 @@ function createLocalTracks(tracksInfo, options) {
             ...trackInfo,
             deviceId,
             facingMode: options.facingMode,
-            rtcId: rtcTrackIdCounter
+            rtcId: rtcTrackIdCounter,
+            effects: options.effects
         });
 
         newTracks.push(localTrack);
@@ -73,7 +72,8 @@ function createLocalTracks(tracksInfo, options) {
  *     track: MediaTrack within the MediaStream,
  *     videoType: "camera" or "desktop" or falsy,
  *     sourceId: ID of the desktopsharing source,
- *     sourceType: The desktopsharing source type
+ *     sourceType: The desktopsharing source type,
+ *     effects: Array of effect types
  * }}
  */
 function _newCreateLocalTracks(mediaStreamMetaData = []) {
@@ -83,7 +83,8 @@ function _newCreateLocalTracks(mediaStreamMetaData = []) {
             sourceType,
             stream,
             track,
-            videoType
+            videoType,
+            effects
         } = metaData;
 
         const { deviceId, facingMode } = track.getSettings();
@@ -102,7 +103,8 @@ function _newCreateLocalTracks(mediaStreamMetaData = []) {
             sourceType,
             stream,
             track,
-            videoType: videoType || null
+            videoType: videoType || null,
+            effects
         });
     });
 }
@@ -189,16 +191,51 @@ export default class RTC extends Listenable {
         // The last N change listener.
         this._lastNChangeListener = this._onLastNChanged.bind(this);
 
+        this._onDeviceListChanged = this._onDeviceListChanged.bind(this);
+        this._updateAudioOutputForAudioTracks
+            = this._updateAudioOutputForAudioTracks.bind(this);
+
         // Switch audio output device on all remote audio tracks. Local audio
         // tracks handle this event by themselves.
         if (RTCUtils.isDeviceChangeAvailable('output')) {
-            RTCUtils.addListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
-                deviceId => this._updateAudioOutputForAudioTracks(deviceId));
+            RTCUtils.addListener(
+                RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
+                this._updateAudioOutputForAudioTracks
+            );
 
             RTCUtils.addListener(
                 RTCEvents.DEVICE_LIST_CHANGED,
-                () => this._updateAudioOutputForAudioTracks(
-                    RTCUtils.getAudioOutputDevice()));
+                this._onDeviceListChanged
+            );
+        }
+    }
+
+    /**
+     * Removes any listeners and stored state from this {@code RTC} instance.
+     *
+     * @returns {void}
+     */
+    destroy() {
+        RTCUtils.removeListener(
+            RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
+            this._updateAudioOutputForAudioTracks
+        );
+
+        RTCUtils.removeListener(
+            RTCEvents.DEVICE_LIST_CHANGED,
+            this._onDeviceListChanged
+        );
+
+        this.removeListener(
+            RTCEvents.LASTN_ENDPOINT_CHANGED,
+            this._lastNChangeListener
+        );
+
+        if (this._channelOpenListener) {
+            this.removeListener(
+                RTCEvents.DATA_CHANNEL_OPEN,
+                this._channelOpenListener
+            );
         }
     }
 
@@ -228,18 +265,13 @@ export default class RTC extends Listenable {
             ? RTCUtils.newObtainAudioAndVideoPermissions(options)
             : RTCUtils.obtainAudioAndVideoPermissions(options);
 
-        return obtainMediaPromise.then(
-            tracksInfo => {
-                const tracks = usesNewGumFlow
-                    ? _newCreateLocalTracks(tracksInfo)
-                    : createLocalTracks(tracksInfo, options);
+        return obtainMediaPromise.then(tracksInfo => {
+            if (usesNewGumFlow) {
+                return _newCreateLocalTracks(tracksInfo);
+            }
 
-                return tracks.some(track => !track._isReceivingData())
-                    ? Promise.reject(
-                        new JitsiTrackError(
-                            JitsiTrackErrors.NO_DATA_FROM_SOURCE))
-                    : tracks;
-            });
+            return createLocalTracks(tracksInfo, options);
+        });
     }
 
     /**
@@ -300,6 +332,18 @@ export default class RTC extends Listenable {
         // Add Last N change listener.
         this.addListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
             this._lastNChangeListener);
+    }
+
+    /**
+     * Callback invoked when the list of known audio and video devices has
+     * been updated. Attempts to update the known available audio output
+     * devices.
+     *
+     * @private
+     * @returns {void}
+     */
+    _onDeviceListChanged() {
+        this._updateAudioOutputForAudioTracks(RTCUtils.getAudioOutputDevice());
     }
 
     /**
@@ -447,6 +491,7 @@ export default class RTC extends Listenable {
      *      disabled by removing it from the SDP.
      * @param {boolean} options.preferH264 If set to 'true' H264 will be
      *      preferred over other video codecs.
+     * @param {boolean} options.startSilent If set to 'true' no audio will be sent or received.
      * @return {TraceablePeerConnection}
      */
     createPeerConnection(signaling, iceConfig, isP2P, options) {
@@ -460,9 +505,21 @@ export default class RTC extends Listenable {
         }
 
         // FIXME: We should rename iceConfig to pcConfig.
+
+        if (browser.supportsInsertableStreams()) {
+            logger.debug('E2EE - setting insertable streams constraints');
+            iceConfig.forceEncodedAudioInsertableStreams = true;
+            iceConfig.forceEncodedVideoInsertableStreams = true;
+        }
+
         if (browser.supportsSdpSemantics()) {
             iceConfig.sdpSemantics = 'plan-b';
         }
+
+        // Set the RTCBundlePolicy to max-bundle so that only one set of ice candidates is generated.
+        // The default policy generates separate ice candidates for audio and video connections.
+        // This change is necessary for Unified plan to work properly on Chrome and Safari.
+        iceConfig.bundlePolicy = 'max-bundle';
 
         peerConnectionIdCounter = safeCounterIncrement(peerConnectionIdCounter);
 

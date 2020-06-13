@@ -12,7 +12,7 @@ const logger = getLogger(__filename);
 /**
  * MUC connection plugin.
  */
-class MucConnectionPlugin extends ConnectionPluginListenable {
+export default class MucConnectionPlugin extends ConnectionPluginListenable {
     /**
      *
      * @param xmpp
@@ -91,7 +91,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
         if (!room) {
-            return;
+            return true;
         }
 
         // Parse status.
@@ -114,7 +114,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
         if (!room) {
-            return;
+            return true;
         }
 
         room.onPresenceUnavailable(pres, from);
@@ -131,7 +131,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
         if (!room) {
-            return;
+            return true;
         }
 
         room.onPresenceError(pres, from);
@@ -149,7 +149,7 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
         if (!room) {
-            return;
+            return true;
         }
 
         room.onMessage(msg, from);
@@ -165,22 +165,13 @@ class MucConnectionPlugin extends ConnectionPluginListenable {
         const from = iq.getAttribute('from');
         const room = this.rooms[Strophe.getBareJidFromJid(from)];
 
-        // XXX What are the semantics of the return value? Why is it sometimes
-        // undefined and sometimes a boolean?
+        // Returning false would result in the listener being deregistered by Strophe
         if (!room) {
-            return;
+            return true;
         }
 
         room.onMute(iq);
 
         return true;
     }
-}
-
-/**
- *
- * @param XMPP
- */
-export default function(XMPP) {
-    Strophe.addConnectionPlugin('emuc', new MucConnectionPlugin(XMPP));
 }

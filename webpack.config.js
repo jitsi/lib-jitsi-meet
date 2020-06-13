@@ -1,6 +1,9 @@
 /* global __dirname */
 
 const process = require('process');
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+
+const analyzeBundle = process.argv.indexOf('--analyze-bundle') !== -1;
 
 const minimize
     = process.argv.indexOf('-p') !== -1
@@ -35,7 +38,19 @@ const config = {
 
                         // Tell babel to avoid compiling imports into CommonJS
                         // so that webpack may do tree shaking.
-                        { modules: false }
+                        {
+                            modules: false,
+
+                            // Specify our target browsers so no transpiling is
+                            // done unnecessarily. For browsers not specified
+                            // here, the ES2015+ profile will be used.
+                            targets: {
+                                chrome: 58,
+                                electron: 2,
+                                firefox: 54,
+                                safari: 11
+                            }
+                        }
                     ],
                     '@babel/preset-flow'
                 ],
@@ -61,7 +76,19 @@ const config = {
         filename: `[name]${minimize ? '.min' : ''}.js`,
         path: process.cwd(),
         sourceMapFilename: `[name].${minimize ? 'min' : 'js'}.map`
-    }
+    },
+    performance: {
+        hints: minimize ? 'error' : false,
+        maxAssetSize: 750 * 1024,
+        maxEntrypointSize: 750 * 1024
+    },
+    plugins: [
+        analyzeBundle
+            && new BundleAnalyzerPlugin({
+                analyzerMode: 'disabled',
+                generateStatsFile: true
+            })
+    ].filter(Boolean)
 };
 
 module.exports = [

@@ -23,9 +23,12 @@ export default class Listenable {
      * Adds new listener.
      * @param {String} eventName the name of the event
      * @param {Function} listener the listener.
+     * @returns {Function} - The unsubscribe function.
      */
     addListener(eventName, listener) {
         this.eventEmitter.addListener(eventName, listener);
+
+        return () => this.removeEventListener(eventName, listener);
     }
 
     /**

@@ -1,4 +1,4 @@
-import * as JitsiConferenceEvents from '../JitsiConferenceEvents';
+import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 
 /**
  * The value which we use to say, every sound over this threshold

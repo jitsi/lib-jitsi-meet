@@ -26,6 +26,9 @@ export default class ProxyConnectionService {
      * video should be returned as a desktop stream. Defaults to false.
      * @param {Object} [options.iceConfig] - The {@code RTCConfiguration} to use
      * for the peer connection.
+     * @param {JitsiConnection} [options.jitsiConnection] - The
+     * {@code JitsiConnection} which will be used to fetch TURN credentials for
+     * the P2P connection.
      * @param {Function} options.onRemoteStream - Callback to invoke when a
      * remote video stream has been received and converted to a
      * {@code JitsiLocakTrack}. The {@code JitsiLocakTrack} will be passed in.
@@ -34,12 +37,21 @@ export default class ProxyConnectionService {
      * jid to send the message to and the message
      */
     constructor(options = {}) {
+        const {
+            jitsiConnection,
+            ...otherOptions
+        } = options;
+
         /**
          * Holds a reference to the collection of all callbacks.
          *
          * @type {Object}
          */
-        this._options = options;
+        this._options = {
+            iceConfig: jitsiConnection
+                && jitsiConnection.xmpp.connection.jingle.p2pIceConfig,
+            ...otherOptions
+        };
 
         /**
          * The active instance of {@code ProxyConnectionService}.
@@ -270,6 +282,7 @@ export default class ProxyConnectionService {
                     deviceId:
                         `proxy:${this._peerConnection.getPeerJid()}`,
                     mediaType: isVideo ? MediaType.VIDEO : MediaType.AUDIO,
+                    sourceType: 'proxy',
                     stream: mediaStream,
                     track: mediaStream.getVideoTracks()[0],
                     videoType

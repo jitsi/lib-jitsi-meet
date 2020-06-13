@@ -165,10 +165,17 @@ export default class ProxyConnectionPC {
          * @type {Object}
          */
         const connectionStub = {
+            // At the time this is used for Spot and it's okay to say the connection is always connected, because if
+            // spot has no signalling it will not be in a meeting where this is used.
+            connected: true,
             jingle: {
                 terminate: () => { /** no-op */ }
             },
-            sendIQ: this._onSendMessage
+            sendIQ: this._onSendMessage,
+
+            // Returns empty function, because it does not add any listeners for real
+            // eslint-disable-next-line no-empty-function
+            addEventListener: () => () => { }
         };
 
         /**
@@ -180,11 +187,8 @@ export default class ProxyConnectionPC {
          * @type {Object}
          */
         const iceConfigStub = {
-            jvb: { iceServers: [] },
-            p2p: {
-                iceServers: DEFAULT_STUN_SERVERS,
-                ...this._options.iceConfig
-            }
+            iceServers: DEFAULT_STUN_SERVERS,
+            ...this._options.iceConfig
         };
 
         /**
@@ -209,8 +213,8 @@ export default class ProxyConnectionPC {
         };
 
         /**
-         * {@code JingleSessionPC} expects an instance of
-         * {@code JitsiConference} to be passed in. {@code ProxyConnectionPC}
+         * {@link JingleSessionPC} expects an instance of
+         * {@link ChatRoom} to be passed in. {@link ProxyConnectionPC}
          * is instantiated outside of the {@code JitsiConference}, so it must be
          * stubbed to prevent errors.
          *
@@ -229,19 +233,37 @@ export default class ProxyConnectionPC {
         };
 
         /**
+         * A {@code JitsiConference} stub passed to the {@link RTC} module.
+         * @type {Object}
+         */
+        const conferenceStub = {
+            // FIXME: remove once the temporary code below is gone from
+            //  TraceablePeerConnection.
+            // TraceablePeerConnection:359
+            //  this.rtc.conference.on(
+            //         TRACK_ADDED,
+            //         maybeSetSenderVideoConstraints);
+            //     this.rtc.conference.on(
+            //         TRACK_MUTE_CHANGED,
+            //         maybeSetSenderVideoConstraints);
+            // eslint-disable-next-line no-empty-function
+            on: () => {}
+        };
+
+        /**
          * Create an instance of {@code RTC} as it is required for peer
          * connection creation by {@code JingleSessionPC}. An existing instance
          * of {@code RTC} from elsewhere should not be re-used because it is
          * a stateful grouping of utilities.
          */
-        const rtc = new RTC(this, {});
+        this._rtc = new RTC(conferenceStub, {});
 
         /**
          * Add the remote track listener here as {@code JingleSessionPC} has
          * {@code TraceablePeerConnection} which uses {@code RTC}'s event
          * emitter.
          */
-        rtc.addListener(
+        this._rtc.addListener(
             RTCEvents.REMOTE_TRACK_ADDED,
             this._onRemoteStream
         );
@@ -264,7 +286,7 @@ export default class ProxyConnectionPC {
          * An additional initialize call is necessary to properly set instance
          * variable for calling.
          */
-        peerConnection.initialize(roomStub, rtc, configStub);
+        peerConnection.initialize(roomStub, this._rtc, configStub);
 
         return peerConnection;
     }
@@ -367,11 +389,18 @@ export default class ProxyConnectionPC {
         this._tracks.forEach(track => track.dispose());
         this._tracks = [];
 
-        if (!this._peerConnection) {
-            return;
+        if (this._peerConnection) {
+            this._peerConnection.onTerminated();
         }
 
-        this._peerConnection.onTerminated();
+        if (this._rtc) {
+            this._rtc.removeListener(
+                RTCEvents.REMOTE_TRACK_ADDED,
+                this._onRemoteStream
+            );
+
+            this._rtc.destroy();
+        }
     }
 
     /**

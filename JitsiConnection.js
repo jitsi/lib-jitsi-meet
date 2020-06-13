@@ -74,13 +74,23 @@ JitsiConnection.prototype.attach = function(options) {
 
 /**
  * Disconnect the client from the server.
+ * @returns {Promise} - Resolves when the disconnect process is finished or rejects with an error.
  */
 JitsiConnection.prototype.disconnect = function(...args) {
     // XXX Forward any arguments passed to JitsiConnection.disconnect to
     // XMPP.disconnect. For example, the caller of JitsiConnection.disconnect
     // may optionally pass the event which triggered the disconnect in order to
     // provide the implementation with finer-grained context.
-    this.xmpp.disconnect(...args);
+    return this.xmpp.disconnect(...args);
+};
+
+/**
+ * Returns the jid of the participant associated with the XMPP connection.
+ *
+ * @returns {string} The jid of the participant.
+ */
+JitsiConnection.prototype.getJid = function() {
+    return this.xmpp.getJid();
 };
 
 /**

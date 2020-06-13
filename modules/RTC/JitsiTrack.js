@@ -109,8 +109,7 @@ export default class JitsiTrack extends EventEmitter {
         }
 
         if (this.stream) {
-            // FIXME Why only video tracks?
-            for (const track of this.stream.getVideoTracks()) {
+            for (const track of this.stream.getTracks()) {
                 track[trackHandler2Prop[type]] = handler;
             }
         }
@@ -209,6 +208,15 @@ export default class JitsiTrack extends EventEmitter {
     }
 
     /**
+     * Check whether this is a local audio track.
+     *
+     * @return {boolean} -  true if track represents a local audio track, false otherwise.
+     */
+    isLocalAudioTrack() {
+        return this.isAudioTrack() && this.isLocal();
+    }
+
+    /**
      * Returns the WebRTC MediaStream instance.
      */
     getOriginalStream() {
@@ -229,6 +237,14 @@ export default class JitsiTrack extends EventEmitter {
      */
     getTrack() {
         return this.track;
+    }
+
+    /**
+     * Return the underlying WebRTC MediaStreamTrack label
+     * @returns {string}
+     */
+    getTrackLabel() {
+        return this.track.label;
     }
 
     /**
@@ -276,6 +292,7 @@ export default class JitsiTrack extends EventEmitter {
      */
     attach(container) {
         if (this.stream) {
+            this._onTrackAttach(container);
             RTCUtils.attachMediaStream(container, this.stream);
         }
         this.containers.push(container);
@@ -296,6 +313,7 @@ export default class JitsiTrack extends EventEmitter {
             const c = cs[i];
 
             if (!container) {
+                this._onTrackDetach(c);
                 RTCUtils.attachMediaStream(c, null);
             }
             if (!container || c === container) {
@@ -304,8 +322,31 @@ export default class JitsiTrack extends EventEmitter {
         }
 
         if (container) {
+            this._onTrackDetach(container);
             RTCUtils.attachMediaStream(container, null);
         }
+    }
+
+    /**
+     * Called when the track has been attached to a new container.
+     *
+     * @param {HTMLElement} container the HTML container which can be 'video' or
+     * 'audio' element.
+     * @private
+     */
+    _onTrackAttach(container) { // eslint-disable-line no-unused-vars
+        // Should be defined by the classes that are extending JitsiTrack
+    }
+
+    /**
+     * Called when the track has been detached from a container.
+     *
+     * @param {HTMLElement} container the HTML container which can be 'video' or
+     * 'audio' element.
+     * @private
+     */
+    _onTrackDetach(container) { // eslint-disable-line no-unused-vars
+        // Should be defined by the classes that are extending JitsiTrack
     }
 
     /**

@@ -9,7 +9,6 @@ const AuthenticationEvents
     = require('../../service/authentication/AuthenticationEvents');
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
-import browser from '../browser';
 import Settings from '../settings/Settings';
 
 /**
@@ -215,7 +214,7 @@ Moderator.prototype.createConferenceIq = function() {
     elem.c(
         'property', {
             name: 'enableLipSync',
-            value: this.options.connection.enableLipSync !== false
+            value: this.options.connection.enableLipSync === true
         }).up();
     if (config.audioPacketDelay !== undefined) {
         elem.c(
@@ -260,10 +259,6 @@ Moderator.prototype.createConferenceIq = function() {
     case 'websocket':
         openSctp = false;
         break;
-    }
-
-    if (openSctp && !browser.supportsDataChannels()) {
-        openSctp = false;
     }
 
     elem.c(

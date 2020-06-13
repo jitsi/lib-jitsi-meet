@@ -103,16 +103,12 @@ function unexpectedErrorHandler(error = {}, done) {
 describe('RTCUtils', () => {
     describe('obtainAudioAndVideoPermissions', () => {
         let getUserMediaSpy, isScreenSupportedSpy, oldMediaStream,
-            oldMediaStreamTrack, oldWebkitMediaStream,
-            supportsMediaConstructorSpy;
+            oldMediaStreamTrack, oldWebkitMediaStream;
 
         beforeEach(() => {
             // FIXME: To get some kind of initial testing working assume a
             // chrome environment so RTCUtils can actually initialize properly.
             spyOn(browser, 'isChrome').and.returnValue(true);
-            supportsMediaConstructorSpy
-                = spyOn(browser, 'supportsMediaStreamConstructor')
-                    .and.returnValue(true);
             spyOn(screenObtainer, '_createObtainStreamMethod')
                 .and.returnValue(() => { /** intentional no op */ });
             isScreenSupportedSpy = spyOn(screenObtainer, 'isSupported')
@@ -245,33 +241,6 @@ describe('RTCUtils', () => {
                     .then(streams => {
                         expect(streams.length).toBe(1);
                         expect(streams[0].videoType).toBe('desktop');
-
-                        done();
-                    })
-                    .catch(error => unexpectedErrorHandler(error, done));
-            });
-        });
-
-        describe('without MediaStream constructor support', () => {
-            it('makes separate getUserMedia calls', done => {
-                supportsMediaConstructorSpy.and.returnValue(false);
-                getUserMediaSpy.and.callFake(successfulGum);
-
-                RTCUtils.obtainAudioAndVideoPermissions({
-                    devices: [ 'audio', 'video' ] })
-                    .then(streams => {
-                        expect(getUserMediaSpy.calls.count()).toBe(2);
-                        expect(streams.length).toBe(2);
-
-                        const audioStream = streams.find(stream =>
-                            stream.mediaType === 'audio');
-
-                        expect(audioStream).toBeTruthy();
-
-                        const videoStream = streams.find(stream =>
-                            stream.mediaType === 'video');
-
-                        expect(videoStream).toBeTruthy();
 
                         done();
                     })

@@ -29,8 +29,6 @@ const XMPPEvents = {
     // The conference properties (as advertised by jicofo) have changed
     CONFERENCE_PROPERTIES_CHANGED: 'xmpp.conference_properties_changed',
 
-    CONFERENCE_SETUP_FAILED: 'xmpp.conference_setup_failed',
-
     /**
      * This event is triggered when the ICE connects for the first time.
      */
@@ -51,6 +49,11 @@ const XMPPEvents = {
     // Designates an event indicating that the media (ICE) connection failed.
     // This should go to the RTC module.
     CONNECTION_ICE_FAILED: 'xmpp.connection.ice.failed',
+
+    /**
+     * Designates an event indicating connection status changes.
+     */
+    CONNECTION_STATUS_CHANGED: 'xmpp.connection.status.changed',
 
     // Designates an event indicating that the display name of a participant
     // has changed.
@@ -82,30 +85,32 @@ const XMPPEvents = {
      */
     ICE_RESTART_SUCCESS: 'rtc.ice_restart_success',
 
-    /* Event fired when XMPP error is returned to any request, it is meant to be
-     * used to report 'signaling' errors to CallStats
-     *
-     * {
-     *   code: {XMPP error code}
-     *   reason: {XMPP error condition}
-     *   source = request.tree()
-     *   session = {JingleSession instance}
-     * }
+    /**
+     * Designates an event indicating that we were kicked from the XMPP MUC.
+     * @param {boolean} isSelfPresence - whether it is for local participant
+     * or another participant.
+     * @param {string} actorJid - the jid of the participant who was initator
+     * of the kick.
+     * @param {?string} participantJid - when it is not a kick for local participant,
+     * this is the jid of the participant which was kicked.
      */
-    JINGLE_ERROR: 'xmpp.jingle_error',
-
-    // Event fired when we have failed to set initial offer
-    JINGLE_FATAL_ERROR: 'xmpp.jingle_fatal_error',
-
-    // Designates an event indicating that we were kicked from the XMPP MUC.
     KICKED: 'xmpp.kicked',
 
     // Designates an event indicating that our role in the XMPP MUC has changed.
     LOCAL_ROLE_CHANGED: 'xmpp.localrole_changed',
 
+    /**
+     * Event fired when the unique meeting id is set.
+     */
+    MEETING_ID_SET: 'xmpp.meeting_id_set',
+
     // Designates an event indicating that an XMPP message in the MUC was
     // received.
     MESSAGE_RECEIVED: 'xmpp.message_received',
+
+    // Designates an event indicating that an invite XMPP message in the MUC was
+    // received.
+    INVITE_MESSAGE_RECEIVED: 'xmpp.invite_message_received',
 
     // Designates an event indicating that a private XMPP message in the MUC was
     // received.
@@ -126,6 +131,18 @@ const XMPPEvents = {
     // Designates an event indicating that a participant left the XMPP MUC.
     MUC_MEMBER_LEFT: 'xmpp.muc_member_left',
 
+    // Designates an event indicating that a participant joined the lobby XMPP MUC.
+    MUC_LOBBY_MEMBER_JOINED: 'xmpp.muc_lobby_member_joined',
+
+    // Designates an event indicating that a participant in the lobby XMPP MUC has been updated
+    MUC_LOBBY_MEMBER_UPDATED: 'xmpp.muc_lobby_member_updated',
+
+    // Designates an event indicating that a participant left the XMPP MUC.
+    MUC_LOBBY_MEMBER_LEFT: 'xmpp.muc_lobby_member_left',
+
+    // Designates an event indicating that a participant was denied access to a conference from the lobby XMPP MUC.
+    MUC_DENIED_ACCESS: 'xmpp.muc_denied access',
+
     // Designates an event indicating that local participant left the muc
     MUC_LEFT: 'xmpp.muc_left',
 
@@ -135,6 +152,9 @@ const XMPPEvents = {
 
     // Designates an event indicating that the MUC has been locked or unlocked.
     MUC_LOCK_CHANGED: 'xmpp.muc_lock_changed',
+
+    // Designates an event indicating that the MUC members only config has changed.
+    MUC_MEMBERS_ONLY_CHANGED: 'xmpp.muc_members_only_changed',
 
     // Designates an event indicating that a participant in the XMPP MUC has
     // advertised that they have audio muted (or unmuted).
@@ -176,10 +196,16 @@ const XMPPEvents = {
     // Designates an event indicating that we received statistics from a
     // participant in the MUC.
     REMOTE_STATS: 'xmpp.remote_stats',
+
+    /**
+     * Indicates that the offer / answer renegotiation has failed.
+     */
+    RENEGOTIATION_FAILED: 'xmpp.renegotiation_failed',
     RESERVATION_ERROR: 'xmpp.room_reservation_error',
     ROOM_CONNECT_ERROR: 'xmpp.room_connect_error',
     ROOM_CONNECT_NOT_ALLOWED_ERROR: 'xmpp.room_connect_error.not_allowed',
     ROOM_JOIN_ERROR: 'xmpp.room_join_error',
+    ROOM_CONNECT_MEMBERS_ONLY_ERROR: 'xmpp.room_connect_error.members_only',
 
     /**
      * Indicates that max users limit has been reached.
@@ -209,6 +235,11 @@ const XMPPEvents = {
      * Event fired when speaker stats update message is received.
      */
     SPEAKER_STATS_RECEIVED: 'xmpp.speaker_stats_received',
+
+    /**
+     * Event fired when conference creation timestamp is received.
+     */
+    CONFERENCE_TIMESTAMP_RECEIVED: 'xmpp.conference_timestamp_received',
 
     // Designates an event indicating that we should join the conference with
     // audio and/or video muted.

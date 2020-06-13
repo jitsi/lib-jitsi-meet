@@ -99,6 +99,13 @@ export const ACTION_JINGLE_TR_SUCCESS
     = 'transport-replace.success';
 
 /**
+ * The "action" value for P2P events which indicates that P2P session initiate message has been rejected by the client
+ * because the mandatory requirements were not met.
+ * @type {string}
+ */
+export const ACTION_P2P_DECLINED = 'decline';
+
+/**
  * The "action" value for P2P events which indicates that a connection was
  * established (TODO: verify/fix the documentation)
  * @type {string}
@@ -207,6 +214,14 @@ export const ICE_ESTABLISHMENT_DURATION_DIFF
 export const ICE_STATE_CHANGED = 'ice.state.changed';
 
 /**
+ * Indicates that no bytes have been sent for the track.
+ *
+ * Properties:
+ *      mediaType: the media type of the local track ('audio' or 'video').
+ */
+export const NO_BYTES_SENT = 'track.no-bytes-sent';
+
+/**
  * Indicates that a track was unmuted (?).
  *
  * Properties:
@@ -248,6 +263,22 @@ export const createConnectionFailedEvent
             }
         };
     };
+
+/**
+ * Creates a conference event.
+ *
+ * @param {string} action - The action of the event.
+ * @param {Object} attributes - The attributes to be added to the event.
+ * @returns {{type: string, source: string, action: string, attributes: object}}
+ */
+export function createConferenceEvent(action, attributes) {
+    return {
+        action,
+        attributes,
+        source: 'conference',
+        type: TYPE_OPERATIONAL
+    };
+}
 
 /**
  * Creates an operational event which indicates that a particular connection
@@ -324,6 +355,23 @@ export const createGetUserMediaEvent = function(action, attributes = {}) {
 };
 
 /**
+ * Creates an event related to remote participant connection status changes.
+ *
+ * @param attributes the attributes to attach to the event.
+ * @returns {{type: string, source: string, name: string}}
+ */
+export const createParticipantConnectionStatusEvent = function(attributes = {}) {
+    const action = 'duration';
+
+    return {
+        type: TYPE_OPERATIONAL,
+        source: 'peer.conn.status',
+        action,
+        attributes
+    };
+};
+
+/**
  * Creates an event for a Jingle-related event.
  * @param action the action of the event
  * @param attributes attributes to add to the event.
@@ -344,9 +392,12 @@ export const createJingleEvent = function(action, attributes = {}) {
  * @param mediaType {String} the media type of the local track ('audio' or
  * 'video').
  */
-export const createNoDataFromSourceEvent = function(mediaType) {
+export const createNoDataFromSourceEvent = function(mediaType, value) {
     return {
-        attributes: { 'media_type': mediaType },
+        attributes: {
+            'media_type': mediaType,
+            value
+        },
         action: 'track.no.data.from.source',
         type: TYPE_OPERATIONAL
     };
@@ -439,6 +490,59 @@ export const createRttByRegionEvent = function(attributes) {
         type: TYPE_OPERATIONAL,
         action: 'rtt.by.region',
         attributes
+    };
+};
+
+/**
+ * Creates an event which contains the local and remote ICE candidate types
+ * for the transport that is currently selected.
+ *
+ * @param attributes
+ * @returns {{type: string, action: string, attributes: *}}
+ */
+export const createTransportStatsEvent = function(attributes) {
+    return {
+        type: TYPE_OPERATIONAL,
+        action: 'transport.stats',
+        attributes
+    };
+};
+
+/**
+ * Creates an event which contains information about the audio output problem (the user id of the affected participant,
+ * the local audio levels and the remote audio levels that triggered the event).
+ *
+ * @param {string} userID - The user id of the affected participant.
+ * @param {*} localAudioLevels - The local audio levels.
+ * @param {*} remoteAudioLevels - The audio levels received from the participant.
+ */
+export function createAudioOutputProblemEvent(userID, localAudioLevels, remoteAudioLevels) {
+    return {
+        type: TYPE_OPERATIONAL,
+        action: 'audio.output.problem',
+        attributes: {
+            userID,
+            localAudioLevels,
+            remoteAudioLevels
+        }
+    };
+}
+
+/**
+ * Creates an event which contains an information related to the bridge channel close event.
+ *
+ * @param {string} code - A code from {@link https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent}
+ * @param {string} reason - A string which describes the reason for closing the bridge channel.
+ * @returns {{type: string, action: string, attributes: { code: string, reason: string }}}
+ */
+export const createBridgeChannelClosedEvent = function(code, reason) {
+    return {
+        type: TYPE_OPERATIONAL,
+        action: 'bridge-channel.error',
+        attributes: {
+            code,
+            reason
+        }
     };
 };
 

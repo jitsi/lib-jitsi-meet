@@ -35,7 +35,7 @@ const PING_TIMESTAMPS_TO_KEEP = 120000 / PING_INTERVAL;
  *
  * Registers "urn:xmpp:ping" namespace under Strophe.NS.PING.
  */
-class PingConnectionPlugin extends ConnectionPlugin {
+export default class PingConnectionPlugin extends ConnectionPlugin {
     /**
      * Contructs new object
      * @param {XMPP} xmpp the xmpp module.
@@ -76,7 +76,8 @@ class PingConnectionPlugin extends ConnectionPlugin {
         });
 
         iq.c('ping', { xmlns: Strophe.NS.PING });
-        this.connection.sendIQ(iq, success, error, timeout);
+        this.connection.sendIQ2(iq, { timeout })
+            .then(success, error);
     }
 
     /* eslint-enable max-params */
@@ -89,14 +90,7 @@ class PingConnectionPlugin extends ConnectionPlugin {
      * @param interval task interval in ms.
      */
     startInterval(remoteJid, interval = PING_INTERVAL) {
-        if (this.intervalId) {
-            const errmsg = 'Ping task scheduled already';
-
-            GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
-            logger.error(errmsg);
-
-            return;
-        }
+        clearInterval(this.intervalId);
         this.intervalId = window.setInterval(() => {
             this.ping(remoteJid, () => {
                 this.failedPings = 0;
@@ -185,12 +179,4 @@ class PingConnectionPlugin extends ConnectionPlugin {
         // make sure we do not return less than 0
         return Math.max(maxInterval, 0);
     }
-}
-
-/**
- *
- * @param xmpp
- */
-export default function(xmpp) {
-    Strophe.addConnectionPlugin('ping', new PingConnectionPlugin(xmpp));
 }

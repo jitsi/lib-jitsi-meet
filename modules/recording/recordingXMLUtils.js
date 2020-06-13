@@ -20,6 +20,7 @@ export default {
 
         return {
             error: jibriStatus.getAttribute('failure_reason'),
+            initiator: jibriStatus.getAttribute('initiator'),
             recordingMode: jibriStatus.getAttribute('recording_mode'),
             sessionID: jibriStatus.getAttribute('session_id'),
             status: jibriStatus.getAttribute('status')

@@ -7,7 +7,6 @@ import LocalStats from './LocalStatsCollector';
 import RTPStats from './RTPStatsCollector';
 
 import browser from '../browser';
-import Settings from '../settings/Settings';
 import ScriptUtil from '../util/ScriptUtil';
 import JitsiTrackError from '../../JitsiTrackError';
 import * as StatisticsEvents from '../../service/statistics/Events';
@@ -63,17 +62,15 @@ function _initCallStatsBackend(options) {
         return;
     }
 
-    const userName = Settings.callStatsUserName;
-
     if (!CallStats.initBackend({
         callStatsID: options.callStatsID,
         callStatsSecret: options.callStatsSecret,
-        userName: options.swapUserNameAndAlias
-            ? options.callStatsAliasName : userName,
-        aliasName: options.swapUserNameAndAlias
-            ? userName : options.callStatsAliasName,
+        userName: options.userName,
+        aliasName: options.aliasName,
         applicationName: options.applicationName,
-        getWiFiStatsMethod: options.getWiFiStatsMethod
+        getWiFiStatsMethod: options.getWiFiStatsMethod,
+        confID: options.confID,
+        siteID: options.siteID
     })) {
         logger.error('CallStats Backend initialization failed bad');
     }
@@ -114,6 +111,9 @@ function formatJitsiTrackErrorForCallStats(error) {
  */
 Statistics.init = function(options) {
     Statistics.audioLevelsEnabled = !options.disableAudioLevels;
+    if (typeof options.pcStatsInterval === 'number') {
+        Statistics.pcStatsInterval = options.pcStatsInterval;
+    }
 
     if (typeof options.audioLevelsInterval === 'number') {
         Statistics.audioLevelsInterval = options.audioLevelsInterval;
@@ -127,17 +127,14 @@ Statistics.init = function(options) {
  * @typedef {Object} StatisticsOptions
  * @property {string} applicationName - The application name to pass to
  * callstats.
- * @property {string} callStatsAliasName - The alias name to use when
- * initializing callstats.
- * @property {string} callStatsConfIDNamespace - A namespace to prepend the
- * callstats conference ID with.
+ * @property {string} aliasName - The alias name to use when initializing callstats.
+ * @property {string} userName - The user name to use when initializing callstats.
+ * @property {string} confID - The callstats conference ID to use.
  * @property {string} callStatsID - Callstats credentials - the id.
  * @property {string} callStatsSecret - Callstats credentials - the secret.
  * @property {string} customScriptUrl - A custom lib url to use when downloading
  * callstats library.
  * @property {string} roomName - The room name we are currently in.
- * @property {boolean} swapUserNameAndAlias - Whether to swap the places of
- * username and alias when initiating callstats.
  */
 /**
  *
@@ -164,14 +161,16 @@ export default function Statistics(xmpp, options) {
             // requests to any third parties.
             && (Statistics.disableThirdPartyRequests !== true);
     if (this.callStatsIntegrationEnabled) {
+        this.callStatsApplicationLogsDisabled
+            = this.options.callStatsApplicationLogsDisabled;
         if (browser.isReactNative()) {
             _initCallStatsBackend(this.options);
         } else {
             loadCallStatsAPI(this.options);
         }
 
-        if (!this.options.callStatsConfIDNamespace) {
-            logger.warn('"callStatsConfIDNamespace" is not defined');
+        if (!this.options.confID) {
+            logger.warn('"confID" is not defined');
         }
     }
 
@@ -187,6 +186,7 @@ export default function Statistics(xmpp, options) {
 }
 Statistics.audioLevelsEnabled = false;
 Statistics.audioLevelsInterval = 200;
+Statistics.pcStatsInterval = 10000;
 Statistics.disableThirdPartyRequests = false;
 Statistics.analytics = analytics;
 
@@ -217,7 +217,7 @@ Statistics.prototype.startRemoteStats = function(peerconnection) {
             = new RTPStats(
                 peerconnection,
                 Statistics.audioLevelsInterval,
-                2000,
+                Statistics.pcStatsInterval,
                 this.eventEmitter);
 
         rtpStats.start(Statistics.audioLevelsEnabled);
@@ -368,7 +368,7 @@ Statistics.prototype.startCallStats = function(tpc, remoteUserID) {
         = new CallStats(
             tpc,
             {
-                confID: this._getCallStatsConfID(),
+                confID: this.options.confID,
                 remoteUserID
             });
 
@@ -391,19 +391,6 @@ Statistics._getAllCallStatsInstances = function() {
     }
 
     return csInstances;
-};
-
-/**
- * Constructs the CallStats conference ID based on the options currently
- * configured in this instance.
- * @return {string}
- * @private
- */
-Statistics.prototype._getCallStatsConfID = function() {
-    // The conference ID is case sensitive!!!
-    return this.options.callStatsConfIDNamespace
-        ? `${this.options.callStatsConfIDNamespace}/${this.options.roomName}`
-        : this.options.roomName;
 };
 
 /**
@@ -665,6 +652,10 @@ Statistics.sendLog = function(m) {
     // unique conference ID rather than selecting the first one.
     // We don't have such use case though, so leaving as is for now.
     for (const stats of Statistics.instances) {
+        if (stats.callStatsApplicationLogsDisabled) {
+            return;
+        }
+
         if (stats.callsStatsInstances.size) {
             globalSubSet.add(stats.callsStatsInstances.values().next().value);
         }
@@ -684,15 +675,20 @@ Statistics.sendLog = function(m) {
  *
  * @param overall an integer between 1 and 5 indicating the user's rating.
  * @param comment the comment from the user.
+ * @returns {Promise} Resolves when callstats feedback has been submitted
+ * successfully.
  */
 Statistics.prototype.sendFeedback = function(overall, comment) {
-    CallStats.sendFeedback(this._getCallStatsConfID(), overall, comment);
+    // Statistics.analytics.sendEvent is currently fire and forget, without
+    // confirmation of successful send.
     Statistics.analytics.sendEvent(
         FEEDBACK,
         {
             rating: overall,
             comment
         });
+
+    return CallStats.sendFeedback(this.options.confID, overall, comment);
 };
 
 Statistics.LOCAL_JID = require('../../service/statistics/constants').LOCAL_JID;

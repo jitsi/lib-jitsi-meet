@@ -6,7 +6,6 @@ import {
 } from '../../service/statistics/AnalyticsEvents';
 import { getLogger } from 'jitsi-meet-logger';
 import browser from '../browser';
-import Settings from '../settings/Settings';
 
 const MAX_CACHE_SIZE = 100;
 
@@ -60,6 +59,15 @@ class AnalyticsAdapter {
      * Creates new AnalyticsAdapter instance.
      */
     constructor() {
+        this.reset();
+    }
+
+    /**
+     * Reset the state to the initial one.
+     *
+     * @returns {void}
+     */
+    reset() {
         /**
          * Whether this AnalyticsAdapter has been disposed of or not. Once this
          * is set to true, the AnalyticsAdapter is disabled and does not accept
@@ -95,7 +103,6 @@ class AnalyticsAdapter {
         this.conferenceName = '';
 
         this.addPermanentProperties({
-            'callstats_name': Settings.callStatsUserName,
             'user_agent': navigator.userAgent,
             'browser_name': browser.getName()
         });
@@ -106,6 +113,15 @@ class AnalyticsAdapter {
      */
     dispose() {
         logger.warn('Disposing of analytics adapter.');
+
+        if (this.analyticsHandlers && this.analyticsHandlers.size > 0) {
+            this.analyticsHandlers.forEach(handler => {
+                if (typeof handler.dispose === 'function') {
+                    handler.dispose();
+                }
+            });
+        }
+
         this.setAnalyticsHandlers([]);
         this.disposed = true;
     }

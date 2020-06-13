@@ -142,7 +142,7 @@ const ScreenObtainer = {
 
             // Legacy Firefox
             return this.obtainScreenOnFirefox;
-        } else if (browser.isEdge() && browser.supportsGetDisplayMedia()) {
+        } else if (browser.isSafari() && browser.supportsGetDisplayMedia()) {
             return this.obtainScreenFromGetDisplayMedia;
         }
 
@@ -191,12 +191,13 @@ const ScreenObtainer = {
                     desktopSharingSources: desktopSharingSources
                         || this.options.desktopSharingChromeSources
                 },
-                (streamId, streamType) =>
+                (streamId, streamType, screenShareAudio = false) =>
                     onGetStreamResponse(
                         {
                             response: {
                                 streamId,
-                                streamType
+                                streamType,
+                                screenShareAudio
                             },
                             gumOptions
                         },
@@ -314,15 +315,20 @@ const ScreenObtainer = {
             getDisplayMedia = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
         }
 
-        getDisplayMedia({ video: true })
+        getDisplayMedia({ video: true,
+            audio: true })
             .then(stream => {
                 let applyConstraintsPromise;
 
                 if (stream
                     && stream.getTracks()
                     && stream.getTracks().length > 0) {
-                    applyConstraintsPromise = stream.getTracks()[0]
-                        .applyConstraints(options.trackOptions);
+                    const videoTrack = stream.getVideoTracks()[0];
+
+                    // Apply video track constraint.
+                    if (videoTrack) {
+                        applyConstraintsPromise = videoTrack.applyConstraints(options.trackOptions);
+                    }
                 } else {
                     applyConstraintsPromise = Promise.resolve();
                 }
@@ -572,6 +578,8 @@ function waitForExtensionAfterInstall(options, waitInterval, retries) {
  * @param {object} options.response
  * @param {string} options.response.streamId - the streamId for the desktop
  * stream.
+ * @param {bool}   options.response.screenShareAudio - Used by electron clients to
+ * enable system audio screen sharing.
  * @param {string} options.response.error - error to be reported.
  * @param {object} options.gumOptions - options passed to GUM.
  * @param {Function} onSuccess - callback for success.
@@ -585,11 +593,12 @@ function onGetStreamResponse(
         },
         onSuccess,
         onFailure) {
-    const { streamId, streamType, error } = options.response || {};
+    const { streamId, streamType, screenShareAudio, error } = options.response || {};
 
     if (streamId) {
         const gumOptions = {
             desktopStream: streamId,
+            screenShareAudio,
             ...options.gumOptions
         };
 

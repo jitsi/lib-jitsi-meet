@@ -32,11 +32,24 @@ In addition to the basic claims used in authentication, the token can also provi
 - 'user' is an object which contains display information for the current user
   - 'id' is a user identifier string.  Intended for use in reporting/analytics
   - 'name' is the display name of the user
+  - 'email' is the email of the user
   - 'avatar' is the URL of the avatar for the user
 - 'callee' is an optional object containing display information when launching a 1-1 video call with a single other participant.  It used to display an overlay to the first user, before the second user joins.
   - 'id' is a user identifier string.  Intended for use in reporting/analytics
   - 'name' is the display name of the 'callee' user
   - 'avatar' is the URL of the avatar of the 'callee'
+
+#### Access token identifiers / context
+To access the data in lib-jitsi-meet you have to enable the prosody module `mod_presence_identity` in your config.
+
+```lua
+VirtualHost "jitmeet.example.com"
+    modules_enabled = { "presence_identity" }
+```
+
+The data is now available as the identity in the JitsiParticipant class. You can access them by e.g. listening to the `USER_JOINED` event.
+
+NOTE: The values in the token shall always be valid values. If you define e.g. the avatar as `null` it will throw an error.
 
 ### Example Token
 #### Headers (using RS256 public key validation)
@@ -113,12 +126,12 @@ Proceed to "Patching Prosody" section to finish configuration.
 
 ### Patching Prosody
 
-JWT token authentication requires prosody-trunk version at least 607.
+JWT token authentication requires prosody-trunk version at least 747.
 
 You can download latest prosody-trunk packages from [here]. Then install it with the following command:
 
 ```
-sudo dpkg -i prosody-trunk_1nightly607-1~trusty_amd64.deb
+sudo dpkg -i prosody-trunk_1nightly747-1~trusty_amd64.deb
 ```
 
 Make sure that */etc/prosody/prosody.cfg.lua* contains the line below at the end to include meet host config. That's because Prosody nightly may come with slightly different default config:

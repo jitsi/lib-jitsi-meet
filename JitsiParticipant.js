@@ -1,10 +1,15 @@
 
 import { Strophe } from 'strophe.js';
 
+import { getLogger } from 'jitsi-meet-logger';
+
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import { ParticipantConnectionStatus }
     from './modules/connectivity/ParticipantConnectionStatus';
+import { ERROR_FEATURE_VERSION_MISMATCH } from './modules/xmpp/Caps';
 import * as MediaType from './service/RTC/MediaType';
+
+const logger = getLogger(__filename);
 
 /**
  * Represents a participant in (i.e. a member of) a conference.
@@ -24,8 +29,9 @@ export default class JitsiParticipant {
      * represent a hidden participant; otherwise, false.
      * @param {string} statsID - optional participant statsID
      * @param {string} status - the initial status if any.
+     * @param {object} identity - the xmpp identity
      */
-    constructor(jid, conference, displayName, hidden, statsID, status) {
+    constructor(jid, conference, displayName, hidden, statsID, status, identity) {
         this._jid = jid;
         this._id = Strophe.getResourceFromJid(jid);
         this._conference = conference;
@@ -38,6 +44,7 @@ export default class JitsiParticipant {
         this._statsID = statsID;
         this._connectionStatus = ParticipantConnectionStatus.ACTIVE;
         this._properties = {};
+        this._identity = identity;
     }
 
     /* eslint-enable max-params */
@@ -234,7 +241,32 @@ export default class JitsiParticipant {
      * @returns {Promise<Set<String>, Error>}
      */
     getFeatures(timeout = 5000) {
-        return this._conference.xmpp.caps.getFeatures(this._jid, timeout);
+        if (this._getFeaturesPromise) {
+            return this._getFeaturesPromise;
+        }
+
+        this._getFeaturesPromise = this._conference.xmpp.caps.getFeatures(this._jid, timeout)
+            .catch(error => {
+                // Retry on feature version mismatch
+                if (error === ERROR_FEATURE_VERSION_MISMATCH) {
+                    return this._conference.xmpp.caps.getFeatures(this._jid, timeout);
+                }
+
+                logger.warn(`Failed to discover features of ${this._jid}`, error);
+
+                return Promise.reject(error);
+            });
+
+        return this._getFeaturesPromise
+            .then(result => {
+                this._getFeaturesPromise = undefined;
+
+                return result;
+            }, error => {
+                this._getFeaturesPromise = undefined;
+
+                throw error;
+            });
     }
 
     /**

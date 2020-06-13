@@ -70,6 +70,11 @@ const RTCEvents = {
     SET_REMOTE_DESCRIPTION_FAILED: 'rtc.set_remote_description_failed',
     AUDIO_OUTPUT_DEVICE_CHANGED: 'rtc.audio_output_device_changed',
     DEVICE_LIST_CHANGED: 'rtc.device_list_changed',
+
+    /**
+     * Indicates that the list with available devices will change.
+     */
+    DEVICE_LIST_WILL_CHANGE: 'rtc.device_list_will_change',
     DEVICE_LIST_AVAILABLE: 'rtc.device_list_available',
 
     /**

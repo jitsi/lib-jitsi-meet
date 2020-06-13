@@ -106,6 +106,8 @@ export default function() {
 
     Strophe.getStatusString = function(status) {
         switch (status) {
+        case Strophe.Status.BINDREQUIRED:
+            return 'BINDREQUIRED';
         case Strophe.Status.ERROR:
             return 'ERROR';
         case Strophe.Status.CONNECTING:

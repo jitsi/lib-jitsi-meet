@@ -17,7 +17,6 @@ import * as MediaType from '../../service/RTC/MediaType';
 import Resolutions from '../../service/RTC/Resolutions';
 import browser from '../browser';
 import RTCEvents from '../../service/RTC/RTCEvents';
-import ortcRTCPeerConnection from './ortc/RTCPeerConnection';
 import screenObtainer from './ScreenObtainer';
 import SDPUtil from '../xmpp/SDPUtil';
 import Statistics from '../statistics/statistics';
@@ -56,7 +55,6 @@ const OLD_GUM_DEFAULT_DEVICES = [ 'audio', 'video' ];
  */
 const DEFAULT_CONSTRAINTS = {
     video: {
-        aspectRatio: 16 / 9,
         height: {
             ideal: 720,
             max: 720,
@@ -163,6 +161,8 @@ function setResolutionConstraints(
  * @param {Object} options.frameRate - used only for dekstop sharing.
  * @param {Object} options.frameRate.min - Minimum fps
  * @param {Object} options.frameRate.max - Maximum fps
+ * @param {bool}   options.screenShareAudio - Used by electron clients to
+ * enable system audio screen sharing.
  */
 function getConstraints(um, options = {}) {
     const constraints = {
@@ -179,7 +179,7 @@ function getConstraints(um, options = {}) {
     // @see https://github.com/jitsi/lib-jitsi-meet/pull/136
     const isNewStyleConstraintsSupported
         = browser.isFirefox()
-            || browser.isEdge()
+            || browser.isSafari()
             || browser.isReactNative();
 
     if (um.indexOf('video') >= 0) {
@@ -309,6 +309,21 @@ function getConstraints(um, options = {}) {
             }),
             optional: []
         };
+
+        // Audio screen sharing for electron only works for screen type devices.
+        // i.e. when the user shares the whole desktop.
+        if (browser.isElectron() && options.screenShareAudio
+            && (options.desktopStream.indexOf('screen') >= 0)) {
+
+            // Provide constraints as described by the electron desktop capturer
+            // documentation here:
+            // https://www.electronjs.org/docs/api/desktop-capturer
+            constraints.audio = { mandatory: {
+                chromeMediaSource: constraints.video.mandatory.chromeMediaSource
+            } };
+
+            delete constraints.video.mandatory.chromeMediaSourceId;
+        }
     }
 
     if (options.bandwidth) {
@@ -383,27 +398,36 @@ function newGetConstraints(um = [], options = {}) {
             constraints.audio = {};
         }
 
-        // NOTE(brian): the new-style ('advanced' instead of 'optional')
-        // doesn't seem to carry through the googXXX constraints
-        // Changing back to 'optional' here (even with video using
-        // the 'advanced' style) allows them to be passed through
-        // but also requires the device id to capture to be set in optional
-        // as sourceId otherwise the constraints are considered malformed.
-        if (!constraints.audio.optional) {
-            constraints.audio.optional = [];
+        // Use the standard audio constraints on non-chromium browsers.
+        if (browser.isFirefox() || browser.isSafari()) {
+            constraints.audio = {
+                deviceId: options.micDeviceId,
+                autoGainControl: !disableAGC && !disableAP,
+                echoCancellation: !disableAEC && !disableAP,
+                noiseSuppression: !disableNS && !disableAP
+            };
+        } else {
+            // NOTE(brian): the new-style ('advanced' instead of 'optional')
+            // doesn't seem to carry through the googXXX constraints
+            // Changing back to 'optional' here (even with video using
+            // the 'advanced' style) allows them to be passed through
+            // but also requires the device id to capture to be set in optional
+            // as sourceId otherwise the constraints are considered malformed.
+            if (!constraints.audio.optional) {
+                constraints.audio.optional = [];
+            }
+            constraints.audio.optional.push(
+                { sourceId: options.micDeviceId },
+                { echoCancellation: !disableAEC && !disableAP },
+                { googEchoCancellation: !disableAEC && !disableAP },
+                { googAutoGainControl: !disableAGC && !disableAP },
+                { googNoiseSuppression: !disableNS && !disableAP },
+                { googHighpassFilter: !disableHPF && !disableAP },
+                { googNoiseSuppression2: !disableNS && !disableAP },
+                { googEchoCancellation2: !disableAEC && !disableAP },
+                { googAutoGainControl2: !disableAGC && !disableAP }
+            );
         }
-
-        constraints.audio.optional.push(
-            { sourceId: options.micDeviceId },
-            { echoCancellation: !disableAEC && !disableAP },
-            { googEchoCancellation: !disableAEC && !disableAP },
-            { googAutoGainControl: !disableAGC && !disableAP },
-            { googNoiseSuppression: !disableNS && !disableAP },
-            { googHighpassFilter: !disableHPF && !disableAP },
-            { googNoiseSuppression2: !disableNS && !disableAP },
-            { googEchoCancellation2: !disableAEC && !disableAP },
-            { googAutoGainControl2: !disableAGC && !disableAP }
-        );
     } else {
         constraints.audio = false;
     }
@@ -494,8 +518,10 @@ function getTrackSSConstraints(options = {}) {
  * @param stream the stream we received from calling getUserMedia.
  */
 function updateGrantedPermissions(um, stream) {
-    const audioTracksReceived = stream && stream.getAudioTracks().length > 0;
-    const videoTracksReceived = stream && stream.getVideoTracks().length > 0;
+    const audioTracksReceived
+        = Boolean(stream) && stream.getAudioTracks().length > 0;
+    const videoTracksReceived
+        = Boolean(stream) && stream.getVideoTracks().length > 0;
     const grantedPermissions = {};
 
     if (um.indexOf('video') !== -1) {
@@ -588,6 +614,9 @@ function onMediaDevicesListChanged(devicesReceived) {
         availableDevices);
 
     sendDeviceListToAnalytics(availableDevices);
+
+    // Used by tracks to update the real device id before the consumer of lib-jitsi-meet receives the new device list.
+    eventEmitter.emit(RTCEvents.DEVICE_LIST_WILL_CHANGE, devicesReceived);
 
     eventEmitter.emit(RTCEvents.DEVICE_LIST_CHANGED, devicesReceived);
 }
@@ -822,30 +851,6 @@ class RTCUtils extends Listenable {
                     return this.audioTracks;
                 };
             }
-        } else if (browser.isEdge()) {
-            this.RTCPeerConnectionType = ortcRTCPeerConnection;
-
-            this.attachMediaStream
-                = wrapAttachMediaStream((element, stream) => {
-                    defaultSetVideoSrc(element, stream);
-                });
-
-            // ORTC does not generate remote MediaStreams so those are
-            // manually created by the ORTC shim. This means that their
-            // id (internally generated) does not match the stream id
-            // signaled into the remote SDP. Therefore, the shim adds a
-            // custom jitsiRemoteId property with the original stream id.
-            this.getStreamID = function(stream) {
-                const id = stream.jitsiRemoteId || stream.id;
-
-                return SDPUtil.filterSpecialChars(id);
-            };
-
-            // Remote MediaStreamTracks generated by ORTC (within a
-            // RTCRtpReceiver) have an internally/random id which does not match
-            // the track id signaled in the remote SDP. The shim adds a custom
-            // jitsi-id property with the original track id.
-            this.getTrackID = track => track.jitsiRemoteId || track.id;
         } else {
             const message = 'Endpoint does not appear to be WebRTC-capable';
 
@@ -904,8 +909,6 @@ class RTCUtils extends Listenable {
      * @params {Object} options - Configuration for setting RTCUtil's instance
      * objects for peer connection constraints.
      * @params {boolean} options.useIPv6 - Set to true if IPv6 should be used.
-     * @params {boolean} options.disableSuspendVideo - Whether or not video
-     * should become suspended if bandwidth estimation becomes low.
      * @params {Object} options.testing - Additional configuration for work in
      * development.
      * @params {Object} options.testing.forceP2PSuspendVideoRatio - True if
@@ -919,7 +922,7 @@ class RTCUtils extends Listenable {
             this.pcConstraints = { optional: [
                 { googHighStartBitrate: 0 },
                 { googPayloadPadding: true },
-                { googScreencastMinBitrate: 400 },
+                { googScreencastMinBitrate: 100 },
                 { googCpuOveruseDetection: true },
                 { googCpuOveruseEncodeUsage: true },
                 { googCpuUnderuseThreshold: 55 },
@@ -933,18 +936,6 @@ class RTCUtils extends Listenable {
 
             this.p2pPcConstraints
                 = JSON.parse(JSON.stringify(this.pcConstraints));
-
-            // Allows sending of video to be suspended if the bandwidth
-            // estimation is too low.
-            if (!options.disableSuspendVideo) {
-                this.pcConstraints.optional.push(
-                    { googSuspendBelowMinBitrate: true });
-            }
-
-            // There's no reason not to use this for p2p
-            this.p2pPcConstraints.optional.push({
-                googSuspendBelowMinBitrate: true
-            });
         }
 
         this.p2pPcConstraints = this.p2pPcConstraints || this.pcConstraints;
@@ -964,6 +955,8 @@ class RTCUtils extends Listenable {
     * @param {Object} options.frameRate - used only for dekstop sharing.
     * @param {Object} options.frameRate.min - Minimum fps
     * @param {Object} options.frameRate.max - Maximum fps
+    * @param {bool}   options.screenShareAudio - Used by electron clients to
+    * enable system audio screen sharing.
     * @returns {Promise} Returns a media stream on success or a JitsiTrackError
     * on failure.
     **/
@@ -974,17 +967,17 @@ class RTCUtils extends Listenable {
 
         return new Promise((resolve, reject) => {
             navigator.mediaDevices.getUserMedia(constraints)
-                .then(stream => {
-                    logger.log('onUserMediaSuccess');
-                    updateGrantedPermissions(um, stream);
-                    resolve(stream);
-                })
-                .catch(error => {
-                    logger.warn('Failed to get access to local media. '
-                        + ` ${error} ${constraints} `);
-                    updateGrantedPermissions(um, undefined);
-                    reject(new JitsiTrackError(error, constraints, um));
-                });
+            .then(stream => {
+                logger.log('onUserMediaSuccess');
+                updateGrantedPermissions(um, stream);
+                resolve(stream);
+            })
+            .catch(error => {
+                logger.warn('Failed to get access to local media. '
+                    + ` ${error} ${constraints} `);
+                updateGrantedPermissions(um, undefined);
+                reject(new JitsiTrackError(error, constraints, um));
+            });
         });
     }
 
@@ -1034,22 +1027,9 @@ class RTCUtils extends Listenable {
                 new Error('Desktop sharing is not supported!'));
         }
 
-        const {
-            desktopSharingExtensionExternalInstallation,
-            desktopSharingFrameRate,
-            desktopSharingSources
-        } = options;
-
         return new Promise((resolve, reject) => {
             screenObtainer.obtainStream(
-                {
-                    ...desktopSharingExtensionExternalInstallation,
-                    desktopSharingSources,
-                    gumOptions: {
-                        frameRate: desktopSharingFrameRate
-                    },
-                    trackOptions: getTrackSSConstraints(options)
-                },
+                this._parseDesktopSharingOptions(options),
                 stream => {
                     resolve(stream);
                 },
@@ -1084,17 +1064,7 @@ class RTCUtils extends Listenable {
                 new Error('Desktop sharing is not supported!'));
         }
 
-        let gumPromise;
-
-        if (browser.supportsMediaStreamConstructor()) {
-            gumPromise = this._getAudioAndVideoStreams(options);
-        } else {
-            // If the MediaStream constructor is not supported, then get tracks
-            // in separate GUM calls in order to keep different tracks separate.
-            gumPromise = this._getAudioAndVideoStreamsSeparately(options);
-        }
-
-        return gumPromise.then(streams =>
+        return this._getAudioAndVideoStreams(options).then(streams =>
             handleLocalStream(streams, options.resolution));
     }
 
@@ -1205,37 +1175,6 @@ class RTCUtils extends Listenable {
     }
 
     /**
-     * Performs separate getUserMedia calls for audio and video instead of in
-     * one call. Will also request desktop if specified.
-     *
-     * @param {Object} options - An object describing how the gUM request should
-     * be executed. See {@link obtainAudioAndVideoPermissions} for full options.
-     * @returns {*} Promise object that will receive the new JitsiTracks on
-     * success or a JitsiTrackError on failure.
-     */
-    _getAudioAndVideoStreamsSeparately(options) {
-        return new Promise((resolve, reject) => {
-            const deviceGUM = {
-                audio: (...args) =>
-                    this.getUserMediaWithConstraints([ 'audio' ], ...args),
-                video: (...args) =>
-                    this.getUserMediaWithConstraints([ 'video' ], ...args),
-                desktop: (...args) =>
-                    screenObtainer.obtainStream(
-                        this._parseDesktopSharingOptions(options), ...args)
-            };
-
-            obtainDevices({
-                options,
-                streams: {},
-                successCallback: resolve,
-                errorCallback: reject,
-                deviceGUM
-            });
-        });
-    }
-
-    /**
      * Returns an object formatted for specifying desktop sharing parameters.
      *
      * @param {Object} options - Takes in the same options object as
@@ -1311,22 +1250,44 @@ class RTCUtils extends Listenable {
                             && (device.deviceId === desktopSharingSourceDevice
                             || device.label === desktopSharingSourceDevice));
 
-                const requestedDevices = [ 'video' ];
-                const constraints = newGetConstraints(
-                    requestedDevices, { options });
+                if (!matchingDevice) {
+                    return Promise.reject(new JitsiTrackError(
+                        { name: 'ConstraintNotSatisfiedError' },
+                        {},
+                        [ desktopSharingSourceDevice ]
+                    ));
+                }
 
-                // Use exact to make sure there is no fallthrough to another
-                // camera device. If a matching device could not be found,
-                // try anyways and let the caller handle errors.
-                constraints.video.deviceId = {
-                    exact: (matchingDevice && matchingDevice.deviceId)
-                        || desktopSharingSourceDevice
+                const requestedDevices = [ 'video' ];
+
+                // Leverage the helper used by {@link _newGetDesktopMedia} to
+                // get constraints for the desktop stream.
+                const { gumOptions, trackOptions }
+                    = this._parseDesktopSharingOptions(options);
+
+                const constraints = {
+                    video: {
+                        ...gumOptions,
+                        deviceId: matchingDevice.deviceId
+                    }
                 };
 
                 return this._newGetUserMediaWithConstraints(
                     requestedDevices, constraints)
                     .then(stream => {
-                        return { stream };
+                        const track = stream && stream.getTracks()[0];
+                        const applyConstrainsPromise
+                            = track && track.applyConstraints
+                                ? track.applyConstraints(trackOptions)
+                                : Promise.resolve();
+
+                        return applyConstrainsPromise
+                            .then(() => {
+                                return {
+                                    sourceType: 'device',
+                                    stream
+                                };
+                            });
                     });
             }
 
@@ -1353,13 +1314,32 @@ class RTCUtils extends Listenable {
 
             const { stream, sourceId, sourceType } = desktopStream;
 
-            mediaStreamsMetaData.push({
-                stream,
-                sourceId,
-                sourceType,
-                track: stream.getVideoTracks()[0],
-                videoType: VideoType.DESKTOP
-            });
+            const desktopAudioTracks = stream.getAudioTracks();
+
+            if (desktopAudioTracks.length) {
+                const desktopAudioStream = new MediaStream(desktopAudioTracks);
+
+                mediaStreamsMetaData.push({
+                    stream: desktopAudioStream,
+                    sourceId,
+                    sourceType,
+                    track: desktopAudioStream.getAudioTracks()[0]
+                });
+            }
+
+            const desktopVideoTracks = stream.getVideoTracks();
+
+            if (desktopVideoTracks.length) {
+                const desktopVideoStream = new MediaStream(desktopVideoTracks);
+
+                mediaStreamsMetaData.push({
+                    stream: desktopVideoStream,
+                    sourceId,
+                    sourceType,
+                    track: desktopVideoStream.getVideoTracks()[0],
+                    videoType: VideoType.DESKTOP
+                });
+            }
         };
 
         /**
@@ -1409,7 +1389,8 @@ class RTCUtils extends Listenable {
 
                 mediaStreamsMetaData.push({
                     stream: audioStream,
-                    track: audioStream.getAudioTracks()[0]
+                    track: audioStream.getAudioTracks()[0],
+                    effects: options.effects
                 });
             }
 
@@ -1421,7 +1402,8 @@ class RTCUtils extends Listenable {
                 mediaStreamsMetaData.push({
                     stream: videoStream,
                     track: videoStream.getVideoTracks()[0],
-                    videoType: VideoType.CAMERA
+                    videoType: VideoType.CAMERA,
+                    effects: options.effects
                 });
             }
         };
@@ -1462,8 +1444,7 @@ class RTCUtils extends Listenable {
     isDeviceChangeAvailable(deviceType) {
         return deviceType === 'output' || deviceType === 'audiooutput'
             ? isAudioOutputDeviceChangeAvailable
-            : browser.isChromiumBased()
-                || browser.isFirefox() || browser.isEdge();
+            : true;
     }
 
     /**
@@ -1472,6 +1453,10 @@ class RTCUtils extends Listenable {
      * @param mediaStream MediaStream object to stop.
      */
     stopMediaStream(mediaStream) {
+        if (!mediaStream) {
+            return;
+        }
+
         mediaStream.getTracks().forEach(track => {
             if (track.stop) {
                 track.stop();
@@ -1595,32 +1580,6 @@ class RTCUtils extends Listenable {
 }
 
 const rtcUtils = new RTCUtils();
-
-/**
- *
- * @param context Execution context, containing options and callbacks
- */
-function obtainDevices(context) {
-    if (!context.options.devices || context.options.devices.length === 0) {
-        return context.successCallback(context.streams || {});
-    }
-
-    const device = context.options.devices.splice(0, 1);
-
-    context.deviceGUM[device](context.options)
-        .then(stream => {
-            context.streams = context.streams || {};
-            context.streams[device] = stream;
-            obtainDevices(context);
-        }, error => {
-            Object.keys(context.streams).forEach(
-                d => rtcUtils.stopMediaStream(context.streams[d]));
-            logger.error(
-                `failed to obtain ${device} stream - stop`, error);
-
-            context.errorCallback(error);
-        });
-}
 
 /**
  * Wraps original attachMediaStream function to set current audio output device

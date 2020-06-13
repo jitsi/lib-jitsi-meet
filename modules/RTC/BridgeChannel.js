@@ -1,6 +1,8 @@
 import { getLogger } from 'jitsi-meet-logger';
 
 import RTCEvents from '../../service/RTC/RTCEvents';
+import { createBridgeChannelClosedEvent } from '../../service/statistics/AnalyticsEvents';
+import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 
 const logger = getLogger(__filename);
@@ -46,6 +48,12 @@ export default class BridgeChannel {
         // @type {string} "datachannel" / "websocket"
         this._mode = null;
 
+        // Indicates whether the connection retries are enabled or not.
+        this._areRetriesEnabled = false;
+
+        // Indicates whether the connection was closed from the client or not.
+        this._closedFromClient = false;
+
         // If a RTCPeerConnection is given, listen for new RTCDataChannel
         // event.
         if (peerconnection) {
@@ -61,13 +69,77 @@ export default class BridgeChannel {
 
         // Otherwise create a WebSocket connection.
         } else if (wsUrl) {
-            // Create a WebSocket instance.
-            const ws = new WebSocket(wsUrl);
-
-            // Handle the WebSocket.
-            this._handleChannel(ws);
-            this._mode = 'websocket';
+            this._areRetriesEnabled = true;
+            this._wsUrl = wsUrl;
+            this._initWebSocket();
         }
+    }
+
+    /**
+     * Initializes the web socket channel.
+     *
+     * @returns {void}
+     */
+    _initWebSocket() {
+        // Create a WebSocket instance.
+        const ws = new WebSocket(this._wsUrl);
+
+        // Handle the WebSocket.
+        this._handleChannel(ws);
+        this._mode = 'websocket';
+    }
+
+    /**
+     * Starts the websocket connection retries.
+     *
+     * @returns {void}
+     */
+    _startConnectionRetries() {
+        let timeoutS = 1;
+
+        const reload = () => {
+            if (this.isOpen()) {
+                return;
+            }
+            this._initWebSocket(this._wsUrl);
+            timeoutS = Math.min(timeoutS * 2, 60);
+            this._retryTimeout = setTimeout(reload, timeoutS * 1000);
+        };
+
+        this._retryTimeout = setTimeout(reload, timeoutS * 1000);
+    }
+
+    /**
+     * Stops the websocket connection retries.
+     *
+     * @returns {void}
+     */
+    _stopConnectionRetries() {
+        if (this._retryTimeout) {
+            clearTimeout(this._retryTimeout);
+            this._retryTimeout = undefined;
+        }
+    }
+
+    /**
+     * Retries to establish the websocket connection after the connection was closed by the server.
+     *
+     * @param {CloseEvent} closeEvent - The close event that triggered the retries.
+     * @returns {void}
+     */
+    _retryWebSocketConnection(closeEvent) {
+        if (!this._areRetriesEnabled) {
+            return;
+        }
+        const { code, reason } = closeEvent;
+
+        Statistics.sendAnalytics(createBridgeChannelClosedEvent(code, reason));
+        this._areRetriesEnabled = false;
+        this._eventEmitter.once(RTCEvents.DATA_CHANNEL_OPEN, () => {
+            this._stopConnectionRetries();
+            this._areRetriesEnabled = true;
+        });
+        this._startConnectionRetries();
     }
 
     /**
@@ -82,6 +154,9 @@ export default class BridgeChannel {
      * Closes the currently opened channel.
      */
     close() {
+        this._closedFromClient = true;
+        this._stopConnectionRetries();
+        this._areRetriesEnabled = false;
         if (this._channel) {
             try {
                 this._channel.close();
@@ -201,8 +276,12 @@ export default class BridgeChannel {
             emitter.emit(RTCEvents.DATA_CHANNEL_OPEN);
         };
 
-        channel.onerror = error => {
-            logger.error('Channel error:', error);
+        channel.onerror = event => {
+            // WS error events contain no information about the failure (this is available in the onclose event) and
+            // the event references the WS object itself, which causes hangs on mobile.
+            if (this._mode !== 'websocket') {
+                logger.error(`Channel error: ${event.message}`);
+            }
         };
 
         channel.onmessage = ({ data }) => {
@@ -284,8 +363,15 @@ export default class BridgeChannel {
             }
         };
 
-        channel.onclose = () => {
-            logger.info('Channel closed');
+        channel.onclose = event => {
+            logger.info(`Channel closed by ${this._closedFromClient ? 'client' : 'server'}`);
+
+            if (this._mode === 'websocket') {
+                if (!this._closedFromClient) {
+                    logger.error(`Channel closed: ${event.code} ${event.reason}`);
+                    this._retryWebSocketConnection(event);
+                }
+            }
 
             // Remove the channel.
             this._channel = null;
@@ -306,6 +392,7 @@ export default class BridgeChannel {
         const channel = this._channel;
 
         if (!this.isOpen()) {
+            logger.error('Bridge Channel send: no opened channel.');
             throw new Error('No opened channel');
         }
 

@@ -1,5 +1,9 @@
 /* global __filename */
 
+import getActiveAudioDevice from './modules/detection/ActiveDeviceDetector';
+import AudioMixer from './modules/webaudio/AudioMixer';
+import * as DetectionEvents from './modules/detection/DetectionEvents';
+import TrackVADEmitter from './modules/detection/TrackVADEmitter';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
 import AuthUtil from './modules/util/AuthUtil';
 import * as ConnectionQualityEvents
@@ -150,6 +154,7 @@ export default _mergeNamespaceAndModule({
     events: {
         conference: JitsiConferenceEvents,
         connection: JitsiConnectionEvents,
+        detection: DetectionEvents,
         track: JitsiTrackEvents,
         mediaDevices: JitsiMediaDevicesEvents,
         connectionQuality: ConnectionQualityEvents,
@@ -273,11 +278,23 @@ export default _mergeNamespaceAndModule({
     },
 
     /**
+    * Sets global options which will be used by all loggers. Changing these
+    * works even after other loggers are created.
+    *
+    * @param options
+    * @see Logger.setGlobalOptions
+    */
+    setGlobalLogOptions(options) {
+        Logger.setGlobalOptions(options);
+    },
+
+    /**
      * Creates the media tracks and returns them trough the callback.
      *
      * @param options Object with properties / settings specifying the tracks
      * which should be created. should be created or some additional
      * configurations about resolution for example.
+     * @param {Array} options.effects optional effects array for the track
      * @param {Array} options.devices the devices that will be requested
      * @param {string} options.resolution resolution constraints
      * @param {string} options.cameraDeviceId
@@ -371,6 +388,15 @@ export default _mergeNamespaceAndModule({
 
                         track._setRealDeviceIdFromDeviceList(
                             currentlyAvailableMediaDevices);
+                    }
+                }
+
+                // set the contentHint to "detail" for desktop tracks
+                // eslint-disable-next-line prefer-const
+                for (const track of tracks) {
+                    if (track.type === MediaType.VIDEO
+                        && track.videoType === 'desktop') {
+                        this.setVideoTrackContentHints(track.track, 'detail');
                     }
                 }
 
@@ -472,6 +498,45 @@ export default _mergeNamespaceAndModule({
     },
 
     /**
+     * Create a TrackVADEmitter service that connects an audio track to an VAD (voice activity detection) processor in
+     * order to obtain VAD scores for individual PCM audio samples.
+     * @param {string} localAudioDeviceId - The target local audio device.
+     * @param {number} sampleRate - Sample rate at which the emitter will operate. Possible values  256, 512, 1024,
+     * 4096, 8192, 16384. Passing other values will default to closes neighbor.
+     * I.e. Providing a value of 4096 means that the emitter will process 4096 PCM samples at a time, higher values mean
+     * longer calls, lowers values mean more calls but shorter.
+     * @param {Object} vadProcessor - VAD Processors that does the actual compute on a PCM sample.The processor needs
+     * to implement the following functions:
+     * - <tt>getSampleLength()</tt> - Returns the sample size accepted by calculateAudioFrameVAD.
+     * - <tt>getRequiredPCMFrequency()</tt> - Returns the PCM frequency at which the processor operates.
+     * i.e. (16KHz, 44.1 KHz etc.)
+     * - <tt>calculateAudioFrameVAD(pcmSample)</tt> - Process a 32 float pcm sample of getSampleLength size.
+     * @returns {Promise<TrackVADEmitter>}
+     */
+    createTrackVADEmitter(localAudioDeviceId, sampleRate, vadProcessor) {
+        return TrackVADEmitter.create(localAudioDeviceId, sampleRate, vadProcessor);
+    },
+
+    /**
+     * Create AudioMixer, which is essentially a wrapper over web audio ChannelMergerNode. It essentially allows the
+     * user to mix multiple MediaStreams into a single one.
+     *
+     * @returns {AudioMixer}
+     */
+    createAudioMixer() {
+        return new AudioMixer();
+    },
+
+    /**
+     * Go through all audio devices on the system and return one that is active, i.e. has audio signal.
+     *
+     * @returns Promise<Object> - Object containing information about the found device.
+     */
+    getActiveAudioDevice() {
+        return getActiveAudioDevice();
+    },
+
+    /**
      * Checks if its possible to enumerate available cameras/microphones.
      *
      * @returns {Promise<boolean>} a Promise which will be resolved only once
@@ -551,6 +616,24 @@ export default _mergeNamespaceAndModule({
             `Column: ${colno}`,
             'StackTrace: ', error);
         Statistics.reportGlobalError(error);
+    },
+
+    /**
+     * Set the contentHint on the transmitted stream track to indicate
+     * charaterstics in the video stream, which informs PeerConnection
+     * on how to encode the track (to prefer motion or individual frame detail)
+     * @param {MediaStreamTrack} track - the track that is transmitted
+     * @param {String} hint - contentHint value that needs to be set on the track
+     */
+    setVideoTrackContentHints(track, hint) {
+        if ('contentHint' in track) {
+            track.contentHint = hint;
+            if (track.contentHint !== hint) {
+                logger.debug('Invalid video track contentHint');
+            }
+        } else {
+            logger.debug('MediaStreamTrack contentHint attribute not supported');
+        }
     },
 
     /* eslint-enable max-params */
