@@ -377,7 +377,8 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
 
                 if (options.useStunTurn) {
                     // By default we filter out STUN and TURN/UDP and leave only TURN/TCP.
-                    const filter = s => s.startsWith('turn') && s.urls.indexOf('transport=tcp');
+                    let filter = s => s.startsWith('turn') && s.urls.indexOf('transport=tcp');
+
                     if (options.useTurnUdp) {
                         filter = s => s.urls.startsWith('turn');
                     }
