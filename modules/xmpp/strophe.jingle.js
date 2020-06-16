@@ -376,10 +376,13 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                 }
 
                 if (options.useStunTurn) {
+                    const filter = s => s.urls.startsWith('turns');
+                    if (options.useTurnUdp) {
+                        filter = s => s.urls.startsWith('turn');
+                    }
                     // we want to filter and leave only tcp/turns candidates
                     // which make sense for the jvb connections
-                    this.jvbIceConfig.iceServers
-                        = iceservers.filter(s => s.urls.startsWith('turns'));
+                    this.jvbIceConfig.iceServers = iceservers.filter(filter);
                 }
 
                 if (options.p2p && options.p2p.useStunTurn) {
