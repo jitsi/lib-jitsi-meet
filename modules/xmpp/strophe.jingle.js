@@ -368,7 +368,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
 
                 // Shuffle ICEServers for loadbalancing
                 for (let i = iceservers.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i+1));
+                    const j = Math.floor(Math.random() * (i + 1));
                     const temp = iceservers[i];
 
                     iceservers[i] = iceservers[j];
