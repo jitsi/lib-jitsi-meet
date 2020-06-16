@@ -508,8 +508,9 @@ export default class RTC extends Listenable {
 
         if (browser.supportsInsertableStreams()) {
             logger.debug('E2EE - setting insertable streams constraints');
-            iceConfig.forceEncodedAudioInsertableStreams = true;
-            iceConfig.forceEncodedVideoInsertableStreams = true;
+            iceConfig.encodedInsertableStreams = true;
+            iceConfig.forceEncodedAudioInsertableStreams = true; // legacy, to be removed in M85.
+            iceConfig.forceEncodedVideoInsertableStreams = true; // legacy, to be removed in M85.
         }
 
         if (browser.supportsSdpSemantics()) {
