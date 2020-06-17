@@ -3,6 +3,7 @@ import EventEmitter from 'events';
 import { getLogger } from 'jitsi-meet-logger';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import * as MediaType from '../../service/RTC/MediaType';
+import browser from '../browser';
 import RTCUtils from './RTCUtils';
 
 const logger = getLogger(__filename);
@@ -15,15 +16,6 @@ const trackHandler2Prop = {
     'track_unmute': 'onunmute',
     'track_ended': 'onended'
 };
-
-/**
- * Adds onended/oninactive handler to a MediaStream.
- * @param mediaStream a MediaStream to attach onended/oninactive handler
- * @param handler the handler
- */
-function addMediaStreamInactiveHandler(mediaStream, handler) {
-    mediaStream.oninactive = handler;
-}
 
 /**
  * Represents a single media track (either audio or video).
@@ -91,6 +83,20 @@ export default class JitsiTrack extends EventEmitter {
     /* eslint-enable max-params */
 
     /**
+     * Adds onended/oninactive handler to a MediaStream or a MediaStreamTrack.
+     * Firefox doesn't fire a inactive event on the MediaStream, instead it fires
+     * a onended event on the MediaStreamTrack.
+     * @param {Function} handler the handler
+     */
+    _addMediaStreamInactiveHandler(handler) {
+        if (browser.isFirefox()) {
+            this.track.onended = handler;
+        } else {
+            this.stream.oninactive = handler;
+        }
+    }
+
+    /**
      * Sets handler to the WebRTC MediaStream or MediaStreamTrack object
      * depending on the passed type.
      * @param {string} type the type of the handler that is going to be set
@@ -134,7 +140,7 @@ export default class JitsiTrack extends EventEmitter {
             }
         }
         if (this._streamInactiveHandler) {
-            addMediaStreamInactiveHandler(this.stream, undefined);
+            this._addMediaStreamInactiveHandler(undefined);
         }
     }
 
@@ -161,8 +167,7 @@ export default class JitsiTrack extends EventEmitter {
                 this._setHandler(type, this.handlers.get(type));
             }
             if (this._streamInactiveHandler) {
-                addMediaStreamInactiveHandler(
-                    this.stream, this._streamInactiveHandler);
+                this._addMediaStreamInactiveHandler(this._streamInactiveHandler);
             }
         }
     }
