@@ -858,7 +858,7 @@ class RTCUtils extends Listenable {
             throw new Error(message);
         }
 
-        this._initPCConstraints(options);
+        this._initPCConstraints();
 
         screenObtainer.init(
             options,
@@ -905,17 +905,8 @@ class RTCUtils extends Listenable {
     /**
      * Creates instance objects for peer connection constraints both for p2p
      * and outside of p2p.
-     *
-     * @params {Object} options - Configuration for setting RTCUtil's instance
-     * objects for peer connection constraints.
-     * @params {boolean} options.useIPv6 - Set to true if IPv6 should be used.
-     * @params {Object} options.testing - Additional configuration for work in
-     * development.
-     * @params {Object} options.testing.forceP2PSuspendVideoRatio - True if
-     * video should become suspended if bandwidth estimation becomes low while
-     * in peer to peer connection mode.
      */
-    _initPCConstraints(options) {
+    _initPCConstraints() {
         if (browser.isFirefox()) {
             this.pcConstraints = {};
         } else if (browser.isChromiumBased() || browser.isReactNative()) {
@@ -928,11 +919,6 @@ class RTCUtils extends Listenable {
                 { googCpuUnderuseThreshold: 55 },
                 { googCpuOveruseThreshold: 85 }
             ] };
-
-            if (options.useIPv6) {
-                // https://code.google.com/p/webrtc/issues/detail?id=2828
-                this.pcConstraints.optional.push({ googIPv6: true });
-            }
 
             this.p2pPcConstraints
                 = JSON.parse(JSON.stringify(this.pcConstraints));
