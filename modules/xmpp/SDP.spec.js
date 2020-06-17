@@ -22,6 +22,7 @@ describe('SDP', () => {
             'c=IN IP4 0.0.0.0\r\n',
             'a=rtpmap:111 opus/48000/2\r\n',
             'a=rtpmap:126 telephone-event/8000\r\n',
+            'a=fmtp:126 0-15\r\n',
             'a=fmtp:111 minptime=10;useinbandfec=1\r\n',
             'a=rtcp:9 IN IP4 0.0.0.0\r\n',
             'a=setup:active\r\n',
@@ -114,7 +115,9 @@ describe('SDP', () => {
             </payload-type>
             <payload-type clockrate='16000' name='ISAC' id='103'/>
             <payload-type clockrate='32000' name='ISAC' id='104'/>
-            <payload-type clockrate='8000' name='telephone-event' id='126'/>
+            <payload-type clockrate='8000' name='telephone-event' id='126'>
+                <parameter name="" value="0-15"/>
+            </payload-type>
             <rtp-hdrext uri='urn:ietf:params:rtp-hdrext:ssrc-audio-level' id='1' xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'/>
             <rtp-hdrext uri='http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01' id='5' xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'/>
             <rtcp-mux/>
@@ -189,6 +192,7 @@ a=rtcp-fb:111 transport-cc
 a=rtpmap:103 ISAC/16000
 a=rtpmap:104 ISAC/32000
 a=rtpmap:126 telephone-event/8000
+a=fmtp:126 0-15
 a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
 a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
 a=candidate:1 1 udp 2130706431 10.0.0.1 10000 typ host generation 0
