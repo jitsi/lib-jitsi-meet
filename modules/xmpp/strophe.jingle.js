@@ -382,7 +382,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                         filter = s => s.urls.startsWith('turn');
                     } else {
                         // By default we filter out STUN and TURN/UDP and leave only TURN/TCP.
-                        filter = s => s.startsWith('turn') && s.urls.indexOf('transport=tcp');
+                        filter = s => s.urls.startsWith('turn') && s.urls.indexOf('transport=tcp');
                     }
 
                     this.jvbIceConfig.iceServers = iceservers.filter(filter);
