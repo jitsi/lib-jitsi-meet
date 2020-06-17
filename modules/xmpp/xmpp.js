@@ -453,9 +453,9 @@ export default class XMPP extends Listenable {
                         || this.token) {
                     configDomain = domain;
                 }
-                if (this.token && tokendomain) {
-                    configDomain = tokendomain;
-                }
+            }
+            if (this.token && tokendomain) {
+                configDomain = tokendomain;
             }
 
             // eslint-disable-next-line no-param-reassign
