@@ -140,15 +140,6 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Checks whether the browser supports RTPSender.
-     *
-     * @returns {boolean}
-     */
-    supportsRtpSender() {
-        return this.isFirefox() || this.isSafari();
-    }
-
-    /**
      * Returns whether or not the current browser can support capturing video,
      * be it camera or desktop, and displaying received video.
      *

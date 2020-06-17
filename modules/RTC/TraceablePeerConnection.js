@@ -1555,11 +1555,7 @@ TraceablePeerConnection.prototype._addStream = function(mediaStream) {
  * @param {MediaStream} mediaStream
  */
 TraceablePeerConnection.prototype._removeStream = function(mediaStream) {
-    if (browser.supportsRtpSender()) {
-        this._handleSenderRemoveStream(mediaStream);
-    } else {
-        this.peerconnection.removeStream(mediaStream);
-    }
+    this.peerconnection.removeStream(mediaStream);
     this._addedStreams
         = this._addedStreams.filter(stream => stream !== mediaStream);
 };
@@ -1620,11 +1616,7 @@ TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
     this.localSSRCs.delete(localTrack.rtcId);
 
     if (webRtcStream) {
-        if (browser.supportsRtpSender()) {
-            this._handleSenderRemoveStream(webRtcStream);
-        } else {
-            this.peerconnection.removeStream(webRtcStream);
-        }
+        this.peerconnection.removeStream(webRtcStream);
     }
 };
 
@@ -1739,26 +1731,6 @@ TraceablePeerConnection.prototype.removeTrackMute = function(localTrack) {
     logger.error(`removeStreamMute - no WebRTC stream for ${localTrack}`);
 
     return Promise.reject('Stream not found');
-};
-
-/**
- * Remove stream handling for browsers supporting RTPSender
- * @param stream: webrtc media stream
- */
-TraceablePeerConnection.prototype._handleSenderRemoveStream = function(
-        stream) {
-    if (!stream) {
-        // There is nothing to be changed
-        return;
-    }
-
-    const sender = this.findSenderByStream(stream);
-
-    if (sender) {
-        this.peerconnection.removeTrack(sender);
-    } else {
-        logger.log('Cannot remove tracks: no RTPSender.');
-    }
 };
 
 TraceablePeerConnection.prototype.createDataChannel = function(label, opts) {
