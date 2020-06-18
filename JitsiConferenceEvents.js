@@ -149,6 +149,20 @@ export const LOCK_STATE_CHANGED = 'conference.lock_state_changed';
 export const SERVER_REGION_CHANGED = 'conference.server_region_changed';
 
 /**
+ * An event(library-private) fired when a new media session is added to the conference.
+ * @type {string}
+ * @private
+ */
+export const _MEDIA_SESSION_STARTED = 'conference.media_session.started';
+
+/**
+ * An event(library-private) fired when the conference switches the currently active media session.
+ * @type {string}
+ * @private
+ */
+export const _MEDIA_SESSION_ACTIVE_CHANGED = 'conference.media_session.active_changed';
+
+/**
  * Indicates that the conference had changed to members only enabled/disabled.
  * The first argument of this event is a <tt>boolean</tt> which when set to
  * <tt>true</tt> means that the conference is running in members only mode.
