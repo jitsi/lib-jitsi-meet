@@ -117,8 +117,7 @@ const ScreenObtainer = {
 
             window.JitsiMeetScreenObtainer.openDesktopPicker(
                 {
-                    desktopSharingSources: desktopSharingSources
-                        || this.options.desktopSharingChromeSources
+                    desktopSharingSources
                 },
                 (streamId, streamType, screenShareAudio = false) =>
                     onGetStreamResponse(

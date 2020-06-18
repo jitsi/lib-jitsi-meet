@@ -39,11 +39,6 @@ You can access the following methods and objects trough ```JitsiMeetJS``` object
 *  ```JitsiMeetJS.init(options)``` - this method initialized Jitsi Meet API.
 The ```options``` parameter is JS object with the following properties:
     - `useIPv6` - boolean property
-    - `desktopSharingChromeExtId` - The ID of the jidesha extension for Chrome. Example: 'mbocklcggfhnbahlnepmldehdhpjfcjp'
-    - `desktopSharingChromeDisabled` - Boolean. Whether desktop sharing should be disabled on Chrome. Example: false.
-    - `desktopSharingChromeSources` - Array of strings with the media sources to use when using screen sharing with the Chrome extension. Example: ['screen', 'window']
-    - `desktopSharingChromeMinExtVersion` - Required version of Chrome extension. Example: '0.1'
-    - `desktopSharingFirefoxDisabled` - Boolean. Whether desktop sharing should be disabled on Firefox. Example: false.
     - `disableAudioLevels` - boolean property. Enables/disables audio levels.
     - `disableSimulcast` - boolean property. Enables/disables simulcast.
     - `enableWindowOnErrorHandler` - boolean property (default false). Enables/disables attaching global onerror handler (window.onerror).
