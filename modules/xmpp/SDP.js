@@ -118,34 +118,6 @@ SDP.prototype.containsSSRC = function(ssrc) {
     return result;
 };
 
-// remove iSAC and CN from SDP
-SDP.prototype.mangle = function() {
-    let i, j, lines, mline, newdesc, rtpmap;
-
-    for (i = 0; i < this.media.length; i++) {
-        lines = this.media[i].split('\r\n');
-        lines.pop(); // remove empty last element
-        mline = SDPUtil.parseMLine(lines.shift());
-        if (mline.media !== 'audio') {
-            continue; // eslint-disable-line no-continue
-        }
-        newdesc = '';
-        mline.fmt.length = 0;
-        for (j = 0; j < lines.length; j++) {
-            if (lines[j].substr(0, 9) === 'a=rtpmap:') {
-                rtpmap = SDPUtil.parseRTPMap(lines[j]);
-                if (rtpmap.name === 'CN' || rtpmap.name === 'ISAC') {
-                    continue; // eslint-disable-line no-continue
-                }
-                mline.fmt.push(rtpmap.id);
-            }
-            newdesc += `${lines[j]}\r\n`;
-        }
-        this.media[i] = `${SDPUtil.buildMLine(mline)}\r\n${newdesc}`;
-    }
-    this.raw = this.session + this.media.join('');
-};
-
 // add content's to a jingle element
 SDP.prototype.toJingle = function(elem, thecreator) {
     let i, j, k, lines, mline, rtpmap, ssrc, tmp;
