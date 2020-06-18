@@ -764,7 +764,7 @@ export default class XMPP extends Listenable {
 
         if (!(from === this.speakerStatsComponentAddress
             || from === this.conferenceDurationComponentAddress)) {
-            return;
+            return true;
         }
 
         const jsonMessage = $(msg).find('>json-message')
