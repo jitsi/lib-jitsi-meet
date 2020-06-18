@@ -18,8 +18,8 @@ const trackHandler2Prop = {
 
 /**
  * Adds onended/oninactive handler to a MediaStream.
- * @param mediaStream a MediaStream to attach onended/oninactive handler
- * @param handler the handler
+ * @param {MediaStream} mediaStream a MediaStream to attach onended/oninactive handler
+ * @param {Function} handler the handler
  */
 function addMediaStreamInactiveHandler(mediaStream, handler) {
     mediaStream.oninactive = handler;
@@ -34,10 +34,10 @@ export default class JitsiTrack extends EventEmitter {
      * Represents a single media track (either audio or video).
      * @constructor
      * @param conference the rtc instance
-     * @param stream the WebRTC MediaStream instance
-     * @param track the WebRTC MediaStreamTrack instance, must be part of
+     * @param {MediaStream} stream the WebRTC MediaStream instance
+     * @param {MediaStreamTrack} track the WebRTC MediaStreamTrack instance, must be part of
      * the given <tt>stream</tt>.
-     * @param streamInactiveHandler the function that will handle
+     * @param {Function} streamInactiveHandler the function that will handle
      *        onended/oninactive events of the stream.
      * @param trackMediaType the media type of the JitsiTrack
      * @param videoType the VideoType for this track if any
@@ -176,6 +176,7 @@ export default class JitsiTrack extends EventEmitter {
 
     /**
      * Check if this is an audio track.
+     * @return {boolean}
      */
     isAudioTrack() {
         return this.getType() === MediaType.AUDIO;
@@ -193,6 +194,7 @@ export default class JitsiTrack extends EventEmitter {
 
     /**
      * Check if this is a video track.
+     * @return {boolean}
      */
     isVideoTrack() {
         return this.getType() === MediaType.VIDEO;
@@ -218,6 +220,7 @@ export default class JitsiTrack extends EventEmitter {
 
     /**
      * Returns the WebRTC MediaStream instance.
+     * @return {MediaStream}
      */
     getOriginalStream() {
         return this.stream;
@@ -270,7 +273,7 @@ export default class JitsiTrack extends EventEmitter {
 
     /**
      * Eventually will trigger RTCEvents.TRACK_ATTACHED event.
-     * @param container the video/audio container to which this stream is
+     * @param {HTMLElement} container the video/audio container to which this stream is
      *        attached and for which event will be fired.
      * @private
      */
@@ -285,7 +288,7 @@ export default class JitsiTrack extends EventEmitter {
      * Adds the container to the list of containers that are displaying the
      * track.
      *
-     * @param container the HTML container which can be 'video' or 'audio'
+     * @param {HTMLElement} container the HTML container which can be 'video' or 'audio'
      * element.
      *
      * @returns {void}
@@ -303,7 +306,7 @@ export default class JitsiTrack extends EventEmitter {
     /**
      * Removes this JitsiTrack from the passed HTML container.
      *
-     * @param container the HTML container to detach from this JitsiTrack. If
+     * @param {HTMLElement} container the HTML container to detach from this JitsiTrack. If
      * <tt>null</tt> or <tt>undefined</tt>, all containers are removed. A
      * container can be a 'video', 'audio' or 'object' HTML element instance to
      * which this JitsiTrack is currently attached.
