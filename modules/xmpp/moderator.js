@@ -267,6 +267,13 @@ Moderator.prototype.createConferenceIq = function() {
             value: openSctp
         }).up();
 
+    if (config.opusMaxAverageBitrate) {
+        elem.c(
+            'property', {
+                name: 'opusMaxAverageBitrate',
+                value: config.opusMaxAverageBitrate
+            }).up();
+    }
     if (this.options.conference.startAudioMuted !== undefined) {
         elem.c(
             'property', {
