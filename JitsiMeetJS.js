@@ -299,10 +299,6 @@ export default _mergeNamespaceAndModule({
      * @param {string} options.resolution resolution constraints
      * @param {string} options.cameraDeviceId
      * @param {string} options.micDeviceId
-     * @param {object} options.desktopSharingExtensionExternalInstallation -
-     * enables external installation process for desktop sharing extension if
-     * the inline installation is not posible. The following properties should
-     * be provided:
      * @param {intiger} interval - the interval (in ms) for
      * checking whether the desktop sharing extension is installed or not
      * @param {Function} checkAgain - returns boolean. While checkAgain()==true
