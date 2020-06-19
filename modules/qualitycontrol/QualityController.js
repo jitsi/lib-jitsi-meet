@@ -55,6 +55,10 @@ export class QualityController {
         const sendMaxFrameHeight = this.selectSendMaxFrameHeight();
         const promises = [];
 
+        if (!sendMaxFrameHeight) {
+            return Promise.resolve();
+        }
+
         for (const session of this.conference._getMediaSessions()) {
             promises.push(session.setSenderVideoConstraint(sendMaxFrameHeight));
         }

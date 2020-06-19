@@ -1301,6 +1301,8 @@ export default class JingleSessionPC extends JingleSession {
      * @param {Number} maxFrameHeight - the new value to set.
      */
     setReceiverVideoConstraint(maxFrameHeight) {
+        logger.info(`${this} setReceiverVideoConstraint - max frame height: ${maxFrameHeight}`);
+
         this.localRecvMaxFrameHeight = maxFrameHeight;
 
         if (this.isP2P) {
@@ -1400,7 +1402,7 @@ export default class JingleSessionPC extends JingleSession {
      */
     setSenderVideoConstraint(maxFrameHeight) {
         if (this._assertNotEnded()) {
-            logger.info(`${this} accepted setSenderVideoConstraint: ${maxFrameHeight}`);
+            logger.info(`${this} setSenderVideoConstraint: ${maxFrameHeight}`);
 
             return this.peerconnection.setSenderVideoConstraint(maxFrameHeight);
         }
@@ -2208,6 +2210,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // frame height is optional in our content-modify protocol
         if (newMaxFrameHeight) {
+            logger.info(`${this} received remote max frame height: ${newMaxFrameHeight}`);
             this.remoteRecvMaxFrameHeight = newMaxFrameHeight;
             this.eventEmitter.emit(
                 MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED,
