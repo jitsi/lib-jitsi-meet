@@ -41,7 +41,8 @@ export class QualityController {
                     this._propagateSendMaxFrameHeight();
                 }
             });
-        mediaSession.setReceiverVideoConstraint(this.preferredReceiveMaxFrameHeight);
+        this.preferredReceiveMaxFrameHeight
+            && mediaSession.setReceiverVideoConstraint(this.preferredReceiveMaxFrameHeight);
     }
 
     /**
@@ -93,7 +94,7 @@ export class QualityController {
         this.preferredReceiveMaxFrameHeight = maxFrameHeight;
 
         for (const session of this.conference._getMediaSessions()) {
-            session.setReceiverVideoConstraint(maxFrameHeight);
+            maxFrameHeight && session.setReceiverVideoConstraint(maxFrameHeight);
         }
     }
 
