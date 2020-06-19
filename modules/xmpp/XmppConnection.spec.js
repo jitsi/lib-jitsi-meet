@@ -1,52 +1,9 @@
-import { default as XmppConnection } from './XmppConnection';
 import { $iq, Strophe } from 'strophe.js';
+
 import { nextTick } from '../util/TestUtils';
 
-/**
- * Mock Strophe connection.
- */
-class MockStropheConnection {
-    /**
-     * XMPP service URL.
-     *
-     * @returns {string}
-     */
-    get service() {
-        return 'wss://localhost/xmpp-websocket';
-    }
-
-    /**
-     * {@see Strophe.Connection.connect}
-     */
-    connect(jid, pass, callback) {
-        this._connectCb = callback;
-    }
-
-    /**
-     * {@see Strophe.Connection.disconnect}
-     */
-    disconnect() {
-        this.simulateConnectionState(Strophe.Status.DISCONNECTING);
-        this.simulateConnectionState(Strophe.Status.DISCONNECTED);
-    }
-
-    /**
-     * Simulates transition to the new connection status.
-     *
-     * @param {Strophe.Status} newState - The new connection status to set.
-     * @returns {void}
-     */
-    simulateConnectionState(newState) {
-        this._connectCb(newState);
-    }
-
-    /**
-     * {@see Strophe.Connection.sendIQ}.
-     */
-    sendIQ(iq, resultCb) {
-        resultCb();
-    }
-}
+import { default as XmppConnection } from './XmppConnection';
+import { MockStropheConnection } from './MockClasses';
 
 /**
  * Creates any IQ.
