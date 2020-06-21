@@ -998,7 +998,6 @@ class RTCUtils extends Listenable {
      * in RTCUtils#_newGetUserMediaWithConstraints.
      *
      * @param {Object} options
-     * @param {Object} options.desktopSharingExtensionExternalInstallation
      * @param {string[]} options.desktopSharingSources
      * @param {Object} options.desktopSharingFrameRate
      * @param {Object} options.desktopSharingFrameRate.min - Minimum fps
@@ -1169,7 +1168,6 @@ class RTCUtils extends Listenable {
      */
     _parseDesktopSharingOptions(options) {
         return {
-            ...options.desktopSharingExtensionExternalInstallation,
             desktopSharingSources: options.desktopSharingSources,
             gumOptions: {
                 frameRate: options.desktopSharingFrameRate
@@ -1221,7 +1219,6 @@ class RTCUtils extends Listenable {
             }
 
             const {
-                desktopSharingExtensionExternalInstallation,
                 desktopSharingSourceDevice,
                 desktopSharingSources,
                 desktopSharingFrameRate
@@ -1278,7 +1275,6 @@ class RTCUtils extends Listenable {
             }
 
             return this._newGetDesktopMedia({
-                desktopSharingExtensionExternalInstallation,
                 desktopSharingSources,
                 desktopSharingFrameRate
             });

@@ -299,10 +299,6 @@ export default _mergeNamespaceAndModule({
      * @param {string} options.resolution resolution constraints
      * @param {string} options.cameraDeviceId
      * @param {string} options.micDeviceId
-     * @param {object} options.desktopSharingExtensionExternalInstallation -
-     * enables external installation process for desktop sharing extension if
-     * the inline installation is not posible. The following properties should
-     * be provided:
      * @param {intiger} interval - the interval (in ms) for
      * checking whether the desktop sharing extension is installed or not
      * @param {Function} checkAgain - returns boolean. While checkAgain()==true
@@ -445,12 +441,12 @@ export default _mergeNamespaceAndModule({
                 }
 
                 if (error.name
-                        === JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED) {
+                        === JitsiTrackErrors.SCREENSHARING_USER_CANCELED) {
                     // User cancelled action is not really an error, so only
                     // log it as an event to avoid having conference classified
                     // as partially failed
                     const logObject = {
-                        id: 'chrome_extension_user_canceled',
+                        id: 'screensharing_user_canceled',
                         message: error.message
                     };
 

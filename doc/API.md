@@ -39,11 +39,6 @@ You can access the following methods and objects trough ```JitsiMeetJS``` object
 *  ```JitsiMeetJS.init(options)``` - this method initialized Jitsi Meet API.
 The ```options``` parameter is JS object with the following properties:
     - `useIPv6` - boolean property
-    - `desktopSharingChromeExtId` - The ID of the jidesha extension for Chrome. Example: 'mbocklcggfhnbahlnepmldehdhpjfcjp'
-    - `desktopSharingChromeDisabled` - Boolean. Whether desktop sharing should be disabled on Chrome. Example: false.
-    - `desktopSharingChromeSources` - Array of strings with the media sources to use when using screen sharing with the Chrome extension. Example: ['screen', 'window']
-    - `desktopSharingChromeMinExtVersion` - Required version of Chrome extension. Example: '0.1'
-    - `desktopSharingFirefoxDisabled` - Boolean. Whether desktop sharing should be disabled on Firefox. Example: false.
     - `disableAudioLevels` - boolean property. Enables/disables audio levels.
     - `disableSimulcast` - boolean property. Enables/disables simulcast.
     - `enableWindowOnErrorHandler` - boolean property (default false). Enables/disables attaching global onerror handler (window.onerror).
@@ -192,10 +187,8 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - CONSTRAINT_FAILED - getUserMedia-related error, indicates that some of requested constraints in getUserMedia call were not satisfied.
         - TRACK_IS_DISPOSED - an error which indicates that track has been already disposed and cannot be longer used.
         - TRACK_NO_STREAM_FOUND - an error which indicates that track has no MediaStream associated.
-        - CHROME_EXTENSION_GENERIC_ERROR - generic error for jidesha extension for Chrome.
-        - CHROME_EXTENSION_USER_CANCELED - an error which indicates that user canceled screen sharing window selection dialog in jidesha extension for Chrome.
-        - CHROME_EXTENSION_INSTALLATION_ERROR - an error which indicates that the jidesha extension for Chrome is failed to install.
-        - FIREFOX_EXTENSION_NEEDED - An error which indicates that the jidesha extension for Firefox is needed to proceed with screen sharing, and that it is not installed.
+        - SCREENSHARING_GENERIC_ERROR - generic error for screensharing.
+        - SCREENSHARING_USER_CANCELED - an error which indicates that user canceled screen sharing window selection dialog.
 
 * ```JitsiMeetJS.errorTypes``` - constructors for Error instances that can be produced by library. Are useful for checks like ```error instanceof JitsiMeetJS.errorTypes.JitsiTrackError```. Following Errors are available:
     1. ```JitsiTrackError``` - Error that happened to a JitsiTrack.

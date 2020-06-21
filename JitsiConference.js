@@ -61,6 +61,7 @@ import {
     createP2PEvent,
     ICE_ESTABLISHMENT_DURATION_DIFF
 } from './service/statistics/AnalyticsEvents';
+import { QualityController } from './modules/qualitycontrol/QualityController';
 import * as XMPPEvents from './service/xmpp/XMPPEvents';
 
 const logger = getLogger(__filename);
@@ -237,12 +238,6 @@ export default function JitsiConference(options) {
     this.recordingManager = new RecordingManager(this.room);
     this._conferenceJoinAnalyticsEventSent = false;
 
-    /**
-     * Max frame height that the user prefers to send to the remote participants.
-     * @type {number}
-     */
-    this.maxFrameHeight = null;
-
     if (browser.supportsInsertableStreams()) {
         this._e2eeCtx = new E2EEContext({ salt: this.options.name });
     }
@@ -355,6 +350,8 @@ JitsiConference.prototype._init = function(options = {}) {
         this.rtc = new RTC(this, options);
         this.eventManager.setupRTCListeners();
     }
+
+    this.qualityController = new QualityController(this);
 
     this.participantConnectionStatus
         = new ParticipantConnectionStatusHandler(
@@ -619,6 +616,31 @@ JitsiConference.prototype.leave = function() {
     // If this.room == null we are calling second time leave().
     return Promise.reject(
         new Error('The conference is has been already left'));
+};
+
+/**
+ * Returns the currently active media session if any.
+ *
+ * @returns {JingleSessionPC|undefined}
+ * @private
+ */
+JitsiConference.prototype._getActiveMediaSession = function() {
+    return this.isP2PActive() ? this.p2pJingleSession : this.jvbJingleSession;
+};
+
+/**
+ * Returns an array containing all media sessions existing in this conference.
+ *
+ * @returns {Array<JingleSessionPC>}
+ * @private
+ */
+JitsiConference.prototype._getMediaSessions = function() {
+    const sessions = [];
+
+    this.jvbJingleSession && sessions.push(this.jvbJingleSession);
+    this.p2pJingleSession && sessions.push(this.p2pJingleSession);
+
+    return sessions;
 };
 
 /**
@@ -1727,14 +1749,6 @@ JitsiConference.prototype.onCallAccepted = function(session, answer) {
     if (this.p2pJingleSession === session) {
         logger.info('P2P setAnswer');
 
-        // Apply pending video constraints.
-        if (this.pendingVideoConstraintsOnP2P) {
-            this.p2pJingleSession.setSenderVideoConstraint(this.maxFrameHeight)
-                .catch(err => {
-                    logger.error(`Sender video constraints failed on p2p session - ${err}`);
-                });
-        }
-
         // Setup E2EE.
         const localTracks = this.getLocalTracks();
 
@@ -1743,6 +1757,7 @@ JitsiConference.prototype.onCallAccepted = function(session, answer) {
         }
 
         this.p2pJingleSession.setAnswer(answer);
+        this.eventEmitter.emit(JitsiConferenceEvents._MEDIA_SESSION_STARTED, this.p2pJingleSession);
     }
 };
 
@@ -1917,13 +1932,15 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
                 // to be turned off here.
                 if (this.isP2PActive() && this.jvbJingleSession) {
                     this._suspendMediaTransferForJvbConnection();
-                } else if (this.jvbJingleSession && this.maxFrameHeight) {
-                    // Apply user preferred max frame height if it was called before this
-                    // jingle session was created.
-                    this.jvbJingleSession.setSenderVideoConstraint(this.maxFrameHeight)
-                        .catch(err => {
-                            logger.error(`Sender video constraints failed on jvb session - ${err}`);
-                        });
+                }
+
+                this.eventEmitter.emit(
+                    JitsiConferenceEvents._MEDIA_SESSION_STARTED,
+                    jingleSession);
+                if (!this.isP2PActive()) {
+                    this.eventEmitter.emit(
+                        JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED,
+                        jingleSession);
                 }
 
                 // Setup E2EE.
@@ -2697,14 +2714,9 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
         () => {
             logger.debug('Got RESULT for P2P "session-accept"');
 
-            // Apply user preferred max frame height if it was called before this
-            // jingle session was created.
-            if (this.pendingVideoConstraintsOnP2P) {
-                this.p2pJingleSession.setSenderVideoConstraint(this.maxFrameHeight)
-                    .catch(err => {
-                        logger.error(`Sender video constraints failed on p2p session - ${err}`);
-                    });
-            }
+            this.eventEmitter.emit(
+                JitsiConferenceEvents._MEDIA_SESSION_STARTED,
+                this.p2pJingleSession);
 
             // Setup E2EE.
             for (const track of localTracks) {
@@ -3007,6 +3019,9 @@ JitsiConference.prototype._setP2PStatus = function(newStatus) {
         JitsiConferenceEvents.P2P_STATUS,
         this,
         this.p2p);
+    this.eventEmitter.emit(
+        JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED,
+        this._getActiveMediaSession());
 
     // Refresh connection interrupted/restored
     this.eventEmitter.emit(
@@ -3342,13 +3357,12 @@ JitsiConference.prototype.getSpeakerStats = function() {
  * Sets the maximum video size the local participant should receive from remote
  * participants.
  *
- * @param {number} maxFrameHeightPixels the maximum frame height, in pixels,
+ * @param {number} maxFrameHeight - the maximum frame height, in pixels,
  * this receiver is willing to receive.
  * @returns {void}
  */
-JitsiConference.prototype.setReceiverVideoConstraint = function(
-        maxFrameHeight) {
-    this.rtc.setReceiverVideoConstraint(maxFrameHeight);
+JitsiConference.prototype.setReceiverVideoConstraint = function(maxFrameHeight) {
+    this.qualityController.setPreferredReceiveMaxFrameHeight(maxFrameHeight);
 };
 
 /**
@@ -3359,22 +3373,7 @@ JitsiConference.prototype.setReceiverVideoConstraint = function(
  * successful and rejected otherwise.
  */
 JitsiConference.prototype.setSenderVideoConstraint = function(maxFrameHeight) {
-    this.maxFrameHeight = maxFrameHeight;
-    this.pendingVideoConstraintsOnP2P = true;
-    const promises = [];
-
-    // We have to always set the sender video constraints on the jvb connection
-    // when we switch from p2p to jvb connection since we need to check if the
-    // tracks constraints have been modified when in p2p.
-    if (this.jvbJingleSession) {
-        promises.push(this.jvbJingleSession.setSenderVideoConstraint(maxFrameHeight));
-    }
-    if (this.p2pJingleSession) {
-        this.pendingVideoConstraintsOnP2P = false;
-        promises.push(this.p2pJingleSession.setSenderVideoConstraint(maxFrameHeight));
-    }
-
-    return Promise.all(promises);
+    return this.qualityController.setPreferredSendMaxFrameHeight(maxFrameHeight);
 };
 
 /**

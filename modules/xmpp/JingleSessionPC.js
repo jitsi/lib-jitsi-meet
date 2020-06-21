@@ -11,6 +11,7 @@ import { integerHash } from '../util/StringUtils';
 import browser from './../browser';
 import JingleSession from './JingleSession';
 import * as JingleSessionState from './JingleSessionState';
+import MediaSessionEvents from './MediaSessionEvents';
 import SDP from './SDP';
 import SDPDiffer from './SDPDiffer';
 import SDPUtil from './SDPUtil';
@@ -88,6 +89,18 @@ export default class JingleSessionPC extends JingleSession {
         }
 
         return null;
+    }
+
+    /**
+     * Parses the video max frame height value out of the 'content-modify' IQ.
+     *
+     * @param {jQuery} jingleContents - A jQuery selector pointing to the '>jingle' element.
+     * @returns {Number|null}
+     */
+    static parseMaxFrameHeight(jingleContents) {
+        const maxFrameHeightSel = jingleContents.find('>content[name="video"]>max-frame-height');
+
+        return maxFrameHeightSel.length ? Number(maxFrameHeightSel.text()) : null;
     }
 
     /* eslint-disable max-params */
@@ -174,6 +187,13 @@ export default class JingleSessionPC extends JingleSession {
         this._gatheringStartedTimestamp = null;
 
         /**
+         * Local preference for the receive video max frame height.
+         *
+         * @type {Number|undefined}
+         */
+        this.localRecvMaxFrameHeight = undefined;
+
+        /**
          * Indicates whether or not this session is willing to send/receive
          * video media. When set to <tt>false</tt> the underlying peer
          * connection will disable local video transfer and the remote peer will
@@ -220,6 +240,13 @@ export default class JingleSessionPC extends JingleSession {
          * session or <tt>false</tt> if it's a JVB session
          */
         this.isP2P = isP2P;
+
+        /**
+         * Remote preference for the receive video max frame height.
+         *
+         * @type {Number|undefined}
+         */
+        this.remoteRecvMaxFrameHeight = undefined;
 
         /**
          * The signaling layer implementation.
@@ -564,6 +591,17 @@ export default class JingleSessionPC extends JingleSession {
                 }
             );
         }
+    }
+
+    /**
+     * Remote preference for receive video max frame height.
+     *
+     * @returns {Number|undefined}
+     */
+    getRemoteRecvMaxFrameHeight() {
+        return this.isP2P
+            ? this.remoteRecvMaxFrameHeight
+            : undefined; // FIXME George: put a getter for the JVB's preference here
     }
 
     /**
@@ -1028,7 +1066,7 @@ export default class JingleSessionPC extends JingleSession {
                     if (this.state === JingleSessionState.PENDING) {
                         this.state = JingleSessionState.ACTIVE;
 
-                        // Sync up video transfer active/inactive only after
+                        // #1 Sync up video transfer active/inactive only after
                         // the initial O/A cycle. We want to adjust the video
                         // media direction only in the local SDP and the Jingle
                         // contents direction included in the initial
@@ -1039,8 +1077,11 @@ export default class JingleSessionPC extends JingleSession {
                         // Changing media direction in the remote SDP will mess
                         // up our SDP translation chain (simulcast, video mute,
                         // RTX etc.)
-                        if (this.isP2P && !this._localVideoActive) {
-                            this.sendContentModify(this._localVideoActive);
+                        //
+                        // #2 Sends the max frame height if it was set, before the session-initiate/accept
+                        if (this.isP2P
+                            && (!this._localVideoActive || this.localRecvMaxFrameHeight)) {
+                            this.sendContentModify();
                         }
                     }
 
@@ -1215,17 +1256,14 @@ export default class JingleSessionPC extends JingleSession {
 
     /**
      * Will send 'content-modify' IQ in order to ask the remote peer to
-     * either stop or resume sending video media.
-     * @param {boolean} videoTransferActive <tt>false</tt> to let the other peer
-     * know that we're not sending nor interested in receiving video contents.
-     * When set to <tt>true</tt> remote peer will be asked to resume video
-     * transfer.
+     * either stop or resume sending video media or to adjust sender's video constraints.
      * @private
      */
-    sendContentModify(videoTransferActive) {
-        const newSendersValue = videoTransferActive ? 'both' : 'none';
+    sendContentModify() {
+        const maxFrameHeight = this.localRecvMaxFrameHeight;
+        const senders = this._localVideoActive ? 'both' : 'none';
 
-        const sessionModify
+        let sessionModify
             = $iq({
                 to: this.remoteJid,
                 type: 'set'
@@ -1238,17 +1276,44 @@ export default class JingleSessionPC extends JingleSession {
                 })
                 .c('content', {
                     name: 'video',
-                    senders: newSendersValue
+                    senders
                 });
 
-        logger.info(
-            `Sending content-modify, video senders: ${newSendersValue}`);
+        if (typeof maxFrameHeight !== 'undefined') {
+            sessionModify = sessionModify
+                .c('max-frame-height', { xmlns: 'http://jitsi.org/jitmeet/video' })
+                .t(maxFrameHeight);
+        }
+
+        logger.info(`${this} sending content-modify, video senders: ${senders}, max frame height: ${maxFrameHeight}`);
 
         this.connection.sendIQ(
             sessionModify,
             null,
             this.newJingleErrorHandler(sessionModify),
             IQ_TIMEOUT);
+    }
+
+    /**
+     * Adjust the preference for max video frame height that the local party is willing to receive. Signals
+     * the remote party.
+     *
+     * @param {Number} maxFrameHeight - the new value to set.
+     */
+    setReceiverVideoConstraint(maxFrameHeight) {
+        logger.info(`${this} setReceiverVideoConstraint - max frame height: ${maxFrameHeight}`);
+
+        this.localRecvMaxFrameHeight = maxFrameHeight;
+
+        if (this.isP2P) {
+            // Tell the remote peer about our receive constraint. If Jingle session is not yet active the state will
+            // be synced after offer/answer.
+            if (this.state === JingleSessionState.ACTIVE) {
+                this.sendContentModify();
+            }
+        } else {
+            this.rtc.setReceiverVideoConstraint(maxFrameHeight);
+        }
     }
 
     /**
@@ -1336,7 +1401,13 @@ export default class JingleSessionPC extends JingleSession {
      * successful and rejected otherwise.
      */
     setSenderVideoConstraint(maxFrameHeight) {
-        return this.peerconnection.setSenderVideoConstraint(maxFrameHeight);
+        if (this._assertNotEnded()) {
+            logger.info(`${this} setSenderVideoConstraint: ${maxFrameHeight}`);
+
+            return this.peerconnection.setSenderVideoConstraint(maxFrameHeight);
+        }
+
+        return Promise.resolve();
     }
 
     /**
@@ -2087,7 +2158,7 @@ export default class JingleSessionPC extends JingleSession {
                 // 'inactive' on video media in remote SDP will mess up our SDP
                 // translation chain (simulcast, RTX, video mute etc.).
                 if (this.isP2P && isSessionActive) {
-                    this.sendContentModify(videoActive);
+                    this.sendContentModify();
                 }
             }
 
@@ -2134,6 +2205,18 @@ export default class JingleSessionPC extends JingleSession {
     modifyContents(jingleContents) {
         const newVideoSenders
             = JingleSessionPC.parseVideoSenders(jingleContents);
+        const newMaxFrameHeight
+            = JingleSessionPC.parseMaxFrameHeight(jingleContents);
+
+        // frame height is optional in our content-modify protocol
+        if (newMaxFrameHeight) {
+            logger.info(`${this} received remote max frame height: ${newMaxFrameHeight}`);
+            this.remoteRecvMaxFrameHeight = newMaxFrameHeight;
+            this.eventEmitter.emit(
+                MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED,
+                this,
+                newMaxFrameHeight);
+        }
 
         if (newVideoSenders === null) {
             logger.error(
