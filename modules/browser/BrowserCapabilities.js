@@ -281,7 +281,7 @@ export default class BrowserCapabilities extends BrowserDetection {
     peerIsFirefox() {
         const browser = this._getPeerBrowserName();
 
-        return browser === 'Firefox';
+        return browser.includes('Firefox');
     }
 
     /**
@@ -291,7 +291,7 @@ export default class BrowserCapabilities extends BrowserDetection {
     peerIsSafari() {
         const browser = this._getPeerBrowserName();
 
-        return browser === 'Safari';
+        return browser.includes('Safari');
     }
 
     /**

@@ -3133,9 +3133,23 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
             return;
         }
 
-        // @FIXME safari has to join the room before firefox
+        // @FIXME firefox can not start p2p session if other peer is safari!
         if (browser.isFirefox() && browser.peerIsSafari()) {
-            sleep(8000);
+            myId = 99;
+            peersId = 1;
+
+            logger.debug(
+                'I\'m Firefox user and peer is Safari  - '
+                + 'the other peer should start P2P', myId, peersId);
+        }
+
+        if (browser.isSafari() && browser.peerIsFirefox()) {
+            myId = 1;
+            peersId = 99;
+
+            logger.debug(
+                'I\'m safari user and peer is Firefox - '
+                + 'i should start P2P', myId, peersId);
         }
 
         // @FIXME safari can not start p2p session if other peer is chrome!
