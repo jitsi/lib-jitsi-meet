@@ -3161,11 +3161,28 @@ JitsiConference.prototype._maybeStartOrStopP2P = function(userLeftEvent) {
                 + 'the other peer should start P2P', myId, peersId);
         }
 
+        // @FIXME safari can not start p2p session if other peer is chrome!
+        if (browser.isSafari() && browser.peerIsEdge()) {
+            myId = 99;
+            peersId = 1;
+            logger.debug(
+                'I\'m safari user and peer is chrome - '
+                + 'the other peer should start P2P', myId, peersId);
+        }
+
         if (browser.isChrome() && browser.peerIsSafari()) {
             myId = 1;
             peersId = 99;
             logger.debug(
                 'I\'m chrome user and peer is safari - '
+                + 'i should start P2P', myId, peersId);
+        }
+
+        if (browser.isChromiumBased() && browser.peerIsSafari()) {
+            myId = 1;
+            peersId = 99;
+            logger.debug(
+                'I\'m isChromiumBased user and peer is safari - '
                 + 'i should start P2P', myId, peersId);
         }
 

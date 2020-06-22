@@ -295,6 +295,16 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Returns true if peer use edge
+     * @returns {boolean}
+     */
+    peerIsEdge() {
+        const browser = this._getPeerBrowserName();
+
+        return browser.includes('Edge');
+    }
+
+    /**
      *
      * @returns {string|*}
      * @private
