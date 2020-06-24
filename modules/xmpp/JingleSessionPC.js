@@ -47,7 +47,6 @@ const DEFAULT_MAX_STATS = 300;
  * @property {boolean} disableH264 - Described in the config.js[1].
  * @property {boolean} disableRtx - Described in the config.js[1].
  * @property {boolean} disableSimulcast - Described in the config.js[1].
- * @property {boolean} enableLayerSuspension - Described in the config.js[1].
  * @property {boolean} failICE - it's an option used in the tests. Set to
  * <tt>true</tt> to block any real candidates and make the ICE fail.
  * @property {boolean} gatherStats - Described in the config.js[1].
@@ -341,7 +340,6 @@ export default class JingleSessionPC extends JingleSession {
                 = options.disableSimulcast
                     || (options.preferH264 && !options.disableH264);
             pcOptions.preferH264 = options.preferH264;
-            pcOptions.enableLayerSuspension = options.enableLayerSuspension;
 
             // disable simulcast for screenshare and set the max bitrate to
             // 500Kbps if the testing flag is present in config.js.
@@ -575,19 +573,17 @@ export default class JingleSessionPC extends JingleSession {
         // The signaling layer will bind it's listeners at this point
         this.signalingLayer.setChatRoom(this.room);
 
-        if (!this.isP2P && options.enableLayerSuspension) {
+        if (!this.isP2P) {
             // If this is the bridge session, we'll listen for
-            // IS_SELECTED_CHANGED events and notify the peer connection
-            this.rtc.addListener(RTCEvents.IS_SELECTED_CHANGED,
-                isSelected => {
-                    this.peerconnection.setIsSelected(isSelected);
-                    logger.info('Doing local O/A due to '
-                        + 'IS_SELECTED_CHANGED event');
-                    this.modificationQueue.push(finishedCallback => {
-                        this._renegotiate()
-                            .then(finishedCallback)
-                            .catch(finishedCallback);
-                    });
+            // SENDER_VIDEO_CONSTRAINTS_CHANGED events and notify the peer connection
+            this.rtc.addListener(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
+                idealHeight => {
+                    logger.info(`${this} received remote ideal frame height: ${idealHeight}`);
+                    this.remoteRecvMaxFrameHeight = idealHeight;
+                    this.eventEmitter.emit(
+                        MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED,
+                        this,
+                        idealHeight);
                 }
             );
         }
@@ -599,9 +595,7 @@ export default class JingleSessionPC extends JingleSession {
      * @returns {Number|undefined}
      */
     getRemoteRecvMaxFrameHeight() {
-        return this.isP2P
-            ? this.remoteRecvMaxFrameHeight
-            : undefined; // FIXME George: put a getter for the JVB's preference here
+        return this.remoteRecvMaxFrameHeight;
     }
 
     /**

@@ -344,11 +344,11 @@ export default class BridgeChannel {
 
                 break;
             }
-            case 'SelectedUpdateEvent': {
-                const isSelected = obj.isSelected;
+            case 'SenderVideoConstraintsChangedEvent': {
+                const idealHeight = obj.videoConstraints.idealHeight;
 
-                logger.info(`SelectedUpdateEvent isSelected? ${isSelected}`);
-                emitter.emit(RTCEvents.IS_SELECTED_CHANGED, isSelected);
+                logger.info(`SenderVideoConstraintsChangedEvent idealHeight? ${idealHeight}`);
+                emitter.emit(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED, idealHeight);
                 break;
             }
             default: {
