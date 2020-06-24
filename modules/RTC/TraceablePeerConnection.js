@@ -30,7 +30,8 @@ import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 const logger = getLogger(__filename);
 const MAX_BITRATE = 2500000;
 const DESKSTOP_SHARE_RATE = 500000;
-
+const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
+const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
 /* eslint-disable max-params */
 
 /**
@@ -1917,6 +1918,43 @@ TraceablePeerConnection.prototype.setAudioTransferActive = function(active) {
 };
 
 /**
+ * Sets the degradation preference on the video sender. This setting determines if
+ * resolution or framerate will be preferred when bandwidth or cpu is constrained.
+ * Sets it to 'maintain-framerate' when a camera track is added to the pc, sets it
+ * to 'maintain-resolution' when a desktop track is being shared instead.
+ * @returns {void}
+ */
+TraceablePeerConnection.prototype.setSenderVideoDegradationPreference = function() {
+    if (!this.peerconnection.getSenders) {
+        logger.debug('Browser does not support RTCRtpSender');
+
+        return;
+    }
+    const localVideoTrack = Array.from(this.localTracks.values()).find(t => t.isVideoTrack());
+    const videoSender = this.findSenderByKind(MediaType.VIDEO);
+
+    if (!videoSender) {
+        return;
+    }
+    const parameters = videoSender.getParameters();
+
+    if (!parameters.encodings || !parameters.encodings.length) {
+        return;
+    }
+    for (const encoding in parameters.encodings) {
+        if (parameters.encodings.hasOwnProperty(encoding)) {
+            const preference = localVideoTrack.videoType === VideoType.CAMERA
+                ? DEGRADATION_PREFERENCE_CAMERA
+                : DEGRADATION_PREFERENCE_DESKTOP;
+
+            logger.info(`Setting video sender degradation preference on ${this} to ${preference}`);
+            parameters.encodings[encoding].degradationPreference = preference;
+        }
+    }
+    videoSender.setParameters(parameters);
+};
+
+/**
  * Sets the max bitrate on the RTCRtpSender so that the
  * bitrate of the enocder doesn't exceed the configured value.
  * This is needed for the desktop share until spec-complaint
@@ -1925,16 +1963,13 @@ TraceablePeerConnection.prototype.setAudioTransferActive = function(active) {
  * max bitrate is to be configured.
  */
 TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack) {
-    const mediaType = localTrack.type;
     const trackId = localTrack.track.id;
     const videoType = localTrack.videoType;
 
     // No need to set max bitrates on the streams in the following cases.
-    // 1. When an audio track has been replaced.
-    // 2. When a 'camera' track is replaced in plan-b mode, since its a new sender.
-    // 3. When the config.js option for capping the SS bitrate is not enabled.
-    if ((mediaType === MediaType.AUDIO)
-        || (browser.usesPlanB() && !this.options.capScreenshareBitrate)
+    // 1. When a 'camera' track is replaced in plan-b mode, since its a new sender.
+    // 2. When the config.js option for capping the SS bitrate is not enabled.
+    if ((browser.usesPlanB() && !this.options.capScreenshareBitrate)
         || (browser.usesPlanB() && videoType === VideoType.CAMERA)) {
         return;
     }

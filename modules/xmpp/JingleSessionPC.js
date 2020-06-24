@@ -1411,6 +1411,17 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Sets the degradation preference on the video sender. This setting determines if
+     * resolution or framerate will be preferred when bandwidth or cpu is constrained.
+     * @returns {void}
+     */
+    setSenderVideoDegradationPreference() {
+        if (this._assertNotEnded()) {
+            this.peerconnection.setSenderVideoDegradationPreference();
+        }
+    }
+
+    /**
      * @inheritDoc
      */
     terminate(success, failure, options) {
@@ -1885,12 +1896,14 @@ export default class JingleSessionPC extends JingleSession {
                     // Wait for the renegotation to be done if needed (plan-b) before adjusting
                     // the max bitrates on the video sender.
                     promise.then(() => {
-                        // configure max bitrate only when media is routed
-                        // through JVB. For p2p case, browser takes care of
-                        // adjusting the uplink based on the feedback it
-                        // gets from the peer.
-                        if (newTrack && !this.isP2P) {
-                            this.peerconnection.setMaxBitRate(newTrack);
+                        if (newTrack && newTrack.isVideoTrack()) {
+                            // Set the degradation preference on the new video sender.
+                            this.peerconnection.setSenderVideoDegradationPreference();
+
+                            // Configure max bitrate on the video sender when media is routed through JVB.
+                            if (!this.isP2P) {
+                                this.peerconnection.setMaxBitRate(newTrack);
+                            }
                         }
                         finishedCallback();
                     }, finishedCallback /* will be called with en error */);
