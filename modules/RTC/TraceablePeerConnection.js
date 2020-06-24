@@ -6,10 +6,6 @@ import transform from 'sdp-transform';
 
 import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import JitsiRemoteTrack from './JitsiRemoteTrack';
-import {
-    TRACK_ADDED,
-    TRACK_MUTE_CHANGED
-} from '../../JitsiConferenceEvents';
 import * as MediaType from '../../service/RTC/MediaType';
 import * as VideoType from '../../service/RTC/VideoType';
 import LocalSdpMunger from './LocalSdpMunger';
@@ -251,6 +247,11 @@ export default function TraceablePeerConnection(
     this.eventEmitter = rtc.eventEmitter;
     this.rtxModifier = new RtxModifier();
 
+    /**
+     * The height constraint applied on the video sender.
+     */
+    this.senderVideoMaxHeight = null;
+
     // override as desired
     this.trace = (what, info) => {
         logger.debug(what, info);
@@ -340,29 +341,6 @@ export default function TraceablePeerConnection(
             });
         }, 1000);
     }
-
-    // Set sender video constraints when a new local video track is added
-    // to the conference or when it is unmuted.
-    this.senderVideoMaxHeight = null;
-    const maybeSetSenderVideoConstraints = track => {
-        if (track.isLocal()
-            && !track.isMuted()
-            && track.isVideoTrack()
-            && track.videoType === VideoType.CAMERA
-            && this.senderVideoMaxHeight) {
-            this.setSenderVideoConstraint(this.senderVideoMaxHeight)
-                .catch(err => {
-                    logger.error(`Settings sender video constraints failed: ${err}`);
-                });
-        }
-    };
-
-    this.rtc.conference.on(
-        TRACK_ADDED,
-        maybeSetSenderVideoConstraints);
-    this.rtc.conference.on(
-        TRACK_MUTE_CHANGED,
-        maybeSetSenderVideoConstraints);
 
     logger.info(`Create new ${this}`);
 }
@@ -2101,8 +2079,13 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
  * @returns {Promise} promise that will be resolved when the operation is
  * successful and rejected otherwise.
  */
-TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeight) {
-    this.senderVideoMaxHeight = frameHeight;
+TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeight = null) {
+    const newHeight = frameHeight || this.senderVideoMaxHeight;
+
+    this.senderVideoMaxHeight = newHeight;
+    if (!newHeight) {
+        return Promise.resolve();
+    }
     const localVideoTrack = Array.from(this.localTracks.values()).find(t => t.isVideoTrack());
 
     if (!localVideoTrack || localVideoTrack.isMuted() || localVideoTrack.videoType !== VideoType.CAMERA) {
@@ -2128,7 +2111,7 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
                 // Determine the encodings that need to stay enabled based on the
                 // new frameHeight provided.
                 const encodingsEnabledState = this.tpcUtils.simulcastStreamConstraints
-                    .map(constraint => constraint.height <= frameHeight);
+                    .map(constraint => constraint.height <= newHeight);
                 const videoSender = this.findSenderByKind(MediaType.VIDEO);
 
                 if (!videoSender) {
@@ -2139,7 +2122,7 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
                 if (!parameters || !parameters.encodings || !parameters.encodings.length) {
                     return Promise.reject(new Error('RTCRtpSendParameters not found for local video track'));
                 }
-                logger.debug(`Setting max height of ${frameHeight} on local video`);
+                logger.debug(`Setting max height of ${newHeight} on local video`);
                 for (const encoding in parameters.encodings) {
                     if (parameters.encodings.hasOwnProperty(encoding)) {
                         parameters.encodings[encoding].active = encodingsEnabledState[encoding];
@@ -2153,13 +2136,13 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
     // Apply the height constraint on the local camera track
     const aspectRatio = (track.getSettings().width / track.getSettings().height).toPrecision(4);
 
-    logger.debug(`Setting max height of ${frameHeight} on local video`);
+    logger.debug(`Setting max height of ${newHeight} on local video`);
 
     return track.applyConstraints(
         {
             aspectRatio,
             height: {
-                ideal: frameHeight
+                ideal: newHeight
             }
         });
 };

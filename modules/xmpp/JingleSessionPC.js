@@ -1893,12 +1893,13 @@ export default class JingleSessionPC extends JingleSession {
                         finishedCallback /* will be called with en error */);
                     }
 
-                    // Wait for the renegotation to be done if needed (plan-b) before adjusting
-                    // the max bitrates on the video sender.
                     promise.then(() => {
                         if (newTrack && newTrack.isVideoTrack()) {
                             // Set the degradation preference on the new video sender.
                             this.peerconnection.setSenderVideoDegradationPreference();
+
+                            // Apply the cached video constraints on the new video sender.
+                            this.peerconnection.setSenderVideoConstraint();
 
                             // Configure max bitrate on the video sender when media is routed through JVB.
                             if (!this.isP2P) {
@@ -2051,7 +2052,15 @@ export default class JingleSessionPC extends JingleSession {
      */
     addTrackAsUnmute(track) {
         return this._addRemoveTrackAsMuteUnmute(
-            false /* add as unmute */, track);
+            false /* add as unmute */, track)
+            .then(() => {
+                // Apply the video constraints and degradation preference on
+                // the video sender if needed.
+                if (track.isVideoTrack() && browser.doesVideoMuteByStreamRemove()) {
+                    this.peerconnection.setSenderVideoDegradationPreference();
+                    this.peerconnection.setSenderVideoConstraint();
+                }
+            });
     }
 
     /**
