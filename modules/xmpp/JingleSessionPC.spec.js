@@ -93,8 +93,8 @@ describe('JingleSessionPC', () => {
         });
         it('fires an event when remote peer sends content-modify', () => {
             let remoteRecvMaxFrameHeight;
-            const remoteVideoConstraintsListener = (session, maxFrameHeight) => {
-                remoteRecvMaxFrameHeight = maxFrameHeight;
+            const remoteVideoConstraintsListener = session => {
+                remoteRecvMaxFrameHeight = session.getRemoteRecvMaxFrameHeight();
             };
 
             jingleSession.addListener(

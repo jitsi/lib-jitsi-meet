@@ -581,9 +581,7 @@ export default class JingleSessionPC extends JingleSession {
                     logger.info(`${this} received remote ideal frame height: ${idealHeight}`);
                     this.remoteRecvMaxFrameHeight = idealHeight;
                     this.eventEmitter.emit(
-                        MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED,
-                        this,
-                        idealHeight);
+                        MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED, this);
                 }
             );
         }
@@ -2207,9 +2205,7 @@ export default class JingleSessionPC extends JingleSession {
             logger.info(`${this} received remote max frame height: ${newMaxFrameHeight}`);
             this.remoteRecvMaxFrameHeight = newMaxFrameHeight;
             this.eventEmitter.emit(
-                MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED,
-                this,
-                newMaxFrameHeight);
+                MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED, this);
         }
 
         if (newVideoSenders === null) {
