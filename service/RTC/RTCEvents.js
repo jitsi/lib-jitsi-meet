@@ -20,7 +20,9 @@ const RTCEvents = {
      */
     GRANTED_PERMISSIONS: 'rtc.granted_permissions',
 
-    SENDER_VIDEO_CONSTRAINTS_CHANGED: 'rtc.sender_video_constraints_changed',
+    SENDER_VIDEO_CONSTRAINTS_CHANGED_FROM_BRIDGE: 'bridge_channel.sender_video_constraints_changed',
+
+    SENDER_VIDEO_CONSTRAINTS_CHANGED_FROM_RTC: 'rtc.sender_video_constraints_changed',
 
     /**
      * Event emitted when {@link RTC.setLastN} method is called to update with

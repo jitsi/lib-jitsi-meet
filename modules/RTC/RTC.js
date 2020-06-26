@@ -163,6 +163,11 @@ export default class RTC extends Listenable {
          */
         this._lastNEndpoints = null;
 
+        /*
+         * Holds the sender video constraints signaled from the bridge.
+         */
+        this._senderVideoConstraints = {};
+
         /**
          * The number representing the maximum video height the local client
          * should receive from the bridge.
@@ -190,6 +195,8 @@ export default class RTC extends Listenable {
 
         // The last N change listener.
         this._lastNChangeListener = this._onLastNChanged.bind(this);
+
+        this._senderVideoConstraintsChangeListener = this._onSenderVideoConstraintsChanged.bind(this);
 
         this._onDeviceListChanged = this._onDeviceListChanged.bind(this);
         this._updateAudioOutputForAudioTracks
@@ -229,6 +236,11 @@ export default class RTC extends Listenable {
         this.removeListener(
             RTCEvents.LASTN_ENDPOINT_CHANGED,
             this._lastNChangeListener
+        );
+
+        this.removeListener(
+            RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED_FROM_BRIDGE,
+            this._senderVideoConstraintsChangeListener
         );
 
         if (this._channelOpenListener) {
@@ -332,6 +344,10 @@ export default class RTC extends Listenable {
         // Add Last N change listener.
         this.addListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
             this._lastNChangeListener);
+
+        this.addListener(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED_FROM_BRIDGE,
+            this._senderVideoConstraintsChangeListener);
+
     }
 
     /**
@@ -344,6 +360,17 @@ export default class RTC extends Listenable {
      */
     _onDeviceListChanged() {
         this._updateAudioOutputForAudioTracks(RTCUtils.getAudioOutputDevice());
+    }
+
+    /**
+     * Notifies this instance that the sender video constraints signaled from the bridge have changed.
+     *
+     * @param {Object} senderVideoConstraints the sender video constraints from the bridge.
+     * @private
+     */
+    _onSenderVideoConstraintsChanged(senderVideoConstraints) {
+        this._senderVideoConstraints = senderVideoConstraints;
+        this.eventEmitter.emit(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED_FROM_RTC);
     }
 
     /**
@@ -581,6 +608,13 @@ export default class RTC extends Listenable {
      */
     getLastN() {
         return this._lastN;
+    }
+
+    /**
+     * @return {Object} The sender video constraints signaled from the brridge.
+     */
+    getSenderVideoConstraints() {
+        return this._senderVideoConstraints;
     }
 
     /**
@@ -873,6 +907,8 @@ export default class RTC extends Listenable {
 
             this.removeListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
                 this._lastNChangeListener);
+            this.removeListener(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED_FROM_BRIDGE,
+                this._senderVideoConstraintsChangeListener);
         }
     }
 

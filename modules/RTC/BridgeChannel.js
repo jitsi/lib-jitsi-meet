@@ -345,10 +345,12 @@ export default class BridgeChannel {
                 break;
             }
             case 'SenderVideoConstraintsChangedEvent': {
-                const idealHeight = obj.videoConstraints.idealHeight;
+                const videoConstraints = obj.videoConstraints;
 
-                logger.info(`SenderVideoConstraintsChangedEvent idealHeight? ${idealHeight}`);
-                emitter.emit(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED, idealHeight);
+                if (videoConstraints) {
+                    logger.info(`SenderVideoConstraintsChangedEvent: ${JSON.stringify(videoConstraints)}`);
+                    emitter.emit(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED_FROM_BRIDGE, videoConstraints);
+                }
                 break;
             }
             default: {

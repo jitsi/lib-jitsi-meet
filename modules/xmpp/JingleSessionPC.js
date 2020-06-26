@@ -281,6 +281,8 @@ export default class JingleSessionPC extends JingleSession {
                 XmppConnection.Events.CONN_STATUS_CHANGED,
                 this.onXmppStatusChanged.bind(this))
         );
+
+        this._removeSenderVideoConstraintsChangeListener = undefined;
     }
 
     /* eslint-enable max-params */
@@ -576,14 +578,11 @@ export default class JingleSessionPC extends JingleSession {
         if (!this.isP2P) {
             // If this is the bridge session, we'll listen for
             // SENDER_VIDEO_CONSTRAINTS_CHANGED events and notify the peer connection
-            this.rtc.addListener(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
-                idealHeight => {
-                    logger.info(`${this} received remote ideal frame height: ${idealHeight}`);
-                    this.remoteRecvMaxFrameHeight = idealHeight;
+            this._removeSenderVideoConstraintsChangeListener = this.rtc.addListener(
+                RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED_FROM_RTC, () => {
                     this.eventEmitter.emit(
                         MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED, this);
-                }
-            );
+                });
         }
     }
 
@@ -593,7 +592,9 @@ export default class JingleSessionPC extends JingleSession {
      * @returns {Number|undefined}
      */
     getRemoteRecvMaxFrameHeight() {
-        return this.remoteRecvMaxFrameHeight;
+        return this.isP2P
+            ? this.remoteRecvMaxFrameHeight
+            : this.rtc.getSenderVideoConstraints().idealHeight;
     }
 
     /**
@@ -1460,6 +1461,10 @@ export default class JingleSessionPC extends JingleSession {
 
         this._xmppListeners.forEach(removeListener => removeListener());
         this._xmppListeners = [];
+
+        if (this._removeSenderVideoConstraintsChangeListener) {
+            this._removeSenderVideoConstraintsChangeListener();
+        }
 
         this.close();
     }
