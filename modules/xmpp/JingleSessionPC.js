@@ -47,6 +47,7 @@ const DEFAULT_MAX_STATS = 300;
  * @property {boolean} disableH264 - Described in the config.js[1].
  * @property {boolean} disableRtx - Described in the config.js[1].
  * @property {boolean} disableSimulcast - Described in the config.js[1].
+ * @property {boolean} enableLayerSuspension - Described in the config.js[1].
  * @property {boolean} failICE - it's an option used in the tests. Set to
  * <tt>true</tt> to block any real candidates and make the ICE fail.
  * @property {boolean} gatherStats - Described in the config.js[1].
@@ -575,7 +576,7 @@ export default class JingleSessionPC extends JingleSession {
         // The signaling layer will bind it's listeners at this point
         this.signalingLayer.setChatRoom(this.room);
 
-        if (!this.isP2P) {
+        if (!this.isP2P && options.enableLayerSuspension) {
             // If this is the bridge session, we'll listen for
             // SENDER_VIDEO_CONSTRAINTS_CHANGED events and notify the peer connection
             this._removeSenderVideoConstraintsChangeListener = this.rtc.addListener(
@@ -592,9 +593,11 @@ export default class JingleSessionPC extends JingleSession {
      * @returns {Number|undefined}
      */
     getRemoteRecvMaxFrameHeight() {
-        return this.isP2P
-            ? this.remoteRecvMaxFrameHeight
-            : this.rtc.getSenderVideoConstraints().idealHeight;
+        if (this.isP2P) {
+            return this.remoteRecvMaxFrameHeight;
+        }
+
+        return this.options.enableLayerSuspension ? this.rtc.getSenderVideoConstraints().idealHeight : undefined;
     }
 
     /**
