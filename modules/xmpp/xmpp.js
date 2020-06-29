@@ -252,6 +252,16 @@ export default class XMPP extends Listenable {
 
                         if (identity.type === 'lobbyrooms') {
                             this.lobbySupported = true;
+                            identity.name && this.caps.getFeaturesAndIdentities(identity.name, identity.type)
+                                .then(({ features: f }) => {
+                                    f.forEach(fr => {
+                                        if (fr.endsWith('#displayname_required')) {
+                                            this.eventEmitter.emit(
+                                                JitsiConnectionEvents.DISPLAY_NAME_REQUIRED);
+                                        }
+                                    });
+                                })
+                                .catch(logger.warn('Error getting features from lobby.'));
                         }
                     });
 
