@@ -233,12 +233,18 @@ export default class ProxyConnectionPC {
         };
 
         /**
+         * A {@code JitsiConference} stub passed to the {@link RTC} module.
+         * @type {Object}
+         */
+        const conferenceStub = {};
+
+        /**
          * Create an instance of {@code RTC} as it is required for peer
          * connection creation by {@code JingleSessionPC}. An existing instance
          * of {@code RTC} from elsewhere should not be re-used because it is
          * a stateful grouping of utilities.
          */
-        this._rtc = new RTC(this, {});
+        this._rtc = new RTC(conferenceStub, {});
 
         /**
          * Add the remote track listener here as {@code JingleSessionPC} has
