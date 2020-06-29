@@ -4,21 +4,22 @@ import { getLogger } from 'jitsi-meet-logger';
 import { $msg, Strophe } from 'strophe.js';
 import 'strophejs-plugin-disco';
 
-import RandomUtil from '../util/RandomUtil';
 import * as JitsiConnectionErrors from '../../JitsiConnectionErrors';
 import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
+import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import browser from '../browser';
+import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import Listenable from '../util/Listenable';
+import RandomUtil from '../util/RandomUtil';
+
+import Caps from './Caps';
+import XmppConnection from './XmppConnection';
 import MucConnectionPlugin from './strophe.emuc';
 import JingleConnectionPlugin from './strophe.jingle';
-import initStropheUtil from './strophe.util';
+import initStropheLogger from './strophe.logger';
 import PingConnectionPlugin from './strophe.ping';
 import RayoConnectionPlugin from './strophe.rayo';
-import initStropheLogger from './strophe.logger';
-import Listenable from '../util/Listenable';
-import Caps from './Caps';
-import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
-import XMPPEvents from '../../service/xmpp/XMPPEvents';
-import XmppConnection from './XmppConnection';
+import initStropheUtil from './strophe.util';
 
 const logger = getLogger(__filename);
 
@@ -251,6 +252,16 @@ export default class XMPP extends Listenable {
 
                         if (identity.type === 'lobbyrooms') {
                             this.lobbySupported = true;
+                            identity.name && this.caps.getFeaturesAndIdentities(identity.name, identity.type)
+                                .then(({ features: f }) => {
+                                    f.forEach(fr => {
+                                        if (fr.endsWith('#displayname_required')) {
+                                            this.eventEmitter.emit(
+                                                JitsiConnectionEvents.DISPLAY_NAME_REQUIRED);
+                                        }
+                                    });
+                                })
+                                .catch(logger.warn('Error getting features from lobby.'));
                         }
                     });
 
