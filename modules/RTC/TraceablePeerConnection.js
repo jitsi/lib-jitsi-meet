@@ -6,10 +6,6 @@ import transform from 'sdp-transform';
 
 import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import JitsiRemoteTrack from './JitsiRemoteTrack';
-import {
-    TRACK_ADDED,
-    TRACK_MUTE_CHANGED
-} from '../../JitsiConferenceEvents';
 import * as MediaType from '../../service/RTC/MediaType';
 import * as VideoType from '../../service/RTC/VideoType';
 import LocalSdpMunger from './LocalSdpMunger';
@@ -30,7 +26,8 @@ import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 const logger = getLogger(__filename);
 const MAX_BITRATE = 2500000;
 const DESKSTOP_SHARE_RATE = 500000;
-
+const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
+const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
 /* eslint-disable max-params */
 
 /**
@@ -250,6 +247,11 @@ export default function TraceablePeerConnection(
     this.eventEmitter = rtc.eventEmitter;
     this.rtxModifier = new RtxModifier();
 
+    /**
+     * The height constraint applied on the video sender.
+     */
+    this.senderVideoMaxHeight = null;
+
     // override as desired
     this.trace = (what, info) => {
         logger.debug(what, info);
@@ -339,29 +341,6 @@ export default function TraceablePeerConnection(
             });
         }, 1000);
     }
-
-    // Set sender video constraints when a new local video track is added
-    // to the conference or when it is unmuted.
-    this.senderVideoMaxHeight = null;
-    const maybeSetSenderVideoConstraints = track => {
-        if (track.isLocal()
-            && !track.isMuted()
-            && track.isVideoTrack()
-            && track.videoType === VideoType.CAMERA
-            && this.senderVideoMaxHeight) {
-            this.setSenderVideoConstraint(this.senderVideoMaxHeight)
-                .catch(err => {
-                    logger.error(`Settings sender video constraints failed: ${err}`);
-                });
-        }
-    };
-
-    this.rtc.conference.on(
-        TRACK_ADDED,
-        maybeSetSenderVideoConstraints);
-    this.rtc.conference.on(
-        TRACK_MUTE_CHANGED,
-        maybeSetSenderVideoConstraints);
 
     logger.info(`Create new ${this}`);
 }
@@ -1917,6 +1896,43 @@ TraceablePeerConnection.prototype.setAudioTransferActive = function(active) {
 };
 
 /**
+ * Sets the degradation preference on the video sender. This setting determines if
+ * resolution or framerate will be preferred when bandwidth or cpu is constrained.
+ * Sets it to 'maintain-framerate' when a camera track is added to the pc, sets it
+ * to 'maintain-resolution' when a desktop track is being shared instead.
+ * @returns {void}
+ */
+TraceablePeerConnection.prototype.setSenderVideoDegradationPreference = function() {
+    if (!this.peerconnection.getSenders) {
+        logger.debug('Browser does not support RTCRtpSender');
+
+        return;
+    }
+    const localVideoTrack = Array.from(this.localTracks.values()).find(t => t.isVideoTrack());
+    const videoSender = this.findSenderByKind(MediaType.VIDEO);
+
+    if (!videoSender) {
+        return;
+    }
+    const parameters = videoSender.getParameters();
+
+    if (!parameters.encodings || !parameters.encodings.length) {
+        return;
+    }
+    for (const encoding in parameters.encodings) {
+        if (parameters.encodings.hasOwnProperty(encoding)) {
+            const preference = localVideoTrack.videoType === VideoType.CAMERA
+                ? DEGRADATION_PREFERENCE_CAMERA
+                : DEGRADATION_PREFERENCE_DESKTOP;
+
+            logger.info(`Setting video sender degradation preference on ${this} to ${preference}`);
+            parameters.encodings[encoding].degradationPreference = preference;
+        }
+    }
+    videoSender.setParameters(parameters);
+};
+
+/**
  * Sets the max bitrate on the RTCRtpSender so that the
  * bitrate of the enocder doesn't exceed the configured value.
  * This is needed for the desktop share until spec-complaint
@@ -1925,16 +1941,13 @@ TraceablePeerConnection.prototype.setAudioTransferActive = function(active) {
  * max bitrate is to be configured.
  */
 TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack) {
-    const mediaType = localTrack.type;
     const trackId = localTrack.track.id;
     const videoType = localTrack.videoType;
 
     // No need to set max bitrates on the streams in the following cases.
-    // 1. When an audio track has been replaced.
-    // 2. When a 'camera' track is replaced in plan-b mode, since its a new sender.
-    // 3. When the config.js option for capping the SS bitrate is not enabled.
-    if ((mediaType === MediaType.AUDIO)
-        || (browser.usesPlanB() && !this.options.capScreenshareBitrate)
+    // 1. When a 'camera' track is replaced in plan-b mode, since its a new sender.
+    // 2. When the config.js option for capping the SS bitrate is not enabled.
+    if ((browser.usesPlanB() && !this.options.capScreenshareBitrate)
         || (browser.usesPlanB() && videoType === VideoType.CAMERA)) {
         return;
     }
@@ -2066,8 +2079,13 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
  * @returns {Promise} promise that will be resolved when the operation is
  * successful and rejected otherwise.
  */
-TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeight) {
-    this.senderVideoMaxHeight = frameHeight;
+TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeight = null) {
+    const newHeight = frameHeight || this.senderVideoMaxHeight;
+
+    this.senderVideoMaxHeight = newHeight;
+    if (!newHeight) {
+        return Promise.resolve();
+    }
     const localVideoTrack = Array.from(this.localTracks.values()).find(t => t.isVideoTrack());
 
     if (!localVideoTrack || localVideoTrack.isMuted() || localVideoTrack.videoType !== VideoType.CAMERA) {
@@ -2093,7 +2111,7 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
                 // Determine the encodings that need to stay enabled based on the
                 // new frameHeight provided.
                 const encodingsEnabledState = this.tpcUtils.simulcastStreamConstraints
-                    .map(constraint => constraint.height <= frameHeight);
+                    .map(constraint => constraint.height <= newHeight);
                 const videoSender = this.findSenderByKind(MediaType.VIDEO);
 
                 if (!videoSender) {
@@ -2104,7 +2122,7 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
                 if (!parameters || !parameters.encodings || !parameters.encodings.length) {
                     return Promise.reject(new Error('RTCRtpSendParameters not found for local video track'));
                 }
-                logger.debug(`Setting max height of ${frameHeight} on local video`);
+                logger.debug(`Setting max height of ${newHeight} on local video`);
                 for (const encoding in parameters.encodings) {
                     if (parameters.encodings.hasOwnProperty(encoding)) {
                         parameters.encodings[encoding].active = encodingsEnabledState[encoding];
@@ -2118,13 +2136,13 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
     // Apply the height constraint on the local camera track
     const aspectRatio = (track.getSettings().width / track.getSettings().height).toPrecision(4);
 
-    logger.debug(`Setting max height of ${frameHeight} on local video`);
+    logger.debug(`Setting max height of ${newHeight} on local video`);
 
     return track.applyConstraints(
         {
             aspectRatio,
             height: {
-                ideal: frameHeight
+                ideal: newHeight
             }
         });
 };

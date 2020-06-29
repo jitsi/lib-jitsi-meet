@@ -43,6 +43,9 @@ export class QualityController {
             });
         this.preferredReceiveMaxFrameHeight
             && mediaSession.setReceiverVideoConstraint(this.preferredReceiveMaxFrameHeight);
+
+        // Set the degradation preference on the local video track.
+        mediaSession.setSenderVideoDegradationPreference();
     }
 
     /**
