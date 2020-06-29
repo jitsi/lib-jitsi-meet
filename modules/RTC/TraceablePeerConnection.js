@@ -51,9 +51,6 @@ const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
  *      disabled by removing it from the SDP.
  * @param {boolean} options.preferH264 if set to 'true' H264 will be preferred
  * over other video codecs.
- * @param {boolean} options.enableLayerSuspension if set to 'true', we will
- * cap the video send bitrate when we are told we have not been selected by
- * any endpoints (and therefore the non-thumbnail streams are not in use).
  * @param {boolean} options.startSilent If set to 'true' no audio will be sent or received.
  *
  * FIXME: initially the purpose of TraceablePeerConnection was to be able to
@@ -2659,60 +2656,6 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {
     this.localSSRCs.set(rtcId, ssrcInfo);
 
     return ssrcInfo;
-};
-
-const handleLayerSuspension = function(peerConnection, isSelected) {
-    if (!peerConnection.getSenders) {
-        logger.debug('Browser doesn\'t support RTPSender');
-
-        return;
-    }
-
-    const videoSender = peerConnection.getSenders()
-        .find(sender => sender.track.kind === 'video');
-
-    if (!videoSender) {
-        logger.warn('handleLayerSuspension unable to find video sender');
-
-        return;
-    }
-    if (!videoSender.getParameters) {
-        logger.debug('Browser doesn\'t support RTPSender parameters');
-
-        return;
-    }
-    const parameters = videoSender.getParameters();
-
-    if (isSelected) {
-        logger.debug('Currently selected, enabling all sim layers');
-
-        // Make sure all encodings are enabled
-        parameters.encodings.forEach(e => {
-            e.active = true;
-        });
-    } else {
-        logger.debug('Not currently selected, disabling upper layers');
-
-        // Turn off the upper simulcast layers
-        [ 1, 2 ].forEach(simIndex => {
-            if (parameters.encodings[simIndex]) {
-                parameters.encodings[simIndex].active = false;
-            }
-        });
-    }
-    videoSender.setParameters(parameters);
-};
-
-/**
- * Set whether or not the endpoint is 'selected' by other endpoints, meaning
- * it appears on their main stage
- */
-TraceablePeerConnection.prototype.setIsSelected = function(isSelected) {
-    if (this.options.enableLayerSuspension) {
-        logger.debug('Layer suspension enabled,'
-            + `currently selected? ${isSelected}`);
-        handleLayerSuspension(this.peerconnection, isSelected);
-    }
 };
 
 /**

@@ -282,6 +282,8 @@ export default class JingleSessionPC extends JingleSession {
                 XmppConnection.Events.CONN_STATUS_CHANGED,
                 this.onXmppStatusChanged.bind(this))
         );
+
+        this._removeSenderVideoConstraintsChangeListener = undefined;
     }
 
     /* eslint-enable max-params */
@@ -341,7 +343,6 @@ export default class JingleSessionPC extends JingleSession {
                 = options.disableSimulcast
                     || (options.preferH264 && !options.disableH264);
             pcOptions.preferH264 = options.preferH264;
-            pcOptions.enableLayerSuspension = options.enableLayerSuspension;
 
             // disable simulcast for screenshare and set the max bitrate to
             // 500Kbps if the testing flag is present in config.js.
@@ -577,19 +578,12 @@ export default class JingleSessionPC extends JingleSession {
 
         if (!this.isP2P && options.enableLayerSuspension) {
             // If this is the bridge session, we'll listen for
-            // IS_SELECTED_CHANGED events and notify the peer connection
-            this.rtc.addListener(RTCEvents.IS_SELECTED_CHANGED,
-                isSelected => {
-                    this.peerconnection.setIsSelected(isSelected);
-                    logger.info('Doing local O/A due to '
-                        + 'IS_SELECTED_CHANGED event');
-                    this.modificationQueue.push(finishedCallback => {
-                        this._renegotiate()
-                            .then(finishedCallback)
-                            .catch(finishedCallback);
-                    });
-                }
-            );
+            // SENDER_VIDEO_CONSTRAINTS_CHANGED events and notify the peer connection
+            this._removeSenderVideoConstraintsChangeListener = this.rtc.addListener(
+                RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED, () => {
+                    this.eventEmitter.emit(
+                        MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED, this);
+                });
         }
     }
 
@@ -599,9 +593,11 @@ export default class JingleSessionPC extends JingleSession {
      * @returns {Number|undefined}
      */
     getRemoteRecvMaxFrameHeight() {
-        return this.isP2P
-            ? this.remoteRecvMaxFrameHeight
-            : undefined; // FIXME George: put a getter for the JVB's preference here
+        if (this.isP2P) {
+            return this.remoteRecvMaxFrameHeight;
+        }
+
+        return this.options.enableLayerSuspension ? this.rtc.getSenderVideoConstraints().idealHeight : undefined;
     }
 
     /**
@@ -1480,6 +1476,10 @@ export default class JingleSessionPC extends JingleSession {
         this._xmppListeners.forEach(removeListener => removeListener());
         this._xmppListeners = [];
 
+        if (this._removeSenderVideoConstraintsChangeListener) {
+            this._removeSenderVideoConstraintsChangeListener();
+        }
+
         this.close();
     }
 
@@ -2235,9 +2235,7 @@ export default class JingleSessionPC extends JingleSession {
             logger.info(`${this} received remote max frame height: ${newMaxFrameHeight}`);
             this.remoteRecvMaxFrameHeight = newMaxFrameHeight;
             this.eventEmitter.emit(
-                MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED,
-                this,
-                newMaxFrameHeight);
+                MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED, this);
         }
 
         if (newVideoSenders === null) {
