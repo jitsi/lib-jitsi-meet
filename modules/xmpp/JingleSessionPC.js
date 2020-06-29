@@ -580,7 +580,7 @@ export default class JingleSessionPC extends JingleSession {
             // If this is the bridge session, we'll listen for
             // SENDER_VIDEO_CONSTRAINTS_CHANGED events and notify the peer connection
             this._removeSenderVideoConstraintsChangeListener = this.rtc.addListener(
-                RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED_FROM_RTC, () => {
+                RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED, () => {
                     this.eventEmitter.emit(
                         MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED, this);
                 });

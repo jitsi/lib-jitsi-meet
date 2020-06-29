@@ -196,8 +196,6 @@ export default class RTC extends Listenable {
         // The last N change listener.
         this._lastNChangeListener = this._onLastNChanged.bind(this);
 
-        this._senderVideoConstraintsChangeListener = this._onSenderVideoConstraintsChanged.bind(this);
-
         this._onDeviceListChanged = this._onDeviceListChanged.bind(this);
         this._updateAudioOutputForAudioTracks
             = this._updateAudioOutputForAudioTracks.bind(this);
@@ -236,11 +234,6 @@ export default class RTC extends Listenable {
         this.removeListener(
             RTCEvents.LASTN_ENDPOINT_CHANGED,
             this._lastNChangeListener
-        );
-
-        this.removeListener(
-            RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED_FROM_BRIDGE,
-            this._senderVideoConstraintsChangeListener
         );
 
         if (this._channelOpenListener) {
@@ -296,7 +289,7 @@ export default class RTC extends Listenable {
      */
     initializeBridgeChannel(peerconnection, wsUrl) {
         this._channel = new BridgeChannel(
-            peerconnection, wsUrl, this.eventEmitter);
+            peerconnection, wsUrl, this.eventEmitter, this._senderVideoConstraintsChanged.bind(this));
 
         this._channelOpenListener = () => {
             // Mark that channel as opened.
@@ -344,10 +337,6 @@ export default class RTC extends Listenable {
         // Add Last N change listener.
         this.addListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
             this._lastNChangeListener);
-
-        this.addListener(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED_FROM_BRIDGE,
-            this._senderVideoConstraintsChangeListener);
-
     }
 
     /**
@@ -368,9 +357,9 @@ export default class RTC extends Listenable {
      * @param {Object} senderVideoConstraints the sender video constraints from the bridge.
      * @private
      */
-    _onSenderVideoConstraintsChanged(senderVideoConstraints) {
+    _senderVideoConstraintsChanged(senderVideoConstraints) {
         this._senderVideoConstraints = senderVideoConstraints;
-        this.eventEmitter.emit(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED_FROM_RTC);
+        this.eventEmitter.emit(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED);
     }
 
     /**
@@ -907,8 +896,6 @@ export default class RTC extends Listenable {
 
             this.removeListener(RTCEvents.LASTN_ENDPOINT_CHANGED,
                 this._lastNChangeListener);
-            this.removeListener(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED_FROM_BRIDGE,
-                this._senderVideoConstraintsChangeListener);
         }
     }
 

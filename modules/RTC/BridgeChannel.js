@@ -21,8 +21,9 @@ export default class BridgeChannel {
      * instance.
      * @param {string} [wsUrl] WebSocket URL.
      * @param {EventEmitter} emitter the EventEmitter instance to use for event emission.
+     * @param {function} senderVideoConstraintsChanged callback to call when the sender video constraints change.
      */
-    constructor(peerconnection, wsUrl, emitter) {
+    constructor(peerconnection, wsUrl, emitter, senderVideoConstraintsChanged) {
         if (!peerconnection && !wsUrl) {
             throw new TypeError(
                 'At least peerconnection or wsUrl must be given');
@@ -53,6 +54,8 @@ export default class BridgeChannel {
 
         // Indicates whether the connection was closed from the client or not.
         this._closedFromClient = false;
+
+        this._senderVideoConstraintsChanged = senderVideoConstraintsChanged;
 
         // If a RTCPeerConnection is given, listen for new RTCDataChannel
         // event.
@@ -349,7 +352,7 @@ export default class BridgeChannel {
 
                 if (videoConstraints) {
                     logger.info(`SenderVideoConstraints: ${JSON.stringify(videoConstraints)}`);
-                    emitter.emit(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED_FROM_BRIDGE, videoConstraints);
+                    this._senderVideoConstraintsChanged(videoConstraints);
                 }
                 break;
             }
