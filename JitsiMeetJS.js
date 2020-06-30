@@ -25,6 +25,7 @@ import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import Logger from 'jitsi-meet-logger';
 import * as MediaType from './service/RTC/MediaType';
 import Resolutions from './service/RTC/Resolutions';
+import NetworkInfo from './modules/connectivity/NetworkInfo';
 import { ParticipantConnectionStatus }
     from './modules/connectivity/ParticipantConnectionStatus';
 import RTC from './modules/RTC/RTC';
@@ -612,6 +613,16 @@ export default _mergeNamespaceAndModule({
             `Column: ${colno}`,
             'StackTrace: ', error);
         Statistics.reportGlobalError(error);
+    },
+
+    /**
+     * Informs lib-jitsi-meet about the current network status.
+     *
+     * @param {boolean} isOnline - {@code true} if the internet connectivity is online or {@code false}
+     * otherwise.
+     */
+    setNetworkInfo({ isOnline }) {
+        NetworkInfo.updateNetworkInfo({ isOnline });
     },
 
     /**
