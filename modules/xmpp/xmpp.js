@@ -242,15 +242,14 @@ export default class XMPP extends Listenable {
 
                     // check for speakerstats
                     identities.forEach(identity => {
-                        if (identity.type === 'speakerstats') {
+                        switch (identity.type) {
+                        case 'speakerstats':
                             this.speakerStatsComponentAddress = identity.name;
-                        }
-
-                        if (identity.type === 'conference_duration') {
+                            break;
+                        case 'conference_duration':
                             this.conferenceDurationComponentAddress = identity.name;
-                        }
-
-                        if (identity.type === 'lobbyrooms') {
+                            break;
+                        case 'lobbyrooms':
                             this.lobbySupported = true;
                             identity.name && this.caps.getFeaturesAndIdentities(identity.name, identity.type)
                                 .then(({ features: f }) => {
@@ -262,7 +261,12 @@ export default class XMPP extends Listenable {
                                     });
                                 })
                                 .catch(logger.warn('Error getting features from lobby.'));
+                            break;
+                        case 'jibri-queue':
+                            this.jibriQueueComponentAddress = identity.name;
+                            break;
                         }
+
                     });
 
                     if (this.speakerStatsComponentAddress

@@ -279,6 +279,15 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
+     * See {@link Strophe.Connection.deleteHandler}
+     *
+     * @returns {void}
+     */
+    deleteHandler(...args) {
+        this._stropheConn.deleteHandler(...args);
+    }
+
+    /**
      * See {@link Strophe.Connection.disconnect}.
      *
      * @returns {void}

@@ -2143,7 +2143,10 @@ JitsiConference.prototype.sendTones = function(tones, duration, pause) {
  */
 JitsiConference.prototype.startRecording = function(options) {
     if (this.room) {
-        return this.recordingManager.startRecording(options);
+        return this.recordingManager.startRecording({
+            ...options,
+            jibriQueueComponentAddress: this.xmpp.jibriQueueComponentAddress
+        });
     }
 
     return Promise.reject(new Error('The conference is not created yet!'));
@@ -2154,11 +2157,12 @@ JitsiConference.prototype.startRecording = function(options) {
  *
  * @param {string} sessionID - The ID of the recording session that
  * should be stopped.
+ * @param {string} queueID - The ID of the queue associated with the recording session.
  * @returns {Promise} See {@link Chatroom#stopRecording} for more info.
  */
-JitsiConference.prototype.stopRecording = function(sessionID) {
+JitsiConference.prototype.stopRecording = function(sessionID, queueID) {
     if (this.room) {
-        return this.recordingManager.stopRecording(sessionID);
+        return this.recordingManager.stopRecording(sessionID, queueID);
     }
 
     return Promise.reject(new Error('The conference is not created yet!'));

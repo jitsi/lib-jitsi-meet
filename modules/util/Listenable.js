@@ -40,4 +40,14 @@ export default class Listenable {
     removeListener(eventName, listener) {
         this.eventEmitter.removeListener(eventName, listener);
     }
+
+    /**
+     * Removes all listeners, or those of the specified eventName.
+     *
+     * @param {string} eventName - The name of the event.
+     * @returns {void}
+     */
+    removeAllListeners(eventName) {
+        this.eventEmitter.removeAllListeners(eventName);
+    }
 }
