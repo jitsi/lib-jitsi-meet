@@ -31,7 +31,6 @@ import E2EEContext from './modules/e2ee/E2EEContext';
 import E2ePing from './modules/e2eping/e2eping';
 import Jvb121EventGenerator from './modules/event/Jvb121EventGenerator';
 import RecordingManager from './modules/recording/RecordingManager';
-import RttMonitor from './modules/rttmonitor/rttmonitor';
 import Settings from './modules/settings/Settings';
 import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import AudioOutputProblemDetector from './modules/statistics/AudioOutputProblemDetector';
@@ -332,8 +331,6 @@ JitsiConference.prototype._init = function(options = {}) {
     this._sendConferenceJoinAnalyticsEvent = this._sendConferenceJoinAnalyticsEvent.bind(this);
     this.room.addListener(XMPPEvents.MEETING_ID_SET, this._sendConferenceJoinAnalyticsEvent);
 
-    this.rttMonitor = new RttMonitor(config.rttMonitor || {});
-
     this.e2eping = new E2ePing(
         this,
         config,
@@ -540,11 +537,6 @@ JitsiConference.prototype.leave = function() {
     if (this._audioOutputProblemDetector) {
         this._audioOutputProblemDetector.dispose();
         this._audioOutputProblemDetector = null;
-    }
-
-    if (this.rttMonitor) {
-        this.rttMonitor.stop();
-        this.rttMonitor = null;
     }
 
     if (this.e2eping) {
