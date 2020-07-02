@@ -22,5 +22,10 @@ and to run unit tests:
 ```
 npm test
 ```
+if you need to rebuild lib-jitsi-meet.min.js
+
+```
+npm run postinstall
+```
 
 Both linting and units will also be done by a pre-commit hook.
