@@ -173,7 +173,7 @@ export default class XMPP extends Listenable {
             this.caps.addFeature('urn:xmpp:rayo:client:1');
         }
 
-        if (browser.supportsInsertableStreams()) {
+        if (browser.supportsInsertableStreams() && !(this.options.testing && this.options.testing.disableE2EE)) {
             this.caps.addFeature('https://jitsi.org/meet/e2ee');
         }
     }

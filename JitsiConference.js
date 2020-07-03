@@ -237,7 +237,9 @@ export default function JitsiConference(options) {
     this.recordingManager = new RecordingManager(this.room);
     this._conferenceJoinAnalyticsEventSent = false;
 
-    if (browser.supportsInsertableStreams()) {
+    const config = this.options.config;
+
+    if (browser.supportsInsertableStreams() && !(config.testing && config.testing.disableE2EE)) {
         this._e2eeCtx = new E2EEContext({ salt: this.options.name });
     }
 }

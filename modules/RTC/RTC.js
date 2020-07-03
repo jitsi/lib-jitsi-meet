@@ -522,7 +522,7 @@ export default class RTC extends Listenable {
 
         // FIXME: We should rename iceConfig to pcConfig.
 
-        if (browser.supportsInsertableStreams()) {
+        if (browser.supportsInsertableStreams() && !(this.options.testing && this.options.testing.disableE2EE)) {
             logger.debug('E2EE - setting insertable streams constraints');
             iceConfig.encodedInsertableStreams = true;
             iceConfig.forceEncodedAudioInsertableStreams = true; // legacy, to be removed in M85.
