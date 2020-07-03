@@ -164,7 +164,7 @@ export default class XMPP extends Listenable {
         // this.caps.addFeature('urn:ietf:rfc:5576'); // a=ssrc
 
         // Enable Lipsync ?
-        if (browser.isChrome() && this.options.enableLipSync === true) {
+        if (browser.isChromiumBased() && this.options.enableLipSync === true) {
             logger.info('Lip-sync enabled !');
             this.caps.addFeature('http://jitsi.org/meet/lipsync');
         }
