@@ -1418,6 +1418,19 @@ JitsiConference.prototype.getParticipantById = function(id) {
 };
 
 /**
+ * Grant owner rights to the participant.
+ * @param {string} id id of the participant to grant owner rights to.
+ */
+JitsiConference.prototype.grantOwner = function(id) {
+    const participant = this.getParticipantById(id);
+
+    if (!participant) {
+        return;
+    }
+    this.room.setAffiliation(participant.getJid(), 'owner');
+};
+
+/**
  * Kick participant from this conference.
  * @param {string} id id of the participant to kick
  */

@@ -1133,6 +1133,30 @@ export default class ChatRoom extends Listenable {
     /**
      *
      * @param jid
+     * @param affiliation
+     */
+    setAffiliation(jid, affiliation) {
+        const grantIQ = $iq({
+            to: this.roomjid,
+            type: 'set'
+        })
+        .c('query', { xmlns: 'http://jabber.org/protocol/muc#admin' })
+        .c('item', {
+            affiliation,
+            nick: Strophe.getResourceFromJid(jid)
+        })
+        .c('reason').t(`Your affiliation has been changed to '${affiliation}'.`)
+        .up().up().up();
+
+        this.connection.sendIQ(
+            grantIQ,
+            result => logger.log('Set affiliation of participant with jid: ', jid, 'to', affiliation, result),
+            error => logger.log('Set affiliation of participant error: ', error));
+    }
+
+    /**
+     *
+     * @param jid
      */
     kick(jid) {
         const kickIQ = $iq({ to: this.roomjid,
