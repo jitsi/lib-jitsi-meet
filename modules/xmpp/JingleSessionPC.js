@@ -1438,13 +1438,25 @@ export default class JingleSessionPC extends JingleSession {
                         sid: this.sid
                     })
                     .c('reason')
-                    .c((options && options.reason) || 'success');
+                    .c((options && options.reason) || 'success')
+                    .up();
 
             if (options && options.reasonDescription) {
-                sessionTerminate.up()
+                sessionTerminate
                     .c('text')
-                    .t(options.reasonDescription);
+                    .t(options.reasonDescription)
+                    .up()
+                    .up();
+            } else {
+                sessionTerminate.up();
             }
+
+            this._bridgeSessionId
+                && sessionTerminate.c(
+                    'bridge-session', {
+                        xmlns: 'http://jitsi.org/protocol/focus',
+                        id: this._bridgeSessionId
+                    }).up();
 
             // Calling tree() to print something useful
             sessionTerminate = sessionTerminate.tree();
