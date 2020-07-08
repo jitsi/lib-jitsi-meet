@@ -309,6 +309,11 @@ export const TRACK_AUDIO_LEVEL_CHANGED = 'conference.audioLevelsChanged';
 export const TRACK_MUTE_CHANGED = 'conference.trackMuteChanged';
 
 /**
+ * The max enabled resolution of a track was changed.
+ */
+export const TRACK_MAX_ENABLED_RESOLUTION_CHANGED = 'conference.maxEnabledResolutionChanged';
+
+/**
  * The media track was removed from the conference. The event provides the
  * following parameters to its listeners:
  *

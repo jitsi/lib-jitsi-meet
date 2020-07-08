@@ -37,6 +37,11 @@ const RTCEvents = {
      */
     LOCAL_TRACK_SSRC_UPDATED: 'rtc.local_track_ssrc_updated',
 
+    /**
+     * The max enabled resolution of a local video track was changed.
+     */
+    LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED: 'rtc.local_track_max_enabled_resolution_changed',
+
     TRACK_ATTACHED: 'rtc.track_attached',
 
     /**

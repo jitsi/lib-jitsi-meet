@@ -278,6 +278,11 @@ export default class ConnectionQuality {
                     this._maybeUpdateUnmuteTime();
                 }
             });
+        conference.on(
+            ConferenceEvents.TRACK_MAX_ENABLED_RESOLUTION_CHANGED,
+            track => {
+                this._localStats.maxEnabledResolution = track.maxEnabledResolution;
+            });
 
         conference.on(
             ConferenceEvents.SERVER_REGION_CHANGED,
@@ -454,6 +459,7 @@ export default class ConnectionQuality {
             connectionQuality: this._localStats.connectionQuality,
             jvbRTT: this._localStats.jvbRTT,
             serverRegion: this._localStats.serverRegion,
+            maxEnabledResolution: this._localStats.maxEnabledResolution,
             avgAudioLevels: this._localStats.localAvgAudioLevels
         };
 
