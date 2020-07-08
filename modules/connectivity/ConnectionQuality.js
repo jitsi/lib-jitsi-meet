@@ -504,7 +504,8 @@ export default class ConnectionQuality {
         const videoType
             = localVideoTrack ? localVideoTrack.videoType : undefined;
         const isMuted = localVideoTrack ? localVideoTrack.isMuted() : true;
-        const resolution = localVideoTrack ? localVideoTrack.resolution : null;
+        const resolution = localVideoTrack
+            ? Math.min(localVideoTrack.resolution, localVideoTrack.maxEnabledResolution) : null;
 
         if (!isMuted) {
             this._maybeUpdateUnmuteTime();

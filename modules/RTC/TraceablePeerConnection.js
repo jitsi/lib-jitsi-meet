@@ -2126,7 +2126,9 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
                     }
                 }
 
-                return videoSender.setParameters(parameters);
+                return videoSender.setParameters(parameters).then(() => {
+                    localVideoTrack.maxEnabledResolution = newHeight;
+                });
             });
     }
 
