@@ -554,6 +554,7 @@ export default class ConnectionQuality {
             connectionQuality: data.connectionQuality,
             jvbRTT: data.jvbRTT,
             serverRegion: data.serverRegion,
+            maxEnabledResolution: data.maxEnabledResolution,
             avgAudioLevels: data.avgAudioLevels
         };
 
