@@ -26,7 +26,7 @@ import IceFailedHandling
     from './modules/connectivity/IceFailedHandling';
 import ParticipantConnectionStatusHandler
     from './modules/connectivity/ParticipantConnectionStatus';
-import E2EEContext from './modules/e2ee/E2EEContext';
+import { E2EEncryption } from './modules/e2ee/E2EEncryption';
 import E2ePing from './modules/e2eping/e2eping';
 import Jvb121EventGenerator from './modules/event/Jvb121EventGenerator';
 import RecordingManager from './modules/recording/RecordingManager';
@@ -235,10 +235,8 @@ export default function JitsiConference(options) {
     this.recordingManager = new RecordingManager(this.room);
     this._conferenceJoinAnalyticsEventSent = false;
 
-    const config = this.options.config;
-
-    if (browser.supportsInsertableStreams() && !(config.testing && config.testing.disableE2EE)) {
-        this._e2eeCtx = new E2EEContext({ salt: this.options.name });
+    if (this.isE2EESupported()) {
+        this._e2eEncryption = new E2EEncryption(this, { salt: this.options.name });
     }
 }
 
@@ -975,16 +973,6 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
         actorParticipant = this.participants[actorId];
     }
 
-    // Setup E2EE on the sender that is created for the unmuted track.
-    if (this._e2eeCtx && !track.isMuted() && browser.doesVideoMuteByStreamRemove()) {
-        if (this.p2pJingleSession) {
-            this._setupSenderE2EEForTrack(this.p2pJingleSession, track);
-        }
-        if (this.jvbJingleSession) {
-            this._setupSenderE2EEForTrack(this.jvbJingleSession, track);
-        }
-    }
-
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track, actorParticipant);
 };
 
@@ -1128,17 +1116,6 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
         this.room.setAudioMute(newTrack.isMuted());
     } else {
         this.room.setVideoMute(newTrack.isMuted());
-    }
-
-    // Setup E2EE on the new track that has been added
-    // to the conference, apply it on all the open peerconnections.
-    if (this._e2eeCtx) {
-        if (this.p2pJingleSession) {
-            this._setupSenderE2EEForTrack(this.p2pJingleSession, newTrack);
-        }
-        if (this.jvbJingleSession) {
-            this._setupSenderE2EEForTrack(this.jvbJingleSession, newTrack);
-        }
     }
 
     newTrack.muteHandler = this._fireMuteChangeEvent.bind(this, newTrack);
@@ -1698,9 +1675,6 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
         return;
     }
 
-    // Setup E2EE handling, if supported.
-    this._setupReceiverE2EEForTrack(track);
-
     const id = track.getParticipantId();
     const participant = this.getParticipantById(id);
 
@@ -1749,13 +1723,6 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
 JitsiConference.prototype.onCallAccepted = function(session, answer) {
     if (this.p2pJingleSession === session) {
         logger.info('P2P setAnswer');
-
-        // Setup E2EE.
-        const localTracks = this.getLocalTracks();
-
-        for (const track of localTracks) {
-            this._setupSenderE2EEForTrack(session, track);
-        }
 
         this.p2pJingleSession.setAnswer(answer);
         this.eventEmitter.emit(JitsiConferenceEvents._MEDIA_SESSION_STARTED, this.p2pJingleSession);
@@ -1942,11 +1909,6 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
                     this.eventEmitter.emit(
                         JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED,
                         jingleSession);
-                }
-
-                // Setup E2EE.
-                for (const track of localTracks) {
-                    this._setupSenderE2EEForTrack(jingleSession, track);
                 }
             },
             error => {
@@ -2703,11 +2665,6 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
             this.eventEmitter.emit(
                 JitsiConferenceEvents._MEDIA_SESSION_STARTED,
                 this.p2pJingleSession);
-
-            // Setup E2EE.
-            for (const track of localTracks) {
-                this._setupSenderE2EEForTrack(jingleSession, track);
-            }
         },
         error => {
             logger.error(
@@ -3383,7 +3340,9 @@ JitsiConference.prototype._sendConferenceJoinAnalyticsEvent = function() {
  * @returns {boolean}
  */
 JitsiConference.prototype.isE2EESupported = function() {
-    return Boolean(this._e2eeCtx);
+    const config = this.options.config;
+
+    return browser.supportsInsertableStreams() && !(config.testing && config.testing.disableE2EE);
 };
 
 /**
@@ -3393,13 +3352,13 @@ JitsiConference.prototype.isE2EESupported = function() {
  * @returns {void}
  */
 JitsiConference.prototype.setE2EEKey = function(key) {
-    if (!this._e2eeCtx) {
+    if (!this._e2eEncryption) {
         logger.warn('Cannot set E2EE key: there is no defined context, platform is likely unsupported.');
 
         return;
     }
 
-    this._e2eeCtx.setKey(key);
+    this._e2eEncryption.setKey(key);
 };
 
 /**
@@ -3478,49 +3437,5 @@ JitsiConference.prototype.lobbyDenyAccess = function(id) {
 JitsiConference.prototype.lobbyApproveAccess = function(id) {
     if (this.room) {
         this.room.getLobby().approveAccess(id);
-    }
-};
-
-/**
- * Setup E2EE for the sending side, if supported.
- * Note that this is only done for the JVB Peer Connecction.
- *
- * @returns {void}
- */
-JitsiConference.prototype._setupSenderE2EEForTrack = function(session, track) {
-    if (!this._e2eeCtx) {
-        return;
-    }
-    const pc = session.peerconnection;
-    const sender = pc.findSenderForTrack(track.track);
-
-    if (sender) {
-        this._e2eeCtx.handleSender(sender, track.getType(), track.getParticipantId());
-    } else {
-        logger.warn(`Could not handle E2EE for local ${track.getType()} track: sender not found`);
-    }
-};
-
-/**
- * Setup E2EE for the receiving side, if supported.
- * Note that this is only done for the JVB Peer Connecction.
- *
- * @returns {void}
- */
-JitsiConference.prototype._setupReceiverE2EEForTrack = function(track) {
-    if (!this._e2eeCtx) {
-        return;
-    }
-    const session = track.isP2P ? this.p2pJingleSession : this.jvbJingleSession;
-    const pc = session && session.peerconnection;
-
-    if (pc) {
-        const receiver = pc.findReceiverForTrack(track.track);
-
-        if (receiver) {
-            this._e2eeCtx.handleReceiver(receiver, track.getType(), track.getParticipantId());
-        } else {
-            logger.warn(`Could not handle E2EE for remote ${track.getType()} track: receiver not found`);
-        }
     }
 };
