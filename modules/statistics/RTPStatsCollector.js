@@ -1,8 +1,8 @@
-import browser from '../browser';
-import { browsers } from 'js-utils';
+import { browsers } from '@jitsi/js-utils';
 
 import * as StatisticsEvents from '../../service/statistics/Events';
 import * as MediaType from '../../service/RTC/MediaType';
+import browser from '../browser';
 
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 const logger = require('jitsi-meet-logger').getLogger(__filename);
