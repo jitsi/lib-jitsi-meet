@@ -831,7 +831,7 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
 
     remoteTracksMap.set(mediaType, remoteTrack);
 
-    this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack);
+    this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack, this);
 };
 
 /* eslint-enable max-params */
@@ -1412,6 +1412,23 @@ Object.keys(getters).forEach(prop => {
 
 TraceablePeerConnection.prototype._getSSRC = function(rtcId) {
     return this.localSSRCs.get(rtcId);
+};
+
+/**
+ * Checks if given track belongs to this peerconnection instance.
+ *
+ * @param {JitsiLocalTrack|JitsiRemoteTrack} track - The track to be checked.
+ * @returns {boolean}
+ */
+TraceablePeerConnection.prototype.containsTrack = function(track) {
+    if (track.isLocal()) {
+        return this.localTracks.has(track.rtcId);
+    }
+
+    const participantId = track.getParticipantId();
+    const remoteTracksMap = this.remoteTracks.get(participantId);
+
+    return Boolean(remoteTracksMap && remoteTracksMap.get(track.getType()) === track);
 };
 
 /**
