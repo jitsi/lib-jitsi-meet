@@ -1,6 +1,8 @@
 import * as ConnectionQualityEvents
     from '../../service/connectivity/ConnectionQualityEvents';
 import * as ConferenceEvents from '../../JitsiConferenceEvents';
+import * as RTCEvents from '../../service/RTC/RTCEvents';
+
 import { getLogger } from 'jitsi-meet-logger';
 
 const XMPPEvents = require('../../service/xmpp/XMPPEvents');
@@ -278,8 +280,8 @@ export default class ConnectionQuality {
                     this._maybeUpdateUnmuteTime();
                 }
             });
-        conference.on(
-            ConferenceEvents.TRACK_MAX_ENABLED_RESOLUTION_CHANGED,
+        conference.rtc.on(
+            RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED,
             track => {
                 this._localStats.maxEnabledResolution = track.maxEnabledResolution;
             });

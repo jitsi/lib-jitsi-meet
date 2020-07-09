@@ -451,12 +451,6 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
         conference.onRemoteTrackAdded.bind(conference));
 
     rtc.addListener(
-        RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED, track => {
-            conference.eventEmitter.emit(
-                JitsiConferenceEvents.TRACK_MAX_ENABLED_RESOLUTION_CHANGED, track);
-        });
-
-    rtc.addListener(
         RTCEvents.REMOTE_TRACK_REMOVED,
         conference.onRemoteTrackRemoved.bind(conference));
 
