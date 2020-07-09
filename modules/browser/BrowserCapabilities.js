@@ -123,6 +123,14 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the current browser supports audio level stats on the receivers.
+     */
+    supportsReceiverStats() {
+        return typeof window.RTCRtpReceiver !== 'undefined'
+            && Object.keys(RTCRtpReceiver.prototype).indexOf('getSynchronizationSources') > -1;
+    }
+
+    /**
      * Checks if the current browser reports round trip time statistics for
      * the ICE candidate pair.
      * @return {boolean}

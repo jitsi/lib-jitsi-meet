@@ -291,15 +291,12 @@ StatsCollector.prototype.errorCallback = function(error) {
  */
 StatsCollector.prototype.start = function(startAudioLevelStats) {
     if (startAudioLevelStats) {
-        const receiverStatsSupported = typeof window.RTCRtpReceiver !== 'undefined'
-            && Object.keys(RTCRtpReceiver.prototype).indexOf('getSynchronizationSources') > -1;
-
-        if (receiverStatsSupported) {
+        if (browser.supportsReceiverStats()) {
             logger.info('Using RTCRtpSynchronizationSource for remote audio levels');
         }
         this.audioLevelsIntervalId = setInterval(
             () => {
-                if (receiverStatsSupported) {
+                if (browser.supportsReceiverStats()) {
                     const audioLevels = this.peerconnection.getAudioLevels();
 
                     for (const ssrc in audioLevels) {
