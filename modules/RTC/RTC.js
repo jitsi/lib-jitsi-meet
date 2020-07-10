@@ -499,6 +499,8 @@ export default class RTC extends Listenable {
      * @param {boolean} isP2P Indicates whether or not the new TPC will be used
      *      in a peer to peer type of session.
      * @param {object} options The config options.
+     * @param {boolean} options.enableInsertableStreams - Set to true when the insertable streams constraints is to be
+     * enabled on the PeerConnection.
      * @param {boolean} options.disableSimulcast If set to 'true' will disable
      *      the simulcast.
      * @param {boolean} options.disableRtx If set to 'true' will disable the
@@ -522,7 +524,7 @@ export default class RTC extends Listenable {
 
         // FIXME: We should rename iceConfig to pcConfig.
 
-        if (browser.supportsInsertableStreams() && !(this.options.testing && this.options.testing.disableE2EE)) {
+        if (options.enableInsertableStreams) {
             logger.debug('E2EE - setting insertable streams constraints');
             iceConfig.encodedInsertableStreams = true;
             iceConfig.forceEncodedAudioInsertableStreams = true; // legacy, to be removed in M85.
