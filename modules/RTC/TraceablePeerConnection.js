@@ -2077,6 +2077,11 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
  * successful and rejected otherwise.
  */
 TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeight = null) {
+    // XXX: This is not yet supported on mobile.
+    if (browser.isReactNative()) {
+        return Promise.resolve();
+    }
+
     const newHeight = frameHeight || this.senderVideoMaxHeight;
 
     this.senderVideoMaxHeight = newHeight;
