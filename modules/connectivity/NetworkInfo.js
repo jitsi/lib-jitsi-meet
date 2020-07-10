@@ -1,5 +1,6 @@
-import Listenable from '../util/Listenable';
 import { getLogger } from 'jitsi-meet-logger';
+
+import Listenable from '../util/Listenable';
 
 export const NETWORK_INFO_EVENT = 'NETWORK_INFO_CHANGED';
 

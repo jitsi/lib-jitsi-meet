@@ -1,9 +1,10 @@
 /* global __filename */
 import { getLogger } from 'jitsi-meet-logger';
-import { createE2eRttEvent } from '../../service/statistics/AnalyticsEvents';
+
+import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as E2ePingEvents
     from '../../service/e2eping/E2ePingEvents';
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import { createE2eRttEvent } from '../../service/statistics/AnalyticsEvents';
 import Statistics from '../statistics/statistics';
 
 const logger = getLogger(__filename);

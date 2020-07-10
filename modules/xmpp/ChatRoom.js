@@ -3,15 +3,15 @@
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, $msg, $pres, Strophe } from 'strophe.js';
 
-import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
-import Listenable from '../util/Listenable';
 import * as MediaType from '../../service/RTC/MediaType';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import Listenable from '../util/Listenable';
 
 import Lobby from './Lobby';
-import Moderator from './moderator';
 import XmppConnection from './XmppConnection';
+import Moderator from './moderator';
 
 const logger = getLogger(__filename);
 

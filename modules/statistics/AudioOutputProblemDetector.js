@@ -1,8 +1,8 @@
 import { getLogger } from 'jitsi-meet-logger';
 
 import * as ConferenceEvents from '../../JitsiConferenceEvents';
-import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQualityEvents';
 import * as MediaType from '../../service/RTC/MediaType';
+import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQualityEvents';
 import { createAudioOutputProblemEvent } from '../../service/statistics/AnalyticsEvents';
 
 import Statistics from './statistics';

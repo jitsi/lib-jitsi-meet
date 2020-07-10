@@ -1,12 +1,11 @@
 import EventEmitter from 'events';
 
-import * as MediaType from './service/RTC/MediaType';
-import browser from './modules/browser';
-import RTC from './modules/RTC/RTC';
-import RTCEvents from './service/RTC/RTCEvents';
-import Statistics from './modules/statistics/statistics';
-
 import * as JitsiMediaDevicesEvents from './JitsiMediaDevicesEvents';
+import RTC from './modules/RTC/RTC';
+import browser from './modules/browser';
+import Statistics from './modules/statistics/statistics';
+import * as MediaType from './service/RTC/MediaType';
+import RTCEvents from './service/RTC/RTCEvents';
 
 const AUDIO_PERMISSION_NAME = 'microphone';
 const PERMISSION_GRANTED_STATUS = 'granted';

@@ -1,8 +1,9 @@
 /* global __filename */
 import { getLogger } from 'jitsi-meet-logger';
 
-import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as JitsiConferenceErrors from '../../JitsiConferenceErrors';
+import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+
 import { default as networkInfo, NETWORK_INFO_EVENT } from './NetworkInfo';
 
 const logger = getLogger(__filename);

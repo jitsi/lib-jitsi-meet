@@ -1,11 +1,17 @@
 /* global __filename, $ */
 
+import { getLogger } from 'jitsi-meet-logger';
+import { $iq, Strophe } from 'strophe.js';
+
+import RTCEvents from '../../service/RTC/RTCEvents';
 import {
     ICE_DURATION,
     ICE_STATE_CHANGED
 } from '../../service/statistics/AnalyticsEvents';
-import { getLogger } from 'jitsi-meet-logger';
-import { $iq, Strophe } from 'strophe.js';
+import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import Statistics from '../statistics/statistics';
+import AsyncQueue from '../util/AsyncQueue';
+import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import { integerHash } from '../util/StringUtils';
 
 import browser from './../browser';
@@ -16,12 +22,6 @@ import SDP from './SDP';
 import SDPDiffer from './SDPDiffer';
 import SDPUtil from './SDPUtil';
 import SignalingLayerImpl from './SignalingLayerImpl';
-
-import RTCEvents from '../../service/RTC/RTCEvents';
-import Statistics from '../statistics/statistics';
-import XMPPEvents from '../../service/xmpp/XMPPEvents';
-import AsyncQueue from '../util/AsyncQueue';
-import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import XmppConnection from './XmppConnection';
 
 const logger = getLogger(__filename);

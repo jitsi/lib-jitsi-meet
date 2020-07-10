@@ -1,7 +1,7 @@
 /* global __filename, Promise */
 
 import { getLogger } from 'jitsi-meet-logger';
-import JitsiTrack from './JitsiTrack';
+
 import JitsiTrackError from '../../JitsiTrackError';
 import {
     TRACK_IS_DISPOSED,
@@ -12,8 +12,6 @@ import {
     NO_DATA_FROM_SOURCE,
     TRACK_MUTE_CHANGED
 } from '../../JitsiTrackEvents';
-import browser from '../browser';
-import RTCUtils from './RTCUtils';
 import CameraFacingMode from '../../service/RTC/CameraFacingMode';
 import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
@@ -23,7 +21,11 @@ import {
     TRACK_UNMUTED,
     createNoDataFromSourceEvent
 } from '../../service/statistics/AnalyticsEvents';
+import browser from '../browser';
 import Statistics from '../statistics/statistics';
+
+import JitsiTrack from './JitsiTrack';
+import RTCUtils from './RTCUtils';
 
 const logger = getLogger(__filename);
 

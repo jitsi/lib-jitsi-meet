@@ -1,15 +1,16 @@
 import EventEmitter from 'events';
 
+import JitsiTrackError from '../../JitsiTrackError';
 import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
+import * as StatisticsEvents from '../../service/statistics/Events';
+import browser from '../browser';
+import ScriptUtil from '../util/ScriptUtil';
+
 import analytics from './AnalyticsAdapter';
 import CallStats from './CallStats';
 import LocalStats from './LocalStatsCollector';
 import RTPStats from './RTPStatsCollector';
 
-import browser from '../browser';
-import ScriptUtil from '../util/ScriptUtil';
-import JitsiTrackError from '../../JitsiTrackError';
-import * as StatisticsEvents from '../../service/statistics/Events';
 
 const logger = require('jitsi-meet-logger').getLogger(__filename);
 
