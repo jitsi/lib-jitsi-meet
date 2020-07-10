@@ -175,6 +175,8 @@ export default class JingleSession extends Listenable {
      * @param {Object} options
      * @param {string} [options.reason] XMPP Jingle error condition
      * @param {string} [options.reasonDescription] some meaningful error message
+     * @param {boolean} [options.requestRestart=false] set to true to ask Jicofo to start a new session one this once is
+     * terminated.
      * @param {boolean} [options.sendSessionTerminate=true] set to false to skip
      * sending session-terminate. It may not make sense to send it if the XMPP
      * connection has been closed already or if the remote peer has disconnected
