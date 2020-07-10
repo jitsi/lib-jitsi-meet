@@ -1,9 +1,8 @@
 import { getLogger } from 'jitsi-meet-logger';
 
-import RTC from '../RTC/RTC';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
-
+import RTC from '../RTC/RTC';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
 import { DEFAULT_STUN_SERVERS } from '../xmpp/xmpp';
 

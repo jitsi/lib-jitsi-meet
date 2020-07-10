@@ -1,11 +1,11 @@
-import {
-    CONNECTION_DISCONNECTED as ANALYTICS_CONNECTION_DISCONNECTED,
-    createConnectionFailedEvent
-} from './service/statistics/AnalyticsEvents';
 import JitsiConference from './JitsiConference';
 import * as JitsiConnectionEvents from './JitsiConnectionEvents';
 import Statistics from './modules/statistics/statistics';
 import XMPP from './modules/xmpp/xmpp';
+import {
+    CONNECTION_DISCONNECTED as ANALYTICS_CONNECTION_DISCONNECTED,
+    createConnectionFailedEvent
+} from './service/statistics/AnalyticsEvents';
 
 /**
  * Creates a new connection object for the Jitsi Meet server side video

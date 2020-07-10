@@ -1,9 +1,9 @@
 /* global __filename, $, Promise */
-import { Strophe } from 'strophe.js';
 
 import EventEmitter from 'events';
 import { getLogger } from 'jitsi-meet-logger';
 import isEqual from 'lodash.isequal';
+import { Strophe } from 'strophe.js';
 
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
@@ -13,26 +13,27 @@ import JitsiTrackError from './JitsiTrackError';
 import * as JitsiTrackErrors from './JitsiTrackErrors';
 import * as JitsiTrackEvents from './JitsiTrackEvents';
 import authenticateAndUpgradeRole from './authenticateAndUpgradeRole';
-import P2PDominantSpeakerDetection from './modules/detection/P2PDominantSpeakerDetection';
 import RTC from './modules/RTC/RTC';
-import VADTalkMutedDetection from './modules/detection/VADTalkMutedDetection';
-import VADNoiseDetection from './modules/detection/VADNoiseDetection';
-import VADAudioAnalyser from './modules/detection/VADAudioAnalyser';
-import * as DetectionEvents from './modules/detection/DetectionEvents';
-import NoAudioSignalDetection from './modules/detection/NoAudioSignalDetection';
 import browser from './modules/browser';
 import ConnectionQuality from './modules/connectivity/ConnectionQuality';
 import IceFailedHandling
     from './modules/connectivity/IceFailedHandling';
 import ParticipantConnectionStatusHandler
     from './modules/connectivity/ParticipantConnectionStatus';
+import * as DetectionEvents from './modules/detection/DetectionEvents';
+import NoAudioSignalDetection from './modules/detection/NoAudioSignalDetection';
+import P2PDominantSpeakerDetection from './modules/detection/P2PDominantSpeakerDetection';
+import VADAudioAnalyser from './modules/detection/VADAudioAnalyser';
+import VADNoiseDetection from './modules/detection/VADNoiseDetection';
+import VADTalkMutedDetection from './modules/detection/VADTalkMutedDetection';
 import { E2EEncryption } from './modules/e2ee/E2EEncryption';
 import E2ePing from './modules/e2eping/e2eping';
 import Jvb121EventGenerator from './modules/event/Jvb121EventGenerator';
+import { QualityController } from './modules/qualitycontrol/QualityController';
 import RecordingManager from './modules/recording/RecordingManager';
 import Settings from './modules/settings/Settings';
-import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import AudioOutputProblemDetector from './modules/statistics/AudioOutputProblemDetector';
+import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
 import Transcriber from './modules/transcription/transcriber';
@@ -58,7 +59,6 @@ import {
     createJingleEvent,
     createP2PEvent
 } from './service/statistics/AnalyticsEvents';
-import { QualityController } from './modules/qualitycontrol/QualityController';
 import * as XMPPEvents from './service/xmpp/XMPPEvents';
 
 const logger = getLogger(__filename);

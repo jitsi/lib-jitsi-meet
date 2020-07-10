@@ -1,27 +1,28 @@
 /* global __filename, RTCSessionDescription */
 
-import { getLogger } from 'jitsi-meet-logger';
 import { Interop } from '@jitsi/sdp-interop';
+import { getLogger } from 'jitsi-meet-logger';
 import transform from 'sdp-transform';
 
-import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
-import JitsiRemoteTrack from './JitsiRemoteTrack';
 import * as MediaType from '../../service/RTC/MediaType';
+import RTCEvents from '../../service/RTC/RTCEvents';
+import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 import * as VideoType from '../../service/RTC/VideoType';
+import browser from '../browser';
+import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import RtxModifier from '../xmpp/RtxModifier';
+import SDP from '../xmpp/SDP';
+import SDPUtil from '../xmpp/SDPUtil';
+import SdpConsistency from '../xmpp/SdpConsistency';
+import { SdpTransformWrap } from '../xmpp/SdpTransformUtil';
+
+import JitsiRemoteTrack from './JitsiRemoteTrack';
 import LocalSdpMunger from './LocalSdpMunger';
 import RTC from './RTC';
 import RTCUtils from './RTCUtils';
-import browser from '../browser';
-import RTCEvents from '../../service/RTC/RTCEvents';
-import RtxModifier from '../xmpp/RtxModifier';
 import { SIM_LAYER_RIDS, TPCUtils } from './TPCUtils';
 
 // FIXME SDP tools should end up in some kind of util module
-import SDP from '../xmpp/SDP';
-import SdpConsistency from '../xmpp/SdpConsistency';
-import { SdpTransformWrap } from '../xmpp/SdpTransformUtil';
-import SDPUtil from '../xmpp/SDPUtil';
-import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 
 const logger = getLogger(__filename);
 const MAX_BITRATE = 2500000;

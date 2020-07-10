@@ -1,6 +1,7 @@
 /* global __filename */
 
 import { getLogger } from 'jitsi-meet-logger';
+
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 
 const logger = getLogger(__filename);

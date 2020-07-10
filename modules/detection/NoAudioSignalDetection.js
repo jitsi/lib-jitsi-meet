@@ -3,6 +3,7 @@ import EventEmitter from 'events';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import browser from '../browser';
+
 import * as DetectionEvents from './DetectionEvents';
 
 // We wait a certain time interval for constant silence input from the current device to account for

@@ -2,10 +2,10 @@ import { getLogger } from 'jitsi-meet-logger';
 import transform from 'sdp-transform';
 
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
-import browser from '../browser';
-import RTCEvents from '../../service/RTC/RTCEvents';
 import * as MediaType from '../../service/RTC/MediaType';
+import RTCEvents from '../../service/RTC/RTCEvents';
 import * as VideoType from '../../service/RTC/VideoType';
+import browser from '../browser';
 
 const logger = getLogger(__filename);
 const SIM_LAYER_1_RID = '1';

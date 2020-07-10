@@ -2,8 +2,8 @@
 import { getLogger } from 'jitsi-meet-logger';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import browser from '../browser';
 import RTCEvents from '../../service/RTC/RTCEvents';
+import browser from '../browser';
 
 import E2EEContext from './E2EEContext';
 

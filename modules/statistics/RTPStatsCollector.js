@@ -1,11 +1,13 @@
 import { browsers } from '@jitsi/js-utils';
+import { getLogger } from 'jitsi-meet-logger';
 
-import * as StatisticsEvents from '../../service/statistics/Events';
 import * as MediaType from '../../service/RTC/MediaType';
+import * as StatisticsEvents from '../../service/statistics/Events';
 import browser from '../browser';
 
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
-const logger = require('jitsi-meet-logger').getLogger(__filename);
+
+const logger = getLogger(__filename);
 
 /**
  * The lib-jitsi-meet browser-agnostic names of the browser-specific keys

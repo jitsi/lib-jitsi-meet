@@ -2,8 +2,8 @@ import { $iq, Strophe } from 'strophe.js';
 
 import { nextTick } from '../util/TestUtils';
 
-import { default as XmppConnection } from './XmppConnection';
 import { MockStropheConnection } from './MockClasses';
+import { default as XmppConnection } from './XmppConnection';
 
 /**
  * Creates any IQ.

@@ -1,13 +1,12 @@
-import * as ConnectionQualityEvents
-    from '../../service/connectivity/ConnectionQualityEvents';
-import * as ConferenceEvents from '../../JitsiConferenceEvents';
-import * as RTCEvents from '../../service/RTC/RTCEvents';
-
 import { getLogger } from 'jitsi-meet-logger';
 
-const XMPPEvents = require('../../service/xmpp/XMPPEvents');
-const VideoType = require('../../service/RTC/VideoType');
+import * as ConferenceEvents from '../../JitsiConferenceEvents';
+import * as RTCEvents from '../../service/RTC/RTCEvents';
+import * as ConnectionQualityEvents from '../../service/connectivity/ConnectionQualityEvents';
+
 const Resolutions = require('../../service/RTC/Resolutions');
+const VideoType = require('../../service/RTC/VideoType');
+const XMPPEvents = require('../../service/xmpp/XMPPEvents');
 
 const logger = getLogger(__filename);
 

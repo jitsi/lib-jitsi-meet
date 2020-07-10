@@ -1,20 +1,20 @@
 /* global $, __filename */
 
+import { getLogger } from 'jitsi-meet-logger';
+import { $iq, Strophe } from 'strophe.js';
+
 import {
     ACTION_JINGLE_TR_RECEIVED,
     ACTION_JINGLE_TR_SUCCESS,
     createJingleEvent
 } from '../../service/statistics/AnalyticsEvents';
-import { getLogger } from 'jitsi-meet-logger';
-import { $iq, Strophe } from 'strophe.js';
-
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import Statistics from '../statistics/statistics';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import RandomUtil from '../util/RandomUtil';
-import Statistics from '../statistics/statistics';
 
-import JingleSessionPC from './JingleSessionPC';
 import ConnectionPlugin from './ConnectionPlugin';
+import JingleSessionPC from './JingleSessionPC';
 
 const logger = getLogger(__filename);
 

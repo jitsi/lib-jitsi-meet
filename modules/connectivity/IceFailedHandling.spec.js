@@ -1,9 +1,10 @@
 /* global */
 
 import Listenable from '../util/Listenable';
+import { nextTick } from '../util/TestUtils';
+
 import IceFailedHandling from './IceFailedHandling';
 import networkInfo from './NetworkInfo';
-import { nextTick } from '../util/TestUtils';
 
 /**
  * Mock conference for the purpose of this test.

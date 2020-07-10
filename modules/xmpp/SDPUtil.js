@@ -1,8 +1,8 @@
 import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 
-import RandomUtil from '../util/RandomUtil';
 import browser from '../browser';
+import RandomUtil from '../util/RandomUtil';
 
 const SDPUtil = {
     filterSpecialChars(text) {
