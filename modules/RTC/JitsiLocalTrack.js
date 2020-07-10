@@ -92,6 +92,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             // Get the resolution from the track itself because it cannot be
             // certain which resolution webrtc has fallen back to using.
             this.resolution = track.getSettings().height;
+            this.maxEnabledResolution = resolution;
 
             // Cache the constraints of the track in case of any this track
             // model needs to call getUserMedia again, such as when unmuting.
@@ -109,6 +110,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             // resolutions so we do not store it, to avoid wrong reporting of
             // local track resolution.
             this.resolution = browser.isFirefox() ? null : resolution;
+            this.maxEnabledResolution = this.resolution;
         }
 
         this.deviceId = deviceId;

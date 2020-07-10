@@ -1,6 +1,8 @@
 import * as ConnectionQualityEvents
     from '../../service/connectivity/ConnectionQualityEvents';
 import * as ConferenceEvents from '../../JitsiConferenceEvents';
+import * as RTCEvents from '../../service/RTC/RTCEvents';
+
 import { getLogger } from 'jitsi-meet-logger';
 
 const XMPPEvents = require('../../service/xmpp/XMPPEvents');
@@ -278,6 +280,11 @@ export default class ConnectionQuality {
                     this._maybeUpdateUnmuteTime();
                 }
             });
+        conference.rtc.on(
+            RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED,
+            track => {
+                this._localStats.maxEnabledResolution = track.maxEnabledResolution;
+            });
 
         conference.on(
             ConferenceEvents.SERVER_REGION_CHANGED,
@@ -454,6 +461,7 @@ export default class ConnectionQuality {
             connectionQuality: this._localStats.connectionQuality,
             jvbRTT: this._localStats.jvbRTT,
             serverRegion: this._localStats.serverRegion,
+            maxEnabledResolution: this._localStats.maxEnabledResolution,
             avgAudioLevels: this._localStats.localAvgAudioLevels
         };
 
@@ -504,7 +512,8 @@ export default class ConnectionQuality {
         const videoType
             = localVideoTrack ? localVideoTrack.videoType : undefined;
         const isMuted = localVideoTrack ? localVideoTrack.isMuted() : true;
-        const resolution = localVideoTrack ? localVideoTrack.resolution : null;
+        const resolution = localVideoTrack
+            ? Math.min(localVideoTrack.resolution, localVideoTrack.maxEnabledResolution) : null;
 
         if (!isMuted) {
             this._maybeUpdateUnmuteTime();
@@ -545,6 +554,7 @@ export default class ConnectionQuality {
             connectionQuality: data.connectionQuality,
             jvbRTT: data.jvbRTT,
             serverRegion: data.serverRegion,
+            maxEnabledResolution: data.maxEnabledResolution,
             avgAudioLevels: data.avgAudioLevels
         };
 
