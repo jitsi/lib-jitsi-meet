@@ -428,6 +428,10 @@ export default class JitsiTrack extends EventEmitter {
                 JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
                 audioLevel,
                 tpc);
+        } else if (this.audioLevel === 0 && audioLevel === 0 && this.isLocal()) {
+            this.emit(
+                JitsiTrackEvents.NO_AUDIO_INPUT,
+                audioLevel);
         }
     }
 
