@@ -37,3 +37,9 @@ export const TRACK_VIDEOTYPE_CHANGED = 'track.videoTypeChanged';
  * to receive data (i.e. the stream is not stopped).
  */
 export const NO_DATA_FROM_SOURCE = 'track.no_data_from_source';
+
+/**
+ * Indicates that the local audio track is not receiving any audio input from
+ * the microphone that is currently selected.
+ */
+export const NO_AUDIO_INPUT = 'track.no_audio_input';

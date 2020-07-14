@@ -1,7 +1,8 @@
 import EventEmitter from 'events';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-
+import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import browser from '../browser';
 import * as DetectionEvents from './DetectionEvents';
 
 // We wait a certain time interval for constant silence input from the current device to account for
@@ -30,7 +31,9 @@ export default class NoAudioSignalDetection extends EventEmitter {
         this._timeoutTrigger = null;
         this._hasAudioInput = null;
 
-        conference.statistics.addAudioLevelListener(this._audioLevel.bind(this));
+        if (!browser.supportsReceiverStats()) {
+            conference.statistics.addAudioLevelListener(this._audioLevel.bind(this));
+        }
         conference.on(JitsiConferenceEvents.TRACK_ADDED, this._trackAdded.bind(this));
     }
 
@@ -58,7 +61,6 @@ export default class NoAudioSignalDetection extends EventEmitter {
         // the event.
         if (this._hasAudioInput === null || this._hasAudioInput !== status) {
             this._hasAudioInput = status;
-
             this.emit(DetectionEvents.AUDIO_INPUT_STATE_CHANGE, this._hasAudioInput);
         }
     }
@@ -103,7 +105,6 @@ export default class NoAudioSignalDetection extends EventEmitter {
         // Get currently active local tracks from the TraceablePeerConnection
         const localSSRCs = tpc.localSSRCs.get(this._audioTrack.rtcId);
 
-
         // Only target the current active track in the tpc. For some reason audio levels for previous
         // devices are also picked up from the PeerConnection so we filter them out.
         if (!localSSRCs || !localSSRCs.ssrcs.includes(ssrc)) {
@@ -114,7 +115,6 @@ export default class NoAudioSignalDetection extends EventEmitter {
         // can try to fire again.
         this._handleAudioInputStateChange(audioLevel);
         this._handleNoAudioInputDetection(audioLevel);
-
     }
 
     /**
@@ -129,6 +129,23 @@ export default class NoAudioSignalDetection extends EventEmitter {
             this._audioTrack = track;
             this._eventFired = false;
             this._clearTriggerTimeout();
+
+            // Listen for the audio levels on the newly added audio track
+            if (browser.supportsReceiverStats()) {
+                track.on(
+                    JitsiTrackEvents.NO_AUDIO_INPUT,
+                    audioLevel => {
+                        this._handleNoAudioInputDetection(audioLevel);
+                    }
+                );
+                track.on(
+                    JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
+                    audioLevel => {
+                        this._handleNoAudioInputDetection(audioLevel);
+                        this._handleAudioInputStateChange(audioLevel);
+                    }
+                );
+            }
         }
     }
 }

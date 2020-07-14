@@ -291,31 +291,49 @@ StatsCollector.prototype.errorCallback = function(error) {
  */
 StatsCollector.prototype.start = function(startAudioLevelStats) {
     if (startAudioLevelStats) {
+        if (browser.supportsReceiverStats()) {
+            logger.info('Using RTCRtpSynchronizationSource for remote audio levels');
+        }
         this.audioLevelsIntervalId = setInterval(
             () => {
-                // Interval updates
-                this.peerconnection.getStats(
-                    report => {
-                        let results = null;
+                if (browser.supportsReceiverStats()) {
+                    const audioLevels = this.peerconnection.getAudioLevels();
 
-                        if (!report || !report.result
-                            || typeof report.result !== 'function') {
-                            results = report;
-                        } else {
-                            results = report.result();
+                    for (const ssrc in audioLevels) {
+                        if (audioLevels.hasOwnProperty(ssrc)) {
+                            this.eventEmitter.emit(
+                                StatisticsEvents.AUDIO_LEVEL,
+                                this.peerconnection,
+                                Number.parseInt(ssrc, 10),
+                                audioLevels[ssrc],
+                                false /* isLocal */);
                         }
-                        this.currentAudioLevelsReport = results;
-                        if (this._usesPromiseGetStats) {
-                            this.processNewAudioLevelReport();
-                        } else {
-                            this.processAudioLevelReport();
-                        }
+                    }
+                } else {
+                    // Interval updates
+                    this.peerconnection.getStats(
+                        report => {
+                            let results = null;
 
-                        this.baselineAudioLevelsReport
-                            = this.currentAudioLevelsReport;
-                    },
-                    error => this.errorCallback(error)
-                );
+                            if (!report || !report.result
+                                || typeof report.result !== 'function') {
+                                results = report;
+                            } else {
+                                results = report.result();
+                            }
+                            this.currentAudioLevelsReport = results;
+                            if (this._usesPromiseGetStats) {
+                                this.processNewAudioLevelReport();
+                            } else {
+                                this.processAudioLevelReport();
+                            }
+
+                            this.baselineAudioLevelsReport
+                                = this.currentAudioLevelsReport;
+                        },
+                        error => this.errorCallback(error)
+                    );
+                }
             },
             this.audioLevelsIntervalMilis
         );

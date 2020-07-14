@@ -15,7 +15,6 @@ import * as JitsiTrackEvents from './JitsiTrackEvents';
 import authenticateAndUpgradeRole from './authenticateAndUpgradeRole';
 import P2PDominantSpeakerDetection from './modules/detection/P2PDominantSpeakerDetection';
 import RTC from './modules/RTC/RTC';
-import TalkMutedDetection from './modules/detection/TalkMutedDetection';
 import VADTalkMutedDetection from './modules/detection/VADTalkMutedDetection';
 import VADNoiseDetection from './modules/detection/VADNoiseDetection';
 import VADAudioAnalyser from './modules/detection/VADAudioAnalyser';
@@ -410,12 +409,8 @@ JitsiConference.prototype._init = function(options = {}) {
                 this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED));
 
             this._audioAnalyser.addVADDetectionService(vadTalkMutedDetection);
-
-
         } else {
-            logger.info('Using audio level based detection for generating talk while muted events');
-            this._talkWhileMutedDetection = new TalkMutedDetection(
-                this, () => this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED));
+            logger.warn('No VAD Processor was provided. Talk while muted detection service was not initialized!');
         }
     }
 

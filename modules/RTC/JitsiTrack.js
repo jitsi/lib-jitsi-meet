@@ -428,6 +428,16 @@ export default class JitsiTrack extends EventEmitter {
                 JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
                 audioLevel,
                 tpc);
+
+        // LocalStatsCollector reports a value of 0.008 for muted mics
+        // and a value of 0 when there is no audio input.
+        } else if (this.audioLevel === 0
+            && audioLevel === 0
+            && this.isLocal()
+            && !this.isWebRTCTrackMuted()) {
+            this.emit(
+                JitsiTrackEvents.NO_AUDIO_INPUT,
+                audioLevel);
         }
     }
 
