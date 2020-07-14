@@ -2181,15 +2181,12 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
                 });
             });
     }
-
-    // Apply the height constraint on the local camera track
-    const aspectRatio = (track.getSettings().width / track.getSettings().height).toPrecision(4);
-
     logger.debug(`Setting max height of ${newHeight} on local video`);
 
+    // Do not specify the aspect ratio, let camera pick
+    // the best aspect ratio for the given height.
     return track.applyConstraints(
         {
-            aspectRatio,
             height: {
                 ideal: newHeight
             }
