@@ -379,7 +379,7 @@ export default class JitsiTrack extends EventEmitter {
      * screen capture as opposed to a camera.
      */
     isScreenSharing() {
-        // FIXME: Should be fixed or removed.
+        return this.isVideoTrack() && this.videoType !== 'camera'
     }
 
     /**

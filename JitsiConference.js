@@ -903,7 +903,8 @@ JitsiConference.prototype.getTranscriptionStatus = function() {
 JitsiConference.prototype.addTrack = function(track) {
     if (track.isVideoTrack()) {
         // Ensure there's exactly 1 local video track in the conference.
-        const localVideoTrack = this.rtc.getLocalVideoTrack();
+//        const localVideoTrack = this.rtc.getLocalVideoTrack();
+        const localVideoTrack = undefined;  //  jitsi party parmits many video tracks
 
         if (localVideoTrack) {
             // Don't be excessively harsh and severe if the API client happens

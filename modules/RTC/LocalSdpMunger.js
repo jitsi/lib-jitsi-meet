@@ -47,10 +47,15 @@ export default class LocalSdpMunger {
         if (!localVideos.length) {
             return false;
         } else if (localVideos.length !== 1) {
+            /*
             logger.error(
                 `${this.tpc} there is more than 1 video track ! `
                     + 'Strange things may happen !', localVideos);
-        }
+                    */
+            logger.log(
+                    `${this.tpc} there is more than 1 video track `
+                        + 'maybe screens sharing', localVideos);
+            }
 
         const videoMLine = transformer.selectMedia('video');
 

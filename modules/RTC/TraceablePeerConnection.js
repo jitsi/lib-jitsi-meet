@@ -564,7 +564,7 @@ TraceablePeerConnection.prototype.getRemoteTracks = function(
             // eslint-disable-next-line no-continue
             continue;
         }
-
+/*
         for (const trackMediaType of endpointTrackMap.keys()) {
             // per media type filtering
             if (!mediaType || mediaType === trackMediaType) {
@@ -574,7 +574,12 @@ TraceablePeerConnection.prototype.getRemoteTracks = function(
                     remoteTracks.push(mediaTrack);
                 }
             }
-        }
+        }*/
+        endpointTrackMap.forEach((track) => {
+            if (track && (!mediaType || mediaType === track.mediaType)){
+                remoteTracks.push(track);
+            }
+        })
     }
 
     return remoteTracks;
@@ -824,7 +829,7 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
         this.remoteTracks.set(ownerEndpointId, remoteTracksMap);
     }
 
-    const existingTrack = remoteTracksMap.get(mediaType);
+/*    const existingTrack = remoteTracksMap.get(mediaType);
 
     if (existingTrack && existingTrack.getTrack() === track) {
         // Ignore duplicated event which can originate either from
@@ -839,7 +844,7 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
             `${this} overwriting remote track for`
                 + `${ownerEndpointId} ${mediaType}`);
     }
-
+*/
     const remoteTrack
         = new JitsiRemoteTrack(
                 this.rtc,
@@ -853,7 +858,8 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
                 muted,
                 this.isP2P);
 
-    remoteTracksMap.set(mediaType, remoteTrack);
+    //remoteTracksMap.set(mediaType, remoteTrack);
+    remoteTracksMap.set(remoteTrack.getId(), remoteTrack);
 
     this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack);
 };
@@ -973,7 +979,7 @@ TraceablePeerConnection.prototype.removeRemoteTracks = function(owner) {
     const removedTracks = [];
     const remoteTracksMap = this.remoteTracks.get(owner);
 
-    if (remoteTracksMap) {
+/*    if (remoteTracksMap) {
         const removedAudioTrack = remoteTracksMap.get(MediaType.AUDIO);
         const removedVideoTrack = remoteTracksMap.get(MediaType.VIDEO);
 
@@ -981,6 +987,13 @@ TraceablePeerConnection.prototype.removeRemoteTracks = function(owner) {
         removedVideoTrack && removedTracks.push(removedVideoTrack);
 
         this.remoteTracks.delete(owner);
+    }*/
+    if (remoteTracksMap) {
+        remoteTracksMap.forEach((track) => {
+            if (track) {
+                removedTracks.push(track);
+            }
+        })
     }
 
     logger.debug(
@@ -1000,12 +1013,21 @@ TraceablePeerConnection.prototype._removeRemoteTrack = function(toBeRemoved) {
     const participantId = toBeRemoved.getParticipantId();
     const remoteTracksMap = this.remoteTracks.get(participantId);
 
+/*   
     if (!remoteTracksMap) {
         logger.error(
             `removeRemoteTrack: no remote tracks map for ${participantId}`);
     } else if (!remoteTracksMap.delete(toBeRemoved.getType())) {
         logger.error(
             `Failed to remove ${toBeRemoved} - type mapping messed up ?`);
+    }
+    */
+    if (!remoteTracksMap) {
+        logger.error(
+            `removeRemoteTrack: no remote tracks map for ${participantId}`);
+    } else if (!remoteTracksMap.delete(toBeRemoved.getId())) {
+        logger.error(
+        `Failed to remove ${toBeRemoved} - remoteTrack mapping messed up ?`);
     }
     this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_REMOVED, toBeRemoved);
 };
