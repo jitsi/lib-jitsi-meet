@@ -16,7 +16,7 @@ const kJitsiE2EE = Symbol('kJitsiE2EE');
  * that provides access to the encoded frames and allows them to be transformed.
  *
  * The encoded frame format is explained below in the _encodeFunction method.
- * High level design goals were:.
+ * High level design goals were:
  * - do not require changes to existing SFUs and retain (VP8) metadata.
  * - allow the SFU to rewrite SSRCs, timestamp, pictureId.
  * - allow for the key to be rotated frequently.
@@ -53,48 +53,64 @@ export default class E2EEcontext {
     }
 
     /**
-     * Handles the given {@code RTCRtpReceiver} by creating a {@code TransformStream} which will injecct
+     * Handles the given {@code RTCRtpReceiver} by creating a {@code TransformStream} which will inject
      * a frame decoder.
      *
      * @param {RTCRtpReceiver} receiver - The receiver which will get the decoding function injected.
      * @param {string} kind - The kind of track this receiver belongs to.
+     * @param {string} participantId - The participant id that this receiver belongs to.
      */
-    handleReceiver(receiver, kind) {
+    handleReceiver(receiver, kind, participantId) {
         if (receiver[kJitsiE2EE]) {
             return;
         }
         receiver[kJitsiE2EE] = true;
 
-        const receiverStreams
-            = kind === 'video' ? receiver.createEncodedVideoStreams() : receiver.createEncodedAudioStreams();
+        let receiverStreams;
+
+        if (receiver.createEncodedStreams) {
+            receiverStreams = receiver.createEncodedStreams();
+        } else {
+            receiverStreams = kind === 'video' ? receiver.createEncodedVideoStreams()
+                : receiver.createEncodedAudioStreams();
+        }
 
         this._worker.postMessage({
             operation: 'decode',
             readableStream: receiverStreams.readableStream,
-            writableStream: receiverStreams.writableStream
+            writableStream: receiverStreams.writableStream,
+            participantId
         }, [ receiverStreams.readableStream, receiverStreams.writableStream ]);
     }
 
     /**
-     * Handles the given {@code RTCRtpSender} by creating a {@code TransformStream} which will injecct
+     * Handles the given {@code RTCRtpSender} by creating a {@code TransformStream} which will inject
      * a frame encoder.
      *
-     * @param {RTCRtpSender} sender - The sender which will get the encoding funcction injected.
+     * @param {RTCRtpSender} sender - The sender which will get the encoding function injected.
      * @param {string} kind - The kind of track this sender belongs to.
+     * @param {string} participantId - The participant id that this sender belongs to.
      */
-    handleSender(sender, kind) {
+    handleSender(sender, kind, participantId) {
         if (sender[kJitsiE2EE]) {
             return;
         }
         sender[kJitsiE2EE] = true;
 
-        const senderStreams
-            = kind === 'video' ? sender.createEncodedVideoStreams() : sender.createEncodedAudioStreams();
+        let senderStreams;
+
+        if (sender.createEncodedStreams) {
+            senderStreams = sender.createEncodedStreams();
+        } else {
+            senderStreams = kind === 'video' ? sender.createEncodedVideoStreams()
+                : sender.createEncodedAudioStreams();
+        }
 
         this._worker.postMessage({
             operation: 'encode',
             readableStream: senderStreams.readableStream,
-            writableStream: senderStreams.writableStream
+            writableStream: senderStreams.writableStream,
+            participantId
         }, [ senderStreams.readableStream, senderStreams.writableStream ]);
     }
 

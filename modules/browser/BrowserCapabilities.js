@@ -149,15 +149,6 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Checks whether the browser supports RTX.
-     *
-     * @returns {boolean}
-     */
-    supportsRtx() {
-        return !this.isFirefox();
-    }
-
-    /**
      * Returns whether or not the current browser can support capturing video,
      * be it camera or desktop, and displaying received video.
      *
@@ -182,7 +173,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     usesSdpMungingForSimulcast() {
-        return this.isChromiumBased() || this.isSafari();
+        return this.isChromiumBased() || this.isReactNative() || this.isSafari();
     }
 
     /**
@@ -267,7 +258,8 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     supportsInsertableStreams() {
         return Boolean(typeof window.RTCRtpSender !== 'undefined'
-            && window.RTCRtpSender.prototype.createEncodedVideoStreams);
+            && (window.RTCRtpSender.prototype.createEncodedStreams
+                || window.RTCRtpSender.prototype.createEncodedVideoStreams));
     }
 
     /**
