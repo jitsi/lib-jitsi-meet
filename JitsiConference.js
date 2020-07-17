@@ -1594,6 +1594,13 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
  * this is the id of the participant which was kicked.
  */
 JitsiConference.prototype.onMemberKicked = function(isSelfPresence, actorId, kickedParticipantId) {
+    // This check which be true when we kick someone else. With the introduction of lobby
+    // the ChatRoom KICKED event is now also emitted for ourselves (the kicker) so we want to
+    // avoid emitting an event where `undefined` kicked someone.
+    if (actorId === this.myUserId()) {
+        return;
+    }
+
     const actorParticipant = this.participants[actorId];
 
     if (isSelfPresence) {
