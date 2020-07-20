@@ -4,7 +4,6 @@ import Listenable from '../util/Listenable';
 import { nextTick } from '../util/TestUtils';
 
 import IceFailedHandling from './IceFailedHandling';
-import networkInfo from './NetworkInfo';
 
 /**
  * Mock conference for the purpose of this test.
@@ -28,12 +27,14 @@ describe('IceFailedHandling', () => {
 
     beforeEach(() => {
         jasmine.clock().install();
-        networkInfo.updateNetworkInfo({ isOnline: true });
         mockConference = new MockConference();
         iceFailedHandling = new IceFailedHandling(mockConference);
         mockConference.eventEmitter = {
             // eslint-disable-next-line no-empty-function
             emit: () => { }
+        };
+        mockConference.xmpp = {
+            ping: () => Promise.resolve()
         };
         emitEventSpy = spyOn(mockConference.eventEmitter, 'emit');
     });
@@ -46,34 +47,32 @@ describe('IceFailedHandling', () => {
         beforeEach(() => {
             mockConference.options.config.enableIceRestart = false;
         });
-        it('emits ICE failed with 15 seconds delay', () => {
+        it('emits ICE failed with 2 seconds delay after XMPP ping comes through', () => {
             iceFailedHandling.start();
-            jasmine.clock().tick(10000);
-            expect(emitEventSpy).not.toHaveBeenCalled();
 
-            jasmine.clock().tick(5100);
-            expect(emitEventSpy).toHaveBeenCalled();
-        });
-        it('starts counting the time after the internet comes back online', () => {
-            iceFailedHandling.start();
-            jasmine.clock().tick(3000);
+            return nextTick() // tick for ping
+                .then(() => {
+                    expect(emitEventSpy).not.toHaveBeenCalled();
 
-            networkInfo.updateNetworkInfo({ isOnline: false });
-            jasmine.clock().tick(16000);
-            expect(emitEventSpy).not.toHaveBeenCalled();
-
-            networkInfo.updateNetworkInfo({ isOnline: true });
-            jasmine.clock().tick(16000);
-            expect(emitEventSpy).toHaveBeenCalled();
+                    return nextTick(2500); // tick for the 2 sec ice timeout
+                })
+                .then(() => {
+                    expect(emitEventSpy).toHaveBeenCalled();
+                });
         });
         it('cancel method cancels the ICE failed event', () => {
             iceFailedHandling.start();
-            jasmine.clock().tick(10000);
-            expect(emitEventSpy).not.toHaveBeenCalled();
 
-            iceFailedHandling.cancel();
-            jasmine.clock().tick(5100);
-            expect(emitEventSpy).not.toHaveBeenCalled();
+            return nextTick(1000) // tick for ping
+                .then(() => {
+                    expect(emitEventSpy).not.toHaveBeenCalled();
+                    iceFailedHandling.cancel();
+
+                    return nextTick(2500); // tick for ice timeout
+                })
+                .then(() => {
+                    expect(emitEventSpy).not.toHaveBeenCalled();
+                });
         });
     });
     describe('when ICE restart are enabled', () => {
@@ -81,9 +80,6 @@ describe('IceFailedHandling', () => {
 
         beforeEach(() => {
             mockConference.options.config.enableIceRestart = true;
-            mockConference.xmpp = {
-                ping: () => Promise.resolve()
-            };
             mockConference.jvbJingleSession = {
                 getIceConnectionState: () => 'failed',
                 // eslint-disable-next-line no-empty-function
@@ -94,23 +90,26 @@ describe('IceFailedHandling', () => {
         it('send ICE failed notification to Jicofo', () => {
             iceFailedHandling.start();
 
-            // first it send ping which is async - need next tick
-            return nextTick().then(() => {
-                jasmine.clock().tick(3000);
-                expect(sendIceFailedSpy).toHaveBeenCalled();
-            });
+            return nextTick() // tick for ping
+                .then(() => nextTick(2500)) // tick for ice timeout
+                .then(() => {
+                    expect(sendIceFailedSpy).toHaveBeenCalled();
+                });
         });
         it('not send ICE failed notification to Jicofo if canceled', () => {
             iceFailedHandling.start();
 
             // first it send ping which is async - need next tick
-            return nextTick().then(() => {
-                jasmine.clock().tick(1000);
-                expect(sendIceFailedSpy).not.toHaveBeenCalled();
-                iceFailedHandling.cancel();
-                jasmine.clock().tick(3000);
-                expect(sendIceFailedSpy).not.toHaveBeenCalled();
-            });
+            return nextTick(1000)
+                .then(() => {
+                    expect(sendIceFailedSpy).not.toHaveBeenCalled();
+                    iceFailedHandling.cancel();
+
+                    return nextTick(3000); // tick for ice timeout
+                })
+                .then(() => {
+                    expect(sendIceFailedSpy).not.toHaveBeenCalled();
+                });
         });
     });
 });

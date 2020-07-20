@@ -4,59 +4,7 @@ import { getLogger } from 'jitsi-meet-logger';
 import * as JitsiConferenceErrors from '../../JitsiConferenceErrors';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 
-import { default as networkInfo, NETWORK_INFO_EVENT } from './NetworkInfo';
-
 const logger = getLogger(__filename);
-
-/**
- * Helper class for handling ICE event delay in combination with internet online/offline status check.
- */
-class DelayedIceFailedEvent {
-    /**
-     * A constructor.
-     * @param {function} emitIceFailed - Will be called by this class to emit ICE failed conference event.
-     * @param {number} delay - The delay for ICE failed in milliseconds since the event occurred on the peerconnection
-     * or the internet came back online.
-     */
-    constructor(emitIceFailed, delay) {
-        this._emitIceFailed = emitIceFailed;
-        this._delay = delay;
-    }
-
-    /**
-     * Starts the event delay and internet status check logic.
-     */
-    start() {
-        this._onlineListener
-            = networkInfo.addEventListener(
-                NETWORK_INFO_EVENT,
-                () => this._maybeSetDelayTimeout());
-        this._maybeSetDelayTimeout();
-    }
-
-    /**
-     * Cancels the task.
-     */
-    stop() {
-        this._onlineListener && this._onlineListener();
-        this._onlineListener = undefined;
-        clearTimeout(this._delayTimeout);
-    }
-
-    /**
-     * Resets the timer delay if the internet status is online.
-     * @private
-     */
-    _maybeSetDelayTimeout() {
-        clearTimeout(this._delayTimeout);
-
-        if (networkInfo.isOnline()) {
-            logger.info(`Will emit ICE failed in ${this._delay}ms`);
-            this._delayTimeout = setTimeout(() => this._emitIceFailed(), this._delay);
-        }
-    }
-}
-
 
 /**
  * This class deals with shenanigans around JVB media session's ICE failed status handling.
@@ -79,21 +27,38 @@ export default class IceFailedHandling {
     }
 
     /**
-     * Starts the task.
+     * After making sure there's no way for the ICE connection to recover this method either sends ICE failed
+     * notification to Jicofo or emits the ice failed conference event.
+     * @private
+     * @returns {void}
      */
-    start() {
+    _actOnIceFailed() {
         if (!this._conference.options.config.enableIceRestart) {
             logger.info('ICE failed, but ICE restarts are disabled');
-            this._delayedIceFailedEvent = new DelayedIceFailedEvent(() => {
-                this._conference.eventEmitter.emit(
-                    JitsiConferenceEvents.CONFERENCE_FAILED,
-                    JitsiConferenceErrors.ICE_FAILED);
-            }, 15000);
-            this._delayedIceFailedEvent.start();
+            this._conference.eventEmitter.emit(
+                JitsiConferenceEvents.CONFERENCE_FAILED,
+                JitsiConferenceErrors.ICE_FAILED);
 
             return;
         }
 
+        const jvbConnection = this._conference.jvbJingleSession;
+        const jvbConnIceState = jvbConnection && jvbConnection.getIceConnectionState();
+
+        if (!jvbConnection) {
+            logger.warn('Not sending ICE failed - no JVB connection');
+        } else if (jvbConnIceState === 'connected') {
+            logger.info('ICE connection restored - not sending ICE failed');
+        } else {
+            logger.info(`Sending ICE failed - the connection has not recovered: ${jvbConnIceState}`);
+            jvbConnection.sendIceFailedNotification();
+        }
+    }
+
+    /**
+     * Starts the task.
+     */
+    start() {
         //  Using xmpp.ping allows to handle both XMPP being disconnected and internet offline cases. The ping function
         // uses sendIQ2 method which is resilient to XMPP connection disconnected state and will patiently wait until it
         // gets reconnected.
@@ -105,22 +70,10 @@ export default class IceFailedHandling {
         // to 'item-not-found' error returned by the server.
         this._conference.xmpp.ping(65000).then(
             () => {
-                if (this._canceled) {
-                    return;
-                }
-
-                const jvbConnection = this._conference.jvbJingleSession;
-                const jvbConnIceState = jvbConnection && jvbConnection.getIceConnectionState();
-
-                if (!jvbConnection) {
-                    logger.warn('Not sending ICE failed - no JVB connection');
-                } else if (jvbConnIceState === 'connected') {
-                    logger.info('ICE connection restored - not sending ICE failed');
-                } else {
+                if (!this._canceled) {
                     this._iceFailedTimeout = window.setTimeout(() => {
-                        logger.info(`Sending ICE failed - the connection has not recovered: ${jvbConnIceState}`);
                         this._iceFailedTimeout = undefined;
-                        jvbConnection.sendIceFailedNotification();
+                        this._actOnIceFailed();
                     }, 2000);
                 }
             },
@@ -135,6 +88,5 @@ export default class IceFailedHandling {
     cancel() {
         this._canceled = true;
         window.clearTimeout(this._iceFailedTimeout);
-        this._delayedIceFailedEvent && this._delayedIceFailedEvent.stop();
     }
 }
