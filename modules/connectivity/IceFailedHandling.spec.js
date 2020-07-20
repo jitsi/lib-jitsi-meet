@@ -33,6 +33,9 @@ describe('IceFailedHandling', () => {
             // eslint-disable-next-line no-empty-function
             emit: () => { }
         };
+        mockConference.room = {
+            supportsRestartByTerminate: () => false
+        };
         mockConference.xmpp = {
             ping: () => Promise.resolve()
         };
@@ -109,6 +112,38 @@ describe('IceFailedHandling', () => {
                 })
                 .then(() => {
                     expect(sendIceFailedSpy).not.toHaveBeenCalled();
+                });
+        });
+    });
+    describe('if Jingle session restarts are supported', () => {
+        let sendSessionTerminateSpy;
+
+        beforeEach(() => {
+            mockConference.options.config.enableIceRestart = undefined;
+            mockConference.room = {
+                supportsRestartByTerminate: () => true
+            };
+            mockConference.jvbJingleSession = {
+                getIceConnectionState: () => 'failed',
+                // eslint-disable-next-line no-empty-function
+                terminate: () => { }
+            };
+            sendSessionTerminateSpy = spyOn(mockConference.jvbJingleSession, 'terminate');
+        });
+        it('send "session-terminate" with the request restart attribute', () => {
+            iceFailedHandling.start();
+
+            return nextTick() // tick for ping
+                .then(() => nextTick(2500)) // tick for ice timeout
+                .then(() => {
+                    expect(sendSessionTerminateSpy).toHaveBeenCalledWith(
+                        jasmine.any(Function),
+                        jasmine.any(Function), {
+                            reason: 'connectivity-error',
+                            reasonDescription: 'ICE FAILED',
+                            requestRestart: true,
+                            sendSessionTerminate: true
+                        });
                 });
         });
     });

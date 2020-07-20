@@ -33,7 +33,16 @@ export default class IceFailedHandling {
      * @returns {void}
      */
     _actOnIceFailed() {
-        if (!this._conference.options.config.enableIceRestart) {
+        const { enableIceRestart } = this._conference.options.config;
+        const explicitlyDisabled = typeof enableIceRestart !== 'undefined' && !enableIceRestart;
+        const supportsRestartByTerminate = this._conference.room.supportsRestartByTerminate();
+        const useTerminateForRestart = supportsRestartByTerminate && !enableIceRestart;
+
+        logger.info('ICE failed,'
+            + ` enableIceRestart: ${enableIceRestart},`
+            + ` supports restart by terminate: ${supportsRestartByTerminate}`);
+
+        if (explicitlyDisabled || (!enableIceRestart && !supportsRestartByTerminate)) {
             logger.info('ICE failed, but ICE restarts are disabled');
             this._conference.eventEmitter.emit(
                 JitsiConferenceEvents.CONFERENCE_FAILED,
@@ -50,8 +59,25 @@ export default class IceFailedHandling {
         } else if (jvbConnIceState === 'connected') {
             logger.info('ICE connection restored - not sending ICE failed');
         } else {
-            logger.info(`Sending ICE failed - the connection has not recovered: ${jvbConnIceState}`);
-            jvbConnection.sendIceFailedNotification();
+            logger.info('Sending ICE failed - the connection did not recover, '
+                + `ICE state: ${jvbConnIceState}, `
+                + `use 'session-terminate': ${useTerminateForRestart}`);
+            if (useTerminateForRestart) {
+                this._conference.jvbJingleSession.terminate(
+                    () => {
+                        logger.info('session-terminate for ice restart - done');
+                    },
+                    error => {
+                        logger.error(`session-terminate for ice restart - error: ${error.message}`);
+                    }, {
+                        reason: 'connectivity-error',
+                        reasonDescription: 'ICE FAILED',
+                        requestRestart: true,
+                        sendSessionTerminate: true
+                    });
+            } else {
+                this._conference.jvbJingleSession.sendIceFailedNotification();
+            }
         }
     }
 
