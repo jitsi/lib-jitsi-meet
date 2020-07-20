@@ -761,6 +761,12 @@ export default class ChatRoom extends Listenable {
         this.focusMucJid = from;
 
         logger.info(`Ignore focus: ${from}, real JID: ${mucJid}`);
+        this.xmpp.caps.getFeatures(mucJid, 15000).then(features => {
+            this.focusFeatures = features;
+            logger.info(`Jicofo supports restart by terminate: ${this.supportsRestartByTerminate()}`);
+        }, error => {
+            logger.error('Failed to discover Jicofo features', error && error.message);
+        });
     }
 
     /**
@@ -769,6 +775,16 @@ export default class ChatRoom extends Listenable {
      */
     setParticipantPropertyListener(listener) {
         this.participantPropertyListener = listener;
+    }
+
+    /**
+     * Checks if Jicofo supports restarting Jingle session after 'session-terminate'.
+     * @returns {boolean}
+     */
+    supportsRestartByTerminate() {
+        return this.focusFeatures
+            ? this.focusFeatures.has('https://jitsi.org/meet/jicofo/terminate-restart')
+            : false;
     }
 
     /**
