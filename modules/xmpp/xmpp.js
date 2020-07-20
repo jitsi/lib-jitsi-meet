@@ -179,15 +179,6 @@ export default class XMPP extends Listenable {
     }
 
     /**
-     * Returns {@code true} if the PING functionality is supported by the server
-     * or {@code false} otherwise.
-     * @returns {boolean}
-     */
-    isPingSupported() {
-        return this._pingSupported !== false;
-    }
-
-    /**
      *
      */
     getConnection() {
@@ -233,12 +224,14 @@ export default class XMPP extends Listenable {
             // FIXME no need to do it again on stream resume
             this.caps.getFeaturesAndIdentities(pingJid)
                 .then(({ features, identities }) => {
-                    if (features.has(Strophe.NS.PING)) {
-                        this._pingSupported = true;
-                        this.connection.ping.startInterval(pingJid);
-                    } else {
-                        logger.warn(`Ping NOT supported by ${pingJid}`);
+                    if (!features.has(Strophe.NS.PING)) {
+                        logger.error(
+                            `Ping NOT supported by ${pingJid} - please enable ping in your XMPP server config`);
                     }
+
+                    // It counterintuitive to start ping task when it's not supported, but since PING is now mandatory
+                    // it's done on purpose in order to print error logs and bring more attention.
+                    this.connection.ping.startInterval(pingJid);
 
                     // check for speakerstats
                     identities.forEach(identity => {
@@ -533,20 +526,15 @@ export default class XMPP extends Listenable {
     }
 
     /**
-     * Pings the server. Remember to check {@link isPingSupported} before using
-     * this method.
+     * Pings the server.
      * @param timeout how many ms before a timeout should occur.
      * @returns {Promise} resolved on ping success and reject on an error or
      * a timeout.
      */
     ping(timeout) {
         return new Promise((resolve, reject) => {
-            if (this.isPingSupported()) {
-                this.connection.ping
+            this.connection.ping
                     .ping(this.connection.domain, resolve, reject, timeout);
-            } else {
-                reject('PING operation is not supported by the server');
-            }
         });
     }
 

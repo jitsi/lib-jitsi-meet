@@ -92,17 +92,17 @@ export default class IceFailedHandling {
             this._delayedIceFailedEvent.start();
 
             return;
-        } else if (!this._conference.xmpp.isPingSupported()) {
-            // Let Jicofo know that the JVB's ICE connection has failed
-            logger.info('PING not supported - sending ICE failed notification immediately');
-            this._conference.jvbJingleSession.sendIceFailedNotification();
-
-            return;
         }
 
-        // The 65 seconds are greater than the default Prosody's BOSH
-        // timeout of 60. This gives some time for the XMPP connection
-        // to recover.
+        //  Using xmpp.ping allows to handle both XMPP being disconnected and internet offline cases. The ping function
+        // uses sendIQ2 method which is resilient to XMPP connection disconnected state and will patiently wait until it
+        // gets reconnected.
+        //  This also handles the case about waiting for the internet to come back online, because ping
+        // will only succeed when the internet is online and then there's a chance for the ICE to recover from FAILED to
+        // CONNECTED which is the extra 2 second timeout after ping.
+        //  The 65 second timeout is given on purpose as there's no chance for XMPP to recover after 65 seconds of no
+        // communication with the server. Such resume attempt will result in unrecoverable conference failed event due
+        // to 'item-not-found' error returned by the server.
         this._conference.xmpp.ping(65000).then(
             () => {
                 if (this._canceled) {
