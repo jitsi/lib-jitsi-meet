@@ -82,7 +82,6 @@ describe('IceFailedHandling', () => {
         beforeEach(() => {
             mockConference.options.config.enableIceRestart = true;
             mockConference.xmpp = {
-                isPingSupported: () => true,
                 ping: () => Promise.resolve()
             };
             mockConference.jvbJingleSession = {
