@@ -65,7 +65,7 @@ export default class XmppConnection extends Listenable {
         this._stropheConn.maxRetries = 3;
 
         this._lastSuccessTracker = new LastSuccessTracker();
-        this._lastSuccessTracker.startTracking(this._stropheConn);
+        this._lastSuccessTracker.startTracking(this, this._stropheConn);
 
         /**
          * @typedef DeferredSendIQ Object
