@@ -1676,6 +1676,8 @@ export default class ChatRoom extends Listenable {
     clean() {
         this._removeConnListeners.forEach(remove => remove());
         this._removeConnListeners = [];
+
+        this.joined = false;
     }
 
     /**
