@@ -14,11 +14,6 @@ export const AUDIO_INPUT_STATE_CHANGE = 'conference.audio_input_state_changed';
 export const AUTH_STATUS_CHANGED = 'conference.auth_status_changed';
 
 /**
- * A participant avatar has changed.
- */
-export const AVATAR_CHANGED = 'conference.avatarChanged';
-
-/**
  * Fired just before the statistics module is disposed and it's the last chance
  * to submit some logs to the statistics service (ex. CallStats if enabled),
  * before it's disconnected.
