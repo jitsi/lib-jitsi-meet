@@ -123,6 +123,16 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the current browser supports the Long Tasks API that lets us observe
+     * performance measurement events and be notified of tasks that take longer than
+     * 50ms to execute on the main thread.
+     */
+    supportsPerformanceObserver() {
+        return typeof window.PerformanceObserver !== 'undefined'
+            && PerformanceObserver.supportedEntryTypes.indexOf('longtask') > -1;
+    }
+
+    /**
      * Checks if the current browser supports audio level stats on the receivers.
      */
     supportsReceiverStats() {

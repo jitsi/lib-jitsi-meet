@@ -1,5 +1,6 @@
 import EventEmitter from 'events';
 
+import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import JitsiTrackError from '../../JitsiTrackError';
 import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
 import * as StatisticsEvents from '../../service/statistics/Events';
@@ -9,6 +10,7 @@ import ScriptUtil from '../util/ScriptUtil';
 import analytics from './AnalyticsAdapter';
 import CallStats from './CallStats';
 import LocalStats from './LocalStatsCollector';
+import { PerformanceObserverStats } from './PerformanceObserverStats';
 import RTPStats from './RTPStatsCollector';
 
 
@@ -120,6 +122,10 @@ Statistics.init = function(options) {
         Statistics.audioLevelsInterval = options.audioLevelsInterval;
     }
 
+    if (typeof options.performanceStatsInterval === 'number') {
+        Statistics.performanceStatsInterval = options.performanceStatsInterval;
+    }
+
     Statistics.disableThirdPartyRequests = options.disableThirdPartyRequests;
 };
 
@@ -188,6 +194,7 @@ export default function Statistics(xmpp, options) {
 Statistics.audioLevelsEnabled = false;
 Statistics.audioLevelsInterval = 200;
 Statistics.pcStatsInterval = 10000;
+Statistics.performanceStatsInterval = 10000;
 Statistics.disableThirdPartyRequests = false;
 Statistics.analytics = analytics;
 
@@ -281,6 +288,63 @@ Statistics.prototype.addByteSentStatsListener = function(listener) {
 Statistics.prototype.removeByteSentStatsListener = function(listener) {
     this.eventEmitter.removeListener(StatisticsEvents.BYTE_SENT_STATS,
         listener);
+};
+
+/**
+ * Add a listener that would be notified on a LONG_TASKS_STATS event.
+ *
+ * @param {Function} listener a function that would be called when notified.
+ * @returns {void}
+ */
+Statistics.prototype.addPerformanceStatsListener = function(listener) {
+    this.eventEmitter.on(StatisticsEvents.LONG_TASKS_STATS, listener);
+};
+
+/**
+ * Creates an instance of {@link PerformanceObserverStats} and starts the
+ * observer that records the stats periodically.
+ *
+ * @returns {void}
+ */
+Statistics.prototype.attachPerformanceStats = function(conference) {
+    if (!browser.supportsPerformanceObserver()) {
+        logger.warn('Performance observer for long tasks not supported by browser!');
+
+        return;
+    }
+
+    this.performanceObserverStats = new PerformanceObserverStats(
+        this.eventEmitter,
+        Statistics.performanceStatsInterval);
+
+    conference.on(
+        JitsiConferenceEvents.CONFERENCE_JOINED,
+        () => this.performanceObserverStats.startObserver());
+    conference.on(
+        JitsiConferenceEvents.CONFERENCE_LEFT,
+        () => this.performanceObserverStats.stopObserver());
+};
+
+/**
+ * Obtains the current value of the performance statistics.
+ *
+ * @returns {Object|null} stats object if the observer has been
+ * created, null otherwise.
+ */
+Statistics.prototype.getPerformanceStats = function() {
+    return this.performanceObserverStats
+        ? this.performanceObserverStats.getPerformanceStats()
+        : null;
+};
+
+/**
+ * Removes the given listener for the LONG_TASKS_STATS event.
+ *
+ * @param {Function} listener the listener we want to remove.
+ * @returns {void}
+ */
+Statistics.prototype.removePerformanceStatsListener = function(listener) {
+    this.eventEmitter.removeListener(StatisticsEvents.LONG_TASKS_STATS, listener);
 };
 
 Statistics.prototype.dispose = function() {
