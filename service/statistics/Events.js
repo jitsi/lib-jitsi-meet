@@ -30,3 +30,8 @@ export const BYTE_SENT_STATS = 'statistics.byte_sent_stats';
  * <tt>resolution</tt>, and <tt>transport</tt>.
  */
 export const CONNECTION_STATS = 'statistics.connectionstats';
+
+/**
+ * An event carrying performance stats.
+ */
+export const LONG_TASKS_STATS = 'statistics.long_tasks_stats';

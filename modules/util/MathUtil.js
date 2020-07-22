@@ -1,5 +1,4 @@
 
-
 /**
  * The method will increase the given number by 1. If the given counter is equal
  * or greater to {@link Number.MAX_SAFE_INTEGER} then it will be rolled back to
@@ -37,4 +36,40 @@ export function calculateAverage(valueArray) {
  */
 export function filterPositiveValues(valueArray) {
     return valueArray.filter(value => value >= 0);
+}
+
+/**
+ * This class calculates a simple running average that continually changes
+ * as more data points are collected and added.
+ */
+export class RunningAverage {
+    /**
+     * Creates an instance of the running average calculator.
+     */
+    constructor() {
+        this.average = 0;
+        this.n = 0;
+    }
+
+    /**
+     * Adds a new data point to the existing set of values and recomputes
+     * the running average.
+     * @param {number} value
+     * @returns {void}
+     */
+    addNext(value) {
+        if (typeof value !== 'number') {
+            return;
+        }
+        this.n += 1;
+        this.average = this.average + ((value - this.average) / this.n);
+    }
+
+    /**
+     * Obtains the average value for the current subset of values.
+     * @returns {number} - computed average.
+     */
+    getAverage() {
+        return this.average;
+    }
 }
