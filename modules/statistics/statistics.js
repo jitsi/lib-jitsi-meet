@@ -10,7 +10,7 @@ import analytics from './AnalyticsAdapter';
 import CallStats from './CallStats';
 import LocalStats from './LocalStatsCollector';
 import RTPStats from './RTPStatsCollector';
-
+import { CALLSTATS_SCRIPT_URL } from './constants';
 
 const logger = require('jitsi-meet-logger').getLogger(__filename);
 
@@ -40,8 +40,7 @@ let isCallstatsLoaded = false;
 function loadCallStatsAPI(options) {
     if (!isCallstatsLoaded) {
         ScriptUtil.loadScript(
-            options.customScriptUrl
-                || 'https://api.callstats.io/static/callstats-ws.min.js',
+            options.customScriptUrl || CALLSTATS_SCRIPT_URL,
             /* async */ true,
             /* prepend */ true,
             /* relativeURL */ undefined,

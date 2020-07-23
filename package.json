@@ -60,7 +60,8 @@
     "postinstall": "webpack -p",
     "test": "karma start karma.conf.js",
     "test-watch": "karma start karma.conf.js --no-single-run",
-    "validate": "npm ls"
+    "validate": "npm ls",
+    "watch": "webpack --config webpack.config.js --watch --mode development"
   },
   "main": "./index.js",
   "license": "Apache-2.0"
