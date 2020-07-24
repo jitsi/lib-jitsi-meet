@@ -115,11 +115,11 @@ yet.
 ### Installing token plugin
 
 Token authentication can be integrated automatically using Debian package install. Once you have jitsi-meet installed
-just install 'jitsi-meet-tokens' on top of it. In order to have it configured automatically at least version 779 of
+just install 'jitsi-meet-prosody' on top of it. In order to have it configured automatically at least version 779 of
 jitsi-meet is required which comes with special Prosody config template.
 
 ```
-apt-get install jitsi-meet-tokens
+apt-get install jitsi-meet-prosody
 ```
 
 Proceed to "Patching Prosody" section to finish configuration.
