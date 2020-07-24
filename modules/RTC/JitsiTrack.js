@@ -424,6 +424,15 @@ export default class JitsiTrack extends EventEmitter {
      * peerconnection (see /modules/statistics/LocalStatsCollector.js).
      */
     setAudioLevel(audioLevel, tpc) {
+        // The receiver seems to be reporting audio level immediately after the
+        // remote user has muted, so do not set the audio level on the track
+        // if it is muted.
+        if (browser.supportsReceiverStats()
+            && !this.isLocalAudioTrack()
+            && this.isWebRTCTrackMuted()) {
+            return;
+        }
+
         if (this.audioLevel !== audioLevel) {
             this.audioLevel = audioLevel;
             this.emit(
