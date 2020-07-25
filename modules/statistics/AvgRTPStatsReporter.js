@@ -1,18 +1,20 @@
 /* global __filename */
+import { getLogger } from 'jitsi-meet-logger';
 import isEqual from 'lodash.isequal';
 
+import * as ConferenceEvents from '../../JitsiConferenceEvents';
+import * as MediaType from '../../service/RTC/MediaType';
+import * as VideoType from '../../service/RTC/VideoType';
+import * as ConnectionQualityEvents
+    from '../../service/connectivity/ConnectionQualityEvents';
 import {
     createRtpStatsEvent,
     createTransportStatsEvent
 } from '../../service/statistics/AnalyticsEvents';
-import { getLogger } from 'jitsi-meet-logger';
-import * as ConnectionQualityEvents
-    from '../../service/connectivity/ConnectionQualityEvents';
-import * as ConferenceEvents from '../../JitsiConferenceEvents';
-import * as MediaType from '../../service/RTC/MediaType';
 import browser from '../browser';
+
 import Statistics from './statistics';
-import * as VideoType from '../../service/RTC/VideoType';
+
 
 const logger = getLogger(__filename);
 

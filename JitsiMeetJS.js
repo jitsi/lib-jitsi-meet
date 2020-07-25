@@ -1,15 +1,7 @@
 /* global __filename */
 
-import getActiveAudioDevice from './modules/detection/ActiveDeviceDetector';
-import AudioMixer from './modules/webaudio/AudioMixer';
-import * as DetectionEvents from './modules/detection/DetectionEvents';
-import TrackVADEmitter from './modules/detection/TrackVADEmitter';
-import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
-import AuthUtil from './modules/util/AuthUtil';
-import * as ConnectionQualityEvents
-    from './service/connectivity/ConnectionQualityEvents';
-import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
-import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
+import Logger from 'jitsi-meet-logger';
+
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import JitsiConnection from './JitsiConnection';
@@ -21,20 +13,30 @@ import JitsiTrackError from './JitsiTrackError';
 import * as JitsiTrackErrors from './JitsiTrackErrors';
 import * as JitsiTrackEvents from './JitsiTrackEvents';
 import * as JitsiTranscriptionStatus from './JitsiTranscriptionStatus';
-import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
-import Logger from 'jitsi-meet-logger';
-import * as MediaType from './service/RTC/MediaType';
-import Resolutions from './service/RTC/Resolutions';
-import { ParticipantConnectionStatus }
-    from './modules/connectivity/ParticipantConnectionStatus';
 import RTC from './modules/RTC/RTC';
 import browser from './modules/browser';
-import ScriptUtil from './modules/util/ScriptUtil';
-import recordingConstants from './modules/recording/recordingConstants';
+import NetworkInfo from './modules/connectivity/NetworkInfo';
+import { ParticipantConnectionStatus }
+    from './modules/connectivity/ParticipantConnectionStatus';
+import getActiveAudioDevice from './modules/detection/ActiveDeviceDetector';
+import * as DetectionEvents from './modules/detection/DetectionEvents';
+import TrackVADEmitter from './modules/detection/TrackVADEmitter';
 import ProxyConnectionService
     from './modules/proxyconnection/ProxyConnectionService';
+import recordingConstants from './modules/recording/recordingConstants';
+import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import Statistics from './modules/statistics/statistics';
+import AuthUtil from './modules/util/AuthUtil';
+import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
+import ScriptUtil from './modules/util/ScriptUtil';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
+import AudioMixer from './modules/webaudio/AudioMixer';
+import * as MediaType from './service/RTC/MediaType';
+import Resolutions from './service/RTC/Resolutions';
+import * as ConnectionQualityEvents
+    from './service/connectivity/ConnectionQualityEvents';
+import * as E2ePingEvents from './service/e2eping/E2ePingEvents';
+import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
 
 const logger = Logger.getLogger(__filename);
 
@@ -299,10 +301,6 @@ export default _mergeNamespaceAndModule({
      * @param {string} options.resolution resolution constraints
      * @param {string} options.cameraDeviceId
      * @param {string} options.micDeviceId
-     * @param {object} options.desktopSharingExtensionExternalInstallation -
-     * enables external installation process for desktop sharing extension if
-     * the inline installation is not posible. The following properties should
-     * be provided:
      * @param {intiger} interval - the interval (in ms) for
      * checking whether the desktop sharing extension is installed or not
      * @param {Function} checkAgain - returns boolean. While checkAgain()==true
@@ -445,12 +443,12 @@ export default _mergeNamespaceAndModule({
                 }
 
                 if (error.name
-                        === JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED) {
+                        === JitsiTrackErrors.SCREENSHARING_USER_CANCELED) {
                     // User cancelled action is not really an error, so only
                     // log it as an event to avoid having conference classified
                     // as partially failed
                     const logObject = {
-                        id: 'chrome_extension_user_canceled',
+                        id: 'screensharing_user_canceled',
                         message: error.message
                     };
 
@@ -616,6 +614,16 @@ export default _mergeNamespaceAndModule({
             `Column: ${colno}`,
             'StackTrace: ', error);
         Statistics.reportGlobalError(error);
+    },
+
+    /**
+     * Informs lib-jitsi-meet about the current network status.
+     *
+     * @param {boolean} isOnline - {@code true} if the internet connectivity is online or {@code false}
+     * otherwise.
+     */
+    setNetworkInfo({ isOnline }) {
+        NetworkInfo.updateNetworkInfo({ isOnline });
     },
 
     /**

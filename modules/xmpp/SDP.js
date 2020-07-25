@@ -1,6 +1,7 @@
 /* global $ */
 
 import browser from '../browser';
+
 import SDPUtil from './SDPUtil';
 
 /**
@@ -49,15 +50,12 @@ SDP.prototype.removeUdpCandidates = false;
  * Returns map of MediaChannel mapped per channel idx.
  */
 SDP.prototype.getMediaSsrcMap = function() {
-    const self = this;
     const mediaSSRCs = {};
-    let tmp;
 
-    for (let mediaindex = 0; mediaindex < self.media.length; mediaindex++) {
-        tmp = SDPUtil.findLines(self.media[mediaindex], 'a=ssrc:');
+    for (let mediaindex = 0; mediaindex < this.media.length; mediaindex++) {
         const mid
             = SDPUtil.parseMID(
-                SDPUtil.findLine(self.media[mediaindex], 'a=mid:'));
+                SDPUtil.findLine(this.media[mediaindex], 'a=mid:'));
         const media = {
             mediaindex,
             mid,
@@ -66,7 +64,8 @@ SDP.prototype.getMediaSsrcMap = function() {
         };
 
         mediaSSRCs[mediaindex] = media;
-        tmp.forEach(line => {
+
+        SDPUtil.findLines(this.media[mediaindex], 'a=ssrc:').forEach(line => {
             const linessrc = line.substring(7).split(' ')[0];
 
             // allocate new ChannelSsrc
@@ -79,8 +78,7 @@ SDP.prototype.getMediaSsrcMap = function() {
             }
             media.ssrcs[linessrc].lines.push(line);
         });
-        tmp = SDPUtil.findLines(self.media[mediaindex], 'a=ssrc-group:');
-        tmp.forEach(line => {
+        SDPUtil.findLines(this.media[mediaindex], 'a=ssrc-group:').forEach(line => {
             const idx = line.indexOf(' ');
             const semantics = line.substr(0, idx).substr(13);
             const ssrcs = line.substr(14 + semantics.length).split(' ');
@@ -119,89 +117,31 @@ SDP.prototype.containsSSRC = function(ssrc) {
     return result;
 };
 
-// remove iSAC and CN from SDP
-SDP.prototype.mangle = function() {
-    let i, j, lines, mline, newdesc, rtpmap;
-
-    for (i = 0; i < this.media.length; i++) {
-        lines = this.media[i].split('\r\n');
-        lines.pop(); // remove empty last element
-        mline = SDPUtil.parseMLine(lines.shift());
-        if (mline.media !== 'audio') {
-            continue; // eslint-disable-line no-continue
-        }
-        newdesc = '';
-        mline.fmt.length = 0;
-        for (j = 0; j < lines.length; j++) {
-            if (lines[j].substr(0, 9) === 'a=rtpmap:') {
-                rtpmap = SDPUtil.parseRTPMap(lines[j]);
-                if (rtpmap.name === 'CN' || rtpmap.name === 'ISAC') {
-                    continue; // eslint-disable-line no-continue
-                }
-                mline.fmt.push(rtpmap.id);
-            }
-            newdesc += `${lines[j]}\r\n`;
-        }
-        this.media[i] = `${SDPUtil.buildMLine(mline)}\r\n${newdesc}`;
-    }
-    this.raw = this.session + this.media.join('');
-};
-
-// remove lines matching prefix from session section
-SDP.prototype.removeSessionLines = function(prefix) {
-    const self = this;
-    const lines = SDPUtil.findLines(this.session, prefix);
-
-    lines.forEach(line => {
-        self.session = self.session.replace(`${line}\r\n`, '');
-    });
-    this.raw = this.session + this.media.join('');
-
-    return lines;
-};
-
-// remove lines matching prefix from a media section specified by mediaindex
-// TODO: non-numeric mediaindex could match mid
-SDP.prototype.removeMediaLines = function(mediaindex, prefix) {
-    const self = this;
-    const lines = SDPUtil.findLines(this.media[mediaindex], prefix);
-
-    lines.forEach(line => {
-        self.media[mediaindex]
-            = self.media[mediaindex].replace(`${line}\r\n`, '');
-    });
-    this.raw = this.session + this.media.join('');
-
-    return lines;
-};
-
 // add content's to a jingle element
 SDP.prototype.toJingle = function(elem, thecreator) {
-    let i, j, k, lines, mline, rtpmap, ssrc, tmp;
+    // https://xmpp.org/extensions/xep-0338.html
+    SDPUtil.findLines(this.session, 'a=group:').forEach(line => {
+        const parts = line.split(' ');
+        const semantics = parts.shift().substr(8);
 
-    // new bundle plan
-
-    lines = SDPUtil.findLines(this.session, 'a=group:');
-    if (lines.length) {
-        for (i = 0; i < lines.length; i++) {
-            tmp = lines[i].split(' ');
-            const semantics = tmp.shift().substr(8);
-
-            elem.c('group', { xmlns: 'urn:xmpp:jingle:apps:grouping:0',
-                semantics });
-            for (j = 0; j < tmp.length; j++) {
-                elem.c('content', { name: tmp[j] }).up();
-            }
-            elem.up();
+        elem.c('group', { xmlns: 'urn:xmpp:jingle:apps:grouping:0',
+            semantics });
+        for (let j = 0; j < parts.length; j++) {
+            elem.c('content', { name: parts[j] }).up();
         }
-    }
-    for (i = 0; i < this.media.length; i++) {
-        mline = SDPUtil.parseMLine(this.media[i].split('\r\n')[0]);
+        elem.up();
+    });
+
+    for (let i = 0; i < this.media.length; i++) {
+        const mline = SDPUtil.parseMLine(this.media[i].split('\r\n')[0]);
+
         if (!(mline.media === 'audio'
               || mline.media === 'video'
               || mline.media === 'application')) {
             continue; // eslint-disable-line no-continue
         }
+
+        let ssrc;
         const assrcline = SDPUtil.findLine(this.media[i], 'a=ssrc:');
 
         if (assrcline) {
@@ -221,18 +161,19 @@ SDP.prototype.toJingle = function(elem, thecreator) {
             elem.attrs({ name: mid });
         }
 
-        if (SDPUtil.findLine(this.media[i], 'a=rtpmap:').length) {
+        if (mline.media === 'audio' || mline.media === 'video') {
             elem.c('description',
                 { xmlns: 'urn:xmpp:jingle:apps:rtp:1',
                     media: mline.media });
             if (ssrc) {
                 elem.attrs({ ssrc });
             }
-            for (j = 0; j < mline.fmt.length; j++) {
-                rtpmap
+            for (let j = 0; j < mline.fmt.length; j++) {
+                const rtpmap
                     = SDPUtil.findLine(
                         this.media[i],
                         `a=rtpmap:${mline.fmt[j]}`);
+
                 elem.c('payload-type', SDPUtil.parseRTPMap(rtpmap));
 
                 // put any 'a=fmtp:' + mline.fmt[j] lines into <param name=foo
@@ -243,11 +184,11 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                         `a=fmtp:${mline.fmt[j]}`);
 
                 if (afmtpline) {
-                    tmp = SDPUtil.parseFmtp(afmtpline);
+                    const fmtpParameters = SDPUtil.parseFmtp(afmtpline);
 
                     // eslint-disable-next-line max-depth
-                    for (k = 0; k < tmp.length; k++) {
-                        elem.c('parameter', tmp[k]).up();
+                    for (let k = 0; k < fmtpParameters.length; k++) {
+                        elem.c('parameter', fmtpParameters[k]).up();
                     }
                 }
 
@@ -255,15 +196,6 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                 this.rtcpFbToJingle(i, elem, mline.fmt[j]);
 
                 elem.up();
-            }
-            const crypto
-                = SDPUtil.findLines(this.media[i], 'a=crypto:', this.session);
-
-            if (crypto.length) {
-                elem.c('encryption', { required: 1 });
-                crypto.forEach(
-                    line => elem.c('crypto', SDPUtil.parseCrypto(line)).up());
-                elem.up(); // end of encryption
             }
 
             if (ssrc) {
@@ -356,39 +288,39 @@ SDP.prototype.toJingle = function(elem, thecreator) {
             this.rtcpFbToJingle(i, elem, '*');
 
             // XEP-0294
-            lines = SDPUtil.findLines(this.media[i], 'a=extmap:');
-            if (lines.length) {
-                for (j = 0; j < lines.length; j++) {
-                    tmp = SDPUtil.parseExtmap(lines[j]);
-                    elem.c('rtp-hdrext', {
-                        xmlns: 'urn:xmpp:jingle:apps:rtp:rtp-hdrext:0',
-                        uri: tmp.uri,
-                        id: tmp.value
-                    });
+            const extmapLines = SDPUtil.findLines(this.media[i], 'a=extmap:');
+
+            for (let j = 0; j < extmapLines.length; j++) {
+                const extmap = SDPUtil.parseExtmap(extmapLines[j]);
+
+                elem.c('rtp-hdrext', {
+                    xmlns: 'urn:xmpp:jingle:apps:rtp:rtp-hdrext:0',
+                    uri: extmap.uri,
+                    id: extmap.value
+                });
+
+                // eslint-disable-next-line max-depth
+                if (extmap.hasOwnProperty('direction')) {
 
                     // eslint-disable-next-line max-depth
-                    if (tmp.hasOwnProperty('direction')) {
-
-                        // eslint-disable-next-line max-depth
-                        switch (tmp.direction) {
-                        case 'sendonly':
-                            elem.attrs({ senders: 'responder' });
-                            break;
-                        case 'recvonly':
-                            elem.attrs({ senders: 'initiator' });
-                            break;
-                        case 'sendrecv':
-                            elem.attrs({ senders: 'both' });
-                            break;
-                        case 'inactive':
-                            elem.attrs({ senders: 'none' });
-                            break;
-                        }
+                    switch (extmap.direction) {
+                    case 'sendonly':
+                        elem.attrs({ senders: 'responder' });
+                        break;
+                    case 'recvonly':
+                        elem.attrs({ senders: 'initiator' });
+                        break;
+                    case 'sendrecv':
+                        elem.attrs({ senders: 'both' });
+                        break;
+                    case 'inactive':
+                        elem.attrs({ senders: 'none' });
+                        break;
                     }
-
-                    // TODO: handle params
-                    elem.up();
                 }
+
+                // TODO: handle params
+                elem.up();
             }
             elem.up(); // end of description
         }
@@ -422,14 +354,11 @@ SDP.prototype.toJingle = function(elem, thecreator) {
 };
 
 SDP.prototype.transportToJingle = function(mediaindex, elem) {
-    let tmp;
-    const self = this;
-
     elem.c('transport');
 
     // XEP-0343 DTLS/SCTP
     const sctpmap
-        = SDPUtil.findLine(this.media[mediaindex], 'a=sctpmap:', self.session);
+        = SDPUtil.findLine(this.media[mediaindex], 'a=sctpmap:', this.session);
 
     if (sctpmap) {
         const sctpAttrs = SDPUtil.parseSCTPMap(sctpmap);
@@ -455,55 +384,55 @@ SDP.prototype.transportToJingle = function(mediaindex, elem) {
             this.session);
 
     fingerprints.forEach(line => {
-        tmp = SDPUtil.parseFingerprint(line);
-        tmp.xmlns = 'urn:xmpp:jingle:apps:dtls:0';
-        elem.c('fingerprint').t(tmp.fingerprint);
-        delete tmp.fingerprint;
+        const fingerprint = SDPUtil.parseFingerprint(line);
 
-        // eslint-disable-next-line no-param-reassign
-        line
+        fingerprint.xmlns = 'urn:xmpp:jingle:apps:dtls:0';
+        elem.c('fingerprint').t(fingerprint.fingerprint);
+        delete fingerprint.fingerprint;
+
+        const setupLine
             = SDPUtil.findLine(
-                self.media[mediaindex],
+                this.media[mediaindex],
                 'a=setup:',
-                self.session);
-        if (line) {
-            tmp.setup = line.substr(8);
+                this.session);
+
+        if (setupLine) {
+            fingerprint.setup = setupLine.substr(8);
         }
-        elem.attrs(tmp);
+        elem.attrs(fingerprint);
         elem.up(); // end of fingerprint
     });
-    tmp = SDPUtil.iceparams(this.media[mediaindex], this.session);
-    if (tmp) {
-        tmp.xmlns = 'urn:xmpp:jingle:transports:ice-udp:1';
-        elem.attrs(tmp);
+    const iceParameters = SDPUtil.iceparams(this.media[mediaindex], this.session);
+
+    if (iceParameters) {
+        iceParameters.xmlns = 'urn:xmpp:jingle:transports:ice-udp:1';
+        elem.attrs(iceParameters);
 
         // XEP-0176
-        const lines
+        const candidateLines
             = SDPUtil.findLines(
                 this.media[mediaindex],
                 'a=candidate:',
                 this.session);
 
-        if (lines.length) { // add any a=candidate lines
-            lines.forEach(line => {
-                const candidate = SDPUtil.candidateToJingle(line);
+        candidateLines.forEach(line => { // add any a=candidate lines
+            const candidate = SDPUtil.candidateToJingle(line);
 
-                if (self.failICE) {
-                    candidate.ip = '1.1.1.1';
-                }
-                const protocol
-                    = candidate && typeof candidate.protocol === 'string'
-                        ? candidate.protocol.toLowerCase()
-                        : '';
+            if (this.failICE) {
+                candidate.ip = '1.1.1.1';
+            }
+            const protocol
+                = candidate && typeof candidate.protocol === 'string'
+                    ? candidate.protocol.toLowerCase()
+                    : '';
 
-                if ((self.removeTcpCandidates
-                        && (protocol === 'tcp' || protocol === 'ssltcp'))
-                    || (self.removeUdpCandidates && protocol === 'udp')) {
-                    return;
-                }
-                elem.c('candidate', candidate).up();
-            });
-        }
+            if ((this.removeTcpCandidates
+                    && (protocol === 'tcp' || protocol === 'ssltcp'))
+                || (this.removeUdpCandidates && protocol === 'udp')) {
+                return;
+            }
+            elem.c('candidate', candidate).up();
+        });
     }
     elem.up(); // end of transport
 };
@@ -516,21 +445,21 @@ SDP.prototype.rtcpFbToJingle = function(mediaindex, elem, payloadtype) {
             `a=rtcp-fb:${payloadtype}`);
 
     lines.forEach(line => {
-        const tmp = SDPUtil.parseRTCPFB(line);
+        const feedback = SDPUtil.parseRTCPFB(line);
 
-        if (tmp.type === 'trr-int') {
+        if (feedback.type === 'trr-int') {
             elem.c('rtcp-fb-trr-int', {
                 xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0',
-                value: tmp.params[0]
+                value: feedback.params[0]
             });
             elem.up();
         } else {
             elem.c('rtcp-fb', {
                 xmlns: 'urn:xmpp:jingle:apps:rtp:rtcp-fb:0',
-                type: tmp.type
+                type: feedback.type
             });
-            if (tmp.params.length > 0) {
-                elem.attrs({ 'subtype': tmp.params[0] });
+            if (feedback.params.length > 0) {
+                elem.attrs({ 'subtype': feedback.params[0] });
             }
             elem.up();
         }
@@ -538,38 +467,36 @@ SDP.prototype.rtcpFbToJingle = function(mediaindex, elem, payloadtype) {
 };
 
 SDP.prototype.rtcpFbFromJingle = function(elem, payloadtype) { // XEP-0293
-    let media = '';
-    let tmp
+    let sdp = '';
+    const feedbackElementTrrInt
         = elem.find(
             '>rtcp-fb-trr-int[xmlns="urn:xmpp:jingle:apps:rtp:rtcp-fb:0"]');
 
-    if (tmp.length) {
-        media += 'a=rtcp-fb:* trr-int ';
-        if (tmp.attr('value')) {
-            media += tmp.attr('value');
+    if (feedbackElementTrrInt.length) {
+        sdp += 'a=rtcp-fb:* trr-int ';
+        if (feedbackElementTrrInt.attr('value')) {
+            sdp += feedbackElementTrrInt.attr('value');
         } else {
-            media += '0';
+            sdp += '0';
         }
-        media += '\r\n';
+        sdp += '\r\n';
     }
-    tmp = elem.find('>rtcp-fb[xmlns="urn:xmpp:jingle:apps:rtp:rtcp-fb:0"]');
-    tmp.each(function() {
-        /* eslint-disable no-invalid-this */
-        media += `a=rtcp-fb:${payloadtype} ${$(this).attr('type')}`;
-        if ($(this).attr('subtype')) {
-            media += ` ${$(this).attr('subtype')}`;
-        }
-        media += '\r\n';
 
-        /* eslint-enable no-invalid-this */
+    const feedbackElements = elem.find('>rtcp-fb[xmlns="urn:xmpp:jingle:apps:rtp:rtcp-fb:0"]');
+
+    feedbackElements.each((_, fb) => {
+        sdp += `a=rtcp-fb:${payloadtype} ${fb.getAttribute('type')}`;
+        if (fb.hasAttribute('subtype')) {
+            sdp += ` ${fb.getAttribute('subtype')}`;
+        }
+        sdp += '\r\n';
     });
 
-    return media;
+    return sdp;
 };
 
 // construct an SDP from a jingle stanza
 SDP.prototype.fromJingle = function(jingle) {
-    const self = this;
     const sessionId = Date.now();
 
     // Use a unique session id for every TPC.
@@ -592,7 +519,7 @@ SDP.prototype.fromJingle = function(jingle) {
                     .get();
 
             if (contents.length > 0) {
-                self.raw
+                this.raw
                     += `a=group:${
                         group.getAttribute('semantics')
                             || group.getAttribute('type')} ${
@@ -602,11 +529,10 @@ SDP.prototype.fromJingle = function(jingle) {
     }
 
     this.session = this.raw;
-    jingle.find('>content').each(function() {
-        // eslint-disable-next-line no-invalid-this
-        const m = self.jingle2media($(this));
+    jingle.find('>content').each((_, content) => {
+        const m = this.jingle2media($(content));
 
-        self.media.push(m);
+        this.media.push(m);
     });
 
     // reconstruct msid-semantic -- apparently not necessary
@@ -622,223 +548,182 @@ SDP.prototype.fromJingle = function(jingle) {
 
 // translate a jingle content element into an an SDP media part
 SDP.prototype.jingle2media = function(content) {
-    const desc = content.find('description');
-    let media = '';
-    const self = this;
-    const sctp = content.find(
-        '>transport>sctpmap[xmlns="urn:xmpp:jingle:transports:dtls-sctp:1"]');
+    const desc = content.find('>description');
+    const transport = content.find('>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]');
+    let sdp = '';
+    const sctp = transport.find(
+        '>sctpmap[xmlns="urn:xmpp:jingle:transports:dtls-sctp:1"]');
 
-    let tmp = { media: desc.attr('media') };
+    const media = { media: desc.attr('media') };
 
-    tmp.port = '1';
+    media.port = '1';
     if (content.attr('senders') === 'rejected') {
         // estos hack to reject an m-line.
-        tmp.port = '0';
+        media.port = '0';
     }
-    if (content.find('>transport>fingerprint').length
-            || desc.find('encryption').length) {
-        tmp.proto = sctp.length ? 'DTLS/SCTP' : 'RTP/SAVPF';
+    if (transport.find('>fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]').length) {
+        media.proto = sctp.length ? 'DTLS/SCTP' : 'RTP/SAVPF';
     } else {
-        tmp.proto = 'RTP/AVPF';
+        media.proto = 'RTP/AVPF';
     }
     if (sctp.length) {
-        media += `m=application ${tmp.port} DTLS/SCTP ${
+        sdp += `m=application ${media.port} DTLS/SCTP ${
             sctp.attr('number')}\r\n`;
-        media += `a=sctpmap:${sctp.attr('number')} ${sctp.attr('protocol')}`;
+        sdp += `a=sctpmap:${sctp.attr('number')} ${sctp.attr('protocol')}`;
 
         const streamCount = sctp.attr('streams');
 
         if (streamCount) {
-            media += ` ${streamCount}\r\n`;
+            sdp += ` ${streamCount}\r\n`;
         } else {
-            media += '\r\n';
+            sdp += '\r\n';
         }
     } else {
-        tmp.fmt
+        media.fmt
             = desc
-                .find('payload-type')
-                .map(function() {
-                    // eslint-disable-next-line no-invalid-this
-                    return this.getAttribute('id');
-                })
+                .find('>payload-type')
+                .map((_, payloadType) => payloadType.getAttribute('id'))
                 .get();
-        media += `${SDPUtil.buildMLine(tmp)}\r\n`;
+        sdp += `${SDPUtil.buildMLine(media)}\r\n`;
     }
 
-    media += 'c=IN IP4 0.0.0.0\r\n';
+    sdp += 'c=IN IP4 0.0.0.0\r\n';
     if (!sctp.length) {
-        media += 'a=rtcp:1 IN IP4 0.0.0.0\r\n';
+        sdp += 'a=rtcp:1 IN IP4 0.0.0.0\r\n';
     }
-    tmp
-        = content.find(
-            '>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]');
-    if (tmp.length) {
-        if (tmp.attr('ufrag')) {
-            media += `${SDPUtil.buildICEUfrag(tmp.attr('ufrag'))}\r\n`;
-        }
-        if (tmp.attr('pwd')) {
-            media += `${SDPUtil.buildICEPwd(tmp.attr('pwd'))}\r\n`;
-        }
-        tmp.find('>fingerprint').each(function() {
-            /* eslint-disable no-invalid-this */
-            // FIXME: check namespace at some point
-            media += `a=fingerprint:${this.getAttribute('hash')}`;
-            media += ` ${$(this).text()}`;
-            media += '\r\n';
-            if (this.getAttribute('setup')) {
-                media += `a=setup:${this.getAttribute('setup')}\r\n`;
-            }
 
-            /* eslint-enable no-invalid-this */
+    // XEP-0176 ICE parameters
+    if (transport.length) {
+        if (transport.attr('ufrag')) {
+            sdp += `${SDPUtil.buildICEUfrag(transport.attr('ufrag'))}\r\n`;
+        }
+        if (transport.attr('pwd')) {
+            sdp += `${SDPUtil.buildICEPwd(transport.attr('pwd'))}\r\n`;
+        }
+        transport.find('>fingerprint[xmlns="urn:xmpp:jingle:apps:dtls:0"]').each((_, fingerprint) => {
+            sdp += `a=fingerprint:${fingerprint.getAttribute('hash')}`;
+            sdp += ` ${$(fingerprint).text()}`;
+            sdp += '\r\n';
+            if (fingerprint.hasAttribute('setup')) {
+                sdp += `a=setup:${fingerprint.getAttribute('setup')}\r\n`;
+            }
         });
     }
+
+    // XEP-0176 ICE candidates
+    transport.find('>candidate')
+        .each((_, candidate) => {
+            let protocol = candidate.getAttribute('protocol');
+
+            protocol
+                = typeof protocol === 'string' ? protocol.toLowerCase() : '';
+
+            if ((this.removeTcpCandidates
+                    && (protocol === 'tcp' || protocol === 'ssltcp'))
+                || (this.removeUdpCandidates && protocol === 'udp')) {
+                return;
+            } else if (this.failICE) {
+                candidate.setAttribute('ip', '1.1.1.1');
+            }
+
+            sdp += SDPUtil.candidateFromJingle(candidate);
+        });
+
     switch (content.attr('senders')) {
     case 'initiator':
-        media += 'a=sendonly\r\n';
+        sdp += 'a=sendonly\r\n';
         break;
     case 'responder':
-        media += 'a=recvonly\r\n';
+        sdp += 'a=recvonly\r\n';
         break;
     case 'none':
-        media += 'a=inactive\r\n';
+        sdp += 'a=inactive\r\n';
         break;
     case 'both':
-        media += 'a=sendrecv\r\n';
+        sdp += 'a=sendrecv\r\n';
         break;
     }
-    media += `a=mid:${content.attr('name')}\r\n`;
+    sdp += `a=mid:${content.attr('name')}\r\n`;
 
     // <description><rtcp-mux/></description>
     // see http://code.google.com/p/libjingle/issues/detail?id=309 -- no spec
     // though
     // and http://mail.jabber.org/pipermail/jingle/2011-December/001761.html
-    if (desc.find('rtcp-mux').length) {
-        media += 'a=rtcp-mux\r\n';
+    if (desc.find('>rtcp-mux').length) {
+        sdp += 'a=rtcp-mux\r\n';
     }
 
-    if (desc.find('encryption').length) {
-        desc.find('encryption>crypto').each(function() {
-            /* eslint-disable no-invalid-this */
-            media += `a=crypto:${this.getAttribute('tag')}`;
-            media += ` ${this.getAttribute('crypto-suite')}`;
-            media += ` ${this.getAttribute('key-params')}`;
-            if (this.getAttribute('session-params')) {
-                media += ` ${this.getAttribute('session-params')}`;
-            }
-            media += '\r\n';
-
-            /* eslint-enable no-invalid-this */
-        });
-    }
-    desc.find('payload-type').each(function() {
-        /* eslint-disable no-invalid-this */
-        media += `${SDPUtil.buildRTPMap(this)}\r\n`;
-        if ($(this).find('>parameter').length) {
-            media += `a=fmtp:${this.getAttribute('id')} `;
-            media
-                += $(this)
-                    .find('parameter')
-                    .map(function() {
-                        const name = this.getAttribute('name');
+    desc.find('>payload-type').each((_, payloadType) => {
+        sdp += `${SDPUtil.buildRTPMap(payloadType)}\r\n`;
+        if ($(payloadType).find('>parameter').length) {
+            sdp += `a=fmtp:${payloadType.getAttribute('id')} `;
+            sdp
+                += $(payloadType)
+                    .find('>parameter')
+                    .map((__, parameter) => {
+                        const name = parameter.getAttribute('name');
 
                         return (
                             (name ? `${name}=` : '')
-                                + this.getAttribute('value'));
+                                + parameter.getAttribute('value'));
                     })
                     .get()
                     .join('; ');
-            media += '\r\n';
+            sdp += '\r\n';
         }
 
         // xep-0293
-        media += self.rtcpFbFromJingle($(this), this.getAttribute('id'));
-
-        /* eslint-enable no-invalid-this */
+        sdp += this.rtcpFbFromJingle($(payloadType), payloadType.getAttribute('id'));
     });
 
     // xep-0293
-    media += self.rtcpFbFromJingle(desc, '*');
+    sdp += this.rtcpFbFromJingle(desc, '*');
 
     // xep-0294
-    tmp
-        = desc.find(
-            '>rtp-hdrext[xmlns="urn:xmpp:jingle:apps:rtp:rtp-hdrext:0"]');
-    tmp.each(function() {
-        /* eslint-disable no-invalid-this */
-        media
-            += `a=extmap:${this.getAttribute('id')} ${
-                this.getAttribute('uri')}\r\n`;
-
-        /* eslint-enable no-invalid-this */
-    });
-
-    content
-        .find(
-            '>transport[xmlns="urn:xmpp:jingle:transports:ice-udp:1"]'
-                + '>candidate')
-        .each(function() {
-            /* eslint-disable no-invalid-this */
-            let protocol = this.getAttribute('protocol');
-
-            protocol
-                = typeof protocol === 'string' ? protocol.toLowerCase() : '';
-
-            if ((self.removeTcpCandidates
-                    && (protocol === 'tcp' || protocol === 'ssltcp'))
-                || (self.removeUdpCandidates && protocol === 'udp')) {
-                return;
-            } else if (self.failICE) {
-                this.setAttribute('ip', '1.1.1.1');
-            }
-
-            media += SDPUtil.candidateFromJingle(this);
-
-            /* eslint-enable no-invalid-this */
+    desc
+        .find('>rtp-hdrext[xmlns="urn:xmpp:jingle:apps:rtp:rtp-hdrext:0"]')
+        .each((_, hdrExt) => {
+            sdp
+                += `a=extmap:${hdrExt.getAttribute('id')} ${
+                    hdrExt.getAttribute('uri')}\r\n`;
         });
 
     // XEP-0339 handle ssrc-group attributes
-    content
-        .find('description>ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
-        .each(function() {
-            /* eslint-disable no-invalid-this */
-            const semantics = this.getAttribute('semantics');
+    desc
+        .find('>ssrc-group[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
+        .each((_, ssrcGroup) => {
+            const semantics = ssrcGroup.getAttribute('semantics');
             const ssrcs
-                = $(this)
+                = $(ssrcGroup)
                     .find('>source')
-                    .map(function() {
-                        return this.getAttribute('ssrc');
-                    })
+                    .map((__, source) => source.getAttribute('ssrc'))
                     .get();
 
             if (ssrcs.length) {
-                media += `a=ssrc-group:${semantics} ${ssrcs.join(' ')}\r\n`;
+                sdp += `a=ssrc-group:${semantics} ${ssrcs.join(' ')}\r\n`;
             }
-
-            /* eslint-enable no-invalid-this */
         });
 
-    tmp
-        = content.find(
-            'description>source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]');
-    tmp.each(function() {
-        /* eslint-disable no-invalid-this */
-        const ssrc = this.getAttribute('ssrc');
+    // XEP-0339 handle source attributes
+    desc
+        .find('>source[xmlns="urn:xmpp:jingle:apps:rtp:ssma:0"]')
+        .each((_, source) => {
+            const ssrc = source.getAttribute('ssrc');
 
-        // eslint-disable-next-line newline-per-chained-call
-        $(this).find('>parameter').each(function() {
-            const name = this.getAttribute('name');
-            let value = this.getAttribute('value');
+            $(source)
+                .find('>parameter')
+                .each((__, parameter) => {
+                    const name = parameter.getAttribute('name');
+                    let value = parameter.getAttribute('value');
 
-            value = SDPUtil.filterSpecialChars(value);
-            media += `a=ssrc:${ssrc} ${name}`;
-            if (value && value.length) {
-                media += `:${value}`;
-            }
-            media += '\r\n';
+                    value = SDPUtil.filterSpecialChars(value);
+                    sdp += `a=ssrc:${ssrc} ${name}`;
+                    if (value && value.length) {
+                        sdp += `:${value}`;
+                    }
+                    sdp += '\r\n';
+                });
         });
 
-        /* eslint-enable no-invalid-this */
-    });
-
-    return media;
+    return sdp;
 };

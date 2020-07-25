@@ -1,12 +1,13 @@
 /* global __filename */
 import { getLogger } from 'jitsi-meet-logger';
+
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import * as MediaType from '../../service/RTC/MediaType';
-import browser from '../browser';
 import RTCEvents from '../../service/RTC/RTCEvents';
-import Statistics from '../statistics/statistics';
 import { createParticipantConnectionStatusEvent } from '../../service/statistics/AnalyticsEvents';
+import browser from '../browser';
+import Statistics from '../statistics/statistics';
 
 const logger = getLogger(__filename);
 

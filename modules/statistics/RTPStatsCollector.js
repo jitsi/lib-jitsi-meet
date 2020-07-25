@@ -1,11 +1,13 @@
-import browser from '../browser';
-import { browsers } from 'js-utils';
+import { browsers } from '@jitsi/js-utils';
+import { getLogger } from 'jitsi-meet-logger';
 
-import * as StatisticsEvents from '../../service/statistics/Events';
 import * as MediaType from '../../service/RTC/MediaType';
+import * as StatisticsEvents from '../../service/statistics/Events';
+import browser from '../browser';
 
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
-const logger = require('jitsi-meet-logger').getLogger(__filename);
+
+const logger = getLogger(__filename);
 
 /**
  * The lib-jitsi-meet browser-agnostic names of the browser-specific keys
@@ -38,6 +40,7 @@ KEYS_BY_BROWSER_TYPE[browsers.CHROME] = {
     'packetsLost': 'packetsLost',
     'bytesReceived': 'bytesReceived',
     'bytesSent': 'bytesSent',
+    'googCodecName': 'googCodecName',
     'googFrameHeightReceived': 'googFrameHeightReceived',
     'googFrameWidthReceived': 'googFrameWidthReceived',
     'googFrameHeightSent': 'googFrameHeightSent',
@@ -92,6 +95,7 @@ function SsrcStats() {
     };
     this.resolution = {};
     this.framerate = 0;
+    this.codec = '';
 }
 
 /**
@@ -135,6 +139,10 @@ SsrcStats.prototype.resetBitrate = function() {
  */
 SsrcStats.prototype.setFramerate = function(framerate) {
     this.framerate = framerate || 0;
+};
+
+SsrcStats.prototype.setCodec = function(codec) {
+    this.codec = codec || '';
 };
 
 /**
@@ -284,43 +292,59 @@ StatsCollector.prototype.errorCallback = function(error) {
  * Starts stats updates.
  */
 StatsCollector.prototype.start = function(startAudioLevelStats) {
-    const self = this;
-
     if (startAudioLevelStats) {
+        if (browser.supportsReceiverStats()) {
+            logger.info('Using RTCRtpSynchronizationSource for remote audio levels');
+        }
         this.audioLevelsIntervalId = setInterval(
             () => {
-                // Interval updates
-                self.peerconnection.getStats(
-                    report => {
-                        let results = null;
+                if (browser.supportsReceiverStats()) {
+                    const audioLevels = this.peerconnection.getAudioLevels();
 
-                        if (!report || !report.result
-                            || typeof report.result !== 'function') {
-                            results = report;
-                        } else {
-                            results = report.result();
+                    for (const ssrc in audioLevels) {
+                        if (audioLevels.hasOwnProperty(ssrc)) {
+                            this.eventEmitter.emit(
+                                StatisticsEvents.AUDIO_LEVEL,
+                                this.peerconnection,
+                                Number.parseInt(ssrc, 10),
+                                audioLevels[ssrc],
+                                false /* isLocal */);
                         }
-                        self.currentAudioLevelsReport = results;
-                        if (this._usesPromiseGetStats) {
-                            self.processNewAudioLevelReport();
-                        } else {
-                            self.processAudioLevelReport();
-                        }
+                    }
+                } else {
+                    // Interval updates
+                    this.peerconnection.getStats(
+                        report => {
+                            let results = null;
 
-                        self.baselineAudioLevelsReport
-                            = self.currentAudioLevelsReport;
-                    },
-                    error => self.errorCallback(error)
-                );
+                            if (!report || !report.result
+                                || typeof report.result !== 'function') {
+                                results = report;
+                            } else {
+                                results = report.result();
+                            }
+                            this.currentAudioLevelsReport = results;
+                            if (this._usesPromiseGetStats) {
+                                this.processNewAudioLevelReport();
+                            } else {
+                                this.processAudioLevelReport();
+                            }
+
+                            this.baselineAudioLevelsReport
+                                = this.currentAudioLevelsReport;
+                        },
+                        error => this.errorCallback(error)
+                    );
+                }
             },
-            self.audioLevelsIntervalMilis
+            this.audioLevelsIntervalMilis
         );
     }
 
     this.statsIntervalId = setInterval(
         () => {
             // Interval updates
-            self.peerconnection.getStats(
+            this.peerconnection.getStats(
                 report => {
                     let results = null;
 
@@ -333,24 +357,24 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                         results = report.result();
                     }
 
-                    self.currentStatsReport = results;
+                    this.currentStatsReport = results;
                     try {
                         if (this._usesPromiseGetStats) {
-                            self.processNewStatsReport();
+                            this.processNewStatsReport();
                         } else {
-                            self.processStatsReport();
+                            this.processStatsReport();
                         }
                     } catch (e) {
                         GlobalOnErrorHandler.callErrorHandler(e);
                         logger.error(`Unsupported key:${e}`, e);
                     }
 
-                    self.previousStatsReport = self.currentStatsReport;
+                    this.previousStatsReport = this.currentStatsReport;
                 },
-                error => self.errorCallback(error)
+                error => this.errorCallback(error)
             );
         },
-        self.statsIntervalMilis
+        this.statsIntervalMilis
     );
 };
 
@@ -693,7 +717,17 @@ StatsCollector.prototype.processStatsReport = function() {
         } else {
             ssrcStats.setResolution(null);
         }
+
+        let codec;
+
+        // Try to get the codec for later reporting.
+        try {
+            codec = getStatValue(now, 'googCodecName') || '';
+        } catch (e) { /* not supported*/ }
+
+        ssrcStats.setCodec(codec);
     }
+
 
     this.eventEmitter.emit(
         StatisticsEvents.BYTE_SENT_STATS, this.peerconnection, byteSentStats);
@@ -718,10 +752,13 @@ StatsCollector.prototype._processAndEmitReport = function() {
     let bitrateUpload = 0;
     const resolutions = {};
     const framerates = {};
+    const codecs = {};
     let audioBitrateDownload = 0;
     let audioBitrateUpload = 0;
+    let audioCodec = '';
     let videoBitrateDownload = 0;
     let videoBitrateUpload = 0;
+    let videoCodec = '';
 
     for (const [ ssrc, ssrcStats ] of this.ssrc2stats) {
         // process packet loss stats
@@ -742,9 +779,11 @@ StatsCollector.prototype._processAndEmitReport = function() {
             if (track.isAudioTrack()) {
                 audioBitrateDownload += ssrcStats.bitrate.download;
                 audioBitrateUpload += ssrcStats.bitrate.upload;
+                audioCodec = ssrcStats.codec;
             } else {
                 videoBitrateDownload += ssrcStats.bitrate.download;
                 videoBitrateUpload += ssrcStats.bitrate.upload;
+                videoCodec = ssrcStats.codec;
             }
 
             const participantId = track.getParticipantId();
@@ -766,6 +805,17 @@ StatsCollector.prototype._processAndEmitReport = function() {
 
                     userFramerates[ssrc] = ssrcStats.framerate;
                     framerates[participantId] = userFramerates;
+                }
+                if (audioCodec.length && videoCodec.length) {
+                    const codecDesc = {
+                        'audio': audioCodec,
+                        'video': videoCodec
+                    };
+
+                    const userCodecs = codecs[participantId] || {};
+
+                    userCodecs[ssrc] = codecDesc;
+                    codecs[participantId] = userCodecs;
                 }
             } else {
                 logger.error(`No participant ID returned by ${track}`);
@@ -833,6 +883,7 @@ StatsCollector.prototype._processAndEmitReport = function() {
             'packetLoss': this.conferenceStats.packetLoss,
             'resolution': resolutions,
             'framerate': framerates,
+            'codec': codecs,
             'transport': this.conferenceStats.transport,
             localAvgAudioLevels,
             avgAudioLevels

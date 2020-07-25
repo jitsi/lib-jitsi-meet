@@ -1,9 +1,9 @@
 /* global __filename, $, Promise */
-import { Strophe } from 'strophe.js';
 
 import EventEmitter from 'events';
 import { getLogger } from 'jitsi-meet-logger';
 import isEqual from 'lodash.isequal';
+import { Strophe } from 'strophe.js';
 
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
@@ -13,28 +13,27 @@ import JitsiTrackError from './JitsiTrackError';
 import * as JitsiTrackErrors from './JitsiTrackErrors';
 import * as JitsiTrackEvents from './JitsiTrackEvents';
 import authenticateAndUpgradeRole from './authenticateAndUpgradeRole';
-import P2PDominantSpeakerDetection from './modules/detection/P2PDominantSpeakerDetection';
 import RTC from './modules/RTC/RTC';
-import TalkMutedDetection from './modules/detection/TalkMutedDetection';
-import VADTalkMutedDetection from './modules/detection/VADTalkMutedDetection';
-import VADNoiseDetection from './modules/detection/VADNoiseDetection';
-import VADAudioAnalyser from './modules/detection/VADAudioAnalyser';
-import * as DetectionEvents from './modules/detection/DetectionEvents';
-import NoAudioSignalDetection from './modules/detection/NoAudioSignalDetection';
 import browser from './modules/browser';
 import ConnectionQuality from './modules/connectivity/ConnectionQuality';
-import IceFailedNotification
-    from './modules/connectivity/IceFailedNotification';
+import IceFailedHandling
+    from './modules/connectivity/IceFailedHandling';
 import ParticipantConnectionStatusHandler
     from './modules/connectivity/ParticipantConnectionStatus';
-import E2EEContext from './modules/e2ee/E2EEContext';
+import * as DetectionEvents from './modules/detection/DetectionEvents';
+import NoAudioSignalDetection from './modules/detection/NoAudioSignalDetection';
+import P2PDominantSpeakerDetection from './modules/detection/P2PDominantSpeakerDetection';
+import VADAudioAnalyser from './modules/detection/VADAudioAnalyser';
+import VADNoiseDetection from './modules/detection/VADNoiseDetection';
+import VADTalkMutedDetection from './modules/detection/VADTalkMutedDetection';
+import { E2EEncryption } from './modules/e2ee/E2EEncryption';
 import E2ePing from './modules/e2eping/e2eping';
 import Jvb121EventGenerator from './modules/event/Jvb121EventGenerator';
+import { QualityController } from './modules/qualitycontrol/QualityController';
 import RecordingManager from './modules/recording/RecordingManager';
-import RttMonitor from './modules/rttmonitor/rttmonitor';
 import Settings from './modules/settings/Settings';
-import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import AudioOutputProblemDetector from './modules/statistics/AudioOutputProblemDetector';
+import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
 import Transcriber from './modules/transcription/transcriber';
@@ -45,7 +44,6 @@ import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import { JITSI_MEET_MUC_TYPE } from './modules/xmpp/xmpp';
 import * as MediaType from './service/RTC/MediaType';
-import * as RTCEvents from './service/RTC/RTCEvents';
 import VideoType from './service/RTC/VideoType';
 import {
     ACTION_JINGLE_RESTART,
@@ -84,6 +82,8 @@ const JINGLE_SI_TIMEOUT = 5000;
  * @param {number} [options.config.avgRtpStatsN=15] how many samples are to be
  * collected by {@link AvgRTPStatsReporter}, before arithmetic mean is
  * calculated and submitted to the analytics module.
+ * @param {boolean} [options.config.enableIceRestart=false] - enables the ICE
+ * restart logic.
  * @param {boolean} [options.config.p2p.enabled] when set to <tt>true</tt>
  * the peer to peer mode will be enabled. It means that when there are only 2
  * participants in the conference an attempt to make direct connection will be
@@ -234,10 +234,6 @@ export default function JitsiConference(options) {
     this.videoSIPGWHandler = new VideoSIPGW(this.room);
     this.recordingManager = new RecordingManager(this.room);
     this._conferenceJoinAnalyticsEventSent = false;
-
-    if (browser.supportsInsertableStreams()) {
-        this._e2eeCtx = new E2EEContext({ salt: this.options.name });
-    }
 }
 
 // FIXME convert JitsiConference to ES6 - ASAP !
@@ -329,8 +325,6 @@ JitsiConference.prototype._init = function(options = {}) {
     this._sendConferenceJoinAnalyticsEvent = this._sendConferenceJoinAnalyticsEvent.bind(this);
     this.room.addListener(XMPPEvents.MEETING_ID_SET, this._sendConferenceJoinAnalyticsEvent);
 
-    this.rttMonitor = new RttMonitor(config.rttMonitor || {});
-
     this.e2eping = new E2ePing(
         this,
         config,
@@ -347,6 +341,8 @@ JitsiConference.prototype._init = function(options = {}) {
         this.rtc = new RTC(this, options);
         this.eventManager.setupRTCListeners();
     }
+
+    this.qualityController = new QualityController(this);
 
     this.participantConnectionStatus
         = new ParticipantConnectionStatusHandler(
@@ -366,8 +362,8 @@ JitsiConference.prototype._init = function(options = {}) {
         this.statistics = new Statistics(this.xmpp, {
             aliasName: this._statsCurrentId,
             userName: config.statisticsDisplayName ? config.statisticsDisplayName : this.myUserId(),
-            callStatsConfIDNamespace: this.connection.options.hosts.domain,
             confID: config.confID || `${this.connection.options.hosts.domain}/${this.options.name}`,
+            siteID: config.siteID,
             customScriptUrl: config.callStatsCustomScriptUrl,
             callStatsID: config.callStatsID,
             callStatsSecret: config.callStatsSecret,
@@ -387,7 +383,9 @@ JitsiConference.prototype._init = function(options = {}) {
     // listeners are removed from statistics module.
     this.eventManager.setupStatisticsListeners();
 
-    if (config.enableTalkWhileMuted) {
+    // Disable VAD processing on Safari since it causes audio input to
+    // fail on some of the mobile devices.
+    if (config.enableTalkWhileMuted && !browser.isSafari()) {
 
         // If VAD processor factory method is provided uses VAD based detection, otherwise fallback to audio level
         // based detection.
@@ -404,16 +402,14 @@ JitsiConference.prototype._init = function(options = {}) {
                 this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED));
 
             this._audioAnalyser.addVADDetectionService(vadTalkMutedDetection);
-
-
         } else {
-            logger.info('Using audio level based detection for generating talk while muted events');
-            this._talkWhileMutedDetection = new TalkMutedDetection(
-                this, () => this.eventEmitter.emit(JitsiConferenceEvents.TALK_WHILE_MUTED));
+            logger.warn('No VAD Processor was provided. Talk while muted detection service was not initialized!');
         }
     }
 
-    if (config.enableNoisyMicDetection) {
+    // Disable noisy mic detection on safari since it causes the audio input to
+    // fail on Safari on iPadOS.
+    if (config.enableNoisyMicDetection && !browser.isSafari()) {
         if (config.createVADProcessor) {
             if (!this._audioAnalyser) {
                 this._audioAnalyser = new VADAudioAnalyser(this, config.createVADProcessor);
@@ -533,11 +529,6 @@ JitsiConference.prototype.leave = function() {
         this._audioOutputProblemDetector = null;
     }
 
-    if (this.rttMonitor) {
-        this.rttMonitor.stop();
-        this.rttMonitor = null;
-    }
-
     if (this.e2eping) {
         this.e2eping.stop();
         this.e2eping = null;
@@ -607,6 +598,31 @@ JitsiConference.prototype.leave = function() {
     // If this.room == null we are calling second time leave().
     return Promise.reject(
         new Error('The conference is has been already left'));
+};
+
+/**
+ * Returns the currently active media session if any.
+ *
+ * @returns {JingleSessionPC|undefined}
+ * @private
+ */
+JitsiConference.prototype._getActiveMediaSession = function() {
+    return this.isP2PActive() ? this.p2pJingleSession : this.jvbJingleSession;
+};
+
+/**
+ * Returns an array containing all media sessions existing in this conference.
+ *
+ * @returns {Array<JingleSessionPC>}
+ * @private
+ */
+JitsiConference.prototype._getMediaSessions = function() {
+    const sessions = [];
+
+    this.jvbJingleSession && sessions.push(this.jvbJingleSession);
+    this.p2pJingleSession && sessions.push(this.p2pJingleSession);
+
+    return sessions;
 };
 
 /**
@@ -829,9 +845,6 @@ JitsiConference.prototype.removeCommand = function(name) {
  */
 JitsiConference.prototype.setDisplayName = function(name) {
     if (this.room) {
-        // remove previously set nickname
-        this.room.removeFromPresence('nick');
-
         this.room.addToPresence('nick', {
             attributes: { xmlns: 'http://jabber.org/protocol/nick' },
             value: name
@@ -1113,8 +1126,6 @@ JitsiConference.prototype._setupNewTrack = function(newTrack) {
     newTrack._setConference(this);
 
     this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, newTrack);
-
-    this._setupSenderE2EEForTrack(newTrack);
 };
 
 /**
@@ -1374,6 +1385,19 @@ JitsiConference.prototype.getParticipantById = function(id) {
 };
 
 /**
+ * Grant owner rights to the participant.
+ * @param {string} id id of the participant to grant owner rights to.
+ */
+JitsiConference.prototype.grantOwner = function(id) {
+    const participant = this.getParticipantById(id);
+
+    if (!participant) {
+        return;
+    }
+    this.room.setAffiliation(participant.getJid(), 'owner');
+};
+
+/**
  * Kick participant from this conference.
  * @param {string} id id of the participant to kick
  */
@@ -1493,6 +1517,10 @@ JitsiConference.prototype._updateFeatures = function(participant) {
             if (features.has('http://jitsi.org/protocol/jigasi')) {
                 participant.setProperty('features_jigasi', true);
             }
+
+            if (features.has('https://jitsi.org/meet/e2ee')) {
+                participant.setProperty('features_e2ee', true);
+            }
         })
         .catch(() => false);
 };
@@ -1566,6 +1594,13 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
  * this is the id of the participant which was kicked.
  */
 JitsiConference.prototype.onMemberKicked = function(isSelfPresence, actorId, kickedParticipantId) {
+    // This check which be true when we kick someone else. With the introduction of lobby
+    // the ChatRoom KICKED event is now also emitted for ourselves (the kicker) so we want to
+    // avoid emitting an event where `undefined` kicked someone.
+    if (actorId === this.myUserId()) {
+        return;
+    }
+
     const actorParticipant = this.participants[actorId];
 
     if (isSelfPresence) {
@@ -1643,9 +1678,6 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
         return;
     }
 
-    // Setup E2EE handling, if supported.
-    this._setupReceiverE2EEForTrack(track);
-
     const id = track.getParticipantId();
     const participant = this.getParticipantById(id);
 
@@ -1694,7 +1726,9 @@ JitsiConference.prototype.onRemoteTrackAdded = function(track) {
 JitsiConference.prototype.onCallAccepted = function(session, answer) {
     if (this.p2pJingleSession === session) {
         logger.info('P2P setAnswer');
+
         this.p2pJingleSession.setAnswer(answer);
+        this.eventEmitter.emit(JitsiConferenceEvents._MEDIA_SESSION_STARTED, this.p2pJingleSession);
     }
 };
 
@@ -1849,7 +1883,10 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
         }));
 
     try {
-        jingleSession.initialize(this.room, this.rtc, this.options.config);
+        jingleSession.initialize(this.room, this.rtc, {
+            ...this.options.config,
+            enableInsertableStreams: Boolean(this._e2eEncryption)
+        });
     } catch (error) {
         GlobalOnErrorHandler.callErrorHandler(error);
     }
@@ -1871,9 +1908,13 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
                     this._suspendMediaTransferForJvbConnection();
                 }
 
-                // Setup E2EE.
-                for (const track of localTracks) {
-                    this._setupSenderE2EEForTrack(track);
+                this.eventEmitter.emit(
+                    JitsiConferenceEvents._MEDIA_SESSION_STARTED,
+                    jingleSession);
+                if (!this.isP2PActive()) {
+                    this.eventEmitter.emit(
+                        JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED,
+                        jingleSession);
                 }
             },
             error => {
@@ -2248,7 +2289,6 @@ JitsiConference.prototype.setStartMutedPolicy = function(policy) {
         return;
     }
     this.startMutedPolicy = policy;
-    this.room.removeFromPresence('startmuted');
     this.room.addToPresence('startmuted', {
         attributes: {
             audio: policy.audio,
@@ -2567,14 +2607,8 @@ JitsiConference.prototype._onIceConnectionFailed = function(session) {
         }
         this._stopP2PSession('connectivity-error', 'ICE FAILED');
     } else if (session && this.jvbJingleSession === session) {
-        if (this.xmpp.isPingSupported()) {
-            this._delayedIceFailed = new IceFailedNotification(this);
-            this._delayedIceFailed.start(session);
-        } else {
-            // Let Jicofo know that the JVB's ICE connection has failed
-            logger.info('PING not supported - sending ICE failed immediately');
-            session.sendIceFailedNotification();
-        }
+        this._delayedIceFailed = new IceFailedHandling(this);
+        this._delayedIceFailed.start(session);
     }
 };
 
@@ -2611,7 +2645,12 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
     this.p2pJingleSession = jingleSession;
     this._sendConferenceJoinAnalyticsEvent();
 
-    this.p2pJingleSession.initialize(this.room, this.rtc, this.options.config);
+    this.p2pJingleSession.initialize(
+        this.room,
+        this.rtc, {
+            ...this.options.config,
+            enableInsertableStreams: Boolean(this._e2eEncryption)
+        });
 
     logger.info('Starting CallStats for P2P connection...');
 
@@ -2633,6 +2672,10 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
         jingleOffer,
         () => {
             logger.debug('Got RESULT for P2P "session-accept"');
+
+            this.eventEmitter.emit(
+                JitsiConferenceEvents._MEDIA_SESSION_STARTED,
+                this.p2pJingleSession);
         },
         error => {
             logger.error(
@@ -2669,7 +2712,7 @@ JitsiConference.prototype._addRemoteP2PTracks = function() {
 JitsiConference.prototype._addRemoteTracks = function(logName, remoteTracks) {
     for (const track of remoteTracks) {
         logger.info(`Adding remote ${logName} track: ${track}`);
-        this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, track);
+        this.onRemoteTrackAdded(track);
     }
 };
 
@@ -2856,7 +2899,7 @@ JitsiConference.prototype._removeRemoteTracks = function(
         remoteTracks) {
     for (const track of remoteTracks) {
         logger.info(`Removing remote ${sessionNickname} track: ${track}`);
-        this.rtc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_REMOVED, track);
+        this.onRemoteTrackRemoved(track);
     }
 };
 
@@ -2930,6 +2973,9 @@ JitsiConference.prototype._setP2PStatus = function(newStatus) {
         JitsiConferenceEvents.P2P_STATUS,
         this,
         this.p2p);
+    this.eventEmitter.emit(
+        JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED,
+        this._getActiveMediaSession());
 
     // Refresh connection interrupted/restored
     this.eventEmitter.emit(
@@ -2960,7 +3006,12 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
         'Created new P2P JingleSession', this.room.myroomjid, remoteJid);
     this._sendConferenceJoinAnalyticsEvent();
 
-    this.p2pJingleSession.initialize(this.room, this.rtc, this.options.config);
+    this.p2pJingleSession.initialize(
+        this.room,
+        this.rtc, {
+            ...this.options.config,
+            enableInsertableStreams: Boolean(this._e2eEncryption)
+        });
 
     logger.info('Starting CallStats for P2P connection...');
 
@@ -3237,13 +3288,23 @@ JitsiConference.prototype.getSpeakerStats = function() {
  * Sets the maximum video size the local participant should receive from remote
  * participants.
  *
- * @param {number} maxFrameHeightPixels the maximum frame height, in pixels,
+ * @param {number} maxFrameHeight - the maximum frame height, in pixels,
  * this receiver is willing to receive.
  * @returns {void}
  */
-JitsiConference.prototype.setReceiverVideoConstraint = function(
-        maxFrameHeight) {
-    this.rtc.setReceiverVideoConstraint(maxFrameHeight);
+JitsiConference.prototype.setReceiverVideoConstraint = function(maxFrameHeight) {
+    this.qualityController.setPreferredReceiveMaxFrameHeight(maxFrameHeight);
+};
+
+/**
+ * Sets the maximum video size the local participant should send to remote
+ * participants.
+ * @param {number} maxFrameHeight - The user preferred max frame height.
+ * @returns {Promise} promise that will be resolved when the operation is
+ * successful and rejected otherwise.
+ */
+JitsiConference.prototype.setSenderVideoConstraint = function(maxFrameHeight) {
+    return this.qualityController.setPreferredSendMaxFrameHeight(maxFrameHeight);
 };
 
 /**
@@ -3295,7 +3356,38 @@ JitsiConference.prototype._sendConferenceJoinAnalyticsEvent = function() {
  * @returns {boolean}
  */
 JitsiConference.prototype.isE2EESupported = function() {
-    return Boolean(this._e2eeCtx);
+    const config = this.options.config;
+
+    return browser.supportsInsertableStreams() && !(config.testing && config.testing.disableE2EE);
+};
+
+/**
+ * Initializes the E2E encryption module. Currently any active media session muste be restarted due to
+ * the limitation that the insertable streams constraint can only be set when a new PeerConnection instance is created.
+ *
+ * @private
+ * @returns {void}
+ */
+JitsiConference.prototype._initializeE2EEncryption = function() {
+    this._e2eEncryption = new E2EEncryption(this, { salt: this.options.name });
+
+    // Need to re-create the peerconnections in order to apply the insertable streams constraint
+    this.p2pJingleSession && this.stopP2PSession();
+
+    const jvbJingleSession = this.jvbJingleSession;
+
+    jvbJingleSession && jvbJingleSession.terminate(
+        null /* success callback => we don't care */,
+        error => {
+            logger.warn(`An error occurred while trying to terminate ${jvbJingleSession}`, error);
+        }, {
+            reason: 'success',
+            reasonDescription: 'restart required',
+            requestRestart: true,
+            sendSessionTerminate: true
+        });
+
+    this._maybeStartOrStopP2P(false);
 };
 
 /**
@@ -3305,51 +3397,94 @@ JitsiConference.prototype.isE2EESupported = function() {
  * @returns {void}
  */
 JitsiConference.prototype.setE2EEKey = function(key) {
-    if (!this._e2eeCtx) {
-        logger.warn('Cannot set E2EE key: there is no defined context, platform is likely unsupported.');
+    if (!this.isE2EESupported()) {
+        logger.warn('Cannot set E2EE key: platform is not supported.');
 
         return;
     }
 
-    this._e2eeCtx.setKey(key);
+    if (!this._e2eEncryption) {
+        this._initializeE2EEncryption();
+    }
+
+    this._e2eEncryption.setKey(key);
 };
 
 /**
- * Setup E2EE for the sending side, if supported.
- * Note that this is only done for the JVB Peer Connecction.
+ * Returns <tt>true</tt> if lobby support is enabled in the backend.
+ *
+ * @returns {boolean} whether lobby is supported in the backend.
+ */
+JitsiConference.prototype.isLobbySupported = function() {
+    return Boolean(this.room && this.room.getLobby().isSupported());
+};
+
+/**
+ * Returns <tt>true</tt> if the room has members only enabled.
+ *
+ * @returns {boolean} whether conference room is members only.
+ */
+JitsiConference.prototype.isMembersOnly = function() {
+    return Boolean(this.room && this.room.membersOnlyEnabled);
+};
+
+/**
+ * Enables lobby by moderators
+ *
+ * @returns {Promise} resolves when lobby room is joined or rejects with the error.
+ */
+JitsiConference.prototype.enableLobby = function() {
+    if (this.room && this.isModerator()) {
+        return this.room.getLobby().enable();
+    }
+
+    return Promise.reject(
+        new Error('The conference not started or user is not moderator'));
+};
+
+/**
+ * Disabled lobby by moderators
  *
  * @returns {void}
  */
-JitsiConference.prototype._setupSenderE2EEForTrack = function(track) {
-    const jvbPc = this.jvbJingleSession ? this.jvbJingleSession.peerconnection : null;
-
-    if (jvbPc && this._e2eeCtx) {
-        const sender = jvbPc.findSenderForTrack(track.track);
-
-        if (sender) {
-            this._e2eeCtx.handleSender(sender, track.getType());
-        } else {
-            logger.warn(`Could not handle E2EE for local ${track.getType()} track: sender not found`);
-        }
+JitsiConference.prototype.disableLobby = function() {
+    if (this.room && this.isModerator()) {
+        this.room.getLobby().disable();
     }
 };
 
 /**
- * Setup E2EE for the receiving side, if supported.
- * Note that this is only done for the JVB Peer Connecction.
+ * Joins the lobby room with display name and optional email or with a shared password to skip waiting.
  *
- * @returns {void}
+ * @param {string} displayName Display name should be set to show it to moderators.
+ * @param {string} email Optional email is used to present avatar to the moderator.
+ * @returns {Promise<never>}
  */
-JitsiConference.prototype._setupReceiverE2EEForTrack = function(track) {
-    const jvbPc = this.jvbJingleSession ? this.jvbJingleSession.peerconnection : null;
+JitsiConference.prototype.joinLobby = function(displayName, email) {
+    if (this.room) {
+        return this.room.getLobby().join(displayName, email);
+    }
 
-    if (jvbPc && this._e2eeCtx) {
-        const receiver = jvbPc.findReceiverForTrack(track.track);
+    return Promise.reject(new Error('The conference not started'));
+};
 
-        if (receiver) {
-            this._e2eeCtx.handleReceiver(receiver, track.getType());
-        } else {
-            logger.warn(`Could not handle E2EE for remote ${track.getType()} track: receiver not found`);
-        }
+/**
+ * Denies an occupant in the lobby room access to the conference.
+ * @param {string} id The participant id.
+ */
+JitsiConference.prototype.lobbyDenyAccess = function(id) {
+    if (this.room) {
+        this.room.getLobby().denyAccess(id);
+    }
+};
+
+/**
+ * Approves the request to join the conference to a participant waiting in the lobby.
+ *
+ * @param {string} id The participant id.
+ */
+JitsiConference.prototype.lobbyApproveAccess = function(id) {
+    if (this.room) {
+        this.room.getLobby().approveAccess(id);
     }
 };

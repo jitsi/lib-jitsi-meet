@@ -14,8 +14,7 @@ It is important to note that this key should not get exchanged via the server.
 There needs to be some other means of exchanging it.
 
 From this key we derive a 128bit key using PBKDF2. We use the room name as a salt in this key generation. This is a bit weak but we need to start with information that is the same for all participants so we can not yet use a proper random salt.
-
-We derive the same key and use it for encrypting and decrypting from all participants. We are working on including the MUC resource of the sender in this in order to switch to per-participant keys which is the model want to migrate to in the end.
+We add the participant id to the salt when deriving the key which allows us to use per-sender keys. This is done to prepare the ground for the actual architecture and does not change the cryptographic properties.
 
 We plan to rotate the key whenever a participant joins or leaves. However, we need end-to-end encrypted signaling to exchange those keys so we are not doing this yet.
 
@@ -36,7 +35,17 @@ tag length is the default 128 bits or 16 bytes. For video this overhead is ok bu
 for audio (where the opus frames are much, much smaller) we are considering shorter
 authentication tags.
 
-We do not encrypt the first few bytes of the packet that form the VP8 header or the Opus
-This allows the encoder to understand the frame a bit more and makes it generate the fun looking garbage we see in the video. This also means the SFU does not know (ideally) that the content is end-to-end encrypted and there are no changes in the SFU required at all.
+We do not encrypt the first few bytes of the packet that form the VP8 payload
+  https://tools.ietf.org/html/rfc6386#section-9.1
+nor the Opus TOC byte
+  https://tools.ietf.org/html/rfc6716#section-3.1
 
-Decryption errors are handled by just forwarding the frame to the decoder. In particular that means that when receiving unencrypted video we will display it as is.
+This allows the decoder to understand the frame a bit more and makes it generate the fun looking garbage we see in the video.
+This also means the SFU does not know (ideally) that the content is end-to-end encrypted and there are no changes in the SFU required at all.
+
+## Using workers
+
+Insertable Streams are transferable and can be sent from the main javascript context to a Worker
+  https://developer.mozilla.org/en-US/docs/Web/API/Worker
+We are using a named worker (E2EEworker) which allows very easy inspection in Chrome Devtools.
+It also makes the keys very self-contained.

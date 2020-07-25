@@ -1,6 +1,17 @@
 /* global __filename */
+
+import { getLogger } from 'jitsi-meet-logger';
 import { Strophe } from 'strophe.js';
 
+import * as JitsiConferenceErrors from './JitsiConferenceErrors';
+import * as JitsiConferenceEvents from './JitsiConferenceEvents';
+import Statistics from './modules/statistics/statistics';
+import EventEmitterForwarder from './modules/util/EventEmitterForwarder';
+import * as MediaType from './service/RTC/MediaType';
+import RTCEvents from './service/RTC/RTCEvents';
+import VideoType from './service/RTC/VideoType';
+import AuthenticationEvents
+    from './service/authentication/AuthenticationEvents';
 import {
     ACTION_JINGLE_SA_TIMEOUT,
     createBridgeDownEvent,
@@ -9,16 +20,6 @@ import {
     createJingleEvent,
     createRemotelyMutedEvent
 } from './service/statistics/AnalyticsEvents';
-import AuthenticationEvents
-    from './service/authentication/AuthenticationEvents';
-import EventEmitterForwarder from './modules/util/EventEmitterForwarder';
-import { getLogger } from 'jitsi-meet-logger';
-import * as JitsiConferenceErrors from './JitsiConferenceErrors';
-import * as JitsiConferenceEvents from './JitsiConferenceEvents';
-import * as MediaType from './service/RTC/MediaType';
-import RTCEvents from './service/RTC/RTCEvents';
-import VideoType from './service/RTC/VideoType';
-import Statistics from './modules/statistics/statistics';
 import XMPPEvents from './service/xmpp/XMPPEvents';
 
 const logger = getLogger(__filename);
@@ -159,6 +160,9 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     this.chatRoomForwarder.forward(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR,
         JitsiConferenceEvents.CONFERENCE_FAILED,
         JitsiConferenceErrors.NOT_ALLOWED_ERROR);
+    this.chatRoomForwarder.forward(XMPPEvents.ROOM_CONNECT_MEMBERS_ONLY_ERROR,
+        JitsiConferenceEvents.CONFERENCE_FAILED,
+        JitsiConferenceErrors.MEMBERS_ONLY_ERROR);
 
     this.chatRoomForwarder.forward(XMPPEvents.ROOM_MAX_USERS_ERROR,
         JitsiConferenceEvents.CONFERENCE_FAILED,
@@ -272,14 +276,26 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     this.chatRoomForwarder.forward(XMPPEvents.MUC_LOCK_CHANGED,
         JitsiConferenceEvents.LOCK_STATE_CHANGED);
 
+    this.chatRoomForwarder.forward(XMPPEvents.MUC_MEMBERS_ONLY_CHANGED,
+        JitsiConferenceEvents.MEMBERS_ONLY_CHANGED);
+
     chatRoom.addListener(XMPPEvents.MUC_MEMBER_JOINED,
         conference.onMemberJoined.bind(conference));
+    this.chatRoomForwarder.forward(XMPPEvents.MUC_LOBBY_MEMBER_JOINED,
+        JitsiConferenceEvents.LOBBY_USER_JOINED);
+    this.chatRoomForwarder.forward(XMPPEvents.MUC_LOBBY_MEMBER_UPDATED,
+        JitsiConferenceEvents.LOBBY_USER_UPDATED);
+    this.chatRoomForwarder.forward(XMPPEvents.MUC_LOBBY_MEMBER_LEFT,
+        JitsiConferenceEvents.LOBBY_USER_LEFT);
     chatRoom.addListener(XMPPEvents.MUC_MEMBER_BOT_TYPE_CHANGED,
         conference._onMemberBotTypeChanged.bind(conference));
     chatRoom.addListener(XMPPEvents.MUC_MEMBER_LEFT,
         conference.onMemberLeft.bind(conference));
     this.chatRoomForwarder.forward(XMPPEvents.MUC_LEFT,
         JitsiConferenceEvents.CONFERENCE_LEFT);
+    this.chatRoomForwarder.forward(XMPPEvents.MUC_DENIED_ACCESS,
+        JitsiConferenceEvents.CONFERENCE_FAILED,
+        JitsiConferenceErrors.CONFERENCE_ACCESS_DENIED);
 
     chatRoom.addListener(XMPPEvents.DISPLAY_NAME_CHANGED,
         conference.onDisplayNameChanged.bind(conference));

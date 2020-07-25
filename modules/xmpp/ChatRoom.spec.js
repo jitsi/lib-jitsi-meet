@@ -1,6 +1,8 @@
-import ChatRoom, { parser } from './ChatRoom';
 import { $pres } from 'strophe.js';
+
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
+
+import ChatRoom, { parser } from './ChatRoom';
 
 // This rule makes creating the xml elements take up way more
 // space than necessary.
@@ -172,7 +174,8 @@ describe('ChatRoom', () => {
                 undefined, // statsID
                 'status-text',
                 undefined,
-                undefined
+                undefined,
+                'fulljid'
             ]);
         });
 
@@ -200,7 +203,8 @@ describe('ChatRoom', () => {
                 undefined, // statsID
                 undefined,
                 undefined,
-                undefined);
+                undefined,
+                'jid=attr');
         });
 
         it('parses identity correctly', () => {
@@ -245,7 +249,8 @@ describe('ChatRoom', () => {
                 undefined, // statsID
                 'status-text',
                 expectedIdentity,
-                undefined
+                undefined,
+                'fulljid'
             ]);
         });
 
@@ -276,7 +281,8 @@ describe('ChatRoom', () => {
                 undefined, // statsID
                 'status-text',
                 undefined,
-                expectedBotType
+                expectedBotType,
+                'fulljid'
             ]);
         });
 

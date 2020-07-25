@@ -1,31 +1,34 @@
 /* global __filename, RTCSessionDescription */
 
-import { getLogger } from 'jitsi-meet-logger';
 import { Interop } from '@jitsi/sdp-interop';
+import { getLogger } from 'jitsi-meet-logger';
 import transform from 'sdp-transform';
 
-import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
-import JitsiRemoteTrack from './JitsiRemoteTrack';
 import * as MediaType from '../../service/RTC/MediaType';
+import RTCEvents from '../../service/RTC/RTCEvents';
+import * as SignalingEvents from '../../service/RTC/SignalingEvents';
+import * as VideoType from '../../service/RTC/VideoType';
+import browser from '../browser';
+import * as GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import RtxModifier from '../xmpp/RtxModifier';
+import SDP from '../xmpp/SDP';
+import SDPUtil from '../xmpp/SDPUtil';
+import SdpConsistency from '../xmpp/SdpConsistency';
+import { SdpTransformWrap } from '../xmpp/SdpTransformUtil';
+
+import JitsiRemoteTrack from './JitsiRemoteTrack';
 import LocalSdpMunger from './LocalSdpMunger';
 import RTC from './RTC';
 import RTCUtils from './RTCUtils';
-import browser from '../browser';
-import RTCEvents from '../../service/RTC/RTCEvents';
-import RtxModifier from '../xmpp/RtxModifier';
 import { SIM_LAYER_RIDS, TPCUtils } from './TPCUtils';
 
 // FIXME SDP tools should end up in some kind of util module
-import SDP from '../xmpp/SDP';
-import SdpConsistency from '../xmpp/SdpConsistency';
-import { SdpTransformWrap } from '../xmpp/SdpTransformUtil';
-import SDPUtil from '../xmpp/SDPUtil';
-import * as SignalingEvents from '../../service/RTC/SignalingEvents';
 
 const logger = getLogger(__filename);
 const MAX_BITRATE = 2500000;
 const DESKSTOP_SHARE_RATE = 500000;
-
+const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
+const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
 /* eslint-disable max-params */
 
 /**
@@ -49,9 +52,6 @@ const DESKSTOP_SHARE_RATE = 500000;
  *      disabled by removing it from the SDP.
  * @param {boolean} options.preferH264 if set to 'true' H264 will be preferred
  * over other video codecs.
- * @param {boolean} options.enableLayerSuspension if set to 'true', we will
- * cap the video send bitrate when we are told we have not been selected by
- * any endpoints (and therefore the non-thumbnail streams are not in use).
  * @param {boolean} options.startSilent If set to 'true' no audio will be sent or received.
  *
  * FIXME: initially the purpose of TraceablePeerConnection was to be able to
@@ -244,6 +244,11 @@ export default function TraceablePeerConnection(
      */
     this.eventEmitter = rtc.eventEmitter;
     this.rtxModifier = new RtxModifier();
+
+    /**
+     * The height constraint applied on the video sender.
+     */
+    this.senderVideoMaxHeight = null;
 
     // override as desired
     this.trace = (what, info) => {
@@ -481,6 +486,33 @@ TraceablePeerConnection.prototype._peerMutedChanged = function(
         // NOTE 1 track per media type is assumed
         track[0].setMute(isMuted);
     }
+};
+
+/**
+ * Obtains audio levels of the remote audio tracks by getting the source
+ * information on the RTCRtpReceivers. The information relevant to the ssrc
+ * is updated each time a RTP packet constaining the ssrc is received.
+ * @returns {Object} containing ssrc and audio level information as a
+ * key-value pair.
+ */
+TraceablePeerConnection.prototype.getAudioLevels = function() {
+    const audioLevels = {};
+    const audioReceivers = this.peerconnection.getReceivers()
+        .filter(receiver => receiver.track && receiver.track.kind === MediaType.AUDIO);
+
+    audioReceivers.forEach(remote => {
+        const ssrc = remote.getSynchronizationSources();
+
+        if (ssrc && ssrc.length) {
+            // As per spec, this audiolevel is a value between 0..1 (linear), where 1.0
+            // represents 0 dBov, 0 represents silence, and 0.5 represents approximately
+            // 6 dBSPL change in the sound pressure level from 0 dBov.
+            // https://www.w3.org/TR/webrtc/#dom-rtcrtpcontributingsource-audiolevel
+            audioLevels[ssrc[0].source] = ssrc[0].audioLevel;
+        }
+    });
+
+    return audioLevels;
 };
 
 /**
@@ -827,7 +859,7 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
 
     remoteTracksMap.set(mediaType, remoteTrack);
 
-    this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack);
+    this.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, remoteTrack, this);
 };
 
 /* eslint-enable max-params */
@@ -1281,12 +1313,6 @@ TraceablePeerConnection.prototype.getLocalSSRC = function(localTrack) {
  * group via the a=simulcast line.  Unfortunately, Jicofo will complain
  * if it sees ssrcs with matching msids but no ssrc-group, so we'll inject
  * an ssrc-group line to make Jicofo happy.
- * NOTE: unlike plan B simulcast, the ssrcs in this inject ssrc-group will
- * NOT necessarily be in order of quality (low to high) because:
- * a) when translating between unified plan and plan b the order of the ssrcs
- * is not preserved and
- * b) it isn't guaranteed that firefox will give them to us in order to begin
- * with
  * @param desc A session description object (with 'type' and 'sdp' fields)
  * @return A session description object with its sdp field modified to
  * contain an inject ssrc-group for simulcast
@@ -1296,15 +1322,25 @@ TraceablePeerConnection.prototype._injectSsrcGroupForUnifiedSimulcast
         const sdp = transform.parse(desc.sdp);
         const video = sdp.media.find(mline => mline.type === 'video');
 
+        // Check if the browser supports RTX, add only the primary ssrcs to the
+        // SIM group if that is the case.
+        video.ssrcGroups = video.ssrcGroups || [];
+        const fidGroups = video.ssrcGroups.filter(group => group.semantics === 'FID');
+
         if (video.simulcast || video.simulcast_03) {
             const ssrcs = [];
 
-            video.ssrcs.forEach(ssrc => {
-                if (ssrc.attribute === 'msid') {
-                    ssrcs.push(ssrc.id);
-                }
-            });
-            video.ssrcGroups = video.ssrcGroups || [];
+            if (fidGroups && fidGroups.length) {
+                fidGroups.forEach(group => {
+                    ssrcs.push(group.ssrcs.split(' ')[0]);
+                });
+            } else {
+                video.ssrcs.forEach(ssrc => {
+                    if (ssrc.attribute === 'msid') {
+                        ssrcs.push(ssrc.id);
+                    }
+                });
+            }
             if (video.ssrcGroups.find(group => group.semantics === 'SIM')) {
                 // Group already exists, no need to do anything
                 return desc;
@@ -1407,6 +1443,23 @@ TraceablePeerConnection.prototype._getSSRC = function(rtcId) {
 };
 
 /**
+ * Checks if given track belongs to this peerconnection instance.
+ *
+ * @param {JitsiLocalTrack|JitsiRemoteTrack} track - The track to be checked.
+ * @returns {boolean}
+ */
+TraceablePeerConnection.prototype.containsTrack = function(track) {
+    if (track.isLocal()) {
+        return this.localTracks.has(track.rtcId);
+    }
+
+    const participantId = track.getParticipantId();
+    const remoteTracksMap = this.remoteTracks.get(participantId);
+
+    return Boolean(remoteTracksMap && remoteTracksMap.get(track.getType()) === track);
+};
+
+/**
  * Add {@link JitsiLocalTrack} to this TPC.
  * @param {JitsiLocalTrack} track
  */
@@ -1466,8 +1519,14 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
             this.rtxModifier.setSsrcCache(rtxSsrcMapping);
         }
     }
+
     if (browser.usesUnifiedPlan() && !browser.usesSdpMungingForSimulcast()) {
         this.tpcUtils.setEncodings(track);
+    }
+
+    // Construct the simulcast stream constraints for the newly added track.
+    if (track.isVideoTrack() && track.videoType === VideoType.CAMERA && this.isSimulcastOn()) {
+        this.tpcUtils._setSimulcastStreamConstraints(track.getTrack());
     }
 };
 
@@ -1517,11 +1576,7 @@ TraceablePeerConnection.prototype._addStream = function(mediaStream) {
  * @param {MediaStream} mediaStream
  */
 TraceablePeerConnection.prototype._removeStream = function(mediaStream) {
-    if (browser.supportsRtpSender()) {
-        this._handleSenderRemoveStream(mediaStream);
-    } else {
-        this.peerconnection.removeStream(mediaStream);
-    }
+    this.peerconnection.removeStream(mediaStream);
     this._addedStreams
         = this._addedStreams.filter(stream => stream !== mediaStream);
 };
@@ -1568,9 +1623,6 @@ TraceablePeerConnection.prototype.isMediaStreamInPc = function(mediaStream) {
  *       The same applies to addTrack.
  */
 TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
-    if (browser.usesUnifiedPlan()) {
-        return this.tpcUtils.removeTrack(localTrack);
-    }
     const webRtcStream = localTrack.getOriginalStream();
 
     this.trace(
@@ -1585,11 +1637,7 @@ TraceablePeerConnection.prototype.removeTrack = function(localTrack) {
     this.localSSRCs.delete(localTrack.rtcId);
 
     if (webRtcStream) {
-        if (browser.supportsRtpSender()) {
-            this._handleSenderRemoveStream(webRtcStream);
-        } else {
-            this.peerconnection.removeStream(webRtcStream);
-        }
+        this.peerconnection.removeStream(webRtcStream);
     }
 };
 
@@ -1704,26 +1752,6 @@ TraceablePeerConnection.prototype.removeTrackMute = function(localTrack) {
     logger.error(`removeStreamMute - no WebRTC stream for ${localTrack}`);
 
     return Promise.reject('Stream not found');
-};
-
-/**
- * Remove stream handling for browsers supporting RTPSender
- * @param stream: webrtc media stream
- */
-TraceablePeerConnection.prototype._handleSenderRemoveStream = function(
-        stream) {
-    if (!stream) {
-        // There is nothing to be changed
-        return;
-    }
-
-    const sender = this.findSenderByStream(stream);
-
-    if (sender) {
-        this.peerconnection.removeTrack(sender);
-    } else {
-        logger.log('Cannot remove tracks: no RTPSender.');
-    }
 };
 
 TraceablePeerConnection.prototype.createDataChannel = function(label, opts) {
@@ -1910,6 +1938,43 @@ TraceablePeerConnection.prototype.setAudioTransferActive = function(active) {
 };
 
 /**
+ * Sets the degradation preference on the video sender. This setting determines if
+ * resolution or framerate will be preferred when bandwidth or cpu is constrained.
+ * Sets it to 'maintain-framerate' when a camera track is added to the pc, sets it
+ * to 'maintain-resolution' when a desktop track is being shared instead.
+ * @returns {void}
+ */
+TraceablePeerConnection.prototype.setSenderVideoDegradationPreference = function() {
+    if (!this.peerconnection.getSenders) {
+        logger.debug('Browser does not support RTCRtpSender');
+
+        return;
+    }
+    const localVideoTrack = Array.from(this.localTracks.values()).find(t => t.isVideoTrack());
+    const videoSender = this.findSenderByKind(MediaType.VIDEO);
+
+    if (!videoSender) {
+        return;
+    }
+    const parameters = videoSender.getParameters();
+
+    if (!parameters.encodings || !parameters.encodings.length) {
+        return;
+    }
+    for (const encoding in parameters.encodings) {
+        if (parameters.encodings.hasOwnProperty(encoding)) {
+            const preference = localVideoTrack.videoType === VideoType.CAMERA
+                ? DEGRADATION_PREFERENCE_CAMERA
+                : DEGRADATION_PREFERENCE_DESKTOP;
+
+            logger.info(`Setting video sender degradation preference on ${this} to ${preference}`);
+            parameters.encodings[encoding].degradationPreference = preference;
+        }
+    }
+    videoSender.setParameters(parameters);
+};
+
+/**
  * Sets the max bitrate on the RTCRtpSender so that the
  * bitrate of the enocder doesn't exceed the configured value.
  * This is needed for the desktop share until spec-complaint
@@ -1918,15 +1983,14 @@ TraceablePeerConnection.prototype.setAudioTransferActive = function(active) {
  * max bitrate is to be configured.
  */
 TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack) {
-    const mediaType = localTrack.type;
+    const trackId = localTrack.track.id;
+    const videoType = localTrack.videoType;
 
     // No need to set max bitrates on the streams in the following cases.
-    // 1. When an audio track has been replaced.
-    // 2. When a 'camera' track is replaced in plan-b mode, since its a new sender.
-    // 3. When the config.js option for capping the SS bitrate is not enabled.
-    if ((mediaType === MediaType.AUDIO)
-        || (browser.usesPlanB() && !this.options.capScreenshareBitrate)
-        || (browser.usesPlanB() && localTrack.videoType === 'camera')) {
+    // 1. When a 'camera' track is replaced in plan-b mode, since its a new sender.
+    // 2. When the config.js option for capping the SS bitrate is not enabled.
+    if ((browser.usesPlanB() && !this.options.capScreenshareBitrate)
+        || (browser.usesPlanB() && videoType === VideoType.CAMERA)) {
         return;
     }
     if (!this.peerconnection.getSenders) {
@@ -1934,8 +1998,8 @@ TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack) {
 
         return;
     }
-    const videoType = localTrack.videoType;
-    const trackId = localTrack.track.id;
+    const presenterEnabled = localTrack._originalStream
+        && localTrack._originalStream.id !== localTrack.getStreamId();
 
     this.peerconnection.getSenders()
         .filter(s => s.track && s.track.id === trackId)
@@ -1949,9 +2013,12 @@ TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack) {
                 logger.debug('Setting max bitrate on video stream');
                 for (const encoding in parameters.encodings) {
                     if (parameters.encodings.hasOwnProperty(encoding)) {
+                        // On chromium, set a max bitrate of 500 Kbps for screenshare when
+                        // capScreenshareBitrate is enabled through config.js and presenter
+                        // is not turned on.
                         parameters.encodings[encoding].maxBitrate
-                            = videoType === 'desktop' && browser.usesPlanB()
-                                ? DESKSTOP_SHARE_RATE
+                            = browser.usesPlanB()
+                                ? presenterEnabled ? MAX_BITRATE : DESKSTOP_SHARE_RATE
 
                                 // In unified plan, simulcast for SS is on by default.
                                 // When simulcast is disabled through a config.js option,
@@ -1974,11 +2041,13 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
 
     if (browser.usesPlanB()) {
         // TODO the focus should squeze or explode the remote simulcast
-        // eslint-disable-next-line no-param-reassign
-        description = this.simulcast.mungeRemoteDescription(description);
-        this.trace(
-            'setRemoteDescription::postTransform (simulcast)',
-            dumpSDP(description));
+        if (this.isSimulcastOn()) {
+            // eslint-disable-next-line no-param-reassign
+            description = this.simulcast.mungeRemoteDescription(description);
+            this.trace(
+                'setRemoteDescription::postTransform (simulcast)',
+                dumpSDP(description));
+        }
 
         if (this.options.preferH264) {
             const parsedSdp = transform.parse(description.sdp);
@@ -2040,6 +2109,89 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
                 reject(err);
             });
     });
+};
+
+/**
+ * Changes the resolution of the video stream that is sent to the peer based on
+ * the user preferred value. If simulcast is enabled on the peerconection, all the
+ * simulcast encodings that have a resolution height lower or equal to the value
+ * provided will remain active. For the non-simulcast case, video constraint is
+ * applied on the track.
+ * @param {number} frameHeight - The user preferred max frame height.
+ * @returns {Promise} promise that will be resolved when the operation is
+ * successful and rejected otherwise.
+ */
+TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeight = null) {
+    // XXX: This is not yet supported on mobile.
+    if (browser.isReactNative()) {
+        return Promise.resolve();
+    }
+
+    const newHeight = frameHeight || this.senderVideoMaxHeight;
+
+    this.senderVideoMaxHeight = newHeight;
+    if (!newHeight) {
+        return Promise.resolve();
+    }
+    const localVideoTrack = Array.from(this.localTracks.values()).find(t => t.isVideoTrack());
+
+    if (!localVideoTrack || localVideoTrack.isMuted() || localVideoTrack.videoType !== VideoType.CAMERA) {
+        return Promise.resolve();
+    }
+    const track = localVideoTrack.getTrack();
+
+    if (this.isSimulcastOn()) {
+        let promise = Promise.resolve();
+
+        // Check if the track constraints have been modified in p2p mode, apply
+        // the constraints that were used for creating the track if that is the case.
+        const height = localVideoTrack._constraints.height.ideal
+            ? localVideoTrack._constraints.height.ideal
+            : localVideoTrack._constraints.height;
+
+        if (track.getSettings().height !== height) {
+            promise = track.applyConstraints(localVideoTrack._constraints);
+        }
+
+        return promise
+            .then(() => {
+                // Determine the encodings that need to stay enabled based on the
+                // new frameHeight provided.
+                const encodingsEnabledState = this.tpcUtils.simulcastStreamConstraints
+                    .map(constraint => constraint.height <= newHeight);
+                const videoSender = this.findSenderByKind(MediaType.VIDEO);
+
+                if (!videoSender) {
+                    return Promise.reject(new Error('RTCRtpSender not found for local video'));
+                }
+                const parameters = videoSender.getParameters();
+
+                if (!parameters || !parameters.encodings || !parameters.encodings.length) {
+                    return Promise.reject(new Error('RTCRtpSendParameters not found for local video track'));
+                }
+                logger.debug(`Setting max height of ${newHeight} on local video`);
+                for (const encoding in parameters.encodings) {
+                    if (parameters.encodings.hasOwnProperty(encoding)) {
+                        parameters.encodings[encoding].active = encodingsEnabledState[encoding];
+                    }
+                }
+
+                return videoSender.setParameters(parameters).then(() => {
+                    localVideoTrack.maxEnabledResolution = newHeight;
+                    this.eventEmitter.emit(RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED, localVideoTrack);
+                });
+            });
+    }
+    logger.debug(`Setting max height of ${newHeight} on local video`);
+
+    // Do not specify the aspect ratio, let camera pick
+    // the best aspect ratio for the given height.
+    return track.applyConstraints(
+        {
+            height: {
+                ideal: newHeight
+            }
+        });
 };
 
 /**
@@ -2317,7 +2469,7 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
                     dumpSDP(resultSdp));
             }
 
-            if (!this.options.disableRtx && browser.supportsRtx()) {
+            if (!this.options.disableRtx && browser.usesSdpMungingForSimulcast()) {
                 // eslint-disable-next-line no-param-reassign
                 resultSdp = new RTCSessionDescription({
                     type: resultSdp.type,
@@ -2532,7 +2684,7 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {
             groups: []
         };
     }
-    if (!this.options.disableRtx && browser.supportsRtx()) {
+    if (!this.options.disableRtx) {
         // Specifically use a for loop here because we'll
         //  be adding to the list we're iterating over, so we
         //  only want to iterate through the items originally
@@ -2554,60 +2706,6 @@ TraceablePeerConnection.prototype.generateNewStreamSSRCInfo = function(track) {
     this.localSSRCs.set(rtcId, ssrcInfo);
 
     return ssrcInfo;
-};
-
-const handleLayerSuspension = function(peerConnection, isSelected) {
-    if (!peerConnection.getSenders) {
-        logger.debug('Browser doesn\'t support RTPSender');
-
-        return;
-    }
-
-    const videoSender = peerConnection.getSenders()
-        .find(sender => sender.track.kind === 'video');
-
-    if (!videoSender) {
-        logger.warn('handleLayerSuspension unable to find video sender');
-
-        return;
-    }
-    if (!videoSender.getParameters) {
-        logger.debug('Browser doesn\'t support RTPSender parameters');
-
-        return;
-    }
-    const parameters = videoSender.getParameters();
-
-    if (isSelected) {
-        logger.debug('Currently selected, enabling all sim layers');
-
-        // Make sure all encodings are enabled
-        parameters.encodings.forEach(e => {
-            e.active = true;
-        });
-    } else {
-        logger.debug('Not currently selected, disabling upper layers');
-
-        // Turn off the upper simulcast layers
-        [ 1, 2 ].forEach(simIndex => {
-            if (parameters.encodings[simIndex]) {
-                parameters.encodings[simIndex].active = false;
-            }
-        });
-    }
-    videoSender.setParameters(parameters);
-};
-
-/**
- * Set whether or not the endpoint is 'selected' by other endpoints, meaning
- * it appears on their main stage
- */
-TraceablePeerConnection.prototype.setIsSelected = function(isSelected) {
-    if (this.options.enableLayerSuspension) {
-        logger.debug('Layer suspension enabled,'
-            + `currently selected? ${isSelected}`);
-        handleLayerSuspension(this.peerconnection, isSelected);
-    }
 };
 
 /**

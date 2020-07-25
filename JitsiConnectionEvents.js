@@ -38,3 +38,10 @@ export const CONNECTION_FAILED = 'connection.connectionFailed';
  * connection is not in the correct state(connected, disconnected, etc.)
  */
 export const WRONG_STATE = 'connection.wrongState';
+
+/**
+ * Indicates that the display name is required over this connection and need to be supplied when
+ * joining the room.
+ * There are cases like lobby room where display name is required.
+ */
+export const DISPLAY_NAME_REQUIRED = 'connection.display_name_required';

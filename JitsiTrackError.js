@@ -4,16 +4,10 @@ const TRACK_ERROR_TO_MESSAGE_MAP = {};
 
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.UNSUPPORTED_RESOLUTION]
     = 'Video resolution is not supported: ';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR]
-    = 'Failed to install Chrome extension';
-TRACK_ERROR_TO_MESSAGE_MAP[
-    JitsiTrackErrors.CHROME_EXTENSION_USER_GESTURE_REQUIRED]
-    = 'Failed to install Chrome extension - installations can only be initiated'
-        + ' by a user gesture.';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.CHROME_EXTENSION_USER_CANCELED]
-    = 'User canceled Chrome\'s screen sharing prompt';
-TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.CHROME_EXTENSION_GENERIC_ERROR]
-    = 'Unknown error from Chrome extension';
+TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.SCREENSHARING_USER_CANCELED]
+    = 'User canceled screen sharing prompt';
+TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR]
+    = 'Unknown error from screensharing';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR]
     = 'Unkown error from desktop picker';
 TRACK_ERROR_TO_MESSAGE_MAP[JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND]

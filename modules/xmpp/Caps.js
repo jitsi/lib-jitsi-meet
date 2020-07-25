@@ -183,8 +183,8 @@ export default class Caps extends Listenable {
      * @param {int} timeout the timeout in ms for reply from the host.
      * @returns {Promise<Set<String>, Error>}
      */
-    getFeaturesAndIdentities(jid, timeout = 5000) {
-        return this._getDiscoInfo(jid, null, timeout);
+    getFeaturesAndIdentities(jid, node, timeout = 5000) {
+        return this._getDiscoInfo(jid, node, timeout);
     }
 
     /**

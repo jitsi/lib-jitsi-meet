@@ -2,8 +2,10 @@ import { getLogger } from 'jitsi-meet-logger';
 import transform from 'sdp-transform';
 
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
-import browser from '../browser';
+import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
+import * as VideoType from '../../service/RTC/VideoType';
+import browser from '../browser';
 
 const logger = getLogger(__filename);
 const SIM_LAYER_1_RID = '1';
@@ -47,6 +49,12 @@ export class TPCUtils {
                 scaleResolutionDownBy: browser.isFirefox() ? 4.0 : 1.0
             }
         ];
+
+        /**
+         * Resolution height constraints for the simulcast encodings that
+         * are configured for the video tracks.
+         */
+        this.simulcastStreamConstraints = [];
     }
 
     /**
@@ -169,6 +177,29 @@ export class TPCUtils {
     }
 
     /**
+     * Constructs resolution height constraints for the simulcast encodings that are
+     * created for a given local video track.
+     * @param {MediaStreamTrack} track - the local video track.
+     * @returns {void}
+     */
+    _setSimulcastStreamConstraints(track) {
+        if (browser.isReactNative()) {
+            return;
+        }
+
+        const height = track.getSettings().height;
+
+        for (const encoding in this.simulcastEncodings) {
+            if (this.simulcastEncodings.hasOwnProperty(encoding)) {
+                this.simulcastStreamConstraints.push({
+                    height: height / this.simulcastEncodings[encoding].scaleResolutionDownBy,
+                    rid: this.simulcastEncodings[encoding].rid
+                });
+            }
+        }
+    }
+
+    /**
     * Adds {@link JitsiLocalTrack} to the WebRTC peerconnection for the first time.
     * @param {JitsiLocalTrack} track - track to be added to the peerconnection.
     * @returns {boolean} Returns true if the operation is successful,
@@ -196,6 +227,11 @@ export class TPCUtils {
             // unused "recv-only" transceiver.
             this.pc.peerconnection.addTrack(track);
         }
+
+        // Construct the simulcast stream constraints for the newly added track.
+        if (localTrack.isVideoTrack() && localTrack.videoType === VideoType.CAMERA && this.pc.isSimulcastOn()) {
+            this._setSimulcastStreamConstraints(localTrack.getTrack());
+        }
     }
 
     /**
@@ -221,10 +257,14 @@ export class TPCUtils {
         // If the client starts with audio/video muted setting, the transceiver direction
         // will be set to 'recvonly'. Use addStream here so that a MSID is generated for the stream.
         if (transceiver.direction === 'recvonly') {
-            this.pc.peerconnection.addStream(localTrack.getOriginalStream());
-            this.setEncodings(localTrack);
-            this.pc.localTracks.set(localTrack.rtcId, localTrack);
-            transceiver.direction = 'sendrecv';
+            const stream = localTrack.getOriginalStream();
+
+            if (stream) {
+                this.pc.peerconnection.addStream(localTrack.getOriginalStream());
+                this.setEncodings(localTrack);
+                this.pc.localTracks.set(localTrack.rtcId, localTrack);
+                transceiver.direction = 'sendrecv';
+            }
 
             return Promise.resolve(false);
         }
@@ -274,7 +314,9 @@ export class TPCUtils {
         if (oldTrack && newTrack) {
             const mediaType = newTrack.getType();
             const stream = newTrack.getOriginalStream();
-            const track = stream.getVideoTracks()[0];
+            const track = mediaType === MediaType.AUDIO
+                ? stream.getAudioTracks()[0]
+                : stream.getVideoTracks()[0];
             const transceiver = this.pc.peerconnection.getTransceivers()
                 .find(t => t.receiver.track.kind === mediaType && !t.stopped);
 
