@@ -396,7 +396,7 @@ Throws NetworkError or InvalidStateError or Error if the operation fails.
 
 Throws NetworkError or InvalidStateError or Error if the operation fails.
 
-34. setReceiverVideoConstraint(resolution) - set the desired resolution to get from JVB (180, 360, 720, 1080, etc).
+34. setReceiverVideoConstraint(resolution) - set the desired resolution for selected users (selected via 'selectParticipant(participantId)') to get from JVB (180, 360, 720, 1080, etc).
     You should use that method if you are using simulcast.
 
 35. setSenderVideoConstraint(resolution) - set the desired resolution to send to JVB or the peer (180, 360, 720).
