@@ -27,7 +27,7 @@ describe('PerformanceObserverStats', () => {
         const mockConference = new MockConference();
         const statistics = new Statistics();
 
-        statistics.attachPerformanceStats(mockConference);
+        statistics.attachLongTasksStats(mockConference);
 
         const startObserverSpy = spyOn(statistics.performanceObserverStats, 'startObserver');
         const stopObserverSpy = spyOn(statistics.performanceObserverStats, 'stopObserver');
@@ -35,7 +35,7 @@ describe('PerformanceObserverStats', () => {
 
         mockConference.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_JOINED);
         expect(startObserverSpy).toHaveBeenCalled();
-        expect(statistics.performanceObserverStats.getPerformanceStats()).toBeTruthy();
+        expect(statistics.performanceObserverStats.getLongTasksStats()).toBeTruthy();
 
         setTimeout(() => {
             expect(addNextSpy).toHaveBeenCalled();

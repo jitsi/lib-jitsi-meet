@@ -121,8 +121,8 @@ Statistics.init = function(options) {
         Statistics.audioLevelsInterval = options.audioLevelsInterval;
     }
 
-    if (typeof options.performanceStatsInterval === 'number') {
-        Statistics.performanceStatsInterval = options.performanceStatsInterval;
+    if (typeof options.longTasksStatsInterval === 'number') {
+        Statistics.longTasksStatsInterval = options.longTasksStatsInterval;
     }
 
     Statistics.disableThirdPartyRequests = options.disableThirdPartyRequests;
@@ -193,7 +193,6 @@ export default function Statistics(xmpp, options) {
 Statistics.audioLevelsEnabled = false;
 Statistics.audioLevelsInterval = 200;
 Statistics.pcStatsInterval = 10000;
-Statistics.performanceStatsInterval = 10000;
 Statistics.disableThirdPartyRequests = false;
 Statistics.analytics = analytics;
 
@@ -295,7 +294,7 @@ Statistics.prototype.removeByteSentStatsListener = function(listener) {
  * @param {Function} listener a function that would be called when notified.
  * @returns {void}
  */
-Statistics.prototype.addPerformanceStatsListener = function(listener) {
+Statistics.prototype.addLongTasksStatsListener = function(listener) {
     this.eventEmitter.on(StatisticsEvents.LONG_TASKS_STATS, listener);
 };
 
@@ -305,7 +304,7 @@ Statistics.prototype.addPerformanceStatsListener = function(listener) {
  *
  * @returns {void}
  */
-Statistics.prototype.attachPerformanceStats = function(conference) {
+Statistics.prototype.attachLongTasksStats = function(conference) {
     if (!browser.supportsPerformanceObserver()) {
         logger.warn('Performance observer for long tasks not supported by browser!');
 
@@ -314,7 +313,7 @@ Statistics.prototype.attachPerformanceStats = function(conference) {
 
     this.performanceObserverStats = new PerformanceObserverStats(
         this.eventEmitter,
-        Statistics.performanceStatsInterval);
+        Statistics.longTasksStatsInterval);
 
     conference.on(
         JitsiConferenceEvents.CONFERENCE_JOINED,
@@ -325,14 +324,14 @@ Statistics.prototype.attachPerformanceStats = function(conference) {
 };
 
 /**
- * Obtains the current value of the performance statistics.
+ * Obtains the current value of the LongTasks event statistics.
  *
  * @returns {Object|null} stats object if the observer has been
  * created, null otherwise.
  */
-Statistics.prototype.getPerformanceStats = function() {
+Statistics.prototype.getLongTasksStats = function() {
     return this.performanceObserverStats
-        ? this.performanceObserverStats.getPerformanceStats()
+        ? this.performanceObserverStats.getLongTasksStats()
         : null;
 };
 
@@ -342,7 +341,7 @@ Statistics.prototype.getPerformanceStats = function() {
  * @param {Function} listener the listener we want to remove.
  * @returns {void}
  */
-Statistics.prototype.removePerformanceStatsListener = function(listener) {
+Statistics.prototype.removeLongTasksStatsListener = function(listener) {
     this.eventEmitter.removeListener(StatisticsEvents.LONG_TASKS_STATS, listener);
 };
 

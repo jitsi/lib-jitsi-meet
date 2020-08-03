@@ -377,8 +377,8 @@ JitsiConference.prototype._init = function(options = {}) {
         });
 
         // Start performance observer for monitoring long tasks
-        if (config.performanceStatsInterval) {
-            this.statistics.attachPerformanceStats(this);
+        if (config.longTasksStatsInterval) {
+            this.statistics.attachLongTasksStats(this);
         }
     }
 
@@ -729,9 +729,9 @@ JitsiConference.prototype.getLocalVideoTrack = function() {
  * @returns {Object|null}
  */
 JitsiConference.prototype.getPerformanceStats = function() {
-    return browser.supportsPerformanceObserver()
-        ? this.statistics.performanceObserverStats.getPerformanceStats()
-        : null;
+    return {
+        longTasksStats: this.statistics.getLongTasksStats()
+    };
 };
 
 /**
