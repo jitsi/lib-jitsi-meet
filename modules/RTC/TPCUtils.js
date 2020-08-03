@@ -70,7 +70,7 @@ export class TPCUtils {
      * description.
      * @private
      */
-    _ensureCorrectOrderOfSsrcs(description) {
+    ensureCorrectOrderOfSsrcs(description) {
         const parsedSdp = transform.parse(description.sdp);
 
         parsedSdp.media.forEach(mLine => {
@@ -118,7 +118,7 @@ export class TPCUtils {
      * @return {Object} A session description (same format as above) object
      * with its sdp field modified to advertise simulcast receive support
      */
-    _insertUnifiedPlanSimulcastReceive(desc) {
+    insertUnifiedPlanSimulcastReceive(desc) {
         // a=simulcast line is not needed on browsers where
         // we munge SDP for turning on simulcast. Remove this check
         // when we move to RID/MID based simulcast on all browsers.
@@ -187,7 +187,7 @@ export class TPCUtils {
      * @param {MediaStreamTrack} track - the local video track.
      * @returns {void}
      */
-    _setSimulcastStreamConstraints(track) {
+    setSimulcastStreamConstraints(track) {
         if (browser.isReactNative()) {
             return;
         }
@@ -235,7 +235,7 @@ export class TPCUtils {
 
         // Construct the simulcast stream constraints for the newly added track.
         if (localTrack.isVideoTrack() && localTrack.videoType === VideoType.CAMERA && this.pc.isSimulcastOn()) {
-            this._setSimulcastStreamConstraints(localTrack.getTrack());
+            this.setSimulcastStreamConstraints(localTrack.getTrack());
         }
     }
 

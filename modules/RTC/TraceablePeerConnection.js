@@ -1545,7 +1545,7 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
 
     // Construct the simulcast stream constraints for the newly added track.
     if (track.isVideoTrack() && track.videoType === VideoType.CAMERA && this.isSimulcastOn()) {
-        this.tpcUtils._setSimulcastStreamConstraints(track.getTrack());
+        this.tpcUtils.setSimulcastStreamConstraints(track.getTrack());
     }
 };
 
@@ -2103,13 +2103,13 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
             description = this.simulcast.mungeRemoteDescription(description);
 
             // eslint-disable-next-line no-param-reassign
-            description = this.tpcUtils._insertUnifiedPlanSimulcastReceive(description);
+            description = this.tpcUtils.insertUnifiedPlanSimulcastReceive(description);
             this.trace(
                 'setRemoteDescription::postTransform (sim receive)',
                 dumpSDP(description));
 
             // eslint-disable-next-line no-param-reassign
-            description = this.tpcUtils._ensureCorrectOrderOfSsrcs(description);
+            description = this.tpcUtils.ensureCorrectOrderOfSsrcs(description);
         }
     }
 
