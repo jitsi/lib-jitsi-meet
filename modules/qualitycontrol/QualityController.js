@@ -46,6 +46,9 @@ export class QualityController {
 
         // Set the degradation preference on the local video track.
         mediaSession.setSenderVideoDegradationPreference();
+
+        // Set the max bitrates on video sender if they are specified in config.js videoQuality settings.
+        mediaSession.setSenderMaxBitrates();
     }
 
     /**

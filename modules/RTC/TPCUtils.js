@@ -20,10 +20,15 @@ export const SIM_LAYER_RIDS = [ SIM_LAYER_1_RID, SIM_LAYER_2_RID, SIM_LAYER_3_RI
  */
 export class TPCUtils {
     /**
-     * @constructor
+     * Creates a new instance for a given TraceablePeerConnection
+     *
+     * @param peerconnection - the tpc instance for which we have utility functions.
+     * @param videoBitrates - the bitrates to be configured on the video senders when
+     * simulcast is enabled.
      */
-    constructor(peerconnection) {
+    constructor(peerconnection, videoBitrates) {
         this.pc = peerconnection;
+        this.videoBitrates = videoBitrates;
 
         /**
          * The simulcast encodings that will be configured on the RTCRtpSender
@@ -32,19 +37,19 @@ export class TPCUtils {
         this.simulcastEncodings = [
             {
                 active: true,
-                maxBitrate: browser.isFirefox() ? 2500000 : 200000,
+                maxBitrate: browser.isFirefox() ? this.videoBitrates.high : this.videoBitrates.low,
                 rid: SIM_LAYER_1_RID,
                 scaleResolutionDownBy: browser.isFirefox() ? 1.0 : 4.0
             },
             {
                 active: true,
-                maxBitrate: 700000,
+                maxBitrate: this.videoBitrates.standard,
                 rid: SIM_LAYER_2_RID,
                 scaleResolutionDownBy: 2.0
             },
             {
                 active: true,
-                maxBitrate: browser.isFirefox() ? 200000 : 2500000,
+                maxBitrate: browser.isFirefox() ? this.videoBitrates.low : this.videoBitrates.high,
                 rid: SIM_LAYER_3_RID,
                 scaleResolutionDownBy: browser.isFirefox() ? 4.0 : 1.0
             }
