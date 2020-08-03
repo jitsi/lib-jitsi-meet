@@ -354,41 +354,41 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
         );
     }
 
-    this.statsIntervalId = setInterval(
-        () => {
-            // Interval updates
-            this.peerconnection.getStats(
-                report => {
-                    let results = null;
+    function processStats() {
+        // Interval updates
+        this.peerconnection.getStats(
+            report => {
+                let results = null;
 
-                    if (!report || !report.result
-                        || typeof report.result !== 'function') {
-                        // firefox
-                        results = report;
+                if (!report || !report.result
+                    || typeof report.result !== 'function') {
+                    // firefox
+                    results = report;
+                } else {
+                    // chrome
+                    results = report.result();
+                }
+
+                this.currentStatsReport = results;
+                try {
+                    if (this._usesPromiseGetStats) {
+                        this.processNewStatsReport();
                     } else {
-                        // chrome
-                        results = report.result();
+                        this.processStatsReport();
                     }
+                } catch (e) {
+                    GlobalOnErrorHandler.callErrorHandler(e);
+                    logger.error(`Unsupported key:${e}`, e);
+                }
 
-                    this.currentStatsReport = results;
-                    try {
-                        if (this._usesPromiseGetStats) {
-                            this.processNewStatsReport();
-                        } else {
-                            this.processStatsReport();
-                        }
-                    } catch (e) {
-                        GlobalOnErrorHandler.callErrorHandler(e);
-                        logger.error(`Unsupported key:${e}`, e);
-                    }
+                this.previousStatsReport = this.currentStatsReport;
+            },
+            error => this.errorCallback(error)
+        );
+    };
 
-                    this.previousStatsReport = this.currentStatsReport;
-                },
-                error => this.errorCallback(error)
-            );
-        },
-        this.statsIntervalMilis
-    );
+    processStats();
+    this.statsIntervalId = setInterval(processStats, this.statsIntervalMilis);
 };
 
 /**
