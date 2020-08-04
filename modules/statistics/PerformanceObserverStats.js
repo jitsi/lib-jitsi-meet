@@ -24,7 +24,7 @@ export class PerformanceObserverStats {
     constructor(emitter, statsInterval) {
         this.eventEmitter = emitter;
         this.longTasks = 0;
-        this.maxTaskDuration = 0;
+        this.maxDuration = 0;
         this.performanceStatsInterval = statsInterval;
         this.stats = new RunningAverage();
     }
@@ -34,10 +34,10 @@ export class PerformanceObserverStats {
      * duration of the longest task recorded by the observer.
      * @returns {Object}
      */
-    getPerformanceStats() {
+    getLongTasksStats() {
         return {
             average: (this.stats.getAverage() * SECONDS).toFixed(2), // calc rate per min
-            maxTaskDuration: this.maxTaskDuration
+            maxDuration: this.maxDuration
         };
     }
 
@@ -53,7 +53,7 @@ export class PerformanceObserverStats {
 
             for (const task of entries) {
                 this.longTasks++;
-                this.maxTaskDuration = Math.max(this.maxTaskDuration, task.duration).toFixed(3);
+                this.maxDuration = Math.max(this.maxDuration, task.duration).toFixed(3);
             }
         };
 
@@ -74,7 +74,7 @@ export class PerformanceObserverStats {
 
             this.stats.addNext(rate);
             this.eventEmitter.emit(
-                StatisticsEvents.LONG_TASKS_STATS, this.getPerformanceStats());
+                StatisticsEvents.LONG_TASKS_STATS, this.getLongTasksStats());
 
             // Reset the counter and start counting events again.
             this.longTasks = 0;
