@@ -292,8 +292,6 @@ StatsCollector.prototype.errorCallback = function(error) {
  * Starts stats updates.
  */
 StatsCollector.prototype.start = function(startAudioLevelStats) {
-    const self = this;
-
     if (startAudioLevelStats) {
         if (browser.supportsReceiverStats()) {
             logger.info('Using RTCRtpSynchronizationSource for remote audio levels');
@@ -347,12 +345,9 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
         );
     }
 
-    /**
-     * Call getStats on the PeerConnection and process the result.
-     */
-    function processStats() {
+    const processStats = () => {
         // Interval updates
-        self.peerconnection.getStats(
+        this.peerconnection.getStats(
             report => {
                 let results = null;
 
@@ -365,23 +360,23 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
                     results = report.result();
                 }
 
-                self.currentStatsReport = results;
+                this.currentStatsReport = results;
                 try {
-                    if (self._usesPromiseGetStats) {
-                        self.processNewStatsReport();
+                    if (this._usesPromiseGetStats) {
+                        this.processNewStatsReport();
                     } else {
-                        self.processStatsReport();
+                        this.processStatsReport();
                     }
                 } catch (e) {
                     GlobalOnErrorHandler.callErrorHandler(e);
                     logger.error(`Unsupported key:${e}`, e);
                 }
 
-                self.previousStatsReport = self.currentStatsReport;
+                this.previousStatsReport = this.currentStatsReport;
             },
-            error => self.errorCallback(error)
+            error => this.errorCallback(error)
         );
-    }
+    };
 
     processStats();
     this.statsIntervalId = setInterval(processStats, this.statsIntervalMilis);
