@@ -25,10 +25,13 @@ import { SIM_LAYER_RIDS, TPCUtils } from './TPCUtils';
 // FIXME SDP tools should end up in some kind of util module
 
 const logger = getLogger(__filename);
-const MAX_BITRATE = 2500000;
-const DESKSTOP_SHARE_RATE = 500000;
 const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
 const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
+const DESKSTOP_SHARE_RATE = 500000;
+const HD_BITRATE = 2500000;
+const LD_BITRATE = 200000;
+const SD_BITRATE = 700000;
+
 /* eslint-disable max-params */
 
 /**
@@ -209,7 +212,23 @@ export default function TraceablePeerConnection(
 
     this.peerconnection
         = new RTCUtils.RTCPeerConnectionType(iceConfig, constraints);
-    this.tpcUtils = new TPCUtils(this);
+
+    // The standard video bitrates are used in Unified plan when switching
+    // between camera/desktop tracks on the same sender.
+    const standardVideoBitrates = {
+        low: LD_BITRATE,
+        standard: SD_BITRATE,
+        high: HD_BITRATE
+    };
+
+    // Check if the max. bitrates for video are specified through config.js
+    // videoQuality settings. These bitrates will be applied on all browsers
+    // for camera sources in simulcast mode.
+    const videoBitrates = this.options.videoQuality
+        ? this.options.videoQuality.maxBitratesVideo
+        : standardVideoBitrates;
+
+    this.tpcUtils = new TPCUtils(this, videoBitrates);
     this.updateLog = [];
     this.stats = {};
     this.statsinterval = null;
@@ -1526,7 +1545,7 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
 
     // Construct the simulcast stream constraints for the newly added track.
     if (track.isVideoTrack() && track.videoType === VideoType.CAMERA && this.isSimulcastOn()) {
-        this.tpcUtils._setSimulcastStreamConstraints(track.getTrack());
+        this.tpcUtils.setSimulcastStreamConstraints(track.getTrack());
     }
 };
 
@@ -1982,15 +2001,21 @@ TraceablePeerConnection.prototype.setSenderVideoDegradationPreference = function
  * @param {JitsiLocalTrack} localTrack - the local track whose
  * max bitrate is to be configured.
  */
-TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack) {
+TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack = null) {
+    if (!localTrack) {
+        // eslint-disable-next-line no-param-reassign
+        localTrack = Array.from(this.localTracks.values()).find(t => t.isVideoTrack());
+    }
     const trackId = localTrack.track.id;
     const videoType = localTrack.videoType;
 
     // No need to set max bitrates on the streams in the following cases.
     // 1. When a 'camera' track is replaced in plan-b mode, since its a new sender.
     // 2. When the config.js option for capping the SS bitrate is not enabled.
-    if ((browser.usesPlanB() && !this.options.capScreenshareBitrate)
-        || (browser.usesPlanB() && videoType === VideoType.CAMERA)) {
+    // The above two conditions are ignored When max video bitrates are specified through config.js.
+    if (((browser.usesPlanB() && !this.options.capScreenshareBitrate)
+        || (browser.usesPlanB() && videoType === VideoType.CAMERA))
+        && !(this.options.videoQuality && this.options.videoQuality.maxBitratesVideo)) {
         return;
     }
     if (!this.peerconnection.getSenders) {
@@ -2017,15 +2042,15 @@ TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack) {
                         // capScreenshareBitrate is enabled through config.js and presenter
                         // is not turned on.
                         parameters.encodings[encoding].maxBitrate
-                            = browser.usesPlanB()
-                                ? presenterEnabled ? MAX_BITRATE : DESKSTOP_SHARE_RATE
+                            = browser.usesPlanB() && videoType === VideoType.DESKTOP
+                                ? presenterEnabled ? HD_BITRATE : DESKSTOP_SHARE_RATE
 
                                 // In unified plan, simulcast for SS is on by default.
                                 // When simulcast is disabled through a config.js option,
                                 // we cap the bitrate on desktop and camera tracks to 2500 Kbps.
                                 : this.isSimulcastOn()
                                     ? this.tpcUtils.simulcastEncodings[encoding].maxBitrate
-                                    : MAX_BITRATE;
+                                    : HD_BITRATE;
                     }
                 }
                 sender.setParameters(parameters);
@@ -2078,13 +2103,13 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
             description = this.simulcast.mungeRemoteDescription(description);
 
             // eslint-disable-next-line no-param-reassign
-            description = this.tpcUtils._insertUnifiedPlanSimulcastReceive(description);
+            description = this.tpcUtils.insertUnifiedPlanSimulcastReceive(description);
             this.trace(
                 'setRemoteDescription::postTransform (sim receive)',
                 dumpSDP(description));
 
             // eslint-disable-next-line no-param-reassign
-            description = this.tpcUtils._ensureCorrectOrderOfSsrcs(description);
+            description = this.tpcUtils.ensureCorrectOrderOfSsrcs(description);
         }
     }
 

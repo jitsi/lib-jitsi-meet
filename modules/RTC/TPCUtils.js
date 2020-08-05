@@ -20,10 +20,15 @@ export const SIM_LAYER_RIDS = [ SIM_LAYER_1_RID, SIM_LAYER_2_RID, SIM_LAYER_3_RI
  */
 export class TPCUtils {
     /**
-     * @constructor
+     * Creates a new instance for a given TraceablePeerConnection
+     *
+     * @param peerconnection - the tpc instance for which we have utility functions.
+     * @param videoBitrates - the bitrates to be configured on the video senders when
+     * simulcast is enabled.
      */
-    constructor(peerconnection) {
+    constructor(peerconnection, videoBitrates) {
         this.pc = peerconnection;
+        this.videoBitrates = videoBitrates;
 
         /**
          * The simulcast encodings that will be configured on the RTCRtpSender
@@ -32,19 +37,19 @@ export class TPCUtils {
         this.simulcastEncodings = [
             {
                 active: true,
-                maxBitrate: browser.isFirefox() ? 2500000 : 200000,
+                maxBitrate: browser.isFirefox() ? this.videoBitrates.high : this.videoBitrates.low,
                 rid: SIM_LAYER_1_RID,
                 scaleResolutionDownBy: browser.isFirefox() ? 1.0 : 4.0
             },
             {
                 active: true,
-                maxBitrate: 700000,
+                maxBitrate: this.videoBitrates.standard,
                 rid: SIM_LAYER_2_RID,
                 scaleResolutionDownBy: 2.0
             },
             {
                 active: true,
-                maxBitrate: browser.isFirefox() ? 200000 : 2500000,
+                maxBitrate: browser.isFirefox() ? this.videoBitrates.low : this.videoBitrates.high,
                 rid: SIM_LAYER_3_RID,
                 scaleResolutionDownBy: browser.isFirefox() ? 4.0 : 1.0
             }
@@ -65,7 +70,7 @@ export class TPCUtils {
      * description.
      * @private
      */
-    _ensureCorrectOrderOfSsrcs(description) {
+    ensureCorrectOrderOfSsrcs(description) {
         const parsedSdp = transform.parse(description.sdp);
 
         parsedSdp.media.forEach(mLine => {
@@ -113,7 +118,7 @@ export class TPCUtils {
      * @return {Object} A session description (same format as above) object
      * with its sdp field modified to advertise simulcast receive support
      */
-    _insertUnifiedPlanSimulcastReceive(desc) {
+    insertUnifiedPlanSimulcastReceive(desc) {
         // a=simulcast line is not needed on browsers where
         // we munge SDP for turning on simulcast. Remove this check
         // when we move to RID/MID based simulcast on all browsers.
@@ -182,7 +187,7 @@ export class TPCUtils {
      * @param {MediaStreamTrack} track - the local video track.
      * @returns {void}
      */
-    _setSimulcastStreamConstraints(track) {
+    setSimulcastStreamConstraints(track) {
         if (browser.isReactNative()) {
             return;
         }
@@ -230,7 +235,7 @@ export class TPCUtils {
 
         // Construct the simulcast stream constraints for the newly added track.
         if (localTrack.isVideoTrack() && localTrack.videoType === VideoType.CAMERA && this.pc.isSimulcastOn()) {
-            this._setSimulcastStreamConstraints(localTrack.getTrack());
+            this.setSimulcastStreamConstraints(localTrack.getTrack());
         }
     }
 
