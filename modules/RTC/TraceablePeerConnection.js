@@ -2005,6 +2005,10 @@ TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack = null) {
     if (!localTrack) {
         // eslint-disable-next-line no-param-reassign
         localTrack = Array.from(this.localTracks.values()).find(t => t.isVideoTrack());
+
+        if (!localTrack) {
+            return;
+        }
     }
     const trackId = localTrack.track.id;
     const videoType = localTrack.videoType;
