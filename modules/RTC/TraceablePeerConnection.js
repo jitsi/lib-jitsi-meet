@@ -2167,60 +2167,37 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
     if (!localVideoTrack || localVideoTrack.isMuted() || localVideoTrack.videoType !== VideoType.CAMERA) {
         return Promise.resolve();
     }
-    const track = localVideoTrack.getTrack();
+    const videoSender = this.findSenderByKind(MediaType.VIDEO);
+
+    if (!videoSender) {
+        return Promise.reject(new Error('RTCRtpSender not found for local video'));
+    }
+    const parameters = videoSender.getParameters();
+
+    if (!parameters || !parameters.encodings || !parameters.encodings.length) {
+        return Promise.reject(new Error('RTCRtpSendParameters not found for local video track'));
+    }
+    logger.info(`Setting max height of ${newHeight} on local video`);
 
     if (this.isSimulcastOn()) {
-        let promise = Promise.resolve();
+        // Determine the encodings that need to stay enabled based on the
+        // new frameHeight provided.
+        const encodingsEnabledState = this.tpcUtils.simulcastStreamConstraints
+            .map(constraint => constraint.height <= newHeight);
 
-        // Check if the track constraints have been modified in p2p mode, apply
-        // the constraints that were used for creating the track if that is the case.
-        const height = localVideoTrack._constraints.height.ideal
-            ? localVideoTrack._constraints.height.ideal
-            : localVideoTrack._constraints.height;
-
-        if (track.getSettings().height !== height) {
-            promise = track.applyConstraints(localVideoTrack._constraints);
-        }
-
-        return promise
-            .then(() => {
-                // Determine the encodings that need to stay enabled based on the
-                // new frameHeight provided.
-                const encodingsEnabledState = this.tpcUtils.simulcastStreamConstraints
-                    .map(constraint => constraint.height <= newHeight);
-                const videoSender = this.findSenderByKind(MediaType.VIDEO);
-
-                if (!videoSender) {
-                    return Promise.reject(new Error('RTCRtpSender not found for local video'));
-                }
-                const parameters = videoSender.getParameters();
-
-                if (!parameters || !parameters.encodings || !parameters.encodings.length) {
-                    return Promise.reject(new Error('RTCRtpSendParameters not found for local video track'));
-                }
-                logger.debug(`Setting max height of ${newHeight} on local video`);
-                for (const encoding in parameters.encodings) {
-                    if (parameters.encodings.hasOwnProperty(encoding)) {
-                        parameters.encodings[encoding].active = encodingsEnabledState[encoding];
-                    }
-                }
-
-                return videoSender.setParameters(parameters).then(() => {
-                    localVideoTrack.maxEnabledResolution = newHeight;
-                    this.eventEmitter.emit(RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED, localVideoTrack);
-                });
-            });
-    }
-    logger.debug(`Setting max height of ${newHeight} on local video`);
-
-    // Do not specify the aspect ratio, let camera pick
-    // the best aspect ratio for the given height.
-    return track.applyConstraints(
-        {
-            height: {
-                ideal: newHeight
+        for (const encoding in parameters.encodings) {
+            if (parameters.encodings.hasOwnProperty(encoding)) {
+                parameters.encodings[encoding].active = encodingsEnabledState[encoding];
             }
-        });
+        }
+    } else {
+        parameters.encodings[0].scaleResolutionDownBy = Math.floor(localVideoTrack.resolution / newHeight);
+    }
+
+    return videoSender.setParameters(parameters).then(() => {
+        localVideoTrack.maxEnabledResolution = newHeight;
+        this.eventEmitter.emit(RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED, localVideoTrack);
+    });
 };
 
 /**
