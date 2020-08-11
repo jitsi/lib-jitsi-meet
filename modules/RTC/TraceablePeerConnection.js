@@ -1670,26 +1670,6 @@ TraceablePeerConnection.prototype.findSenderByKind = function(mediaType) {
 };
 
 /**
- * Returns the sender corresponding to the given MediaStream.
- *
- * @param {MediaStream} stream - The media stream used for the search.
- * @returns {RTPSender|undefined} - The found sender or undefined if no sender
- * was found.
- */
-TraceablePeerConnection.prototype.findSenderByStream = function(stream) {
-    const track = stream.getTracks()[0];
-
-    if (!track) {
-        logger.error('Cannot find sender: no tracks.');
-
-        return;
-    }
-
-    // Find the right sender (for audio or video)
-    return this.peerconnection.getSenders().find(s => s.track === track);
-};
-
-/**
  * Returns the receiver corresponding to the given MediaStreamTrack.
  *
  * @param {MediaSreamTrack} track - The media stream track used for the search.
