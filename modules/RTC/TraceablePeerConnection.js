@@ -1480,6 +1480,7 @@ TraceablePeerConnection.prototype.containsTrack = function(track) {
 /**
  * Add {@link JitsiLocalTrack} to this TPC.
  * @param {JitsiLocalTrack} track
+ * @returns {Promise<void>} - resolved when done.
  */
 TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false) {
     const rtcId = track.rtcId;
@@ -1487,14 +1488,15 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
     logger.info(`add ${track} to: ${this}`);
 
     if (this.localTracks.has(rtcId)) {
-        logger.error(`${track} is already in ${this}`);
 
-        return;
+        return Promise.reject(new Error(`${track} is already in ${this}`));
     }
 
     this.localTracks.set(rtcId, track);
     if (browser.usesUnifiedPlan() && isInitiator) {
-        return this.tpcUtils.addTrack(track, isInitiator);
+        this.tpcUtils.addTrack(track, isInitiator);
+
+        return Promise.resolve();
     }
 
     const webrtcStream = track.getOriginalStream();
@@ -1506,7 +1508,7 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
     } else if (!browser.doesVideoMuteByStreamRemove()
                 || track.isAudioTrack()
                 || (track.isVideoTrack() && !track.isMuted())) {
-        logger.error(`${this} no WebRTC stream for: ${track}`);
+        return Promise.reject(new Error(`${this} no WebRTC stream for: ${track}`));
     }
 
     // Muted video tracks do not have WebRTC stream
@@ -1538,14 +1540,18 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
         }
     }
 
+    let promiseChain = Promise.resolve();
+
     if (browser.usesUnifiedPlan() && !browser.usesSdpMungingForSimulcast()) {
-        this.tpcUtils.setEncodings(track);
+        promiseChain = this.tpcUtils.setEncodings(track);
     }
 
     // Construct the simulcast stream constraints for the newly added track.
     if (track.isVideoTrack() && track.videoType === VideoType.CAMERA && this.isSimulcastOn()) {
         this.tpcUtils.setSimulcastStreamConstraints(track.getTrack());
     }
+
+    return promiseChain;
 };
 
 /**
@@ -1705,16 +1711,20 @@ TraceablePeerConnection.prototype.findSenderForTrack = function(track) {
  */
 TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
     if (browser.usesUnifiedPlan()) {
-        return this.tpcUtils.replaceTrack(oldTrack, newTrack);
+        return this.tpcUtils.replaceTrack(oldTrack, newTrack)
+            .then(() => false);
     }
+
+    let promiseChain = Promise.resolve();
+
     if (oldTrack) {
         this.removeTrack(oldTrack);
     }
     if (newTrack) {
-        this.addTrack(newTrack);
+        promiseChain = this.addTrack(newTrack);
     }
 
-    return Promise.resolve(true);
+    return promiseChain.then(() => true);
 };
 
 /**
@@ -1926,7 +1936,8 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
 TraceablePeerConnection.prototype.setAudioTransferActive = function(active) {
     logger.debug(`${this} audio transfer active: ${active}`);
     if (browser.usesUnifiedPlan()) {
-        return this.tpcUtils.setAudioTransferActive(active);
+        return this.tpcUtils.setAudioTransferActive(active)
+            .then(() => false);
     }
     const changed = this.audioTransferActive !== active;
 
@@ -1940,24 +1951,24 @@ TraceablePeerConnection.prototype.setAudioTransferActive = function(active) {
  * resolution or framerate will be preferred when bandwidth or cpu is constrained.
  * Sets it to 'maintain-framerate' when a camera track is added to the pc, sets it
  * to 'maintain-resolution' when a desktop track is being shared instead.
- * @returns {void}
+ * @returns {Promise<void>}
  */
 TraceablePeerConnection.prototype.setSenderVideoDegradationPreference = function() {
     if (!this.peerconnection.getSenders) {
         logger.debug('Browser does not support RTCRtpSender');
 
-        return;
+        return Promise.resolve();
     }
     const localVideoTrack = Array.from(this.localTracks.values()).find(t => t.isVideoTrack());
     const videoSender = this.findSenderByKind(MediaType.VIDEO);
 
     if (!videoSender) {
-        return;
+        return Promise.resolve();
     }
     const parameters = videoSender.getParameters();
 
     if (!parameters.encodings || !parameters.encodings.length) {
-        return;
+        return Promise.resolve();
     }
     for (const encoding in parameters.encodings) {
         if (parameters.encodings.hasOwnProperty(encoding)) {
@@ -1969,7 +1980,8 @@ TraceablePeerConnection.prototype.setSenderVideoDegradationPreference = function
             parameters.encodings[encoding].degradationPreference = preference;
         }
     }
-    videoSender.setParameters(parameters);
+
+    return videoSender.setParameters(parameters);
 };
 
 /**
@@ -1979,6 +1991,7 @@ TraceablePeerConnection.prototype.setSenderVideoDegradationPreference = function
  * simulcast is implemented.
  * @param {JitsiLocalTrack} localTrack - the local track whose
  * max bitrate is to be configured.
+ * @returns {Promise<void>}
  */
 TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack = null) {
     if (!localTrack) {
@@ -1986,7 +1999,7 @@ TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack = null) {
         localTrack = Array.from(this.localTracks.values()).find(t => t.isVideoTrack());
 
         if (!localTrack) {
-            return;
+            return Promise.resolve();
         }
     }
     const trackId = localTrack.track.id;
@@ -1999,16 +2012,18 @@ TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack = null) {
     if (!((this.options.videoQuality && this.options.videoQuality.maxBitratesVideo)
         || (browser.usesPlanB() && this.options.capScreenshareBitrate && videoType === VideoType.DESKTOP))
         || browser.usesUnifiedPlan()) {
-        return;
+        return Promise.resolve();
     }
 
     if (!this.peerconnection.getSenders) {
         logger.debug('Browser doesn\'t support RTCRtpSender');
 
-        return;
+        return Promise.resolve();
     }
     const presenterEnabled = localTrack._originalStream
         && localTrack._originalStream.id !== localTrack.getStreamId();
+
+    const setSenderParamPromises = [];
 
     this.peerconnection.getSenders()
         .filter(s => s.track && s.track.id === trackId)
@@ -2037,12 +2052,15 @@ TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack = null) {
                                     : HD_BITRATE;
                     }
                 }
-                sender.setParameters(parameters);
+                setSenderParamPromises.push(sender.setParameters(parameters));
             } catch (err) {
                 logger.error('Browser does not support getParameters/setParamters '
                     + 'or setting max bitrate on the encodings: ', err);
             }
         });
+
+    return Promise.all(setSenderParamPromises)
+        .then(() => Promise.resolve());
 };
 
 TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
@@ -2196,7 +2214,8 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
 TraceablePeerConnection.prototype.setVideoTransferActive = function(active) {
     logger.debug(`${this} video transfer active: ${active}`);
     if (browser.usesUnifiedPlan()) {
-        return this.tpcUtils.setVideoTransferActive(active);
+        return this.tpcUtils.setVideoTransferActive(active)
+            .then(() => false);
     }
     const changed = this.videoTransferActive !== active;
 
