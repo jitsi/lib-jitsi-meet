@@ -34,7 +34,7 @@ export default class E2EEcontext {
     constructor(options) {
         this._options = options;
 
-        // Figure out the URL for the worker script. Relative URLs are relative to
+        // Determine the URL for the worker script. Relative URLs are relative to
         // the entry point, not the script that launches the worker.
         let baseUrl = '';
         const ljm = document.querySelector('script[src*="lib-jitsi-meet"]');
@@ -56,6 +56,19 @@ export default class E2EEcontext {
         this._worker.postMessage({
             operation: 'initialize',
             salt: encoder.encode(options.salt)
+        });
+    }
+
+    /**
+     * Cleans up all state associated with the given participant. This is needed when a
+     * participant leaves the current conference.
+     *
+     * @param {string} participantId - The participant that just left.
+     */
+    cleanup(participantId) {
+        this._worker.postMessage({
+            operation: 'cleanup',
+            participantId
         });
     }
 
@@ -124,24 +137,18 @@ export default class E2EEcontext {
     }
 
     /**
-     * Sets the key to be used for E2EE.
+     * Set the E2EE key for the specified participant.
      *
-     * @param {string} value - Value to be used as the new key. May be falsy to disable end-to-end encryption.
+     * @param {string} participantId - the ID of the participant who's key we are setting.
+     * @param {Uint8Array | boolean} key - they key for the given participant.
+     * @param {Number} keyIndex - the key index.
      */
-    setKey(value) {
-        let key;
-
-        if (value) {
-            const encoder = new TextEncoder();
-
-            key = encoder.encode(value);
-        } else {
-            key = false;
-        }
-
+    setKey(participantId, key, keyIndex) {
         this._worker.postMessage({
             operation: 'setKey',
-            key
+            participantId,
+            key,
+            keyIndex
         });
     }
 }
