@@ -1063,17 +1063,21 @@ export default class ChatRoom extends Listenable {
                     from, invite.attr('from'), txt, password);
             }
         }
+
         const jsonMessage = $(msg).find('>json-message').text();
-        const parsedJson = this.xmpp.tryParseJSONAndVerify(jsonMessage);
 
-        // We emit this event if the message is a valid json, and is not
-        // delivered after a delay, i.e. stamp is undefined.
-        // e.g. - subtitles should not be displayed if delayed.
-        if (parsedJson && stamp === undefined) {
-            this.eventEmitter.emit(XMPPEvents.JSON_MESSAGE_RECEIVED,
-                from, parsedJson);
+        if (jsonMessage) {
+            const parsedJson = this.xmpp.tryParseJSONAndVerify(jsonMessage);
 
-            return;
+            // We emit this event if the message is a valid json, and is not
+            // delivered after a delay, i.e. stamp is undefined.
+            // e.g. - subtitles should not be displayed if delayed.
+            if (parsedJson && stamp === undefined) {
+                this.eventEmitter.emit(XMPPEvents.JSON_MESSAGE_RECEIVED,
+                    from, parsedJson);
+
+                return;
+            }
         }
 
         if (txt) {
