@@ -2,8 +2,6 @@
 
 import { getLogger } from 'jitsi-meet-logger';
 
-import { createWorkerScript } from './Worker';
-
 const logger = getLogger(__filename);
 
 // Flag to set on senders / receivers to avoid setting up the encryption transform
@@ -23,24 +21,32 @@ const kJitsiE2EE = Symbol('kJitsiE2EE');
  * - allow for the key to be rotated frequently.
  */
 export default class E2EEcontext {
-
     /**
      * Build a new E2EE context instance, which will be used in a given conference.
      *
      * @param {string} options.salt - Salt to be used for key deviation.
-     *      FIXME: We currently use the MUC room name for this which has the same lifetime
-     *      as this context. While not (pseudo)random as recommended in
-     *        https://developer.mozilla.org/en-US/docs/Web/API/Pbkdf2Params
-     *      this is easily available and the same for all participants.
-     *      We currently do not enforce a minimum length of 16 bytes either.
+     * FIXME: We currently use the MUC room name for this which has the same lifetime
+     * as this context. While not (pseudo)random as recommended in
+     * https://developer.mozilla.org/en-US/docs/Web/API/Pbkdf2Params
+     * this is easily available and the same for all participants.
+     * We currently do not enforce a minimum length of 16 bytes either.
      */
     constructor(options) {
         this._options = options;
 
+        // Figure out the URL for the worker script. Relative URLs are relative to
+        // the entry point, not the script that launches the worker.
+        let baseUrl = '';
+        const ljm = document.querySelector('script[src*="lib-jitsi-meet"]');
+
+        if (ljm) {
+            const idx = ljm.src.lastIndexOf('/');
+
+            baseUrl = `${ljm.src.substring(0, idx)}/`;
+        }
+
         // Initialize the E2EE worker.
-        this._worker = new Worker(createWorkerScript(), {
-            name: 'E2EE Worker'
-        });
+        this._worker = new Worker(`${baseUrl}lib-jitsi-meet.e2ee-worker.js`, { name: 'E2EE Worker' });
         this._worker.onerror = e => logger.onerror(e);
 
         // Initialize the salt and convert it once.
