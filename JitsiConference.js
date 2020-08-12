@@ -2340,23 +2340,7 @@ JitsiConference.prototype.isStartVideoMuted = function() {
  * Get object with internal logs.
  */
 JitsiConference.prototype.getLogs = function() {
-    const data = this.xmpp.getJingleLog();
-
-    const metadata = {};
-
-    metadata.time = new Date();
-    metadata.url = window.location.href;
-    metadata.ua = navigator.userAgent;
-
-    const log = this.xmpp.getXmppLog();
-
-    if (log) {
-        metadata.xmpp = log;
-    }
-
-    data.metadata = metadata;
-
-    return data;
+    return this.connection.getLogs();
 };
 
 /**
