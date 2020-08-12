@@ -23,10 +23,7 @@ function polyFillEncodedFrameMetadata(encodedFrame, controller) {
 
 // We use a ringbuffer of keys so we can change them and still decode packets that were
 // encrypted with an old key.
-// In the future when we dont rely on a globally shared key we will actually use it. For
-// now set the size to 1 which means there is only a single key. This causes some
-// glitches when changing the key but its ok.
-const keyRingSize = 1;
+const keyRingSize = 3;
 
 // We use a 96 bit IV for AES GCM. This is signalled in plain together with the
 // packet. See https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams
@@ -62,9 +59,6 @@ const unencryptedBytes = {
 // We currently do not enforce a minimum length of 16 bytes either.
 let _keySalt;
 
-// Raw keyBytes used to derive the key.
-let _keyBytes;
-
 /**
  * Derives a AES-GCM key from the input using PBKDF2
  * The key length can be configured above and should be either 128 or 256 bits.
@@ -86,7 +80,8 @@ async function deriveKey(keyBytes, salt) {
 }
 
 
-/** Per-participant context holding the cryptographic keys and
+/**
+ * Per-participant context holding the cryptographic keys and
  * encode/decode functions
  */
 class Context {
@@ -128,10 +123,11 @@ class Context {
     /**
      * Sets a key and starts using it for encrypting.
      * @param {CryptoKey} key
+     * @param {Number} keyIndex
      */
-    setKey(key) {
-        this._currentKeyIndex++;
-        this._cryptoKeyRing[this._currentKeyIndex % this._cryptoKeyRing.length] = key;
+    setKey(key, keyIndex) {
+        this._currentKeyIndex = keyIndex % this._cryptoKeyRing.length;
+        this._cryptoKeyRing[this._currentKeyIndex] = key;
     }
 
     /**
@@ -204,7 +200,7 @@ class Context {
      * 9) Enqueue the encrypted frame for sending.
      */
     encodeFunction(encodedFrame, controller) {
-        const keyIndex = this._currentKeyIndex % this._cryptoKeyRing.length;
+        const keyIndex = this._currentKeyIndex;
 
         if (this._cryptoKeyRing[keyIndex]) {
             const iv = this.makeIV(encodedFrame.getMetadata().synchronizationSource, encodedFrame.timestamp);
@@ -307,8 +303,7 @@ class Context {
                     controller.enqueue(encodedFrame);
                 }
             });
-        } else if (keyIndex >= this._cryptoKeyRing.length
-                && this._cryptoKeyRing[this._currentKeyIndex % this._cryptoKeyRing.length]) {
+        } else if (keyIndex >= this._cryptoKeyRing.length && this._cryptoKeyRing[this._currentKeyIndex]) {
             // If we are encrypting but don't have a key for the remote drop the frame.
             // This is a heuristic since we don't know whether a packet is encrypted,
             // do not have a checksum and do not have signaling for whether a remote participant does
@@ -346,9 +341,6 @@ onmessage = async event => {
             }))
             .pipeThrough(transformStream)
             .pipeTo(writableStream);
-        if (_keyBytes) {
-            context.setKey(await context.deriveKey(_keyBytes, _keySalt));
-        }
     } else if (operation === 'decode') {
         const { readableStream, writableStream, participantId } = event.data;
 
@@ -366,18 +358,23 @@ onmessage = async event => {
             }))
             .pipeThrough(transformStream)
             .pipeTo(writableStream);
-        if (_keyBytes) {
-            context.setKey(await context.deriveKey(_keyBytes, _keySalt));
-        }
     } else if (operation === 'setKey') {
-        _keyBytes = event.data.key;
-        contexts.forEach(async context => {
-            if (_keyBytes) {
-                context.setKey(await context.deriveKey(_keyBytes, _keySalt));
-            } else {
-                context.setKey(false);
-            }
-        });
+        const { participantId, key, keyIndex } = event.data;
+
+        if (!contexts.has(participantId)) {
+            contexts.set(participantId, new Context(participantId));
+        }
+        const context = contexts.get(participantId);
+
+        if (key) {
+            context.setKey(await context.deriveKey(key, _keySalt), keyIndex);
+        } else {
+            context.setKey(false, keyIndex);
+        }
+    } else if (operation === 'cleanup') {
+        const { participantId } = event.data;
+
+        contexts.delete(participantId);
     } else {
         console.error('e2ee worker', operation);
     }

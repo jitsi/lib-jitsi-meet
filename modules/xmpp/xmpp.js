@@ -8,6 +8,7 @@ import * as JitsiConnectionErrors from '../../JitsiConnectionErrors';
 import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import browser from '../browser';
+import { E2EEncryption } from '../e2ee/E2EEncryption';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 import RandomUtil from '../util/RandomUtil';
@@ -175,7 +176,7 @@ export default class XMPP extends Listenable {
             this.caps.addFeature('urn:xmpp:rayo:client:1');
         }
 
-        if (browser.supportsInsertableStreams() && !(this.options.testing && this.options.testing.disableE2EE)) {
+        if (E2EEncryption.isSupported(this.options)) {
             this.caps.addFeature('https://jitsi.org/meet/e2ee');
         }
     }

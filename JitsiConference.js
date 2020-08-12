@@ -241,6 +241,15 @@ export default function JitsiConference(options) {
      * @private
      */
     this._conferenceJoinAnalyticsEventSent = undefined;
+
+    /**
+     * End-to-End Encryption. Make it available if supported.
+     */
+    if (this.isE2EESupported()) {
+        logger.info('End-to-End Encryprtion is supported');
+
+        this._e2eEncryption = new E2EEncryption(this);
+    }
 }
 
 // FIXME convert JitsiConference to ES6 - ASAP !
@@ -1376,9 +1385,7 @@ JitsiConference.prototype.isInLastN = function(participantId) {
  * conference.
  */
 JitsiConference.prototype.getParticipants = function() {
-    return Object.keys(this.participants).map(function(key) {
-        return this.participants[key];
-    }, this);
+    return Object.values(this.participants);
 };
 
 /**
@@ -1910,7 +1917,7 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
     try {
         jingleSession.initialize(this.room, this.rtc, {
             ...this.options.config,
-            enableInsertableStreams: Boolean(this._e2eEncryption)
+            enableInsertableStreams: this._isE2EEEnabled()
         });
     } catch (error) {
         GlobalOnErrorHandler.callErrorHandler(error);
@@ -2651,7 +2658,7 @@ JitsiConference.prototype._acceptP2PIncomingCall = function(
         this.room,
         this.rtc, {
             ...this.options.config,
-            enableInsertableStreams: Boolean(this._e2eEncryption)
+            enableInsertableStreams: this._isE2EEEnabled()
         });
 
     logger.info('Starting CallStats for P2P connection...');
@@ -3012,7 +3019,7 @@ JitsiConference.prototype._startP2PSession = function(remoteJid) {
         this.room,
         this.rtc, {
             ...this.options.config,
-            enableInsertableStreams: Boolean(this._e2eEncryption)
+            enableInsertableStreams: this._isE2EEEnabled()
         });
 
     logger.info('Starting CallStats for P2P connection...');
@@ -3374,64 +3381,64 @@ JitsiConference.prototype._sendConferenceLeftAnalyticsEvent = function() {
 };
 
 /**
+ * Restarts all active media sessions.
+ *
+ * @returns {void}
+ */
+JitsiConference.prototype._restartMediaSessions = function() {
+    if (this.p2pJingleSession) {
+        this.stopP2PSession();
+    }
+
+    if (this.jvbJingleSession) {
+        this.jvbJingleSession.terminate(
+            null /* success callback => we don't care */,
+            error => {
+                logger.warn('An error occurred while trying to terminate the JVB session', error);
+            }, {
+                reason: 'success',
+                reasonDescription: 'restart required',
+                requestRestart: true,
+                sendSessionTerminate: true
+            });
+    }
+
+    this._maybeStartOrStopP2P(false);
+};
+
+/**
+ * Returns whether End-To-End encryption is enabled.
+ *
+ * @returns {boolean}
+ */
+JitsiConference.prototype._isE2EEEnabled = function() {
+    return this._e2eEncryption && this._e2eEncryption.isEnabled();
+};
+
+/**
  * Returns whether End-To-End encryption is supported. Note that not all participants
  * in the conference may support it.
  *
  * @returns {boolean}
  */
 JitsiConference.prototype.isE2EESupported = function() {
-    const config = this.options.config;
-
-    return browser.supportsInsertableStreams() && !(config.testing && config.testing.disableE2EE);
+    return E2EEncryption.isSupported(this.options.config);
 };
 
 /**
- * Initializes the E2E encryption module. Currently any active media session muste be restarted due to
- * the limitation that the insertable streams constraint can only be set when a new PeerConnection instance is created.
+ * Enables / disables End-to-End encryption.
  *
- * @private
+ * @param {boolean} enabled whether to enable E2EE or not.
  * @returns {void}
  */
-JitsiConference.prototype._initializeE2EEncryption = function() {
-    this._e2eEncryption = new E2EEncryption(this, { salt: this.options.name });
-
-    // Need to re-create the peerconnections in order to apply the insertable streams constraint
-    this.p2pJingleSession && this.stopP2PSession();
-
-    const jvbJingleSession = this.jvbJingleSession;
-
-    jvbJingleSession && jvbJingleSession.terminate(
-        null /* success callback => we don't care */,
-        error => {
-            logger.warn(`An error occurred while trying to terminate ${jvbJingleSession}`, error);
-        }, {
-            reason: 'success',
-            reasonDescription: 'restart required',
-            requestRestart: true,
-            sendSessionTerminate: true
-        });
-
-    this._maybeStartOrStopP2P(false);
-};
-
-/**
- * Sets the key to be used for End-To-End encryption.
- *
- * @param {string} key the key to be used.
- * @returns {void}
- */
-JitsiConference.prototype.setE2EEKey = function(key) {
+JitsiConference.prototype.toggleE2EE = function(enabled) {
     if (!this.isE2EESupported()) {
-        logger.warn('Cannot set E2EE key: platform is not supported.');
+        logger.warn('Cannot enable / disable E2EE: platform is not supported.');
 
         return;
     }
 
-    if (!this._e2eEncryption) {
-        this._initializeE2EEncryption();
-    }
-
-    this._e2eEncryption.setKey(key);
+    this._e2eEncryption.setEnabled(enabled);
 };
 
 /**
