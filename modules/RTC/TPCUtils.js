@@ -269,6 +269,13 @@ export class TPCUtils {
                 this.setEncodings(localTrack);
                 this.pc.localTracks.set(localTrack.rtcId, localTrack);
                 transceiver.direction = 'sendrecv';
+
+                // Construct the simulcast stream constraints for the newly added track.
+                if (localTrack.isVideoTrack()
+                    && localTrack.videoType === VideoType.CAMERA
+                    && this.pc.isSimulcastOn()) {
+                    this.setSimulcastStreamConstraints(localTrack.getTrack());
+                }
             }
 
             return Promise.resolve(false);
