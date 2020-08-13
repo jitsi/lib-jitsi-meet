@@ -163,3 +163,26 @@ JitsiConnection.prototype.addFeature = function(feature, submit = false) {
 JitsiConnection.prototype.removeFeature = function(feature, submit = false) {
     return this.xmpp.caps.removeFeature(feature, submit);
 };
+
+/**
+ * Get object with internal logs.
+ */
+JitsiConnection.prototype.getLogs = function() {
+    const data = this.xmpp.getJingleLog();
+
+    const metadata = {};
+
+    metadata.time = new Date();
+    metadata.url = window.location.href;
+    metadata.ua = navigator.userAgent;
+
+    const log = this.xmpp.getXmppLog();
+
+    if (log) {
+        metadata.xmpp = log;
+    }
+
+    data.metadata = metadata;
+
+    return data;
+};

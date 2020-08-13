@@ -261,7 +261,7 @@ export default class XMPP extends Listenable {
                                         }
                                     });
                                 })
-                                .catch(logger.warn('Error getting features from lobby.'));
+                                .catch(e => logger.warn('Error getting features from lobby.', e && e.message));
                         }
                     });
 
