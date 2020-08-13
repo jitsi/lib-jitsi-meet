@@ -550,6 +550,15 @@ TraceablePeerConnection.prototype.getLocalTracks = function(mediaType) {
 };
 
 /**
+ * Retrieves the local video track.
+ *
+ * @returns {JitsiLocalTrack|undefined} - local video track.
+ */
+TraceablePeerConnection.prototype.getLocalVideoTrack = function() {
+    return this.getLocalTracks(MediaType.VIDEO)[0];
+};
+
+/**
  * Checks whether or not this {@link TraceablePeerConnection} instance contains
  * any local tracks for given <tt>mediaType</tt>.
  * @param {MediaType} mediaType
@@ -1961,7 +1970,7 @@ TraceablePeerConnection.prototype.setSenderVideoDegradationPreference = function
 
         return Promise.resolve();
     }
-    const localVideoTrack = Array.from(this.localTracks.values()).find(t => t.isVideoTrack());
+    const localVideoTrack = this.getLocalVideoTrack();
     const videoSender = this.findSenderByKind(MediaType.VIDEO);
 
     if (!videoSender) {
@@ -1998,7 +2007,7 @@ TraceablePeerConnection.prototype.setSenderVideoDegradationPreference = function
 TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack = null) {
     if (!localTrack) {
         // eslint-disable-next-line no-param-reassign
-        localTrack = Array.from(this.localTracks.values()).find(t => t.isVideoTrack());
+        localTrack = this.getLocalVideoTrack();
 
         if (!localTrack) {
             return Promise.resolve();
@@ -2162,7 +2171,7 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
     if (!newHeight) {
         return Promise.resolve();
     }
-    const localVideoTrack = Array.from(this.localTracks.values()).find(t => t.isVideoTrack());
+    const localVideoTrack = this.getLocalVideoTrack();
 
     if (!localVideoTrack || localVideoTrack.isMuted() || localVideoTrack.videoType !== VideoType.CAMERA) {
         return Promise.resolve();
