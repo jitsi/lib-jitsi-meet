@@ -1712,7 +1712,9 @@ TraceablePeerConnection.prototype.findSenderForTrack = function(track) {
 TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
     if (browser.usesUnifiedPlan()) {
         return this.tpcUtils.replaceTrack(oldTrack, newTrack)
-            .then(() => false);
+
+            // renegotiate when SDP is used for simulcast munging
+            .then(() => this.isSimulcastOn() && browser.usesSdpMungingForSimulcast());
     }
 
     let promiseChain = Promise.resolve();
