@@ -408,8 +408,7 @@ export class TPCUtils {
     setMediaTransferActive(mediaType, active) {
         const transceivers = this.pc.peerconnection.getTransceivers()
             .filter(t => t.receiver && t.receiver.track && t.receiver.track.kind === mediaType);
-        const localTracks = Array.from(this.pc.localTracks.values())
-            .filter(track => track.getType() === mediaType);
+        const localTracks = this.pc.getLocalTracks(mediaType);
 
         const setParamPromises = [];
 
