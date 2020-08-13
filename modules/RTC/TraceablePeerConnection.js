@@ -268,6 +268,30 @@ export default function TraceablePeerConnection(
      */
     this.senderVideoMaxHeight = null;
 
+    // Set the codec preference that will be applied on the SDP
+    // based on the config.js settings.
+    if (this.options.preferH264 || this.options.preferVP9) {
+        this.codecPreference = {
+            enable: true,
+            mediaType: MediaType.VIDEO,
+            mimeType: this.options.preferH264
+                ? 'h264'
+                : 'vp9'
+        };
+    }
+
+    // If both enable and disable are set for the same codec, disable
+    // setting will prevail.
+    if (this.options.disableH264 || this.options.disableVP9) {
+        this.codecPreference = {
+            enable: false,
+            mediaType: MediaType.VIDEO,
+            mimeType: this.options.disableH264
+                ? 'h264'
+                : 'vp9'
+        };
+    }
+
     // override as desired
     this.trace = (what, info) => {
         logger.debug(what, info);
@@ -1470,6 +1494,44 @@ TraceablePeerConnection.prototype._getSSRC = function(rtcId) {
 };
 
 /**
+ * Munges the order of the codecs in the SDP passed based on the preference
+ * set through config.js settings. All instances of the specified codec are
+ * moved up to the top of the list when it is preferred. The specified codec
+ * is deleted from the list if the configuration specifies that the codec be
+ * disabled.
+ * @param {RTCSessionDescription} description that needs to be munged.
+ * @returns {RTCSessionDescription} the munged description.
+ */
+TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
+    if (!this.codecPreference || browser.supportsCodecPreferences()) {
+        return description;
+    }
+
+    const parsedSdp = transform.parse(description.sdp);
+    const mLine = parsedSdp.media.find(m => m.type === this.codecPreference.mediaType);
+
+    if (this.codecPreference.enable && this.codecPreference.mimeType) {
+        SDPUtil.preferCodec(mLine, this.codecPreference.mimeType);
+
+        // Strip the high profile H264 codecs on mobile clients for p2p connection.
+        // High profile codecs give better quality at the expense of higher load which
+        // we do not want on mobile clients.
+        // Jicofo offers only the baseline code for the jvb connection.
+        // TODO - add check for mobile browsers once js-utils provides that check.
+        if (this.codecPreference.mimeType === 'h264' && browser.isReactNative() && this.isP2P) {
+            SDPUtil.stripCodec(mLine, this.codecPreference.mimeType, true /* high profile */);
+        }
+    } else if (this.codecPreference.mimeType) {
+        SDPUtil.stripCodec(mLine, this.codecPreference.mimeType);
+    }
+
+    return new RTCSessionDescription({
+        type: description.type,
+        sdp: transform.write(parsedSdp)
+    });
+};
+
+/**
  * Checks if given track belongs to this peerconnection instance.
  *
  * @param {JitsiLocalTrack|JitsiRemoteTrack} track - The track to be checked.
@@ -1878,24 +1940,9 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
 
     this.trace('setLocalDescription::preTransform', dumpSDP(localSdp));
 
-    if (this.options.disableH264 || this.options.preferH264) {
-        const parsedSdp = transform.parse(localSdp.sdp);
-        const videoMLine = parsedSdp.media.find(m => m.type === 'video');
-
-        if (this.options.disableH264) {
-            SDPUtil.stripVideoCodec(videoMLine, 'h264');
-        } else {
-            SDPUtil.preferVideoCodec(videoMLine, 'h264');
-        }
-
-        localSdp = new RTCSessionDescription({
-            type: localSdp.type,
-            sdp: transform.write(parsedSdp)
-        });
-
-        this.trace('setLocalDescription::postTransform (H264)',
-            dumpSDP(localSdp));
-    }
+    // Munge the order of the codecs based on the preferences set through config.js
+    // eslint-disable-next-line no-param-reassign
+    description = this._mungeCodecOrder(localSdp);
 
     if (browser.usesPlanB()) {
         localSdp = this._adjustLocalMediaDirection(localSdp);
@@ -2080,6 +2127,10 @@ TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack = null) {
 TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
     this.trace('setRemoteDescription::preTransform', dumpSDP(description));
 
+    // Munge the order of the codecs based on the preferences set through config.js
+    // eslint-disable-next-line no-param-reassign
+    description = this._mungeCodecOrder(description);
+
     if (browser.usesPlanB()) {
         // TODO the focus should squeze or explode the remote simulcast
         if (this.isSimulcastOn()) {
@@ -2088,19 +2139,6 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
             this.trace(
                 'setRemoteDescription::postTransform (simulcast)',
                 dumpSDP(description));
-        }
-
-        if (this.options.preferH264) {
-            const parsedSdp = transform.parse(description.sdp);
-            const videoMLine = parsedSdp.media.find(m => m.type === 'video');
-
-            SDPUtil.preferVideoCodec(videoMLine, 'h264');
-
-            // eslint-disable-next-line no-param-reassign
-            description = new RTCSessionDescription({
-                type: description.type,
-                sdp: transform.write(parsedSdp)
-            });
         }
 
         // eslint-disable-next-line no-param-reassign

@@ -336,6 +336,7 @@ export default class JingleSessionPC extends JingleSession {
             pcOptions.disableSimulcast = true;
             pcOptions.disableH264 = options.p2p && options.p2p.disableH264;
             pcOptions.preferH264 = options.p2p && options.p2p.preferH264;
+            pcOptions.preferVP9 = options.p2p && options.p2p.preferVP9;
 
             const abtestSuspendVideo = this._abtestSuspendVideoEnabled(options);
 
@@ -348,6 +349,7 @@ export default class JingleSessionPC extends JingleSession {
                 = options.disableSimulcast
                     || (options.preferH264 && !options.disableH264);
             pcOptions.preferH264 = options.preferH264;
+            pcOptions.preferVP9 = options.preferVP9;
 
             // disable simulcast for screenshare and set the max bitrate to
             // 500Kbps if the testing flag is present in config.js.
