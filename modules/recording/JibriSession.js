@@ -1,6 +1,9 @@
 import { $iq } from 'strophe.js';
 
+import recordingConstats from './recordingConstants';
 import recordingXMLUtils from './recordingXMLUtils';
+
+const STATUS = recordingConstats.status;
 
 /**
  * Represents a recording session.
@@ -14,6 +17,7 @@ export default class JibriSession {
     constructor(options = {}) {
         this._connection = options.connection;
         this._mode = options.mode;
+        this._queueMetrics = {};
 
         this._setSessionID(options.sessionID);
         this.setStatus(options.status);
@@ -83,6 +87,15 @@ export default class JibriSession {
     }
 
     /**
+     * Returns the ID of the queue associated with the session or undefined if no queue is associated with the session.
+     *
+     * @returns {string|undefined} - The ID of the queue.
+     */
+    getQueueID() {
+        return this._queueID;
+    }
+
+    /**
      * Sets the last known error message related to the session.
      *
      * @param {string} error - The error string explaining why the session
@@ -132,6 +145,15 @@ export default class JibriSession {
     }
 
     /**
+     * Sets the ID of the JibriQueue instance related to the session.
+     *
+     * @param {string} queueID - The ID of the JibriQueue instance related to the session.
+     */
+    setQueueID(queueID) {
+        this._queueID = queueID;
+    }
+
+    /**
      * Sends a message to start the actual recording.
      *
      * @param {Object} options - Additional arguments for starting the
@@ -146,9 +168,10 @@ export default class JibriSession {
      * @param {streamId} options.streamId - Necessary for live streaming, this
      * is the the stream key needed to start a live streaming session with the
      * streaming service provider.
+     * @param {string} options.token - An optional authentication token if needed for the recording.
      * @returns Promise
      */
-    start({ appData, broadcastId, focusMucJid, streamId }) {
+    start({ appData, broadcastId, focusMucJid, streamId, token }) {
         return new Promise((resolve, reject) => {
             this._connection.sendIQ(
                 this._createIQ({
@@ -156,14 +179,15 @@ export default class JibriSession {
                     appData,
                     focusMucJid,
                     broadcastId,
-                    streamId
+                    streamId,
+                    token
                 }),
                 result => {
                     // All users will eventually receive the 'pending' status
                     // from the backend, but for the user initiating the session
                     // it's better to give some instant feedback that recording
                     // is starting so fire 'pending' here manually.
-                    this.setStatus('pending');
+                    this.setStatus(STATUS.PENDING);
                     this._setSessionID(
                         recordingXMLUtils.getSessionIdFromIq(result));
 
@@ -199,6 +223,30 @@ export default class JibriSession {
     }
 
     /**
+     * Updates the metrics about the queue.
+     *
+     * @param {Object} metrics - The new metrics.
+     */
+    updateQueueMetrics({ position, estimatedTimeLeft }) {
+        if (typeof position !== 'undefined') {
+            this._queueMetrics.position = position;
+        }
+
+        if (typeof estimatedTimeLeft !== 'undefined') {
+            this._queueMetrics.estimatedTimeLeft = estimatedTimeLeft;
+        }
+    }
+
+    /**
+     * Returns the metrics of the queue.
+     *
+     * @returns {Object} - The metrics of the queue.
+     */
+    getQueueMetrics() {
+        return this._queueMetrics;
+    }
+
+    /**
      * Generates the message to change the status of the recording session.
      *
      * @param {string} status - The new status to which the recording session
@@ -215,7 +263,7 @@ export default class JibriSession {
      * streaming service provider.
      * @returns Object - The XMPP IQ message.
      */
-    _createIQ({ action, appData, broadcastId, focusMucJid, streamId }) {
+    _createIQ({ action, appData, broadcastId, focusMucJid, streamId, token }) {
         return $iq({
             to: focusMucJid,
             type: 'set'
@@ -226,6 +274,7 @@ export default class JibriSession {
             'app_data': appData,
             'recording_mode': this._mode,
             'streamid': streamId,
+            token,
             'you_tube_broadcast_id': broadcastId
         })
         .up();

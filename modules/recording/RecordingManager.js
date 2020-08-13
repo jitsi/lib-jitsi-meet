@@ -2,8 +2,12 @@ import { getLogger } from 'jitsi-meet-logger';
 
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
+import JibriQueue from './JibriQueue';
 import JibriSession from './JibriSession';
+import recordingConstats from './recordingConstants';
 import recordingXMLUtils from './recordingXMLUtils';
+
+const STATUS = recordingConstats.status;
 
 const logger = getLogger(__filename);
 
@@ -21,9 +25,16 @@ class RecordingManager {
      */
     constructor(chatRoom) {
         /**
-         * All known recording sessions from the current conference.
+         * All known recording active sessions from the current conference.
+         *
+         * NOTE: Sessions that are with waiting-in-queue status are not included here!
          */
         this._sessions = {};
+
+        /**
+         * All known recording queues from the current conference.
+         */
+        this._queues = {};
 
         this._chatRoom = chatRoom;
 
@@ -36,10 +47,12 @@ class RecordingManager {
     /**
      * Finds an existing recording session by session ID.
      *
+     * NOTE: Sessions that are with waiting-in-queue status are not included here!
+     *
      * @param {string} sessionID - The session ID associated with the recording.
      * @returns {JibriSession|undefined}
      */
-    getSession(sessionID) {
+    getActiveSession(sessionID) {
         return this._sessions[sessionID];
     }
 
@@ -64,6 +77,64 @@ class RecordingManager {
     }
 
     /**
+     * Obtains token from a jibri queue if configured. The token will be used to start the recording.
+     *
+     * @param {string} jibriQueueComponentAddress - The address of the jibri queue component.
+     * @param {JibriSession} session - The JibriSession instance that will receive the token.
+     * @returns {Promise<{isCanceledByUser: boolean, token: string}>} - Resolves with the token and
+     * a flag that indicates if the user has cancelled the process.
+     */
+    _obtainToken(jibriQueueComponentAddress, session) {
+        if (typeof jibriQueueComponentAddress === 'undefined') {
+            return Promise.resolve({
+                isCanceledByUser: false
+            });
+        }
+
+        const connection = this._chatRoom.connection;
+        const queue = new JibriQueue({
+            connection,
+            jibriQueueComponentAddress,
+            roomJID: this._chatRoom.roomjid
+        });
+
+        return new Promise((resolve, reject) => {
+            queue.on('token', token => {
+                this._removeQueue(queue.id);
+                resolve({
+                    isCanceledByUser: false,
+                    token
+                });
+            });
+            queue.on('metrics', metrics => {
+                session.updateQueueMetrics(metrics);
+                this._emitSessionUpdate(session);
+            });
+            queue.on('will-leave', () => {
+                this._removeQueue(queue.id);
+                session.setStatus(STATUS.QUEUE_LEFT);
+                this._emitSessionUpdate(session);
+                resolve({
+                    isCanceledByUser: true
+                });
+            });
+
+            queue.join().then(() => {
+                const queueID = queue.id;
+
+                this._queues[queueID] = queue;
+                session.setQueueID(queueID);
+                session.setStatus(STATUS.WAITING_IN_QUEUE);
+                this._emitSessionUpdate(session);
+            })
+            .catch(error => {
+                session.setError('Can\'t join the jibri queue.');
+                reject(error);
+            });
+        });
+    }
+
+    /**
      * Start a recording session.
      *
      * @param {Object} options - Configuration for the recording.
@@ -71,6 +142,7 @@ class RecordingManager {
      * the result file will be uploaded.
      * @param {string} [optional] options.broadcastId - The channel on which a
      * live stream will occur.
+     * @param {string} [options.jibriQueueComponentAddress] - The address of the jibri queue component.
      * @param {string} options.mode - The mode in which recording should be
      * started. Recognized values are "file" and "stream".
      * @param {string} [optional] options.streamId - The stream key to be used
@@ -80,34 +152,45 @@ class RecordingManager {
      * acknowledgment of the start request success or fail.
      */
     startRecording(options) {
+        const { jibriQueueComponentAddress } = options;
+        const connection = this._chatRoom.connection;
         const session = new JibriSession({
             ...options,
-            connection: this._chatRoom.connection
+            connection
         });
 
-        return session.start({
-            appData: options.appData,
-            broadcastId: options.broadcastId,
-            focusMucJid: this._chatRoom.focusMucJid,
-            streamId: options.streamId
-        })
+        return this._obtainToken(jibriQueueComponentAddress, session).then(({ isCanceledByUser, token }) => {
+            if (isCanceledByUser) {
+                return Promise.resolve();
+            }
+
+            return session.start({
+                appData: options.appData,
+                broadcastId: options.broadcastId,
+                focusMucJid: this._chatRoom.focusMucJid,
+                streamId: options.streamId,
+                token
+            })
             .then(() => {
                 // Only store the session and emit if the session has not been
                 // added already. This is a workaround for the session getting
                 // created due to a presence update to announce a "pending"
                 // recording being received before JibriSession#start finishes.
-                if (!this.getSession(session.getID())) {
+                if (!this.getActiveSession(session.getID())) {
                     this._addSession(session);
                     this._emitSessionUpdate(session);
                 }
 
                 return session;
-            })
-            .catch(error => {
-                this._emitSessionUpdate(session);
-
-                return Promise.reject(error);
             });
+        })
+        .catch(error => {
+            // Clears the
+            session.setStatus(undefined);
+            this._emitSessionUpdate(session);
+
+            return Promise.reject(error);
+        });
     }
 
     /**
@@ -115,14 +198,23 @@ class RecordingManager {
      *
      * @param {string} sessionID - The ID associated with the recording session
      * to be stopped.
+     * @param {string} queueID - The ID of the queue associated with the recording session.
      * @returns {Promise} The promise resolves after receiving an
      * acknowledgment of the stop request success or fail.
      */
-    stopRecording(sessionID) {
-        const session = this.getSession(sessionID);
+    stopRecording(sessionID, queueID) {
+        if (sessionID) {
+            const session = this.getActiveSession(sessionID);
 
-        if (session) {
-            return session.stop({ focusMucJid: this._chatRoom.focusMucJid });
+            if (session) {
+                return session.stop({ focusMucJid: this._chatRoom.focusMucJid });
+            }
+        } else if (queueID) {
+            const queue = this._queues[queueID];
+
+            if (queue) {
+                return queue.leave();
+            }
         }
 
         return Promise.reject(new Error('Could not find session'));
@@ -190,7 +282,7 @@ class RecordingManager {
 
         // We'll look for an existing session or create one (in case we're a
         // participant joining a call with an existing recording going on).
-        let session = this.getSession(sessionID);
+        let session = this.getActiveSession(sessionID);
 
         // Handle the case where a status update is received in presence but
         // the local participant has joined while the JibriSession has already
@@ -248,7 +340,7 @@ class RecordingManager {
             return;
         }
 
-        let session = this.getSession(sessionID);
+        let session = this.getActiveSession(sessionID);
 
         if (!session) {
             session = this._createSession(sessionID, '', mode);
@@ -257,6 +349,22 @@ class RecordingManager {
         session.setLiveStreamViewURL(liveStreamViewURL);
 
         this._emitSessionUpdate(session);
+    }
+
+    /**
+     * Removes a queue from the list of queues.
+     *
+     * @param {number} id - The ID of the queue.
+     * @returns {void}
+     */
+    _removeQueue(id) {
+        const queue = this._queues[id];
+
+        delete this._queues[id];
+
+        if (queue) {
+            queue.dispose();
+        }
     }
 }
 

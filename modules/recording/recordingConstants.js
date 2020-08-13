@@ -12,6 +12,8 @@ export default {
     status: {
         OFF: 'off',
         ON: 'on',
-        PENDING: 'pending'
+        PENDING: 'pending',
+        QUEUE_LEFT: 'queue-left',
+        WAITING_IN_QUEUE: 'waiting-in-queue'
     }
 };
