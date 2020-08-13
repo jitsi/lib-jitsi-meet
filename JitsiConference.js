@@ -2337,13 +2337,6 @@ JitsiConference.prototype.isStartVideoMuted = function() {
 };
 
 /**
- * Get object with internal logs.
- */
-JitsiConference.prototype.getLogs = function() {
-    return this.connection.getLogs();
-};
-
-/**
  * Returns measured connectionTimes.
  */
 JitsiConference.prototype.getConnectionTimes = function() {
