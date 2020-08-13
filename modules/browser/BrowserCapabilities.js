@@ -105,6 +105,21 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the current browser supports setting codec preferences on the transceiver.
+     * @returns {boolean}
+     */
+    supportsCodecPreferences() {
+        return this.usesUnifiedPlan()
+            && typeof window.RTCRtpTransceiver !== 'undefined'
+            && Object.keys(window.RTCRtpTransceiver.prototype).indexOf('setCodecPreferences') > -1
+            && Object.keys(RTCRtpSender.prototype).indexOf('getCapabilities') > -1
+
+            // this is not working on Safari because of the following bug
+            // https://bugs.webkit.org/show_bug.cgi?id=215567
+            && !this.isSafari();
+    }
+
+    /**
      * Checks if the current browser support the device change event.
      * @return {boolean}
      */
