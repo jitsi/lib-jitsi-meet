@@ -221,10 +221,9 @@ export default function TraceablePeerConnection(
         high: HD_BITRATE
     };
 
-    // Check if the max. bitrates for video are specified through config.js
-    // videoQuality settings. These bitrates will be applied on all browsers
-    // for camera sources in simulcast mode.
-    const videoBitrates = this.options.videoQuality
+    // Check if the max. bitrates for video are specified through config.js videoQuality settings.
+    // These bitrates will be applied on all browsers for camera sources in simulcast mode.
+    const videoBitrates = this.options.videoQuality && this.options.videoQuality.maxBitratesVideo
         ? this.options.videoQuality.maxBitratesVideo
         : standardVideoBitrates;
 
@@ -2013,15 +2012,16 @@ TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack = null) {
     const trackId = localTrack.track.id;
     const videoType = localTrack.videoType;
 
-    // No need to set max bitrates on the streams in the following cases.
-    // 1. When a 'camera' track is replaced in plan-b mode, since its a new sender.
-    // 2. When the config.js option for capping the SS bitrate is not enabled.
-    // The above two conditions are ignored When max video bitrates are specified through config.js.
-    if (((browser.usesPlanB() && !this.options.capScreenshareBitrate)
-        || (browser.usesPlanB() && videoType === VideoType.CAMERA))
-        && !(this.options.videoQuality && this.options.videoQuality.maxBitratesVideo)) {
+    // Apply the maxbitrates on the video track when one of the conditions is met.
+    // 1. Max. bitrates for video are specified through videoQuality settings in config.js
+    // 2. Track is a desktop track and bitrate is capped using capScreenshareBitrate option in plan-b mode.
+    // 3. The client is running in Unified plan mode.
+    if (!((this.options.videoQuality && this.options.videoQuality.maxBitratesVideo)
+        || (browser.usesPlanB() && this.options.capScreenshareBitrate && videoType === VideoType.DESKTOP))
+        || browser.usesUnifiedPlan()) {
         return;
     }
+
     if (!this.peerconnection.getSenders) {
         logger.debug('Browser doesn\'t support RTCRtpSender');
 
