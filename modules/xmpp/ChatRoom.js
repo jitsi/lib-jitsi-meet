@@ -1266,25 +1266,23 @@ export default class ChatRoom extends Listenable {
      */
     setMembersOnly(enabled, onSuccess, onError) {
         if (enabled && Object.values(this.members).filter(m => !m.isFocus).length) {
-            let sendGrantMembershipIq = false;
-
             // first grant membership to all that are in the room
-            const grantMembership = $iq({ to: this.roomjid,
-                type: 'set' })
-                .c('query', { xmlns: 'http://jabber.org/protocol/muc#admin' });
-
+            // currently there is a bug in prosody where it handles only the first item
+            // that's why we will send iq per member
             Object.values(this.members).forEach(m => {
                 if (m.jid && !MEMBERS_AFFILIATIONS.includes(m.affiliation)) {
-                    grantMembership.c('item', {
-                        'affiliation': 'member',
-                        'jid': m.jid }).up();
-                    sendGrantMembershipIq = true;
+                    this.xmpp.connection.sendIQ(
+                        $iq({
+                            to: this.roomjid,
+                            type: 'set' })
+                        .c('query', {
+                            xmlns: 'http://jabber.org/protocol/muc#admin' })
+                        .c('item', {
+                            'affiliation': 'member',
+                            'jid': m.jid
+                        }).up().up());
                 }
             });
-
-            if (sendGrantMembershipIq) {
-                this.xmpp.connection.sendIQ(grantMembership.up());
-            }
         }
 
         const errorCallback = onError ? onError : () => {}; // eslint-disable-line no-empty-function
