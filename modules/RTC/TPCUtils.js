@@ -410,10 +410,10 @@ export class TPCUtils {
             .filter(t => t.receiver && t.receiver.track && t.receiver.track.kind === mediaType);
         const localTracks = this.pc.getLocalTracks(mediaType);
 
-        transceivers.forEach(transceiver => {
+        transceivers.forEach((transceiver, idx) => {
             if (active) {
-                if (localTracks.length) {
-                    // FIXME should adjust only the direction of the local sender or FF will fall into renegotiate loop
+                // The first transceiver is for the local track and only this one can be set to 'sendrecv'
+                if (idx === 0 && localTracks.length) {
                     transceiver.direction = 'sendrecv';
                 } else {
                     transceiver.direction = 'recvonly';
