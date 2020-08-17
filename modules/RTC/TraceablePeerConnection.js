@@ -2163,17 +2163,22 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
  * successful and rejected otherwise.
  */
 TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeight = null) {
+    if (frameHeight < 0) {
+        throw new Error(`Invalid frameHeight: ${frameHeight}`);
+    }
+
     // XXX: This is not yet supported on mobile.
     if (browser.isReactNative()) {
         return Promise.resolve();
     }
 
-    const newHeight = frameHeight || this.senderVideoMaxHeight;
+    // Need to explicitly check for null as 0 is falsy, but a valid value
+    const newHeight = frameHeight === null ? this.senderVideoMaxHeight : frameHeight;
 
     this.senderVideoMaxHeight = newHeight;
-    if (!newHeight) {
-        return Promise.resolve();
-    }
+
+    logger.log(`${this} senderVideoMaxHeight: ${newHeight}`);
+
     const localVideoTrack = this.getLocalVideoTrack();
 
     if (!localVideoTrack || localVideoTrack.isMuted() || localVideoTrack.videoType !== VideoType.CAMERA) {
@@ -2189,7 +2194,6 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
     if (!parameters || !parameters.encodings || !parameters.encodings.length) {
         return Promise.reject(new Error('RTCRtpSendParameters not found for local video track'));
     }
-    logger.info(`Setting max height of ${newHeight} on local video`);
 
     if (this.isSimulcastOn()) {
         // Determine the encodings that need to stay enabled based on the
@@ -2202,9 +2206,15 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
                 parameters.encodings[encoding].active = encodingsEnabledState[encoding];
             }
         }
-    } else if (localVideoTrack.resolution > newHeight) {
+    } else if (newHeight > 0) {
         parameters.encodings[0].scaleResolutionDownBy = Math.floor(localVideoTrack.resolution / newHeight);
+        parameters.encodings[0].active = true;
+    } else {
+        parameters.encodings[0].scaleResolutionDownBy = undefined;
+        parameters.encodings[0].active = false;
     }
+
+    logger.info(`${this} setting max height of ${newHeight}, encodings: ${JSON.stringify(parameters.encodings)}`);
 
     return videoSender.setParameters(parameters).then(() => {
         localVideoTrack.maxEnabledResolution = newHeight;
