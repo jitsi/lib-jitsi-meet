@@ -1946,13 +1946,16 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
  */
 TraceablePeerConnection.prototype.setAudioTransferActive = function(active) {
     logger.debug(`${this} audio transfer active: ${active}`);
-    if (browser.usesUnifiedPlan()) {
-        return this.tpcUtils.setAudioTransferActive(active)
-            .then(() => false);
-    }
     const changed = this.audioTransferActive !== active;
 
     this.audioTransferActive = active;
+
+    if (browser.usesUnifiedPlan()) {
+        this.tpcUtils.setAudioTransferActive(active);
+
+        // false means no renegotiation up the chain which is not needed in the Unified mode
+        return false;
+    }
 
     return changed;
 };
@@ -2224,13 +2227,16 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
  */
 TraceablePeerConnection.prototype.setVideoTransferActive = function(active) {
     logger.debug(`${this} video transfer active: ${active}`);
-    if (browser.usesUnifiedPlan()) {
-        return this.tpcUtils.setVideoTransferActive(active)
-            .then(() => false);
-    }
     const changed = this.videoTransferActive !== active;
 
     this.videoTransferActive = active;
+
+    if (browser.usesUnifiedPlan()) {
+        this.tpcUtils.setVideoTransferActive(active);
+
+        // false means no renegotiation up the chain which is not needed in the Unified mode
+        return false;
+    }
 
     return changed;
 };
