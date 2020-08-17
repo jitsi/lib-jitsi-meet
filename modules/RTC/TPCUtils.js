@@ -375,10 +375,10 @@ export class TPCUtils {
     * the connection should be kept alive.
     * @param {boolean} active - true to enable audio media transmission or
     * false to disable.
-    * @returns {Promise<void>} - resolved when done.
+    * @returns {void}
     */
     setAudioTransferActive(active) {
-        return this.setMediaTransferActive('audio', active);
+        this.setMediaTransferActive('audio', active);
     }
 
     /**
@@ -403,38 +403,25 @@ export class TPCUtils {
      * @param {String} mediaType - 'audio' or 'video'
      * @param {boolean} active - true to enable media transmission or false
      * to disable.
-     * @returns {Promise<void>} - resolved when done.
+     * @returns {void}
      */
     setMediaTransferActive(mediaType, active) {
         const transceivers = this.pc.peerconnection.getTransceivers()
             .filter(t => t.receiver && t.receiver.track && t.receiver.track.kind === mediaType);
         const localTracks = this.pc.getLocalTracks(mediaType);
 
-        const setParamPromises = [];
-
-        if (active) {
-            transceivers.forEach(transceiver => {
+        transceivers.forEach(transceiver => {
+            if (active) {
                 if (localTracks.length) {
+                    // FIXME should adjust only the direction of the local sender or FF will fall into renegotiate loop
                     transceiver.direction = 'sendrecv';
-                    const parameters = transceiver.sender.getParameters();
-
-                    if (parameters && parameters.encodings && parameters.encodings.length) {
-                        parameters.encodings.forEach(encoding => {
-                            encoding.active = true;
-                        });
-                        setParamPromises.push(transceiver.sender.setParameters(parameters));
-                    }
                 } else {
                     transceiver.direction = 'recvonly';
                 }
-            });
-        } else {
-            transceivers.forEach(transceiver => {
+            } else {
                 transceiver.direction = 'inactive';
-            });
-        }
-
-        return Promise.all(setParamPromises);
+            }
+        });
     }
 
     /**
@@ -444,9 +431,9 @@ export class TPCUtils {
     * the connection should be kept alive.
     * @param {boolean} active - true to enable video media transmission or
     * false to disable.
-    * @returns {Promise<void>} - resolved when done.
+    * @returns {void}
     */
     setVideoTransferActive(active) {
-        return this.setMediaTransferActive('video', active);
+        this.setMediaTransferActive('video', active);
     }
 }
