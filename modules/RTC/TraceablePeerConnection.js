@@ -4,6 +4,7 @@ import { Interop } from '@jitsi/sdp-interop';
 import { getLogger } from 'jitsi-meet-logger';
 import transform from 'sdp-transform';
 
+import * as CodecMimeType from '../../service/RTC/CodecMimeType';
 import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import * as SignalingEvents from '../../service/RTC/SignalingEvents';
@@ -268,27 +269,54 @@ export default function TraceablePeerConnection(
      */
     this.senderVideoMaxHeight = null;
 
-    // Set the codec preference that will be applied on the SDP
-    // based on the config.js settings.
-    if (this.options.preferH264 || this.options.preferVP9) {
+    // We currently support preferring/disabling video codecs only.
+    const getCodecMimeType
+        = codec => Object.values(CodecMimeType).find(value => value === codec.toLowerCase());
+
+    // Set the codec preference that will be applied on the SDP based on the config.js settings.
+    if (this.options.preferH264 || this.options.preferredCodec) {
+        let prefferedCodec = null;
+
+        // Do not prefer VP9 on Firefox because of the following bug.
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1633876
+        if (this.options.preferredCodec) {
+            const mimeType = getCodecMimeType(this.options.preferredCodec);
+
+            if (!(browser.isFirefox() && mimeType === CodecMimeType.VP9)) {
+                prefferedCodec = mimeType;
+            }
+        }
+
         this.codecPreference = {
             enable: true,
             mediaType: MediaType.VIDEO,
             mimeType: this.options.preferH264
-                ? 'h264'
-                : 'vp9'
+                ? CodecMimeType.H264
+                : prefferedCodec
         };
     }
 
-    // If both enable and disable are set for the same codec, disable
-    // setting will prevail.
-    if (this.options.disableH264 || this.options.disableVP9) {
+    // If both enable and disable are set for the same codec, disable setting will prevail.
+    if (this.options.disableH264 || this.options.disabledCodec) {
+        let disabledCodec = null;
+
+        // Make sure we don't disable VP8 since it is a mandatory codec.
+        if (this.options.disabledCodec) {
+            const mimeType = getCodecMimeType(this.options.disabledCodec);
+
+            if (mimeType === CodecMimeType.VP8) {
+                logger.warn('Disabling VP8 is not permitted, setting is ignored!');
+            } else {
+                disabledCodec = mimeType;
+            }
+        }
+
         this.codecPreference = {
             enable: false,
             mediaType: MediaType.VIDEO,
             mimeType: this.options.disableH264
-                ? 'h264'
-                : 'vp9'
+                ? CodecMimeType.H264
+                : disabledCodec
         };
     }
 
@@ -1503,14 +1531,14 @@ TraceablePeerConnection.prototype._getSSRC = function(rtcId) {
  * @returns {RTCSessionDescription} the munged description.
  */
 TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
-    if (!this.codecPreference || browser.supportsCodecPreferences()) {
+    if (!(this.codecPreference && this.codecPreference.mimeType) || browser.supportsCodecPreferences()) {
         return description;
     }
 
     const parsedSdp = transform.parse(description.sdp);
     const mLine = parsedSdp.media.find(m => m.type === this.codecPreference.mediaType);
 
-    if (this.codecPreference.enable && this.codecPreference.mimeType) {
+    if (this.codecPreference.enable) {
         SDPUtil.preferCodec(mLine, this.codecPreference.mimeType);
 
         // Strip the high profile H264 codecs on mobile clients for p2p connection.
@@ -1518,10 +1546,10 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
         // we do not want on mobile clients.
         // Jicofo offers only the baseline code for the jvb connection.
         // TODO - add check for mobile browsers once js-utils provides that check.
-        if (this.codecPreference.mimeType === 'h264' && browser.isReactNative() && this.isP2P) {
+        if (this.codecPreference.mimeType === CodecMimeType.H264 && browser.isReactNative() && this.isP2P) {
             SDPUtil.stripCodec(mLine, this.codecPreference.mimeType, true /* high profile */);
         }
-    } else if (this.codecPreference.mimeType) {
+    } else {
         SDPUtil.stripCodec(mLine, this.codecPreference.mimeType);
     }
 

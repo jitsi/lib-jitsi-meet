@@ -1,6 +1,7 @@
 import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 
+import CodecMimeType from '../../service/RTC/CodecMimeType';
 import browser from '../browser';
 import RandomUtil from '../util/RandomUtil';
 
@@ -605,6 +606,8 @@ const SDPUtil = {
      *
      * @param {object} mLine the mline object from an sdp as parsed by transform.parse.
      * @param {string} codecName the name of the codec which will be stripped.
+     * @param {boolean} highProfile determines if only the high profile H264 codec needs to be
+     * stripped from the sdp when the passed codecName is H264.
      */
     stripCodec(mLine, codecName, highProfile = false) {
         if (!mLine || !codecName) {
@@ -613,7 +616,7 @@ const SDPUtil = {
 
         const h264Pts = [];
         let removePts = [];
-        const stripH264HighCodec = codecName.toLowerCase() === 'h264' && highProfile;
+        const stripH264HighCodec = codecName.toLowerCase() === CodecMimeType.H264 && highProfile;
 
         for (const rtp of mLine.rtp) {
             if (rtp.codec
