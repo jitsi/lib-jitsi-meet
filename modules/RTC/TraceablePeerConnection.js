@@ -52,10 +52,14 @@ const SD_BITRATE = 700000;
  * @param {boolean} options.capScreenshareBitrate if set to 'true' simulcast will
  * be disabled for screenshare and a max bitrate of 500Kbps will applied on the
  * stream.
+ * @param {string} options.disabledCodec the mime type of the code that should
+ * not be negotiated on the peerconnection.
  * @param {boolean} options.disableH264 If set to 'true' H264 will be
- *      disabled by removing it from the SDP.
+ *      disabled by removing it from the SDP (deprecated)
  * @param {boolean} options.preferH264 if set to 'true' H264 will be preferred
- * over other video codecs.
+ * over other video codecs. (deprecated)
+ * @param {string} options.preferredCodec the mime type of the codec that needs
+ * to be made the preferred codec for the connection.
  * @param {boolean} options.startSilent If set to 'true' no audio will be sent or received.
  *
  * FIXME: initially the purpose of TraceablePeerConnection was to be able to
@@ -270,53 +274,42 @@ export default function TraceablePeerConnection(
     this.senderVideoMaxHeight = null;
 
     // We currently support preferring/disabling video codecs only.
-    const getCodecMimeType
-        = codec => Object.values(CodecMimeType).find(value => value === codec.toLowerCase());
+    const getCodecMimeType = codec => {
+        if (typeof codec === 'string') {
+            return Object.values(CodecMimeType).find(value => value === codec.toLowerCase());
+        }
+
+        return null;
+    };
 
     // Set the codec preference that will be applied on the SDP based on the config.js settings.
-    if (this.options.preferH264 || this.options.preferredCodec) {
-        let prefferedCodec = null;
+    let preferredCodec = getCodecMimeType(
+        this.options.preferredCodec || (this.options.preferH264 && CodecMimeType.H264)
+    );
 
-        // Do not prefer VP9 on Firefox because of the following bug.
-        // https://bugzilla.mozilla.org/show_bug.cgi?id=1633876
-        if (this.options.preferredCodec) {
-            const mimeType = getCodecMimeType(this.options.preferredCodec);
-
-            if (!(browser.isFirefox() && mimeType === CodecMimeType.VP9)) {
-                prefferedCodec = mimeType;
-            }
-        }
-
-        this.codecPreference = {
-            enable: true,
-            mediaType: MediaType.VIDEO,
-            mimeType: this.options.preferH264
-                ? CodecMimeType.H264
-                : prefferedCodec
-        };
+    // Do not prefer VP9 on Firefox because of the following bug.
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1633876
+    if (browser.isFirefox() && preferredCodec === CodecMimeType.VP9) {
+        preferredCodec = null;
     }
 
-    // If both enable and disable are set for the same codec, disable setting will prevail.
-    if (this.options.disableH264 || this.options.disabledCodec) {
-        let disabledCodec = null;
+    // Determine the codec that needs to be disabled based on config.js settings.
+    let disabledCodec = getCodecMimeType(
+        this.options.disabledCodec || (this.options.disableH264 && CodecMimeType.H264)
+    );
 
-        // Make sure we don't disable VP8 since it is a mandatory codec.
-        if (this.options.disabledCodec) {
-            const mimeType = getCodecMimeType(this.options.disabledCodec);
+    // Make sure we don't disable VP8 since it is a mandatory codec.
+    if (disabledCodec === CodecMimeType.VP8) {
+        logger.warn('Disabling VP8 is not permitted, setting is ignored!');
+        disabledCodec = null;
+    }
 
-            if (mimeType === CodecMimeType.VP8) {
-                logger.warn('Disabling VP8 is not permitted, setting is ignored!');
-            } else {
-                disabledCodec = mimeType;
-            }
-        }
-
+    if (preferredCodec || disabledCodec) {
+        // If both enable and disable are set for the same codec, disable setting will prevail.
         this.codecPreference = {
-            enable: false,
+            enable: disabledCodec === null,
             mediaType: MediaType.VIDEO,
-            mimeType: this.options.disableH264
-                ? CodecMimeType.H264
-                : disabledCodec
+            mimeType: disabledCodec ? disabledCodec : preferredCodec
         };
     }
 
@@ -1531,7 +1524,7 @@ TraceablePeerConnection.prototype._getSSRC = function(rtcId) {
  * @returns {RTCSessionDescription} the munged description.
  */
 TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
-    if (!(this.codecPreference && this.codecPreference.mimeType) || browser.supportsCodecPreferences()) {
+    if (!this.codecPreference || browser.supportsCodecPreferences()) {
         return description;
     }
 
@@ -1969,8 +1962,7 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
     this.trace('setLocalDescription::preTransform', dumpSDP(localSdp));
 
     // Munge the order of the codecs based on the preferences set through config.js
-    // eslint-disable-next-line no-param-reassign
-    description = this._mungeCodecOrder(localSdp);
+    localSdp = this._mungeCodecOrder(localSdp);
 
     if (browser.usesPlanB()) {
         localSdp = this._adjustLocalMediaDirection(localSdp);
