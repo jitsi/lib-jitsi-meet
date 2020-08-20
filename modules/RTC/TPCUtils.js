@@ -4,7 +4,6 @@ import transform from 'sdp-transform';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
-import * as VideoType from '../../service/RTC/VideoType';
 import browser from '../browser';
 
 const logger = getLogger(__filename);
@@ -23,18 +22,27 @@ export class TPCUtils {
      * Creates a new instance for a given TraceablePeerConnection
      *
      * @param peerconnection - the tpc instance for which we have utility functions.
-     * @param videoBitrates - the bitrates to be configured on the video senders when
-     * simulcast is enabled.
+     * @param videoBitrates - the bitrates to be configured on the video senders for
+     * different resolutions both in unicast and simulcast mode.
      */
     constructor(peerconnection, videoBitrates) {
         this.pc = peerconnection;
         this.videoBitrates = videoBitrates;
 
         /**
-         * The simulcast encodings that will be configured on the RTCRtpSender
-         * for the video tracks in the unified plan mode.
+         * The startup configuration for the stream encodings that are applicable to
+         * the video stream when a new sender is created on the peerconnection. The initial
+         * config takes into account the differences in browser's simulcast implementation.
+         *
+         * Encoding parameters:
+         * active - determine the on/off state of a particular encoding.
+         * maxBitrate - max. bitrate value to be applied to that particular encoding
+         *  based on the encoding's resolution and config.js videoQuality settings if applicable.
+         * rid - Rtp Stream ID that is configured for a particular simulcast stream.
+         * scaleResolutionDownBy - the factor by which the encoding is scaled down from the
+         *  original resolution of the captured video.
          */
-        this.simulcastEncodings = [
+        this.localStreamEncodingsConfig = [
             {
                 active: true,
                 maxBitrate: browser.isFirefox() ? this.videoBitrates.high : this.videoBitrates.low,
@@ -54,12 +62,6 @@ export class TPCUtils {
                 scaleResolutionDownBy: browser.isFirefox() ? 4.0 : 1.0
             }
         ];
-
-        /**
-         * Resolution height constraints for the simulcast encodings that
-         * are configured for the video tracks.
-         */
-        this.simulcastStreamConstraints = [];
     }
 
     /**
@@ -97,15 +99,21 @@ export class TPCUtils {
     }
 
     /**
-     * Obtains stream encodings that need to be configured on the given track.
+     * Obtains stream encodings that need to be configured on the given track based
+     * on the track media type and the simulcast setting.
      * @param {JitsiLocalTrack} localTrack
      */
     _getStreamEncodings(localTrack) {
         if (this.pc.isSimulcastOn() && localTrack.isVideoTrack()) {
-            return this.simulcastEncodings;
+            return this.localStreamEncodingsConfig;
         }
 
-        return [ { active: true } ];
+        return localTrack.isVideoTrack()
+            ? [ {
+                active: true,
+                maxBitrate: this.videoBitrates.high
+            } ]
+            : [ { active: true } ];
     }
 
     /**
@@ -182,29 +190,6 @@ export class TPCUtils {
     }
 
     /**
-     * Constructs resolution height constraints for the simulcast encodings that are
-     * created for a given local video track.
-     * @param {MediaStreamTrack} track - the local video track.
-     * @returns {void}
-     */
-    setSimulcastStreamConstraints(track) {
-        if (browser.isReactNative()) {
-            return;
-        }
-
-        const height = track.getSettings().height;
-
-        for (const encoding in this.simulcastEncodings) {
-            if (this.simulcastEncodings.hasOwnProperty(encoding)) {
-                this.simulcastStreamConstraints.push({
-                    height: height / this.simulcastEncodings[encoding].scaleResolutionDownBy,
-                    rid: this.simulcastEncodings[encoding].rid
-                });
-            }
-        }
-    }
-
-    /**
     * Adds {@link JitsiLocalTrack} to the WebRTC peerconnection for the first time.
     * @param {JitsiLocalTrack} track - track to be added to the peerconnection.
     * @returns {void}
@@ -230,11 +215,6 @@ export class TPCUtils {
             // when setRemoteDescription was called. pc.addTrack() automatically  attaches to any existing
             // unused "recv-only" transceiver.
             this.pc.peerconnection.addTrack(track);
-        }
-
-        // Construct the stream constraints for the newly added track.
-        if (localTrack.isVideoTrack() && localTrack.videoType === VideoType.CAMERA) {
-            this.setSimulcastStreamConstraints(localTrack.getTrack());
         }
     }
 
@@ -268,11 +248,6 @@ export class TPCUtils {
                 return this.setEncodings(localTrack).then(() => {
                     this.pc.localTracks.set(localTrack.rtcId, localTrack);
                     transceiver.direction = 'sendrecv';
-
-                    // Construct the stream constraints for the newly added track.
-                    if (localTrack.isVideoTrack() && localTrack.videoType === VideoType.CAMERA) {
-                        this.setSimulcastStreamConstraints(localTrack.getTrack());
-                    }
                 });
             }
 
@@ -283,6 +258,30 @@ export class TPCUtils {
             .then(() => {
                 this.pc.localTracks.set(localTrack.rtcId, localTrack);
             });
+    }
+
+    /**
+     * Obtains the current local video track's height constraints based on the
+     * initial stream encodings configuration on the sender and the resolution
+     * of the current local track added to the peerconnection.
+     * @param {MediaStreamTrack} localTrack local video track
+     * @returns {Array[number]} an array containing the resolution heights of
+     * simulcast streams configured on the video sender.
+     */
+    getLocalStreamHeightConstraints(localTrack) {
+        // React-native hasn't implemented MediaStreamTrack getSettings yet.
+        if (browser.isReactNative()) {
+            return null;
+        }
+
+        const localVideoHeightConstraints = [];
+        const height = localTrack.getSettings().height;
+
+        for (const encoding of this.localStreamEncodingsConfig) {
+            localVideoHeightConstraints.push(height / encoding.scaleResolutionDownBy);
+        }
+
+        return localVideoHeightConstraints;
     }
 
     /**

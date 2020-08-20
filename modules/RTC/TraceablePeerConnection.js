@@ -1634,13 +1634,9 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
 
     let promiseChain = Promise.resolve();
 
-    if (browser.usesUnifiedPlan() && !browser.usesSdpMungingForSimulcast()) {
+    // On Firefox, the encodings have to be configured on the sender only after the transceiver is created.
+    if (browser.isFirefox()) {
         promiseChain = this.tpcUtils.setEncodings(track);
-    }
-
-    // Construct the stream constraints for the newly added track.
-    if (track.isVideoTrack() && track.videoType === VideoType.CAMERA) {
-        this.tpcUtils.setSimulcastStreamConstraints(track.getTrack());
     }
 
     return promiseChain;
@@ -2121,10 +2117,10 @@ TraceablePeerConnection.prototype.setMaxBitRate = function() {
                     && videoType === VideoType.DESKTOP
                     && this.options.capScreenshareBitrate
                     ? presenterEnabled ? this.videoBitrates.high : DESKSTOP_SHARE_RATE
-                    : this.tpcUtils.simulcastEncodings[encoding].maxBitrate;
+                    : this.tpcUtils.localStreamEncodingsConfig[encoding].maxBitrate;
 
                 logger.info(`${this} Setting a max bitrate of ${bitrate} bps on layer `
-                    + `${this.tpcUtils.simulcastEncodings[encoding].rid}`);
+                    + `${this.tpcUtils.localStreamEncodingsConfig[encoding].rid}`);
                 parameters.encodings[encoding].maxBitrate = bitrate;
             }
         }
@@ -2137,7 +2133,7 @@ TraceablePeerConnection.prototype.setMaxBitRate = function() {
             const scaleFactor = this.senderVideoMaxHeight
                 ? Math.floor(localVideoTrack.resolution / this.senderVideoMaxHeight)
                 : 1;
-            const encoding = this.tpcUtils.simulcastEncodings
+            const encoding = this.tpcUtils.localStreamEncodingsConfig
                 .find(layer => layer.scaleResolutionDownBy === scaleFactor);
 
             if (encoding) {
@@ -2263,8 +2259,9 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
     if (this.isSimulcastOn()) {
         // Determine the encodings that need to stay enabled based on the
         // new frameHeight provided.
-        const encodingsEnabledState = this.tpcUtils.simulcastStreamConstraints
-            .map(constraint => constraint.height <= newHeight);
+        const encodingsEnabledState
+            = this.tpcUtils.getLocalStreamHeightConstraints(localVideoTrack.track)
+                .map(height => height <= newHeight);
 
         for (const encoding in parameters.encodings) {
             if (parameters.encodings.hasOwnProperty(encoding)) {
@@ -2287,8 +2284,9 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
         localVideoTrack.maxEnabledResolution = newHeight;
         this.eventEmitter.emit(RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED, localVideoTrack);
 
-        // Max bitrate needs to be reconfigured on the p2p connection if needed when the send resolution changes.
-        if (this.isP2P) {
+        // Max bitrate needs to be reconfigured on the sender in p2p/non-simulcast case if needed when
+        // the send resolution changes.
+        if (this.isP2P || !this.isSimulcastOn()) {
             return this.setMaxBitRate();
         }
     });
