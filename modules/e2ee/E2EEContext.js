@@ -78,10 +78,11 @@ export default class E2EEcontext {
 
         this._worker.postMessage({
             operation: 'decode',
-            readableStream: receiverStreams.readableStream,
-            writableStream: receiverStreams.writableStream,
+            readableStream: receiverStreams.readable || receiverStreams.readableStream,
+            writableStream: receiverStreams.writable || receiverStreams.writableStream,
             participantId
-        }, [ receiverStreams.readableStream, receiverStreams.writableStream ]);
+        }, [ receiverStreams.readable || receiverStreams.readableStream,
+            receiverStreams.writable || receiverStreams.writableStream ]);
     }
 
     /**
@@ -109,10 +110,11 @@ export default class E2EEcontext {
 
         this._worker.postMessage({
             operation: 'encode',
-            readableStream: senderStreams.readableStream,
-            writableStream: senderStreams.writableStream,
+            readableStream: senderStreams.readable || senderStreams.readableStream,
+            writableStream: senderStreams.writable || senderStreams.writableStream,
             participantId
-        }, [ senderStreams.readableStream, senderStreams.writableStream ]);
+        }, [ senderStreams.readable || senderStreams.readableStream,
+            senderStreams.writable || senderStreams.writableStream ]);
     }
 
     /**
