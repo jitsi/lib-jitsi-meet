@@ -1,5 +1,5 @@
+import { jitsiLocalStorage } from '@jitsi/js-utils';
 import { getLogger } from 'jitsi-meet-logger';
-import { jitsiLocalStorage } from 'js-utils';
 
 const logger = getLogger(__filename);
 

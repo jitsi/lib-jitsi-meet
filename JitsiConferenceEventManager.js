@@ -1,6 +1,17 @@
 /* global __filename */
+
+import { getLogger } from 'jitsi-meet-logger';
 import { Strophe } from 'strophe.js';
 
+import * as JitsiConferenceErrors from './JitsiConferenceErrors';
+import * as JitsiConferenceEvents from './JitsiConferenceEvents';
+import Statistics from './modules/statistics/statistics';
+import EventEmitterForwarder from './modules/util/EventEmitterForwarder';
+import * as MediaType from './service/RTC/MediaType';
+import RTCEvents from './service/RTC/RTCEvents';
+import VideoType from './service/RTC/VideoType';
+import AuthenticationEvents
+    from './service/authentication/AuthenticationEvents';
 import {
     ACTION_JINGLE_SA_TIMEOUT,
     createBridgeDownEvent,
@@ -9,16 +20,6 @@ import {
     createJingleEvent,
     createRemotelyMutedEvent
 } from './service/statistics/AnalyticsEvents';
-import AuthenticationEvents
-    from './service/authentication/AuthenticationEvents';
-import EventEmitterForwarder from './modules/util/EventEmitterForwarder';
-import { getLogger } from 'jitsi-meet-logger';
-import * as JitsiConferenceErrors from './JitsiConferenceErrors';
-import * as JitsiConferenceEvents from './JitsiConferenceEvents';
-import * as MediaType from './service/RTC/MediaType';
-import RTCEvents from './service/RTC/RTCEvents';
-import VideoType from './service/RTC/VideoType';
-import Statistics from './modules/statistics/statistics';
 import XMPPEvents from './service/xmpp/XMPPEvents';
 
 const logger = getLogger(__filename);

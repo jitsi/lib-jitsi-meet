@@ -1,8 +1,9 @@
 /* eslint-disable max-len*/
-import RtxModifier from './RtxModifier.js';
-import { default as SampleSdpStrings } from './SampleSdpStrings.js';
 import * as transform from 'sdp-transform';
+
+import RtxModifier from './RtxModifier.js';
 import SDPUtil from './SDPUtil';
+import { default as SampleSdpStrings } from './SampleSdpStrings.js';
 
 /**
  * Returns the number of video ssrcs in the given sdp

@@ -1,5 +1,6 @@
-import { $msg, Strophe } from 'strophe.js';
 import { getLogger } from 'jitsi-meet-logger';
+import { $msg, Strophe } from 'strophe.js';
+
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
 const logger = getLogger(__filename);
@@ -198,6 +199,8 @@ export default class Lobby {
                         .forEach(j => this.mainRoom.eventEmitter.emit(
                             XMPPEvents.MUC_LOBBY_MEMBER_LEFT, Strophe.getResourceFromJid(j)));
 
+                    this.lobbyRoom.clean();
+
                     this.lobbyRoom = undefined;
                     logger.info('Lobby room left(destroyed)!');
                 });
@@ -237,6 +240,8 @@ export default class Lobby {
 
                         return;
                     }
+
+                    this.lobbyRoom.clean();
 
                     this.mainRoom.eventEmitter.emit(XMPPEvents.MUC_DESTROYED, reason);
                 });

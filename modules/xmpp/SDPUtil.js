@@ -1,8 +1,9 @@
 import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 
-import RandomUtil from '../util/RandomUtil';
+import CodecMimeType from '../../service/RTC/CodecMimeType';
 import browser from '../browser';
+import RandomUtil from '../util/RandomUtil';
 
 const SDPUtil = {
     filterSpecialChars(text) {
@@ -564,46 +565,37 @@ const SDPUtil = {
     },
 
     /**
-     * Sets the given codecName as the preferred codec by
-     *  moving it to the beginning of the payload types
-     *  list (modifies the given mline in place).  If there
-     *  are multiple options within the same codec (multiple h264
-     *  profiles, for instance), this will prefer the first one
-     *  that is found.
-     * @param {object} videoMLine the video mline object from
-     *  an sdp as parsed by transform.parse
+     * Sets the given codecName as the preferred codec by moving it to the beginning
+     * of the payload types list (modifies the given mline in place). All instances
+     * of the codec are moved up.
+     * @param {object} mLine the mline object from an sdp as parsed by transform.parse
      * @param {string} codecName the name of the preferred codec
      */
-    preferVideoCodec(videoMLine, codecName) {
-        let payloadType = null;
-
-        if (!videoMLine || !codecName) {
+    preferCodec(mline, codecName) {
+        if (!mline || !codecName) {
             return;
         }
 
-        for (let i = 0; i < videoMLine.rtp.length; ++i) {
-            const rtp = videoMLine.rtp[i];
+        const matchingPayloadTypes = mline.rtp
+            .filter(rtp => rtp.codec && rtp.codec.toLowerCase() === codecName.toLowerCase())
+            .map(rtp => rtp.payload);
 
-            if (rtp.codec
-                && rtp.codec.toLowerCase() === codecName.toLowerCase()) {
-                payloadType = rtp.payload;
-                break;
-            }
-        }
-        if (payloadType) {
-            // Call toString() on payloads to get around an issue within
-            // SDPTransform that sets payloads as a number, instead of a string,
-            // when there is only one payload.
+        if (matchingPayloadTypes) {
+            // Call toString() on payloads to get around an issue within SDPTransform that sets
+            // payloads as a number, instead of a string, when there is only one payload.
             const payloadTypes
-                = videoMLine.payloads
-                    .toString()
-                    .split(' ')
-                    .map(p => parseInt(p, 10));
-            const payloadIndex = payloadTypes.indexOf(payloadType);
+                = mline.payloads
+                .toString()
+                .split(' ')
+                .map(p => parseInt(p, 10));
 
-            payloadTypes.splice(payloadIndex, 1);
-            payloadTypes.unshift(payloadType);
-            videoMLine.payloads = payloadTypes.join(' ');
+            for (const pt of matchingPayloadTypes.reverse()) {
+                const payloadIndex = payloadTypes.indexOf(pt);
+
+                payloadTypes.splice(payloadIndex, 1);
+                payloadTypes.unshift(pt);
+            }
+            mline.payloads = payloadTypes.join(' ');
         }
     },
 
@@ -612,29 +604,43 @@ const SDPUtil = {
      * types are also stripped. If the resulting mline would have no codecs,
      * it's disabled.
      *
-     * @param {object} videoMLine the video mline object from an sdp as parsed
-     * by transform.parse.
+     * @param {object} mLine the mline object from an sdp as parsed by transform.parse.
      * @param {string} codecName the name of the codec which will be stripped.
+     * @param {boolean} highProfile determines if only the high profile H264 codec needs to be
+     * stripped from the sdp when the passed codecName is H264.
      */
-    stripVideoCodec(videoMLine, codecName) {
-        if (!videoMLine || !codecName) {
+    stripCodec(mLine, codecName, highProfile = false) {
+        if (!mLine || !codecName) {
             return;
         }
 
-        const removePts = [];
+        const h264Pts = [];
+        let removePts = [];
+        const stripH264HighCodec = codecName.toLowerCase() === CodecMimeType.H264 && highProfile;
 
-        for (const rtp of videoMLine.rtp) {
+        for (const rtp of mLine.rtp) {
             if (rtp.codec
                 && rtp.codec.toLowerCase() === codecName.toLowerCase()) {
-                removePts.push(rtp.payload);
+                if (stripH264HighCodec) {
+                    h264Pts.push(rtp.payload);
+                } else {
+                    removePts.push(rtp.payload);
+                }
             }
+        }
+
+        // high profile H264 codecs have 64 as the first two bytes of the profile-level-id.
+        if (stripH264HighCodec) {
+            removePts = mLine.fmtp
+                .filter(item => h264Pts.indexOf(item.payload) > -1 && item.config.includes('profile-level-id=64'))
+                .map(item => item.payload);
         }
 
         if (removePts.length > 0) {
             // We also need to remove the payload types that are related to RTX
             // for the codecs we want to disable.
             const rtxApts = removePts.map(item => `apt=${item}`);
-            const rtxPts = videoMLine.fmtp.filter(
+            const rtxPts = mLine.fmtp.filter(
                 item => rtxApts.indexOf(item.config) !== -1);
 
             removePts.push(...rtxPts.map(item => item.payload));
@@ -642,27 +648,27 @@ const SDPUtil = {
             // Call toString() on payloads to get around an issue within
             // SDPTransform that sets payloads as a number, instead of a string,
             // when there is only one payload.
-            const allPts = videoMLine.payloads
+            const allPts = mLine.payloads
                 .toString()
                 .split(' ')
                 .map(Number);
             const keepPts = allPts.filter(pt => removePts.indexOf(pt) === -1);
 
             if (keepPts.length === 0) {
-                // There are no other video codecs, disable the stream.
-                videoMLine.port = 0;
-                videoMLine.direction = 'inactive';
-                videoMLine.payloads = '*';
+                // There are no other codecs, disable the stream.
+                mLine.port = 0;
+                mLine.direction = 'inactive';
+                mLine.payloads = '*';
             } else {
-                videoMLine.payloads = keepPts.join(' ');
+                mLine.payloads = keepPts.join(' ');
             }
 
-            videoMLine.rtp = videoMLine.rtp.filter(
+            mLine.rtp = mLine.rtp.filter(
                 item => keepPts.indexOf(item.payload) !== -1);
-            videoMLine.fmtp = videoMLine.fmtp.filter(
+            mLine.fmtp = mLine.fmtp.filter(
                 item => keepPts.indexOf(item.payload) !== -1);
-            if (videoMLine.rtcpFb) {
-                videoMLine.rtcpFb = videoMLine.rtcpFb.filter(
+            if (mLine.rtcpFb) {
+                mLine.rtcpFb = mLine.rtcpFb.filter(
                     item => keepPts.indexOf(item.payload) !== -1);
             }
         }

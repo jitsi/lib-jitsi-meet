@@ -1,9 +1,11 @@
-import { createTtfmEvent } from '../../service/statistics/AnalyticsEvents';
-import JitsiTrack from './JitsiTrack';
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
+import { createTtfmEvent } from '../../service/statistics/AnalyticsEvents';
 import Statistics from '../statistics/statistics';
 
+import JitsiTrack from './JitsiTrack';
+
 const logger = require('jitsi-meet-logger').getLogger(__filename);
+
 const RTCEvents = require('../../service/RTC/RTCEvents');
 
 let ttfmTrackerAudioAttached = false;

@@ -1,6 +1,7 @@
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
-import SpeakerStats from './SpeakerStats';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
+
+import SpeakerStats from './SpeakerStats';
 
 /**
  * A collection for tracking speaker stats. Attaches listeners

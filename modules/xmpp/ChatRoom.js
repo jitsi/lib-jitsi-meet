@@ -3,15 +3,15 @@
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, $msg, $pres, Strophe } from 'strophe.js';
 
-import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
-import Listenable from '../util/Listenable';
 import * as MediaType from '../../service/RTC/MediaType';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
+import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
+import Listenable from '../util/Listenable';
 
 import Lobby from './Lobby';
-import Moderator from './moderator';
 import XmppConnection from './XmppConnection';
+import Moderator from './moderator';
 
 const logger = getLogger(__filename);
 
@@ -761,6 +761,12 @@ export default class ChatRoom extends Listenable {
         this.focusMucJid = from;
 
         logger.info(`Ignore focus: ${from}, real JID: ${mucJid}`);
+        this.xmpp.caps.getFeatures(mucJid, 15000).then(features => {
+            this.focusFeatures = features;
+            logger.info(`Jicofo supports restart by terminate: ${this.supportsRestartByTerminate()}`);
+        }, error => {
+            logger.error('Failed to discover Jicofo features', error && error.message);
+        });
     }
 
     /**
@@ -769,6 +775,16 @@ export default class ChatRoom extends Listenable {
      */
     setParticipantPropertyListener(listener) {
         this.participantPropertyListener = listener;
+    }
+
+    /**
+     * Checks if Jicofo supports restarting Jingle session after 'session-terminate'.
+     * @returns {boolean}
+     */
+    supportsRestartByTerminate() {
+        return this.focusFeatures
+            ? this.focusFeatures.has('https://jitsi.org/meet/jicofo/terminate-restart')
+            : false;
     }
 
     /**
@@ -1133,6 +1149,30 @@ export default class ChatRoom extends Listenable {
     /**
      *
      * @param jid
+     * @param affiliation
+     */
+    setAffiliation(jid, affiliation) {
+        const grantIQ = $iq({
+            to: this.roomjid,
+            type: 'set'
+        })
+        .c('query', { xmlns: 'http://jabber.org/protocol/muc#admin' })
+        .c('item', {
+            affiliation,
+            nick: Strophe.getResourceFromJid(jid)
+        })
+        .c('reason').t(`Your affiliation has been changed to '${affiliation}'.`)
+        .up().up().up();
+
+        this.connection.sendIQ(
+            grantIQ,
+            result => logger.log('Set affiliation of participant with jid: ', jid, 'to', affiliation, result),
+            error => logger.log('Set affiliation of participant error: ', error));
+    }
+
+    /**
+     *
+     * @param jid
      */
     kick(jid) {
         const kickIQ = $iq({ to: this.roomjid,
@@ -1242,25 +1282,23 @@ export default class ChatRoom extends Listenable {
      */
     setMembersOnly(enabled, onSuccess, onError) {
         if (enabled && Object.values(this.members).filter(m => !m.isFocus).length) {
-            let sendGrantMembershipIq = false;
-
             // first grant membership to all that are in the room
-            const grantMembership = $iq({ to: this.roomjid,
-                type: 'set' })
-                .c('query', { xmlns: 'http://jabber.org/protocol/muc#admin' });
-
+            // currently there is a bug in prosody where it handles only the first item
+            // that's why we will send iq per member
             Object.values(this.members).forEach(m => {
                 if (m.jid && !MEMBERS_AFFILIATIONS.includes(m.affiliation)) {
-                    grantMembership.c('item', {
-                        'affiliation': 'member',
-                        'jid': m.jid }).up();
-                    sendGrantMembershipIq = true;
+                    this.xmpp.connection.sendIQ(
+                        $iq({
+                            to: this.roomjid,
+                            type: 'set' })
+                        .c('query', {
+                            xmlns: 'http://jabber.org/protocol/muc#admin' })
+                        .c('item', {
+                            'affiliation': 'member',
+                            'jid': m.jid
+                        }).up().up());
                 }
             });
-
-            if (sendGrantMembershipIq) {
-                this.xmpp.connection.sendIQ(grantMembership.up());
-            }
         }
 
         const errorCallback = onError ? onError : () => {}; // eslint-disable-line no-empty-function
@@ -1652,6 +1690,8 @@ export default class ChatRoom extends Listenable {
     clean() {
         this._removeConnListeners.forEach(remove => remove());
         this._removeConnListeners = [];
+
+        this.joined = false;
     }
 
     /**
