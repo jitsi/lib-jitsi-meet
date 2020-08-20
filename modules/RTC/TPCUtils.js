@@ -232,8 +232,8 @@ export class TPCUtils {
             this.pc.peerconnection.addTrack(track);
         }
 
-        // Construct the simulcast stream constraints for the newly added track.
-        if (localTrack.isVideoTrack() && localTrack.videoType === VideoType.CAMERA && this.pc.isSimulcastOn()) {
+        // Construct the stream constraints for the newly added track.
+        if (localTrack.isVideoTrack() && localTrack.videoType === VideoType.CAMERA) {
             this.setSimulcastStreamConstraints(localTrack.getTrack());
         }
     }
@@ -269,10 +269,8 @@ export class TPCUtils {
                     this.pc.localTracks.set(localTrack.rtcId, localTrack);
                     transceiver.direction = 'sendrecv';
 
-                    // Construct the simulcast stream constraints for the newly added track.
-                    if (localTrack.isVideoTrack()
-                        && localTrack.videoType === VideoType.CAMERA
-                        && this.pc.isSimulcastOn()) {
+                    // Construct the stream constraints for the newly added track.
+                    if (localTrack.isVideoTrack() && localTrack.videoType === VideoType.CAMERA) {
                         this.setSimulcastStreamConstraints(localTrack.getTrack());
                     }
                 });

@@ -1389,14 +1389,13 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Sets the maximum bitrates on the local video track if the current
-     * session is a JVB session. Bitrate values from videoQuality settings
-     * in config.js will be used for configuring the sender.
+     * Sets the maximum bitrates on the local video track. Bitrate values from
+     * videoQuality settings in config.js will be used for configuring the sender.
      * @returns {Promise<void>} promise that will be resolved when the operation is
      * successful and rejected otherwise.
      */
     setSenderMaxBitrates() {
-        if (this._assertNotEnded() && !this.isP2P) {
+        if (this._assertNotEnded()) {
             return this.peerconnection.setMaxBitRate();
         }
 
@@ -1929,12 +1928,7 @@ export default class JingleSessionPC extends JingleSession {
 
                                 // Apply the cached video constraints on the new video sender.
                                 .then(() => this.peerconnection.setSenderVideoConstraint())
-                                .then(() => {
-                                    // Configure max bitrate on the video sender when media is routed through JVB.
-                                    if (!this.isP2P) {
-                                        return this.peerconnection.setMaxBitRate(newTrack);
-                                    }
-                                });
+                                .then(() => this.peerconnection.setMaxBitRate());
                         }
                     });
                 })

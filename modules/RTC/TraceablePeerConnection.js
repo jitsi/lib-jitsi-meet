@@ -227,12 +227,12 @@ export default function TraceablePeerConnection(
     };
 
     // Check if the max. bitrates for video are specified through config.js videoQuality settings.
-    // These bitrates will be applied on all browsers for camera sources in simulcast mode.
-    const videoBitrates = this.options.videoQuality && this.options.videoQuality.maxBitratesVideo
+    // These bitrates will be applied on all browsers for camera sources in both simulcast and p2p mode.
+    this.videoBitrates = this.options.videoQuality && this.options.videoQuality.maxBitratesVideo
         ? this.options.videoQuality.maxBitratesVideo
         : standardVideoBitrates;
 
-    this.tpcUtils = new TPCUtils(this, videoBitrates);
+    this.tpcUtils = new TPCUtils(this, this.videoBitrates);
     this.updateLog = [];
     this.stats = {};
     this.statsinterval = null;
@@ -1638,8 +1638,8 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
         promiseChain = this.tpcUtils.setEncodings(track);
     }
 
-    // Construct the simulcast stream constraints for the newly added track.
-    if (track.isVideoTrack() && track.videoType === VideoType.CAMERA && this.isSimulcastOn()) {
+    // Construct the stream constraints for the newly added track.
+    if (track.isVideoTrack() && track.videoType === VideoType.CAMERA) {
         this.tpcUtils.setSimulcastStreamConstraints(track.getTrack());
     }
 
@@ -2074,17 +2074,19 @@ TraceablePeerConnection.prototype.setSenderVideoDegradationPreference = function
  * max bitrate is to be configured.
  * @returns {Promise<void>}
  */
-TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack = null) {
-    if (!localTrack) {
-        // eslint-disable-next-line no-param-reassign
-        localTrack = this.getLocalVideoTrack();
+TraceablePeerConnection.prototype.setMaxBitRate = function() {
+    if (!this.peerconnection.getSenders) {
+        logger.debug('Browser doesn\'t support RTCRtpSender');
 
-        if (!localTrack) {
-            return Promise.resolve();
-        }
+        return Promise.resolve();
     }
-    const trackId = localTrack.track.id;
-    const videoType = localTrack.videoType;
+    const localVideoTrack = this.getLocalVideoTrack();
+
+    if (!localVideoTrack) {
+        return Promise.resolve();
+    }
+
+    const videoType = localVideoTrack.videoType;
 
     // Apply the maxbitrates on the video track when one of the conditions is met.
     // 1. Max. bitrates for video are specified through videoQuality settings in config.js
@@ -2096,52 +2098,57 @@ TraceablePeerConnection.prototype.setMaxBitRate = function(localTrack = null) {
         return Promise.resolve();
     }
 
-    if (!this.peerconnection.getSenders) {
-        logger.debug('Browser doesn\'t support RTCRtpSender');
+    const presenterEnabled = localVideoTrack._originalStream
+        && localVideoTrack._originalStream.id !== localVideoTrack.getStreamId();
+    const videoSender = this.findSenderByKind(MediaType.VIDEO);
 
-        return Promise.resolve();
+    if (!videoSender) {
+        return Promise.reject(new Error('RTCRtpSender not found for local video'));
     }
-    const presenterEnabled = localTrack._originalStream
-        && localTrack._originalStream.id !== localTrack.getStreamId();
+    const parameters = videoSender.getParameters();
 
-    const setSenderParamPromises = [];
+    if (!(parameters.encodings && parameters.encodings.length)) {
+        return Promise.reject(new Error('RTCRtpEncodingParameters not found for local video'));
+    }
 
-    this.peerconnection.getSenders()
-        .filter(s => s.track && s.track.id === trackId)
-        .forEach(sender => {
-            try {
-                const parameters = sender.getParameters();
+    if (this.isSimulcastOn()) {
+        for (const encoding in parameters.encodings) {
+            if (parameters.encodings.hasOwnProperty(encoding)) {
+                // On chromium, set a max bitrate of 500 Kbps for screenshare when
+                // capScreenshareBitrate is enabled through config.js and presenter
+                // is not turned on.
+                const bitrate = browser.usesPlanB()
+                    && videoType === VideoType.DESKTOP
+                    && this.options.capScreenshareBitrate
+                    ? presenterEnabled ? this.videoBitrates.high : DESKSTOP_SHARE_RATE
+                    : this.tpcUtils.simulcastEncodings[encoding].maxBitrate;
 
-                if (!parameters.encodings || !parameters.encodings.length) {
-                    return;
-                }
-                logger.debug('Setting max bitrate on video stream');
-                for (const encoding in parameters.encodings) {
-                    if (parameters.encodings.hasOwnProperty(encoding)) {
-                        // On chromium, set a max bitrate of 500 Kbps for screenshare when
-                        // capScreenshareBitrate is enabled through config.js and presenter
-                        // is not turned on.
-                        parameters.encodings[encoding].maxBitrate
-                            = browser.usesPlanB() && videoType === VideoType.DESKTOP
-                                ? presenterEnabled ? HD_BITRATE : DESKSTOP_SHARE_RATE
-
-                                // In unified plan, simulcast for SS is on by default.
-                                // When simulcast is disabled through a config.js option,
-                                // we cap the bitrate on desktop and camera tracks to 2500 Kbps.
-                                : this.isSimulcastOn()
-                                    ? this.tpcUtils.simulcastEncodings[encoding].maxBitrate
-                                    : HD_BITRATE;
-                    }
-                }
-                setSenderParamPromises.push(sender.setParameters(parameters));
-            } catch (err) {
-                logger.error('Browser does not support getParameters/setParamters '
-                    + 'or setting max bitrate on the encodings: ', err);
+                logger.info(`${this} Setting a max bitrate of ${bitrate} bps on layer `
+                    + `${this.tpcUtils.simulcastEncodings[encoding].rid}`);
+                parameters.encodings[encoding].maxBitrate = bitrate;
             }
-        });
+        }
+    } else {
+        // Do not change the max bitrate for desktop tracks in non-simulcast mode.
+        let bitrate = this.videoBitrates.high;
 
-    return Promise.all(setSenderParamPromises)
-        .then(() => Promise.resolve());
+        if (videoType === VideoType.CAMERA) {
+            // Determine the bitrates based on the sender constraint applied for unicast tracks.
+            const scaleFactor = this.senderVideoMaxHeight
+                ? Math.floor(localVideoTrack.resolution / this.senderVideoMaxHeight)
+                : 1;
+            const encoding = this.tpcUtils.simulcastEncodings
+                .find(layer => layer.scaleResolutionDownBy === scaleFactor);
+
+            if (encoding) {
+                logger.info(`${this} Setting a max bitrate of ${encoding.maxBitrate} bps on local video track`);
+                bitrate = encoding.maxBitrate;
+            }
+        }
+        parameters.encodings[0].maxBitrate = bitrate;
+    }
+
+    return videoSender.setParameters(parameters);
 };
 
 TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
@@ -2265,7 +2272,9 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
             }
         }
     } else if (newHeight > 0) {
-        parameters.encodings[0].scaleResolutionDownBy = Math.floor(localVideoTrack.resolution / newHeight);
+        parameters.encodings[0].scaleResolutionDownBy = localVideoTrack.resolution >= newHeight
+            ? Math.floor(localVideoTrack.resolution / newHeight)
+            : 1;
         parameters.encodings[0].active = true;
     } else {
         parameters.encodings[0].scaleResolutionDownBy = undefined;
@@ -2277,6 +2286,11 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
     return videoSender.setParameters(parameters).then(() => {
         localVideoTrack.maxEnabledResolution = newHeight;
         this.eventEmitter.emit(RTCEvents.LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED, localVideoTrack);
+
+        // Max bitrate needs to be reconfigured on the p2p connection if needed when the send resolution changes.
+        if (this.isP2P) {
+            return this.setMaxBitRate();
+        }
     });
 };
 
