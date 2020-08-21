@@ -36,8 +36,8 @@ export class PerformanceObserverStats {
      */
     getLongTasksStats() {
         return {
-            average: (this.stats.getAverage() * SECONDS).toFixed(2), // calc rate per min
-            maxDuration: this.maxDuration
+            avgRatePerMinute: (this.stats.getAverage() * SECONDS).toFixed(2), // calc rate per min
+            maxDurationMs: this.maxDuration
         };
     }
 
