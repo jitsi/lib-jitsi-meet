@@ -150,6 +150,9 @@ export default class XMPP extends Listenable {
         if (!this.options.disableRtx) {
             this.caps.addFeature('urn:ietf:rfc:4588');
         }
+        if (this.options.enableOpusRed === true) {
+            this.caps.addFeature('http://jitsi.org/opus-red');
+        }
 
         // this is dealt with by SDP O/A so we don't need to announce this
         // XEP-0293

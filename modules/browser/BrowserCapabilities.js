@@ -287,6 +287,18 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Whether the browser supports the RED format for audio.
+     */
+    supportsAudioRed() {
+        return Boolean(window.RTCRtpSender
+            && window.RTCRtpSender.getCapabilities
+            && window.RTCRtpSender.getCapabilities('audio').codecs.some(codec => codec.mimeType === 'audio/red')
+            && window.RTCRtpReceiver
+            && window.RTCRtpReceiver.getCapabilities
+            && window.RTCRtpReceiver.getCapabilities('audio').codecs.some(codec => codec.mimeType === 'audio/red'));
+    }
+
+    /**
      * Checks if the browser supports the "sdpSemantics" configuration option.
      * https://webrtc.org/web-apis/chrome/unified-plan/
      *
