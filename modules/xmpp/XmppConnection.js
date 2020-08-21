@@ -434,7 +434,8 @@ export default class XmppConnection extends Listenable {
                 this.sendIQ(
                     iq,
                     result => resolve(result),
-                    error => reject(error));
+                    error => reject(error),
+                    timeout);
             } else {
                 const deferred = {
                     iq,
