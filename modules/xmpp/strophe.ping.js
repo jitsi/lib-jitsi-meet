@@ -14,14 +14,16 @@ const logger = getLogger(__filename);
 const PING_INTERVAL = 10000;
 
 /**
- * Ping timeout error after 15 sec of waiting.
+ * Ping timeout error after 5 sec of waiting.
  */
-const PING_TIMEOUT = 15000;
+const PING_TIMEOUT = 5000;
 
 /**
- * Will close the connection after 3 consecutive ping errors.
+ * How many ping failures will be tolerated before the WebSocket connection is killed.
+ * The worst case scenario in case of ping timing out without a response is (25 seconds at the time of this writing):
+ * PING_THRESHOLD * PING_INTERVAL + PING_TIMEOUT
  */
-const PING_THRESHOLD = 3;
+const PING_THRESHOLD = 2;
 
 /**
  * The number of timestamps of send pings to keep.
@@ -38,14 +40,16 @@ const PING_TIMESTAMPS_TO_KEEP = 120000 / PING_INTERVAL;
 export default class PingConnectionPlugin extends ConnectionPlugin {
     /**
      * Contructs new object
-     * @param {XMPP} xmpp the xmpp module.
+     * @param {Object} options
+     * @param {Function} options.onPingThresholdExceeded - Callback called when ping fails too many times (controlled
+     * by the {@link PING_THRESHOLD} constant).
      * @constructor
      */
-    constructor(xmpp) {
+    constructor({ onPingThresholdExceeded }) {
         super();
         this.failedPings = 0;
-        this.xmpp = xmpp;
         this.pingExecIntervals = new Array(PING_TIMESTAMPS_TO_KEEP);
+        this._onPingThresholdExceeded = onPingThresholdExceeded;
     }
 
     /**
@@ -101,13 +105,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
                 if (this.failedPings >= PING_THRESHOLD) {
                     GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
                     logger.error(errmsg, error);
-
-                    // FIXME it doesn't help to disconnect when 3rd PING
-                    // times out, it only stops Strophe from retrying.
-                    // Not really sure what's the right thing to do in that
-                    // situation, but just closing the connection makes no
-                    // sense.
-                    // self.connection.disconnect();
+                    this._onPingThresholdExceeded && this._onPingThresholdExceeded();
                 } else {
                     logger.warn(errmsg, error);
                 }

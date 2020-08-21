@@ -6,6 +6,7 @@ import Listenable from '../util/Listenable';
 import { getJitterDelay } from '../util/Retry';
 
 import LastSuccessTracker from './StropheLastSuccess';
+import PingConnectionPlugin from './strophe.ping';
 
 const logger = getLogger(__filename);
 
@@ -80,6 +81,14 @@ export default class XmppConnection extends Listenable {
          * @private
          */
         this._deferredIQs = [];
+
+        // Ping plugin is mandatory for the Websocket mode to work correctly. It's used to detect when the connection
+        // is broken (WebSocket/TCP connection not closed gracefully).
+        this.addConnectionPlugin(
+            'ping',
+            new PingConnectionPlugin({
+                onPingThresholdExceeded: () => this._onPingErrorThresholdExceeded()
+            }));
     }
 
     /**
@@ -246,7 +255,10 @@ export default class XmppConnection extends Listenable {
             this._maybeEnableStreamResume();
             this._maybeStartWSKeepAlive();
             this._processDeferredIQs();
+            this.ping.startInterval(this.domain);
         } else if (status === Strophe.Status.DISCONNECTED) {
+            this.ping.stopInterval();
+
             // FIXME add RECONNECTING state instead of blocking the DISCONNECTED update
             blockCallback = this._tryResumingConnection();
             if (!blockCallback) {
@@ -278,7 +290,10 @@ export default class XmppConnection extends Listenable {
      * @returns {void}
      */
     closeWebsocket() {
-        this._stropheConn._proto && this._stropheConn._proto.socket && this._stropheConn._proto.socket.close();
+        if (this._stropheConn && this._stropheConn._proto) {
+            this._stropheConn._proto._closeSocket();
+            this._stropheConn._proto._onClose(null);
+        }
     }
 
     /**
@@ -457,6 +472,18 @@ export default class XmppConnection extends Listenable {
                 this._deferredIQs.push(deferred);
             }
         });
+    }
+
+    /**
+     * Called by the ping plugin when ping fails too many times.
+     *
+     * @returns {void}
+     */
+    _onPingErrorThresholdExceeded() {
+        if (this.isUsingWebSocket) {
+            logger.warn('Ping error threshold exceeded - killing the WebSocket');
+            this.closeWebsocket();
+        }
     }
 
     /**
