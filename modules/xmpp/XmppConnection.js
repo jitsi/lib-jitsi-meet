@@ -88,7 +88,10 @@ export default class XmppConnection extends Listenable {
      * @returns {boolean}
      */
     get connected() {
-        return this._status === Strophe.Status.CONNECTED || this._status === Strophe.Status.ATTACHED;
+        const websocket = this._stropheConn && this._stropheConn._proto && this._stropheConn._proto.socket;
+
+        return (this._status === Strophe.Status.CONNECTED || this._status === Strophe.Status.ATTACHED)
+            && (!this.isUsingWebSocket || (websocket && websocket.readyState === WebSocket.OPEN));
     }
 
     /**
