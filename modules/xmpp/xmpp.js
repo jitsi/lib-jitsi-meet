@@ -17,7 +17,6 @@ import XmppConnection from './XmppConnection';
 import MucConnectionPlugin from './strophe.emuc';
 import JingleConnectionPlugin from './strophe.jingle';
 import initStropheLogger from './strophe.logger';
-import PingConnectionPlugin from './strophe.ping';
 import RayoConnectionPlugin from './strophe.rayo';
 import initStropheUtil from './strophe.util';
 
@@ -228,10 +227,6 @@ export default class XMPP extends Listenable {
                         logger.error(
                             `Ping NOT supported by ${pingJid} - please enable ping in your XMPP server config`);
                     }
-
-                    // It counterintuitive to start ping task when it's not supported, but since PING is now mandatory
-                    // it's done on purpose in order to print error logs and bring more attention.
-                    this.connection.ping.startInterval(pingJid);
 
                     // check for speakerstats
                     identities.forEach(identity => {
@@ -646,7 +641,6 @@ export default class XMPP extends Listenable {
 
         this.connection.addConnectionPlugin('emuc', new MucConnectionPlugin(this));
         this.connection.addConnectionPlugin('jingle', new JingleConnectionPlugin(this, this.eventEmitter, iceConfig));
-        this.connection.addConnectionPlugin('ping', new PingConnectionPlugin(this));
         this.connection.addConnectionPlugin('rayo', new RayoConnectionPlugin());
     }
 
