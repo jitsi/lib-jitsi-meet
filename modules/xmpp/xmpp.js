@@ -151,7 +151,7 @@ export default class XMPP extends Listenable {
         if (!this.options.disableRtx) {
             this.caps.addFeature('urn:ietf:rfc:4588');
         }
-        if (this.options.enableOpusRed === true) {
+        if (this.options.enableOpusRed === true && browser.supportsAudioRed()) {
             this.caps.addFeature('http://jitsi.org/opus-red');
         }
 
