@@ -256,10 +256,7 @@ export class TPCUtils {
             return Promise.resolve();
         }
 
-        return transceiver.sender.replaceTrack(track)
-            .then(() => {
-                this.pc.localTracks.set(localTrack.rtcId, localTrack);
-            });
+        return transceiver.sender.replaceTrack(track);
     }
 
     /**
@@ -289,8 +286,7 @@ export class TPCUtils {
     /**
      * Removes the track from the RTCRtpSender as part of the mute operation.
      * @param {JitsiLocalTrack} localTrack - track to be removed.
-     * @returns {Promise<boolean>} - Promise that resolves to false if unmute
-     * operation is successful, a reject otherwise.
+     * @returns {Promise<void>} - resolved when done.
      */
     removeTrackMute(localTrack) {
         const mediaType = localTrack.getType();
@@ -303,12 +299,7 @@ export class TPCUtils {
 
         logger.debug(`Removing ${localTrack} on ${this.pc}`);
 
-        return transceiver.sender.replaceTrack(null)
-            .then(() => {
-                this.pc.localTracks.delete(localTrack.rtcId);
-
-                return Promise.resolve(false);
-            });
+        return transceiver.sender.replaceTrack(null);
     }
 
     /**
@@ -408,8 +399,8 @@ export class TPCUtils {
         const transceivers = this.pc.peerconnection.getTransceivers()
             .filter(t => t.receiver && t.receiver.track && t.receiver.track.kind === mediaType);
         const localTracks = this.pc.getLocalTracks(mediaType);
-        logger.info(`${active ? 'Enabling' : 'Suspending'} ${mediaType} media transfer on ${this.pc}`);
 
+        logger.info(`${active ? 'Enabling' : 'Suspending'} ${mediaType} media transfer on ${this.pc}`);
         transceivers.forEach((transceiver, idx) => {
             if (active) {
                 // The first transceiver is for the local track and only this one can be set to 'sendrecv'
