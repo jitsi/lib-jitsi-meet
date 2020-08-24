@@ -1657,9 +1657,6 @@ TraceablePeerConnection.prototype.addTrack = function(track, isInitiator = false
  * Promise is rejected when something goes wrong.
  */
 TraceablePeerConnection.prototype.addTrackUnmute = function(track) {
-    if (browser.usesUnifiedPlan()) {
-        return this.tpcUtils.addTrackUnmute(track);
-    }
     if (!this._assertTrackBelongs('addTrackUnmute', track)) {
         // Abort
         return Promise.reject('Track not found on the peerconnection');
@@ -1674,6 +1671,11 @@ TraceablePeerConnection.prototype.addTrackUnmute = function(track) {
 
         return Promise.reject('Stream not found');
     }
+
+    if (browser.usesUnifiedPlan()) {
+        return this.tpcUtils.addTrackUnmute(track);
+    }
+
     this._addStream(webRtcStream);
 
     return Promise.resolve(true);
@@ -1832,9 +1834,6 @@ TraceablePeerConnection.prototype.replaceTrack = function(oldTrack, newTrack) {
  * Promise is rejected when something goes wrong.
  */
 TraceablePeerConnection.prototype.removeTrackMute = function(localTrack) {
-    if (browser.usesUnifiedPlan()) {
-        return this.tpcUtils.removeTrackMute(localTrack);
-    }
     const webRtcStream = localTrack.getOriginalStream();
 
     this.trace(
@@ -1845,6 +1844,11 @@ TraceablePeerConnection.prototype.removeTrackMute = function(localTrack) {
         // Abort - nothing to be done here
         return Promise.reject('Track not found in the peerconnection');
     }
+
+    if (browser.usesUnifiedPlan()) {
+        return this.tpcUtils.removeTrackMute(localTrack);
+    }
+
     if (webRtcStream) {
         logger.info(
             `Removing ${localTrack} as mute from ${this}`);
