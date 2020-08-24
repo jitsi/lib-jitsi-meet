@@ -945,7 +945,7 @@ export default class JingleSessionPC extends JingleSession {
             const addTracks = [];
 
             for (const localTrack of localTracks) {
-                addTracks.push(this.peerconnection.addTrack(localTrack, true /* isInitiator */));
+                addTracks.push(this.peerconnection.addTrack(localTrack, this.isInitiator));
             }
 
             Promise.all(addTracks)
@@ -1044,7 +1044,7 @@ export default class JingleSessionPC extends JingleSession {
             const addTracks = [];
 
             for (const track of localTracks) {
-                addTracks.push(this.peerconnection.addTrack(track));
+                addTracks.push(this.peerconnection.addTrack(track, this.isInitiator));
             }
 
             const newRemoteSdp

@@ -192,9 +192,11 @@ export class TPCUtils {
     /**
     * Adds {@link JitsiLocalTrack} to the WebRTC peerconnection for the first time.
     * @param {JitsiLocalTrack} track - track to be added to the peerconnection.
+    * @param {boolean} isInitiator - boolean that indicates if the endpoint is offerer
+    * in a p2p connection.
     * @returns {void}
     */
-    addTrack(localTrack, isInitiator = true) {
+    addTrack(localTrack, isInitiator) {
         const track = localTrack.getTrack();
 
         if (isInitiator) {
@@ -375,7 +377,7 @@ export class TPCUtils {
     * @returns {void}
     */
     setAudioTransferActive(active) {
-        this.setMediaTransferActive('audio', active);
+        this.setMediaTransferActive(MediaType.AUDIO, active);
     }
 
     /**
@@ -406,6 +408,7 @@ export class TPCUtils {
         const transceivers = this.pc.peerconnection.getTransceivers()
             .filter(t => t.receiver && t.receiver.track && t.receiver.track.kind === mediaType);
         const localTracks = this.pc.getLocalTracks(mediaType);
+        logger.info(`${active ? 'Enabling' : 'Suspending'} ${mediaType} media transfer on ${this.pc}`);
 
         transceivers.forEach((transceiver, idx) => {
             if (active) {
@@ -431,6 +434,6 @@ export class TPCUtils {
     * @returns {void}
     */
     setVideoTransferActive(active) {
-        this.setMediaTransferActive('video', active);
+        this.setMediaTransferActive(MediaType.VIDEO, active);
     }
 }
