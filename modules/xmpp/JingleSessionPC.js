@@ -329,12 +329,25 @@ export default class JingleSessionPC extends JingleSession {
         }
         pcOptions.capScreenshareBitrate = false;
         pcOptions.enableInsertableStreams = options.enableInsertableStreams;
+        pcOptions.videoQuality = options.videoQuality;
+
+        // codec preference options for jvb connection.
+        if (pcOptions.videoQuality) {
+            pcOptions.disabledCodec = pcOptions.videoQuality.disabledCodec;
+            pcOptions.preferredCodec = pcOptions.videoQuality.preferredCodec;
+        }
 
         if (this.isP2P) {
             // simulcast needs to be disabled for P2P (121) calls
             pcOptions.disableSimulcast = true;
             pcOptions.disableH264 = options.p2p && options.p2p.disableH264;
             pcOptions.preferH264 = options.p2p && options.p2p.preferH264;
+
+            // codec preference options for p2p.
+            if (options.p2p) {
+                pcOptions.disabledCodec = options.p2p.disabledCodec;
+                pcOptions.preferredCodec = options.p2p.preferredCodec;
+            }
 
             const abtestSuspendVideo = this._abtestSuspendVideoEnabled(options);
 
@@ -548,7 +561,6 @@ export default class JingleSessionPC extends JingleSession {
             const state = this.peerconnection.signalingState;
             const remoteDescription = this.peerconnection.remoteDescription;
 
-            this.room.eventEmitter.emit(XMPPEvents.PEERCONNECTION_READY, this);
             if (browser.usesUnifiedPlan() && state === 'stable'
                 && remoteDescription && typeof remoteDescription.sdp === 'string') {
                 logger.debug(`onnegotiationneeded fired on ${this.peerconnection} in state: ${state}`);
@@ -925,36 +937,26 @@ export default class JingleSessionPC extends JingleSession {
      * added, before the offer/answer cycle executes (for the local track
      * addition to be an atomic operation together with the offer/answer).
      */
-    invite(localTracks) {
+    invite(localTracks = []) {
         if (!this.isInitiator) {
             throw new Error('Trying to invite from the responder session');
         }
         const workFunction = finishedCallback => {
+            const addTracks = [];
+
             for (const localTrack of localTracks) {
-                this.peerconnection.addTrack(localTrack, true /* isInitiator */);
+                addTracks.push(this.peerconnection.addTrack(localTrack, true /* isInitiator */));
             }
-            this.peerconnection.createOffer(this.mediaConstraints)
-                .then(offerSdp => {
-                    this.peerconnection.setLocalDescription(offerSdp)
-                        .then(() => {
-                            // NOTE that the offer is obtained from
-                            // the localDescription getter as it needs to go
-                            // though the transformation chain.
-                            this.sendSessionInitiate(
-                                this.peerconnection.localDescription.sdp);
-                            finishedCallback();
-                        }, error => {
-                            logger.error(
-                                'Failed to set local SDP', error, offerSdp);
-                            finishedCallback(error);
-                        });
-                }, error => {
-                    logger.error(
-                        'Failed to create an offer',
-                        error,
-                        this.mediaConstraints);
-                    finishedCallback(error);
-                });
+
+            Promise.all(addTracks)
+                .then(() => this.peerconnection.createOffer(this.mediaConstraints))
+                .then(offerSdp => this.peerconnection.setLocalDescription(offerSdp))
+                .then(() => {
+                    // NOTE that the offer is obtained from the localDescription getter as it needs to go though
+                    // the transformation chain.
+                    this.sendSessionInitiate(this.peerconnection.localDescription.sdp);
+                })
+                .then(() => finishedCallback(), error => finishedCallback(error));
         };
 
         this.modificationQueue.push(
@@ -1037,13 +1039,12 @@ export default class JingleSessionPC extends JingleSession {
      * executes (for the local track addition to be an atomic operation together
      * with the offer/answer).
      */
-    setOfferAnswerCycle(jingleOfferAnswerIq, success, failure, localTracks) {
+    setOfferAnswerCycle(jingleOfferAnswerIq, success, failure, localTracks = []) {
         const workFunction = finishedCallback => {
+            const addTracks = [];
 
-            if (localTracks) {
-                for (const track of localTracks) {
-                    this.peerconnection.addTrack(track);
-                }
+            for (const track of localTracks) {
+                addTracks.push(this.peerconnection.addTrack(track));
             }
 
             const newRemoteSdp
@@ -1061,7 +1062,8 @@ export default class JingleSessionPC extends JingleSession {
                 this._bridgeSessionId = bridgeSessionId;
             }
 
-            this._renegotiate(newRemoteSdp.raw)
+            Promise.all(addTracks)
+                .then(() => this._renegotiate(newRemoteSdp.raw))
                 .then(() => {
                     if (this.state === JingleSessionState.PENDING) {
                         this.state = JingleSessionState.ACTIVE;
@@ -1096,16 +1098,8 @@ export default class JingleSessionPC extends JingleSession {
                         this.notifyMySSRCUpdate(
                             new SDP(oldLocalSdp), newLocalSdp);
                     }
-
-                    finishedCallback();
-                }, error => {
-                    logger.error(
-                        `Error renegotiating after setting new remote ${
-                            this.isInitiator ? 'answer: ' : 'offer: '}${error}`,
-                        newRemoteSdp);
-
-                    finishedCallback(error);
-                });
+                })
+                .then(() => finishedCallback(), error => finishedCallback(error));
         };
 
         this.modificationQueue.push(
@@ -1395,6 +1389,20 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Sets the maximum bitrates on the local video track. Bitrate values from
+     * videoQuality settings in config.js will be used for configuring the sender.
+     * @returns {Promise<void>} promise that will be resolved when the operation is
+     * successful and rejected otherwise.
+     */
+    setSenderMaxBitrates() {
+        if (this._assertNotEnded()) {
+            return this.peerconnection.setMaxBitRate();
+        }
+
+        return Promise.resolve();
+    }
+
+    /**
      * Sets the resolution constraint on the local camera track.
      * @param {number} maxFrameHeight - The user preferred max frame height.
      * @returns {Promise} promise that will be resolved when the operation is
@@ -1413,12 +1421,15 @@ export default class JingleSessionPC extends JingleSession {
     /**
      * Sets the degradation preference on the video sender. This setting determines if
      * resolution or framerate will be preferred when bandwidth or cpu is constrained.
-     * @returns {void}
+     * @returns {Promise<void>} promise that will be resolved when the operation is
+     * successful and rejected otherwise.
      */
     setSenderVideoDegradationPreference() {
         if (this._assertNotEnded()) {
-            this.peerconnection.setSenderVideoDegradationPreference();
+            return this.peerconnection.setSenderVideoDegradationPreference();
         }
+
+        return Promise.resolve();
     }
 
     /**
@@ -1906,29 +1917,22 @@ export default class JingleSessionPC extends JingleSession {
                             const newLocalSDP = new SDP(this.peerconnection.localDescription.sdp);
 
                             this.notifyMySSRCUpdate(new SDP(oldLocalSdp), newLocalSDP);
-                        },
-                        finishedCallback /* will be called with en error */);
+                        });
                     }
 
-                    promise.then(() => {
+                    return promise.then(() => {
                         if (newTrack && newTrack.isVideoTrack()) {
+                            // FIXME set all sender parameters in one go?
                             // Set the degradation preference on the new video sender.
-                            this.peerconnection.setSenderVideoDegradationPreference();
+                            return this.peerconnection.setSenderVideoDegradationPreference()
 
-                            // Apply the cached video constraints on the new video sender.
-                            this.peerconnection.setSenderVideoConstraint();
-
-                            // Configure max bitrate on the video sender when media is routed through JVB.
-                            if (!this.isP2P) {
-                                this.peerconnection.setMaxBitRate(newTrack);
-                            }
+                                // Apply the cached video constraints on the new video sender.
+                                .then(() => this.peerconnection.setSenderVideoConstraint())
+                                .then(() => this.peerconnection.setMaxBitRate());
                         }
-                        finishedCallback();
-                    }, finishedCallback /* will be called with en error */);
+                    });
                 })
-                .catch(err => {
-                    finishedCallback(err);
-                });
+                .then(() => finishedCallback(), error => finishedCallback(error));
         };
 
         return new Promise((resolve, reject) => {
@@ -2071,11 +2075,12 @@ export default class JingleSessionPC extends JingleSession {
         return this._addRemoveTrackAsMuteUnmute(
             false /* add as unmute */, track)
             .then(() => {
-                // Apply the video constraints and degradation preference on
+                // Apply the video constraints, max bitrates and degradation preference on
                 // the video sender if needed.
                 if (track.isVideoTrack() && browser.doesVideoMuteByStreamRemove()) {
-                    this.peerconnection.setSenderVideoDegradationPreference();
-                    this.peerconnection.setSenderVideoConstraint();
+                    return this.setSenderMaxBitrates()
+                        .then(() => this.setSenderVideoDegradationPreference())
+                        .then(() => this.setSenderVideoConstraint());
                 }
             });
     }

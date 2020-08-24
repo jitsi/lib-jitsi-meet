@@ -46,9 +46,10 @@
     "eslint-plugin-import": "2.20.2",
     "flow-bin": "0.104.0",
     "jasmine-core": "3.5.0",
-    "karma": "4.4.1",
+    "karma": "5.1.1",
     "karma-chrome-launcher": "3.1.0",
     "karma-jasmine": "3.1.1",
+    "karma-sourcemap-loader": "0.3.7",
     "karma-webpack": "4.0.2",
     "string-replace-loader": "2.1.1",
     "webpack": "4.43.0",
@@ -60,7 +61,8 @@
     "postinstall": "webpack -p",
     "test": "karma start karma.conf.js",
     "test-watch": "karma start karma.conf.js --no-single-run",
-    "validate": "npm ls"
+    "validate": "npm ls",
+    "watch": "webpack --config webpack.config.js --watch --mode development"
   },
   "main": "./index.js",
   "license": "Apache-2.0"

@@ -171,6 +171,8 @@ export default class Caps extends Listenable {
 
                         return Promise.reject(ERROR_FEATURE_VERSION_MISMATCH);
                     }
+
+                    return features;
                 });
         }
 
