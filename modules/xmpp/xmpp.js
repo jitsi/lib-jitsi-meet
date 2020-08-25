@@ -86,7 +86,6 @@ export default class XMPP extends Listenable {
      * @param {Object} options
      * @param {String} options.serviceUrl - URL passed to the XMPP client which will be used to establish XMPP
      * connection with the server.
-     * @param {String} options.bosh - Deprecated, use {@code serviceUrl}.
      * @param {boolean} options.enableWebsocketResume - Enables XEP-0198 stream management which will make the XMPP
      * module try to resume the session in case the Websocket connection breaks.
      * @param {number} [options.websocketKeepAlive] - The websocket keep alive interval. See {@link XmppConnection}
@@ -107,9 +106,7 @@ export default class XMPP extends Listenable {
 
         this.connection = createConnection({
             enableWebsocketResume: options.enableWebsocketResume,
-
-            // FIXME remove deprecated bosh option at some point
-            serviceUrl: options.serviceUrl || options.bosh,
+            serviceUrl: options.serviceUrl,
             token,
             websocketKeepAlive: options.websocketKeepAlive
         });
