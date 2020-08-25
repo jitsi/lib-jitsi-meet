@@ -2109,12 +2109,12 @@ TraceablePeerConnection.prototype.setMaxBitRate = function() {
     const videoSender = this.findSenderByKind(MediaType.VIDEO);
 
     if (!videoSender) {
-        return Promise.reject(new Error('RTCRtpSender not found for local video'));
+        return Promise.resolve();
     }
     const parameters = videoSender.getParameters();
 
     if (!(parameters.encodings && parameters.encodings.length)) {
-        return Promise.reject(new Error('RTCRtpEncodingParameters not found for local video'));
+        return Promise.resolve();
     }
 
     if (this.isSimulcastOn()) {
@@ -2258,12 +2258,12 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
     const videoSender = this.findSenderByKind(MediaType.VIDEO);
 
     if (!videoSender) {
-        return Promise.reject(new Error('RTCRtpSender not found for local video'));
+        return Promise.resolve();
     }
     const parameters = videoSender.getParameters();
 
     if (!parameters || !parameters.encodings || !parameters.encodings.length) {
-        return Promise.reject(new Error('RTCRtpSendParameters not found for local video track'));
+        return Promise.resolve();
     }
 
     if (this.isSimulcastOn()) {
