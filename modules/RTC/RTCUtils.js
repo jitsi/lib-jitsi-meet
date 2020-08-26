@@ -815,7 +815,7 @@ class RTCUtils extends Listenable {
             logger.info(`Disable HPF: ${disableHPF}`);
         }
 
-        availableDevices = undefined;
+        availableDevices = [];
         window.clearInterval(availableDevicesPollTimer);
         availableDevicesPollTimer = undefined;
 
