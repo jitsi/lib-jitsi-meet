@@ -2099,8 +2099,8 @@ TraceablePeerConnection.prototype.setMaxBitRate = function() {
     // 2. Track is a desktop track and bitrate is capped using capScreenshareBitrate option in plan-b mode.
     // 3. The client is running in Unified plan mode.
     if (!((this.options.videoQuality && this.options.videoQuality.maxBitratesVideo)
-        || (browser.usesPlanB() && this.options.capScreenshareBitrate && videoType === VideoType.DESKTOP))
-        || browser.usesUnifiedPlan()) {
+        || (browser.usesPlanB() && this.options.capScreenshareBitrate && videoType === VideoType.DESKTOP)
+        || browser.usesUnifiedPlan())) {
         return Promise.resolve();
     }
 
