@@ -205,7 +205,7 @@ Moderator.prototype.createConferenceIq = function() {
                     value: Boolean(config.enableRemb)
                 }).up();
     }
-    if (config.enableOpusRed === true && browser.supportsAudioRed()) {
+    if (config.enableOpusRed === true) {
         elem.c(
                 'property', {
                     name: 'enableOpusRed',
