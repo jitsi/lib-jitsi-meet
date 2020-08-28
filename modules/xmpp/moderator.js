@@ -3,7 +3,6 @@
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, Strophe } from 'strophe.js';
 
-import browser from '../browser';
 import Settings from '../settings/Settings';
 
 const AuthenticationEvents
