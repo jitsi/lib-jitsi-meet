@@ -269,11 +269,10 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      *
      * @param {HTMLElement} container the HTML container which can be 'video' or
      * 'audio' element.
-     * @private
+     * @protected
      */
     _onTrackAttach(container) {
-        logger.debug(`Track has been attached to a container: ${this}`);
-
+        super._onTrackAttach(container);
         containerEvents.forEach(event => {
             container.addEventListener(event, this._containerHandlers[event]);
         });
@@ -284,11 +283,10 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      *
      * @param {HTMLElement} container the HTML container which can be 'video' or
      * 'audio' element.
-     * @private
+     * @protected
      */
     _onTrackDetach(container) {
-        logger.debug(`Track has been detached from a container: ${this}`);
-
+        super._onTrackDetach(container);
         containerEvents.forEach(event => {
             container.removeEventListener(event, this._containerHandlers[event]);
         });

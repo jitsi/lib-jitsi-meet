@@ -4,6 +4,12 @@
 export const LOCAL_TRACK_STOPPED = 'track.stopped';
 
 /**
+ * Event fired when a track is attached to a container. The first argument is the track and the container instance is
+ * passed as the second one.
+ */
+export const _TRACK_ATTACHED = 'track.attached';
+
+/**
  * Audio levels of a this track was changed.
  * The first argument is a number with audio level value in range [0, 1].
  * The second argument is a <tt>TraceablePeerConnection</tt> which is the peer
@@ -21,6 +27,12 @@ export const TRACK_AUDIO_LEVEL_CHANGED = 'track.audioLevelsChanged';
  * The audio output of the track was changed.
  */
 export const TRACK_AUDIO_OUTPUT_CHANGED = 'track.audioOutputChanged';
+
+/**
+ * Event fired when a track is detached from a container. The track instance is passed as the first argument and
+ * the container from which it's being detached comes as the 2nd argument.
+ */
+export const _TRACK_DETACHED = 'track.detached';
 
 /**
  * A media track mute status was changed.

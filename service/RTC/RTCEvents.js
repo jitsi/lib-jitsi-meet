@@ -42,8 +42,6 @@ const RTCEvents = {
      */
     LOCAL_TRACK_MAX_ENABLED_RESOLUTION_CHANGED: 'rtc.local_track_max_enabled_resolution_changed',
 
-    TRACK_ATTACHED: 'rtc.track_attached',
-
     /**
      * Event fired when we remote track is added to the conference.
      * 1st event argument is the added <tt>JitsiRemoteTrack</tt> instance.

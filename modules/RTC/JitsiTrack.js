@@ -1,10 +1,10 @@
 /* global __filename, module */
-import EventEmitter from 'events';
 import { getLogger } from 'jitsi-meet-logger';
 
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import * as MediaType from '../../service/RTC/MediaType';
 import browser from '../browser';
+import Listenable from '../util/Listenable';
 
 import RTCUtils from './RTCUtils';
 
@@ -22,7 +22,7 @@ const trackHandler2Prop = {
 /**
  * Represents a single media track (either audio or video).
  */
-export default class JitsiTrack extends EventEmitter {
+export default class JitsiTrack extends Listenable {
     /* eslint-disable max-params */
     /**
      * Represents a single media track (either audio or video).
@@ -45,9 +45,9 @@ export default class JitsiTrack extends EventEmitter {
             videoType) {
         super();
 
-        // aliases for addListener/removeListener
-        this.addEventListener = this.addListener;
-        this.removeEventListener = this.off = this.removeListener;
+        // alias for emit and removeAllListeners
+        this.emit = this.eventEmitter.emit.bind(this.eventEmitter);
+        this.removeAllListeners = this.eventEmitter.removeAllListeners.bind(this.eventEmitter);
 
         /**
          * Array with the HTML elements that are displaying the streams.
@@ -298,11 +298,13 @@ export default class JitsiTrack extends EventEmitter {
      * @returns {void}
      */
     attach(container) {
+        this.containers.push(container);
+
+        // FIXME RTCUtils.attachMediaStream is not called for each container when assigning new values to 'this.stream'
         if (this.stream) {
             this._onTrackAttach(container);
             RTCUtils.attachMediaStream(container, this.stream);
         }
-        this.containers.push(container);
         this._maybeFireTrackAttached(container);
         this._attachTTFMTracker(container);
     }
@@ -341,8 +343,8 @@ export default class JitsiTrack extends EventEmitter {
      * 'audio' element.
      * @private
      */
-    _onTrackAttach(container) { // eslint-disable-line no-unused-vars
-        // Should be defined by the classes that are extending JitsiTrack
+    _onTrackAttach(container) {
+        this.emit(JitsiTrackEvents._TRACK_ATTACHED, this, container);
     }
 
     /**
@@ -352,8 +354,8 @@ export default class JitsiTrack extends EventEmitter {
      * 'audio' element.
      * @private
      */
-    _onTrackDetach(container) { // eslint-disable-line no-unused-vars
-        // Should be defined by the classes that are extending JitsiTrack
+    _onTrackDetach(container) {
+        this.emit(JitsiTrackEvents._TRACK_DETACHED, this, container);
     }
 
     /**
