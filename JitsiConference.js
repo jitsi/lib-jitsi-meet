@@ -35,6 +35,7 @@ import Settings from './modules/settings/Settings';
 import AudioOutputProblemDetector from './modules/statistics/AudioOutputProblemDetector';
 import AvgRTPStatsReporter from './modules/statistics/AvgRTPStatsReporter';
 import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
+import { VFSTracker } from './modules/statistics/VFSTracker';
 import Statistics from './modules/statistics/statistics';
 import Transcriber from './modules/transcription/transcriber';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
@@ -389,6 +390,10 @@ JitsiConference.prototype._init = function(options = {}) {
         }
     }
 
+    if (VFSTracker.isSupported()) {
+        this.vfsTracker = new VFSTracker(this);
+    }
+
     this.eventManager.setupChatRoomListeners();
 
     // Always add listeners because on reload we are executing leave and the
@@ -740,7 +745,8 @@ JitsiConference.prototype.getLocalVideoTrack = function() {
  */
 JitsiConference.prototype.getPerformanceStats = function() {
     return {
-        longTasksStats: this.statistics.getLongTasksStats()
+        longTasksStats: this.statistics.getLongTasksStats(),
+        vfs: this.vfsTracker && this.vfsTracker.getLongRunningStats()
     };
 };
 
