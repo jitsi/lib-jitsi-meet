@@ -37,6 +37,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      *        the new JitsiRemoteTrack
      * @param {MediaType} mediaType the type of the media
      * @param {VideoType} videoType the type of the video if applicable
+     * @param {TraceablePeerConnection} tpc - parent peerconnection instance.
      * @param {number} ssrc the SSRC number of the Media Stream
      * @param {boolean} muted the initial muted state
      * @param {boolean} isP2P indicates whether or not this track belongs to a
@@ -44,17 +45,19 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      * @throws {TypeError} if <tt>ssrc</tt> is not a number.
      * @constructor
      */
-    constructor(
-            rtc,
-            conference,
-            ownerEndpointId,
-            stream,
-            track,
-            mediaType,
-            videoType,
-            ssrc,
-            muted,
-            isP2P) {
+    constructor({
+        conference,
+        isP2P,
+        ownerEndpointId,
+        mediaType,
+        muted,
+        rtc,
+        ssrc,
+        stream,
+        tpc,
+        track,
+        videoType
+    }) {
         super(
             conference,
             stream,
@@ -64,6 +67,7 @@ export default class JitsiRemoteTrack extends JitsiTrack {
             },
             mediaType,
             videoType);
+        this.tpc = tpc;
         this.rtc = rtc;
 
         // Prevent from mixing up type of SSRC which should be a number

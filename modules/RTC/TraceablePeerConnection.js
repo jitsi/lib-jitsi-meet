@@ -916,18 +916,19 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
                 + `${ownerEndpointId} ${mediaType}`);
     }
 
-    const remoteTrack
-        = new JitsiRemoteTrack(
-                this.rtc,
-                this.rtc.conference,
-                ownerEndpointId,
-                stream,
-                track,
-                mediaType,
-                videoType,
-                ssrc,
-                muted,
-                this.isP2P);
+    const remoteTrack = new JitsiRemoteTrack({
+        conference: this.rtc.conference,
+        isP2P: this.isP2P,
+        ownerEndpointId,
+        mediaType,
+        muted,
+        rtc: this.rtc,
+        ssrc,
+        stream,
+        tpc: this,
+        track,
+        videoType
+    });
 
     remoteTracksMap.set(mediaType, remoteTrack);
 
