@@ -3,7 +3,6 @@
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, Strophe } from 'strophe.js';
 
-import browser from '../browser';
 import Settings from '../settings/Settings';
 
 const AuthenticationEvents
@@ -205,7 +204,7 @@ Moderator.prototype.createConferenceIq = function() {
                     value: Boolean(config.enableRemb)
                 }).up();
     }
-    if (config.enableOpusRed === true && browser.supportsAudioRed()) {
+    if (config.enableOpusRed === true) {
         elem.c(
                 'property', {
                     name: 'enableOpusRed',
