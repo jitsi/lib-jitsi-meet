@@ -2456,65 +2456,6 @@ TraceablePeerConnection.prototype.close = function() {
     this.peerconnection.close();
 };
 
-/**
- * Modifies the values of the setup attributes (defined by
- * {@link http://tools.ietf.org/html/rfc4145#section-4}) of a specific SDP
- * answer in order to overcome a delay of 1 second in the connection
- * establishment between some devices and Videobridge.
- *
- * @param {SDP} offer - the SDP offer to which the specified SDP answer is
- * being prepared to respond
- * @param {SDP} answer - the SDP to modify
- * @private
- */
-const _fixAnswerRFC4145Setup = function(offer, answer) {
-    if (!(browser.isChromiumBased() || browser.isReactNative())) {
-        // It looks like Firefox doesn't agree with the fix (at least in its
-        // current implementation) because it effectively remains active even
-        // after we tell it to become passive. Apart from Firefox which I tested
-        // after the fix was deployed, I tested Chrome only. In order to prevent
-        // issues with other browsers, limit the fix to known devices for the
-        // time being.
-        return;
-    }
-
-    // XXX Videobridge is the (SDP) offerer and WebRTC (e.g. Chrome) is the
-    // answerer (as orchestrated by Jicofo). In accord with
-    // http://tools.ietf.org/html/rfc5245#section-5.2 and because both peers
-    // are ICE FULL agents, Videobridge will take on the controlling role and
-    // WebRTC will take on the controlled role. In accord with
-    // https://tools.ietf.org/html/rfc5763#section-5, Videobridge will use the
-    // setup attribute value of setup:actpass and WebRTC will be allowed to
-    // choose either the setup attribute value of setup:active or
-    // setup:passive. Chrome will by default choose setup:active because it is
-    // RECOMMENDED by the respective RFC since setup:passive adds additional
-    // latency. The case of setup:active allows WebRTC to send a DTLS
-    // ClientHello as soon as an ICE connectivity check of its succeeds.
-    // Unfortunately, Videobridge will be unable to respond immediately because
-    // may not have WebRTC's answer or may have not completed the ICE
-    // connectivity establishment. Even more unfortunate is that in the
-    // described scenario Chrome's DTLS implementation will insist on
-    // retransmitting its ClientHello after a second (the time is in accord
-    // with the respective RFC) and will thus cause the whole connection
-    // establishment to exceed at least 1 second. To work around Chrome's
-    // idiosyncracy, don't allow it to send a ClientHello i.e. change its
-    // default choice of setup:active to setup:passive.
-    if (offer && answer
-            && offer.media && answer.media
-            && offer.media.length === answer.media.length) {
-        answer.media.forEach((a, i) => {
-            if (SDPUtil.findLine(
-                    offer.media[i],
-                    'a=setup:actpass',
-                    offer.session)) {
-                answer.media[i]
-                    = a.replace(/a=setup:active/g, 'a=setup:passive');
-            }
-        });
-        answer.raw = answer.session + answer.media.join('');
-    }
-};
-
 TraceablePeerConnection.prototype.createAnswer = function(constraints) {
     return this._createOfferOrAnswer(false /* answer */, constraints);
 };
@@ -2592,22 +2533,6 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(
                     `create${logName}`
                          + 'OnSuccess::postTransform (rtx modifier)',
                     dumpSDP(resultSdp));
-            }
-
-            // Fix the setup attribute (see _fixAnswerRFC4145Setup for
-            //  details)
-            if (!isOffer) {
-                const remoteDescription
-                    = new SDP(this.remoteDescription.sdp);
-                const localDescription = new SDP(resultSdp.sdp);
-
-                _fixAnswerRFC4145Setup(remoteDescription, localDescription);
-
-                // eslint-disable-next-line no-param-reassign
-                resultSdp = new RTCSessionDescription({
-                    type: resultSdp.type,
-                    sdp: localDescription.raw
-                });
             }
 
             const ssrcMap = extractSSRCMap(resultSdp);
