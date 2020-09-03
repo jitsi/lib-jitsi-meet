@@ -2422,6 +2422,28 @@ JitsiConference.prototype.isCallstatsEnabled = function() {
     return this.statistics.isCallstatsEnabled();
 };
 
+/**
+ *
+ */
+JitsiConference.prototype.getSsrcByTrack = function(track) {
+    const isP2P = track.isP2P;
+    const isLocal = track.isLocal();
+    const peerConnection = isP2P ? this.p2pJingleSession && this.p2pJingleSession.peerconnection
+        : this.jvbJingleSession && this.jvbJingleSession.peerconnection;
+
+    let ssrc;
+
+    if (isLocal) {
+        // Local tracks have SSRC stored on per peer connection basis
+        if (peerConnection) {
+            ssrc = peerConnection.getLocalSSRC(track);
+        }
+    } else {
+        ssrc = track.getSSRC();
+    }
+
+    return ssrc;
+};
 
 /**
  * Handles track attached to container (Calls associateStreamWithVideoTag method
