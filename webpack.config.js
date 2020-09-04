@@ -10,7 +10,8 @@ const minimize
         || process.argv.indexOf('--optimize-minimize') !== -1;
 
 const config = {
-    devtool: 'source-map',
+    // The inline-source-map is used to allow debugging the unit tests with Karma
+    devtool: minimize ? 'source-map' : 'inline-source-map',
     mode: minimize ? 'production' : 'development',
     module: {
         rules: [ {
