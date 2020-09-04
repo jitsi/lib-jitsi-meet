@@ -2423,7 +2423,10 @@ JitsiConference.prototype.isCallstatsEnabled = function() {
 };
 
 /**
+ * Finds the SSRC of a given track
  *
+ * @param track
+ * @returns {number|undefined} the SSRC of the specificed track, otherwise undefined.
  */
 JitsiConference.prototype.getSsrcByTrack = function(track) {
     const isP2P = track.isP2P;
