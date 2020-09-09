@@ -321,11 +321,13 @@ function getConstraints(um, options = {}) {
             // Provide constraints as described by the electron desktop capturer
             // documentation here:
             // https://www.electronjs.org/docs/api/desktop-capturer
+            // Note. The documentation specifies that chromeMediaSourceId should not be present
+            // which, in the case a users has multiple monitors, leads to them being shared all
+            // at once. However we tested with chromeMediaSourceId present and it seems to be
+            // working properly and also takes care of the previously mentioned issue.
             constraints.audio = { mandatory: {
                 chromeMediaSource: constraints.video.mandatory.chromeMediaSource
             } };
-
-            delete constraints.video.mandatory.chromeMediaSourceId;
         }
     }
 
