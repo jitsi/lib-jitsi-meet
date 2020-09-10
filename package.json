@@ -27,7 +27,7 @@
     "lodash.debounce": "4.0.8",
     "lodash.isequal": "4.5.0",
     "sdp-transform": "2.3.0",
-    "strophe.js": "1.3.4",
+    "strophe.js": "1.4.0",
     "strophejs-plugin-disco": "0.0.2",
     "strophejs-plugin-stream-management": "github:jitsi/strophejs-plugin-stream-management#001cf02bef2357234e1ac5d163611b4d60bf2b6a",
     "uuid": "8.1.0",
