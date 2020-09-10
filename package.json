@@ -29,7 +29,7 @@
     "sdp-transform": "2.3.0",
     "strophe.js": "1.4.0",
     "strophejs-plugin-disco": "0.0.2",
-    "strophejs-plugin-stream-management": "github:jitsi/strophejs-plugin-stream-management#001cf02bef2357234e1ac5d163611b4d60bf2b6a",
+    "strophejs-plugin-stream-management": "github:jitsi/strophejs-plugin-stream-management#230a7c292c1be794f9139e4ea2974936ab39ba4a",
     "uuid": "8.1.0",
     "webrtc-adapter": "7.5.0"
   },
