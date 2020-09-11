@@ -45,8 +45,14 @@ export default class E2EEcontext {
             baseUrl = `${ljm.src.substring(0, idx)}/`;
         }
 
-        // Initialize the E2EE worker.
-        this._worker = new Worker(`${baseUrl}lib-jitsi-meet.e2ee-worker.js`, { name: 'E2EE Worker' });
+        // Initialize the E2EE worker. In order to avoid CORS issues, start the worker and have it
+        // synchronously load the JS.
+        const workerUrl = `${baseUrl}lib-jitsi-meet.e2ee-worker.js`;
+        const workerBlob
+            = new Blob([ `importScripts("${workerUrl}");` ], { type: 'application/javascript' });
+        const blobUrl = window.URL.createObjectURL(workerBlob);
+
+        this._worker = new Worker(blobUrl, { name: 'E2EE Worker' });
         this._worker.onerror = e => logger.onerror(e);
 
         // Initialize the salt and convert it once.
