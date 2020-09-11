@@ -2267,12 +2267,20 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
     }
 
     if (this.isSimulcastOn()) {
-        // Determine the encodings that need to stay enabled based on the
-        // new frameHeight provided.
-        const encodingsEnabledState
-            = this.tpcUtils.getLocalStreamHeightConstraints(localVideoTrack.track)
-                .map(height => height <= newHeight);
+        // Determine the encodings that need to stay enabled based on the new frameHeight provided.
+        const encodingsEnabledState = this.tpcUtils.getLocalStreamHeightConstraints(localVideoTrack.track)
+            .map(height => height <= newHeight);
 
+        // Always keep the LD stream enabled, specifically when the LD stream's resolution is higher than of the
+        // requested resolution. This can happen when camera is captured at resolutions higher than 720p but the
+        // requested resolution is 180. Since getParameters doesn't give us information about the resolutions
+        // of the simulcast encodings, we have to rely on our initial config for the simulcast streams.
+        const ldStreamIndex = this.tpcUtils.localStreamEncodingsConfig
+            .findIndex(layer => layer.scaleResolutionDownBy === 4.0);
+
+        if (newHeight > 0 && ldStreamIndex !== -1) {
+            encodingsEnabledState[ldStreamIndex] = true;
+        }
         for (const encoding in parameters.encodings) {
             if (parameters.encodings.hasOwnProperty(encoding)) {
                 parameters.encodings[encoding].active = encodingsEnabledState[encoding];
