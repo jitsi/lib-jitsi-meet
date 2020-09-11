@@ -1,6 +1,7 @@
 /* global __filename */
 
 import { getLogger } from 'jitsi-meet-logger';
+
 import * as MediaType from '../../service/RTC/MediaType';
 import { SdpTransformWrap } from '../xmpp/SdpTransformUtil';
 

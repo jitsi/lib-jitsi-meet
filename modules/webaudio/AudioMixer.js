@@ -3,6 +3,7 @@
 */
 
 import { getLogger } from 'jitsi-meet-logger';
+
 import { createAudioContext } from './WebAudioUtils';
 
 const logger = getLogger(__filename);

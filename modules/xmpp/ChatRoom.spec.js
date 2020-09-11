@@ -1,6 +1,8 @@
-import ChatRoom, { parser } from './ChatRoom';
 import { $pres } from 'strophe.js';
+
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
+
+import ChatRoom, { parser } from './ChatRoom';
 
 // This rule makes creating the xml elements take up way more
 // space than necessary.

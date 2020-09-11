@@ -1,7 +1,7 @@
 
+import { getLogger } from 'jitsi-meet-logger';
 import { Strophe } from 'strophe.js';
 
-import { getLogger } from 'jitsi-meet-logger';
 
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import { ParticipantConnectionStatus }

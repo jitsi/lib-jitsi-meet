@@ -114,10 +114,12 @@ LocalStatsCollector.prototype.start = function() {
             analyser.getByteTimeDomainData(array);
             const audioLevel = timeDomainDataToAudioLevel(array);
 
-            if (audioLevel !== this.audioLevel) {
-                this.audioLevel = animateLevel(audioLevel, this.audioLevel);
-                this.callback(this.audioLevel);
-            }
+            // Set the audio levels always as NoAudioSignalDetection now
+            // uses audio levels from LocalStatsCollector and waits for
+            // atleast 4 secs for a no audio signal before displaying the
+            // notification on the UI.
+            this.audioLevel = animateLevel(audioLevel, this.audioLevel);
+            this.callback(this.audioLevel);
         },
         this.intervalMilis
     );

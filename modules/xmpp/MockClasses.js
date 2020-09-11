@@ -1,4 +1,5 @@
 import { Strophe } from 'strophe.js';
+
 import Listenable from '../util/Listenable';
 
 /* eslint-disable no-empty-function */
@@ -24,6 +25,9 @@ export class MockStropheConnection extends Listenable {
     constructor() {
         super();
         this.sentIQs = [];
+        this._proto = {
+            socket: undefined
+        };
     }
 
     /**
@@ -57,6 +61,13 @@ export class MockStropheConnection extends Listenable {
      * @returns {void}
      */
     simulateConnectionState(newState) {
+        if (newState === Strophe.Status.CONNECTED) {
+            this._proto.socket = {
+                readyState: WebSocket.OPEN
+            };
+        } else {
+            this._proto.socket = undefined;
+        }
         this._connectCb(newState);
     }
 

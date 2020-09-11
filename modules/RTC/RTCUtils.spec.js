@@ -1,5 +1,6 @@
-import RTCUtils from './RTCUtils';
 import browser from '../browser';
+
+import RTCUtils from './RTCUtils';
 import screenObtainer from './ScreenObtainer';
 
 // TODO move webrtc mocks/polyfills into a easily accessible file when needed

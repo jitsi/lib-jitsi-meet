@@ -1,11 +1,13 @@
-import browser from '../browser';
-import { browsers } from 'js-utils';
+import { browsers } from '@jitsi/js-utils';
+import { getLogger } from 'jitsi-meet-logger';
 
-import * as StatisticsEvents from '../../service/statistics/Events';
 import * as MediaType from '../../service/RTC/MediaType';
+import * as StatisticsEvents from '../../service/statistics/Events';
+import browser from '../browser';
 
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
-const logger = require('jitsi-meet-logger').getLogger(__filename);
+
+const logger = getLogger(__filename);
 
 /**
  * The lib-jitsi-meet browser-agnostic names of the browser-specific keys
@@ -291,31 +293,53 @@ StatsCollector.prototype.errorCallback = function(error) {
  */
 StatsCollector.prototype.start = function(startAudioLevelStats) {
     if (startAudioLevelStats) {
+        if (browser.supportsReceiverStats()) {
+            logger.info('Using RTCRtpSynchronizationSource for remote audio levels');
+        }
         this.audioLevelsIntervalId = setInterval(
             () => {
-                // Interval updates
-                this.peerconnection.getStats(
-                    report => {
-                        let results = null;
+                if (browser.supportsReceiverStats()) {
+                    const audioLevels = this.peerconnection.getAudioLevels();
 
-                        if (!report || !report.result
-                            || typeof report.result !== 'function') {
-                            results = report;
-                        } else {
-                            results = report.result();
-                        }
-                        this.currentAudioLevelsReport = results;
-                        if (this._usesPromiseGetStats) {
-                            this.processNewAudioLevelReport();
-                        } else {
-                            this.processAudioLevelReport();
-                        }
+                    for (const ssrc in audioLevels) {
+                        if (audioLevels.hasOwnProperty(ssrc)) {
+                            // Use a scaling factor of 2.5 to report the same
+                            // audio levels that getStats reports.
+                            const audioLevel = audioLevels[ssrc] * 2.5;
 
-                        this.baselineAudioLevelsReport
-                            = this.currentAudioLevelsReport;
-                    },
-                    error => this.errorCallback(error)
-                );
+                            this.eventEmitter.emit(
+                                StatisticsEvents.AUDIO_LEVEL,
+                                this.peerconnection,
+                                Number.parseInt(ssrc, 10),
+                                audioLevel,
+                                false /* isLocal */);
+                        }
+                    }
+                } else {
+                    // Interval updates
+                    this.peerconnection.getStats(
+                        report => {
+                            let results = null;
+
+                            if (!report || !report.result
+                                || typeof report.result !== 'function') {
+                                results = report;
+                            } else {
+                                results = report.result();
+                            }
+                            this.currentAudioLevelsReport = results;
+                            if (this._usesPromiseGetStats) {
+                                this.processNewAudioLevelReport();
+                            } else {
+                                this.processAudioLevelReport();
+                            }
+
+                            this.baselineAudioLevelsReport
+                                = this.currentAudioLevelsReport;
+                        },
+                        error => this.errorCallback(error)
+                    );
+                }
             },
             this.audioLevelsIntervalMilis
         );

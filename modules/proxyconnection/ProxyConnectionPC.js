@@ -1,9 +1,8 @@
 import { getLogger } from 'jitsi-meet-logger';
 
-import RTC from '../RTC/RTC';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
-
+import RTC from '../RTC/RTC';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
 import { DEFAULT_STUN_SERVERS } from '../xmpp/xmpp';
 
@@ -236,19 +235,7 @@ export default class ProxyConnectionPC {
          * A {@code JitsiConference} stub passed to the {@link RTC} module.
          * @type {Object}
          */
-        const conferenceStub = {
-            // FIXME: remove once the temporary code below is gone from
-            //  TraceablePeerConnection.
-            // TraceablePeerConnection:359
-            //  this.rtc.conference.on(
-            //         TRACK_ADDED,
-            //         maybeSetSenderVideoConstraints);
-            //     this.rtc.conference.on(
-            //         TRACK_MUTE_CHANGED,
-            //         maybeSetSenderVideoConstraints);
-            // eslint-disable-next-line no-empty-function
-            on: () => {}
-        };
+        const conferenceStub = {};
 
         /**
          * Create an instance of {@code RTC} as it is required for peer

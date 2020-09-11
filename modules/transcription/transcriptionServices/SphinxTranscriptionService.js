@@ -1,8 +1,9 @@
 /* global config */
 
-const TranscriptionService = require('./AbstractTranscriptionService');
 const Word = require('../word');
+
 const audioRecorder = require('./../audioRecorder');
+const TranscriptionService = require('./AbstractTranscriptionService');
 
 /**
  * Implements a TranscriptionService for a Sphinx4 http server

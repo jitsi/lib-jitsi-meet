@@ -43,6 +43,12 @@ export class QualityController {
             });
         this.preferredReceiveMaxFrameHeight
             && mediaSession.setReceiverVideoConstraint(this.preferredReceiveMaxFrameHeight);
+
+        // Set the degradation preference on the local video track.
+        mediaSession.setSenderVideoDegradationPreference();
+
+        // Set the max bitrates on video sender if they are specified in config.js videoQuality settings.
+        mediaSession.setSenderMaxBitrates();
     }
 
     /**
@@ -56,12 +62,10 @@ export class QualityController {
         const sendMaxFrameHeight = this.selectSendMaxFrameHeight();
         const promises = [];
 
-        if (!sendMaxFrameHeight) {
-            return Promise.resolve();
-        }
-
-        for (const session of this.conference._getMediaSessions()) {
-            promises.push(session.setSenderVideoConstraint(sendMaxFrameHeight));
+        if (sendMaxFrameHeight >= 0) {
+            for (const session of this.conference._getMediaSessions()) {
+                promises.push(session.setSenderVideoConstraint(sendMaxFrameHeight));
+            }
         }
 
         return Promise.all(promises);
@@ -77,9 +81,9 @@ export class QualityController {
         const activeMediaSession = this.conference._getActiveMediaSession();
         const remoteRecvMaxFrameHeight = activeMediaSession && activeMediaSession.getRemoteRecvMaxFrameHeight();
 
-        if (this.preferredSendMaxFrameHeight && remoteRecvMaxFrameHeight) {
+        if (this.preferredSendMaxFrameHeight >= 0 && remoteRecvMaxFrameHeight >= 0) {
             return Math.min(this.preferredSendMaxFrameHeight, remoteRecvMaxFrameHeight);
-        } else if (remoteRecvMaxFrameHeight) {
+        } else if (remoteRecvMaxFrameHeight >= 0) {
             return remoteRecvMaxFrameHeight;
         }
 

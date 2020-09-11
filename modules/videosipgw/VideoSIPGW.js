@@ -1,9 +1,10 @@
 import { getLogger } from 'jitsi-meet-logger';
 const logger = getLogger(__filename);
 
+import XMPPEvents from '../../service/xmpp/XMPPEvents';
+
 import JitsiVideoSIPGWSession from './JitsiVideoSIPGWSession';
 import * as Constants from './VideoSIPGWConstants';
-import XMPPEvents from '../../service/xmpp/XMPPEvents';
 
 /**
  * Main video SIP GW handler. Stores references of all created sessions.

@@ -1,6 +1,7 @@
 /* global $ */
 
 import browser from '../browser';
+
 import SDPUtil from './SDPUtil';
 
 /**

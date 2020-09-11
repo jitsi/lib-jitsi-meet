@@ -10,7 +10,8 @@ const minimize
         || process.argv.indexOf('--optimize-minimize') !== -1;
 
 const config = {
-    devtool: 'source-map',
+    // The inline-source-map is used to allow debugging the unit tests with Karma
+    devtool: minimize ? 'source-map' : 'inline-source-map',
     mode: minimize ? 'production' : 'development',
     module: {
         rules: [ {
@@ -28,7 +29,7 @@ const config = {
             // Transpile ES2015 (aka ES6) to ES5.
 
             exclude: [
-                new RegExp(`${__dirname}/node_modules/(?!js-utils)`)
+                new RegExp(`${__dirname}/node_modules/(?!@jitsi/js-utils)`)
             ],
             loader: 'babel-loader',
             options: {

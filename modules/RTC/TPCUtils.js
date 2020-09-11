@@ -2,10 +2,9 @@ import { getLogger } from 'jitsi-meet-logger';
 import transform from 'sdp-transform';
 
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
-import browser from '../browser';
-import RTCEvents from '../../service/RTC/RTCEvents';
 import * as MediaType from '../../service/RTC/MediaType';
-import * as VideoType from '../../service/RTC/VideoType';
+import RTCEvents from '../../service/RTC/RTCEvents';
+import browser from '../browser';
 
 const logger = getLogger(__filename);
 const SIM_LAYER_1_RID = '1';
@@ -20,41 +19,49 @@ export const SIM_LAYER_RIDS = [ SIM_LAYER_1_RID, SIM_LAYER_2_RID, SIM_LAYER_3_RI
  */
 export class TPCUtils {
     /**
-     * @constructor
+     * Creates a new instance for a given TraceablePeerConnection
+     *
+     * @param peerconnection - the tpc instance for which we have utility functions.
+     * @param videoBitrates - the bitrates to be configured on the video senders for
+     * different resolutions both in unicast and simulcast mode.
      */
-    constructor(peerconnection) {
+    constructor(peerconnection, videoBitrates) {
         this.pc = peerconnection;
+        this.videoBitrates = videoBitrates;
 
         /**
-         * The simulcast encodings that will be configured on the RTCRtpSender
-         * for the video tracks in the unified plan mode.
+         * The startup configuration for the stream encodings that are applicable to
+         * the video stream when a new sender is created on the peerconnection. The initial
+         * config takes into account the differences in browser's simulcast implementation.
+         *
+         * Encoding parameters:
+         * active - determine the on/off state of a particular encoding.
+         * maxBitrate - max. bitrate value to be applied to that particular encoding
+         *  based on the encoding's resolution and config.js videoQuality settings if applicable.
+         * rid - Rtp Stream ID that is configured for a particular simulcast stream.
+         * scaleResolutionDownBy - the factor by which the encoding is scaled down from the
+         *  original resolution of the captured video.
          */
-        this.simulcastEncodings = [
+        this.localStreamEncodingsConfig = [
             {
                 active: true,
-                maxBitrate: browser.isFirefox() ? 2500000 : 200000,
+                maxBitrate: browser.isFirefox() ? this.videoBitrates.high : this.videoBitrates.low,
                 rid: SIM_LAYER_1_RID,
                 scaleResolutionDownBy: browser.isFirefox() ? 1.0 : 4.0
             },
             {
                 active: true,
-                maxBitrate: 700000,
+                maxBitrate: this.videoBitrates.standard,
                 rid: SIM_LAYER_2_RID,
                 scaleResolutionDownBy: 2.0
             },
             {
                 active: true,
-                maxBitrate: browser.isFirefox() ? 200000 : 2500000,
+                maxBitrate: browser.isFirefox() ? this.videoBitrates.low : this.videoBitrates.high,
                 rid: SIM_LAYER_3_RID,
                 scaleResolutionDownBy: browser.isFirefox() ? 4.0 : 1.0
             }
         ];
-
-        /**
-         * Resolution height constraints for the simulcast encodings that
-         * are configured for the video tracks.
-         */
-        this.simulcastStreamConstraints = [];
     }
 
     /**
@@ -65,7 +72,7 @@ export class TPCUtils {
      * description.
      * @private
      */
-    _ensureCorrectOrderOfSsrcs(description) {
+    ensureCorrectOrderOfSsrcs(description) {
         const parsedSdp = transform.parse(description.sdp);
 
         parsedSdp.media.forEach(mLine => {
@@ -92,15 +99,21 @@ export class TPCUtils {
     }
 
     /**
-     * Obtains stream encodings that need to be configured on the given track.
+     * Obtains stream encodings that need to be configured on the given track based
+     * on the track media type and the simulcast setting.
      * @param {JitsiLocalTrack} localTrack
      */
     _getStreamEncodings(localTrack) {
         if (this.pc.isSimulcastOn() && localTrack.isVideoTrack()) {
-            return this.simulcastEncodings;
+            return this.localStreamEncodingsConfig;
         }
 
-        return [ { active: true } ];
+        return localTrack.isVideoTrack()
+            ? [ {
+                active: true,
+                maxBitrate: this.videoBitrates.high
+            } ]
+            : [ { active: true } ];
     }
 
     /**
@@ -113,7 +126,7 @@ export class TPCUtils {
      * @return {Object} A session description (same format as above) object
      * with its sdp field modified to advertise simulcast receive support
      */
-    _insertUnifiedPlanSimulcastReceive(desc) {
+    insertUnifiedPlanSimulcastReceive(desc) {
         // a=simulcast line is not needed on browsers where
         // we munge SDP for turning on simulcast. Remove this check
         // when we move to RID/MID based simulcast on all browsers.
@@ -177,35 +190,13 @@ export class TPCUtils {
     }
 
     /**
-     * Constructs resolution height constraints for the simulcast encodings that are
-     * created for a given local video track.
-     * @param {MediaStreamTrack} track - the local video track.
-     * @returns {void}
-     */
-    _setSimulcastStreamConstraints(track) {
-        if (browser.isReactNative()) {
-            return;
-        }
-
-        const height = track.getSettings().height;
-
-        for (const encoding in this.simulcastEncodings) {
-            if (this.simulcastEncodings.hasOwnProperty(encoding)) {
-                this.simulcastStreamConstraints.push({
-                    height: height / this.simulcastEncodings[encoding].scaleResolutionDownBy,
-                    rid: this.simulcastEncodings[encoding].rid
-                });
-            }
-        }
-    }
-
-    /**
     * Adds {@link JitsiLocalTrack} to the WebRTC peerconnection for the first time.
     * @param {JitsiLocalTrack} track - track to be added to the peerconnection.
-    * @returns {boolean} Returns true if the operation is successful,
-    * false otherwise.
+    * @param {boolean} isInitiator - boolean that indicates if the endpoint is offerer
+    * in a p2p connection.
+    * @returns {void}
     */
-    addTrack(localTrack, isInitiator = true) {
+    addTrack(localTrack, isInitiator) {
         const track = localTrack.getTrack();
 
         if (isInitiator) {
@@ -227,18 +218,12 @@ export class TPCUtils {
             // unused "recv-only" transceiver.
             this.pc.peerconnection.addTrack(track);
         }
-
-        // Construct the simulcast stream constraints for the newly added track.
-        if (localTrack.isVideoTrack() && localTrack.videoType === VideoType.CAMERA && this.pc.isSimulcastOn()) {
-            this._setSimulcastStreamConstraints(localTrack.getTrack());
-        }
     }
 
     /**
      * Adds a track on the RTCRtpSender as part of the unmute operation.
      * @param {JitsiLocalTrack} localTrack - track to be unmuted.
-     * @returns {Promise<boolean>} - Promise that resolves to false if unmute
-     * operation is successful, a reject otherwise.
+     * @returns {Promise<void>} - resolved when done.
      */
     addTrackUnmute(localTrack) {
         const mediaType = localTrack.getType();
@@ -261,27 +246,47 @@ export class TPCUtils {
 
             if (stream) {
                 this.pc.peerconnection.addStream(localTrack.getOriginalStream());
-                this.setEncodings(localTrack);
-                this.pc.localTracks.set(localTrack.rtcId, localTrack);
-                transceiver.direction = 'sendrecv';
+
+                return this.setEncodings(localTrack).then(() => {
+                    this.pc.localTracks.set(localTrack.rtcId, localTrack);
+                    transceiver.direction = 'sendrecv';
+                });
             }
 
-            return Promise.resolve(false);
+            return Promise.resolve();
         }
 
-        return transceiver.sender.replaceTrack(track)
-            .then(() => {
-                this.pc.localTracks.set(localTrack.rtcId, localTrack);
+        return transceiver.sender.replaceTrack(track);
+    }
 
-                return Promise.resolve(false);
-            });
+    /**
+     * Obtains the current local video track's height constraints based on the
+     * initial stream encodings configuration on the sender and the resolution
+     * of the current local track added to the peerconnection.
+     * @param {MediaStreamTrack} localTrack local video track
+     * @returns {Array[number]} an array containing the resolution heights of
+     * simulcast streams configured on the video sender.
+     */
+    getLocalStreamHeightConstraints(localTrack) {
+        // React-native hasn't implemented MediaStreamTrack getSettings yet.
+        if (browser.isReactNative()) {
+            return null;
+        }
+
+        const localVideoHeightConstraints = [];
+        const height = localTrack.getSettings().height;
+
+        for (const encoding of this.localStreamEncodingsConfig) {
+            localVideoHeightConstraints.push(height / encoding.scaleResolutionDownBy);
+        }
+
+        return localVideoHeightConstraints;
     }
 
     /**
      * Removes the track from the RTCRtpSender as part of the mute operation.
      * @param {JitsiLocalTrack} localTrack - track to be removed.
-     * @returns {Promise<boolean>} - Promise that resolves to false if unmute
-     * operation is successful, a reject otherwise.
+     * @returns {Promise<void>} - resolved when done.
      */
     removeTrackMute(localTrack) {
         const mediaType = localTrack.getType();
@@ -294,21 +299,14 @@ export class TPCUtils {
 
         logger.debug(`Removing ${localTrack} on ${this.pc}`);
 
-        return transceiver.sender.replaceTrack(null)
-            .then(() => {
-                this.pc.localTracks.delete(localTrack.rtcId);
-
-                return Promise.resolve(false);
-            });
+        return transceiver.sender.replaceTrack(null);
     }
 
     /**
      * Replaces the existing track on a RTCRtpSender with the given track.
      * @param {JitsiLocalTrack} oldTrack - existing track on the sender that needs to be removed.
      * @param {JitsiLocalTrack} newTrack - new track that needs to be added to the sender.
-     * @returns {Promise<false>} Promise that resolves with false as we don't want
-     * renegotiation to be triggered automatically after this operation. Renegotiation is
-     * done when the browser fires the negotiationeeded event.
+     * @returns {Promise<void>} - resolved when done.
      */
     replaceTrack(oldTrack, newTrack) {
         if (oldTrack && newTrack) {
@@ -349,15 +347,15 @@ export class TPCUtils {
         } else if (newTrack && !oldTrack) {
             const ssrc = this.pc.localSSRCs.get(newTrack.rtcId);
 
-            if (!this.addTrackUnmute(newTrack)) {
-                return Promise.reject(new Error('replace track failed'));
-            }
-            newTrack.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, newTrack);
-            this.pc.localTracks.set(newTrack.rtcId, newTrack);
-            this.pc.localSSRCs.set(newTrack.rtcId, ssrc);
+            this.addTrackUnmute(newTrack)
+                .then(() => {
+                    newTrack.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, newTrack);
+                    this.pc.localTracks.set(newTrack.rtcId, newTrack);
+                    this.pc.localSSRCs.set(newTrack.rtcId, ssrc);
+                });
         }
 
-        return Promise.resolve(false);
+        return Promise.resolve();
     }
 
     /**
@@ -367,17 +365,17 @@ export class TPCUtils {
     * the connection should be kept alive.
     * @param {boolean} active - true to enable audio media transmission or
     * false to disable.
-    * @returns {false} - returns false always so that renegotiation is not automatically
-    * triggered after this operation.
+    * @returns {void}
     */
     setAudioTransferActive(active) {
-        return this.setMediaTransferActive('audio', active);
+        this.setMediaTransferActive(MediaType.AUDIO, active);
     }
 
     /**
      * Set the simulcast stream encoding properties on the RTCRtpSender.
      * @param {JitsiLocalTrack} track - the current track in use for which
      * the encodings are to be set.
+     * @returns {Promise<void>} - resolved when done.
      */
     setEncodings(track) {
         const transceiver = this.pc.peerconnection.getTransceivers()
@@ -385,7 +383,8 @@ export class TPCUtils {
         const parameters = transceiver.sender.getParameters();
 
         parameters.encodings = this._getStreamEncodings(track);
-        transceiver.sender.setParameters(parameters);
+
+        return transceiver.sender.setParameters(parameters);
     }
 
     /**
@@ -394,38 +393,26 @@ export class TPCUtils {
      * @param {String} mediaType - 'audio' or 'video'
      * @param {boolean} active - true to enable media transmission or false
      * to disable.
-     * @returns {false} - returns false always so that renegotiation is not automatically
-     * triggered after this operation
+     * @returns {void}
      */
     setMediaTransferActive(mediaType, active) {
         const transceivers = this.pc.peerconnection.getTransceivers()
             .filter(t => t.receiver && t.receiver.track && t.receiver.track.kind === mediaType);
-        const localTracks = Array.from(this.pc.localTracks.values())
-            .filter(track => track.getType() === mediaType);
+        const localTracks = this.pc.getLocalTracks(mediaType);
 
-        if (active) {
-            transceivers.forEach(transceiver => {
-                if (localTracks.length) {
+        logger.info(`${active ? 'Enabling' : 'Suspending'} ${mediaType} media transfer on ${this.pc}`);
+        transceivers.forEach((transceiver, idx) => {
+            if (active) {
+                // The first transceiver is for the local track and only this one can be set to 'sendrecv'
+                if (idx === 0 && localTracks.length) {
                     transceiver.direction = 'sendrecv';
-                    const parameters = transceiver.sender.getParameters();
-
-                    if (parameters && parameters.encodings && parameters.encodings.length) {
-                        parameters.encodings.forEach(encoding => {
-                            encoding.active = true;
-                        });
-                        transceiver.sender.setParameters(parameters);
-                    }
                 } else {
                     transceiver.direction = 'recvonly';
                 }
-            });
-        } else {
-            transceivers.forEach(transceiver => {
+            } else {
                 transceiver.direction = 'inactive';
-            });
-        }
-
-        return false;
+            }
+        });
     }
 
     /**
@@ -435,10 +422,9 @@ export class TPCUtils {
     * the connection should be kept alive.
     * @param {boolean} active - true to enable video media transmission or
     * false to disable.
-    * @returns {false} - returns false always so that renegotiation is not automatically
-    * triggered after this operation.
+    * @returns {void}
     */
     setVideoTransferActive(active) {
-        return this.setMediaTransferActive('video', active);
+        this.setMediaTransferActive(MediaType.VIDEO, active);
     }
 }

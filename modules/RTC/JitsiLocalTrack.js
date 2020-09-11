@@ -1,7 +1,7 @@
 /* global __filename, Promise */
 
 import { getLogger } from 'jitsi-meet-logger';
-import JitsiTrack from './JitsiTrack';
+
 import JitsiTrackError from '../../JitsiTrackError';
 import {
     TRACK_IS_DISPOSED,
@@ -12,8 +12,6 @@ import {
     NO_DATA_FROM_SOURCE,
     TRACK_MUTE_CHANGED
 } from '../../JitsiTrackEvents';
-import browser from '../browser';
-import RTCUtils from './RTCUtils';
 import CameraFacingMode from '../../service/RTC/CameraFacingMode';
 import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
@@ -23,7 +21,11 @@ import {
     TRACK_UNMUTED,
     createNoDataFromSourceEvent
 } from '../../service/statistics/AnalyticsEvents';
+import browser from '../browser';
 import Statistics from '../statistics/statistics';
+
+import JitsiTrack from './JitsiTrack';
+import RTCUtils from './RTCUtils';
 
 const logger = getLogger(__filename);
 
@@ -92,6 +94,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             // Get the resolution from the track itself because it cannot be
             // certain which resolution webrtc has fallen back to using.
             this.resolution = track.getSettings().height;
+            this.maxEnabledResolution = resolution;
 
             // Cache the constraints of the track in case of any this track
             // model needs to call getUserMedia again, such as when unmuting.
@@ -109,6 +112,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             // resolutions so we do not store it, to avoid wrong reporting of
             // local track resolution.
             this.resolution = browser.isFirefox() ? null : resolution;
+            this.maxEnabledResolution = this.resolution;
         }
 
         this.deviceId = deviceId;

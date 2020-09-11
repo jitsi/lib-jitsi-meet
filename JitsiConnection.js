@@ -1,11 +1,11 @@
-import {
-    CONNECTION_DISCONNECTED as ANALYTICS_CONNECTION_DISCONNECTED,
-    createConnectionFailedEvent
-} from './service/statistics/AnalyticsEvents';
 import JitsiConference from './JitsiConference';
 import * as JitsiConnectionEvents from './JitsiConnectionEvents';
 import Statistics from './modules/statistics/statistics';
 import XMPP from './modules/xmpp/xmpp';
+import {
+    CONNECTION_DISCONNECTED as ANALYTICS_CONNECTION_DISCONNECTED,
+    createConnectionFailedEvent
+} from './service/statistics/AnalyticsEvents';
 
 /**
  * Creates a new connection object for the Jitsi Meet server side video
@@ -162,4 +162,27 @@ JitsiConnection.prototype.addFeature = function(feature, submit = false) {
  */
 JitsiConnection.prototype.removeFeature = function(feature, submit = false) {
     return this.xmpp.caps.removeFeature(feature, submit);
+};
+
+/**
+ * Get object with internal logs.
+ */
+JitsiConnection.prototype.getLogs = function() {
+    const data = this.xmpp.getJingleLog();
+
+    const metadata = {};
+
+    metadata.time = new Date();
+    metadata.url = window.location.href;
+    metadata.ua = navigator.userAgent;
+
+    const log = this.xmpp.getXmppLog();
+
+    if (log) {
+        metadata.xmpp = log;
+    }
+
+    data.metadata = metadata;
+
+    return data;
 };

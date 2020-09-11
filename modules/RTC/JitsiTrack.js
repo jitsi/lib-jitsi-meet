@@ -1,9 +1,11 @@
 /* global __filename, module */
 import EventEmitter from 'events';
 import { getLogger } from 'jitsi-meet-logger';
+
 import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import * as MediaType from '../../service/RTC/MediaType';
 import browser from '../browser';
+
 import RTCUtils from './RTCUtils';
 
 const logger = getLogger(__filename);
@@ -422,12 +424,31 @@ export default class JitsiTrack extends EventEmitter {
      * peerconnection (see /modules/statistics/LocalStatsCollector.js).
      */
     setAudioLevel(audioLevel, tpc) {
+        // The receiver seems to be reporting audio level immediately after the
+        // remote user has muted, so do not set the audio level on the track
+        // if it is muted.
+        if (browser.supportsReceiverStats()
+            && !this.isLocalAudioTrack()
+            && this.isWebRTCTrackMuted()) {
+            return;
+        }
+
         if (this.audioLevel !== audioLevel) {
             this.audioLevel = audioLevel;
             this.emit(
                 JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
                 audioLevel,
                 tpc);
+
+        // LocalStatsCollector reports a value of 0.008 for muted mics
+        // and a value of 0 when there is no audio input.
+        } else if (this.audioLevel === 0
+            && audioLevel === 0
+            && this.isLocal()
+            && !this.isWebRTCTrackMuted()) {
+            this.emit(
+                JitsiTrackEvents.NO_AUDIO_INPUT,
+                audioLevel);
         }
     }
 

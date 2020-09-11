@@ -1,7 +1,9 @@
 import EventEmitter from 'events';
+
 import JitsiConference from '../../JitsiConference';
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import JitsiParticipant from '../../JitsiParticipant';
+
 import SpeakerStats from './SpeakerStats';
 import SpeakerStatsCollector from './SpeakerStatsCollector';
 

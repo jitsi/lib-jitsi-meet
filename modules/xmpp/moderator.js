@@ -1,15 +1,16 @@
 /* global $, Promise */
 
-const logger = require('jitsi-meet-logger').getLogger(__filename);
-
+import { getLogger } from 'jitsi-meet-logger';
 import { $iq, Strophe } from 'strophe.js';
 
-const XMPPEvents = require('../../service/xmpp/XMPPEvents');
+import Settings from '../settings/Settings';
+
 const AuthenticationEvents
     = require('../../service/authentication/AuthenticationEvents');
+const XMPPEvents = require('../../service/xmpp/XMPPEvents');
 const GlobalOnErrorHandler = require('../util/GlobalOnErrorHandler');
 
-import Settings from '../settings/Settings';
+const logger = getLogger(__filename);
 
 /**
  *
@@ -201,6 +202,13 @@ Moderator.prototype.createConferenceIq = function() {
                 'property', {
                     name: 'enableRemb',
                     value: Boolean(config.enableRemb)
+                }).up();
+    }
+    if (config.enableOpusRed === true) {
+        elem.c(
+                'property', {
+                    name: 'enableOpusRed',
+                    value: true
                 }).up();
     }
     if (config.minParticipants !== undefined) {

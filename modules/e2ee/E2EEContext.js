@@ -1,7 +1,8 @@
 /* global __filename */
 
-import { createWorkerScript } from './Worker';
 import { getLogger } from 'jitsi-meet-logger';
+
+import { createWorkerScript } from './Worker';
 
 const logger = getLogger(__filename);
 
