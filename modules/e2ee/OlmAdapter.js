@@ -309,6 +309,8 @@ export class OlmAdapter extends Listenable {
                 };
 
                 this._sendMessage(ack, pId);
+
+                this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_E2EE_CHANNEL_READY, pId);
             }
             break;
         }
@@ -333,7 +335,6 @@ export class OlmAdapter extends Listenable {
                 olmData.session = session;
                 olmData.pendingSessionUuid = undefined;
 
-                logger.debug(`Olm session established with ${pId}`);
                 this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_E2EE_CHANNEL_READY, pId);
 
                 this._reqs.delete(msg.data.uuid);
