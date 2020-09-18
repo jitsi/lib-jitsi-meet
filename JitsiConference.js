@@ -374,6 +374,14 @@ JitsiConference.prototype._init = function(options = {}) {
             });
     this.participantConnectionStatus.init();
 
+    // Add the ability to enable callStats only on a certain percentage of users based
+    // on config.js setting.
+    let disableCallStats = false;
+
+    if (config.testing && config.testing.callStatsUserThreshold) {
+        disableCallStats = Math.random() > config.testing.callStatsUserThreshold;
+    }
+
     if (!this.statistics) {
         this.statistics = new Statistics(this.xmpp, {
             aliasName: this._statsCurrentId,
@@ -384,6 +392,7 @@ JitsiConference.prototype._init = function(options = {}) {
             callStatsID: config.callStatsID,
             callStatsSecret: config.callStatsSecret,
             callStatsApplicationLogsDisabled: config.callStatsApplicationLogsDisabled,
+            disableCallStats,
             roomName: this.options.name,
             applicationName: config.applicationName,
             getWiFiStatsMethod: config.getWiFiStatsMethod
