@@ -27,6 +27,25 @@ export function calculateAverage(valueArray) {
     return valueArray.length > 0 ? valueArray.reduce((a, b) => a + b) / valueArray.length : 0;
 }
 
+/**
+ * Calculates a unique hash for a given string similar to Java's
+ * implementation of String.hashCode()
+ *
+ * @param {String} string - String whose hash has to be calculated.
+ * @returns {number} - Unique hash code calculated.
+ */
+export function hashString(string) {
+    let hash = 0;
+
+    for (let i = 0; i < string.length; i++) {
+        hash += Math.pow(string.charCodeAt(i) * 31, string.length - i);
+
+        /* eslint-disable no-bitwise */
+        hash = hash & hash; // Convert to 32bit integer
+    }
+
+    return Math.abs(hash);
+}
 
 /**
  * Returns only the positive values from an array of numbers.
