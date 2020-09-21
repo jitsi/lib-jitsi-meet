@@ -38,6 +38,7 @@ import SpeakerStatsCollector from './modules/statistics/SpeakerStatsCollector';
 import Statistics from './modules/statistics/statistics';
 import Transcriber from './modules/transcription/transcriber';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
+import { hashString } from './modules/util/MathUtil';
 import RandomUtil from './modules/util/RandomUtil';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
@@ -374,6 +375,13 @@ JitsiConference.prototype._init = function(options = {}) {
             });
     this.participantConnectionStatus.init();
 
+    // Add the ability to enable callStats only on a percentage of conferences based on config.js settings.
+    let enableCallStats = true;
+
+    if (config.testing && config.testing.callStatsThreshold) {
+        enableCallStats = (hashString(this.options.name) % 100) < config.testing.callStatsThreshold;
+    }
+
     if (!this.statistics) {
         this.statistics = new Statistics(this.xmpp, {
             aliasName: this._statsCurrentId,
@@ -384,6 +392,7 @@ JitsiConference.prototype._init = function(options = {}) {
             callStatsID: config.callStatsID,
             callStatsSecret: config.callStatsSecret,
             callStatsApplicationLogsDisabled: config.callStatsApplicationLogsDisabled,
+            enableCallStats,
             roomName: this.options.name,
             applicationName: config.applicationName,
             getWiFiStatsMethod: config.getWiFiStatsMethod
