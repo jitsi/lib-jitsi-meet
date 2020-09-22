@@ -3315,6 +3315,24 @@ JitsiConference.prototype.setReceiverVideoConstraint = function(maxFrameHeight) 
 };
 
 /**
+ * Sets the maximum video size the local participant should receive per remote participant.
+ *
+ * This allows the client to specify the ideal resolution height for each of the remote
+ * participants in the conference.
+ *
+ * @param {Array<VideoConstraints>} videoConstraints An array of constraint objects with map of
+ *                                                   participant ID and ideal height, for example:
+ *                                                   [
+ *                                                     { "id": "abcdabcd", "idealHeight": 180 },
+ *                                                     { "id": "12341234", "idealHeight": 360 }
+ *                                                   ]
+ * @returns {void}
+ */
+JitsiConference.prototype.setReceiverVideoConstraints = function(videoConstraints) {
+    this.rtc.setReceiverVideoConstraints(videoConstraints);
+};
+
+/**
  * Sets the maximum video size the local participant should send to remote
  * participants.
  * @param {number} maxFrameHeight - The user preferred max frame height.

@@ -172,6 +172,20 @@ export default class RTC extends Listenable {
         this._maxFrameHeight = undefined;
 
         /**
+         * The video constraints that the client specifies to receive from
+         * each remote participant.
+         *
+         * @type {Array<VideoConstraint>|undefined} An array of constraint objects with map of
+         *                                          participant ID and ideal height, for example:
+         *                                          [
+         *                                            { "id": "abcdabcd", "idealHeight": 180 },
+         *                                            { "id": "12341234", "idealHeight": 360 }
+         *                                          ]
+         * @private
+         */
+        this._videoConstraints = undefined;
+
+        /**
          * The endpoint ID of currently pinned participant or <tt>null</tt> if
          * no user is pinned.
          * @type {string|null}
@@ -300,6 +314,10 @@ export default class RTC extends Listenable {
                     this._channel.sendReceiverVideoConstraintMessage(
                         this._maxFrameHeight);
                 }
+                if (typeof this._videoConstraints !== 'undefined') {
+                    this._channel.sendReceiverVideoConstraintsMessage(
+                        this._videoConstraints);
+                }
             } catch (error) {
                 GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error(
@@ -394,6 +412,29 @@ export default class RTC extends Listenable {
             }
 
             this._channel = null;
+        }
+    }
+
+    /**
+     * Sets the maximum video size the local participant should receive per remote participant.
+     *
+     * This allows the client to specify the ideal resolution height for each of the remote
+     * participants in the conference. If there is no channel we store it and send it
+     * through the channel once it is created.
+     *
+     * @param {Array<VideoConstraints>} videoConstraints An array of constraint objects with map of
+     *                                                   participant ID and ideal height, for example:
+     *                                                   [
+     *                                                     { "id": "abcdabcd", "idealHeight": 180 },
+     *                                                     { "id": "12341234", "idealHeight": 360 }
+     *                                                   ]
+     * @returns {void}
+     */
+    setReceiverVideoConstraints(videoConstraints) {
+        this._videoConstraints = videoConstraints;
+
+        if (this._channel && this._channel.isOpen()) {
+            this._channel.sendReceiverVideoConstraintsMessage(videoConstraints);
         }
     }
 

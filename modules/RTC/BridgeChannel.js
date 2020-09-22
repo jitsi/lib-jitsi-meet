@@ -248,6 +248,30 @@ export default class BridgeChannel {
     }
 
     /**
+     * Sends a "receiver video constraints changed" message via the channel.
+     *
+     * @param {Array<VideoConstraints>} videoConstraints An array of constraint objects with map of
+     *                                                   participant ID and ideal height, for example:
+     *                                                   [
+     *                                                      { "id": "abcdabcd", "idealHeight": 180 },
+     *                                                      { "id": "12341234", "idealHeight": 360 }
+     *                                                   ]
+     * @throws NetworkError or InvalidStateError from RTCDataChannel#send (@see
+     * {@link https://developer.mozilla.org/docs/Web/API/RTCDataChannel/send})
+     * or from WebSocket#send or Error with "No opened channel" message.
+     */
+    sendReceiverVideoConstraintsMessage(videoConstraints) {
+        logger.log(
+            'sending receiver video constraints changed notification to the bridge',
+            JSON.stringify(videoConstraints));
+
+        this._send({
+            colibriClass: 'ReceiverVideoConstraintsChangedEvent',
+            videoConstraints
+        });
+    }
+
+    /**
      * Sends a "receiver video constraint" message via the channel.
      * @param {Number} maxFrameHeightPixels the maximum frame height,
      * in pixels, this receiver is willing to receive
