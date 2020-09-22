@@ -2450,7 +2450,7 @@ JitsiConference.prototype._onTrackAttach = function(track, container) {
             : this.jvbJingleSession && this.jvbJingleSession.peerconnection;
 
     if (isLocal) {
-        // Local tracks have SSRC stored on per peer connection basis
+        // Local tracks have SSRC stored on per peer connection basis.
         if (peerConnection) {
             ssrc = peerConnection.getLocalSSRC(track);
         }
