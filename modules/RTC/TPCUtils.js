@@ -137,7 +137,7 @@ export class TPCUtils {
         const idx = sdp.media.findIndex(mline => mline.type === 'video');
 
         if (sdp.media[idx].rids && (sdp.media[idx].simulcast_03 || sdp.media[idx].simulcast)) {
-            // Make sure we don't have the simulcast recv line on video descriptions other than the
+            // Make sure we don't have the simulcast recv line on video descriptions other than
             // the first video description.
             sdp.media.forEach((mline, i) => {
                 if (mline.type === 'video' && i !== idx) {

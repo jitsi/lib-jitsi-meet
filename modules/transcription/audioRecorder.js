@@ -95,7 +95,7 @@ function AudioRecorder(jitsiConference) {
 }
 
 /**
- * Add the the exported module so that it can be accessed by other files
+ * Add the exported module so that it can be accessed by other files
  */
 AudioRecorder.determineCorrectFileType = determineCorrectFileType;
 
