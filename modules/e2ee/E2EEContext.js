@@ -54,15 +54,6 @@ export default class E2EEcontext {
 
         this._worker = new Worker(blobUrl, { name: 'E2EE Worker' });
         this._worker.onerror = e => logger.onerror(e);
-
-        // Initialize the salt and convert it once.
-        const encoder = new TextEncoder();
-
-        // Send initial options to worker.
-        this._worker.postMessage({
-            operation: 'initialize',
-            salt: encoder.encode(options.salt)
-        });
     }
 
     /**
