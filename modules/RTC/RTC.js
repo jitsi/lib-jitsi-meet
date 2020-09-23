@@ -752,7 +752,7 @@ export default class RTC extends Listenable {
     }
 
     /**
-     * Returns true if retrieving the the list of input devices is supported
+     * Returns true if retrieving the list of input devices is supported
      * and false if not.
      */
     static isDeviceListAvailable() {
