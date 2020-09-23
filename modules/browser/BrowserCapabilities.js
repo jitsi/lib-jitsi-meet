@@ -281,9 +281,23 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean} {@code true} if the browser supports insertable streams.
      */
     supportsInsertableStreams() {
-        return Boolean(typeof window.RTCRtpSender !== 'undefined'
+        if (!(typeof window.RTCRtpSender !== 'undefined'
             && (window.RTCRtpSender.prototype.createEncodedStreams
-                || window.RTCRtpSender.prototype.createEncodedVideoStreams));
+                || window.RTCRtpSender.prototype.createEncodedVideoStreams))) {
+            return false;
+        }
+
+        // Feature-detect transferable streams which we need to operate in a worker.
+        // See https://groups.google.com/a/chromium.org/g/blink-dev/c/1LStSgBt6AM/m/hj0odB8pCAAJ
+        const stream = new ReadableStream();
+
+        try {
+            window.postMessage(stream, '*', [ stream ]);
+
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     /**
