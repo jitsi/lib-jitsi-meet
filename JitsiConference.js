@@ -2429,10 +2429,8 @@ JitsiConference.prototype.isCallstatsEnabled = function() {
  * @returns {number|undefined} the SSRC of the specificed track, otherwise undefined.
  */
 JitsiConference.prototype.getSsrcByTrack = function(track) {
-    const isP2P = track.isP2P;
     const isLocal = track.isLocal();
-    const peerConnection = isP2P ? this.p2pJingleSession && this.p2pJingleSession.peerconnection
-        : this.jvbJingleSession && this.jvbJingleSession.peerconnection;
+    const peerConnection = this.getActivePeerConnection();
 
     let ssrc;
 
