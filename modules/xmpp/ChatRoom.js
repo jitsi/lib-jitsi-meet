@@ -125,6 +125,8 @@ export default class ChatRoom extends Listenable {
         this.focusMucJid = null;
         this.noBridgeAvailable = false;
         this.options = options || {};
+        this.moderatedAudioEnabled = null;
+        this.moderatedAudioExceptions = [];
         this.moderator
             = new Moderator(this.roomjid, this.xmpp, this.eventEmitter, {
                 connection: this.xmpp.options,
@@ -294,6 +296,7 @@ export default class ChatRoom extends Listenable {
                 .c('query', { xmlns: Strophe.NS.DISCO_INFO });
 
         this.connection.sendIQ(getInfo, result => {
+            console.log('disco', result);
             const locked
                 = $(result).find('>query>feature[var="muc_passwordprotected"]')
                     .length
@@ -302,6 +305,34 @@ export default class ChatRoom extends Listenable {
             if (locked !== this.locked) {
                 this.eventEmitter.emit(XMPPEvents.MUC_LOCK_CHANGED, locked);
                 this.locked = locked;
+            }
+
+            const moderatedAudioEnabled = result.querySelector(
+                'query > x > field[var="muc#roomconfig_moderatedaudio-enable"]>value'
+            )?.innerHTML;
+
+            if (moderatedAudioEnabled !== null) {
+                const value = Boolean(Number(moderatedAudioEnabled));
+
+                if (value !== this.moderatedAudioEnabled) {
+                    this.eventEmitter.emit(
+                        XMPPEvents.MUC_MODERATED_AUDIO_CHANGED, value
+                    );
+                    this.moderatedAudioEnabled = value;
+                }
+            }
+
+            const moderatedAudioExceptions = Array.from(
+                result.querySelectorAll('query > x > field[var="muc#roomconfig_moderatedaudio-exception-list"] > value')
+            ).map(n => n.innerHTML);
+
+            if (!isEqual(moderatedAudioExceptions, this.moderatedAudioExceptions)) {
+                this.eventEmitter.emit(
+                    XMPPEvents.MUC_MODERATED_AUDIO_EXCEPTIONS_CHANGED,
+                    this.moderatedAudioExceptions,
+                    moderatedAudioExceptions
+                );
+                this.moderatedAudioExceptions = moderatedAudioExceptions;
             }
 
             const meetingIdValEl
@@ -1835,6 +1866,128 @@ export default class ChatRoom extends Listenable {
             }
             eventEmitter.on(XMPPEvents.MUC_LEFT, onMucLeft);
             this.doLeave();
+        });
+    }
+
+    /**
+     * Adds the jid to the room's moderated audio exceptions list
+     * @param {string} jid
+     * @returns {}
+     */
+    addModeratedAudioException(jid) {
+        return new Promise((resolve, reject) => {
+            const form = $iq({
+                to: this.roomjid,
+                type: 'set'
+            })
+            .c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' })
+            .c('x', {
+                xmlns: 'jabber:x:data',
+                type: 'submit'
+            });
+
+            form.c('field', { var: 'FORM_TYPE' })
+                .c('value')
+                .t('http://jabber.org/protocol/muc#roomconfig')
+                .up().up();
+
+            form.c('field', { var: 'muc#roomconfig_moderatedaudio-add-exception' })
+                .c('value')
+                .t(jid)
+                .up().up();
+
+            this.connection.sendIQ(form, resolve, reject);
+        });
+    }
+
+    /**
+     * Enables moderated audio in the room
+     * @returns {}
+     */
+    enableModeratedAudio() {
+        return new Promise((resolve, reject) => {
+            const form = $iq({
+                to: this.roomjid,
+                type: 'set'
+            })
+            .c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' })
+            .c('x', {
+                xmlns: 'jabber:x:data',
+                type: 'submit'
+            });
+
+            form.c('field', { var: 'FORM_TYPE' })
+                .c('value')
+                .t('http://jabber.org/protocol/muc#roomconfig')
+                .up().up();
+
+            form.c('field', { var: 'muc#roomconfig_moderatedaudio-enable' })
+                .c('value')
+                .t(true)
+                .up().up();
+
+            this.connection.sendIQ(form, resolve, reject);
+        });
+    }
+
+    /**
+     * Disables moderated audio in the room
+     * @returns {}
+     */
+    disableModeratedAudio() {
+        return new Promise((resolve, reject) => {
+            const form = $iq({
+                to: this.roomjid,
+                type: 'set'
+            })
+            .c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' })
+            .c('x', {
+                xmlns: 'jabber:x:data',
+                type: 'submit'
+            });
+
+            form.c('field', { var: 'FORM_TYPE' })
+                .c('value')
+                .t('http://jabber.org/protocol/muc#roomconfig')
+                .up().up();
+
+            form.c('field', { var: 'muc#roomconfig_moderatedaudio-enable' })
+                .c('value')
+                .t(false)
+                .up().up();
+
+            this.connection.sendIQ(form, resolve, reject);
+        });
+    }
+
+    /**
+     * Adds the jid to the room's moderated audio exceptions list
+     * @param {string} jid
+     * @returns {}
+     */
+    removeModeratedAudioException(jid) {
+        return new Promise((resolve, reject) => {
+            const form = $iq({
+                to: this.roomjid,
+                type: 'set'
+            })
+            .c('query', { xmlns: 'http://jabber.org/protocol/muc#owner' })
+            .c('x', {
+                xmlns: 'jabber:x:data',
+                type: 'submit'
+            });
+
+            form.c('field', { var: 'FORM_TYPE' })
+                .c('value')
+                .t('http://jabber.org/protocol/muc#roomconfig')
+                .up().up();
+
+            form.c('field', { var: 'muc#roomconfig_moderatedaudio-remove-exception' })
+                .c('value')
+                .t(jid)
+                .up().up();
+
+            this.connection.sendIQ(form, resolve, reject);
         });
     }
 }

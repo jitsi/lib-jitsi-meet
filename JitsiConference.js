@@ -1562,6 +1562,50 @@ JitsiConference.prototype.muteParticipant = function(id, mediaType) {
     this.room.muteParticipant(participant.getJid(), true, muteMediaType);
 };
 
+/**
+ * Disables moderated audio for the conference room.
+ */
+JitsiConference.prototype.disableModeratedAudio = function() {
+    return this.room.disableModeratedAudio();
+};
+
+/**
+ * Enables moderated audio for the conference room.
+ */
+JitsiConference.prototype.enableModeratedAudio = function() {
+    return this.room.enableModeratedAudio();
+};
+
+/**
+ * Adds a participant to the moderated audio exceptions list.
+ * @param {string} id The id of the participant to add.
+ */
+JitsiConference.prototype.addModeratedAudioException = function(id) {
+    const participant = this.getParticipantById(id);
+
+    console.log(participant);
+
+    if (!participant) {
+        return;
+    }
+
+    return this.room.addModeratedAudioException(participant.getJid());
+};
+
+/**
+ * Removes a participant from the moderated audio exceptions list.
+ * @param {string} id The id of the participant to remove.
+ */
+JitsiConference.prototype.removeModeratedAudioException = function(id) {
+    const participant = this.getParticipantById(id);
+
+    if (!participant) {
+        return;
+    }
+
+    return this.room.removeModeratedAudioException(participant.getJid());
+};
+
 /* eslint-disable max-params */
 
 /**

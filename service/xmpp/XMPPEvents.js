@@ -164,6 +164,12 @@ const XMPPEvents = {
     // Designates an event indicating that the MUC members only config has changed.
     MUC_MEMBERS_ONLY_CHANGED: 'xmpp.muc_members_only_changed',
 
+    // Event that indicates that audio moderation status has changed
+    MUC_MODERATED_AUDIO_CHANGED: 'xmpp.muc_moderated_audio_changed',
+
+    // Designates an event indicating that the MUC squelched config has changed.
+    MUC_MODERATED_AUDIO_EXCEPTIONS_CHANGED: 'xmpp.muc_moderated_audio_exceptions_changed',
+
     // Designates an event indicating that a participant in the XMPP MUC has
     // advertised that they have audio muted (or unmuted).
     PARTICIPANT_AUDIO_MUTED: 'xmpp.audio_muted',

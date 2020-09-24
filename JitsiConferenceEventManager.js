@@ -7,6 +7,7 @@ import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import * as JitsiConferenceEvents from './JitsiConferenceEvents';
 import { SPEAKERS_AUDIO_LEVELS } from './modules/statistics/constants';
 import Statistics from './modules/statistics/statistics';
+import { omits } from './modules/util/ArrayUtil';
 import EventEmitterForwarder from './modules/util/EventEmitterForwarder';
 import * as MediaType from './service/RTC/MediaType';
 import RTCEvents from './service/RTC/RTCEvents';
@@ -60,6 +61,10 @@ export default function JitsiConferenceEventManager(conference) {
 JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     const conference = this.conference;
     const chatRoom = conference.room;
+    const { eventEmitter } = conference;
+    const conferenceEmit = event =>
+        eventEmitter.emit.bind(eventEmitter, event);
+    const getResourceFromJid = Strophe.getResourceFromJid.bind(Strophe);
 
     this.chatRoomForwarder = new EventEmitterForwarder(chatRoom,
         this.conference.eventEmitter);
@@ -466,6 +471,34 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
                 conference.startMutedPolicy
             );
         }
+    });
+
+    chatRoom.addListener(
+        XMPPEvents.MUC_MODERATED_AUDIO_CHANGED,
+        conferenceEmit(JitsiConferenceEvents.MODERATED_AUDIO_CHANGED)
+    );
+
+    chatRoom.addListener(XMPPEvents.MUC_MODERATED_AUDIO_EXCEPTIONS_CHANGED, (
+            prevExceptions,
+            nextExceptions
+    ) => {
+        const {
+            MODERATED_AUDIO_EXCEPTION_ADDED,
+            MODERATED_AUDIO_EXCEPTION_REMOVED
+        } = JitsiConferenceEvents;
+
+        const notInNext = omits(nextExceptions);
+        const notInPrev = omits(prevExceptions);
+
+        nextExceptions
+            .filter(notInPrev)
+            .map(getResourceFromJid)
+            .forEach(conferenceEmit(MODERATED_AUDIO_EXCEPTION_ADDED));
+
+        prevExceptions
+            .filter(notInNext)
+            .map(getResourceFromJid)
+            .forEach(conferenceEmit(MODERATED_AUDIO_EXCEPTION_REMOVED));
     });
 
     if (conference.statistics) {
