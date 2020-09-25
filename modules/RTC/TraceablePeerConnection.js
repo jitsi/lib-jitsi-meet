@@ -215,8 +215,22 @@ export default function TraceablePeerConnection(
         this._peerMutedChanged);
     this.options = options;
 
+    // Make sure constraints is properly formatter in order to provide information about weather or not this
+    // connection is P2P to rtcstats.
+    const safeConstraints = constraints || {};
+
+    safeConstraints.optional = safeConstraints.optional || [];
+
+    // The `optional` parameter needs to be of type array, otherwise chrome will throw an error.
+    // Firefox and Safari just ignore it.
+    if (Array.isArray(safeConstraints.optional)) {
+        safeConstraints.optional.push({ rtcStatsSFUP2P: this.isP2P });
+    } else {
+        logger.warn('Optional param is not an array, rtcstats p2p data is omitted.');
+    }
+
     this.peerconnection
-        = new RTCUtils.RTCPeerConnectionType(iceConfig, constraints);
+        = new RTCUtils.RTCPeerConnectionType(iceConfig, safeConstraints);
 
     // The standard video bitrates are used in Unified plan when switching
     // between camera/desktop tracks on the same sender.
