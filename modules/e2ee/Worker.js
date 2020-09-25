@@ -273,7 +273,7 @@ class Context {
      * @param {RTCEncodedVideoFrame|RTCEncodedAudioFrame} encodedFrame - Encoded video frame.
      * @param {TransformStreamDefaultController} controller - TransportStreamController.
      */
-    decodeFunction(encodedFrame, controller) {
+    async decodeFunction(encodedFrame, controller) {
         const data = new Uint8Array(encodedFrame.data);
         const keyIndex = data[encodedFrame.data.byteLength - 1] & 0x7;
 
@@ -292,64 +292,65 @@ class Context {
 
             data.set(zeros, encodedFrame.data.byteLength - (digestLength[encodedFrame.type] + counterLength + 1));
 
-            return crypto.subtle.sign(authenticationTagOptions, this._cryptoKeyRing[keyIndex].authenticationKey,
-                encodedFrame.data).then(calculatedTag => {
-                // Do truncated hash comparison.
-                if (!isArrayEqual(authTag, calculatedTag.slice(0, digestLength[encodedFrame.type]))) {
-                    // TODO: surface this to the app.
-                    console.error('Authentication tag mismatch', new Uint8Array(authTag), new Uint8Array(calculatedTag,
-                        0, digestLength[encodedFrame.type]));
+            const calculatedTag = await crypto.subtle.sign(authenticationTagOptions,
+                this._cryptoKeyRing[keyIndex].authenticationKey, encodedFrame.data);
 
-                    return;
-                }
+            // Do truncated hash comparison.
+            if (!isArrayEqual(authTag, calculatedTag.slice(0, digestLength[encodedFrame.type]))) {
+                // TODO: at this point we need to ratchet until we get a key that works. If we ratchet too often
+                // we need to return an error to the app.
+                console.error('Authentication tag mismatch', new Uint8Array(authTag), new Uint8Array(calculatedTag,
+                    0, digestLength[encodedFrame.type]));
 
-                // Extract the counter.
-                const counter = new Uint8Array(16);
+                return;
+            }
 
-                counter.set(data.slice(encodedFrame.data.byteLength - (counterLength + 1),
-                    encodedFrame.data.byteLength - 1), 16 - counterLength);
-                const counterView = new DataView(counter.buffer);
+            // Extract the counter.
+            const counter = new Uint8Array(16);
 
-                // XOR the counter with the saltKey to construct the AES CTR.
-                const saltKey = new DataView(this._cryptoKeyRing[keyIndex].saltKey);
+            counter.set(data.slice(encodedFrame.data.byteLength - (counterLength + 1),
+                encodedFrame.data.byteLength - 1), 16 - counterLength);
+            const counterView = new DataView(counter.buffer);
 
-                for (let i = 0; i < counter.byteLength; i++) {
-                    counterView.setUint8(i,
-                        counterView.getUint8(i) ^ saltKey.getUint8(i));
-                }
+            // XOR the counter with the saltKey to construct the AES CTR.
+            const saltKey = new DataView(this._cryptoKeyRing[keyIndex].saltKey);
 
-                return crypto.subtle.decrypt({
-                    name: 'AES-CTR',
-                    counter,
-                    length: 64
-                }, this._cryptoKeyRing[keyIndex].encryptionKey, new Uint8Array(encodedFrame.data,
-                        unencryptedBytes[encodedFrame.type],
-                        encodedFrame.data.byteLength - (unencryptedBytes[encodedFrame.type]
-                        + digestLength[encodedFrame.type] + counterLength + 1))
-                ).then(plainText => {
-                    const newData = new ArrayBuffer(unencryptedBytes[encodedFrame.type] + plainText.byteLength);
+            for (let i = 0; i < counter.byteLength; i++) {
+                counterView.setUint8(i,
+                    counterView.getUint8(i) ^ saltKey.getUint8(i));
+            }
+
+            return crypto.subtle.decrypt({
+                name: 'AES-CTR',
+                counter,
+                length: 64
+            }, this._cryptoKeyRing[keyIndex].encryptionKey, new Uint8Array(encodedFrame.data,
+                    unencryptedBytes[encodedFrame.type],
+                    encodedFrame.data.byteLength - (unencryptedBytes[encodedFrame.type]
+                    + digestLength[encodedFrame.type] + counterLength + 1))
+            ).then(plainText => {
+                const newData = new ArrayBuffer(unencryptedBytes[encodedFrame.type] + plainText.byteLength);
+                const newUint8 = new Uint8Array(newData);
+
+                newUint8.set(frameHeader);
+                newUint8.set(new Uint8Array(plainText), unencryptedBytes[encodedFrame.type]);
+                encodedFrame.data = newData;
+
+                return controller.enqueue(encodedFrame);
+            }, e => {
+                console.error(e);
+
+                // TODO: notify the application about error status.
+                // TODO: For video we need a better strategy since we do not want to based any
+                // non-error frames on a garbage keyframe.
+                if (encodedFrame.type === undefined) { // audio, replace with silence.
+                    const newData = new ArrayBuffer(3);
                     const newUint8 = new Uint8Array(newData);
 
-                    newUint8.set(frameHeader);
-                    newUint8.set(new Uint8Array(plainText), unencryptedBytes[encodedFrame.type]);
+                    newUint8.set([ 0xd8, 0xff, 0xfe ]); // opus silence frame.
                     encodedFrame.data = newData;
-
-                    return controller.enqueue(encodedFrame);
-                }, e => {
-                    console.error(e);
-
-                    // TODO: notify the application about error status.
-                    // TODO: For video we need a better strategy since we do not want to based any
-                    // non-error frames on a garbage keyframe.
-                    if (encodedFrame.type === undefined) { // audio, replace with silence.
-                        const newData = new ArrayBuffer(3);
-                        const newUint8 = new Uint8Array(newData);
-
-                        newUint8.set([ 0xd8, 0xff, 0xfe ]); // opus silence frame.
-                        encodedFrame.data = newData;
-                        controller.enqueue(encodedFrame);
-                    }
-                });
+                    controller.enqueue(encodedFrame);
+                }
             });
         } else if (keyIndex >= this._cryptoKeyRing.length && this._cryptoKeyRing[this._currentKeyIndex]) {
             // If we are encrypting but don't have a key for the remote drop the frame.
