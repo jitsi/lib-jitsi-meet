@@ -215,7 +215,7 @@ export default function TraceablePeerConnection(
         this._peerMutedChanged);
     this.options = options;
 
-    // Make sure constraints is properly formatter in order to provide information about weather or not this
+    // Make sure constraints is properly formatted in order to provide information about whether or not this
     // connection is P2P to rtcstats.
     const safeConstraints = constraints || {};
 
