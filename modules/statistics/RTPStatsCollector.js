@@ -303,11 +303,15 @@ StatsCollector.prototype.start = function(startAudioLevelStats) {
 
                     for (const ssrc in audioLevels) {
                         if (audioLevels.hasOwnProperty(ssrc)) {
+                            // Use a scaling factor of 2.5 to report the same
+                            // audio levels that getStats reports.
+                            const audioLevel = audioLevels[ssrc] * 2.5;
+
                             this.eventEmitter.emit(
                                 StatisticsEvents.AUDIO_LEVEL,
                                 this.peerconnection,
                                 Number.parseInt(ssrc, 10),
-                                audioLevels[ssrc],
+                                audioLevel,
                                 false /* isLocal */);
                         }
                     }

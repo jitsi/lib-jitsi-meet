@@ -105,6 +105,21 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the current browser supports setting codec preferences on the transceiver.
+     * @returns {boolean}
+     */
+    supportsCodecPreferences() {
+        return this.usesUnifiedPlan()
+            && typeof window.RTCRtpTransceiver !== 'undefined'
+            && Object.keys(window.RTCRtpTransceiver.prototype).indexOf('setCodecPreferences') > -1
+            && Object.keys(RTCRtpSender.prototype).indexOf('getCapabilities') > -1
+
+            // this is not working on Safari because of the following bug
+            // https://bugs.webkit.org/show_bug.cgi?id=215567
+            && !this.isSafari();
+    }
+
+    /**
      * Checks if the current browser support the device change event.
      * @return {boolean}
      */
@@ -120,6 +135,16 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     supportsLocalCandidateRttStatistics() {
         return this.isChromiumBased() || this.isReactNative() || this.isSafari();
+    }
+
+    /**
+     * Checks if the current browser supports the Long Tasks API that lets us observe
+     * performance measurement events and be notified of tasks that take longer than
+     * 50ms to execute on the main thread.
+     */
+    supportsPerformanceObserver() {
+        return typeof window.PerformanceObserver !== 'undefined'
+            && PerformanceObserver.supportedEntryTypes.indexOf('longtask') > -1;
     }
 
     /**
@@ -256,9 +281,35 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean} {@code true} if the browser supports insertable streams.
      */
     supportsInsertableStreams() {
-        return Boolean(typeof window.RTCRtpSender !== 'undefined'
+        if (!(typeof window.RTCRtpSender !== 'undefined'
             && (window.RTCRtpSender.prototype.createEncodedStreams
-                || window.RTCRtpSender.prototype.createEncodedVideoStreams));
+                || window.RTCRtpSender.prototype.createEncodedVideoStreams))) {
+            return false;
+        }
+
+        // Feature-detect transferable streams which we need to operate in a worker.
+        // See https://groups.google.com/a/chromium.org/g/blink-dev/c/1LStSgBt6AM/m/hj0odB8pCAAJ
+        const stream = new ReadableStream();
+
+        try {
+            window.postMessage(stream, '*', [ stream ]);
+
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Whether the browser supports the RED format for audio.
+     */
+    supportsAudioRed() {
+        return Boolean(window.RTCRtpSender
+            && window.RTCRtpSender.getCapabilities
+            && window.RTCRtpSender.getCapabilities('audio').codecs.some(codec => codec.mimeType === 'audio/red')
+            && window.RTCRtpReceiver
+            && window.RTCRtpReceiver.getCapabilities
+            && window.RTCRtpReceiver.getCapabilities('audio').codecs.some(codec => codec.mimeType === 'audio/red'));
     }
 
     /**

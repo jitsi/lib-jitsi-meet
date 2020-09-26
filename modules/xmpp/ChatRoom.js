@@ -761,6 +761,12 @@ export default class ChatRoom extends Listenable {
         this.focusMucJid = from;
 
         logger.info(`Ignore focus: ${from}, real JID: ${mucJid}`);
+        this.xmpp.caps.getFeatures(mucJid, 15000).then(features => {
+            this.focusFeatures = features;
+            logger.info(`Jicofo supports restart by terminate: ${this.supportsRestartByTerminate()}`);
+        }, error => {
+            logger.error('Failed to discover Jicofo features', error && error.message);
+        });
     }
 
     /**
@@ -769,6 +775,16 @@ export default class ChatRoom extends Listenable {
      */
     setParticipantPropertyListener(listener) {
         this.participantPropertyListener = listener;
+    }
+
+    /**
+     * Checks if Jicofo supports restarting Jingle session after 'session-terminate'.
+     * @returns {boolean}
+     */
+    supportsRestartByTerminate() {
+        return this.focusFeatures
+            ? this.focusFeatures.has('https://jitsi.org/meet/jicofo/terminate-restart')
+            : false;
     }
 
     /**
@@ -1047,17 +1063,21 @@ export default class ChatRoom extends Listenable {
                     from, invite.attr('from'), txt, password);
             }
         }
+
         const jsonMessage = $(msg).find('>json-message').text();
-        const parsedJson = this.xmpp.tryParseJSONAndVerify(jsonMessage);
 
-        // We emit this event if the message is a valid json, and is not
-        // delivered after a delay, i.e. stamp is undefined.
-        // e.g. - subtitles should not be displayed if delayed.
-        if (parsedJson && stamp === undefined) {
-            this.eventEmitter.emit(XMPPEvents.JSON_MESSAGE_RECEIVED,
-                from, parsedJson);
+        if (jsonMessage) {
+            const parsedJson = this.xmpp.tryParseJSONAndVerify(jsonMessage);
 
-            return;
+            // We emit this event if the message is a valid json, and is not
+            // delivered after a delay, i.e. stamp is undefined.
+            // e.g. - subtitles should not be displayed if delayed.
+            if (parsedJson && stamp === undefined) {
+                this.eventEmitter.emit(XMPPEvents.JSON_MESSAGE_RECEIVED,
+                    from, parsedJson);
+
+                return;
+            }
         }
 
         if (txt) {
@@ -1266,25 +1286,23 @@ export default class ChatRoom extends Listenable {
      */
     setMembersOnly(enabled, onSuccess, onError) {
         if (enabled && Object.values(this.members).filter(m => !m.isFocus).length) {
-            let sendGrantMembershipIq = false;
-
             // first grant membership to all that are in the room
-            const grantMembership = $iq({ to: this.roomjid,
-                type: 'set' })
-                .c('query', { xmlns: 'http://jabber.org/protocol/muc#admin' });
-
+            // currently there is a bug in prosody where it handles only the first item
+            // that's why we will send iq per member
             Object.values(this.members).forEach(m => {
                 if (m.jid && !MEMBERS_AFFILIATIONS.includes(m.affiliation)) {
-                    grantMembership.c('item', {
-                        'affiliation': 'member',
-                        'jid': m.jid }).up();
-                    sendGrantMembershipIq = true;
+                    this.xmpp.connection.sendIQ(
+                        $iq({
+                            to: this.roomjid,
+                            type: 'set' })
+                        .c('query', {
+                            xmlns: 'http://jabber.org/protocol/muc#admin' })
+                        .c('item', {
+                            'affiliation': 'member',
+                            'jid': m.jid
+                        }).up().up());
                 }
             });
-
-            if (sendGrantMembershipIq) {
-                this.xmpp.connection.sendIQ(grantMembership.up());
-            }
         }
 
         const errorCallback = onError ? onError : () => {}; // eslint-disable-line no-empty-function

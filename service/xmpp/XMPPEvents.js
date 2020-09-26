@@ -175,7 +175,6 @@ const XMPPEvents = {
      */
     PARTCIPANT_FEATURES_CHANGED: 'xmpp.partcipant_features_changed',
     PASSWORD_REQUIRED: 'xmpp.password_required',
-    PEERCONNECTION_READY: 'xmpp.peerconnection_ready',
 
     /**
      * Indicates that phone number changed.

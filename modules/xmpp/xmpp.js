@@ -8,6 +8,7 @@ import * as JitsiConnectionErrors from '../../JitsiConnectionErrors';
 import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import browser from '../browser';
+import { E2EEncryption } from '../e2ee/E2EEncryption';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 import RandomUtil from '../util/RandomUtil';
@@ -17,7 +18,6 @@ import XmppConnection from './XmppConnection';
 import MucConnectionPlugin from './strophe.emuc';
 import JingleConnectionPlugin from './strophe.jingle';
 import initStropheLogger from './strophe.logger';
-import PingConnectionPlugin from './strophe.ping';
 import RayoConnectionPlugin from './strophe.rayo';
 import initStropheUtil from './strophe.util';
 
@@ -151,6 +151,9 @@ export default class XMPP extends Listenable {
         if (!this.options.disableRtx) {
             this.caps.addFeature('urn:ietf:rfc:4588');
         }
+        if (this.options.enableOpusRed === true && browser.supportsAudioRed()) {
+            this.caps.addFeature('http://jitsi.org/opus-red');
+        }
 
         // this is dealt with by SDP O/A so we don't need to announce this
         // XEP-0293
@@ -173,18 +176,9 @@ export default class XMPP extends Listenable {
             this.caps.addFeature('urn:xmpp:rayo:client:1');
         }
 
-        if (browser.supportsInsertableStreams() && !(this.options.testing && this.options.testing.disableE2EE)) {
+        if (E2EEncryption.isSupported(this.options)) {
             this.caps.addFeature('https://jitsi.org/meet/e2ee');
         }
-    }
-
-    /**
-     * Returns {@code true} if the PING functionality is supported by the server
-     * or {@code false} otherwise.
-     * @returns {boolean}
-     */
-    isPingSupported() {
-        return this._pingSupported !== false;
     }
 
     /**
@@ -233,11 +227,9 @@ export default class XMPP extends Listenable {
             // FIXME no need to do it again on stream resume
             this.caps.getFeaturesAndIdentities(pingJid)
                 .then(({ features, identities }) => {
-                    if (features.has(Strophe.NS.PING)) {
-                        this._pingSupported = true;
-                        this.connection.ping.startInterval(pingJid);
-                    } else {
-                        logger.warn(`Ping NOT supported by ${pingJid}`);
+                    if (!features.has(Strophe.NS.PING)) {
+                        logger.error(
+                            `Ping NOT supported by ${pingJid} - please enable ping in your XMPP server config`);
                     }
 
                     // check for speakerstats
@@ -261,7 +253,7 @@ export default class XMPP extends Listenable {
                                         }
                                     });
                                 })
-                                .catch(logger.warn('Error getting features from lobby.'));
+                                .catch(e => logger.warn('Error getting features from lobby.', e && e.message));
                         }
                     });
 
@@ -533,20 +525,15 @@ export default class XMPP extends Listenable {
     }
 
     /**
-     * Pings the server. Remember to check {@link isPingSupported} before using
-     * this method.
+     * Pings the server.
      * @param timeout how many ms before a timeout should occur.
      * @returns {Promise} resolved on ping success and reject on an error or
      * a timeout.
      */
     ping(timeout) {
         return new Promise((resolve, reject) => {
-            if (this.isPingSupported()) {
-                this.connection.ping
+            this.connection.ping
                     .ping(this.connection.domain, resolve, reject, timeout);
-            } else {
-                reject('PING operation is not supported by the server');
-            }
         });
     }
 
@@ -658,7 +645,6 @@ export default class XMPP extends Listenable {
 
         this.connection.addConnectionPlugin('emuc', new MucConnectionPlugin(this));
         this.connection.addConnectionPlugin('jingle', new JingleConnectionPlugin(this, this.eventEmitter, iceConfig));
-        this.connection.addConnectionPlugin('ping', new PingConnectionPlugin(this));
         this.connection.addConnectionPlugin('rayo', new RayoConnectionPlugin());
     }
 
@@ -757,6 +743,8 @@ export default class XMPP extends Listenable {
                     + 'structure', 'topic: ', type);
             }
         } catch (e) {
+            logger.error(e);
+
             return false;
         }
 

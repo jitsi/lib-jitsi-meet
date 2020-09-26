@@ -30,7 +30,7 @@ module.exports = function(config) {
         preprocessors: {
             'node_modules/core-js/**': [ 'webpack' ],
             './index.js': [ 'webpack' ],
-            './**/*.spec.js': [ 'webpack' ]
+            './**/*.spec.js': [ 'webpack', 'sourcemap' ]
         },
 
         // test results reporter to use

@@ -1,5 +1,6 @@
 import EventEmitter from 'events';
 
+import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import JitsiTrackError from '../../JitsiTrackError';
 import { FEEDBACK } from '../../service/statistics/AnalyticsEvents';
 import * as StatisticsEvents from '../../service/statistics/Events';
@@ -9,8 +10,9 @@ import ScriptUtil from '../util/ScriptUtil';
 import analytics from './AnalyticsAdapter';
 import CallStats from './CallStats';
 import LocalStats from './LocalStatsCollector';
+import { PerformanceObserverStats } from './PerformanceObserverStats';
 import RTPStats from './RTPStatsCollector';
-
+import { CALLSTATS_SCRIPT_URL } from './constants';
 
 const logger = require('jitsi-meet-logger').getLogger(__filename);
 
@@ -40,8 +42,7 @@ let isCallstatsLoaded = false;
 function loadCallStatsAPI(options) {
     if (!isCallstatsLoaded) {
         ScriptUtil.loadScript(
-            options.customScriptUrl
-                || 'https://api.callstats.io/static/callstats-ws.min.js',
+            options.customScriptUrl || CALLSTATS_SCRIPT_URL,
             /* async */ true,
             /* prepend */ true,
             /* relativeURL */ undefined,
@@ -120,6 +121,10 @@ Statistics.init = function(options) {
         Statistics.audioLevelsInterval = options.audioLevelsInterval;
     }
 
+    if (typeof options.longTasksStatsInterval === 'number') {
+        Statistics.longTasksStatsInterval = options.longTasksStatsInterval;
+    }
+
     Statistics.disableThirdPartyRequests = options.disableThirdPartyRequests;
 };
 
@@ -155,7 +160,7 @@ export default function Statistics(xmpp, options) {
     this.options = options || {};
 
     this.callStatsIntegrationEnabled
-        = this.options.callStatsID && this.options.callStatsSecret
+        = this.options.callStatsID && this.options.callStatsSecret && this.options.enableCallStats
 
             // Even though AppID and AppSecret may be specified, the integration
             // of callstats.io may be disabled because of globally-disallowed
@@ -281,6 +286,63 @@ Statistics.prototype.addByteSentStatsListener = function(listener) {
 Statistics.prototype.removeByteSentStatsListener = function(listener) {
     this.eventEmitter.removeListener(StatisticsEvents.BYTE_SENT_STATS,
         listener);
+};
+
+/**
+ * Add a listener that would be notified on a LONG_TASKS_STATS event.
+ *
+ * @param {Function} listener a function that would be called when notified.
+ * @returns {void}
+ */
+Statistics.prototype.addLongTasksStatsListener = function(listener) {
+    this.eventEmitter.on(StatisticsEvents.LONG_TASKS_STATS, listener);
+};
+
+/**
+ * Creates an instance of {@link PerformanceObserverStats} and starts the
+ * observer that records the stats periodically.
+ *
+ * @returns {void}
+ */
+Statistics.prototype.attachLongTasksStats = function(conference) {
+    if (!browser.supportsPerformanceObserver()) {
+        logger.warn('Performance observer for long tasks not supported by browser!');
+
+        return;
+    }
+
+    this.performanceObserverStats = new PerformanceObserverStats(
+        this.eventEmitter,
+        Statistics.longTasksStatsInterval);
+
+    conference.on(
+        JitsiConferenceEvents.CONFERENCE_JOINED,
+        () => this.performanceObserverStats.startObserver());
+    conference.on(
+        JitsiConferenceEvents.CONFERENCE_LEFT,
+        () => this.performanceObserverStats.stopObserver());
+};
+
+/**
+ * Obtains the current value of the LongTasks event statistics.
+ *
+ * @returns {Object|null} stats object if the observer has been
+ * created, null otherwise.
+ */
+Statistics.prototype.getLongTasksStats = function() {
+    return this.performanceObserverStats
+        ? this.performanceObserverStats.getLongTasksStats()
+        : null;
+};
+
+/**
+ * Removes the given listener for the LONG_TASKS_STATS event.
+ *
+ * @param {Function} listener the listener we want to remove.
+ * @returns {void}
+ */
+Statistics.prototype.removeLongTasksStatsListener = function(listener) {
+    this.eventEmitter.removeListener(StatisticsEvents.LONG_TASKS_STATS, listener);
 };
 
 Statistics.prototype.dispose = function() {

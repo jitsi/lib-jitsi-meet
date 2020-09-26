@@ -10,7 +10,8 @@ const minimize
         || process.argv.indexOf('--optimize-minimize') !== -1;
 
 const config = {
-    devtool: 'source-map',
+    // The inline-source-map is used to allow debugging the unit tests with Karma
+    devtool: minimize ? 'source-map' : 'inline-source-map',
     mode: minimize ? 'production' : 'development',
     module: {
         rules: [ {
@@ -100,5 +101,18 @@ module.exports = [
             library: 'JitsiMeetJS',
             libraryTarget: 'umd'
         })
-    })
+    }),
+    {
+        entry: {
+            worker: './modules/e2ee/Worker.js'
+        },
+        mode: 'production',
+        output: {
+            filename: 'lib-jitsi-meet.e2ee-worker.js',
+            path: process.cwd()
+        },
+        optimization: {
+            minimize: false
+        }
+    }
 ];
