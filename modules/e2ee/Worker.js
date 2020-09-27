@@ -1,378 +1,428 @@
-// Worker for E2EE/Insertable streams. Currently served as an inline blob.
-const code = `
-    // Polyfill RTCEncoded(Audio|Video)Frame.getMetadata() (not available in M83, available M84+).
-    // The polyfill can not be done on the prototype since its not exposed in workers. Instead,
-    // it is done as another transformation to keep it separate.
-    function polyFillEncodedFrameMetadata(encodedFrame, controller) {
-      if (!encodedFrame.getMetadata) {
+/* global TransformStream */
+/* eslint-disable no-bitwise */
+
+// Worker for E2EE/Insertable streams.
+//
+
+/**
+ * Polyfill RTCEncoded(Audio|Video)Frame.getMetadata() (not available in M83, available M84+).
+ * The polyfill can not be done on the prototype since its not exposed in workers. Instead,
+ * it is done as another transformation to keep it separate.
+ */
+function polyFillEncodedFrameMetadata(encodedFrame, controller) {
+    if (!encodedFrame.getMetadata) {
         encodedFrame.getMetadata = function() {
-          return {
-            // TODO: provide a more complete polyfill based on additionalData for video.
-            synchronizationSource: this.synchronizationSource,
-            contributingSources: this.contributingSources
-          };
+            return {
+                // TODO: provide a more complete polyfill based on additionalData for video.
+                synchronizationSource: this.synchronizationSource,
+                contributingSources: this.contributingSources
+            };
         };
-      }
-      controller.enqueue(encodedFrame);
+    }
+    controller.enqueue(encodedFrame);
+}
+
+/**
+ * Compares two byteArrays for equality.
+ */
+function isArrayEqual(a1, a2) {
+    if (a1.byteLength !== a2.byteLength) {
+        return false;
+    }
+    for (let i = 0; i < a1.byteLength; i++) {
+        if (a1[i] !== a2[i]) {
+            return false;
+        }
     }
 
-    // We use a ringbuffer of keys so we can change them and still decode packets that were
-    // encrypted with an old key.
-    // In the future when we dont rely on a globally shared key we will actually use it. For
-    // now set the size to 1 which means there is only a single key. This causes some
-    // glitches when changing the key but its ok.
-    const keyRingSize = 1;
+    return true;
+}
 
-    // We use a 96 bit IV for AES GCM. This is signalled in plain together with the
-    // packet. See https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams
-    const ivLength = 12;
+// We use a ringbuffer of keys so we can change them and still decode packets that were
+// encrypted with an old key.
+const keyRingSize = 3;
 
-    // We use a 128 bit key for AES GCM.
-    const keyGenParameters = {
-        name: 'AES-GCM',
+// We copy the first bytes of the VP8 payload unencrypted.
+// For keyframes this is 10 bytes, for non-keyframes (delta) 3. See
+//   https://tools.ietf.org/html/rfc6386#section-9.1
+// This allows the bridge to continue detecting keyframes (only one byte needed in the JVB)
+// and is also a bit easier for the VP8 decoder (i.e. it generates funny garbage pictures
+// instead of being unable to decode).
+// This is a bit for show and we might want to reduce to 1 unconditionally in the final version.
+//
+// For audio (where frame.type is not set) we do not encrypt the opus TOC byte:
+//   https://tools.ietf.org/html/rfc6716#section-3.1
+const unencryptedBytes = {
+    key: 10,
+    delta: 3,
+    undefined: 1 // frame.type is not set on audio
+};
+
+// Use truncated SHA-256 hashes, 80 bіts for video, 32 bits for audio.
+// This follows the same principles as DTLS-SRTP.
+const authenticationTagOptions = {
+    name: 'HMAC',
+    hash: 'SHA-256'
+};
+const digestLength = {
+    key: 10,
+    delta: 10,
+    undefined: 4 // frame.type is not set on audio
+};
+
+/**
+ * Derives a set of keys from the master key.
+ * @param {Uint8Array} keyBytes - Value to derive key from
+ * @param {Uint8Array} salt - Salt used in key derivation
+ *
+ * See https://tools.ietf.org/html/draft-omara-sframe-00#section-4.3.1
+ */
+async function deriveKeys(keyBytes) {
+    // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/importKey
+    const material = await crypto.subtle.importKey('raw', keyBytes,
+        'HKDF', false, [ 'deriveBits', 'deriveKey' ]);
+
+    const info = new ArrayBuffer();
+    const textEncoder = new TextEncoder();
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey#HKDF
+    // https://developer.mozilla.org/en-US/docs/Web/API/HkdfParams
+    const encryptionKey = await crypto.subtle.deriveKey({
+        name: 'HKDF',
+        salt: textEncoder.encode('JFrameEncryptionKey'),
+        hash: 'SHA-256',
+        info
+    }, material, {
+        name: 'AES-CTR',
         length: 128
+    }, false, [ 'encrypt', 'decrypt' ]);
+    const authenticationKey = await crypto.subtle.deriveKey({
+        name: 'HKDF',
+        salt: textEncoder.encode('JFrameAuthenticationKey'),
+        hash: 'SHA-256',
+        info
+    }, material, {
+        name: 'HMAC',
+        hash: 'SHA-256'
+    }, false, [ 'sign' ]);
+    const saltKey = await crypto.subtle.deriveBits({
+        name: 'HKDF',
+        salt: textEncoder.encode('JFrameSaltKey'),
+        hash: 'SHA-256',
+        info
+    }, material, 128);
+
+    return {
+        encryptionKey,
+        authenticationKey,
+        saltKey
     };
+}
 
-    // We copy the first bytes of the VP8 payload unencrypted.
-    // For keyframes this is 10 bytes, for non-keyframes (delta) 3. See
-    //   https://tools.ietf.org/html/rfc6386#section-9.1
-    // This allows the bridge to continue detecting keyframes (only one byte needed in the JVB)
-    // and is also a bit easier for the VP8 decoder (i.e. it generates funny garbage pictures
-    // instead of being unable to decode).
-    // This is a bit for show and we might want to reduce to 1 unconditionally in the final version.
-    //
-    // For audio (where frame.type is not set) we do not encrypt the opus TOC byte:
-    //   https://tools.ietf.org/html/rfc6716#section-3.1
-    const unencryptedBytes = {
-        key: 10,
-        delta: 3,
-        undefined: 1 // frame.type is not set on audio
-    };
 
-    // Salt used in key derivation
-    // FIXME: We currently use the MUC room name for this which has the same lifetime
-    // as this worker. While not (pseudo)random as recommended in
-    // https://developer.mozilla.org/en-US/docs/Web/API/Pbkdf2Params
-    // this is easily available and the same for all participants.
-    // We currently do not enforce a minimum length of 16 bytes either.
-    let keySalt;
+/**
+ * Per-participant context holding the cryptographic keys and
+ * encode/decode functions
+ */
+class Context {
+    /**
+     * @param {string} id - local muc resourcepart
+     */
+    constructor(id) {
+        // An array (ring) of keys that we use for sending and receiving.
+        this._cryptoKeyRing = new Array(keyRingSize);
 
-    // Raw keyBytes used to derive the key.
-    let keyBytes;
+        // A pointer to the currently used key.
+        this._currentKeyIndex = -1;
+
+        // A per-sender counter that is used create the AES CTR.
+        // Must be incremented on every frame that is sent, can be reset on
+        // key changes.
+        this._sendCount = 0n;
+
+        this._id = id;
+    }
 
     /**
-     * Derives a AES-GCM key from the input using PBKDF2
-     * The key length can be configured above and should be either 128 or 256 bits.
-     * @param {Uint8Array} keyBytes - Value to derive key from
-     * @param {Uint8Array} salt - Salt used in key derivation
+     * Sets a key, derives the different subkeys and starts using them for encryption or
+     * decryption.
+     * @param {CryptoKey} key
+     * @param {Number} keyIndex
      */
-    async function deriveKey(keyBytes, salt) {
-        // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/importKey
-        const material = await crypto.subtle.importKey('raw', keyBytes,
-            'PBKDF2', false, [ 'deriveBits', 'deriveKey' ]);
-
-        // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey#PBKDF2
-        return crypto.subtle.deriveKey({
-            name: 'PBKDF2',
-            salt,
-            iterations: 100000,
-            hash: 'SHA-256'
-        }, material, keyGenParameters, false, [ 'encrypt', 'decrypt' ]);
+    async setKey(key, keyIndex) {
+        this._currentKeyIndex = keyIndex % this._cryptoKeyRing.length;
+        if (key) {
+            this._cryptoKeyRing[this._currentKeyIndex] = await deriveKeys(key);
+        } else {
+            this._cryptoKeyRing[this._currentKeyIndex] = false;
+        }
+        this._sendCount = 0n; // Reset the send count (bigint).
     }
 
-
-    /** Per-participant context holding the cryptographic keys and
-     * encode/decode functions
+    /**
+     * Function that will be injected in a stream and will encrypt the given encoded frames.
+     *
+     * @param {RTCEncodedVideoFrame|RTCEncodedAudioFrame} encodedFrame - Encoded video frame.
+     * @param {TransformStreamDefaultController} controller - TransportStreamController.
+     *
+     * The packet format is a variant of
+     *   https://tools.ietf.org/html/draft-omara-sframe-00
+     * using a trailer instead of a header. One of the design goals was to not require
+     * changes to the SFU which for video requires not encrypting the keyframe bit of VP8
+     * as SFUs need to detect a keyframe (framemarking or the generic frame descriptor will
+     * solve this eventually). This also "hides" that a client is using E2EE a bit.
+     *
+     * Note that this operates on the full frame, i.e. for VP8 the data described in
+     *   https://tools.ietf.org/html/rfc6386#section-9.1
+     *
+     * The VP8 payload descriptor described in
+     *   https://tools.ietf.org/html/rfc7741#section-4.2
+     * is part of the RTP packet and not part of the encoded frame and is therefore not
+     * controllable by us. This is fine as the SFU keeps having access to it for routing.
      */
-    class Context {
-        /**
-         * @param {string} id - local muc resourcepart
-         */
-        constructor(id) {
-            // An array (ring) of keys that we use for sending and receiving.
-            this._cryptoKeyRing = new Array(keyRingSize);
+    encodeFunction(encodedFrame, controller) {
+        const keyIndex = this._currentKeyIndex;
 
-            // A pointer to the currently used key.
-            this._currentKeyIndex = -1;
+        if (this._cryptoKeyRing[keyIndex]) {
+            this._sendCount++;
 
-            // We keep track of how many frames we have sent per ssrc.
-            // Starts with a random offset similar to the RTP sequence number.
-            this._sendCounts = new Map();
+            // Thіs is not encrypted and contains the VP8 payload descriptor or the Opus TOC byte.
+            const frameHeader = new Uint8Array(encodedFrame.data, 0, unencryptedBytes[encodedFrame.type]);
 
-            this._id = id;
-        }
+            // Construct frame trailer. Similar to the frame header described in
+            // https://tools.ietf.org/html/draft-omara-sframe-00#section-4.2
+            // but we put it at the end.
+            //                                             0 1 2 3 4 5 6 7
+            // ---------+---------------------------------+-+-+-+-+-+-+-+-+
+            // payload  |    CTR... (length=LEN)          |S|LEN  |0| KID |
+            // ---------+---------------------------------+-+-+-+-+-+-+-+-+
+            const counter = new Uint8Array(16);
+            const counterView = new DataView(counter.buffer);
 
-        /**
-         * Derives a per-participant key.
-         * @param {Uint8Array} keyBytes - Value to derive key from
-         * @param {Uint8Array} salt - Salt used in key derivation
-         */
-        async deriveKey(keyBytes, salt) {
-            const encoder = new TextEncoder();
-            const idBytes = encoder.encode(this._id);
-            // Separate both parts by a null byte to avoid ambiguity attacks.
-            const participantSalt = new Uint8Array(salt.byteLength + idBytes.byteLength + 1);
-            participantSalt.set(salt);
-            participantSalt.set(idBytes, salt.byteLength + 1);
+            // The counter is encoded as a variable-length field.
+            counterView.setBigUint64(8, this._sendCount);
+            let counterLength = 8;
 
-            return deriveKey(keyBytes, participantSalt);
-        }
-        /**
-         * Sets a key and starts using it for encrypting.
-         * @param {CryptoKey} key
-         */
-        setKey(key) {
-            this._currentKeyIndex++;
-            this._cryptoKeyRing[this._currentKeyIndex % this._cryptoKeyRing.length] = key;
-        }
-
-        /**
-         * Construct the IV used for AES-GCM and sent (in plain) with the packet similar to
-         * https://tools.ietf.org/html/rfc7714#section-8.1
-         * It concatenates
-         * - the 32 bit synchronization source (SSRC) given on the encoded frame,
-         * - the 32 bit rtp timestamp given on the encoded frame,
-         * - a send counter that is specific to the SSRC. Starts at a random number.
-         * The send counter is essentially the pictureId but we currently have to implement this ourselves.
-         * There is no XOR with a salt. Note that this IV leaks the SSRC to the receiver but since this is
-         * randomly generated and SFUs may not rewrite this is considered acceptable.
-         * The SSRC is used to allow demultiplexing multiple streams with the same key, as described in
-         *   https://tools.ietf.org/html/rfc3711#section-4.1.1
-         * The RTP timestamp is 32 bits and advances by the codec clock rate (90khz for video, 48khz for
-         * opus audio) every second. For video it rolls over roughly every 13 hours.
-         * The send counter will advance at the frame rate (30fps for video, 50fps for 20ms opus audio)
-         * every second. It will take a long time to roll over.
-         *
-         * See also https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams
-         */
-        makeIV(synchronizationSource, timestamp) {
-            const iv = new ArrayBuffer(ivLength);
-            const ivView = new DataView(iv);
-
-            // having to keep our own send count (similar to a picture id) is not ideal.
-            if (!this._sendCounts.has(synchronizationSource)) {
-                // Initialize with a random offset, similar to the RTP sequence number.
-                this._sendCounts.set(synchronizationSource, Math.floor(Math.random() * 0xFFFF));
+            for (let i = 8; i < counter.byteLength; i++ && counterLength--) {
+                if (counterView.getUint8(i) !== 0) {
+                    break;
+                }
             }
-            const sendCount = this._sendCounts.get(synchronizationSource);
 
-            ivView.setUint32(0, synchronizationSource);
-            ivView.setUint32(4, timestamp);
-            ivView.setUint32(8, sendCount % 0xFFFF);
+            const frameTrailer = new Uint8Array(counterLength + 1);
 
-            this._sendCounts.set(synchronizationSource, sendCount + 1);
+            frameTrailer.set(new Uint8Array(counter.buffer, counter.byteLength - counterLength));
 
-            return iv;
-        }
+            // Since we never send a counter of 0 we send counterLength - 1 on the wire.
+            // This is different from the sframe draft, increases the key space and lets us
+            // ignore the case of a zero-length counter at the receiver.
+            frameTrailer[frameTrailer.byteLength - 1] = keyIndex | ((counterLength - 1) << 4);
 
-        /**
-         * Function that will be injected in a stream and will encrypt the given encoded frames.
-         *
-         * @param {RTCEncodedVideoFrame|RTCEncodedAudioFrame} encodedFrame - Encoded video frame.
-         * @param {TransformStreamDefaultController} controller - TransportStreamController.
-         *
-         * The packet format is described below. One of the design goals was to not require
-         * changes to the SFU which for video requires not encrypting the keyframe bit of VP8
-         * as SFUs need to detect a keyframe (framemarking or the generic frame descriptor will
-         * solve this eventually). This also "hides" that a client is using E2EE a bit.
-         *
-         * Note that this operates on the full frame, i.e. for VP8 the data described in
-         *   https://tools.ietf.org/html/rfc6386#section-9.1
-         *
-         * The VP8 payload descriptor described in
-         *   https://tools.ietf.org/html/rfc7741#section-4.2
-         * is part of the RTP packet and not part of the frame and is not controllable by us.
-         * This is fine as the SFU keeps having access to it for routing.
-         *
-         * The encrypted frame is formed as follows:
-         * 1) Leave the first (10, 3, 1) bytes unencrypted, depending on the frame type and kind.
-         * 2) Form the GCM IV for the frame as described above.
-         * 3) Encrypt the rest of the frame using AES-GCM.
-         * 4) Allocate space for the encrypted frame.
-         * 5) Copy the unencrypted bytes to the start of the encrypted frame.
-         * 6) Append the ciphertext to the encrypted frame.
-         * 7) Append the IV.
-         * 8) Append a single byte for the key identifier. TODO: we don't need all the bits.
-         * 9) Enqueue the encrypted frame for sending.
-         */
-        encodeFunction(encodedFrame, controller) {
-            const keyIndex = this._currentKeyIndex % this._cryptoKeyRing.length;
+            // XOR the counter with the saltKey to construct the AES CTR.
+            const saltKey = new DataView(this._cryptoKeyRing[keyIndex].saltKey);
 
-            if (this._cryptoKeyRing[keyIndex]) {
-                const iv = this.makeIV(encodedFrame.getMetadata().synchronizationSource, encodedFrame.timestamp);
+            for (let i = 0; i < counter.byteLength; i++) {
+                counterView.setUint8(i, counterView.getUint8(i) ^ saltKey.getUint8(i));
+            }
 
-                return crypto.subtle.encrypt({
-                    name: 'AES-GCM',
-                    iv,
-                    additionalData: new Uint8Array(encodedFrame.data, 0, unencryptedBytes[encodedFrame.type])
-                }, this._cryptoKeyRing[keyIndex], new Uint8Array(encodedFrame.data,
-                    unencryptedBytes[encodedFrame.type]))
-                .then(cipherText => {
-                    const newData = new ArrayBuffer(unencryptedBytes[encodedFrame.type] + cipherText.byteLength
-                        + iv.byteLength + 1);
-                    const newUint8 = new Uint8Array(newData);
+            return crypto.subtle.encrypt({
+                name: 'AES-CTR',
+                counter,
+                length: 64
+            }, this._cryptoKeyRing[keyIndex].encryptionKey, new Uint8Array(encodedFrame.data,
+                unencryptedBytes[encodedFrame.type]))
+            .then(cipherText => {
+                const newData = new ArrayBuffer(frameHeader.byteLength + cipherText.byteLength
+                    + digestLength[encodedFrame.type] + frameTrailer.byteLength);
+                const newUint8 = new Uint8Array(newData);
 
-                    newUint8.set(
-                        new Uint8Array(encodedFrame.data, 0, unencryptedBytes[encodedFrame.type])); // copy first bytes.
-                    newUint8.set(
-                        new Uint8Array(cipherText), unencryptedBytes[encodedFrame.type]); // add ciphertext.
-                    newUint8.set(
-                        new Uint8Array(iv), unencryptedBytes[encodedFrame.type] + cipherText.byteLength); // append IV.
-                    newUint8[unencryptedBytes[encodedFrame.type] + cipherText.byteLength + ivLength]
-                        = keyIndex; // set key index.
+                newUint8.set(frameHeader); // copy first bytes.
+                newUint8.set(new Uint8Array(cipherText), unencryptedBytes[encodedFrame.type]); // add ciphertext.
+                // Leave some space for the authentication tag. This is filled with 0s initially, similar to
+                // STUN message-integrity described in https://tools.ietf.org/html/rfc5389#section-15.4
+                newUint8.set(frameTrailer, frameHeader.byteLength + cipherText.byteLength
+                    + digestLength[encodedFrame.type]); // append trailer.
 
+                return crypto.subtle.sign(authenticationTagOptions, this._cryptoKeyRing[keyIndex].authenticationKey,
+                    new Uint8Array(newData)).then(authTag => {
+                    // Set the truncated authentication tag.
+                    newUint8.set(new Uint8Array(authTag, 0, digestLength[encodedFrame.type]),
+                        unencryptedBytes[encodedFrame.type] + cipherText.byteLength);
                     encodedFrame.data = newData;
 
                     return controller.enqueue(encodedFrame);
-                }, e => {
-                    console.error(e);
-
-                    // We are not enqueuing the frame here on purpose.
                 });
-            }
+            }, e => {
+                // TODO: surface this to the app.
+                console.error(e);
 
-            /* NOTE WELL:
-             * This will send unencrypted data (only protected by DTLS transport encryption) when no key is configured.
-             * This is ok for demo purposes but should not be done once this becomes more relied upon.
-             */
-            controller.enqueue(encodedFrame);
+                // We are not enqueuing the frame here on purpose.
+            });
         }
 
-        /**
-         * Function that will be injected in a stream and will decrypt the given encoded frames.
-         *
-         * @param {RTCEncodedVideoFrame|RTCEncodedAudioFrame} encodedFrame - Encoded video frame.
-         * @param {TransformStreamDefaultController} controller - TransportStreamController.
-         *
-         * The decrypted frame is formed as follows:
-         * 1) Extract the key index from the last byte of the encrypted frame.
-         *    If there is no key associated with the key index, the frame is enqueued for decoding
-         *    and these steps terminate.
-         * 2) Determine the frame type in order to look up the number of unencrypted header bytes.
-         * 2) Extract the 12-byte IV from its position near the end of the packet.
-         *    Note: the IV is treated as opaque and not reconstructed from the input.
-         * 3) Decrypt the encrypted frame content after the unencrypted bytes using AES-GCM.
-         * 4) Allocate space for the decrypted frame.
-         * 5) Copy the unencrypted bytes from the start of the encrypted frame.
-         * 6) Append the plaintext to the decrypted frame.
-         * 7) Enqueue the decrypted frame for decoding.
+        /* NOTE WELL:
+         * This will send unencrypted data (only protected by DTLS transport encryption) when no key is configured.
+         * This is ok for demo purposes but should not be done once this becomes more relied upon.
          */
-        decodeFunction(encodedFrame, controller) {
-            const data = new Uint8Array(encodedFrame.data);
-            const keyIndex = data[encodedFrame.data.byteLength - 1];
+        controller.enqueue(encodedFrame);
+    }
 
-            if (this._cryptoKeyRing[keyIndex]) {
-                const iv = new Uint8Array(encodedFrame.data, encodedFrame.data.byteLength - ivLength - 1, ivLength);
-                const cipherTextStart = unencryptedBytes[encodedFrame.type];
-                const cipherTextLength = encodedFrame.data.byteLength - (unencryptedBytes[encodedFrame.type]
-                    + ivLength + 1);
+    /**
+     * Function that will be injected in a stream and will decrypt the given encoded frames.
+     *
+     * @param {RTCEncodedVideoFrame|RTCEncodedAudioFrame} encodedFrame - Encoded video frame.
+     * @param {TransformStreamDefaultController} controller - TransportStreamController.
+     */
+    async decodeFunction(encodedFrame, controller) {
+        const data = new Uint8Array(encodedFrame.data);
+        const keyIndex = data[encodedFrame.data.byteLength - 1] & 0x7;
 
-                return crypto.subtle.decrypt({
-                    name: 'AES-GCM',
-                    iv,
-                    additionalData: new Uint8Array(encodedFrame.data, 0, unencryptedBytes[encodedFrame.type])
-                }, this._cryptoKeyRing[keyIndex], new Uint8Array(encodedFrame.data, cipherTextStart, cipherTextLength))
-                .then(plainText => {
-                    const newData = new ArrayBuffer(unencryptedBytes[encodedFrame.type] + plainText.byteLength);
-                    const newUint8 = new Uint8Array(newData);
+        if (this._cryptoKeyRing[keyIndex]) {
+            const counterLength = 1 + ((data[encodedFrame.data.byteLength - 1] >> 4) & 0x7);
+            const frameHeader = new Uint8Array(encodedFrame.data, 0, unencryptedBytes[encodedFrame.type]);
 
-                    newUint8.set(new Uint8Array(encodedFrame.data, 0, unencryptedBytes[encodedFrame.type]));
-                    newUint8.set(new Uint8Array(plainText), unencryptedBytes[encodedFrame.type]);
+            // Extract the truncated authentication tag.
+            const authTagOffset = encodedFrame.data.byteLength - (digestLength[encodedFrame.type]
+                + counterLength + 1);
+            const authTag = encodedFrame.data.slice(authTagOffset, authTagOffset
+                + digestLength[encodedFrame.type]);
 
-                    encodedFrame.data = newData;
+            // Set authentication tag bytes to 0.
+            const zeros = new Uint8Array(digestLength[encodedFrame.type]);
 
-                    return controller.enqueue(encodedFrame);
-                }, e => {
-                    console.error(e);
+            data.set(zeros, encodedFrame.data.byteLength - (digestLength[encodedFrame.type] + counterLength + 1));
 
-                    // TODO: notify the application about error status.
+            const calculatedTag = await crypto.subtle.sign(authenticationTagOptions,
+                this._cryptoKeyRing[keyIndex].authenticationKey, encodedFrame.data);
 
-                    // TODO: For video we need a better strategy since we do not want to based any
-                    // non-error frames on a garbage keyframe.
-                    if (encodedFrame.type === undefined) { // audio, replace with silence.
-                        // audio, replace with silence.
-                        const newData = new ArrayBuffer(3);
-                        const newUint8 = new Uint8Array(newData);
+            // Do truncated hash comparison.
+            if (!isArrayEqual(authTag, calculatedTag.slice(0, digestLength[encodedFrame.type]))) {
+                // TODO: at this point we need to ratchet until we get a key that works. If we ratchet too often
+                // we need to return an error to the app.
+                console.error('Authentication tag mismatch', new Uint8Array(authTag), new Uint8Array(calculatedTag,
+                    0, digestLength[encodedFrame.type]));
 
-                        newUint8.set([ 0xd8, 0xff, 0xfe ]); // opus silence frame.
-                        encodedFrame.data = newData;
-                        controller.enqueue(encodedFrame);
-                    }
-                });
-            } else if (keyIndex >= this._cryptoKeyRing.length
-                    && this._cryptoKeyRing[this._currentKeyIndex % this._cryptoKeyRing.length]) {
-                // If we are encrypting but don't have a key for the remote drop the frame.
-                // This is a heuristic since we don't know whether a packet is encrypted,
-                // do not have a checksum and do not have signaling for whether a remote participant does
-                // encrypt or not.
                 return;
             }
 
-            // TODO: this just passes through to the decoder. Is that ok? If we don't know the key yet
-            // we might want to buffer a bit but it is still unclear how to do that (and for how long etc).
-            controller.enqueue(encodedFrame);
-        }
-    }
-    const contexts = new Map(); // Map participant id => context
+            // Extract the counter.
+            const counter = new Uint8Array(16);
 
-    onmessage = async event => {
-        const { operation } = event.data;
+            counter.set(data.slice(encodedFrame.data.byteLength - (counterLength + 1),
+                encodedFrame.data.byteLength - 1), 16 - counterLength);
+            const counterView = new DataView(counter.buffer);
 
-        if (operation === 'initialize') {
-            keySalt = event.data.salt;
-        } else if (operation === 'encode') {
-            const { readableStream, writableStream, participantId } = event.data;
+            // XOR the counter with the saltKey to construct the AES CTR.
+            const saltKey = new DataView(this._cryptoKeyRing[keyIndex].saltKey);
 
-            if (!contexts.has(participantId)) {
-                contexts.set(participantId, new Context(participantId));
+            for (let i = 0; i < counter.byteLength; i++) {
+                counterView.setUint8(i,
+                    counterView.getUint8(i) ^ saltKey.getUint8(i));
             }
-            const context = contexts.get(participantId);
-            const transformStream = new TransformStream({
-                transform: context.encodeFunction.bind(context)
-            });
 
-            readableStream
-                .pipeThrough(new TransformStream({
-                  transform: polyFillEncodedFrameMetadata, // M83 polyfill.
-                }))
-                .pipeThrough(transformStream)
-                .pipeTo(writableStream);
-            if (keyBytes) {
-                context.setKey(await context.deriveKey(keyBytes, keySalt));
-            }
-        } else if (operation === 'decode') {
-            const { readableStream, writableStream, participantId } = event.data;
+            return crypto.subtle.decrypt({
+                name: 'AES-CTR',
+                counter,
+                length: 64
+            }, this._cryptoKeyRing[keyIndex].encryptionKey, new Uint8Array(encodedFrame.data,
+                    unencryptedBytes[encodedFrame.type],
+                    encodedFrame.data.byteLength - (unencryptedBytes[encodedFrame.type]
+                    + digestLength[encodedFrame.type] + counterLength + 1))
+            ).then(plainText => {
+                const newData = new ArrayBuffer(unencryptedBytes[encodedFrame.type] + plainText.byteLength);
+                const newUint8 = new Uint8Array(newData);
 
-            if (!contexts.has(participantId)) {
-                contexts.set(participantId, new Context(participantId));
-            }
-            const context = contexts.get(participantId);
-            const transformStream = new TransformStream({
-                transform: context.decodeFunction.bind(context)
-            });
+                newUint8.set(frameHeader);
+                newUint8.set(new Uint8Array(plainText), unencryptedBytes[encodedFrame.type]);
+                encodedFrame.data = newData;
 
-            readableStream
-                .pipeThrough(new TransformStream({
-                  transform: polyFillEncodedFrameMetadata, // M83 polyfill.
-                }))
-                .pipeThrough(transformStream)
-                .pipeTo(writableStream);
-            if (keyBytes) {
-                context.setKey(await context.deriveKey(keyBytes, keySalt));
-            }
-        } else if (operation === 'setKey') {
-            keyBytes = event.data.key;
-            contexts.forEach(async context => {
-                if (keyBytes) {
-                    context.setKey(await context.deriveKey(keyBytes, keySalt));
-                } else {
-                    context.setKey(false);
+                return controller.enqueue(encodedFrame);
+            }, e => {
+                console.error(e);
+
+                // TODO: notify the application about error status.
+                // TODO: For video we need a better strategy since we do not want to based any
+                // non-error frames on a garbage keyframe.
+                if (encodedFrame.type === undefined) { // audio, replace with silence.
+                    const newData = new ArrayBuffer(3);
+                    const newUint8 = new Uint8Array(newData);
+
+                    newUint8.set([ 0xd8, 0xff, 0xfe ]); // opus silence frame.
+                    encodedFrame.data = newData;
+                    controller.enqueue(encodedFrame);
                 }
             });
-        } else {
-            console.error('e2ee worker', operation);
+        } else if (keyIndex >= this._cryptoKeyRing.length && this._cryptoKeyRing[this._currentKeyIndex]) {
+            // If we are encrypting but don't have a key for the remote drop the frame.
+            // This is a heuristic since we don't know whether a packet is encrypted,
+            // do not have a checksum and do not have signaling for whether a remote participant does
+            // encrypt or not.
+            return;
         }
-    };
-`;
 
-export const createWorkerScript = () => URL.createObjectURL(new Blob([ code ], { type: 'application/javascript' }));
+        // TODO: this just passes through to the decoder. Is that ok? If we don't know the key yet
+        // we might want to buffer a bit but it is still unclear how to do that (and for how long etc).
+        controller.enqueue(encodedFrame);
+    }
+}
+
+const contexts = new Map(); // Map participant id => context
+
+onmessage = async event => {
+    const { operation } = event.data;
+
+    if (operation === 'encode') {
+        const { readableStream, writableStream, participantId } = event.data;
+
+        if (!contexts.has(participantId)) {
+            contexts.set(participantId, new Context(participantId));
+        }
+        const context = contexts.get(participantId);
+        const transformStream = new TransformStream({
+            transform: context.encodeFunction.bind(context)
+        });
+
+        readableStream
+            .pipeThrough(new TransformStream({
+                transform: polyFillEncodedFrameMetadata // M83 polyfill.
+            }))
+            .pipeThrough(transformStream)
+            .pipeTo(writableStream);
+    } else if (operation === 'decode') {
+        const { readableStream, writableStream, participantId } = event.data;
+
+        if (!contexts.has(participantId)) {
+            contexts.set(participantId, new Context(participantId));
+        }
+        const context = contexts.get(participantId);
+        const transformStream = new TransformStream({
+            transform: context.decodeFunction.bind(context)
+        });
+
+        readableStream
+            .pipeThrough(new TransformStream({
+                transform: polyFillEncodedFrameMetadata // M83 polyfill.
+            }))
+            .pipeThrough(transformStream)
+            .pipeTo(writableStream);
+    } else if (operation === 'setKey') {
+        const { participantId, key, keyIndex } = event.data;
+
+        if (!contexts.has(participantId)) {
+            contexts.set(participantId, new Context(participantId));
+        }
+        const context = contexts.get(participantId);
+
+        if (key) {
+            context.setKey(key, keyIndex);
+        } else {
+            context.setKey(false, keyIndex);
+        }
+    } else if (operation === 'cleanup') {
+        const { participantId } = event.data;
+
+        contexts.delete(participantId);
+    } else {
+        console.error('e2ee worker', operation);
+    }
+};

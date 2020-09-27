@@ -18,7 +18,7 @@ The following JWT claims are used in authentication token:
 - 'iss' specifies *application ID* which identifies the client app connecting to the server. It should be negotiated with the service provider before generating the token.
 - 'room' contains the name of the room for which the token has been allocated. This is *NOT* full MUC room address. Example assuming that we have full MUC 'conference1@muc.server.net' then 'conference1' should be used here.  Alternately, a '*' may be provided, allowing access to all rooms within the domain.
 - 'exp' token expiration timestamp as defined in the RFC
-- 'sub' contains the name of the domain used when authenticating with this token. By default assuming that we have full MUC 'conference1@muc.server.net' then 'server.net' should be used here.
+- 'sub' contains EITHER the lowercase name of the tenant (for a conference like TENANT1/ROOM with would be 'tenant1') OR the lowercase name of the domain used when authenticating with this token (for a conference like /ROOM). By default assuming that we have full MUC 'conference1@muc.server.net' then 'server.net' should be used here.  Alternately, a '*' may be provided, allowing access to rooms in all tenants within the domain or all domains within the server.
 - 'aud' application identifier. This value indicates what service is consuming the token.  It should be negotiated with the service provider before generating the token.
 
 Secret is used to compute HMAC hash value and verify the token for HS256 tokens.  
@@ -27,8 +27,8 @@ Alternately the token may be signed by a private key and authorized via public k
 
 ### Token Identifiers
 
-In addition to the basic claims used in authentication, the token can also provide user display information in the 'context' field within the JWT payload:
-- 'group' is a string which specifies the group the user belongs to.  Intended for use in reporting/analytics
+In addition to the basic claims used in authentication, the token can also provide user display information in the 'context' field within the JWT payload. None of the information in the context field is used for token validation:
+- 'group' is a string which specifies the group the user belongs to.  Intended for use in reporting/analytics, not used for token validation.
 - 'user' is an object which contains display information for the current user
   - 'id' is a user identifier string.  Intended for use in reporting/analytics
   - 'name' is the display name of the user
@@ -83,7 +83,7 @@ NOTE: The values in the token shall always be valid values. If you define e.g. t
 
 JWT token is currently checked in 2 places:
 - when user connects to Prosody through BOSH. Token value is passed as 'token' query paramater of BOSH URL. User uses XMPP anonymous authentication method.
-- when MUC room is being created/joined Prosody compares 'room' claim with the actual name of the room. This prevents from abusing stolen token by unathorized users to allocate new conference rooms in the system. Admin users are not required to provide valid token which is used by Jicofo for example.
+- when MUC room is being created/joined Prosody compares 'room' claim with the actual name of the room. In addition, the 'sub' claim is compare to either the tenant (for TENANT/ROOM URLs) or the base domain (for /ROOM URLs).  This prevents stolen token being abused by unathorized users to allocate new conference rooms in the system. Admin users are not required to provide valid token which is used by Jicofo for example.
 
 ### Lib-jitsi-meet options
 
@@ -126,7 +126,7 @@ Proceed to "Patching Prosody" section to finish configuration.
 
 ### Patching Prosody
 
-JWT token authentication requires prosody-trunk version at least 747.
+JWT token authentication requires prosody-trunk version at least 747.  JWT tokens with websockets requires prosody 0.11.6 or higher.
 
 You can download latest prosody-trunk packages from [here]. Then install it with the following command:
 

@@ -25,6 +25,7 @@ import ProxyConnectionService
     from './modules/proxyconnection/ProxyConnectionService';
 import recordingConstants from './modules/recording/recordingConstants';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
+import precallTest from './modules/statistics/PrecallTest';
 import Statistics from './modules/statistics/statistics';
 import AuthUtil from './modules/util/AuthUtil';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
@@ -643,6 +644,8 @@ export default _mergeNamespaceAndModule({
             logger.debug('MediaStreamTrack contentHint attribute not supported');
         }
     },
+
+    precallTest,
 
     /* eslint-enable max-params */
 
