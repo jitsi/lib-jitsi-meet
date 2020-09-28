@@ -2429,21 +2429,7 @@ JitsiConference.prototype.isCallstatsEnabled = function() {
  * @returns {number|undefined} the SSRC of the specificed track, otherwise undefined.
  */
 JitsiConference.prototype.getSsrcByTrack = function(track) {
-    const isLocal = track.isLocal();
-    const peerConnection = this.getActivePeerConnection();
-
-    let ssrc;
-
-    if (isLocal) {
-        // Local tracks have SSRC stored on per peer connection basis
-        if (peerConnection) {
-            ssrc = peerConnection.getLocalSSRC(track);
-        }
-    } else {
-        ssrc = track.getSSRC();
-    }
-
-    return ssrc;
+    return track.isLocal() ? this.getActivePeerConnection()?.getLocalSSRC(track) : track.getSSRC();
 };
 
 /**
