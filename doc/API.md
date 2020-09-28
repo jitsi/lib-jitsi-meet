@@ -352,7 +352,7 @@ Throws NetworkError or InvalidStateError or Error if the operation fails.
 
     Note: available only for moderator
 
-24. kick(id) - Kick participant from the conference
+24. kickParticipant(id) - Kick participant from the conference
     - id - string participant id
 
 25. setStartMutedPolicy(policy) - make all new participants join with muted audio/video
