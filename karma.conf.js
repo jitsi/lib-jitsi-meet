@@ -16,8 +16,6 @@ module.exports = function(config) {
         files: [
             './doc/example/libs/jquery-2.1.1.js',
             'node_modules/core-js/index.js',
-            './index.js',
-            './JitsiConference.js',
             './modules/**/*.spec.js'
         ],
 
@@ -30,17 +28,7 @@ module.exports = function(config) {
         //  https://npmjs.org/browse/keyword/karma-preprocessor
         preprocessors: {
             'node_modules/core-js/**': [ 'webpack' ],
-            './index.js': [ 'webpack' ],
-            './JitsiConference.js': [ 'babel' ],
             './**/*.spec.js': [ 'webpack', 'sourcemap' ]
-        },
-
-        babelPreprocessor: {
-            options: {
-                plugins: [
-                    '@babel/plugin-proposal-optional-chaining'
-                ]
-            }
         },
 
         // test results reporter to use
