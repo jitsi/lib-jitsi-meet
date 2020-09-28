@@ -28,6 +28,11 @@ module.exports = function(config) {
         //  https://npmjs.org/browse/keyword/karma-preprocessor
         preprocessors: {
             'node_modules/core-js/**': [ 'webpack' ],
+<<<<<<< HEAD
+=======
+            './index.js': [ 'webpack' ],
+            './JitsiConference.js': [ 'webpack' ],
+>>>>>>> wip: Adds webpack pre-processing for JitsiConference when running karma
             './**/*.spec.js': [ 'webpack', 'sourcemap' ]
         },
 
