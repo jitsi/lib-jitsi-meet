@@ -349,6 +349,7 @@ export default class RTC extends Listenable {
      * @private
      */
     _senderVideoConstraintsChanged(senderVideoConstraints) {
+        logger.info(`Received remote max frame height of ${senderVideoConstraints} on the bridge channel`);
         this._senderVideoConstraints = senderVideoConstraints;
         this.eventEmitter.emit(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED);
     }
