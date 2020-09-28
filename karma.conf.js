@@ -16,6 +16,8 @@ module.exports = function(config) {
         files: [
             './doc/example/libs/jquery-2.1.1.js',
             'node_modules/core-js/index.js',
+            './index.js',
+            './JitsiConference.js',
             './modules/**/*.spec.js'
         ],
 
