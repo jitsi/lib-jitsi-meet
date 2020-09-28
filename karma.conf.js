@@ -35,6 +35,14 @@ module.exports = function(config) {
             './**/*.spec.js': [ 'webpack', 'sourcemap' ]
         },
 
+        babelPreprocessor: {
+            options: {
+                plugins: [
+                    '@babel/plugin-proposal-optional-chaining'
+                ]
+            }
+        },
+
         // test results reporter to use
         // possible values: 'dots', 'progress'
         // available reporters: https://npmjs.org/browse/keyword/karma-reporter
