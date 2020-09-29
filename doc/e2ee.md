@@ -39,6 +39,14 @@ We do not encrypt the first few bytes of the packet that form the VP8 payload
 This allows the decoder to understand the frame a bit more and makes it decode the fun looking garbage we see in the video.
 This also means the SFU does not know (ideally) that the content is end-to-end encrypted and there are no changes in the SFU required at all.
 
+## Key Ratcheting
+Unlike described in
+  https://tools.ietf.org/html/draft-omara-sframe-00#section-4.3.5.1
+we attempt to ratchet the key forward when we do not find a valid
+authentication tag. Note that we only update the set of keys when
+we find a valid signature which avoids a denial of service attack with invalid signatures.
+
+TODO: if a frame ratchets the key forward it should be signed with the senders private key.
 
 ## Using workers
 

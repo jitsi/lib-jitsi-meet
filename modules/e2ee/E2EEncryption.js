@@ -169,7 +169,7 @@ export class E2EEncryption {
     }
 
     /**
-     * Advances (using ratcheting) the current key whern a new participant joins the conference.
+     * Advances (using ratcheting) the current key when a new participant joins the conference.
      * @private
      */
     _onParticipantJoined(id) {
@@ -195,7 +195,7 @@ export class E2EEncryption {
     }
 
     /**
-     * Event posted when the E2EE signalling channel has been establioshed with the given participant.
+     * Event posted when the E2EE signalling channel has been established with the given participant.
      * @private
      */
     _onParticipantE2EEChannelReady(id) {
@@ -218,15 +218,16 @@ export class E2EEncryption {
 
     /**
      * Advances the current key by using ratcheting.
-     * TODO: not yet implemented, we are just rotating the key at the moment,
-     * which is a heavier operation.
      *
      * @private
      */
     async _ratchetKeyImpl() {
         logger.debug('Ratchetting key');
 
-        return this._rotateKey();
+        this._e2eeCtx.ratchet(this.conference.myUserId());
+
+        // TODO: how do we tell the olm adapter which might need to send the current ratchet key
+        //      to the other side?
     }
 
     /**
