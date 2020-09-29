@@ -296,7 +296,8 @@ class Context {
                 this._cryptoKeyRing[keyIndex].authenticationKey, encodedFrame.data);
 
             // Do truncated hash comparison.
-            if (!isArrayEqual(authTag, calculatedTag.slice(0, digestLength[encodedFrame.type]))) {
+            if (!isArrayEqual(new Uint8Array(authTag),
+                    new Uint8Array(calculatedTag.slice(0, digestLength[encodedFrame.type])))) {
                 // TODO: at this point we need to ratchet until we get a key that works. If we ratchet too often
                 // we need to return an error to the app.
                 console.error('Authentication tag mismatch', new Uint8Array(authTag), new Uint8Array(calculatedTag,
