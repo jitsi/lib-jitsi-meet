@@ -31,7 +31,7 @@ export class E2EEncryption {
         this._enabled = false;
         this._initialized = false;
 
-        this._e2eeCtx = new E2EEContext({ salt: conference.getName() });
+        this._e2eeCtx = new E2EEContext();
         this._olmAdapter = new OlmAdapter(conference);
 
         // Debounce key rotation / ratcheting to avoid a storm of messages.
