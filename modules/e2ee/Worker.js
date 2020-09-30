@@ -4,39 +4,8 @@
 // Worker for E2EE/Insertable streams.
 //
 
-/**
- * Polyfill RTCEncoded(Audio|Video)Frame.getMetadata() (not available in M83, available M84+).
- * The polyfill can not be done on the prototype since its not exposed in workers. Instead,
- * it is done as another transformation to keep it separate.
- */
-function polyFillEncodedFrameMetadata(encodedFrame, controller) {
-    if (!encodedFrame.getMetadata) {
-        encodedFrame.getMetadata = function() {
-            return {
-                // TODO: provide a more complete polyfill based on additionalData for video.
-                synchronizationSource: this.synchronizationSource,
-                contributingSources: this.contributingSources
-            };
-        };
-    }
-    controller.enqueue(encodedFrame);
-}
-
-/**
- * Compares two byteArrays for equality.
- */
-function isArrayEqual(a1, a2) {
-    if (a1.byteLength !== a2.byteLength) {
-        return false;
-    }
-    for (let i = 0; i < a1.byteLength; i++) {
-        if (a1[i] !== a2[i]) {
-            return false;
-        }
-    }
-
-    return true;
-}
+import { deriveKeys, importKey, ratchet } from './crypto-utils';
+import { polyFillEncodedFrameMetadata, isArrayEqual } from './utils';
 
 // We use a ringbuffer of keys so we can change them and still decode packets that were
 // encrypted with an old key.
@@ -75,69 +44,6 @@ const digestLength = {
 const ratchetWindow = 8;
 
 /**
- * Derives a set of keys from the master key.
- * @param {CryptoKey} material - master key to derive from
- *
- * See https://tools.ietf.org/html/draft-omara-sframe-00#section-4.3.1
- */
-async function deriveKeys(material) {
-    const info = new ArrayBuffer();
-    const textEncoder = new TextEncoder();
-
-    // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey#HKDF
-    // https://developer.mozilla.org/en-US/docs/Web/API/HkdfParams
-    const encryptionKey = await crypto.subtle.deriveKey({
-        name: 'HKDF',
-        salt: textEncoder.encode('JFrameEncryptionKey'),
-        hash: 'SHA-256',
-        info
-    }, material, {
-        name: 'AES-CTR',
-        length: 128
-    }, false, [ 'encrypt', 'decrypt' ]);
-    const authenticationKey = await crypto.subtle.deriveKey({
-        name: 'HKDF',
-        salt: textEncoder.encode('JFrameAuthenticationKey'),
-        hash: 'SHA-256',
-        info
-    }, material, {
-        name: 'HMAC',
-        hash: 'SHA-256'
-    }, false, [ 'sign' ]);
-    const saltKey = await crypto.subtle.deriveBits({
-        name: 'HKDF',
-        salt: textEncoder.encode('JFrameSaltKey'),
-        hash: 'SHA-256',
-        info
-    }, material, 128);
-
-    return {
-        material,
-        encryptionKey,
-        authenticationKey,
-        saltKey
-    };
-}
-
-/**
- * Ratchets a key. See
- * https://tools.ietf.org/html/draft-omara-sframe-00#section-4.3.5.1
- * @param {CryptoKey} material - base key material
- * @returns {ArrayBuffer} - ratcheted key material
- */
-async function ratchet(material) {
-    const textEncoder = new TextEncoder();
-
-    return crypto.subtle.deriveBits({
-        name: 'HKDF',
-        salt: textEncoder.encode('JFrameRatchetKey'),
-        hash: 'SHA-256',
-        info: new ArrayBuffer()
-    }, material, 256);
-}
-
-
-/**
  * Per-participant context holding the cryptographic keys and
  * encode/decode functions
  */
@@ -170,9 +76,7 @@ class Context {
         let newKey;
 
         if (keyBytes) {
-            // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/importKey
-            const material = await crypto.subtle.importKey('raw', keyBytes,
-                'HKDF', false, [ 'deriveBits', 'deriveKey' ]);
+            const material = await importKey(keyBytes);
 
             newKey = await deriveKeys(material);
         } else {
@@ -186,6 +90,7 @@ class Context {
      * Sets a set of keys and resets the sendCount.
      * decryption.
      * @param {Object} keys set of keys.
+     * @private
      */
     _setKeys(keys) {
         this._cryptoKeyRing[this._currentKeyIndex] = keys;
@@ -346,8 +251,7 @@ class Context {
                 }
 
                 // Attempt to ratchet and generate the next set of keys.
-                material = await crypto.subtle.importKey('raw', await ratchet(material),
-                    'HKDF', false, [ 'deriveBits', 'deriveKey' ]);
+                material = await importKey(await ratchet(material));
                 newKeys = await deriveKeys(material);
                 authenticationKey = newKeys.authenticationKey;
             }
