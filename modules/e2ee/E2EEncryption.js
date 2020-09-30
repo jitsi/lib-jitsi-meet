@@ -9,6 +9,7 @@ import browser from '../browser';
 
 import E2EEContext from './E2EEContext';
 import { OlmAdapter } from './OlmAdapter';
+import { importKey, ratchet } from './crypto-utils';
 
 const logger = getLogger(__filename);
 
@@ -225,13 +226,8 @@ export class E2EEncryption {
     async _ratchetKeyImpl() {
         logger.debug('Ratchetting key');
 
-        const material = await crypto.subtle.importKey('raw', this._key, 'HKDF', false, [ 'deriveBits' ]);
-        const newKey = await crypto.subtle.deriveBits({
-            name: 'HKDF',
-            salt: new TextEncoder().encode('JFrameRatchetKey'),
-            hash: 'SHA-256',
-            info: new ArrayBuffer()
-        }, material, 256);
+        const material = await importKey(this._key);
+        const newKey = await ratchet(material);
 
         this._key = new Uint8Array(newKey);
 
