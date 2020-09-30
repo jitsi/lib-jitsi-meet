@@ -30,6 +30,7 @@ export class E2EEncryption {
         this._conferenceJoined = false;
         this._enabled = false;
         this._initialized = false;
+        this._key = undefined;
 
         this._e2eeCtx = new E2EEContext();
         this._olmAdapter = new OlmAdapter(conference);
@@ -125,12 +126,12 @@ export class E2EEncryption {
         }
 
         // Generate a random key in case we are enabling.
-        const key = enabled ? this._generateKey() : false;
+        this._key = enabled ? this._generateKey() : false;
 
         // Send it to others using the E2EE olm channel.
-        this._olmAdapter.updateKey(key).then(index => {
+        this._olmAdapter.updateKey(this._key).then(index => {
             // Set our key so we begin encrypting.
-            this._e2eeCtx.setKey(this.conference.myUserId(), key, index);
+            this._e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
         });
     }
 
@@ -224,10 +225,19 @@ export class E2EEncryption {
     async _ratchetKeyImpl() {
         logger.debug('Ratchetting key');
 
-        this._e2eeCtx.ratchet(this.conference.myUserId());
+        const material = await crypto.subtle.importKey('raw', this._key, 'HKDF', false, [ 'deriveBits' ]);
+        const newKey = await crypto.subtle.deriveBits({
+            name: 'HKDF',
+            salt: new TextEncoder().encode('JFrameRatchetKey'),
+            hash: 'SHA-256',
+            info: new ArrayBuffer()
+        }, material, 256);
 
-        // TODO: how do we tell the olm adapter which might need to send the current ratchet key
-        //      to the other side?
+        this._key = new Uint8Array(newKey);
+
+        const index = await this._olmAdapter.updateCurrentKey(this._key);
+
+        this._e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
     }
 
     /**
@@ -239,10 +249,10 @@ export class E2EEncryption {
     async _rotateKeyImpl() {
         logger.debug('Rotating key');
 
-        const key = this._generateKey();
-        const index = await this._olmAdapter.updateKey(key);
+        this._key = this._generateKey();
+        const index = await this._olmAdapter.updateKey(this._key);
 
-        this._e2eeCtx.setKey(this.conference.myUserId(), key, index);
+        this._e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
     }
 
     /**

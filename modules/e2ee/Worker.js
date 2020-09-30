@@ -193,16 +193,6 @@ class Context {
     }
 
     /**
-     * Ratchets a key forward one step.
-     */
-    async ratchet() {
-        const keys = this._cryptoKeyRing[this._currentKeyIndex];
-        const material = await ratchet(keys.material);
-
-        this.setKey(material, this._currentKeyIndex);
-    }
-
-    /**
      * Function that will be injected in a stream and will encrypt the given encoded frames.
      *
      * @param {RTCEncodedVideoFrame|RTCEncodedAudioFrame} encodedFrame - Encoded video frame.
@@ -484,19 +474,6 @@ onmessage = async event => {
         } else {
             context.setKey(false, keyIndex);
         }
-    } else if (operation === 'ratchet') {
-        const { participantId } = event.data;
-
-        // TODO: can we ensure this is for our own sender key?
-
-        if (!contexts.has(participantId)) {
-            console.error('Could not find context for', participantId);
-
-            return;
-        }
-        const context = contexts.get(participantId);
-
-        context.ratchet();
     } else if (operation === 'cleanup') {
         const { participantId } = event.data;
 
