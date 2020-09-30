@@ -88,6 +88,19 @@ export class OlmAdapter extends Listenable {
      * by sending a key-info message.
      *
      * @param {Uint8Array|boolean} key - The new key.
+     * @returns {number}
+     */
+    async updateCurrentKey(key) {
+        this._key = key;
+
+        return this._keyIndex;
+    }
+
+    /**
+     * Updates the current participant key and distributes it to all participants in the conference
+     * by sending a key-info message.
+     *
+     * @param {Uint8Array|boolean} key - The new key.
      * @retrns {Promise<Number>}
      */
     async updateKey(key) {
@@ -95,9 +108,9 @@ export class OlmAdapter extends Listenable {
         this._key = key;
         this._keyIndex++;
 
+        // Broadcast it.
         const promises = [];
 
-        // Broadcast it.
         for (const participant of this._conf.getParticipants()) {
             const pId = participant.getId();
             const olmData = this._getParticipantOlmData(participant);
