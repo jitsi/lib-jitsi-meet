@@ -32,6 +32,15 @@ At a high level the encrypted frame format looks like this:
    +----+Encrypted Portion            Authenticated Portion+---+
 ```
 
+For keys > 7 the X bit will be set and the trailer will look as follows:
+```
+                                                         0 1 2 3 4 5 6 7
++---------------------------+---------------------------+-+-+-+-+-+-+-+-+
+|  CTR... (length=LEN + 1)  |  KID... (length=KLEN + 1) |S|LEN  |1|KLEN |
++---------------------------+---------------------------+-+-+-+-+-+-+-+-+
+```
+Note that we prevent zero length CTR and KID fields by definition.
+
 We do not encrypt the first few bytes of the packet that form the VP8 payload
   https://tools.ietf.org/html/rfc6386#section-9.1
 (10 bytes for key frames, 3 bytes for interframes) nor the Opus TOC byte

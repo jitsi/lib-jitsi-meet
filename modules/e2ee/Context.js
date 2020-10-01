@@ -1,4 +1,5 @@
 /* eslint-disable no-bitwise */
+/* global BigInt */
 
 import { deriveKeys, importKey, ratchet } from './crypto-utils';
 import { isArrayEqual } from './utils';
@@ -130,7 +131,8 @@ export class Context {
             // ---------+---------------------------------+-+-+-+-+-+-+-+-+
             // payload  |    CTR... (length=LEN)          |S|LEN  |0| KID |
             // ---------+---------------------------------+-+-+-+-+-+-+-+-+
-            const counter = new Uint8Array(16);
+            // Refer to the documentation for extended key ids larger than 7.
+            const counter = new Uint8Array(16); // we use a 16 byte array for xor-ing with the 128bit salt.
             const counterView = new DataView(counter.buffer);
 
             // The counter is encoded as a variable-length field.
@@ -142,15 +144,37 @@ export class Context {
                     break;
                 }
             }
-
-            const frameTrailer = new Uint8Array(counterLength + 1);
-
-            frameTrailer.set(new Uint8Array(counter.buffer, counter.byteLength - counterLength));
+            let frameTrailer;
 
             // Since we never send a counter of 0 we send counterLength - 1 on the wire.
-            // This is different from the sframe draft, increases the key space and lets us
-            // ignore the case of a zero-length counter at the receiver.
-            frameTrailer[frameTrailer.byteLength - 1] = keyIndex | ((counterLength - 1) << 4);
+            // This is slightly different from the sframe draft, increases the key space and
+            // lets us ignore the case of a zero-length counter at the receiver.
+            // Similiary, we encode the key index either in the last byte for small
+            // key indices or set the X bit in the last byte and use the lower three
+            // bits for the key length minus one.
+            if (keyIndex <= 7) {
+                frameTrailer = new Uint8Array(counterLength + 1);
+                frameTrailer.set(new Uint8Array(counter.buffer, counter.byteLength - counterLength));
+                frameTrailer[frameTrailer.byteLength - 1] = ((counterLength - 1) << 4) | keyIndex;
+            } else {
+                const key = new Uint8Array(8);
+                const keyView = new DataView(key.buffer);
+
+                // The key index is encoded as a variable-length field.
+                keyView.setBigUint64(0, BigInt(keyIndex)); // eslint-disable-line new-cap
+                let keyLength = 8;
+
+                for (let i = 0; i < key.byteLength; i++ && keyLength--) {
+                    if (keyView.getUint8(i) !== 0) {
+                        break;
+                    }
+                }
+                frameTrailer = new Uint8Array(counterLength + keyLength + 1);
+                frameTrailer.set(new Uint8Array(key.buffer, key.byteLength - keyLength),
+                    frameTrailer.byteLength - 1 - keyLength);
+
+                frameTrailer[frameTrailer.byteLength - 1] = ((counterLength - 1) << 4) | 0x8 | (keyLength - 1);
+            }
 
             // XOR the counter with the saltKey to construct the AES CTR.
             const saltKey = new DataView(this._cryptoKeyRing[keyIndex].saltKey);
@@ -209,7 +233,25 @@ export class Context {
      */
     async decodeFunction(encodedFrame, controller) {
         const data = new Uint8Array(encodedFrame.data);
-        const keyIndex = data[encodedFrame.data.byteLength - 1] & 0x7;
+        let keyIndex;
+        let keyLength;
+
+        // Extract the key index.
+        if (data[encodedFrame.data.byteLength - 1] & 0x8) {
+            // Extended key index. It is located right before our trailer byte.
+            keyLength = 1 + (data[encodedFrame.data.byteLength - 1] & 0x7);
+
+            // This is an array buffer. We need to convert it back into an (big) integer.
+            const partialBuffer = encodedFrame.data.slice(encodedFrame.data.byteLength - 1 - keyLength,
+                encodedFrame.data.byteLength - 1);
+            const keyBuffer = new Uint8Array(8);
+
+            keyBuffer.set(new Uint8Array(partialBuffer), 8 - keyLength);
+            keyIndex = (new DataView(keyBuffer.buffer)).getBigUint64(0);
+        } else {
+            keyIndex = data[encodedFrame.data.byteLength - 1] & 0x7;
+            keyLength = 0;
+        }
 
         if (this._cryptoKeyRing[keyIndex]) {
             const counterLength = 1 + ((data[encodedFrame.data.byteLength - 1] >> 4) & 0x7);
@@ -217,14 +259,14 @@ export class Context {
 
             // Extract the truncated authentication tag.
             const authTagOffset = encodedFrame.data.byteLength - (digestLength[encodedFrame.type]
-                + counterLength + 1);
+                + counterLength + keyLength + 1);
             const authTag = encodedFrame.data.slice(authTagOffset, authTagOffset
                 + digestLength[encodedFrame.type]);
 
             // Set authentication tag bytes to 0.
             const zeros = new Uint8Array(digestLength[encodedFrame.type]);
 
-            data.set(zeros, encodedFrame.data.byteLength - (digestLength[encodedFrame.type] + counterLength + 1));
+            data.set(zeros, authTagOffset);
 
             // Do truncated hash comparison. If the hash does not match we might have to advance the
             // ratchet a limited number of times. See (even though the description there is odd)
@@ -264,8 +306,8 @@ export class Context {
             // Extract the counter.
             const counter = new Uint8Array(16);
 
-            counter.set(data.slice(encodedFrame.data.byteLength - (counterLength + 1),
-                encodedFrame.data.byteLength - 1), 16 - counterLength);
+            counter.set(data.slice(encodedFrame.data.byteLength - (counterLength + keyLength + 1),
+                encodedFrame.data.byteLength - keyLength - 1), 16 - counterLength);
             const counterView = new DataView(counter.buffer);
 
             // XOR the counter with the saltKey to construct the AES CTR.
