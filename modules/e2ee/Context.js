@@ -1,4 +1,5 @@
 /* eslint-disable no-bitwise */
+/* global BigInt */
 
 import { deriveKeys, importKey, ratchet } from './crypto-utils';
 import { isArrayEqual } from './utils';
@@ -57,7 +58,7 @@ export class Context {
         // A per-sender counter that is used create the AES CTR.
         // Must be incremented on every frame that is sent, can be reset on
         // key changes.
-        this._sendCount = 0n;
+        this._sendCount = BigInt(0); // eslint-disable-line new-cap
 
         this._id = id;
     }
@@ -90,7 +91,7 @@ export class Context {
      */
     _setKeys(keys) {
         this._cryptoKeyRing[this._currentKeyIndex] = keys;
-        this._sendCount = 0n; // Reset the send count (bigint).
+        this._sendCount = BigInt(0); // eslint-disable-line new-cap
     }
 
     /**
