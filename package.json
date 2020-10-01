@@ -18,7 +18,7 @@
   "dependencies": {
     "@jitsi/js-utils": "1.0.2",
     "@jitsi/sdp-interop": "1.0.3",
-    "@jitsi/sdp-simulcast": "0.3.0",
+    "@jitsi/sdp-simulcast": "0.4.0",
     "async": "0.9.0",
     "base64-js": "1.3.1",
     "current-executing-script": "0.1.3",

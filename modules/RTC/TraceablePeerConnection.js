@@ -2181,8 +2181,13 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
     if (browser.usesPlanB()) {
         // TODO the focus should squeze or explode the remote simulcast
         if (this.isSimulcastOn()) {
+            // Determine if "x-google-conference" needs to be added to the remote description.
+            // We need to add that flag for camera tracks always and for desktop tracks only when
+            // capScreenshareBitrate is disabled.
+            const enableConferenceFlag = !(this.options.capScreenshareBitrate && !hasCameraTrack(this));
+
             // eslint-disable-next-line no-param-reassign
-            description = this.simulcast.mungeRemoteDescription(description);
+            description = this.simulcast.mungeRemoteDescription(description, enableConferenceFlag);
             this.trace(
                 'setRemoteDescription::postTransform (simulcast)',
                 dumpSDP(description));
