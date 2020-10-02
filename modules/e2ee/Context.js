@@ -5,8 +5,9 @@ import { deriveKeys, importKey, ratchet } from './crypto-utils';
 import { isArrayEqual } from './utils';
 
 // We use a ringbuffer of keys so we can change them and still decode packets that were
-// encrypted with an old key.
-const keyRingSize = 3;
+// encrypted with an old key. We use a size of 16 which corresponds to the four bits
+// in the frame trailer.
+const keyRingSize = 16;
 
 // We copy the first bytes of the VP8 payload unencrypted.
 // For keyframes this is 10 bytes, for non-keyframes (delta) 3. See
@@ -129,7 +130,7 @@ export class Context {
             // but we put it at the end.
             //                                             0 1 2 3 4 5 6 7
             // ---------+---------------------------------+-+-+-+-+-+-+-+-+
-            // payload  |    CTR... (length=LEN)          |S|LEN  |0| KID |
+            // payload  |    CTR... (length=LEN)          |S|LEN  |KID    |
             // ---------+---------------------------------+-+-+-+-+-+-+-+-+
             const counter = new Uint8Array(16);
             const counterView = new DataView(counter.buffer);
@@ -210,7 +211,7 @@ export class Context {
      */
     async decodeFunction(encodedFrame, controller) {
         const data = new Uint8Array(encodedFrame.data);
-        const keyIndex = data[encodedFrame.data.byteLength - 1] & 0x7;
+        const keyIndex = data[encodedFrame.data.byteLength - 1] & 0xf; // lower four bits.
 
         if (this._cryptoKeyRing[keyIndex]) {
             const counterLength = 1 + ((data[encodedFrame.data.byteLength - 1] >> 4) & 0x7);
