@@ -161,8 +161,11 @@ const ScreenObtainer = {
             getDisplayMedia = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
         }
 
-        getDisplayMedia({ video: true,
-            audio: true })
+        getDisplayMedia({
+            video: true,
+            audio: true,
+            cursor: 'always'
+        })
             .then(stream => {
                 let applyConstraintsPromise;
 
