@@ -9,6 +9,7 @@ import browser from '../browser';
 
 import E2EEContext from './E2EEContext';
 import { OlmAdapter } from './OlmAdapter';
+import { importKey, ratchet } from './crypto-utils';
 
 const logger = getLogger(__filename);
 
@@ -30,8 +31,9 @@ export class E2EEncryption {
         this._conferenceJoined = false;
         this._enabled = false;
         this._initialized = false;
+        this._key = undefined;
 
-        this._e2eeCtx = new E2EEContext({ salt: conference.getName() });
+        this._e2eeCtx = new E2EEContext();
         this._olmAdapter = new OlmAdapter(conference);
 
         // Debounce key rotation / ratcheting to avoid a storm of messages.
@@ -125,12 +127,12 @@ export class E2EEncryption {
         }
 
         // Generate a random key in case we are enabling.
-        const key = enabled ? this._generateKey() : false;
+        this._key = enabled ? this._generateKey() : false;
 
         // Send it to others using the E2EE olm channel.
-        this._olmAdapter.updateKey(key).then(index => {
+        this._olmAdapter.updateKey(this._key).then(index => {
             // Set our key so we begin encrypting.
-            this._e2eeCtx.setKey(this.conference.myUserId(), key, index);
+            this._e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
         });
     }
 
@@ -169,7 +171,7 @@ export class E2EEncryption {
     }
 
     /**
-     * Advances (using ratcheting) the current key whern a new participant joins the conference.
+     * Advances (using ratcheting) the current key when a new participant joins the conference.
      * @private
      */
     _onParticipantJoined(id) {
@@ -195,7 +197,7 @@ export class E2EEncryption {
     }
 
     /**
-     * Event posted when the E2EE signalling channel has been establioshed with the given participant.
+     * Event posted when the E2EE signalling channel has been established with the given participant.
      * @private
      */
     _onParticipantE2EEChannelReady(id) {
@@ -218,15 +220,20 @@ export class E2EEncryption {
 
     /**
      * Advances the current key by using ratcheting.
-     * TODO: not yet implemented, we are just rotating the key at the moment,
-     * which is a heavier operation.
      *
      * @private
      */
     async _ratchetKeyImpl() {
         logger.debug('Ratchetting key');
 
-        return this._rotateKey();
+        const material = await importKey(this._key);
+        const newKey = await ratchet(material);
+
+        this._key = new Uint8Array(newKey);
+
+        const index = await this._olmAdapter.updateCurrentKey(this._key);
+
+        this._e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
     }
 
     /**
@@ -238,10 +245,10 @@ export class E2EEncryption {
     async _rotateKeyImpl() {
         logger.debug('Rotating key');
 
-        const key = this._generateKey();
-        const index = await this._olmAdapter.updateKey(key);
+        this._key = this._generateKey();
+        const index = await this._olmAdapter.updateKey(this._key);
 
-        this._e2eeCtx.setKey(this.conference.myUserId(), key, index);
+        this._e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
     }
 
     /**

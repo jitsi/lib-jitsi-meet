@@ -44,6 +44,7 @@ The ```options``` parameter is JS object with the following properties:
     - `enableWindowOnErrorHandler` - boolean property (default false). Enables/disables attaching global onerror handler (window.onerror).
     - `disableThirdPartyRequests` - if true - callstats will be disabled and the callstats API won't be included.
     - `enableAnalyticsLogging` - boolean property (default false). Enables/disables analytics logging.
+    - `externalStorage` - Object that implements the Storage interface. If specified this object will be used for storing data instead of `localStorage`.
     - `callStatsCustomScriptUrl` - (optional) custom url to access callstats client script
     - `disableRtx` - (optional) boolean property (default to false).  Enables/disable the use of RTX.
     - `disableH264` - (optional) boolean property (default to false).  If enabled, strips the H.264 codec from the local SDP.
@@ -352,7 +353,7 @@ Throws NetworkError or InvalidStateError or Error if the operation fails.
 
     Note: available only for moderator
 
-24. kick(id) - Kick participant from the conference
+24. kickParticipant(id) - Kick participant from the conference
     - id - string participant id
 
 25. setStartMutedPolicy(policy) - make all new participants join with muted audio/video
