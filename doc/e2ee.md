@@ -26,7 +26,7 @@ At a high level the encrypted frame format looks like this:
    +^+-------------------------------------------------------+ +
    | |                 Authentication Tag                    | |
    | +---------------------------------------+-+-+-+-+-+-+-+-+ |
-   | |    CTR... (length=LEN + 1)            |S|LEN  |0| KID | |
+   | |    CTR... (length=LEN + 1)            |S|LEN  |KID    | |
    | +---------------------------------------+-+-+-+-+-+-+-+-+^|
    |                                                           |
    +----+Encrypted Portion            Authenticated Portion+---+
