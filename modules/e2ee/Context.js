@@ -7,7 +7,7 @@ import { isArrayEqual } from './utils';
 // We use a ringbuffer of keys so we can change them and still decode packets that were
 // encrypted with an old key. We use a size of 16 which corresponds to the four bits
 // in the frame trailer.
-const keyRingSize = 16;
+const KEYRING_SIZE = 16;
 
 // We copy the first bytes of the VP8 payload unencrypted.
 // For keyframes this is 10 bytes, for non-keyframes (delta) 3. See
@@ -19,7 +19,7 @@ const keyRingSize = 16;
 //
 // For audio (where frame.type is not set) we do not encrypt the opus TOC byte:
 //   https://tools.ietf.org/html/rfc6716#section-3.1
-const unencryptedBytes = {
+const UNENCRYPTED_BYTES = {
     key: 10,
     delta: 3,
     undefined: 1 // frame.type is not set on audio
@@ -27,11 +27,16 @@ const unencryptedBytes = {
 
 // Use truncated SHA-256 hashes, 80 bіts for video, 32 bits for audio.
 // This follows the same principles as DTLS-SRTP.
-const authenticationTagOptions = {
+const AUTHENTICATIONTAG_OPTIONS = {
     name: 'HMAC',
     hash: 'SHA-256'
 };
-const digestLength = {
+const ENCRYPTION_ALGORITHM = 'AES-CTR';
+
+// https://developer.mozilla.org/en-US/docs/Web/API/AesCtrParams
+const CTR_LENGTH = 64;
+
+const DIGEST_LENGTH = {
     key: 10,
     delta: 10,
     undefined: 4 // frame.type is not set on audio
@@ -39,7 +44,7 @@ const digestLength = {
 
 // Maximum number of forward ratchets to attempt when the authentication
 // tag on a remote packet does not match the current key.
-const ratchetWindow = 8;
+const RATCHET_WINDOW_SIZE = 8;
 
 /**
  * Per-participant context holding the cryptographic keys and
@@ -51,7 +56,7 @@ export class Context {
      */
     constructor(id) {
         // An array (ring) of keys that we use for sending and receiving.
-        this._cryptoKeyRing = new Array(keyRingSize);
+        this._cryptoKeyRing = new Array(KEYRING_SIZE);
 
         // A pointer to the currently used key.
         this._currentKeyIndex = -1;
@@ -123,7 +128,7 @@ export class Context {
             this._sendCount++;
 
             // Thіs is not encrypted and contains the VP8 payload descriptor or the Opus TOC byte.
-            const frameHeader = new Uint8Array(encodedFrame.data, 0, unencryptedBytes[encodedFrame.type]);
+            const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
 
             // Construct frame trailer. Similar to the frame header described in
             // https://tools.ietf.org/html/draft-omara-sframe-00#section-4.2
@@ -162,28 +167,28 @@ export class Context {
             }
 
             return crypto.subtle.encrypt({
-                name: 'AES-CTR',
+                name: ENCRYPTION_ALGORITHM,
                 counter,
-                length: 64
+                length: CTR_LENGTH
             }, this._cryptoKeyRing[keyIndex].encryptionKey, new Uint8Array(encodedFrame.data,
-                unencryptedBytes[encodedFrame.type]))
+                UNENCRYPTED_BYTES[encodedFrame.type]))
             .then(cipherText => {
                 const newData = new ArrayBuffer(frameHeader.byteLength + cipherText.byteLength
-                    + digestLength[encodedFrame.type] + frameTrailer.byteLength);
+                    + DIGEST_LENGTH[encodedFrame.type] + frameTrailer.byteLength);
                 const newUint8 = new Uint8Array(newData);
 
                 newUint8.set(frameHeader); // copy first bytes.
-                newUint8.set(new Uint8Array(cipherText), unencryptedBytes[encodedFrame.type]); // add ciphertext.
+                newUint8.set(new Uint8Array(cipherText), UNENCRYPTED_BYTES[encodedFrame.type]); // add ciphertext.
                 // Leave some space for the authentication tag. This is filled with 0s initially, similar to
                 // STUN message-integrity described in https://tools.ietf.org/html/rfc5389#section-15.4
                 newUint8.set(frameTrailer, frameHeader.byteLength + cipherText.byteLength
-                    + digestLength[encodedFrame.type]); // append trailer.
+                    + DIGEST_LENGTH[encodedFrame.type]); // append trailer.
 
-                return crypto.subtle.sign(authenticationTagOptions, this._cryptoKeyRing[keyIndex].authenticationKey,
+                return crypto.subtle.sign(AUTHENTICATIONTAG_OPTIONS, this._cryptoKeyRing[keyIndex].authenticationKey,
                     new Uint8Array(newData)).then(authTag => {
                     // Set the truncated authentication tag.
-                    newUint8.set(new Uint8Array(authTag, 0, digestLength[encodedFrame.type]),
-                        unencryptedBytes[encodedFrame.type] + cipherText.byteLength);
+                    newUint8.set(new Uint8Array(authTag, 0, DIGEST_LENGTH[encodedFrame.type]),
+                        UNENCRYPTED_BYTES[encodedFrame.type] + cipherText.byteLength);
                     encodedFrame.data = newData;
 
                     return controller.enqueue(encodedFrame);
@@ -215,18 +220,18 @@ export class Context {
 
         if (this._cryptoKeyRing[keyIndex]) {
             const counterLength = 1 + ((data[encodedFrame.data.byteLength - 1] >> 4) & 0x7);
-            const frameHeader = new Uint8Array(encodedFrame.data, 0, unencryptedBytes[encodedFrame.type]);
+            const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
 
             // Extract the truncated authentication tag.
-            const authTagOffset = encodedFrame.data.byteLength - (digestLength[encodedFrame.type]
+            const authTagOffset = encodedFrame.data.byteLength - (DIGEST_LENGTH[encodedFrame.type]
                 + counterLength + 1);
             const authTag = encodedFrame.data.slice(authTagOffset, authTagOffset
-                + digestLength[encodedFrame.type]);
+                + DIGEST_LENGTH[encodedFrame.type]);
 
             // Set authentication tag bytes to 0.
-            const zeros = new Uint8Array(digestLength[encodedFrame.type]);
+            const zeros = new Uint8Array(DIGEST_LENGTH[encodedFrame.type]);
 
-            data.set(zeros, encodedFrame.data.byteLength - (digestLength[encodedFrame.type] + counterLength + 1));
+            data.set(zeros, encodedFrame.data.byteLength - (DIGEST_LENGTH[encodedFrame.type] + counterLength + 1));
 
             // Do truncated hash comparison. If the hash does not match we might have to advance the
             // ratchet a limited number of times. See (even though the description there is odd)
@@ -235,12 +240,12 @@ export class Context {
             let valid = false;
             let newKeys = null;
 
-            for (let distance = 0; distance < ratchetWindow; distance++) {
-                const calculatedTag = await crypto.subtle.sign(authenticationTagOptions,
+            for (let distance = 0; distance < RATCHET_WINDOW_SIZE; distance++) {
+                const calculatedTag = await crypto.subtle.sign(AUTHENTICATIONTAG_OPTIONS,
                     authenticationKey, encodedFrame.data);
 
                 if (isArrayEqual(new Uint8Array(authTag),
-                        new Uint8Array(calculatedTag.slice(0, digestLength[encodedFrame.type])))) {
+                        new Uint8Array(calculatedTag.slice(0, DIGEST_LENGTH[encodedFrame.type])))) {
                     valid = true;
                     if (distance > 0) {
                         this._setKeys(newKeys);
@@ -279,19 +284,19 @@ export class Context {
             }
 
             return crypto.subtle.decrypt({
-                name: 'AES-CTR',
+                name: ENCRYPTION_ALGORITHM,
                 counter,
-                length: 64
+                length: CTR_LENGTH
             }, this._cryptoKeyRing[keyIndex].encryptionKey, new Uint8Array(encodedFrame.data,
-                    unencryptedBytes[encodedFrame.type],
-                    encodedFrame.data.byteLength - (unencryptedBytes[encodedFrame.type]
-                    + digestLength[encodedFrame.type] + counterLength + 1))
+                    UNENCRYPTED_BYTES[encodedFrame.type],
+                    encodedFrame.data.byteLength - (UNENCRYPTED_BYTES[encodedFrame.type]
+                    + DIGEST_LENGTH[encodedFrame.type] + counterLength + 1))
             ).then(plainText => {
-                const newData = new ArrayBuffer(unencryptedBytes[encodedFrame.type] + plainText.byteLength);
+                const newData = new ArrayBuffer(UNENCRYPTED_BYTES[encodedFrame.type] + plainText.byteLength);
                 const newUint8 = new Uint8Array(newData);
 
                 newUint8.set(frameHeader);
-                newUint8.set(new Uint8Array(plainText), unencryptedBytes[encodedFrame.type]);
+                newUint8.set(new Uint8Array(plainText), UNENCRYPTED_BYTES[encodedFrame.type]);
                 encodedFrame.data = newData;
 
                 return controller.enqueue(encodedFrame);
