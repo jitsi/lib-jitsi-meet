@@ -916,6 +916,13 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
 
     const existingTrack = remoteTracksMap.get(mediaType);
 
+    // Delete the existing track and create the new one because of a known bug on Safari.
+    // RTCPeerConnection.ontrack fires when a new remote track is added but MediaStream.onremovetrack doesn't so
+    // it needs to be removed whenever a new track is received for the same endpoint id.
+    if (existingTrack && browser.isSafari()) {
+        this._remoteTrackRemoved(existingTrack.getOriginalStream(), existingTrack.getTrack());
+    }
+
     if (existingTrack && existingTrack.getTrack() === track) {
         // Ignore duplicated event which can originate either from
         // 'onStreamAdded' or 'onTrackAdded'.
@@ -925,9 +932,7 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
 
         return;
     } else if (existingTrack) {
-        logger.error(
-            `${this} overwriting remote track for`
-                + `${ownerEndpointId} ${mediaType}`);
+        logger.error(`${this} overwriting remote track for ${ownerEndpointId} ${mediaType}`);
     }
 
     const remoteTrack

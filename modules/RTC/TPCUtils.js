@@ -1,7 +1,6 @@
 import { getLogger } from 'jitsi-meet-logger';
 import transform from 'sdp-transform';
 
-import * as JitsiTrackEvents from '../../JitsiTrackEvents';
 import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import browser from '../browser';
@@ -312,6 +311,17 @@ export class TPCUtils {
         if (oldTrack && newTrack) {
             const mediaType = newTrack.getType();
             const stream = newTrack.getOriginalStream();
+
+            // Ignore cases when the track is replaced while the device is in a muted state,like
+            // replacing camera when video muted or replacing mic when audio muted. These JitsiLocalTracks
+            // do not have a mediastream attached. Replace track will be called again when the device is
+            // unmuted and the track will be replaced on the peerconnection then.
+            if (!stream) {
+                this.pc.localTracks.delete(oldTrack.rtcId);
+                this.pc.localTracks.set(newTrack.rtcId, newTrack);
+
+                return Promise.resolve();
+            }
             const track = mediaType === MediaType.AUDIO
                 ? stream.getAudioTracks()[0]
                 : stream.getVideoTracks()[0];
@@ -339,23 +349,20 @@ export class TPCUtils {
                         this.pc._extractPrimarySSRC(ssrc));
                 });
         } else if (oldTrack && !newTrack) {
-            if (!this.removeTrackMute(oldTrack)) {
-                return Promise.reject(new Error('replace track failed'));
-            }
-            this.pc.localTracks.delete(oldTrack.rtcId);
-            this.pc.localSSRCs.delete(oldTrack.rtcId);
+            return this.removeTrackMute(oldTrack)
+                .then(() => {
+                    this.pc.localTracks.delete(oldTrack.rtcId);
+                    this.pc.localSSRCs.delete(oldTrack.rtcId);
+                });
         } else if (newTrack && !oldTrack) {
             const ssrc = this.pc.localSSRCs.get(newTrack.rtcId);
 
-            this.addTrackUnmute(newTrack)
+            return this.addTrackUnmute(newTrack)
                 .then(() => {
-                    newTrack.emit(JitsiTrackEvents.TRACK_MUTE_CHANGED, newTrack);
                     this.pc.localTracks.set(newTrack.rtcId, newTrack);
                     this.pc.localSSRCs.set(newTrack.rtcId, ssrc);
                 });
         }
-
-        return Promise.resolve();
     }
 
     /**
