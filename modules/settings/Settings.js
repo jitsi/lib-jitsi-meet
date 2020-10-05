@@ -13,16 +13,32 @@ let _machineId;
  *
  */
 export default {
+
+    /**
+     * The storage used to store the settings.
+     */
+    _storage: jitsiLocalStorage,
+
+    /**
+     * Initializes the Settings class.
+     *
+     * @param {Storage|undefined} externalStorage - Object that implements the Storage interface. This object will be
+     * used for storing data instead of jitsiLocalStorage if specified.
+     */
+    init(externalStorage) {
+        this._storage = externalStorage || jitsiLocalStorage;
+    },
+
     /**
      * Returns fake username for callstats
      * @returns {string} fake username for callstats
      */
     get callStatsUserName() {
         if (!_callStatsUserName) {
-            _callStatsUserName = jitsiLocalStorage.getItem('callStatsUserName');
+            _callStatsUserName = this._storage.getItem('callStatsUserName');
             if (!_callStatsUserName) {
                 _callStatsUserName = generateCallStatsUserName();
-                jitsiLocalStorage.setItem('callStatsUserName', _callStatsUserName);
+                this._storage.setItem('callStatsUserName', _callStatsUserName);
             }
         }
 
@@ -35,10 +51,10 @@ export default {
      */
     get machineId() {
         if (!_machineId) {
-            _machineId = jitsiLocalStorage.getItem('jitsiMeetId');
+            _machineId = this._storage.getItem('jitsiMeetId');
             if (!_machineId) {
                 _machineId = generateJitsiMeetId();
-                jitsiLocalStorage.setItem('jitsiMeetId', _machineId);
+                this._storage.setItem('jitsiMeetId', _machineId);
             }
         }
 
@@ -52,7 +68,7 @@ export default {
     get sessionId() {
         // We may update sessionId in localStorage from another JitsiConference
         // instance and that's why we should always re-read it.
-        return jitsiLocalStorage.getItem('sessionId');
+        return this._storage.getItem('sessionId');
     },
 
     /**
@@ -61,9 +77,9 @@ export default {
      */
     set sessionId(sessionId) {
         if (sessionId) {
-            jitsiLocalStorage.setItem('sessionId', sessionId);
+            this._storage.setItem('sessionId', sessionId);
         } else {
-            jitsiLocalStorage.removeItem('sessionId');
+            this._storage.removeItem('sessionId');
         }
     }
 };

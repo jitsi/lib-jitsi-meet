@@ -3,6 +3,7 @@
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, Strophe } from 'strophe.js';
 
+import CodecMimeType from '../../service/RTC/CodecMimeType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import {
     ICE_DURATION,
@@ -345,7 +346,11 @@ export default class JingleSessionPC extends JingleSession {
 
             // codec preference options for p2p.
             if (options.p2p) {
-                pcOptions.disabledCodec = options.p2p.disabledCodec;
+                // Do not negotiate H246 codec when insertable streams is used because of issues like this -
+                // https://bugs.chromium.org/p/webrtc/issues/detail?id=11886
+                pcOptions.disabledCodec = options.enableInsertableStreams
+                    ? CodecMimeType.H264
+                    : options.p2p.disabledCodec;
                 pcOptions.preferredCodec = options.p2p.preferredCodec;
             }
 
