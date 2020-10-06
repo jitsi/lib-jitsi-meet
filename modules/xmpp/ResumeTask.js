@@ -126,7 +126,10 @@ export default class ResumeTask {
         const url = new URL(this._stropheConn.service);
         let { search } = url;
 
-        search += search.indexOf('?') === -1 ? `?previd=${resumeToken}` : `&previd=${resumeToken}`;
+        // adds previd param only if missing
+        if (search.indexOf('previd=') === -1) {
+            search += search.indexOf('?') === -1 ? `?previd=${resumeToken}` : `&previd=${resumeToken}`;
+        }
 
         url.search = search;
 

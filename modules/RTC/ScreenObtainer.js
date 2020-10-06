@@ -185,9 +185,25 @@ const ScreenObtainer = {
                         sourceId: stream.id
                     }));
             })
-            .catch(() =>
-                errorCallback(new JitsiTrackError(JitsiTrackErrors
-                    .SCREENSHARING_USER_CANCELED)));
+            .catch(error => {
+                const errorDetails = {
+                    errorName: error && error.name,
+                    errorMsg: error && error.message,
+                    errorStack: error && error.stack
+                };
+
+                logger.error('getDisplayMedia error', errorDetails);
+
+                if (errorDetails.errorMsg && errorDetails.errorMsg.indexOf('denied by system') !== -1) {
+                    // On Chrome this is the only thing different between error returned when user cancels
+                    // and when no permission was given on the OS level.
+                    errorCallback(new JitsiTrackError(JitsiTrackErrors.PERMISSION_DENIED));
+
+                    return;
+                }
+
+                errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_USER_CANCELED));
+            });
     }
 };
 

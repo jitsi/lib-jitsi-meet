@@ -8,6 +8,7 @@ import * as JitsiConnectionErrors from '../../JitsiConnectionErrors';
 import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
 import XMPPEvents from '../../service/xmpp/XMPPEvents';
 import browser from '../browser';
+import { E2EEncryption } from '../e2ee/E2EEncryption';
 import GlobalOnErrorHandler from '../util/GlobalOnErrorHandler';
 import Listenable from '../util/Listenable';
 import RandomUtil from '../util/RandomUtil';
@@ -147,7 +148,8 @@ export default class XMPP extends Listenable {
         this.caps.addFeature('urn:xmpp:jingle:apps:rtp:audio');
         this.caps.addFeature('urn:xmpp:jingle:apps:rtp:video');
 
-        if (!this.options.disableRtx) {
+        // Disable RTX on Firefox because of https://bugzilla.mozilla.org/show_bug.cgi?id=1668028.
+        if (!(this.options.disableRtx || browser.isFirefox())) {
             this.caps.addFeature('urn:ietf:rfc:4588');
         }
         if (this.options.enableOpusRed === true && browser.supportsAudioRed()) {
@@ -175,7 +177,7 @@ export default class XMPP extends Listenable {
             this.caps.addFeature('urn:xmpp:rayo:client:1');
         }
 
-        if (browser.supportsInsertableStreams() && !(this.options.testing && this.options.testing.disableE2EE)) {
+        if (E2EEncryption.isSupported(this.options)) {
             this.caps.addFeature('https://jitsi.org/meet/e2ee');
         }
     }
@@ -742,6 +744,8 @@ export default class XMPP extends Listenable {
                     + 'structure', 'topic: ', type);
             }
         } catch (e) {
+            logger.error(e);
+
             return false;
         }
 

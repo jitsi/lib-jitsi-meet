@@ -1,8 +1,5 @@
 # The build artifacts of the lib-jiti-meet project.
-lib-jitsi-meet.js
-lib-jitsi-meet.js.map
-lib-jitsi-meet.min.js
-lib-jitsi-meet.min.map
+lib-jitsi-meet.*
 
 # Third-party source code which we (1) do not want to modify or (2) try to
 # modify as little as possible.
