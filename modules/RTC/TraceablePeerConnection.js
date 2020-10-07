@@ -2107,13 +2107,14 @@ TraceablePeerConnection.prototype.setMaxBitRate = function() {
     }
 
     const videoType = localVideoTrack.videoType;
+    const planBScreenSharing = browser.usesPlanB() && videoType === VideoType.DESKTOP;
 
     // Apply the maxbitrates on the video track when one of the conditions is met.
     // 1. Max. bitrates for video are specified through videoQuality settings in config.js
     // 2. Track is a desktop track and bitrate is capped using capScreenshareBitrate option in plan-b mode.
     // 3. The client is running in Unified plan mode.
     if (!((this.options.videoQuality && this.options.videoQuality.maxBitratesVideo)
-        || (browser.usesPlanB() && this.options.capScreenshareBitrate && videoType === VideoType.DESKTOP)
+        || (planBScreenSharing && this.options.capScreenshareBitrate)
         || browser.usesUnifiedPlan())) {
         return Promise.resolve();
     }
@@ -2134,14 +2135,24 @@ TraceablePeerConnection.prototype.setMaxBitRate = function() {
     if (this.isSimulcastOn()) {
         for (const encoding in parameters.encodings) {
             if (parameters.encodings.hasOwnProperty(encoding)) {
-                // On chromium, set a max bitrate of 500 Kbps for screenshare when
-                // capScreenshareBitrate is enabled through config.js and presenter
-                // is not turned on.
-                const bitrate = browser.usesPlanB()
-                    && videoType === VideoType.DESKTOP
-                    && this.options.capScreenshareBitrate
-                    ? presenterEnabled ? this.videoBitrates.high : DESKSTOP_SHARE_RATE
-                    : this.tpcUtils.localStreamEncodingsConfig[encoding].maxBitrate;
+                let bitrate;
+
+                if (planBScreenSharing) {
+                    // On chromium, set a max bitrate of 500 Kbps for screenshare when capScreenshareBitrate
+                    // is enabled through config.js and presenter is not turned on.
+                    // FIXME the top 'isSimulcastOn' condition is confusing for screensharing, because
+                    // if capScreenshareBitrate option is enabled then the simulcast is turned off
+                    bitrate = this.options.capScreenshareBitrate
+                        ? presenterEnabled ? this.videoBitrates.high : DESKSTOP_SHARE_RATE
+
+                        // Remove the bitrate config if not capScreenshareBitrate:
+                        // When switching from camera to desktop and videoQuality.maxBitratesVideo were set,
+                        // then the 'maxBitrate' setting must be cleared, because if simulcast is enabled for screen
+                        // and maxBitrates are set then Chrome will not send the screen stream (plan B).
+                        : undefined;
+                } else {
+                    bitrate = this.tpcUtils.localStreamEncodingsConfig[encoding].maxBitrate;
+                }
 
                 logger.info(`${this} Setting a max bitrate of ${bitrate} bps on layer `
                     + `${this.tpcUtils.localStreamEncodingsConfig[encoding].rid}`);
