@@ -438,7 +438,7 @@ export default class XMPP extends Listenable {
      */
     connect(jid, password) {
         if (!jid) {
-            const { anonymousdomain, domain } = this.options.hosts;
+            const { anonymousdomain, domain, tokendomain } = this.options.hosts;
             let configDomain = anonymousdomain || domain;
 
             // Force authenticated domain if room is appended with '?login=true'
@@ -457,6 +457,9 @@ export default class XMPP extends Listenable {
                         || this.token) {
                     configDomain = domain;
                 }
+            }
+            if (this.token && tokendomain) {
+                configDomain = tokendomain;
             }
 
             // eslint-disable-next-line no-param-reassign
