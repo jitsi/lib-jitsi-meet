@@ -1438,6 +1438,19 @@ JitsiConference.prototype.grantOwner = function(id) {
 };
 
 /**
+ * Revoke owner rights from a participant.
+ * @param {string} id id of the participant to revoke owner rights from.
+ */
+JitsiConference.prototype.revokeOwner = function(id) {
+    const participant = this.getParticipantById(id);
+
+    if (!participant) {
+        return;
+    }
+    this.room.setAffiliation(participant.getJid(), 'none');
+};
+
+/**
  * Kick participant from this conference.
  * @param {string} id id of the participant to kick
  */
