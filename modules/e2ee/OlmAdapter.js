@@ -25,6 +25,7 @@ const OLM_MESSAGE_TYPES = {
 const kOlmData = Symbol('OlmData');
 
 const OlmAdapterEvents = {
+    OLM_ID_KEY_READY: 'olm.id_key_ready',
     PARTICIPANT_E2EE_CHANNEL_READY: 'olm.participant_e2ee_channel_ready',
     PARTICIPANT_KEY_UPDATED: 'olm.partitipant_key_updated'
 };
@@ -175,6 +176,7 @@ export class OlmAdapter extends Listenable {
 
             logger.debug('Olm initialized!');
             this._init.resolve();
+            this.eventEmitter.emit(OlmAdapterEvents.OLM_ID_KEY_READY, this._idKey);
         } catch (e) {
             logger.error('Failed to initialize Olm', e);
             this._init.reject(e);
