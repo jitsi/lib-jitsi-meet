@@ -44,16 +44,19 @@ export class E2EEncryption {
         //
 
         this.conference.on(
+            JitsiConferenceEvents.CONFERENCE_JOINED,
+            () => {
+                this._conferenceJoined = true;
+            });
+        this.conference.on(
+            JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
+            this._onParticipantPropertyChanged.bind(this));
+        this.conference.on(
             JitsiConferenceEvents.USER_JOINED,
             this._onParticipantJoined.bind(this));
         this.conference.on(
             JitsiConferenceEvents.USER_LEFT,
             this._onParticipantLeft.bind(this));
-        this.conference.on(
-            JitsiConferenceEvents.CONFERENCE_JOINED,
-            () => {
-                this._conferenceJoined = true;
-            });
 
         // Conference media events in order to attach the encryptor / decryptor.
         // FIXME add events to TraceablePeerConnection which will allow to see when there's new receiver or sender
@@ -74,6 +77,9 @@ export class E2EEncryption {
             this._trackMuteChanged.bind(this));
 
         // Olm signalling events.
+        this._olmAdapter.on(
+            OlmAdapter.events.OLM_ID_KEY_READY,
+            this._onOlmIdKeyReady.bind(this));
         this._olmAdapter.on(
             OlmAdapter.events.PARTICIPANT_E2EE_CHANNEL_READY,
             this._onParticipantE2EEChannelReady.bind(this));
@@ -171,6 +177,17 @@ export class E2EEncryption {
     }
 
     /**
+     * Publushes our own Olmn id key in presence.
+     * @private
+     */
+    _onOlmIdKeyReady(idKey) {
+        logger.debug(`Olm id key ready: ${idKey}`);
+
+        // Publish it in presence.
+        this.conference.setLocalParticipantProperty('e2ee.idKey', idKey);
+    }
+
+    /**
      * Advances (using ratcheting) the current key when a new participant joins the conference.
      * @private
      */
@@ -216,6 +233,23 @@ export class E2EEncryption {
         logger.debug(`Participant ${id} updated their key`);
 
         this._e2eeCtx.setKey(id, key, index);
+    }
+
+    /**
+     * Handles an update in a participant's presence property.
+     *
+     * @param {JitsiParticipant} participant - The participant.
+     * @param {string} name - The name of the property that changed.
+     * @param {*} oldValue - The property's previous value.
+     * @param {*} newValue - The property's new value.
+     * @private
+     */
+    _onParticipantPropertyChanged(participant, name, oldValue, newValue) {
+        switch (name) {
+        case 'e2ee.idKey':
+            logger.debug(`Participant ${participant.getId()} updated their id key: ${newValue}`);
+            break;
+        }
     }
 
     /**
