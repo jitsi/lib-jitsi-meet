@@ -28,7 +28,7 @@ import { SIM_LAYER_RIDS, TPCUtils } from './TPCUtils';
 const logger = getLogger(__filename);
 const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
 const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
-const DESKSTOP_SHARE_RATE = 500000;
+const DESKTOP_SHARE_RATE = 500000;
 const HD_BITRATE = 2500000;
 const LD_BITRATE = 200000;
 const SD_BITRATE = 700000;
@@ -2148,7 +2148,7 @@ TraceablePeerConnection.prototype.setMaxBitRate = function() {
                     // FIXME the top 'isSimulcastOn' condition is confusing for screensharing, because
                     // if capScreenshareBitrate option is enabled then the simulcast is turned off
                     bitrate = this.options.capScreenshareBitrate
-                        ? presenterEnabled ? this.videoBitrates.high : DESKSTOP_SHARE_RATE
+                        ? presenterEnabled ? this.videoBitrates.high : DESKTOP_SHARE_RATE
 
                         // Remove the bitrate config if not capScreenshareBitrate:
                         // When switching from camera to desktop and videoQuality.maxBitratesVideo were set,
