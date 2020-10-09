@@ -47,6 +47,12 @@ SDP.prototype.removeTcpCandidates = false;
 SDP.prototype.removeUdpCandidates = false;
 
 /**
+ * Whether or not to remove opus inband FEC when translating from/to jingle.
+ * @type {boolean}
+ */
+SDP.prototype.removeOpusFec = false;
+
+/**
  * Returns map of MediaChannel mapped per channel idx.
  */
 SDP.prototype.getMediaSsrcMap = function() {
@@ -660,6 +666,8 @@ SDP.prototype.jingle2media = function(content) {
             sdp
                 += $(payloadType)
                     .find('>parameter')
+                    .filter((__, parameter) => !(this.removeOpusFec
+                        && parameter.getAttribute('name') === 'useinbandfec'))
                     .map((__, parameter) => {
                         const name = parameter.getAttribute('name');
 

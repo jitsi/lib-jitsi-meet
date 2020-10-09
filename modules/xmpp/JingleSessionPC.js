@@ -62,6 +62,7 @@ const DEFAULT_MAX_STATS = 300;
  * @property {Object} testing - Testing and/or experimental options.
  * @property {boolean} webrtcIceUdpDisable - Described in the config.js[1].
  * @property {boolean} webrtcIceTcpDisable - Described in the config.js[1].
+ * @property {boolean} webrtcOpusFecRemove - Described in the config.js[1].
  *
  * [1]: https://github.com/jitsi/jitsi-meet/blob/master/config.js
  */
@@ -322,6 +323,7 @@ export default class JingleSessionPC extends JingleSession {
         this.wasstable = false;
         this.webrtcIceUdpDisable = Boolean(options.webrtcIceUdpDisable);
         this.webrtcIceTcpDisable = Boolean(options.webrtcIceTcpDisable);
+        this.webrtcOpusFecRemove = Boolean(options.webrtcOpusFecRemove);
 
         const pcOptions = { disableRtx: options.disableRtx };
 
@@ -1700,6 +1702,9 @@ export default class JingleSessionPC extends JingleSession {
         }
         if (this.webrtcIceUdpDisable) {
             remoteSdp.removeUdpCandidates = true;
+        }
+        if (this.webrtcOpusFecRemove) {
+            remoteSdp.removeOpusFec = true;
         }
         if (this.failICE) {
             remoteSdp.failICE = true;
