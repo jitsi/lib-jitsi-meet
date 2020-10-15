@@ -174,7 +174,7 @@ export class OlmAdapter extends Listenable {
 
             this._idKey = idKeys.curve25519;
 
-            logger.debug('Olm initialized!');
+            logger.debug(`Olm ${Olm.get_library_version().join('.')} initialized`);
             this._init.resolve();
             this.eventEmitter.emit(OlmAdapterEvents.OLM_ID_KEY_READY, this._idKey);
         } catch (e) {
