@@ -33,6 +33,16 @@ const AUTHENTICATIONTAG_OPTIONS = {
 };
 const ENCRYPTION_ALGORITHM = 'AES-CTR';
 
+// We use ECDSA with a SHA-256 hash for signing.
+// https://developer.mozilla.org/en-US/docs/Web/API/EcdsaParams
+// TODO: should this be configured in the E2EEContext which can put it
+//   into the presence when exchanging the key?
+const SIGNATURE_OPTIONS = {
+    name: 'ECDSA',
+    hash: { name: 'SHA-256' }
+};
+const SIGNATURE_LENGTH = 132;
+
 // https://developer.mozilla.org/en-US/docs/Web/API/AesCtrParams
 const CTR_LENGTH = 64;
 
@@ -67,6 +77,8 @@ export class Context {
         this._sendCount = BigInt(0); // eslint-disable-line new-cap
 
         this._id = id;
+
+        this._signatureKey = null;
     }
 
     /**
@@ -87,6 +99,14 @@ export class Context {
         }
         this._currentKeyIndex = keyIndex % this._cryptoKeyRing.length;
         this._setKeys(newKey);
+    }
+
+    /**
+     * Sets the public or private key used to sign or verify frames.
+     * @param {CryptoKey} public or private CryptoKey object.
+     */
+    setSignatureKey(key) {
+        this._signatureKey = key;
     }
 
     /**
@@ -150,7 +170,15 @@ export class Context {
                 }
             }
 
-            const frameTrailer = new Uint8Array(counterLength + 1);
+
+            let signatureLength = 0;
+
+            if (this._signatureKey) {
+                // TODO: the condition is more complex as we periodically want to
+                //   sign every n-th frame of every substream/ssrc.
+                signatureLength = SIGNATURE_LENGTH;
+            }
+            const frameTrailer = new Uint8Array(counterLength + signatureLength + 1);
 
             frameTrailer.set(new Uint8Array(counter.buffer, counter.byteLength - counterLength));
 
@@ -158,6 +186,9 @@ export class Context {
             // This is different from the sframe draft, increases the key space and lets us
             // ignore the case of a zero-length counter at the receiver.
             frameTrailer[frameTrailer.byteLength - 1] = keyIndex | ((counterLength - 1) << 4);
+            if (signatureLength) {
+                frameTrailer[frameTrailer.byteLength - 1] |= 0x80; // set the signature bit.
+            }
 
             // XOR the counter with the saltKey to construct the AES CTR.
             const saltKey = new DataView(this._cryptoKeyRing[keyIndex].saltKey);
@@ -185,10 +216,20 @@ export class Context {
                     + DIGEST_LENGTH[encodedFrame.type]); // append trailer.
 
                 return crypto.subtle.sign(AUTHENTICATIONTAG_OPTIONS, this._cryptoKeyRing[keyIndex].authenticationKey,
-                    new Uint8Array(newData)).then(authTag => {
+                    new Uint8Array(newData)).then(async authTag => {
+                    const truncatedAuthTag = new Uint8Array(authTag, 0, DIGEST_LENGTH[encodedFrame.type]);
+
+
                     // Set the truncated authentication tag.
-                    newUint8.set(new Uint8Array(authTag, 0, DIGEST_LENGTH[encodedFrame.type]),
-                        UNENCRYPTED_BYTES[encodedFrame.type] + cipherText.byteLength);
+                    newUint8.set(truncatedAuthTag, UNENCRYPTED_BYTES[encodedFrame.type] + cipherText.byteLength);
+
+                    // Sign with the long-term signature key.
+                    if (signatureLength) {
+                        const signature = await crypto.subtle.sign(SIGNATURE_OPTIONS, this._signatureKey,
+                            truncatedAuthTag);
+
+                        newUint8.set(new Uint8Array(signature), newUint8.byteLength - signature.byteLength - 1);
+                    }
                     encodedFrame.data = newData;
 
                     return controller.enqueue(encodedFrame);
@@ -220,24 +261,43 @@ export class Context {
 
         if (this._cryptoKeyRing[keyIndex]) {
             const counterLength = 1 + ((data[encodedFrame.data.byteLength - 1] >> 4) & 0x7);
+            const signatureLength = data[encodedFrame.data.byteLength - 1] & 0x80 ? SIGNATURE_LENGTH : 0;
             const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
 
             // Extract the truncated authentication tag.
             const authTagOffset = encodedFrame.data.byteLength - (DIGEST_LENGTH[encodedFrame.type]
-                + counterLength + 1);
+                + counterLength + signatureLength + 1);
             const authTag = encodedFrame.data.slice(authTagOffset, authTagOffset
                 + DIGEST_LENGTH[encodedFrame.type]);
 
+            // Verify the long-term signature of the authentication tag.
+            if (signatureLength) {
+                const signature = data.subarray(data.byteLength - signatureLength - 1, data.byteLength - 1);
+                const validSignature = this._signatureKey
+                    ? await crypto.subtle.verify(SIGNATURE_OPTIONS, this._signatureKey, signature, authTag)
+                    : false;
+
+                if (!validSignature) {
+                    // TODO: surface this to the app. Also for non-error cases.
+                    console.error('Long-term signature mismatch (or no signature key)');
+
+                    return;
+                }
+
+                // Then set signature bytes to 0.
+                data.set(new Uint8Array(SIGNATURE_LENGTH), encodedFrame.data.byteLength - (signatureLength + 1));
+            }
+
             // Set authentication tag bytes to 0.
-            const zeros = new Uint8Array(DIGEST_LENGTH[encodedFrame.type]);
+            data.set(new Uint8Array(DIGEST_LENGTH[encodedFrame.type]), encodedFrame.data.byteLength
+                - (DIGEST_LENGTH[encodedFrame.type] + counterLength + signatureLength + 1));
 
-            data.set(zeros, encodedFrame.data.byteLength - (DIGEST_LENGTH[encodedFrame.type] + counterLength + 1));
-
-            // Do truncated hash comparison. If the hash does not match we might have to advance the
-            // ratchet a limited number of times. See (even though the description there is odd)
+            // Do truncated hash comparison of the authentication tag.
+            // If the hash does not match we might have to advance the ratchet a limited number
+            // of times. See (even though the description there is odd)
             // https://tools.ietf.org/html/draft-omara-sframe-00#section-4.3.5.1
             let { authenticationKey, material } = this._cryptoKeyRing[keyIndex];
-            let valid = false;
+            let validAuthTag = false;
             let newKeys = null;
 
             for (let distance = 0; distance < RATCHET_WINDOW_SIZE; distance++) {
@@ -246,7 +306,7 @@ export class Context {
 
                 if (isArrayEqual(new Uint8Array(authTag),
                         new Uint8Array(calculatedTag.slice(0, DIGEST_LENGTH[encodedFrame.type])))) {
-                    valid = true;
+                    validAuthTag = true;
                     if (distance > 0) {
                         this._setKeys(newKeys);
                     }
@@ -259,8 +319,8 @@ export class Context {
                 authenticationKey = newKeys.authenticationKey;
             }
 
-            // Check whether we found a valid signature.
-            if (!valid) {
+            // Check whether we found a valid authentication tag.
+            if (!validAuthTag) {
                 // TODO: return an error to the app.
 
                 console.error('Authentication tag mismatch');
@@ -271,8 +331,8 @@ export class Context {
             // Extract the counter.
             const counter = new Uint8Array(16);
 
-            counter.set(data.slice(encodedFrame.data.byteLength - (counterLength + 1),
-                encodedFrame.data.byteLength - 1), 16 - counterLength);
+            counter.set(data.slice(encodedFrame.data.byteLength - (counterLength + signatureLength + 1),
+                encodedFrame.data.byteLength - (signatureLength + 1)), 16 - counterLength);
             const counterView = new DataView(counter.buffer);
 
             // XOR the counter with the saltKey to construct the AES CTR.
@@ -290,7 +350,7 @@ export class Context {
             }, this._cryptoKeyRing[keyIndex].encryptionKey, new Uint8Array(encodedFrame.data,
                     UNENCRYPTED_BYTES[encodedFrame.type],
                     encodedFrame.data.byteLength - (UNENCRYPTED_BYTES[encodedFrame.type]
-                    + DIGEST_LENGTH[encodedFrame.type] + counterLength + 1))
+                    + DIGEST_LENGTH[encodedFrame.type] + counterLength + signatureLength + 1))
             ).then(plainText => {
                 const newData = new ArrayBuffer(UNENCRYPTED_BYTES[encodedFrame.type] + plainText.byteLength);
                 const newUint8 = new Uint8Array(newData);

@@ -69,6 +69,22 @@ This allows the decoder to understand the frame a bit more and makes it decode t
 video. This also means the SFU does not know (ideally) that the content is end-to-end encrypted and there are no
 changes in the SFU required at all.
 
+If the signature bit is set on the frame trailer, there is an additional fixed-length signature that is located
+between the counter and the trailing bit. The signature is generated as
+  Signature = Sign(signatureKey, Authentication Tag)
+and covers the current frame. Not every frame is signed but there will be periodic
+signatures on all SSRCs and streams. This prevents the impersonation attacks described in
+  https://tools.ietf.org/html/draft-omara-sframe-00#section-4.4
+Unlike SFrame, we do not cover multiple frames.
+
+We currently use ECDSA with curve P-521 as described on
+  https://developer.mozilla.org/en-US/docs/Web/API/EcKeyGenParams
+and sign/verify with SHA-256:
+  https://developer.mozilla.org/en-US/docs/Web/API/EcdsaParams
+This results in a fixed length signature of 132 bytes.
+We plan to make these options negotiable by exchanging them along with the key as a JWK:
+  https://tools.ietf.org/html/rfc7517
+
 ### Using Web Workers
 
 Insertable Streams are transferable and can be sent from the main JavaScript context to a
