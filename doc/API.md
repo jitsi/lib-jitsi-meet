@@ -47,8 +47,10 @@ The `options` parameter is JS object with the following properties:
     - `externalStorage` - Object that implements the Storage interface. If specified this object will be used for storing data instead of `localStorage`.
     - `callStatsCustomScriptUrl` - (optional) custom url to access callstats client script
     - `disableRtx` - (optional) boolean property (default to false).  Enables/disable the use of RTX.
-    - `disableH264` - (optional) boolean property (default to false).  If enabled, strips the H.264 codec from the local SDP.
-    - `preferH264` - (optional) boolean property (default to false).  Enables/disable preferring the first instance of an h264 codec in an offer by moving it to the front of the codec list.
+    - `disabledCodec` - the mime type of the code that should not be negotiated on the peerconnection.
+    - `preferredCodec` the mime type of the codec that needs to be made the preferred codec for the connection.
+    - `disableH264` - __DEPRECATED__. Use `disabledCodec` instead.
+    - `preferH264` - __DEPRECATED__. Use `preferredCodec` instead.
 
 * `JitsiMeetJS.JitsiConnection` - the `JitsiConnection` constructor. You can use that to create new server connection.
 
@@ -66,8 +68,11 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         5. `micDeviceId` - the deviceID for the audio device that is going to be used
         6. `minFps` - the minimum frame rate for the video stream (passed to GUM)
         7. `maxFps` - the maximum frame rate for the video stream (passed to GUM)
-        8. `facingMode` - facing mode for a camera (possible values - 'user', 'environment')
-    - firePermissionPromptIsShownEvent - optional boolean parameter. If set to ```true```, ```JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN``` will be fired when browser shows gUM permission prompt.
+        8. `desktopSharingFrameRate`
+           - `min` - Minimum fps
+           - `max` - Maximum fps
+        9. `desktopSharingSourceDevice` - The device id or label for a video input source that should be used for screensharing.
+        10. `facingMode` - facing mode for a camera (possible values - 'user', 'environment')
     - firePermissionPromptIsShownEvent - optional boolean parameter. If set to `true`, `JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN` will be fired when browser shows gUM permission prompt.
 
 * `JitsiMeetJS.createTrackVADEmitter(localAudioDeviceId, sampleRate, vadProcessor)` - Creates a TrackVADEmitter service that connects an audio track to a VAD (voice activity detection) processor in order to obtain VAD scores for individual PCM audio samples.
@@ -220,6 +225,7 @@ This objects represents the server connection. You can create new `JitsiConnecti
             - `muc`
             - `anonymousdomain`
         4. `enableLipSync` - (optional) boolean property which enables the lipsync feature. Currently works only in Chrome and is disabled by default.
+        5. `clientNode` - The name of client node advertised in XEP-0115 'c' stanza
 
 2. `connect(options)` - establish server connection
     - `options` - JS Object with `id` and `password` properties.
@@ -240,6 +246,46 @@ This objects represents the server connection. You can create new `JitsiConnecti
         - `siteID` - (optional) Used for statistics to identify the site where the user is coming from, if tenants are supported it will contain a unique identifier for that tenant. If not provided, the value will be infered from confID
         - `statisticsId` - The id to be used as stats instead of default callStatsUsername.
         - `statisticsDisplayName` - The display name to be used for stats, used for callstats.
+        - `focusUserJid` - The real JID of focus participant - can be overridden here
+        - `enableNoAudioDetection`
+        - `enableNoisyMicDetection`
+        - `enableRemb`
+        - `enableTcc`
+        - `useRoomAsSharedDocumentName`
+        - `channelLastN`
+        - `startBitrate`
+        - `stereo`
+        - `forceJVB121Ratio` - "Math.random() < forceJVB121Ratio" will determine whether a 2 people conference should be moved to the JVB instead of P2P. The decision is made on the responder side, after ICE succeeds on the P2P connection.
+        - `hiddenDomain`
+        - `startAudioMuted`
+        - `startVideoMuted`
+        - `enableLayerSuspension` - if set to 'true', we will cap the video send bitrate when we are told we have not been selected by any endpoints (and therefore the non-thumbnail streams are not in use).
+        - `deploymentInfo`
+            - `shard`
+            - `userRegion`
+        - `p2p` - Peer to peer related options
+            - `enabled` - enables or disable peer-to-peer connection, if disabled all media will be routed through the Jitsi Videobridge.
+            - `stunServers` - list of STUN servers e.g. `{ urls: 'stun:meet-jit-si-turnrelay.jitsi.net:443' }`
+            - `backToP2PDelay` - a delay given in seconds, before the conference switches back to P2P, after the 3rd participant has left the room.
+            - `disabledCodec` - the mime type of the code that should not be negotiated on the peerconnection.
+            - `preferredCodec` the mime type of the codec that needs to be made the preferred codec for the connection.
+            - `disableH264` - __DEPRECATED__. Use `disabledCodec` instead.
+            - `preferH264` - __DEPRECATED__. Use `preferredCodec` instead.
+        - `rttMonitor`
+            - `enabled`
+            - `initialDelay`
+            - `getStatsInterval`
+            - `analyticsInterval`
+            - `stunServers`
+        - `e2eping`
+            - `pingInterval`
+        - `abTesting` - A/B testing related options
+            - `enableSuspendVideoTest`
+        - `testing`
+            - `capScreenshareBitrate`
+            - `p2pTestMode`
+            - `octo`
+                - `probability`
 
         **NOTE: if 4 and 5 are set the library is going to send events to callstats. Otherwise the callstats integration will be disabled.**
 
