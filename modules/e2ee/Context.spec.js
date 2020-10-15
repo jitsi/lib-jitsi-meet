@@ -34,7 +34,10 @@ const videoBytes = [ 0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef, 0xde, 0xad,
 function makeAudioFrame() {
     return {
         data: new Uint8Array(audioBytes).buffer,
-        type: undefined // type is undefined for audio frames.
+        type: undefined, // type is undefined for audio frames.
+        getMetadata: () => {
+            return { synchronizationSource: 123 };
+        }
     };
 }
 
@@ -44,7 +47,10 @@ function makeAudioFrame() {
 function makeVideoFrame() {
     return {
         data: new Uint8Array(videoBytes).buffer,
-        type: 'key'
+        type: 'key',
+        getMetadata: () => {
+            return { synchronizationSource: 321 };
+        }
     };
 }
 
@@ -202,18 +208,7 @@ describe('E2EE Context', () => {
             receiver.setSignatureKey(publicKey);
         });
 
-        /*
-        it('does something', async () => {
-            const authTag = new Uint8Array([0, 0, 0, 1]); // Truncated audio auth tag that is signed.
-            const signature = await crypto.subtle.sign({name: 'ECDSA', hash: {name: 'SHA-256'}}, privateKey, authTag);
-            console.log('SIG', new Uint8Array(signature).byteLength);
-            const verify = await crypto.subtle.verify({name: 'ECDSA', hash: {name: 'SHA-256'}},
-                publicKey, signature, authTag);
-            console.log('VER', verify);
-        });
-        */
-
-        it('signs the frame', async done => {
+        it('signs the first frame', async done => {
             sendController = {
                 enqueue: encodedFrame => {
                     const data = new Uint8Array(encodedFrame.data);
@@ -230,6 +225,102 @@ describe('E2EE Context', () => {
                     done();
                 }
             };
+            await sender.encodeFunction(makeAudioFrame(), sendController);
+        });
+
+        it('signs subsequent frames from different sources', async done => {
+            let frameCount = 0;
+
+            sendController = {
+                enqueue: encodedFrame => {
+                    frameCount++;
+                    const data = new Uint8Array(encodedFrame.data);
+
+                    expect(data[data.byteLength - 1] & 0x80).toEqual(0x80);
+
+                    if (frameCount === 2) {
+                        done();
+                    }
+                }
+            };
+
+            await sender.encodeFunction(makeAudioFrame(), sendController);
+
+            const secondFrame = makeAudioFrame();
+
+            secondFrame.getMetadata = () => {
+                return { synchronizationSource: 456 };
+            };
+            await sender.encodeFunction(secondFrame, sendController);
+        });
+
+        it('signs subsequent key frames from the same source', async done => {
+            let frameCount = 0;
+
+            sendController = {
+                enqueue: encodedFrame => {
+                    frameCount++;
+                    const data = new Uint8Array(encodedFrame.data);
+
+                    expect(data[data.byteLength - 1] & 0x80).toEqual(0x80);
+
+                    if (frameCount === 2) {
+                        done();
+                    }
+                }
+            };
+
+            await sender.encodeFunction(makeVideoFrame(), sendController);
+            await sender.encodeFunction(makeVideoFrame(), sendController);
+        });
+
+
+        it('does not sign subsequent frames from the same source', async done => {
+            let frameCount = 0;
+
+            sendController = {
+                enqueue: encodedFrame => {
+                    frameCount++;
+                    const data = new Uint8Array(encodedFrame.data);
+
+                    if (frameCount === 1) {
+                        expect(data[data.byteLength - 1] & 0x80).toEqual(0x80);
+                    } else {
+                        expect(data[data.byteLength - 1] & 0x80).toEqual(0x00);
+                    }
+
+                    if (frameCount === 2) {
+                        done();
+                    }
+                }
+            };
+
+            await sender.encodeFunction(makeAudioFrame(), sendController);
+            await sender.encodeFunction(makeAudioFrame(), sendController);
+        });
+
+        it('signs after ratcheting the sender key', async done => {
+            let frameCount = 0;
+
+            sendController = {
+                enqueue: encodedFrame => {
+                    frameCount++;
+                    const data = new Uint8Array(encodedFrame.data);
+
+                    expect(data[data.byteLength - 1] & 0x80).toEqual(0x80);
+
+                    if (frameCount === 2) {
+                        done();
+                    }
+                }
+            };
+
+            await sender.encodeFunction(makeAudioFrame(), sendController);
+
+            // Ratchet the key. We reimport from the raw bytes.
+            const material = await importKey(key);
+
+            await sender.setKey(await ratchet(material), 0);
             await sender.encodeFunction(makeAudioFrame(), sendController);
         });
 

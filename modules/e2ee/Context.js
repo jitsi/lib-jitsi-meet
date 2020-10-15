@@ -33,15 +33,12 @@ const AUTHENTICATIONTAG_OPTIONS = {
 };
 const ENCRYPTION_ALGORITHM = 'AES-CTR';
 
-// We use ECDSA with a SHA-256 hash for signing.
-// https://developer.mozilla.org/en-US/docs/Web/API/EcdsaParams
-// TODO: should this be configured in the E2EEContext which can put it
-//   into the presence when exchanging the key?
-const SIGNATURE_OPTIONS = {
-    name: 'ECDSA',
-    hash: { name: 'SHA-256' }
+// Time interval between signed frames.
+const SIGNATURE_WINDOW = {
+    key: 2000, // we sign all key frames anyway
+    delta: 2000,
+    undefined: 5000 // frame.type is not set on audio.
 };
-const SIGNATURE_LENGTH = 132;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/AesCtrParams
 const CTR_LENGTH = 64;
@@ -79,6 +76,8 @@ export class Context {
         this._id = id;
 
         this._signatureKey = null;
+        this._signatureOptions = null;
+        this._lastSignatureAt = new Map();
     }
 
     /**
@@ -102,14 +101,6 @@ export class Context {
     }
 
     /**
-     * Sets the public or private key used to sign or verify frames.
-     * @param {CryptoKey} public or private CryptoKey object.
-     */
-    setSignatureKey(key) {
-        this._signatureKey = key;
-    }
-
-    /**
      * Sets a set of keys and resets the sendCount.
      * decryption.
      * @param {Object} keys set of keys.
@@ -118,6 +109,62 @@ export class Context {
     _setKeys(keys) {
         this._cryptoKeyRing[this._currentKeyIndex] = keys;
         this._sendCount = BigInt(0); // eslint-disable-line new-cap
+        this._lastSignatureAt.clear();
+    }
+
+    /**
+     * Sets the public or private key used to sign or verify frames.
+     * @param {CryptoKey} public or private CryptoKey object.
+     * @param {Object} signature options. Will be passed to sign/verify and need to specify byteLength of the signature.
+     *  Defaults to ECDSA with SHA-256 and a byteLength of 132.
+     */
+    setSignatureKey(key, options = {
+        name: 'ECDSA',
+        hash: { name: 'SHA-256' },
+        byteLength: 132 // Length of the signature.
+    }) {
+        this._signatureKey = key;
+        this._signatureOptions = options;
+    }
+
+    /**
+     * Decide whether we should sign a frame.
+     * This is done on keyframes, sender key changes and periodically every couple of seconds.
+     * @param {RTCEncodedVideoFrame|RTCEncodedAudioFrame} encodedFrame - Encoded video frame.
+     * @returns {boolean}
+     * @private
+     */
+    _shouldSignFrame(encodedFrame) {
+        if (!this._signatureKey) {
+            return false;
+        }
+
+        // Sign all key frames.
+        if (encodedFrame.type === 'key') {
+            return true;
+        }
+        const now = Date.now();
+
+        // We want to periodically sign frames. The length of the period depends on the
+        // frame type.
+        const ssrc = encodedFrame.getMetadata().synchronizationSource;
+
+        // This can happen if this is the first frame or if we have cleared the mapping
+        // due to a new sender key.
+        if (!this._lastSignatureAt.has(ssrc)) {
+            this._lastSignatureAt.set(ssrc, now);
+
+            return true;
+        }
+        const lastSignature = this._lastSignatureAt.get(ssrc);
+
+        if (now - lastSignature > SIGNATURE_WINDOW[encodedFrame.type]) {
+            this._lastSignatureAt.set(ssrc, now);
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -171,13 +218,7 @@ export class Context {
             }
 
 
-            let signatureLength = 0;
-
-            if (this._signatureKey) {
-                // TODO: the condition is more complex as we periodically want to
-                //   sign every n-th frame of every substream/ssrc.
-                signatureLength = SIGNATURE_LENGTH;
-            }
+            const signatureLength = this._shouldSignFrame(encodedFrame) ? this._signatureOptions.byteLength : 0;
             const frameTrailer = new Uint8Array(counterLength + signatureLength + 1);
 
             frameTrailer.set(new Uint8Array(counter.buffer, counter.byteLength - counterLength));
@@ -225,8 +266,8 @@ export class Context {
 
                     // Sign with the long-term signature key.
                     if (signatureLength) {
-                        const signature = await crypto.subtle.sign(SIGNATURE_OPTIONS, this._signatureKey,
-                            truncatedAuthTag);
+                        const signature = await crypto.subtle.sign(this._signatureOptions,
+                            this._signatureKey, truncatedAuthTag);
 
                         newUint8.set(new Uint8Array(signature), newUint8.byteLength - signature.byteLength - 1);
                     }
@@ -261,7 +302,8 @@ export class Context {
 
         if (this._cryptoKeyRing[keyIndex]) {
             const counterLength = 1 + ((data[encodedFrame.data.byteLength - 1] >> 4) & 0x7);
-            const signatureLength = data[encodedFrame.data.byteLength - 1] & 0x80 ? SIGNATURE_LENGTH : 0;
+            const signatureLength = data[encodedFrame.data.byteLength - 1] & 0x80
+                ? this._signatureOptions.byteLength : 0;
             const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
 
             // Extract the truncated authentication tag.
@@ -274,7 +316,8 @@ export class Context {
             if (signatureLength) {
                 const signature = data.subarray(data.byteLength - signatureLength - 1, data.byteLength - 1);
                 const validSignature = this._signatureKey
-                    ? await crypto.subtle.verify(SIGNATURE_OPTIONS, this._signatureKey, signature, authTag)
+                    ? await crypto.subtle.verify(this._signatureOptions,
+                        this._signatureKey, signature, authTag)
                     : false;
 
                 if (!validSignature) {
@@ -285,7 +328,7 @@ export class Context {
                 }
 
                 // Then set signature bytes to 0.
-                data.set(new Uint8Array(SIGNATURE_LENGTH), encodedFrame.data.byteLength - (signatureLength + 1));
+                data.set(new Uint8Array(signatureLength), encodedFrame.data.byteLength - (signatureLength + 1));
             }
 
             // Set authentication tag bytes to 0.
