@@ -314,17 +314,21 @@ export class Context {
 
             // Verify the long-term signature of the authentication tag.
             if (signatureLength) {
-                const signature = data.subarray(data.byteLength - signatureLength - 1, data.byteLength - 1);
-                const validSignature = this._signatureKey
-                    ? await crypto.subtle.verify(this._signatureOptions,
-                        this._signatureKey, signature, authTag)
-                    : false;
+                if (this._signatureKey) {
+                    const signature = data.subarray(data.byteLength - signatureLength - 1, data.byteLength - 1);
+                    const validSignature = await crypto.subtle.verify(this._signatureOptions,
+                            this._signatureKey, signature, authTag);
 
-                if (!validSignature) {
-                    // TODO: surface this to the app. Also for non-error cases.
-                    console.error('Long-term signature mismatch (or no signature key)');
+                    if (!validSignature) {
+                        // TODO: surface this to the app. We are encrypted but validation failed.
+                        console.error('Long-term signature mismatch (or no signature key)');
 
-                    return;
+                        return;
+                    }
+
+                    // TODO: surface this to the app. We are now encrypted and verified.
+                } else {
+                    // TODO: surface this to the app. We are now encrypted but can not verify.
                 }
 
                 // Then set signature bytes to 0.
