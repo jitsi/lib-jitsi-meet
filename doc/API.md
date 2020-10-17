@@ -450,6 +450,10 @@ Throws NetworkError or InvalidStateError or Error if the operation fails.
 
 36. `isHidden` - checks if local user has joined as a "hidden" user. This is a specialized role used for integrations.
 
+37. `setLocalParticipantProperty(key, value)` - used to set a custom propery to the local participant("fullName": "Full Name", favoriteColor: "red", "userId": 234).
+    - `key` - custom property name
+    - `value` - custom property value
+
 JitsiTrack
 ======
 The object represents single track - video or audio. They can be remote tracks ( from the other participants in the call) or local tracks (from the devices of the local participant).
