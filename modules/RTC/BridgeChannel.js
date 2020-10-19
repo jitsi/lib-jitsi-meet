@@ -337,13 +337,13 @@ export default class BridgeChannel {
                 break;
             }
             case 'LastNEndpointsChangeEvent': {
-                // The new/latest list of last-n endpoint IDs.
+                // The new/latest list of last-n endpoint IDs (i.e. endpoints for which the bridge is sending video).
                 const lastNEndpoints = obj.lastNEndpoints;
 
                 logger.info('Channel new last-n event: ',
                     lastNEndpoints, obj);
                 emitter.emit(RTCEvents.LASTN_ENDPOINT_CHANGED,
-                    lastNEndpoints, obj);
+                    lastNEndpoints);
 
                 break;
             }
