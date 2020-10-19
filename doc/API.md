@@ -139,6 +139,7 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - `NO_AUDIO_INPUT` - notifies that the current selected input device has no signal.
         - `AUDIO_INPUT_STATE_CHANGE` - notifies that the current conference audio input switched between audio input states i.e. with or without audio input.
         - `NOISY_MIC` - notifies that the current microphone used by the conference is noisy.
+        - `PARTICIPANT_PROPERTY_CHANGED` - notifies that user has changed his custom participant property. (parameters - user(JitsiParticipant), propertyKey(string), oldPropertyValue(string), propertyValue(string))
 
     2. `connection`
         - `CONNECTION_FAILED` - indicates that the server connection failed.
@@ -449,6 +450,10 @@ Throws NetworkError or InvalidStateError or Error if the operation fails.
 35. `setSenderVideoConstraint(resolution)` - set the desired resolution to send to JVB or the peer (180, 360, 720).
 
 36. `isHidden` - checks if local user has joined as a "hidden" user. This is a specialized role used for integrations.
+
+37. `setLocalParticipantProperty(propertyKey, propertyValue)` - used to set a custom propery to the local participant("fullName": "Full Name", favoriteColor: "red", "userId": 234). Also this can be used to modify an already set custom property.
+    - `propertyKey` - string - custom property name
+    - `propertyValue` - string - custom property value
 
 JitsiTrack
 ======
