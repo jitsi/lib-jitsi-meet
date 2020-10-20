@@ -62,6 +62,15 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks whether current running context is a Trusted Web Application.
+     *
+     * @returns {boolean} Whether the current context is a TWA.
+     */
+    isTwa() {
+        return 'matchMedia' in window && window.matchMedia('(display-mode:standalone)').matches;
+    }
+
+    /**
      * Checks if the current browser is supported.
      *
      * @returns {boolean} true if the browser is supported, false otherwise.
