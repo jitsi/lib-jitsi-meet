@@ -33,13 +33,6 @@ const AUTHENTICATIONTAG_OPTIONS = {
 };
 const ENCRYPTION_ALGORITHM = 'AES-CTR';
 
-// Time interval between signed frames.
-const SIGNATURE_WINDOW = {
-    key: 2000, // we sign all key frames anyway
-    delta: 2000,
-    undefined: 5000 // frame.type is not set on audio.
-};
-
 // https://developer.mozilla.org/en-US/docs/Web/API/AesCtrParams
 const CTR_LENGTH = 64;
 
@@ -77,7 +70,6 @@ export class Context {
 
         this._signatureKey = null;
         this._signatureOptions = null;
-        this._lastSignatureAt = new Map();
     }
 
     /**
@@ -109,7 +101,6 @@ export class Context {
     _setKeys(keys) {
         this._cryptoKeyRing[this._currentKeyIndex] = keys;
         this._sendCount = BigInt(0); // eslint-disable-line new-cap
-        this._lastSignatureAt.clear();
     }
 
     /**
@@ -129,42 +120,15 @@ export class Context {
 
     /**
      * Decide whether we should sign a frame.
-     * This is done on keyframes, sender key changes and periodically every couple of seconds.
-     * @param {RTCEncodedVideoFrame|RTCEncodedAudioFrame} encodedFrame - Encoded video frame.
      * @returns {boolean}
      * @private
      */
-    _shouldSignFrame(encodedFrame) {
+    _shouldSignFrame() {
         if (!this._signatureKey) {
             return false;
         }
 
-        // Sign all key frames.
-        if (encodedFrame.type === 'key') {
-            return true;
-        }
-        const now = Date.now();
-
-        // We want to periodically sign frames. The length of the period depends on the
-        // frame type.
-        const ssrc = encodedFrame.getMetadata().synchronizationSource;
-
-        // This can happen if this is the first frame or if we have cleared the mapping
-        // due to a new sender key.
-        if (!this._lastSignatureAt.has(ssrc)) {
-            this._lastSignatureAt.set(ssrc, now);
-
-            return true;
-        }
-        const lastSignature = this._lastSignatureAt.get(ssrc);
-
-        if (now - lastSignature > SIGNATURE_WINDOW[encodedFrame.type]) {
-            this._lastSignatureAt.set(ssrc, now);
-
-            return true;
-        }
-
-        return false;
+        return true;
     }
 
     /**
@@ -218,6 +182,9 @@ export class Context {
             }
 
 
+            // If a signature is included, the S bit is set and a fixed number
+            // of bytes (depending on the signature algorithm) is inserted between
+            // CTR and the trailing byte.
             const signatureLength = this._shouldSignFrame(encodedFrame) ? this._signatureOptions.byteLength : 0;
             const frameTrailer = new Uint8Array(counterLength + signatureLength + 1);
 

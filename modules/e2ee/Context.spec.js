@@ -275,7 +275,7 @@ describe('E2EE Context', () => {
         });
 
 
-        it('does not sign subsequent frames from the same source', async done => {
+        it('signs subsequent frames from the same source', async done => {
             let frameCount = 0;
 
             sendController = {
@@ -283,11 +283,7 @@ describe('E2EE Context', () => {
                     frameCount++;
                     const data = new Uint8Array(encodedFrame.data);
 
-                    if (frameCount === 1) {
-                        expect(data[data.byteLength - 1] & 0x80).toEqual(0x80);
-                    } else {
-                        expect(data[data.byteLength - 1] & 0x80).toEqual(0x00);
-                    }
+                    expect(data[data.byteLength - 1] & 0x80).toEqual(0x80);
 
                     if (frameCount === 2) {
                         done();

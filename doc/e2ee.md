@@ -75,7 +75,7 @@ between the counter and the trailing bit. The signature is generated as
 and covers the current frame. Not every frame is signed but there will be periodic
 signatures on all SSRCs and streams. This prevents the impersonation attacks described in
   https://tools.ietf.org/html/draft-omara-sframe-00#section-4.4
-Unlike SFrame, we do not cover multiple frames.
+We currently sign every frame, despite the overhead this incurs (132 bytes per frame currently).
 
 We currently use ECDSA with curve P-521 as described on
   https://developer.mozilla.org/en-US/docs/Web/API/EcKeyGenParams
