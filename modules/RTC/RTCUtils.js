@@ -659,9 +659,7 @@ function updateKnownDevices(pds) {
  */
 function onMediaDevicesListChanged(devicesReceived) {
     availableDevices = devicesReceived.slice(0);
-    logger.info(
-        'list of media devices has changed:',
-        availableDevices);
+    logger.info('list of media devices has changed:', availableDevices);
 
     sendDeviceListToAnalytics(availableDevices);
 
@@ -987,7 +985,7 @@ class RTCUtils extends Listenable {
     getUserMediaWithConstraints(um, options = {}) {
         const constraints = getConstraints(um, options);
 
-        logger.info('Get media constraints', constraints);
+        logger.info('Get media constraints', JSON.stringify(constraints));
 
         return new Promise((resolve, reject) => {
             navigator.mediaDevices.getUserMedia(constraints)
@@ -997,8 +995,7 @@ class RTCUtils extends Listenable {
                 resolve(stream);
             })
             .catch(error => {
-                logger.warn('Failed to get access to local media. '
-                    + ` ${error} ${constraints} `);
+                logger.warn(`Failed to get access to local media. ${error} ${JSON.stringify(constraints)}`);
                 updateGrantedPermissions(um, undefined);
                 reject(new JitsiTrackError(error, constraints, um));
             });
@@ -1022,8 +1019,7 @@ class RTCUtils extends Listenable {
                     resolve(stream);
                 })
                 .catch(error => {
-                    logger.warn('Failed to get access to local media. '
-                        + ` ${error} ${constraints} `);
+                    logger.warn(`Failed to get access to local media. ${error} ${JSON.stringify(constraints)}`);
                     updateGrantedPermissions(umDevices, undefined);
                     reject(new JitsiTrackError(error, constraints, umDevices));
                 });
@@ -1382,7 +1378,7 @@ class RTCUtils extends Listenable {
             const constraints = newGetConstraints(
                 requestedCaptureDevices, options);
 
-            logger.info('Got media constraints: ', constraints);
+            logger.info('Got media constraints: ', JSON.stringify(constraints));
 
             return this._newGetUserMediaWithConstraints(
                 requestedCaptureDevices, constraints);
