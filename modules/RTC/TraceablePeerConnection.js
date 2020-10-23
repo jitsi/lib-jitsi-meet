@@ -2278,6 +2278,13 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
 
     this.senderVideoMaxHeight = newHeight;
 
+    // If layer suspension is disabled and sender constraint is not configured for the conference,
+    // resolve here so that the encodings stay enabled. This can happen in custom apps built using
+    // lib-jitsi-meet.
+    if (newHeight === null) {
+        return Promise.resolve();
+    }
+
     logger.log(`${this} senderVideoMaxHeight: ${newHeight}`);
 
     const localVideoTrack = this.getLocalVideoTrack();
