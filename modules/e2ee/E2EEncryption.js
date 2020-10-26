@@ -139,6 +139,7 @@ export class E2EEncryption {
             // Serialize the JWK of the signing key. Using JSON, might be easy to xml-ify.
             const serializedSigningKey = await crypto.subtle.exportKey('jwk', this._signatureKeyPair.publicKey);
 
+            // TODO: sign this with the OLM account key.
             this.conference.setLocalParticipantProperty('e2ee.signatureKey', JSON.stringify(serializedSigningKey));
 
             // Need to re-create the peerconnections in order to apply the insertable streams constraint.

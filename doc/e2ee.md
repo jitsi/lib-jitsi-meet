@@ -70,12 +70,37 @@ video. This also means the SFU does not know (ideally) that the content is end-t
 changes in the SFU required at all.
 
 If the signature bit is set on the frame trailer, there is an additional fixed-length signature that is located
-between the counter and the trailing bit. The signature is generated as
+between the counter and the trailing bit:
+```
+     +------------+------------------------------------------+^+
+     |unencrypted payload header (variable length)           | |
+   +^+------------+------------------------------------------+ |
+   | |                                                       | |
+   | |                                                       | |
+   | |                                                       | |
+   | |                                                       | |
+   | |                  Encrypted Frame                      | |
+   | |                                                       | |
+   | |                                                       | |
+   | |                                                       | |
+   | |                                                       | |
+   +^+-------------------------------------------------------+ +
+   | |                 Authentication Tag                    | |
+   | +---------------------------------------+-+-+-+-+-+-+-+-+ |
+   | |    CTR... (length=LEN + 1)            |  SIGNATURE    | |
+   | +---------------------------------------+-+-+-+-+-+-+-+-+ |
+   | |    SIGNATURE (fixed length)           |1|LEN  |KID    | |
+   | +---------------------------------------+-+-+-+-+-+-+-+-+^|
+   |                                                           |
+   +----+Encrypted Portion            Authenticated Portion+---+
+```
+
+The signature is generated as
   Signature = Sign(signatureKey, Authentication Tag)
 and covers the current frame. Not every frame is signed but there will be periodic
 signatures on all SSRCs and streams. This prevents the impersonation attacks described in
   https://tools.ietf.org/html/draft-omara-sframe-00#section-4.4
-We currently sign every frame, despite the overhead this incurs (132 bytes per frame currently).
+We currently sign every frame, despite the overhead this incurs.
 
 We currently use ECDSA with curve P-521 as described on
   https://developer.mozilla.org/en-US/docs/Web/API/EcKeyGenParams
