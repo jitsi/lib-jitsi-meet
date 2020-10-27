@@ -87,6 +87,8 @@ between the counter and the trailing bit:
    +^+-------------------------------------------------------+ +
    | |                 Authentication Tag                    | |
    | +---------------------------------------+-+-+-+-+-+-+-+-+ |
+   | | additional authentication tags        |number of tags | |
+   | +---------------------------------------+-+-+-+-+-+-+-+-+ |
    | |    CTR... (length=LEN + 1)            |  SIGNATURE    | |
    | +---------------------------------------+-+-+-+-+-+-+-+-+ |
    | |    SIGNATURE (fixed length)           |1|LEN  |KID    | |

@@ -1,4 +1,5 @@
 /* eslint-disable no-bitwise */
+/* global BigInt */
 import { Context } from './Context';
 import { ratchet, importKey } from './crypto-utils';
 
@@ -108,7 +109,10 @@ describe('E2EE Context', () => {
                 }
             };
 
-            await sender.encodeFunction(makeVideoFrame(), sendController);
+            const videoFrame = makeVideoFrame();
+
+            videoFrame.type = 'delta'; // use a delta frame since key frames are required to have a signature.
+            await sender.encodeFunction(videoFrame, sendController);
         });
     });
 
@@ -148,7 +152,10 @@ describe('E2EE Context', () => {
                 }
             };
 
-            await sender.encodeFunction(makeVideoFrame(), sendController);
+            const videoFrame = makeVideoFrame();
+
+            videoFrame.type = 'delta'; // use a delta frame since key frames are required to have a signature.
+            await sender.encodeFunction(videoFrame, sendController);
         });
 
         it('the receiver ratchets forward', async done => {
@@ -218,8 +225,8 @@ describe('E2EE Context', () => {
 
                     // An audio frame will have an overhead of 6 bytes with this counter and key size:
                     //   4 bytes truncated signature, counter (1 byte) and 1 byte trailer.
-                    // In addition to that we have the 132 bytes signature.
-                    expect(data.byteLength).toEqual(audioBytes.length + 6 + 132);
+                    // In addition to that we have the 132 bytes signature and a one byte counter field.
+                    expect(data.byteLength).toEqual(audioBytes.length + 6 + 1 + 132);
 
                     // TODO: provide test vector for the signature.
                     done();
@@ -275,7 +282,7 @@ describe('E2EE Context', () => {
         });
 
 
-        it('signs subsequent frames from the same source', async done => {
+        it('does not sign subsequent frames from the same source', async done => {
             let frameCount = 0;
 
             sendController = {
@@ -283,7 +290,11 @@ describe('E2EE Context', () => {
                     frameCount++;
                     const data = new Uint8Array(encodedFrame.data);
 
-                    expect(data[data.byteLength - 1] & 0x80).toEqual(0x80);
+                    if (frameCount === 1) {
+                        expect(data[data.byteLength - 1] & 0x80).toEqual(0x80);
+                    } else {
+                        expect(data[data.byteLength - 1] & 0x80).toEqual(0x00);
+                    }
 
                     if (frameCount === 2) {
                         done();
@@ -321,8 +332,41 @@ describe('E2EE Context', () => {
         });
 
         it('verifies the frame', async done => {
+            let frameCount = 0;
+
             sendController = {
                 enqueue: async encodedFrame => {
+                    await receiver.decodeFunction(encodedFrame, receiveController);
+                }
+            };
+
+            receiveController = {
+                enqueue: encodedFrame => {
+                    frameCount++;
+                    const data = new Uint8Array(encodedFrame.data);
+
+                    expect(data.byteLength).toEqual(audioBytes.length);
+                    expect(Array.from(data)).toEqual(audioBytes);
+                    if (frameCount === 2) {
+                        done();
+                    }
+                }
+            };
+            await sender.encodeFunction(makeAudioFrame(), sendController);
+            sender._sendCount = BigInt(65537); // eslint-disable-line new-cap
+            await sender.encodeFunction(makeAudioFrame(), sendController);
+        });
+
+        it('verifies the subsequent frame', async done => {
+            let signedFrameCount = 0;
+
+            sendController = {
+                enqueue: async encodedFrame => {
+                    const data = new Uint8Array(encodedFrame.data);
+
+                    if ((data[data.byteLength - 1] & 0x80) === 0x80) {
+                        signedFrameCount++;
+                    }
                     await receiver.decodeFunction(encodedFrame, receiveController);
                 }
             };
@@ -332,10 +376,17 @@ describe('E2EE Context', () => {
 
                     expect(data.byteLength).toEqual(audioBytes.length);
                     expect(Array.from(data)).toEqual(audioBytes);
-                    done();
+
+                    if (signedFrameCount === 3) {
+                        done();
+                    }
                 }
             };
-            await sender.encodeFunction(makeAudioFrame(), sendController);
+
+            // Send frames until we hit the second signed one.
+            while (signedFrameCount !== 3) { // eslint-disable-line no-unmodified-loop-condition
+                await sender.encodeFunction(makeAudioFrame(), sendController);
+            }
         });
     });
 });

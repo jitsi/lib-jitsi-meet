@@ -70,6 +70,11 @@ export class Context {
 
         this._signatureKey = null;
         this._signatureOptions = null;
+
+        // A per-ssrc map of authentication tags that are either
+        // - sent but not signed
+        // - received but not verified
+        this._pendingAuthenticationTags = new Map();
     }
 
     /**
@@ -101,6 +106,7 @@ export class Context {
     _setKeys(keys) {
         this._cryptoKeyRing[this._currentKeyIndex] = keys;
         this._sendCount = BigInt(0); // eslint-disable-line new-cap
+        this._pendingAuthenticationTags.clear();
     }
 
     /**
@@ -123,12 +129,23 @@ export class Context {
      * @returns {boolean}
      * @private
      */
-    _shouldSignFrame() {
+    _shouldSignFrame(encodedFrame) {
         if (!this._signatureKey) {
             return false;
         }
+        if (encodedFrame.type === 'key') {
+            return true;
+        }
 
-        return true;
+        const ssrc = encodedFrame.getMetadata().synchronizationSource;
+
+        // Sign the first frame from a new SSRC.
+        if (!this._pendingAuthenticationTags.has(ssrc)) {
+            return true;
+        }
+
+        // TODO: variable for audio and video?
+        return this._pendingAuthenticationTags.get(ssrc).length > 30;
     }
 
     /**
@@ -154,6 +171,7 @@ export class Context {
      */
     encodeFunction(encodedFrame, controller) {
         const keyIndex = this._currentKeyIndex;
+        const ssrc = encodedFrame.getMetadata().synchronizationSource;
 
         if (this._cryptoKeyRing[keyIndex]) {
             this._sendCount++;
@@ -181,14 +199,20 @@ export class Context {
                 }
             }
 
-
             // If a signature is included, the S bit is set and a fixed number
             // of bytes (depending on the signature algorithm) is inserted between
             // CTR and the trailing byte.
-            const signatureLength = this._shouldSignFrame(encodedFrame) ? this._signatureOptions.byteLength : 0;
+            const signatureLength = this._shouldSignFrame(encodedFrame)
+                ? this._signatureOptions.byteLength + 1
+                    + ((this._pendingAuthenticationTags.get(ssrc) || []).length * DIGEST_LENGTH[encodedFrame.type])
+                : 0;
+
             const frameTrailer = new Uint8Array(counterLength + signatureLength + 1);
 
-            frameTrailer.set(new Uint8Array(counter.buffer, counter.byteLength - counterLength));
+            frameTrailer.set(new Uint8Array(counter.buffer, counter.byteLength - counterLength),
+                frameTrailer.byteLength - (1
+                    + (signatureLength ? this._signatureOptions.byteLength : 0)
+                    + counterLength));
 
             // Since we never send a counter of 0 we send counterLength - 1 on the wire.
             // This is different from the sframe draft, increases the key space and lets us
@@ -227,16 +251,43 @@ export class Context {
                     new Uint8Array(newData)).then(async authTag => {
                     const truncatedAuthTag = new Uint8Array(authTag, 0, DIGEST_LENGTH[encodedFrame.type]);
 
-
                     // Set the truncated authentication tag.
                     newUint8.set(truncatedAuthTag, UNENCRYPTED_BYTES[encodedFrame.type] + cipherText.byteLength);
 
                     // Sign with the long-term signature key.
                     if (signatureLength) {
+                        const numberOfPendingTags = this._pendingAuthenticationTags.has(ssrc)
+                            ? this._pendingAuthenticationTags.get(ssrc).length
+                            : 0;
+                        const signatureData = new Uint8Array(
+                            (numberOfPendingTags * DIGEST_LENGTH[encodedFrame.type]) + truncatedAuthTag.byteLength);
+
+                        signatureData.set(truncatedAuthTag, 0);
+                        let offset = truncatedAuthTag.byteLength;
+
+                        for (const pendingAuthTag of this._pendingAuthenticationTags.get(ssrc) || []) {
+                            signatureData.set(pendingAuthTag, offset);
+                            offset += pendingAuthTag.byteLength;
+                        }
+
+                        this._pendingAuthenticationTags.set(ssrc, []);
+
                         const signature = await crypto.subtle.sign(this._signatureOptions,
-                            this._signatureKey, truncatedAuthTag);
+                            this._signatureKey, signatureData);
 
                         newUint8.set(new Uint8Array(signature), newUint8.byteLength - signature.byteLength - 1);
+
+                        // This count excludes the new authentication tag (which is always there)
+                        newUint8[newUint8.byteLength - 1 - this._signatureOptions.byteLength
+                            - counterLength - 1] = numberOfPendingTags;
+
+                        // Effectively we overwrite the truncated authentication tag with itself.
+                        newUint8.set(signatureData, UNENCRYPTED_BYTES[encodedFrame.type] + cipherText.byteLength);
+                    } else {
+                        if (!this._pendingAuthenticationTags.has(ssrc)) {
+                            this._pendingAuthenticationTags.set(ssrc, []);
+                        }
+                        this._pendingAuthenticationTags.get(ssrc).push(truncatedAuthTag);
                     }
                     encodedFrame.data = newData;
 
@@ -264,27 +315,48 @@ export class Context {
      * @param {TransformStreamDefaultController} controller - TransportStreamController.
      */
     async decodeFunction(encodedFrame, controller) {
+        const ssrc = encodedFrame.getMetadata().synchronizationSource;
         const data = new Uint8Array(encodedFrame.data);
         const keyIndex = data[encodedFrame.data.byteLength - 1] & 0xf; // lower four bits.
 
         if (this._cryptoKeyRing[keyIndex]) {
             const counterLength = 1 + ((data[encodedFrame.data.byteLength - 1] >> 4) & 0x7);
             const signatureLength = data[encodedFrame.data.byteLength - 1] & 0x80
-                ? this._signatureOptions.byteLength : 0;
+                ? this._signatureOptions.byteLength + 1 : 0;
             const frameHeader = new Uint8Array(encodedFrame.data, 0, UNENCRYPTED_BYTES[encodedFrame.type]);
 
-            // Extract the truncated authentication tag.
-            const authTagOffset = encodedFrame.data.byteLength - (DIGEST_LENGTH[encodedFrame.type]
-                + counterLength + signatureLength + 1);
+            // Extract the truncated authentication tag. The position depends on whether we have a signature.
+            let authTagOffset;
+
+            if (signatureLength === 0) {
+                authTagOffset = encodedFrame.data.byteLength - (DIGEST_LENGTH[encodedFrame.type]
+                    + counterLength + signatureLength + 1);
+            } else {
+                const numberOfOldTags = data[data.byteLength - 1
+                    - this._signatureOptions.byteLength - counterLength - 1];
+
+                authTagOffset = encodedFrame.data.byteLength
+                    - ((DIGEST_LENGTH[encodedFrame.type] * (numberOfOldTags + 1))
+                    + counterLength + signatureLength + 1);
+            }
             const authTag = encodedFrame.data.slice(authTagOffset, authTagOffset
                 + DIGEST_LENGTH[encodedFrame.type]);
 
             // Verify the long-term signature of the authentication tag.
             if (signatureLength) {
+                const numberOfOldTags = data[data.byteLength - 1
+                    - this._signatureOptions.byteLength - counterLength - 1];
+
+                // Signature data is the data that is signed, i.e. the authentication tags.
+                const signatureData = data.subarray(
+                    data.byteLength - 1 - this._signatureOptions.byteLength - counterLength - 1
+                        - (DIGEST_LENGTH[encodedFrame.type] * (numberOfOldTags + 1)),
+                    data.byteLength - 1 - this._signatureOptions.byteLength - counterLength - 1);
+                const signature = data.subarray(data.byteLength - (signatureLength - 1) - 1, data.byteLength - 1);
+
                 if (this._signatureKey) {
-                    const signature = data.subarray(data.byteLength - signatureLength - 1, data.byteLength - 1);
                     const validSignature = await crypto.subtle.verify(this._signatureOptions,
-                            this._signatureKey, signature, authTag);
+                            this._signatureKey, signature, signatureData);
 
                     if (!validSignature) {
                         // TODO: surface this to the app. We are encrypted but validation failed.
@@ -294,17 +366,75 @@ export class Context {
                     }
 
                     // TODO: surface this to the app. We are now encrypted and verified.
+                    console.log('GOT A SIGNED FRAME', encodedFrame.type || 'audio');
+
+                    // Split the signature data into individual frame signatures, then compare
+                    // that list to the pending signatures.
+                    // Note that keyframes (which are always signed) invalidate the list as we
+                    // might have switched simulcast streams in an SFU so won't receive a signature for
+                    // the previous spatial layer.
+                    if (encodedFrame.type === 'key') {
+                        // TODO: do we need to check the authentication tag on the keyframe?
+                        //  It is signed but at this point we do not know whether the authentication tag is valid.
+                        //  This might mean this whole block has to move after that point?
+                        this._pendingAuthenticationTags.set(ssrc, []);
+                    } else {
+                        const pendingAuthenticationTags = this._pendingAuthenticationTags.get(ssrc) || [];
+
+                        console.log('PENDING', pendingAuthenticationTags);
+
+                        // Skip the current authentication tag.
+                        for (let offset = DIGEST_LENGTH[encodedFrame.type]; offset < signatureData.byteLength;
+                            offset += DIGEST_LENGTH[encodedFrame.type]) {
+                            const signedAuthTag = signatureData.subarray(offset, offset
+                                + DIGEST_LENGTH[encodedFrame.type]);
+                            const pendingIndex = pendingAuthenticationTags.findIndex(
+                                pendingTag => isArrayEqual(pendingTag, signedAuthTag));
+
+                            if (pendingIndex > -1) {
+                                pendingAuthenticationTags.splice(pendingIndex, 1);
+                            }
+                        }
+
+                        // The frames we got will be a subset of the the frames signed.
+                        // So we remove all the frames signed from the set and should ideally end up
+                        // with an empty set.
+                        // If there are too many frames without a valid signature we raise an error.
+                        // See the first paragraph of NIST Special Publication 800-38D
+                        // Appendix C:  Requirements and Guidelines for Using Short Tags
+                        // for the rationale.
+                        console.log('still pending', pendingAuthenticationTags);
+
+                        // TODO: when do we clear pendingAuthenticationTags? Now? Rotate to an old buffer?
+                        //  Remove over a certain age?
+                        this._pendingAuthenticationTags.set(ssrc, pendingAuthenticationTags);
+                    }
                 } else {
                     // TODO: surface this to the app. We are now encrypted but can not verify.
                 }
 
                 // Then set signature bytes to 0.
-                data.set(new Uint8Array(signatureLength), encodedFrame.data.byteLength - (signatureLength + 1));
-            }
+                data.set(new Uint8Array(this._signatureOptions.byteLength),
+                    encodedFrame.data.byteLength - (this._signatureOptions.byteLength + 1));
 
-            // Set authentication tag bytes to 0.
-            data.set(new Uint8Array(DIGEST_LENGTH[encodedFrame.type]), encodedFrame.data.byteLength
-                - (DIGEST_LENGTH[encodedFrame.type] + counterLength + signatureLength + 1));
+                // Set the number of tags to 0.
+                data[data.byteLength - 1 - this._signatureOptions.byteLength - counterLength - 1] = 0x00;
+
+                // Set the old authentication tags and the current one to 0.
+                data.set(new Uint8Array(signatureData.byteLength), data.byteLength - 1
+                    - this._signatureOptions.byteLength - counterLength - 1
+                    - (DIGEST_LENGTH[encodedFrame.type] * (numberOfOldTags + 1)));
+            } else {
+                if (encodedFrame.type === 'key') {
+                    console.error('Got a key frame without signature, rejecting.');
+
+                    return;
+                }
+
+                // Set authentication tag bytes to 0.
+                data.set(new Uint8Array(DIGEST_LENGTH[encodedFrame.type]), encodedFrame.data.byteLength
+                    - (DIGEST_LENGTH[encodedFrame.type] + counterLength + signatureLength + 1));
+            }
 
             // Do truncated hash comparison of the authentication tag.
             // If the hash does not match we might have to advance the ratchet a limited number
@@ -318,6 +448,8 @@ export class Context {
                 const calculatedTag = await crypto.subtle.sign(AUTHENTICATIONTAG_OPTIONS,
                     authenticationKey, encodedFrame.data);
 
+                // While we ask the sender to sign when ratcheting forward there is no guarantee
+                // that we receive the signed frame first.
                 if (isArrayEqual(new Uint8Array(authTag),
                         new Uint8Array(calculatedTag.slice(0, DIGEST_LENGTH[encodedFrame.type])))) {
                     validAuthTag = true;
@@ -342,11 +474,23 @@ export class Context {
                 return;
             }
 
+            // If the auth tag is valid (and we did not receive a signature with this frame)
+            // push it to the list of frame signatures we need to verify.
+            if (!signatureLength) {
+                if (!this._pendingAuthenticationTags.has(ssrc)) {
+                    this._pendingAuthenticationTags.set(ssrc, []);
+                }
+                this._pendingAuthenticationTags.get(ssrc).push(new Uint8Array(authTag));
+            }
+
             // Extract the counter.
             const counter = new Uint8Array(16);
 
-            counter.set(data.slice(encodedFrame.data.byteLength - (counterLength + signatureLength + 1),
-                encodedFrame.data.byteLength - (signatureLength + 1)), 16 - counterLength);
+            counter.set(data.slice(
+                encodedFrame.data.byteLength
+                    - (counterLength + (signatureLength ? this._signatureOptions.byteLength : 0) + 1),
+                encodedFrame.data.byteLength
+                    - ((signatureLength ? this._signatureOptions.byteLength : 0) + 1)), 16 - counterLength);
             const counterView = new DataView(counter.buffer);
 
             // XOR the counter with the saltKey to construct the AES CTR.
@@ -362,9 +506,7 @@ export class Context {
                 counter,
                 length: CTR_LENGTH
             }, this._cryptoKeyRing[keyIndex].encryptionKey, new Uint8Array(encodedFrame.data,
-                    UNENCRYPTED_BYTES[encodedFrame.type],
-                    encodedFrame.data.byteLength - (UNENCRYPTED_BYTES[encodedFrame.type]
-                    + DIGEST_LENGTH[encodedFrame.type] + counterLength + signatureLength + 1))
+                    UNENCRYPTED_BYTES[encodedFrame.type], authTagOffset - UNENCRYPTED_BYTES[encodedFrame.type])
             ).then(plainText => {
                 const newData = new ArrayBuffer(UNENCRYPTED_BYTES[encodedFrame.type] + plainText.byteLength);
                 const newUint8 = new Uint8Array(newData);
