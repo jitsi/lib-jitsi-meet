@@ -714,7 +714,7 @@ function handleLocalStream(streams, resolution) {
                 }
             }
 
-            audioVideo.release();
+            audioVideo.release && audioVideo.release();
         } else {
             // On other types of browser (e.g. Firefox) we choose (namely,
             // obtainAudioAndVideoPermissions) to call getUserMedia per device

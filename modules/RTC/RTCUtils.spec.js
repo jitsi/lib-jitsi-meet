@@ -63,11 +63,6 @@ MediaStreamMock.prototype.getVideoTracks = function() {
     return this._videoTracks;
 };
 
-MediaStreamMock.prototype.release = function() {
-    this._audioTracks = [];
-    this._videoTracks = [];
-};
-
 /* eslint-disable max-params */
 /**
  * A mock function to be used for stubbing out the wrapper around getUserMedia.
