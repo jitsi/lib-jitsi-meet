@@ -700,6 +700,7 @@ function handleLocalStream(streams, resolution) {
                 audioStream = new MediaStream();
                 for (let i = 0; i < audioTracks.length; i++) {
                     audioStream.addTrack(audioTracks[i]);
+                    audioVideo.removeTrack(audioTracks[i]);
                 }
             }
 
@@ -709,8 +710,11 @@ function handleLocalStream(streams, resolution) {
                 videoStream = new MediaStream();
                 for (let j = 0; j < videoTracks.length; j++) {
                     videoStream.addTrack(videoTracks[j]);
+                    audioVideo.removeTrack(videoTracks[j]);
                 }
             }
+
+            audioVideo.release();
         } else {
             // On other types of browser (e.g. Firefox) we choose (namely,
             // obtainAudioAndVideoPermissions) to call getUserMedia per device
