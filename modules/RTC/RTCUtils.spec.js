@@ -40,6 +40,14 @@ MediaStreamMock.prototype.addTrack = function(track) {
     }
 };
 
+MediaStreamMock.prototype.removeTrack = function(track) {
+    if (track.kind === 'audio') {
+        this._audioTracks.pop(track);
+    } else if (track.kind === 'video') {
+        this._videoTracks.pop(track);
+    }
+};
+
 MediaStreamMock.prototype.getAudioTracks = function() {
     return this._audioTracks;
 };
@@ -53,6 +61,11 @@ MediaStreamMock.prototype.getTracks = function() {
 
 MediaStreamMock.prototype.getVideoTracks = function() {
     return this._videoTracks;
+};
+
+MediaStreamMock.prototype.release = function() {
+    this._audioTracks = [];
+    this._videoTracks = [];
 };
 
 /* eslint-disable max-params */
