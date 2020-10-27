@@ -277,6 +277,8 @@ export class E2EEncryption {
                     namedCurve: parsed.crv }, true, parsed.key_ops);
 
                 this._e2eeCtx.setSignatureKey(participant.getId(), importedKey);
+            } else {
+                logger.warn(`e2ee signatureKey for ${participant.getId()} could not be updated with empty value.`);
             }
             break;
         }
