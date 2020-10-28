@@ -3,7 +3,6 @@
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, Strophe } from 'strophe.js';
 
-import CodecMimeType from '../../service/RTC/CodecMimeType';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import {
     ICE_DURATION,
@@ -56,8 +55,6 @@ const DEFAULT_MAX_STATS = 300;
  * @property {boolean} gatherStats - Described in the config.js[1].
  * @property {object} p2p - Peer to peer related options (FIXME those could be
  * fetched from config.p2p on the upper level).
- * @property {boolean} p2p.disableH264 - Described in the config.js[1].
- * @property {boolean} p2p.preferH264 - Described in the config.js[1].
  * @property {boolean} preferH264 - Described in the config.js[1].
  * @property {Object} testing - Testing and/or experimental options.
  * @property {boolean} webrtcIceUdpDisable - Described in the config.js[1].
@@ -333,28 +330,9 @@ export default class JingleSessionPC extends JingleSession {
         pcOptions.videoQuality = options.videoQuality;
         pcOptions.forceTurnRelay = options.forceTurnRelay;
 
-        // codec preference options for jvb connection.
-        if (pcOptions.videoQuality) {
-            pcOptions.disabledCodec = pcOptions.videoQuality.disabledCodec;
-            pcOptions.preferredCodec = pcOptions.videoQuality.preferredCodec;
-        }
-
         if (this.isP2P) {
             // simulcast needs to be disabled for P2P (121) calls
             pcOptions.disableSimulcast = true;
-            pcOptions.disableH264 = options.p2p && options.p2p.disableH264;
-            pcOptions.preferH264 = options.p2p && options.p2p.preferH264;
-
-            // codec preference options for p2p.
-            if (options.p2p) {
-                // Do not negotiate H246 codec when insertable streams is used because of issues like this -
-                // https://bugs.chromium.org/p/webrtc/issues/detail?id=11886
-                pcOptions.disabledCodec = options.enableInsertableStreams
-                    ? CodecMimeType.H264
-                    : options.p2p.disabledCodec;
-                pcOptions.preferredCodec = options.p2p.preferredCodec;
-            }
-
             const abtestSuspendVideo = this._abtestSuspendVideoEnabled(options);
 
             if (typeof abtestSuspendVideo !== 'undefined') {
@@ -365,7 +343,6 @@ export default class JingleSessionPC extends JingleSession {
             pcOptions.disableSimulcast
                 = options.disableSimulcast
                     || (options.preferH264 && !options.disableH264);
-            pcOptions.preferH264 = options.preferH264;
 
             // disable simulcast for screenshare and set the max bitrate to
             // 500Kbps if the testing flag is present in config.js.
@@ -902,6 +879,13 @@ export default class JingleSessionPC extends JingleSession {
         }
     }
 
+    /**
+     *
+     */
+    getConfiguredVideoCodec() {
+        return this.peerconnection.getConfiguredVideoCodec();
+    }
+
     /* eslint-disable max-params */
     /**
      * Accepts incoming Jingle 'session-initiate' and should send
@@ -1113,6 +1097,27 @@ export default class JingleSessionPC extends JingleSession {
             error => {
                 error ? failure(error) : success();
             });
+    }
+
+    /**
+     *
+     * @param {*} codec
+     */
+    setVideoCodecs(preferred = null, disabled = null) {
+        const current = this.peerconnection.getConfiguredVideoCodec();
+
+        if (this._assertNotEnded() && preferred !== current) {
+            logger.info(`${this} Switching video codec from ${current} to ${preferred}`);
+            this.peerconnection.setVideoCodecs(preferred, disabled);
+
+            // Initiate a renegotiate for the codec setting to take effect.
+            const workFunction = finishedCallback => {
+                this._renegotiate().then(() => finishedCallback(), error => finishedCallback(error));
+            };
+
+            // Queue and execute
+            this.modificationQueue.push(workFunction);
+        }
     }
 
     /* eslint-enable max-params */
@@ -1808,11 +1813,20 @@ export default class JingleSessionPC extends JingleSession {
             sdp: remoteSdp
         });
 
-        if (this.isInitiator) {
-            return this._initiatorRenegotiate(remoteDescription);
-        }
+        const promise = this.isInitiator
+            ? this._initiatorRenegotiate(remoteDescription)
+            : this._responderRenegotiate(remoteDescription);
 
-        return this._responderRenegotiate(remoteDescription);
+        return promise.then(() => {
+            // Publish the codec info to the other endpoints in the conference if it has changed
+            // as a result of the renegotiation (only on current active session).
+            const codec = this.peerconnection.getConfiguredVideoCodec();
+
+            if (this.currentCodec !== codec && this._localVideoActive) {
+                this.room.sendCodecInfoPresence(codec);
+                this.currentCodec = codec;
+            }
+        });
     }
 
     /**

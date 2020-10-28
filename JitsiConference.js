@@ -13,6 +13,7 @@ import JitsiTrackError from './JitsiTrackError';
 import * as JitsiTrackErrors from './JitsiTrackErrors';
 import * as JitsiTrackEvents from './JitsiTrackEvents';
 import authenticateAndUpgradeRole from './authenticateAndUpgradeRole';
+import { CodecSelection } from './modules/RTC/CodecSelection';
 import RTC from './modules/RTC/RTC';
 import browser from './modules/browser';
 import ConnectionQuality from './modules/connectivity/ConnectionQuality';
@@ -47,6 +48,7 @@ import {
     FEATURE_JIGASI,
     JITSI_MEET_MUC_TYPE
 } from './modules/xmpp/xmpp';
+import CodecMimeType from './service/RTC/CodecMimeType';
 import * as MediaType from './service/RTC/MediaType';
 import VideoType from './service/RTC/VideoType';
 import {
@@ -310,10 +312,27 @@ JitsiConference.prototype._init = function(options = {}) {
 
     const { config } = this.options;
 
+    // Get the codec preference settings from config.js.
+    // 'preferH264' and 'disableH264' settings have been deprecated for a while,
+    // 'preferredCodec' and 'disabledCodec' will have precedence over them.
+    const codecSettings = {
+        disabledCodec: config.videoQuality
+            ? config.videoQuality.disabledCodec
+            : config.p2p && config.p2p.disableH264 && CodecMimeType.H264,
+        enforcePreferredCodec: config.videoQuality && config.videoQuality.enforcePreferredCodec,
+        jvbCodec: (config.videoQuality && config.videoQuality.preferredCodec)
+            || (config.preferH264 && CodecMimeType.H264),
+        p2pCodec: config.p2p
+            ? config.p2p.preferredCodec || (config.p2p.preferH264 && CodecMimeType.H264)
+            : CodecMimeType.VP8
+    };
+
+    this.codecSelection = new CodecSelection(this, codecSettings);
     this._statsCurrentId = config.statisticsId ? config.statisticsId : Settings.callStatsUserName;
     this.room = this.xmpp.createRoom(
         this.options.name, {
             ...config,
+            preferredCodec: this.codecSelection.getPreferredCodec(),
             statsId: this._statsCurrentId
         },
         JitsiConference.resourceCreator
