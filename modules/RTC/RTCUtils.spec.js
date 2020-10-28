@@ -40,14 +40,6 @@ MediaStreamMock.prototype.addTrack = function(track) {
     }
 };
 
-MediaStreamMock.prototype.removeTrack = function(track) {
-    if (track.kind === 'audio') {
-        this._audioTracks.pop(track);
-    } else if (track.kind === 'video') {
-        this._videoTracks.pop(track);
-    }
-};
-
 MediaStreamMock.prototype.getAudioTracks = function() {
     return this._audioTracks;
 };
