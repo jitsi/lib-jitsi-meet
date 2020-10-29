@@ -709,6 +709,8 @@ function handleLocalStream(streams, resolution) {
                     videoStream.addTrack(videoTracks[j]);
                 }
             }
+
+            audioVideo.release && audioVideo.release(false);
         } else {
             // On other types of browser (e.g. Firefox) we choose (namely,
             // obtainAudioAndVideoPermissions) to call getUserMedia per device
