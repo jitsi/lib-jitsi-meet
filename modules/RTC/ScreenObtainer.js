@@ -83,6 +83,8 @@ const ScreenObtainer = {
             };
         } else if (browser.isElectron()) {
             return this.obtainScreenOnElectron;
+        } else if (browser.isReactNative() && browser.supportsGetDisplayMedia()) {
+            return this.obtainScreenFromGetDisplayMediaRN;
         } else if (browser.supportsGetDisplayMedia()) {
             return this.obtainScreenFromGetDisplayMedia;
         }
@@ -206,6 +208,27 @@ const ScreenObtainer = {
                 }
 
                 errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_USER_CANCELED));
+            });
+    },
+
+    /**
+     * Obtains a screen capture stream using getDisplayMedia.
+     *
+     * @param callback - The success callback.
+     * @param errorCallback - The error callback.
+     */
+    obtainScreenFromGetDisplayMediaRN(options, callback, errorCallback) {
+        logger.info('Using getDisplayMedia for screen sharing');
+
+        navigator.mediaDevices.getDisplayMedia({ video: true })
+            .then(stream => {
+                callback({
+                    stream,
+                    sourceId: stream.id });
+            })
+            .catch(() => {
+                errorCallback(new JitsiTrackError(JitsiTrackErrors
+                    .SCREENSHARING_USER_CANCELED));
             });
     }
 };
