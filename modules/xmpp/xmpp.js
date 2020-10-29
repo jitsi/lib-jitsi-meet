@@ -32,9 +32,10 @@ const logger = getLogger(__filename);
  * @param {string} options.serviceUrl - The service URL for XMPP connection.
  * @param {string} options.enableWebsocketResume - True to enable stream resumption.
  * @param {number} [options.websocketKeepAlive] - See {@link XmppConnection} constructor.
+ * @param {Object} [options.xmppPing] - See {@link XmppConnection} constructor.
  * @returns {XmppConnection}
  */
-function createConnection({ enableWebsocketResume, serviceUrl = '/http-bind', token, websocketKeepAlive }) {
+function createConnection({ enableWebsocketResume, serviceUrl = '/http-bind', token, websocketKeepAlive, xmppPing }) {
     // Append token as URL param
     if (token) {
         // eslint-disable-next-line no-param-reassign
@@ -44,7 +45,8 @@ function createConnection({ enableWebsocketResume, serviceUrl = '/http-bind', to
     return new XmppConnection({
         enableWebsocketResume,
         serviceUrl,
-        websocketKeepAlive
+        websocketKeepAlive,
+        xmppPing
     });
 }
 
@@ -91,6 +93,7 @@ export default class XMPP extends Listenable {
      * module try to resume the session in case the Websocket connection breaks.
      * @param {number} [options.websocketKeepAlive] - The websocket keep alive interval. See {@link XmppConnection}
      * constructor for more details.
+     * @param {Object} [options.xmppPing] - The xmpp ping settings.
      * @param {Array<Object>} options.p2pStunServers see {@link JingleConnectionPlugin} for more details.
      * @param token
      */
@@ -111,7 +114,8 @@ export default class XMPP extends Listenable {
             // FIXME remove deprecated bosh option at some point
             serviceUrl: options.serviceUrl || options.bosh,
             token,
-            websocketKeepAlive: options.websocketKeepAlive
+            websocketKeepAlive: options.websocketKeepAlive,
+            xmppPing: options.xmppPing
         });
 
         this._initStrophePlugins();
