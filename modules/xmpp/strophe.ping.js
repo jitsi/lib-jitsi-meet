@@ -39,17 +39,20 @@ const PING_TIMESTAMPS_TO_KEEP = 120000 / PING_INTERVAL;
  */
 export default class PingConnectionPlugin extends ConnectionPlugin {
     /**
-     * Contructs new object
+     * Constructs new object
      * @param {Object} options
      * @param {Function} options.onPingThresholdExceeded - Callback called when ping fails too many times (controlled
      * by the {@link PING_THRESHOLD} constant).
+     * @param {Function} options._getTimeSinceLastServerResponse - A function to obtain the last seen
+     * response from the server.
      * @constructor
      */
-    constructor({ onPingThresholdExceeded }) {
+    constructor({ getTimeSinceLastServerResponse, onPingThresholdExceeded }) {
         super();
         this.failedPings = 0;
         this.pingExecIntervals = new Array(PING_TIMESTAMPS_TO_KEEP);
         this._onPingThresholdExceeded = onPingThresholdExceeded;
+        this._getTimeSinceLastServerResponse = getTimeSinceLastServerResponse;
     }
 
     /**
@@ -96,7 +99,25 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
     startInterval(remoteJid, interval = PING_INTERVAL) {
         clearInterval(this.intervalId);
         this.intervalId = window.setInterval(() => {
+
+            // when there were some server responses in the interval since the last time we checked (_lastServerCheck)
+            // let's skip the ping
+
+            // server response is measured on raw input and ping response time is measured after all the xmpp
+            // processing is done, and when the last server response is a ping there can be slight misalignment of the
+            // times, we give it 100ms for that processing.
+            if (this._getTimeSinceLastServerResponse() + 100 < new Date() - this._lastServerCheck) {
+                // do this just to keep in sync the intervals so we can detect suspended device
+                this._addPingExecutionTimestamp();
+
+                this._lastServerCheck = new Date();
+
+                return;
+            }
+
             this.ping(remoteJid, () => {
+                this._lastServerCheck = new Date();
+
                 this.failedPings = 0;
             }, error => {
                 this.failedPings += 1;
