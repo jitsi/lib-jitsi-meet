@@ -128,6 +128,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
                 this._addPingExecutionTimestamp();
 
                 this._lastServerCheck = new Date();
+                this.failedPings = 0;
 
                 return;
             }
