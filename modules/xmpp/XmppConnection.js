@@ -86,7 +86,6 @@ export default class XmppConnection extends Listenable {
             this.addConnectionPlugin(
                 'ping',
                 new PingConnectionPlugin({
-                    getTimeSinceLastServerResponse: () => this.getTimeSinceLastSuccess(),
                     onPingThresholdExceeded: () => this._onPingErrorThresholdExceeded()
                 }));
         } catch (err) {

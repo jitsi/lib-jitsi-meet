@@ -124,7 +124,8 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
             // server response is measured on raw input and ping response time is measured after all the xmpp
             // processing is done, and when the last server response is a ping there can be slight misalignment of the
             // times, we give it 100ms for that processing.
-            if (this._getTimeSinceLastServerResponse() + 100 < new Date() - this._lastServerCheck) {
+            if (this._getTimeSinceLastServerResponse
+                    && this._getTimeSinceLastServerResponse() + 100 < new Date() - this._lastServerCheck) {
                 // do this just to keep in sync the intervals so we can detect suspended device
                 this._addPingExecutionTimestamp();
 
