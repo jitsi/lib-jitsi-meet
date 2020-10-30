@@ -112,9 +112,8 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
      * This plugin supports only one such task and <tt>stopInterval</tt>
      * must be called before starting a new one.
      * @param remoteJid remote JID to which ping requests will be sent to.
-     * @param interval task interval in ms.
      */
-    startInterval(remoteJid, interval = pingInterval) {
+    startInterval(remoteJid) {
         clearInterval(this.intervalId);
         this.intervalId = window.setInterval(() => {
 
@@ -149,8 +148,8 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
                     logger.warn(errmsg, error);
                 }
             }, pingTimeout);
-        }, interval);
-        logger.info(`XMPP pings will be sent every ${interval} ms`);
+        }, this.pingInterval);
+        logger.info(`XMPP pings will be sent every ${this.pingInterval} ms`);
     }
 
     /**
