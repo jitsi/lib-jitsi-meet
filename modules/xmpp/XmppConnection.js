@@ -79,15 +79,21 @@ export default class XmppConnection extends Listenable {
          */
         this._deferredIQs = [];
 
-        // Ping plugin is mandatory for the Websocket mode to work correctly. It's used to detect when the connection
-        // is broken (WebSocket/TCP connection not closed gracefully).
-        this.addConnectionPlugin(
-            'ping',
-            new PingConnectionPlugin({
-                getTimeSinceLastServerResponse: () => this.getTimeSinceLastSuccess(),
-                onPingThresholdExceeded: () => this._onPingErrorThresholdExceeded(),
-                pingOptions: xmppPing
-            }));
+        try {
+
+            // Ping plugin is mandatory for the Websocket mode to work correctly.
+            // It's used to detect when the connection
+            // is broken (WebSocket/TCP connection not closed gracefully).
+            this.addConnectionPlugin(
+                'ping',
+                new PingConnectionPlugin({
+                    getTimeSinceLastServerResponse: () => this.getTimeSinceLastSuccess(),
+                    onPingThresholdExceeded: () => this._onPingErrorThresholdExceeded(),
+                    pingOptions: xmppPing
+                }));
+        } catch (err) {
+            logger.warn('Error loading ping plugin', err);
+        }
     }
 
     /**
