@@ -227,6 +227,10 @@ This objects represents the server connection. You can create new `JitsiConnecti
             - `anonymousdomain`
         4. `enableLipSync` - (optional) boolean property which enables the lipsync feature. Currently works only in Chrome and is disabled by default.
         5. `clientNode` - The name of client node advertised in XEP-0115 'c' stanza
+        6. xmppPing - (optional) JS Object - xmpp ping options
+            - `interval` - how often to send ping requests, default: 10000 (10 seconds)
+            - `timeout` - the time to wait for ping responses, default: 5000 (5 seconds)
+            - `threshold` - how many ping failures will be tolerated before the connection is killed, default: 2
 
 2. `connect(options)` - establish server connection
     - `options` - JS Object with `id` and `password` properties.
