@@ -247,6 +247,35 @@ export class Context {
                 newUint8.set(frameTrailer, frameHeader.byteLength + cipherText.byteLength
                     + DIGEST_LENGTH[encodedFrame.type]); // append trailer.
 
+                let signatureData;
+
+                // Set the pending authentication tags before creating the current authentication tag.
+                // This way they are covered by the current authentication tag.
+                if (signatureLength) {
+                    const numberOfPendingTags = this._pendingAuthenticationTags.has(ssrc)
+                        ? this._pendingAuthenticationTags.get(ssrc).length
+                        : 0;
+
+                    signatureData = new Uint8Array(
+                        (numberOfPendingTags + 1) * DIGEST_LENGTH[encodedFrame.type]);
+
+                    let offset = DIGEST_LENGTH[encodedFrame.type];
+
+                    for (const pendingAuthTag of this._pendingAuthenticationTags.get(ssrc) || []) {
+                        signatureData.set(pendingAuthTag, offset);
+                        offset += pendingAuthTag.byteLength;
+                    }
+
+                    this._pendingAuthenticationTags.set(ssrc, []);
+
+                    // The truncated authentication tag is still zeros at this point.
+                    newUint8.set(signatureData, UNENCRYPTED_BYTES[encodedFrame.type] + cipherText.byteLength);
+
+                    // This count excludes the new authentication tag (which is always there)
+                    newUint8[newUint8.byteLength - 1 - this._signatureOptions.byteLength
+                        - counterLength - 1] = numberOfPendingTags;
+                }
+
                 return crypto.subtle.sign(AUTHENTICATIONTAG_OPTIONS, this._cryptoKeyRing[keyIndex].authenticationKey,
                     new Uint8Array(newData)).then(async authTag => {
                     const truncatedAuthTag = new Uint8Array(authTag, 0, DIGEST_LENGTH[encodedFrame.type]);
@@ -256,33 +285,12 @@ export class Context {
 
                     // Sign with the long-term signature key.
                     if (signatureLength) {
-                        const numberOfPendingTags = this._pendingAuthenticationTags.has(ssrc)
-                            ? this._pendingAuthenticationTags.get(ssrc).length
-                            : 0;
-                        const signatureData = new Uint8Array(
-                            (numberOfPendingTags * DIGEST_LENGTH[encodedFrame.type]) + truncatedAuthTag.byteLength);
-
                         signatureData.set(truncatedAuthTag, 0);
-                        let offset = truncatedAuthTag.byteLength;
-
-                        for (const pendingAuthTag of this._pendingAuthenticationTags.get(ssrc) || []) {
-                            signatureData.set(pendingAuthTag, offset);
-                            offset += pendingAuthTag.byteLength;
-                        }
-
-                        this._pendingAuthenticationTags.set(ssrc, []);
 
                         const signature = await crypto.subtle.sign(this._signatureOptions,
                             this._signatureKey, signatureData);
 
                         newUint8.set(new Uint8Array(signature), newUint8.byteLength - signature.byteLength - 1);
-
-                        // This count excludes the new authentication tag (which is always there)
-                        newUint8[newUint8.byteLength - 1 - this._signatureOptions.byteLength
-                            - counterLength - 1] = numberOfPendingTags;
-
-                        // Effectively we overwrite the truncated authentication tag with itself.
-                        newUint8.set(signatureData, UNENCRYPTED_BYTES[encodedFrame.type] + cipherText.byteLength);
                     } else {
                         if (!this._pendingAuthenticationTags.has(ssrc)) {
                             this._pendingAuthenticationTags.set(ssrc, []);
@@ -381,8 +389,6 @@ export class Context {
                     } else {
                         const pendingAuthenticationTags = this._pendingAuthenticationTags.get(ssrc) || [];
 
-                        console.log('PENDING', pendingAuthenticationTags);
-
                         // Skip the current authentication tag.
                         for (let offset = DIGEST_LENGTH[encodedFrame.type]; offset < signatureData.byteLength;
                             offset += DIGEST_LENGTH[encodedFrame.type]) {
@@ -413,28 +419,17 @@ export class Context {
                     // TODO: surface this to the app. We are now encrypted but can not verify.
                 }
 
-                // Then set signature bytes to 0.
+                // Set the signature bytes to 0.
                 data.set(new Uint8Array(this._signatureOptions.byteLength),
                     encodedFrame.data.byteLength - (this._signatureOptions.byteLength + 1));
+            } else if (encodedFrame.type === 'key') {
+                console.error('Got a key frame without signature, rejecting.');
 
-                // Set the number of tags to 0.
-                data[data.byteLength - 1 - this._signatureOptions.byteLength - counterLength - 1] = 0x00;
-
-                // Set the old authentication tags and the current one to 0.
-                data.set(new Uint8Array(signatureData.byteLength), data.byteLength - 1
-                    - this._signatureOptions.byteLength - counterLength - 1
-                    - (DIGEST_LENGTH[encodedFrame.type] * (numberOfOldTags + 1)));
-            } else {
-                if (encodedFrame.type === 'key') {
-                    console.error('Got a key frame without signature, rejecting.');
-
-                    return;
-                }
-
-                // Set authentication tag bytes to 0.
-                data.set(new Uint8Array(DIGEST_LENGTH[encodedFrame.type]), encodedFrame.data.byteLength
-                    - (DIGEST_LENGTH[encodedFrame.type] + counterLength + signatureLength + 1));
+                return;
             }
+
+            // Set authentication tag bytes to 0.
+            data.set(new Uint8Array(DIGEST_LENGTH[encodedFrame.type]), authTagOffset);
 
             // Do truncated hash comparison of the authentication tag.
             // If the hash does not match we might have to advance the ratchet a limited number
