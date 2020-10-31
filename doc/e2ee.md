@@ -70,7 +70,7 @@ video. This also means the SFU does not know (ideally) that the content is end-t
 changes in the SFU required at all.
 
 If the signature bit is set on the frame trailer, there is an additional fixed-length signature that is located
-between the counter and the trailing bit:
+before the counter and the trailing byte:
 ```
      +------------+------------------------------------------+^+
      |unencrypted payload header (variable length)           | |
@@ -89,9 +89,9 @@ between the counter and the trailing bit:
    | +---------------------------------------+-+-+-+-+-+-+-+-+ |
    | | additional authentication tags        |number of tags | |
    | +---------------------------------------+-+-+-+-+-+-+-+-+ |
-   | |    CTR... (length=LEN + 1)            |  SIGNATURE    | |
+   | |    SIGNATURE (fixed length)                           | |
    | +---------------------------------------+-+-+-+-+-+-+-+-+ |
-   | |    SIGNATURE (fixed length)           |1|LEN  |KID    | |
+   | |    CTR... (length=LEN + 1))           |1|LEN  |KID    | |
    | +---------------------------------------+-+-+-+-+-+-+-+-+^|
    |                                                           |
    +----+Encrypted Portion            Authenticated Portion+---+

@@ -200,19 +200,17 @@ export class Context {
             }
 
             // If a signature is included, the S bit is set and a fixed number
-            // of bytes (depending on the signature algorithm) is inserted between
+            // of bytes (depending on the signature algorithm) is inserted before 
             // CTR and the trailing byte.
             const signatureLength = this._shouldSignFrame(encodedFrame)
                 ? this._signatureOptions.byteLength + 1
                     + ((this._pendingAuthenticationTags.get(ssrc) || []).length * DIGEST_LENGTH[encodedFrame.type])
                 : 0;
 
-            const frameTrailer = new Uint8Array(counterLength + signatureLength + 1);
+            const frameTrailer = new Uint8Array(signatureLength + counterLength + 1);
 
             frameTrailer.set(new Uint8Array(counter.buffer, counter.byteLength - counterLength),
-                frameTrailer.byteLength - (1
-                    + (signatureLength ? this._signatureOptions.byteLength : 0)
-                    + counterLength));
+                frameTrailer.byteLength - (counterLength + 1));
 
             // Since we never send a counter of 0 we send counterLength - 1 on the wire.
             // This is different from the sframe draft, increases the key space and lets us
@@ -290,7 +288,8 @@ export class Context {
                         const signature = await crypto.subtle.sign(this._signatureOptions,
                             this._signatureKey, signatureData);
 
-                        newUint8.set(new Uint8Array(signature), newUint8.byteLength - signature.byteLength - 1);
+                        newUint8.set(new Uint8Array(signature),
+                            newUint8.byteLength - (signature.byteLength + counterLength + 1));
                     } else {
                         if (!this._pendingAuthenticationTags.has(ssrc)) {
                             this._pendingAuthenticationTags.set(ssrc, []);
@@ -338,29 +337,30 @@ export class Context {
 
             if (signatureLength === 0) {
                 authTagOffset = encodedFrame.data.byteLength - (DIGEST_LENGTH[encodedFrame.type]
-                    + counterLength + signatureLength + 1);
+                    + signatureLength + counterLength + 1);
             } else {
-                const numberOfOldTags = data[data.byteLength - 1
-                    - this._signatureOptions.byteLength - counterLength - 1];
+                const numberOfOldTags = data[data.byteLength - (signatureLength + counterLength + 1)];
 
                 authTagOffset = encodedFrame.data.byteLength
                     - ((DIGEST_LENGTH[encodedFrame.type] * (numberOfOldTags + 1))
-                    + counterLength + signatureLength + 1);
+                    + signatureLength + counterLength + 1);
             }
             const authTag = encodedFrame.data.slice(authTagOffset, authTagOffset
                 + DIGEST_LENGTH[encodedFrame.type]);
 
             // Verify the long-term signature of the authentication tag.
             if (signatureLength) {
-                const numberOfOldTags = data[data.byteLength - 1
-                    - this._signatureOptions.byteLength - counterLength - 1];
+                const numberOfOldTags = data[data.byteLength - (signatureLength + counterLength + 1)];
 
                 // Signature data is the data that is signed, i.e. the authentication tags.
-                const signatureData = data.subarray(
-                    data.byteLength - 1 - this._signatureOptions.byteLength - counterLength - 1
+                const signatureData = data.subarray(data.byteLength
+                        - (signatureLength + counterLength + 1)
                         - (DIGEST_LENGTH[encodedFrame.type] * (numberOfOldTags + 1)),
-                    data.byteLength - 1 - this._signatureOptions.byteLength - counterLength - 1);
-                const signature = data.subarray(data.byteLength - (signatureLength - 1) - 1, data.byteLength - 1);
+                    data.byteLength - (signatureLength + counterLength + 1));
+
+                const signature = data.subarray(data.byteLength
+                    - (this._signatureOptions.byteLength + counterLength + 1),
+                    data.byteLength - (counterLength + 1));
 
                 if (this._signatureKey) {
                     const validSignature = await crypto.subtle.verify(this._signatureOptions,
@@ -421,7 +421,7 @@ export class Context {
 
                 // Set the signature bytes to 0.
                 data.set(new Uint8Array(this._signatureOptions.byteLength),
-                    encodedFrame.data.byteLength - (this._signatureOptions.byteLength + 1));
+                    encodedFrame.data.byteLength - (this._signatureOptions.byteLength + counterLength + 1));
             } else if (encodedFrame.type === 'key') {
                 console.error('Got a key frame without signature, rejecting.');
 
@@ -481,19 +481,18 @@ export class Context {
             // Extract the counter.
             const counter = new Uint8Array(16);
 
-            counter.set(data.slice(
-                encodedFrame.data.byteLength
-                    - (counterLength + (signatureLength ? this._signatureOptions.byteLength : 0) + 1),
-                encodedFrame.data.byteLength
-                    - ((signatureLength ? this._signatureOptions.byteLength : 0) + 1)), 16 - counterLength);
+            counter.set(
+                data.slice(encodedFrame.data.byteLength - (counterLength + 1),
+                    encodedFrame.data.byteLength - 1),
+                16 - counterLength);
+
             const counterView = new DataView(counter.buffer);
 
             // XOR the counter with the saltKey to construct the AES CTR.
             const saltKey = new DataView(this._cryptoKeyRing[keyIndex].saltKey);
 
             for (let i = 0; i < counter.byteLength; i++) {
-                counterView.setUint8(i,
-                    counterView.getUint8(i) ^ saltKey.getUint8(i));
+                counterView.setUint8(i, counterView.getUint8(i) ^ saltKey.getUint8(i));
             }
 
             return crypto.subtle.decrypt({
