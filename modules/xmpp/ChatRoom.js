@@ -515,6 +515,9 @@ export default class ChatRoom extends Listenable {
             case 'nick':
                 member.nick = node.value;
                 break;
+            case 'email':
+                member.email = node.value;
+                break;
             case 'userId':
                 member.id = node.value;
                 break;
@@ -597,7 +600,7 @@ export default class ChatRoom extends Listenable {
                     member.isHiddenDomain,
                     member.statsID,
                     member.status,
-                    member.identity,
+                    member.identity?member.identity:member.email,
                     member.botType,
                     member.jid);
 
