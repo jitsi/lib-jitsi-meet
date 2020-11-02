@@ -600,7 +600,7 @@ export default class ChatRoom extends Listenable {
                     member.isHiddenDomain,
                     member.statsID,
                     member.status,
-                    member.identity?member.identity:member.email,
+                    member.identity ? member.identity : member.email,
                     member.botType,
                     member.jid);
 
