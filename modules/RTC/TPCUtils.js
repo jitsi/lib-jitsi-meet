@@ -273,7 +273,9 @@ export class TPCUtils {
         }
 
         const localVideoHeightConstraints = [];
-        const height = localTrack.getSettings().height;
+
+        // Firefox doesn't return the height of the desktop track, assume a min. height of 720.
+        const { height = 720 } = localTrack.getSettings();
 
         for (const encoding of this.localStreamEncodingsConfig) {
             localVideoHeightConstraints.push(height / encoding.scaleResolutionDownBy);
