@@ -185,16 +185,6 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Returns whether or not the current browser can support capturing video,
-     * be it camera or desktop, and displaying received video.
-     *
-     * @returns {boolean}
-     */
-    supportsVideo() {
-        return true;
-    }
-
-    /**
      * Checks if the browser uses plan B.
      *
      * @returns {boolean}
