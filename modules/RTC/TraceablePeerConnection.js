@@ -2289,7 +2289,7 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
 
     const localVideoTrack = this.getLocalVideoTrack();
 
-    if (!localVideoTrack || localVideoTrack.isMuted() || localVideoTrack.videoType !== VideoType.CAMERA) {
+    if (!localVideoTrack || localVideoTrack.isMuted()) {
         return Promise.resolve();
     }
     const videoSender = this.findSenderByKind(MediaType.VIDEO);
