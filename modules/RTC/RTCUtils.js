@@ -973,9 +973,8 @@ class RTCUtils extends Listenable {
      * then a rejected promise will be returned.
      */
     _newGetDesktopMedia(options) {
-        if (!screenObtainer.isSupported() || !browser.supportsVideo()) {
-            return Promise.reject(
-                new Error('Desktop sharing is not supported!'));
+        if (!screenObtainer.isSupported()) {
+            return Promise.reject(new Error('Desktop sharing is not supported!'));
         }
 
         return new Promise((resolve, reject) => {
@@ -1299,9 +1298,7 @@ class RTCUtils extends Listenable {
          */
         const maybeRequestCaptureDevices = function() {
             const umDevices = options.devices || [ 'audio', 'video' ];
-            const requestedCaptureDevices = umDevices.filter(device =>
-                device === 'audio'
-                || (device === 'video' && browser.supportsVideo()));
+            const requestedCaptureDevices = umDevices.filter(device => device === 'audio' || device === 'video');
 
             if (!requestedCaptureDevices.length) {
                 return Promise.resolve();
