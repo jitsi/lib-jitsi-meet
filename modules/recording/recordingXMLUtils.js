@@ -89,6 +89,6 @@ export default {
      * @returns {boolean} True if the presence is from the focus.
      */
     isFromFocus(presence) {
-        return presence.getAttribute('from').includes('focus');
+        return presence.getAttribute('from').includes(config.focusUserJid || 'focus');
     }
 };

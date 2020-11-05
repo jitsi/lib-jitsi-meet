@@ -36,6 +36,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
     constructor(xmpp, eventEmitter, iceConfig) {
         super();
         this.xmpp = xmpp;
+        this.focus = config.focusUserJid ? Strophe.getNodeFromJid(config.focusUserJid) : 'focus';
         this.eventEmitter = eventEmitter;
         this.sessions = {};
         this.jvbIceConfig = iceConfig.jvb;
@@ -127,7 +128,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
         // FIXME that should work most of the time, but we'd have to
         // think how secure it is to assume that user with "focus"
         // nickname is Jicofo.
-        const isP2P = Strophe.getResourceFromJid(fromJid) !== 'focus';
+        const isP2P = Strophe.getResourceFromJid(fromJid) !== this.focus;
 
         // see http://xmpp.org/extensions/xep-0166.html#concepts-session
 

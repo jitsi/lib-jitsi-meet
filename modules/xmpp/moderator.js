@@ -107,8 +107,9 @@ Moderator.prototype.isSipGatewayEnabled = function() {
 Moderator.prototype.onMucMemberLeft = function(jid) {
     logger.info(`Someone left is it focus ? ${jid}`);
     const resource = Strophe.getResourceFromJid(jid);
+    const focus = Strophe.getNodeFromJid(this.getFocusUserJid());
 
-    if (resource === 'focus') {
+    if (resource === focus) {
         logger.info(
             'Focus has left the room - leaving conference');
         this.eventEmitter.emit(XMPPEvents.FOCUS_LEFT);

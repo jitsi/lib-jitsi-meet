@@ -1518,8 +1518,10 @@ JitsiConference.prototype.muteParticipant = function(id) {
 JitsiConference.prototype.onMemberJoined = function(
         jid, nick, role, isHidden, statsID, status, identity, botType) {
     const id = Strophe.getResourceFromJid(jid);
+    const focusid
+        = this.options.config.focusUserJid ? Strophe.getNodeFromJid(this.options.config.focusUserJid) : 'focus';
 
-    if (id === 'focus' || this.myUserId() === id) {
+    if (id === focusid || this.myUserId() === id) {
         return;
     }
 
@@ -1599,8 +1601,10 @@ JitsiConference.prototype._onMemberBotTypeChanged = function(jid, botType) {
 
 JitsiConference.prototype.onMemberLeft = function(jid) {
     const id = Strophe.getResourceFromJid(jid);
+    const focusid
+        = this.options.config.focusUserJid ? Strophe.getNodeFromJid(this.options.config.focusUserJid) : 'focus';
 
-    if (id === 'focus' || this.myUserId() === id) {
+    if (id === focusid || this.myUserId() === id) {
         return;
     }
 
