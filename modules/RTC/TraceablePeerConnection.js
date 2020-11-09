@@ -2086,6 +2086,7 @@ TraceablePeerConnection.prototype.setSenderVideoDegradationPreference = function
             parameters.encodings[encoding].degradationPreference = preference;
         }
     }
+    this.tpcUtils.updateEncodingsResolution(parameters);
 
     return videoSender.setParameters(parameters);
 };
@@ -2183,6 +2184,7 @@ TraceablePeerConnection.prototype.setMaxBitRate = function() {
         }
         parameters.encodings[0].maxBitrate = bitrate;
     }
+    this.tpcUtils.updateEncodingsResolution(parameters);
 
     return videoSender.setParameters(parameters);
 };
@@ -2323,6 +2325,7 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
                 parameters.encodings[encoding].active = encodingsEnabledState[encoding];
             }
         }
+        this.tpcUtils.updateEncodingsResolution(parameters);
     } else if (newHeight > 0) {
         parameters.encodings[0].scaleResolutionDownBy = localVideoTrack.resolution >= newHeight
             ? Math.floor(localVideoTrack.resolution / newHeight)
