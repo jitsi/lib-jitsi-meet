@@ -1929,6 +1929,9 @@ JitsiConference.prototype._acceptJvbIncomingCall = function(
         });
     } catch (error) {
         GlobalOnErrorHandler.callErrorHandler(error);
+        logger.error(error);
+
+        return;
     }
 
     // Open a channel with the videobridge.

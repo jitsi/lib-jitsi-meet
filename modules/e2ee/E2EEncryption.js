@@ -17,6 +17,13 @@ const logger = getLogger(__filename);
 // joins or leaves.
 const DEBOUNCE_PERIOD = 5000;
 
+// We use ECDSA with Curve P-521 for the long-term signing keys. See
+//   https://developer.mozilla.org/en-US/docs/Web/API/EcKeyGenParams
+const SIGNATURE_OPTIONS = {
+    name: 'ECDSA',
+    namedCurve: 'P-521'
+};
+
 /**
  * This module integrates {@link E2EEContext} with {@link JitsiConference} in order to enable E2E encryption.
  */
@@ -32,6 +39,7 @@ export class E2EEncryption {
         this._enabled = false;
         this._initialized = false;
         this._key = undefined;
+        this._signatureKeyPair = undefined;
 
         this._e2eeCtx = new E2EEContext();
         this._olmAdapter = new OlmAdapter(conference);
@@ -44,16 +52,19 @@ export class E2EEncryption {
         //
 
         this.conference.on(
+            JitsiConferenceEvents.CONFERENCE_JOINED,
+            () => {
+                this._conferenceJoined = true;
+            });
+        this.conference.on(
+            JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
+            this._onParticipantPropertyChanged.bind(this));
+        this.conference.on(
             JitsiConferenceEvents.USER_JOINED,
             this._onParticipantJoined.bind(this));
         this.conference.on(
             JitsiConferenceEvents.USER_LEFT,
             this._onParticipantLeft.bind(this));
-        this.conference.on(
-            JitsiConferenceEvents.CONFERENCE_JOINED,
-            () => {
-                this._conferenceJoined = true;
-            });
 
         // Conference media events in order to attach the encryptor / decryptor.
         // FIXME add events to TraceablePeerConnection which will allow to see when there's new receiver or sender
@@ -74,6 +85,9 @@ export class E2EEncryption {
             this._trackMuteChanged.bind(this));
 
         // Olm signalling events.
+        this._olmAdapter.on(
+            OlmAdapter.events.OLM_ID_KEY_READY,
+            this._onOlmIdKeyReady.bind(this));
         this._olmAdapter.on(
             OlmAdapter.events.PARTICIPANT_E2EE_CHANNEL_READY,
             this._onParticipantE2EEChannelReady.bind(this));
@@ -109,7 +123,7 @@ export class E2EEncryption {
      * @param {boolean} enabled - whether E2EE should be enabled or not.
      * @returns {void}
      */
-    setEnabled(enabled) {
+    async setEnabled(enabled) {
         if (enabled === this._enabled) {
             return;
         }
@@ -117,6 +131,17 @@ export class E2EEncryption {
         this._enabled = enabled;
 
         if (!this._initialized && enabled) {
+            // Generate a frame signing key pair. Per session currently.
+            this._signatureKeyPair = await crypto.subtle.generateKey(SIGNATURE_OPTIONS,
+                true, [ 'sign', 'verify' ]);
+            this._e2eeCtx.setSignatureKey(this.conference.myUserId(), this._signatureKeyPair.privateKey);
+
+            // Serialize the JWK of the signing key. Using JSON, might be easy to xml-ify.
+            const serializedSigningKey = await crypto.subtle.exportKey('jwk', this._signatureKeyPair.publicKey);
+
+            // TODO: sign this with the OLM account key.
+            this.conference.setLocalParticipantProperty('e2ee.signatureKey', JSON.stringify(serializedSigningKey));
+
             // Need to re-create the peerconnections in order to apply the insertable streams constraint.
             // TODO: this was necessary due to some audio issues when indertable streams are used
             // even though encryption is not performed. This should be fixed in the browser eventually.
@@ -171,6 +196,17 @@ export class E2EEncryption {
     }
 
     /**
+     * Publushes our own Olmn id key in presence.
+     * @private
+     */
+    _onOlmIdKeyReady(idKey) {
+        logger.debug(`Olm id key ready: ${idKey}`);
+
+        // Publish it in presence.
+        this.conference.setLocalParticipantProperty('e2ee.idKey', idKey);
+    }
+
+    /**
      * Advances (using ratcheting) the current key when a new participant joins the conference.
      * @private
      */
@@ -216,6 +252,36 @@ export class E2EEncryption {
         logger.debug(`Participant ${id} updated their key`);
 
         this._e2eeCtx.setKey(id, key, index);
+    }
+
+    /**
+     * Handles an update in a participant's presence property.
+     *
+     * @param {JitsiParticipant} participant - The participant.
+     * @param {string} name - The name of the property that changed.
+     * @param {*} oldValue - The property's previous value.
+     * @param {*} newValue - The property's new value.
+     * @private
+     */
+    async _onParticipantPropertyChanged(participant, name, oldValue, newValue) {
+        switch (name) {
+        case 'e2ee.idKey':
+            logger.debug(`Participant ${participant.getId()} updated their id key: ${newValue}`);
+            break;
+        case 'e2ee.signatureKey':
+            logger.debug(`Participant ${participant.getId()} updated their signature key: ${newValue}`);
+            if (newValue) {
+                const parsed = JSON.parse(newValue);
+
+                const importedKey = await crypto.subtle.importKey('jwk', parsed, { name: 'ECDSA',
+                    namedCurve: parsed.crv }, true, parsed.key_ops);
+
+                this._e2eeCtx.setSignatureKey(participant.getId(), importedKey);
+            } else {
+                logger.warn(`e2ee signatureKey for ${participant.getId()} could not be updated with empty value.`);
+            }
+            break;
+        }
     }
 
     /**

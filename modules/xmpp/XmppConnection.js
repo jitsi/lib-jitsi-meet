@@ -45,8 +45,9 @@ export default class XmppConnection extends Listenable {
      * default with jitter. Pass -1 to disable. The actual interval equation is:
      * jitterDelay = (interval * 0.2) + (0.8 * interval * Math.random())
      * The keep alive is HTTP GET request to the {@link options.serviceUrl}.
+     * @param {Object} [options.xmppPing] - The xmpp ping settings.
      */
-    constructor({ enableWebsocketResume, websocketKeepAlive, serviceUrl }) {
+    constructor({ enableWebsocketResume, websocketKeepAlive, serviceUrl, xmppPing }) {
         super();
         this._options = {
             enableWebsocketResume: typeof enableWebsocketResume === 'undefined' ? true : enableWebsocketResume,
@@ -83,7 +84,9 @@ export default class XmppConnection extends Listenable {
         this.addConnectionPlugin(
             'ping',
             new PingConnectionPlugin({
-                onPingThresholdExceeded: () => this._onPingErrorThresholdExceeded()
+                getTimeSinceLastServerResponse: () => this.getTimeSinceLastSuccess(),
+                onPingThresholdExceeded: () => this._onPingErrorThresholdExceeded(),
+                pingOptions: xmppPing
             }));
     }
 

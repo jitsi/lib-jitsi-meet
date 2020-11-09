@@ -47,26 +47,24 @@ function _loadScript() {
  */
 function _initialize(options) {
     return new Promise((resolve, reject) => {
-        if (!options.disableThirdPartyRequests) {
-            const appId = options.callStatsID;
-            const appSecret = options.callStatsSecret;
-            const userId = options.statisticsId || options.statisticsDisplayName || Settings.callStatsUserName;
+        const appId = options.callStatsID;
+        const appSecret = options.callStatsSecret;
+        const userId = options.statisticsId || options.statisticsDisplayName || Settings.callStatsUserName;
 
-            api.initialize(appId, appSecret, userId, (status, message) => {
-                if (status === 'success') {
-                    api.on(PRECALL_TEST_RESULTS, (...args) => {
-                        emitter.emit(PRECALL_TEST_RESULTS, ...args);
-                    });
-                    _initialized = true;
-                    resolve();
-                } else {
-                    reject({
-                        status,
-                        message
-                    });
-                }
-            }, null, { disablePrecalltest: true });
-        }
+        api.initialize(appId, appSecret, userId, (status, message) => {
+            if (status === 'success') {
+                api.on(PRECALL_TEST_RESULTS, (...args) => {
+                    emitter.emit(PRECALL_TEST_RESULTS, ...args);
+                });
+                _initialized = true;
+                resolve();
+            } else {
+                reject({
+                    status,
+                    message
+                });
+            }
+        }, null, { disablePrecalltest: true });
     });
 }
 
@@ -79,6 +77,12 @@ function _initialize(options) {
 export async function init(options) {
     if (_initialized) {
         throw new Error('Precall Test already initialized');
+    }
+
+    const { callStatsID, callStatsSecret, disableThirdPartyRequests } = options;
+
+    if (!callStatsID || !callStatsSecret || disableThirdPartyRequests) {
+        throw new Error('Callstats is disabled');
     }
 
     await _loadScript();

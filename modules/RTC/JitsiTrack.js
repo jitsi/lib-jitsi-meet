@@ -424,31 +424,32 @@ export default class JitsiTrack extends EventEmitter {
      * peerconnection (see /modules/statistics/LocalStatsCollector.js).
      */
     setAudioLevel(audioLevel, tpc) {
-        // The receiver seems to be reporting audio level immediately after the
-        // remote user has muted, so do not set the audio level on the track
-        // if it is muted.
-        if (browser.supportsReceiverStats()
-            && !this.isLocalAudioTrack()
-            && this.isWebRTCTrackMuted()) {
-            return;
+        let newAudioLevel = audioLevel;
+
+        // When using getSynchornizationSources on the audio receiver to gather audio levels for
+        // remote tracks, browser reports last known audio levels even when the remote user is
+        // audio muted, we need to reset the value to zero here so that the audio levels are cleared.
+        // Remote tracks have the tpc info present while local tracks do not.
+        if (browser.supportsReceiverStats() && typeof tpc !== 'undefined' && this.isMuted()) {
+            newAudioLevel = 0;
         }
 
-        if (this.audioLevel !== audioLevel) {
-            this.audioLevel = audioLevel;
+        if (this.audioLevel !== newAudioLevel) {
+            this.audioLevel = newAudioLevel;
             this.emit(
                 JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
-                audioLevel,
+                newAudioLevel,
                 tpc);
 
         // LocalStatsCollector reports a value of 0.008 for muted mics
         // and a value of 0 when there is no audio input.
         } else if (this.audioLevel === 0
-            && audioLevel === 0
+            && newAudioLevel === 0
             && this.isLocal()
             && !this.isWebRTCTrackMuted()) {
             this.emit(
                 JitsiTrackEvents.NO_AUDIO_INPUT,
-                audioLevel);
+                newAudioLevel);
         }
     }
 
