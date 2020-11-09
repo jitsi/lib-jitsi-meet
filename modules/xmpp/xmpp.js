@@ -32,9 +32,10 @@ const logger = getLogger(__filename);
  * @param {string} options.serviceUrl - The service URL for XMPP connection.
  * @param {string} options.enableWebsocketResume - True to enable stream resumption.
  * @param {number} [options.websocketKeepAlive] - See {@link XmppConnection} constructor.
+ * @param {Object} [options.xmppPing] - See {@link XmppConnection} constructor.
  * @returns {XmppConnection}
  */
-function createConnection({ enableWebsocketResume, serviceUrl = '/http-bind', token, websocketKeepAlive }) {
+function createConnection({ enableWebsocketResume, serviceUrl = '/http-bind', token, websocketKeepAlive, xmppPing }) {
     // Append token as URL param
     if (token) {
         // eslint-disable-next-line no-param-reassign
@@ -44,7 +45,8 @@ function createConnection({ enableWebsocketResume, serviceUrl = '/http-bind', to
     return new XmppConnection({
         enableWebsocketResume,
         serviceUrl,
-        websocketKeepAlive
+        websocketKeepAlive,
+        xmppPing
     });
 }
 
@@ -64,9 +66,7 @@ function initStropheNativePlugins() {
  * A list of ice servers to use by default for P2P.
  */
 export const DEFAULT_STUN_SERVERS = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' }
+    { urls: 'stun:meet-jit-si-turnrelay.jitsi.net:443' }
 ];
 
 /**
@@ -91,6 +91,7 @@ export default class XMPP extends Listenable {
      * module try to resume the session in case the Websocket connection breaks.
      * @param {number} [options.websocketKeepAlive] - The websocket keep alive interval. See {@link XmppConnection}
      * constructor for more details.
+     * @param {Object} [options.xmppPing] - The xmpp ping settings.
      * @param {Array<Object>} options.p2pStunServers see {@link JingleConnectionPlugin} for more details.
      * @param token
      */
@@ -111,7 +112,8 @@ export default class XMPP extends Listenable {
             // FIXME remove deprecated bosh option at some point
             serviceUrl: options.serviceUrl || options.bosh,
             token,
-            websocketKeepAlive: options.websocketKeepAlive
+            websocketKeepAlive: options.websocketKeepAlive,
+            xmppPing: options.xmppPing
         });
 
         this._initStrophePlugins();
@@ -210,12 +212,8 @@ export default class XMPP extends Listenable {
             now);
 
         this.eventEmitter.emit(XMPPEvents.CONNECTION_STATUS_CHANGED, credentials, status, msg);
-        if (status === Strophe.Status.CONNECTED
-            || status === Strophe.Status.ATTACHED) {
-            if (this.options.useStunTurn
-                || (this.options.p2p && this.options.p2p.useStunTurn)) {
-                this.connection.jingle.getStunAndTurnCredentials();
-            }
+        if (status === Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
+            this.connection.jingle.getStunAndTurnCredentials();
 
             logger.info(`My Jabber ID: ${this.connection.jid}`);
 

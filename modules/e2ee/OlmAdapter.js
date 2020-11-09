@@ -25,6 +25,7 @@ const OLM_MESSAGE_TYPES = {
 const kOlmData = Symbol('OlmData');
 
 const OlmAdapterEvents = {
+    OLM_ID_KEY_READY: 'olm.id_key_ready',
     PARTICIPANT_E2EE_CHANNEL_READY: 'olm.participant_e2ee_channel_ready',
     PARTICIPANT_KEY_UPDATED: 'olm.partitipant_key_updated'
 };
@@ -173,8 +174,9 @@ export class OlmAdapter extends Listenable {
 
             this._idKey = idKeys.curve25519;
 
-            logger.debug('Olm initialized!');
+            logger.debug(`Olm ${Olm.get_library_version().join('.')} initialized`);
             this._init.resolve();
+            this.eventEmitter.emit(OlmAdapterEvents.OLM_ID_KEY_READY, this._idKey);
         } catch (e) {
             logger.error('Failed to initialize Olm', e);
             this._init.reject(e);
@@ -309,6 +311,8 @@ export class OlmAdapter extends Listenable {
                 };
 
                 this._sendMessage(ack, pId);
+
+                this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_E2EE_CHANNEL_READY, pId);
             }
             break;
         }
@@ -333,7 +337,6 @@ export class OlmAdapter extends Listenable {
                 olmData.session = session;
                 olmData.pendingSessionUuid = undefined;
 
-                logger.debug(`Olm session established with ${pId}`);
                 this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_E2EE_CHANNEL_READY, pId);
 
                 this._reqs.delete(msg.data.uuid);
