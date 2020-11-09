@@ -436,4 +436,22 @@ export class TPCUtils {
     setVideoTransferActive(active) {
         this.setMediaTransferActive(MediaType.VIDEO, active);
     }
+
+    /**
+     * Ensures that the resolution of the stream encodings are consistent with the values
+     * that were configured on the RTCRtpSender when the source was added to the peerconnection.
+     * This should prevent us from overriding the default values if the browser returns
+     * erroneous values when RTCRtpSender.getParameters is used for getting the encodings info.
+     * @param {Object} parameters - the RTCRtpEncodingParameters obtained from the browser.
+     * @returns {void}
+     */
+    updateEncodingsResolution(parameters) {
+        if (!(parameters && parameters.encodings && Array.isArray(parameters.encodings))) {
+            return;
+        }
+
+        parameters.encodings.forEach((encoding, idx) => {
+            encoding.scaleResolutionDownBy = this.localStreamEncodingsConfig[idx].scaleResolutionDownBy;
+        });
+    }
 }
