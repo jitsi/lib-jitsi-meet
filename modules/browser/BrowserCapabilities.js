@@ -3,6 +3,9 @@ import { getLogger } from 'jitsi-meet-logger';
 
 const logger = getLogger(__filename);
 
+/* Minimum required Chrome / Chromium version. This applies also to derivatives. */
+const MIN_REQUIRED_CHROME_VERSION = 72;
+
 // TODO: Move this code to js-utils.
 
 // NOTE: Now we are extending BrowserDetection in order to preserve
@@ -62,12 +65,21 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks whether current running context is a Trusted Web Application.
+     *
+     * @returns {boolean} Whether the current context is a TWA.
+     */
+    isTwa() {
+        return 'matchMedia' in window && window.matchMedia('(display-mode:standalone)').matches;
+    }
+
+    /**
      * Checks if the current browser is supported.
      *
      * @returns {boolean} true if the browser is supported, false otherwise.
      */
     isSupported() {
-        return this.isChromiumBased()
+        return (this.isChromiumBased() && this._getChromiumBasedVersion() >= MIN_REQUIRED_CHROME_VERSION)
             || this.isFirefox()
             || this.isReactNative()
             || (this.isSafari() && !this.isVersionLessThan('12.1'));
@@ -173,16 +185,6 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
-     * Returns whether or not the current browser can support capturing video,
-     * be it camera or desktop, and displaying received video.
-     *
-     * @returns {boolean}
-     */
-    supportsVideo() {
-        return true;
-    }
-
-    /**
      * Checks if the browser uses plan B.
      *
      * @returns {boolean}
@@ -211,11 +213,9 @@ export default class BrowserCapabilities extends BrowserDetection {
         }
 
         if (this.isSafari() && typeof window.RTCRtpTransceiver !== 'undefined') {
-            // eslint-disable-next-line max-len
             // https://trac.webkit.org/changeset/236144/webkit/trunk/LayoutTests/webrtc/video-addLegacyTransceiver.html
             // eslint-disable-next-line no-undef
-            return Object.keys(RTCRtpTransceiver.prototype)
-                   .indexOf('currentDirection') > -1;
+            return Object.keys(RTCRtpTransceiver.prototype).indexOf('currentDirection') > -1;
         }
 
         return false;
@@ -230,18 +230,8 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     usesNewGumFlow() {
-        const REQUIRED_CHROME_VERSION = 61;
-
-        if (this.isChrome()) {
-            return !this.isVersionLessThan(REQUIRED_CHROME_VERSION);
-        }
-
-        if (this.isFirefox() || this.isSafari()) {
+        if (this.isChromiumBased() || this.isFirefox() || this.isSafari()) {
             return true;
-        }
-
-        if (this.isChromiumBased()) {
-            return this._getChromiumBasedVersion() >= REQUIRED_CHROME_VERSION;
         }
 
         return false;
@@ -249,7 +239,7 @@ export default class BrowserCapabilities extends BrowserDetection {
 
     /**
      * Checks if the browser uses webrtc-adapter. All browsers using the new
-     * getUserMedia flow and Edge.
+     * getUserMedia flow.
      *
      * @returns {boolean}
      */
@@ -319,7 +309,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     supportsSdpSemantics() {
-        return this.isChromiumBased() && this._getChromiumBasedVersion() >= 65;
+        return this.isChromiumBased();
     }
 
     /**

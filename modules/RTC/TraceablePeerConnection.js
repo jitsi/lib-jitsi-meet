@@ -28,7 +28,7 @@ import { SIM_LAYER_RIDS, TPCUtils } from './TPCUtils';
 const logger = getLogger(__filename);
 const DEGRADATION_PREFERENCE_CAMERA = 'maintain-framerate';
 const DEGRADATION_PREFERENCE_DESKTOP = 'maintain-resolution';
-const DESKSTOP_SHARE_RATE = 500000;
+const DESKTOP_SHARE_RATE = 500000;
 const HD_BITRATE = 2500000;
 const LD_BITRATE = 200000;
 const SD_BITRATE = 700000;
@@ -215,8 +215,22 @@ export default function TraceablePeerConnection(
         this._peerMutedChanged);
     this.options = options;
 
+    // Make sure constraints is properly formatted in order to provide information about whether or not this
+    // connection is P2P to rtcstats.
+    const safeConstraints = constraints || {};
+
+    safeConstraints.optional = safeConstraints.optional || [];
+
+    // The `optional` parameter needs to be of type array, otherwise chrome will throw an error.
+    // Firefox and Safari just ignore it.
+    if (Array.isArray(safeConstraints.optional)) {
+        safeConstraints.optional.push({ rtcStatsSFUP2P: this.isP2P });
+    } else {
+        logger.warn('Optional param is not an array, rtcstats p2p data is omitted.');
+    }
+
     this.peerconnection
-        = new RTCUtils.RTCPeerConnectionType(iceConfig, constraints);
+        = new RTCUtils.RTCPeerConnectionType(iceConfig, safeConstraints);
 
     // The standard video bitrates are used in Unified plan when switching
     // between camera/desktop tracks on the same sender.
@@ -902,6 +916,13 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
 
     const existingTrack = remoteTracksMap.get(mediaType);
 
+    // Delete the existing track and create the new one because of a known bug on Safari.
+    // RTCPeerConnection.ontrack fires when a new remote track is added but MediaStream.onremovetrack doesn't so
+    // it needs to be removed whenever a new track is received for the same endpoint id.
+    if (existingTrack && browser.isSafari()) {
+        this._remoteTrackRemoved(existingTrack.getOriginalStream(), existingTrack.getTrack());
+    }
+
     if (existingTrack && existingTrack.getTrack() === track) {
         // Ignore duplicated event which can originate either from
         // 'onStreamAdded' or 'onTrackAdded'.
@@ -911,9 +932,7 @@ TraceablePeerConnection.prototype._createRemoteTrack = function(
 
         return;
     } else if (existingTrack) {
-        logger.error(
-            `${this} overwriting remote track for`
-                + `${ownerEndpointId} ${mediaType}`);
+        logger.error(`${this} overwriting remote track for ${ownerEndpointId} ${mediaType}`);
     }
 
     const remoteTrack
@@ -2067,6 +2086,7 @@ TraceablePeerConnection.prototype.setSenderVideoDegradationPreference = function
             parameters.encodings[encoding].degradationPreference = preference;
         }
     }
+    this.tpcUtils.updateEncodingsResolution(parameters);
 
     return videoSender.setParameters(parameters);
 };
@@ -2093,13 +2113,14 @@ TraceablePeerConnection.prototype.setMaxBitRate = function() {
     }
 
     const videoType = localVideoTrack.videoType;
+    const planBScreenSharing = browser.usesPlanB() && videoType === VideoType.DESKTOP;
 
     // Apply the maxbitrates on the video track when one of the conditions is met.
     // 1. Max. bitrates for video are specified through videoQuality settings in config.js
     // 2. Track is a desktop track and bitrate is capped using capScreenshareBitrate option in plan-b mode.
     // 3. The client is running in Unified plan mode.
     if (!((this.options.videoQuality && this.options.videoQuality.maxBitratesVideo)
-        || (browser.usesPlanB() && this.options.capScreenshareBitrate && videoType === VideoType.DESKTOP)
+        || (planBScreenSharing && this.options.capScreenshareBitrate)
         || browser.usesUnifiedPlan())) {
         return Promise.resolve();
     }
@@ -2120,14 +2141,24 @@ TraceablePeerConnection.prototype.setMaxBitRate = function() {
     if (this.isSimulcastOn()) {
         for (const encoding in parameters.encodings) {
             if (parameters.encodings.hasOwnProperty(encoding)) {
-                // On chromium, set a max bitrate of 500 Kbps for screenshare when
-                // capScreenshareBitrate is enabled through config.js and presenter
-                // is not turned on.
-                const bitrate = browser.usesPlanB()
-                    && videoType === VideoType.DESKTOP
-                    && this.options.capScreenshareBitrate
-                    ? presenterEnabled ? this.videoBitrates.high : DESKSTOP_SHARE_RATE
-                    : this.tpcUtils.localStreamEncodingsConfig[encoding].maxBitrate;
+                let bitrate;
+
+                if (planBScreenSharing) {
+                    // On chromium, set a max bitrate of 500 Kbps for screenshare when capScreenshareBitrate
+                    // is enabled through config.js and presenter is not turned on.
+                    // FIXME the top 'isSimulcastOn' condition is confusing for screensharing, because
+                    // if capScreenshareBitrate option is enabled then the simulcast is turned off
+                    bitrate = this.options.capScreenshareBitrate
+                        ? presenterEnabled ? this.videoBitrates.high : DESKTOP_SHARE_RATE
+
+                        // Remove the bitrate config if not capScreenshareBitrate:
+                        // When switching from camera to desktop and videoQuality.maxBitratesVideo were set,
+                        // then the 'maxBitrate' setting must be cleared, because if simulcast is enabled for screen
+                        // and maxBitrates are set then Chrome will not send the screen stream (plan B).
+                        : undefined;
+                } else {
+                    bitrate = this.tpcUtils.localStreamEncodingsConfig[encoding].maxBitrate;
+                }
 
                 logger.info(`${this} Setting a max bitrate of ${bitrate} bps on layer `
                     + `${this.tpcUtils.localStreamEncodingsConfig[encoding].rid}`);
@@ -2153,6 +2184,7 @@ TraceablePeerConnection.prototype.setMaxBitRate = function() {
         }
         parameters.encodings[0].maxBitrate = bitrate;
     }
+    this.tpcUtils.updateEncodingsResolution(parameters);
 
     return videoSender.setParameters(parameters);
 };
@@ -2168,7 +2200,7 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
         // TODO the focus should squeze or explode the remote simulcast
         if (this.isSimulcastOn()) {
             // eslint-disable-next-line no-param-reassign
-            description = this.simulcast.mungeRemoteDescription(description);
+            description = this.simulcast.mungeRemoteDescription(description, true /* add x-google-conference flag */);
             this.trace(
                 'setRemoteDescription::postTransform (simulcast)',
                 dumpSDP(description));
@@ -2248,11 +2280,18 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
 
     this.senderVideoMaxHeight = newHeight;
 
+    // If layer suspension is disabled and sender constraint is not configured for the conference,
+    // resolve here so that the encodings stay enabled. This can happen in custom apps built using
+    // lib-jitsi-meet.
+    if (newHeight === null) {
+        return Promise.resolve();
+    }
+
     logger.log(`${this} senderVideoMaxHeight: ${newHeight}`);
 
     const localVideoTrack = this.getLocalVideoTrack();
 
-    if (!localVideoTrack || localVideoTrack.isMuted() || localVideoTrack.videoType !== VideoType.CAMERA) {
+    if (!localVideoTrack || localVideoTrack.isMuted()) {
         return Promise.resolve();
     }
     const videoSender = this.findSenderByKind(MediaType.VIDEO);
@@ -2286,6 +2325,7 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
                 parameters.encodings[encoding].active = encodingsEnabledState[encoding];
             }
         }
+        this.tpcUtils.updateEncodingsResolution(parameters);
     } else if (newHeight > 0) {
         parameters.encodings[0].scaleResolutionDownBy = localVideoTrack.resolution >= newHeight
             ? Math.floor(localVideoTrack.resolution / newHeight)

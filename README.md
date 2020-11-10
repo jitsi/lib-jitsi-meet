@@ -4,7 +4,8 @@ You can use Jitsi Meet API to create Jitsi Meet video conferences with a custom 
 
 ## Installation
 
-[Checkout the examples.](doc/API.md#installation)
+- [Installation guide](doc/API.md#installation)
+- [Checkout the example](doc/example)
 
 ## Building the sources
 
