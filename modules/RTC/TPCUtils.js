@@ -3,6 +3,7 @@ import transform from 'sdp-transform';
 
 import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
+import VideoType from '../../service/RTC/VideoType';
 import browser from '../browser';
 
 const logger = getLogger(__filename);
@@ -446,7 +447,18 @@ export class TPCUtils {
      * @returns {void}
      */
     updateEncodingsResolution(parameters) {
-        if (!(parameters && parameters.encodings && Array.isArray(parameters.encodings))) {
+        if (!(parameters
+            && parameters.encodings
+            && Array.isArray(parameters.encodings)
+            && this.pc.isSimulcastOn())) {
+            return;
+        }
+        const localVideoTrack = this.pc.getLocalVideoTrack();
+
+        // Ignore desktop tracks when simulcast is disabled for screenshare.
+        if (localVideoTrack
+            && localVideoTrack.videoType === VideoType.DESKTOP
+            && this.pc.options.capScreenshareBitrate) {
             return;
         }
 
