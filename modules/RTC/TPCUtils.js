@@ -447,18 +447,15 @@ export class TPCUtils {
      * @returns {void}
      */
     updateEncodingsResolution(parameters) {
+        const localVideoTrack = this.pc.getLocalVideoTrack();
+
+        // Ignore desktop and non-simulcast tracks.
         if (!(parameters
             && parameters.encodings
             && Array.isArray(parameters.encodings)
-            && this.pc.isSimulcastOn())) {
-            return;
-        }
-        const localVideoTrack = this.pc.getLocalVideoTrack();
-
-        // Ignore desktop tracks when simulcast is disabled for screenshare.
-        if (localVideoTrack
-            && localVideoTrack.videoType === VideoType.DESKTOP
-            && this.pc.options.capScreenshareBitrate) {
+            && this.pc.isSimulcastOn()
+            && localVideoTrack
+            && localVideoTrack.videoType !== VideoType.DESKTOP)) {
             return;
         }
 
