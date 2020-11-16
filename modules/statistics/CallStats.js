@@ -69,7 +69,7 @@ let _fabrics;
 
 /**
  * An instance of this class is a wrapper for the CallStats API fabric. A fabric
- * reports one peer connection the the CallStats backend and is allocated with
+ * reports one peer connection to the CallStats backend and is allocated with
  * {@link callstats.addNewFabric}. It has a bunch of instance methods for
  * reporting various events. A fabric is considered disposed when
  * {@link CallStats.sendTerminateEvent} is executed.
