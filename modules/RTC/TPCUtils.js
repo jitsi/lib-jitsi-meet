@@ -3,6 +3,7 @@ import transform from 'sdp-transform';
 
 import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
+import VideoType from '../../service/RTC/VideoType';
 import browser from '../browser';
 
 const logger = getLogger(__filename);
@@ -136,7 +137,7 @@ export class TPCUtils {
         const idx = sdp.media.findIndex(mline => mline.type === 'video');
 
         if (sdp.media[idx].rids && (sdp.media[idx].simulcast_03 || sdp.media[idx].simulcast)) {
-            // Make sure we don't have the simulcast recv line on video descriptions other than the
+            // Make sure we don't have the simulcast recv line on video descriptions other than
             // the first video description.
             sdp.media.forEach((mline, i) => {
                 if (mline.type === 'video' && i !== idx) {
@@ -435,5 +436,31 @@ export class TPCUtils {
     */
     setVideoTransferActive(active) {
         this.setMediaTransferActive(MediaType.VIDEO, active);
+    }
+
+    /**
+     * Ensures that the resolution of the stream encodings are consistent with the values
+     * that were configured on the RTCRtpSender when the source was added to the peerconnection.
+     * This should prevent us from overriding the default values if the browser returns
+     * erroneous values when RTCRtpSender.getParameters is used for getting the encodings info.
+     * @param {Object} parameters - the RTCRtpEncodingParameters obtained from the browser.
+     * @returns {void}
+     */
+    updateEncodingsResolution(parameters) {
+        const localVideoTrack = this.pc.getLocalVideoTrack();
+
+        // Ignore desktop and non-simulcast tracks.
+        if (!(parameters
+            && parameters.encodings
+            && Array.isArray(parameters.encodings)
+            && this.pc.isSimulcastOn()
+            && localVideoTrack
+            && localVideoTrack.videoType !== VideoType.DESKTOP)) {
+            return;
+        }
+
+        parameters.encodings.forEach((encoding, idx) => {
+            encoding.scaleResolutionDownBy = this.localStreamEncodingsConfig[idx].scaleResolutionDownBy;
+        });
     }
 }

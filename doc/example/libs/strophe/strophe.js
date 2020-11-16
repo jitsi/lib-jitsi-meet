@@ -2941,7 +2941,7 @@ Strophe.Connection.prototype = {
     },
 
     /** PrivateFunction: _dataRecv
-     *  _Private_ handler to processes incoming data from the the connection.
+     *  _Private_ handler to processes incoming data from the connection.
      *
      *  Except for _connect_cb handling the initial connection request,
      *  this function handles the incoming data for all requests.  This

@@ -85,7 +85,7 @@ Transcriber.prototype.stop = function stop(callback) {
     console.log('stopping recording and sending audio files');
     this.audioRecorder.stop();
 
-    // and send all recorded audio the the transcription service
+    // and send all recorded audio to the transcription service
     const callBack = blobCallBack.bind(null, this);
 
     this.audioRecorder.getRecordingResults().forEach(recordingResult => {
