@@ -1,3 +1,4 @@
+/* global config */
 /**
  * A collection of utility functions for taking in XML and parsing it to return
  * certain values.
