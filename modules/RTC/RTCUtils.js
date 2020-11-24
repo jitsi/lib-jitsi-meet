@@ -664,9 +664,9 @@ function onMediaDevicesListChanged(devicesReceived) {
     sendDeviceListToAnalytics(availableDevices);
 
     // Used by tracks to update the real device id before the consumer of lib-jitsi-meet receives the new device list.
-    eventEmitter.emit(RTCEvents.DEVICE_LIST_WILL_CHANGE, devicesReceived);
+    eventEmitter.emit(RTCEvents.DEVICE_LIST_WILL_CHANGE, availableDevices);
 
-    eventEmitter.emit(RTCEvents.DEVICE_LIST_CHANGED, devicesReceived);
+    eventEmitter.emit(RTCEvents.DEVICE_LIST_CHANGED, availableDevices);
 }
 
 /**
@@ -846,7 +846,7 @@ class RTCUtils extends Listenable {
 
         if (this.isDeviceListAvailable()) {
             this.enumerateDevices(ds => {
-                availableDevices = ds.splice(0);
+                availableDevices = ds.slice(0);
 
                 logger.debug('Available devices: ', availableDevices);
                 sendDeviceListToAnalytics(availableDevices);
