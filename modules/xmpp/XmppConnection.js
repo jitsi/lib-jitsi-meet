@@ -41,8 +41,8 @@ export default class XmppConnection extends Listenable {
      * @param {String} options.serviceUrl - The BOSH or WebSocket service URL.
      * @param {String} [options.enableWebsocketResume=true] - True/false to control the stream resumption functionality.
      * It will enable automatically by default if supported by the XMPP server.
-     * @param {Number} [options.websocketKeepAlive=240000] - The websocket keep alive interval. It's 4 minutes by
-     * default with jitter. Pass -1 to disable. The actual interval equation is:
+     * @param {Number} [options.websocketKeepAlive=240000] - The websocket keep alive interval in milliseconds.
+     * It's 4 minutes by default with jitter. Pass -1 to disable. The actual interval equation is:
      * jitterDelay = (interval * 0.2) + (0.8 * interval * Math.random())
      * The keep alive is HTTP GET request to the {@link options.serviceUrl}.
      * @param {Object} [options.xmppPing] - The xmpp ping settings.

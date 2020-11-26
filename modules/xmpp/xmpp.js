@@ -89,8 +89,8 @@ export default class XMPP extends Listenable {
      * @param {String} options.bosh - Deprecated, use {@code serviceUrl}.
      * @param {boolean} options.enableWebsocketResume - Enables XEP-0198 stream management which will make the XMPP
      * module try to resume the session in case the Websocket connection breaks.
-     * @param {number} [options.websocketKeepAlive] - The websocket keep alive interval. See {@link XmppConnection}
-     * constructor for more details.
+     * @param {number} [options.websocketKeepAlive] - The websocket keep alive interval in milliseconds.
+     * See {@link XmppConnection} constructor for more details.
      * @param {Object} [options.xmppPing] - The xmpp ping settings.
      * @param {Array<Object>} options.p2pStunServers see {@link JingleConnectionPlugin} for more details.
      * @param token
