@@ -177,13 +177,6 @@ Moderator.prototype.createConferenceIq = function() {
                 value: this.options.connection.hosts.call_control
             }).up();
     }
-    if (config.channelLastN !== undefined) {
-        elem.c(
-            'property', {
-                name: 'channelLastN',
-                value: config.channelLastN
-            }).up();
-    }
     elem.c(
         'property', {
             name: 'disableRtx',

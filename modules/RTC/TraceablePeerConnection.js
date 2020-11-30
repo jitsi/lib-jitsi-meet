@@ -2327,9 +2327,13 @@ TraceablePeerConnection.prototype.setSenderVideoConstraint = function(frameHeigh
         }
         this.tpcUtils.updateEncodingsResolution(parameters);
     } else if (newHeight > 0) {
-        parameters.encodings[0].scaleResolutionDownBy = localVideoTrack.resolution >= newHeight
-            ? Math.floor(localVideoTrack.resolution / newHeight)
-            : 1;
+        // Do not scale down the desktop tracks until QualityController is able to propagate the sender constraints
+        // only on the active media connection. Right now, the sender constraints received on the bridge channel
+        // are propagated on both the jvb and p2p connections in cases where they both are active at the same time.
+        parameters.encodings[0].scaleResolutionDownBy
+            = localVideoTrack.videoType === VideoType.DESKTOP || localVideoTrack.resolution <= newHeight
+                ? 1
+                : Math.floor(localVideoTrack.resolution / newHeight);
         parameters.encodings[0].active = true;
     } else {
         parameters.encodings[0].scaleResolutionDownBy = undefined;
