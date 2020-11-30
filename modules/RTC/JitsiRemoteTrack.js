@@ -20,6 +20,21 @@ const containerEvents = [
     'pause', 'play', 'playing', 'ratechange', 'stalled', 'suspend', 'waiting'
 ];
 
+/**
+ * List of container events that we are going to consider that the playing has stopped.
+ */
+const containerStopEvents = [
+    'abort', 'ended', 'error',
+    'pause', 'stalled', 'suspend', 'waiting'
+];
+
+/**
+ * List of container events that we are going to consider that the media is playing.
+ */
+const containerPlayingEvents = [
+    'play', 'playing'
+];
+
 /* eslint-disable max-params */
 
 /**
@@ -86,6 +101,10 @@ export default class JitsiRemoteTrack extends JitsiTrack {
         if (this.rtc && this.track) {
             this._bindTrackHandlers();
         }
+
+        // playing is used to detect whether remote tracked is being played or received
+        // used by torture testing
+        this.playing = false;
         this._containerHandlers = {};
         containerEvents.forEach(event => {
             this._containerHandlers[event] = this._containerEventHandler.bind(this, event);
@@ -301,6 +320,19 @@ export default class JitsiRemoteTrack extends JitsiTrack {
      */
     _containerEventHandler(type) {
         logger.debug(`${type} handler was called for a container with attached ${this}`);
+
+        if (containerStopEvents.includes(type)) {
+            this.playing = false;
+        } else if (containerPlayingEvents.includes(type)) {
+            this.playing = true;
+        }
+    }
+
+    /**
+     * Check if this track is playing, whether we have received such an event from the container.
+     */
+    isPlaying() {
+        return !this.muted && this.playing;
     }
 
     /**
