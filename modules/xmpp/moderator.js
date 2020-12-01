@@ -223,25 +223,6 @@ Moderator.prototype.createConferenceIq = function() {
         }
     }
 
-    let openSctp;
-
-    switch (this.options.conference.openBridgeChannel) {
-    case 'datachannel':
-    case true:
-    case undefined:
-        openSctp = true;
-        break;
-    case 'websocket':
-        openSctp = false;
-        break;
-    }
-
-    elem.c(
-        'property', {
-            name: 'openSctp',
-            value: openSctp
-        }).up();
-
     if (config.opusMaxAverageBitrate) {
         elem.c(
             'property', {
