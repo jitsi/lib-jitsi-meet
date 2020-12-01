@@ -198,16 +198,6 @@ Moderator.prototype.createConferenceIq = function() {
                 value: config.audioPacketDelay
             }).up();
     }
-    if (config.testing && config.testing.octo
-        && typeof config.testing.octo.probability === 'number') {
-        if (Math.random() < config.testing.octo.probability) {
-            elem.c(
-                'property', {
-                    name: 'octo',
-                    value: true
-                }).up();
-        }
-    }
 
     let openSctp;
 
@@ -254,13 +244,6 @@ Moderator.prototype.createConferenceIq = function() {
             'property', {
                 name: 'stereo',
                 value: this.options.conference.stereo
-            }).up();
-    }
-    if (this.options.conference.useRoomAsSharedDocumentName !== undefined) {
-        elem.c(
-            'property', {
-                name: 'useRoomAsSharedDocumentName',
-                value: this.options.conference.useRoomAsSharedDocumentName
             }).up();
     }
     elem.up();
