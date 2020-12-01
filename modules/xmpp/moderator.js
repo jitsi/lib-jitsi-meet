@@ -270,13 +270,6 @@ Moderator.prototype.createConferenceIq = function() {
                 value: this.options.conference.stereo
             }).up();
     }
-    if (this.options.conference.useRoomAsSharedDocumentName !== undefined) {
-        elem.c(
-            'property', {
-                name: 'useRoomAsSharedDocumentName',
-                value: this.options.conference.useRoomAsSharedDocumentName
-            }).up();
-    }
     elem.up();
 
     return elem;
