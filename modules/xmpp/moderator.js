@@ -204,13 +204,6 @@ Moderator.prototype.createConferenceIq = function() {
                     value: true
                 }).up();
     }
-    if (config.minParticipants !== undefined) {
-        elem.c(
-                'property', {
-                    name: 'minParticipants',
-                    value: config.minParticipants
-                }).up();
-    }
 
     elem.c(
         'property', {
