@@ -212,16 +212,6 @@ Moderator.prototype.createConferenceIq = function() {
                 value: config.minBitrate
             }).up();
     }
-    if (config.testing && config.testing.octo
-        && typeof config.testing.octo.probability === 'number') {
-        if (Math.random() < config.testing.octo.probability) {
-            elem.c(
-                'property', {
-                    name: 'octo',
-                    value: true
-                }).up();
-        }
-    }
 
     let openSctp;
 
