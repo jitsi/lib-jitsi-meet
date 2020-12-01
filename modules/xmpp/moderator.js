@@ -55,12 +55,9 @@ export default function Moderator(roomName, xmpp, emitter, options) {
     this.externalAuthEnabled = false;
     this.options = options;
 
-    // Sip gateway can be enabled by configuring Jigasi host in config.js or
-    // it will be enabled automatically if focus detects the component through
-    // service discovery.
-    this.sipGatewayEnabled
-        = this.options.connection.hosts
-            && this.options.connection.hosts.call_control !== undefined;
+    // Whether SIP gateway (jigasi) support is enabled. This is set
+    // based on conference properties received in presence.
+    this.sipGatewayEnabled = false;
 
     this.eventEmitter = emitter;
 
@@ -160,23 +157,7 @@ Moderator.prototype.createConferenceIq = function() {
     if (sessionId) {
         elem.attrs({ 'session-id': sessionId });
     }
-    if (this.options.connection.enforcedBridge !== undefined) {
-        elem.c(
-            'property', {
-                name: 'enforcedBridge',
-                value: this.options.connection.enforcedBridge
-            }).up();
-    }
 
-    // Tell the focus we have Jigasi configured
-    if (this.options.connection.hosts !== undefined
-        && this.options.connection.hosts.call_control !== undefined) {
-        elem.c(
-            'property', {
-                name: 'call_control',
-                value: this.options.connection.hosts.call_control
-            }).up();
-    }
     elem.c(
         'property', {
             name: 'disableRtx',
@@ -341,8 +322,7 @@ Moderator.prototype.parseConfigOptions = function(resultIq) {
     this.eventEmitter.emit(AuthenticationEvents.IDENTITY_UPDATED,
         authenticationEnabled, authIdentity);
 
-    // Check if focus has auto-detected Jigasi component(this will be also
-    // included if we have passed our host from the config)
+    // Check if jicofo has jigasi support enabled.
     if ($(resultIq).find(
         '>conference>property'
         + '[name=\'sipGatewayEnabled\'][value=\'true\']').length) {
