@@ -164,13 +164,6 @@ Moderator.prototype.createConferenceIq = function() {
             value: Boolean(config.disableRtx)
         }).up();
 
-    if (config.enableTcc !== undefined) {
-        elem.c(
-                'property', {
-                    name: 'enableTcc',
-                    value: Boolean(config.enableTcc)
-                }).up();
-    }
     if (config.enableOpusRed === true) {
         elem.c(
                 'property', {

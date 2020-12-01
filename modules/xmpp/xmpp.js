@@ -161,6 +161,9 @@ export default class XMPP extends Listenable {
         if (typeof this.options.enableRemb === 'undefined' || this.options.enableRemb) {
             this.caps.addFeature('http://jitsi.org/remb')
         }
+        if (typeof this.options.enableTcc === 'undefined' || this.options.enableTcc) {
+            this.caps.addFeature('http://jitsi.org/tcc')
+        }
 
         // this is dealt with by SDP O/A so we don't need to announce this
         // XEP-0293
