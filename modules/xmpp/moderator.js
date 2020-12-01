@@ -164,14 +164,6 @@ Moderator.prototype.createConferenceIq = function() {
             value: Boolean(config.disableRtx)
         }).up();
 
-    if (config.enableOpusRed === true) {
-        elem.c(
-                'property', {
-                    name: 'enableOpusRed',
-                    value: true
-                }).up();
-    }
-
     elem.c(
         'property', {
             name: 'enableLipSync',
