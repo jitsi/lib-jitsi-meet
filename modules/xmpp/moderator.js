@@ -160,13 +160,6 @@ Moderator.prototype.createConferenceIq = function() {
     if (sessionId) {
         elem.attrs({ 'session-id': sessionId });
     }
-    if (this.options.connection.enforcedBridge !== undefined) {
-        elem.c(
-            'property', {
-                name: 'enforcedBridge',
-                value: this.options.connection.enforcedBridge
-            }).up();
-    }
 
     // Tell the focus we have Jigasi configured
     if (this.options.connection.hosts !== undefined
