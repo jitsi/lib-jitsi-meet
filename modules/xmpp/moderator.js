@@ -171,13 +171,6 @@ Moderator.prototype.createConferenceIq = function() {
                     value: Boolean(config.enableTcc)
                 }).up();
     }
-    if (config.enableRemb !== undefined) {
-        elem.c(
-                'property', {
-                    name: 'enableRemb',
-                    value: Boolean(config.enableRemb)
-                }).up();
-    }
     if (config.enableOpusRed === true) {
         elem.c(
                 'property', {
