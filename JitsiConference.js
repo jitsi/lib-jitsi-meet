@@ -162,8 +162,7 @@ export default function JitsiConference(options) {
      * sending bitrate) and calculates a number which represents the connection
      * quality.
      */
-    this.connectionQuality
-        = new ConnectionQuality(this, this.eventEmitter, options);
+    this.connectionQuality = new ConnectionQuality(this, this.eventEmitter);
 
     /**
      * Reports average RTP statistics to the analytics module.

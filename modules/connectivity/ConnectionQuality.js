@@ -164,9 +164,8 @@ export default class ConnectionQuality {
      *
      * @param conference
      * @param eventEmitter
-     * @param options
      */
-    constructor(conference, eventEmitter, options) {
+    constructor(conference, eventEmitter) {
         this.eventEmitter = eventEmitter;
 
         /**
@@ -211,11 +210,6 @@ export default class ConnectionQuality {
          * ramp-up
          */
         this._timeLastBwCapRemoved = -1;
-
-        // We assume a global startBitrate value for the sake of simplicity.
-        if (options.config.startBitrate && options.config.startBitrate > 0) {
-            startBitrate = options.config.startBitrate;
-        }
 
         // TODO: consider ignoring these events and letting the user of
         // lib-jitsi-meet handle these separately.
