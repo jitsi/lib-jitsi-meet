@@ -198,13 +198,6 @@ Moderator.prototype.createConferenceIq = function() {
                 value: config.audioPacketDelay
             }).up();
     }
-    if (config.minBitrate) {
-        elem.c(
-            'property', {
-                name: 'minBitrate',
-                value: config.minBitrate
-            }).up();
-    }
     if (config.testing && config.testing.octo
         && typeof config.testing.octo.probability === 'number') {
         if (Math.random() < config.testing.octo.probability) {
