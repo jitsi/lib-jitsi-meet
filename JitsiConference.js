@@ -99,10 +99,6 @@ const JINGLE_SI_TIMEOUT = 5000;
  * "Math.random() < forceJVB121Ratio" will determine whether a 2 people
  * conference should be moved to the JVB instead of P2P. The decision is made on
  * the responder side, after ICE succeeds on the P2P connection.
- * @param {*} [options.config.openBridgeChannel] Which kind of communication to
- * open with the videobridge. Values can be "datachannel", "websocket", true
- * (treat it as "datachannel"), undefined (treat it as "datachannel") and false
- * (don't open any channel).
  * @constructor
  *
  * FIXME Make all methods which are called from lib-internal classes
@@ -1999,23 +1995,12 @@ JitsiConference.prototype._setBridgeChannel = function(offerIq, pc) {
         wsUrl = webSocket[0].getAttribute('url');
     }
 
-    let bridgeChannelType;
-
-    switch (this.options.config.openBridgeChannel) {
-    case 'datachannel':
-    case true:
-    case undefined:
-        bridgeChannelType = 'datachannel';
-        break;
-    case 'websocket':
-        bridgeChannelType = 'websocket';
-        break;
-    }
-
-    if (bridgeChannelType === 'datachannel') {
-        this.rtc.initializeBridgeChannel(pc, null);
-    } else if (bridgeChannelType === 'websocket' && wsUrl) {
+    if (wsUrl) {
+        // If the offer contains a websocket use it.
         this.rtc.initializeBridgeChannel(null, wsUrl);
+    } else {
+        // Otherwise, fall back to an attempt to use SCTP.
+        this.rtc.initializeBridgeChannel(pc, null);
     }
 };
 
