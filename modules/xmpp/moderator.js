@@ -164,11 +164,6 @@ Moderator.prototype.createConferenceIq = function() {
             value: Boolean(config.disableRtx)
         }).up();
 
-    elem.c(
-        'property', {
-            name: 'enableLipSync',
-            value: this.options.connection.enableLipSync === true
-        }).up();
     if (config.audioPacketDelay !== undefined) {
         elem.c(
             'property', {
@@ -190,35 +185,6 @@ Moderator.prototype.createConferenceIq = function() {
                 value: config.minBitrate
             }).up();
     }
-    if (config.testing && config.testing.octo
-        && typeof config.testing.octo.probability === 'number') {
-        if (Math.random() < config.testing.octo.probability) {
-            elem.c(
-                'property', {
-                    name: 'octo',
-                    value: true
-                }).up();
-        }
-    }
-
-    let openSctp;
-
-    switch (this.options.conference.openBridgeChannel) {
-    case 'datachannel':
-    case true:
-    case undefined:
-        openSctp = true;
-        break;
-    case 'websocket':
-        openSctp = false;
-        break;
-    }
-
-    elem.c(
-        'property', {
-            name: 'openSctp',
-            value: openSctp
-        }).up();
 
     if (config.opusMaxAverageBitrate) {
         elem.c(
@@ -246,13 +212,6 @@ Moderator.prototype.createConferenceIq = function() {
             'property', {
                 name: 'stereo',
                 value: this.options.conference.stereo
-            }).up();
-    }
-    if (this.options.conference.useRoomAsSharedDocumentName !== undefined) {
-        elem.c(
-            'property', {
-                name: 'useRoomAsSharedDocumentName',
-                value: this.options.conference.useRoomAsSharedDocumentName
             }).up();
     }
     elem.up();
