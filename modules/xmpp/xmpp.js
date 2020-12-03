@@ -220,15 +220,12 @@ export default class XMPP extends Listenable {
             // XmppConnection emits CONNECTED again on reconnect - a good opportunity to clear any "last error" flags
             this._resetState();
 
-            // Schedule ping ?
-            const pingJid = this.connection.domain;
-
             // FIXME no need to do it again on stream resume
-            this.caps.getFeaturesAndIdentities(pingJid)
+            this.caps.getFeaturesAndIdentities(this.options.hosts.domain)
                 .then(({ features, identities }) => {
                     if (!features.has(Strophe.NS.PING)) {
-                        logger.error(
-                            `Ping NOT supported by ${pingJid} - please enable ping in your XMPP server config`);
+                        logger.error(`Ping NOT supported by ${
+                            this.options.hosts.domain} - please enable ping in your XMPP server config`);
                     }
 
                     // check for speakerstats
