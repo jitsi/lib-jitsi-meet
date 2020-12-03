@@ -164,28 +164,6 @@ Moderator.prototype.createConferenceIq = function() {
             value: Boolean(config.disableRtx)
         }).up();
 
-    if (config.enableTcc !== undefined) {
-        elem.c(
-                'property', {
-                    name: 'enableTcc',
-                    value: Boolean(config.enableTcc)
-                }).up();
-    }
-    if (config.enableRemb !== undefined) {
-        elem.c(
-                'property', {
-                    name: 'enableRemb',
-                    value: Boolean(config.enableRemb)
-                }).up();
-    }
-    if (config.enableOpusRed === true) {
-        elem.c(
-                'property', {
-                    name: 'enableOpusRed',
-                    value: true
-                }).up();
-    }
-
     if (config.audioPacketDelay !== undefined) {
         elem.c(
             'property', {
