@@ -106,6 +106,11 @@ export default class XMPP extends Listenable {
 
         initStropheNativePlugins();
 
+        const xmppPing = options.xmppPing || {};
+
+        // let's ping the main domain (in case a guest one is used for the connection)
+        xmppPing.domain = options.hosts.domain;
+
         this.connection = createConnection({
             enableWebsocketResume: options.enableWebsocketResume,
 
@@ -113,7 +118,7 @@ export default class XMPP extends Listenable {
             serviceUrl: options.serviceUrl || options.bosh,
             token,
             websocketKeepAlive: options.websocketKeepAlive,
-            xmppPing: options.xmppPing
+            xmppPing
         });
 
         this._initStrophePlugins();
@@ -529,7 +534,7 @@ export default class XMPP extends Listenable {
     ping(timeout) {
         return new Promise((resolve, reject) => {
             this.connection.ping
-                    .ping(this.connection.domain, resolve, reject, timeout);
+                    .ping(this.connection.options.hosts.domain, resolve, reject, timeout);
         });
     }
 

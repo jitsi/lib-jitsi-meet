@@ -305,7 +305,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
         //      https://code.google.com/p/webrtc/issues/detail?id=1650
         this.connection.sendIQ(
             $iq({ type: 'get',
-                to: this.connection.domain })
+                to: this.xmpp.options.hosts.domain })
                 .c('services', { xmlns: 'urn:xmpp:extdisco:1' }),
             res => {
                 const iceservers = [];
