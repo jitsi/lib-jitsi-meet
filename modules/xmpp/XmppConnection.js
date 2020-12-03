@@ -256,7 +256,7 @@ export default class XmppConnection extends Listenable {
             this._maybeStartWSKeepAlive();
             this._processDeferredIQs();
             this._resumeTask.cancel();
-            this.ping.startInterval(this._options.pingOptions.domain);
+            this.ping.startInterval(this._options.pingOptions?.domain || this.domain);
         } else if (status === Strophe.Status.DISCONNECTED) {
             this.ping.stopInterval();
 
