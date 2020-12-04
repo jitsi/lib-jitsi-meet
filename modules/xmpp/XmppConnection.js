@@ -51,6 +51,7 @@ export default class XmppConnection extends Listenable {
         super();
         this._options = {
             enableWebsocketResume: typeof enableWebsocketResume === 'undefined' ? true : enableWebsocketResume,
+            pingOptions: xmppPing,
             websocketKeepAlive: typeof websocketKeepAlive === 'undefined' ? 4 * 60 * 1000 : Number(websocketKeepAlive)
         };
 
@@ -255,7 +256,7 @@ export default class XmppConnection extends Listenable {
             this._maybeStartWSKeepAlive();
             this._processDeferredIQs();
             this._resumeTask.cancel();
-            this.ping.startInterval(this.domain);
+            this.ping.startInterval(this._options.pingOptions?.domain || this.domain);
         } else if (status === Strophe.Status.DISCONNECTED) {
             this.ping.stopInterval();
 
