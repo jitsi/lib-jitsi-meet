@@ -11,9 +11,7 @@ const options = {
     clientNode: 'http://jitsi.org/jitsimeet'
 };
 
-const confOptions = {
-    openBridgeChannel: true
-};
+const confOptions = {};
 
 let connection = null;
 let isJoined = false;

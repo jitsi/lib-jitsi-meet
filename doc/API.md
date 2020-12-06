@@ -225,14 +225,13 @@ This objects represents the server connection. You can create new `JitsiConnecti
             - `domain`
             - `muc`
             - `anonymousdomain`
-        4. `enableLipSync` - (optional) boolean property which enables the lipsync feature. Currently works only in Chrome and is disabled by default.
-        5. `clientNode` - The name of client node advertised in XEP-0115 'c' stanza
-        6. `xmppPing` - (optional) JS Object - xmpp ping options
+        4. `clientNode` - The name of client node advertised in XEP-0115 'c' stanza
+        5. `xmppPing` - (optional) JS Object - xmpp ping options
             - `interval` - how often to send ping requests, default: 10000 (10 seconds)
             - `timeout` - the time to wait for ping responses, default: 5000 (5 seconds)
             - `threshold` - how many ping failures will be tolerated before the connection is killed, default: 2
-        7. `enableWebsocketResume` - (optional) boolean to control the stream resumption functionality, default: `true`
-        8. `websocketKeepAlive` - The websocket keep alive interval in milliseconds. It's 4 minutes by default with jitter. Pass `-1` to disable. The actual interval equation is: `jitterDelay = (interval * 0.2) + (0.8 * interval * Math.random())`. The keep alive is HTTP GET request to the `serviceUrl`.
+        6. `enableWebsocketResume` - (optional) boolean to control the stream resumption functionality, default: `true`
+        7. `websocketKeepAlive` - The websocket keep alive interval in milliseconds. It's 4 minutes by default with jitter. Pass `-1` to disable. The actual interval equation is: `jitterDelay = (interval * 0.2) + (0.8 * interval * Math.random())`. The keep alive is HTTP GET request to the `serviceUrl`.
 
 2. `connect(options)` - establish server connection
     - `options` - JS Object with `id` and `password` properties.
@@ -242,7 +241,6 @@ This objects represents the server connection. You can create new `JitsiConnecti
 4. `initJitsiConference(name, options)` - creates new `JitsiConference` object.
     - `name` - the name of the conference
     - `options` - JS object with configuration options for the conference. You can change the following properties there:
-        - `openBridgeChannel` - Enables/disables bridge channel. Values can be "datachannel", "websocket", true (treat it as "datachannel"), undefined (treat it as "datachannel") and false (don't open any channel). **NOTE: we recommend to set that option to true**
         - `recordingType` - the type of recording to be used
         - `callStatsID` - callstats credentials
         - `callStatsSecret` - callstats credentials
@@ -258,7 +256,6 @@ This objects represents the server connection. You can create new `JitsiConnecti
         - `enableNoisyMicDetection`
         - `enableRemb`
         - `enableTcc`
-        - `useRoomAsSharedDocumentName`
         - `channelLastN`
         - `startBitrate`
         - `stereo`
@@ -291,8 +288,6 @@ This objects represents the server connection. You can create new `JitsiConnecti
         - `testing`
             - `capScreenshareBitrate`
             - `p2pTestMode`
-            - `octo`
-                - `probability`
 
         **NOTE: if 4 and 5 are set the library is going to send events to callstats. Otherwise the callstats integration will be disabled.**
 
