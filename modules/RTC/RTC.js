@@ -526,6 +526,10 @@ export default class RTC extends Listenable {
             iceConfig.sdpSemantics = 'plan-b';
         }
 
+        if (options.forceTurnRelay) {
+            iceConfig.iceTransportPolicy = 'relay';
+        }
+
         // Set the RTCBundlePolicy to max-bundle so that only one set of ice candidates is generated.
         // The default policy generates separate ice candidates for audio and video connections.
         // This change is necessary for Unified plan to work properly on Chrome and Safari.

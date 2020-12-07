@@ -331,6 +331,7 @@ export default class JingleSessionPC extends JingleSession {
         pcOptions.capScreenshareBitrate = false;
         pcOptions.enableInsertableStreams = options.enableInsertableStreams;
         pcOptions.videoQuality = options.videoQuality;
+        pcOptions.forceTurnRelay = options.forceTurnRelay;
 
         // codec preference options for jvb connection.
         if (pcOptions.videoQuality) {
