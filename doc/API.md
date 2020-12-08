@@ -459,6 +459,8 @@ Throws NetworkError or InvalidStateError or Error if the operation fails.
     - `propertyKey` - string - custom property name
     - `propertyValue` - string - custom property value
 
+38. `getParticipants()` - Retrieves an array of all participants in this conference.
+
 JitsiTrack
 ======
 The object represents single track - video or audio. They can be remote tracks ( from the other participants in the call) or local tracks (from the devices of the local participant).
