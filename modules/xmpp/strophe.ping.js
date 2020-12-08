@@ -120,21 +120,23 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
             // when there were some server responses in the interval since the last time we checked (_lastServerCheck)
             // let's skip the ping
 
-            // server response is measured on raw input and ping response time is measured after all the xmpp
-            // processing is done, and when the last server response is a ping there can be slight misalignment of the
-            // times, we give it 100ms for that processing.
-            if (this._getTimeSinceLastServerResponse() + 100 < new Date() - this._lastServerCheck) {
+            const now = Date.now();
+
+            if (this._getTimeSinceLastServerResponse() < now - this._lastServerCheck) {
                 // do this just to keep in sync the intervals so we can detect suspended device
                 this._addPingExecutionTimestamp();
 
-                this._lastServerCheck = new Date();
+                this._lastServerCheck = now;
                 this.failedPings = 0;
 
                 return;
             }
 
             this.ping(remoteJid, () => {
-                this._lastServerCheck = new Date();
+                // server response is measured on raw input and ping response time is measured after all the xmpp
+                // processing is done in js, so there can be some misalignment when we do the check above.
+                // That's why we store the last time we got the response
+                this._lastServerCheck = this._getTimeSinceLastServerResponse() + Date.now();
 
                 this.failedPings = 0;
             }, error => {
