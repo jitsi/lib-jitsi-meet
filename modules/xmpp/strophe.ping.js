@@ -26,21 +26,6 @@ const PING_DEFAULT_TIMEOUT = 5000;
 const PING_DEFAULT_THRESHOLD = 2;
 
 /**
- * How often to send ping requests.
- */
-let pingInterval;
-
-/**
- * The time to wait for ping responses.
- */
-let pingTimeout;
-
-/**
- * How many ping failures will be tolerated before the connection is killed.
- */
-let pingThreshold;
-
-/**
  * XEP-0199 ping plugin.
  *
  * Registers "urn:xmpp:ping" namespace under Strophe.NS.PING.
@@ -143,14 +128,14 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
                 this.failedPings += 1;
                 const errmsg = `Ping ${error ? 'error' : 'timeout'}`;
 
-                if (this.failedPings >= pingThreshold) {
+                if (this.failedPings >= this.pingThreshold) {
                     GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
                     logger.error(errmsg, error);
                     this._onPingThresholdExceeded && this._onPingThresholdExceeded();
                 } else {
                     logger.warn(errmsg, error);
                 }
-            }, pingTimeout);
+            }, this.pingTimeout);
         }, this.pingInterval);
         logger.info(`XMPP pings will be sent every ${this.pingInterval} ms`);
     }
@@ -213,7 +198,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
         // remove the interval between the ping sent
         // this way in normal execution there is no suspend and the return
         // will be 0 or close to 0.
-        maxInterval -= pingInterval;
+        maxInterval -= this.pingInterval;
 
         // make sure we do not return less than 0
         return Math.max(maxInterval, 0);
