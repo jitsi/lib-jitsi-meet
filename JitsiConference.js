@@ -936,6 +936,20 @@ JitsiConference.prototype.getTranscriptionStatus = function() {
     return this.room.transcriptionStatus;
 };
 
+JitsiConference.prototype._assertOkToAddTrack = function(addedTrack) {
+    // FIXME because the tracks state is taken from this.rtc instance, and because the process of adding a track
+    // there is async (needs to go through JingleSessionPC class), it is not possible to reliably verify the condition
+    // here. Still better to check here than to not check at all.
+    const mediaType = addedTrack.getType();
+    const localTracks = this.rtc.getLocalTracks(mediaType);
+
+    // Ensure there's exactly 1 local track of each media type in the conference, but don't be excessively harsh
+    // and severe if the API client happens to attempt to add the same track twice.
+    if (localTracks.length > 0 && addedTrack !== localTracks[0]) {
+        throw new Error(`Cannot add second ${mediaType} track to the conference, rejected track: ${addedTrack}`);
+    }
+};
+
 /**
  * Adds JitsiLocalTrack object to the conference.
  * @param {JitsiLocalTrack} track the JitsiLocalTrack object.
@@ -944,18 +958,7 @@ JitsiConference.prototype.getTranscriptionStatus = function() {
  * another video track in the conference.
  */
 JitsiConference.prototype.addTrack = function(track) {
-    const mediaType = track.getType();
-    const localTracks = this.rtc.getLocalTracks(mediaType);
-
-    // Ensure there's exactly 1 local track of each media type in the conference.
-    if (localTracks.length > 0) {
-        // Don't be excessively harsh and severe if the API client happens to attempt to add the same local track twice.
-        if (track === localTracks[0]) {
-            return Promise.resolve(track);
-        }
-
-        return Promise.reject(new Error(`Cannot add second ${mediaType} track to the conference`));
-    }
+    this._assertOkToAddTrack(track);
 
     return this.replaceTrack(null, track);
 };
@@ -1060,6 +1063,11 @@ JitsiConference.prototype.replaceTrack = function(oldTrack, newTrack) {
             return Promise.reject(
                 new JitsiTrackError(JitsiTrackErrors.TRACK_IS_DISPOSED));
         }
+    }
+
+    // This is effectively add track operation
+    if (!oldTrack && newTrack) {
+        this._assertOkToAddTrack(newTrack);
     }
 
     // Now replace the stream at the lower levels
