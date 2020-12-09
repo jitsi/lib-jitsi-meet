@@ -176,6 +176,13 @@ export default class XmppConnection extends Listenable {
     }
 
     /**
+     * A getter for the domain to be used for ping.
+     */
+    get pingDomain() {
+        return this._options.pingOptions?.domain || this.domain;
+    }
+
+    /**
      * A getter for the service URL.
      *
      * @returns {string}

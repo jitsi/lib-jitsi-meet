@@ -540,8 +540,7 @@ export default class XMPP extends Listenable {
      */
     ping(timeout) {
         return new Promise((resolve, reject) => {
-            this.connection.ping
-                    .ping(this.connection.options.hosts.domain, resolve, reject, timeout);
+            this.connection.ping.ping(this.connection.pingDomain, resolve, reject, timeout);
         });
     }
 
