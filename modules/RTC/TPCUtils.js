@@ -3,7 +3,6 @@ import transform from 'sdp-transform';
 
 import * as MediaType from '../../service/RTC/MediaType';
 import RTCEvents from '../../service/RTC/RTCEvents';
-import VideoType from '../../service/RTC/VideoType';
 import browser from '../browser';
 
 const logger = getLogger(__filename);
@@ -447,20 +446,18 @@ export class TPCUtils {
      * @returns {void}
      */
     updateEncodingsResolution(parameters) {
-        const localVideoTrack = this.pc.getLocalVideoTrack();
-
-        // Ignore desktop and non-simulcast tracks.
-        if (!(parameters
-            && parameters.encodings
-            && Array.isArray(parameters.encodings)
-            && this.pc.isSimulcastOn()
-            && localVideoTrack
-            && localVideoTrack.videoType !== VideoType.DESKTOP)) {
+        if (!(browser.isSafari() && parameters.encodings && Array.isArray(parameters.encodings))) {
             return;
         }
+        const allEqualEncodings
+            = encodings => encodings.every(encoding => typeof encoding.scaleResolutionDownBy !== 'undefined'
+                && encoding.scaleResolutionDownBy === encodings[0].scaleResolutionDownBy);
 
-        parameters.encodings.forEach((encoding, idx) => {
-            encoding.scaleResolutionDownBy = this.localStreamEncodingsConfig[idx].scaleResolutionDownBy;
-        });
+        // Implement the workaround only when all the encodings report the same resolution.
+        if (allEqualEncodings(parameters.encodings)) {
+            parameters.encodings.forEach((encoding, idx) => {
+                encoding.scaleResolutionDownBy = this.localStreamEncodingsConfig[idx].scaleResolutionDownBy;
+            });
+        }
     }
 }
