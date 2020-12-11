@@ -379,6 +379,11 @@ export default class CallStats {
                 configParams.siteID = options.siteID || (match && match[1]) || '/';
             }
 
+            // @JAMEDA-PATCH: Deactivate Callstats Precall Test
+            if (options.callStatsPrecallTestDisabled) {
+                configParams.disablePrecallTest = true;
+            }
+
             // userID is generated or given by the origin server
             CallStats.backend.initialize(
                 CallStats.callStatsID,
