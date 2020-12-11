@@ -172,14 +172,6 @@ export default class RTC extends Listenable {
         this._maxFrameHeight = undefined;
 
         /**
-         * The endpoint ID of currently pinned participant or <tt>null</tt> if
-         * no user is pinned.
-         * @type {string|null}
-         * @private
-         */
-        this._pinnedEndpoint = null;
-
-        /**
          * The endpoint IDs of currently selected participants.
          *
          * @type {Array}
@@ -291,8 +283,6 @@ export default class RTC extends Listenable {
             // we want the notification to trigger even if userJid
             // is undefined, or null.
             try {
-                this._channel.sendPinnedEndpointMessage(
-                    this._pinnedEndpoint);
                 this._channel.sendSelectedEndpointsMessage(
                     this._selectedEndpoints);
 
@@ -304,7 +294,6 @@ export default class RTC extends Listenable {
                 GlobalOnErrorHandler.callErrorHandler(error);
                 logger.error(
                     `Cannot send selected(${this._selectedEndpoint})`
-                    + `pinned(${this._pinnedEndpoint})`
                     + `frameHeight(${this._maxFrameHeight}) endpoint message`,
                     error);
             }
@@ -431,22 +420,6 @@ export default class RTC extends Listenable {
 
         if (this._channel && this._channel.isOpen()) {
             this._channel.sendSelectedEndpointsMessage(ids);
-        }
-    }
-
-    /**
-     * Elects the participant with the given id to be the pinned participant in
-     * order to always receive video for this participant (even when last n is
-     * enabled).
-     * @param {stirng} id The user id.
-     * @throws NetworkError or InvalidStateError or Error if the operation
-     * fails.
-     */
-    pinEndpoint(id) {
-        // Cache the value if channel is missing, till we open it.
-        this._pinnedEndpoint = id;
-        if (this._channel && this._channel.isOpen()) {
-            this._channel.sendPinnedEndpointMessage(id);
         }
     }
 

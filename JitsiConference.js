@@ -1314,17 +1314,6 @@ JitsiConference.prototype.selectParticipants = function(participantIds) {
 };
 
 /**
- * Elects the participant with the given id to be the pinned participant in
- * order to always receive video for this participant (even when last n is
- * enabled).
- * @param participantId the identifier of the participant
- * @throws NetworkError or InvalidStateError or Error if the operation fails.
- */
-JitsiConference.prototype.pinParticipant = function(participantId) {
-    this.rtc.pinEndpoint(participantId);
-};
-
-/**
  * Obtains the current value for "lastN". See {@link setLastN} for more info.
  * @returns {number}
  */
