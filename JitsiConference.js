@@ -1528,11 +1528,26 @@ JitsiConference.prototype.onMemberJoined = function(
 
     this._updateFeatures(participant);
 
-    this._maybeStartOrStopP2P();
+    // maybeStart only if we had finished joining as then we will have information for the number of participants
+    if (this.isJoined()) {
+        this._maybeStartOrStopP2P();
+    }
+
     this._maybeSetSITimeout();
 };
 
 /* eslint-enable max-params */
+
+/**
+ * Get notified when we joined the room.
+ *
+ * FIXME This should NOT be exposed!
+ *
+ * @private
+ */
+JitsiConference.prototype._onMucJoined = function() {
+    this._maybeStartOrStopP2P();
+};
 
 /**
  * Updates features for a participant.
