@@ -120,6 +120,8 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
     // send some analytics events
     chatRoom.addListener(XMPPEvents.MUC_JOINED,
         () => {
+            this.conference._onMucJoined();
+
             this.conference.isJvbConnectionInterrupted = false;
 
             // TODO: Move all of the 'connectionTimes' logic to its own module.
