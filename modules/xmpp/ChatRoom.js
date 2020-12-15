@@ -181,13 +181,10 @@ export default class ChatRoom extends Listenable {
     /**
      * Joins the chat room.
      * @param {string} password - Password to unlock room on joining.
-     * @param {Object} customJoinPresenceExtensions - Key values object to be used
-     * for the initial presence, they key will be an xmpp node and its text is the value,
-     * and those will be added to the initial <x xmlns='http://jabber.org/protocol/muc'/>
      * @returns {Promise} - resolved when join completes. At the time of this
      * writing it's never rejected.
      */
-    join(password, customJoinPresenceExtensions) {
+    join(password) {
         this.password = password;
 
         return new Promise(resolve => {
@@ -200,7 +197,7 @@ export default class ChatRoom extends Listenable {
                     : this.moderator.allocateConferenceFocus();
 
             preJoin.then(() => {
-                this.sendPresence(true, customJoinPresenceExtensions);
+                this.sendPresence(true);
                 this._removeConnListeners.push(
                     this.connection.addEventListener(
                         XmppConnection.Events.CONN_STATUS_CHANGED,
@@ -214,9 +211,8 @@ export default class ChatRoom extends Listenable {
     /**
      *
      * @param fromJoin - Whether this is initial presence to join the room.
-     * @param customJoinPresenceExtensions - Object of key values to be added to the initial presence only.
      */
-    sendPresence(fromJoin, customJoinPresenceExtensions) {
+    sendPresence(fromJoin) {
         const to = this.presMap.to;
 
         if (!this.connection || !this.connection.connected || !to || (!this.joined && !fromJoin)) {
@@ -236,11 +232,6 @@ export default class ChatRoom extends Listenable {
 
             if (this.password) {
                 pres.c('password').t(this.password).up();
-            }
-            if (customJoinPresenceExtensions) {
-                Object.keys(customJoinPresenceExtensions).forEach(key => {
-                    pres.c(key).t(customJoinPresenceExtensions[key]).up();
-                });
             }
             pres.up();
         }
