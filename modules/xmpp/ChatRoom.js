@@ -641,6 +641,10 @@ export default class ChatRoom extends Listenable {
                 // participant joins during that period of time the first
                 // presence from the focus won't contain
                 // <item jid="focus..." />.
+                // By default we are disabling the waiting for form submission in order to use the room
+                // and we had enabled by default that jids are public in the room ,
+                // so this case should not happen, if public jid is turned off we will receive the jid
+                // when we become moderator in the room
                 memberOfThis.isFocus = true;
                 this._initFocus(from, jid);
             }
@@ -758,6 +762,11 @@ export default class ChatRoom extends Listenable {
      * @param mucJid the jid of the focus in the muc
      */
     _initFocus(from, mucJid) {
+        // skip if we have queried jicofo already, it will not change
+        if (this.focusFeatures) {
+            return;
+        }
+
         this.focusMucJid = from;
 
         logger.info(`Ignore focus: ${from}, real JID: ${mucJid}`);
