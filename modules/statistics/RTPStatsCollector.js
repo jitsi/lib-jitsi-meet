@@ -1243,14 +1243,16 @@ StatsCollector.prototype.processNewStatsReport = function() {
                 codec = this.currentStatsReport.get(now.codecId);
             } catch (e) { /* not supported*/ }
 
-            /*
-               The mime type has the following form: video/VP8 or audio/ISAC,
-               so we what to keep just the type after the '/', audio and video
-               keys will be added on the processing side.
-            */
-            const codecShortType = codec.mimeType.split('/')[1];
+            if (codec) {
+                /**
+                 * The mime type has the following form: video/VP8 or audio/ISAC,
+                 * so we what to keep just the type after the '/', audio and video
+                 * keys will be added on the processing side.
+                 */
+                const codecShortType = codec.mimeType.split('/')[1];
 
-            ssrcStats.setCodec(codecShortType);
+                codecShortType && ssrcStats.setCodec(codecShortType);
+            }
 
         // track for resolution
         // RTCVideoHandlerStats
