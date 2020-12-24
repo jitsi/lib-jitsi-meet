@@ -249,7 +249,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                 });
             }
 
-            const ridLines = SDPUtil.findLines(this.media[i], 'a=rid');
+            const ridLines = SDPUtil.findLines(this.media[i], 'a=rid:');
 
             if (ridLines.length && browser.usesRidsForSimulcast()) {
                 // Map a line which looks like "a=rid:2 send" to just
