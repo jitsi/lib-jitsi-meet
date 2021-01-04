@@ -1,6 +1,7 @@
 /* global $, __filename */
 
 import { getLogger } from 'jitsi-meet-logger';
+import isEqual from 'lodash.isequal';
 import { $iq, $msg, $pres, Strophe } from 'strophe.js';
 
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
@@ -12,6 +13,7 @@ import Listenable from '../util/Listenable';
 import Lobby from './Lobby';
 import XmppConnection from './XmppConnection';
 import Moderator from './moderator';
+import { JIGASI_XMLNS } from './xmpp';
 
 const logger = getLogger(__filename);
 
@@ -515,6 +517,26 @@ export default class ChatRoom extends Listenable {
             case 'identity':
                 member.identity = extractIdentityInformation(node);
                 break;
+            case 'features': {
+                if (!member.features) {
+                    member.features = new Set();
+                }
+                this._extractFeatures(node, member.features);
+                break;
+            }
+            case 'initiator': {
+                // we recognize jigasi by the initiator extension in the presence and its xmlns
+                const { attributes } = node;
+
+                if (attributes.xmlns === JIGASI_XMLNS) {
+                    if (!member.features) {
+                        member.features = new Set();
+                    }
+
+                    member.features.add(JIGASI_XMLNS);
+                }
+                break;
+            }
             case 'stat': {
                 const { attributes } = node;
 
@@ -575,7 +597,7 @@ export default class ChatRoom extends Listenable {
             hasStatusUpdate = member.status !== undefined;
             hasVersionUpdate = member.version !== undefined;
             if (member.isFocus) {
-                this._initFocus(from, jid);
+                this._initFocus(from, member.features);
             } else {
                 // identity is being added to member joined, so external
                 // services can be notified for that (currently identity is
@@ -590,7 +612,8 @@ export default class ChatRoom extends Listenable {
                     member.status,
                     member.identity,
                     member.botType,
-                    member.jid);
+                    member.jid,
+                    member.features);
 
                 // we are reporting the status with the join
                 // so we do not want a second event about status update
@@ -637,7 +660,7 @@ export default class ChatRoom extends Listenable {
                 // so this case should not happen, if public jid is turned off we will receive the jid
                 // when we become moderator in the room
                 memberOfThis.isFocus = true;
-                this._initFocus(from, jid);
+                this._initFocus(from, member.features);
             }
 
             // store the new display name
@@ -654,6 +677,11 @@ export default class ChatRoom extends Listenable {
             if (memberOfThis.version !== member.version) {
                 hasVersionUpdate = true;
                 memberOfThis.version = member.version;
+            }
+
+            if (!isEqual(memberOfThis.features, member.features)) {
+                memberOfThis.features = member.features;
+                this.eventEmitter.emit(XMPPEvents.PARTICIPANT_FEATURES_CHANGED, from, member.features);
             }
         }
 
@@ -696,6 +724,9 @@ export default class ChatRoom extends Listenable {
 
                     this.eventEmitter.emit(
                         XMPPEvents.CONFERENCE_PROPERTIES_CHANGED, properties);
+
+                    this.restartByTerminateSupported = properties['support-terminate-restart'] === 'true';
+                    logger.info(`Jicofo supports restart by terminate: ${this.supportsRestartByTerminate()}`);
                 }
                 break;
             case 'transcription-status': {
@@ -748,25 +779,34 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
+     * Extracts the features from the presence.
+     * @param node the node to process.
+     * @param features the Set of features where extracted data will be added.
+     * @private
+     */
+    _extractFeatures(node, features) {
+        for (let j = 0; j < node.children.length; j++) {
+            const { attributes } = node.children[j];
+
+            if (attributes && attributes.var) {
+                features.add(attributes.var);
+            }
+        }
+    }
+
+    /**
      * Initialize some properties when the focus participant is verified.
      * @param from jid of the focus
-     * @param mucJid the jid of the focus in the muc
+     * @param features the features reported in jicofo presence
      */
-    _initFocus(from, mucJid) {
+    _initFocus(from, features) {
         // skip if we have queried jicofo already, it will not change
         if (this.focusFeatures) {
             return;
         }
 
         this.focusMucJid = from;
-
-        logger.info(`Ignore focus: ${from}, real JID: ${mucJid}`);
-        this.xmpp.caps.getFeatures(mucJid, 15000).then(features => {
-            this.focusFeatures = features;
-            logger.info(`Jicofo supports restart by terminate: ${this.supportsRestartByTerminate()}`);
-        }, error => {
-            logger.error('Failed to discover Jicofo features', error && error.message);
-        });
+        this.focusFeatures = features;
     }
 
     /**
@@ -782,9 +822,7 @@ export default class ChatRoom extends Listenable {
      * @returns {boolean}
      */
     supportsRestartByTerminate() {
-        return this.focusFeatures
-            ? this.focusFeatures.has('https://jitsi.org/meet/jicofo/terminate-restart')
-            : false;
+        return this.restartByTerminateSupported;
     }
 
     /**
