@@ -175,7 +175,8 @@ describe('ChatRoom', () => {
                 'status-text',
                 undefined,
                 undefined,
-                'fulljid'
+                'fulljid',
+                undefined // features
             ]);
         });
 
@@ -204,7 +205,8 @@ describe('ChatRoom', () => {
                 undefined,
                 undefined,
                 undefined,
-                'jid=attr');
+                'jid=attr',
+                undefined); // features
         });
 
         it('parses identity correctly', () => {
@@ -250,7 +252,8 @@ describe('ChatRoom', () => {
                 'status-text',
                 expectedIdentity,
                 undefined,
-                'fulljid'
+                'fulljid',
+                undefined // features
             ]);
         });
 
@@ -282,7 +285,8 @@ describe('ChatRoom', () => {
                 'status-text',
                 undefined,
                 expectedBotType,
-                'fulljid'
+                'fulljid',
+                undefined // features
             ]);
         });
 
