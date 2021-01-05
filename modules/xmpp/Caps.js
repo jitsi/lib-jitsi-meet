@@ -114,7 +114,7 @@ export default class Caps extends Listenable {
 
         if (external && !this.externalFeatures.has(feature)) {
             this.externalFeatures.add(feature);
-            this.rooms.forEach(room => this._updateRoomsWithExternalFeatures(room));
+            this.rooms.forEach(room => this._updateRoomWithExternalFeatures(room));
         }
 
         if (submit) {
@@ -136,7 +136,7 @@ export default class Caps extends Listenable {
 
         if (external && this.externalFeatures.has(feature)) {
             this.externalFeatures.delete(feature);
-            this.rooms.forEach(room => this._updateRoomsWithExternalFeatures(room));
+            this.rooms.forEach(room => this._updateRoomWithExternalFeatures(room));
         }
 
         if (submit) {
@@ -152,11 +152,11 @@ export default class Caps extends Listenable {
     }
 
     /**
-     * Updates the presences in the rooms based on the current values in externalFeatures.
-     * @param {ChatRoom} room the room.
+     * Updates the presences in the room based on the current values in externalFeatures.
+     * @param {ChatRoom} room the room to update.
      * @private
      */
-    _updateRoomsWithExternalFeatures(room) {
+    _updateRoomWithExternalFeatures(room) {
         if (this.externalFeatures.size === 0) {
             room.removeFromPresence('features');
         } else {
@@ -272,7 +272,7 @@ export default class Caps extends Listenable {
         room.addListener(XMPPEvents.MUC_MEMBER_LEFT, this._onMucMemberLeft);
         this._fixChatRoomPresenceMap(room);
 
-        this._updateRoomsWithExternalFeatures(room);
+        this._updateRoomWithExternalFeatures(room);
     }
 
     /**
