@@ -518,23 +518,7 @@ export default class ChatRoom extends Listenable {
                 member.identity = extractIdentityInformation(node);
                 break;
             case 'features': {
-                if (!member.features) {
-                    member.features = new Set();
-                }
-                this._extractFeatures(node, member.features);
-                break;
-            }
-            case 'initiator': {
-                // we recognize jigasi by the initiator extension in the presence and its xmlns
-                const { attributes } = node;
-
-                if (attributes.xmlns === JIGASI_XMLNS) {
-                    if (!member.features) {
-                        member.features = new Set();
-                    }
-
-                    member.features.add(JIGASI_XMLNS);
-                }
+                member.features = this._extractFeatures(node);
                 break;
             }
             case 'stat': {
@@ -781,10 +765,12 @@ export default class ChatRoom extends Listenable {
     /**
      * Extracts the features from the presence.
      * @param node the node to process.
-     * @param features the Set of features where extracted data will be added.
+     * @return features the Set of features where extracted data is added.
      * @private
      */
-    _extractFeatures(node, features) {
+    _extractFeatures(node) {
+        const features = new Set();
+
         for (let j = 0; j < node.children.length; j++) {
             const { attributes } = node.children[j];
 
@@ -792,6 +778,8 @@ export default class ChatRoom extends Listenable {
                 features.add(attributes.var);
             }
         }
+
+        return features;
     }
 
     /**
@@ -800,11 +788,6 @@ export default class ChatRoom extends Listenable {
      * @param features the features reported in jicofo presence
      */
     _initFocus(from, features) {
-        // skip if we have queried jicofo already, it will not change
-        if (this.focusFeatures) {
-            return;
-        }
-
         this.focusMucJid = from;
         this.focusFeatures = features;
     }
