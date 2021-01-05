@@ -13,7 +13,6 @@ import Listenable from '../util/Listenable';
 import Lobby from './Lobby';
 import XmppConnection from './XmppConnection';
 import Moderator from './moderator';
-import { JIGASI_XMLNS } from './xmpp';
 
 const logger = getLogger(__filename);
 
