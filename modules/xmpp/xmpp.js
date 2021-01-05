@@ -198,7 +198,7 @@ export default class XMPP extends Listenable {
         }
 
         if (E2EEncryption.isSupported(this.options)) {
-            this.caps.addFeature('https://jitsi.org/meet/e2ee');
+            this.caps.addFeature('https://jitsi.org/meet/e2ee', false, true);
         }
     }
 
