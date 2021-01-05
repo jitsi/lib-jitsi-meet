@@ -804,7 +804,7 @@ TraceablePeerConnection.prototype._remoteTrackAdded = function(stream, track, tr
             mediaLines = remoteSDP.media.filter(mls => SDPUtil.findLine(mls, `a=mid:${mid}`));
         } else {
             mediaLines = remoteSDP.media.filter(mls => {
-                const msid = SDPUtil.findLine(mls, 'a=msid');
+                const msid = SDPUtil.findLine(mls, 'a=msid:');
 
                 return typeof msid !== 'undefined' && streamId === msid.substring(7).split(' ')[0];
             });
