@@ -266,7 +266,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                     elem.up();
                 });
                 const unifiedSimulcast
-                    = SDPUtil.findLine(this.media[i], 'a=simulcast');
+                    = SDPUtil.findLine(this.media[i], 'a=simulcast:');
 
                 if (unifiedSimulcast) {
                     elem.c('rid-group', {
