@@ -81,7 +81,14 @@ export const JITSI_MEET_MUC_TYPE = 'type';
  * The feature used by jigasi participants.
  * @type {string}
  */
-export const JIGASI_FEATURE = 'http://jitsi.org/protocol/jigasi';
+export const FEATURE_JIGASI = 'http://jitsi.org/protocol/jigasi';
+
+/**
+ * The feature used by the lib to mark support for e2ee. We use the feature by putting it in the presence
+ * to avoid additional signaling (disco-info).
+ * @type {string}
+ */
+export const FEATURE_E2EE = 'https://jitsi.org/meet/e2ee';
 
 /**
  *
@@ -198,7 +205,7 @@ export default class XMPP extends Listenable {
         }
 
         if (E2EEncryption.isSupported(this.options)) {
-            this.caps.addFeature('https://jitsi.org/meet/e2ee', false, true);
+            this.caps.addFeature(FEATURE_E2EE, false, true);
         }
     }
 
