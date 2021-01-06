@@ -446,20 +446,22 @@ Throws NetworkError or InvalidStateError or Error if the operation fails.
 33. `pinParticipant(participantId)` - Elects the participant with the given id to be the pinned participant in order to always receive video for this participant (even when last n is enabled).
     - `participantId` - the identifier of the participant
 
+34. `replaceTrack` - replaces the track currently being used as the sender's source with a new MediaStreamTrack. The new track must be of the same media kind (audio, video, etc) and switching the track should not require negotiation. `replaceTrack(oldTrack, newTrack)`
+
 Throws NetworkError or InvalidStateError or Error if the operation fails.
 
-34. `setReceiverVideoConstraint(resolution)` - set the desired resolution to get from JVB (180, 360, 720, 1080, etc).
+35. `setReceiverVideoConstraint(resolution)` - set the desired resolution to get from JVB (180, 360, 720, 1080, etc).
     You should use that method if you are using simulcast.
 
-35. `setSenderVideoConstraint(resolution)` - set the desired resolution to send to JVB or the peer (180, 360, 720).
+36. `setSenderVideoConstraint(resolution)` - set the desired resolution to send to JVB or the peer (180, 360, 720).
 
-36. `isHidden` - checks if local user has joined as a "hidden" user. This is a specialized role used for integrations.
+37. `isHidden` - checks if local user has joined as a "hidden" user. This is a specialized role used for integrations.
 
-37. `setLocalParticipantProperty(propertyKey, propertyValue)` - used to set a custom propery to the local participant("fullName": "Full Name", favoriteColor: "red", "userId": 234). Also this can be used to modify an already set custom property.
+38. `setLocalParticipantProperty(propertyKey, propertyValue)` - used to set a custom propery to the local participant("fullName": "Full Name", favoriteColor: "red", "userId": 234). Also this can be used to modify an already set custom property.
     - `propertyKey` - string - custom property name
     - `propertyValue` - string - custom property value
 
-38. `getParticipants()` - Retrieves an array of all participants in this conference.
+39. `getParticipants()` - Retrieves an array of all participants in this conference.
 
 JitsiTrack
 ======
