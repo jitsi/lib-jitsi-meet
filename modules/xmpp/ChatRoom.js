@@ -1,6 +1,7 @@
 /* global $, __filename */
 
 import { getLogger } from 'jitsi-meet-logger';
+import isEqual from 'lodash.isequal';
 import { $iq, $msg, $pres, Strophe } from 'strophe.js';
 
 import * as JitsiTranscriptionStatus from '../../JitsiTranscriptionStatus';
@@ -181,13 +182,10 @@ export default class ChatRoom extends Listenable {
     /**
      * Joins the chat room.
      * @param {string} password - Password to unlock room on joining.
-     * @param {Object} customJoinPresenceExtensions - Key values object to be used
-     * for the initial presence, they key will be an xmpp node and its text is the value,
-     * and those will be added to the initial <x xmlns='http://jabber.org/protocol/muc'/>
      * @returns {Promise} - resolved when join completes. At the time of this
      * writing it's never rejected.
      */
-    join(password, customJoinPresenceExtensions) {
+    join(password) {
         this.password = password;
 
         return new Promise(resolve => {
@@ -200,7 +198,7 @@ export default class ChatRoom extends Listenable {
                     : this.moderator.allocateConferenceFocus();
 
             preJoin.then(() => {
-                this.sendPresence(true, customJoinPresenceExtensions);
+                this.sendPresence(true);
                 this._removeConnListeners.push(
                     this.connection.addEventListener(
                         XmppConnection.Events.CONN_STATUS_CHANGED,
@@ -214,9 +212,8 @@ export default class ChatRoom extends Listenable {
     /**
      *
      * @param fromJoin - Whether this is initial presence to join the room.
-     * @param customJoinPresenceExtensions - Object of key values to be added to the initial presence only.
      */
-    sendPresence(fromJoin, customJoinPresenceExtensions) {
+    sendPresence(fromJoin) {
         const to = this.presMap.to;
 
         if (!this.connection || !this.connection.connected || !to || (!this.joined && !fromJoin)) {
@@ -236,11 +233,6 @@ export default class ChatRoom extends Listenable {
 
             if (this.password) {
                 pres.c('password').t(this.password).up();
-            }
-            if (customJoinPresenceExtensions) {
-                Object.keys(customJoinPresenceExtensions).forEach(key => {
-                    pres.c(key).t(customJoinPresenceExtensions[key]).up();
-                });
             }
             pres.up();
         }
@@ -524,6 +516,10 @@ export default class ChatRoom extends Listenable {
             case 'identity':
                 member.identity = extractIdentityInformation(node);
                 break;
+            case 'features': {
+                member.features = this._extractFeatures(node);
+                break;
+            }
             case 'stat': {
                 const { attributes } = node;
 
@@ -584,7 +580,7 @@ export default class ChatRoom extends Listenable {
             hasStatusUpdate = member.status !== undefined;
             hasVersionUpdate = member.version !== undefined;
             if (member.isFocus) {
-                this._initFocus(from, jid);
+                this._initFocus(from, member.features);
             } else {
                 // identity is being added to member joined, so external
                 // services can be notified for that (currently identity is
@@ -599,7 +595,8 @@ export default class ChatRoom extends Listenable {
                     member.status,
                     member.identity,
                     member.botType,
-                    member.jid);
+                    member.jid,
+                    member.features);
 
                 // we are reporting the status with the join
                 // so we do not want a second event about status update
@@ -646,7 +643,7 @@ export default class ChatRoom extends Listenable {
                 // so this case should not happen, if public jid is turned off we will receive the jid
                 // when we become moderator in the room
                 memberOfThis.isFocus = true;
-                this._initFocus(from, jid);
+                this._initFocus(from, member.features);
             }
 
             // store the new display name
@@ -663,6 +660,11 @@ export default class ChatRoom extends Listenable {
             if (memberOfThis.version !== member.version) {
                 hasVersionUpdate = true;
                 memberOfThis.version = member.version;
+            }
+
+            if (!isEqual(memberOfThis.features, member.features)) {
+                memberOfThis.features = member.features;
+                this.eventEmitter.emit(XMPPEvents.PARTICIPANT_FEATURES_CHANGED, from, member.features);
             }
         }
 
@@ -705,6 +707,9 @@ export default class ChatRoom extends Listenable {
 
                     this.eventEmitter.emit(
                         XMPPEvents.CONFERENCE_PROPERTIES_CHANGED, properties);
+
+                    this.restartByTerminateSupported = properties['support-terminate-restart'] === 'true';
+                    logger.info(`Jicofo supports restart by terminate: ${this.supportsRestartByTerminate()}`);
                 }
                 break;
             case 'transcription-status': {
@@ -757,25 +762,33 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     * Initialize some properties when the focus participant is verified.
-     * @param from jid of the focus
-     * @param mucJid the jid of the focus in the muc
+     * Extracts the features from the presence.
+     * @param node the node to process.
+     * @return features the Set of features where extracted data is added.
+     * @private
      */
-    _initFocus(from, mucJid) {
-        // skip if we have queried jicofo already, it will not change
-        if (this.focusFeatures) {
-            return;
+    _extractFeatures(node) {
+        const features = new Set();
+
+        for (let j = 0; j < node.children.length; j++) {
+            const { attributes } = node.children[j];
+
+            if (attributes && attributes.var) {
+                features.add(attributes.var);
+            }
         }
 
-        this.focusMucJid = from;
+        return features;
+    }
 
-        logger.info(`Ignore focus: ${from}, real JID: ${mucJid}`);
-        this.xmpp.caps.getFeatures(mucJid, 15000).then(features => {
-            this.focusFeatures = features;
-            logger.info(`Jicofo supports restart by terminate: ${this.supportsRestartByTerminate()}`);
-        }, error => {
-            logger.error('Failed to discover Jicofo features', error && error.message);
-        });
+    /**
+     * Initialize some properties when the focus participant is verified.
+     * @param from jid of the focus
+     * @param features the features reported in jicofo presence
+     */
+    _initFocus(from, features) {
+        this.focusMucJid = from;
+        this.focusFeatures = features;
     }
 
     /**
@@ -791,9 +804,7 @@ export default class ChatRoom extends Listenable {
      * @returns {boolean}
      */
     supportsRestartByTerminate() {
-        return this.focusFeatures
-            ? this.focusFeatures.has('https://jitsi.org/meet/jicofo/terminate-restart')
-            : false;
+        return this.restartByTerminateSupported;
     }
 
     /**

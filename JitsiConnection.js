@@ -150,7 +150,7 @@ JitsiConnection.prototype.getConnectionTimes = function() {
  * immediately submitted to the others.
  */
 JitsiConnection.prototype.addFeature = function(feature, submit = false) {
-    return this.xmpp.caps.addFeature(feature, submit);
+    this.xmpp.caps.addFeature(feature, submit, true);
 };
 
 /**
@@ -161,7 +161,7 @@ JitsiConnection.prototype.addFeature = function(feature, submit = false) {
  * immediately submitted to the others.
  */
 JitsiConnection.prototype.removeFeature = function(feature, submit = false) {
-    return this.xmpp.caps.removeFeature(feature, submit);
+    this.xmpp.caps.removeFeature(feature, submit, true);
 };
 
 /**

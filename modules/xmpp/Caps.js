@@ -79,6 +79,10 @@ export default class Caps extends Listenable {
         this.version = '';
         this.rooms = new Set();
 
+        // We keep track of features added outside the library and we publish them
+        // in the presence of the participant for simplicity, avoiding the disco info request-response.
+        this.externalFeatures = new Set();
+
         const emuc = connection.emuc;
 
         emuc.addListener(XMPPEvents.EMUC_ROOM_ADDED,
@@ -102,10 +106,19 @@ export default class Caps extends Listenable {
      * @param {String} feature the name of the feature.
      * @param {boolean} submit if true - new presence with updated "c" node
      * will be sent.
+     * @param {boolean} external whether this feature was added externally to the library.
+     * We put features used directly by the clients (is jibri, remote-control enabled etc.) in the presence
+     * to avoid additional disco-info queries by those clients.
      */
-    addFeature(feature, submit = false) {
+    addFeature(feature, submit = false, external = false) {
         this.disco.addFeature(feature);
         this._generateVersion();
+
+        if (external && !this.externalFeatures.has(feature)) {
+            this.externalFeatures.add(feature);
+            this.rooms.forEach(room => this._updateRoomWithExternalFeatures(room));
+        }
+
         if (submit) {
             this.submit();
         }
@@ -117,10 +130,17 @@ export default class Caps extends Listenable {
      * @param {String} feature the name of the feature.
      * @param {boolean} submit if true - new presence with updated "c" node
      * will be sent.
+     * @param {boolean} external whether this feature was added externally to the library.
      */
-    removeFeature(feature, submit = false) {
+    removeFeature(feature, submit = false, external = false) {
         this.disco.removeFeature(feature);
         this._generateVersion();
+
+        if (external && this.externalFeatures.has(feature)) {
+            this.externalFeatures.delete(feature);
+            this.rooms.forEach(room => this._updateRoomWithExternalFeatures(room));
+        }
+
         if (submit) {
             this.submit();
         }
@@ -131,6 +151,28 @@ export default class Caps extends Listenable {
      */
     submit() {
         this.rooms.forEach(room => room.sendPresence());
+    }
+
+    /**
+     * Updates the presences in the room based on the current values in externalFeatures.
+     * @param {ChatRoom} room the room to update.
+     * @private
+     */
+    _updateRoomWithExternalFeatures(room) {
+        if (this.externalFeatures.size === 0) {
+            room.removeFromPresence('features');
+        } else {
+            const children = [];
+
+            this.externalFeatures.forEach(f => {
+                children.push({
+                    'tagName': 'feature',
+                    attributes: { 'var': f }
+                });
+            });
+
+            room.addToPresence('features', { children });
+        }
     }
 
     /**
@@ -231,6 +273,8 @@ export default class Caps extends Listenable {
         this.rooms.add(room);
         room.addListener(XMPPEvents.MUC_MEMBER_LEFT, this._onMucMemberLeft);
         this._fixChatRoomPresenceMap(room);
+
+        this._updateRoomWithExternalFeatures(room);
     }
 
     /**
@@ -290,8 +334,7 @@ export default class Caps extends Listenable {
         this.jidToVersion[from] = { version,
             node };
         if (oldVersion && oldVersion.version !== version) {
-            this.eventEmitter.emit(XMPPEvents.PARTCIPANT_FEATURES_CHANGED,
-                from);
+            this.eventEmitter.emit(XMPPEvents.PARTICIPANT_FEATURES_CHANGED, from);
         }
 
         // return true to not remove the handler from Strophe

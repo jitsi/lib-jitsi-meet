@@ -45,6 +45,7 @@ export default class JitsiParticipant {
         this._connectionStatus = ParticipantConnectionStatus.ACTIVE;
         this._properties = {};
         this._identity = identity;
+        this._features = new Set();
     }
 
     /* eslint-enable max-params */
@@ -237,10 +238,18 @@ export default class JitsiParticipant {
 
     /**
      * Returns a set with the features for the participant.
+     * @returns {Promise<Set<String>, Error>}
+     */
+    getFeatures() {
+        return Promise.resolve(this._features);
+    }
+
+    /**
+     * Returns a set with the features for the participant.
      * @param {int} timeout the timeout in ms for reply from the participant.
      * @returns {Promise<Set<String>, Error>}
      */
-    getFeatures(timeout = 5000) {
+    queryFeatures(timeout = 5000) {
         if (this._getFeaturesPromise) {
             return this._getFeaturesPromise;
         }

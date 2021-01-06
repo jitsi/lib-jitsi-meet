@@ -173,7 +173,7 @@ const XMPPEvents = {
     /**
      * Indicates that the features of the participant has been changed.
      */
-    PARTCIPANT_FEATURES_CHANGED: 'xmpp.partcipant_features_changed',
+    PARTICIPANT_FEATURES_CHANGED: 'xmpp.participant_features_changed',
     PASSWORD_REQUIRED: 'xmpp.password_required',
 
     /**
