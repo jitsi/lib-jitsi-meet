@@ -42,7 +42,7 @@ import RandomUtil from './modules/util/RandomUtil';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
-import { JIGASI_XMLNS, JITSI_MEET_MUC_TYPE } from './modules/xmpp/xmpp';
+import { JIGASI_FEATURE, JITSI_MEET_MUC_TYPE } from './modules/xmpp/xmpp';
 import * as MediaType from './service/RTC/MediaType';
 import VideoType from './service/RTC/VideoType';
 import {
@@ -1565,7 +1565,7 @@ JitsiConference.prototype._updateFeatures = function(participant) {
             participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
             this.updateDTMFSupport();
 
-            if (features.has(JIGASI_XMLNS)) {
+            if (features.has(JIGASI_FEATURE)) {
                 participant.setProperty('features_jigasi', true);
             }
 

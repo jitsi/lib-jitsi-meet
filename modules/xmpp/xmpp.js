@@ -78,10 +78,10 @@ export const DEFAULT_STUN_SERVERS = [
 export const JITSI_MEET_MUC_TYPE = 'type';
 
 /**
- * The xmlns used by jigasi and for the jigasi participant features.
+ * The feature used by jigasi participants.
  * @type {string}
  */
-export const JIGASI_XMLNS = 'http://jitsi.org/protocol/jigasi';
+export const JIGASI_FEATURE = 'http://jitsi.org/protocol/jigasi';
 
 /**
  *

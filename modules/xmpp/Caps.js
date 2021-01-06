@@ -80,7 +80,7 @@ export default class Caps extends Listenable {
         this.rooms = new Set();
 
         // We keep track of features added outside the library and we publish them
-        // in the presence of the participant for simplicity, avoiding the disco info request-response
+        // in the presence of the participant for simplicity, avoiding the disco info request-response.
         this.externalFeatures = new Set();
 
         const emuc = connection.emuc;
@@ -107,6 +107,8 @@ export default class Caps extends Listenable {
      * @param {boolean} submit if true - new presence with updated "c" node
      * will be sent.
      * @param {boolean} external whether this feature was added externally to the library.
+     * We put features used directly by the clients (is jibri, remote-control enabled etc.) in the presence
+     * to avoid additional disco-info queries by those clients.
      */
     addFeature(feature, submit = false, external = false) {
         this.disco.addFeature(feature);
