@@ -165,7 +165,7 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     supportsReceiverStats() {
         return window.RTCRtpReceiver
-            && 'getSynchroniziationSourceS' in window.RTCRtpReceiver.prototype;
+            && 'getSynchroniziationSources' in window.RTCRtpReceiver.prototype;
     }
 
     /**
