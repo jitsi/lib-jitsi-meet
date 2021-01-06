@@ -122,9 +122,10 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     supportsCodecPreferences() {
         return this.usesUnifiedPlan()
-            && typeof window.RTCRtpTransceiver !== 'undefined'
-            && Object.keys(window.RTCRtpTransceiver.prototype).indexOf('setCodecPreferences') > -1
-            && Object.keys(RTCRtpSender.prototype).indexOf('getCapabilities') > -1
+            && window.RTCRtpTransceiver
+            && 'setCodecPreferences' in window.RTCRtpTransceiver.prototype
+            && window.RTCRtpSender
+            && 'getCapabilities' in window.RTCRtpSender.prototype
 
             // this is not working on Safari because of the following bug
             // https://bugs.webkit.org/show_bug.cgi?id=215567
@@ -137,8 +138,8 @@ export default class BrowserCapabilities extends BrowserDetection {
      */
     supportsDeviceChangeEvent() {
         return navigator.mediaDevices
-            && typeof navigator.mediaDevices.ondevicechange !== 'undefined'
-            && typeof navigator.mediaDevices.addEventListener !== 'undefined';
+            && 'ondevicechange' in navigator.mediaDevices
+            && 'addEventListener' in navigator.mediaDevices;
     }
 
     /**
@@ -155,16 +156,16 @@ export default class BrowserCapabilities extends BrowserDetection {
      * 50ms to execute on the main thread.
      */
     supportsPerformanceObserver() {
-        return typeof window.PerformanceObserver !== 'undefined'
-            && PerformanceObserver.supportedEntryTypes.indexOf('longtask') > -1;
+        return window.PerformanceObserver
+            && window.PerformanceObserver.supportedEntryTypes.indexOf('longtask') > -1;
     }
 
     /**
      * Checks if the current browser supports audio level stats on the receivers.
      */
     supportsReceiverStats() {
-        return typeof window.RTCRtpReceiver !== 'undefined'
-            && Object.keys(RTCRtpReceiver.prototype).indexOf('getSynchronizationSources') > -1;
+        return window.RTCRtpReceiver
+            && 'getSynchroniziationSourceS' in window.RTCRtpReceiver.prototype;
     }
 
     /**
@@ -212,10 +213,9 @@ export default class BrowserCapabilities extends BrowserDetection {
             return true;
         }
 
-        if (this.isSafari() && typeof window.RTCRtpTransceiver !== 'undefined') {
+        if (this.isSafari() && window.RTCRtpTransceiver) {
             // https://trac.webkit.org/changeset/236144/webkit/trunk/LayoutTests/webrtc/video-addLegacyTransceiver.html
-            // eslint-disable-next-line no-undef
-            return Object.keys(RTCRtpTransceiver.prototype).indexOf('currentDirection') > -1;
+            return 'currentDirection' in window.RTCRtpTransceiver.prototype;
         }
 
         return false;
@@ -260,10 +260,8 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean} {@code true} if the browser supports getDisplayMedia.
      */
     supportsGetDisplayMedia() {
-        return typeof navigator.getDisplayMedia !== 'undefined'
-            || (typeof navigator.mediaDevices !== 'undefined'
-                && typeof navigator.mediaDevices.getDisplayMedia
-                    !== 'undefined');
+        return (navigator.mediaDevices && 'getDisplayMedia' in navigator.mediaDevices)
+            || ('getDisplayMedia' in navigator);
     }
 
     /**
@@ -271,9 +269,9 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean} {@code true} if the browser supports insertable streams.
      */
     supportsInsertableStreams() {
-        if (!(typeof window.RTCRtpSender !== 'undefined'
-            && (window.RTCRtpSender.prototype.createEncodedStreams
-                || window.RTCRtpSender.prototype.createEncodedVideoStreams))) {
+        if (!(window.RTCRtpSender
+            && ('createEncodedStreams' in window.RTCRtpSender.prototype
+                || 'createEncodedVideoStreams' in window.RTCRtpSender.prototype))) {
             return false;
         }
 
