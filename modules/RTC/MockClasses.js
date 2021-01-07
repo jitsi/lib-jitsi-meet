@@ -36,6 +36,15 @@ export class MockPeerConnection {
     }
 
     /**
+     * {@link TraceablePeerConnection.getConfiguredVideoCodec}.
+     *
+     * @returns {CodecMimeType}
+     */
+    getConfiguredVideoCodec() {
+        return 'vp8';
+    }
+
+    /**
      * {@link TraceablePeerConnection.setLocalDescription}.
      *
      * @returns {Promise<void>}

@@ -167,7 +167,7 @@ export default class ChatRoom extends Listenable {
         this.addVideoInfoToPresence(false);
 
         // Set the default codec.
-        this.addCodecInfoToPresence(this.options.preferredCodec);
+        this.addCodecInfoToPresence(options.preferredCodec);
 
         if (options.deploymentInfo && options.deploymentInfo.userRegion) {
             this.presMap.nodes.push({
