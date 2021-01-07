@@ -880,7 +880,7 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     *
+     * Returns the video codec configured as the preferred codec on the peerconnection.
      */
     getConfiguredVideoCodec() {
         return this.peerconnection.getConfiguredVideoCodec();
@@ -1100,8 +1100,11 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
+     * Updates the codecs on the peerconnection and initiates a renegotiation for the
+     * new codec config to take effect.
      *
-     * @param {*} codec
+     * @param {CodecMimeType} preferred the preferred codec.
+     * @param {CodecMimeType} disabled the codec that needs to be disabled.
      */
     setVideoCodecs(preferred = null, disabled = null) {
         const current = this.peerconnection.getConfiguredVideoCodec();

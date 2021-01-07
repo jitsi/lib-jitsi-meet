@@ -31,6 +31,7 @@ export class CodecSelection {
      */
     constructor(conference, options) {
         this.conference = conference;
+        this.options = options;
 
         // VP8 cannot be disabled and it will be the default codec when no preference is set.
         this.disabledCodec = options.disabledCodec === CodecMimeType.VP8
@@ -43,7 +44,8 @@ export class CodecSelection {
 
         this.jvbPreferredCodec = jvbCodec && this._isCodecSupported(jvbCodec) ? jvbCodec : CodecMimeType.VP8;
         this.p2pPreferredCodec = p2pCodec && this._isCodecSupported(p2pCodec) ? p2pCodec : CodecMimeType.VP8;
-        this.enforcePreferredCodec = options.enforcePreferredCodec;
+        logger.debug(`Codec preferences for the conference are JVB: ${this.jvbPreferredCodec},
+            P2P: ${this.p2pPreferredCodec}`);
 
         // Do not prefer VP9 on Firefox because of the following bug.
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1633876
@@ -129,25 +131,23 @@ export class CodecSelection {
     _onParticipantJoined(id) {
         const session = this.conference.jvbJingleSession;
 
-        if (session && !this.enforcePreferredCodec) {
+        if (session && !this.options.enforcePreferredCodec) {
             const peerMediaInfo = session.signalingLayer.getPeerMediaInfo(id, MediaType.VIDEO);
 
-            if (peerMediaInfo) {
-                const newCodec = peerMediaInfo.codecType;
-                const currentCodec = session.getConfiguredVideoCodec();
+            if (!peerMediaInfo) {
+                return;
+            }
+            const newCodec = peerMediaInfo.codecType;
+            const currentCodec = session.getConfiguredVideoCodec();
 
-                // Add the participant to the list of participants that
-                // don't support the preferred codec.
-                if (newCodec !== this.jvbPreferredCodec) {
-                    this.nonPreferredParticipants.push(id);
-                }
-                logger.warn(`Current: ${currentCodec}, new: ${newCodec}`);
-                if (newCodec
-                    && newCodec !== this.jvbPreferredCodec
-                    && newCodec !== currentCodec
-                    && this._isCodecSupported(newCodec)) {
-                    session.setVideoCodecs(newCodec);
-                }
+            if (newCodec
+                && newCodec !== this.jvbPreferredCodec
+                && newCodec !== currentCodec
+                && this._isCodecSupported(newCodec)) {
+
+                // Add the participant to the list of participants that don't support the preferred codec.
+                this.nonPreferredParticipants.push(id);
+                session.setVideoCodecs(newCodec);
             }
         }
     }
@@ -164,7 +164,7 @@ export class CodecSelection {
     _onParticipantLeft(id) {
         const session = this.conference.jvbJingleSession;
 
-        if (session && !this.enforcePreferredCodec) {
+        if (session && !this.options.enforcePreferredCodec) {
             const index = this.nonPreferredParticipants.findIndex(participantId => participantId === id);
 
             if (index > -1) {

@@ -13,6 +13,12 @@ export class MockChatRoom {
      */
     addPresenceListener() {
     }
+
+    /**
+     * {@link ChatRoom.sendCodecInfoPresence}.
+     */
+    sendCodecInfoPresence() {
+    }
 }
 
 /**
