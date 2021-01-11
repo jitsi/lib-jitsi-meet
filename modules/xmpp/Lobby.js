@@ -235,7 +235,7 @@ export default class Lobby {
                 (reason, jid) => {
                     // we are receiving the jid of the main room
                     // means we are invited to join, maybe lobby was disabled
-                    if (jid && jid === this.mainRoom.roomjid) {
+                    if (jid) {
                         this.mainRoom.join();
 
                         return;
