@@ -53,16 +53,12 @@ export class CodecSelection {
             this.jvbPreferredCodec = CodecMimeType.VP8;
         }
 
-        // Keep a list of participants that join the call with a non-preferred codec.
-        // The call is upgraded to the preferred codec once that list is empty.
-        this.nonPreferredParticipants = [];
-
         this.conference.on(
             JitsiConferenceEvents.USER_JOINED,
-            this._onParticipantJoined.bind(this));
+            () => this._selectPreferredCodec());
         this.conference.on(
             JitsiConferenceEvents.USER_LEFT,
-            this._onParticipantLeft.bind(this));
+            () => this._selectPreferredCodec());
         this.conference.on(
             JitsiConferenceEvents._MEDIA_SESSION_STARTED,
             session => this._onMediaSessionStared(session));
@@ -115,93 +111,45 @@ export class CodecSelection {
         const disabledCodec = this.disabledCodec && this._isCodecSupported(this.disabledCodec)
             ? this.disabledCodec
             : null;
-        let codec = preferredCodec;
 
-        // For a new endpoint joining the call, JitsiConferenceEvents.USER_JOINED event is received before the
-        // media session is created, the supported codecs for all the remote endpoints in the call need to be
-        // compared here before setting the codec on the peerconnection.
-        if (!mediaSession.isP2P) {
+        this._selectPreferredCodec(mediaSession, preferredCodec, disabledCodec);
+    }
+
+    /**
+     * Sets the codec on the media session based on the preferred codec setting and the supported codecs
+     * published by the remote participants in their presence.
+     *
+     * @param {JingleSessionPC} mediaSession session for which the codec selection has to be made.
+     * @param {CodecMimeType} preferredCodec preferred codec.
+     * @param {CodecMimeType} disabledCodec codec that needs to be disabled.
+     */
+    _selectPreferredCodec(mediaSession = null, preferredCodec = null, disabledCodec = null) {
+        const session = mediaSession ? mediaSession : this.conference.jvbJingleSession;
+        const codec = preferredCodec ? preferredCodec : this.jvbPreferredCodec;
+        let selectedCodec = codec;
+
+        if (session && !session.isP2P && !this.options.enforcePreferredCodec) {
             const remoteParticipants = this.conference.getParticipants().map(participant => participant.getId());
 
             for (const remote of remoteParticipants) {
-                const peerMediaInfo = mediaSession.signalingLayer.getPeerMediaInfo(remote, MediaType.VIDEO);
+                const peerMediaInfo = session.signalingLayer.getPeerMediaInfo(remote, MediaType.VIDEO);
 
-                if (peerMediaInfo && peerMediaInfo.codecType && peerMediaInfo.codecType !== preferredCodec) {
-                    this.nonPreferredParticipants.push(remote);
-                    codec = peerMediaInfo.codecType;
+                if (peerMediaInfo && peerMediaInfo.codecType && peerMediaInfo.codecType !== codec) {
+                    selectedCodec = peerMediaInfo.codecType;
                 }
             }
         }
-
-        mediaSession.setVideoCodecs(codec, disabledCodec);
+        session && session.setVideoCodecs(selectedCodec, disabledCodec);
     }
 
     /**
-     * Handles the {@link JitsiConferenceEvents.USER_JOINED} event. When a new user joins the call,
-     * the codec types are compared and the codec configued on the peerconnection is updated when
-     * needed.
-     *
-     * @param {string} id endpoint id of the newly joined user.
-     * @returns {void}
-     * @private
-     */
-    _onParticipantJoined(id) {
-        const session = this.conference.jvbJingleSession;
-
-        if (session && !this.options.enforcePreferredCodec) {
-            const peerMediaInfo = session.signalingLayer.getPeerMediaInfo(id, MediaType.VIDEO);
-
-            if (!peerMediaInfo) {
-                return;
-            }
-            const newCodec = peerMediaInfo.codecType;
-            const currentCodec = session.getConfiguredVideoCodec();
-
-            if (newCodec
-                && newCodec !== this.jvbPreferredCodec
-                && newCodec !== currentCodec
-                && this._isCodecSupported(newCodec)) {
-
-                // Add the participant to the list of participants that don't support the preferred codec.
-                this.nonPreferredParticipants.push(id);
-                session.setVideoCodecs(newCodec);
-            }
-        }
-    }
-
-    /**
-     * Handles the {@link JitsiConferenceEvents.USER_LEFT} event. When a user leaves the call,
-     * the codec configured on the peerconnection is updated to the preferred codec if all the
-     * users that do not support the preferred codec have left the call.
-     *
-     * @param {string} id endpoint id of the user that has left the call.
-     * @returns {void}
-     * @private
-     */
-    _onParticipantLeft(id) {
-        const session = this.conference.jvbJingleSession;
-
-        if (session && !this.options.enforcePreferredCodec) {
-            const index = this.nonPreferredParticipants.findIndex(participantId => participantId === id);
-
-            if (index > -1) {
-                this.nonPreferredParticipants.splice(index, 1);
-            }
-
-            // If all the participants that have joined the conference with a
-            // non-preferred codec have left, switch to the preferred codec.
-            if (!this.nonPreferredParticipants.length) {
-                session.setVideoCodecs(this.jvbPreferredCodec);
-            }
-        }
-    }
-
-    /**
-     * Returns the preferred codec for the conference.
+     * Returns the preferred codec for the conference. The preferred codec for the JVB media session
+     * is the one that gets published in presence and a comparision is made whenever a participant joins
+     * or leaves the call.
      *
      * @returns {CodecMimeType} preferred codec.
      */
     getPreferredCodec() {
-        return this.conference.isP2PActive() ? this.p2pPreferredCodec : this.jvbPreferredCodec;
+        return this.jvbPreferredCodec;
     }
 }
