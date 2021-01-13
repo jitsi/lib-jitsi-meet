@@ -166,9 +166,6 @@ export default class ChatRoom extends Listenable {
         // here.
         this.addVideoInfoToPresence(false);
 
-        // Set the default codec.
-        this.addCodecInfoToPresence(options.preferredCodec);
-
         if (options.deploymentInfo && options.deploymentInfo.userRegion) {
             this.presMap.nodes.push({
                 'tagName': 'region',
@@ -1560,37 +1557,6 @@ export default class ChatRoom extends Listenable {
     }
 
     /**
-     * Add the codec key to the presence map.
-     *
-     * @param {string} codec - the mime type of the codec that needs to be
-     * published via presence to other users in the conference.
-     *
-     * @returns {void}
-     */
-    addCodecInfoToPresence(codec) {
-        this.addToPresence(
-            'codecType',
-            {
-                attributes: { 'xmlns': 'http://jitsi.org/jitmeet/codec' },
-                value: codec.toString()
-            });
-    }
-
-    /**
-     * Adds the codec key to presence map and sends the presence info
-     * to the room.
-     *
-     * @param {string} codec - the mime type of the codec that needs to be
-     * published via presence to other users in the conference.
-     *
-     * @returns {void}
-     */
-    sendCodecInfoPresence(codec) {
-        this.addCodecInfoToPresence(codec);
-        this.sendPresence();
-    }
-
-    /**
      * Obtains the info about given media advertised in the MUC presence of
      * the participant identified by the given endpoint JID.
      * @param {string} endpointId the endpoint ID mapped to the participant
@@ -1619,7 +1585,7 @@ export default class ChatRoom extends Listenable {
             mutedNode = filterNodeFromPresenceJSON(pres, 'audiomuted');
         } else if (mediaType === MediaType.VIDEO) {
             mutedNode = filterNodeFromPresenceJSON(pres, 'videomuted');
-            const codecTypeNode = filterNodeFromPresenceJSON(pres, 'codecType');
+            const codecTypeNode = filterNodeFromPresenceJSON(pres, 'jitsi_participant_codecType');
             const videoTypeNode = filterNodeFromPresenceJSON(pres, 'videoType');
 
             if (videoTypeNode.length > 0) {
