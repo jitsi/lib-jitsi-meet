@@ -146,7 +146,7 @@ describe('ChatRoom', () => {
                 'jid',
                 'password',
                 xmpp,
-                { preferredCodec: 'vp8' } /* options */);
+                {} /* options */);
             emitterSpy = spyOn(room.eventEmitter, 'emit');
         });
         it('parses status correctly', () => {

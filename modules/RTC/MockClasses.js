@@ -35,7 +35,6 @@ export class MockPeerConnection {
         return Promise.resolve(/* answer */{});
     }
 
-
     /**
      * {@link TraceablePeerConnection.setLocalDescription}.
      *
