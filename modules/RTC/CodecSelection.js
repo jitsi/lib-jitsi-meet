@@ -115,8 +115,25 @@ export class CodecSelection {
         const disabledCodec = this.disabledCodec && this._isCodecSupported(this.disabledCodec)
             ? this.disabledCodec
             : null;
+        let codec = preferredCodec;
 
-        mediaSession.setVideoCodecs(preferredCodec, disabledCodec);
+        // For a new endpoint joining the call, JitsiConferenceEvents.USER_JOINED event is received before the
+        // media session is created, the supported codecs for all the remote endpoints in the call need to be
+        // compared here before setting the codec on the peerconnection.
+        if (!mediaSession.isP2P) {
+            const remoteParticipants = this.conference.getParticipants().map(participant => participant.getId());
+
+            for (const remote of remoteParticipants) {
+                const peerMediaInfo = mediaSession.signalingLayer.getPeerMediaInfo(remote, MediaType.VIDEO);
+
+                if (peerMediaInfo && peerMediaInfo.codecType && peerMediaInfo.codecType !== preferredCodec) {
+                    this.nonPreferredParticipants.push(remote);
+                    codec = peerMediaInfo.codecType;
+                }
+            }
+        }
+
+        mediaSession.setVideoCodecs(codec, disabledCodec);
     }
 
     /**

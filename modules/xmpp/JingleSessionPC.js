@@ -1816,20 +1816,11 @@ export default class JingleSessionPC extends JingleSession {
             sdp: remoteSdp
         });
 
-        const promise = this.isInitiator
-            ? this._initiatorRenegotiate(remoteDescription)
-            : this._responderRenegotiate(remoteDescription);
+        if (this.isInitiator) {
+            return this._initiatorRenegotiate(remoteDescription);
+        }
 
-        return promise.then(() => {
-            // Publish the codec info to the other endpoints in the conference if it has changed
-            // as a result of the renegotiation (only on current active session).
-            const codec = this.peerconnection.getConfiguredVideoCodec();
-
-            if (this.currentCodec !== codec && this._localVideoActive) {
-                this.room.sendCodecInfoPresence(codec);
-                this.currentCodec = codec;
-            }
-        });
+        return this._responderRenegotiate(remoteDescription);
     }
 
     /**

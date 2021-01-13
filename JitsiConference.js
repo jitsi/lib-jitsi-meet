@@ -332,7 +332,6 @@ JitsiConference.prototype._init = function(options = {}) {
     this.room = this.xmpp.createRoom(
         this.options.name, {
             ...config,
-            preferredCodec: this.codecSelection.getPreferredCodec(),
             statsId: this._statsCurrentId
         },
         JitsiConference.resourceCreator
@@ -503,6 +502,9 @@ JitsiConference.prototype._init = function(options = {}) {
         this.setLocalParticipantProperty(
             'region', config.deploymentInfo.userRegion);
     }
+
+    // Publish the codec type to presence.
+    this.setLocalParticipantProperty('codecType', this.codecSelection.getPreferredCodec());
 };
 
 /**
