@@ -265,8 +265,8 @@ export default class XmppConnection extends Listenable {
         if (status === Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
             this._maybeEnableStreamResume();
 
-            // after connecting immediately check whether shard changed
-            this._maybeStartWSKeepAlive(this._options, 0);
+            // after connecting - immediately check whether shard changed and maybe schedule keep alive
+            this._checkShardAndMaybeScheduleKeepAlive();
             this._processDeferredIQs();
             this._resumeTask.cancel();
             this.ping.startInterval(this._options.pingOptions?.domain || this.domain);
@@ -367,43 +367,49 @@ export default class XmppConnection extends Listenable {
 
     /**
      * Starts the Websocket keep alive if enabled.
-     * @param {String} options.shard - The BOSH or WebSocket was connected to this shard.
-     * @param {Number} [options.websocketKeepAlive=240000] - The websocket keep alive interval.
-     * Pass 0 to immediately check and then proceed with the interval from options.
      *
      * @private
      * @returns {void}
      */
-    _maybeStartWSKeepAlive(
-            { shard, websocketKeepAlive },
-            intervalWithJitter = /* base */ (websocketKeepAlive * 0.2)
-                    + /* jitter */ (Math.random() * 0.8 * websocketKeepAlive)) {
+    _maybeStartWSKeepAlive() {
+        const { websocketKeepAlive } = this._options;
 
         if (this._usesWebsocket && websocketKeepAlive > 0) {
             this._wsKeepAlive || logger.info(`WebSocket keep alive interval: ${websocketKeepAlive}ms`);
             clearTimeout(this._wsKeepAlive);
 
+            const intervalWithJitter
+                = /* base */ (websocketKeepAlive * 0.2) + /* jitter */ (Math.random() * 0.8 * websocketKeepAlive);
+
             logger.debug(`Scheduling next WebSocket keep-alive in ${intervalWithJitter}ms`);
 
-            this._wsKeepAlive = setTimeout(() => {
-                const url = this.service.replace('wss://', 'https://').replace('ws://', 'http://');
-
-                fetch(url)
-                    .then(response => {
-                        const responseShard = response.headers.get('x-jitsi-shard');
-
-                        if (responseShard !== shard) {
-                            logger.error(
-                                `Detected that shard changed from ${shard} to ${responseShard}`);
-                            this.eventEmitter.emit(XmppConnection.Events.CONN_SHARD_CHANGED);
-                        }
-                    })
-                    .catch(error => {
-                        logger.error(`Websocket Keep alive failed for url: ${url}`, { error });
-                    })
-                    .then(() => this._maybeStartWSKeepAlive(this._options)); // proceed with values from the config
-            }, intervalWithJitter);
+            this._wsKeepAlive = setTimeout(this._checkShardAndMaybeScheduleKeepAlive, intervalWithJitter);
         }
+    }
+
+    /**
+     * Do a http GET to the shard and if shard change will throw an event.
+     * Also schedules a future ws keep-alive.
+     * @private
+     */
+    _checkShardAndMaybeScheduleKeepAlive() {
+        const { shard } = this._options;
+        const url = this.service.replace('wss://', 'https://').replace('ws://', 'http://');
+
+        fetch(url)
+            .then(response => {
+                const responseShard = response.headers.get('x-jitsi-shard');
+
+                if (responseShard !== shard) {
+                    logger.error(
+                        `Detected that shard changed from ${shard} to ${responseShard}`);
+                    this.eventEmitter.emit(XmppConnection.Events.CONN_SHARD_CHANGED);
+                }
+            })
+            .catch(error => {
+                logger.error(`Websocket Keep alive failed for url: ${url}`, { error });
+            })
+            .then(() => this._maybeStartWSKeepAlive());
     }
 
     /**

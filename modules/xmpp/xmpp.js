@@ -39,7 +39,8 @@ const logger = getLogger(__filename);
 function createConnection({
     enableWebsocketResume,
     serviceUrl = '/http-bind',
-    shard, token,
+    shard,
+    token,
     websocketKeepAlive,
     xmppPing }) {
 
