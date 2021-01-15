@@ -266,7 +266,8 @@ export default class XmppConnection extends Listenable {
             this._maybeEnableStreamResume();
 
             // after connecting - immediately check whether shard changed and maybe schedule keep alive
-            this._checkShardAndMaybeScheduleKeepAlive();
+            this._keepAliveAndCheckShard();
+            this._maybeStartWSKeepAlive();
             this._processDeferredIQs();
             this._resumeTask.cancel();
             this.ping.startInterval(this._options.pingOptions?.domain || this.domain);
@@ -383,20 +384,24 @@ export default class XmppConnection extends Listenable {
 
             logger.debug(`Scheduling next WebSocket keep-alive in ${intervalWithJitter}ms`);
 
-            this._wsKeepAlive = setTimeout(this._checkShardAndMaybeScheduleKeepAlive, intervalWithJitter);
+            this._wsKeepAlive = setTimeout(
+                () => this._keepAliveAndCheckShard()
+                    .then(() => this._maybeStartWSKeepAlive()),
+                intervalWithJitter);
         }
     }
 
     /**
      * Do a http GET to the shard and if shard change will throw an event.
-     * Also schedules a future ws keep-alive.
+     *
      * @private
+     * @returns {Promise}
      */
-    _checkShardAndMaybeScheduleKeepAlive() {
+    _keepAliveAndCheckShard() {
         const { shard } = this._options;
         const url = this.service.replace('wss://', 'https://').replace('ws://', 'http://');
 
-        fetch(url)
+        return fetch(url)
             .then(response => {
                 const responseShard = response.headers.get('x-jitsi-shard');
 
@@ -408,8 +413,7 @@ export default class XmppConnection extends Listenable {
             })
             .catch(error => {
                 logger.error(`Websocket Keep alive failed for url: ${url}`, { error });
-            })
-            .then(() => this._maybeStartWSKeepAlive());
+            });
     }
 
     /**
