@@ -93,6 +93,9 @@ export default class XmppConnection extends Listenable {
                 onPingThresholdExceeded: () => this._onPingErrorThresholdExceeded(),
                 pingOptions: xmppPing
             }));
+
+        // tracks whether this is the initial connection or a reconnect
+        this._oneSuccessfulConnect = false;
     }
 
     /**
@@ -265,8 +268,13 @@ export default class XmppConnection extends Listenable {
         if (status === Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
             this._maybeEnableStreamResume();
 
-            // after connecting - immediately check whether shard changed and maybe schedule keep alive
-            this._keepAliveAndCheckShard();
+            // after connecting - immediately check whether shard changed,
+            // we need this only when using websockets as bosh checks headers from every response
+            if (this._usesWebsocket && this._oneSuccessfulConnect) {
+                this._keepAliveAndCheckShard();
+            }
+            this._oneSuccessfulConnect = true;
+
             this._maybeStartWSKeepAlive();
             this._processDeferredIQs();
             this._resumeTask.cancel();
