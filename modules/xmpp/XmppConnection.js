@@ -44,9 +44,8 @@ export default class XmppConnection extends Listenable {
      * Useful for detecting when shard changes.
      * @param {String} [options.enableWebsocketResume=true] - True/false to control the stream resumption functionality.
      * It will enable automatically by default if supported by the XMPP server.
-     * @param {Number} [options.websocketKeepAlive=240000] - The websocket keep alive interval. It's 4 minutes by
-     * default with jitter. Pass -1 to disable. The actual interval equation is:
-     * jitterDelay = (interval * 0.2) + (0.8 * interval * Math.random())
+     * @param {Number} [options.websocketKeepAlive=60000] - The websocket keep alive interval.
+     * It's the interval + a up to a minute of jitter. Pass -1 to disable.
      * The keep alive is HTTP GET request to the {@link options.serviceUrl}.
      * @param {Object} [options.xmppPing] - The xmpp ping settings.
      */
@@ -56,7 +55,7 @@ export default class XmppConnection extends Listenable {
             enableWebsocketResume: typeof enableWebsocketResume === 'undefined' ? true : enableWebsocketResume,
             pingOptions: xmppPing,
             shard,
-            websocketKeepAlive: typeof websocketKeepAlive === 'undefined' ? 4 * 60 * 1000 : Number(websocketKeepAlive)
+            websocketKeepAlive: typeof websocketKeepAlive === 'undefined' ? 60 * 1000 : Number(websocketKeepAlive)
         };
 
         this._stropheConn = new Strophe.Connection(serviceUrl);
@@ -387,8 +386,7 @@ export default class XmppConnection extends Listenable {
             this._wsKeepAlive || logger.info(`WebSocket keep alive interval: ${websocketKeepAlive}ms`);
             clearTimeout(this._wsKeepAlive);
 
-            const intervalWithJitter
-                = /* base */ (websocketKeepAlive * 0.2) + /* jitter */ (Math.random() * 0.8 * websocketKeepAlive);
+            const intervalWithJitter = /* base */ websocketKeepAlive + /* jitter */ (Math.random() * 60 * 1000);
 
             logger.debug(`Scheduling next WebSocket keep-alive in ${intervalWithJitter}ms`);
 
