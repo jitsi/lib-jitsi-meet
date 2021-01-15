@@ -30,12 +30,20 @@ const logger = getLogger(__filename);
  * @param {string} [options.token] - JWT token used for authentication(JWT authentication module must be enabled in
  * Prosody).
  * @param {string} options.serviceUrl - The service URL for XMPP connection.
+ * @param {string} options.shard - The shard where XMPP connection initially landed.
  * @param {string} options.enableWebsocketResume - True to enable stream resumption.
  * @param {number} [options.websocketKeepAlive] - See {@link XmppConnection} constructor.
  * @param {Object} [options.xmppPing] - See {@link XmppConnection} constructor.
  * @returns {XmppConnection}
  */
-function createConnection({ enableWebsocketResume, serviceUrl = '/http-bind', token, websocketKeepAlive, xmppPing }) {
+function createConnection({
+    enableWebsocketResume,
+    serviceUrl = '/http-bind',
+    shard,
+    token,
+    websocketKeepAlive,
+    xmppPing }) {
+
     // Append token as URL param
     if (token) {
         // eslint-disable-next-line no-param-reassign
@@ -46,7 +54,8 @@ function createConnection({ enableWebsocketResume, serviceUrl = '/http-bind', to
         enableWebsocketResume,
         serviceUrl,
         websocketKeepAlive,
-        xmppPing
+        xmppPing,
+        shard
     });
 }
 
@@ -131,7 +140,26 @@ export default class XMPP extends Listenable {
             serviceUrl: options.serviceUrl || options.bosh,
             token,
             websocketKeepAlive: options.websocketKeepAlive,
-            xmppPing
+            xmppPing,
+            shard: options.deploymentInfo?.shard
+        });
+
+        // forwards the shard changed event
+        this.connection.on(XmppConnection.Events.CONN_SHARD_CHANGED, () => {
+            /* eslint-disable camelcase */
+            const details = {
+                shard_changed: true,
+                suspend_time: this.connection.ping.getPingSuspendTime(),
+                time_since_last_success: this.connection.getTimeSinceLastSuccess()
+            };
+            /* eslint-enable camelcase */
+
+            this.eventEmitter.emit(
+                JitsiConnectionEvents.CONNECTION_FAILED,
+                JitsiConnectionErrors.OTHER_ERROR,
+                undefined,
+                undefined,
+                details);
         });
 
         this._initStrophePlugins();
