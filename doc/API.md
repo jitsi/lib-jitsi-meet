@@ -49,6 +49,7 @@ The `options` parameter is JS object with the following properties:
     - `disableRtx` - (optional) boolean property (default to false).  Enables/disable the use of RTX.
     - `disabledCodec` - the mime type of the code that should not be negotiated on the peerconnection.
     - `preferredCodec` the mime type of the codec that needs to be made the preferred codec for the connection.
+    - `noTurnsOnSafari` - boolean property (default false). Disables use of tls "turns" ice servers on Safari because it has a bug and can't connect when the certificate is from Let's Encrypt (and maybe other CAs) (see: https://b.webkit.org/show_bug.cgi?id=219274)
     - `disableH264` - __DEPRECATED__. Use `disabledCodec` instead.
     - `preferH264` - __DEPRECATED__. Use `preferredCodec` instead.
 
