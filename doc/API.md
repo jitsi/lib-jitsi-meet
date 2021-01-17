@@ -48,7 +48,8 @@ The `options` parameter is JS object with the following properties:
     - `callStatsCustomScriptUrl` - (optional) custom url to access callstats client script
     - `disableRtx` - (optional) boolean property (default to false).  Enables/disable the use of RTX.
     - `disabledCodec` - the mime type of the code that should not be negotiated on the peerconnection.
-    - `preferredCodec` the mime type of the codec that needs to be made the preferred codec for the connection.
+    - `preferredCodec` - the mime type of the codec that needs to be made the preferred codec for the connection.
+    - `useTurnUdp` - boolean property (default false). Enables use of turn over udp for jvb. It is disabled because not very useful (if the client can use udp, it likely can connect to jvb directly over udp too; but it can be useful to still enable udp turn when an udp turn is known to be whitelisted on a network)
     - `disableH264` - __DEPRECATED__. Use `disabledCodec` instead.
     - `preferH264` - __DEPRECATED__. Use `preferredCodec` instead.
 
