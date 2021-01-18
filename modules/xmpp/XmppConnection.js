@@ -409,6 +409,12 @@ export default class XmppConnection extends Listenable {
 
         return fetch(url)
             .then(response => {
+
+                // skips header checking if there is no info in options
+                if (!shard) {
+                    return;
+                }
+
                 const responseShard = response.headers.get('x-jitsi-shard');
 
                 if (responseShard !== shard) {
