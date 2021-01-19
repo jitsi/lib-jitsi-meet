@@ -1713,6 +1713,11 @@ TraceablePeerConnection.prototype._assertTrackBelongs = function(
  */
 TraceablePeerConnection.prototype.getConfiguredVideoCodec = function() {
     const sdp = this.localDescription.sdp;
+    const defaultCodec = CodecMimeType.VP8;
+
+    if (!sdp) {
+        return defaultCodec;
+    }
     const parsedSdp = transform.parse(sdp);
     const mLine = parsedSdp.media.find(m => m.type === MediaType.VIDEO);
     const codec = mLine.rtp[0].codec;
@@ -1721,7 +1726,7 @@ TraceablePeerConnection.prototype.getConfiguredVideoCodec = function() {
         return Object.values(CodecMimeType).find(value => value === codec.toLowerCase());
     }
 
-    return CodecMimeType.VP8;
+    return defaultCodec;
 };
 
 /**
