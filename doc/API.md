@@ -269,6 +269,7 @@ This objects represents the server connection. You can create new `JitsiConnecti
         - `deploymentInfo`
             - `shard`
             - `userRegion`
+        - `jvbEnabled` - if disabled no media will be routed through the Jitsi Videobridge.
         - `p2p` - Peer to peer related options
             - `enabled` - enables or disable peer-to-peer connection, if disabled all media will be routed through the Jitsi Videobridge.
             - `stunServers` - list of STUN servers e.g. `{ urls: 'stun:meet-jit-si-turnrelay.jitsi.net:443' }`

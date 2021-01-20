@@ -540,6 +540,16 @@ JitsiConference.prototype.isJoined = function() {
 };
 
 /**
+ * Tells whether or not the JVB mode is enabled in the configuration.
+ * @return {boolean}
+ */
+JitsiConference.prototype.isJVBEnabled = function() {
+    // FIXME: remove once we have a default config template.
+    return typeof this.options.config.jvbEnabled === 'undefined'
+        || Boolean(this.options.config.jvbEnabled);
+};
+
+/**
  * Tells whether or not the P2P mode is enabled in the configuration.
  * @return {boolean}
  */
@@ -1907,6 +1917,16 @@ JitsiConference.prototype.onIncomingCall = function(
     if (jingleSession.isP2P) {
         this._onIncomingCallP2P(jingleSession, jingleOffer);
     } else {
+        if (!this.isJVBEnabled()) {
+            this._rejectIncomingCall(
+                jingleSession, {
+                    reason: 'decline',
+                    reasonDescription: 'JVB disabled',
+                    errorMsg: 'JVB mode disabled in the configuration'
+                });
+
+            return;
+        }
         if (!this.room.isFocus(jingleSession.remoteJid)) {
             const description = 'Rejecting session-initiate from non-focus.';
 
