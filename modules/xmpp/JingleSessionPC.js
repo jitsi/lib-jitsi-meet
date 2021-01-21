@@ -1137,6 +1137,14 @@ export default class JingleSessionPC extends JingleSession {
      * @param failure function(error) called when we fail to accept new offer.
      */
     replaceTransport(jingleOfferElem, success, failure) {
+        if (this.options.enableForcedReload) {
+            const sdp = new SDP(this.peerconnection.localDescription.sdp);
+
+            this.sendTransportAccept(sdp, success, failure);
+            this.room.eventEmitter.emit(XMPPEvents.CONNECTION_RESTARTED, this);
+
+            return;
+        }
         this.room.eventEmitter.emit(XMPPEvents.ICE_RESTARTING, this);
 
         // We need to first reject the 'data' section to have the SCTP stack
