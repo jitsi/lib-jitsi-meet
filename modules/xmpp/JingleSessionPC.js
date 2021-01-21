@@ -474,10 +474,13 @@ export default class JingleSessionPC extends JingleSession {
                 this._iceCheckingStartedTimestamp = now;
                 break;
             case 'connected':
-                // Informs interested parties that the connection has been
-                // restored.
+                // Informs interested parties that the connection has been restored. This includes the case when
+                // media connection to the bridge has been restored after an ICE failure by using session-terminate.
                 if (this.peerconnection.signalingState === 'stable') {
-                    if (this.isReconnect) {
+                    const usesTerminateForRestart = !this.options.enableIceRestart
+                        && this.room.supportsRestartByTerminate();
+
+                    if (this.isReconnect || usesTerminateForRestart) {
                         this.room.eventEmitter.emit(
                             XMPPEvents.CONNECTION_RESTORED, this);
                     }
