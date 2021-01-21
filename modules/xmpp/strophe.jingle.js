@@ -297,6 +297,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
         //
         // See https://modules.prosody.im/mod_turncredentials.html
         // for a prosody module which implements this.
+        // Or the new implementation https://modules.prosody.im/mod_external_services which will be in prosody 0.12
         //
         // Currently, this doesn't work with updateIce and therefore credentials
         // with a long validity have to be fetched before creating the
@@ -309,7 +310,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                 .c('services', { xmlns: 'urn:xmpp:extdisco:2' }),
             v2Res => this.onReceiveStunAndTurnCredentials(v2Res),
             v2Err => {
-                logger.info('getting turn credentials with extdisco:2 failed, trying extdisco:1', v2Err);
+                logger.warn('getting turn credentials with extdisco:2 failed, trying extdisco:1', v2Err);
                 this.connection.sendIQ(
                     $iq({ type: 'get',
                         to: this.xmpp.options.hosts.domain })
@@ -317,14 +318,17 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
                     v1Res => this.onReceiveStunAndTurnCredentials(v1Res),
                     v1Err => {
                         logger.warn('getting turn credentials failed', v1Err);
-                        logger.warn('is mod_turncredentials or similar installed?');
+                        logger.warn('is mod_turncredentials or similar installed and configured?');
                     }
                 );
             });
-
-        // implement push?
     }
 
+    /**
+     * Parses response when querying for services using urn:xmpp:extdisco:1 or urn:xmpp:extdisco:2.
+     * Stores results in jvbIceConfig and p2pIceConfig.
+     * @param res The response iq.
+     */
     onReceiveStunAndTurnCredentials(res) {
         const iceservers = [];
 
@@ -345,23 +349,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             case 'turn':
             case 'turns': {
                 dict.urls = `${type}:`;
-                const username = el.attr('username');
-
-                // https://code.google.com/p/webrtc/issues/detail
-                // ?id=1508
-
-                if (username) {
-                    const match
-                        = navigator.userAgent.match(
-                            /Chrom(e|ium)\/([0-9]+)\./);
-
-                    if (match && parseInt(match[2], 10) < 28) {
-                        dict.urls += `${username}@`;
-                    } else {
-                        // only works in M28
-                        dict.username = username;
-                    }
-                }
+                dict.username = el.attr('username');
                 dict.urls += el.attr('host');
                 const port = el.attr('port');
 
