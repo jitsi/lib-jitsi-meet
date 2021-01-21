@@ -28,6 +28,12 @@ export const CONFERENCE_MAX_USERS = 'conference.max_users';
 export const CONNECTION_ERROR = 'conference.connectionError';
 
 /**
+ * Indicates that the client has been forced to restart by jicofo when the
+ * conference was migrated from one bridge to another.
+ */
+export const CONFERENCE_RESTARTED = 'conference.restarted';
+
+/**
  * Indicates that a connection error is due to not allowed,
  * occurred when trying to join a conference.
  */

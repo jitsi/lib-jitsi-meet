@@ -50,6 +50,10 @@ const XMPPEvents = {
     // This should go to the RTC module.
     CONNECTION_ICE_FAILED: 'xmpp.connection.ice.failed',
 
+    // Designates an event indicating that the call has been migrated to a different
+    // bridge and that the client needs to be restarted for a successful transition.
+    CONNECTION_RESTARTED: 'xmpp.connection.restart',
+
     /**
      * Designates an event indicating connection status changes.
      */

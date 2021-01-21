@@ -33,16 +33,19 @@ export default class IceFailedHandling {
      * @returns {void}
      */
     _actOnIceFailed() {
-        const { enableIceRestart } = this._conference.options.config;
+        const { enableForcedReload, enableIceRestart } = this._conference.options.config;
         const explicitlyDisabled = typeof enableIceRestart !== 'undefined' && !enableIceRestart;
         const supportsRestartByTerminate = this._conference.room.supportsRestartByTerminate();
         const useTerminateForRestart = supportsRestartByTerminate && !enableIceRestart;
+        const reloadClient = this._conference.restartInProgress && enableForcedReload;
 
         logger.info('ICE failed,'
+            + ` enableForcedReload: ${enableForcedReload},`
             + ` enableIceRestart: ${enableIceRestart},`
+            + ` restartInProgress: ${this._conference.restartInProgress},`
             + ` supports restart by terminate: ${supportsRestartByTerminate}`);
 
-        if (explicitlyDisabled || (!enableIceRestart && !supportsRestartByTerminate)) {
+        if (explicitlyDisabled || (!enableIceRestart && !supportsRestartByTerminate) || reloadClient) {
             logger.info('ICE failed, but ICE restarts are disabled');
             this._conference.eventEmitter.emit(
                 JitsiConferenceEvents.CONFERENCE_FAILED,
