@@ -362,6 +362,7 @@ export default class CallStats {
             CallStats.callStatsSecret = options.callStatsSecret;
 
             let configParams;
+
             configParams.additionalIDs = {};
             if (options.applicationName) {
                 configParams = {
