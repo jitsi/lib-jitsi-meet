@@ -1429,6 +1429,14 @@ export default class JingleSessionPC extends JingleSession {
         if (this._assertNotEnded()) {
             logger.info(`${this} setSenderVideoConstraint: ${maxFrameHeight}`);
 
+            // RN doesn't support RTCRtpSenders yet, aggresive layer suspension on RN is implemented
+            // by changing the media direction in the SDP. This is applicable to jvb sessions only.
+            if (!this.isP2P && browser.isReactNative() && typeof maxFrameHeight !== 'undefined') {
+                const videoActive = maxFrameHeight > 0;
+
+                return this.setMediaTransferActive(true, videoActive);
+            }
+
             return this.peerconnection.setSenderVideoConstraint(maxFrameHeight);
         }
 
