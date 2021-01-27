@@ -33,6 +33,7 @@ const logger = getLogger(__filename);
  * @param {string} options.shard - The shard where XMPP connection initially landed.
  * @param {string} options.enableWebsocketResume - True to enable stream resumption.
  * @param {number} [options.websocketKeepAlive] - See {@link XmppConnection} constructor.
+ * @param {number} [options.websocketKeepAliveUrl] - See {@link XmppConnection} constructor.
  * @param {Object} [options.xmppPing] - See {@link XmppConnection} constructor.
  * @returns {XmppConnection}
  */
@@ -42,6 +43,7 @@ function createConnection({
     shard,
     token,
     websocketKeepAlive,
+    websocketKeepAliveUrl,
     xmppPing }) {
 
     // Append token as URL param
@@ -54,6 +56,7 @@ function createConnection({
         enableWebsocketResume,
         serviceUrl,
         websocketKeepAlive,
+        websocketKeepAliveUrl,
         xmppPing,
         shard
     });
@@ -113,6 +116,8 @@ export default class XMPP extends Listenable {
      * module try to resume the session in case the Websocket connection breaks.
      * @param {number} [options.websocketKeepAlive] - The websocket keep alive interval. See {@link XmppConnection}
      * constructor for more details.
+     * @param {number} [options.websocketKeepAliveUrl] - The websocket keep alive url. See {@link XmppConnection}
+     * constructor for more details.
      * @param {Object} [options.xmppPing] - The xmpp ping settings.
      * @param {Array<Object>} options.p2pStunServers see {@link JingleConnectionPlugin} for more details.
      * @param token
@@ -140,6 +145,7 @@ export default class XMPP extends Listenable {
             serviceUrl: options.serviceUrl || options.bosh,
             token,
             websocketKeepAlive: options.websocketKeepAlive,
+            websocketKeepAliveUrl: options.websocketKeepAliveUrl,
             xmppPing,
             shard: options.deploymentInfo?.shard
         });
