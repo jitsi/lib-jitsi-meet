@@ -232,6 +232,9 @@ This objects represents the server connection. You can create new `JitsiConnecti
             - `interval` - how often to send ping requests, default: 10000 (10 seconds)
             - `timeout` - the time to wait for ping responses, default: 5000 (5 seconds)
             - `threshold` - how many ping failures will be tolerated before the connection is killed, default: 2
+        7. websocketKeepAlive - (optional) Setting the interval of websocket keepalive GET requests. By default, the value is 1 minute(which means a minute + a minute of jitter).
+           Used for certain deployments where a stick table entry needs to be kept alive we use those GET requests.
+        8. websocketKeepAliveUrl - (optional) Specific Url to use for the websocket keepalive GET requests.
 
 2. `connect(options)` - establish server connection
     - `options` - JS Object with `id` and `password` properties.

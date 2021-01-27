@@ -46,16 +46,19 @@ export default class XmppConnection extends Listenable {
      * It will enable automatically by default if supported by the XMPP server.
      * @param {Number} [options.websocketKeepAlive=60000] - The websocket keep alive interval.
      * It's the interval + a up to a minute of jitter. Pass -1 to disable.
-     * The keep alive is HTTP GET request to the {@link options.serviceUrl}.
+     * The keep alive is HTTP GET request to {@link options.serviceUrl} or to {@link options.websocketKeepAliveUrl}.
+     * @param {Number} [options.websocketKeepAliveUrl] - The websocket keep alive url to use if any,
+     * if missing the serviceUrl url will be used.
      * @param {Object} [options.xmppPing] - The xmpp ping settings.
      */
-    constructor({ enableWebsocketResume, websocketKeepAlive, serviceUrl, shard, xmppPing }) {
+    constructor({ enableWebsocketResume, websocketKeepAlive, websocketKeepAliveUrl, serviceUrl, shard, xmppPing }) {
         super();
         this._options = {
             enableWebsocketResume: typeof enableWebsocketResume === 'undefined' ? true : enableWebsocketResume,
             pingOptions: xmppPing,
             shard,
-            websocketKeepAlive: typeof websocketKeepAlive === 'undefined' ? 60 * 1000 : Number(websocketKeepAlive)
+            websocketKeepAlive: typeof websocketKeepAlive === 'undefined' ? 60 * 1000 : Number(websocketKeepAlive),
+            websocketKeepAliveUrl
         };
 
         this._stropheConn = new Strophe.Connection(serviceUrl);
@@ -404,8 +407,9 @@ export default class XmppConnection extends Listenable {
      * @returns {Promise}
      */
     _keepAliveAndCheckShard() {
-        const { shard } = this._options;
-        const url = this.service.replace('wss://', 'https://').replace('ws://', 'http://');
+        const { shard, websocketKeepAliveUrl } = this._options;
+        const url = websocketKeepAliveUrl ? websocketKeepAliveUrl
+            : this.service.replace('wss://', 'https://').replace('ws://', 'http://');
 
         return fetch(url)
             .then(response => {
