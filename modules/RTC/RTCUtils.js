@@ -565,7 +565,7 @@ function updateGrantedPermissions(um, stream) {
         grantedPermissions.audio = audioTracksReceived;
     }
 
-    eventEmitter.emit(RTCEvents.GRANTED_PERMISSIONS, grantedPermissions);
+    eventEmitter.emit(RTCEvents.PERMISSIONS_CHANGED, grantedPermissions);
 }
 
 /**
@@ -962,13 +962,22 @@ class RTCUtils extends Listenable {
                 })
                 .catch(error => {
                     logger.warn(`Failed to get access to local media. ${error} ${JSON.stringify(constraints)}`);
-                    updateGrantedPermissions(umDevices, undefined);
+                    const jitsiError = new JitsiTrackError(error, constraints, umDevices);
+
                     if (!timeoutExpired) {
                         if (typeof gumTimeout !== 'undefined') {
                             clearTimeout(gumTimeout);
                         }
-                        reject(new JitsiTrackError(error, constraints, umDevices));
+                        reject(error);
                     }
+
+                    if (jitsiError.name === JitsiTrackErrors.PERMISSION_DENIED) {
+                        updateGrantedPermissions(umDevices, undefined);
+                    }
+
+                    // else {
+                    // Probably the error is not caused by the lack of permissions and we don't need to update them.
+                    // }
                 });
         });
     }

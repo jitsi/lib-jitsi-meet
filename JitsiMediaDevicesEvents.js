@@ -13,6 +13,13 @@
 export const DEVICE_LIST_CHANGED = 'mediaDevices.devicechange';
 
 /**
+ * Event emitted when the user granted/blocked a permission for the camera / mic.
+ * Used to keep track of the granted permissions on browsers which don't
+ * support the Permissions API.
+ */
+export const PERMISSIONS_CHANGED = 'rtc.permissions_changed';
+
+/**
  * Indicates that the environment is currently showing permission prompt to
  * access camera and/or microphone. The event provides the following
  * parameters to its listeners:
