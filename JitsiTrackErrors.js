@@ -51,6 +51,12 @@ export const SCREENSHARING_GENERIC_ERROR
 export const SCREENSHARING_USER_CANCELED
     = 'gum.screensharing_user_canceled';
 
+
+/**
+ * Indicates that the timeout passed to the obtainAudioAndVideoPermissions has expired without GUM resolving.
+ */
+export const TIMEOUT = 'gum.timeout';
+
 /**
  * An error which indicates that track has been already disposed and cannot
  * be longer used.
