@@ -21,7 +21,7 @@ class JitsiMediaDevices {
      */
     constructor() {
         this._eventEmitter = new EventEmitter();
-        this._grantedPermissions = {};
+        this._permissions = {};
 
         RTC.addListener(
             RTCEvents.DEVICE_LIST_CHANGED,
@@ -35,14 +35,18 @@ class JitsiMediaDevices {
                 this._logOutputDevice(
                     this.getAudioOutputDevice(),
                     devices));
-        RTC.addListener(
-            RTCEvents.GRANTED_PERMISSIONS,
-            grantedPermissions =>
-                this._handleGrantedPermissions(grantedPermissions));
 
-        // Test if the W3C Permissions API is implemented and the 'camera' and
-        // 'microphone' permissions are implemented. (Testing for at least one
-        // of them seems sufficient).
+        // We would still want to update the permissions cache in case the permissions API is not supported.
+        RTC.addListener(
+            RTCEvents.PERMISSIONS_CHANGED,
+            permissions => this._handlePermissionsChange(permissions));
+
+        // Test if the W3C Permissions API is implemented and the 'camera' and 'microphone' permissions are
+        // implemented. If supported add onchange listeners.
+        //
+        // NOTE: We don't cache the result for the query because this can potentialy lead to outdated result returned
+        // from isDevicePermissionGranted method ( for the time period before the first GUM has been resolved) if the
+        //  onchange handler is not working.
         this._permissionsApiSupported = new Promise(resolve => {
             if (!navigator.permissions) {
                 resolve(false);
@@ -50,24 +54,94 @@ class JitsiMediaDevices {
                 return;
             }
 
-            navigator.permissions.query({ name: VIDEO_PERMISSION_NAME })
-                .then(() => resolve(true), () => resolve(false));
+            const self = this;
+
+            const promises = [];
+
+            promises.push(navigator.permissions.query({ name: VIDEO_PERMISSION_NAME })
+                .then(status => {
+                    status.onchange = function() {
+                        try {
+                            self._handlePermissionsChange({
+                                [MediaType.VIDEO]: self._parsePermissionState(this)
+                            });
+                        } catch (error) {
+                            // Nothing to do.
+                        }
+                    };
+
+                    return true;
+                })
+                .catch(() => false));
+
+            promises.push(navigator.permissions.query({ name: AUDIO_PERMISSION_NAME })
+                .then(status => {
+                    status.onchange = function() {
+                        try {
+                            self._handlePermissionsChange({
+                                [MediaType.AUDIO]: self._parsePermissionState(this)
+                            });
+                        } catch (error) {
+                            // Nothing to do.
+                        }
+                    };
+
+                    return true;
+                })
+                .catch(() => false));
+
+            Promise.all(promises).then(results => resolve(results.every(supported => supported)));
+
         });
     }
 
+
     /**
-     * Updated the local granted permissions cache. A permissions might be
+     * Parses a PermissionState object and returns true for granted and false otherwise.
+     *
+     * @param {PermissionState} permissionStatus - The PermissionState object retrieved from the Permissions API.
+     * @returns {boolean} - True for granted and false for denied.
+     * @throws {TypeError}
+     */
+    _parsePermissionState(permissionStatus = {}) {
+        // The status attribute is deprecated, and state
+        // should be used instead, but check both for now
+        // for backwards compatibility.
+        const status = permissionStatus.state || permissionStatus.status;
+
+        if (typeof status !== 'string') {
+            throw new TypeError();
+        }
+
+        return status === PERMISSION_GRANTED_STATUS;
+    }
+
+    /**
+     * Updates the local granted/denied permissions cache. A permissions might be
      * granted, denied, or undefined. This is represented by having its media
      * type key set to {@code true} or {@code false} respectively.
      *
-     * @param {Object} grantedPermissions - Array with the permissions
-     * which were granted.
+     * @param {Object} permissions - Object with the permissions.
      */
-    _handleGrantedPermissions(grantedPermissions) {
-        this._grantedPermissions = {
-            ...this._grantedPermissions,
-            ...grantedPermissions
-        };
+    _handlePermissionsChange(permissions) {
+        const hasPermissionsChanged
+            = [ MediaType.AUDIO, MediaType.VIDEO ]
+                .some(type => type in permissions && permissions[type] !== this._permissions[type]);
+
+        if (hasPermissionsChanged) {
+            this._permissions = {
+                ...this._permissions,
+                ...permissions
+            };
+            this._eventEmitter.emit(JitsiMediaDevicesEvents.PERMISSIONS_CHANGED, this._permissions);
+
+            if (this._permissions[MediaType.AUDIO] || this._permissions[MediaType.VIDEO]) {
+                // Triggering device list update when the permissiions are granted in order to update
+                // the labels the devices.
+                // eslint-disable-next-line no-empty-function
+                this.enumerateDevices(() => {});
+            }
+        }
     }
 
     /**
@@ -121,13 +195,17 @@ class JitsiMediaDevices {
      * @param {'audio'|'video'} [type] - type of devices to check,
      *      undefined stands for both 'audio' and 'video' together
      * @returns {Promise<boolean>}
+     *
+     * NOTE: We don't cache the result from the query because this can potentialy lead to outdated result returned
+     * from this method ( for the time period before the first GUM has been resolved) if the onchange handler is not
+     * working.
      */
     isDevicePermissionGranted(type) {
         return new Promise(resolve => {
             // Shortcut: first check if we already know the permission was
             // granted.
-            if (type in this._grantedPermissions) {
-                resolve(this._grantedPermissions[type]);
+            if (type in this._permissions) {
+                resolve(this._permissions[type]);
 
                 return;
             }
@@ -135,14 +213,6 @@ class JitsiMediaDevices {
             // Check using the Permissions API.
             this._permissionsApiSupported.then(supported => {
                 if (!supported) {
-                    // Workaround on Safari for audio input device
-                    // selection to work. Safari doesn't support the
-                    // permissions query.
-                    if (browser.isSafari()) {
-                        resolve(true);
-
-                        return;
-                    }
                     resolve(false);
 
                     return;
@@ -176,13 +246,11 @@ class JitsiMediaDevices {
 
                 Promise.all(promises).then(
                     results => resolve(results.every(permissionStatus => {
-                        // The status attribute is deprecated, and state
-                        // should be used instead, but check both for now
-                        // for backwards compatibility.
-                        const grantStatus = permissionStatus.state
-                            || permissionStatus.status;
-
-                        return grantStatus === PERMISSION_GRANTED_STATUS;
+                        try {
+                            return this._parsePermissionState(permissionStatus);
+                        } catch {
+                            return false;
+                        }
                     })),
                     () => resolve(false)
                 );
