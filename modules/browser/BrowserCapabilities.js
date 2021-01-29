@@ -65,6 +65,24 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the current browser is WebKit based. It's either
+     * Safari or uses WebKit as its engine.
+     *
+     * This includes Chrome and Firefox on iOS
+     *
+     * @returns {boolean}
+     */
+    isWebKitBased() {
+        // https://trac.webkit.org/changeset/236144/webkit/trunk/LayoutTests/webrtc/video-addLegacyTransceiver.html
+        return this._bowser.isEngine('webkit')
+            && typeof navigator.mediaDevices !== 'undefined'
+            && typeof navigator.mediaDevices.getUserMedia !== 'undefined'
+            && typeof window.RTCRtpTransceiver !== 'undefined'
+            // eslint-disable-next-line no-undef
+            && Object.keys(RTCRtpTransceiver.prototype).indexOf('currentDirection') > -1;
+    }
+
+    /**
      * Checks whether current running context is a Trusted Web Application.
      *
      * @returns {boolean} Whether the current context is a TWA.
@@ -208,14 +226,8 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {boolean}
      */
     usesUnifiedPlan() {
-        if (this.isFirefox()) {
+        if (this.isFirefox() || this.isWebKitBased()) {
             return true;
-        }
-
-        if (this.isSafari() && typeof window.RTCRtpTransceiver !== 'undefined') {
-            // https://trac.webkit.org/changeset/236144/webkit/trunk/LayoutTests/webrtc/video-addLegacyTransceiver.html
-            // eslint-disable-next-line no-undef
-            return Object.keys(RTCRtpTransceiver.prototype).indexOf('currentDirection') > -1;
         }
 
         return false;
