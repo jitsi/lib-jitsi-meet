@@ -1521,6 +1521,21 @@ TraceablePeerConnection.prototype._mungeCodecOrder = function(description) {
         if (this.codecPreference.mimeType === CodecMimeType.H264 && browser.isReactNative() && this.isP2P) {
             SDPUtil.stripCodec(mLine, this.codecPreference.mimeType, true /* high profile */);
         }
+
+        // Set the max bitrate here on the SDP so that the configured max. bitrate is effective
+        // as soon as the browser switches to VP9.
+        if (this.codecPreference.mimeType === CodecMimeType.VP9) {
+            const bitrates = Object.values(this.videoBitrates.VP9 || this.videoBitrates);
+            const localVideoTrack = this.getLocalVideoTrack();
+            const isSharingScreen = localVideoTrack && localVideoTrack.videoType === VideoType.DESKTOP;
+
+            // Use only the HD bitrate for now as there is no API available yet for configuring
+            // the bitrates on the individual SVC layers.
+            mLine.bandwidth = [ {
+                type: 'AS',
+                limit: isSharingScreen ? HD_BITRATE : Math.floor(bitrates[2] / 1000)
+            } ];
+        }
     } else {
         SDPUtil.stripCodec(mLine, this.codecPreference.mimeType);
     }
@@ -2119,9 +2134,9 @@ TraceablePeerConnection.prototype.setSenderVideoDegradationPreference = function
  * @returns {Promise<void>}
  */
 TraceablePeerConnection.prototype.setMaxBitRate = function() {
-    if (!this.peerconnection.getSenders) {
-        logger.debug('Browser doesn\'t support RTCRtpSender');
-
+    // For VP9, max bitrate is configured by setting b=AS value in SDP. Browsers do
+    // not yet support setting max bitrates for individual VP9 SVC layers.
+    if (this.getConfiguredVideoCodec() === CodecMimeType.VP9 || !window.RTCRtpSender) {
         return Promise.resolve();
     }
     const localVideoTrack = this.getLocalVideoTrack();
