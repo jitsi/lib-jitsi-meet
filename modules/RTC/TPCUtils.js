@@ -26,7 +26,7 @@ export class TPCUtils {
      */
     constructor(peerconnection, videoBitrates) {
         this.pc = peerconnection;
-        this.videoBitrates = videoBitrates;
+        this.videoBitrates = videoBitrates.VP8 || videoBitrates;
 
         /**
          * The startup configuration for the stream encodings that are applicable to
