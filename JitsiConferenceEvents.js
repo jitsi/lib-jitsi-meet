@@ -42,7 +42,7 @@ export const CONFERENCE_JOINED = 'conference.joined';
 export const CONFERENCE_LEFT = 'conference.left';
 
 /**
- * Indicates that conference unique identifier has been set.
+ * Indicates that the conference unique identifier has been set.
  */
 export const CONFERENCE_UNIQUE_ID_SET = 'conference.unique_id_set';
 
