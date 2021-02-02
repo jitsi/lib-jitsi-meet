@@ -9,26 +9,21 @@ import ConnectionPlugin from './ConnectionPlugin';
 const logger = getLogger(__filename);
 
 /**
- * Ping every 10 sec
+ * Default ping every 10 sec
  */
-const PING_INTERVAL = 10000;
+const PING_DEFAULT_INTERVAL = 10000;
 
 /**
- * Ping timeout error after 15 sec of waiting.
+ * Default ping timeout error after 5 sec of waiting.
  */
-const PING_TIMEOUT = 15000;
+const PING_DEFAULT_TIMEOUT = 5000;
 
 /**
- * Will close the connection after 3 consecutive ping errors.
+ * Default value for how many ping failures will be tolerated before the WebSocket connection is killed.
+ * The worst case scenario in case of ping timing out without a response is (25 seconds at the time of this writing):
+ * PING_THRESHOLD * PING_INTERVAL + PING_TIMEOUT
  */
-const PING_THRESHOLD = 3;
-
-/**
- * The number of timestamps of send pings to keep.
- * The current value is 2 minutes.
- * @type {number} number of timestamps.
- */
-const PING_TIMESTAMPS_TO_KEEP = 120000 / PING_INTERVAL;
+const PING_DEFAULT_THRESHOLD = 2;
 
 /**
  * XEP-0199 ping plugin.
@@ -37,15 +32,30 @@ const PING_TIMESTAMPS_TO_KEEP = 120000 / PING_INTERVAL;
  */
 export default class PingConnectionPlugin extends ConnectionPlugin {
     /**
-     * Contructs new object
-     * @param {XMPP} xmpp the xmpp module.
+     * Constructs new object
+     * @param {Object} options
+     * @param {Function} options.onPingThresholdExceeded - Callback called when ping fails too many times (controlled
+     * by the {@link PING_THRESHOLD} constant).
+     * @param {Function} options._getTimeSinceLastServerResponse - A function to obtain the last seen
+     * response from the server.
+     * @param {Object} options.pingOptions - The ping options if any.
      * @constructor
      */
-    constructor(xmpp) {
+    constructor({ getTimeSinceLastServerResponse, onPingThresholdExceeded, pingOptions = {} }) {
         super();
         this.failedPings = 0;
-        this.xmpp = xmpp;
-        this.pingExecIntervals = new Array(PING_TIMESTAMPS_TO_KEEP);
+        this._onPingThresholdExceeded = onPingThresholdExceeded;
+        this._getTimeSinceLastServerResponse = getTimeSinceLastServerResponse;
+
+        this.pingInterval = typeof pingOptions.interval === 'number' ? pingOptions.interval : PING_DEFAULT_INTERVAL;
+        this.pingTimeout = typeof pingOptions.timeout === 'number' ? pingOptions.timeout : PING_DEFAULT_TIMEOUT;
+        this.pingThreshold = typeof pingOptions.threshold === 'number'
+            ? pingOptions.threshold : PING_DEFAULT_THRESHOLD;
+
+        // The number of timestamps of send pings to keep.
+        // The current value is 2 minutes.
+        this.pingTimestampsToKeep = Math.round(120000 / this.pingInterval);
+        this.pingExecIntervals = new Array(this.pingTimestampsToKeep);
     }
 
     /**
@@ -87,33 +97,47 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
      * This plugin supports only one such task and <tt>stopInterval</tt>
      * must be called before starting a new one.
      * @param remoteJid remote JID to which ping requests will be sent to.
-     * @param interval task interval in ms.
      */
-    startInterval(remoteJid, interval = PING_INTERVAL) {
+    startInterval(remoteJid) {
         clearInterval(this.intervalId);
         this.intervalId = window.setInterval(() => {
+
+            // when there were some server responses in the interval since the last time we checked (_lastServerCheck)
+            // let's skip the ping
+
+            const now = Date.now();
+
+            if (this._getTimeSinceLastServerResponse() < now - this._lastServerCheck) {
+                // do this just to keep in sync the intervals so we can detect suspended device
+                this._addPingExecutionTimestamp();
+
+                this._lastServerCheck = now;
+                this.failedPings = 0;
+
+                return;
+            }
+
             this.ping(remoteJid, () => {
+                // server response is measured on raw input and ping response time is measured after all the xmpp
+                // processing is done in js, so there can be some misalignment when we do the check above.
+                // That's why we store the last time we got the response
+                this._lastServerCheck = this._getTimeSinceLastServerResponse() + Date.now();
+
                 this.failedPings = 0;
             }, error => {
                 this.failedPings += 1;
                 const errmsg = `Ping ${error ? 'error' : 'timeout'}`;
 
-                if (this.failedPings >= PING_THRESHOLD) {
+                if (this.failedPings >= this.pingThreshold) {
                     GlobalOnErrorHandler.callErrorHandler(new Error(errmsg));
                     logger.error(errmsg, error);
-
-                    // FIXME it doesn't help to disconnect when 3rd PING
-                    // times out, it only stops Strophe from retrying.
-                    // Not really sure what's the right thing to do in that
-                    // situation, but just closing the connection makes no
-                    // sense.
-                    // self.connection.disconnect();
+                    this._onPingThresholdExceeded && this._onPingThresholdExceeded();
                 } else {
                     logger.warn(errmsg, error);
                 }
-            }, PING_TIMEOUT);
-        }, interval);
-        logger.info(`XMPP pings will be sent every ${interval} ms`);
+            }, this.pingTimeout);
+        }, this.pingInterval);
+        logger.info(`XMPP pings will be sent every ${this.pingInterval} ms`);
     }
 
     /**
@@ -136,7 +160,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
         this.pingExecIntervals.push(new Date().getTime());
 
         // keep array length to PING_TIMESTAMPS_TO_KEEP
-        if (this.pingExecIntervals.length > PING_TIMESTAMPS_TO_KEEP) {
+        if (this.pingExecIntervals.length > this.pingTimestampsToKeep) {
             this.pingExecIntervals.shift();
         }
     }
@@ -174,7 +198,7 @@ export default class PingConnectionPlugin extends ConnectionPlugin {
         // remove the interval between the ping sent
         // this way in normal execution there is no suspend and the return
         // will be 0 or close to 0.
-        maxInterval -= PING_INTERVAL;
+        maxInterval -= this.pingInterval;
 
         // make sure we do not return less than 0
         return Math.max(maxInterval, 0);

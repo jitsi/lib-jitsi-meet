@@ -297,6 +297,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
         //
         // See https://modules.prosody.im/mod_turncredentials.html
         // for a prosody module which implements this.
+        // Or the new implementation https://modules.prosody.im/mod_external_services which will be in prosody 0.12
         //
         // Currently, this doesn't work with updateIce and therefore credentials
         // with a long validity have to be fetched before creating the
@@ -305,99 +306,92 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
         //      https://code.google.com/p/webrtc/issues/detail?id=1650
         this.connection.sendIQ(
             $iq({ type: 'get',
-                to: this.connection.domain })
-                .c('services', { xmlns: 'urn:xmpp:extdisco:1' }),
-            res => {
-                const iceservers = [];
-
-                $(res).find('>services>service').each((idx, el) => {
-                    // eslint-disable-next-line no-param-reassign
-                    el = $(el);
-                    const dict = {};
-                    const type = el.attr('type');
-
-                    switch (type) {
-                    case 'stun':
-                        dict.urls = `stun:${el.attr('host')}`;
-                        if (el.attr('port')) {
-                            dict.urls += `:${el.attr('port')}`;
-                        }
-                        iceservers.push(dict);
-                        break;
-                    case 'turn':
-                    case 'turns': {
-                        dict.urls = `${type}:`;
-                        const username = el.attr('username');
-
-                        // https://code.google.com/p/webrtc/issues/detail
-                        // ?id=1508
-
-                        if (username) {
-                            const match
-                                = navigator.userAgent.match(
-                                    /Chrom(e|ium)\/([0-9]+)\./);
-
-                            if (match && parseInt(match[2], 10) < 28) {
-                                dict.urls += `${username}@`;
-                            } else {
-                                // only works in M28
-                                dict.username = username;
-                            }
-                        }
-                        dict.urls += el.attr('host');
-                        const port = el.attr('port');
-
-                        if (port) {
-                            dict.urls += `:${el.attr('port')}`;
-                        }
-                        const transport = el.attr('transport');
-
-                        if (transport && transport !== 'udp') {
-                            dict.urls += `?transport=${transport}`;
-                        }
-
-                        dict.credential = el.attr('password')
-                                || dict.credential;
-                        iceservers.push(dict);
-                        break;
+                to: this.xmpp.options.hosts.domain })
+                .c('services', { xmlns: 'urn:xmpp:extdisco:2' }),
+            v2Res => this.onReceiveStunAndTurnCredentials(v2Res),
+            v2Err => {
+                logger.warn('getting turn credentials with extdisco:2 failed, trying extdisco:1', v2Err);
+                this.connection.sendIQ(
+                    $iq({ type: 'get',
+                        to: this.xmpp.options.hosts.domain })
+                        .c('services', { xmlns: 'urn:xmpp:extdisco:1' }),
+                    v1Res => this.onReceiveStunAndTurnCredentials(v1Res),
+                    v1Err => {
+                        logger.warn('getting turn credentials failed', v1Err);
+                        logger.warn('is mod_turncredentials or similar installed and configured?');
                     }
-                    }
-                });
-
-                const options = this.xmpp.options;
-
-                // Shuffle ICEServers for loadbalancing
-                for (let i = iceservers.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    const temp = iceservers[i];
-
-                    iceservers[i] = iceservers[j];
-                    iceservers[j] = temp;
-                }
-
-                if (options.useStunTurn) {
-                    let filter;
-
-                    if (options.useTurnUdp) {
-                        filter = s => s.urls.startsWith('turn');
-                    } else {
-                        // By default we filter out STUN and TURN/UDP and leave only TURN/TCP.
-                        filter = s => s.urls.startsWith('turn') && (s.urls.indexOf('transport=tcp') >= 0);
-                    }
-
-                    this.jvbIceConfig.iceServers = iceservers.filter(filter);
-                }
-
-                if (options.p2p && options.p2p.useStunTurn) {
-                    this.p2pIceConfig.iceServers = iceservers;
-                }
-
-            }, err => {
-                logger.warn('getting turn credentials failed', err);
-                logger.warn('is mod_turncredentials or similar installed?');
+                );
             });
+    }
 
-        // implement push?
+    /**
+     * Parses response when querying for services using urn:xmpp:extdisco:1 or urn:xmpp:extdisco:2.
+     * Stores results in jvbIceConfig and p2pIceConfig.
+     * @param res The response iq.
+     */
+    onReceiveStunAndTurnCredentials(res) {
+        const iceservers = [];
+
+        $(res).find('>services>service').each((idx, el) => {
+            // eslint-disable-next-line no-param-reassign
+            el = $(el);
+            const dict = {};
+            const type = el.attr('type');
+
+            switch (type) {
+            case 'stun':
+                dict.urls = `stun:${el.attr('host')}`;
+                if (el.attr('port')) {
+                    dict.urls += `:${el.attr('port')}`;
+                }
+                iceservers.push(dict);
+                break;
+            case 'turn':
+            case 'turns': {
+                dict.urls = `${type}:`;
+                dict.username = el.attr('username');
+                dict.urls += el.attr('host');
+                const port = el.attr('port');
+
+                if (port) {
+                    dict.urls += `:${el.attr('port')}`;
+                }
+                const transport = el.attr('transport');
+
+                if (transport && transport !== 'udp') {
+                    dict.urls += `?transport=${transport}`;
+                }
+
+                dict.credential = el.attr('password')
+                        || dict.credential;
+                iceservers.push(dict);
+                break;
+            }
+            }
+        });
+
+        const options = this.xmpp.options;
+
+        // Shuffle ICEServers for loadbalancing
+        for (let i = iceservers.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const temp = iceservers[i];
+
+            iceservers[i] = iceservers[j];
+            iceservers[j] = temp;
+        }
+
+        let filter;
+
+        if (options.useTurnUdp) {
+            filter = s => s.urls.startsWith('turn');
+        } else {
+            // By default we filter out STUN and TURN/UDP and leave only TURN/TCP.
+            filter = s => s.urls.startsWith('turn') && (s.urls.indexOf('transport=tcp') >= 0);
+        }
+
+        this.jvbIceConfig.iceServers = iceservers.filter(filter);
+        this.p2pIceConfig.iceServers = iceservers;
     }
 
     /**

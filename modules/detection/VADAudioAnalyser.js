@@ -165,6 +165,9 @@ export default class VADAudioAnalyser extends EventEmitter {
                     // Iterate through the detection services and set their appropriate mute state, depending on
                     // service this will trigger a DETECTOR_STATE_CHANGE which in turn might start the _vadEmitter.
                     this._changeDetectorsMuteState(track.isMuted());
+                })
+                .catch(error => {
+                    logger.warn('Failed to start VADAudioAnalyser', error);
                 });
         }
     }

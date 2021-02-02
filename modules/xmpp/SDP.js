@@ -249,7 +249,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                 });
             }
 
-            const ridLines = SDPUtil.findLines(this.media[i], 'a=rid');
+            const ridLines = SDPUtil.findLines(this.media[i], 'a=rid:');
 
             if (ridLines.length && browser.usesRidsForSimulcast()) {
                 // Map a line which looks like "a=rid:2 send" to just
@@ -266,7 +266,7 @@ SDP.prototype.toJingle = function(elem, thecreator) {
                     elem.up();
                 });
                 const unifiedSimulcast
-                    = SDPUtil.findLine(this.media[i], 'a=simulcast');
+                    = SDPUtil.findLine(this.media[i], 'a=simulcast:');
 
                 if (unifiedSimulcast) {
                     elem.c('rid-group', {

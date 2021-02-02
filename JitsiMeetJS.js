@@ -24,7 +24,9 @@ import TrackVADEmitter from './modules/detection/TrackVADEmitter';
 import ProxyConnectionService
     from './modules/proxyconnection/ProxyConnectionService';
 import recordingConstants from './modules/recording/recordingConstants';
+import Settings from './modules/settings/Settings';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
+import precallTest from './modules/statistics/PrecallTest';
 import Statistics from './modules/statistics/statistics';
 import AuthUtil from './modules/util/AuthUtil';
 import GlobalOnErrorHandler from './modules/util/GlobalOnErrorHandler';
@@ -174,6 +176,7 @@ export default _mergeNamespaceAndModule({
     mediaDevices: JitsiMediaDevices,
     analytics: Statistics.analytics,
     init(options = {}) {
+        Settings.init(options.externalStorage);
         Statistics.init(options);
 
         // Initialize global window.connectionTimes
@@ -643,6 +646,8 @@ export default _mergeNamespaceAndModule({
             logger.debug('MediaStreamTrack contentHint attribute not supported');
         }
     },
+
+    precallTest,
 
     /* eslint-enable max-params */
 

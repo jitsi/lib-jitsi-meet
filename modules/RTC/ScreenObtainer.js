@@ -83,6 +83,8 @@ const ScreenObtainer = {
             };
         } else if (browser.isElectron()) {
             return this.obtainScreenOnElectron;
+        } else if (browser.isReactNative() && browser.supportsGetDisplayMedia()) {
+            return this.obtainScreenFromGetDisplayMediaRN;
         } else if (browser.supportsGetDisplayMedia()) {
             return this.obtainScreenFromGetDisplayMedia;
         }
@@ -161,8 +163,11 @@ const ScreenObtainer = {
             getDisplayMedia = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
         }
 
-        getDisplayMedia({ video: true,
-            audio: true })
+        getDisplayMedia({
+            video: true,
+            audio: true,
+            cursor: 'always'
+        })
             .then(stream => {
                 let applyConstraintsPromise;
 
@@ -185,9 +190,46 @@ const ScreenObtainer = {
                         sourceId: stream.id
                     }));
             })
-            .catch(() =>
+            .catch(error => {
+                const errorDetails = {
+                    errorName: error && error.name,
+                    errorMsg: error && error.message,
+                    errorStack: error && error.stack
+                };
+
+                logger.error('getDisplayMedia error', errorDetails);
+
+                if (errorDetails.errorMsg && errorDetails.errorMsg.indexOf('denied by system') !== -1) {
+                    // On Chrome this is the only thing different between error returned when user cancels
+                    // and when no permission was given on the OS level.
+                    errorCallback(new JitsiTrackError(JitsiTrackErrors.PERMISSION_DENIED));
+
+                    return;
+                }
+
+                errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_USER_CANCELED));
+            });
+    },
+
+    /**
+     * Obtains a screen capture stream using getDisplayMedia.
+     *
+     * @param callback - The success callback.
+     * @param errorCallback - The error callback.
+     */
+    obtainScreenFromGetDisplayMediaRN(options, callback, errorCallback) {
+        logger.info('Using getDisplayMedia for screen sharing');
+
+        navigator.mediaDevices.getDisplayMedia({ video: true })
+            .then(stream => {
+                callback({
+                    stream,
+                    sourceId: stream.id });
+            })
+            .catch(() => {
                 errorCallback(new JitsiTrackError(JitsiTrackErrors
-                    .SCREENSHARING_USER_CANCELED)));
+                    .SCREENSHARING_USER_CANCELED));
+            });
     }
 };
 

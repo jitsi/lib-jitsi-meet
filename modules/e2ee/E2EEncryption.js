@@ -1,13 +1,28 @@
 /* global __filename */
+
 import { getLogger } from 'jitsi-meet-logger';
+import debounce from 'lodash.debounce';
 
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import RTCEvents from '../../service/RTC/RTCEvents';
 import browser from '../browser';
 
 import E2EEContext from './E2EEContext';
+import { OlmAdapter } from './OlmAdapter';
+import { importKey, ratchet } from './crypto-utils';
 
 const logger = getLogger(__filename);
+
+// Period which we'll wait before updating / rotating our keys when a participant
+// joins or leaves.
+const DEBOUNCE_PERIOD = 5000;
+
+// We use ECDSA with Curve P-521 for the long-term signing keys. See
+//   https://developer.mozilla.org/en-US/docs/Web/API/EcKeyGenParams
+const SIGNATURE_OPTIONS = {
+    name: 'ECDSA',
+    namedCurve: 'P-521'
+};
 
 /**
  * This module integrates {@link E2EEContext} with {@link JitsiConference} in order to enable E2E encryption.
@@ -16,18 +31,49 @@ export class E2EEncryption {
     /**
      * A constructor.
      * @param {JitsiConference} conference - The conference instance for which E2E encryption is to be enabled.
-     * @param {Object} options
-     * @param {string} options.salt - Salt to be used for key deviation. Check {@link E2EEContext} for more details.
      */
-    constructor(conference, { salt }) {
+    constructor(conference) {
         this.conference = conference;
-        this._e2eeCtx = new E2EEContext({ salt });
+
+        this._conferenceJoined = false;
+        this._enabled = false;
+        this._initialized = false;
+        this._key = undefined;
+        this._signatureKeyPair = undefined;
+
+        this._e2eeCtx = new E2EEContext();
+        this._olmAdapter = new OlmAdapter(conference);
+
+        // Debounce key rotation / ratcheting to avoid a storm of messages.
+        this._ratchetKey = debounce(this._ratchetKeyImpl, DEBOUNCE_PERIOD);
+        this._rotateKey = debounce(this._rotateKeyImpl, DEBOUNCE_PERIOD);
+
+        // Participant join / leave operations. Used for key advancement / rotation.
+        //
+
+        this.conference.on(
+            JitsiConferenceEvents.CONFERENCE_JOINED,
+            () => {
+                this._conferenceJoined = true;
+            });
+        this.conference.on(
+            JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
+            this._onParticipantPropertyChanged.bind(this));
+        this.conference.on(
+            JitsiConferenceEvents.USER_JOINED,
+            this._onParticipantJoined.bind(this));
+        this.conference.on(
+            JitsiConferenceEvents.USER_LEFT,
+            this._onParticipantLeft.bind(this));
+
+        // Conference media events in order to attach the encryptor / decryptor.
+        // FIXME add events to TraceablePeerConnection which will allow to see when there's new receiver or sender
+        // added instead of shenanigans around conference track events and track muted.
+        //
+
         this.conference.on(
             JitsiConferenceEvents._MEDIA_SESSION_STARTED,
             this._onMediaSessionStarted.bind(this));
-
-        // FIXME add events to TraceablePeerConnection which will allow to see when there's new receiver or sender
-        //  added instead of shenanigans around conference track events and track muted.
         this.conference.on(
             JitsiConferenceEvents.TRACK_ADDED,
             track => track.isLocal() && this._onLocalTrackAdded(track));
@@ -37,6 +83,103 @@ export class E2EEncryption {
         this.conference.on(
             JitsiConferenceEvents.TRACK_MUTE_CHANGED,
             this._trackMuteChanged.bind(this));
+
+        // Olm signalling events.
+        this._olmAdapter.on(
+            OlmAdapter.events.OLM_ID_KEY_READY,
+            this._onOlmIdKeyReady.bind(this));
+        this._olmAdapter.on(
+            OlmAdapter.events.PARTICIPANT_E2EE_CHANNEL_READY,
+            this._onParticipantE2EEChannelReady.bind(this));
+        this._olmAdapter.on(
+            OlmAdapter.events.PARTICIPANT_KEY_UPDATED,
+            this._onParticipantKeyUpdated.bind(this));
+    }
+
+    /**
+     * Indicates if E2EE is supported in the current platform.
+     *
+     * @param {object} config - Global configuration.
+     * @returns {boolean}
+     */
+    static isSupported(config) {
+        return browser.supportsInsertableStreams()
+            && OlmAdapter.isSupported()
+            && !(config.testing && config.testing.disableE2EE);
+    }
+
+    /**
+     * Indicates whether E2EE is currently enabled or not.
+     *
+     * @returns {boolean}
+     */
+    isEnabled() {
+        return this._enabled;
+    }
+
+    /**
+     * Enables / disables End-To-End encryption.
+     *
+     * @param {boolean} enabled - whether E2EE should be enabled or not.
+     * @returns {void}
+     */
+    async setEnabled(enabled) {
+        if (enabled === this._enabled) {
+            return;
+        }
+
+        this._enabled = enabled;
+
+        if (!this._initialized && enabled) {
+            // Generate a frame signing key pair. Per session currently.
+            this._signatureKeyPair = await crypto.subtle.generateKey(SIGNATURE_OPTIONS,
+                true, [ 'sign', 'verify' ]);
+            this._e2eeCtx.setSignatureKey(this.conference.myUserId(), this._signatureKeyPair.privateKey);
+
+            // Serialize the JWK of the signing key. Using JSON, might be easy to xml-ify.
+            const serializedSigningKey = await crypto.subtle.exportKey('jwk', this._signatureKeyPair.publicKey);
+
+            // TODO: sign this with the OLM account key.
+            this.conference.setLocalParticipantProperty('e2ee.signatureKey', JSON.stringify(serializedSigningKey));
+
+            // Need to re-create the peerconnections in order to apply the insertable streams constraint.
+            // TODO: this was necessary due to some audio issues when indertable streams are used
+            // even though encryption is not performed. This should be fixed in the browser eventually.
+            // https://bugs.chromium.org/p/chromium/issues/detail?id=1103280
+            this.conference._restartMediaSessions();
+
+            this._initialized = true;
+        }
+
+        // Generate a random key in case we are enabling.
+        this._key = enabled ? this._generateKey() : false;
+
+        // Send it to others using the E2EE olm channel.
+        this._olmAdapter.updateKey(this._key).then(index => {
+            // Set our key so we begin encrypting.
+            this._e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
+        });
+    }
+
+    /**
+     * Generates a new 256 bit random key.
+     *
+     * @returns {Uint8Array}
+     * @private
+     */
+    _generateKey() {
+        return window.crypto.getRandomValues(new Uint8Array(32));
+    }
+
+    /**
+     * Setup E2EE on the new track that has been added to the conference, apply it on all the open peerconnections.
+     * @param {JitsiLocalTrack} track - the new track that's being added to the conference.
+     * @private
+     */
+    _onLocalTrackAdded(track) {
+        for (const session of this.conference._getMediaSessions()) {
+            this._setupSenderE2EEForTrack(session, track);
+        }
     }
 
     /**
@@ -53,32 +196,137 @@ export class E2EEncryption {
     }
 
     /**
-     * Setup E2EE on the new track that has been added to the conference, apply it on all the open peerconnections.
-     * @param {JitsiLocalTrack} track - the new track that's being added to the conference.
+     * Publushes our own Olmn id key in presence.
      * @private
      */
-    _onLocalTrackAdded(track) {
-        for (const session of this.conference._getMediaSessions()) {
-            this._setupSenderE2EEForTrack(session, track);
+    _onOlmIdKeyReady(idKey) {
+        logger.debug(`Olm id key ready: ${idKey}`);
+
+        // Publish it in presence.
+        this.conference.setLocalParticipantProperty('e2ee.idKey', idKey);
+    }
+
+    /**
+     * Advances (using ratcheting) the current key when a new participant joins the conference.
+     * @private
+     */
+    _onParticipantJoined(id) {
+        logger.debug(`Participant ${id} joined`);
+
+        if (this._conferenceJoined && this._enabled) {
+            this._ratchetKey();
         }
     }
 
     /**
-     * Sets the key to be used for End-To-End encryption.
-     *
-     * @param {string} key - the key to be used.
-     * @returns {void}
+     * Rotates the current key when a participant leaves the conference.
+     * @private
      */
-    setKey(key) {
-        this._e2eeCtx.setKey(key);
+    _onParticipantLeft(id) {
+        logger.debug(`Participant ${id} left`);
+
+        this._e2eeCtx.cleanup(id);
+
+        if (this._enabled) {
+            this._rotateKey();
+        }
+    }
+
+    /**
+     * Event posted when the E2EE signalling channel has been established with the given participant.
+     * @private
+     */
+    _onParticipantE2EEChannelReady(id) {
+        logger.debug(`E2EE channel with participant ${id} is ready`);
+    }
+
+    /**
+     * Handles an update in a participant's key.
+     *
+     * @param {string} id - The participant ID.
+     * @param {Uint8Array | boolean} key - The new key for the participant.
+     * @param {Number} index - The new key's index.
+     * @private
+     */
+    _onParticipantKeyUpdated(id, key, index) {
+        logger.debug(`Participant ${id} updated their key`);
+
+        this._e2eeCtx.setKey(id, key, index);
+    }
+
+    /**
+     * Handles an update in a participant's presence property.
+     *
+     * @param {JitsiParticipant} participant - The participant.
+     * @param {string} name - The name of the property that changed.
+     * @param {*} oldValue - The property's previous value.
+     * @param {*} newValue - The property's new value.
+     * @private
+     */
+    async _onParticipantPropertyChanged(participant, name, oldValue, newValue) {
+        switch (name) {
+        case 'e2ee.idKey':
+            logger.debug(`Participant ${participant.getId()} updated their id key: ${newValue}`);
+            break;
+        case 'e2ee.signatureKey':
+            logger.debug(`Participant ${participant.getId()} updated their signature key: ${newValue}`);
+            if (newValue) {
+                const parsed = JSON.parse(newValue);
+
+                const importedKey = await crypto.subtle.importKey('jwk', parsed, { name: 'ECDSA',
+                    namedCurve: parsed.crv }, true, parsed.key_ops);
+
+                this._e2eeCtx.setSignatureKey(participant.getId(), importedKey);
+            } else {
+                logger.warn(`e2ee signatureKey for ${participant.getId()} could not be updated with empty value.`);
+            }
+            break;
+        }
+    }
+
+    /**
+     * Advances the current key by using ratcheting.
+     *
+     * @private
+     */
+    async _ratchetKeyImpl() {
+        logger.debug('Ratchetting key');
+
+        const material = await importKey(this._key);
+        const newKey = await ratchet(material);
+
+        this._key = new Uint8Array(newKey);
+
+        const index = await this._olmAdapter.updateCurrentKey(this._key);
+
+        this._e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
+    }
+
+    /**
+     * Rotates the local key. Rotating the key implies creating a new one, then distributing it
+     * to all participants and once they all received it, start using it.
+     *
+     * @private
+     */
+    async _rotateKeyImpl() {
+        logger.debug('Rotating key');
+
+        this._key = this._generateKey();
+        const index = await this._olmAdapter.updateKey(this._key);
+
+        this._e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
     }
 
     /**
      * Setup E2EE for the receiving side.
      *
-     * @returns {void}
+     * @private
      */
     _setupReceiverE2EEForTrack(tpc, track) {
+        if (!this._enabled) {
+            return;
+        }
+
         const receiver = tpc.findReceiverForTrack(track.track);
 
         if (receiver) {
@@ -93,9 +341,13 @@ export class E2EEncryption {
      *
      * @param {JingleSessionPC} session - the session which sends the media produced by the track.
      * @param {JitsiLocalTrack} track - the local track for which e2e encoder will be configured.
-     * @returns {void}
+     * @private
      */
     _setupSenderE2EEForTrack(session, track) {
+        if (!this._enabled) {
+            return;
+        }
+
         const pc = session.peerconnection;
         const sender = pc && pc.findSenderForTrack(track.track);
 

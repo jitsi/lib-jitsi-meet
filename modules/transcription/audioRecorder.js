@@ -95,7 +95,7 @@ function AudioRecorder(jitsiConference) {
 }
 
 /**
- * Add the the exported module so that it can be accessed by other files
+ * Add the exported module so that it can be accessed by other files
  */
 AudioRecorder.determineCorrectFileType = determineCorrectFileType;
 
@@ -134,7 +134,7 @@ AudioRecorder.prototype.instantiateTrackRecorder = function(track) {
 
     // Create a new stream which only holds the audio track
     const originalStream = trackRecorder.track.getOriginalStream();
-    const stream = createEmptyStream();
+    const stream = new MediaStream();
 
     originalStream.getAudioTracks().forEach(t => stream.addTrack(t));
 
@@ -299,18 +299,6 @@ AudioRecorder.prototype.getRecordingResults = function() {
 AudioRecorder.prototype.getFileType = function() {
     return this.fileType;
 };
-
-/**
- * Creates a empty MediaStream object which can be used
- * to add MediaStreamTracks to
- * @returns MediaStream
- */
-function createEmptyStream() {
-    if (typeof MediaStream !== 'undefined') {
-        return new MediaStream();
-    }
-    throw new Error('cannot create a clean mediaStream');
-}
 
 /**
  * export the main object AudioRecorder

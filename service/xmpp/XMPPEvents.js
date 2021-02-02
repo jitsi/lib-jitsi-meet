@@ -50,6 +50,10 @@ const XMPPEvents = {
     // This should go to the RTC module.
     CONNECTION_ICE_FAILED: 'xmpp.connection.ice.failed',
 
+    // Designates an event indicating that the call has been migrated to a different
+    // bridge and that the client needs to be restarted for a successful transition.
+    CONNECTION_RESTARTED: 'xmpp.connection.restart',
+
     /**
      * Designates an event indicating connection status changes.
      */
@@ -173,9 +177,8 @@ const XMPPEvents = {
     /**
      * Indicates that the features of the participant has been changed.
      */
-    PARTCIPANT_FEATURES_CHANGED: 'xmpp.partcipant_features_changed',
+    PARTICIPANT_FEATURES_CHANGED: 'xmpp.participant_features_changed',
     PASSWORD_REQUIRED: 'xmpp.password_required',
-    PEERCONNECTION_READY: 'xmpp.peerconnection_ready',
 
     /**
      * Indicates that phone number changed.
