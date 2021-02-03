@@ -123,6 +123,7 @@ JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         - `LAST_N_ENDPOINTS_CHANGED` - last n set was changed (parameters - leavingEndpointIds(array) ids of users leaving lastN, enteringEndpointIds(array) ids of users entering lastN)
         - `CONFERENCE_JOINED` - notifies the local user that he joined the conference successfully. (no parameters)
         - `CONFERENCE_LEFT` - notifies the local user that he left the conference successfully. (no parameters)
+        - `CONFERENCE_UNIQUE_ID_SET` - notifies the local user that the unique id for a meeting has been set. (parameters - meetingId(string))
         - `DTMF_SUPPORT_CHANGED` - notifies if at least one user supports DTMF. (parameters - supports(boolean))
         - `USER_ROLE_CHANGED` - notifies that role of some user changed. (parameters - id(string), role(string))
         - `USER_STATUS_CHANGED` - notifies that status of some user changed. (parameters - id(string), status(string))
