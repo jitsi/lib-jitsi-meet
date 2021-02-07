@@ -698,6 +698,7 @@ JitsiConference.prototype.leave = async function() {
     room.removeListener(XMPPEvents.SOURCE_REMOVE, this._updateRoomPresence);
 
     this.eventManager.removeXMPPListeners();
+    this.destroyed = true;
 
     this._signalingLayer.setChatRoom(null);
 
