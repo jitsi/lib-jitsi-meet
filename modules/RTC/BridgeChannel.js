@@ -208,22 +208,6 @@ export default class BridgeChannel {
     }
 
     /**
-     * Sends a "pinned endpoint changed" message via the channel.
-     * @param {string} endpointId The id of the pinned endpoint.
-     * @throws NetworkError or InvalidStateError from RTCDataChannel#send (@see
-     * {@link https://developer.mozilla.org/docs/Web/API/RTCDataChannel/send})
-     * or from WebSocket#send or Error with "No opened channel" message.
-     */
-    sendPinnedEndpointMessage(endpointId) {
-        logger.log(`Sending pinned endpoint: ${endpointId}.`);
-
-        this._send({
-            colibriClass: 'PinnedEndpointChangedEvent',
-            pinnedEndpoint: endpointId || null
-        });
-    }
-
-    /**
      * Sends a "selected endpoints changed" message via the channel.
      *
      * @param {Array<string>} endpointIds - The ids of the selected endpoints.
