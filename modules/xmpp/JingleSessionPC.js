@@ -580,9 +580,9 @@ export default class JingleSessionPC extends JingleSession {
 
         if (!this.isP2P && options.enableLayerSuspension) {
             // If this is the bridge session, we'll listen for
-            // SENDER_VIDEO_CONSTRAINTS_CHANGED events and notify the peer connection
+            // RTCEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED events and notify the peer connection
             this._removeSenderVideoConstraintsChangeListener = this.rtc.addListener(
-                RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED, () => {
+                RTCEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED, () => {
                     this.eventEmitter.emit(
                         MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED, this);
                 });
