@@ -33,7 +33,7 @@ export default class IceFailedHandling {
      */
     _actOnIceFailed() {
         if (this._conference.destroyed) {
-           return;
+            return;
         }
 
         const { enableForcedReload, enableIceRestart } = this._conference.options.config;
