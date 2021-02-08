@@ -30,7 +30,7 @@ import VADTalkMutedDetection from './modules/detection/VADTalkMutedDetection';
 import { E2EEncryption } from './modules/e2ee/E2EEncryption';
 import E2ePing from './modules/e2eping/e2eping';
 import Jvb121EventGenerator from './modules/event/Jvb121EventGenerator';
-import { QualityController } from './modules/qualitycontrol/QualityController';
+import { SendVideoController } from './modules/qualitycontrol/SendVideoController';
 import RecordingManager from './modules/recording/RecordingManager';
 import Settings from './modules/settings/Settings';
 import AudioOutputProblemDetector from './modules/statistics/AudioOutputProblemDetector';
@@ -376,7 +376,7 @@ JitsiConference.prototype._init = function(options = {}) {
         this.eventManager.setupRTCListeners();
     }
 
-    this.qualityController = new QualityController(this);
+    this.sendVideoController = new SendVideoController(this);
 
     this.participantConnectionStatus
         = new ParticipantConnectionStatusHandler(
@@ -3348,7 +3348,7 @@ JitsiConference.prototype.getSpeakerStats = function() {
  * @returns {void}
  */
 JitsiConference.prototype.setReceiverVideoConstraint = function(maxFrameHeight) {
-    this.qualityController.setPreferredReceiveMaxFrameHeight(maxFrameHeight);
+    this.sendVideoController.setPreferredReceiveMaxFrameHeight(maxFrameHeight);
 };
 
 /**
@@ -3359,7 +3359,7 @@ JitsiConference.prototype.setReceiverVideoConstraint = function(maxFrameHeight) 
  * successful and rejected otherwise.
  */
 JitsiConference.prototype.setSenderVideoConstraint = function(maxFrameHeight) {
-    return this.qualityController.setPreferredSendMaxFrameHeight(maxFrameHeight);
+    return this.sendVideoController.setPreferredSendMaxFrameHeight(maxFrameHeight);
 };
 
 /**

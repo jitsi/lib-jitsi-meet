@@ -2,12 +2,12 @@ import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
 import Listenable from '../util/Listenable';
 import MediaSessionEvents from '../xmpp/MediaSessionEvents';
 
-import { QualityController } from './QualityController';
+import { SendVideoController } from './SendVideoController';
 
 // JSDocs disabled for Mock classes to avoid duplication - check on the original classes for info.
 /* eslint-disable require-jsdoc */
 /**
- * A mock JingleSessionPC impl that fit the needs of the QualityController module.
+ * A mock JingleSessionPC impl that fit the needs of the SendVideoController module.
  * Should a generic, shared one exist in the future this test file should switch to use it too.
  */
 class MockJingleSessionPC extends Listenable {
@@ -85,15 +85,15 @@ class MockConference extends Listenable {
 }
 /* eslint-enable require-jsdoc */
 
-describe('QualityController', () => {
+describe('SendVideoController', () => {
     let conference;
-    let qualityController;
+    let sendVideoController;
     let jvbConnection;
     let p2pConnection;
 
     beforeEach(() => {
         conference = new MockConference();
-        qualityController = new QualityController(conference);
+        sendVideoController = new SendVideoController(conference);
         jvbConnection = new MockJingleSessionPC();
         p2pConnection = new MockJingleSessionPC();
 
@@ -125,7 +125,7 @@ describe('QualityController', () => {
             jvbConnection.setRemoteRecvMaxFrameHeight(720);
             p2pConnection.setRemoteRecvMaxFrameHeight(720);
 
-            qualityController.setPreferredSendMaxFrameHeight(0);
+            sendVideoController.setPreferredSendMaxFrameHeight(0);
 
             expect(jvbConnection.senderVideoConstraint).toBe(0);
             expect(p2pConnection.senderVideoConstraint).toBe(0);

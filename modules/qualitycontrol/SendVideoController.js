@@ -8,12 +8,12 @@ import MediaSessionEvents from '../xmpp/MediaSessionEvents';
  * because local tracks are shared and while JVB may have no preference, the remote p2p may have and they may be totally
  * different.
  */
-export class QualityController {
+export class SendVideoController {
     /**
      * Creates new instance for a given conference.
      *
      * @param {JitsiConference} conference - the conference instance for which the new instance will be managing
-     * the quality constraints.
+     * the send video quality constraints.
      */
     constructor(conference) {
         this.conference = conference;
