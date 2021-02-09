@@ -212,9 +212,6 @@ export default class RTC extends Listenable {
         RTCUtils.removeListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED, this._updateAudioOutputForAudioTracks);
         RTCUtils.removeListener(RTCEvents.DEVICE_LIST_CHANGED, this._onDeviceListChanged);
 
-        this.removeListener(RTCEvents.LASTN_ENDPOINT_CHANGED, this._lastNChangeListener);
-        this.removeListener(RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED, this._senderVideoConstraintsChangedListener);
-
         if (this._channelOpenListener) {
             this.removeListener(
                 RTCEvents.DATA_CHANNEL_OPEN,
