@@ -3,7 +3,6 @@
 import { getLogger } from 'jitsi-meet-logger';
 import { $iq, Strophe } from 'strophe.js';
 
-import RTCEvents from '../../service/RTC/RTCEvents';
 import {
     ICE_DURATION,
     ICE_STATE_CHANGED
@@ -577,16 +576,6 @@ export default class JingleSessionPC extends JingleSession {
 
         // The signaling layer will bind it's listeners at this point
         this.signalingLayer.setChatRoom(this.room);
-
-        if (!this.isP2P && options.enableLayerSuspension) {
-            // If this is the bridge session, we'll listen for
-            // RTCEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED events and notify the peer connection
-            this._removeSenderVideoConstraintsChangeListener = this.rtc.addListener(
-                RTCEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED, () => {
-                    this.eventEmitter.emit(
-                        MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED, this);
-                });
-        }
     }
 
     /**
@@ -599,7 +588,7 @@ export default class JingleSessionPC extends JingleSession {
             return this.remoteRecvMaxFrameHeight;
         }
 
-        return this.options.enableLayerSuspension ? this.rtc.getSenderVideoConstraints().idealHeight : undefined;
+        return undefined;
     }
 
     /**
@@ -1436,6 +1425,7 @@ export default class JingleSessionPC extends JingleSession {
     setSenderVideoConstraint(maxFrameHeight) {
         if (this._assertNotEnded()) {
             logger.info(`${this} setSenderVideoConstraint: ${maxFrameHeight}`);
+            this.remoteRecvMaxFrameHeight = maxFrameHeight;
 
             // RN doesn't support RTCRtpSenders yet, aggresive layer suspension on RN is implemented
             // by changing the media direction in the SDP. This is applicable to jvb sessions only.

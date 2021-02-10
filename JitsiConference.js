@@ -376,7 +376,7 @@ JitsiConference.prototype._init = function(options = {}) {
         this.eventManager.setupRTCListeners();
     }
 
-    this.sendVideoController = new SendVideoController(this);
+    this.sendVideoController = new SendVideoController(this, this.rtc);
 
     this.participantConnectionStatus
         = new ParticipantConnectionStatusHandler(

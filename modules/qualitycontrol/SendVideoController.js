@@ -1,8 +1,9 @@
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import RTCEvents from '../../service/RTC/RTCEvents';
 import MediaSessionEvents from '../xmpp/MediaSessionEvents';
 
 /**
- * The class manages send and receive video constraints across media sessions({@link JingleSessionPC}) which belong to
+ * The class manages send video constraints across media sessions({@link JingleSessionPC}) which belong to
  * {@link JitsiConference}. It finds the lowest common value, between the local user's send preference and
  * the remote party's receive preference. Also this module will consider only the active session's receive value,
  * because local tracks are shared and while JVB may have no preference, the remote p2p may have and they may be totally
@@ -14,15 +15,21 @@ export class SendVideoController {
      *
      * @param {JitsiConference} conference - the conference instance for which the new instance will be managing
      * the send video quality constraints.
+     * @param {RTC} rtc - the rtc instance that is responsible for sending the messages on the bridge channel.
      */
-    constructor(conference) {
+    constructor(conference, rtc) {
         this.conference = conference;
+        this.layerSuspensionEnabled = conference.options?.config?.enableLayerSuspension;
+        this.rtc = rtc;
         this.conference.on(
             JitsiConferenceEvents._MEDIA_SESSION_STARTED,
             session => this._onMediaSessionStarted(session));
         this.conference.on(
             JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED,
             () => this._propagateSendMaxFrameHeight());
+        this.rtc.on(
+            RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
+            videoConstraints => this._propagateSendMaxFrameHeight(videoConstraints));
     }
 
     /**
@@ -55,10 +62,14 @@ export class SendVideoController {
      * Figures out the send video constraint as specified by {@link selectSendMaxFrameHeight} and sets it on all media
      * sessions for the reasons mentioned in this class description.
      *
+     * @param {Object} constraints - the senderVideoConstraints received on the bridge channel.
      * @returns {Promise<void[]>}
      * @private
      */
-    _propagateSendMaxFrameHeight() {
+    _propagateSendMaxFrameHeight(constraints = null) {
+        if (constraints && this.layerSuspensionEnabled) {
+            this.senderVideoConstraints = constraints;
+        }
         const sendMaxFrameHeight = this.selectSendMaxFrameHeight();
         const promises = [];
 
@@ -79,7 +90,11 @@ export class SendVideoController {
      */
     selectSendMaxFrameHeight() {
         const activeMediaSession = this.conference._getActiveMediaSession();
-        const remoteRecvMaxFrameHeight = activeMediaSession && activeMediaSession.getRemoteRecvMaxFrameHeight();
+        const remoteRecvMaxFrameHeight = activeMediaSession
+            ? activeMediaSession.isP2P
+                ? activeMediaSession.getRemoteRecvMaxFrameHeight()
+                : this.senderVideoConstraints?.idealHeight
+            : undefined;
 
         if (this.preferredSendMaxFrameHeight >= 0 && remoteRecvMaxFrameHeight >= 0) {
             return Math.min(this.preferredSendMaxFrameHeight, remoteRecvMaxFrameHeight);
