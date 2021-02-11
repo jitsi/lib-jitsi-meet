@@ -157,11 +157,6 @@ export default class RTC extends Listenable {
          */
         this._lastNEndpoints = null;
 
-        /*
-         * Holds the sender video constraints signaled from the bridge.
-         */
-        this._senderVideoConstraints = {};
-
         /**
          * The number representing the maximum video height the local client
          * should receive from the bridge.

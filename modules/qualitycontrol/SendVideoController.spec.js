@@ -1,4 +1,5 @@
 import * as JitsiConferenceEvents from '../../JitsiConferenceEvents';
+import RTCEvents from '../../service/RTC/RTCEvents';
 import Listenable from '../util/Listenable';
 import MediaSessionEvents from '../xmpp/MediaSessionEvents';
 
@@ -11,8 +12,10 @@ import { SendVideoController } from './SendVideoController';
  * Should a generic, shared one exist in the future this test file should switch to use it too.
  */
 class MockJingleSessionPC extends Listenable {
-    constructor() {
+    constructor(rtc, isP2P) {
         super();
+        this.rtc = rtc;
+        this.isP2P = isP2P;
         this._remoteRecvMaxFrameHeight = undefined;
         this.senderVideoConstraint = undefined;
     }
@@ -37,9 +40,15 @@ class MockJingleSessionPC extends Listenable {
 
     setRemoteRecvMaxFrameHeight(remoteRecvMaxFrameHeight) {
         this._remoteRecvMaxFrameHeight = remoteRecvMaxFrameHeight;
-        this.eventEmitter.emit(
-            MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED,
-            this);
+        if (this.isP2P) {
+            this.eventEmitter.emit(
+                MediaSessionEvents.REMOTE_VIDEO_CONSTRAINTS_CHANGED,
+                this);
+        } else {
+            this.rtc.eventEmitter.emit(
+                RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
+                { idealHeight: remoteRecvMaxFrameHeight });
+        }
     }
 }
 
@@ -53,7 +62,7 @@ class MockConference extends Listenable {
     constructor() {
         super();
         this.options = {
-            config: { }
+            config: { enableLayerSuspension: true }
         };
         this.activeMediaSession = undefined;
         this.mediaSessions = [];
@@ -110,8 +119,8 @@ describe('SendVideoController', () => {
         conference = new MockConference();
         rtc = new MockRTC();
         sendVideoController = new SendVideoController(conference, rtc);
-        jvbConnection = new MockJingleSessionPC();
-        p2pConnection = new MockJingleSessionPC();
+        jvbConnection = new MockJingleSessionPC(rtc, false /* isP2P */);
+        p2pConnection = new MockJingleSessionPC(rtc, true /* isP2P */);
 
         conference.addMediaSession(jvbConnection);
         conference.addMediaSession(p2pConnection);
@@ -136,7 +145,7 @@ describe('SendVideoController', () => {
             expect(p2pConnection.senderVideoConstraint).toBe(720);
         });
         it('0 if it\'s the local send preference while remote are 720', () => {
-            conference.setActiveMediaSession(jvbConnection);
+            conference.setActiveMediaSession(p2pConnection);
 
             jvbConnection.setRemoteRecvMaxFrameHeight(720);
             p2pConnection.setRemoteRecvMaxFrameHeight(720);

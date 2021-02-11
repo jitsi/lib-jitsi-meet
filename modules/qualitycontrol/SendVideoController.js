@@ -48,8 +48,6 @@ export class SendVideoController {
                     this._propagateSendMaxFrameHeight();
                 }
             });
-        this.preferredReceiveMaxFrameHeight
-            && mediaSession.setReceiverVideoConstraint(this.preferredReceiveMaxFrameHeight);
 
         // Set the degradation preference on the local video track.
         mediaSession.setSenderVideoDegradationPreference();
@@ -103,18 +101,6 @@ export class SendVideoController {
         }
 
         return this.preferredSendMaxFrameHeight;
-    }
-
-    /**
-     * Sets local preference for max receive video frame height.
-     * @param {number|undefined} maxFrameHeight - the new value.
-     */
-    setPreferredReceiveMaxFrameHeight(maxFrameHeight) {
-        this.preferredReceiveMaxFrameHeight = maxFrameHeight;
-
-        for (const session of this.conference._getMediaSessions()) {
-            maxFrameHeight && session.setReceiverVideoConstraint(maxFrameHeight);
-        }
     }
 
     /**
