@@ -65,11 +65,6 @@ const RTCEvents = {
     REMOTE_TRACK_UNMUTE: 'rtc.remote_track_unmute',
 
     /**
-     * Indicates that video constraints received from the bridge have changed.
-     */
-    REMOTE_VIDEO_CONSTRAINTS_CHANGED: 'rtc.remote_video_constraints_changed',
-
-    /**
      * Indicates error while set local description.
      */
     SET_LOCAL_DESCRIPTION_FAILED: 'rtc.set_local_description_failed',

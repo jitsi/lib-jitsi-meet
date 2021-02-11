@@ -1425,7 +1425,6 @@ export default class JingleSessionPC extends JingleSession {
     setSenderVideoConstraint(maxFrameHeight) {
         if (this._assertNotEnded()) {
             logger.info(`${this} setSenderVideoConstraint: ${maxFrameHeight}`);
-            this.remoteRecvMaxFrameHeight = maxFrameHeight;
 
             // RN doesn't support RTCRtpSenders yet, aggresive layer suspension on RN is implemented
             // by changing the media direction in the SDP. This is applicable to jvb sessions only.

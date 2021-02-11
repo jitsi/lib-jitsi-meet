@@ -1393,7 +1393,7 @@ JitsiConference.prototype.setLastN = function(lastN) {
  * {@link ParticipantConnectionStatus} should be used instead.
  */
 JitsiConference.prototype.isInLastN = function(participantId) {
-    return this.receiveVideoController.isInLastN(participantId);
+    return this.rtc.isInLastN(participantId);
 };
 
 /**
@@ -3003,7 +3003,7 @@ JitsiConference.prototype._setP2PStatus = function(newStatus) {
 
         // Sync up video transfer active in case p2pJingleSession not existed
         // when the lastN value was being adjusted.
-        const isVideoActive = this.receiveVideoController.lastN !== 0;
+        const isVideoActive = this.rtc.getLastN() !== 0;
 
         this.p2pJingleSession
             .setMediaTransferActive(true, isVideoActive)
