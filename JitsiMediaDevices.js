@@ -43,10 +43,6 @@ class JitsiMediaDevices {
 
         // Test if the W3C Permissions API is implemented and the 'camera' and 'microphone' permissions are
         // implemented. If supported add onchange listeners.
-        //
-        // NOTE: We don't cache the result for the query because this can potentialy lead to outdated result returned
-        // from isDevicePermissionGranted method ( for the time period before the first GUM has been resolved) if the
-        //  onchange handler is not working.
         this._permissionsApiSupported = new Promise(resolve => {
             if (!navigator.permissions) {
                 resolve(false);
@@ -60,6 +56,9 @@ class JitsiMediaDevices {
 
             promises.push(navigator.permissions.query({ name: VIDEO_PERMISSION_NAME })
                 .then(status => {
+                    this._handlePermissionsChange({
+                        [MediaType.VIDEO]: this._parsePermissionState(status)
+                    });
                     status.onchange = function() {
                         try {
                             self._handlePermissionsChange({
@@ -76,6 +75,9 @@ class JitsiMediaDevices {
 
             promises.push(navigator.permissions.query({ name: AUDIO_PERMISSION_NAME })
                 .then(status => {
+                    this._handlePermissionsChange({
+                        [MediaType.AUDIO]: this._parsePermissionState(status)
+                    });
                     status.onchange = function() {
                         try {
                             self._handlePermissionsChange({
@@ -195,10 +197,6 @@ class JitsiMediaDevices {
      * @param {'audio'|'video'} [type] - type of devices to check,
      *      undefined stands for both 'audio' and 'video' together
      * @returns {Promise<boolean>}
-     *
-     * NOTE: We don't cache the result from the query because this can potentialy lead to outdated result returned
-     * from this method ( for the time period before the first GUM has been resolved) if the onchange handler is not
-     * working.
      */
     isDevicePermissionGranted(type) {
         return new Promise(resolve => {
