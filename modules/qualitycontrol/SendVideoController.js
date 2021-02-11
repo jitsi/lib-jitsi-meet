@@ -29,7 +29,10 @@ export class SendVideoController {
             () => this._propagateSendMaxFrameHeight());
         this.rtc.on(
             RTCEvents.SENDER_VIDEO_CONSTRAINTS_CHANGED,
-            videoConstraints => this._propagateSendMaxFrameHeight(videoConstraints));
+            videoConstraints => {
+                this._senderVideoConstraints = videoConstraints;
+                this._propagateSendMaxFrameHeight(videoConstraints);
+            });
     }
 
     /**
@@ -60,14 +63,10 @@ export class SendVideoController {
      * Figures out the send video constraint as specified by {@link selectSendMaxFrameHeight} and sets it on all media
      * sessions for the reasons mentioned in this class description.
      *
-     * @param {Object} constraints - the senderVideoConstraints received on the bridge channel.
      * @returns {Promise<void[]>}
      * @private
      */
-    _propagateSendMaxFrameHeight(constraints = null) {
-        if (constraints && this.layerSuspensionEnabled) {
-            this.senderVideoConstraints = constraints;
-        }
+    _propagateSendMaxFrameHeight() {
         const sendMaxFrameHeight = this.selectSendMaxFrameHeight();
         const promises = [];
 
@@ -91,7 +90,7 @@ export class SendVideoController {
         const remoteRecvMaxFrameHeight = activeMediaSession
             ? activeMediaSession.isP2P
                 ? activeMediaSession.getRemoteRecvMaxFrameHeight()
-                : this.senderVideoConstraints?.idealHeight
+                : this.layerSuspensionEnabled ? this._senderVideoConstraints?.idealHeight : undefined
             : undefined;
 
         if (this.preferredSendMaxFrameHeight >= 0 && remoteRecvMaxFrameHeight >= 0) {

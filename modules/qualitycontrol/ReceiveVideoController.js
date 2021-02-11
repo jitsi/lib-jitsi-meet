@@ -15,8 +15,8 @@ export class ReceiveVideoController {
      * @param {RTC} rtc the rtc instance which is responsible for initializing the bridge channel.
      */
     constructor(conference, rtc) {
-        this.conference = conference;
-        this.rtc = rtc;
+        this._conference = conference;
+        this._rtc = rtc;
 
         // The number of videos requested from the bridge, -1 represents unlimited or all available videos.
         this._lastN = -1;
@@ -27,7 +27,7 @@ export class ReceiveVideoController {
         // The endpoint IDs of the participants that are currently selected.
         this._selectedEndpoints = [];
 
-        this.conference.on(
+        this._conference.on(
             JitsiConferenceEvents._MEDIA_SESSION_STARTED,
             session => this._onMediaSessionStarted(session));
     }
@@ -53,7 +53,7 @@ export class ReceiveVideoController {
      */
     selectEndpoints(ids) {
         this._selectedEndpoints = ids;
-        this.rtc.selectEndpoints(ids);
+        this._rtc.selectEndpoints(ids);
     }
 
     /**
@@ -66,7 +66,7 @@ export class ReceiveVideoController {
     setLastN(value) {
         if (this._lastN !== value) {
             this._lastN = value;
-            this.rtc.setLastN(value);
+            this._rtc.setLastN(value);
         }
     }
 
@@ -79,7 +79,7 @@ export class ReceiveVideoController {
     setPreferredReceiveMaxFrameHeight(maxFrameHeight) {
         this._maxFrameHeight = maxFrameHeight;
 
-        for (const session of this.conference._getMediaSessions()) {
+        for (const session of this._conference._getMediaSessions()) {
             maxFrameHeight && session.setReceiverVideoConstraint(maxFrameHeight);
         }
     }
