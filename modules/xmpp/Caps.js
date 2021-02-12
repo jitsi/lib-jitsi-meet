@@ -334,7 +334,9 @@ export default class Caps extends Listenable {
         this.jidToVersion[from] = { version,
             node };
         if (oldVersion && oldVersion.version !== version) {
-            this.eventEmitter.emit(XMPPEvents.PARTICIPANT_FEATURES_CHANGED, from);
+            // We should be receiving update of features in the presence <feature> node
+            // and ignore the caps version for disco-info
+            logger.warn(`Received update in caps for ${from}`);
         }
 
         // return true to not remove the handler from Strophe
