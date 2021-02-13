@@ -44,6 +44,7 @@ const DEFAULT_MAX_STATS = 300;
  * @property {Object} abTesting - A/B testing related options (ask George).
  * @property {boolean} abTesting.enableSuspendVideoTest - enables the suspend
  * video test ?(ask George).
+ * @property {Array} customOptionalConstraints - custom optional constraints to pass into RTCPeerConnecition
  * @property {boolean} disableH264 - Described in the config.js[1].
  * @property {boolean} disableRtx - Described in the config.js[1].
  * @property {boolean} disableSimulcast - Described in the config.js[1].
@@ -363,6 +364,8 @@ export default class JingleSessionPC extends JingleSession {
         if (options.startSilent) {
             pcOptions.startSilent = true;
         }
+
+        pcOptions.customOptionalConstraints = options.customOptionalConstraints;
 
         this.peerconnection
             = this.rtc.createPeerConnection(

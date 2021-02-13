@@ -477,7 +477,7 @@ export default class RTC extends Listenable {
      * @return {TraceablePeerConnection}
      */
     createPeerConnection(signaling, iceConfig, isP2P, options) {
-        const pcConstraints = RTC.getPCConstraints(isP2P);
+        const pcConstraints = RTC.getPCConstraints(isP2P, options.customOptionalConstraints || []);
 
         if (typeof options.abtestSuspendVideo !== 'undefined') {
             RTCUtils.setSuspendVideo(pcConstraints, options.abtestSuspendVideo);
@@ -693,7 +693,7 @@ export default class RTC extends Listenable {
     /**
      *
      */
-    static getPCConstraints(isP2P) {
+    static getPCConstraints(isP2P, customOptionalConstraints) {
         const pcConstraints
             = isP2P ? RTCUtils.p2pPcConstraints : RTCUtils.pcConstraints;
 
@@ -701,7 +701,14 @@ export default class RTC extends Listenable {
             return {};
         }
 
-        return JSON.parse(JSON.stringify(pcConstraints));
+        const resultConstraints = JSON.parse(JSON.stringify(pcConstraints));
+
+        if (customOptionalConstraints && customOptionalConstraints !== []) {
+            resultConstraints.optional = resultConstraints.optional || [];
+            resultConstraints.optional.concat(customOptionalConstraints);
+        }
+
+        return resultConstraints;
     }
 
     /**
