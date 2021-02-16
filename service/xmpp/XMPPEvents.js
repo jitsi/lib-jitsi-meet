@@ -9,7 +9,7 @@ const XMPPEvents = {
     AUDIO_MUTED_BY_FOCUS: 'xmpp.audio_muted_by_focus',
     // Designates an event indicating that the focus has asked us to disable our
     // camera.
-    AUDIO_MUTED_VIDEO_BY_FOCUS: 'xmpp.video_muted_by_focus',
+    VIDEO_MUTED_BY_FOCUS: 'xmpp.video_muted_by_focus',
     AUTHENTICATION_REQUIRED: 'xmpp.authentication_required',
     BRIDGE_DOWN: 'xmpp.bridge_down',
 
