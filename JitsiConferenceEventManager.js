@@ -111,6 +111,30 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
         }
     );
 
+    chatRoom.addListener(XMPPEvents.VIDEO_MUTED_BY_FOCUS,
+        actor => {
+            // TODO: Add a way to differentiate between commands which caused
+            // us to mute and those that did not change our state (i.e. we were
+            // already muted).
+            Statistics.sendAnalytics(createRemotelyMutedEvent());
+
+            conference.mutedVideoByFocusActor = actor;
+
+            // set isVideoMutedByFocus when setVideoMute Promise ends
+            conference.rtc.setVideoMute(true).then(
+                () => {
+                    conference.isVideoMutedByFocus = true;
+                    conference.mutedVideoByFocusActor = null;
+                })
+                .catch(
+                    error => {
+                        conference.mutedVideoByFocusActor = null;
+                        logger.warn(
+                            'Error while video muting due to focus request', error);
+                    });
+        }
+    );
+
     this.chatRoomForwarder.forward(XMPPEvents.SUBJECT_CHANGED,
         JitsiConferenceEvents.SUBJECT_CHANGED);
 

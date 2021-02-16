@@ -150,6 +150,11 @@ export default function JitsiConference(options) {
     // when muted by focus we receive the jid of the initiator of the mute
     this.mutedByFocusActor = null;
 
+    this.isVideoMutedByFocus = false;
+
+    // when video muted by focus we receive the jid of the initiator of the mute
+    this.mutedVideoByFocusActor = null;
+
     // Flag indicates if the 'onCallEnded' method was ever called on this
     // instance. Used to log extra analytics event for debugging purpose.
     // We need to know if the potential issue happened before or after
@@ -1018,12 +1023,21 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
 
         // unmute local user on server
         this.room.muteParticipant(this.room.myroomjid, false, MediaType.AUDIO);
+    } else if (this.isVideoMutedByFocus && track.isVideoTrack() && !track.isMuted()) {
+        this.isVideoMutedByFocus = false;
+
+        // unmute local user on server
+        this.room.muteParticipant(this.room.myroomjid, false, MediaType.VIDEO);
     }
 
     let actorParticipant;
 
     if (this.mutedByFocusActor) {
         const actorId = Strophe.getResourceFromJid(this.mutedByFocusActor);
+
+        actorParticipant = this.participants[actorId];
+    } else if (this.mutedVideoByFocusActor) {
+        const actorId = Strophe.getResourceFromJid(this.mutedVideoByFocusActor);
 
         actorParticipant = this.participants[actorId];
     }
