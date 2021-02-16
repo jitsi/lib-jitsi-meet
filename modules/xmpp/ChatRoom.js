@@ -1672,14 +1672,15 @@ export default class ChatRoom extends Listenable {
      * Mutes remote participant.
      * @param jid of the participant
      * @param mute
+     * @param mediaType
      */
-    muteParticipant(jid, mute) {
+    muteParticipant(jid, mute, mediaType) {
         logger.info('set mute', mute);
         const iqToFocus = $iq(
             { to: this.focusMucJid,
                 type: 'set' })
             .c('mute', {
-                xmlns: 'http://jitsi.org/jitmeet/audio',
+                xmlns: `http://jitsi.org/jitmeet/${mediaType}`,
                 jid
             })
             .t(mute.toString())

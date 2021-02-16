@@ -1017,7 +1017,7 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
         this.isMutedByFocus = false;
 
         // unmute local user on server
-        this.room.muteParticipant(this.room.myroomjid, false);
+        this.room.muteParticipant(this.room.myroomjid, false, MediaType.AUDIO);
     }
 
     let actorParticipant;
@@ -1495,13 +1495,21 @@ JitsiConference.prototype._maybeSetSITimeout = function() {
  * Mutes a participant.
  * @param {string} id The id of the participant to mute.
  */
-JitsiConference.prototype.muteParticipant = function(id) {
+JitsiConference.prototype.muteParticipant = function(id, mediaType) {
+    if(!mediaType) {
+        // Fallback to audio for backwards compatibility
+        mediaType = MediaType.AUDIO;
+    } else if(mediaType !== MediaType.AUDIO && mediaType !== MediaType.VIDEO) {
+        logger.error(`Unsupported media type: ${mediaType}`);
+        return;
+    }
+
     const participant = this.getParticipantById(id);
 
     if (!participant) {
         return;
     }
-    this.room.muteParticipant(participant.getJid(), true);
+    this.room.muteParticipant(participant.getJid(), true, mediaType);
 };
 
 /* eslint-disable max-params */
