@@ -1032,11 +1032,11 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
 
     let actorParticipant;
 
-    if (this.mutedByFocusActor) {
+    if (this.mutedByFocusActor && track.isAudioTrack()) {
         const actorId = Strophe.getResourceFromJid(this.mutedByFocusActor);
 
         actorParticipant = this.participants[actorId];
-    } else if (this.mutedVideoByFocusActor) {
+    } else if (this.mutedVideoByFocusActor && track.isVideoTrack()) {
         const actorId = Strophe.getResourceFromJid(this.mutedVideoByFocusActor);
 
         actorParticipant = this.participants[actorId];
